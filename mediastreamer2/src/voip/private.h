@@ -97,6 +97,7 @@ MS2_PUBLIC void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context
 MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions);
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
+void media_stream_enable_tmmbr_handling(MediaStream *stream, bool_t enable);
 
 MSSrtpCtx* ms_srtp_context_new(void);
 void ms_srtp_context_delete(MSSrtpCtx *session);

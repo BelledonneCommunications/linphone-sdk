@@ -27,14 +27,13 @@
 
 static bool_t is_vp8_key_frame(mblk_t *m){
 	uint8_t *p;
-	bool_t duplicated = FALSE;
+	
 	if (m->b_cont){
-		m = dupmsg(m);
-		msgpullup(m, 50);
-		duplicated = TRUE;
+		ms_message("With b_cont");
+		return !(m->b_cont->b_rptr[0] & 1);
 	}
 	p = vp8rtpfmt_skip_payload_descriptor(m);
-	if (duplicated) freeb(m);
+	
 	if (!p) {
 		ms_warning("MSVideoSwitcher: invalid vp8 payload descriptor.");
 		return FALSE;
@@ -181,8 +180,9 @@ static void switcher_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, Out
 	mblk_t *m;
 	if (ms_queue_empty(input)) return;
 	
-	for(m = ms_queue_peek_first(input); !ms_queue_end(input, m) ;m = ms_queue_peek_next(input,m)){
-		if (start != NULL && m != start) continue; /* Skip packets until the key-frame start packet is found */
+	if (start == NULL) start = ms_queue_peek_first(input);
+	
+	for(m = start; !ms_queue_end(input, m) ; m = ms_queue_peek_next(input,m)){
 		mblk_t *o = dupmsg(m);
 		
 		if (mblk_get_timestamp_info(m) != output_context->out_ts){
@@ -234,7 +234,7 @@ static void switcher_process(MSFilter *f){
 				ms_warning("%s: next source %i disapeared, choosing another one.", f->desc->name, output_context->next_source);
 				output_context->next_source = next_input_pin(f, output_context->next_source);
 			}
-			if (f->inputs[output_context->current_source] == NULL && output_context->current_source == output_context->next_source){
+			if (f->inputs[output_context->current_source] == NULL){
 				ms_warning("%s: current source %i disapeared, choosing another one to switch to.", f->desc->name, output_context->current_source);
 				output_context->next_source = next_input_pin(f, output_context->current_source);
 				output_context->current_source = -1; /* Invalidate the current source until the switch.*/
@@ -257,7 +257,7 @@ static void switcher_process(MSFilter *f){
 				input_context = &s->input_contexts[output_context->current_source];
 				if (input_context->state == RUNNING){
 					switcher_transfer(f, f->inputs[output_context->current_source], q, output_context, key_frame_start);
-					ms_message("%s: transfered packets from pin %i to pin %i", f->desc->name, output_context->current_source, i);
+					//ms_message("%s: transfered packets from pin %i to pin %i", f->desc->name, output_context->current_source, i);
 				}
 			}
 		}

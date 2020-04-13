@@ -118,37 +118,44 @@ const char * ms_filter_get_name(MSFilter *f) {
 
 int ms_filter_link(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
-
-	if (f1 && f2) {
-		ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
-		ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
-		ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
-		ms_return_val_if_fail(f1->outputs[pin1]==NULL,-1);
-		ms_return_val_if_fail(f2->inputs[pin2]==NULL,-1);
-		q=ms_queue_new(f1,pin1,f2,pin2);
-		f1->outputs[pin1]=q;
-		f2->inputs[pin2]=q;
-	} else {
-		ms_warning("[%s] Unable to link filters as pointer to at least one is NULL", __FUNCTION__);
+	ms_message("ms_filter_link: %s:%p,%i-->%s:%p,%i",f1->desc->name,f1,pin1,f2->desc->name,f2,pin2);
+	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
+	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
+	ms_return_val_if_fail(f1->outputs[pin1]==NULL,-1);
+	ms_return_val_if_fail(f2->inputs[pin2]==NULL,-1);
+#ifdef MS2_NO_RELINK_WHILE_RUNNING
+	if (f1->ticker){
+		ms_fatal("Filter %s:%p is already scheduled.", f1->desc->name, f1);
 	}
+	if (f2->ticker){
+		ms_fatal("Filter %s:%p is already scheduled.", f2->desc->name, f2);
+	}
+#endif
+	q=ms_queue_new(f1,pin1,f2,pin2);
+	f1->outputs[pin1]=q;
+	f2->inputs[pin2]=q;
 	return 0;
 }
 
 int ms_filter_unlink(MSFilter *f1, int pin1, MSFilter *f2, int pin2){
 	MSQueue *q;
-	if (f1 && f2) {
-		ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1 ? f1->desc->name : "!NULL!",f1,pin1,f2 ? f2->desc->name : "!NULL!",f2,pin2);
-		ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
-		ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
-		ms_return_val_if_fail(f1->outputs[pin1]!=NULL,-1);
-		ms_return_val_if_fail(f2->inputs[pin2]!=NULL,-1);
-		ms_return_val_if_fail(f1->outputs[pin1]==f2->inputs[pin2],-1);
-		q=f1->outputs[pin1];
-		f1->outputs[pin1]=f2->inputs[pin2]=0;
-		ms_queue_destroy(q);
-	} else {
-		ms_warning("[%s] Unable to unlink filters as pointer to at least one is NULL", __FUNCTION__);
+	ms_message("ms_filter_unlink: %s:%p,%i-->%s:%p,%i",f1 ? f1->desc->name : "!NULL!",f1,pin1,f2 ? f2->desc->name : "!NULL!",f2,pin2);
+	ms_return_val_if_fail(pin1<f1->desc->noutputs, -1);
+	ms_return_val_if_fail(pin2<f2->desc->ninputs, -1);
+	ms_return_val_if_fail(f1->outputs[pin1]!=NULL,-1);
+	ms_return_val_if_fail(f2->inputs[pin2]!=NULL,-1);
+	ms_return_val_if_fail(f1->outputs[pin1]==f2->inputs[pin2],-1);
+#ifdef MS2_NO_RELINK_WHILE_RUNNING
+	if (f1->ticker){
+		ms_fatal("Filter %s:%p is still scheduled.", f1->desc->name, f1);
 	}
+	if (f2->ticker){
+		ms_fatal("Filter %s:%p is still scheduled.", f2->desc->name, f2);
+	}
+#endif
+	q=f1->outputs[pin1];
+	f1->outputs[pin1]=f2->inputs[pin2]=0;
+	ms_queue_destroy(q);
 	return 0;
 }
 

@@ -46,6 +46,7 @@ struct _MSAudioEndpoint{
 	MSFilter *player; /* not used at the moment, but we need it so that there is a source connected to the mixer*/
 	int pin;
 	int samplerate;
+	bool_t muted;
 };
 
 
@@ -185,6 +186,7 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 	ms_ticker_attach(obj->ticker,obj->mixer);
 	obj->members = bctbx_list_append(obj->members, ep);
 	obj->nmembers++;
+	ms_audio_conference_mute_member(obj, ep, ep->muted);
 }
 
 static void unplumb_from_conf(MSAudioEndpoint *ep){
@@ -213,6 +215,7 @@ void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep
 	MSAudioMixerCtl ctl={0};
 	ctl.pin=ep->pin;
 	ctl.param.active=!muted;
+	ep->muted = muted;
 	ms_filter_call_method(ep->conference->mixer, MS_AUDIO_MIXER_SET_ACTIVE, &ctl);
 }
 
@@ -233,6 +236,7 @@ void ms_audio_conference_process_events(MSAudioConference *obj){
 		MSAudioEndpoint *ep = (MSAudioEndpoint *) elem->data;
 		int is_remote = (ep->in_cut_point_prev.filter == ep->st->volrecv);
 		MSFilter *volume_filter = is_remote ? ep->st->volrecv : ep->st->volsend;
+		if (ep->muted) continue;
 		if (volume_filter){
 			float max_db = MS_VOLUME_DB_LOWEST;
 			if (ms_filter_call_method(volume_filter, MS_VOLUME_GET_MAX, &max_db) == 0){

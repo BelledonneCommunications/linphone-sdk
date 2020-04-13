@@ -120,11 +120,22 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	if (sessions->dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
-	ortp_ev_dispatcher_connect(stream->evd
+	media_stream_enable_tmmbr_handling(stream, TRUE);
+}
+
+void media_stream_enable_tmmbr_handling(MediaStream *stream, bool_t enable){
+	if (enable){
+		ortp_ev_dispatcher_connect(stream->evd
 								, ORTP_EVENT_RTCP_PACKET_RECEIVED
 								, RTCP_RTPFB
 								, (OrtpEvDispatcherCb)tmmbr_received
 								, stream);
+	}else{
+		ortp_ev_dispatcher_disconnect(stream->evd
+								, ORTP_EVENT_RTCP_PACKET_RECEIVED
+								, RTCP_RTPFB
+								, (OrtpEvDispatcherCb)tmmbr_received);
+	}
 }
 
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {

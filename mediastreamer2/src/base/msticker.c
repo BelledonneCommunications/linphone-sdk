@@ -162,7 +162,14 @@ int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...)
 				ms_filter_preprocess((MSFilter*)it->data,ticker);
 			bctbx_list_free(filters);
 			total_sources=bctbx_list_concat(total_sources,sources);
-		}else ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
+		}else{
+			if (f->ticker == ticker){
+				ms_message("Filter %s is already being scheduled; nothing to do.",f->desc->name);
+			}else{
+				ms_fatal("MSTicker %p; cannot attach filter %s:%p : it is already being run by ticker %p.",
+					 ticker, f->desc->name, f, f->ticker);
+			}
+		}
 	}while ((f=va_arg(l,MSFilter*))!=NULL);
 	va_end(l);
 	if (total_sources){

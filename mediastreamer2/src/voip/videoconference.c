@@ -112,8 +112,9 @@ static MSCPoint just_after(MSFilter *f){
 static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 	VideoStream *st=ep->st;
 
-	/*stop the audio graph*/
-	ms_ticker_detach(st->ms.sessions.ticker,st->source);
+	/*stop the video graph*/
+	ms_ticker_detach(st->ms.sessions.ticker, st->source);
+	ms_ticker_detach(st->ms.sessions.ticker, st->ms.rtprecv);
 	ep->is_remote=is_remote;
 	ep->in_cut_point_prev.pin=0;
 	if (is_remote){
@@ -137,6 +138,7 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 
 	ep->mixer_in=ep->in_cut_point_prev;
 	ep->mixer_out=ep->out_cut_point;
+	media_stream_enable_tmmbr_handling((MediaStream*)ep->st, FALSE);
 }
 
 
@@ -144,7 +146,8 @@ static void redo_video_stream_graph(MSVideoEndpoint *ep){
 	VideoStream *st=ep->st;
 	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
 	ms_filter_link(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
-	ms_ticker_attach(st->ms.sessions.ticker,st->source);
+	ms_ticker_attach_multiple(st->ms.sessions.ticker, st->source, st->ms.rtprecv);
+	media_stream_enable_tmmbr_handling((MediaStream*)st, TRUE);
 }
 
 static int find_free_pin(MSFilter *mixer){
