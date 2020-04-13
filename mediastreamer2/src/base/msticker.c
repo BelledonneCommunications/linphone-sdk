@@ -562,7 +562,7 @@ void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev){
 }
 
 static void ms_ticker_synchronizer_reset(MSTickerSynchronizer* ts){
-	memset(&ts, 0, sizeof(ts));
+	memset(ts, 0, sizeof(*ts));
 }
 
 void ms_ticker_set_synchronizer(MSTicker *ticker, MSTickerSynchronizer *ts) {
@@ -606,7 +606,7 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	sound_time = ts->offset + ms;
 	diff = wc - sound_time;
 	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
-	if ((++ts->external_time_count) % 100 == 0) {
+	if ((++ts->external_time_count) % 10 == 0) {
 #ifndef __ANDROID__
 		ms_message("sound/wall clock skew is average=%f ms", ts->av_skew);
 #endif
