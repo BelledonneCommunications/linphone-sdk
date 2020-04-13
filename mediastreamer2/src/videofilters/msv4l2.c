@@ -449,7 +449,10 @@ static int msv4l2_configure(V4l2State *s){
 		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x (%s)",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt, ms_pix_fmt_to_string(s->pix_fmt));
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->requested_vsize.width,s->requested_vsize.height);
-
+	if (s->used_vsize.width < s->used_vsize.height){
+		s->used_vsize.width = s->requested_vsize.height;
+		s->used_vsize.height = s->requested_vsize.width;
+	}else s->used_vsize = s->requested_vsize;
 	focus=getenv("MS2_CAM_FOCUS");
 	if (focus){
 		if (strcasecmp(focus,"auto")==0){
