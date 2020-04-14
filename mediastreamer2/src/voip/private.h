@@ -97,7 +97,14 @@ MS2_PUBLIC void ms_dtls_srtp_set_stream_sessions(MSDtlsSrtpContext *dtls_context
 MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions);
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
-void media_stream_enable_tmmbr_handling(MediaStream *stream, bool_t enable);
+
+/* The handler of tmmbr for MediaStream objects.*/
+void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer);
+void media_stream_process_tmmbr(MediaStream *ms, int tmmbr_mxtbr);
+
+void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
+
+void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
 
 MSSrtpCtx* ms_srtp_context_new(void);
 void ms_srtp_context_delete(MSSrtpCtx *session);

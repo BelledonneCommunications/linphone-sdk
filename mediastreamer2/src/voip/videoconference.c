@@ -21,12 +21,15 @@
 #include "mediastreamer2/msvideoswitcher.h"
 #include "private.h"
 
+static void ms_video_conference_update_bitrate_request(MSVideoConference *obj);
+
 struct _MSVideoConference{
 	MSVideoConferenceParams params;
 	MSAudioConference *audioconf;
 	MSTicker *ticker;
 	MSFilter *mixer;
 	bctbx_list_t *members;
+	int bitrate;
 };
 
 struct _MSVideoEndpoint{
@@ -41,6 +44,7 @@ struct _MSVideoEndpoint{
 	MSVideoConference *conference;
 	int pin;
 	int is_remote;
+	int last_tmmbr_received; /*Value in bits/s */
 };
 
 static MSVideoEndpoint *get_endpoint_at_pin(MSVideoConference *obj, int pin){
@@ -109,6 +113,26 @@ static MSCPoint just_after(MSFilter *f){
 	return pnull;
 }
 
+
+static void ms_video_endpoint_tmmbr_received(const OrtpEventData *evd, void *user_pointer){
+	MSVideoEndpoint *ep = (MSVideoEndpoint*)user_pointer;
+	
+	switch (rtcp_RTPFB_get_type(evd->packet)) {
+		case RTCP_RTPFB_TMMBR: {
+			int tmmbr_mxtbr = (int)rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
+
+			ms_message("MSVideoConference [%p]: received a TMMBR for bitrate %i kbits/s on pin %i."
+						, ep->conference, (int)(tmmbr_mxtbr/1000), ep->pin);
+			ep->last_tmmbr_received = tmmbr_mxtbr;
+			ms_video_conference_update_bitrate_request(ep->conference);
+		}
+		break;
+		default:
+		break;
+	}
+}
+
+
 static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 	VideoStream *st=ep->st;
 
@@ -138,16 +162,22 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 
 	ep->mixer_in=ep->in_cut_point_prev;
 	ep->mixer_out=ep->out_cut_point;
-	media_stream_enable_tmmbr_handling((MediaStream*)ep->st, FALSE);
+	
+	/* Replaces own's MediaStream tmmbr handler by the video conference implementation.*/
+	media_stream_remove_tmmbr_handler((MediaStream*)ep->st, media_stream_tmmbr_received, ep->st);
+	media_stream_add_tmmbr_handler((MediaStream*)ep->st, ms_video_endpoint_tmmbr_received, ep);
 }
 
 
 static void redo_video_stream_graph(MSVideoEndpoint *ep){
 	VideoStream *st=ep->st;
+	
+	media_stream_remove_tmmbr_handler((MediaStream*)ep->st, ms_video_endpoint_tmmbr_received, ep);
+	media_stream_add_tmmbr_handler((MediaStream*)ep->st, media_stream_tmmbr_received, ep->st);
 	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
 	ms_filter_link(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
 	ms_ticker_attach_multiple(st->ms.sessions.ticker, st->source, st->ms.rtprecv);
-	media_stream_enable_tmmbr_handling((MediaStream*)st, TRUE);
+	
 }
 
 static int find_free_pin(MSFilter *mixer){
@@ -208,6 +238,42 @@ void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *
 
 void ms_video_conference_set_focus(MSVideoConference *obj, MSVideoEndpoint *ep){
 	ms_filter_call_method(obj->mixer, MS_VIDEO_SWITCHER_SET_FOCUS, &ep->pin);
+}
+
+static void ms_video_conference_apply_new_bitrate_request(MSVideoConference *obj){
+	const bctbx_list_t *elem;
+	for (elem = obj->members; elem != NULL; elem = elem->next){
+		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
+		if (ep->is_remote){
+			rtp_session_send_rtcp_fb_tmmbr(ep->st->ms.sessions.rtp_session, (uint64_t)obj->bitrate);
+		}else{
+			media_stream_process_tmmbr((MediaStream*)ep->st, obj->bitrate);
+		}
+	}
+}
+
+static void ms_video_conference_update_bitrate_request(MSVideoConference *obj){
+	const bctbx_list_t *elem;
+	int min_of_tmmbr = -1;
+	for (elem = obj->members; elem != NULL; elem = elem->next){
+		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
+		if (ep->last_tmmbr_received != 0){
+			if (min_of_tmmbr == -1){
+				min_of_tmmbr = ep->last_tmmbr_received;
+			}else{
+				if (ep->last_tmmbr_received < min_of_tmmbr){
+					min_of_tmmbr = ep->last_tmmbr_received;
+				}
+			}
+		}
+	}
+	if (min_of_tmmbr != -1){
+		if (obj->bitrate != min_of_tmmbr){
+			obj->bitrate = min_of_tmmbr;
+			ms_message("MSVideoConference [%p]: new bitrate requested: %i kbits/s.", obj, obj->bitrate/1000);
+			ms_video_conference_apply_new_bitrate_request(obj);
+		}
+	}
 }
 
 void ms_video_conference_set_audio_conference(MSVideoConference *obj, MSAudioConference *audioconf){

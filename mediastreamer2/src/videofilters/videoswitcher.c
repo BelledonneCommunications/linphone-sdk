@@ -29,7 +29,7 @@ static bool_t is_vp8_key_frame(mblk_t *m){
 	uint8_t *p;
 	
 	if (m->b_cont){
-		ms_message("With b_cont");
+		/* When data comes directly from the VP8 encoder, the VP8 payload is the second of the mblk_t chain.*/
 		return !(m->b_cont->b_rptr[0] & 1);
 	}
 	p = vp8rtpfmt_skip_payload_descriptor(m);
@@ -233,7 +233,7 @@ static void switcher_process(MSFilter *f){
 				ms_warning("%s: next source %i disapeared, choosing another one.", f->desc->name, output_context->next_source);
 				output_context->next_source = next_input_pin(f, output_context->next_source);
 			}
-			if (f->inputs[output_context->current_source] == NULL){
+			if (output_context->current_source != -1 && f->inputs[output_context->current_source] == NULL){
 				ms_warning("%s: current source %i disapeared, choosing another one to switch to.", f->desc->name, output_context->current_source);
 				output_context->next_source = next_input_pin(f, output_context->current_source);
 				output_context->current_source = -1; /* Invalidate the current source until the switch.*/

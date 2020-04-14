@@ -50,8 +50,6 @@ ms_time(time_t *t) {
 }
 #endif
 
-static void tmmbr_received(const OrtpEventData *evd, void *user_pointer);
-
 
 static void disable_checksums(ortp_socket_t sock) {
 #if defined(DISABLE_CHECKSUMS) && defined(SO_NO_CHECK)
@@ -120,22 +118,22 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	if (sessions->dtls_context != NULL) {
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
-	media_stream_enable_tmmbr_handling(stream, TRUE);
+	media_stream_add_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
 }
 
-void media_stream_enable_tmmbr_handling(MediaStream *stream, bool_t enable){
-	if (enable){
-		ortp_ev_dispatcher_connect(stream->evd
+void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data){
+	ortp_ev_dispatcher_connect(stream->evd
 								, ORTP_EVENT_RTCP_PACKET_RECEIVED
 								, RTCP_RTPFB
-								, (OrtpEvDispatcherCb)tmmbr_received
-								, stream);
-	}else{
-		ortp_ev_dispatcher_disconnect(stream->evd
-								, ORTP_EVENT_RTCP_PACKET_RECEIVED
-								, RTCP_RTPFB
-								, (OrtpEvDispatcherCb)tmmbr_received);
-	}
+								, (OrtpEvDispatcherCb)on_tmmbr_received
+								, user_data);
+}
+
+void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data){
+	ortp_ev_dispatcher_disconnect(stream->evd
+							, ORTP_EVENT_RTCP_PACKET_RECEIVED
+							, RTCP_RTPFB
+							, (OrtpEvDispatcherCb)on_tmmbr_received);
 }
 
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
@@ -222,7 +220,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 }
 
 void media_stream_free(MediaStream *stream) {
-	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB, (OrtpEvDispatcherCb)tmmbr_received);
+	media_stream_remove_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
 	if (stream->sessions.zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(stream->sessions.zrtp_context, NULL);
 	}
@@ -701,53 +699,55 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit){
 	return br_limit;
 }
 
-static void tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
+void media_stream_process_tmmbr(MediaStream *ms, int tmmbr_mxtbr){
+	ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
+				, ms, (int)(tmmbr_mxtbr/1000));
+	tmmbr_mxtbr = update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
+	if (tmmbr_mxtbr < 0) return;
+
+#ifdef VIDEO_ENABLED
+	if (ms->type == MSVideo) {
+		const char* preset = video_stream_get_video_preset((VideoStream*) ms);
+
+		if (preset && strcmp(preset, "custom") == 0) {
+			MSVideoConfiguration *vconf_list = NULL;
+			MSVideoConfiguration current_vconf, vconf;
+			int new_bitrate_limit;
+
+			ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
+
+			if (vconf_list != NULL) {
+				ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
+
+				vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(ms->factory), tmmbr_mxtbr);
+
+				new_bitrate_limit = tmmbr_mxtbr < vconf.bitrate_limit ? tmmbr_mxtbr : vconf.bitrate_limit;
+				ms_message("Changing video encoder's output bitrate to %i", new_bitrate_limit);
+				current_vconf.required_bitrate = new_bitrate_limit;
+
+				if (ms_filter_call_method(ms->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
+					ms_warning("Failed to apply fps and bitrate constraint to %s", ms->encoder->desc->name);
+				}
+			}
+
+			return;
+		}
+
+		if (!ms->video_quality_controller) {
+			ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*) ms);
+		}
+
+		ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, tmmbr_mxtbr);
+	}
+#endif
+}
+
+void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 	MediaStream *ms = (MediaStream *)user_pointer;
 	switch (rtcp_RTPFB_get_type(evd->packet)) {
 		case RTCP_RTPFB_TMMBR: {
 			int tmmbr_mxtbr = (int)rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
-
-			ms_message("MediaStream[%p]: received a TMMBR for bitrate %i kbits/s"
-						, ms, (int)(tmmbr_mxtbr/1000));
-			tmmbr_mxtbr = update_bitrate_limit_from_tmmbr(ms, tmmbr_mxtbr);
-			if (tmmbr_mxtbr < 0) return;
-
-
-#ifdef VIDEO_ENABLED
-			if (ms->type == MSVideo) {
-				const char* preset = video_stream_get_video_preset((VideoStream*) ms);
-
-				if (preset && strcmp(preset, "custom") == 0) {
-					MSVideoConfiguration *vconf_list = NULL;
-					MSVideoConfiguration current_vconf, vconf;
-					int new_bitrate_limit;
-
-					ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-
-					if (vconf_list != NULL) {
-						ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
-
-						vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(ms->factory), tmmbr_mxtbr);
-
-						new_bitrate_limit = tmmbr_mxtbr < vconf.bitrate_limit ? tmmbr_mxtbr : vconf.bitrate_limit;
-						ms_message("Changing video encoder's output bitrate to %i", new_bitrate_limit);
-						current_vconf.required_bitrate = new_bitrate_limit;
-
-						if (ms_filter_call_method(ms->encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
-							ms_warning("Failed to apply fps and bitrate constraint to %s", ms->encoder->desc->name);
-						}
-					}
-
-					break;
-				}
-
-				if (!ms->video_quality_controller) {
-					ms->video_quality_controller = ms_video_quality_controller_new((VideoStream*) ms);
-				}
-
-				ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, tmmbr_mxtbr);
-			}
-#endif
+			media_stream_process_tmmbr(ms, tmmbr_mxtbr);
 			break;
 		}
 		default:
