@@ -32,78 +32,7 @@
     expire_in: 1 week
 
 
-#################################################
-# Makefile
-#################################################
 
-
-job-ios-makefile:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-#################################################
-# Ninja
-#################################################
-
-
-job-ios-ninja:
-
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
-job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: job-ios-ninja
-
-
-#################################################
-# XCode
-#################################################
-job-ios-xcode:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-
-  variables:
-    CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_SNAPSHOTS_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
-    ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
-    ARCHS_OPTIONS: "arm64,armv7,x86_64"
-    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
-
-  extends: .job-ios
 
 #################################################
 # Tests
@@ -113,12 +42,9 @@ test-liblinphone-ios:
   tags: [ "macosx-xcode11" ]
   stage: test
   allow_failure: true
-  dependencies:
-    - job-ios-xcode
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+
+
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
@@ -126,24 +52,15 @@ test-liblinphone-ios:
     NUMBER_DEVICES: 4
 
   script:
-    - timeout --signal=SIGINT 1 xcrun simctl list
-    - if [ $? != 0 ]; then  killall -9 com.apple.CoreSimulator.CoreSimulatorService;  fi
+    - if timeout --signal=SIGINT 1 sleep 2; then echo "show all devices"; \
+      else echo "test"; echo "restart core service"; fi
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - pod install
 
-    # Test launching
-    - |
-        xcodebuild -workspace LinphoneTester.xcworkspace \
-        -scheme LinphoneTester -sdk iphonesimulator \
-        -destination name='iPhone 8' \
-        -parallel-testing-enabled YES -parallel-testing-worker-count $NUMBER_DEVICES \
-        -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    - xcrun simctl shutdown all
-    - xcrun simctl erase all
     - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
 
 
