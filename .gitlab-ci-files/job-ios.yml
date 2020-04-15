@@ -32,15 +32,13 @@
     expire_in: 1 week
 
 
+
 #################################################
 # XCode
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
+
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -62,9 +60,7 @@ test-liblinphone-ios:
   dependencies:
     - job-ios-xcode
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
