@@ -52,8 +52,7 @@ test-liblinphone-ios:
     NUMBER_DEVICES: 4
 
   script:
-    - if timeout --signal=SIGINT 1 sleep 2; then echo "show all devices"; \
-      else echo "test"; echo "restart core service"; fi
+    - if timeout --signal=SIGINT 1 sleep 2; then echo "show all devices"; else echo "test"; echo "restart core service"; fi
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
