@@ -126,8 +126,7 @@ test-liblinphone-ios:
     NUMBER_DEVICES: 4
 
   script:
-    - timeout --signal=SIGINT 1 xcrun simctl list
-    - if [ $? != 0 ]; then  killall -9 com.apple.CoreSimulator.CoreSimulatorService;  fi
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
     - unzip build-ios/linphone-sdk-*.zip -d build-ios/
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
@@ -142,8 +141,6 @@ test-liblinphone-ios:
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    - xcrun simctl shutdown all
-    - xcrun simctl erase all
     - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
 
 
