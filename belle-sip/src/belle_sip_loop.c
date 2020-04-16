@@ -417,23 +417,45 @@ unsigned long belle_sip_main_loop_add_timeout(belle_sip_main_loop_t *ml, belle_s
 	return s->id;
 }
 
-void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
+typedef struct {
+	belle_sip_callback_t func;
+	void *user_data;
+	belle_sip_source_t *source;
+} DoLaterData;
 
-	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)func,data,0,"defered task");
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
-
-	s->oneshot=TRUE;
-	belle_sip_object_unref(s);
+static int _do_later_cb(void *user_data, unsigned int event) {
+	DoLaterData *data = (DoLaterData *)user_data;
+	data->func(data->user_data);
+	belle_sip_object_unref(data->source);
+	belle_sip_free(data);
+	return BELLE_SIP_STOP;
 }
 
+void belle_sip_main_loop_do_later_with_name(
+	belle_sip_main_loop_t *ml,
+	belle_sip_callback_t func,
+	void *data,
+	const char *timer_name
+){
+	DoLaterData *dolater_data = belle_sip_new0(DoLaterData);
+	dolater_data->func = func;
+	dolater_data->user_data = data;
+
+	/* The belle_sip_source_t is stored in dolater_data in order to decrement the refcounter in the
+	   same thread than the main loop's. Otherwise, the ref counter may be corrupted because of race conditions
+	   if the belle_sip_source_t was after the call to belle_sip_main_loop_add_source() */
+	dolater_data->source = belle_sip_timeout_source_new(_do_later_cb, dolater_data, 0);
+
+	belle_sip_object_set_name((belle_sip_object_t *)dolater_data->source, timer_name ? timer_name : "deferred task");
+	dolater_data->source->oneshot=TRUE;
+
+	/* This function MUST be the last to guarantee thread-safety. */
+	belle_sip_main_loop_add_source(ml,dolater_data->source);
+}
+
+void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
+	belle_sip_main_loop_do_later_with_name(ml, func, data, NULL);
+}
 
 void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
 	if (!s->expired){
@@ -505,7 +527,6 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	size_t pfd_size = (ml->nsources + 1) * sizeof(belle_sip_pollfd_t);
 	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)belle_sip_malloc0(pfd_size);
 	int i=0;
-	belle_sip_source_t *s;
 	belle_sip_list_t *elem,*next;
 	int duration=-1;
 	int ret;
@@ -523,7 +544,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	/*Step 1: prepare the pollfd table and get the next timeout value */
 	for(elem=ml->fd_sources;elem!=NULL;elem=next) {
 		next=elem->next;
-		s=(belle_sip_source_t*)elem->data;
+		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
 		if (!s->cancelled){
 			if (s->fd!=(belle_sip_fd_t)-1){
 				belle_sip_source_to_poll(s,pfd,i);
@@ -571,7 +592,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	cur=belle_sip_time_ms();
 	for(elem=ml->fd_sources;elem!=NULL;elem=elem->next){
 		unsigned revents=0;
-		s=(belle_sip_source_t*)elem->data;
+		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
 		if (!s->cancelled){
 			if (s->fd!=(belle_sip_fd_t)-1){
 				if (s->notify_required) { /*for testing purpose to force channel to read*/
@@ -598,7 +619,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	while (!bctbx_iterator_equals(it,end)) {
 		/*use first because in case of canceled timer, key != s->expire_ms*/
 		uint64_t expire = bctbx_pair_ullong_get_first((const bctbx_pair_ullong_t *)bctbx_iterator_get_pair(it));
-		s = (belle_sip_source_t*)bctbx_pair_get_second(bctbx_iterator_get_pair(it));
+		belle_sip_source_t *s = (belle_sip_source_t*)bctbx_pair_get_second(bctbx_iterator_get_pair(it));
 		if (expire > cur) {
 			/* no need to continue looping because map is ordered*/
 			break;
@@ -618,7 +639,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 
 	/* Step 4: notify those to be notified */
 	for(elem=to_be_notified;elem!=NULL;){
-		s=(belle_sip_source_t*)elem->data;
+		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
 		next=elem->next;
 		if (!s->cancelled){
 

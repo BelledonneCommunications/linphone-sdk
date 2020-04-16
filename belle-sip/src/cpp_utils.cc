@@ -18,53 +18,55 @@
  */
 
 
-#include "belle-sip/belle-sip.h"
+#include <belle-sip/mainloop.h>
 
-
-#ifndef BELLE_SIP_USE_STL
-#define BELLE_SIP_USE_STL 1
-#endif
-
-
-#if BELLE_SIP_USE_STL
-#include <functional>
-
-typedef std::function<int (unsigned int)> belle_sip_source_cpp_func_t;
-
-static int belle_sip_source_cpp_func(belle_sip_source_cpp_func_t* user_data, unsigned int events)
-{
-	int result = (*user_data)(events);
-	return result;
-}
- 
-static void belle_sip_source_on_remove(belle_sip_source_t* source)
-{
-	delete static_cast<belle_sip_source_cpp_func_t *>(belle_sip_source_get_user_data(source));
-	belle_sip_source_set_user_data(source,NULL);
+static belle_sip_source_t * _belle_sip_main_loop_create_cpp_timeout(
+	belle_sip_main_loop_t *ml,
+	belle_sip_source_cpp_func_t *func,
+	unsigned int timeout_value_ms,
+	const char* timer_name
+) {
+	return belle_sip_main_loop_create_timeout_with_remove_cb(
+		ml,
+		[](void *user_data, unsigned int events){
+			return static_cast<belle_sip_source_cpp_func_t *>(user_data)->operator()(events);
+		},
+		func,
+		timeout_value_ms,
+		timer_name,
+		[](belle_sip_source_t* source){
+			delete static_cast<belle_sip_source_cpp_func_t *>(belle_sip_source_get_user_data(source));
+			belle_sip_source_set_user_data(source, nullptr);
+		}
+	);
 }
 
-belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout(belle_sip_main_loop_t *ml
-								, belle_sip_source_cpp_func_t *func
-								, unsigned int timeout_value_ms
-								, const char* timer_name)
-{
-	belle_sip_source_t* source = belle_sip_main_loop_create_timeout(  ml
-								, (belle_sip_source_func_t)belle_sip_source_cpp_func
-								, func
-								, timeout_value_ms
-								, timer_name);
-	belle_sip_source_set_remove_cb(source,belle_sip_source_on_remove);
-	return source;
+belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout(
+	belle_sip_main_loop_t *ml,
+	belle_sip_source_cpp_func_t *func,
+	unsigned int timeout_value_ms,
+	const char* timer_name
+) {
+	return _belle_sip_main_loop_create_cpp_timeout(ml, func, timeout_value_ms, timer_name);
 }
 
-static void do_later(void *ud){
-	std::function<void (void)> *func = static_cast<std::function<void (void)> *>(ud);
-	(*func)();
-	delete func;
+BelleSipSourcePtr belle_sip_main_loop_create_cpp_timeout(
+	belle_sip_main_loop_t *ml,
+	const belle_sip_source_cpp_func_t &func,
+	unsigned int timeout_value_ms,
+	const char* timer_name
+) {
+	belle_sip_source_t* source = _belle_sip_main_loop_create_cpp_timeout(
+		ml,
+		new belle_sip_source_cpp_func_t{func},
+		timeout_value_ms,
+		timer_name
+	);
+	return BelleSipSourcePtr{source};
 }
 
-void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const std::function<void (void)> &func){
-	belle_sip_main_loop_do_later(ml, do_later, new std::function<void (void)>(func));
+void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const BelleSipDoLaterFunc &func){
+	belle_sip_main_loop_cpp_do_later(ml, func, nullptr);
 }
 
 static void cpp_timer_delete(belle_sip_source_t* source){
@@ -92,5 +94,19 @@ belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout_2(belle_sip_main_loo
 	return source;	
 }
 
-
-#endif
+void belle_sip_main_loop_cpp_do_later(
+	belle_sip_main_loop_t *ml,
+	const BelleSipDoLaterFunc &func,
+	const char *task_name
+) {
+	belle_sip_main_loop_do_later_with_name(
+		ml,
+		[](void *ud){
+			auto func = static_cast<BelleSipDoLaterFunc *>(ud);
+			func->operator()();
+			delete func;
+		},
+		new BelleSipDoLaterFunc{func},
+		task_name
+	);
+}
