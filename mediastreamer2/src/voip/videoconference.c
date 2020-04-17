@@ -258,7 +258,6 @@ static void ms_video_conference_apply_new_bitrate_request(MSVideoConference *obj
 		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
 		if (ep->is_remote){
 			ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->bw_controller, obj->bitrate);
-			rtp_session_send_rtcp_fb_tmmbr(ep->st->ms.sessions.rtp_session, (uint64_t)obj->bitrate);
 		}else{
 			media_stream_process_tmmbr((MediaStream*)ep->st, obj->bitrate);
 		}
