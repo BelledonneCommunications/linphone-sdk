@@ -22,6 +22,8 @@
 #include "mediastreamer2/msvolume.h"
 #include "private.h"
 
+static const int audio_threshold_min_db = -30;
+
 struct _MSAudioConference{
 	MSTicker *ticker;
 	MSFilter *mixer;
@@ -240,7 +242,7 @@ void ms_audio_conference_process_events(MSAudioConference *obj){
 		if (volume_filter){
 			float max_db = MS_VOLUME_DB_LOWEST;
 			if (ms_filter_call_method(volume_filter, MS_VOLUME_GET_MAX, &max_db) == 0){
-				if (max_db > max_db_over_member){
+				if (max_db > audio_threshold_min_db && max_db > max_db_over_member){
 					max_db_over_member = max_db;
 					winner = ep;
 				}

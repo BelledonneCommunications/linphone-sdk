@@ -235,6 +235,8 @@ if(ENABLE_VIDEO)
 		voip/videostarter.c
 		voip/videostream.c
 		voip/videoconference.c
+		voip/vp8rtpfmt.c
+		voip/vp8rtpfmt.h
 	)
 	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -383,8 +385,6 @@ if(ENABLE_VIDEO)
 	if(VPX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			videofilters/vp8.c
-			voip/vp8rtpfmt.c
-			voip/vp8rtpfmt.h
 		)
 	endif()
 	if(X11_FOUND)

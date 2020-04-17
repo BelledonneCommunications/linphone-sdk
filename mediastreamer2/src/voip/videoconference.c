@@ -137,8 +137,8 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 	VideoStream *st=ep->st;
 
 	/*stop the video graph*/
-	ms_ticker_detach(st->ms.sessions.ticker, st->source);
-	ms_ticker_detach(st->ms.sessions.ticker, st->ms.rtprecv);
+	if (st->source) ms_ticker_detach(st->ms.sessions.ticker, st->source);
+	if (st->ms.rtprecv) ms_ticker_detach(st->ms.sessions.ticker, st->ms.rtprecv);
 	ep->is_remote=is_remote;
 	ep->in_cut_point_prev.pin=0;
 	if (is_remote){
@@ -148,8 +148,10 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 		/*we need to cut just after the encoder*/
 		ep->in_cut_point_prev.filter=st->ms.encoder;
 	}
-	ep->in_cut_point=just_after(ep->in_cut_point_prev.filter);
-	ms_filter_unlink(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter, ep->in_cut_point.pin);
+	if (ep->in_cut_point_prev.filter){
+		ep->in_cut_point=just_after(ep->in_cut_point_prev.filter);
+		ms_filter_unlink(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter, ep->in_cut_point.pin);
+	}
 
 	ep->out_cut_point.pin=0;
 	if (is_remote){
@@ -157,8 +159,10 @@ static void cut_video_stream_graph(MSVideoEndpoint *ep, bool_t is_remote){
 	}else{
 		ep->out_cut_point.filter=st->ms.decoder;
 	}
-	ep->out_cut_point_prev=just_before(ep->out_cut_point.filter);
-	ms_filter_unlink(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
+	if (ep->out_cut_point.filter){
+		ep->out_cut_point_prev=just_before(ep->out_cut_point.filter);
+		ms_filter_unlink(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
+	}
 
 	ep->mixer_in=ep->in_cut_point_prev;
 	ep->mixer_out=ep->out_cut_point;
@@ -174,9 +178,15 @@ static void redo_video_stream_graph(MSVideoEndpoint *ep){
 	
 	media_stream_remove_tmmbr_handler((MediaStream*)ep->st, ms_video_endpoint_tmmbr_received, ep);
 	media_stream_add_tmmbr_handler((MediaStream*)ep->st, media_stream_tmmbr_received, ep->st);
-	ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
-	ms_filter_link(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
-	ms_ticker_attach_multiple(st->ms.sessions.ticker, st->source, st->ms.rtprecv);
+	if (ep->in_cut_point_prev.filter)
+		ms_filter_link(ep->in_cut_point_prev.filter,ep->in_cut_point_prev.pin,ep->in_cut_point.filter,ep->in_cut_point.pin);
+	if (ep->out_cut_point_prev.filter)
+		ms_filter_link(ep->out_cut_point_prev.filter,ep->out_cut_point_prev.pin,ep->out_cut_point.filter,ep->out_cut_point.pin);
+	
+	if (st->source)
+		ms_ticker_attach(st->ms.sessions.ticker, st->source);
+	if (st->ms.rtprecv)
+		ms_ticker_attach(st->ms.sessions.ticker, st->ms.rtprecv);
 	
 }
 
