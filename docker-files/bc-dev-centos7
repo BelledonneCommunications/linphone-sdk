@@ -42,6 +42,9 @@ RUN useradd -ms /bin/bash bc && \
 # Enable devtoolset-8 into bc's .bashrc
 RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
 
+# TMP for AppImage
+RUN yum install -y fuse wget && yum clean all
+
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
 ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
 
