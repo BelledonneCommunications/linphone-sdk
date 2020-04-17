@@ -115,6 +115,23 @@ job-macosx-upload:
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
     - pod repo remove linphone-sdk-macosx
+#################################################
+# Windows
+#################################################
+
+job-windows-vs2017-nuget-upload:
+  stage: deploy
+  tags: [ "windows"]
+  only:
+    variables:
+      - $DEPLOY_RUN_WINDOWS
+      - $NIGHTLY_MASTER
+      - $TEST_STORE
+  dependencies:
+    - job-windows-vs2017-microsoftstore-package
+  script:
+    - scp "%CI_PROJECT_DIR%\results\windows-nugget\*.nupkg" "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/nuget/"
+
 
 #################################################
 # Debian doc upload
