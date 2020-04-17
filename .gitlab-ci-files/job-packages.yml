@@ -42,7 +42,8 @@ job-windows-vs2017-package:
 job-windows-vs2017-microsoftstore-package:
   stage: package
   tags: [ "windows" ]
-  dependencies: .job-windows-vs2017-microsoftstore
+  dependencies: 
+    - .job-windows-vs2017-microsoftstore
   only:
     variables:
       - $NIGHTLY_MASTER
