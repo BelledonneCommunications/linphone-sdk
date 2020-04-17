@@ -40,6 +40,8 @@ struct _MSBandwidthController{
 	struct _MediaStream *controlled_stream; /*the most bandwidth consuming stream, which is the one flow controlled*/
 	MSBandwidthControllerStats stats;
 	float remote_video_bandwidth_available_estimated;
+	float maximum_bw_usage;
+	float currently_requested_stream_bandwidth; // According to congestion control and bandwith estimator only.
 	bool_t congestion_detected;
 };
 /**
@@ -53,6 +55,13 @@ typedef struct _MSBandwidthController MSBandwidthController;
 
 
 MS2_PUBLIC MSBandwidthController *ms_bandwidth_controller_new(void);
+
+/**
+ * Set an explicit download bandwidth target usage expressed in bits/seconds, used for video conferencing cases.
+ * This target bandwidth is considered as a maximum that shall not be exceeded.
+ * The congestion control and bandwidth estimations are used normally to find the correct bandwidth usage below this target usage.
+ */
+MS2_PUBLIC void  ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *obj, int bitrate);
 
 MS2_PUBLIC void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _MediaStream *stream);
 

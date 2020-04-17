@@ -33,7 +33,32 @@ void ms_bandwidth_controller_reset_state(MSBandwidthController *obj){
 	memset(&obj->stats, 0, sizeof(obj->stats));
 	obj->remote_video_bandwidth_available_estimated = 0;
 	obj->stats.estimated_download_bandwidth = 0; /*this value is computed under congestion situation, if any*/
+	obj->currently_requested_stream_bandwidth = 0;
 	obj->congestion_detected = 0;
+}
+
+static void ms_bandwidth_controller_send_tmmbr(MSBandwidthController *obj){
+	RtpSession *session;
+	
+	if (!obj->controlled_stream) return;
+	session = obj->controlled_stream->sessions.rtp_session;
+	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0 && obj->maximum_bw_usage < obj->currently_requested_stream_bandwidth) {
+		ms_message("MSBandwidthController: sending TMMBR for a maximum bandwidth usage of %f bits/s", obj->maximum_bw_usage);
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)obj->maximum_bw_usage);
+	}else{
+		ms_message("MSBandwidthController: sending TMMBR for a bandwidth usage of %f bits/s", obj->currently_requested_stream_bandwidth);
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)obj->currently_requested_stream_bandwidth);
+	}
+}
+
+void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *obj, int bitrate){
+	obj->maximum_bw_usage = (float) bitrate;
+	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0) {
+		ms_bandwidth_controller_send_tmmbr(obj);
+	}
+	/* If there is not yet currently_requested_stream_bandwidth (means no congestion detected yet and no bandwidth estimation available),
+	 * then don't request anything. Let the estimation to be available first.
+	 */
 }
 
 static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *obj){
@@ -79,7 +104,6 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	MediaStream *ms = (MediaStream*)user_pointer;
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	float controlled_stream_bandwidth_requested;
-	RtpSession *session;
 	OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
 	
 	if (ms != obj->controlled_stream){
@@ -88,7 +112,6 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		return;
 	}
 	obj->congestion_detected = evd->info.congestion_detected;
-	session = obj->controlled_stream->sessions.rtp_session;
 	if (evd->info.congestion_detected){
 		/*We are detecting a congestion. First estimate the total bandwidth received at the time of the congestion*/
 		ms_bandwidth_controller_estimate_bandwidths(obj);
@@ -113,7 +136,8 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		resync_jitter_buffers(obj);
 		video_bandwidth_estimator_params.enabled = TRUE;
 	}
-	rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)controlled_stream_bandwidth_requested);
+	obj->currently_requested_stream_bandwidth = controlled_stream_bandwidth_requested;
+	ms_bandwidth_controller_send_tmmbr(obj);
 	obj->remote_video_bandwidth_available_estimated = 0;
 	rtp_session_enable_video_bandwidth_estimator(obj->controlled_stream->sessions.rtp_session, &video_bandwidth_estimator_params);
 }
@@ -122,7 +146,6 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	MediaStream *ms = (MediaStream*)user_pointer;
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	if (!obj->congestion_detected) {
-		RtpSession *session = obj->controlled_stream->sessions.rtp_session;
 		float estimated_bitrate = evd->info.video_bandwidth_available;
 		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated * NO_INCREASE_THRESHOLD) {
 			ms_message("MSBandwidthController: not using new video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)",
@@ -139,7 +162,8 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
 					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
 		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
-		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)estimated_bitrate);
+		obj->currently_requested_stream_bandwidth = estimated_bitrate;
+		ms_bandwidth_controller_send_tmmbr(obj);
 	}
 }
 

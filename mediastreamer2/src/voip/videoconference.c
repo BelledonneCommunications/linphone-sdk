@@ -25,7 +25,6 @@ static void ms_video_conference_update_bitrate_request(MSVideoConference *obj);
 
 struct _MSVideoConference{
 	MSVideoConferenceParams params;
-	MSAudioConference *audioconf;
 	MSTicker *ticker;
 	MSFilter *mixer;
 	bctbx_list_t *members;
@@ -42,6 +41,7 @@ struct _MSVideoEndpoint{
 	MSCPoint mixer_in;
 	MSCPoint mixer_out;
 	MSVideoConference *conference;
+	MSBandwidthController *bw_controller;
 	int pin;
 	int is_remote;
 	int last_tmmbr_received; /*Value in bits/s */
@@ -223,6 +223,7 @@ void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep)
 	ep->conference=obj;
 	if (obj->members!=NULL) ms_ticker_detach(obj->ticker,obj->mixer);
 	plumb_to_conf(ep);
+	ms_bandwidth_controller_add_stream(ep->bw_controller, (MediaStream*)ep->st);
 	ms_ticker_attach(obj->ticker,obj->mixer);
 	obj->members=bctbx_list_append(obj->members,ep);
 }
@@ -239,6 +240,7 @@ static void unplumb_from_conf(MSVideoEndpoint *ep){
 }
 
 void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *ep){
+	ms_bandwidth_controller_remove_stream(ep->bw_controller, (MediaStream*)ep->st);
 	ms_ticker_detach(obj->ticker,obj->mixer);
 	unplumb_from_conf(ep);
 	ep->conference=NULL;
@@ -255,6 +257,7 @@ static void ms_video_conference_apply_new_bitrate_request(MSVideoConference *obj
 	for (elem = obj->members; elem != NULL; elem = elem->next){
 		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
 		if (ep->is_remote){
+			ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->bw_controller, obj->bitrate);
 			rtp_session_send_rtcp_fb_tmmbr(ep->st->ms.sessions.rtp_session, (uint64_t)obj->bitrate);
 		}else{
 			media_stream_process_tmmbr((MediaStream*)ep->st, obj->bitrate);
@@ -286,14 +289,6 @@ static void ms_video_conference_update_bitrate_request(MSVideoConference *obj){
 	}
 }
 
-void ms_video_conference_set_audio_conference(MSVideoConference *obj, MSAudioConference *audioconf){
-	if (obj->audioconf){
-		ms_audio_conference_set_video_conference(obj->audioconf, NULL);
-	}
-	obj->audioconf = audioconf;
-	if (audioconf) ms_audio_conference_set_video_conference(audioconf, obj);
-}
-
 int ms_video_conference_get_size(MSVideoConference *obj){
 	return bctbx_list_size(obj->members);
 }
@@ -311,6 +306,7 @@ void ms_video_conference_destroy(MSVideoConference *obj){
 
 MSVideoEndpoint *ms_video_endpoint_new(void){
 	MSVideoEndpoint *ep=ms_new0(MSVideoEndpoint,1);
+	ep->bw_controller = ms_bandwidth_controller_new();
 	return ep;
 }
 
@@ -332,6 +328,7 @@ MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_r
 }
 
 void ms_video_endpoint_destroy(MSVideoEndpoint *ep){
+	ms_bandwidth_controller_destroy(ep->bw_controller);
 	ms_free(ep);
 }
 

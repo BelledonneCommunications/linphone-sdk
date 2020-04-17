@@ -31,7 +31,6 @@ struct _MSAudioConference{
 	bctbx_list_t *members; /* list of MSAudioEndpoint */
 	int nmembers;
 	MSAudioEndpoint *active_speaker;
-	struct _MSVideoConference *videoconf;
 };
 
 struct _MSAudioEndpoint{
@@ -225,9 +224,6 @@ int ms_audio_conference_get_size(MSAudioConference *obj){
 	return obj->nmembers;
 }
 
-void ms_audio_conference_set_video_conference(struct _MSAudioConference *audioconf, struct _MSVideoConference *videoconf){
-	audioconf->videoconf = videoconf;
-}
 
 void ms_audio_conference_process_events(MSAudioConference *obj){
 	const bctbx_list_t *elem;
