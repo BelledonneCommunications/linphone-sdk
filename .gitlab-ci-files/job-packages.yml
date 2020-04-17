@@ -38,6 +38,28 @@ job-windows-vs2017-package:
       - results/*
     when: always
     expire_in: 1 week
+    
+job-windows-vs2017-microsoftstore-package:
+  stage: package
+  tags: [ "windows" ]
+  dependencies: .job-windows-vs2017-microsoftstore
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $PACKAGE_RUN_WINDOWS
+      - $NIGHTLY_RELEASE
+      - $TEST_STORE
+  script:
+    - cmake\Windows\nuget\make-nuget.bat build-desktop
+  after_script:
+    - mkdir "%CI_PROJECT_DIR%\results\windows-nugget"    
+    - copy /B "build-desktop\linphone-sdk\desktop\*.nupkg" "%CI_PROJECT_DIR%\results\windows-nugget"
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    expire_in: 1 week
+  
 
 #################################################
 # Xamarin (Android & iOS)

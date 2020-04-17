@@ -74,6 +74,7 @@
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
       - $PACKAGE_RUN_WINDOWS
+      - $TEST_STORE
   before_script: 
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
@@ -92,6 +93,11 @@ job-windows-vs2017-novideo:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_VIDEO=NO
+    
+job-windows-vs2017-microsoftstore:
+  extends: .job-windows-vs2017-scheduled
+  variables:
+    CMAKE_OPTIONS: -DENABLE_MICROSOFT_STORE_APP=ON
     
 #TODO : FACTORIZE TESTERS CODE
 

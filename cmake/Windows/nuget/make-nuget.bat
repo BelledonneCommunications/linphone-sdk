@@ -5,7 +5,7 @@ if [%1]==[] goto usage
 chdir > chdir_src.temp
 set /p SRC_DIR=<chdir_src.temp
 echo on
-@echo call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
+echo call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
 echo "MSVC command line environnement loaded."
 cd %1
 chdir > chdir_sdk.temp
