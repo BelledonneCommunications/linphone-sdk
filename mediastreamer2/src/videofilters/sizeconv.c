@@ -156,6 +156,7 @@ static void size_conv_process(MSFilter *f){
 					ms_error("MSSizeConv: error in ms_scaler_process().");
 					freemsg(om);
 				}else{
+					mblk_set_timestamp_info(om, mblk_get_timestamp_info(im));
 					ms_queue_put(f->outputs[0],om);
 				}
 				freemsg(im);
