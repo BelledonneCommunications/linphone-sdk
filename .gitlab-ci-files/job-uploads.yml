@@ -130,8 +130,7 @@ job-windows-vs2017-nuget-upload:
   dependencies:
     - job-windows-vs2017-microsoftstore-package
   script:
-    - scp "%CI_PROJECT_DIR%\results\windows-nugget\*.nupkg" "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/nuget/"
-
+    - scp "%CI_PROJECT_DIR%/results/windows-nugget/*.nupkg" "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/nuget"
 
 #################################################
 # Debian doc upload
