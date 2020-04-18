@@ -61,18 +61,47 @@ static void on_switcher_event(void *data, MSFilter *f, unsigned int event_id, vo
 	int pin=*(int*)event_data;
 	MSVideoEndpoint *ep=get_endpoint_at_pin(obj,pin);
 	if (ep){
-		if (event_id==MS_VIDEO_SWITCHER_NEEDS_KEYFRAME){
-			ms_message("Switcher needs a key frame for [%s] endpoint created from VideoStream [%p]",
-				   ep->is_remote ? "remote" : "local",
-				   ep->st);
-			if (ep->is_remote){
-				video_stream_send_fir(ep->st);
-			}else{
-				video_stream_send_vfu(ep->st);
-			}
+		switch(event_id){
+			case MS_VIDEO_SWITCHER_SEND_FIR:
+				ms_message("Switcher needs a refresh frame (FIR) for [%s] endpoint created from VideoStream [%p]",
+					ep->is_remote ? "remote" : "local",
+					ep->st);
+				if (ep->is_remote){
+					video_stream_send_fir(ep->st);
+				}else{
+					video_stream_send_vfu(ep->st);
+				}
+			break;
+			case MS_VIDEO_SWITCHER_SEND_PLI:
+				ms_message("Switcher needs a refresh frame (PLI) for [%s] endpoint created from VideoStream [%p]",
+					ep->is_remote ? "remote" : "local",
+					ep->st);
+				if (ep->is_remote){
+					video_stream_send_pli(ep->st);
+				}else{
+					ms_filter_call_method_noarg(ep->st->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
+				}
+			break;
 		}
 	}else{
 		ms_error("Switcher generated an event for an unknown pin [%i]",pin);
+	}
+}
+
+static void ms_video_conference_process_encoder_control(VideoStream *vs, unsigned int method_id, void *arg, void *user_data){
+	MSVideoEndpoint *ep = (MSVideoEndpoint*) user_data;
+	switch(method_id){
+		case MS_VIDEO_ENCODER_NOTIFY_FIR:
+			ms_filter_call_method(ep->conference->mixer, MS_VIDEO_SWITCHER_NOTIFY_FIR, &ep->pin);
+		break;
+		case MS_VIDEO_ENCODER_NOTIFY_PLI:
+		case MS_VIDEO_ENCODER_NOTIFY_SLI:
+			/* SLI and PLI are processed in the same way.*/
+			ms_filter_call_method(ep->conference->mixer, MS_VIDEO_SWITCHER_NOTIFY_PLI, &ep->pin);
+		break;
+		case MS_VIDEO_ENCODER_NOTIFY_RPSI:
+			/* Ignored. We can't do anything with RPSI in a case where there are multiple receivers of a given encoder stream.*/
+		break;
 	}
 }
 
@@ -224,6 +253,7 @@ void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep)
 	if (obj->members!=NULL) ms_ticker_detach(obj->ticker,obj->mixer);
 	plumb_to_conf(ep);
 	ms_bandwidth_controller_add_stream(ep->bw_controller, (MediaStream*)ep->st);
+	video_stream_set_encoder_control_callback(ep->st, ms_video_conference_process_encoder_control, ep);
 	ms_ticker_attach(obj->ticker,obj->mixer);
 	obj->members=bctbx_list_append(obj->members,ep);
 }
@@ -241,6 +271,7 @@ static void unplumb_from_conf(MSVideoEndpoint *ep){
 
 void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *ep){
 	ms_bandwidth_controller_remove_stream(ep->bw_controller, (MediaStream*)ep->st);
+	video_stream_set_encoder_control_callback(ep->st, NULL, NULL);
 	ms_ticker_detach(obj->ticker,obj->mixer);
 	unplumb_from_conf(ep);
 	ep->conference=NULL;

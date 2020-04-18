@@ -215,7 +215,11 @@ static void switcher_process(MSFilter *f){
 		if (q) {
 			switcher_channel_update_input(s, i, q);
 			if (!ms_queue_empty(q) && input_context->key_frame_requested){
-				ms_filter_notify(f,MS_VIDEO_SWITCHER_NEEDS_KEYFRAME, &i);
+				if (input_context->state == STOPPED){
+					ms_filter_notify(f, MS_VIDEO_SWITCHER_SEND_PLI, &i);
+				}else{
+					ms_filter_notify(f,MS_VIDEO_SWITCHER_SEND_FIR, &i);
+				}
 			}
 		}
 	}
@@ -316,9 +320,43 @@ static int switcher_set_local_member_pin(MSFilter *f, void *data){
 	return -1;
 }
 
+static int switcher_notify_pli(MSFilter *f, void *data){
+	SwitcherState *s=(SwitcherState *)f->data;
+	int pin = *(int*)data;
+	int source_pin;
+	if (pin < 0 || pin >= f->desc->ninputs){
+		ms_error("%s: invalid argument to MS_VIDEO_SWITCHER_NOTIFY_PLI", f->desc->name);
+		return -1;
+	}
+	/* Propagate the PLI to the current input source. */
+	source_pin = s->output_contexts[pin].current_source;
+	if (source_pin != -1){
+		ms_filter_notify(f, MS_VIDEO_SWITCHER_SEND_PLI, &source_pin);
+	}
+	return 0;
+}
+
+static int switcher_notify_fir(MSFilter *f, void *data){
+	SwitcherState *s=(SwitcherState *)f->data;
+	int pin = *(int*)data;
+	int source_pin;
+	if (pin < 0 || pin >= f->desc->ninputs){
+		ms_error("%s: invalid argument to MS_VIDEO_SWITCHER_NOTIFY_PLI", f->desc->name);
+		return -1;
+	}
+	/* Propagate the FIR to the current input source. */
+	source_pin = s->output_contexts[pin].current_source;
+	if (source_pin != -1){
+		ms_filter_notify(f, MS_VIDEO_SWITCHER_SEND_FIR, &source_pin);
+	}
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{	MS_VIDEO_SWITCHER_SET_FOCUS , switcher_set_focus },
 	{	MS_VIDEO_SWITCHER_SET_AS_LOCAL_MEMBER , switcher_set_local_member_pin },
+	{	MS_VIDEO_SWITCHER_NOTIFY_PLI, switcher_notify_pli },
+	{	MS_VIDEO_SWITCHER_NOTIFY_FIR, switcher_notify_fir },
 	{	MS_FILTER_SET_INPUT_FMT, switcher_set_fmt },
 	{0,NULL}
 };

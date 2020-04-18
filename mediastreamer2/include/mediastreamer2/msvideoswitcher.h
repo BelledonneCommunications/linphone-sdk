@@ -34,9 +34,12 @@ typedef struct _MSVideoSwitcherPinControl{
 }MSVideoSwitcherPinControl;
 #define MS_VIDEO_SWITCHER_SET_AS_LOCAL_MEMBER MS_FILTER_METHOD(MS_VIDEO_SWITCHER_ID,1,MSVideoSwitcherPinControl)
 
+#define MS_VIDEO_SWITCHER_NOTIFY_PLI MS_FILTER_EVENT(MS_VIDEO_SWITCHER_ID,2,int)
+#define MS_VIDEO_SWITCHER_NOTIFY_FIR MS_FILTER_EVENT(MS_VIDEO_SWITCHER_ID,3,int)
 
-
-/**Event raised by the switcher when it needs to receive a key frame in order to complete the switch to new input source*/
-#define MS_VIDEO_SWITCHER_NEEDS_KEYFRAME MS_FILTER_EVENT(MS_VIDEO_SWITCHER_ID,0,int)
+/**Events raised by the switcher when it needs to receive a key frame in order to complete the switch to new input source*/
+#define MS_VIDEO_SWITCHER_SEND_FIR MS_FILTER_EVENT(MS_VIDEO_SWITCHER_ID,0,int)
+#define MS_VIDEO_SWITCHER_SEND_PLI MS_FILTER_EVENT(MS_VIDEO_SWITCHER_ID,1,int)
 
 #endif
+

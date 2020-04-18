@@ -821,6 +821,7 @@ static MS2_INLINE RtpSession * audio_stream_get_rtp_session(const AudioStream *s
 typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view, const MSPicture *remote_view);
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
+typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
 
 struct _MediastreamVideoStat
 {
@@ -877,6 +878,8 @@ struct _VideoStream
 	VideoStreamCameraNotWorkingCallback cameracb;
 	void *camera_pointer;
 	MediaStreamVideoStat ms_video_stat;
+	VideoStreamEncoderControlCb encoder_control_cb;
+	void *encoder_control_cb_user_data;
 	bool_t use_preview_window;
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
@@ -1012,6 +1015,12 @@ The following function allows to take into account new parameters by redrawing t
 MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
 MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
+
+/*
+ * Assign a specific callback to process PLI, SLI, FIR received by RTCP.
+ * When set to NULL, or not assigned, the default behavior is to target these commands to the video encoder.
+ */ 
+MS2_PUBLIC void video_stream_set_encoder_control_callback(VideoStream *stream, VideoStreamEncoderControlCb cb, void *user_data);
 
 /**
  * Asks the video stream to send a Full-Intra Request.

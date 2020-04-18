@@ -176,6 +176,10 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 	}
 }
 
+static void video_stream_process_encoder_control(VideoStream *stream, unsigned int method_id, void *arg, void *user_data){
+	ms_filter_call_method(stream->ms.encoder, method_id, arg);
+}
+
 static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 	VideoStream *stream = (VideoStream *)media_stream;
 	int i;
@@ -191,7 +195,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 				if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 					uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 					/* TODO: manage seq_nr and ignore FIR repeats to avoid flooding the encoder */
-					ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr);
+					stream->encoder_control_cb(stream,  MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr, stream->encoder_control_cb_user_data);
 					stream->ms_video_stat.counter_rcvd_fir++;
 					ms_message("Got RTCP FIR on video stream [%p] SSRC [%x] count %d, seq %u", 
 						stream, rtcp_fb_fir_fci_get_ssrc(fci), stream->ms_video_stat.counter_rcvd_fir, seq_nr);
@@ -212,7 +216,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 				case RTCP_PSFB_PLI:
 
 					stream->ms_video_stat.counter_rcvd_pli++;
-					ms_filter_call_method_noarg(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
+					stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_PLI, NULL, stream->encoder_control_cb_user_data);
 					ms_message("Got RTCP PLI on video stream [%p] SSRC [%x] count %d", 
 						stream, rtcp_PSFB_get_media_source_ssrc(m), stream->ms_video_stat.counter_rcvd_pli);
 					break;
@@ -225,7 +229,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 						sli.first = rtcp_fb_sli_fci_get_first(fci);
 						sli.number = rtcp_fb_sli_fci_get_number(fci);
 						sli.picture_id = rtcp_fb_sli_fci_get_picture_id(fci);
-						ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli);
+						stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_SLI, &sli, stream->encoder_control_cb_user_data);
 						stream->ms_video_stat.counter_rcvd_sli++;
 						ms_message("video_stream_process_rtcp stream [%p] SLI count %d", stream,  stream->ms_video_stat.counter_rcvd_sli);
 
@@ -237,7 +241,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					MSVideoCodecRPSI rpsi;
 					rpsi.bit_string = rtcp_fb_rpsi_fci_get_bit_string(fci);
 					rpsi.bit_string_len = rtcp_PSFB_rpsi_get_fci_bit_string_len(m);
-					ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi);
+					stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_RPSI, &rpsi, stream->encoder_control_cb_user_data);
 					stream->ms_video_stat.counter_rcvd_rpsi++;
 					ms_message("video_stream_process_rtcp stream [%p] RPSI count %d", stream,  stream->ms_video_stat.counter_rcvd_rpsi);
 				}
@@ -253,6 +257,15 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session));
 		}
 	}
+}
+
+void video_stream_set_encoder_control_callback(VideoStream *stream, VideoStreamEncoderControlCb cb, void *user_data){
+	if (cb == NULL) {
+		cb = video_stream_process_encoder_control;
+		user_data = NULL;
+	}
+	stream->encoder_control_cb = cb;
+	stream->encoder_control_cb_user_data = user_data;
 }
 
 static void stop_preload_graph(VideoStream *stream){
@@ -418,6 +431,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->output_performs_decoding = FALSE;
 	choose_display_name(stream);
 	stream->ms.process_rtcp=video_stream_process_rtcp;
+	video_stream_set_encoder_control_callback(stream, NULL, NULL);
 	/*
 	 * In practice, these filters are needed only for audio+video recording.
 	 */
