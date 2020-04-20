@@ -41,7 +41,6 @@ struct _MSVideoEndpoint{
 	MSCPoint mixer_in;
 	MSCPoint mixer_out;
 	MSVideoConference *conference;
-	MSBandwidthController *bw_controller;
 	int pin;
 	int is_remote;
 	int last_tmmbr_received; /*Value in bits/s */
@@ -252,7 +251,6 @@ void ms_video_conference_add_member(MSVideoConference *obj, MSVideoEndpoint *ep)
 	ep->conference=obj;
 	if (obj->members!=NULL) ms_ticker_detach(obj->ticker,obj->mixer);
 	plumb_to_conf(ep);
-	ms_bandwidth_controller_add_stream(ep->bw_controller, (MediaStream*)ep->st);
 	video_stream_set_encoder_control_callback(ep->st, ms_video_conference_process_encoder_control, ep);
 	ms_ticker_attach(obj->ticker,obj->mixer);
 	obj->members=bctbx_list_append(obj->members,ep);
@@ -270,7 +268,6 @@ static void unplumb_from_conf(MSVideoEndpoint *ep){
 }
 
 void ms_video_conference_remove_member(MSVideoConference *obj, MSVideoEndpoint *ep){
-	ms_bandwidth_controller_remove_stream(ep->bw_controller, (MediaStream*)ep->st);
 	video_stream_set_encoder_control_callback(ep->st, NULL, NULL);
 	ms_ticker_detach(obj->ticker,obj->mixer);
 	unplumb_from_conf(ep);
@@ -288,7 +285,7 @@ static void ms_video_conference_apply_new_bitrate_request(MSVideoConference *obj
 	for (elem = obj->members; elem != NULL; elem = elem->next){
 		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
 		if (ep->is_remote){
-			ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->bw_controller, obj->bitrate);
+			ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->st->ms.bandwidth_controller, obj->bitrate);
 		}else{
 			media_stream_process_tmmbr((MediaStream*)ep->st, obj->bitrate);
 		}
@@ -336,7 +333,6 @@ void ms_video_conference_destroy(MSVideoConference *obj){
 
 MSVideoEndpoint *ms_video_endpoint_new(void){
 	MSVideoEndpoint *ep=ms_new0(MSVideoEndpoint,1);
-	ep->bw_controller = ms_bandwidth_controller_new();
 	return ep;
 }
 
@@ -358,7 +354,6 @@ MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_r
 }
 
 void ms_video_endpoint_destroy(MSVideoEndpoint *ep){
-	ms_bandwidth_controller_destroy(ep->bw_controller);
 	ms_free(ep);
 }
 
