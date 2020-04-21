@@ -24,7 +24,9 @@ cmake_minimum_required(VERSION 3.2)
 
 
 project(linphone-sdk VERSION 4.3 LANGUAGES NONE)
-
+if (POLICY CMP0081 AND ENABLE_MICROSOFT_STORE_APP)
+    cmake_policy(SET CMP0081 OLD)
+endif ()
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
