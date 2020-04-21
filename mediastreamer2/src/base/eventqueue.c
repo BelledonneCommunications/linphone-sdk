@@ -21,8 +21,8 @@
 #include "mediastreamer2/mseventqueue.h"
 #include "mediastreamer2/msfilter.h"
 
-#ifndef MS_EVENT_BUF_SIZE
-#define MS_EVENT_BUF_SIZE 64 * 1024
+#ifndef MS_EVENT_QUEUE_MAX_SIZE
+#define MS_EVENT_QUEUE_MAX_SIZE 1024
 #endif
 
 typedef enum {
@@ -43,87 +43,46 @@ typedef struct _MSNotifyContext MSNotifyContext;
 
 struct _MSEventQueue{
 	ms_mutex_t mutex; /*could be replaced by an atomic counter for freeroom*/
-	uint8_t *rptr; /* MUST never be equal to endptr */
-	uint8_t *wptr; /* MUST never be equal to endptr */
-	uint8_t *endptr;
-	uint8_t *lim;
 	MSFilter *current_notifier;
-	uint8_t buffer[MS_EVENT_BUF_SIZE]; /* WARNING: please ensure that the buffer is aligned on 0, 4 or 8 if you modify the structure */
-	bool_t full; /* allow to know whether the buffer is full or empty when rptr == wptr */
+	queue_t q;
 };
 
 typedef struct {
 	MSFilter* filter;
 	unsigned int ev_id;
-	int pad;
+	int pad; /* So that next is 64 bit aligned*/
 } MSEventHeader;
 
-static int round_size(int sz) {
-	return (sz + (sizeof(void*) - 1)) & ~(sizeof(void*) - 1);
-}
-
-static bool_t can_write(const MSEventQueue *q, size_t write_size) {
-	if (q->rptr == q->wptr) {
-		return !q->full;
-	} else if (q->rptr < q->wptr) {
-		return (size_t)(q->endptr - q->wptr) >= write_size || (size_t)(q->rptr - q->buffer) >= write_size;
-	} else {
-		return (size_t)(q->rptr - q->wptr) >= write_size;
-	}
-}
-
-
-static bool_t can_read(const MSEventQueue *q) {
-	return q->rptr != q->wptr || q->full;
-}
-
-/* rptr MUST be in [q->buffer, q->endptr[ interval */
-static bool_t can_read_with_rptr_and_full(const MSEventQueue *q, const uint8_t *rptr, bool_t full) {
-	return rptr != q->wptr || full;
-}
 
 static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *arg){
 	int argsize=ev_id & 0xff;
-	int size=round_size(argsize);
-	uint8_t *nextpos;
 	int header_size = sizeof(MSEventHeader);
-	size += header_size;
-	ms_mutex_lock(&q->mutex);
-	nextpos=q->wptr+size;
-
-	if (!can_write(q, size)) {
-		ms_mutex_unlock(&q->mutex);
-		ms_error("Dropped event, no more free space in event buffer !");
+	mblk_t *event_message;
+	
+	
+	if (q->q.q_mcount > MS_EVENT_QUEUE_MAX_SIZE){
+		ms_error("Mediastreamer2 event queue is stalled, discarding event.");
 		return;
 	}
+	
+	event_message = allocb(header_size + argsize, 0);
 
-	if (nextpos>q->lim){
-		/* need to wrap around */
-		q->endptr=q->wptr;
-		q->wptr=q->buffer;
-		if (q->rptr == q->endptr) q->rptr = q->buffer;
-		nextpos=q->wptr+size;
+	((MSEventHeader *)event_message->b_wptr)->filter = f;
+	((MSEventHeader *)event_message->b_wptr)->ev_id = ev_id;
+	
+	event_message->b_wptr += header_size;
+	
+	if (argsize > 0) {
+		memcpy(event_message->b_wptr, arg, argsize);
+		event_message->b_wptr += argsize;
 	}
-
-	if (((intptr_t)q->wptr % 4) != 0) ms_fatal("Unaligned access");
-	((MSEventHeader *)q->wptr)->filter = f;
-	((MSEventHeader *)q->wptr)->ev_id = ev_id;
-
-	if (argsize > 0) memcpy(q->wptr + header_size, arg, argsize);
-	q->wptr=nextpos;
-
-	/* buffer actual size (q->endptr) may have grown within the limit q->lim, prevent unwanted reading reset to the begining by setting the actual endptr */
-	if (nextpos>q->endptr) {
-		q->endptr=nextpos;
-		/* no need to ensure "q->rptr != q->endptr" predicate here because q->rptr couldn't be after q->endptr */
-	}
-
-	if (q->wptr == q->rptr) q->full = TRUE;
+	
+	ms_mutex_lock(&q->mutex);
+	putq(&q->q, event_message);
 	ms_mutex_unlock(&q->mutex);
 }
 
-static int parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **data, int *argsize){
-	int evsize;
+static void parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **data, int *argsize){
 	int header_size = sizeof(MSEventHeader);
 
 	if (((intptr_t)rptr % 4) != 0) ms_fatal("Unaligned access");
@@ -131,89 +90,83 @@ static int parse_event(uint8_t *rptr, MSFilter **f, unsigned int *id, void **dat
 	*id = ((MSEventHeader *)rptr)->ev_id;
 
 	*argsize = (*id) & 0xff;
-	evsize = round_size((*argsize)) + header_size;
 	*data = rptr + header_size;
-	return evsize;
 }
 
 static bool_t read_event(MSEventQueue *q){
+	mblk_t *event_message;
 	bool_t has_read = FALSE;
-	ms_mutex_lock(&q->mutex);/*q->endptr can be changed by write_event() so mutex is needed*/
-	if (can_read(q)) {
+
+	ms_mutex_lock(&q->mutex);
+	event_message = getq(&q->q);
+	ms_mutex_unlock(&q->mutex);
+	
+	if (event_message){
 		MSFilter *f;
 		unsigned int id;
 		void *data;
 		int argsize;
-		int evsize;
 
-		if (q->rptr>=q->endptr){
-			q->rptr=q->buffer;
-		}
-
-		evsize=parse_event(q->rptr,&f,&id,&data,&argsize);
+		parse_event(event_message->b_rptr,&f,&id,&data,&argsize);
 		if (f) {
 			q->current_notifier=f;
 			ms_filter_invoke_callbacks(&q->current_notifier,id,argsize>0 ? data : NULL, OnlyAsynchronous);
 			q->current_notifier=NULL;
 		}
-
-		q->rptr+=evsize;
-		if (q->rptr >= q->endptr) q->rptr = q->buffer;
-		if (q->full) q->full = FALSE;
-
+		freeb(event_message);
 		has_read = TRUE;
 	}
-	ms_mutex_unlock(&q->mutex);
 	return has_read;
 }
 
 /*clean all events belonging to a MSFilter that is about to be destroyed*/
 void ms_event_queue_clean(MSEventQueue *q, MSFilter *destroyed){
-	uint8_t *rptr = q->rptr;
-	bool_t full = q->full;
-	while (can_read_with_rptr_and_full(q, rptr, full)) {
+	queue_t freeq;
+	mblk_t *event_message;
+	int cleaned_events = 0;
+	
+	qinit(&freeq);
+	ms_mutex_lock(&q->mutex);
+	for (event_message = qbegin(&q->q); !qend(&q->q, event_message); ){
 		MSFilter *f;
 		unsigned int id;
 		void *data;
 		int argsize;
-		int evsize;
+		mblk_t *next_event_message = event_message->b_next;
 
-		evsize=parse_event(rptr,&f,&id,&data,&argsize);
-		if (f==destroyed){
-			ms_message("Cleaning pending event of MSFilter [%s:%p]",destroyed->desc->name,destroyed);
-			((MSEventHeader*)rptr)->filter = NULL;
+		parse_event(event_message->b_rptr,&f,&id,&data,&argsize);
+		if (f == destroyed){
+			cleaned_events++;
+			remq(&q->q, event_message);
+			putq(&freeq, event_message);
 		}
-
-		rptr+=evsize;
-		if (rptr>=q->endptr) rptr=q->buffer;
-		if (full) full = FALSE;
+		event_message = next_event_message;
 	}
+	ms_mutex_unlock(&q->mutex);
+	ms_message("Cleaned [%i] pending event(s) generated by MSFilter [%s:%p]", cleaned_events, destroyed->desc->name, destroyed);
 	if (q->current_notifier==destroyed){
 		q->current_notifier=NULL;
 	}
-}
-
-static void _ms_event_queue_reset_ptrs(MSEventQueue *q) {
-	q->lim=q->buffer+MS_EVENT_BUF_SIZE;
-	q->wptr=q->rptr=q->buffer;
-	q->endptr=q->lim;
+	flushq(&freeq, 0);
 }
 
 MSEventQueue *ms_event_queue_new(){
 	MSEventQueue *q=ms_new0(MSEventQueue,1);
 	ms_mutex_init(&q->mutex,NULL);
-	_ms_event_queue_reset_ptrs(q);
+	qinit(&q->q);
 	return q;
 }
 
 void ms_event_queue_destroy(MSEventQueue *q){
-	/*compatibility code*/
+	flushq(&q->q, 0);
 	ms_mutex_destroy(&q->mutex);
 	ms_free(q);
 }
 
 void ms_event_queue_skip(MSEventQueue *q){
-	_ms_event_queue_reset_ptrs(q);
+	ms_mutex_lock(&q->mutex);
+	flushq(&q->q, 0);
+	ms_mutex_unlock(&q->mutex);
 }
 
 
@@ -266,7 +219,7 @@ static void ms_filter_invoke_callbacks(MSFilter **f, unsigned int id, void *arg,
 			|| (synchronous_mode==OnlySynchronous && ctx->synchronous)){
 			ctx->fn(ctx->ud,*f,id,arg);
 		}
-		if (*f==NULL) break; /*the filter was destroyed by a callback invocation*/
+		if (*f == NULL) break; /*the filter was destroyed by a callback invocation*/
 	}
 }
 

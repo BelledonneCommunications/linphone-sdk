@@ -1012,7 +1012,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	MSPixFmt format;
 	MSVideoSize disp_size;
 	JBParameters jbp;
-	const int socket_buf_size=2000000;
+	
 	bool_t avpf_enabled = FALSE;
 	bool_t rtp_source = FALSE;
 	bool_t rtp_output = FALSE;
@@ -1065,8 +1065,6 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 	jbp.max_packets=1000;//needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
-	rtp_session_set_rtp_socket_recv_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
-	rtp_session_set_rtp_socket_send_buffer_size(stream->ms.sessions.rtp_session,socket_buf_size);
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);

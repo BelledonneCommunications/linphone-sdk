@@ -129,7 +129,8 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
 	RtpSession *rtpr;
-
+	const int socket_buf_size=2000000;
+	
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_recv_buf_size(rtpr, MAX(mtu , MS_MINIMAL_MTU));
 	rtp_session_set_scheduling_mode(rtpr, 0);
@@ -151,10 +152,18 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
 	rtp_session_set_rtcp_report_interval(rtpr, 2500);	/* At the beginning of the session send more reports. */
-	rtp_session_set_multicast_loopback(rtpr,TRUE); /*very useful, specially for testing purposes*/
+	rtp_session_set_multicast_loopback(rtpr, TRUE); /*very useful, specially for testing purposes*/
 	rtp_session_set_send_ts_offset(rtpr, (uint32_t)bctbx_random());
 	rtp_session_enable_avpf_feature(rtpr, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
+	
+	/* Enlarge kernel socket buffers, which is necessary for video streams because large amounts of data can arrive between
+	 * two ticks of mediastreamer2 processing.
+	 * Previously, this was done only for VideoStreams, but since the sockets in the audio RtpSession may be used for video too
+	 * (in RTP bundle mode), then it has to be done also for audio sockets.
+	 */
+	rtp_session_set_rtp_socket_recv_buffer_size(rtpr, socket_buf_size);
+	rtp_session_set_rtp_socket_send_buffer_size(rtpr, socket_buf_size);
 	return rtpr;
 }
 
