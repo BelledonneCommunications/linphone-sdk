@@ -610,11 +610,6 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->recorderBufferQueue = NULL;
 	}
 
-	if (ictx->soundCard) {
-		ms_snd_card_unref(ictx->soundCard);
-		ictx->soundCard = NULL;
-	}
-
 	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ictx->mutex);
 	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
@@ -624,6 +619,12 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 
 static void android_snd_read_uninit(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
+
+	if (ictx->soundCard) {
+		ms_snd_card_unref(ictx->soundCard);
+		ictx->soundCard = NULL;
+	}
+	
 	delete ictx;
 }
 
@@ -922,6 +923,12 @@ static void android_snd_write_init(MSFilter *obj){
 
 static void android_snd_write_uninit(MSFilter *obj){
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
+
+	if (octx->soundCard) {
+		ms_snd_card_unref(octx->soundCard);
+		octx->soundCard = NULL;
+	}
+
 	delete octx;
 }
 
@@ -1056,11 +1063,6 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	if (octx->outputMixObject != NULL) {
 		(*octx->outputMixObject)->Destroy(octx->outputMixObject);
 		octx->outputMixObject = NULL;
-	}
-
-	if (octx->soundCard) {
-		ms_snd_card_unref(octx->soundCard);
-		octx->soundCard = NULL;
 	}
 
 	// At the end of a call, postprocess is called therefore here the output device can be changed to earpiece in the audio manager
