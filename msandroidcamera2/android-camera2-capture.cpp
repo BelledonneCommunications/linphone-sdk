@@ -399,7 +399,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	d->captureSessionStateCallbacks.onActive = android_camera2_capture_session_on_active;
 	d->captureSessionStateCallbacks.onClosed = android_camera2_capture_session_on_closed;
 
-	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_RECORD, &d->capturePreviewRequest);
+	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_PREVIEW, &d->capturePreviewRequest);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %s", android_camera2_status_to_string(camera_status));
 	}
@@ -619,6 +619,11 @@ static void android_camera2_capture_process(MSFilter *f) {
 static void android_camera2_capture_postprocess(MSFilter *f) {
 	ms_message("[Camera2 Capture] Filter postprocess");
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
+}
+
+static void android_camera2_capture_uninit(MSFilter *f) {
+	ms_message("[Camera2 Capture] Filter uninit");
+	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
@@ -630,12 +635,8 @@ static void android_camera2_capture_postprocess(MSFilter *f) {
 		d->frame = NULL;
 	}
 	ms_mutex_unlock(&d->mutex);
-}
 
-static void android_camera2_capture_uninit(MSFilter *f) {
-	ms_message("[Camera2 Capture] Filter uninit");
 	ms_filter_lock(f);
-	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 	delete d;
 	ms_filter_unlock(f);
 }
