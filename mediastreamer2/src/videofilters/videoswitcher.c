@@ -188,7 +188,7 @@ static void switcher_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, Out
 		if (mblk_get_timestamp_info(m) != output_context->out_ts){
 			/* Each time we observe a new input timestamp, we must select a new output timestamp */
 			output_context->out_ts = mblk_get_timestamp_info(m);
-			output_context->adjusted_out_ts = f->ticker->time * 90LL;
+			output_context->adjusted_out_ts = (uint32_t) (f->ticker->time * 90LL);
 		}
 		
 		/* We need to set sequence number for what we send out, otherwise the VP8 decoder won't be able
