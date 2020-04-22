@@ -24,6 +24,8 @@
 
 #include "mkv_reader.h"
 
+#define EBML_MasterForEachChild(it, e, c) for(it=EBML_MasterFindChild(e, c); it; it=EBML_MasterNextChild(e, it))
+
 extern const nodemeta LangStr_Class[];
 extern const nodemeta UrlPart_Class[];
 extern const nodemeta BufStream_Class[];
@@ -197,21 +199,16 @@ MKVTrackReader *mkv_reader_get_track_reader(MKVReader *reader, int track_num) {
 }
 
 int mkv_reader_seek(MKVReader *reader, int pos_ms) {
-	ebml_element *cue_point, *next_cue_point;
+	ebml_element *cue_point;
 	bctbx_list_t *it;
 	if(reader->cues == NULL) {
 		ms_error("MKVReader: unable to seek. No cues table");
 		return -1;
 	}
-	for(cue_point = NULL, next_cue_point = EBML_MasterChildren((ebml_master *)reader->cues);
-		next_cue_point!=NULL;
-		cue_point = next_cue_point, next_cue_point = EBML_MasterNext(next_cue_point)) {
-		MATROSKA_LinkCueSegmentInfo((matroska_cuepoint *)next_cue_point, (ebml_master *)reader->info_elt);
-		if(MATROSKA_CueTimecode((matroska_cuepoint *)next_cue_point) > (timecode_t)pos_ms * 1000000LL) {
-			break;
-		}
+	EBML_MasterForEachChild(cue_point, reader->cues, &MATROSKA_ContextCuePoint) {
+		MATROSKA_LinkCueSegmentInfo((matroska_cuepoint *)cue_point, (ebml_master *)reader->info_elt);
+		if(MATROSKA_CueTimecode((matroska_cuepoint *)cue_point) >= (timecode_t)pos_ms * 1000000LL) break;
 	}
-	if(cue_point==NULL) cue_point = next_cue_point;
 	if(cue_point) {
 		ebml_element *track_position;
 		filepos_t pos = 0;
@@ -430,7 +427,7 @@ static int _parse_headers(MKVReader *obj) {
 				ms_error("MKVParser: fail to parse tracks information");
 				goto fail;
 			}
-			for(track=EBML_MasterChildren(level1); track!=NULL; track = EBML_MasterNext(track)) {
+			EBML_MasterForEachChild(track, level1, &MATROSKA_ContextTrackEntry) {
 				obj->tracks_elt = bctbx_list_append(obj->tracks_elt, EBML_ElementCopy(track, NULL));
 			}
 		} else if(EBML_ElementIsType(level1, &MATROSKA_ContextCluster)) {
@@ -508,12 +505,13 @@ static int _parse_segment_info(MKVSegmentInfo *seg_info_out, ebml_element *seg_i
 
 static int _parse_tracks(bctbx_list_t **tracks_out, ebml_element *tracks_elt) {
 	ebml_element *elt;
+	MKVTrack *track;
+
 	if(!EBML_MasterCheckMandatory((ebml_master *)tracks_elt, FALSE)) {
 		ms_error("MKVParser: fail to parse tracks info. Missing elements");
 		return -1;
 	}
-	for(elt=EBML_MasterChildren(tracks_elt); elt!=NULL; elt=EBML_MasterNext(elt)) {
-		MKVTrack *track;
+	EBML_MasterForEachChild(elt, tracks_elt, &MATROSKA_ContextTrackEntry) {
 		_parse_track(&track, elt);
 		*tracks_out = bctbx_list_append(*tracks_out, track);
 	}
