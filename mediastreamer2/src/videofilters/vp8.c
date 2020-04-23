@@ -493,7 +493,7 @@ static void enc_process_frame_task(void *obj) {
 	ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
 		s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
 #endif
-	err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, 1000000LL/(2*(int)s->vconf.fps)); /*encoder has half a framerate interval to encode*/
+	err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, (unsigned long)((double)1000000/(2.0*(double)s->vconf.fps))); /*encoder has half a framerate interval to encode*/
 	if (err) {
 		ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 	} else {
