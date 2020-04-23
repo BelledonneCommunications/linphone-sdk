@@ -44,7 +44,10 @@ struct _FilterData {
 
 	bool_t show_video;
 	bool_t mirroring;
+	bool_t update_mirroring;
 	bool_t update_context;
+
+	mblk_t * prev_inm;
 };
 
 typedef struct _FilterData FilterData;
@@ -57,6 +60,9 @@ static void ogl_init (MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
 	data->display = ogl_display_new();
 	data->show_video = TRUE;
+	data->mirroring = TRUE;
+	data->update_mirroring = FALSE;
+	data->prev_inm = NULL;
 
 	f->data = data;
 }
@@ -94,6 +100,13 @@ static void ogl_process (MSFilter *f) {
 		//	ms_yuv_buf_mirror(&src);
 
 		ogl_display_set_yuv_to_display(data->display, inm);
+
+		// Apply mirroring flag if the frame changed compared to last time process was executed or at the 1st iteration
+		if (((data->prev_inm != inm) || (data->prev_inm == NULL)) && (data->update_mirroring)) {
+			ogl_display_enable_mirroring_to_display(data->display, data->mirroring);
+			data->update_mirroring = FALSE;
+		}
+		data->prev_inm = inm;
 	}
 
 end:
@@ -171,7 +184,9 @@ static int ogl_zoom (MSFilter *f, void *arg) {
 static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 	FilterData *data = (FilterData *)f->data;
 	ms_filter_lock(f);
-	ogl_display_enable_mirroring_to_display(data->display, *(bool_t *)arg);
+	data->mirroring = *(bool_t *)arg;
+	// This is a request to update the mirroring flag and it will be honored as soon as a new frame comes in
+	data->update_mirroring = TRUE;
 	ms_filter_unlock(f);
 
 	return 0;

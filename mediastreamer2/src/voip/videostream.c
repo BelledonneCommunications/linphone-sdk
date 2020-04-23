@@ -42,6 +42,22 @@ static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
 
+static void assign_value_to_mirroring_flag_to_preview(VideoStream *stream) {
+	if (stream && stream->output2) {
+		MSWebCam * cam = stream->cam;
+		int mirroring = TRUE;
+		if (cam) {
+			const char * cam_name=ms_web_cam_get_string_id(cam);
+			if (cam_name) {
+				// If the camera does't show a static image, then set mirroring to 1, 0 otherwise
+				mirroring = (strstr(cam_name,"Static picture")==NULL);
+			}
+		}
+		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
+	}
+}
+
+
 static void video_stream_update_jitter_for_nack(const OrtpEventData *evd, VideoStream *stream) {
 	if (stream->audiostream != NULL) {
 		JBParameters jitter_params;
@@ -1139,6 +1155,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if (stream->preview_window_id!=0){
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
 			}
+
+			if (ms_filter_get_id(stream->output2) == MS_OGL_ID) {
+				assign_value_to_mirroring_flag_to_preview(stream);
+			}
 			ms_filter_link(stream->tee,1,stream->output2,0);
 		}
 		if (stream->local_jpegwriter){
@@ -1481,6 +1501,11 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			}
 		}
 
+		// Change value of mirroring as potentially the webcam was changed
+		if (stream->output2 && ms_filter_get_id(stream->output2) == MS_OGL_ID) {
+			assign_value_to_mirroring_flag_to_preview(stream);
+		}
+
 		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
 	}
 	return old_source;
@@ -1805,6 +1830,7 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	MSConnectionHelper ch;
 
 	stream->source = ms_web_cam_create_reader(device);
+	stream->cam = device;
 
 	/* configure the filters */
 	configure_video_preview_source(stream);
@@ -1815,7 +1841,6 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 #else
 	{
 		MSPixFmt format = MS_YUV420P; /* Display format */
-		int mirroring = 1;
 		int corner = -1;
 		MSVideoSize disp_size = stream->sent_vsize;
 		const char *displaytype = stream->display_name;
@@ -1824,8 +1849,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 			stream->output2=ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
 			ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
 			ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
-			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
 			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+			assign_value_to_mirroring_flag_to_preview(stream);
 			/* and then connect all */
 		}
 	}
