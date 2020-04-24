@@ -1,6 +1,6 @@
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
-#Use = *referenceName to use the template
+#Use = "<< *referenceName" to use the template ("-*" in script)
 
 
 .factorize_centos7: &docker_image_platform_and_runner_tag
