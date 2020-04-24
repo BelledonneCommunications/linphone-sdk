@@ -168,7 +168,8 @@ MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_MIC")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
-	} else if ((typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_HEADSET")) || (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADSET"))) {
+	} else if ((get_sdk_version(env) >= 26 && (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_HEADSET")))
+			|| (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADSET"))) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
 	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADPHONES")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
