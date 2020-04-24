@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_debian8: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
+  variables:
+    PLATFORM: linux-debian8
+
 #################################################
 # Makefile
 #################################################
@@ -31,7 +42,9 @@ test-bellesip-debian8:
   extends: .test-bellesip
   dependencies:
     - job-debian8-makefile-gcc
-  tags: [ "docker-test-debian8-nuc" ]
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     PLATFORM: linux-debian8
 
@@ -39,25 +52,19 @@ test-belr-debian8:
   extends: .test-belr
   dependencies:
     - job-debian8-makefile-gcc
-  tags: [ "docker-test-debian8-nuc" ]
-  variables:
-    PLATFORM: linux-debian8
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-debian8:
   extends: .test-belcard
   dependencies:
     - job-debian8-makefile-gcc
-  tags: [ "docker-test-debian8-nuc" ]
-  variables:
-    PLATFORM: linux-debian8
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-debian8:
   extends: .test-bzrtp
   dependencies:
     - job-debian8-makefile-gcc
-  tags: [ "docker-test-debian8-nuc" ]
-  variables:
-    PLATFORM: linux-debian8
+  <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian8:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian8-test-liblinphone
