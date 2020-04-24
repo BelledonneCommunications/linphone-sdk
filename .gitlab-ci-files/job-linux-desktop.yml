@@ -47,9 +47,9 @@
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  #only:
+  #  variables:
+  #    - $NIGHTLY_MASTER
 
   script:
     - cd $PATH_TO_TESTER
