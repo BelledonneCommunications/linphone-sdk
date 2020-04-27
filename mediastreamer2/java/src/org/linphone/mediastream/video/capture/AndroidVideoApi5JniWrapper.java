@@ -26,9 +26,13 @@ import org.linphone.mediastream.video.AndroidVideoWindowImpl;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration;
 import org.linphone.mediastream.video.capture.hwconf.AndroidCameraConfiguration.AndroidCamera;
 
+import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
+import android.view.Surface;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.TextureView;
 
@@ -137,6 +141,8 @@ public class AndroidVideoApi5JniWrapper {
 				camera.setPreviewTexture(((TextureView) surf).getSurfaceTexture());
 			} else if (surf instanceof SurfaceTexture) {
 				camera.setPreviewTexture((SurfaceTexture) surf);
+			} else if (surf instanceof Surface) {
+				camera.setPreviewDisplay(new SimpleSurfaceHolder((Surface) surf));
 			} else {
 				AndroidVideoWindowImpl avw = (AndroidVideoWindowImpl) surf;
 				camera.setPreviewDisplay(avw.getPreviewSurfaceView().getHolder());
@@ -253,5 +259,31 @@ public class AndroidVideoApi5JniWrapper {
 		}
 
 		camera.setParameters(params);
+	}
+
+	private static class SimpleSurfaceHolder implements SurfaceHolder {
+		private Surface mSurface;
+
+		public SimpleSurfaceHolder(Surface surface) {
+			mSurface = surface;
+		}
+
+		@Override public void addCallback(SurfaceHolder.Callback callback) {}
+		@Override public Rect getSurfaceFrame() { return null; }
+		@Override public boolean isCreating() { return false; }
+		@Override public Canvas lockCanvas() { return null; }
+		@Override public Canvas lockCanvas(Rect dirty) { return null; }
+		@Override public void removeCallback(SurfaceHolder.Callback callback) {}
+		@Override public void setFixedSize(int width, int height) {}
+		@Override public void setFormat(int format) {}
+		@Override public void setKeepScreenOn(boolean screenOn) {}
+		@Override public void setSizeFromLayout() {}
+		@Override public void setType(int type) {}
+		@Override public void unlockCanvasAndPost(Canvas canvas) {}
+
+		@Override
+		public Surface getSurface() {
+			return mSurface;
+		}
 	}
 }
