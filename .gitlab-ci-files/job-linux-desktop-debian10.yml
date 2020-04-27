@@ -117,7 +117,7 @@ job-debian10-ninja-clang-novideo:
 test-bctoolbox-debian10:
   extends: .test-bctoolbox
   dependencies:
-    - job-debian10-ninja-clang
+    - job-debian10-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-debian10:

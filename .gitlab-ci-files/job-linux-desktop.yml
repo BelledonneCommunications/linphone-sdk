@@ -145,8 +145,6 @@
 
 .test-bctoolbox:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "bctoolbox_tester"
     LOG_PATTERN: "logBctoolboxAllPar"
@@ -155,8 +153,6 @@
 
 .test-bellesip:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belle_sip_tester"
     LOG_PATTERN: "logBellesipAllPar"
@@ -167,8 +163,6 @@
 
 .test-belr:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belr_tester"
     LOG_PATTERN: "logBelrAllPar"
@@ -178,8 +172,6 @@
 
 .test-belcard:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belcard_tester"
     LOG_PATTERN: "logBelcardAllPar"
@@ -188,8 +180,6 @@
 
 .test-bzrtp:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "bzrtpTest"
     LOG_PATTERN: "logBzrtpAllPar"
@@ -202,8 +192,6 @@
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "liblinphone_tester"
     XVFB: "Xvfb :99"
