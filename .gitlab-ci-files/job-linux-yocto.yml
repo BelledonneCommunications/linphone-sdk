@@ -1,6 +1,8 @@
 job-debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9-yocto" ]
+  #currently described in runner config. Uncomment to override.
+  #image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:latest
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -16,7 +18,7 @@ job-debian9-yocto-sumo:
     - export LINPHONE_SDK_BRANCH="$CI_COMMIT_REF_NAME"
     - echo $LINPHONE_SDK_BRANCH
     - source oe-init-build-env
-    - bitbake -c cleanall linphone-sdk 
+    - bitbake -c cleanall linphone-sdk
     - bitbake -f linphone-sdk 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
     #to get build logs from linphone-sdk
     - tar cvzf ${CI_PROJECT_DIR}/bitbake_build_logs.tgz `bitbake -e linphone-sdk | grep ^T= |cut -d'"' -f 2`
