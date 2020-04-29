@@ -62,6 +62,13 @@ foreach(_arch IN LISTS _archs)
 	#Because cache variables take precedence and we redefine it here for multi-arch
 	ExcludeFromList(_cmake_cache_args CMAKE_INSTALL_PREFIX ${_inherited_cmake_args})
 
+	if(CMAKE_ANDROID_NDK_VERSION VERSION_EQUAL 21)
+		# NDK 21b needs this but not 21
+		if(CMAKE_ANDROID_NDK_VERSION_MINOR GREATER_EQUAL 1)
+			ExcludeFromList(_cmake_args CMAKE_INSTALL_PREFIX)
+		endif()
+	endif()
+
 	ExternalProject_Add(android-${_arch}
 		${_ep_depends}
 		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"
