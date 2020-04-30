@@ -108,6 +108,7 @@ test-bellesip-ubuntu:
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
     PLATFORM: linux-ubuntu-rolling
 
