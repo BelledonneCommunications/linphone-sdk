@@ -17,10 +17,12 @@
     - echo $CMAKE_OPTIONS
     - echo $CMAKE_SANITIZER_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $(git describe) > gitdescribe.txt
   artifacts:
     paths:
+      - build-desktop/gitdescribe.txt
       - build-desktop/linphone-sdk/desktop/bin/*
       - build-desktop/linphone-sdk/desktop/lib/*
       - build-desktop/linphone-sdk/desktop/lib64/*
@@ -45,7 +47,7 @@
   allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
-    GIT_STRATEGY: fetch
+    GIT_STRATEGY: none
     GIT_SUBMODULE_STRATEGY: none
   only:
     variables:
@@ -92,7 +94,6 @@
     - pwd
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER && pwd
-    - git describe
 
     #.gdbinit is used to store gdb init scripts
     #we use it to avoid the need to specify manually the commands for each potential coredump
@@ -103,7 +104,8 @@
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
-    - COMMIT=$(git describe)
+    - COMMIT=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
+    - echo $COMMIT
     #generation of html file to redirect on test results page
 
     - BRANCH=$CI_COMMIT_REF_NAME
@@ -145,8 +147,6 @@
 
 .test-bctoolbox:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "bctoolbox_tester"
     LOG_PATTERN: "logBctoolboxAllPar"
@@ -155,8 +155,6 @@
 
 .test-bellesip:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belle_sip_tester"
     LOG_PATTERN: "logBellesipAllPar"
@@ -167,8 +165,6 @@
 
 .test-belr:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belr_tester"
     LOG_PATTERN: "logBelrAllPar"
@@ -178,8 +174,6 @@
 
 .test-belcard:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "belcard_tester"
     LOG_PATTERN: "logBelcardAllPar"
@@ -188,8 +182,6 @@
 
 .test-bzrtp:
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "bzrtpTest"
     LOG_PATTERN: "logBzrtpAllPar"
@@ -202,8 +194,6 @@
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
   extends: .test
-  dependencies:
-    - .build-sdk
   variables:
     TESTER_BIN: "liblinphone_tester"
     XVFB: "Xvfb :99"

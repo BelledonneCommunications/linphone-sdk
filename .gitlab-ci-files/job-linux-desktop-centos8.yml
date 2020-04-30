@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_centos8: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  variables:
+    PLATFORM: linux-centos8
+
 #################################################
 # Makefile
 #################################################
@@ -91,15 +102,15 @@ test-bctoolbox-centos8:
   extends: .test-bctoolbox
   dependencies:
     - job-centos8-ninja-gcc
-  tags: [ "docker-test-centos8-nuc" ]
-  variables:
-    PLATFORM: linux-centos8
+  <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-centos8:
   extends: .test-bellesip
   dependencies:
     - job-centos8-ninja-gcc
-  tags: [ "docker-test-centos8-nuc" ]
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   variables:
     PLATFORM: linux-centos8
 
@@ -107,26 +118,19 @@ test-belr-centos8:
   extends: .test-belr
   dependencies:
     - job-centos8-ninja-gcc
-  tags: [ "docker-test-centos8-nuc" ]
-  variables:
-    PLATFORM: linux-centos8
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-centos8:
   extends: .test-belcard
   dependencies:
     - job-centos8-ninja-gcc
-  tags: [ "docker-test-centos8-nuc" ]
-  variables:
-    PLATFORM: linux-centos8
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-centos8:
   extends: .test-bzrtp
   dependencies:
     - job-centos8-ninja-gcc
-  tags: [ "docker-test-centos8-nuc" ]
-  variables:
-    PLATFORM: linux-centos8
-
+  <<: *docker_image_platform_and_runner_tag
 #test-mediastreamer-centos8:
 #  tags: [ "docker-test-centos8-liblinphone-nuc" ]
 #  extends: .test
