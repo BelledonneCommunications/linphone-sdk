@@ -154,7 +154,7 @@ class HybridObject : public Object {
 		static std::list<std::shared_ptr<_CppType>> getCppListFromCList(const bctbx_list_t *cList) {
 			std::list<std::shared_ptr<_CppType>> result;
 			for (auto it = cList; it != nullptr; it = bctbx_list_next(it))
-				result.push_back(toCpp(static_cast<_CType>(bctbx_list_get_data(it)))->getSharedFromThis() );
+				result.push_back(toCpp(static_cast<_CType*>(bctbx_list_get_data(it)))->getSharedFromThis() );
 			return result;
 		}
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion

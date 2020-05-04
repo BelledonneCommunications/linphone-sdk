@@ -968,7 +968,6 @@ static void copy_non_system_headers(belle_sip_header_t* header,belle_sip_request
 static belle_sip_request_t *_belle_sip_dialog_create_request_from(belle_sip_dialog_t *obj, const belle_sip_request_t *initial_req, int queued){
 	belle_sip_request_t* req;
 	const char *method=belle_sip_request_get_method(initial_req);
-	belle_sip_header_content_length_t* content_lenth;
 	belle_sip_list_t* headers;
 
 	if (queued) req=belle_sip_dialog_create_queued_request(obj,method);
@@ -976,7 +975,6 @@ static belle_sip_request_t *_belle_sip_dialog_create_request_from(belle_sip_dial
 
 	if (req==NULL) return NULL;
 
-	content_lenth = belle_sip_message_get_header_by_type(initial_req,belle_sip_header_content_length_t);
 	/*first copy non system headers*/
 	headers = belle_sip_message_get_all_headers(BELLE_SIP_MESSAGE(initial_req));
 	belle_sip_list_for_each2(headers,(void (*)(void *, void *))copy_non_system_headers,req);
@@ -989,9 +987,9 @@ static belle_sip_request_t *_belle_sip_dialog_create_request_from(belle_sip_dial
 		belle_sip_parameters_copy_parameters_from(BELLE_SIP_PARAMETERS(new_via),BELLE_SIP_PARAMETERS(orig_via));
 	}
 
-	/*copy body*/
-	if (content_lenth && belle_sip_header_content_length_get_content_length(content_lenth)>0) {
-		belle_sip_message_set_body(BELLE_SIP_MESSAGE(req),belle_sip_message_get_body(BELLE_SIP_MESSAGE(initial_req)),belle_sip_header_content_length_get_content_length(content_lenth));
+	/*copy body handler to save content enconding processing (I.E deflat)*/
+	if (belle_sip_message_get_body_handler(BELLE_SIP_MESSAGE(initial_req))) {
+		belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),belle_sip_message_get_body_handler(BELLE_SIP_MESSAGE(initial_req)));
 	}
 	return req;
 }
@@ -1230,7 +1228,7 @@ static void _belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){
-		belle_sip_message("Dialog [%p]: sending queued request.",dialog);
+		belle_sip_message("Dialog [%p]: sending queued request [%p].",dialog,tr);
 		tr->base.sent_by_dialog_queue=TRUE;
 		belle_sip_client_transaction_send_request(tr);
 		belle_sip_object_unref(tr);
