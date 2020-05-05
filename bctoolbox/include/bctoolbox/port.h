@@ -118,6 +118,7 @@ unsigned long __bctbx_thread_self(void);
 
 #define getSocketError() strerror(errno)
 #define getSocketErrorCode() (errno)
+#define getSocketErrorWithCode(code) strerror(code)
 #define bctbx_gettimeofday(tv,tz) gettimeofday(tv,tz)
 #define bctbx_log10f(x)	log10f(x)
 
@@ -276,13 +277,24 @@ const char * bctbx_strerror(DWORD value);
 
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 BCTBX_PUBLIC const char *__bctbx_getWinSocketError(int error);
 
+#ifdef __cplusplus
+}
+#endif
+
 #ifndef getSocketErrorCode
-#define getSocketErrorCode()   WSAGetLastError()
+#define getSocketErrorCode()           WSAGetLastError()
 #endif
 #ifndef getSocketError
-#define getSocketError()       __bctbx_getWinSocketError(WSAGetLastError())
+#define getSocketError()               __bctbx_getWinSocketError(WSAGetLastError())
+#endif
+#ifndef getSocketErrorWithCode
+#define getSocketErrorWithCode(code)   __bctbx_getWinSocketError(code)
 #endif
 
 #ifndef snprintf
