@@ -22,21 +22,6 @@
 
 #include <bctoolbox/crypto.h>
 
-/*****************************************************************************/
-/***** Cleaning                                                          *****/
-/*****************************************************************************/
-
-/**
- * @brief force a buffer value to zero in a way that shall prevent the compiler from optimizing it out
- *
- * @param[in/out]	buffer	the buffer to be cleared
- * @param[in]		size	buffer size
- */
-void bctbx_clean(void *buffer, size_t size) {
-	//TODO: use memset_s or SecureZeroMemory when available
-	volatile uint8_t *p = buffer;
-	while(size--) *p++ = 0;
-}
 
 /*****************************************************************************/
 /***** AES GCM encrypt/decrypt chunk by chunk, needed for file encryption ****/

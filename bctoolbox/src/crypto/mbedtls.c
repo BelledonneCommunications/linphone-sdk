@@ -49,20 +49,18 @@
 #include "bctoolbox/logging.h"
 
 
-
-static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
-	switch (ret_code) {
-		case BCTBX_ERROR_NET_WANT_READ:
-			return MBEDTLS_ERR_SSL_WANT_READ;
-		case BCTBX_ERROR_NET_WANT_WRITE:
-			return MBEDTLS_ERR_SSL_WANT_WRITE;
-		case BCTBX_ERROR_NET_CONN_RESET:
-			return MBEDTLS_ERR_NET_CONN_RESET;
-		default:
-			return (int)ret_code;
-	}
+/*** Cleaning ***/
+/**
+ * @brief force a buffer value to zero in a way that shall prevent the compiler from optimizing it out
+ *
+ * @param[in/out]	buffer	the buffer to be cleared
+ * @param[in]		size	buffer size
+ */
+void bctbx_clean(void *buffer, size_t size) {
+	mbedtls_platform_zeroize(buffer, size);
 }
 
+/*** Error code translation ***/
 void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	if (error_code>0) {
 		snprintf(buffer, buffer_length, "%s", "Invalid Error code");
@@ -80,6 +78,7 @@ void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	return;
 }
 
+/*** base64 ***/
 int32_t bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	size_t byte_written = 0;
 	int ret = mbedtls_base64_encode(output, *output_length, &byte_written, input, input_length);
@@ -784,7 +783,7 @@ void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngFunction)(void
 	mbedtls_dhm_calc_secret((mbedtls_dhm_context *)(context->cryptoModuleData), sharedSecretBuffer, 384, &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
 	/* now copy the resulting secret in the correct place in buffer(result may actually miss some front zero bytes, real length of output is now in keyLength but we want primeLength bytes) */
 	memcpy(context->key+(context->primeLength-keyLength), sharedSecretBuffer, keyLength);
-	memset(sharedSecretBuffer, 0, 384); /* purge secret from temporary buffer */
+	bctbx_clean(sharedSecretBuffer, 384); /* purge secret from temporary buffer */
 }
 
 /* clean DHM context */
@@ -810,6 +809,20 @@ void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
 }
 
 /*** SSL Client ***/
+
+static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
+	switch (ret_code) {
+		case BCTBX_ERROR_NET_WANT_READ:
+			return MBEDTLS_ERR_SSL_WANT_READ;
+		case BCTBX_ERROR_NET_WANT_WRITE:
+			return MBEDTLS_ERR_SSL_WANT_WRITE;
+		case BCTBX_ERROR_NET_CONN_RESET:
+			return MBEDTLS_ERR_NET_CONN_RESET;
+		default:
+			return (int)ret_code;
+	}
+}
+
 /*
  * Default profile used to configure ssl_context, allow 1024 bits keys(while mbedtls default is 2048)
  */

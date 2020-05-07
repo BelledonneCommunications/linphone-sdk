@@ -109,7 +109,7 @@ void bctbx_ECDHSetSecretKey(bctbx_ECDHContext_t *context, const uint8_t *secret,
 		if (context->secret == NULL) { /* allocate a new buffer */
 			context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
 		} else { /* or make sure we wipe out the existing one */
-			memset(context->secret, 0, context->secretLength);
+			bctbx_clean(context->secret, context->secretLength);
 		}
 		memcpy(context->secret, secret, secretLength);
 	}
@@ -184,7 +184,7 @@ void bctbx_ECDHCreateKeyPair(bctbx_ECDHContext_t *context, int (*rngFunction)(vo
 		if (context->secret == NULL) { /* allocate buffer if needed */
 			context->secret = (uint8_t *)bctbx_malloc(context->secretLength);
 		} else { /* otherwise make sure we wipe out previous secret */
-			memset(context->secret, 0, context->secretLength);
+			bctbx_clean(context->secret, context->secretLength);
 		}
 		rngFunction(rngContext, context->secret, context->secretLength);
 
@@ -199,21 +199,21 @@ void bctbx_ECDHComputeSecret(bctbx_ECDHContext_t *context, int (*rngFunction)(vo
 		if (context->sharedSecret == NULL) { /* allocate buffer if needed */
 			context->sharedSecret = (uint8_t *)bctbx_malloc(context->pointCoordinateLength);
 		} else { /* otherwise make sure we wipe out previous secret */
-			memset(context->sharedSecret, 0, context->pointCoordinateLength);
+			bctbx_clean(context->sharedSecret, context->pointCoordinateLength);
 		}
 
 		switch (context->algo) {
 			case BCTBX_ECDH_X25519:
 				if (decaf_x25519(context->sharedSecret, context->peerPublic, context->secret)==DECAF_FAILURE) {
 					bctbx_free(context->sharedSecret);
-					memset(context->sharedSecret, 0, context->pointCoordinateLength);
+					bctbx_clean(context->sharedSecret, context->pointCoordinateLength);
 					context->sharedSecret=NULL;
 				}
 				break;
 			case BCTBX_ECDH_X448:
 				if (decaf_x448(context->sharedSecret, context->peerPublic, context->secret)==DECAF_FAILURE) {
 					bctbx_free(context->sharedSecret);
-					memset(context->sharedSecret, 0, context->pointCoordinateLength);
+					bctbx_clean(context->sharedSecret, context->pointCoordinateLength);
 					context->sharedSecret=NULL;
 				}
 				break;

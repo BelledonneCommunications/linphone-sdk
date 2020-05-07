@@ -44,6 +44,18 @@
 #define snprintf _snprintf
 #endif
 
+/*** Cleaning ***/
+/**
+ * @brief force a buffer value to zero in a way that shall prevent the compiler from optimizing it out
+ *
+ * @param[in/out]	buffer	the buffer to be cleared
+ * @param[in]		size	buffer size
+ */
+void bctbx_clean(void *buffer, size_t size) {
+	volatile uint8_t *p = buffer;
+	while(size--) *p++ = 0;
+}
+
 static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
 	switch (ret_code) {
 		case BCTBX_ERROR_NET_WANT_READ:
