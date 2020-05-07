@@ -49,13 +49,6 @@ if(POLARSSL_LIBRARIES)
 	cmake_push_check_state(RESET)
 	set(CMAKE_REQUIRED_INCLUDES ${POLARSSL_INCLUDE_DIRS})
 	set(CMAKE_REQUIRED_LIBRARIES ${POLARSSL_LIBRARIES})
-	check_c_source_compiles("
-#include <polarssl/x509_crt.h>
-int main(int argc, char *argv[]) {
-x509_crt_parse_path(0,0);
-return 0;
-}"
-	POLARSSL_VERSION13_OK)
 	check_symbol_exists(ssl_get_dtls_srtp_protection_profile "polarssl/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
 	check_symbol_exists(ctr_drbg_free "polarssl/ctr_drbg.h" CTR_DRBG_FREE)
 	cmake_pop_check_state()
