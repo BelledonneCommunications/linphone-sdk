@@ -38,6 +38,8 @@
 #include "TargetConditionals.h"
 #endif
 
+#define MS2_NO_VIDEO_RESCALING 1
+
 static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
@@ -565,7 +567,7 @@ void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir){
 // 	return wished_size;
 // }
 
-#if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM)
+#if !TARGET_IPHONE_SIMULATOR && !defined(MS_HAS_ARM) && !defined(MS2_NO_VIDEO_RESCALING)
 static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideoSize refsize){
 	if (ms_video_size_get_orientation(refsize)!=ms_video_size_get_orientation(size)){
 		int tmp;
@@ -652,7 +654,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		vconf.vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vconf.vsize.width,vconf.vsize.height);
 	} else {
-#if TARGET_IPHONE_SIMULATOR || defined(MS_HAS_ARM) || defined(MS2_WINDOWS_UNIVERSAL)
+#if TARGET_IPHONE_SIMULATOR || defined(MS_HAS_ARM) || defined(MS2_WINDOWS_UNIVERSAL) || defined(MS2_NO_VIDEO_RESCALING)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
 				   cam_vsize.width,cam_vsize.height,vconf.vsize.width,vconf.vsize.height);
@@ -725,10 +727,12 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_PIX_FMT,&format);
 			ms_filter_call_method(stream->pixconv,MS_FILTER_SET_VIDEO_SIZE,&cam_vsize);
 		}
+#ifndef MS2_NO_VIDEO_RESCALING
 		if (ms_video_get_scaler_impl() != NULL) {
 			stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
 			ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
 		}
+#endif
 	}
 	if (stream->ms.rc){
 		ms_bitrate_controller_destroy(stream->ms.rc);
