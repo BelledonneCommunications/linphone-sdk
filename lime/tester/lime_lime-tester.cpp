@@ -3986,6 +3986,89 @@ static void lime_multithread(void) {
 	}
 }
 
+/**
+ * Scenario: Server is set to accept 200 OPks per device
+ * - Create user alice with 500 OPks -> it shall fail
+ * - Create user alice with 100 OPks -> it shall pass
+ * - Add 100 OPks to alice -> it shall pass
+ * - Add 100 OPks to alice -> is shall fail
+ */
+static void lime_server_resource_limit_reached_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
+	// create DB
+	std::string dbFilenameAlice{dbBaseFilename};
+	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+
+	remove(dbFilenameAlice.data()); // delete the database file if already exists
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+	int expected_failure=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+	try {
+		// create Manager and device for alice
+		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 500, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed, ++expected_failure,lime_tester::wait_for_timeout));
+
+		// Try again to create the device, with 100 OPks, it shall pass
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 100, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// call the update, set the serverLimit 200 and upload an other 100
+		aliceManager->update(callback, 200, 100);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 200, int, "%d");
+
+		// call the update, set the serverLimit 300 and upload an other 100 -> it shall fail but we have 300 OPks in DB
+		aliceManager->update(callback, 300, 100);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed, ++expected_failure,lime_tester::wait_for_timeout));
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 300, int, "%d");
+
+		// update again, with correct values, server already holds 200 keys, so the only effect would be to set the failed 100 OPks status to dispatched as they are not on server 
+		aliceManager->update(callback, 125, 25);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 300, int, "%d");
+
+		// forward time by OPK_limboTime_days
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, lime::settings::OPk_limboTime_days+1);
+		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+
+		// update one last time, with correct values, server already holds 200 keys
+		// so the only effect would be to remove the OPk keys status was set to dispatch before we forward the time
+		// We now hold 200 keys
+		aliceManager->update(callback, 125, 25);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 200, int, "%d");
+
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+
+static void lime_server_resource_limit_reached() {
+#ifdef EC25519_ENABLED
+	lime_server_resource_limit_reached_test(lime::CurveId::c25519, "lime_server_resource_limit_reached", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+#endif
+#ifdef EC448_ENABLED
+	lime_server_resource_limit_reached_test(lime::CurveId::c448, "lime_server_resource_limit_reached", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+#endif
+}
 
 static test_t tests[] = {
 	TEST_NO_TAG("Basic", x3dh_basic),
@@ -4008,7 +4091,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Encryption Policy", lime_encryptionPolicy),
 	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError),
 	TEST_NO_TAG("Identity theft", lime_identity_theft),
-	TEST_NO_TAG("Multithread", lime_multithread)
+	TEST_NO_TAG("Multithread", lime_multithread),
+	TEST_NO_TAG("Server resource limit reached", lime_server_resource_limit_reached)
 };
 
 test_suite_t lime_lime_test_suite = {

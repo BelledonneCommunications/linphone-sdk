@@ -5,8 +5,8 @@
   "main": "x3dh.js",
   "dependencies": {
     "rwlock": "^5.0.0",
-    "sqlite3": "^4.0.2",
-    "yargs": "^9.0.1"
+    "sqlite3": "^4.2.0",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {},
   "scripts": {

@@ -110,6 +110,9 @@ namespace lime {
 							user_not_found=0x06,
 							db_error=0x07,
 							bad_request=0x08,
+							server_failure=0x09,
+							resource_limit_reached=0x0a,
+							unknown_error_code=0xfe,
 							unset_error_code=0xff};
 		/* X3DH protocol messages builds */
 		/**
@@ -420,6 +423,7 @@ namespace lime {
 			if (body.size()<X3DH_headerSize) {
 				LIME_LOGE<<"Got an invalid response from X3DH server"<<endl<< message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
 				if (callback) callback(lime::CallbackReturn::fail, "Got an invalid response from X3DH server");
+				LIME_LOGE<<message_trace.str()<<endl;
 				return false;
 			}
 
@@ -427,6 +431,7 @@ namespace lime {
 			if (body[0] != static_cast<uint8_t>(X3DH_protocolVersion)) {
 				LIME_LOGE<<"X3DH server runs an other version of X3DH protocol(server "<<static_cast<unsigned int>(body[0])<<" - local "<<static_cast<unsigned int>(X3DH_protocolVersion)<<")"<<endl<<message_trace.str()<<endl<<"    Invalid Incoming X3DH message";
 				if (callback) callback(lime::CallbackReturn::fail, "X3DH server and client protocol version mismatch");
+				LIME_LOGE<<message_trace.str()<<endl;
 				return false;
 			}
 
@@ -490,6 +495,7 @@ namespace lime {
 			// retrieve the error code if needed
 			if (message_type == x3dh_message_type::error) {
 				if (body.size()<X3DH_headerSize+1) { // error message contains at least 1 byte of error code + possible message
+					LIME_LOGE<<message_trace.str()<<endl;
 					return false;
 				}
 
@@ -527,8 +533,15 @@ namespace lime {
 					case static_cast<uint8_t>(x3dh_error_code::bad_request):
 						error_code = x3dh_error_code::bad_request;
 						break;
-					default: // unknown error code: invalid packet
-						return false;
+					case static_cast<uint8_t>(x3dh_error_code::server_failure):
+						error_code = x3dh_error_code::server_failure;
+						break;
+					case static_cast<uint8_t>(x3dh_error_code::resource_limit_reached):
+						error_code = x3dh_error_code::resource_limit_reached;
+						break;
+					default: // unknown error code - could be an updated server
+						LIME_LOGW<<"Receive unknown error code in X3DH message"<< static_cast<uint8_t>(body[X3DH_headerSize]);
+						error_code = x3dh_error_code::unknown_error_code;
 				}
 			}
 			LIME_LOGD<<message_trace.str()<<endl<<"    Valid Incoming X3DH message";

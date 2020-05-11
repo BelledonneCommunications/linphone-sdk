@@ -86,6 +86,14 @@ const enum_curveId = {
 	CURVE448 : 2
 };
 
+// Resource abuse protection
+// Setting to 0 disable the function
+//lime_max_device_per_user does not apply to this test server as it is used to test the lime lib only and device id are not gruub in the tests
+// Do not set this value too low, it shall not be lower than the server_low_limit+batch_size used by client - default is 100+25
+const lime_max_opk_per_device = 200;
+
+
+
 var curveId = enum_curveId.CURVE25519;
 
 const X3DH_protocolVersion = 0x01;
@@ -114,7 +122,9 @@ const enum_errorCodes = {
 	user_already_in : 0x05,
 	user_not_found : 0x06,
 	db_error : 0x07,
-	bad_request : 0x08
+	bad_request : 0x08,
+	server_failure : 0x09,
+	resource_limit_reached : 0x0a
 };
 
 const enum_keyBundleFlag = {
@@ -317,6 +327,10 @@ https.createServer(options, (req, res) => {
 				// Now get the OPk count
 				var bufferIndex = X3DH_headerSize;
 				var OPk_number = body.readUInt16BE(bufferIndex+x3dh_expectedSize-2);
+				if ((lime_max_opk_per_device > 0) && (OPk_number > lime_max_opk_per_device)) { // too much OPk, reject registration
+					returnError(enum_errorCodes.resource_limit_reached,  userId+" is trying to register itself with "+OPk_number+" OPks but server has a limit of "+lime_max_opk_per_device);
+					return;
+				}
 				// And check again the size with OPks
 				x3dh_expectedSize += OPk_number*(keySizes[curveId]['X_pub'] + 4);
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
@@ -482,6 +496,11 @@ https.createServer(options, (req, res) => {
 
 				console.log("It contains "+OPk_number+" keys");
 
+				if ((lime_max_opk_per_device > 0) && (OPk_number > lime_max_opk_per_device)) { // too much OPk, reject registration
+					returnError(enum_errorCodes.resource_limit_reached,  userId+" is trying to insert "+OPk_number+" OPks but server has a limit of "+lime_max_opk_per_device);
+					return;
+				}
+
 				// check we have a matching user in DB
 				lock.writeLock(function (release) {
 					db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (err, row) {
@@ -490,43 +509,107 @@ https.createServer(options, (req, res) => {
 								returnError(enum_errorCodes.user_not_found, "Post OPks but "+userId+" not found in db");
 							} else {
 								var Uid = row['Uid'];
-								// parse all OPks to be inserted
-								var OPks_param = [];
-								for (let i = 0; i < OPk_number; i++) {
-									var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
-									bufferIndex += keySizes[curveId]['X_pub'];
-									var OPk_id = body.readUInt32BE(bufferIndex); // SPk id is a 32 bits unsigned integer in Big endian
-									bufferIndex += 4;
-									OPks_param.push([Uid, OPk, OPk_id]);
-								}
 
-								// bulk insert of OPks
-								var stmt_ran = 0;
-								var stmt_success = 0;
-								var stmt_err_message = '';
-								db.run("begin transaction");
-								var stmt = db.prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?);")
-								for (let i=0; i<OPks_param.length; i++) {
-									param = OPks_param[i];
-									stmt.run(param, function(stmt_err, stmt_res){ // callback is called for each insertion, so we shall count errors and success
-										stmt_ran++;
-										if (stmt_err) {
-											stmt_err_message +=' ## '+stmt_err;
-										} else {
-											stmt_success++;
+								// Check we won't get over the maximum OPks allowed
+								if (lime_max_opk_per_device > 0) {
+									db.get("SELECT COUNT(OPK_id) as OPk_count FROM Users as u INNER JOIN OPk as o ON u.Uid=o.Uid WHERE UserId = ?;", userId, function (err, row) {
+										if (err) {
+											release();
+											returnError(enum_errorCodes.db_error, " Database error in postOPks by "+userId+" : "+err2);
+											return;
 										}
-										if (stmt_ran == OPk_number) { // and react only when we reach correct count
-											if (stmt_ran != stmt_success) {
-												db.run("rollback")
-												release();
-												returnError(enum_errorCodes.db_error, "Error while trying to insert OPk for user "+userId+". Backend says :"+stmt_err);
-											} else {
-												db.run("commit")
-												release();
-												returnOk(returnHeader);
-											}
+
+										var OPk_count = 0;
+										if (row != undefined) {
+											OPk_count = row['OPk_count'];
 										}
+
+										if (OPk_count+OPk_number > lime_max_opk_per_device) { // too much OPks
+											release();
+											returnError(enum_errorCodes.resource_limit_reached,  userId+" is trying to insert "+OPk_number+" OPks but server has a limit of "+lime_max_opk_per_device+" and it already holds "+OPk_count);
+											return;
+										}
+
+										// parse all OPks to be inserted
+										var OPks_param = [];
+										for (let i = 0; i < OPk_number; i++) {
+											var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
+											bufferIndex += keySizes[curveId]['X_pub'];
+											var OPk_id = body.readUInt32BE(bufferIndex); // OPk id is a 32 bits unsigned integer in Big endian
+											bufferIndex += 4;
+											OPks_param.push([Uid, OPk, OPk_id]);
+										}
+
+										// bulk insert of OPks
+										var stmt_ran = 0;
+										var stmt_success = 0;
+										var stmt_err_message = '';
+										db.run("begin transaction");
+										var stmt = db.prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?);")
+										for (let i=0; i<OPks_param.length; i++) {
+											param = OPks_param[i];
+											stmt.run(param, function(stmt_err, stmt_res){ // callback is called for each insertion, so we shall count errors and success
+												stmt_ran++;
+												if (stmt_err) {
+													stmt_err_message +=' ## '+stmt_err;
+												} else {
+													stmt_success++;
+												}
+												if (stmt_ran == OPk_number) { // and react only when we reach correct count
+													if (stmt_ran != stmt_success) {
+														db.run("rollback")
+														release();
+														returnError(enum_errorCodes.db_error, "Error while trying to insert OPk for user "+userId+". Backend says :"+stmt_err);
+													} else {
+														db.run("commit")
+														release();
+														returnOk(returnHeader);
+													}
+												}
+											});
+										}
+										return;
 									});
+								} else { // Note : this code shall be factorized
+
+									// parse all OPks to be inserted
+									var OPks_param = [];
+									for (let i = 0; i < OPk_number; i++) {
+										var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
+										bufferIndex += keySizes[curveId]['X_pub'];
+										var OPk_id = body.readUInt32BE(bufferIndex); // OPk id is a 32 bits unsigned integer in Big endian
+										bufferIndex += 4;
+										OPks_param.push([Uid, OPk, OPk_id]);
+									}
+
+									// bulk insert of OPks
+									var stmt_ran = 0;
+									var stmt_success = 0;
+									var stmt_err_message = '';
+									db.run("begin transaction");
+									var stmt = db.prepare("INSERT INTO OPk(Uid, OPk, OPk_id) VALUES(?,?,?);")
+									for (let i=0; i<OPks_param.length; i++) {
+										param = OPks_param[i];
+										stmt.run(param, function(stmt_err, stmt_res){ // callback is called for each insertion, so we shall count errors and success
+											stmt_ran++;
+											if (stmt_err) {
+												stmt_err_message +=' ## '+stmt_err;
+											} else {
+												stmt_success++;
+											}
+											if (stmt_ran == OPk_number) { // and react only when we reach correct count
+												if (stmt_ran != stmt_success) {
+													db.run("rollback")
+													release();
+													returnError(enum_errorCodes.db_error, "Error while trying to insert OPk for user "+userId+". Backend says :"+stmt_err);
+												} else {
+													db.run("commit")
+													release();
+													returnOk(returnHeader);
+												}
+											}
+										});
+									}
 								}
 							}
 						});
@@ -680,7 +763,7 @@ https.createServer(options, (req, res) => {
 			case enum_messageTypes.getSelfOPks:
 				console.log("Process a getSelfOPks Message from "+userId);
 				// check we have a matching user in DB
-				db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (errU, row) {
+				db.get("SELECT Uid FROM Users WHERE UserId = ?;", userId , function (err, row) {
 					if (row == undefined) { // user not found in DB
 						returnError(enum_errorCodes.user_not_found, "Get Self OPks but "+userId+" not found in db");
 					} else {
