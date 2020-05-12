@@ -346,6 +346,9 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	if (pipe(m->control_fds) == -1){
 		belle_sip_fatal("Cannot create control pipe of main loop thread: %s", strerror(errno));
 	}
+	if (fcntl(m->control_fds[0], F_SETFL, O_NONBLOCK) < 0) {
+		belle_sip_fatal("Fail to set O_NONBLOCK flag on the reading fd of the control pipe: %s", strerror(errno));
+	}
 	m->thread_id = 0;
 #endif
 
@@ -523,6 +526,23 @@ void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long 
 	if (s) belle_sip_source_cancel(s);
 }
 
+/**
+ * Clear all data of a pipe.
+ * @param[in] read_fd Opened file descriptor used to read the pipe. This fd MUST have O_NONBLOCK flag set.
+ * @return On success, return the number of bytes that have been cleard or zero if the pipe was already empty.
+ * On failure, return -1 and set errno.
+ */
+static ssize_t clear_pipe(int read_fd) {
+	char buffer[1024];
+	ssize_t nread, cum_nread = 0;
+	do {
+		nread = read(read_fd, buffer, sizeof(buffer));
+		if (nread > 0) cum_nread += nread;
+	} while (nread > 0);
+	if (nread < 0 && errno != EAGAIN) return -1;
+	else return cum_nread;
+}
+
 static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	size_t pfd_size = (ml->nsources + 1) * sizeof(belle_sip_pollfd_t);
 	belle_sip_pollfd_t *pfd=(belle_sip_pollfd_t*)belle_sip_malloc0(pfd_size);
@@ -582,8 +602,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 #ifndef _WIN32
 	if (pfd[i - 1].revents == POLLIN){
-		char c;
-		if (read(ml->control_fds[0], &c, 1) == -1)
+		if (clear_pipe(ml->control_fds[0]) == -1)
 			belle_sip_fatal("Cannot read control pipe of main loop thread: %s", strerror(errno));
 	}
 #endif
