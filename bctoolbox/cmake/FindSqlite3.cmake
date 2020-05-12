@@ -1,6 +1,6 @@
 ############################################################################
-# CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindSqlite3.cmake
+# Copyright (C) 2014  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,46 +19,39 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# - Find the sqlite3 include file and library
+#
+#  SQLITE3_FOUND - system has sqlite3
+#  SQLITE3_INCLUDE_DIRS - the sqlite3 include directory
+#  SQLITE3_LIBRARIES - The libraries needed to use sqlite3
 
-set(HEADER_FILES
-	charconv.h
-	compiler.h
-	defs.h
-	exception.hh
-	list.h
-	logging.h
-	map.h
-	parser.h
-	port.h
-	regex.h
-	vconnect.h
-	vfs.h
+if(APPLE AND NOT IOS)
+	set(SQLITE3_HINTS "/usr")
+endif()
+if(SQLITE3_HINTS)
+	set(SQLITE3_LIBRARIES_HINTS "${SQLITE3_HINTS}/lib")
+endif()
+
+find_path(SQLITE3_INCLUDE_DIRS
+	NAMES sqlite3.h
+	HINTS "${SQLITE3_HINTS}"
+	PATH_SUFFIXES include
 )
 
-if(APPLE)
-	list(APPEND HEADER_FILES ios_utils.hh)
+if(SQLITE3_INCLUDE_DIRS)
+	set(HAVE_SQLITE3_H 1)
 endif()
 
-if(MBEDTLS_FOUND OR POLARSSL_FOUND)
-	list(APPEND HEADER_FILES crypto.h)
-endif()
-
-if (ENABLE_SQLITE_VFS)
-	list(APPEND HEADER_FILES sqlite3_vfs.h)
-endif()
-
-
-if(ENABLE_TESTS_COMPONENT)
-	list(APPEND HEADER_FILES tester.h)
-endif()
-
-set(BCTOOLBOX_HEADER_FILES )
-foreach(HEADER_FILE ${HEADER_FILES})
-	list(APPEND BCTOOLBOX_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/bctoolbox/${HEADER_FILE}")
-endforeach()
-set(BCTOOLBOX_HEADER_FILES ${BCTOOLBOX_HEADER_FILES} PARENT_SCOPE)
-
-install(FILES ${BCTOOLBOX_HEADER_FILES}
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
-	PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+find_library(SQLITE3_LIBRARIES
+	NAMES sqlite3
+	HINTS "${SQLITE3_LIBRARIES_HINTS}"
 )
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Sqlite3
+	DEFAULT_MSG
+	SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_H
+)
+
+mark_as_advanced(SQLITE3_INCLUDE_DIRS SQLITE3_LIBRARIES HAVE_SQLITE3_H)

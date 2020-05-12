@@ -42,7 +42,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 
 
 void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
-	bc_tester_init(log_handler,BCTBX_LOG_ERROR, 0,NULL);
+	bc_tester_init(log_handler,BCTBX_LOG_MESSAGE, 0,NULL);
 	bc_tester_add_suite(&containers_test_suite);
 	bc_tester_add_suite(&utils_test_suite);
 #if (HAVE_MBEDTLS | HAVE_POLARSSL)
@@ -50,8 +50,9 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 #endif
 	bc_tester_add_suite(&parser_test_suite);
 #ifdef __APPLE__
-    bc_tester_add_suite(&ios_utils_test_suite);
+	bc_tester_add_suite(&ios_utils_test_suite);
 #endif
+	bc_tester_add_suite(&sqlite3_vfs_test_suite);
 }
 
 void bctoolbox_tester_uninit(void) {
