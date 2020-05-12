@@ -38,7 +38,7 @@ BCTBX_PUBLIC void bctbx_set_default_encoding (const char *encoding);
  *
  * @return a pointer to a null-terminated string containing the default encoding.
  */
-BCTBX_PUBLIC const char *bctbx_get_default_encoding ();
+BCTBX_PUBLIC const char *bctbx_get_default_encoding (void);
 
 /**
  * @brief Convert the given string from system locale to UTF8.

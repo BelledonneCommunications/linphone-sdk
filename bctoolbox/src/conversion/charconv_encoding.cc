@@ -37,7 +37,7 @@ void bctbx_set_default_encoding (const char *encoding) {
         defaultEncoding = encoding;
 }
 
-const char *bctbx_get_default_encoding () {
+const char *bctbx_get_default_encoding (void) {
         if (!defaultEncoding.empty())
                 return defaultEncoding.c_str();
 
