@@ -97,7 +97,7 @@ typedef struct _stream_manager_t {
 stream_manager_t * stream_manager_new(MSFormatType type) {
 	stream_manager_t * mgr = ms_new0(stream_manager_t,1);
 	mgr->type=type;
-	mgr->local_rtp=(rand() % ((2^16)-1024) + 1024) & ~0x1;
+	mgr->local_rtp=(rand() % ((1<<16)-1024) + 1024) & ~0x1;
 	mgr->local_rtcp=mgr->local_rtp+1;
 	mgr->user_data = 0;
 
