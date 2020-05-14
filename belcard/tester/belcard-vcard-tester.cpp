@@ -94,12 +94,12 @@ static void create_vcard_from_api(void) {
 	fn->setValue("Sylvain Berfini");
 	belCard->setFullName(fn);
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
-	BC_ASSERT_STRING_EQUAL(belCard->getFullName()->toString().c_str(), fn->toString().c_str());
+	BC_ASSERT(belCard->getFullName()->toString() == fn->toString());
 
 	fn = BelCard::create<BelCardFullName>();
 	fn->setValue("Belcard Tester");
 	belCard->setFullName(fn);
-	BC_ASSERT_STRING_EQUAL(belCard->getFullName()->toString().c_str(), fn->toString().c_str());
+	BC_ASSERT(belCard->getFullName()->toString() == fn->toString());
 
 	string vcard = belCard->toString();
 	BelCardParser *parser = new BelCardParser();
