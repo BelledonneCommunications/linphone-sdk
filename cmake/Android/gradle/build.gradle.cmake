@@ -68,6 +68,9 @@ if (!isGeneratedJavaWrapperAvailable()) {
 
     // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
     javaExcludes.add('**/ActivityMonitor.java')
+    javaExcludes.add('**/AudioHelper.java')
+    javaExcludes.add('**/BluetoothHelper.java')
+    javaExcludes.add('**/BluetoothReceiver.java')
     javaExcludes.add('**/CoreManager.java')
     javaExcludes.add('**/CoreService.java')
     javaExcludes.add('**/FirebaseMessaging.java')
