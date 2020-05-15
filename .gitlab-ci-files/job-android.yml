@@ -11,6 +11,7 @@
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_ANDROID
 
   script:
     - sdkmanager
