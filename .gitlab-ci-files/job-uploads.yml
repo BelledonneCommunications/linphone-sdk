@@ -59,10 +59,10 @@ job-android-upload:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
     - cd build
-    - rsync -ave ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
+    - rsync -avezP --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
-    - rsync -ave ssh ./maven_repository/* $ANDROID_MAVEN_URL
+    - rsync -avezP ./maven_repository/* $ANDROID_MAVEN_URL
 
   after_script:
     - rm -rf ~/.ssh || true
