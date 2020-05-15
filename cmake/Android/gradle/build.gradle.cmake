@@ -234,3 +234,17 @@ project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 project.tasks['assemble'].dependsOn 'sourcesJar'
 project.tasks['assemble'].dependsOn 'androidJavadocsJar'
+
+afterEvaluate {
+    def debugFile = file("$buildDir/outputs/aar/linphone-sdk-android.aar")
+    tasks.named("assembleDebug").configure {
+        doLast {
+            debugFile.renameTo("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
+        }
+    }
+    tasks.named("assembleRelease").configure {
+        doLast {
+            debugFile.renameTo("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+        }
+    }
+}
