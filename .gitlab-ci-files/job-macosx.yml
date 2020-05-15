@@ -7,6 +7,7 @@
   except:
     variables:
       - $DOCKER_UPDATE
+      - $DEPLOY_RUN_ANDROID
 
   script:
     - ccache -s
