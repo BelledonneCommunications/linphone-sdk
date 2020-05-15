@@ -7,6 +7,7 @@
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_MACOSX
 
   script:
     - ccache -s
