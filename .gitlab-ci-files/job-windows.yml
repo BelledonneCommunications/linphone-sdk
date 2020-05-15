@@ -43,6 +43,7 @@
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
   script:

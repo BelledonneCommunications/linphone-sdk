@@ -6,6 +6,7 @@
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_IOS
 
   script:
     - ccache -s
