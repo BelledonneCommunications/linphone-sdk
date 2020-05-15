@@ -50,6 +50,9 @@ job-centos7-ninja-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
+  except:
+    variables:
+      - $DEPLOY_RUN_ANDROID
   before_script:
     - source /opt/rh/devtoolset-8/enable
 

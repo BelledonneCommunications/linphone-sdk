@@ -79,6 +79,7 @@ job-archlinux-latest-ninja-clang:
   except:
     variables:
       - $DOCKER_UPDATE
+      - $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang

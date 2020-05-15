@@ -44,6 +44,7 @@ job-android-upload:
     CCACHE_SIZE: 4G
     GIT_STRATEGY: fetch
     GRADLE_OPTIONS: -i
+    MAVEN_REPO_PATH: linphone-sdk-android*
 
   dependencies:
     - job-android-makefile-r17c
@@ -59,10 +60,11 @@ job-android-upload:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
     - cd build
-    - rsync -avezP --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL maven_repository
+    - mkdir -p maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
-    - rsync -avezP ./maven_repository/* $ANDROID_MAVEN_URL
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $ANDROID_MAVEN_URL/org/linphone/
 
   after_script:
     - rm -rf ~/.ssh || true
@@ -73,6 +75,7 @@ job-android-upload-no-video:
     - job-android-ninja-r17c-no-video
   variables:
     GRADLE_OPTIONS: -Pno-video -i
+    MAVEN_REPO_PATH: no-video
 
 job-android-upload-minimal-size:
   extends: job-android-upload
@@ -80,6 +83,7 @@ job-android-upload-minimal-size:
     - job-android-makefile-r17c-minimal-size
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
+    MAVEN_REPO_PATH: minimal
 
 job-android-upload-legacy:
   extends: job-android-upload
@@ -87,6 +91,7 @@ job-android-upload-legacy:
     - job-android-makefile-r17c-no-java-wrapper
   variables:
     GRADLE_OPTIONS: -Plegacy-wrapper -i
+    MAVEN_REPO_PATH: legacy
 
 #################################################
 # Macosx
