@@ -774,7 +774,7 @@ void bctbx_sleep_ms(int ms){
 }
 
 void bctbx_sleep_until(const bctoolboxTimeSpec *ts){
-#ifdef __linux
+#ifdef __linux__
 	struct timespec rq;
 	rq.tv_sec=ts->tv_sec;
 	rq.tv_nsec=ts->tv_nsec;
@@ -955,7 +955,7 @@ static int bctbx_wincrypto_random(unsigned int *rand_number){
 #endif
 
 unsigned int bctbx_random(void){
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__)
 	static int fd=-1;
 	if (fd==-1) fd=open("/dev/urandom",O_RDONLY);
 	if (fd!=-1){
