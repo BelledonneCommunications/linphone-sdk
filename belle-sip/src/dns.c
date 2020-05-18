@@ -478,7 +478,7 @@ static DNS_INLINE unsigned dns_atomic_fetch_sub(dns_atomic_t *i) {
  || defined(__NetBSD__)		\
  || defined(__APPLE__)
 #define DNS_RANDOM	arc4random
-#elif __linux
+#elif __linux__
 #define DNS_RANDOM	random
 #else
 #define DNS_RANDOM	rand
@@ -5016,7 +5016,7 @@ static int guess_scope_id(void){
 	if (getifaddrs(&ifpstart) < 0) {
 		return -1;
 	}
-#ifndef __linux
+#ifndef __linux__
 	#define UP_FLAG IFF_UP /* interface is up */
 #else
 	#define UP_FLAG IFF_RUNNING /* resources allocated */
