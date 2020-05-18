@@ -28,7 +28,7 @@ The following tools must be installed on the build machine:
  - pip
  - yasm
  - nasm
- - doxygen
+ - doxygen <= 1.8.16
  - Pystache (use `pip install pystache`)
  - six (use `pip install six`)
 
@@ -72,12 +72,41 @@ in the next subsections.
 
 ### iOS
 
+#### Install Doxygen 1.8.16 using HomeBrew
+
+The offcial HomeBrew repository doesn't provide any formula to install Doxygen 1.8.16, but we have an
+HomeBrew tier repository that provides such. Follow steps below to use it:
+
+```bash
+# Add Belledonne Communications' HomeBrew repository:
+brew tap belledonne/core https://gitlab.linphone.org/BC/public/homebrew-core.git
+
+# Remove symlinks that points on the current version of Doxygen:
+brew unlink doxygen
+
+# Build and install Doxygen 1.8.16 from Belledonne Communications' repository.
+brew install belledonne/core/doxygen@1.8.16
+
+# Check that doxygen command is linked with Doxygen 1.8.16
+doxygen --version
+```
+
+#### Build procedure
+
 Requirement: Xcode 10 or earlier (Xcode 11 is not supported yet).
 
-Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
-Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
+CMake has limited Swift support: only Ninja and Xcode generators can handle Swift.
+Until cmake has full Swift support, you need to specify configuration step by specifying one of the two backends:
 
-`cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS` or `cmake .. -G Ninja -DLINPHONESDK_PLATFORM=IOS`
+```bash
+cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS
+```
+
+or
+
+```bash
+cmake .. -G Ninja -DLINPHONESDK_PLATFORM=IOS
+```
 
 If using the Xcode generator, the build type must be specified for compilation step with `--config`:
 `cmake --build . --config <cfg>`, where `<cfg>` is one of `Debug`, `Release`, `RelWithDebInfo` or `MinSizeRel`.
