@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
 	char *capt_card=NULL,*play_card=NULL;
 	int rate = 8000;
 	int i;
-#ifdef __linux
+#ifdef __linux__
 	const char *alsadev=NULL;
 #endif
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]){
 	signal(SIGINT,stop);
 #endif
 
-#ifdef __linux
+#ifdef __linux__
 	alsadev=getenv("MS2_ALSADEV");
 	if (alsadev!=NULL){
 		ms_snd_card_manager_add_card( ms_factory_get_snd_card_manager(factory),

@@ -161,7 +161,7 @@ int ms_discover_mtu(const char *host)
   return -1;
 }
 
-#elif defined(__linux)
+#elif defined(__linux__)
 
 #include <sys/types.h>
 #include <sys/socket.h>

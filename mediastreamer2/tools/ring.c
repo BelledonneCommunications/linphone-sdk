@@ -41,7 +41,7 @@ int main(int argc, char *argv[]){
 	}
 
 	sc=ms_snd_card_manager_get_card(ms_factory_get_snd_card_manager(factory),card_id);
-#ifdef __linux
+#ifdef __linux__
 	if (sc==NULL)
 	  sc = ms_alsa_card_new_custom(card_id, card_id);
 #endif

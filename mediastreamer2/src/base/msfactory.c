@@ -187,7 +187,7 @@ void ms_factory_init(MSFactory *obj){
 	GetNativeSystemInfo( &sysinfo );
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
-#elif __APPLE__ || __linux
+#elif __APPLE__ || __linux__
 	num_cpu = sysconf( _SC_NPROCESSORS_CONF); /*check the number of processors configured, not just the one that are currently active.*/
 #elif __QNX__
 	num_cpu = _syspage_ptr->num_cpu;
@@ -208,7 +208,7 @@ void ms_factory_init(MSFactory *obj){
 #ifdef __APPLE__
 	ms_factory_add_platform_tag(obj, "apple");
 #endif
-#ifdef __linux
+#ifdef __linux__
 	ms_factory_add_platform_tag(obj, "linux");
 #endif
 #ifdef __QNX__

@@ -410,7 +410,7 @@ MSSndCardStreamType ms_snd_card_get_stream_type(MSSndCard *obj) {
 	return obj->streamType;
 }
 
-#ifdef __linux
+#ifdef __linux__
 #ifndef __ALSA_ENABLED__
 MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev){
 	ms_warning("Alsa support not available in this build of mediastreamer2");

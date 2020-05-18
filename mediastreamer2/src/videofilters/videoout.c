@@ -260,7 +260,7 @@ static int sdl_create_window(SdlDisplay *wd, int w, int h){
 			wd->lay->pixels[1]-wd->lay->pixels[0],wd->lay->pixels[2]-wd->lay->pixels[1]);
 		SDL_UnlockYUVOverlay(wd->lay);
 	}
-#ifdef __linux
+#ifdef __linux__
 	/* on mac the cursor is hidden for all the desktop instead of just
 	the SDL window ! */
 	SDL_ShowCursor(0);//Hide the mouse cursor if was displayed
@@ -420,7 +420,7 @@ static void sdl_display_uninit(MSDisplay *obj){
 	}
 	ms_message("WD Fred");
 
-#ifdef __linux
+#ifdef __linux__
 	/*purge the event queue before leaving*/
 	SDL_Event event;
 	int i;
