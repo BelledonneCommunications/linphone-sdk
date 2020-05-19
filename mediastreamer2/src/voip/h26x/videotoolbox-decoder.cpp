@@ -33,7 +33,6 @@ namespace mediastreamer {
 
 VideoToolboxDecoder::VideoToolboxDecoder(const string &mime): H26xDecoder(mime) {
 	_pixbufAllocator = ms_yuv_buf_allocator_new();
-	ms_mutex_init(&_mutex, nullptr);
 	const H26xToolFactory &factory = H26xToolFactory::get(mime);
 	_psStore.reset(factory.createParameterSetsStore());
 	_naluHeader.reset(factory.createNaluHeader());
@@ -79,6 +78,7 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 }
 
 VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
+	std::lock_guard<std::mutex> lck (_mutex);
 	if (_queue.empty()) {
 		frame = nullptr;
 		return noFrameAvailable;
@@ -99,9 +99,9 @@ void VideoToolboxDecoder::createDecoder() {
 	 * Since the decoder might be destroyed and recreated during the lifetime of the filter (for example
 	 * when SPS/PPS change because of video size changed by remote encoder), we must reset the _destroying flag.
 	 */
-	ms_mutex_lock(&_mutex);
+	_mutex.lock();
 	if (_destroying) _destroying = false;
-	ms_mutex_unlock(&_mutex);
+	_mutex.unlock();
 	formatDescFromSpsPps();
 
 	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
@@ -152,9 +152,9 @@ void VideoToolboxDecoder::destroyDecoder() {
 	// is in an instable state from now. This is necessary
 	// as the output callback may be called until the
 	// decoding session is completely destroyed.
-	ms_mutex_lock(&_mutex);
+	_mutex.lock();
 	_destroying = true;
-	ms_mutex_unlock(&_mutex);
+	_mutex.unlock();
 
 	VTDecompressionSessionWaitForAsynchronousFrames(_session);
 	VTDecompressionSessionInvalidate(_session);
@@ -225,17 +225,15 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *source
 								   CMTime presentationTimeStamp, CMTime presentationDuration) {
 	auto ctx = static_cast<VideoToolboxDecoder *>(decompressionOutputRefCon);
 
-	ms_mutex_lock(&ctx->_mutex);
+	std::lock_guard<std::mutex> lck (ctx->_mutex);
 
 	if (ctx->_destroying) {
-		ms_mutex_unlock(&ctx->_mutex);
 		return;
 	}
 
 	if(status != noErr || imageBuffer == nullptr) {
 		vt_dec_error("fail to decode one frame: %s", toString(status).c_str());
 		ctx->_queue.push_back(Frame());
-		ms_mutex_unlock(&ctx->_mutex);
 		return;
 	}
 
@@ -254,7 +252,6 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *source
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
 	ctx->_queue.push_back(Frame(pixbuf));
-	ms_mutex_unlock(&ctx->_mutex);
 }
 
 }
