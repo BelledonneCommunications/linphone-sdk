@@ -78,7 +78,7 @@ BELLESIP_EXPORT const belle_sip_header_address_t *belle_sip_dialog_get_remote_pa
  **/
 BELLESIP_EXPORT unsigned int belle_sip_dialog_get_local_seq_number(const belle_sip_dialog_t *dialog);
 
-unsigned int belle_sip_dialog_get_remote_seq_number(const belle_sip_dialog_t *dialog);
+BELLESIP_EXPORT unsigned int belle_sip_dialog_get_remote_seq_number(const belle_sip_dialog_t *dialog);
 
 BELLESIP_EXPORT const char *belle_sip_dialog_get_local_tag(const belle_sip_dialog_t *dialog);
 
