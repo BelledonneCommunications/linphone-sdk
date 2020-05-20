@@ -1425,9 +1425,12 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
 	bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
 	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
+	/* We get the ticker from the source filter rather than stream->ms.sessions.ticker, for the case where the graph is actually running
+	 * in a MSVideoConference that has its own ticker. */
+	MSTicker *current_ticker = stream->source ? ms_filter_get_ticker(stream->source) : NULL;
 
-	if (stream->ms.sessions.ticker && stream->source){
-		ms_ticker_detach(stream->ms.sessions.ticker,stream->source);
+	if (current_ticker && stream->source){
+		ms_ticker_detach(current_ticker, stream->source);
 		/*unlink source filters and subsequent post processing filters */
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_unlink(stream->source, 0, stream->tee, 0);
@@ -1530,7 +1533,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			assign_value_to_mirroring_flag_to_preview(stream);
 		}
 
-		ms_ticker_attach(stream->ms.sessions.ticker,stream->source);
+		ms_ticker_attach(current_ticker, stream->source);
 	}
 	return old_source;
 }

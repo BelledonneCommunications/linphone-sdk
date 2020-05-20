@@ -186,7 +186,7 @@ struct _MSFilter{
 	struct _MSFactory *factory;/**<the factory that created this filter*/
 	void *padding; /**Unused - to be reused later when new protected fields have to added*/
 	void *data; /**< Pointer used by the filter for internal state and computations.*/
-	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is not NULL when being called process()*/
+	struct _MSTicker *ticker; /**<Pointer to the ticker object. It is never NULL when being called process()*/
 	/*private attributes, they can be moved and changed at any time*/
 	MSList *notify_callbacks;
 	uint32_t last_tick;
@@ -501,6 +501,13 @@ MS2_PUBLIC const char * ms_filter_get_name(MSFilter *f);
  * Returns: a MSList of MSFilter, that needs to be freed by the caller when no more needed.
 **/
 MS2_PUBLIC MSList * ms_filter_find_neighbours(MSFilter *me);
+
+
+/**
+ * Returns the MSTicker that is currently running this filter.
+ * It might be NULL, if the filter has not been attached to a ticker for running.
+ */
+MS2_PUBLIC struct _MSTicker *ms_filter_get_ticker(MSFilter *f);
 
 /**
  * Destroy a filter object.

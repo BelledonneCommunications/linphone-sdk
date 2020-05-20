@@ -185,7 +185,7 @@ static void call_postprocess(MSFilter *f){
 	ms_filter_postprocess(f);
 }
 
-int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
+int ms_ticker_detach(MSTicker *ticker, MSFilter *f){
 	bctbx_list_t *sources=NULL;
 	bctbx_list_t *filters=NULL;
 	bctbx_list_t *it;
@@ -193,6 +193,12 @@ int ms_ticker_detach(MSTicker *ticker,MSFilter *f){
 	if (f->ticker==NULL) {
 		ms_message("Filter %s is not scheduled; nothing to do.",f->desc->name);
 		return 0;
+	}
+	
+	if (f->ticker != ticker){
+		ms_fatal("ms_ticker_detach(): filter %s:%p is currently scheduled by MSTicker %p, but requested to detach from MSTicker %p. This is a programming mistake.",
+			 f->desc->name, f, f->ticker, ticker);
+		return -1;
 	}
 
 	ms_mutex_lock(&ticker->lock);

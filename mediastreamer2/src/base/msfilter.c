@@ -332,6 +332,10 @@ bctbx_list_t * ms_filter_find_neighbours(MSFilter *me){
 	return l;
 }
 
+MSTicker *ms_filter_get_ticker(MSFilter *f){
+	return f->ticker;
+}
+
 void ms_connection_helper_start(MSConnectionHelper *h){
 	h->last.filter=0;
 	h->last.pin=-1;
