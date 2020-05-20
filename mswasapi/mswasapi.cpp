@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mswasapi_reader.h"
 #include "mswasapi_writer.h"
 
+#include <string>
+#include <locale>
 
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
@@ -505,12 +507,16 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 	uint8_t capabilities = 0;
 	char *idStr = NULL;
 	char *nameStr = NULL;
-	size_t inputlen;
+	size_t inputlen = wcslen(wname) + 1;
 	size_t returnlen;
-
-	inputlen = wcslen(wname) + 1;
-	nameStr = (char *)ms_malloc(inputlen);
-	if (!nameStr || wcstombs_s(&returnlen, nameStr, inputlen, wname, inputlen) != 0) {
+	UINT currentCodePage = GetACP();
+	int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, wname, inputlen, NULL, 0, NULL, NULL);
+	std::string strConversion( sizeNeeded, 0 );
+	if(WideCharToMultiByte(currentCodePage, 0, wname, inputlen, &strConversion[0], sizeNeeded, NULL, NULL)){
+		nameStr = (char *)ms_malloc(strConversion.length()+1 );
+		strcpy(nameStr, strConversion.c_str());
+	}
+	if(!nameStr){
 		ms_error("mswasapi: Cannot convert card name to multi-byte string.");
 		goto error;
 	}
