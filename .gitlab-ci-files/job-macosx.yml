@@ -130,7 +130,8 @@ test-linphone-macosx:
     - echo ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts
     # Force core dump generation
     - ulimit -c unlimited
-    - ./liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+    #disabled --parallel and specified --resource-dir to workaround vcard load "fatal"
+    - ./liblinphone_tester --verbose --resource-dir ../share/ $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
 
   after_script:
     - pwd
