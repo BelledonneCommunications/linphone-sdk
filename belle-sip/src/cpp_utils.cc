@@ -19,6 +19,20 @@
 
 
 #include <belle-sip/mainloop.h>
+#include "bctoolbox/crypto.hh"
+
+/**
+ * Write random bytes of supplied size.
+**/
+unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size){
+	bctoolbox::RNG::cRandomize(ret, size);
+	return ret;
+}
+
+uint32_t belle_sip_random(void){
+	return bctoolbox::RNG::cRandomize();
+}
+
 
 static belle_sip_source_t * _belle_sip_main_loop_create_cpp_timeout(
 	belle_sip_main_loop_t *ml,

@@ -341,6 +341,7 @@ struct belle_sip_tls_channel{
 	bctbx_ssl_context_t *sslctx;
 	bctbx_ssl_config_t *sslcfg;
 	bctbx_x509_certificate_t *root_ca;
+	bctbx_rng_context_t *rng;
 
 	struct sockaddr_storage ss;
 	socklen_t socklen;
@@ -368,6 +369,10 @@ static void tls_channel_uninit(belle_sip_tls_channel_t *obj){
 	if (sock!=(belle_sip_socket_t)-1)
 		tls_channel_close(obj);
 	belle_sip_tls_channel_deinit_bctbx_ssl(obj);
+	if (obj->rng) {
+		bctbx_rng_context_free(obj->rng);
+		obj->rng=NULL;
+	}
 
 	if (obj->cur_debug_msg)
 		belle_sip_free(obj->cur_debug_msg);
@@ -699,8 +704,8 @@ static int tls_callback_write(void * ctx, const unsigned char *buf, size_t len )
 }
 
 static int random_generator(void *ctx, unsigned char *ptr, size_t size){
-	belle_sip_random_bytes(ptr, size);
-	return 0;
+	bctbx_rng_context_t *rng = (bctbx_rng_context_t *)ctx;
+	return bctbx_rng_get(rng, ptr, size);
 }
 
 
@@ -881,7 +886,7 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj){
 		belle_sip_message("Use externally provided SSL configuration when creating TLS channel [%p]", obj);
 	}
 
-	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, NULL);
+	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, obj->rng);
 	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
 	if ((crypto_config->root_ca_data && belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0)
 		||  (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0)){
@@ -904,6 +909,7 @@ belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_
 					,bindip,localport,peer_cname,dest,port);
 
 	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
+	obj->rng = bctbx_rng_context_new();
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -198,16 +198,6 @@ char *belle_sip_unquote_strdup(const char *str){
 	return belle_sip_strdup(str);
 }
 
-uint32_t belle_sip_random(void){
-	unsigned char rand_buffer[4];
-	belle_sip_random_bytes(rand_buffer, 4);
-	return ((((uint32_t)rand_buffer[0])<<24) |
-		(((uint32_t)rand_buffer[1])<<16) |
-		(((uint32_t)rand_buffer[2])<<8) |
-		(((uint32_t)rand_buffer[3])<<0));
-
-}
-
 
 void belle_sip_set_socket_api(bctbx_vsocket_api_t* my_api){
 
@@ -229,21 +219,6 @@ char * belle_sip_random_token(char *ret, size_t size){
 	return ret;
 }
 
-/**
- * Write random bytes of supplied size.
-**/
-unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size){
-	// create a rng context
-	bctbx_rng_context_t *RNG = bctbx_rng_context_new();
-
-	// get the requested bytes
-	bctbx_rng_get(RNG, ret, size);
-
-	// delete rng context
-	bctbx_rng_context_free(RNG);
-
-	return ret;
-}
 
 typedef struct bits_reader{
 	const uint8_t *buffer;
