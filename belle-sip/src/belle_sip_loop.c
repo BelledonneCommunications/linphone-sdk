@@ -460,7 +460,17 @@ void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_
 	belle_sip_main_loop_do_later_with_name(ml, func, data, NULL);
 }
 
-void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
+void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms) {
+	/*
+	   WARNING: that's important to cast 'value_ms' into 'int' before giving it to belle_sip_source_set_timeout_int64()
+	   in order to mimic the behavior of belle_sip_source_set_timeout() when the timeout was declared as 'int'
+	   in the belle_sip_source_t structure.
+	   That allows to write belle_sip_source_set_timeout(s, -1) to disable the timeout.
+	*/
+	belle_sip_source_set_timeout_int64(s, (int)value_ms);
+}
+
+void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms) {
 	if (!s->expired){
 		belle_sip_main_loop_t *ml = s->ml;
 		s->expire_ms=belle_sip_time_ms()+value_ms;
@@ -481,7 +491,11 @@ void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remo
 	s->on_remove=func;
 }
 
-unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
+unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s) {
+	return (unsigned int)s->timeout;
+}
+
+int64_t belle_sip_source_get_timeout_int64(const belle_sip_source_t *s) {
 	return s->timeout;
 }
 

@@ -140,14 +140,30 @@ BELLESIP_EXPORT void belle_sip_main_loop_do_later_with_name(
 **/
 BELLESIP_EXPORT belle_sip_source_t * belle_sip_timeout_source_new(belle_sip_source_func_t func, void *data, unsigned int timeout_value_ms);
 
-BELLESIP_EXPORT void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
+/**
+ * Set the timeout duration.
+ * @param[in] s The source to modify.
+ * @param[in] value_ms The new timeout duration in milliseconds. Only values in [0;INT_MAX] are valid to define a new
+ * duration. Higher values will cause the timer to be disabled.
+ * @deprecated Since 2020-05-20 (SDK 4.4). Use belle_sip_source_set_timeout_int64() instead.
+ */
+BELLESIP_DEPRECATED BELLESIP_EXPORT void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms);
+/**
+ * Set the timeout duration.
+ * @param[in] s The source to modify.
+ * @param[in] value_ms Positive values willbe taken as the new duration to set. Negative values will cause the timer
+ * to be disabled.
+ */
+BELLESIP_EXPORT void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms);
+
 /**
  * Cancel a source. Will be removed at next iterate. It is not freed.
  **/
 BELLESIP_EXPORT void belle_sip_source_cancel(belle_sip_source_t * src);
 
 
-BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
+BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s);
+BELLESIP_EXPORT int64_t belle_sip_source_get_timeout_int64(const belle_sip_source_t *s);
 
 BELLESIP_EXPORT belle_sip_source_t * belle_sip_socket_source_new(belle_sip_source_func_t func, void *data, belle_sip_socket_t fd, unsigned int events, unsigned int timeout_value_ms);
 /*

@@ -222,13 +222,13 @@ void belle_sip_listening_point_set_keep_alive(belle_sip_listening_point_t *lp, i
 			, ms
 			,"keep alive") ;
 	} else {
-		belle_sip_source_set_timeout(lp->keep_alive_timer,ms);
+		belle_sip_source_set_timeout_int64(lp->keep_alive_timer,ms);
 	}
 	return;
 }
 
 int belle_sip_listening_point_get_keep_alive(const belle_sip_listening_point_t *lp) {
-	return lp->keep_alive_timer?(int)belle_sip_source_get_timeout(lp->keep_alive_timer):-1;
+	return lp->keep_alive_timer?(int)belle_sip_source_get_timeout_int64(lp->keep_alive_timer):-1;
 }
 
 void belle_sip_listening_point_set_channel_listener(belle_sip_listening_point_t *lp,belle_sip_channel_listener_t* channel_listener) {

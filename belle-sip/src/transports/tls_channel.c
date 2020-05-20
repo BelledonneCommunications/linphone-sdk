@@ -530,7 +530,7 @@ static int tls_process_handshake(belle_sip_channel_t *obj){
 	}
 
 	if (err==0){
-		belle_sip_source_set_timeout((belle_sip_source_t*)obj,-1);
+		belle_sip_source_set_timeout_int64((belle_sip_source_t*)obj,-1);
 		belle_sip_channel_set_ready(obj,(struct sockaddr*)&channel->ss,channel->socklen);
 	}else if (err==BCTBX_ERROR_NET_WANT_READ || err==BCTBX_ERROR_NET_WANT_WRITE){
 		belle_sip_message("Channel [%p]: SSL handshake in progress...",obj);
@@ -604,7 +604,7 @@ static int tls_process_data(belle_sip_channel_t *obj,unsigned int revents){
 
 			channel->socket_connected=1;
 			belle_sip_source_set_events((belle_sip_source_t*)channel,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
-			belle_sip_source_set_timeout((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->stack));
+			belle_sip_source_set_timeout_int64((belle_sip_source_t*)obj,belle_sip_stack_get_transport_timeout(obj->stack));
 			if (obj->stack->http_proxy_host) {
 				belle_sip_message("Channel [%p]: Connected at TCP level, now doing http proxy connect",obj);
 				if (tls_process_http_connect(channel)) goto process_error;

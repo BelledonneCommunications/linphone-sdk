@@ -159,8 +159,8 @@ static int ict_on_timer_A(belle_sip_ict_t *obj){
 		case BELLE_SIP_TRANSACTION_CALLING:
 		{
 			/*reset the timer to twice the previous value, and retransmit */
-			unsigned int prev_timeout=belle_sip_source_get_timeout(obj->timer_A);
-			belle_sip_source_set_timeout(obj->timer_A,2*prev_timeout);
+			int64_t prev_timeout=belle_sip_source_get_timeout_int64(obj->timer_A);
+			belle_sip_source_set_timeout_int64(obj->timer_A,2*prev_timeout);
 			belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 		}
 		break;
