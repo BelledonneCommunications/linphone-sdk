@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file keeps track of changes made to the linphone-sdk project, which is a only an unbrella project
 that bundles liblinphone and its dependencies as git submodules.
-Please refer to CHANGELOG.md files of submodules (mainly: liblinphone, mediastreamer2, ortp) for the actual
-changes made to these components.
+__Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
+changes made to these components.__
 
 ## [Unreleased]
+
+
+## [4.4.0] 2020-06-09
 
 ### Added
 - Windows Store compatibility
