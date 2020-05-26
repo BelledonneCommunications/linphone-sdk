@@ -70,9 +70,11 @@ struct AndroidCamera2Context {
 		ms_mutex_init(&mutex, NULL);
 
     	cameraManager = ACameraManager_create();
+		ms_message("[Camera2 Capture] Context ready");
 	};
 
 	~AndroidCamera2Context() {
+		ms_message("[Camera2 Capture] Context destroyed");
 		// Don't delete device object in here !
 		ms_mutex_destroy(&mutex);
 		if (bufAllocator) ms_yuv_buf_allocator_free(bufAllocator);
@@ -247,6 +249,10 @@ static mblk_t* android_camera2_capture_image_to_mblkt(AndroidCamera2Context *d, 
 
 static void android_camera2_capture_on_image_available(void *context, AImageReader *reader) {
 	AndroidCamera2Context *d = static_cast<AndroidCamera2Context *>(context);
+	if (d == nullptr || d->filter == nullptr) {
+		ms_error("[Camera2 Capture] Image available callback called after filtre uninit!");
+		return;
+	}
 
 	ms_filter_lock(d->filter);
 	if (!d->filter || !d->filter->ticker || !d->configured) {
