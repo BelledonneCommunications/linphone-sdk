@@ -4,6 +4,7 @@
 
 
 job-raspbian-makefile-gcc:
+  allow_failure: true
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspbian
   extends: .linux-prepare

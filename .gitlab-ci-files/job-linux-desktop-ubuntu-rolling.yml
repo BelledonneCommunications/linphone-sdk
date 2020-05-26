@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_ubuntu-rolling: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  variables:
+    PLATFORM: linux-ubuntu-rolling
+
 #################################################
 # Makefile
 #################################################
@@ -89,47 +100,40 @@ job-ubuntu-rolling-ninja-clang:
 test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
-  tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+    - job-ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-ubuntu:
   extends: .test-bellesip
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
+    - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
     PLATFORM: linux-ubuntu-rolling
 
 test-belr-ubuntu:
   extends: .test-belr
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
-  tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+    - job-ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-ubuntu:
   extends: .test-belcard
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
-  tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+    - job-ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
-  tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  variables:
-    PLATFORM: linux-ubuntu-rolling
+    - job-ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-ubuntu:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone
   extends: .test-liblinphone
   dependencies:
-    - job-ubuntu-rolling-makefile-gcc
+    - job-ubuntu-rolling-ninja-clang
   variables:
     PLATFORM: linux-ubuntu-rolling

@@ -32,8 +32,12 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
+    compileOnly 'androidx.appcompat:appcompat:1.1.0'
+    compileOnly "androidx.media:media:1.1.0"
     compileOnly 'org.jetbrains:annotations:19.0.0'
+    compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
+
 
 static def isGeneratedJavaWrapperAvailable() {
     File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
@@ -53,6 +57,7 @@ excludePackage.add('**/LICENSE.txt')
 
 def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
+
 if (!isGeneratedJavaWrapperAvailable()) {
     // We have to remove some classes that requires the new java wrapper
     println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
@@ -60,6 +65,17 @@ if (!isGeneratedJavaWrapperAvailable()) {
     // This classes uses the new DialPlan wrapped object
     javaExcludes.add('**/Utils.java')
     javaExcludes.add('**/H264Helper.java')
+
+    // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
+    javaExcludes.add('**/ActivityMonitor.java')
+    javaExcludes.add('**/AudioHelper.java')
+    javaExcludes.add('**/BluetoothHelper.java')
+    javaExcludes.add('**/BluetoothReceiver.java')
+    javaExcludes.add('**/CoreManager.java')
+    javaExcludes.add('**/CoreService.java')
+    javaExcludes.add('**/FirebaseMessaging.java')
+    javaExcludes.add('**/FirebasePushHelper.java')
+    javaExcludes.add('**/PushNotificationUtils.java')
 
     // Add the previous wrapper to sources
     srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
@@ -81,9 +97,9 @@ project.tasks['preBuild'].dependsOn 'listPlugins'
 android {
     defaultConfig {
         compileSdkVersion 28
-        minSdkVersion 16
+        minSdkVersion 23
         targetSdkVersion 28
-        versionCode 4200
+        versionCode 4400
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -106,6 +122,7 @@ android {
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
+            
         }
         debug {
             minifyEnabled false
@@ -217,3 +234,17 @@ project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
 project.tasks['assemble'].dependsOn 'sourcesJar'
 project.tasks['assemble'].dependsOn 'androidJavadocsJar'
+
+afterEvaluate {
+    def debugFile = file("$buildDir/outputs/aar/linphone-sdk-android.aar")
+    tasks.named("assembleDebug").configure {
+        doLast {
+            debugFile.renameTo("$buildDir/outputs/aar/linphone-sdk-android-debug.aar")
+        }
+    }
+    tasks.named("assembleRelease").configure {
+        doLast {
+            debugFile.renameTo("$buildDir/outputs/aar/linphone-sdk-android-release.aar")
+        }
+    }
+}

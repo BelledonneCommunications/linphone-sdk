@@ -7,6 +7,10 @@
 
   extends: .job-prepare
 
+  except:
+    variables:
+      - $SKIP_LINUX
+
   before_script:
     ##
     ## If a TUNNEL_USER_KEY is defined then start ssh-agent and add the key

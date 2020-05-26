@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_debian9: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  variables:
+    PLATFORM: linux-debian9
+
 #################################################
 # Makefile
 #################################################
@@ -45,6 +56,7 @@ job-debian9-ninja-gcc:
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_LINUX
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON
     CMAKE_GENERATOR: Ninja
@@ -103,15 +115,14 @@ test-bctoolbox-debian9:
   extends: .test-bctoolbox
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9" ]
-  variables:
-    PLATFORM: linux-debian9
+  <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-debian9:
   extends: .test-bellesip
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9-nuc" ]
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   variables:
     PLATFORM: linux-debian9
 
@@ -119,25 +130,19 @@ test-belr-debian9:
   extends: .test-belr
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9-nuc" ]
-  variables:
-    PLATFORM: linux-debian9
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-debian9:
   extends: .test-belcard
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9-nuc" ]
-  variables:
-    PLATFORM: linux-debian9
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-debian9:
   extends: .test-bzrtp
   dependencies:
     - job-debian9-ninja-gcc
-  tags: [ "docker-test-debian9-nuc" ]
-  variables:
-    PLATFORM: linux-debian9
+  <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian9:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone

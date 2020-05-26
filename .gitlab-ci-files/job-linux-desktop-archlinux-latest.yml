@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_arch: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  variables:
+    PLATFORM: linux-arch
+
 #################################################
 # Makefile
 #################################################
@@ -68,6 +79,7 @@ job-archlinux-latest-ninja-clang:
   except:
     variables:
       - $DOCKER_UPDATE
+      - $SKIP_LINUX
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -94,15 +106,15 @@ test-bctoolbox-arch:
   extends: .test-bctoolbox
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ]
-  variables:
-    PLATFORM: linux-arch
+  <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-arch:
   extends: .test-bellesip
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ]
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
   variables:
     PLATFORM: linux-arch
 
@@ -110,25 +122,19 @@ test-belr-arch:
   extends: .test-belr
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ]
-  variables:
-    PLATFORM: linux-arch
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-arch:
   extends: .test-belcard
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ]
-  variables:
-    PLATFORM: linux-arch
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-arch:
   extends: .test-bzrtp
   dependencies:
     - job-archlinux-latest-ninja-clang
-  tags: [ "docker-test-archlinux-latest-nuc" ]
-  variables:
-    PLATFORM: linux-arch
+  <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-arch:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone

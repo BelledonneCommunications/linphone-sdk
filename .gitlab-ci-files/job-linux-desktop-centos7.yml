@@ -1,3 +1,17 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_centos7: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  variables:
+    PLATFORM: linux-centos7
+
+
+
+
 #################################################
 # Makefile
 #################################################
@@ -15,20 +29,8 @@ job-centos7-makefile-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
-
-
-#job-centos7-makefile-clang:
-#
-#  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#  extends: .job-linux-desktop
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 
 #################################################
@@ -48,42 +50,11 @@ job-centos7-ninja-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
-
-#job-centos7-ninja-gcc-novideo:
-#
-#  tags: [ "docker" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: job-centos7-ninja-gcc
-
-
-#job-centos7-ninja-clang:
-#
-#  tags: [ "docker" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
-#  variables:
-#    CMAKE_GENERATOR: Ninja
-#    CC: clang
-#    CXX: clang++
-#    CMAKE_OPTIONS: -DENABLE_LIME=ON
-#  extends: .job-linux-desktop
-
-
-#job-centos7-ninja-clang-novideo:
-#
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: job-centos7-ninja-clang
-
+  except:
+    variables:
+      - $SKIP_LINUX
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 #################################################
 # TESTS
@@ -94,15 +65,15 @@ test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7-nuc" ]
-  variables:
-    PLATFORM: linux-centos7
+  <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7-nuc" ]
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     PLATFORM: linux-centos7
 
@@ -110,28 +81,24 @@ test-belr-centos7:
   extends: .test-belr
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7-nuc" ]
-  variables:
-    PLATFORM: linux-centos7
+  <<: *docker_image_platform_and_runner_tag
 
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7-nuc" ]
-  variables:
-    PLATFORM: linux-centos7
+  <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test-centos7-nuc" ]
-  variables:
-    PLATFORM: linux-centos7
+  tags: [ "docker-test" ]
+  <<: *docker_image_platform_and_runner_tag
 
 test-mediastreamer-centos7:
-  tags: [ "docker-test-centos7-liblinphone-nuc" ]
+  tags: [ "docker-test-liblinphone" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:7
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
@@ -166,37 +133,3 @@ test-liblinphone-centos7-mr:
       - $ENABLE_TESTS_IN_MR
   except:
    - schedules
-
-#apparently there is no more standalone lime tester
-#this one caused problems during npm install (timeout)
-#test-lime:
-#  tags: [ "docker-test-centos7-lime" ]
-#  extends: .test
-#  dependencies:
-#    - job-centos7-ninja-gcc
-#  script:
-#    - ls -la .
-#    - pwd
-#    - ls -la ./lime
-#    - cd ${CI_PROJECT_DIR}/lime/tester/server/nodejs
-#    #installing here since the tester cannot find globally installed packages
-#    - npm install yargs sqlite3 rwlock
-#    - ./localServerStart.sh & #How do we stop it properly ????
-#    - cd ${CI_PROJECT_DIR}
-#    - cd build-desktop/WORK/desktop/Build/
-#    - ls -la
-#    - cd lime
-#    - ls-la
-#    - cd tester
-#    - ls -la
-#
-#    #path to source dir ${CI_PROJECT_DIR}/lime
-#    - ./lime_tester --verbose --xml-file limetest --resource-dir ../../../../../../lime/tester
-#  #uploading the artifacts
-#  artifacts:
-#    paths:
-#      - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
-#    when: always
-#    reports:
-#      junit:
-#        - build-desktop/WORK/desktop/Build/lime/tester/limetest-Results.xml
