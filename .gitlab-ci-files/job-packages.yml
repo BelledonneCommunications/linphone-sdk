@@ -59,6 +59,7 @@ job-xamarin-package:
     #removing previous results directory to avoid getting incorrect artifacts for current launch
     - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;
     - VERSION=$(cat ${CI_PROJECT_DIR}/build-ios/gitdescribecommitnumber.txt)
+    - echo $VERSION
     - cd build/linphone-sdk/bin/distributions/
     - ls .
     #- VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
