@@ -507,6 +507,16 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	}
 	d->capturing = false;
 
+	if (d->imageReaderListener) {
+		delete d->imageReaderListener;
+		d->imageReaderListener = nullptr;
+	}
+	AImageReader_ImageListener nullListener = {nullptr, nullptr};
+  	media_status_t status = AImageReader_setImageListener(d->imageReader, &nullListener);
+	if (status != AMEDIA_OK) {
+		ms_error("[Camera2 Capture] Failed to set null image listener, error is %i", status);
+	}
+
 	if (d->captureSession) {
 		camera_status_t camera_status = ACameraCaptureSession_abortCaptures(d->captureSession);
 		if (camera_status != ACAMERA_OK) {
@@ -565,11 +575,6 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	if (d->imageReader) {
 		AImageReader_delete(d->imageReader);
 		d->imageReader = nullptr;
-
-		if (d->imageReaderListener) {
-			delete d->imageReaderListener;
-			d->imageReaderListener = nullptr;
-		}
 	}
 
 	android_camera2_capture_destroy_preview(d);
