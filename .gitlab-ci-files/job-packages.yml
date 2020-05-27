@@ -57,6 +57,7 @@ job-xamarin-package:
     - VERSION=$(cat ${CI_PROJECT_DIR}/build-ios/gitdescribecommitnumber.txt)
     - echo $VERSION
     - cd build/linphone-sdk/bin/distributions/
+    - ls .
     #- VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
     - unzip linphone-sdk-android-$VERSION -d linphone-sdk-android
     - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-$VERSION -d linphone-sdk-ios
