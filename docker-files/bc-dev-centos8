@@ -6,7 +6,7 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 ENV SHELL=/bin/bash
 
 # Configure additional repositories and install common general tools
-RUN dnf install -y epel-release http://rpmfind.net/linux/epel/7/x86_64/Packages/s/SDL2-2.0.10-1.el7.x86_64.rpm && dnf install -y --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y --nogpgcheck https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
+RUN dnf install -y https://download.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm  && dnf install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
   dnf install -y nano sudo which
 
 #Need to install dnf utils to enable repos and to enable Powertools for doxygen, nasm, yaml and ninja-build
@@ -25,7 +25,7 @@ RUN dnf updateinfo -y && dnf install -y at bison ccache clang cmake3 doxygen gcc
 RUN dnf updateinfo -y && dnf install -y alsa-lib-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd
 
 # Install ffmpeg without gpg check because of particular repo
-RUN dnf updateinfo -y && dnf install -y ffmpeg-devel --nogpgcheck
+RUN dnf updateinfo -y && dnf install -y ffmpeg-devel 
 
 # Install linphone runtime dependencies
 RUN dnf updateinfo -y && dnf install -y mesa-dri-drivers && \
