@@ -3,7 +3,7 @@ FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 
 #Getting dependencies to run tests headlessly
-RUN sudo apt-get install -y xvfb
+RUN sudo apt-get update && sudo apt-get install -y xvfb
 #failing, need to find a workaround
 #RUN modprobe snd-dummy
 
