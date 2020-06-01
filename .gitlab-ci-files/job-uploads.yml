@@ -184,15 +184,10 @@ job-xamarin-upload:
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
-  except:
+  only:
     variables:
-      - $DEPLOY_RUN_MACOSX
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-      - $DEPLOY_RUN_WINDOWS
-      - $PACKAGE_RUN_WINDOWS
+      - $NIGHTLY_MASTER
       - $DOCKER_UPDATE
-      - $UPLOAD_XAMARIN
 
   script:
     #getting the version number for each submodule and writing it in environment.properties file
@@ -341,15 +336,30 @@ job-xamarin-upload:
 
 .job-test-report-upload-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $NIGHTLY_MASTER
 
-job-test-upload-libl-centos7:
-  extends: .job-test-report-upload
+job-test-upload-libl-centos7-scheduled:
+  extends: .job-test-report-upload-scheduled
   dependencies:
     - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7-newdocker
+
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
+
+job-test-upload-libl-centos7-mr:
+  extends: .job-test-report-upload
+  dependencies:
     - test-liblinphone-centos7-mr
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
+
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
@@ -358,6 +368,7 @@ job-test-upload-libl-centos8:
   extends: .job-test-report-upload-scheduled
   dependencies:
     - test-liblinphone-centos8
+    - test-liblinphone-centos8-newdocker
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "liblinphone"
@@ -382,6 +393,7 @@ job-test-upload-libl-debian10:
   extends: .job-test-report-upload-scheduled
   dependencies:
     - test-liblinphone-debian10
+    - test-liblinphone-debian10-newdocker
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "liblinphone"
@@ -398,6 +410,7 @@ job-test-upload-libl-arch:
   extends: .job-test-report-upload-scheduled
   dependencies:
     - test-liblinphone-arch
+    - test-liblinphone-archlinux-newdocker
   variables:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
@@ -448,6 +461,7 @@ job-test-upload-bct-ubuntu:
   extends: .job-test-report-upload-scheduled
   dependencies:
     - test-bctoolbox-ubuntu
+    - test-liblinphone-ubuntu-rolling-newdocker
   variables:
     PLATFORM: "linux-ubuntu-rolling"
     TESTER: "bctoolbox"
