@@ -24,8 +24,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(belle-sip VERSION 4.4.0 LANGUAGES C CXX)
 
-
-
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
 set(PACKAGE_VERSION "${PROJECT_VERSION}")
@@ -34,6 +32,7 @@ set(PACKAGE_BUGREPORT "jehan.monnier@linphone.org")
 set(PACKAGE_TARNAME "${PROJECT_NAME}")
 set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
+set(BELLESIP_SO_VERSION 1) # set for 4.4.0 release.
 
 
 option(ENABLE_SHARED "Build shared library." YES)
