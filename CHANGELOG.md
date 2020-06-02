@@ -15,7 +15,7 @@ changes made to these components.
 
 
 
-## [4.4.0] 2020-05-22
+## [4.4.0] 2020-06-02
 
 ### Changed
 - liblinphone is now placed into the *liblinphone* directory, naturally.
