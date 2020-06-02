@@ -6,13 +6,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.4.0] - 2020-06-16
+
+### Added
+- TURN over TCP or TLS (previously was only UDP)
+- Capture/playback gain control for Mac OS (AudioUnit)
+
+### Changed
+- Optimize mirroring for OpenGL based display filters. It was previously done in software.
+- Make V4L2 capture filter work with read-only devices (such as with v4lloopback driver)
+- iOS AudioUnit filter simplifications
+
+### Fixed
+- ICE: set source IP addresses of outgoing packets consistent with the local candidate it is supposed to test or use.
+  This fixes various ICE failures occuring when the host has multiple IP addresses (which is now common with IPv6)
+- New implementation of MSEventQueue, to fix unreproductible crashes with the previous implementation.
+- Crashes around mblk_t management of Video4Linux2 catpure filter.
+- Random crash in VideoToolbox decoding filter.
+- VP8 decoding errors due to an invalid aggregation of packets in rare circumstances
+- Crash while reading mkv file with checksums.
+
+
+## [4.3.0] -  2019-10-14
+
+
 ### Added
 - H265 codec based on MediaCodec API (Android only)
 - H265 codec based on VideoToolbox API (iOS only)
+- Adaptation of video resolution according to network capabilities.
 
 ### Changed
 - License is now GNU GPLv3.
-
+- For simplicity reasons, version number is aligned between all components of linphone-sdk.
 
 
 ## [2.16.1] - 2017-07-21
