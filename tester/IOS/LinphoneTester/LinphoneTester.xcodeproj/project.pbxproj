@@ -170,7 +170,7 @@
 				6167AEB5221441F400A40550 /* Frameworks */,
 				6167AEB6221441F400A40550 /* Resources */,
 				33E2E8246F0C6E7060D44B36 /* [CP] Embed Pods Frameworks */,
-				1AB989A8F263ABAFE69A5CA8 /* [CP] Copy Pods Resources */,
+				097300801BDB0231FFB9B9A5 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -258,26 +258,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		1AB989A8F263ABAFE69A5CA8 /* [CP] Copy Pods Resources */ = {
+		097300801BDB0231FFB9B9A5 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Resources/liblinphone_tester",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/liblinphone_tester",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		33E2E8246F0C6E7060D44B36 /* [CP] Embed Pods Frameworks */ = {
@@ -286,50 +281,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox-tester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belcard.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/lime.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/limetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphone.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphonetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mediastreamer2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msamr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mscodec2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msopenh264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mssilk.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mswebrtc.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msx264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/ortp.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox-tester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belcard.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/lime.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/limetester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/linphone.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/linphonetester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mediastreamer2.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msamr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mscodec2.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msopenh264.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mssilk.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mswebrtc.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msx264.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ortp.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		4926824997E3F9D31CE75C49 /* [CP] Check Pods Manifest.lock */ = {
