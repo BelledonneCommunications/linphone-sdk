@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
- * aaudio.h - Header file of Android Media plugin for Linphone, based on AAudio APIs.
+ * msaaudio.h - Header file of Android Media plugin for Linphone, based on AAudio APIs.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,20 +20,24 @@
 #ifndef ms_aaudio_h
 #define ms_aaudio_h
 
+#include <aaudio/AAudio.h>
+#include <mediastreamer2/android_utils.h>
 #include <mediastreamer2/mssndcard.h>
 
-static int DeviceFavoriteSampleRate = 44100;
+extern int DeviceFavoriteSampleRate;
 
 struct AAudioContext {
 	AAudioContext() {
 		samplerate = DeviceFavoriteSampleRate;
 		nchannels = 1;
 		builtin_aec = false;
+		device_changed = false;
 	}
 
 	int samplerate;
 	int nchannels;
 	bool builtin_aec;
+	bool device_changed;
 };
 
 MSFilter *android_snd_card_create_reader(MSSndCard *card);
