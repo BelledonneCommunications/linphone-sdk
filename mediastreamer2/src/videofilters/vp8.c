@@ -32,6 +32,9 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
 
 #define PICID_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
 
@@ -179,6 +182,9 @@ static void enc_preprocess(MSFilter *f) {
 	}
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
+#elif TARGET_OS_OSX
+	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
+	s->cfg.g_threads= MAX(ms_factory_get_cpu_count(f->factory)-2,1);
 #else
 	s->cfg.g_threads = ms_factory_get_cpu_count(f->factory);
 #endif
@@ -453,13 +459,17 @@ static void enc_process_frame_task(void *obj) {
 	int skipped_count = 0;
 
 	ms_filter_lock(f);
-	while ((im = getq(&s->entry_q)) == NULL) {
+	while ((im = getq(&s->entry_q)) != NULL) {
 		if (prev_im) {
 			freemsg(prev_im);
 			skipped_count++;
 		}
 		prev_im = im;
 	}
+	if (!im) {
+		im = prev_im;
+	}
+	
 	ms_filter_unlock(f);
 
 	if (skipped_count > 0){
@@ -467,7 +477,7 @@ static void enc_process_frame_task(void *obj) {
 		ms_warning("VP8 async encoding process: %i frames skipped", skipped_count);
 	}
 	if (!im){
-		ms_error("VP8 async encoding process: no frame to encode, this shall not happen.");
+		ms_message("VP8 async encoding process: no frame to encode, probably skipped by previous task");
 		return;
 	}
 
@@ -917,7 +927,12 @@ static int dec_initialize_impl(MSFilter *f){
 	vpx_codec_dec_cfg_t cfg;
 
 	memset(&cfg, 0, sizeof(cfg));
+#if TARGET_OS_OSX
+	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
+	cfg.threads = MAX(ms_factory_get_cpu_count(f->factory)-2,1);
+#else
 	cfg.threads = ms_factory_get_cpu_count(f->factory);
+#endif
 	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
 		ms_error("Failed to initialize VP8 decoder");
 		return -1;
