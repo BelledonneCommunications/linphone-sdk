@@ -143,17 +143,22 @@ int PacketReader::parsePacket(std::unique_ptr<Packet> packet) {
 	int foundPackets = 0;
 	bool channelData = false;
 
-	if ((ms_turn_context_get_state(mContext) >= MS_TURN_CONTEXT_STATE_BINDING_CHANNEL) && (*p & 0x40)) {
-		channelData = true;
-	}
-
-	uint8_t *end = pEnd - (channelData ? 4 : 20);
-	while (p <= end) {
+	while (p < pEnd) {
 		size_t remainingSize;
+
+		channelData = (ms_turn_context_get_state(mContext) >= MS_TURN_CONTEXT_STATE_BINDING_CHANNEL) && (*p & 0x40);
 
 		header = p;
 		headerSize = channelData ? 4 : 20;
 		datalen = ntohs(*((uint16_t *)(p + sizeof(uint16_t))));
+
+		if (channelData && (datalen + 4) % 4 != 0) {
+			// The size of a channelData in TCP/TLS is rounded to a multiple of 4
+			// and not reflected in the length field
+			size_t round = 4 + datalen;
+			datalen = round - (round % 4);
+		}
+
 		p += headerSize;
 		remainingSize = (size_t)(pEnd - p);
 
