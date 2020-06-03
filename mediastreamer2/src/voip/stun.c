@@ -1338,6 +1338,8 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 	bctbx_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
 	bctbx_list_free(context->allowed_peer_addresses);
 	if (context->turn_tcp_client) ms_turn_tcp_client_destroy(context->turn_tcp_client);
+	if (context->cn) ms_free(context->cn);
+	if (context->root_certificate) ms_free(context->root_certificate);
 	ms_free(context);
 }
 
