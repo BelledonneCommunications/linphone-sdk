@@ -235,6 +235,17 @@ MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager);
 MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
 
 /**
+ * Retreive the first sound card object in the card manager based on its type and driver type.
+ *
+ * @param m             A sound card manager containing sound cards.
+ * @param driver_type   The type of the driver.
+ * @param type          The type of the card.
+ *
+ * Returns: MSSndCard if successfull, NULL otherwise.
+ */
+MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char * driver_type);
+
+/**
  * Retreive a playback capable sound card object based on its name.
  *
  * @param m    A sound card manager containing sound cards.
@@ -715,6 +726,13 @@ MS2_PUBLIC MSSndCard* ms_snd_card_ref(MSSndCard *sndCard);
  * Removes a ref from a MSSndCard
  */
 MS2_PUBLIC void ms_snd_card_unref(MSSndCard *sndCard);
+
+#ifdef __ANDROID__
+/**
+ * Sort cards in order to put earpiece and speaker as first devices of every filter.
+**/
+void ms_snd_card_sort(MSSndCardManager *m);
+#endif // __ANDROID__
 
 /** @} */
 

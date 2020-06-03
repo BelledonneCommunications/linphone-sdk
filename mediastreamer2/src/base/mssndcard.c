@@ -23,9 +23,7 @@
 
 #include "mediastreamer2/mssndcard.h"
 
-
 static bool_t bypass_sndcard_detection = FALSE;
-
 
 MSSndCardManager * ms_snd_card_manager_new(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
@@ -62,6 +60,15 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
 		if (strcmp(ms_snd_card_get_string_id(card),id)==0)	return card;
 	}
 	if (id!=NULL) ms_warning("no card with id %s",id);
+	return NULL;
+}
+
+MSSndCard * ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char * driver_type) {
+	bctbx_list_t *elem;
+	for (elem=m->cards;elem!=NULL;elem=elem->next){
+		MSSndCard *c=(MSSndCard*)elem->data;
+		if ((strcmp(c->desc->driver_type, driver_type)==0) && (type == ms_snd_card_get_device_type(c)))	return c;
+	}
 	return NULL;
 }
 
@@ -203,6 +210,10 @@ void ms_snd_card_manager_register_desc(MSSndCardManager *m, MSSndCardDesc *desc)
 		m->descs = bctbx_list_append(m->descs, desc);
 		card_detect(m, desc);
 	}
+#ifdef __ANDROID__
+	// Put earpiece and speaker as first devices of every filter
+	ms_snd_card_sort(m);
+#endif // __ANDROID__
 }
 
 void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *desc){
@@ -219,6 +230,10 @@ void ms_snd_card_manager_reload(MSSndCardManager *m){
 	for (elem = m->descs; elem != NULL; elem = elem->next) {
 		card_detect(m, (MSSndCardDesc*)elem->data);
 	}
+#ifdef __ANDROID__
+	// Put earpiece and speaker as first devices of every filter
+	ms_snd_card_sort(m);
+#endif // __ANDROID__
 }
 
 MSSndCard* ms_snd_card_dup(MSSndCard *card){
@@ -478,20 +493,50 @@ bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool
 }
 
 void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSndCardDeviceType type) {
-		MSSndCard * head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
-		// Loop until the type of the head of the list is not a bluetooh device
-		while(ms_snd_card_get_device_type(head) == type) {
-			bctbx_list_t * elem;
-			for (elem=m->cards;elem!=NULL;elem=elem->next){
-				MSSndCard *c=(MSSndCard*)elem->data;
-				if(ms_snd_card_get_device_type(c) != type) {
-					ms_snd_card_manager_swap_cards(m, head, c);
-					// Exit for loop once swap occurred
-					break;
-				}
+	MSSndCard * head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
+	// Loop until the type of the head of the list is not a bluetooh device
+	while(ms_snd_card_get_device_type(head) == type) {
+		bctbx_list_t * elem;
+		for (elem=m->cards;elem!=NULL;elem=elem->next){
+			MSSndCard *c=(MSSndCard*)elem->data;
+			if(ms_snd_card_get_device_type(c) != type) {
+				ms_snd_card_manager_swap_cards(m, head, c);
+				// Exit for loop once swap occurred
+				break;
 			}
-			ms_snd_card_unref(head);
-			head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
 		}
 		ms_snd_card_unref(head);
+		head = ms_snd_card_ref(ms_snd_card_manager_get_card(m, NULL));
+	}
+	ms_snd_card_unref(head);
 }
+
+#ifdef __ANDROID__
+void ms_snd_card_sort(MSSndCardManager *m) {
+	bctbx_list_t * elem = NULL;
+	bctbx_list_t *ltmp = NULL;
+	const char * curr_driver = NULL;
+	for (elem=m->cards;elem!=NULL;elem=elem->next){
+		MSSndCard *c=(MSSndCard*)elem->data;
+		// If current driver is the same as card driver, then search for earpiece and speaker device
+		// Note: This implemenetation assumes that all devices belonging to the same filter are grouped together in the sound card manager
+		if ((curr_driver == NULL) || (strcmp(c->desc->driver_type, curr_driver)!=0)) {
+			// Update current driver
+			curr_driver = c->desc->driver_type;
+
+			// Search earpiece and speaker
+			MSSndCard *earpiece = ms_snd_card_manager_get_card_by_type(m, MS_SND_CARD_DEVICE_TYPE_EARPIECE, curr_driver);
+			if (earpiece) ltmp=bctbx_list_append(ltmp, earpiece);
+			MSSndCard *speaker = ms_snd_card_manager_get_card_by_type(m, MS_SND_CARD_DEVICE_TYPE_SPEAKER, curr_driver);
+			if (speaker) ltmp=bctbx_list_append(ltmp, speaker);
+		}
+
+		// Check if c is not an earpiece or speaker - as these devices are built-in into the phone, there is only 1 instance for each of them and it is searched using ms_snd_card_manager_get_card_by_type
+		if ((ms_snd_card_get_device_type(c) != MS_SND_CARD_DEVICE_TYPE_EARPIECE) && (ms_snd_card_get_device_type(c) != MS_SND_CARD_DEVICE_TYPE_SPEAKER)) {
+			// Append card
+			ltmp=bctbx_list_append(ltmp, c);
+		}
+	}
+	m->cards=ltmp;
+}
+#endif // __ANDROID__

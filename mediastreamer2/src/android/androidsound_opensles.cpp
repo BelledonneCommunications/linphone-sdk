@@ -280,8 +280,8 @@ static void android_snd_card_add_devices(MSSndCardManager *m) {
 
 		//For devices running API older than API23, only 3 devices are created: microphone, speaker and earpiece
 		snd_card_device_create(-1, "Microphone", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE, MS_SND_CARD_CAP_CAPTURE, m);
-		snd_card_device_create(-1, "Speaker", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER, MS_SND_CARD_CAP_PLAYBACK, m);
 		snd_card_device_create(-1, "Earpiece", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE, MS_SND_CARD_CAP_PLAYBACK, m);
+		snd_card_device_create(-1, "Speaker", MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER, MS_SND_CARD_CAP_PLAYBACK, m);
 	}
 
 }
@@ -297,7 +297,6 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		DeviceFavoriteSampleRate = get_preferred_sample_rate();
 		DeviceFavoriteBufferSize = get_preferred_buffer_size();
 		android_snd_card_add_devices(m);
-		ms_snd_card_remove_type_from_list_head(m, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
 	} else {
 		ms_warning("[OpenSLES] Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
 	}
@@ -1154,8 +1153,9 @@ static void snd_card_device_create(int device_id, const char * name, MSSndCardDe
 
 	snd_card_device_create_extra_fields(m, card);
 
-	// Last argument is set to false because cards are added based on the type ignoring their caapbilities as we do upcalls to Java in order to set devices
-	// For example in the case of a Bluetooth device
+	// Last argument is set to false because cards are added based on their type.
+	// Their capabilities are ignored as we do upcalls to the audio manager to set the desired device
+	// For example a Bluetooth device can be a speaker and/or microphone. The upcall to the audio manager will enable (i.e. start) or disable (i.e. stop) the bluetooth device regardless whether it is used as speaker or microphone.
 	if (!ms_snd_card_is_card_duplicate(m, card, FALSE)) {
 		card=ms_snd_card_ref(card);
 		ms_snd_card_manager_add_card(m, card);

@@ -75,6 +75,11 @@ MS2_PUBLIC int get_sdk_version(JNIEnv *env);
 **/
 MS2_PUBLIC void change_device(JNIEnv *env, MSSndCardDeviceType type);
 
+/**
+ * Make upcalls to enable/disable bluetooth devices from mediastreamer.
+**/
+MS2_PUBLIC void set_bt_enable(JNIEnv *env, const bool_t enable);
+
 #ifdef __cplusplus
 extern "C"{
 #endif

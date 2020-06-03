@@ -122,9 +122,9 @@ void change_device(JNIEnv *env, MSSndCardDeviceType type) {
 	if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 		methodName = "enableSpeaker";
 	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) {
-		methodName = "enableBluetooth";
+		methodName = "startBluetooth";
 	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
-		methodName = "enableEarpiece";
+		methodName = "stopEarpiece";
 	}
 
 	if (methodName.empty()) {
@@ -136,6 +136,30 @@ void change_device(JNIEnv *env, MSSndCardDeviceType type) {
 			if (changeDevice != NULL) {
 					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, changeDevice);
 					ms_message("[Android Audio Utils] changing device to %s ", ms_snd_card_device_type_to_string(type));
+			}
+			env->DeleteLocalRef(mediastreamerAndroidContextClass);
+		}
+	}
+}
+
+void set_bt_enable(JNIEnv *env, const bool_t enable) {
+
+	std::string methodName;
+	if (enable) {
+		methodName = "startBluetooth";
+	} else {
+		methodName = "stopBluetooth";
+	}
+
+	if (methodName.empty()) {
+		ms_error("[Android Audio Utils] Unable to find method to toggle bluetooth enable");
+	} else {
+		jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+		if (mediastreamerAndroidContextClass != NULL) {
+			jmethodID toggleBTEnable = env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
+			if (toggleBTEnable != NULL) {
+					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, toggleBTEnable);
+					ms_message("[Android Audio Utils] setting enable for bluetooth devices to %s", (enable) ? "true" : "false");
 			}
 			env->DeleteLocalRef(mediastreamerAndroidContextClass);
 		}
