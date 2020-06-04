@@ -285,7 +285,9 @@ static void ms_video_conference_apply_new_bitrate_request(MSVideoConference *obj
 	for (elem = obj->members; elem != NULL; elem = elem->next){
 		MSVideoEndpoint *ep = (MSVideoEndpoint*) elem->data;
 		if (ep->is_remote){
-			ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->st->ms.bandwidth_controller, obj->bitrate);
+			if (ep->st->ms.bandwidth_controller){
+				ms_bandwidth_controller_set_maximum_bandwidth_usage(ep->st->ms.bandwidth_controller, obj->bitrate);
+			}
 		}else{
 			media_stream_process_tmmbr((MediaStream*)ep->st, obj->bitrate);
 		}
