@@ -13,6 +13,9 @@ changes made to these components.
 
 ## [Unreleased]
 
+### Added
+- Windows Store compatibility
+
 ### Changed
 - liblinphone is now placed into the *liblinphone* directory, naturally.
 
