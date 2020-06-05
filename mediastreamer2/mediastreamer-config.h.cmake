@@ -71,3 +71,5 @@
 #cmakedefine HAVE_VPX 1
 
 #cmakedefine HAVE_SYS_SOUNDCARD_H 1
+
+#cmakedefine ENABLE_MICROSOFT_STORE_APP

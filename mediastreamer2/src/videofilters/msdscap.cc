@@ -127,7 +127,7 @@ private:
 template <typename _ComType>
 SharedComPtr<_ComType> makeShared(REFCLSID rclsid,LPUNKNOWN pUnkOuter,DWORD dwClsContext,REFIID riid){
 	_ComType *ptr=NULL;
-	if (CoCreateInstance(rclsid,pUnkOuter,dwClsContext,riid,(void**)&ptr)!=S_OK) return SharedComPtr<_ComType>();
+	if (CoCreateInstanceBT(rclsid,pUnkOuter,dwClsContext,riid,(void**)&ptr)!=S_OK) return SharedComPtr<_ComType>();
 	return SharedComPtr<_ComType>(ptr);
 }
 
@@ -368,7 +368,11 @@ int DSCapture::selectBestFormat(SharedComPtr<IAMStreamConfig> streamConfig, int 
 int DSCapture::createDshowGraph(){
 	SharedComPtr< ICreateDevEnum > createDevEnum;
 	
+#ifdef ENABLE_MICROSOFT_STORE_APP
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+#else
 	CoInitialize(NULL);
+#endif
 	if ((createDevEnum=makeShared<ICreateDevEnum>( CLSID_SystemDeviceEnum,
                                     IID_ICreateDevEnum ))==NULL){
 		ms_error("Could not create device enumerator");
@@ -678,8 +682,12 @@ MSWebCamDesc ms_dshow_cam_desc={
 static void ms_dshow_detect(MSWebCamManager *obj){
 	SharedComPtr<IPropertyBag> pBag;
 	
+#ifdef ENABLE_MICROSOFT_STORE_APP
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+#else
 	CoInitialize(NULL);
- 
+#endif
+
 	SharedComPtr< ICreateDevEnum > createDevEnum;
 	if ((createDevEnum=makeShared<ICreateDevEnum>( CLSID_SystemDeviceEnum,
                                     IID_ICreateDevEnum))==NULL){
