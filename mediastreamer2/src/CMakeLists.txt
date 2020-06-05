@@ -246,9 +246,9 @@ if(ENABLE_VIDEO)
 	endif()
 	if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		add_definitions(-DHAVE_DIRECTSHOW)
-		list(APPEND VOIP_SOURCE_FILES_C
-			videofilters/drawdib-display.c
-		)
+		if(NOT(ENABLE_MICROSOFT_STORE_APP))
+			list(APPEND VOIP_SOURCE_FILES_C videofilters/drawdib-display.c)
+		endif()
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/msdscap.cc
 		)
