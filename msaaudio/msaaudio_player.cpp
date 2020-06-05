@@ -143,35 +143,6 @@ static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 	return 0;
 }
 
-static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
-	MSSndCard *card = (MSSndCard*)data;
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	ms_message("[AAudio] Requesting to output card. Current %s (device ID %0d) and requested %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
-	// Change device ID only if the new value is different from the previous one
-	if (octx->soundCard->internal_id != card->internal_id) {
-		ms_mutex_lock(&octx->stream_mutex);
-		if (octx->soundCard) {
-			ms_snd_card_unref(octx->soundCard);
-			octx->soundCard = NULL;
-		}
-		octx->soundCard = ms_snd_card_ref(card);
-		octx->aaudio_context->device_changed = true;
-
-		JNIEnv *env = ms_get_jni_env();
-		set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-
-		ms_mutex_unlock(&octx->stream_mutex);
-	}
-	return 0;
-}
-
-static int android_snd_write_get_device_id(MSFilter *obj, void *data) {
-	int *n = (int*)data;
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	*n = octx->soundCard->internal_id;
-	return 0;
-}
-
 static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)userData;
 	
@@ -186,7 +157,8 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	
 	if (bytes > 0) {
 		ms_flow_controlled_bufferizer_read(&octx->buffer, (uint8_t *)audioData, bytes);
-	} else if (avail < ask) {
+	}
+	if (avail < ask) {
 		memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
 	}
 	ms_mutex_unlock(&octx->mutex);
@@ -233,7 +205,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 
 	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
-	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels);
+	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels * 2);
 	octx->samplesPerFrame = AAudioStream_getSamplesPerFrame(octx->stream);
 
 	// Current settings
@@ -290,6 +262,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 
 	JNIEnv *env = ms_get_jni_env();
 	set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+	hack_volume(env);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -323,16 +296,6 @@ static void android_snd_write_process(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 
 	ms_mutex_lock(&octx->stream_mutex);
-
-	if (octx->aaudio_context->device_changed) {
-		ms_warning("[AAudio] Device ID changed to %0d", octx->soundCard->internal_id);
-		if (octx->stream) {
-			AAudioStream_close(octx->stream);
-			octx->stream = NULL;
-		}
-		octx->aaudio_context->device_changed = false;
-	}
-
 	if (!octx->stream) {
 		aaudio_player_init(octx);
 	} else {
@@ -361,6 +324,41 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
 	JNIEnv *env = ms_get_jni_env();
 	set_bt_enable(env, FALSE);
+}
+
+static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
+	MSSndCard *card = (MSSndCard*)data;
+	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
+	ms_message("[AAudio] Requesting to output card. Current %s (device ID %0d) and requested %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
+	// Change device ID only if the new value is different from the previous one
+	if (octx->soundCard->internal_id != card->internal_id) {
+		ms_mutex_lock(&octx->stream_mutex);
+		if (octx->soundCard) {
+			ms_snd_card_unref(octx->soundCard);
+			octx->soundCard = NULL;
+		}
+		octx->soundCard = ms_snd_card_ref(card);
+
+		if (octx->stream) {
+			AAudioStream_close(octx->stream);
+			octx->stream = NULL;
+		}
+
+		aaudio_player_init(octx);
+		JNIEnv *env = ms_get_jni_env();
+		set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+		hack_volume(env);
+
+		ms_mutex_unlock(&octx->stream_mutex);
+	}
+	return 0;
+}
+
+static int android_snd_write_get_device_id(MSFilter *obj, void *data) {
+	int *n = (int*)data;
+	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+	*n = octx->soundCard->internal_id;
+	return 0;
 }
 
 static MSFilterMethod android_snd_write_methods[] = {
