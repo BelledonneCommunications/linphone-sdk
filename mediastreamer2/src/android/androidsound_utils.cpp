@@ -124,7 +124,7 @@ void change_device(JNIEnv *env, MSSndCardDeviceType type) {
 	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) {
 		methodName = "startBluetooth";
 	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
-		methodName = "stopEarpiece";
+		methodName = "enableEarpiece";
 	}
 
 	if (methodName.empty()) {
