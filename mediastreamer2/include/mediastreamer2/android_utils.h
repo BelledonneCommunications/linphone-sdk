@@ -80,6 +80,11 @@ MS2_PUBLIC void change_device(JNIEnv *env, MSSndCardDeviceType type);
 **/
 MS2_PUBLIC void set_bt_enable(JNIEnv *env, const bool_t enable);
 
+/**
+ * Hack required to have volume not set to 0 on some devices
+**/
+MS2_PUBLIC void hack_volume(JNIEnv *env);
+
 #ifdef __cplusplus
 extern "C"{
 #endif

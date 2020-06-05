@@ -166,6 +166,17 @@ void set_bt_enable(JNIEnv *env, const bool_t enable) {
 	}
 }
 
+void hack_volume(JNIEnv *env) {
+	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID hackVolume = env->GetStaticMethodID(mediastreamerAndroidContextClass, "hackVolume", "()V");
+		if (hackVolume != NULL) {
+				env->CallStaticVoidMethod(mediastreamerAndroidContextClass, hackVolume);
+		}
+		env->DeleteLocalRef(mediastreamerAndroidContextClass);
+	}
+}
+
 MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 
 	int typeID = -1;

@@ -199,4 +199,12 @@ public class MediastreamerAndroidContext {
 		audioManager.stopBluetoothSco();
 		audioManager.setBluetoothScoOn(false);
 	}
+
+	public synchronized static void hackVolume() {
+		Log.i("[Audio Manager] Lower & raise audio volume to workaround no sound issue until volume has changed...");
+		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, AudioManager.STREAM_VOICE_CALL, 0);
+		//try { Thread.sleep(100); } catch (Exception e) { }
+		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, AudioManager.STREAM_VOICE_CALL, 0);
+	}
 }

@@ -9,11 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - H265 codec based on MediaCodec API (Android only)
 - H265 codec based on VideoToolbox API (iOS only)
+- Audio route API to choose which device to use for capture & playback on Android & iOS.
 
 ### Changed
 - License is now GNU GPLv3.
 
-
+### Fixed
+- 
 
 ## [2.16.1] - 2017-07-21
 
