@@ -26,41 +26,15 @@
 #include "bctoolbox/sqlite3_vfs.h"
 #include "sqlite3.h"
 
-static int bctbx_sqlite3_open(const char *db_file, sqlite3 **db) {
-	char* errmsg = NULL;
-	int ret;
-	int flags = SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE;
-
-#if TARGET_OS_IPHONE
-	/* the secured filesystem of the iPHone doesn't allow writing while the app is in background mode, which is problematic.
-	 * We workaround by asking that the open is made with no protection*/
-	flags |= SQLITE_OPEN_FILEPROTECTION_NONE;
-#endif
-
-	ret = sqlite3_open_v2(db_file, db, flags, NULL);
-
-	if (ret != SQLITE_OK) return ret;
-	// Some platforms do not provide a way to create temporary files which are needed
-	// for transactions... so we work in memory only
-	// see http ://www.sqlite.org/compile.html#temp_store
-	ret = sqlite3_exec(*db, "PRAGMA temp_store=MEMORY", NULL, NULL, &errmsg);
-	if (ret != SQLITE_OK) {
-		sqlite3_free(errmsg);
-	}
-
-	return ret;
-}
-
 void basic_test() {
 	/* register sqlite3_vfs as default */
 	sqlite3_bctbx_vfs_register(1);
-
 
 	/* create a database */
 	sqlite3 *db=NULL;
 	char *dbFile = bc_tester_file("sqlite3_vfs_basic.sqlite");;
 	remove(dbFile);
-	bctbx_sqlite3_open(dbFile, &db);
+	bctbx_sqlite3_open(dbFile, &db, NULL);
 
 	/* insert a table */
 	char* errmsg=NULL;
@@ -74,6 +48,7 @@ void basic_test() {
 
 	if(ret != SQLITE_OK) {
 		sqlite3_free(errmsg);
+		sqlite3_bctbx_vfs_unregister();
 		BC_FAIL("Unable to create table1");
 		return;
 	}
@@ -81,6 +56,9 @@ void basic_test() {
 
 	/* close databse */
 	sqlite3_close(db);
+
+	/* unregister the bxtbx_vfs or it will stay as default one */
+	sqlite3_bctbx_vfs_unregister();
 
 	/* cleaning */
 	remove(dbFile);

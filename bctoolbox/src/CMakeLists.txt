@@ -46,7 +46,7 @@ if(APPLE)
 endif()
 
 if (ENABLE_SQLITE_VFS)
-	list(APPEND BCTOOLBOX_C_SOURCE_FILES sqlite3_vfs.c)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES sqlite3_vfs.cc)
 endif()
 
 if(ANDROID)

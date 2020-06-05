@@ -311,9 +311,8 @@ static  int sqlite3bctbx_Open(sqlite3_vfs *pVfs, const char *fName, sqlite3_file
 }
 
 
-
-sqlite3_vfs *sqlite3_bctbx_vfs_create(void){
-  static sqlite3_vfs bctbx_vfs = {
+/* static sqlite3_vfs named BTCTBX_SQLITE3_VFS - use bctbx vfs */
+static sqlite3_vfs sqlite3BctbxVfs = {
     1,								/* iVersion */
     sizeof(sqlite3_bctbx_file_t),	/* szOsFile */
     MAXPATHNAME,					/* mxPathname */
@@ -325,8 +324,7 @@ sqlite3_vfs *sqlite3_bctbx_vfs_create(void){
     NULL,							/* xAccess */
     NULL							/* xFullPathname */
   };
-  return &bctbx_vfs;
-}
+static sqlite3_vfs *pSqlite3BctbxVfs = &sqlite3BctbxVfs;
 
 /*static int sqlite3bctbx_winFullPathname(
 										sqlite3_vfs *pVfs,            // Pointer to vfs object
@@ -371,8 +369,8 @@ sqlite3_vfs *sqlite3_bctbx_vfs_create(void){
 
 
 
-void sqlite3_bctbx_vfs_register( int makeDefault){
-	sqlite3_vfs* pVfsToUse = sqlite3_bctbx_vfs_create();
+void sqlite3_bctbx_vfs_register(int makeDefault) {
+	sqlite3_vfs* pVfsToUse = pSqlite3BctbxVfs;
 	#if _WIN32
 	sqlite3_vfs* pDefault = sqlite3_vfs_find("win32");
 	#else
@@ -406,4 +404,30 @@ void sqlite3_bctbx_vfs_unregister(void)
 {
 	sqlite3_vfs* pVfs = sqlite3_vfs_find(BCTBX_SQLITE3_VFS);
 	sqlite3_vfs_unregister(pVfs);
+}
+
+
+int bctbx_sqlite3_open(const char *db_file, sqlite3 **db, const char *vfs_name) {
+	char* errmsg = NULL;
+	int ret;
+	int flags = SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE;
+
+#if TARGET_OS_IPHONE
+	/* the secured filesystem of the iPHone doesn't allow writing while the app is in background mode, which is problematic.
+	 * We workaround by asking that the open is made with no protection*/
+	flags |= SQLITE_OPEN_FILEPROTECTION_NONE;
+#endif
+
+	ret = sqlite3_open_v2(db_file, db, flags, vfs_name);
+
+	if (ret != SQLITE_OK) return ret;
+	// Some platforms do not provide a way to create temporary files which are needed
+	// for transactions... so we work in memory only
+	// see http ://www.sqlite.org/compile.html#temp_store
+	ret = sqlite3_exec(*db, "PRAGMA temp_store=MEMORY", NULL, NULL, &errmsg);
+	if (ret != SQLITE_OK) {
+		sqlite3_free(errmsg);
+	}
+
+	return ret;
 }

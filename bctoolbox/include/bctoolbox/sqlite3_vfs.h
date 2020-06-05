@@ -71,29 +71,6 @@ VFS API to register this VFS to sqlite3 VFS
 *****************************************************/
 
 /**
- * Returns a sqlite3_vfs pointer to the VFS named sqlite3bctbx_vfs 
- * implemented in this file.
- * Methods not implemented:
- *			xDelete 
- *			xAccess 
- *			xFullPathname 
- *			xDlOpen 
- *			xDlError 
- *			xDlSym 
- *			xDlClose 
- *			xRandomness 
- *			xSleep 
- *			xCurrentTime , xCurrentTimeInt64,
- *			xGetLastError
- *			xGetSystemCall
- *			xSetSystemCall
- *			xNextSystemCall
- *			To make the VFS available to SQLite
- * @return  Pointer to bctbx_vfs.
- */
-BCTBX_PUBLIC sqlite3_vfs *sqlite3_bctbx_vfs_create(void);
-
-/**
  * Registers sqlite3bctbx_vfs to SQLite VFS. If makeDefault is 1,
  * the VFS will be used by default.
  * Methods not implemented by sqlite3_bctbx_vfs_t are initialized to the one 
@@ -107,6 +84,16 @@ BCTBX_PUBLIC void sqlite3_bctbx_vfs_register(int makeDefault);
  * Unregisters sqlite3bctbx_vfs from SQLite.
  */
 BCTBX_PUBLIC void sqlite3_bctbx_vfs_unregister(void);
+
+/*
+ * Helper function to open a db file
+ *
+ * @param[in] 	db_file		path to the db file to open/create
+ * @param[out]	db		pointer to the sqlite3 db opened
+ * @param[in]	vfs_name	if not null sqlite uses this virtual file system instead of the default one
+ *
+ **/
+BCTBX_PUBLIC int bctbx_sqlite3_open(const char *db_file, sqlite3 **db, const char *vfs_name);
 
 #ifdef __cplusplus
 }
