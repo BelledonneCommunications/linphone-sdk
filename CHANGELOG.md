@@ -15,8 +15,10 @@ changes made to these components.
 
 ### Added
 - Windows Store compatibility
+- Audio routes API for Android & iOS
+- Core now automatically handles certain tasks for Android & iOS (see liblinphone changelog)
 
 ### Changed
 - liblinphone is now placed into the *liblinphone* directory, naturally.
-
+- Android min SDK version updated from 21 to 23.
 
