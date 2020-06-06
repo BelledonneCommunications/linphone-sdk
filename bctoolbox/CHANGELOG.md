@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [4.4.0] - 2020-6-09
+
+### Changed
+- Version number now follows linphone-sdk's versionning.
+
+### Removed
+- Polarssl 1.2 support.
+
+
 ## [0.6.0] - 2017-07-20
 ### Added
 - Add API to escape/unescape strings (SIP, VCARD).
