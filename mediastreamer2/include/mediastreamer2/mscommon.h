@@ -89,6 +89,8 @@
 #define MS2_WINDOWS_DESKTOP 1
 #endif
 #endif
+
+#ifdef ENABLE_MICROSOFT_STORE_APP
 _Check_return_ WINOLEAPI
 CoCreateInstanceFromApp(
     _In_ REFCLSID Clsid,
@@ -98,6 +100,7 @@ CoCreateInstanceFromApp(
     _In_ DWORD dwCount,
     _Inout_updates_(dwCount) MULTI_QI* pResults
     );
+#endif
 __inline _Check_return_ HRESULT CoCreateInstanceBT(
     _In_     REFCLSID rclsid,
     _In_opt_ LPUNKNOWN pUnkOuter,
@@ -105,6 +108,7 @@ __inline _Check_return_ HRESULT CoCreateInstanceBT(
     _In_     REFIID riid,
     _COM_Outptr_ _At_(*ppv, _Post_readable_size_(_Inexpressible_(varies))) LPVOID FAR* ppv)
 {
+#ifdef ENABLE_MICROSOFT_STORE_APP
     MULTI_QI    OneQI;
     HRESULT     hr;
 
@@ -127,6 +131,9 @@ __inline _Check_return_ HRESULT CoCreateInstanceBT(
 
     *ppv = OneQI.pItf;
     return FAILED(hr) ? hr : OneQI.hr;
+#else
+	return CoCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv );
+#endif //ENABLE_MICROSOFT_STORE_APP
 }
 
 __inline _Check_return_ HRESULT CoCreateInstanceExBT(
@@ -137,7 +144,11 @@ __inline _Check_return_ HRESULT CoCreateInstanceExBT(
     _In_ DWORD                         dwCount,
     _Inout_updates_(dwCount) MULTI_QI *pResults )
 {
+#ifdef ENABLE_MICROSOFT_STORE_APP
     return CoCreateInstanceFromApp(Clsid, punkOuter, dwClsCtx, pServerInfo, dwCount, pResults);
+#else
+	return CoCreateInstanceEx(Clsid, punkOuter, dwClsCtx, pServerInfo, dwCount, pResults);
+#endif //ENABLE_MICROSOFT_STORE_APP
 }
 #endif
 
