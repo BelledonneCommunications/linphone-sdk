@@ -51,7 +51,7 @@
     GIT_SUBMODULE_STRATEGY: none
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $ENABLE_LINUX_TESTS
 
   script:
     - cd $PATH_TO_TESTER
