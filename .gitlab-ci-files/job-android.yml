@@ -149,7 +149,7 @@ test-android-r17c:
     - job-android-makefile-r17c
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $ENABLE_ANDROID_TESTS
   script:
     - cd ${CI_PROJECT_DIR}/tester/Android
     # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.
