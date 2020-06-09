@@ -32,12 +32,10 @@ apply plugin: 'maven-publish'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    compileOnly 'androidx.appcompat:appcompat:1.1.0'
     compileOnly "androidx.media:media:1.1.0"
     compileOnly 'org.jetbrains:annotations:19.0.0'
     compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
-
 
 static def isGeneratedJavaWrapperAvailable() {
     File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
