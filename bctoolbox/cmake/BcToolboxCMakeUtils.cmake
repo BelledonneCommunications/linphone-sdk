@@ -202,7 +202,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 			endif()
 		endif()
 
-		set(${OUTPUT_VERSION} "${full_version}" CACHE STRING "")
+		set(${OUTPUT_VERSION} "${full_version}" CACHE STRING "" FORCE)
 	endif()
 endfunction()
 
