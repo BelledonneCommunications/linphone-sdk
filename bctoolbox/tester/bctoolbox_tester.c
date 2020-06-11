@@ -53,6 +53,7 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 	bc_tester_add_suite(&ios_utils_test_suite);
 #endif
 	bc_tester_add_suite(&sqlite3_vfs_test_suite);
+	bc_tester_add_suite(&encrypted_vfs_test_suite);
 }
 
 void bctoolbox_tester_uninit(void) {

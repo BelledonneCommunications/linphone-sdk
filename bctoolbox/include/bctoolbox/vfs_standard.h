@@ -17,33 +17,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _BCTOOLBOX_TESTER_H
-#define _BCTOOLBOX_TESTER_H
+#ifndef BCTBX_VFS_STANDARD_H
+#define BCTBX_VFS_STANDARD_H
 
-#include "bctoolbox/logging.h"
-#include "bctoolbox/tester.h"
-
-#ifdef __cplusplus
-
-#define SLOGD BCTBX_SLOGD("bctoolbox-tester")
-#define SLOGI BCTBX_SLOGI("bctoolbox-tester")
-#define SLOGW BCTBX_SLOGW("bctoolbox-tester")
-#define SLOGE BCTBX_SLOGE("bctoolbox-tester")
-
-extern "C" {
-#endif
-
-extern test_suite_t containers_test_suite;
-extern test_suite_t utils_test_suite;
-extern test_suite_t crypto_test_suite;
-extern test_suite_t parser_test_suite;
-extern test_suite_t ios_utils_test_suite;
-extern test_suite_t sqlite3_vfs_test_suite;
-extern test_suite_t encrypted_vfs_test_suite;
+#include "bctoolbox/vfs.h"
 
 #ifdef __cplusplus
-};
+extern "C"{
 #endif
 
 
-#endif /* _BCTOOLBOX_TESTER_H */
+/**
+ * Virtual File sytem provided
+ */
+extern bctbx_vfs_t bcStandardVfs;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BCTBX_VFS_STANDARD_H */

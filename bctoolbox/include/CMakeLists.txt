@@ -33,6 +33,8 @@ set(HEADER_FILES
 	regex.h
 	vconnect.h
 	vfs.h
+	vfs_standard.h
+	vfs_encrypted.hh
 )
 
 if(APPLE)

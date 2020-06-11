@@ -26,7 +26,8 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	parser.c
 	utils/port.c
 	vconnect.c
-	vfs.c
+	vfs/vfs.c
+	vfs/vfs_standard.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
@@ -34,6 +35,13 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	conversion/charconv_encoding.cc
 	utils/exception.cc
 	utils/regex.cc
+	vfs/vfs_encrypted.cc
+	vfs/vfs_encryption_module_dummy.cc
+)
+
+set(BCTOOLBOX_PRIVATE_HEADER_FILES
+	vfs/vfs_encryption_module.hh
+	vfs/vfs_encryption_module_dummy.hh
 )
 
 if(APPLE)
@@ -46,7 +54,7 @@ if(APPLE)
 endif()
 
 if (ENABLE_SQLITE_VFS)
-	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES sqlite3_vfs.cc)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES vfs/sqlite3_vfs.cc)
 endif()
 
 if(ANDROID)
@@ -85,7 +93,7 @@ bc_apply_compile_flags(BCTOOLBOX_OBJC_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPT
 bc_apply_compile_flags(BCTOOLBOX_IOS_OBJC_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(ENABLE_STATIC)
-	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
+	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_PRIVATE_HEADER_FILES})
 	target_link_libraries(bctoolbox-static INTERFACE ${CMAKE_THREAD_LIBS_INIT})
 	if(APPLE)
 		target_link_libraries(bctoolbox-static INTERFACE "-framework Foundation" "-framework AVFoundation")
@@ -116,7 +124,7 @@ if(ENABLE_STATIC)
 	endif()
 endif()
 if(ENABLE_SHARED)
-	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES})
+	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_PRIVATE_HEADER_FILES})
 	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
 	if(APPLE)
 		if(IOS)

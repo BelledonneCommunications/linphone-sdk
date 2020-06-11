@@ -101,7 +101,6 @@ struct bctbx_vfs_t {
 	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 };
 
-
 /* API to use the VFS */
 /*
  * This function returns a pointer to the VFS implemented in this file.
