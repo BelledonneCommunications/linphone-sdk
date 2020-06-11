@@ -100,8 +100,8 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp) noexcept : pFileStd(stdFp)
 }
 
 VfsEncryption::~VfsEncryption() {
-	BCTBX_SLOGD<<"JOHAN: closing file ";
-	if (pFileStd != nullptr) {
+	if (pFileStd != nullptr) { // file should already be closed when we're here, just in case
+		BCTBX_SLOGD<<"JOHAN: closing file in destructor";
 		//TODO: try/catch all any exception raising from close and swallow it
 		bctbx_file_close(pFileStd);
 	}
@@ -179,10 +179,8 @@ int VfsEncryption::parseHeader() noexcept {
 	/* check file exists*/
 	if (pFileStd == nullptr) return BCTBX_VFS_ERROR;
 	int64_t ret = bctbx_file_size(pFileStd); // bctbx_file_size return a signed value...
-	if (ret<baseFileHeaderSize && ret!=0) return BCTBX_VFS_ERROR;
+	if (ret<baseFileHeaderSize) return BCTBX_VFS_ERROR;
 	uint64_t fileSize = ret; // turn it into an unsigned one after checking it is >0.
-
-	if (fileSize==0) return BCTBX_VFS_OK; // nothing to parse...
 
 	/* read the header */
 	uint8_t headerBuffer[baseFileHeaderSize];
@@ -527,9 +525,13 @@ bctbx_vfs_t bctoolbox::bcEncryptedVfs = {
  * @return       	BCTBX_VFS_OK if successful, BCTBX_VFS_ERROR otherwise.
  */
 static int bcClose(bctbx_vfs_file_t *pFile) {
+	bctbx_message("JOHAN: encrypted bcClose in");
 	int ret = BCTBX_VFS_OK;
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
+		bctbx_message("JOHAN: encrypted bcClose the file");
+		bctbx_file_close(ctx->pFileStd);
+		ctx->pFileStd = nullptr;
 		delete(ctx);
 		pFile->pUserData=NULL;
 	}
@@ -636,9 +638,12 @@ static const  bctbx_io_methods_t bcio = {
 
 
 static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags) {
+	bctbx_message("JOHAN: encrypted bcOpen in %s", fName);
 	if (pFile == NULL || fName == NULL) {
 		return BCTBX_VFS_ERROR;
 	}
+
+	bctbx_message("JOHAN: encrypted bcOpen 0 %s", fName);
 
 	/* encrypted vfs encapsulates the standard one, open the file with it */
 	bctbx_vfs_file_t *stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
@@ -648,9 +653,11 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 
 	auto ctx = new VfsEncryption(stdFp);
 
+	bctbx_message("JOHAN: encrypted bcOpen 1 %s", fName);
+
 	/* If the file exists, read the header to check it is an encrypted file and gets its encrypted policy */
 	bool createFile = ((openFlags&O_CREAT)!=0);
-	if (bctbx_file_size(stdFp) >= baseFileHeaderSize) {
+	if (bctbx_file_size(stdFp) > 0) {
 		if (ctx->parseHeader() == BCTBX_VFS_ERROR)  {
 			delete(ctx);
 			bctbx_error("File %s exists but is not a valid encrypted file", fName);
@@ -659,13 +666,19 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 		createFile = false;
 	}
 
+	bctbx_message("JOHAN: encrypted bcOpen 2 %s", fName);
+
 	/* if the static callback is set, call it */
 	if (VfsEncryption::openCallback_get() != nullptr) {
+		bctbx_message("JOHAN: encrypted bcOpen callback %s", fName);
 		(VfsEncryption::openCallback_get())(fName, *ctx);
 	}
 
+	bctbx_message("JOHAN: encrypted bcOpen 3 %s", fName);
 	if (createFile) {
+		bctbx_message("JOHAN: encrypted bcOpen createFile %s", fName);
 		if (ctx->writeHeader() == BCTBX_VFS_ERROR)  {
+			bctbx_message("JOHAN: encrypted bcOpen error Header %s", fName);
 			delete(ctx);
 			bctbx_error("File %s : unable to write encryption header", fName);
 			return BCTBX_VFS_ERROR;
@@ -674,5 +687,6 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 
 	/* store the encryption context in the vfs UserData */
 	pFile->pUserData = static_cast<void *>(ctx);
+	bctbx_message("JOHAN: encrypted bcOpen out ok %s", fName);
 	return BCTBX_VFS_OK;
 }
