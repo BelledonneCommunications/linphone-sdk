@@ -67,21 +67,20 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
 }
 
 /**
- * Repositions the open file offset given by the file descriptor fd from the file handle pFile
- * to the parameter offset, according to whence.
+ * Simply sync the file contents given through the file handle
+ * to the persistent media.
  * @param  pFile  File handle pointer.
- * @param  offset file offset where to set the position to
- * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END .
- * @return   offset bytes from the beginning of the file, BCTBX_VFS_ERROR otherwise
+ * @return   BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise
  */
-static off_t bcSeek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
-	off_t ofst;
-	if (pFile) {
-		ofst = lseek(pFile->fd, offset, whence);
-		if (ofst < 0) return -errno;
-		return ofst;
-	}
-	return BCTBX_VFS_ERROR;
+static int bcSync(bctbx_vfs_file_t *pFile) {
+	#if _WIN32
+	int ret;
+	ret = FlushFileBuffers((HANDLE)_get_osfhandle(pFile->fd));
+	return (ret!=0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
+	#else
+	int rc = fsync(pFile->fd);
+	return (rc==0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
+	#endif
 }
 
 /**
@@ -98,7 +97,9 @@ static off_t bcSeek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
 	ssize_t nRead;                      /* Return value from read() */
 	if (pFile) {
-		if (bctbx_file_seek(pFile, offset, SEEK_SET) == BCTBX_VFS_OK) {
+		if (lseek(pFile->fd, offset, SEEK_SET) < 0) {
+			if (errno) return -errno;
+		} else {
 			nRead = bctbx_read(pFile->fd, buf, count);
 			/* Error while reading */
 			if (nRead < 0) {
@@ -124,7 +125,9 @@ static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off_t
 	ssize_t nWrite = 0;                 /* Return value from write() */
 
 	if (p) {
-		if ((bctbx_file_seek(p, offset, SEEK_SET)) == BCTBX_VFS_OK) {
+		if ((lseek(p->fd, offset, SEEK_SET)) < 0) {
+			if (errno) return -errno;
+		} else {
 			nWrite = bctbx_write(p->fd, buf, count);
 			if (nWrite > 0) return nWrite;
 			else if (nWrite <= 0) {
@@ -204,7 +207,7 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	s[max_len-1] = '\0';
 
 	/* Read returns 0 if end of file is found */
-	ret = bctbx_file_read(pFile, s, max_len - 1, pFile->offset);
+	ret = bcRead(pFile, s, max_len - 1, pFile->offset);
 	if (ret > 0) {
 		pNextLineR = strchr(s, '\r');
 		pNextLineN = strchr(s, '\n');
@@ -239,8 +242,8 @@ static const  bctbx_io_methods_t bcio = {
 	bcWrite,		/* pFuncWrite */
 	bcTruncate,		/* pFuncTruncate */
 	bcFileSize,		/* pFuncFileSize */
+	bcSync,
 	bcGetLine,
-	bcSeek,
 };
 
 

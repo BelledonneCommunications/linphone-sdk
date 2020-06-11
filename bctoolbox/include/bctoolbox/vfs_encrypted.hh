@@ -65,7 +65,6 @@ class VfsEncryption {
 
 	/* Object properties and methods */
 	private:
-		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
 		off_t m_fOffset; /**< current read/write pointer */
 
 		uint16_t m_versionNumber; /**< version number of the encryption vfs */
@@ -84,6 +83,8 @@ class VfsEncryption {
 
 
 	public:
+		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
+
 		VfsEncryption(bctbx_vfs_file_t *stdFp) noexcept;
 		~VfsEncryption();
 		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial) noexcept;

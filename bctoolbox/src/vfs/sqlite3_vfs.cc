@@ -227,14 +227,8 @@ static int sqlite3bctbx_nolockUnlock(sqlite3_file *pUnused, int unused){
  */
 static int sqlite3bctbx_Sync(sqlite3_file *p, int flags){
 	sqlite3_bctbx_file_t *pFile = (sqlite3_bctbx_file_t*)p;
-#if _WIN32
-	int ret;
-	ret = FlushFileBuffers((HANDLE)_get_osfhandle(pFile->pbctbx_file->fd));
-	return (ret!=0 ? SQLITE_OK : SQLITE_IOERR_FSYNC);
-#else
-	int rc = fsync(pFile->pbctbx_file->fd);
-	return (rc==0 ? SQLITE_OK : SQLITE_IOERR_FSYNC);
-#endif
+	int ret = bctbx_file_sync(pFile->pbctbx_file);
+	return (ret==BCTBX_VFS_OK ? SQLITE_OK : SQLITE_IOERR_FSYNC);
 }
 
 /************************ END OF PLACE HOLDER FUNCTIONS ***********************/

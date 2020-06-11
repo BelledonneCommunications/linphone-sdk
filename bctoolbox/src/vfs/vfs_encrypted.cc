@@ -537,32 +537,13 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
 }
 
 /**
- * Repositions the file read/write offset to the parameter offset, according to whence.
- * @param  pFile  File handle pointer.
- * @param  offset file offset where to set the position to
- * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END .
- * @return   offset bytes from the beginning of the file, BCTBX_VFS_ERROR otherwise
+ * Simply sync the file contents given through the file handle
+ * Just forward the request to underlying vfs
  */
-static off_t bcSeek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
-	off_t ret=0;
+static int bcSync(bctbx_vfs_file_t *pFile) {
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
-		switch (whence) {
-			case SEEK_SET: // set to the given offset
-				ret = offset;
-				break;
-			case SEEK_CUR: // set relative to the current offset
-				ret = ctx->fOffset_get() + offset;
-				break;
-			case SEEK_END: // set relative to the end of file
-				ret=ctx->fileSize_get() + offset;
-				break;
-			default:
-				BCTBX_SLOGE<<"Encrypted VFS: Invalid whence value in bcSeek: "<<whence;
-				return BCTBX_VFS_ERROR;
-		}
-		ctx->fOffset_set(ret);
-		return ret;
+		return bctbx_file_sync(ctx->pFileStd);
 	}
 	return BCTBX_VFS_ERROR;
 }
@@ -706,8 +687,8 @@ static const  bctbx_io_methods_t bcio = {
 	bcWrite,		/* pFuncWrite */
 	bcTruncate,		/* pFuncTruncate */
 	bcFileSize,		/* pFuncFileSize */
+	bcSync,
 	bcGetLine,
-	bcSeek,
 };
 
 

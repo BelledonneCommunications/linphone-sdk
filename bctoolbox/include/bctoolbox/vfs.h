@@ -87,8 +87,8 @@ struct bctbx_io_methods_t {
 	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off_t offset);
 	int (*pFuncTruncate)(bctbx_vfs_file_t *pFile, int64_t size);
 	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
+	int (*pFuncSync)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
-	off_t (*pFuncSeek)(bctbx_vfs_file_t *pFile, off_t offset, int whence);
 };
 
 
@@ -195,7 +195,16 @@ BCTBX_PUBLIC ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, c
 BCTBX_PUBLIC int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen);
 
 /**
- * Wrapper to pFuncSeek VFS method call. Set the position to offset in the file.
+ * Simply sync the file contents given through the file handle
+ * to the persistent media.
+ * @param  pFile  File handle pointer.
+ * @return   BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise
+ */
+BCTBX_PUBLIC int bctbx_file_sync(bctbx_vfs_file_t *pFile);
+
+/**
+ * Set the position to offset in the file, this position is used only by the function
+ * bctbx_file_get_nxtline. Read and write give their own offset as param and won't modify this one
  * @param  pFile  File handle pointer.
  * @param  offset File offset where to set the position to.
  * @param  whence Either SEEK_SET, SEEK_CUR,SEEK_END

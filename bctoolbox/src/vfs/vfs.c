@@ -137,6 +137,16 @@ int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 	return ret;
 }
 
+int bctbx_file_sync(bctbx_vfs_file_t *pFile) {
+	int ret = BCTBX_VFS_ERROR;
+	if (pFile) {
+		ret = pFile->pMethods->pFuncSync(pFile);
+		if (ret != BCTBX_VFS_OK) {
+			bctbx_error("bctbx_file_sync: Error %s ", strerror(-(ret)));
+		}
+	}
+	return ret;
+}
 
 
 int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
@@ -178,18 +188,32 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 	return r;
 }
 
+/**
+ * This function manages the offset stored in pFile and used by the bctbx_file_get_nxtline function
+ * It has no effect on the current offset in the underlying file which we have no use of
+ */
 off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 	off_t ret = BCTBX_VFS_ERROR;
 
 	if (pFile) {
-		ret = pFile->pMethods->pFuncSeek(pFile, offset, whence);
-		if (ret < 0) {
-			bctbx_error("bctbx_file_seek: Wrong offset %s", strerror((int)-(ret)));
-		} else if (ret == offset) {
-			ret = BCTBX_VFS_OK;
+		switch (whence) {
+			case SEEK_SET: // set to the given offset
+				ret = offset;
+				break;
+			case SEEK_CUR: // set relative to the current offset
+				ret = pFile->offset + offset;
+				break;
+			case SEEK_END: // set relative to the end of file
+				ret = bctbx_file_size(pFile) + offset;
+				break;
+			default:
+				bctbx_error("Encrypted VFS: Invalid whence value in bcSeek: %d", whence);
+				return BCTBX_VFS_ERROR;
 		}
-	} 
-	return ret;
+		pFile->offset = ret;
+		return ret;
+	}
+	return BCTBX_VFS_ERROR;
 }
 
 int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
