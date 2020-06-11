@@ -216,8 +216,74 @@ off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 	return BCTBX_VFS_ERROR;
 }
 
+/* a generic implementation of get_nxt_line
+ * if a vfs does not specify one, use this one
+ */
+/**
+ * Gets a line of max_len length and stores it to the allocaed buffer s.
+ * Reads at most max_len characters from the file descriptor associated with the argument pFile
+ * and looks for an end of line character (\r or \n). Stores the line found
+ * into the buffer pointed by s.
+ * Modifies the open file offset using pFile->offset.
+ *
+ * @param  pFile   File handle pointer.
+ * @param  s       Buffer where to store the line.
+ * @param  max_len Maximum number of characters to read in one fetch.
+ * @return         size of line read, 0 if empty
+ */
+static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_len) {
+	int64_t ret;
+	int sizeofline;
+	char *pNextLine = NULL;
+	char *pNextLineR = NULL;
+	char *pNextLineN = NULL;
+
+	if (!pFile) {
+		return BCTBX_VFS_ERROR;
+	}
+	if (s == NULL || max_len < 1) {
+		return BCTBX_VFS_ERROR;
+	}
+
+	sizeofline = 0;
+	s[max_len-1] = '\0';
+
+	/* Read returns 0 if end of file is found */
+	ret = bctbx_file_read(pFile, s, max_len - 1, pFile->offset);
+	if (ret > 0) {
+		pNextLineR = strchr(s, '\r');
+		pNextLineN = strchr(s, '\n');
+		if ((pNextLineR != NULL) && (pNextLineN != NULL)) pNextLine = MIN(pNextLineR, pNextLineN);
+		else if (pNextLineR != NULL) pNextLine = pNextLineR;
+		else if (pNextLineN != NULL) pNextLine = pNextLineN;
+		if (pNextLine) {
+			/* Got a line! */
+			*pNextLine = '\0';
+			sizeofline = (int)(pNextLine - s + 1);
+			if (pNextLine[1] == '\n') sizeofline += 1; /*take into account the \r\n" case*/
+
+			/* offset to next beginning of line*/
+			pFile->offset += sizeofline;
+		} else {
+			/*did not find end of line char, is EOF?*/
+			sizeofline = (int)ret;
+			pFile->offset += sizeofline;
+			s[ret] = '\0';
+		}
+	} else if (ret < 0) {
+		bctbx_error("bcGetLine error");
+	}
+	return sizeofline;
+}
+
 int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
-	if (pFile) return pFile->pMethods->pFuncGetLineFromFd(pFile, s, maxlen);
+	if (pFile) { /* if the vfs does not implement this method, use the generic one */
+		if (pFile->pMethods->pFuncGetLineFromFd) {
+			return pFile->pMethods->pFuncGetLineFromFd(pFile, s, maxlen);
+		} else {
+			return bctbx_generic_get_nxtline(pFile, s, maxlen);
+		}
+	}
 	return BCTBX_VFS_ERROR;
 }
 

@@ -195,62 +195,6 @@ static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
 	}
 	return 0;
 }
-/**
- * Gets a line of max_len length and stores it to the allocaed buffer s.
- * Reads at most max_len characters from the file descriptor associated with the argument pFile
- * and looks for an end of line character (\r or \n). Stores the line found
- * into the buffer pointed by s.
- * Modifies the open file offset using pFile->offset.
- *
- * @param  pFile   File handle pointer.
- * @param  s       Buffer where to store the line.
- * @param  max_len Maximum number of characters to read in one fetch.
- * @return         size of line read, 0 if empty
- */
-static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
-	int64_t ret;
-	int sizeofline;
-	char *pNextLine = NULL;
-	char *pNextLineR = NULL;
-	char *pNextLineN = NULL;
-
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
-
-	if (s == NULL || max_len < 1) {
-		return BCTBX_VFS_ERROR;
-	}
-
-	sizeofline = 0;
-	s[max_len-1] = '\0';
-
-	/* Read returns 0 if end of file is found */
-	ret = bcRead(pFile, s, max_len - 1, pFile->offset);
-	if (ret > 0) {
-		pNextLineR = strchr(s, '\r');
-		pNextLineN = strchr(s, '\n');
-		if ((pNextLineR != NULL) && (pNextLineN != NULL)) pNextLine = MIN(pNextLineR, pNextLineN);
-		else if (pNextLineR != NULL) pNextLine = pNextLineR;
-		else if (pNextLineN != NULL) pNextLine = pNextLineN;
-		if (pNextLine) {
-			/* Got a line! */
-			*pNextLine = '\0';
-			sizeofline = (int)(pNextLine - s + 1);
-			if (pNextLine[1] == '\n') sizeofline += 1; /*take into account the \r\n" case*/
-
-			/* offset to next beginning of line*/
-			pFile->offset += sizeofline;
-		} else {
-			/*did not find end of line char, is EOF?*/
-			sizeofline = (int)ret;
-			pFile->offset += sizeofline;
-			s[ret] = '\0';
-		}
-	} else if (ret < 0) {
-		bctbx_error("bcGetLine error");
-	}
-	return sizeofline;
-}
-
 
 
 static const  bctbx_io_methods_t bcio = {
@@ -260,7 +204,7 @@ static const  bctbx_io_methods_t bcio = {
 	bcTruncate,		/* pFuncTruncate */
 	bcFileSize,		/* pFuncFileSize */
 	bcSync,
-	bcGetLine,
+	NULL			/* use the generic implementation of getnxt line */
 };
 
 
