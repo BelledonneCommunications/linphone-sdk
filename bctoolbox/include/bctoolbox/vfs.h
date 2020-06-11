@@ -73,9 +73,8 @@ struct bctbx_vfs_file_t {
 	const struct bctbx_io_methods_t *pMethods;  /* Methods for an open file: all Developpers must supply this field at open step*/
 	/*the fields below are used by the default implementation. Developpers are not required to supply them, but may use them if they find
 	 * them useful*/
-	void* pUserData; 				/*Developpers can store private data under this pointer */
-	int fd;                         /* File descriptor */
-	off_t offset;					/*File offset used by lseek*/
+	void* pUserData; 				/* Developpers can store private data under this pointer */
+	off_t offset;					/* File offset used by bctbx_file_fprintf and bctbx_file_get_nxtline */
 };
 
 

@@ -641,7 +641,7 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	char *pNextLineR = NULL;
 	char *pNextLineN = NULL;
 
-	if (pFile->fd == -1) {
+	if (!(pFile && pFile->pUserData)) {
 		return BCTBX_VFS_ERROR;
 	}
 	if (s == NULL || max_len < 1) {

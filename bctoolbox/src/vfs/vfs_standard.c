@@ -43,6 +43,12 @@
 static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 
 
+/* User data for the standard vfs */
+typedef struct bctbx_vfs_standard_t bctbx_vfs_standard_t;
+struct bctbx_vfs_standard_t {
+	int fd;                         /* File descriptor */
+};
+
 bctbx_vfs_t bcStandardVfs = {
 	"bctbx_vfs",		/* vfsName */
 	bcOpen,			/*xOpen */
@@ -57,12 +63,15 @@ bctbx_vfs_t bcStandardVfs = {
  */
 static int bcClose(bctbx_vfs_file_t *pFile) {
 	int ret;
-	ret = close(pFile->fd);
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
+	ret = close(ctx->fd);
 	if (!ret) {
 		ret = BCTBX_VFS_OK;
 	} else {
 		ret = -errno;
 	}
+	bctbx_free(pFile->pUserData);
 	return ret;
 }
 
@@ -73,12 +82,14 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
  * @return   BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise
  */
 static int bcSync(bctbx_vfs_file_t *pFile) {
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 	#if _WIN32
 	int ret;
-	ret = FlushFileBuffers((HANDLE)_get_osfhandle(pFile->fd));
+	ret = FlushFileBuffers((HANDLE)_get_osfhandle(ctx->fd));
 	return (ret!=0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
 	#else
-	int rc = fsync(pFile->fd);
+	int rc = fsync(ctx->fd);
 	return (rc==0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
 	#endif
 }
@@ -96,17 +107,18 @@ static int bcSync(bctbx_vfs_file_t *pFile) {
  */
 static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
 	ssize_t nRead;                      /* Return value from read() */
-	if (pFile) {
-		if (lseek(pFile->fd, offset, SEEK_SET) < 0) {
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
+
+	if (lseek(ctx->fd, offset, SEEK_SET) < 0) {
+		if (errno) return -errno;
+	} else {
+		nRead = bctbx_read(ctx->fd, buf, count);
+		/* Error while reading */
+		if (nRead < 0) {
 			if (errno) return -errno;
-		} else {
-			nRead = bctbx_read(pFile->fd, buf, count);
-			/* Error while reading */
-			if (nRead < 0) {
-				if (errno) return -errno;
-			}
-			return nRead;
 		}
+		return nRead;
 	}
 	return BCTBX_VFS_ERROR;
 }
@@ -115,25 +127,26 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t of
  * Writes directly to the open file given through the pFile argument.
  * Sets the error errno in the argument pErrSrvd after allocating it
  * if an error occurrred.
- * @param  p       bctbx_vfs_file_t File handle pointer.
+ * @param  pFile       bctbx_vfs_file_t File handle pointer.
  * @param  buf     Buffer containing data to write
  * @param  count   Size of data to write in bytes
  * @param  offset  File offset where to write to
  * @return         number of bytes written (can be 0), negative value errno if an error occurred.
  */
-static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off_t offset) {
+static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset) {
 	ssize_t nWrite = 0;                 /* Return value from write() */
 
-	if (p) {
-		if ((lseek(p->fd, offset, SEEK_SET)) < 0) {
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
+
+	if ((lseek(ctx->fd, offset, SEEK_SET)) < 0) {
+		if (errno) return -errno;
+	} else {
+		nWrite = bctbx_write(ctx->fd, buf, count);
+		if (nWrite > 0) return nWrite;
+		else if (nWrite <= 0) {
 			if (errno) return -errno;
-		} else {
-			nWrite = bctbx_write(p->fd, buf, count);
-			if (nWrite > 0) return nWrite;
-			else if (nWrite <= 0) {
-				if (errno) return -errno;
-				return 0;
-			}
+			return 0;
 		}
 	}
 	return BCTBX_VFS_ERROR;
@@ -147,7 +160,10 @@ static ssize_t bcWrite(bctbx_vfs_file_t *p, const void *buf, size_t count, off_t
 static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	int rc;                         /* Return code from fstat() call */
 	struct stat sStat;              /* Output of fstat() call */
-	rc = fstat(pFile->fd, &sStat);
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
+
+	rc = fstat(ctx->fd, &sStat);
 	if (rc != 0) {
 		return -errno;
 	}
@@ -165,11 +181,13 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
 
 	int ret;
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 
 	#if _WIN32
-	ret = _chsize(pFile->fd, (long)new_size);
+	ret = _chsize(ctx->fd, (long)new_size);
 	#else
-	ret = ftruncate(pFile->fd, new_size);
+	ret = ftruncate(ctx->fd, new_size);
 	#endif
 
 	if (ret < 0) {
@@ -196,9 +214,8 @@ static int bcGetLine(bctbx_vfs_file_t *pFile, char *s, int max_len) {
 	char *pNextLineR = NULL;
 	char *pNextLineN = NULL;
 
-	if (pFile->fd == -1) {
-		return BCTBX_VFS_ERROR;
-	}
+	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+
 	if (s == NULL || max_len < 1) {
 		return BCTBX_VFS_ERROR;
 	}
@@ -256,11 +273,15 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	openFlags |= O_BINARY;
 #endif
 
-	pFile->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
-	if (pFile->fd == -1) {
+	/* Create the userData structure */
+	bctbx_vfs_standard_t *userData = (bctbx_vfs_standard_t *)bctbx_malloc(sizeof(bctbx_vfs_standard_t));
+	userData->fd = open(fName, openFlags, S_IRUSR | S_IWUSR);
+	if (userData->fd == -1) {
+		bctbx_free(userData);
 		return -errno;
 	}
 
 	pFile->pMethods = &bcio;
+	pFile->pUserData = (void *)userData;
 	return BCTBX_VFS_OK;
 }
