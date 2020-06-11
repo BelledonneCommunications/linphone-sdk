@@ -30,15 +30,15 @@ class VfsEncryptionModule {
 		/**
 		 * @return the size in bytes of the chunk header
 		 */
-		virtual size_t getChunkHeaderSize() = 0;
+		virtual size_t getChunkHeaderSize() const noexcept = 0;
 		/**
 		 * @return the size in bytes of file header module data
 		 */
-		virtual size_t getModuleFileHeaderSize() = 0;
+		virtual size_t getModuleFileHeaderSize() const noexcept = 0;
 		/**
 		 * @return the encryptionSuite implemented by the module
 		 */
-		virtual EncryptionSuite getEncryptionSuite() = 0;
+		virtual EncryptionSuite getEncryptionSuite() const noexcept = 0;
 
 		/**
 		 * Set in the module the data stored in the file header
@@ -47,7 +47,17 @@ class VfsEncryptionModule {
 		/**
 		 * Get from the module the data to store in the file header
 		 */
-		virtual std::vector<uint8_t> getModuleFileHeader() = 0;
+		virtual std::vector<uint8_t> getModuleFileHeader() const noexcept = 0;
+
+		/**
+		 * Set in the module, the secret material used for encryption
+		 */
+		virtual void setModuleSecretMaterial(const std::vector<uint8_t> &secret) = 0;
+
+		/**
+		 * Get the size of the secret material needed by this module
+		 */
+		virtual size_t getSecretMaterialSize() const noexcept = 0;
 
 		/**
 		 * Decrypt a data chunk

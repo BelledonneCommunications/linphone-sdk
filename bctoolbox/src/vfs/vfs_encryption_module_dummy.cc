@@ -39,26 +39,36 @@ static std::string getHex(const std::vector<uint8_t>& v)
     return result;
 }
 
+VfsEncryptionModuleDummy::VfsEncryptionModuleDummy() {
+	m_fileHeader = std::vector<uint8_t>{0xaa, 0x55, 0xbb, 0x44, 0xcc, 0x33, 0xdd, 0x22}; // this is a constant for the dummy suite to help debug, real module would do otherwise
+	m_secret = std::vector<uint8_t>{};
+}
+
 void VfsEncryptionModuleDummy::setModuleFileHeader(std::vector<uint8_t> &fileHeader) {
 	if (fileHeader.size() != fileHeaderSize) {
-		//TODO: throw an exception?
+		throw EVFS_EXCEPTION<<"The dummy encryption module expect a fileHeader of size "<<fileHeaderSize<<" bytes but "<<fileHeader.size()<<" are provided";
 	}
 	m_fileHeader = fileHeader;
 }
 
-std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader() {
-	/* at file creation we won't have any fileHeader, create it */
-	if (m_fileHeader.size()==0) {
-		m_fileHeader = std::vector<uint8_t>{0xaa, 0x55, 0xbb, 0x44, 0xcc, 0x33, 0xdd, 0x22}; // this is a constant for the dummy suite to help debug, real module would do otherwise
-	}
+std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader() const noexcept {
 	return m_fileHeader;
 }
 
+void VfsEncryptionModuleDummy::setModuleSecretMaterial(const std::vector<uint8_t> &secret) {
+	if (secret.size() != secretMaterialSize) {
+		throw EVFS_EXCEPTION<<"The dummy encryption module expect a secret material of size "<<secretMaterialSize<<" bytes but "<<secret.size()<<" are provided";
+	}
+	m_secret = secret;
+}
+
 std::vector<uint8_t> VfsEncryptionModuleDummy::decryptChunk(const std::vector<uint8_t> &rawChunk) {
-	// The dummy decryption is a simple XOR on 16 bytes blocks with fileHeaderMaterial(8 bytes)||chunkHeaderMaterial(8 bytes)
 	std::vector<uint8_t> plainData(rawChunk.cbegin()+chunkHeaderSize, rawChunk.cend());
+	// The dummy decryption is a simple XOR on 16 bytes blocks with fileHeaderMaterial(8 bytes)||chunkHeaderMaterial(8 bytes)
+	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(getModuleFileHeader()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin(), rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
+	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	BCTBX_SLOGD<<"JOHAN: decryptChunk :"<<std::endl<<"   chunk is "<<getHex(plainData)<<std::endl<<"   key is "<<getHex(XORkey);
 	// Xor it all, 16 bytes at a time
@@ -89,8 +99,10 @@ void VfsEncryptionModuleDummy::encryptChunk(std::vector<uint8_t> &rawChunk, cons
 	rawChunk.resize(chunkHeaderSize+plainData.size());
 
 	// The dummy encryption is a simple XOR on 16 bytes blocks with fileHeaderMaterial(8 bytes)||chunkHeaderMaterial(8 bytes)
+	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(getModuleFileHeader()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin(), rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
+	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	// Xor it all, 16 bytes at a time
 	for (size_t i=0; i<plainData.size(); i+=16) {
@@ -114,8 +126,10 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunk
 	// rawChunk 4 to 7 is the encryptionCount, 0 is fine
 
 	// The dummy encryption is a simple XOR on 16 bytes blocks with fileHeaderMaterial(8 bytes)||chunkHeaderMaterial(8 bytes)
+	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(getModuleFileHeader()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin(), rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
+	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	// Xor it all, 16 bytes at a time
 	for (size_t i=0; i<plainData.size(); i+=16) {

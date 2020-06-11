@@ -21,11 +21,34 @@
 #define BCTBX_VFS_ENCRYPTED_HH
 
 #include "bctoolbox/vfs.h"
+#include "bctoolbox/exception.hh"
 #include <functional>
 #include <vector>
 #include <memory>
 
 namespace bctoolbox {
+
+/**
+ * @brief This dedicated exception inherits \ref BctoolboxException.
+ *
+ */
+class EVfsException : public BctbxException {
+public:
+	EVfsException() = default;
+	EVfsException(const std::string &message): BctbxException(message) {}
+	EVfsException(const char *message): BctbxException(message) {}
+	virtual ~EVfsException() throw() {}
+	EVfsException(const EVfsException &other): BctbxException(other) {}
+
+	template <typename T> EVfsException &operator<<(const T &val) {
+		BctbxException::operator<<(val);
+		return *this;
+	}
+};
+
+#define EVFS_EXCEPTION EVfsException() << " " << __FILE__ << ":" << __LINE__ << " "
+
+
 /**
  * Virtual File sytem provided
  */
@@ -65,31 +88,29 @@ class VfsEncryption {
 
 	/* Object properties and methods */
 	private:
-		off_t m_fOffset; /**< current read/write pointer */
-
 		uint16_t m_versionNumber; /**< version number of the encryption vfs */
 		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
 		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header */
 		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module */
 		std::vector<uint8_t> m_encryptionSuiteData; /**< header encryption suite data - a cache of file global data related to encryption */
-		std::vector<uint8_t> m_secretMaterial; /**< a buffer to store all the secrets needed by the encryption suite - this shall hold the master key for this file and is never copied in the file */
 		size_t m_headerExtensionSize; /**< header extension size */
 		size_t m_headerSize; /**< size of the file header */
+		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
 
-		size_t getChunksNb() noexcept; /**< return the number of chunks in the file */
-		uint32_t getChunkIndex(off_t offset) noexcept; /**< return the chunk index where to find the given offset */
-		size_t getChunkOffset(uint32_t index) noexcept; /**< return the offset in the actual file of the begining of the chunk */
+		size_t getChunksNb() const noexcept; /**< return the number of chunks in the file */
+		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
+		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 
 
 	public:
 		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
 
-		VfsEncryption(bctbx_vfs_file_t *stdFp) noexcept;
+		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename);
 		~VfsEncryption();
-		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial) noexcept;
-		void encryptionSuite_set(const EncryptionSuite) noexcept;
-		EncryptionSuite encryptionSuite_get() noexcept;
+		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial);
+		void encryptionSuite_set(const EncryptionSuite);
+		EncryptionSuite encryptionSuite_get() const noexcept;
 
 
 		/***
@@ -98,25 +119,22 @@ class VfsEncryption {
 		/**
 		 * @return the size of the plain text file
 		 */
-		uint64_t fileSize_get() noexcept;
-		/**
-		 * @return the current read/write offset on plain text file
-		 */
-		off_t fOffset_get() noexcept;
-		/**
-		 * Set current read/write offset on the plain text file
-		 * offset can be larger than the current fileSize. If it is the case, and some data is written, the gap is filled with 0(in plain version).
-		 */
-		void fOffset_set(const off_t offset) noexcept;
+		uint64_t fileSize_get() const noexcept;
 
 		/* Read from file at given offset the requested size */
-		std::vector<uint8_t> read(size_t offset, size_t count);
+		std::vector<uint8_t> read(size_t offset, size_t count) const;
 
 		/* write to file at given offset the requested size */
 		size_t write(const std::vector<uint8_t> &plainData, size_t offset);
 
 		/* Truncate the file to the given size, if given size is greater than current, pad with 0 */
 		void truncate(const size_t size);
+
+		/**
+		 *  Get the filename
+		 *  @return a string with the filename as given to the open function
+		 */
+		std::string filename_get() const noexcept;
 
 
 
@@ -127,16 +145,16 @@ class VfsEncryption {
 		 * Parse the header of an encrypted file, check everything seems correct
 		 * may perform integrity checking if the encryption module provides it
 		 *
-		 * @return BCTBX_VFS_OK or BCTBX_VFS_ERROR
+		 * @throw a EVfsException if something goes wrong
 		 */
-		int parseHeader() noexcept;
+		void parseHeader();
 		/**
 		 * Write the encrypted file header to the actual file
 		 * Create the needed structures if the file is actually empty
 		 *
-		 * @return BCTBX_VFS_OK or BCTBX_VFS_ERROR
+		 * @throw a EVfsException if something goes wrong
 		 **/
-		int writeHeader() noexcept;
+		void writeHeader() const;
 
 
 };

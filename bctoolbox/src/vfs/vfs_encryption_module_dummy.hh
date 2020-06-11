@@ -46,27 +46,41 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		static constexpr size_t fileHeaderSize=8;
 
 		/**
-		 * Store the file header
+		 * The dummy module secret material is a key used to Xor blocks
+		 * - size is 16 bytes
+		 */
+		static constexpr size_t secretMaterialSize=16;
+
+		/**
+		 * Store the file header and secret
 		 */
 		std::vector<uint8_t> m_fileHeader;
+		std::vector<uint8_t> m_secret;
 	public:
 		/**
 		 * @return the size in bytes of the chunk header
 		 */
-		size_t getChunkHeaderSize() override {
+		size_t getChunkHeaderSize() const noexcept override {
 			return chunkHeaderSize;
 		}
 		/**
 		 * @return the size in bytes of file header module data
 		 */
-		size_t getModuleFileHeaderSize() override {
+		size_t getModuleFileHeaderSize() const noexcept override {
 			return fileHeaderSize;
 		}
 		/**
 		 * @return the EncryptionSuite provided by this module
 		 */
-		EncryptionSuite getEncryptionSuite() override {
+		EncryptionSuite getEncryptionSuite() const noexcept override {
 		       return EncryptionSuite::dummy;
+		}
+
+		/**
+		 * @return the secret material size
+		 */
+		size_t getSecretMaterialSize() const noexcept override {
+			return secretMaterialSize;
 		}
 
 		/**
@@ -80,9 +94,11 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) override;
 
 		void setModuleFileHeader(std::vector<uint8_t> &fileHeader) override ;
-		std::vector<uint8_t> getModuleFileHeader() override ;
+		std::vector<uint8_t> getModuleFileHeader() const noexcept override ;
 
-		VfsEncryptionModuleDummy() {};
+		void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override ;
+
+		VfsEncryptionModuleDummy();
 		~VfsEncryptionModuleDummy() {};
 };
 
