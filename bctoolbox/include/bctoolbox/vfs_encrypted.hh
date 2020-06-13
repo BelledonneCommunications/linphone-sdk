@@ -172,6 +172,19 @@ class VfsEncryption {
 		 */
 		EncryptionSuite encryptionSuite_get() const noexcept;
 
+		/**
+		 * Returns the size of chunks in which the file is divided for encryption
+		 */
+		size_t chunkSize_get() const noexcept;
+		/**
+		 * Set the size, in bytes, of chunks in which the file is divided for encryption
+		 * This size must be a multiple of 16, accepted values in range [16, (2^16-1)*16].
+		 * If the size is set on an existing file and differs from previous setting, an exception is generated
+		 * Default chunk size at file creation is 4kB.
+		 * A file holds a maximum of 2^32-1 chunks. 16 bytes chunks - not recommended smallest admissible value - limit the file size to 64GB
+		 */
+		void chunkSize_set(const size_t size);
+
 
 };
 

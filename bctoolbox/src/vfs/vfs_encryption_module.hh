@@ -19,13 +19,14 @@
 
 #ifndef BCTBX_VFS_ENCRYPTION_MODULE_HH
 #define BCTBX_VFS_ENCRYPTION_MODULE_HH
-#include "bctoolbox/vfs_encrypted.hh"
 
 namespace bctoolbox {
 /**
  * Define the interface any encryption suite must provide
  */
 class VfsEncryptionModule {
+	private:
+
 	public:
 		/**
 		 * @return the size in bytes of the chunk header
@@ -83,10 +84,6 @@ class VfsEncryptionModule {
 		virtual ~VfsEncryptionModule() {};
 };
 
-/**
- * Factory function: return a shared pointer to the correct VfsEncryptionModule implementation
- */
-std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const EncryptionSuite suite);
 
 } // namespace bctoolbox
 #endif // BCTBX_VFS_ENCRYPTION_MODULE_HH

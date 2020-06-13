@@ -26,11 +26,7 @@
 #include "vfs_encryption_module.hh"
 #include "vfs_encryption_module_dummy.hh"
 #include "bctoolbox/vfs_standard.h"
-#include "bctoolbox/port.h"
 #include "bctoolbox/logging.h"
-#include <sys/types.h>
-#include <stdarg.h>
-#include <errno.h>
 
 /*** DEBUG: remove when done ***/
 static std::string getHex(const std::vector<uint8_t>& v)
@@ -53,7 +49,7 @@ static std::string getHex(const std::vector<uint8_t>& v)
 
 using namespace bctoolbox;
 
-std::shared_ptr<VfsEncryptionModule> bctoolbox::make_VfsEncryptionModule(const EncryptionSuite suite) {
+static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const EncryptionSuite suite) {
 	switch (suite) {
 		case EncryptionSuite::dummy:
 			return std::make_shared<VfsEncryptionModuleDummy>();
@@ -82,6 +78,7 @@ static constexpr uint16_t BcEncFS_v0100=0x0100;
 /* header cannot be less than this size, even for an empty file */
 static constexpr int64_t baseFileHeaderSize=29;
 
+static constexpr size_t defaultChunkSize = 4096; // default chunk size in bytes
 
 
 /**
@@ -94,7 +91,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null, filename is "<<filename;
 	/* initialise it */
 	m_versionNumber = BcEncFS_v0100; // default version number is the last available
-	m_chunkSize = 16;//4096; // MUST be a multiple of 16 bytes - default : 256 blocks of 16 bytes : 4KB. TODO: make it settable
+	m_chunkSize = 0; // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
 	m_module = nullptr;
 	m_headerExtensionSize = 0;
 	m_headerSize = 0;
@@ -115,6 +112,11 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 		throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
 	}
 
+	/* check we have a valid chunk size */
+	if (m_chunkSize == 0) { // this is a file creation and the callback didn't set it
+		m_chunkSize = defaultChunkSize; // assign the default one
+	}
+
 	/* TODO:  now we shall have all the material (settings and keys ) to check the file integrity */
 	// Only if fileSize > 0
 
@@ -127,6 +129,40 @@ VfsEncryption::~VfsEncryption() {
 	if (pFileStd != nullptr) {
 		BCTBX_SLOGD<<"JOHAN: closing file in destructor";
 		bctbx_file_close(pFileStd);
+	}
+}
+
+
+
+/**
+ * Returns the size of chunks in which the file is divided for encryption
+ */
+size_t VfsEncryption::chunkSize_get() const noexcept {
+	return (m_chunkSize==0?defaultChunkSize:m_chunkSize); // m_chunkSize to 0 means it is not initialised yet, so return the default value in this case
+};
+
+/**
+ * Set the size, in bytes, of chunks in which the file is divided for encryption
+ * This size must be a multiple of 16.
+ * If the size is set on an existing file and differs from previous setting, an exception is generated
+ * Default chunk size at file creation is 4kB
+ */
+void VfsEncryption::chunkSize_set(const size_t size) {
+	if (size < 16 || size > 1048560) {
+		throw EVFS_EXCEPTION<<"Encrypted VFS cannot set a chunk size "<<size<<" bytes. Acceptable range is [16, 1048560]";
+	}
+	// The chunk size MUST be a multiple of 16
+	if (size%16 != 0) {
+		throw EVFS_EXCEPTION<<"Encrypted VFS cannot set a chunk size "<<size<<" not multiple of 16";
+	}
+
+	// if chunk size is still a 0, we can set whatever value
+	if (m_chunkSize == 0) {
+		m_chunkSize = size;
+	} else { // chunk size is already set for this file, we cannot change it, check the are the same
+		if (m_chunkSize != size) {
+			throw EVFS_EXCEPTION<<"Encrypted VFS to set chunk size "<<size<<" on file "<<m_filename<<" but already set to "<<m_chunkSize;
+		}
 	}
 }
 

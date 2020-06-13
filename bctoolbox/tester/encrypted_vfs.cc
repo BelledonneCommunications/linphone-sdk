@@ -62,6 +62,7 @@ static EncryptedVfsOpenCb set_dummy_encryption_info([](const std::string &filena
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	settings.encryptionSuite_set(EncryptionSuite::dummy);
 	settings.secretMaterial_set(keyMaterial);
+	settings.chunkSize_set(16);
 });
 
 
@@ -96,7 +97,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 	VfsEncryption::openCallback_set(set_dummy_encryption_info);
 
 	/* get the encrypted file path */
-	char *path = bc_tester_file("basic");
+	char *path = bc_tester_file("basic.");
 	std::string filePath{path};
 	filePath.append(suiteName(suite)).append(".evfs");
 	bctbx_free(path);
