@@ -430,14 +430,13 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	// now actually write the rawData in the file
 	BCTBX_SLOGD<<"JOHAN: write file, size is "<< updatedRawData.size() << "bytes first Chunk is "<<firstChunk;
 	BCTBX_SLOGD<<"JOHAN offset "<< getChunkOffset(firstChunk);
-	if (bctbx_file_write(pFileStd, updatedRawData.data(), updatedRawData.size(), getChunkOffset(firstChunk)) - updatedRawData.size() == 0) {
+	ssize_t ret = bctbx_file_write(pFileStd, updatedRawData.data(), updatedRawData.size(), getChunkOffset(firstChunk));
+	if ( ret - updatedRawData.size() == 0) { // compare signed and unsigned
 		m_fileSize = finalFileSize;
 		writeHeader();
 		return plainData.size();
 	} else {
-		BCTBX_SLOGE<<"JOHAN write failure";
-		//TODO error message, exception ?
-		return 0;
+		throw EVFS_EXCEPTION<<"fail to write to physical file "<<m_filename<<" file_write "<< ret;
 	}
 }
 
@@ -626,7 +625,6 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 		return BCTBX_VFS_ERROR;
 	}
 
-	bctbx_message("JOHAN: encrypted bcOpen 0 %s", fName);
 
 	/* encrypted vfs encapsulates the standard one, open the file with it */
 	bctbx_vfs_file_t *stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
@@ -638,7 +636,6 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	try { // no one throwing before here...
 		ctx = new VfsEncryption(stdFp, fName);
 
-		bctbx_message("JOHAN: encrypted bcOpen 1 %s", fName);
 
 		/* If the file exists, read the header to check it is an encrypted file and gets its encrypted policy */
 		bool createFile = ((openFlags&O_CREAT)!=0);
@@ -647,11 +644,9 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 			createFile = false;
 		}
 
-		bctbx_message("JOHAN: encrypted bcOpen 2 %s", fName);
 
 		/* if the static callback is set, call it */
 		if (VfsEncryption::openCallback_get() != nullptr) {
-			bctbx_message("JOHAN: encrypted bcOpen callback %s", fName);
 			(VfsEncryption::openCallback_get())(fName, *ctx);
 		} else {
 			throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
@@ -660,16 +655,13 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 		/* TODO:  now we shall have all the material (settings and keys ) to check the file integrity */
 		// Only if fileSize > 0 
 
-		bctbx_message("JOHAN: encrypted bcOpen 3 %s", fName);
 		if (createFile) {
-			bctbx_message("JOHAN: encrypted bcOpen createFile %s", fName);
 			ctx->writeHeader();
 		}
 
 
 		/* store the encryption context in the vfs UserData */
 		pFile->pUserData = static_cast<void *>(ctx);
-		bctbx_message("JOHAN: encrypted bcOpen out ok %s", fName);
 		return BCTBX_VFS_OK;
 
 	} catch (EVfsException const &e) {// caller is most likely a C file(vfs.c), so swallow all exceptions
