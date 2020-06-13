@@ -90,7 +90,7 @@ class VfsEncryption {
 	private:
 		uint16_t m_versionNumber; /**< version number of the encryption vfs */
 		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
-		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header */
+		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
 		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module */
 		std::vector<uint8_t> m_encryptionSuiteData; /**< header encryption suite data - a cache of file global data related to encryption */
 		size_t m_headerExtensionSize; /**< header extension size */
@@ -98,9 +98,24 @@ class VfsEncryption {
 		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
 
-		size_t getChunksNb() const noexcept; /**< return the number of chunks in the file */
+		size_t r_fileSize() const noexcept; /**< return the size of the raw file */
 		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
+
+		/**
+		 * Parse the header of an encrypted file, check everything seems correct
+		 * may perform integrity checking if the encryption module provides it
+		 *
+		 * @throw a EVfsException if something goes wrong
+		 */
+		void parseHeader();
+		/**
+		 * Write the encrypted file header to the actual file
+		 * Create the needed structures if the file is actually empty
+		 *
+		 * @throw a EVfsException if something goes wrong
+		 **/
+		void writeHeader() const;
 
 
 	public:
@@ -108,9 +123,6 @@ class VfsEncryption {
 
 		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename);
 		~VfsEncryption();
-		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial);
-		void encryptionSuite_set(const EncryptionSuite);
-		EncryptionSuite encryptionSuite_get() const noexcept;
 
 
 		/***
@@ -142,19 +154,23 @@ class VfsEncryption {
 		 * Encryption related API
 		 ***/
 		/**
-		 * Parse the header of an encrypted file, check everything seems correct
-		 * may perform integrity checking if the encryption module provides it
-		 *
-		 * @throw a EVfsException if something goes wrong
+		 * Set an encryption suite.
+		 * When called at file creation, select the module to use for this file
+		 * When called at the opening of an existing file, check it is the suite used at file creation, throw an exception if they differs
 		 */
-		void parseHeader();
+		void encryptionSuite_set(const EncryptionSuite);
+
 		/**
-		 * Write the encrypted file header to the actual file
-		 * Create the needed structures if the file is actually empty
-		 *
-		 * @throw a EVfsException if something goes wrong
-		 **/
-		void writeHeader() const;
+		 * Set the secret Material in the encryption module
+		 * This function cannot be called if a encryption suite was not set.
+		 */
+		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial);
+
+		/**
+		 * Returns the encryption suite used for this file
+		 * Can be return unset if the file is being created
+		 */
+		EncryptionSuite encryptionSuite_get() const noexcept;
 
 
 };

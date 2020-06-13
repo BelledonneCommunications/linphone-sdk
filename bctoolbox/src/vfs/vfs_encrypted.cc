@@ -32,6 +32,25 @@
 #include <stdarg.h>
 #include <errno.h>
 
+/*** DEBUG: remove when done ***/
+static std::string getHex(const std::vector<uint8_t>& v)
+{
+    std::string result;
+    result.reserve(v.size() * 2);   // two digits per character
+
+    static constexpr char hex[] = "0123456789ABCDEF";
+
+    for (uint8_t c : v)
+    {
+        result.push_back(hex[c / 16]);
+        result.push_back(hex[c % 16]);
+    }
+
+    return result;
+}
+/*** END OF DEBUG: remove when done ***/
+
+
 using namespace bctoolbox;
 
 std::shared_ptr<VfsEncryptionModule> bctoolbox::make_VfsEncryptionModule(const EncryptionSuite suite) {
@@ -63,21 +82,6 @@ static constexpr uint16_t BcEncFS_v0100=0x0100;
 /* header cannot be less than this size, even for an empty file */
 static constexpr int64_t baseFileHeaderSize=29;
 
-static std::string getHex(const std::vector<uint8_t>& v)
-{
-    std::string result;
-    result.reserve(v.size() * 2);   // two digits per character
-
-    static constexpr char hex[] = "0123456789ABCDEF";
-
-    for (uint8_t c : v)
-    {
-        result.push_back(hex[c / 16]);
-        result.push_back(hex[c % 16]);
-    }
-
-    return result;
-}
 
 
 /**
@@ -95,6 +99,28 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 	m_headerExtensionSize = 0;
 	m_headerSize = 0;
 	m_fileSize = 0;
+
+
+	/* If the file exists, read the header to check it is an encrypted file and gets its encrypted policy */
+	bool createFile = true;
+	if (bctbx_file_size(stdFp) > 0) {
+		parseHeader();
+		createFile = false;
+	}
+
+	/* if the static callback is set, call it */
+	if (VfsEncryption::openCallback_get() != nullptr) {
+		(VfsEncryption::openCallback_get())(filename, *this);
+	} else {
+		throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
+	}
+
+	/* TODO:  now we shall have all the material (settings and keys ) to check the file integrity */
+	// Only if fileSize > 0
+
+	if (createFile) {
+		writeHeader();
+	}
 }
 
 VfsEncryption::~VfsEncryption() {
@@ -150,16 +176,21 @@ EncryptionSuite VfsEncryption::encryptionSuite_get() const noexcept {
 	return EncryptionSuite::unset;
 }
 
-/* return the number of file chunks */
-size_t VfsEncryption::getChunksNb() const noexcept {
+/* return the size of the raw file */
+size_t VfsEncryption::r_fileSize() const noexcept {
+	// first compute the number of chunks in our file
 	size_t n = 0;
 	// if we have an incomplete chunk
 	if ((m_fileSize%m_chunkSize)>0) {
 		n = 1;
 	}
 	n += m_fileSize/m_chunkSize;
-	return n;
+
+	return m_fileSize // actual plain size
+		+ n*m_module->getChunkHeaderSize() // all chunks' header size
+		+ baseFileHeaderSize + m_headerExtensionSize + m_module->getModuleFileHeaderSize(); // file header size
 }
+
 /**
  * Parse the file header
  * Header format for current version (1.00) is:
@@ -177,28 +208,28 @@ size_t VfsEncryption::getChunksNb() const noexcept {
  * @throw a EVfsException is something goes wrong
  */
 void VfsEncryption::parseHeader() {
-	/* check file exists*/
+	// check file exists
 	int64_t ret = bctbx_file_size(pFileStd); // bctbx_file_size return a signed value...
 	if (ret<baseFileHeaderSize) throw EVFS_EXCEPTION<<"parseHeader: file is smaller than baseFileHeader";
 	uint64_t fileSize = ret; // turn it into an unsigned one after checking it is >0.
 
-	/* read the header */
+	// read the header
 	uint8_t headerBuffer[baseFileHeaderSize];
 	size_t index=0;
 	if (bctbx_file_read(pFileStd, headerBuffer, baseFileHeaderSize, 0) != baseFileHeaderSize) throw EVFS_EXCEPTION<<"parseHeader: unable to read encrypted vfs header";
 
-	/* check it starts with the magic number */
+	// check it starts with the magic number
 	if (memcmp(BCENCRYPTEDFS.data(), headerBuffer, BCENCRYPTEDFS.size()) != 0) throw EVFS_EXCEPTION<<"parseHeader: invalid header";
 	index += BCENCRYPTEDFS.size();
 
-	/* check the version number */
+	// check the version number
 	m_versionNumber = headerBuffer[index]<<8|headerBuffer[index+1];
 	if ( m_versionNumber != BcEncFS_v0100 ) {
 		BCTBX_SLOGW<<"Encrypted FS trying to open a file version "<<m_versionNumber<<" but supports up to "<<BcEncFS_v0100<<", this may not work, proceed anyway";
 	}
 	index += 2;
 
-	/* get the encryption suite, check it is supported and instanciate the matching module */
+	// get the encryption suite, check it is supported and instanciate the matching module
 	uint16_t encryptionSuite = headerBuffer[index]<<8|headerBuffer[index+1];
 	switch (encryptionSuite) {
 		/* all supported scheme must be listed here */
@@ -211,15 +242,15 @@ void VfsEncryption::parseHeader() {
 	}
 	index += 2;
 
-	/* get chunk size, convert it in bytes */
+	// get chunk size, convert it in bytes
 	m_chunkSize = (headerBuffer[index]<<8|headerBuffer[index+1])*16;
 	index += 2;
 
-	/* check the header extension, not used in version 1.0 but use this field to skip them if any */
+	// check the header extension, not used in version 1.0 but use this field to skip them if any
 	m_headerExtensionSize = headerBuffer[index]<<8|headerBuffer[index+1];
 	index += 2;
 
-	/* get the file size */
+	// get the file size
 	m_fileSize = (static_cast<uint64_t>(headerBuffer[index+0])<<56)
 		| (static_cast<uint64_t>(headerBuffer[index+1])<<48)
 		| (static_cast<uint64_t>(headerBuffer[index+2])<<40)
@@ -229,18 +260,15 @@ void VfsEncryption::parseHeader() {
 		| (static_cast<uint64_t>(headerBuffer[index+6])<<8)
 		| static_cast<uint64_t>(headerBuffer[index+7]);
 
-	/* get the optional encryption scheme data if needed */
-	size_t encryptionModuleDataSize = m_module->getModuleFileHeaderSize();
-
-	/* check file size match what we have :
-	 * - file header(baseFileHeader + headerExtension + moduleData + nb_chunks*module chunk header size)
-	 * - content
-	 */
-	if (m_fileSize + baseFileHeaderSize + m_headerExtensionSize + encryptionModuleDataSize + getChunksNb()*m_module->getChunkHeaderSize() != fileSize) {
-		throw EVFS_EXCEPTION<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual filesize do not match";
+	// check file size match what we have :
+	if (r_fileSize() != fileSize) {
+		throw EVFS_EXCEPTION<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual filesize do not match this value";
 	}
 
-	/* read the data, the are at offset baseFileHeaderSize + m_headerExtensionSize */
+	// get the optional encryption scheme data if needed
+	size_t encryptionModuleDataSize = m_module->getModuleFileHeaderSize();
+
+	// read the data, the are at offset baseFileHeaderSize + m_headerExtensionSize
 	if (encryptionModuleDataSize != 0) {
 		auto encryptionSuiteData = std::vector<uint8_t>(encryptionModuleDataSize);
 		if (bctbx_file_read(pFileStd, encryptionSuiteData.data(), encryptionModuleDataSize, baseFileHeaderSize+m_headerExtensionSize) - encryptionModuleDataSize != 0) {
@@ -469,10 +497,10 @@ void VfsEncryption::truncate(const size_t newSize) {
 				// TODO: generate an exception
 			}
 		}
-		// update file size
+		// update file size in meta data
 		m_fileSize = newSize;
 		// truncate the actual file
-		bctbx_file_truncate(pFileStd, m_fileSize + baseFileHeaderSize + m_headerExtensionSize + m_module->getModuleFileHeaderSize() + getChunksNb()*m_module->getChunkHeaderSize());
+		bctbx_file_truncate(pFileStd, r_fileSize());
 		// update the header
 		writeHeader();
 	}
@@ -620,45 +648,20 @@ static const  bctbx_io_methods_t bcio = {
 
 
 static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags) {
-	bctbx_message("JOHAN: encrypted bcOpen in %s", fName);
-	if (pFile == NULL || fName == NULL) {
-		return BCTBX_VFS_ERROR;
-	}
-
-
-	/* encrypted vfs encapsulates the standard one, open the file with it */
-	bctbx_vfs_file_t *stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
-	if (stdFp == NULL) return BCTBX_VFS_ERROR;
-
-	pFile->pMethods = &bcio;
-
 	VfsEncryption *ctx = nullptr;
-	try { // no one throwing before here...
+	try {
+		bctbx_message("JOHAN: encrypted bcOpen in %s", fName);
+		if (pFile == NULL || fName == NULL) {
+			return BCTBX_VFS_ERROR;
+		}
+
+		/* encrypted vfs encapsulates the standard one, open the file with it */
+		bctbx_vfs_file_t *stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
+		if (stdFp == NULL) return BCTBX_VFS_ERROR;
+
+		pFile->pMethods = &bcio;
+
 		ctx = new VfsEncryption(stdFp, fName);
-
-
-		/* If the file exists, read the header to check it is an encrypted file and gets its encrypted policy */
-		bool createFile = ((openFlags&O_CREAT)!=0);
-		if (bctbx_file_size(stdFp) > 0) {
-			ctx->parseHeader();
-			createFile = false;
-		}
-
-
-		/* if the static callback is set, call it */
-		if (VfsEncryption::openCallback_get() != nullptr) {
-			(VfsEncryption::openCallback_get())(fName, *ctx);
-		} else {
-			throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
-		}
-
-		/* TODO:  now we shall have all the material (settings and keys ) to check the file integrity */
-		// Only if fileSize > 0 
-
-		if (createFile) {
-			ctx->writeHeader();
-		}
-
 
 		/* store the encryption context in the vfs UserData */
 		pFile->pUserData = static_cast<void *>(ctx);
