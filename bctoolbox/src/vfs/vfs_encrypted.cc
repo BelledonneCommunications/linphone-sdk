@@ -88,7 +88,7 @@ EncryptedVfsOpenCb VfsEncryption::s_openCallback = nullptr;
 
 VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename) : m_filename(filename), pFileStd(stdFp) {
 
-	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null, filename is "<<filename;
+	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null";
 	/* initialise it */
 	m_versionNumber = BcEncFS_v0100; // default version number is the last available
 	m_chunkSize = 0; // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
@@ -107,7 +107,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 
 	/* if the static callback is set, call it */
 	if (VfsEncryption::openCallback_get() != nullptr) {
-		(VfsEncryption::openCallback_get())(filename, *this);
+		(VfsEncryption::openCallback_get())(*this);
 	} else {
 		throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
 	}
@@ -117,8 +117,12 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 		m_chunkSize = defaultChunkSize; // assign the default one
 	}
 
-	/* TODO:  now we shall have all the material (settings and keys ) to check the file integrity */
-	// Only if fileSize > 0
+	/*  now we shall have all the material (settings and keys ) to check the file integrity */
+	if (m_fileSize > 0 ) { // this is not a file creation
+		if (m_module->checkIntegrity(*this) != true) {
+			throw EVFS_EXCEPTION<<"Integrity check fail while opening file "<<m_filename;
+		}
+	}
 
 	if (createFile) {
 		writeHeader();

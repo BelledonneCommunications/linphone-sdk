@@ -20,6 +20,8 @@
 #ifndef BCTBX_VFS_ENCRYPTION_MODULE_HH
 #define BCTBX_VFS_ENCRYPTION_MODULE_HH
 
+#include "bctoolbox/vfs_encrypted.hh"
+
 namespace bctoolbox {
 /**
  * Define the interface any encryption suite must provide
@@ -80,6 +82,14 @@ class VfsEncryptionModule {
 		 * @return the encrypted chunk
 		 */
 		virtual std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) = 0;
+
+		/**
+		 * Check the integrity over the whole file
+		 * @param[in]	fileContext 	a way to access the file content
+		 *
+		 * @return 	true if the integrity check successfully passed, false otherwise
+		 */
+		virtual bool checkIntegrity(const VfsEncryption &fileContext) = 0;
 
 		virtual ~VfsEncryptionModule() {};
 };

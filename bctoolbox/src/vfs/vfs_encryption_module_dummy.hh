@@ -34,11 +34,12 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		 */
 
 		/** Header in the dummy module holds:
+		 * - Integrity tag 8 bytes. The HMACSHA256 of the block content and header (excluding this tag)
 		 * - Block Index : 4 bytes. (-> max 4 giga blocks in a file -> more than enough)
 		 * - Encryption Counter : 4 bytes counter (increased at each encryption)
-		 * Total size : 8 bytes
+		 * Total size : 16 bytes
 		 */
-		static constexpr size_t chunkHeaderSize=8;
+		static constexpr size_t chunkHeaderSize=16;
 		/**
 		 * The dummy module file header holds:
 		 * - fixed Random IV : 8 bytes
@@ -56,6 +57,11 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		 */
 		std::vector<uint8_t> m_fileHeader;
 		std::vector<uint8_t> m_secret;
+
+		/**
+		 * Compute the integrity tag in the given chunk
+		 */
+		std::vector<uint8_t> chunkIntegrityTag(const std::vector<uint8_t> &chunk);
 	public:
 		/**
 		 * @return the size in bytes of the chunk header
@@ -97,6 +103,15 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		std::vector<uint8_t> getModuleFileHeader() const noexcept override ;
 
 		void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override ;
+
+		/**
+		 * Check the integrity over the whole file
+		 * @param[in]	fileContext 	a way to access the file content
+		 *
+		 * @return 	true if the integrity check successfully passed, false otherwise
+		 */
+		bool checkIntegrity(const VfsEncryption &fileContext) override;
+
 
 		VfsEncryptionModuleDummy();
 		~VfsEncryptionModuleDummy() {};

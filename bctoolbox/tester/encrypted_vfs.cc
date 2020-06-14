@@ -57,8 +57,8 @@ static std::string suiteName(const bctoolbox::EncryptionSuite suite) {
 }
 
 /* A callback to position the key material and algorithm suite to use */
-static EncryptedVfsOpenCb set_dummy_encryption_info([](const std::string &filename, VfsEncryption &settings) {
-	BCTBX_SLOGD<<"JOHAN: dummy encryption info callback in file is "<<filename;
+static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
+	BCTBX_SLOGD<<"JOHAN: dummy encryption info callback in file is "<<settings.filename_get();
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	settings.encryptionSuite_set(EncryptionSuite::dummy);
 	settings.secretMaterial_set(keyMaterial);

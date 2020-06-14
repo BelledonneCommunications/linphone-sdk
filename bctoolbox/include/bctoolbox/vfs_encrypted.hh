@@ -70,7 +70,7 @@ class VfsEncryption;
  * Define a function prototype to be called at each file opening.
  * This function is a static class property, used to retrieve secretMaterial to encrypt/decrypt the file
  */
-using EncryptedVfsOpenCb = std::function<void(const std::string &filename, VfsEncryption &settings)>;
+using EncryptedVfsOpenCb = std::function<void(VfsEncryption &settings)>;
 
 // forward declare this type, store all the encryption data and functions
 class VfsEncryptionModule;
