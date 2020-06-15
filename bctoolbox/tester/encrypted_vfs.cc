@@ -19,6 +19,7 @@
 
 #include "bctoolbox_tester.h"
 #include "bctoolbox/vfs_encrypted.hh"
+#include "bctoolbox/vfs_standard.h"
 #include "bctoolbox/logging.h"
 
 using namespace bctoolbox;
@@ -49,6 +50,8 @@ static std::string suiteName(const bctoolbox::EncryptionSuite suite) {
 	switch (suite) {
 		case bctoolbox::EncryptionSuite::unset:
 		      return "unset";
+		case bctoolbox::EncryptionSuite::plain:
+		      return "plain";
 		case bctoolbox::EncryptionSuite::dummy:
 		      return "dummy";
 		default:
@@ -65,9 +68,22 @@ static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) 
 	settings.chunkSize_set(16);
 });
 
+static EncryptedVfsOpenCb set_plain_encryption_info([](VfsEncryption &settings) {
+	BCTBX_SLOGD<<"JOHAN: plain encryption info callback in file is "<<settings.filename_get();
+	settings.encryptionSuite_set(EncryptionSuite::plain);
+});
 
+
+static EncryptedVfsOpenCb set_encryption_info([](VfsEncryption &settings) {
+	auto filename = settings.filename_get();
+	if (filename.find("plain") != std::string::npos) {
+		set_plain_encryption_info(settings);
+	} else { // default to dummy
+		set_dummy_encryption_info(settings);
+	}
+});
 /* a message to write in files */
-static const uint8_t message[256] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+static const uint8_t message[256] = {0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
 				0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
 				0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 				0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
@@ -92,9 +108,6 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 	// used to check zero readings
 	uint8_t zero_buff[256];
 	memset (zero_buff, 0, sizeof(zero_buff));
-
-	/* set the encrypted vfs callback */ //TODO: set the one matching given suite
-	VfsEncryption::openCallback_set(set_dummy_encryption_info);
 
 	/* get the encrypted file path */
 	char *path = bc_tester_file("basic.");
@@ -227,10 +240,36 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 
 	bctbx_file_close(fp);
 
+	// When using the plain, check with the standard the content of file
+	if (suite == bctoolbox::EncryptionSuite::plain ) {
+		fp = bctbx_file_open2(&bcStandardVfs, filePath.data(), O_RDWR);
+
+		BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, size_t, "%ld");
+		// read the part left there from offset 15 to 31
+		BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 15), 16, ssize_t, "%ld");
+		BC_ASSERT_TRUE(memcmp(readBuffer, message, 16)==0);
+		memset(readBuffer, 0, sizeof(readBuffer));
+		// read the part we just wrote
+		BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 18, 31), 18, ssize_t, "%ld");
+		BC_ASSERT_TRUE(memcmp(readBuffer, message, 18)==0);
+		memset(readBuffer, 0, sizeof(readBuffer));
+		// read the part left after
+		BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 80, 49), 31, ssize_t, "%ld");
+		BC_ASSERT_TRUE(memcmp(readBuffer, message+34, 31)==0);
+		memset(readBuffer, 0, sizeof(readBuffer));
+
+		bctbx_file_close(fp);
+	}
 }
+
 void basic_encryption_test() {
+	/* set the encrypted vfs callback */
+	VfsEncryption::openCallback_set(set_encryption_info);
+
 	basic_encryption_test(EncryptionSuite::dummy, false);
 	basic_encryption_test(EncryptionSuite::dummy, true);
+	basic_encryption_test(EncryptionSuite::plain, false);
+	basic_encryption_test(EncryptionSuite::plain, true);
 }
 
 static test_t encrypted_vfs_tests[] = {

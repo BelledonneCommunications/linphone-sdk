@@ -60,7 +60,8 @@ extern bctbx_vfs_t bcEncryptedVfs;
  */
 enum class EncryptionSuite : uint16_t {
 	unset = 0,/**< no encryption suite selected */
-	dummy = 1 /**< a test suite, do not use other than for test */
+	dummy = 1, /**< a test suite, do not use other than for test */
+	plain = 0xFFFF /**< no encryption activated, direct use of standard file system API */
 };
 
 /* complete declaration follows, we need this one to define the callback type */
@@ -92,7 +93,7 @@ class VfsEncryption {
 		uint16_t m_versionNumber; /**< version number of the encryption vfs */
 		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
 		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
-		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module */
+		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module : if nullptr, assume we deal with regular plain file */
 		size_t m_headerExtensionSize; /**< header extension size */
 		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
