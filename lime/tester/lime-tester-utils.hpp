@@ -26,7 +26,6 @@
 #include "belle-sip/belle-sip.h"
 #include "lime_crypto_primitives.hpp"
 
-#include "soci/sqlite3/soci-sqlite3.h"
 #include <random>
 #include <mutex>
 

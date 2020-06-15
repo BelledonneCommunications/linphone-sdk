@@ -17,11 +17,13 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "bctoolbox/sqlite3_vfs.h"
 #include "lime_log.hpp"
 #include "belle-sip/belle-sip.h"
 
 #include "lime-tester.hpp"
 #include "lime-tester-utils.hpp"
+
 
 static const char *log_domain = "lime";
 bool cleanDatabase = true;
@@ -60,6 +62,9 @@ void lime_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 #ifdef FFI_ENABLED
 	bc_tester_add_suite(&lime_ffi_test_suite);
 #endif
+
+	/* enable the bctbx sqlite3 vfs but do not make it default */
+	sqlite3_bctbx_vfs_register(0);
 }
 
 void lime_tester_uninit(void) {
