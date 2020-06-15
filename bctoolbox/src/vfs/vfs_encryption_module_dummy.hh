@@ -43,8 +43,9 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		/**
 		 * The dummy module file header holds:
 		 * - fixed Random IV : 8 bytes
+		 * - Integrity tag 8 bytes. The HMACSHA256 of the file header - (including the begining of the module file header first 8 bytes, excluding this tag)
 		 */
-		static constexpr size_t fileHeaderSize=8;
+		static constexpr size_t fileHeaderSize=16;
 
 		/**
 		 * The dummy module secret material is a key used to Xor blocks
@@ -56,12 +57,24 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		 * Store the file header and secret
 		 */
 		std::vector<uint8_t> m_fileHeader;
+		std::vector<uint8_t> m_fileHeaderIntegrity;
 		std::vector<uint8_t> m_secret;
 
 		/**
 		 * Compute the integrity tag in the given chunk
 		 */
-		std::vector<uint8_t> chunkIntegrityTag(const std::vector<uint8_t> &chunk);
+		std::vector<uint8_t> chunkIntegrityTag(const std::vector<uint8_t> &chunk) const;
+
+		/**
+		 * Get the chunk index from the given chunk
+		 */
+		uint32_t getChunkIndex(const std::vector<uint8_t> &chunk) const;
+
+		/**
+		 * Get global IV. Part of IV common to all chunks
+		 * The last 8 bytes of the file header
+		 */
+		std::vector<uint8_t> globalIV() const;
 	public:
 		/**
 		 * @return the size in bytes of the chunk header
@@ -94,13 +107,13 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		 * @param[in] a vector which size shall be chunkHeaderSize + chunkSize holding the raw data read from disk
 		 * @return the decrypted data chunk
 		 */
-		std::vector<uint8_t> decryptChunk(const std::vector<uint8_t> &rawChunk) override ;
+		std::vector<uint8_t> decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) override ;
 
-		void encryptChunk(std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) override;
+		void encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) override;
 		std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) override;
 
-		void setModuleFileHeader(std::vector<uint8_t> &fileHeader) override ;
-		std::vector<uint8_t> getModuleFileHeader() const noexcept override ;
+		void setModuleFileHeader(const std::vector<uint8_t> &fileHeader) override ;
+		const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const noexcept override ;
 
 		void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override ;
 

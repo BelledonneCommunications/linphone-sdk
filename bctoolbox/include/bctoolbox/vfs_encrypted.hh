@@ -76,6 +76,7 @@ using EncryptedVfsOpenCb = std::function<void(VfsEncryption &settings)>;
 class VfsEncryptionModule;
 /** Store in the bctbx_vfs_file_t userData field an object specific to encryption */
 class VfsEncryption {
+	friend class VfsEncryptionModule;
 	/* Class properties and method */
 	private:
 		static EncryptedVfsOpenCb s_openCallback; /**< a class callback to get secret material at file opening. Implemented as static as it is called by constructor */
@@ -92,15 +93,14 @@ class VfsEncryption {
 		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
 		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
 		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module */
-		std::vector<uint8_t> m_encryptionSuiteData; /**< header encryption suite data - a cache of file global data related to encryption */
 		size_t m_headerExtensionSize; /**< header extension size */
-		size_t m_headerSize; /**< size of the file header */
 		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
 
 		size_t r_fileSize() const noexcept; /**< return the size of the raw file */
 		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
+		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
 
 		/**
 		 * Parse the header of an encrypted file, check everything seems correct
@@ -115,8 +115,7 @@ class VfsEncryption {
 		 *
 		 * @throw a EVfsException if something goes wrong
 		 **/
-		void writeHeader() const;
-
+		void writeHeader();
 
 	public:
 		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
@@ -184,6 +183,12 @@ class VfsEncryption {
 		 * A file holds a maximum of 2^32-1 chunks. 16 bytes chunks - not recommended smallest admissible value - limit the file size to 64GB
 		 */
 		void chunkSize_set(const size_t size);
+
+		/**
+		 * Get raw header: encryption module might check integrity on header
+		 * This function returns the raw header, without the encryption module part
+		 */
+		const std::vector<uint8_t>& r_getHeader() const noexcept;
 
 
 };

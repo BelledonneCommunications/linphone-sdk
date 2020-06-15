@@ -46,11 +46,11 @@ class VfsEncryptionModule {
 		/**
 		 * Set in the module the data stored in the file header
 		 */
-		virtual void setModuleFileHeader(std::vector<uint8_t> &fileHeader) = 0;
+		virtual void setModuleFileHeader(const std::vector<uint8_t> &fileHeader) = 0;
 		/**
 		 * Get from the module the data to store in the file header
 		 */
-		virtual std::vector<uint8_t> getModuleFileHeader() const noexcept = 0;
+		virtual const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const noexcept = 0;
 
 		/**
 		 * Set in the module, the secret material used for encryption
@@ -67,14 +67,14 @@ class VfsEncryptionModule {
 		 * @param[in] a vector which size shall be chunkHeaderSize + chunkSize holding the raw data read from disk
 		 * @return the decrypted data chunk
 		 */
-		virtual std::vector<uint8_t> decryptChunk(const std::vector<uint8_t> &rawChunk) = 0;
+		virtual std::vector<uint8_t> decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) = 0;
 
 		/**
 		 * ReEncrypt a data chunk
 		 * @param[in/out] rawChunk	The existing encrypted chunk
 		 * @param[in]     plainData	The plain text to be encrypted
 		 */
-		virtual void encryptChunk(std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) = 0;
+		virtual void encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) = 0;
 		/**
 		 * Encrypt a new data chunk
 		 * @param[in]	chunkIndex	The chunk index
