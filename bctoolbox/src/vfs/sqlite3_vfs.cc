@@ -37,6 +37,7 @@ static int sqlite3bctbx_Close(sqlite3_file *p){
 	sqlite3_bctbx_file_t *pFile = (sqlite3_bctbx_file_t*) p;
 
 	ret = bctbx_file_close(pFile->pbctbx_file);
+	bctbx_free(pFile->filename);
 	if (!ret){
 		return SQLITE_OK;
 	}
@@ -266,7 +267,7 @@ static  int sqlite3bctbx_Open(sqlite3_vfs *pVfs, const char *fName, sqlite3_file
 
 
 	sqlite3_bctbx_file_t * pFile = (sqlite3_bctbx_file_t*)p; /*File handle sqlite3_bctbx_file_t*/
-	pFile->filename = strdup(fName);
+	pFile->filename = bctbx_strdup(fName);
 	int openFlags = 0;
 	char* wFname;
 
@@ -289,6 +290,7 @@ static  int sqlite3bctbx_Open(sqlite3_vfs *pVfs, const char *fName, sqlite3_file
 		pFile->pbctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), wFname, openFlags);
 		bctbx_free(wFname);
 	} else {
+		bctbx_free(pFile->filename);
 		pFile->pbctbx_file = NULL;
 	}
 

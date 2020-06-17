@@ -751,7 +751,13 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 			return BCTBX_VFS_ERROR;
 		}
 
-		/* encrypted vfs encapsulates the standard one, open the file with it */
+		// encrypted vfs encapsulates the standard one, open the file with it
+		// File cannot be writeonly as write operation may imply read/decrypt/write
+		if ((openFlags&O_ACCMODE) == O_WRONLY) {
+			openFlags &=~O_ACCMODE;
+			openFlags |=O_RDWR;
+		}
+
 		bctbx_vfs_file_t *stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
 		if (stdFp == NULL) return BCTBX_VFS_ERROR;
 
