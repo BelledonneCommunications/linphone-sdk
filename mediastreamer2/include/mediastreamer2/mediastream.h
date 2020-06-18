@@ -158,6 +158,7 @@ struct _MediaStream {
 	MSFactory *factory;
 	MSBandwidthController *bandwidth_controller;
 	MSVideoQualityController *video_quality_controller;
+	MediaStreamDir direction;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -299,6 +300,10 @@ MS2_PUBLIC void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStream
 
 
 MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
+
+MS2_PUBLIC void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir);
+
+MS2_PUBLIC MediaStreamDir media_stream_get_direction(const MediaStream *stream);
 
 /**
  * Returns TRUE if stream was still actively receiving packets (RTP or RTCP) in the last period specified in timeout_seconds.
@@ -862,7 +867,7 @@ struct _VideoStream
 	char *display_name;
 	void *window_id;
 	void *preview_window_id;
-	MediaStreamDir dir;
+	MediaStreamDir dir; /* Not used anymore, see direction in MediaStream */
 	MSRect decode_rect; //Used for the qrcode decoder
 	MSWebCam *cam;
 	RtpSession *rtp_io_session; /**< The RTP session used for RTP input/output. */
@@ -906,7 +911,11 @@ MS2_PUBLIC VideoStream *video_stream_new(MSFactory* factory, int loc_rtp_port, i
 MS2_PUBLIC VideoStream *video_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_port, int loc_rtcp_port);
 
 MS2_PUBLIC VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStreamSessions *sessions);
-MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir);
+
+/** 
+ * Use media_stream_set_direction() instead 
+ **/
+MS2_DEPRECATED MS2_PUBLIC void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir);
 static MS2_INLINE void video_stream_enable_adaptive_bitrate_control(VideoStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_bitrate_control(&stream->ms, enabled);
 }
@@ -1106,7 +1115,7 @@ MS2_PUBLIC void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yes
  */
 MS2_PUBLIC int video_stream_get_camera_sensor_rotation(VideoStream *stream);
 
-/*provided for compatibility, use video_stream_set_direction() instead */
+/*provided for compatibility, use media_stream_set_direction() instead */
 MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
 MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
 				RtpProfile *profile, const char *addr, int port, int rtcp_port,

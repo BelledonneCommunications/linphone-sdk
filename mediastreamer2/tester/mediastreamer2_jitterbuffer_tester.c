@@ -216,7 +216,7 @@ static void pcap_tester_streams_start(const PcapTesterContext *params,
 #ifdef VIDEO_ENABLED
 		JBParameters video_params;
 		receiverv = video_stream_new(_factory, video_to_port, 0, FALSE);
-		video_stream_set_direction(receiverv, MediaStreamRecvOnly);
+		media_stream_set_direction(&receiverv->ms, MediaStreamRecvOnly);
 		//video_stream_set_display_filter_name(receiverv, "MSGLXVideo");
 		rtp_session_enable_avpf_feature(receiverv->ms.sessions.rtp_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 		rtp_session_enable_congestion_detection(receiverv->ms.sessions.rtp_session, params->enable_congestion_detection);

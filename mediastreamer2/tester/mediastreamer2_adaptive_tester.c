@@ -265,7 +265,7 @@ void start_adaptive_stream(MSFormatType type, stream_manager_t ** pmarielle, str
 		OrtpVideoBandwidthEstimatorParams params = {0};
 		marielle->video_stream->staticimage_webcam_fps_optimization = FALSE;
 		video_manager_start(marielle,payload,margaux->local_rtp,0,marielle_webcam);
-		video_stream_set_direction(margaux->video_stream, MediaStreamRecvOnly);
+		media_stream_set_direction(&margaux->video_stream->ms, MediaStreamRecvOnly);
 		ms_bandwidth_controller_add_stream(margaux->bw_controller, margaux_video_stream);
 		params.packet_count_min = 5;
 		params.packets_size_max = 5;

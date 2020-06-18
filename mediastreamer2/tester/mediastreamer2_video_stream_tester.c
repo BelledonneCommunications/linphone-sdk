@@ -365,7 +365,7 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 	}
 
 	if (one_way == TRUE) {
-		video_stream_set_direction(vst1->vs, MediaStreamRecvOnly);
+		media_stream_set_direction(&vst1->vs->ms, MediaStreamRecvOnly);
 	}
 
 	if (nack == TRUE) {

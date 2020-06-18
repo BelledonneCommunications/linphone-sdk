@@ -373,6 +373,14 @@ static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t cur
 	}while(rtcp_next_packet(m));
 }
 
+void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir) {
+	stream->direction = dir;
+}
+
+MediaStreamDir media_stream_get_direction(const MediaStream *stream) {
+	return stream->direction;
+}
+
 void media_stream_iterate(MediaStream *stream){
 	time_t curtime=ms_time(NULL);
 
@@ -383,7 +391,11 @@ void media_stream_iterate(MediaStream *stream){
 			rtp_session_set_rtcp_report_interval(stream->sessions.rtp_session,5000);
 			stream->is_beginning=FALSE;
 		}
-		if (stream->qi && curtime>stream->last_iterate_time) ms_quality_indicator_update_local(stream->qi);
+		if (stream->qi && curtime>stream->last_iterate_time) {
+			if (stream->direction != MediaStreamSendOnly) { // Local quality indicator in send only will be wrong
+				ms_quality_indicator_update_local(stream->qi);
+			}
+		} 
 	}
 	stream->last_iterate_time=curtime;
 

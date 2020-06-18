@@ -425,6 +425,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->forced_fps=0;
 	stream->real_fps=0;
 	stream->dir=MediaStreamSendRecv;
+	media_stream_set_direction(&stream->ms, MediaStreamSendRecv);
 	stream->display_filter_auto_rotate_enabled=0;
 	stream->freeze_on_error = FALSE;
 	stream->source_performs_encoding = FALSE;
@@ -569,6 +570,7 @@ static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *even
 }
 
 void video_stream_set_direction(VideoStream *vs, MediaStreamDir dir){
+	media_stream_set_direction(&vs->ms, dir);
 	vs->dir=dir;
 }
 
@@ -892,7 +894,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 
 	if (!ms_media_stream_io_is_consistent(io)) return -1;
 
-	if (stream->dir != MediaStreamRecvOnly){
+	if (media_stream_get_direction(&stream->ms) != MediaStreamRecvOnly){
 		switch(io->input.type){
 			case MSResourceRtp:
 				stream->rtp_io_session = io->input.session;
@@ -923,7 +925,7 @@ int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const c
 			break;
 		}
 	}
-	if (stream->dir != MediaStreamSendOnly){
+	if (media_stream_get_direction(&stream->ms) != MediaStreamSendOnly){
 		switch (io->output.type){
 			case MSResourceRtp:
 				output = ms_factory_create_filter(stream->ms.factory, MS_RTP_SEND_ID);
@@ -1110,7 +1112,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
 
-	if (stream->dir==MediaStreamRecvOnly){
+	if (media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
 		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
 		MSConnectionHelper ch;
 		bool_t send_silence = FALSE;
@@ -1198,7 +1200,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	if (pt->normal_bitrate > 0) {
 		rtp_session_set_target_upload_bandwidth(stream->ms.sessions.rtp_session, pt->normal_bitrate);
 	}
-	if (stream->dir==MediaStreamSendRecv || stream->dir==MediaStreamRecvOnly){
+	if (media_stream_get_direction(&stream->ms) == MediaStreamSendRecv || media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
 		MSConnectionHelper ch;
 
 		if (!rtp_output) {
@@ -1331,7 +1333,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			}
 		}
 	}
-	if (stream->dir == MediaStreamSendOnly) {
+	if (media_stream_get_direction(&stream->ms) == MediaStreamSendOnly) {
 		stream->ms.rtprecv = ms_factory_create_filter(stream->ms.factory, MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_SET_SESSION, stream->ms.sessions.rtp_session);
 		stream->ms.voidsink = ms_factory_create_filter(stream->ms.factory, MS_VOID_SINK_ID);
@@ -2092,14 +2094,14 @@ void video_preview_update_video_params(VideoPreview *stream) {
 
 
 int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp){
-	video_stream_set_direction(videostream, MediaStreamRecvOnly);
+	media_stream_set_direction(&videostream->ms, MediaStreamRecvOnly);
 	return video_stream_start(videostream,profile,addr,port,addr,port+1,used_pt,jitt_comp,NULL);
 }
 
 int video_stream_send_only_start(VideoStream *videostream,
 				RtpProfile *profile, const char *addr, int port, int rtcp_port,
 				int used_pt, int  jitt_comp, MSWebCam *device){
-	video_stream_set_direction (videostream, MediaStreamSendOnly);
+	media_stream_set_direction(&videostream->ms, MediaStreamSendOnly);
 	return video_stream_start(videostream,profile,addr,port,addr,rtcp_port,used_pt,jitt_comp,device);
 }
 

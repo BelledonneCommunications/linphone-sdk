@@ -1530,6 +1530,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	}
 
 	stream->ms.type = MSAudio;
+	media_stream_set_direction(&stream->ms, MediaStreamSendRecv);
 	media_stream_init(&stream->ms,factory, sessions);
 
 	ms_factory_enable_statistics(factory, TRUE);
