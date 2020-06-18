@@ -500,6 +500,19 @@ static int player_get_current_position(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int player_seek_position(MSFilter *f, void *arg) {
+	PlayerData *d = (PlayerData*)f->data;
+	int target_position_ms = *((int *)arg);
+	ms_filter_lock(f);
+	if (d->reader) {
+		d->current_pos_bytes = (uint64_t)(target_position_ms * (uint64_t) d->rate * d->samplesize * d->nchannels) / 1000LL;
+		off_t seek = (off_t)(d->hsize + d->current_pos_bytes);
+		ms_async_reader_seek(d->reader, seek);
+	}
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static MSFilterMethod player_methods[]={
 	{	MS_FILE_PLAYER_OPEN,	player_open	},
 	{	MS_FILE_PLAYER_START,	player_start	},
@@ -512,6 +525,7 @@ static MSFilterMethod player_methods[]={
 	{	MS_FILE_PLAYER_DONE,	player_eof	},
 	{	MS_PLAYER_GET_DURATION, player_get_duration },
 	{	MS_PLAYER_GET_CURRENT_POSITION, player_get_current_position },
+	{	MS_PLAYER_SEEK_MS, player_seek_position },
 	/* this wav file player implements the MSFilterPlayerInterface*/
 	{ MS_PLAYER_OPEN , player_open },
 	{ MS_PLAYER_START , player_start },
