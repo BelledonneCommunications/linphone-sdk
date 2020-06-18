@@ -104,6 +104,7 @@ job-ios-xcode:
       - $NIGHTLY_MASTER
       - $DEPLOY_RUN_IOS
       - $NIGHTLY_RELEASE
+      - $ENABLE_IOS_TESTS
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -127,7 +128,7 @@ test-liblinphone-ios:
 
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $ENABLE_IOS_TESTS
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"

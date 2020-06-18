@@ -109,7 +109,7 @@ test-linphone-macosx:
     - job-macosx-ninja
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $ENABLE_MACOSX_TESTS
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
