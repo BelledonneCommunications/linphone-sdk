@@ -22,12 +22,17 @@
 #endif
 
 #include <stdio.h>
+#include <cmath>
 #include "bctoolbox_tester.h"
 #include "bctoolbox/crypto.h"
+#include "bctoolbox/crypto.hh"
+#include "bctoolbox/exception.hh"
 #ifdef HAVE_MBEDTLS
 /* used to cross test ECDH25519 */
 #include "mbedtls/ecdh.h"
 #endif /* HAVE_MBEDTLS */
+
+using namespace bctoolbox;
 
 static void DHM(void) {
 
@@ -367,9 +372,9 @@ static void ECDH25519compat(void) {
 #endif /* HAVE_MBEDTLS */
 }
 
-static char *importantMessage1 = "The most obvious mechanical phenomenon in electrical and magnetical experiments is the mutual action by which bodies in certain states set each other in motion while still at a sensible distance from each other. The first step, therefore, in reducing these phenomena into scientific form, is to ascertain the magnitude and direction of the force acting between the bodies, and when it is found that this force depends in a certain way upon the relative position of the bodies and on their electric or magnetic condition, it seems at first sight natural to explain the facts by assuming the existence of something either at rest or in motion in each body, constituting its electric or magnetic state, and capable of acting at a distance according to mathematical laws.In this way mathematical theories of statical electricity, of magnetism, of the mechanical action between conductors carrying currents, and of the induction of currents have been formed. In these theories the force acting between the two bodies is treated with reference only to the condition of the bodies and their relative position, and without any express consideration of the surrounding medium. These theories assume, more or less explicitly, the existence of substances the particles of which have the property of acting on one another at a distance by attraction or repulsion. The most complete development of a theory of this kind is that of M.W. Weber[1], who has made the same theory include electrostatic and electromagnetic phenomena. In doing so, however, he has found it necessary to assume that the force between two particles depends on their relative velocity, as well as on their distance. This theory, as developed by MM. W. Weber and C. Neumann[2], is exceedingly ingenious, and wonderfully comprehensive in its application to the phenomena of statical electricity, electromagnetic attractions, induction of current and diamagnetic phenomena; and it comes to us with the more authority, as it has served to guide the speculations of one who has made so great an advance in the practical part of electric science, both by introducing a consistent system of units in electrical measurement, and by actually determining electrical quantities with an accuracy hitherto unknown.";
+static char const *importantMessage1 = "The most obvious mechanical phenomenon in electrical and magnetical experiments is the mutual action by which bodies in certain states set each other in motion while still at a sensible distance from each other. The first step, therefore, in reducing these phenomena into scientific form, is to ascertain the magnitude and direction of the force acting between the bodies, and when it is found that this force depends in a certain way upon the relative position of the bodies and on their electric or magnetic condition, it seems at first sight natural to explain the facts by assuming the existence of something either at rest or in motion in each body, constituting its electric or magnetic state, and capable of acting at a distance according to mathematical laws.In this way mathematical theories of statical electricity, of magnetism, of the mechanical action between conductors carrying currents, and of the induction of currents have been formed. In these theories the force acting between the two bodies is treated with reference only to the condition of the bodies and their relative position, and without any express consideration of the surrounding medium. These theories assume, more or less explicitly, the existence of substances the particles of which have the property of acting on one another at a distance by attraction or repulsion. The most complete development of a theory of this kind is that of M.W. Weber[1], who has made the same theory include electrostatic and electromagnetic phenomena. In doing so, however, he has found it necessary to assume that the force between two particles depends on their relative velocity, as well as on their distance. This theory, as developed by MM. W. Weber and C. Neumann[2], is exceedingly ingenious, and wonderfully comprehensive in its application to the phenomena of statical electricity, electromagnetic attractions, induction of current and diamagnetic phenomena; and it comes to us with the more authority, as it has served to guide the speculations of one who has made so great an advance in the practical part of electric science, both by introducing a consistent system of units in electrical measurement, and by actually determining electrical quantities with an accuracy hitherto unknown.";
 
-static char *importantMessage2 = " The mechanical difficulties, however, which are involved in the assumption of particles acting at a distance with forces which depend on their velocities are such as to prevent me from considering this theory as an ultimate one though it may have been, and may yet be useful in leading to the coordination of phenomena. I have therefore preferred to seek an explanation of the fact in another direction, by supposing them to be produced by actions which go on in the surrounding medium as well as in the excited bodies, and endeavouring to explain the action between distant bodies without assuming the existence of forces capable of acting directly at sensible distances.";
+static char const *importantMessage2 = " The mechanical difficulties, however, which are involved in the assumption of particles acting at a distance with forces which depend on their velocities are such as to prevent me from considering this theory as an ultimate one though it may have been, and may yet be useful in leading to the coordination of phenomena. I have therefore preferred to seek an explanation of the fact in another direction, by supposing them to be produced by actions which go on in the surrounding medium as well as in the excited bodies, and endeavouring to explain the action between distant bodies without assuming the existence of forces capable of acting directly at sensible distances.";
 
 static void EdDSA(void) {
 	int i;
@@ -548,7 +553,7 @@ static void sign_and_key_exchange(void) {
 
 static void hash_test(void) {
 	/* SHA patterns */
-	char *sha_input = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+	char const *sha_input = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
 
 	uint8_t sha256_pattern[] = {0xcf, 0x5b, 0x16, 0xa7, 0x78, 0xaf, 0x83, 0x80, 0x03, 0x6c, 0xe5, 0x9e, 0x7b, 0x04, 0x92, 0x37, 0x0b, 0x24, 0x9b, 0x11, 0xe8, 0xf0, 0x7a, 0x51, 0xaf, 0xac, 0x45, 0x03, 0x7a, 0xfe, 0xe9, 0xd1};
 	uint8_t sha384_pattern[] = {0x09, 0x33, 0x0c, 0x33, 0xf7, 0x11, 0x47, 0xe8, 0x3d, 0x19, 0x2f, 0xc7, 0x82, 0xcd, 0x1b, 0x47, 0x53, 0x11, 0x1b, 0x17, 0x3b, 0x3b, 0x05, 0xd2, 0x2f, 0xa0, 0x80, 0x86, 0xe3, 0xb0, 0xf7, 0x12, 0xfc, 0xc7, 0xc7, 0x1a, 0x55, 0x7e, 0x2d, 0xb9, 0x66, 0xc3, 0xe9, 0xfa, 0x91, 0x74, 0x60, 0x39};
@@ -583,6 +588,156 @@ static void hash_test(void) {
 
 }
 
+template <typename U>
+static void rng_stats_update(size_t &count, double &mean, double &m2, U r) noexcept {
+	count++;
+	double delta = r - mean;
+	mean += delta/count;
+	double delta2 = r - mean;
+	m2 += delta*delta2;
+}
+
+
+
+static void rng_test_32_args(size_t calls_nb) noexcept {
+	size_t stat_count = 0;
+	double stat_mean = 0;
+	double stat_m2 = 0;
+
+	try {
+		for (int i=0; i<calls_nb; i++) {
+			rng_stats_update(stat_count, stat_mean, stat_m2, bctoolbox::RNG::c_randomize());
+		}
+		// normalized mean shall be around 0.5
+		stat_mean /= std::pow(2,32)-1;
+		stat_m2 /= stat_count*std::pow(std::pow(2,32)-1,2);
+		if (stat_mean>1.1*0.5 || stat_mean<0.9*0.5) {
+			BCTBX_SLOGE<<"RNG mean value on uint32_t running "<<calls_nb<<" is " <<stat_mean;
+			BC_FAIL("RNG output mean out of expected values");
+		}
+		// normalised variance shall be around 1/12
+		if (stat_m2>1.1/12 || stat_m2<0.9/12) {
+			BCTBX_SLOGE<<"RNG variance value on uint32_t running "<<calls_nb<<" is " <<stat_m2;
+			BC_FAIL("RNG output variance out of expected values");
+		}
+	} catch (BctbxException const &e) {
+		BCTBX_SLOGE<<"static RNG test fail "<<e.str();
+		BC_FAIL("static RNG test fail");
+	}
+
+	stat_count = 0;
+	stat_mean = 0;
+	stat_m2 = 0;
+
+	try {
+		auto r = std::unique_ptr<bctoolbox::RNG>(new bctoolbox::RNG());
+
+		for (int i=0; i<calls_nb; i++) {
+			rng_stats_update(stat_count, stat_mean, stat_m2, r->randomize());
+		}
+		// normalized mean shall be around 0.5
+		stat_mean /= std::pow(2,32)-1;
+		stat_m2 /= stat_count*std::pow(std::pow(2,32)-1,2);
+		if (stat_mean>1.1*0.5 || stat_mean<0.9*0.5) {
+			BCTBX_SLOGE<<"RNG mean value on uint32_t running "<<calls_nb<<" is " <<stat_mean;
+			BC_FAIL("RNG output mean out of expected values");
+		}
+		// normalised variance shall be around 1/12
+		if (stat_m2>1.1/12 || stat_m2<0.9/12) {
+			BCTBX_SLOGE<<"RNG variance value on uint32_t running "<<calls_nb<<" is " <<stat_m2;
+			BC_FAIL("RNG output variance out of expected values");
+		}
+	} catch (BctbxException const &e) {
+		BCTBX_SLOGE<<"context RNG test fail "<<e.str();
+		BC_FAIL("context RNG test fail");
+	}
+}
+
+static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
+	uint8_t alea[1025];
+	size_t stat_count = 0;
+	double stat_mean = 0;
+	double stat_m2 = 0;
+
+	try {
+		for (int i=0; i<calls_nb; i++) {
+			bctoolbox::RNG::c_randomize(alea, buffer_size);
+			for (int j=0; j<buffer_size; j++) {
+				rng_stats_update(stat_count, stat_mean, stat_m2, alea[j]);
+			}
+		}
+		// normalized mean shall be around 0.5
+		stat_mean /= 255;
+		stat_m2 /= stat_count*255*255;
+		if (stat_mean>1.1*0.5 || stat_mean<0.9*0.5) {
+			BCTBX_SLOGE<<"RNG mean value on buffer size "<<buffer_size<<" running "<<calls_nb<<" is " <<stat_mean;
+			BC_FAIL("RNG output mean out of expected values");
+		}
+		// normalised variance shall be around 1/12
+		if (stat_m2>1.1/12 || stat_m2<0.9/12) {
+			BCTBX_SLOGE<<"RNG variance value on buffer size "<<buffer_size<<" running "<<calls_nb<<" is " <<stat_m2;
+			BC_FAIL("RNG output variance out of expected values");
+		}
+	} catch (BctbxException const &e) {
+		BCTBX_SLOGE<<"static RNG test fail "<<e.str();
+		BC_FAIL("static RNG test fail");
+	}
+
+	stat_count = 0;
+	stat_mean = 0;
+	stat_m2 = 0;
+
+	try {
+		auto r = std::unique_ptr<bctoolbox::RNG>(new bctoolbox::RNG());
+
+		for (int i=0; i<calls_nb; i++) {
+			r->randomize(alea, buffer_size);
+			for (int j=0; j<buffer_size; j++) {
+				rng_stats_update(stat_count, stat_mean, stat_m2, alea[j]);
+			}
+		}
+		// normalized mean shall be around 0.5
+		stat_mean /= 255;
+		stat_m2 /= stat_count*255*255;
+		if (stat_mean>1.1*0.5 || stat_mean<0.9*0.5) {
+			BCTBX_SLOGE<<"RNG mean value on buffer size "<<buffer_size<<" running "<<calls_nb<<" is " <<stat_mean;
+			BC_FAIL("RNG output mean out of expected values");
+		}
+		// normalised variance shall be around 1/12
+		if (stat_m2>1.1/12 || stat_m2<0.9/12) {
+			BCTBX_SLOGE<<"RNG variance value on buffer size "<<buffer_size<<" running "<<calls_nb<<" is " <<stat_m2;
+			BC_FAIL("RNG output variance out of expected values");
+		}
+	} catch (BctbxException const &e) {
+		BCTBX_SLOGE<<"context RNG test fail "<<e.str();
+		BC_FAIL("context RNG test fail");
+	}
+}
+static void rng_test(void) {
+	rng_test_args(4, 2048);
+	rng_test_args(32, 1024);
+	rng_test_args(64, 1024);
+	rng_test_args(128, 256);
+	rng_test_args(512, 64);
+	rng_test_args(1024, 32);
+	rng_test_32_args(500);
+	rng_test_32_args(1000);
+	rng_test_32_args(10000);
+
+	/* try to generate a very large buffer, we shall get an exception */
+	auto exceptionRaised = false;
+	try {
+		constexpr size_t buffer_size=50000;
+		uint8_t buffer[buffer_size];
+		bctoolbox::RNG::c_randomize(buffer, buffer_size);
+	} catch (BctbxException const &e) {
+		exceptionRaised = true;
+	}
+	if (exceptionRaised == false) {
+		BC_FAIL("No exception raised when trying to generate a huge amount of random data");
+	}
+}
+
 static test_t crypto_tests[] = {
 	TEST_NO_TAG("Diffie-Hellman Key exchange", DHM),
 	TEST_NO_TAG("Elliptic Curve Diffie-Hellman Key exchange", ECDH),
@@ -590,7 +745,8 @@ static test_t crypto_tests[] = {
 	TEST_NO_TAG("EdDSA sign and verify", EdDSA),
 	TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),
 	TEST_NO_TAG("Sign message and exchange key using the same base secret", sign_and_key_exchange),
-	TEST_NO_TAG("Hash functions", hash_test)
+	TEST_NO_TAG("Hash functions", hash_test),
+	TEST_NO_TAG("RNG", rng_test)
 };
 
 test_suite_t crypto_test_suite = {"Crypto", NULL, NULL, NULL, NULL,
