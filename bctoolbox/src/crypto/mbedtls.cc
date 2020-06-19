@@ -33,7 +33,6 @@
 
 #include "bctoolbox/crypto.hh"
 #include "bctoolbox/exception.hh"
-#include "bctoolbox/logging.h"
 
 
 namespace bctoolbox {
@@ -249,7 +248,6 @@ template <> bool AEAD_decrypt<AES256GCM128>(const std::array<uint8_t, AES256GCM1
 		const std::array<uint8_t, AES256GCM128::tagSize()> &tag, std::vector<uint8_t> &plain) {
 	mbedtls_gcm_context gcmContext;
 	mbedtls_gcm_init(&gcmContext);
-
 	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), key.size()*8); // key size in bits
 	if (ret != 0) {
 		mbedtls_gcm_free(&gcmContext);

@@ -21,6 +21,7 @@
 #include "bctoolbox/vfs_encrypted.hh"
 #include "bctoolbox/vfs_standard.h"
 #include "bctoolbox/logging.h"
+#include <fstream>
 
 using namespace bctoolbox;
 
@@ -54,6 +55,8 @@ static std::string suiteName(const bctoolbox::EncryptionSuite suite) {
 		      return "plain";
 		case bctoolbox::EncryptionSuite::dummy:
 		      return "dummy";
+		case bctoolbox::EncryptionSuite::aes256gcm128_sha256:
+		      return "aes256gcm128_sha256";
 		default:
 		      return "unknown";
 	}
@@ -73,11 +76,21 @@ static EncryptedVfsOpenCb set_plain_encryption_info([](VfsEncryption &settings) 
 	settings.encryptionSuite_set(EncryptionSuite::plain);
 });
 
+static EncryptedVfsOpenCb set_aes256_encryption_info([](VfsEncryption &settings) {
+	BCTBX_SLOGD<<"JOHAN: AES256 encryption info callback in file is "<<settings.filename_get();
+	const std::vector<uint8_t> keyMaterial{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xf0,
+						0x11, 0x12, 0x13, 0x54, 0x55, 0x56, 0xa7, 0xa8, 0xa9, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0xef};
+	settings.encryptionSuite_set(EncryptionSuite::aes256gcm128_sha256);
+	settings.secretMaterial_set(keyMaterial);
+	settings.chunkSize_set(16);
+});
 
 static EncryptedVfsOpenCb set_encryption_info([](VfsEncryption &settings) {
 	auto filename = settings.filename_get();
 	if (filename.find("plain") != std::string::npos) {
 		set_plain_encryption_info(settings);
+	} else if (filename.find("aes256gcm128_sha256") != std::string::npos) {
+		set_aes256_encryption_info(settings);
 	} else { // default to dummy
 		set_dummy_encryption_info(settings);
 	}
@@ -270,10 +283,70 @@ void basic_encryption_test() {
 	basic_encryption_test(EncryptionSuite::dummy, true);
 	basic_encryption_test(EncryptionSuite::plain, false);
 	basic_encryption_test(EncryptionSuite::plain, true);
+	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, false);
+	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, true);
+}
+
+/**
+ * create an encrypted file,
+ * open it with regular API,
+ * modify header data,
+ * try to re-open it
+ */
+void auth_fail_test(bctoolbox::EncryptionSuite suite) {
+	/* get the encrypted file path */
+	char *path = bc_tester_file("auth_fail.");
+	std::string filePath{path};
+	filePath.append(suiteName(suite)).append(".evfs");
+	bctbx_free(path);
+
+	/* remove file if it was already there */
+	remove(filePath.data());
+
+	/* create the file */
+	bctbx_vfs_file_t *fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+
+	uint8_t readBuffer[1024];
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	/* Write something */
+	bctbx_file_write(fp, message, sizeof(message), 8);
+	/* close and re-open */
+	bctbx_file_close(fp);
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+	/* check we can read what we wrote*/
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), sizeof(message)+8, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, sizeof(message), 8), sizeof(message), ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, sizeof(message))==0);
+	memset(readBuffer, 0, sizeof(readBuffer));
+	/* close */
+	bctbx_file_close(fp);
+
+	/* now open directly the file, and modify one byte in the header */
+	std::fstream file(filePath, std::ios::out | std::ios::in | std::ios::binary);
+	file.seekg(30); // base header file is 29 bytes, at 30 we are in the integrity data of the encryption suite, change one byte
+	char tweakBuf[2];
+	file.read(tweakBuf, 1);
+	file.seekp(30);
+	tweakBuf[0] ^= 0xFF; // modify the byte read
+	file.write(tweakBuf, 1);
+	file.close();
+
+	/* reopen the file with the bctoolbox fvs API, it shall fail */
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+	BC_ASSERT_TRUE(fp==NULL);
+	if (fp!=NULL) {
+		bctbx_file_close(fp);
+	}
+}
+void auth_fail_test() {
+	auth_fail_test(EncryptionSuite::dummy);
+	auth_fail_test(EncryptionSuite::aes256gcm128_sha256);
 }
 
 static test_t encrypted_vfs_tests[] = {
-	TEST_NO_TAG("basic", basic_encryption_test)
+	TEST_NO_TAG("basic", basic_encryption_test),
+	TEST_NO_TAG("Authentication failure", auth_fail_test)
 };
 
 test_suite_t encrypted_vfs_test_suite = {"Encrypted vfs", NULL, NULL, NULL, NULL,

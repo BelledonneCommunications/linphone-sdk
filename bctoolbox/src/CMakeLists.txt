@@ -37,11 +37,13 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	utils/regex.cc
 	vfs/vfs_encrypted.cc
 	vfs/vfs_encryption_module_dummy.cc
+	vfs/vfs_encryption_module_aes256gcm_sha256.cc
 )
 
 set(BCTOOLBOX_PRIVATE_HEADER_FILES
 	vfs/vfs_encryption_module.hh
 	vfs/vfs_encryption_module_dummy.hh
+	vfs/vfs_encryption_module_aes256gcm_sha256.hh
 )
 
 if(APPLE)
