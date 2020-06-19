@@ -59,11 +59,15 @@ VfsEncryptionModuleDummy::VfsEncryptionModuleDummy() {
 	// this is a constant for the dummy suite to help debug, real module would do otherwise
 	// the fileHeader also holds a integrity part computed on the whole fileHeader in the get function
 	m_fileHeader = std::vector<uint8_t>{0xaa, 0x55, 0xbb, 0x44, 0xcc, 0x33, 0xdd, 0x22};
-	m_fileHeaderIntegrity = std::vector<uint8_t>(8);
+	m_fileHeaderIntegrity.resize(8);
 	m_secret = std::vector<uint8_t>{};
 }
 
-void VfsEncryptionModuleDummy::setModuleFileHeader(const std::vector<uint8_t> &fileHeader) {
+VfsEncryptionModuleDummy::VfsEncryptionModuleDummy(const std::vector<uint8_t> &fileHeader) {
+	m_secret = std::vector<uint8_t>{};
+	m_fileHeader.resize(8);
+	m_fileHeaderIntegrity.resize(8);
+
 	if (fileHeader.size() != fileHeaderSize) {
 		throw EVFS_EXCEPTION<<"The dummy encryption module expect a fileHeader of size "<<fileHeaderSize<<" bytes but "<<fileHeader.size()<<" are provided";
 	}
@@ -72,7 +76,7 @@ void VfsEncryptionModuleDummy::setModuleFileHeader(const std::vector<uint8_t> &f
 	std::copy(fileHeader.cbegin()+8, fileHeader.cend(), m_fileHeader.begin());
 }
 
-const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const VfsEncryption &fileContext) const noexcept {
+const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const VfsEncryption &fileContext) const {
 	// Update the integrity on fileHeader
 	auto header = fileContext.r_getHeader();
 	// append the part of the module file header we want to authentify

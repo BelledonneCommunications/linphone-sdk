@@ -61,6 +61,7 @@ extern bctbx_vfs_t bcEncryptedVfs;
 enum class EncryptionSuite : uint16_t {
 	unset = 0,/**< no encryption suite selected */
 	dummy = 1, /**< a test suite, do not use other than for test */
+	aes256gcm_sha256 = 2, /**< This module encrypts blocks with AES256GCM and authenticate header using HMAC-sha256 */
 	plain = 0xFFFF /**< no encryption activated, direct use of standard file system API */
 };
 

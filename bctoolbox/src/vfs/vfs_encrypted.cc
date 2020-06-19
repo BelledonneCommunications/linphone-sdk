@@ -25,6 +25,7 @@
 #include "bctoolbox/vfs_encrypted.hh"
 #include "vfs_encryption_module.hh"
 #include "vfs_encryption_module_dummy.hh"
+#include "vfs_encryption_module_aes256gcm_sha256.hh"
 #include "bctoolbox/vfs_standard.h"
 #include "bctoolbox/logging.h"
 
@@ -49,17 +50,49 @@ static std::string getHex(const std::vector<uint8_t>& v)
 
 using namespace bctoolbox;
 
+/** Helpers function: this part of the code must be updated to add modules */
+static size_t moduleFileHeaderSize(const uint16_t suite) {
+	switch (suite) {
+		case static_cast<uint16_t>(EncryptionSuite::dummy):
+			return VfsEncryptionModuleDummy::moduleFileHeaderSize();
+		case static_cast<uint16_t>(EncryptionSuite::aes256gcm_sha256):
+			return VfsEM_AES256GCM_SHA256::moduleFileHeaderSize();
+		case static_cast<uint16_t>(EncryptionSuite::unset):
+		case static_cast<uint16_t>(EncryptionSuite::plain):
+		default:
+			return 0;
+	}
+}
+
+// is called at file creation when the encryption suite is set using encryptionSuite_set
 static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const EncryptionSuite suite) {
 	switch (suite) {
 		case EncryptionSuite::dummy:
 			return std::make_shared<VfsEncryptionModuleDummy>();
-			break;
+		case EncryptionSuite::aes256gcm_sha256:
+			return std::make_shared<VfsEM_AES256GCM_SHA256>();
 		case EncryptionSuite::plain:
-		case EncryptionSuite::unset:
 			return nullptr;
+		case EncryptionSuite::unset:
+		default:
+			throw EVFS_EXCEPTION<<"Encrypted FS: unsupported encryption scheme "<<static_cast<uint16_t>(suite);
 	}
-	return nullptr;
 }
+// is called when an encrypted file header is parsed
+static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const uint16_t suite, const std::vector<uint8_t> moduleFileHeader) {
+	switch (suite) {
+		/* all supported scheme must be listed here */
+		case static_cast<uint16_t>(EncryptionSuite::dummy):
+			return std::make_shared<VfsEncryptionModuleDummy>(moduleFileHeader);
+		case static_cast<uint16_t>(EncryptionSuite::aes256gcm_sha256):
+			return std::make_shared<VfsEM_AES256GCM_SHA256>(moduleFileHeader);
+		case static_cast<uint16_t>(EncryptionSuite::unset):
+		case static_cast<uint16_t>(EncryptionSuite::plain):
+		default:
+			throw EVFS_EXCEPTION<<"Encrypted FS: unsupported encryption scheme "<<suite;
+	}
+}
+
 /***************************************************/
 /* All file encryption scheme get a header:
  * - This part is fixed at file creation (or re-encoding)
@@ -296,15 +329,6 @@ void VfsEncryption::parseHeader() {
 
 	// get the encryption suite, check it is supported and instanciate the matching module
 	uint16_t encryptionSuite = r_header[index]<<8|r_header[index+1];
-	switch (encryptionSuite) {
-		/* all supported scheme must be listed here */
-		case static_cast<uint16_t>(EncryptionSuite::dummy):
-			m_module = make_VfsEncryptionModule(EncryptionSuite::dummy);
-			break;
-		case static_cast<uint16_t>(EncryptionSuite::unset):
-		default:
-			throw EVFS_EXCEPTION<<"Encrypted FS: unsupported encryption scheme "<<encryptionSuite;
-	}
 	index += 2;
 
 	// get chunk size, convert it in bytes
@@ -325,21 +349,25 @@ void VfsEncryption::parseHeader() {
 		| (static_cast<uint64_t>(r_header[index+6])<<8)
 		| static_cast<uint64_t>(r_header[index+7]);
 
-	// check file size match what we have :
-	if (r_fileSize() != fileSize) {
-		throw EVFS_EXCEPTION<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual filesize do not match this value";
-	}
 
 	// get the optional encryption scheme data if needed
-	size_t encryptionModuleDataSize = m_module->getModuleFileHeaderSize();
+	size_t encryptionModuleDataSize = moduleFileHeaderSize(encryptionSuite);
 
 	// read the data, the are at offset baseFileHeaderSize + m_headerExtensionSize
+	auto encryptionSuiteData = std::vector<uint8_t>(encryptionModuleDataSize);
 	if (encryptionModuleDataSize != 0) {
-		auto encryptionSuiteData = std::vector<uint8_t>(encryptionModuleDataSize);
 		if (bctbx_file_read(pFileStd, encryptionSuiteData.data(), encryptionModuleDataSize, baseFileHeaderSize+m_headerExtensionSize) - encryptionModuleDataSize != 0) {
 			throw EVFS_EXCEPTION<<"Encrypted FS: unable to read encryption scheme data in file header";
 		}
-		m_module->setModuleFileHeader(encryptionSuiteData);
+	}
+
+	// instanciate the encryption module
+	m_module = make_VfsEncryptionModule(encryptionSuite, encryptionSuiteData);
+
+	// check file size match what we have :
+	// TODO: If they do not match, check all chunks integrity and update ? Recovery from failure between write and header update at last write/truncate
+	if (r_fileSize() != fileSize) {
+		throw EVFS_EXCEPTION<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual filesize do not match this value";
 	}
 }
 

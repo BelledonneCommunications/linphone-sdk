@@ -27,8 +27,6 @@ namespace bctoolbox {
  * Define the interface any encryption suite must provide
  */
 class VfsEncryptionModule {
-	private:
-
 	public:
 		/**
 		 * @return the size in bytes of the chunk header
@@ -44,13 +42,9 @@ class VfsEncryptionModule {
 		virtual EncryptionSuite getEncryptionSuite() const noexcept = 0;
 
 		/**
-		 * Set in the module the data stored in the file header
-		 */
-		virtual void setModuleFileHeader(const std::vector<uint8_t> &fileHeader) = 0;
-		/**
 		 * Get from the module the data to store in the file header
 		 */
-		virtual const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const noexcept = 0;
+		virtual const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const = 0;
 
 		/**
 		 * Set in the module, the secret material used for encryption

@@ -23,9 +23,6 @@
 #include "vfs_encryption_module.hh"
 
 namespace bctoolbox {
-/**
- * Define the interface any encryption suite must provide
- */
 /* implementation note static polymorphism using recurring template */
 class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 	private:
@@ -77,6 +74,12 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		std::vector<uint8_t> globalIV() const;
 	public:
 		/**
+		 * @return the size in bytes of file header module data
+		 */
+		static constexpr size_t moduleFileHeaderSize() noexcept{
+			return fileHeaderSize;
+		}
+		/**
 		 * @return the size in bytes of the chunk header
 		 */
 		size_t getChunkHeaderSize() const noexcept override {
@@ -112,8 +115,7 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		void encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) override;
 		std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) override;
 
-		void setModuleFileHeader(const std::vector<uint8_t> &fileHeader) override ;
-		const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const noexcept override ;
+		const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const override ;
 
 		void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override ;
 
@@ -126,7 +128,14 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		bool checkIntegrity(const VfsEncryption &fileContext) override;
 
 
+		/**
+		 * constructors
+		 */
+		// At file creation
 		VfsEncryptionModuleDummy();
+		// Opening an existing file
+		VfsEncryptionModuleDummy(const std::vector<uint8_t> &moduleFileHeader);
+
 		~VfsEncryptionModuleDummy() {};
 };
 
