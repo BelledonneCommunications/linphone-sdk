@@ -3,11 +3,13 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_centos7: &docker_image_platform_and_runner_tag
+.factorize_centos7: &docker_image_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 
 
@@ -65,7 +67,7 @@ test-bctoolbox-centos7:
   extends: .test-bctoolbox
   dependencies:
     - job-centos7-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-bellesip-centos7:
   extends: .test-bellesip
@@ -76,25 +78,26 @@ test-bellesip-centos7:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-belr-centos7:
   extends: .test-belr
   dependencies:
     - job-centos7-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-belcard-centos7:
   extends: .test-belcard
   dependencies:
     - job-centos7-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
   dependencies:
     - job-centos7-ninja-gcc
-  tags: [ "docker-test" ]
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-mediastreamer-centos7:
   tags: [ "docker-test-liblinphone" ]
@@ -110,6 +113,8 @@ test-mediastreamer-centos7:
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 
 .test-liblinphone-centos7:
@@ -119,6 +124,8 @@ test-mediastreamer-centos7:
     - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
