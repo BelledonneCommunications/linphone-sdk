@@ -1,3 +1,22 @@
+<<<<<<< HEAD
+=======
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_centos7: &docker_image_platform_runner_tag_dev_toolset
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  variables:
+    PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
+
+
+
+
+>>>>>>> a1e8239... enabled dev-toolset in all centos7 tester jobs to avoid conflict between standard centos7 gdb and recent gcc
 #################################################
 # Makefile
 #################################################
@@ -95,6 +114,8 @@ test-bctoolbox-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-bellesip-centos7:
   extends: .test-bellesip
@@ -103,6 +124,8 @@ test-bellesip-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-belr-centos7:
   extends: .test-belr
@@ -111,6 +134,8 @@ test-belr-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-belcard-centos7:
   extends: .test-belcard
@@ -119,6 +144,8 @@ test-belcard-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
@@ -127,6 +154,8 @@ test-bzrtp-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-mediastreamer-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
@@ -141,6 +170,8 @@ test-mediastreamer-centos7:
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 
 .test-liblinphone-centos7:
@@ -150,6 +181,8 @@ test-mediastreamer-centos7:
     - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
