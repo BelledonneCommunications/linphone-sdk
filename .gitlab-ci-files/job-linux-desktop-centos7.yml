@@ -95,6 +95,8 @@ test-bctoolbox-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-bellesip-centos7:
   extends: .test-bellesip
@@ -103,6 +105,8 @@ test-bellesip-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-belr-centos7:
   extends: .test-belr
@@ -111,6 +115,8 @@ test-belr-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-belcard-centos7:
   extends: .test-belcard
@@ -119,6 +125,8 @@ test-belcard-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
@@ -127,6 +135,8 @@ test-bzrtp-centos7:
   tags: [ "docker-test-centos7-nuc" ]
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-mediastreamer-centos7:
   tags: [ "docker-test-centos7-liblinphone-nuc" ]
@@ -141,6 +151,8 @@ test-mediastreamer-centos7:
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 
 .test-liblinphone-centos7:
@@ -150,6 +162,8 @@ test-mediastreamer-centos7:
     - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 test-liblinphone-centos7-schedule:
   extends: .test-liblinphone-centos7
