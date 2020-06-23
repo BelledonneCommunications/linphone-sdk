@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This changelog file keeps track of changes made to the linphone-sdk project, which is a only an unbrella project
 that bundles liblinphone and its dependencies as git submodules.
-Please refer to CHANGELOG.md files of submodules (mainly: liblinphone, mediastreamer2, ortp) for the actual
-changes made to these components.
+Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
+changes made to these components.__
 
 ## [Unreleased]
 
@@ -17,6 +17,11 @@ changes made to these components.
 - Windows Store compatibility
 - Audio routes API for Android & iOS
 - Core now automatically handles certain tasks for Android & iOS (see liblinphone changelog)
+
+## [4.4.0] 2020-06-16
+
+### Added
+- Windows Store compatibility
 
 ### Changed
 - liblinphone is now placed into the *liblinphone* directory, naturally.

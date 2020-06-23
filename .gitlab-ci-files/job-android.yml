@@ -60,6 +60,7 @@ job-android-makefile-r17c-no-java-wrapper:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_OPTIONS: -DENABLE_JAVA_WRAPPER=NO
@@ -69,6 +70,7 @@ job-android-makefile-r17c-minimal-size:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_ANDROID
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
@@ -86,6 +88,7 @@ job-android-ninja-r17c-no-video:
   only:
     variables:
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_GENERATOR: Ninja
