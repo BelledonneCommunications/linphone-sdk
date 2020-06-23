@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <functional>
 #include "bctoolbox/crypto.hh"
+#include "bctoolbox/crypto.h" // bctbx_clean
 
 #include "bctoolbox/logging.h"
 using namespace bctoolbox;
@@ -43,6 +44,12 @@ VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256(const std::vector<uint8_t> &fileH
 	// File header Data is 32 bytes of integrity data, 16 bytes of global salt
 	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+fileAuthTagSize, m_fileHeaderIntegrity.begin());
 	std::copy(fileHeader.cbegin()+fileAuthTagSize, fileHeader.cend(), m_fileSalt.begin());
+}
+
+/** destructor ensure proper cleaning of any key material **/
+VfsEM_AES256GCM_SHA256::~VfsEM_AES256GCM_SHA256() {
+	bctbx_clean(s_masterKey.data(), s_masterKey.size());
+	bctbx_clean(s_fileHeaderHMACKey.data(), s_fileHeaderHMACKey.size());
 }
 
 const std::vector<uint8_t> VfsEM_AES256GCM_SHA256::getModuleFileHeader(const VfsEncryption &fileContext) const {
@@ -112,6 +119,9 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 		throw EVFS_EXCEPTION<<"Authentication failure during chunk decryption";
 	}
 
+	// cleaning
+	bctbx_clean(key.data(), key.size());
+
 	return plain;
 }
 
@@ -140,9 +150,11 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 	std::vector<uint8_t> chunkHeader(chunkHeaderSize,0);
 	std::copy(tag.cbegin(), tag.cend(), chunkHeader.begin());
 	std::copy(IV.cbegin(), IV.cend(), chunkHeader.begin()+tag.size());
-
-
 	rawChunk.insert(rawChunk.begin(), chunkHeader.cbegin(), chunkHeader.cend());
+
+	// cleaning
+	bctbx_clean(key.data(), key.size());
+
 	return rawChunk;
 }
 

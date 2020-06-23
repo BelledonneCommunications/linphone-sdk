@@ -153,7 +153,7 @@ class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 		// Opening an existing file
 		VfsEM_AES256GCM_SHA256(const std::vector<uint8_t> &fileHeader);
 
-		~VfsEM_AES256GCM_SHA256() {};
+		~VfsEM_AES256GCM_SHA256();
 };
 
 } // namespace bctoolbox
