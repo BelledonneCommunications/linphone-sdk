@@ -65,6 +65,13 @@ enum class EncryptionSuite : uint16_t {
 	plain = 0xFFFF /**< no encryption activated, direct use of standard file system API */
 };
 
+/**
+ * Helper function returning a string holding the suite name
+ * @param[in]	suite	the encryption suite as a c++ enum
+ * @return the suite name in a readable string
+ */
+const std::string encryptionSuiteString(const EncryptionSuite suite) noexcept;
+
 /* complete declaration follows, we need this one to define the callback type */
 class VfsEncryption;
 
@@ -78,7 +85,6 @@ using EncryptedVfsOpenCb = std::function<void(VfsEncryption &settings)>;
 class VfsEncryptionModule;
 /** Store in the bctbx_vfs_file_t userData field an object specific to encryption */
 class VfsEncryption {
-	friend class VfsEncryptionModule;
 	/* Class properties and method */
 	private:
 		static EncryptedVfsOpenCb s_openCallback; /**< a class callback to get secret material at file opening. Implemented as static as it is called by constructor */
@@ -103,6 +109,7 @@ class VfsEncryption {
 		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
+		bool m_encryptExistingPlainFile; /**< when opening a plain file, if the callback set an encryption suite and key material : migrate the file */
 
 		/**
 		 * Parse the header of an encrypted file, check everything seems correct
@@ -114,10 +121,11 @@ class VfsEncryption {
 		/**
 		 * Write the encrypted file header to the actual file
 		 * Create the needed structures if the file is actually empty
+		 * @param[in] fp	if a file pointer is given write to this one, otherwise use the pFileStp property
 		 *
 		 * @throw a EVfsException if something goes wrong
 		 **/
-		void writeHeader();
+		void writeHeader(bctbx_vfs_file_t *fp=nullptr);
 
 	public:
 		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */

@@ -28,6 +28,7 @@
 #include "vfs_encryption_module_aes256gcm_sha256.hh"
 #include "bctoolbox/vfs_standard.h"
 #include "bctoolbox/logging.h"
+#include <cstdio>
 
 
 using namespace bctoolbox;
@@ -74,7 +75,21 @@ static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const uint1
 			throw EVFS_EXCEPTION<<"Encrypted FS: unsupported encryption scheme "<<suite;
 	}
 }
-
+// get a readable name of the suite
+const std::string bctoolbox::encryptionSuiteString(const EncryptionSuite suite) noexcept {
+	switch (suite) {
+		case EncryptionSuite::dummy:
+			return "dummy";
+		case EncryptionSuite::aes256gcm128_sha256:
+			return "AES256GCM_SHA256";
+		case EncryptionSuite::plain:
+			return "plain";
+		case EncryptionSuite::unset:
+			return "unset";
+		default:
+			return "unknown";
+	}
+}
 /***************************************************/
 /* All file encryption scheme get a header:
  * - This part is fixed at file creation (or re-encoding)
@@ -96,25 +111,25 @@ static constexpr int64_t baseFileHeaderSize=29;
 
 static constexpr size_t defaultChunkSize = 4096; // default chunk size in bytes
 
-
 /**
  * Initialiase the static callback property
  */
 EncryptedVfsOpenCb VfsEncryption::s_openCallback = nullptr;
 
-VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename) : m_filename(filename), pFileStd(stdFp) {
+VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename) :
+	m_versionNumber(BcEncFS_v0100),  // default version number is the current one
+	m_chunkSize(0), // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
+	m_module(nullptr), // encryption module is set by callback or when parsing the header
+	m_headerExtensionSize(0),
+	m_filename(filename),
+	m_fileSize(0),
+	m_encryptExistingPlainFile(false),
+	pFileStd(stdFp) {
 
 	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null";
-	/* initialise it */
-	m_versionNumber = BcEncFS_v0100; // default version number is the last available
-	m_chunkSize = 0; // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
-	m_module = nullptr;
-	m_headerExtensionSize = 0;
-	m_fileSize = 0;
-
 
 	// If the file exists, read the header to check it is an encrypted file and gets its encrypted policy
-	// if the file is plain, set the m_fileSize
+	// if the file is plain, set the m_fileSize so then we now we already have a file but it is plain
 	bool createFile = true;
 	if (bctbx_file_size(stdFp) > 0) {
 		parseHeader();
@@ -128,7 +143,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 		throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
 	}
 
-	if (m_module == nullptr) { // this is a plain file, nothing else to do
+	if (m_module == nullptr) { // this is a plain file and we want to keep it this way
 		return;
 	}
 
@@ -137,10 +152,59 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 		m_chunkSize = defaultChunkSize; // assign the default one
 	}
 
-	/*  now we shall have all the material (settings and keys ) to check the file integrity */
-	if (m_fileSize > 0 ) { // this is not a file creation
-		if (m_module->checkIntegrity(*this) != true) {
-			throw EVFS_EXCEPTION<<"Integrity check fail while opening file "<<m_filename;
+	if (m_encryptExistingPlainFile == true) { // we have a plain file to encrypt
+		// create a temporary file
+		std::string tmpFilename(m_filename);
+		tmpFilename.append(".evfs_tmp");
+		// make sure this file does not exists
+		std::remove(tmpFilename.data());
+		auto stdFdTmp = bctbx_file_open2(bctbx_vfs_get_standard(), tmpFilename.data(), O_WRONLY|O_CREAT);
+		// read the whole file chunk by chunk and write their ciphertext to the temp file
+		char *readBuf = static_cast<char *>(bctbx_malloc(m_chunkSize));
+		uint64_t index = 0;
+
+		uint32_t currentChunkIndex = 0;
+		do {
+			// read
+			auto readSize = bctbx_file_read(pFileStd, readBuf, m_chunkSize, index);
+			if (readSize < 0) {
+				bctbx_file_close(stdFdTmp);
+				bctbx_free(readBuf);
+				throw EVFS_EXCEPTION<<"Unable to migrate plain file "<<m_filename<<". Could not read file";
+			}
+			index += readSize;
+			// encrypt
+			auto rawChunk = m_module->encryptChunk(currentChunkIndex, std::vector<uint8_t>(readBuf, readBuf+readSize));
+			// write
+			if (bctbx_file_write(stdFdTmp, rawChunk.data(), rawChunk.size(), getChunkOffset(currentChunkIndex)) - rawChunk.size() != 0 ){
+				bctbx_file_close(stdFdTmp);
+				bctbx_free(readBuf);
+				throw EVFS_EXCEPTION<<"Unable to migrate plain file "<<m_filename<<". Could not write to temporary file "<<tmpFilename;
+			}
+			currentChunkIndex++;
+		} while (index < m_fileSize); // compare signed and unsigned
+		bctbx_free(readBuf);
+
+		// write header and close
+		writeHeader(stdFdTmp);
+		bctbx_file_close(stdFdTmp);
+
+		// delete the original file
+		bctbx_file_close(pFileStd);
+		std::remove(m_filename.data());
+
+		// rename the temporary one
+		std::rename(tmpFilename.data(), m_filename.data());
+		m_encryptExistingPlainFile = false;
+
+		// and reopen it with the standard vfs
+		pFileStd = bctbx_file_open2(bctbx_vfs_get_standard(), m_filename.data(), O_RDWR|O_CREAT); // TODO: set opening flags to what they were
+
+	} else { // no migration but now we shall have all the material (settings and keys ) to check the file integrity
+		if (m_fileSize > 0 ) { // this is not a file creation
+			if (m_module->checkIntegrity(*this) != true) {
+				throw EVFS_EXCEPTION<<"Integrity check fail while opening file "<<m_filename;
+			}
 		}
 	}
 
@@ -221,7 +285,12 @@ void VfsEncryption::encryptionSuite_set(const EncryptionSuite suite) {
 		m_module = make_VfsEncryptionModule(suite);
 	} else { // file already exists (if m_filesize!=0 and m_module is nullptr, it is an existing plain file, the encryptionSuite_get would return plain)
 		if (encryptionSuite_get() != suite) {
-			throw EVFS_EXCEPTION << "Encryption suite for file "<<m_filename<<" is already set to "<<static_cast<uint16_t>(encryptionSuite_get())<<" but we're trying to set it to "<<static_cast<uint16_t>(suite);
+			if (encryptionSuite_get() == bctoolbox::EncryptionSuite::plain) { // we want to migrate a plain file to an encrypted one
+				m_encryptExistingPlainFile = true;
+				m_module = make_VfsEncryptionModule(suite);
+			} else {
+				throw EVFS_EXCEPTION << "Encryption suite for file "<<m_filename<<" is already set to "<<encryptionSuiteString(encryptionSuite_get())<<" but we're trying to set it to "<<encryptionSuiteString(suite);
+			}
 		}
 	}
 }
@@ -352,7 +421,7 @@ void VfsEncryption::parseHeader() {
 	}
 }
 
-void VfsEncryption::writeHeader() {
+void VfsEncryption::writeHeader(bctbx_vfs_file_t *fp) {
 	if (m_module == nullptr) {
 		throw EVFS_EXCEPTION<< "Encrypted VFS: cannot write file Header when no encryption module is selected";
 	}
@@ -395,8 +464,8 @@ void VfsEncryption::writeHeader() {
 	auto moduleFileHeader = m_module->getModuleFileHeader(*this);
 	header.insert(header.end(), moduleFileHeader.cbegin(), moduleFileHeader.cend());
 
-	// write header to file
-	ssize_t ret = bctbx_file_write(pFileStd, header.data(), header.size(), 0);
+	// write header to file (to the object file pointer if none is given as parameter)
+	ssize_t ret = bctbx_file_write((fp==nullptr)?pFileStd:fp, header.data(), header.size(), 0);
 	if (ret - header.size() != 0) { // cannot compare directly signed and unsigned...
 		throw EVFS_EXCEPTION<< "Encrypted VFS: something went wrong while writing file header. file_write returns "<<ret<<" but we expected "<< header.size();
 	}
@@ -759,7 +828,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 			openFlags |=O_RDWR;
 		}
 
-		stdFp = bctbx_file_open2(&bcStandardVfs, fName, openFlags);
+		stdFp = bctbx_file_open2(bctbx_vfs_get_standard(), fName, openFlags);
 		if (stdFp == NULL) return BCTBX_VFS_ERROR;
 
 		pFile->pMethods = &bcio;

@@ -44,23 +44,24 @@ static std::string getHex(const uint8_t *buf, size_t size) {
 	return getHex(std::vector<uint8_t>(buf, buf+size));
 }
 
-/**
- * Helper function : get encryptionSuite name
- */
-static std::string suiteName(const bctoolbox::EncryptionSuite suite) {
-	switch (suite) {
-		case bctoolbox::EncryptionSuite::unset:
-		      return "unset";
-		case bctoolbox::EncryptionSuite::plain:
-		      return "plain";
-		case bctoolbox::EncryptionSuite::dummy:
-		      return "dummy";
-		case bctoolbox::EncryptionSuite::aes256gcm128_sha256:
-		      return "aes256gcm128_sha256";
-		default:
-		      return "unknown";
+/* Helper function: is a file encrypted? Check it starts with the evfs magic number */
+static bool is_encrypted(const char *filepath) {
+	bool ret = false;
+	uint8_t evfs_magicNumber[13] = {0x62, 0x63, 0x45, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x65, 0x64, 0x46, 0x73};
+	std::ifstream file (filepath, std::ios::in | std::ios::binary);
+	if (file.is_open()) {
+		char readBuf[13];
+		file.seekg(0, std::ios::beg);
+		auto sizeRead = file.read(readBuf, 13).gcount();
+
+		if (sizeRead == 13) {
+			ret = std::equal(evfs_magicNumber, evfs_magicNumber+13, readBuf);
+		}
 	}
+	file.close();
+	return ret;
 }
+
 
 /* A callback to position the key material and algorithm suite to use */
 static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
@@ -87,12 +88,15 @@ static EncryptedVfsOpenCb set_aes256_encryption_info([](VfsEncryption &settings)
 
 static EncryptedVfsOpenCb set_encryption_info([](VfsEncryption &settings) {
 	auto filename = settings.filename_get();
-	if (filename.find("plain") != std::string::npos) {
+
+	if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::plain)) != std::string::npos) {
 		set_plain_encryption_info(settings);
-	} else if (filename.find("aes256gcm128_sha256") != std::string::npos) {
+	} else if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::aes256gcm128_sha256)) != std::string::npos) {
 		set_aes256_encryption_info(settings);
-	} else { // default to dummy
+	} else if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::dummy)) != std::string::npos) {
 		set_dummy_encryption_info(settings);
+	} else {
+		throw BCTBX_EXCEPTION<<"Try to set unknown encryption suite";
 	}
 });
 /* a message to write in files */
@@ -125,7 +129,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 	/* get the encrypted file path */
 	char *path = bc_tester_file("basic.");
 	std::string filePath{path};
-	filePath.append(suiteName(suite)).append(".evfs");
+	filePath.append(bctoolbox::encryptionSuiteString(suite)).append(".evfs");
 	bctbx_free(path);
 
 	/* remove file if it was already there */
@@ -285,6 +289,8 @@ void basic_encryption_test() {
 	basic_encryption_test(EncryptionSuite::plain, true);
 	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, false);
 	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, true);
+
+	VfsEncryption::openCallback_set(nullptr);
 }
 
 /**
@@ -297,7 +303,7 @@ void auth_fail_test(bctoolbox::EncryptionSuite suite) {
 	/* get the encrypted file path */
 	char *path = bc_tester_file("auth_fail.");
 	std::string filePath{path};
-	filePath.append(suiteName(suite)).append(".evfs");
+	filePath.append(bctoolbox::encryptionSuiteString(suite)).append(".evfs");
 	bctbx_free(path);
 
 	/* remove file if it was already there */
@@ -340,13 +346,78 @@ void auth_fail_test(bctoolbox::EncryptionSuite suite) {
 	}
 }
 void auth_fail_test() {
+	/* set the encrypted vfs callback */
+	VfsEncryption::openCallback_set(set_encryption_info);
+
 	auth_fail_test(EncryptionSuite::dummy);
 	auth_fail_test(EncryptionSuite::aes256gcm128_sha256);
+
+	VfsEncryption::openCallback_set(nullptr);
 }
 
+/**
+ * Write a plain file using standard vfs
+ * Open it using encrypted one
+ * Check the migration was done
+ */
+void migration_test(bctoolbox::EncryptionSuite suite) {
+	// get the file path
+	char *path = bc_tester_file("migration.");
+	std::string filePath{path};
+	filePath.append(bctoolbox::encryptionSuiteString(suite)).append(".evfs");
+	bctbx_free(path);
+
+	// remove file if it was already there
+	remove(filePath.data());
+
+	// create the file using standard vfs
+	bctbx_vfs_file_t *fp = bctbx_file_open2(bctbx_vfs_get_standard(), filePath.data(), O_RDWR|O_CREAT);
+
+	uint8_t readBuffer[256];
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	// Make simple write
+	bctbx_file_write(fp, message, 42, 0);
+
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	// close file
+	bctbx_file_close(fp);
+
+	// file shall not be encrypted
+	BC_ASSERT_FALSE(is_encrypted(filePath.data()));
+
+	// open it using the encrypted vfs, it shall force the migration
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+
+	// readings test again
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
+
+	// now it shall be encrypted
+	bctbx_file_close(fp);
+	BC_ASSERT_TRUE(is_encrypted(filePath.data()));
+
+	// cleaning
+	std::remove(filePath.data());
+}
+void migration_test() {
+	/* set the encrypted vfs callback */
+	VfsEncryption::openCallback_set(set_encryption_info);
+
+	migration_test(EncryptionSuite::dummy);
+	migration_test(EncryptionSuite::aes256gcm128_sha256);
+
+	VfsEncryption::openCallback_set(nullptr);
+}
 static test_t encrypted_vfs_tests[] = {
 	TEST_NO_TAG("basic", basic_encryption_test),
-	TEST_NO_TAG("Authentication failure", auth_fail_test)
+	TEST_NO_TAG("Authentication failure", auth_fail_test),
+	TEST_NO_TAG("migration", migration_test)
 };
 
 test_suite_t encrypted_vfs_test_suite = {"Encrypted vfs", NULL, NULL, NULL, NULL,
