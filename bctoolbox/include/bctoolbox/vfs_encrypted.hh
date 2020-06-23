@@ -109,7 +109,9 @@ class VfsEncryption {
 		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
+		/** flags use to communicate during differents functions involved at file opening **/
 		bool m_encryptExistingPlainFile; /**< when opening a plain file, if the callback set an encryption suite and key material : migrate the file */
+		bool m_integrityFullCheck; /**< if the file size given in the header metadata is incorrect, full check the file integrity and revrite header */
 
 		/**
 		 * Parse the header of an encrypted file, check everything seems correct
@@ -130,7 +132,7 @@ class VfsEncryption {
 	public:
 		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
 
-		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename);
+		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags);
 		~VfsEncryption();
 
 

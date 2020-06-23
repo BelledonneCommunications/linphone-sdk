@@ -92,7 +92,7 @@ const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const V
 
 	// Append the actual file header value to the tag
 	tag.insert(tag.end(), m_fileHeader.cbegin(), m_fileHeader.cend());
-	BCTBX_SLOGD<<"JOHAN : get Module file header returns "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
+	BCTBX_SLOGD<<"get Module file header returns "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
 	return tag;
 }
 
@@ -122,18 +122,18 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::decryptChunk(const uint32_t chunk
 	XORkey.insert(XORkey.end(), rawChunk.cbegin()+8, rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
 	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
-	BCTBX_SLOGD<<"JOHAN: decryptChunk :"<<std::endl<<"   chunk is "<<getHex(plainData)<<std::endl<<"   key is "<<getHex(XORkey);
+	BCTBX_SLOGD<<"decryptChunk :"<<std::endl<<"   chunk is "<<getHex(plainData)<<std::endl<<"   key is "<<getHex(XORkey);
 	// Xor it all, 16 bytes at a time
 	for (size_t i=0; i<plainData.size(); i+=16) {
 		std::transform(plainData.begin()+i, plainData.begin()+std::min(i+16,plainData.size()), XORkey.cbegin(), plainData.begin()+i, std::bit_xor<uint8_t>());
 	}
-	BCTBX_SLOGD<<"JOHAN: decryptChunk :"<<std::endl<<"   output is "<<getHex(plainData);
+	BCTBX_SLOGD<<"decryptChunk :"<<std::endl<<"   output is "<<getHex(plainData);
 
 	return plainData;
 }
 
 void VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) {
-	BCTBX_SLOGD<<"JOHAN: encryptChunk re :"<<std::endl<<"   plain is "<<plainData.size()<<std::endl<<"    plain: "<<getHex(plainData);
+	BCTBX_SLOGD<<"encryptChunk re :"<<std::endl<<"   plain is "<<plainData.size()<<std::endl<<"    plain: "<<getHex(plainData);
 	BCTBX_SLOGD<<"    in cipher: "<<getHex(rawChunk);
 
 	// Check integrity on the whole block. Actual module shall optimize it and be able to check only the header integrity, we just want
@@ -177,7 +177,7 @@ void VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunkIndex, std::vect
 }
 
 std::vector<uint8_t> VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) {
-	BCTBX_SLOGD<<"JOHAN: encryptChunk new :"<<std::endl<<"   plain is "<<plainData.size()<<" index is "<<chunkIndex<<std::endl<<"    plain: "<<getHex(plainData);
+	BCTBX_SLOGD<<"encryptChunk new :"<<std::endl<<"   plain is "<<plainData.size()<<" index is "<<chunkIndex<<std::endl<<"    plain: "<<getHex(plainData);
 	// create a vector of the appropriate size, init to 0
 	std::vector<uint8_t> rawChunk(chunkHeaderSize+plainData.size(), 0);
 
@@ -226,7 +226,7 @@ bool VfsEncryptionModuleDummy::checkIntegrity(const VfsEncryption &fileContext) 
 		header.size(),
 		8, // get 8 bytes out of the HMAC
 		tag.data());
-	BCTBX_SLOGD<<"JOHAN : check integrity compute  "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
+	BCTBX_SLOGD<<"check integrity compute  "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
 
 	return (std::equal(tag.cbegin(), tag.cend(), m_fileHeaderIntegrity.cbegin()));
 }

@@ -116,7 +116,7 @@ static constexpr size_t defaultChunkSize = 4096; // default chunk size in bytes
  */
 EncryptedVfsOpenCb VfsEncryption::s_openCallback = nullptr;
 
-VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename) :
+VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags) :
 	m_versionNumber(BcEncFS_v0100),  // default version number is the current one
 	m_chunkSize(0), // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
 	m_module(nullptr), // encryption module is set by callback or when parsing the header
@@ -124,6 +124,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 	m_filename(filename),
 	m_fileSize(0),
 	m_encryptExistingPlainFile(false),
+	m_integrityFullCheck(false),
 	pFileStd(stdFp) {
 
 	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null";
@@ -198,12 +199,32 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 		m_encryptExistingPlainFile = false;
 
 		// and reopen it with the standard vfs
-		pFileStd = bctbx_file_open2(bctbx_vfs_get_standard(), m_filename.data(), O_RDWR|O_CREAT); // TODO: set opening flags to what they were
+		pFileStd = bctbx_file_open2(bctbx_vfs_get_standard(), m_filename.data(), openFlags);
 
 	} else { // no migration but now we shall have all the material (settings and keys ) to check the file integrity
 		if (m_fileSize > 0 ) { // this is not a file creation
 			if (m_module->checkIntegrity(*this) != true) {
 				throw EVFS_EXCEPTION<<"Integrity check fail while opening file "<<m_filename;
+			} else { // header integrity is Ok
+				if (m_integrityFullCheck == true) { // file size in header is wrong, check each chunk and update header
+					for (auto chunkIndex = getChunkIndex(m_fileSize); chunkIndex >0; chunkIndex--) { // start from last chunk
+						std::vector<uint8_t> rawData(r_chunkSize());
+						ssize_t readSize = bctbx_file_read(pFileStd, rawData.data(), rawData.size(), getChunkOffset(chunkIndex));
+						if (readSize >= 0) {
+							rawData.resize(readSize);
+						} else {
+							throw EVFS_EXCEPTION<<"fail to read file while trying to check the full integrity, file_read returned "<<readSize;
+						}
+
+						std::vector<uint8_t> plainData(m_chunkSize);
+
+						// decrypt the chunk, if it fails it will generate an exception, let it flow up
+						m_module->decryptChunk(chunkIndex, rawData);
+					}
+					// all clear, update header
+					writeHeader();
+					BCTBX_SLOGW<<"Encrypted FS: Whole file integrity check successfull, update header with correct file size";
+				}
 			}
 		}
 	}
@@ -415,9 +436,19 @@ void VfsEncryption::parseHeader() {
 	m_module = make_VfsEncryptionModule(encryptionSuite, encryptionSuiteData);
 
 	// check file size match what we have :
-	// TODO: If they do not match, check all chunks integrity and update ? Recovery from failure between write and header update at last write/truncate
+	// If they do not match, check all chunks integrity and update the header. Recovery from failure between write and header update at last write/truncate
 	if (r_fileSize() != fileSize) {
-		throw EVFS_EXCEPTION<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual raw filesize "<<fileSize<<" do not match this value";
+		BCTBX_SLOGW<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual raw filesize "<<fileSize<<" do not match this value. Whole file integrity check";
+		m_integrityFullCheck = true;
+		// update file size to what it is supposed to be
+		m_fileSize = fileSize - (baseFileHeaderSize + m_headerExtensionSize + m_module->getModuleFileHeaderSize()); // remove file header size
+		auto chunkNb = 0;
+		if (m_fileSize % r_chunkSize() > 0) {
+			chunkNb = 1;
+		}
+		chunkNb += m_fileSize / r_chunkSize();
+		m_fileSize -= chunkNb*m_module->getChunkHeaderSize();
+		BCTBX_SLOGW<<"Encrypted FS: Actual file size seems to be "<<m_fileSize;
 	}
 }
 
@@ -833,7 +864,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 
 		pFile->pMethods = &bcio;
 
-		ctx = new VfsEncryption(stdFp, fName);
+		ctx = new VfsEncryption(stdFp, fName, openFlags);
 
 		/* store the encryption context in the vfs UserData */
 		pFile->pUserData = static_cast<void *>(ctx);

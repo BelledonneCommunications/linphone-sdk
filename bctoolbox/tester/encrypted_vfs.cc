@@ -25,25 +25,6 @@
 
 using namespace bctoolbox;
 
-static std::string getHex(const std::vector<uint8_t>& v)
-{
-    std::string result;
-    result.reserve(v.size() * 2);   // two digits per character
-
-    static constexpr char hex[] = "0123456789ABCDEF";
-
-    for (uint8_t c : v)
-    {
-        result.push_back(hex[c / 16]);
-        result.push_back(hex[c % 16]);
-    }
-
-    return result;
-}
-static std::string getHex(const uint8_t *buf, size_t size) {
-	return getHex(std::vector<uint8_t>(buf, buf+size));
-}
-
 /* Helper function: is a file encrypted? Check it starts with the evfs magic number */
 static bool is_encrypted(const char *filepath) {
 	bool ret = false;
@@ -65,7 +46,6 @@ static bool is_encrypted(const char *filepath) {
 
 /* A callback to position the key material and algorithm suite to use */
 static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
-	BCTBX_SLOGD<<"JOHAN: dummy encryption info callback in file is "<<settings.filename_get();
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	settings.encryptionSuite_set(EncryptionSuite::dummy);
 	settings.secretMaterial_set(keyMaterial);
@@ -73,12 +53,10 @@ static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) 
 });
 
 static EncryptedVfsOpenCb set_plain_encryption_info([](VfsEncryption &settings) {
-	BCTBX_SLOGD<<"JOHAN: plain encryption info callback in file is "<<settings.filename_get();
 	settings.encryptionSuite_set(EncryptionSuite::plain);
 });
 
 static EncryptedVfsOpenCb set_aes256_encryption_info([](VfsEncryption &settings) {
-	BCTBX_SLOGD<<"JOHAN: AES256 encryption info callback in file is "<<settings.filename_get();
 	const std::vector<uint8_t> keyMaterial{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xf0,
 						0x11, 0x12, 0x13, 0x54, 0x55, 0x56, 0xa7, 0xa8, 0xa9, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0xef};
 	settings.encryptionSuite_set(EncryptionSuite::aes256gcm128_sha256);
@@ -277,6 +255,9 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 
 		bctbx_file_close(fp);
 	}
+
+	/* cleaning */
+	remove(filePath.data());
 }
 
 void basic_encryption_test() {
@@ -344,6 +325,9 @@ void auth_fail_test(bctoolbox::EncryptionSuite suite) {
 	if (fp!=NULL) {
 		bctbx_file_close(fp);
 	}
+
+	/* cleaning */
+	remove(filePath.data());
 }
 void auth_fail_test() {
 	/* set the encrypted vfs callback */
@@ -414,10 +398,90 @@ void migration_test() {
 
 	VfsEncryption::openCallback_set(nullptr);
 }
+
+void recovery_test(bctoolbox::EncryptionSuite suite) {
+	/* get the encrypted file path */
+	char *path = bc_tester_file("recovery.");
+	std::string filePath{path};
+	filePath.append(bctoolbox::encryptionSuiteString(suite)).append(".evfs");
+	bctbx_free(path);
+
+	/* remove file if it was already there */
+	remove(filePath.data());
+
+	/* create the file */
+	bctbx_vfs_file_t *fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+
+	uint8_t readBuffer[256];
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	// Make simple write, block size is 16
+	bctbx_file_write(fp, message, 256, 0);
+
+	// Check it worked
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 256, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 256, 0), 256, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 256)==0);
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	// Close the file
+	bctbx_file_close(fp);
+
+	// reopen it directly and read the header
+	// base header file is 29, dummy module adds 16 bytes, aes256gcm128 adds 48 bytes
+	std::fstream file (filePath, std::ios::in | std::ios::binary);
+	char fileHeader[48+29];
+	auto fileHeaderSize = (suite==bctoolbox::EncryptionSuite::dummy)?(29+16):(29+48);
+	file.seekg(0, std::ios::beg);
+	file.read(fileHeader, fileHeaderSize);
+	file.close();
+
+	// Open it again with the eVFS and truncate it
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+	BC_ASSERT_EQUAL(bctbx_file_truncate(fp,142), 0, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 142, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 256, 0), 142, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 142)==0);
+	memset(readBuffer, 0, sizeof(readBuffer));
+	bctbx_file_close(fp);
+
+	// Open it directly and rewrite the header as it was before to simulate an error occuring before the call to writeHeader but after the file modification
+	// So header is still a valid one but the size won't match
+	std::fstream ofile (filePath, std::ios::in | std::ios::out | std::ios::binary);
+	ofile.seekp(0, std::ios::beg);
+	ofile.write(fileHeader, fileHeaderSize);
+	ofile.close();
+
+	// Open it again, the file should self heal
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	// check the content
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 142, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 256, 0), 142, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 142)==0);
+	memset(readBuffer, 0, sizeof(readBuffer));
+
+	bctbx_file_close(fp);
+	// cleaning
+	//std::remove(filePath.data());
+}
+
+void recovery_test() {
+	/* set the encrypted vfs callback */
+	VfsEncryption::openCallback_set(set_encryption_info);
+
+	recovery_test(EncryptionSuite::dummy);
+	recovery_test(EncryptionSuite::aes256gcm128_sha256);
+
+	VfsEncryption::openCallback_set(nullptr);
+}
+
 static test_t encrypted_vfs_tests[] = {
 	TEST_NO_TAG("basic", basic_encryption_test),
 	TEST_NO_TAG("Authentication failure", auth_fail_test),
-	TEST_NO_TAG("migration", migration_test)
+	TEST_NO_TAG("migration", migration_test),
+	TEST_NO_TAG("recovery", recovery_test)
 };
 
 test_suite_t encrypted_vfs_test_suite = {"Encrypted vfs", NULL, NULL, NULL, NULL,
