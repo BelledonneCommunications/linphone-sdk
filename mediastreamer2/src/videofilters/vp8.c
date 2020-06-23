@@ -32,6 +32,9 @@
 #include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
 
 #define PICID_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
 
@@ -179,6 +182,9 @@ static void enc_preprocess(MSFilter *f) {
 	}
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
+#elif TARGET_OS_OSX
+	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
+	s->cfg.g_threads= MAX(ms_factory_get_cpu_count(f->factory)-2,1);
 #else
 	s->cfg.g_threads = ms_factory_get_cpu_count(f->factory);
 #endif
@@ -453,13 +459,17 @@ static void enc_process_frame_task(void *obj) {
 	int skipped_count = 0;
 
 	ms_filter_lock(f);
-	while ((im = getq(&s->entry_q)) == NULL) {
+	while ((im = getq(&s->entry_q)) != NULL) {
 		if (prev_im) {
 			freemsg(prev_im);
 			skipped_count++;
 		}
 		prev_im = im;
 	}
+	if (!im) {
+		im = prev_im;
+	}
+	
 	ms_filter_unlock(f);
 
 	if (skipped_count > 0){
@@ -467,7 +477,7 @@ static void enc_process_frame_task(void *obj) {
 		ms_warning("VP8 async encoding process: %i frames skipped", skipped_count);
 	}
 	if (!im){
-		ms_error("VP8 async encoding process: no frame to encode, this shall not happen.");
+		ms_message("VP8 async encoding process: no frame to encode, probably skipped by previous task");
 		return;
 	}
 
@@ -882,11 +892,15 @@ typedef struct DecState {
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
 	bool_t ready;
-	MSWorkerThread *process_thread;
+	ms_thread_t thread;
+	ms_cond_t thread_cond;
 	MSQueue entry_q;
 	MSQueue exit_q;
+	bool_t thread_running;
+	bool_t waiting; // TRUE when the processing thread is in ms_cond_wait()
 } DecState;
 
+static void * dec_processing_thread(void *obj);
 
 static void dec_init(MSFilter *f) {
 	DecState *s = (DecState *)ms_new0(DecState, 1);
@@ -898,10 +912,12 @@ static void dec_init(MSFilter *f) {
 	s->yuv_width = 0;
 	s->yuv_height = 0;
 	s->allocator = ms_yuv_buf_allocator_new();
+	ms_yuv_buf_allocator_set_max_frames(s->allocator, 3);
 	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
 	s->freeze_on_error = TRUE;
+	ms_cond_init(&s->thread_cond, NULL);
 	f->data = s;
 	ms_average_fps_init(&s->fps, "VP8 decoder: FPS: %f");
 }
@@ -911,7 +927,12 @@ static int dec_initialize_impl(MSFilter *f){
 	vpx_codec_dec_cfg_t cfg;
 
 	memset(&cfg, 0, sizeof(cfg));
+#if TARGET_OS_OSX
+	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
+	cfg.threads = MAX(ms_factory_get_cpu_count(f->factory)-2,1);
+#else
 	cfg.threads = ms_factory_get_cpu_count(f->factory);
+#endif
 	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
 		ms_error("Failed to initialize VP8 decoder");
 		return -1;
@@ -944,10 +965,11 @@ static void dec_preprocess(MSFilter* f) {
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;
 	}
-
-	s->process_thread = ms_worker_thread_new();
 	ms_queue_init(&s->entry_q);
 	ms_queue_init(&s->exit_q);
+	s->thread_running = TRUE;
+	s->waiting = FALSE;
+	ms_thread_create(&s->thread, NULL, dec_processing_thread, f);
 }
 
 static void dec_uninit(MSFilter *f) {
@@ -956,95 +978,101 @@ static void dec_uninit(MSFilter *f) {
 	vpx_codec_destroy(&s->codec);
 	ms_yuv_buf_allocator_free(s->allocator);
 	ms_queue_flush(&s->q);
+	ms_cond_destroy(&s->thread_cond);
 	ms_free(s);
 }
 
-static void dec_process_frame_task(void *obj) {
+static void *dec_processing_thread(void *obj) {
 	MSFilter *f = (MSFilter*)obj;
 	DecState *s = (DecState *)f->data;
 	mblk_t *im;
-	vpx_codec_err_t err;
-	vpx_image_t *img;
-	vpx_codec_iter_t iter = NULL;
 	MSQueue frame;
 	Vp8RtpFmtFrameInfo frame_info;
-	int frames_processed = 0;
 
 	ms_queue_init(&frame);
 
 	ms_filter_lock(f);
-	if (ms_queue_empty(&s->entry_q)) {
-		/* This can happen: for example two packets could be queued consecutively, simultatenously with two decoding tasks.
-		 * If the worker thread is a bit late, the first task will get and process the two packets*/ 
+	while(s->thread_running){
+		if (ms_queue_empty(&s->entry_q)){
+			s->waiting = TRUE;
+			ms_cond_wait(&s->thread_cond, &f->lock);
+			s->waiting = FALSE;
+			continue;
+		}
+		
+		/* Unpack RTP payload format for VP8. */
+		vp8rtpfmt_unpacker_feed(&s->unpacker, &s->entry_q);
 		ms_filter_unlock(f);
-		return;
+	
+		/* Decode unpacked VP8 frames. */
+		while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
+			vpx_codec_err_t err;
+			vpx_image_t *img;
+			vpx_codec_iter_t iter = NULL;
+			while ((im = ms_queue_get(&frame)) != NULL) {
+				err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
+				if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
+					err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
+				}
+				if (err) {
+					ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
+				}
+				freemsg(im);
+			}
+	
+			/* Get decoded frame */
+			while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
+				int i, j;
+				int reference_updates = 0;
+				mblk_t *yuv_msg;
+	
+				if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
+					if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
+						vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
+					}
+				}
+	
+				if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
+					ms_message("MSVp8Dec: video is %ix%i", img->d_w, img->d_h);
+					s->yuv_width = img->d_w;
+					s->yuv_height = img->d_h;
+					ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
+				}
+	
+				yuv_msg = ms_yuv_buf_allocator_get(s->allocator, &s->outbuf, img->d_w, img->d_h);
+				
+				ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
+				if (!s->first_image_decoded) {
+					s->first_image_decoded = TRUE;
+					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
+				}
+				
+				if (yuv_msg == NULL) {
+					ms_warning("MSVp8Dec: no more output buffers, frame is discarded.");
+				}else{
+					/* scale/copy frame to destination mblk_t */
+					for (i = 0; i < 3; i++) {
+						uint8_t *dest = s->outbuf.planes[i];
+						uint8_t *src = img->planes[i];
+						int h = img->d_h >> ((i > 0) ? 1 : 0);
+		
+						for (j = 0; j < h; j++) {
+							memcpy(dest, src, s->outbuf.strides[i]);
+							dest += s->outbuf.strides[i];
+							src += img->stride[i];
+						}
+					}
+					
+					ms_filter_lock(f);
+					ms_queue_put(&s->exit_q, yuv_msg);
+					ms_filter_unlock(f);
+				}
+			}
+		}
+		ms_filter_lock(f);
 	}
-
-	/* Unpack RTP payload format for VP8. */
-	vp8rtpfmt_unpacker_feed(&s->unpacker, &s->entry_q);
-
 	ms_filter_unlock(f);
-
-	/* Decode unpacked VP8 frames. */
-	while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
-		frames_processed++;
-		while ((im = ms_queue_get(&frame)) != NULL) {
-			err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
-			if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
-				err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
-			}
-			if (err) {
-				ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
-			}
-			freemsg(im);
-		}
-
-		/* Get decoded frame */
-		if ((img = vpx_codec_get_frame(&s->codec, &iter))) {
-			int i, j;
-			int reference_updates = 0;
-			mblk_t *yuv_msg;
-
-			if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
-				if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
-					vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
-				}
-			}
-
-			if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
-				ms_message("MSVp8Dec: video is %ix%i", img->d_w, img->d_h);
-				s->yuv_width = img->d_w;
-				s->yuv_height = img->d_h;
-				ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
-			}
-
-			yuv_msg = ms_yuv_buf_allocator_get(s->allocator, &s->outbuf, img->d_w, img->d_h);
-
-			/* scale/copy frame to destination mblk_t */
-			for (i = 0; i < 3; i++) {
-				uint8_t *dest = s->outbuf.planes[i];
-				uint8_t *src = img->planes[i];
-				int h = img->d_h >> ((i > 0) ? 1 : 0);
-
-				for (j = 0; j < h; j++) {
-					memcpy(dest, src, s->outbuf.strides[i]);
-					dest += s->outbuf.strides[i];
-					src += img->stride[i];
-				}
-			}
-
-			ms_filter_lock(f);
-			ms_queue_put(&s->exit_q, yuv_msg);
-			ms_filter_unlock(f);
-
-			ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
-			if (!s->first_image_decoded) {
-				s->first_image_decoded = TRUE;
-				ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
-			}
-		}
-	}
-	if (frames_processed > 1) ms_warning("VP8 async: %i frames processed in a row.", frames_processed);
+	return NULL;
 }
 
 static void dec_process(MSFilter *f) {
@@ -1072,19 +1100,25 @@ static void dec_process(MSFilter *f) {
 		ms_queue_put(&s->entry_q, entry_f);
 		queued_something = TRUE;
 	}
-	if (queued_something) ms_worker_thread_add_task(s->process_thread, dec_process_frame_task, (void*)f);
 
 	/* Put each frame we have in exit_q in f->output[0] */
 	while ((exit_f = ms_queue_get(&s->exit_q)) != NULL) {
 		ms_queue_put(f->outputs[0], exit_f);
 	}
-
+	if (queued_something && s->waiting){
+		/* Wake up the processing thread if it is waiting some job. */
+		ms_cond_signal(&s->thread_cond);
+	}
 	ms_filter_unlock(f);
 }
 
 static void dec_postprocess(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
-	ms_worker_thread_destroy(s->process_thread, FALSE);
+	ms_filter_lock(f);
+	s->thread_running = FALSE;
+	if (s->waiting) ms_cond_signal(&s->thread_cond);
+	ms_filter_unlock(f);
+	ms_thread_join(s->thread, NULL);
 }
 
 static int dec_reset_first_image(MSFilter* f, void *data) {

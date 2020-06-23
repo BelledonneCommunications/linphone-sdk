@@ -228,12 +228,18 @@ MSYuvBufAllocator *ms_yuv_buf_allocator_new(void) {
 	return allocator;
 }
 
+void ms_yuv_buf_allocator_set_max_frames(MSYuvBufAllocator *obj, int max_frames){
+	msgb_allocator_set_max_blocks(obj, max_frames);
+}
+
 mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h) {
 	int size=(w * (h & 0x1 ? h+1 : h) *3)/2; /*swscale doesn't like odd numbers of line*/
 	const int header_size = sizeof(mblk_video_header);
 	const int padding=16;
+	mblk_video_header* hdr;
 	mblk_t *msg = msgb_allocator_alloc(obj, header_size + size+padding);
-	mblk_video_header* hdr = (mblk_video_header*)msg->b_wptr;
+	if (msg == NULL) return NULL;
+	hdr = (mblk_video_header*)msg->b_wptr;
 	hdr->w = w;
 	hdr->h = h;
 	msg->b_rptr += header_size;

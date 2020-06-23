@@ -74,7 +74,7 @@ private:
 	CMFormatDescriptionRef _formatDesc = nullptr;
 	MSYuvBufAllocator *_pixbufAllocator = nullptr;
 	std::list<Frame> _queue;
-	ms_mutex_t _mutex;
+	std::mutex _mutex;
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	bool _freeze = true;
