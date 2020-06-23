@@ -21,7 +21,7 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.1)
-project(mediastreamer2 VERSION 4.4.0 LANGUAGES C CXX)
+project(mediastreamer2 VERSION 4.5.0 LANGUAGES C CXX)
 
 # See: https://cmake.org/cmake/help/v3.12/policy/CMP0072.html
 if(POLICY CMP0072)
