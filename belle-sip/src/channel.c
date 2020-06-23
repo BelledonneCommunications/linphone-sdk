@@ -729,7 +729,7 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
 			obj->inactivity_timer=belle_sip_main_loop_create_timeout(obj->stack->ml,channel_inactive_timeout,obj,inactive_timeout,"Channel inactivity timer");
 		}else{
 			/*restart the timer for new period*/
-			belle_sip_source_set_timeout(obj->inactivity_timer,inactive_timeout);
+			belle_sip_source_set_timeout_int64(obj->inactivity_timer,inactive_timeout);
 		}
 	}else{
 		if (obj->inactivity_timer){
@@ -1539,7 +1539,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 			obj->dns_ttl_timer = belle_sip_main_loop_create_timeout(obj->stack->ml, channel_dns_ttl_timeout, obj, ttl * 1000, "Channel DNS TTL timer");
 		} else {
 			/* Restart the timer for new period. */
-			belle_sip_source_set_timeout(obj->dns_ttl_timer, ttl * 1000);
+			belle_sip_source_set_timeout_int64(obj->dns_ttl_timer, ttl * 1000LL);
 			belle_sip_main_loop_add_source(obj->stack->ml, obj->dns_ttl_timer);
 		}
 	}else{

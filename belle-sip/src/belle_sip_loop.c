@@ -346,6 +346,9 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	if (pipe(m->control_fds) == -1){
 		belle_sip_fatal("Cannot create control pipe of main loop thread: %s", strerror(errno));
 	}
+	if (fcntl(m->control_fds[0], F_SETFL, O_NONBLOCK) < 0) {
+		belle_sip_fatal("Fail to set O_NONBLOCK flag on the reading fd of the control pipe: %s", strerror(errno));
+	}
 	m->thread_id = 0;
 #endif
 
@@ -457,7 +460,17 @@ void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_
 	belle_sip_main_loop_do_later_with_name(ml, func, data, NULL);
 }
 
-void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms){
+void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms) {
+	/*
+	   WARNING: that's important to cast 'value_ms' into 'int' before giving it to belle_sip_source_set_timeout_int64()
+	   in order to mimic the behavior of belle_sip_source_set_timeout() when the timeout was declared as 'int'
+	   in the belle_sip_source_t structure.
+	   That allows to write belle_sip_source_set_timeout(s, -1) to disable the timeout.
+	*/
+	belle_sip_source_set_timeout_int64(s, (int)value_ms);
+}
+
+void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms) {
 	if (!s->expired){
 		belle_sip_main_loop_t *ml = s->ml;
 		s->expire_ms=belle_sip_time_ms()+value_ms;
@@ -478,7 +491,11 @@ void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remo
 	s->on_remove=func;
 }
 
-unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s){
+unsigned int belle_sip_source_get_timeout(const belle_sip_source_t *s) {
+	return (unsigned int)s->timeout;
+}
+
+int64_t belle_sip_source_get_timeout_int64(const belle_sip_source_t *s) {
 	return s->timeout;
 }
 
@@ -521,6 +538,23 @@ belle_sip_source_t *belle_sip_main_loop_find_source(belle_sip_main_loop_t *ml, u
 void belle_sip_main_loop_cancel_source(belle_sip_main_loop_t *ml, unsigned long id){
 	belle_sip_source_t *s=belle_sip_main_loop_find_source(ml,id);
 	if (s) belle_sip_source_cancel(s);
+}
+
+/**
+ * Clear all data of a pipe.
+ * @param[in] read_fd Opened file descriptor used to read the pipe. This fd MUST have O_NONBLOCK flag set.
+ * @return On success, return the number of bytes that have been cleard or zero if the pipe was already empty.
+ * On failure, return -1 and set errno.
+ */
+static ssize_t clear_pipe(int read_fd) {
+	char buffer[1024];
+	ssize_t nread, cum_nread = 0;
+	do {
+		nread = read(read_fd, buffer, sizeof(buffer));
+		if (nread > 0) cum_nread += nread;
+	} while (nread > 0);
+	if (nread < 0 && errno != EAGAIN) return -1;
+	else return cum_nread;
 }
 
 static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
@@ -582,8 +616,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 #ifndef _WIN32
 	if (pfd[i - 1].revents == POLLIN){
-		char c;
-		if (read(ml->control_fds[0], &c, 1) == -1)
+		if (clear_pipe(ml->control_fds[0]) == -1)
 			belle_sip_fatal("Cannot read control pipe of main loop thread: %s", strerror(errno));
 	}
 #endif

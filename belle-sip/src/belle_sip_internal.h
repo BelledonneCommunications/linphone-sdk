@@ -275,7 +275,7 @@ struct belle_sip_source{
 	long armed_events;
 	unsigned short pad;
 #endif
-	int timeout;
+	int64_t timeout;
 	void *data;
 	uint64_t expire_ms;
 	int index; /* index in pollfd table */

@@ -57,10 +57,10 @@ static int ist_on_timer_G(belle_sip_ist_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	if (base->state==BELLE_SIP_TRANSACTION_COMPLETED){
 		const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
-		int interval=belle_sip_source_get_timeout(obj->timer_G);
+		int64_t interval=belle_sip_source_get_timeout_int64(obj->timer_G);
 
 		belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->last_response);
-		belle_sip_source_set_timeout(obj->timer_G,MIN(2*interval,cfg->T2));
+		belle_sip_source_set_timeout_int64(obj->timer_G,MIN(2*interval,cfg->T2));
 		return BELLE_SIP_CONTINUE;
 	}
 	return BELLE_SIP_STOP;
