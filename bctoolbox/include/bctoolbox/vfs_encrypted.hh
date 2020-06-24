@@ -112,6 +112,7 @@ class VfsEncryption {
 		/** flags use to communicate during differents functions involved at file opening **/
 		bool m_encryptExistingPlainFile; /**< when opening a plain file, if the callback set an encryption suite and key material : migrate the file */
 		bool m_integrityFullCheck; /**< if the file size given in the header metadata is incorrect, full check the file integrity and revrite header */
+		int m_accessMode; /**< the flags used to open the file, filtered on the access mode */
 
 		/**
 		 * Parse the header of an encrypted file, check everything seems correct
@@ -132,7 +133,7 @@ class VfsEncryption {
 	public:
 		bctbx_vfs_file_t *pFileStd; /**< The encrypted vfs encapsulate a standard one */
 
-		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags);
+		VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags, int accessMode);
 		~VfsEncryption();
 
 

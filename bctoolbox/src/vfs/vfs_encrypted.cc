@@ -116,7 +116,7 @@ static constexpr size_t defaultChunkSize = 4096; // default chunk size in bytes
  */
 EncryptedVfsOpenCb VfsEncryption::s_openCallback = nullptr;
 
-VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags) :
+VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filename, int openFlags, int accessMode) :
 	m_versionNumber(BcEncFS_v0100),  // default version number is the current one
 	m_chunkSize(0), // set to 0 at creation, is will be populated by parseHeader if there is one. If we are creating a file, let a chance to the callback to set the chunk size.
 	m_module(nullptr), // encryption module is set by callback or when parsing the header
@@ -125,6 +125,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 	m_fileSize(0),
 	m_encryptExistingPlainFile(false),
 	m_integrityFullCheck(false),
+	m_accessMode(accessMode),
 	pFileStd(stdFp) {
 
 	if (stdFp == NULL) throw EVFS_EXCEPTION<<"Cannot create a vfs encrytion object, vfs pointer is null";
@@ -293,7 +294,12 @@ EncryptedVfsOpenCb VfsEncryption::openCallback_get() noexcept {
  */
 void VfsEncryption::secretMaterial_set(const std::vector<uint8_t> &secretMaterial) {
 	if (m_module == nullptr) {
-		throw EVFS_EXCEPTION << "Cannot set secret material before specifying which encryption suite to use. file "<<m_filename;
+		if (m_fileSize > 0 && m_accessMode == O_RDONLY) { // we are opening a read only plain file, ignore the secret material
+			BCTBX_SLOGW<<" Encrypted VFS access a plain file "<<m_filename<<"as read only. Secret material setting ignored";
+			return;
+		} else {
+			throw EVFS_EXCEPTION << "Cannot set secret material before specifying which encryption suite to use. file "<<m_filename;
+		}
 	}
 	m_module->setModuleSecretMaterial(secretMaterial);
 }
@@ -307,8 +313,12 @@ void VfsEncryption::encryptionSuite_set(const EncryptionSuite suite) {
 	} else { // file already exists (if m_filesize!=0 and m_module is nullptr, it is an existing plain file, the encryptionSuite_get would return plain)
 		if (encryptionSuite_get() != suite) {
 			if (encryptionSuite_get() == bctoolbox::EncryptionSuite::plain) { // we want to migrate a plain file to an encrypted one
-				m_encryptExistingPlainFile = true;
-				m_module = make_VfsEncryptionModule(suite);
+				if (m_accessMode != O_RDONLY) { // Do not migrate read-only file
+					m_encryptExistingPlainFile = true;
+					m_module = make_VfsEncryptionModule(suite);
+				} else {
+					BCTBX_SLOGW<<" Encrypted VFS access a plain file "<<m_filename<<"as read only. Kept it plain";
+				}
 			} else {
 				throw EVFS_EXCEPTION << "Encryption suite for file "<<m_filename<<" is already set to "<<encryptionSuiteString(encryptionSuite_get())<<" but we're trying to set it to "<<encryptionSuiteString(suite);
 			}
@@ -852,6 +862,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 			return BCTBX_VFS_ERROR;
 		}
 
+		int accessMode = openFlags&O_ACCMODE;
 		// encrypted vfs encapsulates the standard one, open the file with it
 		// File cannot be writeonly as write operation may imply read/decrypt/write
 		if ((openFlags&O_ACCMODE) == O_WRONLY) {
@@ -864,7 +875,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 
 		pFile->pMethods = &bcio;
 
-		ctx = new VfsEncryption(stdFp, fName, openFlags);
+		ctx = new VfsEncryption(stdFp, fName, openFlags, accessMode);
 
 		/* store the encryption context in the vfs UserData */
 		pFile->pUserData = static_cast<void *>(ctx);

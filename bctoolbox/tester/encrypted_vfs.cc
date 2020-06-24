@@ -374,8 +374,19 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	// file shall not be encrypted
 	BC_ASSERT_FALSE(is_encrypted(filePath.data()));
 
+	// open it read only using the encrypted vfs, it shall NOT force the migration
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDONLY);
+	// readings test again
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
+	// now it shall still be plain
+	bctbx_file_close(fp);
+	BC_ASSERT_FALSE(is_encrypted(filePath.data()));
+
+
 	// open it using the encrypted vfs, it shall force the migration
-	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR);
 
 	// readings test again
 	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
