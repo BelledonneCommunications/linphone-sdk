@@ -11,6 +11,8 @@ job-windows-vs2017-win32-package:
     variables:
       - $NIGHTLY_MASTER
       - $PACKAGE_RUN_WINDOWS
+      - $NIGHTLY_RELEASE
+
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
@@ -50,6 +52,7 @@ job-xamarin-package:
     - job-android-makefile-r17c
   only:
     variables:
+      - $NIGHTLY_RELEASE
       - $UPLOAD_XAMARIN
   script:
     #removing previous results directory to avoid getting incorrect artifacts for current launch

@@ -84,7 +84,7 @@ function(linphone_sdk_get_enable_cmake_args)
 	get_cmake_property(_variable_names VARIABLES)
 
 	foreach(_variable_name ${_variable_names})
-		if(_variable_name MATCHES "^ENABLE_.*$" AND NOT _variable_name MATCHES ".*_AVAILABLE$")
+		if( (_variable_name MATCHES "^ENABLE_.*$"  OR _variable_name MATCHES "^LINPHONE_BUILDER_.*$") AND NOT _variable_name MATCHES ".*_AVAILABLE$")
 			list(APPEND _enable_cmake_args "-D${_variable_name}=${${_variable_name}}")
 		endif()
 	endforeach()
