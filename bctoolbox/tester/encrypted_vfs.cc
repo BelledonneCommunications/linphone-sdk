@@ -25,25 +25,6 @@
 
 using namespace bctoolbox;
 
-/* Helper function: is a file encrypted? Check it starts with the evfs magic number */
-static bool is_encrypted(const char *filepath) {
-	bool ret = false;
-	uint8_t evfs_magicNumber[13] = {0x62, 0x63, 0x45, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x65, 0x64, 0x46, 0x73};
-	std::ifstream file (filepath, std::ios::in | std::ios::binary);
-	if (file.is_open()) {
-		char readBuf[13];
-		file.seekg(0, std::ios::beg);
-		auto sizeRead = file.read(readBuf, 13).gcount();
-
-		if (sizeRead == 13) {
-			ret = std::equal(evfs_magicNumber, evfs_magicNumber+13, readBuf);
-		}
-	}
-	file.close();
-	return ret;
-}
-
-
 /* A callback to position the key material and algorithm suite to use */
 static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
@@ -368,11 +349,11 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
 
+	// file shall not be encrypted
+	BC_ASSERT_FALSE(bctbx_file_isEncrypted(fp));
+
 	// close file
 	bctbx_file_close(fp);
-
-	// file shall not be encrypted
-	BC_ASSERT_FALSE(is_encrypted(filePath.data()));
 
 	// open it read only using the encrypted vfs, it shall NOT force the migration
 	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDONLY);
@@ -381,8 +362,8 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 	// now it shall still be plain
+	BC_ASSERT_FALSE(bctbx_file_isEncrypted(fp));
 	bctbx_file_close(fp);
-	BC_ASSERT_FALSE(is_encrypted(filePath.data()));
 
 
 	// open it using the encrypted vfs, it shall force the migration
@@ -394,8 +375,8 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 
 	// now it shall be encrypted
+	BC_ASSERT_TRUE(bctbx_file_isEncrypted(fp));
 	bctbx_file_close(fp);
-	BC_ASSERT_TRUE(is_encrypted(filePath.data()));
 
 	// cleaning
 	std::remove(filePath.data());

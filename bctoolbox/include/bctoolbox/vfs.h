@@ -88,6 +88,7 @@ struct bctbx_io_methods_t {
 	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncSync)(bctbx_vfs_file_t *pFile);
 	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
+	bool_t (*pFuncIsEncrypted)(bctbx_vfs_file_t *pFile);
 };
 
 
@@ -99,13 +100,6 @@ struct bctbx_vfs_t {
 	const char *vfsName;       /* Virtual file system name */
 	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 };
-
-/* API to use the VFS */
-/*
- * This function returns a pointer to the VFS implemented in this file.
- */
-BCTBX_PUBLIC bctbx_vfs_t *bc_create_vfs(void);
-
 
 /**
  * Attempts to read count bytes from the open file given by pFile, at the position starting at offset
@@ -211,6 +205,12 @@ BCTBX_PUBLIC int bctbx_file_sync(bctbx_vfs_file_t *pFile);
  */
 BCTBX_PUBLIC off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence);
 
+/**
+ * Get the file encryption status
+ * @param  pFile  File handle pointer.
+ * @return true if the file is encrypted
+ */
+BCTBX_PUBLIC bool_t bctbx_file_isEncrypted(bctbx_vfs_file_t *pFile);
 
 /**
  * Set default VFS pointer pDefault to my_vfs.

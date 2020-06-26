@@ -204,7 +204,8 @@ static const  bctbx_io_methods_t bcio = {
 	bcTruncate,		/* pFuncTruncate */
 	bcFileSize,		/* pFuncFileSize */
 	bcSync,
-	NULL			/* use the generic implementation of getnxt line */
+	NULL,			/* use the generic implementation of getnxt line */
+	NULL			/* pFuncIsEncrypted -> no function so we will return false */
 };
 
 

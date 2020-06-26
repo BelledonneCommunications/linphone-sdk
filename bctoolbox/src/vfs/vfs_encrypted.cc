@@ -842,6 +842,19 @@ static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
 	return ret;
 }
 
+/*
+ ** is a file encrypted or plain
+ * @param pFile File handle pointer.
+ * @return true if the file is encrypted
+ */
+static bool_t bcIsEncrypted(bctbx_vfs_file_t *pFile) {
+	if (pFile && pFile->pUserData) {
+		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
+		return (ctx->encryptionSuite_get() == bctoolbox::EncryptionSuite::plain)?FALSE:TRUE;
+	}
+	return FALSE;
+}
+
 static const  bctbx_io_methods_t bcio = {
 	bcClose,		/* pFuncClose */
 	bcRead,			/* pFuncRead */
@@ -849,7 +862,8 @@ static const  bctbx_io_methods_t bcio = {
 	bcTruncate,		/* pFuncTruncate */
 	bcFileSize,		/* pFuncFileSize */
 	bcSync,
-	NULL // use the generic get next line function
+	NULL, // use the generic get next line function
+	bcIsEncrypted
 };
 
 

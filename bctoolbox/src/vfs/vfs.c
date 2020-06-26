@@ -278,7 +278,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 
 int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
 	if (pFile) { /* if the vfs does not implement this method, use the generic one */
-		if (pFile->pMethods->pFuncGetLineFromFd) {
+		if (pFile->pMethods && pFile->pMethods->pFuncGetLineFromFd) {
 			return pFile->pMethods->pFuncGetLineFromFd(pFile, s, maxlen);
 		} else {
 			return bctbx_generic_get_nxtline(pFile, s, maxlen);
@@ -287,6 +287,12 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
 	return BCTBX_VFS_ERROR;
 }
 
+bool_t bctbx_file_isEncrypted(bctbx_vfs_file_t *pFile) {
+	if (pFile && pFile->pMethods && pFile->pMethods->pFuncIsEncrypted){
+		return pFile->pMethods->pFuncIsEncrypted(pFile);
+	}
+	return FALSE;
+}
 
 void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs) {
 	pDefaultVfs = my_vfs;
