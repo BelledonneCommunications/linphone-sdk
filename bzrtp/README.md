@@ -9,7 +9,7 @@ What's BZRTP
 BZRTP is an opensource implementation of ZRTP keys exchange protocol. 
 The library written in C 89 is fully portable and can be executed  on many platforms including both ARM  processor and x86. 
 
-Licensing: The source code is licensed under GPLv2.
+Licensing: The source code is licensed under GPLv3.
 
 
 License
