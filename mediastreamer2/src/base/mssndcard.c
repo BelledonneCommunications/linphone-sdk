@@ -52,31 +52,66 @@ MSFactory * ms_snd_card_get_factory(MSSndCard * c){
 	return c->sndcardmanager->factory;
 }
 
-MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id){
+static char *ms_snd_card_get_legacy_string_id(MSSndCard *obj) {
+	return ms_strdup_printf("%s: %s", obj->desc->driver_type, obj->name);
+}
+
+MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id) {
 	bctbx_list_t *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *card=(MSSndCard*)elem->data;
-		if (id==NULL) return card;
-		if (strcmp(ms_snd_card_get_string_id(card),id)==0)	return card;
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard*)elem->data;
+		if (id == NULL) return card;
+		if (strcmp(ms_snd_card_get_string_id(card), id) == 0) return card;
+		
+		char * legacy_id = ms_snd_card_get_legacy_string_id(card);
+		if (strcmp(legacy_id, id) == 0) {
+			ms_message("Found match using legacy sound card id");
+			ms_free(legacy_id);
+			return card;
+		}
+		ms_free(legacy_id);
 	}
-	if (id!=NULL) ms_warning("no card with id %s",id);
+
+	if (id != NULL) ms_warning("no card with id %s", id);
+	return NULL;
+}
+
+MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, const char *id, unsigned int capabilities) {
+	bctbx_list_t *elem;
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard*)elem->data;
+		if ((card->capabilities & capabilities) != capabilities) continue;
+
+		if (id == NULL) return card;
+		if (strcmp(ms_snd_card_get_string_id(card), id) == 0) return card;
+		
+		char * legacy_id = ms_snd_card_get_legacy_string_id(card);
+		if (strcmp(legacy_id, id) == 0) {
+			ms_message("Found match using legacy sound card id");
+			ms_free(legacy_id);
+			return card;
+		}
+		ms_free(legacy_id);
+	}
+
+	if (id != NULL) ms_warning("no card with id %s", id);
 	return NULL;
 }
 
 MSSndCard * ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char * driver_type) {
 	bctbx_list_t *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *c=(MSSndCard*)elem->data;
-		if ((strcmp(c->desc->driver_type, driver_type)==0) && (type == ms_snd_card_get_device_type(c)))	return c;
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *c = (MSSndCard*)elem->data;
+		if ((strcmp(c->desc->driver_type, driver_type) == 0) && (type == ms_snd_card_get_device_type(c))) return c;
 	}
 	return NULL;
 }
 
 static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigned int caps){
 	bctbx_list_t *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *card=(MSSndCard*)elem->data;
-		if ((id== NULL || strcmp(ms_snd_card_get_string_id(card),id)==0) && (card->capabilities & caps) == caps)	return card;
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard*)elem->data;
+		if ((id == NULL || strcmp(ms_snd_card_get_string_id(card), id) == 0) && (card->capabilities & caps) == caps) return card;
 	}
 	return NULL;
 }
@@ -84,10 +119,10 @@ static MSSndCard *get_card_with_cap(MSSndCardManager *m, const char *id, unsigne
 bctbx_list_t * ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, const char *name){
 	bctbx_list_t *cards = NULL;
 	bctbx_list_t *elem;
-	for (elem=m->cards;elem!=NULL;elem=elem->next){
-		MSSndCard *card=(MSSndCard*)elem->data;
-		if (strcmp(ms_snd_card_get_name(card),name)==0) {
-			cards=bctbx_list_append(cards, ms_snd_card_ref(card));
+	for (elem = m->cards; elem != NULL; elem = elem->next) {
+		MSSndCard *card = (MSSndCard*)elem->data;
+		if (strcmp(ms_snd_card_get_name(card),name) == 0) {
+			cards = bctbx_list_append(cards, ms_snd_card_ref(card));
 		}
 	}
 	return cards;
@@ -314,13 +349,13 @@ MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj){
 	return obj->latency;
 }
 
-const char *ms_snd_card_get_string_id(MSSndCard *obj){
-	if (obj->id==NULL) {
-		bool_t addExtraData = ((obj->device_type==MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) && (strcmp(obj->desc->driver_type, "openSLES") != 0));
+const char *ms_snd_card_get_string_id(MSSndCard *obj) {
+	if (obj->id == NULL) {
+		bool_t addExtraData = ((obj->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) && (strcmp(obj->desc->driver_type, "openSLES") != 0));
 		if (addExtraData == TRUE) {
-			obj->id=ms_strdup_printf("%s %s %s: %s",obj->desc->driver_type,ms_snd_card_device_type_to_string(obj->device_type),cap_to_string(obj->capabilities),obj->name);
+			obj->id = ms_strdup_printf("%s %s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), cap_to_string(obj->capabilities), obj->name);
 		} else {
-			obj->id=ms_strdup_printf("%s %s: %s",obj->desc->driver_type,ms_snd_card_device_type_to_string(obj->device_type),obj->name);
+			obj->id = ms_strdup_printf("%s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), obj->name);
 		}
 	}
 	return obj->id;
