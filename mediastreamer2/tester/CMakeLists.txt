@@ -180,9 +180,16 @@ else()
 	if(IOS)
 		set_source_files_properties(${IOS_RESOURCES_FILES} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 		add_executable(mediastreamer2_tester MACOSX_BUNDLE ${IOS_RESOURCES_FILES} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
+		set_target_properties(mediastreamer2_tester PROPERTIES
+					MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+					MACOSX_BUNDLE_BUNDLE_NAME org.linphone.ms2.mediastreamer2-tester
+					MACOSX_BUNDLE_BUNDLE_VERSION 1.0
+					MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0")
+		
 	else()
 		add_executable(mediastreamer2_tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	endif()
+	set_target_properties(mediastreamer2_tester PROPERTIES LINKER_LANGUAGE CXX)
 	target_include_directories(mediastreamer2_tester PRIVATE ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer2_tester ${MS2_LIBS_FOR_TESTER} bctoolbox bctoolbox-tester ortp)
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
