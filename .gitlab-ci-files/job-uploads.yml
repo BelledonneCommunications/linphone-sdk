@@ -18,6 +18,7 @@ job-ios-upload:
 
   script:
 
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
     #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/docs/liblinphone/swift
 
