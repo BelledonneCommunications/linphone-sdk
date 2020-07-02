@@ -30,16 +30,6 @@ RUN dnf install -y mesa-dri-drivers && \
 #   dnf clean all && \
     dbus-uuidgen > /var/lib/dbus/machine-id
 
-#QT Dependencies
-RUN dnf install -y libxkbcommon* libxcb && dnf install -y dnf-plugins-core && dnf config-manager -y --set-enabled PowerTools && dnf install -y jasper-devel && dnf install -y python36
-
-# Build qt5.12.5
-RUN git clone -b fix/qt5_build_issues_new_docker_images --single-branch https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
-    ./linphone-desktop/tools/build_qt_rpm && \
-    rpm -i ./linphone-desktop/rpm-linphone-qt-5.12.5/rpmbuild/RPMS/x86_64/*.rpm && \
-    mv ./linphone-desktop/rpm-linphone-qt-5.12.5/rpmbuild/RPMS/x86_64/*.rpm / && \
-    rm -rf ./linphone-desktop
-
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
