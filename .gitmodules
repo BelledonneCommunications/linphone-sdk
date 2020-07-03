@@ -1,129 +1,129 @@
 [submodule "belle-sip"]
 	path = belle-sip
-	url = ../../public/belle-sip.git
+	url = ../belle-sip.git
 [submodule "cmake-builder"]
 	path = cmake-builder
-	url = ../../public/linphone-cmake-builder.git
+	url = ../linphone-cmake-builder.git
 [submodule "liblinphone"]
 	path = liblinphone
-	url = ../../public/liblinphone.git
+	url = ../liblinphone.git
 [submodule "bcg729"]
 	path = bcg729
-	url = ../../public/bcg729.git
+	url = ../bcg729.git
 [submodule "bzrtp"]
 	path = bzrtp
-	url = ../../public/bzrtp.git
+	url = ../bzrtp.git
 [submodule "msamr"]
 	path = msamr
-	url = ../../public/msamr.git
+	url = https://gitlab.linphone.org/BC/public/msamr.git
 [submodule "msopenh264"]
 	path = msopenh264
-	url = ../../public/msopenh264.git
+	url = https://gitlab.linphone.org/BC/public/msopenh264.git
 [submodule "mssilk"]
 	path = mssilk
-	url = ../../public/mssilk.git
+	url = https://gitlab.linphone.org/BC/public/mssilk.git
 [submodule "mswebrtc"]
 	path = mswebrtc
-	url = ../../public/mswebrtc.git
+	url = https://gitlab.linphone.org/BC/public/mswebrtc.git
 [submodule "belcard"]
 	path = belcard
-	url = ../../public/belcard.git
+	url = ../belcard.git
 [submodule "belr"]
 	path = belr
-	url = ../../public/belr.git
+	url = ../belr.git
 [submodule "bctoolbox"]
 	path = bctoolbox
-	url = ../../public/bctoolbox.git
+	url = ../bctoolbox.git
 [submodule "bcunit"]
 	path = bcunit
-	url = ../../public/bcunit.git
+	url = ../bcunit.git
 [submodule "ortp"]
 	path = ortp
-	url = ../../public/ortp.git
+	url = ../ortp.git
 [submodule "mediastreamer2"]
 	path = mediastreamer2
-	url = ../../public/mediastreamer2.git
+	url = ../mediastreamer2.git
 [submodule "mswasapi"]
 	path = mswasapi
-	url = ../../public/mswasapi.git
+	url = https://gitlab.linphone.org/BC/public/mswasapi.git
 [submodule "bcmatroska2"]
 	path = bcmatroska2
-	url = ../../public/bcmatroska2.git
+	url = https://gitlab.linphone.org/BC/public/bcmatroska2.git
 [submodule "external/mbedtls"]
 	path = external/mbedtls
-	url = ../../public/external/mbedtls.git
+	url = https://gitlab.linphone.org/BC/public/external/mbedtls.git
 [submodule "external/bv16-floatingpoint"]
 	path = external/bv16-floatingpoint
-	url = ../../public/external/bv16-floatingpoint.git
+	url = https://gitlab.linphone.org/BC/public/external/bv16-floatingpoint.git
 [submodule "external/speex"]
 	path = external/speex
-	url = ../../public/external/speex.git
+	url = https://gitlab.linphone.org/BC/public/external/speex.git
 [submodule "external/ffmpeg"]
 	path = external/ffmpeg
-	url = ../../public/external/ffmpeg.git
+	url = https://gitlab.linphone.org/BC/public/external/ffmpeg.git
 [submodule "external/libvpx"]
 	path = external/libvpx
-	url = ../../public/external/libvpx.git
+	url = https://gitlab.linphone.org/BC/public/external/libvpx.git
 [submodule "external/opus"]
 	path = external/opus
-	url = ../../public/external/opus.git
+	url = https://gitlab.linphone.org/BC/public/external/opus.git
 [submodule "external/gsm"]
 	path = external/gsm
-	url = ../../public/external/gsm.git
+	url = https://gitlab.linphone.org/BC/public/external/gsm.git
 [submodule "external/srtp"]
 	path = external/srtp
-	url = ../../public/external/srtp.git
+	url = https://gitlab.linphone.org/BC/public/external/srtp.git
 [submodule "external/libxml2"]
 	path = external/libxml2
-	url = ../../public/external/libxml2.git
+	url = https://gitlab.linphone.org/BC/public/external/libxml2.git
 [submodule "external/zlib"]
 	path = external/zlib
-	url = ../../public/external/zlib.git
+	url = https://gitlab.linphone.org/BC/public/external/zlib.git
 [submodule "external/openh264"]
 	path = external/openh264
-	url = ../../public/external/openh264.git
+	url = https://gitlab.linphone.org/BC/public/external/openh264.git
 [submodule "external/libjpeg-turbo"]
 	path = external/libjpeg-turbo
-	url = ../../public/external/libjpeg-turbo.git
+	url = https://gitlab.linphone.org/BC/public/external/libjpeg-turbo.git
 [submodule "external/xerces-c"]
 	path = external/xerces-c
-	url = ../../public/external/xerces-c.git
+	url = https://gitlab.linphone.org/BC/public/external/xerces-c.git
 [submodule "external/libxsd"]
 	path = external/libxsd
-	url = ../../public/external/libxsd.git
+	url = https://gitlab.linphone.org/BC/public/external/libxsd.git
 [submodule "external/soci"]
 	path = external/soci
-	url = ../../public/external/soci.git
+	url = https://gitlab.linphone.org/BC/public/external/soci.git
 [submodule "external/sqlite3"]
 	path = external/sqlite3
-	url = ../../public/external/sqlite3.git
+	url = https://gitlab.linphone.org/BC/public/external/sqlite3.git
 [submodule "external/codec2"]
 	path = external/codec2
-	url = ../../public/external/codec2.git
+	url = https://gitlab.linphone.org/BC/public/external/codec2.git
 [submodule "mscodec2"]
 	path = mscodec2
-	url = ../../public/mscodec2.git
+	url = https://gitlab.linphone.org/BC/public/mscodec2.git
 [submodule "external/decaf"]
 	path = external/decaf
-	url = ../../public/external/decaf.git
+	url = https://gitlab.linphone.org/BC/public/external/decaf.git
 [submodule "external/zxing-cpp"]
 	path = external/zxing-cpp
-	url = ../../public/external/zxing-cpp.git
+	url = https://gitlab.linphone.org/BC/public/external/zxing-cpp.git
 [submodule "external/vo-amrwbenc"]
 	path = external/vo-amrwbenc
-	url = ../../public/external/vo-amrwbenc.git
+	url = https://gitlab.linphone.org/BC/public/external/vo-amrwbenc.git
 [submodule "external/opencore-amr"]
 	path = external/opencore-amr
-	url = ../../public/external/opencore-amr.git
+	url = https://gitlab.linphone.org/BC/public/external/opencore-amr.git
 [submodule "lime"]
 	path = lime
-	url = ../../public/lime.git
+	url = ../lime.git
 [submodule "msaaudio"]
 	path = msaaudio
-	url = ../../public/msaaudio.git
+	url = https://gitlab.linphone.org/BC/public//msaaudio.git
 [submodule "mswinrtvid"]
 	path = mswinrtvid
-	url = ../../public/mswinrtvid.git
+	url = https://gitlab.linphone.org/BC/public/mswinrtvid.git
 [submodule "msandroidcamera2"]
 	path = msandroidcamera2
-	url = ../../public/msandroidcamera2.git
+	url = https://gitlab.linphone.org/BC/public/msandroidcamera2.git
