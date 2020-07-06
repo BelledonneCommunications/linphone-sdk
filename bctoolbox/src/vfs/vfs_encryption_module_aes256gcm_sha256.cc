@@ -25,6 +25,27 @@
 
 #include "bctoolbox/logging.h"
 using namespace bctoolbox;
+/**
+ * Constants associated to this encryption module
+ */
+
+/** Chunk Header in this module holds: Auth tag(16 bytes), IV : 12 bytes, Encryption Counter 4 bytes
+ */
+static constexpr size_t chunkAuthTagSize = AES256GCM128::tagSize();
+static constexpr size_t chunkIVSize = 12;
+static constexpr size_t chunkHeaderSize = chunkAuthTagSize + chunkIVSize;
+/**
+ * File header holds: fileSalt (16 bytes), file header auth tag(32 bytes)
+ */
+static constexpr size_t fileSaltSize = 16;
+static constexpr size_t fileAuthTagSize = 32;
+static constexpr size_t fileHeaderSize = fileSaltSize + fileAuthTagSize;
+
+/**
+ * The master Key is expected to be 32 bytes
+ */
+static constexpr size_t masterKeySize=32;
+
 
 /** constructor called at file creation */
 VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256() :
@@ -85,7 +106,7 @@ void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> 
  * @return	the AES256-GCM128 key
  */
 const std::array<uint8_t, AES256GCM128::keySize()> VfsEM_AES256GCM_SHA256::deriveChunkKey(uint32_t chunkIndex) {
-	auto chunkSalt{m_fileSalt};
+	std::vector<uint8_t> chunkSalt{m_fileSalt};
 	chunkSalt.push_back((chunkIndex>>24)&0xFF);
 	chunkSalt.push_back((chunkIndex>>16)&0xFF);
 	chunkSalt.push_back((chunkIndex>>8)&0xFF);
@@ -102,7 +123,7 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 	}
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
-	auto key {deriveChunkKey(chunkIndex)};
+	std::array<uint8_t, AES256GCM128::keySize()> key = deriveChunkKey(chunkIndex);
 
 	// parse the header: tag, IV, encryption Counter
 	std::array<uint8_t, AES256GCM128::tagSize()> tag;
@@ -140,11 +161,11 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 	auto IV = m_RNG->randomize(chunkIVSize);
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
-	auto key {deriveChunkKey(chunkIndex)};
+	std::array<uint8_t, AES256GCM128::keySize()> key = deriveChunkKey(chunkIndex);
 
 	std::vector<uint8_t> AD{};
 	std::array<uint8_t, AES256GCM128::tagSize()> tag;
-	auto rawChunk = AEAD_encrypt<AES256GCM128>(key, IV, plainData, AD, tag);
+	std::vector<uint8_t> rawChunk = AEAD_encrypt<AES256GCM128>(key, IV, plainData, AD, tag);
 
 	// insert header:
 	std::vector<uint8_t> chunkHeader(chunkHeaderSize,0);
@@ -173,4 +194,30 @@ bool VfsEM_AES256GCM_SHA256::checkIntegrity(const VfsEncryption &fileContext) {
 	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.r_getHeader());
 
 	return (std::equal(tag.cbegin(), tag.cend(), m_fileHeaderIntegrity.cbegin()));
+}
+/**
+ * This function exists as static and non static
+ */
+size_t VfsEM_AES256GCM_SHA256::moduleFileHeaderSize() noexcept{
+	return fileHeaderSize;
+}
+
+/**
+ * @return the size in bytes of the chunk header
+ */
+size_t VfsEM_AES256GCM_SHA256::getChunkHeaderSize() const noexcept {
+	return chunkHeaderSize;
+}
+/**
+ * @return the size in bytes of file header module data
+ */
+size_t VfsEM_AES256GCM_SHA256::getModuleFileHeaderSize() const noexcept {
+	return fileHeaderSize;
+}
+
+/**
+ * @return the secret material size
+ */
+size_t VfsEM_AES256GCM_SHA256::getSecretMaterialSize() const noexcept {
+	return masterKeySize;
 }

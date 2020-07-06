@@ -43,27 +43,6 @@ namespace bctoolbox {
 class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 	private:
 		/**
-		 * Constants associated to this encryption module
-		 */
-
-		/** Chunk Header in this module holds: Auth tag(16 bytes), IV : 12 bytes, Encryption Counter 4 bytes
-		 */
-		static constexpr size_t chunkAuthTagSize = AES256GCM128::tagSize();
-		static constexpr size_t chunkIVSize = 12;
-		static constexpr size_t chunkHeaderSize = chunkAuthTagSize + chunkIVSize;
-		/**
-		 * File header holds: fileSalt (16 bytes), file header auth tag(32 bytes)
-		 */
-		static constexpr size_t fileSaltSize = 16;
-		static constexpr size_t fileAuthTagSize = 32;
-		static constexpr size_t fileHeaderSize = fileSaltSize + fileAuthTagSize;
-
-		/**
-		 * The master Key is expected to be 32 bytes
-		 */
-		static constexpr size_t masterKeySize=32;
-
-		/**
 		 * The local RNG
 		 */
 		std::shared_ptr<bctoolbox::RNG> m_RNG; // list it first so it is available in the constructor's init list
@@ -93,22 +72,18 @@ class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 		/**
 		 * This function exists as static and non static
 		 */
-		static constexpr size_t moduleFileHeaderSize() noexcept{
-			return fileHeaderSize;
-		}
+		static size_t moduleFileHeaderSize() noexcept;
 
 		/**
 		 * @return the size in bytes of the chunk header
 		 */
-		size_t getChunkHeaderSize() const noexcept override {
-			return chunkHeaderSize;
-		}
+		size_t getChunkHeaderSize() const noexcept override;
+
 		/**
 		 * @return the size in bytes of file header module data
 		 */
-		size_t getModuleFileHeaderSize() const noexcept override {
-			return fileHeaderSize;
-		}
+		size_t getModuleFileHeaderSize() const noexcept override;
+
 		/**
 		 * @return the EncryptionSuite provided by this module
 		 */
@@ -119,9 +94,7 @@ class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 		/**
 		 * @return the secret material size
 		 */
-		size_t getSecretMaterialSize() const noexcept override {
-			return masterKeySize;
-		}
+		size_t getSecretMaterialSize() const noexcept override;
 
 		/**
 		 * Decrypt a chunk of data

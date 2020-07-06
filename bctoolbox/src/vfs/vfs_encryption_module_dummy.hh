@@ -27,30 +27,6 @@ namespace bctoolbox {
 class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 	private:
 		/**
-		 * Constant associated to this encryption module
-		 */
-
-		/** Header in the dummy module holds:
-		 * - Integrity tag 8 bytes. The HMACSHA256 of the block content and header (excluding this tag)
-		 * - Block Index : 4 bytes. (-> max 4 giga blocks in a file -> more than enough)
-		 * - Encryption Counter : 4 bytes counter (increased at each encryption)
-		 * Total size : 16 bytes
-		 */
-		static constexpr size_t chunkHeaderSize=16;
-		/**
-		 * The dummy module file header holds:
-		 * - fixed Random IV : 8 bytes
-		 * - Integrity tag 8 bytes. The HMACSHA256 of the file header - (including the begining of the module file header first 8 bytes, excluding this tag)
-		 */
-		static constexpr size_t fileHeaderSize=16;
-
-		/**
-		 * The dummy module secret material is a key used to Xor blocks
-		 * - size is 16 bytes
-		 */
-		static constexpr size_t secretMaterialSize=16;
-
-		/**
 		 * Store the file header and secret
 		 */
 		std::vector<uint8_t> m_fileHeader;
@@ -76,21 +52,18 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		/**
 		 * @return the size in bytes of file header module data
 		 */
-		static constexpr size_t moduleFileHeaderSize() noexcept{
-			return fileHeaderSize;
-		}
+		static size_t moduleFileHeaderSize() noexcept;
+
 		/**
 		 * @return the size in bytes of the chunk header
 		 */
-		size_t getChunkHeaderSize() const noexcept override {
-			return chunkHeaderSize;
-		}
+		size_t getChunkHeaderSize() const noexcept override;
+
 		/**
 		 * @return the size in bytes of file header module data
 		 */
-		size_t getModuleFileHeaderSize() const noexcept override {
-			return fileHeaderSize;
-		}
+		size_t getModuleFileHeaderSize() const noexcept override;
+
 		/**
 		 * @return the EncryptionSuite provided by this module
 		 */
@@ -101,9 +74,7 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		/**
 		 * @return the secret material size
 		 */
-		size_t getSecretMaterialSize() const noexcept override {
-			return secretMaterialSize;
-		}
+		size_t getSecretMaterialSize() const noexcept override;
 
 		/**
 		 * Decrypt a chunk of data

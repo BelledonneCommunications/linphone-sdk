@@ -24,6 +24,30 @@
 #include "bctoolbox/crypto.h"
 using namespace bctoolbox;
 
+/**
+ * Constant associated to this encryption module
+ */
+
+/** Header in the dummy module holds:
+ * - Integrity tag 8 bytes. The HMACSHA256 of the block content and header (excluding this tag)
+ * - Block Index : 4 bytes. (-> max 4 giga blocks in a file -> more than enough)
+ * - Encryption Counter : 4 bytes counter (increased at each encryption)
+ * Total size : 16 bytes
+ */
+static constexpr size_t chunkHeaderSize=16;
+/**
+ * The dummy module file header holds:
+ * - fixed Random IV : 8 bytes
+ * - Integrity tag 8 bytes. The HMACSHA256 of the file header - (including the begining of the module file header first 8 bytes, excluding this tag)
+ */
+static constexpr size_t fileHeaderSize=16;
+
+/**
+ * The dummy module secret material is a key used to Xor blocks
+ * - size is 16 bytes
+ */
+static constexpr size_t secretMaterialSize=16;
+
 static std::string getHex(const std::vector<uint8_t>& v)
 {
     std::string result;
@@ -239,4 +263,30 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::chunkIntegrityTag(const std::vect
 		8, // get 8 bytes out of the HMAC
 		tag.data());
 	return tag;
+}
+
+/**
+ * @return the size in bytes of file header module data
+ */
+size_t VfsEncryptionModuleDummy::moduleFileHeaderSize() noexcept{
+	return fileHeaderSize;
+}
+/**
+ * @return the size in bytes of the chunk header
+ */
+size_t VfsEncryptionModuleDummy::getChunkHeaderSize() const noexcept {
+	return chunkHeaderSize;
+}
+/**
+ * @return the size in bytes of file header module data
+ */
+size_t VfsEncryptionModuleDummy::getModuleFileHeaderSize() const noexcept {
+	return fileHeaderSize;
+}
+
+/**
+ * @return the secret material size
+ */
+size_t VfsEncryptionModuleDummy::getSecretMaterialSize() const noexcept {
+	return secretMaterialSize;
 }
