@@ -22,6 +22,7 @@
 #include "bctoolbox/vfs_encrypted.hh"
 #include "vfs_encryption_module.hh"
 #include "bctoolbox/crypto.hh"
+#include <array>
 
 /*********** The AES256-GCM SHA256 module   ************************
  * Key derivations:

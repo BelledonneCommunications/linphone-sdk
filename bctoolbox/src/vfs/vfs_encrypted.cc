@@ -30,7 +30,6 @@
 #include "bctoolbox/logging.h"
 #include <cstdio>
 
-
 using namespace bctoolbox;
 
 /** Helpers function: this part of the code must be updated to add modules */
@@ -598,7 +597,7 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	}
 
 	auto plain = plainData; // work on a local copy as we may modify it
-	size_t finalFileSize = std::max(m_fileSize, plain.size()+offset); // we might need to increase the file size
+	size_t finalFileSize = MAX(m_fileSize, plain.size()+offset); // we might need to increase the file size
 
 	// Are we writing after the end of the file, if yes, prepend with zeros
 	if (offset > m_fileSize) {

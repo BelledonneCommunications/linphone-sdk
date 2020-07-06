@@ -34,6 +34,7 @@
 #include "bctoolbox/crypto.hh"
 #include "bctoolbox/exception.hh"
 
+#include <array>
 
 namespace bctoolbox {
 

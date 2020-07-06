@@ -31,6 +31,7 @@
 /* used to cross test ECDH25519 */
 #include "mbedtls/ecdh.h"
 #endif /* HAVE_MBEDTLS */
+#include <array>
 
 using namespace bctoolbox;
 
