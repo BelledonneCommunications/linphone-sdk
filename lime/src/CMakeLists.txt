@@ -71,7 +71,7 @@ if(ENABLE_SHARED)
 		$<INSTALL_INTERFACE:include>
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	)
-	target_link_libraries(lime PRIVATE bctoolbox ${SOCI_sqlite3_PLUGIN} ${SOCI_LIBRARIES} ${JNI_LIBRARIES})
+	target_link_libraries(lime PRIVATE bctoolbox ${SOCI_LIBRARIES} ${JNI_LIBRARIES})
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
