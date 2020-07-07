@@ -469,3 +469,12 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
+@interface PushIncomingCallTests : LinphoneTesterBase
+@end
+
+@implementation PushIncomingCallTests
++ (void)initialize {
+	[self testForSuiteAsync:@"Push Incoming Call"];
+}
+@end
+
