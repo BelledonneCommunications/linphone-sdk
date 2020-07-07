@@ -18,7 +18,6 @@
 */
 
 #include <bctoolbox/exception.hh>
-#include <bctoolbox/sqlite3_vfs.h>
 #include <soci/soci.h>
 #include <set>
 #include <mutex>
@@ -40,7 +39,7 @@ namespace lime {
 /* Db public API                                                              */
 /*                                                                            */
 /******************************************************************************/
-Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex) : sql{"sqlite3", std::string("db=").append(filename).append(" vfs=").append(BCTBX_SQLITE3_VFS)}, m_db_mutex{db_mutex} {
+Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mutex) : sql{"sqlite3", filename}, m_db_mutex{db_mutex} {
 	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
 	constexpr int db_module_table_not_holding_lime_row = -1;
 
