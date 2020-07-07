@@ -46,11 +46,6 @@ if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 	list(APPEND HEADER_FILES crypto.hh)
 endif()
 
-if (ENABLE_SQLITE_VFS)
-	list(APPEND HEADER_FILES sqlite3_vfs.h)
-endif()
-
-
 if(ENABLE_TESTS_COMPONENT)
 	list(APPEND HEADER_FILES tester.h)
 endif()
