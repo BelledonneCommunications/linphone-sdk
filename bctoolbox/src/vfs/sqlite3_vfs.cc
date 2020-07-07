@@ -19,6 +19,7 @@
 
 #include "bctoolbox/charconv.h"
 #include "bctoolbox/sqlite3_vfs.h"
+#include "bctoolbox/logging.h"
 #include <sqlite3.h>
 
 #ifndef _WIN32_WCE
@@ -392,6 +393,7 @@ void sqlite3_bctbx_vfs_register(int makeDefault) {
 	xNextSystemCall*/
 
 	sqlite3_vfs_register(pVfsToUse, makeDefault);
+	BCTBX_SLOGD<<"Sqlite3 VFS : register "<<BCTBX_SQLITE3_VFS<<" "<<((makeDefault==0)?"not making it the default VFS":" as default VFS");
 
 }
 
@@ -400,6 +402,7 @@ void sqlite3_bctbx_vfs_unregister(void)
 {
 	sqlite3_vfs* pVfs = sqlite3_vfs_find(BCTBX_SQLITE3_VFS);
 	sqlite3_vfs_unregister(pVfs);
+	BCTBX_SLOGD<<"Sqlite3 VFS : unregister "<<BCTBX_SQLITE3_VFS;
 }
 
 
