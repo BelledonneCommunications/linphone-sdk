@@ -659,7 +659,7 @@ static void rng_test_32_args(size_t calls_nb) noexcept {
 	double stat_m2 = 0;
 
 	try {
-		for (int i=0; i<calls_nb; i++) {
+		for (size_t i=0; i<calls_nb; i++) {
 			rng_stats_update(stat_count, stat_mean, stat_m2, bctoolbox::RNG::c_randomize());
 		}
 		// normalized mean shall be around 0.5
@@ -686,7 +686,7 @@ static void rng_test_32_args(size_t calls_nb) noexcept {
 	try {
 		auto r = std::unique_ptr<bctoolbox::RNG>(new bctoolbox::RNG());
 
-		for (int i=0; i<calls_nb; i++) {
+		for (size_t i=0; i<calls_nb; i++) {
 			rng_stats_update(stat_count, stat_mean, stat_m2, r->randomize());
 		}
 		// normalized mean shall be around 0.5
@@ -714,9 +714,9 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 	double stat_m2 = 0;
 
 	try {
-		for (int i=0; i<calls_nb; i++) {
+		for (size_t i=0; i<calls_nb; i++) {
 			bctoolbox::RNG::c_randomize(alea, buffer_size);
-			for (int j=0; j<buffer_size; j++) {
+			for (size_t j=0; j<buffer_size; j++) {
 				rng_stats_update(stat_count, stat_mean, stat_m2, alea[j]);
 			}
 		}
@@ -744,9 +744,9 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 	try {
 		auto r = std::unique_ptr<bctoolbox::RNG>(new bctoolbox::RNG());
 
-		for (int i=0; i<calls_nb; i++) {
+		for (size_t i=0; i<calls_nb; i++) {
 			r->randomize(alea, buffer_size);
-			for (int j=0; j<buffer_size; j++) {
+			for (size_t j=0; j<buffer_size; j++) {
 				rng_stats_update(stat_count, stat_mean, stat_m2, alea[j]);
 			}
 		}
@@ -771,7 +771,7 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 
 static void rng_test(void) {
 #ifdef HAVE_MBEDTLS
-	rng_test_args(4, 2048);
+	rng_test_args(4, 4096);
 	rng_test_args(32, 1024);
 	rng_test_args(64, 1024);
 	rng_test_args(128, 256);
@@ -800,16 +800,16 @@ static void rng_test(void) {
 
 static void AEAD(void) {
 	std::vector<uint8_t> cipher{};
-	std::array<uint8_t, 16> tag{};
+	std::vector<uint8_t> tag{};
 	std::vector<uint8_t> plain{};
 
 	/* Test vectors for AES256-GCM128 from IEEE P1619.1/D22 - Annex D.3 */
 	/* Test D3.1*/
-	std::array<uint8_t, 32> key{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+	std::vector<uint8_t> key{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	std::vector<uint8_t> IV{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	std::vector<uint8_t> pattern_plain{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	std::vector<uint8_t> pattern_cipher{0xce, 0xa7, 0x40, 0x3d, 0x4d, 0x60, 0x6b, 0x6e, 0x07, 0x4e, 0xc5, 0xd3, 0xba, 0xf3, 0x9d, 0x18};
-	std::array<uint8_t, 16> pattern_tag{0xd0, 0xd1, 0xc8, 0xa7, 0x99, 0x99, 0x6b, 0xf0, 0x26, 0x5b, 0x98, 0xb5, 0xd4, 0x8a, 0xb9, 0x19};
+	std::vector<uint8_t> pattern_tag{0xd0, 0xd1, 0xc8, 0xa7, 0x99, 0x99, 0x6b, 0xf0, 0x26, 0x5b, 0x98, 0xb5, 0xd4, 0x8a, 0xb9, 0x19};
 	std::vector<uint8_t> AD{};
 	AD.clear();
 

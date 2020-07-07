@@ -105,16 +105,13 @@ void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> 
  *
  * @return	the AES256-GCM128 key
  */
-const std::array<uint8_t, AES256GCM128::keySize()> VfsEM_AES256GCM_SHA256::deriveChunkKey(uint32_t chunkIndex) {
+std::vector<uint8_t> VfsEM_AES256GCM_SHA256::deriveChunkKey(uint32_t chunkIndex) {
 	std::vector<uint8_t> chunkSalt{m_fileSalt};
 	chunkSalt.push_back((chunkIndex>>24)&0xFF);
 	chunkSalt.push_back((chunkIndex>>16)&0xFF);
 	chunkSalt.push_back((chunkIndex>>8)&0xFF);
 	chunkSalt.push_back(chunkIndex&0xFF);
-	auto key = bctoolbox::HKDF<SHA256>(chunkSalt, s_masterKey, "EVFS chunk", AES256GCM128::keySize());
-	std::array<uint8_t, AES256GCM128::keySize()> keyArray;
-	std::move(key.cbegin(), key.cend(), keyArray.begin());
-	return keyArray;
+	return bctoolbox::HKDF<SHA256>(chunkSalt, s_masterKey, "EVFS chunk", AES256GCM128::keySize());
 }
 
 std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) {
@@ -123,10 +120,10 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 	}
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
-	std::array<uint8_t, AES256GCM128::keySize()> key = deriveChunkKey(chunkIndex);
+	std::vector<uint8_t> key{deriveChunkKey(chunkIndex)};
 
 	// parse the header: tag, IV, encryption Counter
-	std::array<uint8_t, AES256GCM128::tagSize()> tag;
+	std::vector<uint8_t> tag(AES256GCM128::tagSize());
 	std::copy(rawChunk.cbegin(), rawChunk.cbegin()+chunkAuthTagSize, tag.begin());
 	std::vector<uint8_t> IV(rawChunk.cbegin() + chunkAuthTagSize, rawChunk.cbegin() + chunkAuthTagSize + chunkIVSize);
 	std::vector<uint8_t> AD{}; // No associated data
@@ -161,10 +158,10 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 	auto IV = m_RNG->randomize(chunkIVSize);
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
-	std::array<uint8_t, AES256GCM128::keySize()> key = deriveChunkKey(chunkIndex);
+	std::vector<uint8_t> key{deriveChunkKey(chunkIndex)};
 
 	std::vector<uint8_t> AD{};
-	std::array<uint8_t, AES256GCM128::tagSize()> tag;
+	std::vector<uint8_t> tag(AES256GCM128::tagSize());
 	std::vector<uint8_t> rawChunk = AEAD_encrypt<AES256GCM128>(key, IV, plainData, AD, tag);
 
 	// insert header:

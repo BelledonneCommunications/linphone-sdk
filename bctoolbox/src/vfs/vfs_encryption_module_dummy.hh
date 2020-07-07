@@ -23,7 +23,6 @@
 #include "vfs_encryption_module.hh"
 
 namespace bctoolbox {
-/* implementation note static polymorphism using recurring template */
 class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 	private:
 		/**

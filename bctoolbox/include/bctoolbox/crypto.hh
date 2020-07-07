@@ -22,6 +22,12 @@
 
 #include <vector>
 #include <memory>
+#include "bctoolbox/port.h"
+/** MSVC needs an explicit instanciation of STL templates exported by the dll **/
+#if defined(_WIN32)
+struct Impl;
+template class BCTBX_PUBLIC std::unique_ptr<Impl>;
+#endif //_WIN32
 
 namespace bctoolbox {
 /**
@@ -34,7 +40,7 @@ namespace bctoolbox {
  *
  * Any call (including creation), may throw an exception if some error are detected on the random source
  */
-class RNG {
+class BCTBX_PUBLIC RNG {
 	public:
 		/**
 		 * fill a buffer with random numbers
@@ -85,7 +91,7 @@ class RNG {
 /**
  * @brief SHA256 buffer size definition
  */
-struct SHA256 {
+struct BCTBX_PUBLIC SHA256 {
 	/// maximum output size for SHA256 is 32 bytes
 	static constexpr size_t ssize() {return 32;}
 };
@@ -93,7 +99,7 @@ struct SHA256 {
 /**
  * @brief SHA384 buffer size definition
  */
-struct SHA384 {
+struct BCTBX_PUBLIC SHA384 {
 	/// maximum output size for SHA384 is 48 bytes
 	static constexpr size_t ssize() {return 48;}
 };
@@ -101,7 +107,7 @@ struct SHA384 {
 /**
  * @brief SHA512 buffer size definition
  */
-struct SHA512 {
+struct BCTBX_PUBLIC SHA512 {
 	/// maximum output size for SHA512 is 64 bytes
 	static constexpr size_t ssize() {return 64;}
 };
@@ -110,7 +116,7 @@ struct SHA512 {
 /**
  * @brief templated HMAC
  *
- * @tparam	hashAlgo	the hash algorithm used (only SHA512 available for now)
+ * @tparam	hashAlgo	the hash algorithm used: SHA256, SHA384, SHA512
  *
  * @param[in]	key		HMAC key
  * @param[in]	input		HMAC input
@@ -119,11 +125,11 @@ struct SHA512 {
  *
  */
 template <typename hashAlgo>
-std::array<uint8_t, hashAlgo::ssize()> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 /* declare template specialisations */
-template <> std::array<uint8_t, SHA256::ssize()>  HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
-template <> std::array<uint8_t, SHA384::ssize()>  HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
-template <> std::array<uint8_t, SHA512::ssize()>  HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <> std::vector<uint8_t>  HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <> std::vector<uint8_t>  HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <> std::vector<uint8_t>  HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 
 /**
  * @brief HKDF as described in RFC5869
@@ -170,7 +176,7 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
 /**
  * @brief AES256GCM buffers size definition
  */
-struct AES256GCM128 {
+struct BCTBX_PUBLIC AES256GCM128 {
 	/// key size is 32 bytes
 	static constexpr size_t keySize(void) {return 32;};
 	/// tag size is 16 bytes
@@ -188,8 +194,8 @@ struct AES256GCM128 {
  * @return	the cipher text
  */
 template <typename AEADAlgo>
-std::vector<uint8_t> AEAD_encrypt(const std::array<uint8_t, AEADAlgo::keySize()> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::array<uint8_t, AEADAlgo::tagSize()> &tag);
+std::vector<uint8_t> AEAD_encrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+		std::vector<uint8_t> &tag);
 
 /**
  * @brief Authenticate and Decrypt using scheme given as template parameter
@@ -204,15 +210,15 @@ std::vector<uint8_t> AEAD_encrypt(const std::array<uint8_t, AEADAlgo::keySize()>
  * @return true if authentication tag match and decryption was successful
  */
 template <typename AEADAlgo>
-bool AEAD_decrypt(const std::array<uint8_t, AEADAlgo::keySize()> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::array<uint8_t, AEADAlgo::tagSize()> &tag, std::vector<uint8_t> &plain);
+bool AEAD_decrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
 
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::array<uint8_t, AES256GCM128::keySize()> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::array<uint8_t, AES256GCM128::tagSize()> &tag);
+template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+		std::vector<uint8_t> &tag);
 
-template <> bool AEAD_decrypt<AES256GCM128>(const std::array<uint8_t, AES256GCM128::keySize()> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::array<uint8_t, AES256GCM128::tagSize()> &tag, std::vector<uint8_t> &plain);
+template <> bool AEAD_decrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
 
 } // namespace bctoolbox
 #endif // BCTBX_CRYPTO_HH

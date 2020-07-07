@@ -24,6 +24,10 @@
 #include "bctoolbox/crypto.h"
 using namespace bctoolbox;
 
+// someone does include the evil windef.h so we must undef the min and max macros to be able to use std::min and std::max
+#undef min
+#undef max
+
 /**
  * Constant associated to this encryption module
  */

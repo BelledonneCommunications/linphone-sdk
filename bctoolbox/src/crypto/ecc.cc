@@ -140,7 +140,7 @@ void bctbx_ECDHSetSelfPublicKey(bctbx_ECDHContext_t *context, const uint8_t *sel
  * @param[in]		peerPublic		The buffer holding the peer public key, is duplicated in the ECDH context
  * @param[in]		peerPublicLength	Length of previous buffer, must match the algo type setted at context creation
  */
-BCTBX_PUBLIC void bctbx_ECDHSetPeerPublicKey(bctbx_ECDHContext_t *context, const uint8_t *peerPublic, const size_t peerPublicLength) {
+void bctbx_ECDHSetPeerPublicKey(bctbx_ECDHContext_t *context, const uint8_t *peerPublic, const size_t peerPublicLength) {
 	if (context!=NULL && context->pointCoordinateLength==peerPublicLength) {
 		/* allocate public key buffer if needed */
 		if (context->peerPublic == NULL) {

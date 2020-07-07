@@ -107,7 +107,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 4, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 4, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 4, 0), 4, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 4)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
@@ -123,7 +123,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, int64_t, "%ld");
 	bctbx_file_read(fp, readBuffer, 16, 0);
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 4)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
@@ -135,7 +135,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 0), 16, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 8)==0);
 	BC_ASSERT_TRUE(memcmp(readBuffer+8, message, 8)==0);
@@ -151,7 +151,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 16, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 0), 16, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message+16, 8)==0);
 	BC_ASSERT_TRUE(memcmp(readBuffer+8, message, 8)==0);
@@ -164,7 +164,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 8, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 8, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 8), 0, ssize_t, "%ld"); // read after the end of the file -> nothing shall get back
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 0), 8, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message+16, 8)==0);
@@ -177,7 +177,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 0, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 0, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 0), 0, ssize_t, "%ld");
 
 
@@ -188,7 +188,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 80, 0), 80, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, zero_buff, 15)==0);
 	BC_ASSERT_TRUE(memcmp(readBuffer+15, message, 65)==0);
@@ -200,7 +200,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 		bctbx_file_close(fp);
 		fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	}
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, int64_t, "%ld");
 	// read the part left there from offset 15 to 31
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 15), 16, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 16)==0);
@@ -220,7 +220,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 	if (suite == bctoolbox::EncryptionSuite::plain ) {
 		fp = bctbx_file_open2(&bcStandardVfs, filePath.data(), O_RDWR);
 
-		BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, size_t, "%ld");
+		BC_ASSERT_EQUAL(bctbx_file_size(fp), 80, int64_t, "%ld");
 		// read the part left there from offset 15 to 31
 		BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 16, 15), 16, ssize_t, "%ld");
 		BC_ASSERT_TRUE(memcmp(readBuffer, message, 16)==0);
@@ -283,7 +283,7 @@ void auth_fail_test(bctoolbox::EncryptionSuite suite) {
 	bctbx_file_close(fp);
 	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
 	/* check we can read what we wrote*/
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), sizeof(message)+8, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), sizeof(message)+8, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, sizeof(message), 8), sizeof(message), ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, sizeof(message))==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
@@ -344,7 +344,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	// Make simple write
 	bctbx_file_write(fp, message, 42, 0);
 
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
@@ -358,7 +358,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	// open it read only using the encrypted vfs, it shall NOT force the migration
 	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDONLY);
 	// readings test again
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 	// now it shall still be plain
@@ -370,7 +370,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR);
 
 	// readings test again
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 42, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 
@@ -411,7 +411,7 @@ void recovery_test(bctoolbox::EncryptionSuite suite) {
 	bctbx_file_write(fp, message, 256, 0);
 
 	// Check it worked
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 256, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 256, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 256, 0), 256, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 256)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));
@@ -430,8 +430,8 @@ void recovery_test(bctoolbox::EncryptionSuite suite) {
 
 	// Open it again with the eVFS and truncate it
 	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR|O_CREAT);
-	BC_ASSERT_EQUAL(bctbx_file_truncate(fp,142), 0, size_t, "%ld");
-	BC_ASSERT_EQUAL(bctbx_file_size(fp), 142, size_t, "%ld");
+	BC_ASSERT_EQUAL(bctbx_file_truncate(fp,142), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_file_size(fp), 142, int64_t, "%ld");
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 256, 0), 142, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 142)==0);
 	memset(readBuffer, 0, sizeof(readBuffer));

@@ -128,28 +128,29 @@ uint32_t RNG::c_randomize() {
 /* HMAC templates */
 /* HMAC must use a specialized template */
 template <typename hashAlgo>
-std::array<uint8_t, hashAlgo::ssize()> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
+std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message */
 	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC function template");
+	return std::vector<uint8_t>(0);
 }
 
 /* HMAC specialized template for SHA256 */
-template <> std::array<uint8_t, SHA256::ssize()> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::array<uint8_t, SHA256::ssize()> hmacOutput;
+template <> std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
+	std::vector<uint8_t> hmacOutput(SHA256::ssize());
 	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
 	return  hmacOutput;
 }
 
 /* HMAC specialized template for SHA384 */
-template <> std::array<uint8_t, SHA384::ssize()> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::array<uint8_t, SHA384::ssize()> hmacOutput;
+template <> std::vector<uint8_t> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
+	std::vector<uint8_t> hmacOutput(SHA384::ssize());
 	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA384), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
 	return  hmacOutput;
 }
 
 /* HMAC specialized template for SHA512 */
-template <> std::array<uint8_t, SHA512::ssize()> HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::array<uint8_t, SHA512::ssize()> hmacOutput;
+template <> std::vector<uint8_t> HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
+	std::vector<uint8_t> hmacOutput(SHA512::ssize());
 	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
 	return  hmacOutput;
 }
@@ -160,7 +161,6 @@ template <typename hashAlgo>
 std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t okmSize) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message */
 	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HKDF function template");
-
 	return std::vector<uint8_t>(0);
 }
 template <typename hashAlgo>
@@ -208,24 +208,30 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
 /*****************************************************************************/
 /* AEAD template must be specialized */
 template <typename AEADAlgo>
-std::vector<uint8_t> AEAD_encrypt(const std::array<uint8_t, AEADAlgo::keySize()> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::array<uint8_t, AEADAlgo::tagSize()> &tag) {
+std::vector<uint8_t> AEAD_encrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+		std::vector<uint8_t> &tag) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
 	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_encrypt function template");
 	return std::vector<uint8_t>(0);
 }
 
 template <typename AEADAlgo>
-bool AEAD_decrypt(const std::array<uint8_t, AEADAlgo::keySize()> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::array<uint8_t, AEADAlgo::tagSize()> &tag, std::vector<uint8_t> &plain) {
+bool AEAD_decrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
 	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_encrypt function template");
 	return false;
 }
 
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::array<uint8_t, AES256GCM128::keySize()> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::array<uint8_t, AES256GCM128::tagSize()> &tag) {
+template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+		std::vector<uint8_t> &tag) {
+	// check key size (could have use array but Windows won't compile templates with constexpr functions result as parameter)
+	if (key.size() != AES256GCM128::keySize()) {
+		throw BCTBX_EXCEPTION<<"AEAD_encrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
+	}
+	tag.resize(AES256GCM128::tagSize());
+
 	mbedtls_gcm_context gcmContext;
 	mbedtls_gcm_init(&gcmContext);
 
@@ -245,8 +251,16 @@ template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::array<uin
 	return cipher;
 }
 
-template <> bool AEAD_decrypt<AES256GCM128>(const std::array<uint8_t, AES256GCM128::keySize()> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::array<uint8_t, AES256GCM128::tagSize()> &tag, std::vector<uint8_t> &plain) {
+template <> bool AEAD_decrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain) {
+	// check key and tag size (could have use array but Windows won't compile templates with constexpr functions result as parameter)
+	if (key.size() != AES256GCM128::keySize()) {
+		throw BCTBX_EXCEPTION<<"AEAD_decrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
+	}
+	if (tag.size() != AES256GCM128::tagSize()) {
+		throw BCTBX_EXCEPTION<<"AEAD_decrypt: Bad input parameter, tag is expected to be "<<AES256GCM128::tagSize()<<" bytes but "<<tag.size()<<" provided";
+	}
+
 	mbedtls_gcm_context gcmContext;
 	mbedtls_gcm_init(&gcmContext);
 	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), key.size()*8); // key size in bits

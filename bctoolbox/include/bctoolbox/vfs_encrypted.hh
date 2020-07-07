@@ -25,6 +25,7 @@
 #include <functional>
 #include <vector>
 #include <memory>
+#include "bctoolbox/port.h"
 
 namespace bctoolbox {
 
@@ -32,7 +33,7 @@ namespace bctoolbox {
  * @brief This dedicated exception inherits \ref BctoolboxException.
  *
  */
-class EVfsException : public BctbxException {
+class BCTBX_PUBLIC EVfsException : public BctbxException {
 public:
 	EVfsException() = default;
 	EVfsException(const std::string &message): BctbxException(message) {}
@@ -58,7 +59,7 @@ extern bctbx_vfs_t bcEncryptedVfs;
 /**
  * Provided encryption suites
  */
-enum class EncryptionSuite : uint16_t {
+enum class BCTBX_PUBLIC EncryptionSuite : uint16_t {
 	unset = 0,/**< no encryption suite selected */
 	dummy = 1, /**< a test suite, do not use other than for test */
 	aes256gcm128_sha256 = 2, /**< This module encrypts blocks with AES256GCM and authenticate header using HMAC-sha256 */
@@ -70,7 +71,7 @@ enum class EncryptionSuite : uint16_t {
  * @param[in]	suite	the encryption suite as a c++ enum
  * @return the suite name in a readable string
  */
-const std::string encryptionSuiteString(const EncryptionSuite suite) noexcept;
+BCTBX_PUBLIC const std::string encryptionSuiteString(const EncryptionSuite suite) noexcept;
 
 /* complete declaration follows, we need this one to define the callback type */
 class VfsEncryption;
@@ -79,12 +80,19 @@ class VfsEncryption;
  * Define a function prototype to be called at each file opening.
  * This function is a static class property, used to retrieve secretMaterial to encrypt/decrypt the file
  */
-using EncryptedVfsOpenCb = std::function<void(VfsEncryption &settings)>;
+using EncryptedVfsOpenCb = BCTBX_PUBLIC std::function<void(VfsEncryption &settings)>;
 
 // forward declare this type, store all the encryption data and functions
 class VfsEncryptionModule;
+
+/** MSVC needs an explicit instanciation of STL templates exported by the dll **/
+#if defined(_WIN32)
+template class BCTBX_PUBLIC std::shared_ptr<VfsEncryptionModule>;
+template class BCTBX_PUBLIC std::vector<uint8_t>;
+#endif //_WIN32
+
 /** Store in the bctbx_vfs_file_t userData field an object specific to encryption */
-class VfsEncryption {
+class BCTBX_PUBLIC VfsEncryption {
 	/* Class properties and method */
 	private:
 		static EncryptedVfsOpenCb s_openCallback; /**< a class callback to get secret material at file opening. Implemented as static as it is called by constructor */
@@ -105,8 +113,8 @@ class VfsEncryption {
 		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
 
-		size_t r_fileSize() const noexcept; /**< return the size of the raw file */
-		uint32_t getChunkIndex(off_t offset) const noexcept; /**< return the chunk index where to find the given offset */
+		uint64_t r_fileSize() const noexcept; /**< return the size of the raw file */
+		uint32_t getChunkIndex(uint64_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
 		/** flags use to communicate during differents functions involved at file opening **/
@@ -143,7 +151,7 @@ class VfsEncryption {
 		/**
 		 * @return the size of the plain text file
 		 */
-		uint64_t fileSize_get() const noexcept;
+		int64_t fileSize_get() const noexcept;
 
 		/* Read from file at given offset the requested size */
 		std::vector<uint8_t> read(size_t offset, size_t count) const;
@@ -152,7 +160,7 @@ class VfsEncryption {
 		size_t write(const std::vector<uint8_t> &plainData, size_t offset);
 
 		/* Truncate the file to the given size, if given size is greater than current, pad with 0 */
-		void truncate(const size_t size);
+		void truncate(const uint64_t size);
 
 		/**
 		 *  Get the filename

@@ -39,7 +39,6 @@
  *    - IV is 12 bytes random : MUST use a random for IV as attacker having access to file system could restore an old version of the file and monitor further writing. So deterministic IV could lead to key/IV reuse.
  */
 namespace bctoolbox {
-/* implementation note static polymorphism using recurring template */
 class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 	private:
 		/**
@@ -66,7 +65,7 @@ class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 		 *
 		 * @return	the AES256-GCM128 key
 		 */
-		const std::array<uint8_t, AES256GCM128::keySize()> deriveChunkKey(uint32_t chunkIndex);
+		std::vector<uint8_t> deriveChunkKey(uint32_t chunkIndex);
 
 	public:
 		/**
