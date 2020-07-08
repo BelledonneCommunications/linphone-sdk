@@ -14,7 +14,7 @@ job-check-orphan-commits:
     - git remote prune origin
     - git submodule foreach --recursive 'git remote prune origin'
     # uses file to communicate with git submodule shells
-    - if [ -f exit_code]; then touch exit_code; fi;
+    - if [ ! -f exit_code]; then touch exit_code; fi;
     - |
       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
@@ -30,6 +30,8 @@ job-check-orphan-commits:
              echo $EXIT; \
            fi; \
            echo'
+    - ls
+    - cat exit_code
     - $EXIT < exit_code
     - rm exit_code
     - echo $EXIT;
