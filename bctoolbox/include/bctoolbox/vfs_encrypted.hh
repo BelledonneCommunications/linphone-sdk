@@ -33,7 +33,7 @@ namespace bctoolbox {
  * @brief This dedicated exception inherits \ref BctoolboxException.
  *
  */
-class BCTBX_PUBLIC EVfsException : public BctbxException {
+class EVfsException : public BctbxException {
 public:
 	EVfsException() = default;
 	EVfsException(const std::string &message): BctbxException(message) {}
@@ -53,13 +53,13 @@ public:
 /**
  * Virtual File sytem provided
  */
-extern bctbx_vfs_t bcEncryptedVfs;
+extern BCTBX_PUBLIC bctbx_vfs_t bcEncryptedVfs;
 
 
 /**
  * Provided encryption suites
  */
-enum class BCTBX_PUBLIC EncryptionSuite : uint16_t {
+enum class EncryptionSuite : uint16_t {
 	unset = 0,/**< no encryption suite selected */
 	dummy = 1, /**< a test suite, do not use other than for test */
 	aes256gcm128_sha256 = 2, /**< This module encrypts blocks with AES256GCM and authenticate header using HMAC-sha256 */
@@ -71,7 +71,7 @@ enum class BCTBX_PUBLIC EncryptionSuite : uint16_t {
  * @param[in]	suite	the encryption suite as a c++ enum
  * @return the suite name in a readable string
  */
-BCTBX_PUBLIC const std::string encryptionSuiteString(const EncryptionSuite suite) noexcept;
+const std::string encryptionSuiteString(const EncryptionSuite suite) noexcept;
 
 /* complete declaration follows, we need this one to define the callback type */
 class VfsEncryption;
@@ -80,19 +80,13 @@ class VfsEncryption;
  * Define a function prototype to be called at each file opening.
  * This function is a static class property, used to retrieve secretMaterial to encrypt/decrypt the file
  */
-using EncryptedVfsOpenCb = BCTBX_PUBLIC std::function<void(VfsEncryption &settings)>;
+using EncryptedVfsOpenCb = std::function<void(VfsEncryption &settings)>;
 
 // forward declare this type, store all the encryption data and functions
 class VfsEncryptionModule;
 
-/** MSVC needs an explicit instanciation of STL templates exported by the dll **/
-#if defined(_WIN32)
-template class BCTBX_PUBLIC std::shared_ptr<VfsEncryptionModule>;
-template class BCTBX_PUBLIC std::vector<uint8_t>;
-#endif //_WIN32
-
 /** Store in the bctbx_vfs_file_t userData field an object specific to encryption */
-class BCTBX_PUBLIC VfsEncryption {
+class VfsEncryption {
 	/* Class properties and method */
 	private:
 		static EncryptedVfsOpenCb s_openCallback; /**< a class callback to get secret material at file opening. Implemented as static as it is called by constructor */

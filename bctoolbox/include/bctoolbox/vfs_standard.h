@@ -21,6 +21,7 @@
 #define BCTBX_VFS_STANDARD_H
 
 #include "bctoolbox/vfs.h"
+#include "bctoolbox/port.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -30,7 +31,7 @@ extern "C"{
 /**
  * Virtual File sytem provided
  */
-extern bctbx_vfs_t bcStandardVfs;
+extern BCTBX_PUBLIC bctbx_vfs_t bcStandardVfs;
 
 #ifdef __cplusplus
 }

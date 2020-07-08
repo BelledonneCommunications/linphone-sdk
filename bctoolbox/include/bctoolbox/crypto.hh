@@ -22,12 +22,6 @@
 
 #include <vector>
 #include <memory>
-#include "bctoolbox/port.h"
-/** MSVC needs an explicit instanciation of STL templates exported by the dll **/
-#if defined(_WIN32)
-struct Impl;
-template class BCTBX_PUBLIC std::unique_ptr<Impl>;
-#endif //_WIN32
 
 namespace bctoolbox {
 /**
@@ -40,7 +34,7 @@ namespace bctoolbox {
  *
  * Any call (including creation), may throw an exception if some error are detected on the random source
  */
-class BCTBX_PUBLIC RNG {
+class RNG {
 	public:
 		/**
 		 * fill a buffer with random numbers
@@ -91,7 +85,7 @@ class BCTBX_PUBLIC RNG {
 /**
  * @brief SHA256 buffer size definition
  */
-struct BCTBX_PUBLIC SHA256 {
+struct SHA256 {
 	/// maximum output size for SHA256 is 32 bytes
 	static constexpr size_t ssize() {return 32;}
 };
@@ -99,7 +93,7 @@ struct BCTBX_PUBLIC SHA256 {
 /**
  * @brief SHA384 buffer size definition
  */
-struct BCTBX_PUBLIC SHA384 {
+struct SHA384 {
 	/// maximum output size for SHA384 is 48 bytes
 	static constexpr size_t ssize() {return 48;}
 };
@@ -107,7 +101,7 @@ struct BCTBX_PUBLIC SHA384 {
 /**
  * @brief SHA512 buffer size definition
  */
-struct BCTBX_PUBLIC SHA512 {
+struct SHA512 {
 	/// maximum output size for SHA512 is 64 bytes
 	static constexpr size_t ssize() {return 64;}
 };
@@ -176,7 +170,7 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
 /**
  * @brief AES256GCM buffers size definition
  */
-struct BCTBX_PUBLIC AES256GCM128 {
+struct AES256GCM128 {
 	/// key size is 32 bytes
 	static constexpr size_t keySize(void) {return 32;};
 	/// tag size is 16 bytes
