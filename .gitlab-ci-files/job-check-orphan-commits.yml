@@ -26,4 +26,5 @@ job-check-orphan-commits:
              EXIT=1; \
            fi; \
            echo'
+    - echo $EXIT;
     - exit $EXIT;
