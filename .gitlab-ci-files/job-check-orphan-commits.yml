@@ -13,8 +13,6 @@ job-check-orphan-commits:
     # Delete stale branches to avoid tricking the script into a false negative
     - git remote prune origin
     - git submodule foreach --recursive 'git remote prune origin'
-    # initialises exit code in case there is no orphan commits
-    - export EXIT=0
     - |
       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
