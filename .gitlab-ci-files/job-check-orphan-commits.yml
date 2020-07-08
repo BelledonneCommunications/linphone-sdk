@@ -29,7 +29,7 @@ job-check-orphan-commits:
              echo $EXIT; \
            fi; \
            echo'
-    - EXIT < exit_code
+    - $EXIT < exit_code
     - rm pipe_exit
     - echo $EXIT;
     - exit $EXIT;
