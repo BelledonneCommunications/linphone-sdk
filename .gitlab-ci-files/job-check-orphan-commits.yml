@@ -19,7 +19,7 @@ job-check-orphan-commits:
         && if [ -n "$BRANCHES_LIST" ]; then \
              echo "Branches found for commit $COMMIT" \
              $BRANCHES_LIST; \
-             EXIT=0; \
+             if [ ! $EXIT eq 1 ]; then EXIT=0; fi; \
            else \
              echo -e "\033[0;31m ERROR : Commit $COMMIT referenced by $path is not on a branch. Maybe the hash was not updated on a merge request after the squash. Please fix this ! Either check if the problem was already fixed by a new commit, or point on the right commit referenced in a branch, instead of the orphan one. \033[0m"; \
              EXIT=1; \
