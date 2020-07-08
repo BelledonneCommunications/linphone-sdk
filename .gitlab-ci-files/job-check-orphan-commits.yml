@@ -14,7 +14,7 @@ job-check-orphan-commits:
     - git remote prune origin
     - git submodule foreach --recursive 'git remote prune origin'
     # uses file to communicate with git submodule shells
-    - if [ -f pipe_exit]; then touch pipe_exit; fi;
+    - if [ -f exit_code]; then touch exit_code; fi;
     - |
       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
@@ -24,11 +24,12 @@ job-check-orphan-commits:
            else \
              echo -e "\033[0;31m ERROR : Commit $COMMIT referenced by $path is not on a branch. Maybe the hash was not updated on a merge request after the squash. Please fix this ! Either check if the problem was already fixed by a new commit, or point on the right commit referenced in a branch, instead of the orphan one. \033[0m"; \
              export EXIT=1; \
-             echo 1 > ../pipe_exit; \
+             echo $toplevel/exit_code; \
+             echo 1 > $toplevel/exit_code; \
              echo $EXIT; \
            fi; \
            echo'
-    - EXIT < pipe_exit
+    - EXIT < exit_code
     - rm pipe_exit
     - echo $EXIT;
     - exit $EXIT;
