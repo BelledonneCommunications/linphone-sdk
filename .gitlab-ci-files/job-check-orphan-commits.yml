@@ -32,7 +32,7 @@ job-check-orphan-commits:
            echo'
     - ls
     - cat exit_code
-    - exit_code > EXIT
+    - cat exit_code > EXIT
     - rm exit_code
     - echo $EXIT;
     - exit $EXIT;
