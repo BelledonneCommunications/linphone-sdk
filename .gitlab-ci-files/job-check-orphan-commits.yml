@@ -12,6 +12,7 @@ job-check-orphan-commits:
     #No color ANSI code : \033[0m
     # Delete stale branches to avoid tricking the script into a false negative
     - git remote prune origin
+    - git submodule foreach --recursive 'git remote prune origin'
     - |
       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
