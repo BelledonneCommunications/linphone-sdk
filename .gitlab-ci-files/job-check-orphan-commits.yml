@@ -16,7 +16,7 @@ job-check-orphan-commits:
     # uses pipe to communicate with git submodule shells
     - mkfifo pipe_exit
     - |
-      source git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
+      git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
         && if [ -n "$BRANCHES_LIST" ]; then \
              echo "Branches found for commit $COMMIT" \
