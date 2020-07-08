@@ -28,7 +28,7 @@ job-check-orphan-commits:
              echo $EXIT; \
            fi; \
            echo'
-    - read EXIT < pipe_exit
+    - EXIT < pipe_exit
     - rm pipe_exit
     - echo $EXIT;
     - exit $EXIT;
