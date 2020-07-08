@@ -26,10 +26,11 @@ job-check-orphan-commits:
              export EXIT=1; \
              echo $toplevel/exit_code; \
              echo 1 > $toplevel/exit_code; \
+             cat $toplevel/exit_code; \
              echo $EXIT; \
            fi; \
            echo'
     - $EXIT < exit_code
-    - rm pipe_exit
+    - rm exit_code
     - echo $EXIT;
     - exit $EXIT;
