@@ -30,6 +30,14 @@ job-check-orphan-commits:
              git branch -r --verbose --contains $COMMIT; \
              echo "git branches list"; \
              echo $BRANCHES_LIST; \
+             echo git fetch prune; \
+             git fetch --prune; \
+             echo "git branches remote verbose:"; \
+             git branch -r --verbose; \
+             echo "git branches remote verbose contains commit:"; \
+             git branch -r --verbose --contains $COMMIT; \
+             echo "git branches list"; \
+             echo $BRANCHES_LIST; \
              echo 1 > $toplevel/exit_code; \
            fi; \
            echo'
