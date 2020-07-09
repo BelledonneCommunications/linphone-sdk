@@ -626,9 +626,21 @@ void belle_sip_client_transaction_notify_response(belle_sip_client_transaction_t
 	if (dialog && status_code>=200 && status_code<300 && strcmp(method,"INVITE")==0){
 		belle_sip_dialog_check_ack_sent(dialog);
 	}
-	/*report a server having internal errors for REGISTER to the channel, in order to go to a fallback IP*/
-	if (status_code == 500 && strcmp(method,"REGISTER") == 0){
-		belle_sip_channel_notify_server_error(base->channel);
+	/*
+	 * Report a server having internal errors for REGISTER to the channel, in order to go to a fallback IP.
+	 * Why for only REGISTER ? because we are sure that the response comes from the server we are connected to.
+	 * For others (INVITE, SUBSCRIBE), the response may come from an intermediary server, or the final client.
+	 * It would be a bad idea to close the connection and fallback to another node in these cases.
+	 */
+	if (strcmp(method,"REGISTER") == 0){
+		switch (status_code){
+			case 500: /* Internal error */
+			case 503: /* Service unavailable */
+				belle_sip_channel_notify_server_error(base->channel);
+			break;
+			default:
+			break;
+		}
 	}
 }
 
