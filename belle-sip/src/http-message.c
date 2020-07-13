@@ -93,11 +93,6 @@ void belle_http_request_cancel(belle_http_request_t *req) {
 }
 
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l){
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
 
 	if (req->listener){
 		belle_sip_object_weak_unref(req->listener,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
@@ -107,10 +102,6 @@ void belle_http_request_set_listener(belle_http_request_t *req, belle_http_reque
 		belle_sip_object_weak_ref(l,(belle_sip_object_destroy_notify_t)belle_http_request_listener_destroyed,req);
 		req->listener=l;
 	}
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
 }
 
 static void notify_http_request_of_channel_destruction(belle_http_request_t *obj, belle_sip_channel_t *chan_being_destroyed){

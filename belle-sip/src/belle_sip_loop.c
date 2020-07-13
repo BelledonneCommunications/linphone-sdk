@@ -754,17 +754,7 @@ int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml){
 }
 
 void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds){
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
-
 	belle_sip_source_t * s=belle_sip_main_loop_create_timeout(ml,(belle_sip_source_func_t)belle_sip_main_loop_quit,ml,milliseconds,"Main loop sleep timer");
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
 
 	belle_sip_main_loop_run(ml);
 	belle_sip_main_loop_remove_source(ml,s);

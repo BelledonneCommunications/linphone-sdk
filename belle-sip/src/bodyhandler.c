@@ -976,11 +976,6 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 	return BELLE_SIP_STOP;
 }
 
-/* FIXME: Temporary workaround for -Wcast-function-type. */
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic push")
-	_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-#endif // if __GNUC__ >= 8
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_multipart_body_handler_t);
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
@@ -999,10 +994,6 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 		belle_sip_multipart_body_handler_send_chunk
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
-
-#if __GNUC__ >= 8
-	_Pragma("GCC diagnostic pop")
-#endif // if __GNUC__ >= 8
 
 static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_body_handler_t *obj, const char *boundary) {
 	if (obj->boundary != NULL) {

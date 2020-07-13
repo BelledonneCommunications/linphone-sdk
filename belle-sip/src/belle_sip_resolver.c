@@ -1381,17 +1381,7 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 		 and destroy the list before the loop terminate */
 		ctx->srv_results = belle_sip_list_copy(srv_results);
 
-		/* FIXME: Temporary workaround for -Wcast-function-type. */
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic push")
-			_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-		#endif // if __GNUC__ >= 8
-
 		belle_sip_list_for_each(srv_results, (void(*)(void *))belle_sip_object_ref);
-
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic pop")
-		#endif // if __GNUC__ >= 8
 
 		for(elem=srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;

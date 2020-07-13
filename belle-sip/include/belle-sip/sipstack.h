@@ -119,8 +119,25 @@ BELLESIP_EXPORT int belle_sip_stack_get_inactive_transport_timeout(const belle_s
 
 /**
  * Sets the time interval in seconds after which a connection must be closed when inactive.
+ * By inactive, it is meant that the connection hasn't been used to send or recv data.
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds);
+
+
+/**
+ * Set the time interval in seconds after which a connection is considered to be unreliable because
+ * no data was received over it.
+ * The special value 0 means that a connection will never be considered as unreliable.
+ * See belle_sip_provider_clean_unreliable_channels().
+ */
+BELLESIP_EXPORT void belle_sip_stack_set_unreliable_connection_timeout(belle_sip_stack_t *stack, int seconds);
+
+/**
+ * Get the time interval in seconds after which a connection is considered to be unreliable because
+ * no data was received over it.
+ * See belle_sip_provider_clean_unreliable_channels().
+ */
+BELLESIP_EXPORT int belle_sip_stack_get_unreliable_connection_timeout(const belle_sip_stack_t *stack);
 
 
 /**

@@ -63,6 +63,12 @@ BELLESIP_EXPORT int belle_sip_listening_point_is_reliable(const belle_sip_listen
 **/
 BELLESIP_EXPORT void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp);
 
+/*
+ * Clean unreliable channels.
+ * See belle_sip_provider_clean_unreliable_channels() for a detailed explanation.
+ */
+BELLESIP_EXPORT void belle_sip_listening_point_clean_unreliable_channels(belle_sip_listening_point_t *lp);
+
 /**
  * Get the number of channels managed by this listening point.
 **/

@@ -95,6 +95,30 @@ void belle_sip_listening_point_clean_channels(belle_sip_listening_point_t *lp){
 	lp->channels=belle_sip_list_free_with_data(lp->channels,(void (*)(void*))belle_sip_object_unref);
 }
 
+void belle_sip_listening_point_clean_unreliable_channels(belle_sip_listening_point_t *lp){
+	belle_sip_list_t* iterator;
+	uint64_t current_time = belle_sip_time_ms();
+	int count = 0;
+	
+	if (lp->stack->unreliable_transport_timeout <= 0) return;
+	
+	for (iterator = lp->channels; iterator!=NULL ; ) {
+		belle_sip_channel_t *chan=(belle_sip_channel_t*)iterator->data;
+		belle_sip_list_t * next_iterator = iterator->next;
+		if (chan->state != BELLE_SIP_CHANNEL_READY) continue;
+		if (current_time - chan->last_recv_time > (uint64_t)(lp->stack->unreliable_transport_timeout * 1000)){
+			belle_sip_channel_force_close(chan);
+			belle_sip_object_unref(chan);
+			count++;
+			lp->channels = bctbx_list_erase_link(lp->channels, iterator);
+		}
+		iterator = next_iterator;
+	}
+	if (count > 0){
+		belle_sip_message("belle_sip_listening_point_clean_unreliable_channels() has closed [%i] channels.", count); 
+	}
+}
+
 int belle_sip_listening_point_get_channel_count(const belle_sip_listening_point_t *lp){
 	return (int)belle_sip_list_size(lp->channels);
 }

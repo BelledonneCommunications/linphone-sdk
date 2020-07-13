@@ -51,18 +51,7 @@ static void nist_set_completed(belle_sip_nist_t *obj){
 		tval=cfg->T1*64;
 	else tval=0;
 
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
-
 	obj->timer_J=belle_sip_timeout_source_new((belle_sip_source_func_t)nist_on_timer_J,obj,tval);
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
-
 	belle_sip_transaction_start_timer(base,obj->timer_J);
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 }

@@ -37,18 +37,7 @@ static void nict_set_completed(belle_sip_nict_t *obj, belle_sip_response_t *resp
 	belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
 
 	if (!belle_sip_channel_is_reliable(base->channel)){
-		/* FIXME: Temporary workaround for -Wcast-function-type. */
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic push")
-			_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-		#endif // if __GNUC__ >= 8
-
 		obj->timer_K=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_K,obj,cfg->T4);
-
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic pop")
-		#endif // if __GNUC__ >= 8
-
 		belle_sip_object_set_name((belle_sip_object_t*)obj->timer_K,"timer_K");
 		belle_sip_transaction_start_timer(base,obj->timer_K);
 	}else belle_sip_transaction_terminate(base);
@@ -150,12 +139,6 @@ static void nict_send_request(belle_sip_nict_t *obj){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
 
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
-
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_TRYING);
 	obj->timer_F=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_F,obj,cfg->T1*64);
 	belle_sip_object_set_name((belle_sip_object_t*)obj->timer_F,"timer_F");
@@ -166,10 +149,6 @@ static void nict_send_request(belle_sip_nict_t *obj){
 		belle_sip_object_set_name((belle_sip_object_t*)obj->timer_E,"timer_E");
 		belle_sip_transaction_start_timer(base,obj->timer_E);
 	}
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
 
 	belle_sip_channel_queue_message(base->channel,(belle_sip_message_t*)base->request);
 }

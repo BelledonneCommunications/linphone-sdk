@@ -880,6 +880,16 @@ void belle_sip_provider_clean_channels(belle_sip_provider_t *p){
 	}
 }
 
+void belle_sip_provider_clean_unreliable_channels(belle_sip_provider_t *p){
+	belle_sip_list_t *l;
+	belle_sip_listening_point_t *lp;
+
+	for(l=p->lps;l!=NULL;l=l->next){
+		lp=(belle_sip_listening_point_t*)l->data;
+		belle_sip_listening_point_clean_unreliable_channels(lp);
+	}
+}
+
 void belle_sip_provider_send_request(belle_sip_provider_t *p, belle_sip_request_t *req){
 	belle_sip_hop_t* hop;
 	belle_sip_channel_t *chan;

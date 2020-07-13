@@ -157,6 +157,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->dns_srv_enabled=TRUE;
 	stack->dns_search_enabled=TRUE;
 	stack->inactive_transport_timeout=3600; /*one hour*/
+	stack->unreliable_transport_timeout = 120;
 	return stack;
 }
 
@@ -319,6 +320,14 @@ int belle_sip_stack_get_inactive_transport_timeout(const belle_sip_stack_t *stac
 
 void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds){
 	stack->inactive_transport_timeout=seconds;
+}
+
+void belle_sip_stack_set_unreliable_connection_timeout(belle_sip_stack_t *stack, int seconds){
+	stack->unreliable_transport_timeout = seconds;
+}
+
+int belle_sip_stack_get_unreliable_connection_timeout(const belle_sip_stack_t *stack){
+	return stack->unreliable_transport_timeout;
 }
 
 void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, int dscp){

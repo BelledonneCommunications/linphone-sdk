@@ -1617,18 +1617,7 @@ static void queue_message_delayed(belle_sip_channel_t *obj, belle_sip_message_t 
 	ctx->chan=(belle_sip_channel_t*)belle_sip_object_ref(obj);
 	ctx->msg=(belle_sip_message_t*)belle_sip_object_ref(msg);
 
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
-
 	belle_sip_main_loop_add_timeout(obj->stack->ml,(belle_sip_source_func_t)on_delayed_send_do,ctx,obj->stack->tx_delay);
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
-
 	belle_sip_message("channel %p: message sending delayed by %i ms",obj,obj->stack->tx_delay);
 }
 

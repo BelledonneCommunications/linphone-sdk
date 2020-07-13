@@ -56,6 +56,15 @@ BELLESIP_EXPORT void belle_sip_provider_send_response(belle_sip_provider_t *p, b
 
 BELLESIP_EXPORT void belle_sip_provider_clean_channels(belle_sip_provider_t *p);
 
+/* Close connections for which no data was received at all during last X seconds period of time.
+ * This is useful because some routers don't send ICMP or TCP connection reset when they reallocate a port.
+ * For the client, the connection is presumed to be alive, but in practice it is not and there will never be any error.
+ * As a workaround, simply close these connections, and let the stack re-establish new ones, while refreshing registration for example.
+ * The time period after which a channel is considered as "unreliable" is configured with
+ * belle_sip_stack_set_unreliable_connection_timeout(belle_sip_stack_t *stack);
+ */
+BELLESIP_EXPORT void belle_sip_provider_clean_unreliable_channels(belle_sip_provider_t *p);
+
 /**
  * Add auth info to the request if found
  * @param p object
