@@ -27,63 +27,63 @@
 /**
  * Retrieve preferred buffer size from Mediastreamer Android Context.
 **/
-MS2_PUBLIC int get_preferred_buffer_size();
+MS2_PUBLIC int ms_android_get_preferred_buffer_size();
 
 /**
  * Retrieve preferred sample rate from Mediastreamer Android Context.
 **/
-MS2_PUBLIC int get_preferred_sample_rate();
+MS2_PUBLIC int ms_android_get_preferred_sample_rate();
 
 /**
  * Retrieve all devices in a given direction.
  * Valid values for string dir are "all" "output" "input"
 **/
-MS2_PUBLIC jobjectArray get_all_devices(JNIEnv *env, const char * dir);
+MS2_PUBLIC jobjectArray ms_android_get_all_devices(JNIEnv *env, const char * dir);
 
 /**
  * Retrieve device ID for the device deviceInfo.
 **/
-MS2_PUBLIC unsigned int get_device_id(JNIEnv *env, jobject deviceInfo);
+MS2_PUBLIC unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo);
 
 /**
  * Retrieve the value of a JV class field fieldName.
 **/
-MS2_PUBLIC int getJVIntField(JNIEnv *env, const char * className, const char * fieldName);
+MS2_PUBLIC int ms_android_getJVIntField(JNIEnv *env, const char * className, const char * fieldName);
 
 /**
  * Retrieve device type for the device deviceInfo.
 **/
-MS2_PUBLIC MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo);
+MS2_PUBLIC MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo);
 
 /**
  * Retrieve device capabilities (recorder or playback) for the device deviceInfo.
 **/
-MS2_PUBLIC unsigned int get_device_capabilities(JNIEnv *env, jobject deviceInfo);
+MS2_PUBLIC unsigned int ms_android_get_device_capabilities(JNIEnv *env, jobject deviceInfo);
 
 /**
  * Retrieve product name for the device deviceInfo.
 **/
-MS2_PUBLIC char * get_device_product_name(JNIEnv *env, jobject deviceInfo);
+MS2_PUBLIC char * ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo);
 
 /**
  * Retrieve SDK version the app is running on.
 **/
-MS2_PUBLIC int get_sdk_version(JNIEnv *env);
+MS2_PUBLIC int ms_android_get_sdk_version(JNIEnv *env);
 
 /**
  * Make upcalls to change device from mediastreamer.
 **/
-MS2_PUBLIC void change_device(JNIEnv *env, MSSndCardDeviceType type);
+MS2_PUBLIC void ms_android_change_device(JNIEnv *env, MSSndCardDeviceType type);
 
 /**
  * Make upcalls to enable/disable bluetooth devices from mediastreamer.
 **/
-MS2_PUBLIC void set_bt_enable(JNIEnv *env, const bool_t enable);
+MS2_PUBLIC void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable);
 
 /**
  * Hack required to have volume not set to 0 on some devices
 **/
-MS2_PUBLIC void hack_volume(JNIEnv *env);
+MS2_PUBLIC void ms_android_hack_volume(JNIEnv *env);
 
 #ifdef __cplusplus
 extern "C"{

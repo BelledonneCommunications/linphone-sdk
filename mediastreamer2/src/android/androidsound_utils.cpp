@@ -19,7 +19,7 @@
 
 #include <mediastreamer2/android_utils.h>
 
-int get_preferred_buffer_size() {
+int ms_android_get_preferred_buffer_size() {
 	int DevicePreferredBufferSize = -1;
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
@@ -41,7 +41,7 @@ int get_preferred_buffer_size() {
 }
 
 
-int get_preferred_sample_rate() {
+int ms_android_get_preferred_sample_rate() {
 	int DevicePreferredSampleRate = -1;
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
@@ -62,7 +62,7 @@ int get_preferred_sample_rate() {
 	return DevicePreferredSampleRate;
 }
 
-jobjectArray get_all_devices(JNIEnv *env, const char * dir) {
+jobjectArray ms_android_get_all_devices(JNIEnv *env, const char * dir) {
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 
 	jobjectArray audioDevices = NULL;
@@ -84,7 +84,7 @@ jobjectArray get_all_devices(JNIEnv *env, const char * dir) {
 	return audioDevices;
 }
 
-unsigned int get_device_id(JNIEnv *env, jobject deviceInfo) {
+unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo) {
 
 	unsigned int id = 0;
 
@@ -101,7 +101,7 @@ unsigned int get_device_id(JNIEnv *env, jobject deviceInfo) {
 
 }
 
-int getJVIntField(JNIEnv *env, const char * className, const char * fieldName) {
+int ms_android_getJVIntField(JNIEnv *env, const char * className, const char * fieldName) {
 
 	int value = -1;
 	jclass JVClass = env->FindClass(className);
@@ -116,7 +116,7 @@ int getJVIntField(JNIEnv *env, const char * className, const char * fieldName) {
 	return value;
 }
 
-void change_device(JNIEnv *env, MSSndCardDeviceType type) {
+void ms_android_change_device(JNIEnv *env, MSSndCardDeviceType type) {
 
 	std::string methodName;
 	if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
@@ -142,7 +142,7 @@ void change_device(JNIEnv *env, MSSndCardDeviceType type) {
 	}
 }
 
-void set_bt_enable(JNIEnv *env, const bool_t enable) {
+void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable) {
 
 	std::string methodName;
 	if (enable) {
@@ -166,7 +166,7 @@ void set_bt_enable(JNIEnv *env, const bool_t enable) {
 	}
 }
 
-void hack_volume(JNIEnv *env) {
+void ms_android_hack_volume(JNIEnv *env) {
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
 		jmethodID hackVolume = env->GetStaticMethodID(mediastreamerAndroidContextClass, "hackVolume", "()V");
@@ -177,7 +177,7 @@ void hack_volume(JNIEnv *env) {
 	}
 }
 
-MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
+MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo) {
 
 	int typeID = -1;
 
@@ -193,26 +193,26 @@ MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 	}
 
 	MSSndCardDeviceType deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
-	if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_SCO")) {
+	if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_SCO")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_A2DP")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLUETOOTH_A2DP")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_EARPIECE")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_EARPIECE")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_SPEAKER")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_SPEAKER")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_MIC")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_MIC")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
-	} else if ((get_sdk_version(env) >= 26 && (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_HEADSET")))
-			|| (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADSET"))) {
+	} else if ((ms_android_get_sdk_version(env) >= 26 && (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_HEADSET")))
+			|| (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADSET"))) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADPHONES")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_WIRED_HEADPHONES")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_DEVICE")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_USB_DEVICE")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_AUX_LINE")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_AUX_LINE")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_AUX_LINE;
-	} else if (typeID == getJVIntField(env, audioDeviceInfoClassName, "TYPE_TELEPHONY")) {
+	} else if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_TELEPHONY")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_TELEPHONY;
 	} else {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
@@ -223,7 +223,7 @@ MSSndCardDeviceType get_device_type(JNIEnv *env, jobject deviceInfo) {
 
 }
 
-unsigned int get_device_capabilities(JNIEnv *env, jobject deviceInfo) {
+unsigned int ms_android_get_device_capabilities(JNIEnv *env, jobject deviceInfo) {
 
 	unsigned int cap = MS_SND_CARD_CAP_DISABLED;
 
@@ -249,7 +249,7 @@ unsigned int get_device_capabilities(JNIEnv *env, jobject deviceInfo) {
 	return cap;
 }
 
-char * get_device_product_name(JNIEnv *env, jobject deviceInfo) {
+char * ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo) {
 
 	char * productName = NULL;
 
@@ -278,7 +278,7 @@ char * get_device_product_name(JNIEnv *env, jobject deviceInfo) {
 	return productName;
 }
 
-int get_sdk_version(JNIEnv *env) {
+int ms_android_get_sdk_version(JNIEnv *env) {
 
 	int sdkVersion = -1;
 

@@ -259,12 +259,12 @@ static void android_snd_card_add_devices(MSSndCardManager *m) {
 
 	JNIEnv *env = ms_get_jni_env();
 
-	int sdkVersion = get_sdk_version(env);
+	int sdkVersion = ms_android_get_sdk_version(env);
 
 	//GetDevices is only available from API23
 	if (sdkVersion >= 23) {
 		// Get all devices
-		jobject devices = get_all_devices(env, "all");
+		jobject devices = ms_android_get_all_devices(env, "all");
 
 		// extract required information from every device
 		jobjectArray deviceArray = reinterpret_cast<jobjectArray>(devices);
@@ -294,8 +294,8 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		devices = ms_factory_get_devices_info(m->factory);
 		d = ms_devices_info_get_sound_device_description(devices);
 		if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES) return;
-		DeviceFavoriteSampleRate = get_preferred_sample_rate();
-		DeviceFavoriteBufferSize = get_preferred_buffer_size();
+		DeviceFavoriteSampleRate = ms_android_get_preferred_sample_rate();
+		DeviceFavoriteBufferSize = ms_android_get_preferred_buffer_size();
 		android_snd_card_add_devices(m);
 	} else {
 		ms_warning("[OpenSLES] Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
@@ -982,7 +982,7 @@ static int android_snd_write_configure_soundcard(MSFilter *obj, void *data) {
 		octx->soundCard = ms_snd_card_ref(card);
 		octx->setContext((OpenSLESContext*)card->data);
 		JNIEnv *env = ms_get_jni_env();
-		change_device(env, card->device_type);
+		ms_android_change_device(env, card->device_type);
 		ms_mutex_unlock(&octx->mutex);
 	}
 	return 0;
@@ -1023,7 +1023,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 
 	// Ensure consistency between the soundcard the core is setting and the one actually used as an output
 	JNIEnv *env = ms_get_jni_env();
-	change_device(env, octx->soundCard->device_type);
+	ms_android_change_device(env, octx->soundCard->device_type);
 }
 
 static void android_snd_write_process(MSFilter *obj) {
@@ -1066,7 +1066,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 
 	// At the end of a call, postprocess is called therefore here the output device can be changed to earpiece in the audio manager
 	JNIEnv *env = ms_get_jni_env();
-	change_device(env, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
+	ms_android_change_device(env, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
 	free(octx->playBuffer[0]);
 	octx->playBuffer[0]=NULL;
 	free(octx->playBuffer[1]);
@@ -1168,7 +1168,7 @@ static void snd_card_device_create(int device_id, const char * name, MSSndCardDe
 
 static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m) {
 
-	MSSndCardDeviceType type = get_device_type(env, deviceInfo);
+	MSSndCardDeviceType type = ms_android_get_device_type(env, deviceInfo);
 	if (
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
@@ -1176,9 +1176,9 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE)
 	) {
 
-		const char * name = ms_strdup(get_device_product_name(env, deviceInfo));
-		int device_id = get_device_id(env, deviceInfo);
-		unsigned int capabilities = get_device_capabilities(env, deviceInfo);
+		const char * name = ms_strdup(ms_android_get_device_product_name(env, deviceInfo));
+		int device_id = ms_android_get_device_id(env, deviceInfo);
+		unsigned int capabilities = ms_android_get_device_capabilities(env, deviceInfo);
 
 		snd_card_device_create(device_id, name, type, capabilities, m);
 
