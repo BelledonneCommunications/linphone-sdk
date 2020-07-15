@@ -16,7 +16,7 @@ Pod::Spec.new do |s|
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.resource = "linphone-sdk/apple-darwin/Resources/**"
   s.module_name   = 'linphonesw' # name of the swift package
-  s.swift_version = '4.0'
+  s.swift_version = "@LINPHONESDK_SWIFT_VERSION@"
 
   s.subspec 'all-frameworks' do |sp|
     sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
