@@ -261,8 +261,8 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	aaudio_player_init(octx);
 
 	JNIEnv *env = ms_get_jni_env();
-	set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	hack_volume(env);
+	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+	ms_android_hack_volume(env);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -323,7 +323,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	aaudio_player_close(octx);
 	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
 	JNIEnv *env = ms_get_jni_env();
-	set_bt_enable(env, FALSE);
+	ms_android_set_bt_enable(env, FALSE);
 }
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
@@ -346,8 +346,8 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 
 		aaudio_player_init(octx);
 		JNIEnv *env = ms_get_jni_env();
-		set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-		hack_volume(env);
+		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+		ms_android_hack_volume(env);
 
 		ms_mutex_unlock(&octx->stream_mutex);
 	}

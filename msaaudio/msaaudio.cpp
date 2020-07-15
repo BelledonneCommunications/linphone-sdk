@@ -36,7 +36,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	JNIEnv *env = ms_get_jni_env();
 
 	// Get all devices
-	jobject devices = get_all_devices(env, "all");
+	jobject devices = ms_android_get_all_devices(env, "all");
 
 	// extract required information from every device
 	jobjectArray deviceArray = (jobjectArray) devices;
@@ -77,7 +77,7 @@ MSSndCardDesc android_native_snd_aaudio_card_desc = {
 
 static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m) {
 
-	MSSndCardDeviceType type = get_device_type(env, deviceInfo);
+	MSSndCardDeviceType type = ms_android_get_device_type(env, deviceInfo);
 	if (
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
@@ -89,15 +89,15 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 	) {
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_aaudio_card_desc);
 
-		card->name = ms_strdup(get_device_product_name(env, deviceInfo));
-		card->internal_id = get_device_id(env, deviceInfo);
+		card->name = ms_strdup(ms_android_get_device_product_name(env, deviceInfo));
+		card->internal_id = ms_android_get_device_id(env, deviceInfo);
 		card->device_type = type;
 
 		AAudioContext *card_data = (AAudioContext*)card->data;
 
 		// Card capabilities
 		// Assign the value because the default value is MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK
-		card->capabilities = get_device_capabilities(env, deviceInfo);
+		card->capabilities = ms_android_get_device_capabilities(env, deviceInfo);
 		MSDevicesInfo *devices = ms_factory_get_devices_info(m->factory);
 		SoundDeviceDescription *d = ms_devices_info_get_sound_device_description(devices);
 		if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
@@ -116,6 +116,8 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 			ms_snd_card_manager_prepend_card(m, card);
 
 			ms_message("[AAudio] Added card: id %s name %s device ID %0d device_type %s capabilities 0'h%0X ", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
+		} else {
+			free(card);
 		}
 	}
 
@@ -153,7 +155,7 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 
 	ms_message("[AAudio] libmsaaudio plugin loaded");
 
-	DeviceFavoriteSampleRate = get_preferred_sample_rate();
+	DeviceFavoriteSampleRate = ms_android_get_preferred_sample_rate();
 
 	const bool loadOk = loadLib();
 
