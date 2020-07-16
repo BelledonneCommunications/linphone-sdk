@@ -1535,12 +1535,14 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 			}
 		}
 		channel_prepare_continue(obj);
-		if (!obj->dns_ttl_timer ) {
-			obj->dns_ttl_timer = belle_sip_main_loop_create_timeout(obj->stack->ml, channel_dns_ttl_timeout, obj, ttl * 1000, "Channel DNS TTL timer");
-		} else {
-			/* Restart the timer for new period. */
-			belle_sip_source_set_timeout_int64(obj->dns_ttl_timer, ttl * 1000LL);
-			belle_sip_main_loop_add_source(obj->stack->ml, obj->dns_ttl_timer);
+		if (ttl > 0){
+			if (!obj->dns_ttl_timer ) {
+				obj->dns_ttl_timer = belle_sip_main_loop_create_timeout(obj->stack->ml, channel_dns_ttl_timeout, obj, ttl * 1000, "Channel DNS TTL timer");
+			} else {
+				/* Restart the timer for new period. */
+				belle_sip_source_set_timeout_int64(obj->dns_ttl_timer, ttl * 1000LL);
+				belle_sip_main_loop_add_source(obj->stack->ml, obj->dns_ttl_timer);
+			}
 		}
 	}else{
 		channel_set_current_peer(obj, NULL);
