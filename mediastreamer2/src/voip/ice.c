@@ -1072,6 +1072,7 @@ static void ice_check_list_deallocate_turn_candidate(IceCheckList *cl, MSTurnCon
 			struct sockaddr *sa = (struct sockaddr *)&stream->loc_addr;
 			memset(source_addr_str, 0, sizeof(source_addr_str));
 			bctbx_sockaddr_to_ip_address(sa, stream->loc_addrlen, source_addr_str, sizeof(source_addr_str), &source_port);
+			ms_message("ice: about to deallocate turn candidate for %s:%i", source_addr_str, source_port);
 			request = ice_stun_server_request_new(cl, turn_context, rtptp, sa->sa_family, source_addr_str, source_port, MS_TURN_METHOD_REFRESH);
 			transaction = ice_send_stun_server_request(request, (struct sockaddr *)&cl->session->ss, cl->session->ss_len);
 			if (transaction != NULL) ice_stun_server_request_transaction_free(transaction);

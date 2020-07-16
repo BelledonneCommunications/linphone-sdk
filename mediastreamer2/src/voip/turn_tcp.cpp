@@ -31,7 +31,12 @@
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/stun.h>
 
+static const unsigned int MTU_MAX = 1500;
+static const uint64_t flowControlMaxTime = 3000;
+
 #include "turn_tcp.h"
+
+using namespace ms2::turn;
 
 extern "C" MSTurnTCPClient *ms_turn_tcp_client_new(MSTurnContext *context, bool_t use_ssl,
 												   const char *root_certificate_path) {
@@ -59,37 +64,38 @@ extern "C" int ms_turn_tcp_client_sendto(MSTurnTCPClient *turn_tcp_client, mblk_
 
 // -------------------------------------------------------------------------------------------------------
 
-Packet::Packet(size_t size) : mSize(size), mPhysSize(size), mTimestamp(0) {
-	mData = mBuf = (uint8_t *)ms_malloc(size);
+namespace ms2 {
+
+namespace turn {
+
+Packet::Packet(size_t size) : mTimestamp(0) {
+	mMblk = allocb(size, 0);
 }
 
-Packet::Packet(uint8_t *buffer, size_t size) : mSize(size), mPhysSize(size), mTimestamp(0) {
-	mData = mBuf = (uint8_t *)ms_malloc(size);
-	memcpy(mData, buffer, size);
+Packet::Packet(uint8_t *buffer, size_t size) : mTimestamp(0) {
+	mMblk = allocb(size, 0);
+	memcpy(mMblk->b_wptr, buffer, size);
+	mMblk->b_wptr += size;
 }
 
-Packet::Packet(mblk_t *msg) : mTimestamp(0) {
-	if (msg->b_cont != NULL) {
-		msgpullup(msg, -1);
+Packet::Packet(mblk_t *msg, bool withPadding) : mTimestamp(0) {
+	size_t size = msgdsize(msg);
+	size_t paddedSize = (size + 3) & (~0x3);
+
+	if (msg->b_cont != NULL || (paddedSize != size && withPadding)) {
+		msgpullup(msg, paddedSize);
+		msg->b_wptr = msg->b_rptr + paddedSize;
 	}
-
-	mSize = mPhysSize = (size_t)(msg->b_wptr - msg->b_rptr);
-	mData = mBuf = (uint8_t *)ms_malloc(mSize);
-	memcpy(mData, msg->b_rptr, mSize);
+	mMblk = dupb(msg);
 }
 
 void Packet::concat(const std::unique_ptr<Packet> &other, size_t size) {
 	if (size == (size_t)-1) {
-		size = other->mSize;
+		size = other->length();
 	}
-
-	size_t newSize = mPhysSize + size;
-	size_t offset = mData - mBuf;
-	mBuf = (uint8_t *)realloc(mBuf, newSize);
-	mData = mBuf + offset;
-	memcpy(mData + mSize, other->mData, size);
-	mPhysSize = newSize;
-	mSize += size;
+	msgappend(mMblk, (const char *)other->mMblk->b_rptr, size, FALSE);
+	if (mMblk->b_cont)
+		msgpullup(mMblk, -1);
 }
 
 void Packet::setTimestampCurrent() {
@@ -97,7 +103,7 @@ void Packet::setTimestampCurrent() {
 }
 
 Packet::~Packet() {
-	ms_free(mBuf);
+	freemsg(mMblk);
 }
 
 PacketReader::PacketReader(MSTurnContext *context) : mState(WaitingHeader), mContext(context) {
@@ -138,7 +144,7 @@ int PacketReader::parsePacket(std::unique_ptr<Packet> packet) {
 	uint8_t *p = packet->data();
 	uint8_t *header;
 	size_t headerSize;
-	size_t datalen;
+	size_t datalen, paddedLen;
 	uint8_t *pEnd = p + packet->length();
 	int foundPackets = 0;
 	bool channelData = false;
@@ -150,34 +156,40 @@ int PacketReader::parsePacket(std::unique_ptr<Packet> packet) {
 
 		header = p;
 		headerSize = channelData ? 4 : 20;
-		datalen = ntohs(*((uint16_t *)(p + sizeof(uint16_t))));
+		datalen = paddedLen = ntohs(*((uint16_t *)(p + sizeof(uint16_t))));
 
 		if (channelData && (datalen + 4) % 4 != 0) {
 			// The size of a channelData in TCP/TLS is rounded to a multiple of 4
 			// and not reflected in the length field
 			size_t round = 4 + datalen;
-			datalen = round - (round % 4);
+			paddedLen = round - (round % 4);
 		}
 
 		p += headerSize;
 		remainingSize = (size_t)(pEnd - p);
 
-		if (datalen > remainingSize) {
+		if (paddedLen > remainingSize) {
 			mState = Continuation;
-			mRemainingBytes = datalen - remainingSize;
-			packet->setOffset(header - packet->data());
+			mRemainingBytes = paddedLen - remainingSize;
+			packet->addReadOffset(header - packet->data());
 			mCurPacket = std::move(packet);
 			break;
 		}
 
-		p += datalen;
+		p += paddedLen;
 		foundPackets++;
 
 		if (p == pEnd && foundPackets == 1) {
+			if (channelData && datalen < paddedLen) {
+				// Set packet length to actual data length to get rid of padding
+				packet->setLength(headerSize + datalen);
+			}
+
 			mTurnPackets.push_back(std::move(packet));
 			break;
 		} else {
 			if (header) {
+				// Use datalen instead of paddedLen to get rid of padding
 				mTurnPackets.push_back(std::make_unique<Packet>(header, headerSize + datalen));
 			}
 		}
@@ -198,7 +210,7 @@ int PacketReader::processContinuationPacket(std::unique_ptr<Packet> packet) {
 		mState = WaitingHeader;
 		/* check if they are remaining bytes not used in the packet*/
 		if (to_read < packet->length()) {
-			packet->setOffset(to_read);
+			packet->addReadOffset(to_read);
 			return parsePacket(std::move(packet));
 		}
 	}
@@ -466,12 +478,13 @@ void TurnSocket::close() {
 void TurnSocket::addToSendingQueue(std::unique_ptr<Packet> p) {
 	mSendingLock.lock();
 	mSendingQueue.push(std::move(p));
-	if (!mSendRunning) {
+	if (mSendThreadSleeping) {
 		// Manual unlocking is done before notifying, to avoid waking up
 		// the waiting thread only to block again
 		// https://en.cppreference.com/w/cpp/thread/condition_variable
 		mSendingLock.unlock();
 		mQueueCond.signal();
+		return;
 	}
 	mSendingLock.unlock();
 }
@@ -483,6 +496,7 @@ void TurnSocket::addToReceivingQueue(std::unique_ptr<Packet> p) {
 
 void TurnSocket::start() {
 	if (!mRunning) {
+		mThreadsJoined = false;
 		mRunning = true;
 		mSendingThread = std::thread(&TurnSocket::runSend, this);
 		mReceivingThread = std::thread(&TurnSocket::runRead, this);
@@ -492,33 +506,26 @@ void TurnSocket::start() {
 void TurnSocket::stop() {
 	if (mRunning) {
 		mRunning = false;
+	}
 
-		// Clear sending queue
-		mSendingLock.lock();
+	mSendingLock.lock();
+	if (mSendThreadSleeping) {
+		mQueueCond.signal();
+	}
+	mSendingLock.unlock();
 
-		while (!mSendingQueue.empty()) {
-			mSendingQueue.pop();
-		}
-
-		if (!mSendRunning) {
-			mQueueCond.signal();
-		}
-
-		mSendingLock.unlock();
-
-		// Clear receiving queue
-		mReceivingLock.lock();
-
-		while (!mReceivingQueue.empty()) {
-			mReceivingQueue.pop();
-		}
-
-		mReceivingLock.unlock();
-
+	if (!mThreadsJoined) {
 		mSendingThread.join();
 		mReceivingThread.join();
 		close();
+		mThreadsJoined = true;
 	}
+
+	while (!mSendingQueue.empty())
+		mSendingQueue.pop();
+
+	while (!mReceivingQueue.empty())
+		mReceivingQueue.pop();
 }
 
 void TurnSocket::processRead() {
@@ -536,7 +543,11 @@ void TurnSocket::processRead() {
 		if (bytes < 0) {
 			if (getSocketErrorCode() != TURN_EWOULDBLOCK) {
 				if (mSsl) {
-					ms_error("TurnSocket [%p]: SSL error while reading: %i", this, bytes);
+					if (bytes == BCTBX_ERROR_SSL_PEER_CLOSE_NOTIFY) {
+						ms_message("TurnSocket [%p]: connection closed by remote.", this);
+					} else {
+						ms_error("TurnSocket [%p]: SSL error while reading: %i ", this, bytes);
+					}
 				} else
 					ms_error("TurnSocket [%p]: read error: %s", this, getSocketError());
 				mError = true;
@@ -594,7 +605,7 @@ void TurnSocket::runSend() {
 
 	while (mRunning) {
 		std::unique_lock<std::mutex> lk(mSendingLock);
-		mSendRunning = true;
+		mSendThreadSleeping = false;
 		if (!mSendingQueue.empty()) {
 			auto p = std::move(mSendingQueue.front());
 			mSendingQueue.pop();
@@ -624,9 +635,10 @@ void TurnSocket::runSend() {
 			}
 		} else {
 			purging = false;
-			mSendRunning = false;
 			if (mRunning) {
+				mSendThreadSleeping = true;
 				mQueueCond.wait(lk);
+				mSendThreadSleeping = false;
 			}
 			lk.unlock();
 		}
@@ -646,6 +658,12 @@ void TurnSocket::runRead() {
 				close();
 				mError = false;
 				mSslLock.unlock();
+				/*
+				 * No need to reconnect, this should not happen.
+				 * TODO: notify the error to the upper layer, as the Turn context may decide to restart entirely if the
+				 * disconnection is not expected.
+				 */
+				mRunning = false;
 			}
 		}
 	}
@@ -701,12 +719,10 @@ int TurnClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_
 		msg->net_addrlen = *fromlen;
 
 		// Set the recv_addr
-		struct sockaddr_in addr;
+		struct sockaddr_storage addr;
 		socklen_t addrlen = sizeof(addr);
 		getsockname(mTurnConnection->mSocket, (struct sockaddr *)&addr, &addrlen);
-		msg->recv_addr.family = addr.sin_family;
-		msg->recv_addr.addr.ipi_addr = addr.sin_addr;
-		msg->recv_addr.port = addr.sin_port;
+		ortp_sockaddr_to_recvaddr((struct sockaddr *)&addr, &msg->recv_addr);
 
 		return p->length();
 	}
@@ -715,7 +731,10 @@ int TurnClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_
 }
 
 int TurnClient::sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
-	auto p = std::make_unique<Packet>(msg);
+	if (!mTurnConnection->isRunning()) {
+		return -1;
+	}
+	auto p = std::make_unique<Packet>(msg, true); // Add padding at this point.
 	p->setTimestampCurrent();
 
 	int length = p->length();
@@ -724,3 +743,7 @@ int TurnClient::sendto(mblk_t *msg, int flags, const struct sockaddr *to, sockle
 
 	return length;
 }
+
+} // namespace turn
+
+} // namespace ms2

@@ -72,7 +72,7 @@ inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
 	pfd.fd = socket;
 	pfd.events = POLLIN;
 	if (write)
-		pfd.events = POLLIN|POLLOUT;
+		pfd.events = POLLIN | POLLOUT;
 	pfd.revents = 0;
 
 	return poll(&pfd, 1, seconds * 1000);
@@ -80,31 +80,34 @@ inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
 
 #endif
 
-static const unsigned int MTU_MAX = 1500;
-static const uint64_t flowControlMaxTime = 3000;
+namespace ms2 {
 
+namespace turn {
+
+/* A simple class that encapsulate the mblk_t for the purpose of our Turn client/sockets */
 class Packet {
   public:
 	Packet(size_t size);
 	Packet(uint8_t *buffer, size_t size);
-	Packet(mblk_t *msg);
+	/* Create a packet from a mblk_t, possibly adding necessary padding (because STUN/TURN packets must be 4-bytes
+	 * padded). */
+	Packet(mblk_t *msg, bool withPadding);
 
 	~Packet();
 
 	uint8_t *data() const {
-		return mData;
+		return mMblk->b_rptr;
 	}
 
-	void setOffset(size_t off) {
-		mData = mBuf + off;
-		mSize -= off;
+	void addReadOffset(size_t off) {
+		mMblk->b_rptr += off;
 	}
 
 	size_t length() const {
-		return mSize;
+		return msgdsize(mMblk);
 	}
 	void setLength(size_t size) {
-		mSize = size;
+		mMblk->b_wptr = mMblk->b_rptr + size;
 	}
 
 	void concat(const std::unique_ptr<Packet> &other, size_t size = -1);
@@ -115,10 +118,7 @@ class Packet {
 	void setTimestampCurrent();
 
   private:
-	uint8_t *mData;
-	size_t mSize;
-	uint8_t *mBuf;
-	size_t mPhysSize;
+	mblk_t *mMblk;
 	uint64_t mTimestamp;
 };
 
@@ -228,6 +228,9 @@ class TurnSocket {
 	int getPort() const {
 		return mPort;
 	}
+	bool isRunning() const {
+		return mRunning;
+	}
 
   private:
 	void runSend();
@@ -237,9 +240,10 @@ class TurnSocket {
 	int mPort;
 
 	bool mRunning = false;
-	bool mSendRunning = false;
+	bool mSendThreadSleeping = false;
 	bool mReady = false;
 	bool mError = false;
+	bool mThreadsJoined = false;
 
 	std::thread mSendingThread;
 	std::thread mReceivingThread;
@@ -290,5 +294,9 @@ class TurnClient {
 
 	bctbx_rng_context_t *mRng;
 };
+
+} // namespace turn
+
+} // namespace ms2
 
 #endif /* MS_TURN_TCP_H */

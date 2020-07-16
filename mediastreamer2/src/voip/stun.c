@@ -1358,7 +1358,21 @@ MSTurnContextState ms_turn_context_get_state(const MSTurnContext *context) {
 	return context->state;
 }
 
+static const char *ms_turn_context_state_to_string(MSTurnContextState state){
+	switch(state){
+		case MS_TURN_CONTEXT_STATE_IDLE: return "IDLE";
+		case MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION: return "CREATING_ALLOCATION";
+		case MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED: return "ALLOCATIION_CREATED";
+		case MS_TURN_CONTEXT_STATE_CREATING_PERMISSIONS: return "CREATING_PERMISSIONS";
+		case MS_TURN_CONTEXT_STATE_PERMISSIONS_CREATED: return "PERMISSIONS_CREATED";
+		case MS_TURN_CONTEXT_STATE_BINDING_CHANNEL: return "BINDING_CHANNEL";
+		case MS_TURN_CONTEXT_STATE_CHANNEL_BOUND: return "CHANNEL_BOUND";
+	}
+	return "BAD_STATE";
+}
+
 void ms_turn_context_set_state(MSTurnContext *context, MSTurnContextState state) {
+	ms_message("ms_turn_context_set_state(): context=%p, type=%s, state=%s", context, context->type == MS_TURN_CONTEXT_TYPE_RTP ? "RTP" : "RTCP", ms_turn_context_state_to_string(state));
 	context->state = state;
 	if (state == MS_TURN_CONTEXT_STATE_ALLOCATION_CREATED) context->stats.nb_successful_allocate++;
 	else if (state == MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) context->stats.nb_successful_channel_bind++;
@@ -1481,7 +1495,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
 		// Check first if we received a message from turn tcp
-		if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+		if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP && context->turn_tcp_client) {
 			msgsize = ms_turn_tcp_client_recvfrom(context->turn_tcp_client, msg, flags, from, fromlen);
 		}
 
@@ -1495,6 +1509,7 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 			if ((ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_BINDING_CHANNEL) && (*msg->b_rptr & 0x40)) {
 				uint16_t channel = ntohs(*((uint16_t *)msg->b_rptr));
 				uint16_t datasize = ntohs(*(((uint16_t *)msg->b_rptr) + 1));
+
 				if ((channel == ms_turn_context_get_channel_number(context)) && (msgsize >= (datasize + 4))) {
 					msg->b_rptr += 4; /* Unpack the TURN ChannelData message */
 					context->stats.nb_received_channel_msg++;
@@ -1646,7 +1661,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 			}
 		}
 
-		if (send_via_turn_tcp) {
+		if (send_via_turn_tcp && context->turn_tcp_client) {
 			ret = ms_turn_tcp_client_sendto(context->turn_tcp_client, msg, flags, to, tolen);
 		} else {
 			ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
