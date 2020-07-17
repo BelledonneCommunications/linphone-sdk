@@ -36,5 +36,3 @@
 #cmakedefine BUILD_ISAC
 #cmakedefine BUILD_ILBC
 #cmakedefine BUILD_VAD
-
-#cmakedefine ENABLE_MICROSOFT_STORE_APP
