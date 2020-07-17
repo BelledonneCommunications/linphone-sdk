@@ -105,12 +105,13 @@ void belle_sip_listening_point_clean_unreliable_channels(belle_sip_listening_poi
 	for (iterator = lp->channels; iterator!=NULL ; ) {
 		belle_sip_channel_t *chan=(belle_sip_channel_t*)iterator->data;
 		belle_sip_list_t * next_iterator = iterator->next;
-		if (chan->state != BELLE_SIP_CHANNEL_READY) continue;
-		if (current_time - chan->last_recv_time > (uint64_t)(lp->stack->unreliable_transport_timeout * 1000)){
-			belle_sip_channel_force_close(chan);
-			belle_sip_object_unref(chan);
-			count++;
-			lp->channels = bctbx_list_erase_link(lp->channels, iterator);
+		if (chan->state == BELLE_SIP_CHANNEL_READY) {
+			if (current_time - chan->last_recv_time > (uint64_t)(lp->stack->unreliable_transport_timeout * 1000)){
+				belle_sip_channel_force_close(chan);
+				belle_sip_object_unref(chan);
+				count++;
+				lp->channels = bctbx_list_erase_link(lp->channels, iterator);
+			}
 		}
 		iterator = next_iterator;
 	}
