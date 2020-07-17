@@ -1005,8 +1005,11 @@ uint8_t bctbx_dtls_srtp_supported(void) {
 }
 
 void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) {
-	// remove the record expansion to the given MTU
-	mbedtls_ssl_set_mtu(&(ssl_ctx->ssl_ctx), mtu - mbedtls_ssl_get_record_expansion(&(ssl_ctx->ssl_ctx)));
+	// remove all headers to the given MTU:
+	// DTLS header (mbedtls_ssl_get_record_expansion)
+	// UDP header: 8 bytes
+	// IP header(up to 40 bytes when usimg IP v6)
+	mbedtls_ssl_set_mtu(&(ssl_ctx->ssl_ctx), (mtu - mbedtls_ssl_get_record_expansion(&(ssl_ctx->ssl_ctx)) - 8 - 40));
 }
 
 static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_srtp_profile mbedtls_profile) {
