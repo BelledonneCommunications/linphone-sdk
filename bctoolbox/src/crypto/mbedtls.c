@@ -57,7 +57,12 @@
  * @param[in]		size	buffer size
  */
 void bctbx_clean(void *buffer, size_t size) {
+#if MBEDTLS_VERSION_NUMBER >= 0x020A0000 // v2.10.0
 	mbedtls_platform_zeroize(buffer, size);
+#else
+	volatile uint8_t *p = buffer;
+	while(size--) *p++ = 0;
+#endif
 }
 
 /*** Error code translation ***/
