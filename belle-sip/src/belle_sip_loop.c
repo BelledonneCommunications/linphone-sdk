@@ -253,11 +253,11 @@ struct belle_sip_main_loop{
 	belle_sip_object_t base;
 	belle_sip_list_t *fd_sources;
 	bctbx_map_t *timer_sources;
-	bctbx_mutex_t sources_mutex; // mutex to avoid concurency between source addition/removing/cancelling and main loop iteration.
 	belle_sip_object_pool_t *pool;
 	int nsources;
 	int run;
 	int in_loop;
+	bctbx_mutex_t timer_sources_mutex;
 #ifndef _WIN32
 	int control_fds[2];
 	unsigned long thread_id;
@@ -270,29 +270,31 @@ static void belle_sip_main_loop_remove_source_internal(
 	bool_t destroy_timer_sources
 ) {
 	int unrefs = 0;
-
-	bctbx_mutex_lock(&ml->sources_mutex);
 	if (source->node.next || source->node.prev || &source->node==ml->fd_sources)  {
 		ml->fd_sources=belle_sip_list_remove_link(ml->fd_sources,&source->node);
 		unrefs++;
 	}
 	if (source->it) {
+		bctbx_mutex_lock(&ml->timer_sources_mutex);
 		if (destroy_timer_sources)
 			bctbx_map_erase(ml->timer_sources, source->it);
 		bctbx_iterator_delete(source->it);
+		bctbx_mutex_unlock(&ml->timer_sources_mutex);
+
 		source->it=NULL;
 		unrefs++;
 	}
 	if (unrefs) {
 		source->cancelled=TRUE;
 		ml->nsources--;
-		bctbx_mutex_unlock(&ml->sources_mutex);
-		if (source->on_remove) source->on_remove(source);
-		// the mutex must be taken for unrefing because belle_sip_object_unref() isn't thread-safe
-		bctbx_mutex_lock(&ml->sources_mutex);
-		for (; unrefs > 0; --unrefs) belle_sip_object_unref(source);
+		if (source->on_remove)
+			source->on_remove(source);
+
+		while(unrefs) {
+			belle_sip_object_unref(source);
+			unrefs--;
+		}
 	}
-	bctbx_mutex_unlock(&ml->sources_mutex);
 }
 
 void belle_sip_main_loop_remove_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source) {
@@ -323,7 +325,7 @@ static void belle_sip_main_loop_destroy(belle_sip_main_loop_t *ml){
 	}
 
 	bctbx_mmap_ullong_delete(ml->timer_sources);
-	bctbx_mutex_destroy(&ml->sources_mutex);
+	bctbx_mutex_destroy(&ml->timer_sources_mutex);
 
 #ifndef _WIN32
 	close(ml->control_fds[0]);
@@ -338,7 +340,7 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 	belle_sip_main_loop_t*m=belle_sip_object_new(belle_sip_main_loop_t);
 	m->pool=belle_sip_object_pool_push();
 	m->timer_sources = bctbx_mmap_ullong_new();
-	bctbx_mutex_init(&m->sources_mutex,NULL);
+	bctbx_mutex_init(&m->timer_sources_mutex,NULL);
 
 #ifndef _WIN32
 	if (pipe(m->control_fds) == -1){
@@ -356,12 +358,13 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void){
 void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml);
 
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source){
-	bctbx_mutex_lock(&ml->sources_mutex);
 	if (source->node.next || source->node.prev){
 		belle_sip_fatal("Source is already linked somewhere else.");
+		return;
 	}
 	if (source->node.data!=source){
 		belle_sip_fatal("Insane source passed to belle_sip_main_loop_add_source() !");
+		return;
 	}
 
 	source->ml=ml;
@@ -369,10 +372,11 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	if (source->timeout>=0){
 		belle_sip_object_ref(source);
 		source->expire_ms=belle_sip_time_ms()+source->timeout;
-		source->it = bctbx_map_insert_and_delete_with_returned_it(
-			ml->timer_sources,
-			(bctbx_pair_t*)bctbx_pair_ullong_new(source->expire_ms, source)
-		);
+		bctbx_mutex_lock(&ml->timer_sources_mutex);
+		source->it = bctbx_map_insert_and_delete_with_returned_it(ml->timer_sources
+																	  , (bctbx_pair_t*)bctbx_pair_ullong_new(source->expire_ms, source));
+		bctbx_mutex_unlock(&ml->timer_sources_mutex);
+
 	}
 	source->cancelled=FALSE;
 	if (source->fd != (belle_sip_fd_t)-1 ) {
@@ -385,8 +389,6 @@ void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_
 	if (ml->thread_id != bctbx_thread_self())
 		belle_sip_main_loop_wake_up(ml);
 #endif
-
-	bctbx_mutex_unlock(&ml->sources_mutex);
 }
 
 belle_sip_source_t* belle_sip_main_loop_create_timeout_with_remove_cb(  belle_sip_main_loop_t *ml
@@ -469,21 +471,20 @@ void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms) 
 }
 
 void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms) {
-	belle_sip_main_loop_t *ml = s->ml;
-	// take the mutex only when the source has been added to the mail loop
-	if (ml) bctbx_mutex_lock(&ml->sources_mutex);
 	if (!s->expired){
+		belle_sip_main_loop_t *ml = s->ml;
 		s->expire_ms=belle_sip_time_ms()+value_ms;
 		if (s->it){
 			/*this timeout is already sorted in the timer_sources map, we need to move it to its new place*/
+			bctbx_mutex_lock(&ml->timer_sources_mutex);
 			bctbx_map_erase(ml->timer_sources, s->it);
 			bctbx_iterator_delete(s->it);
 			s->it = bctbx_map_insert_and_delete_with_returned_it(ml->timer_sources,
 				(bctbx_pair_t*)bctbx_pair_ullong_new(s->expire_ms, s));
+			bctbx_mutex_unlock(&ml->timer_sources_mutex);
 		}
 	}
 	s->timeout=value_ms;
-	if (ml) bctbx_mutex_unlock(&ml->sources_mutex);
 }
 
 void belle_sip_source_set_remove_cb(belle_sip_source_t *s, belle_sip_source_remove_callback_t func) {
@@ -499,18 +500,15 @@ int64_t belle_sip_source_get_timeout_int64(const belle_sip_source_t *s) {
 }
 
 void belle_sip_source_cancel(belle_sip_source_t *s){
-	if (s->ml) {
-		bctbx_mutex_lock(&s->ml->sources_mutex);
-		s->cancelled = TRUE;
-		if (s->it) {
-			bctbx_map_erase(s->ml->timer_sources, s->it);
-			bctbx_iterator_delete(s->it);
-			/*put on front*/
-			s->it = bctbx_map_insert_and_delete_with_returned_it(s->ml->timer_sources, (bctbx_pair_t*)bctbx_pair_ullong_new(0, s));
-		}
-		bctbx_mutex_unlock(&s->ml->sources_mutex);
-	} else {
-		s->cancelled = TRUE;
+	s->cancelled=TRUE;
+	if (s->it) {
+		bctbx_mutex_lock(&s->ml->timer_sources_mutex);
+		bctbx_map_erase(s->ml->timer_sources, s->it);
+		bctbx_iterator_delete(s->it);
+		/*put on front*/
+		s->it = bctbx_map_insert_and_delete_with_returned_it(s->ml->timer_sources, (bctbx_pair_t*)bctbx_pair_ullong_new(0, s));
+
+		bctbx_mutex_unlock(&s->ml->timer_sources_mutex);
 	}
 }
 
@@ -578,7 +576,6 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 
 	/*Step 1: prepare the pollfd table and get the next timeout value */
-	bctbx_mutex_lock(&ml->sources_mutex); // Lock for the whole step 1
 	for(elem=ml->fd_sources;elem!=NULL;elem=next) {
 		next=elem->next;
 		belle_sip_source_t *s=(belle_sip_source_t*)elem->data;
@@ -611,14 +608,12 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		bctbx_iterator_delete(it);
 		it = NULL;
 	}
-	bctbx_mutex_unlock(&ml->sources_mutex);
 
 	/* do the poll */
 	ret=belle_sip_poll(pfd,i,duration);
 	if (ret==-1){
 		goto end;
 	}
-
 #ifndef _WIN32
 	if (pfd[i - 1].revents == POLLIN){
 		if (clear_pipe(ml->control_fds[0]) == -1)
@@ -627,7 +622,6 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 #endif
 
 	/* Step 2: examine poll results and determine the list of source to be notified */
-	bctbx_mutex_lock(&ml->sources_mutex); // Lock for step 2 and step 3.
 	cur=belle_sip_time_ms();
 	for(elem=ml->fd_sources;elem!=NULL;elem=elem->next){
 		unsigned revents=0;
@@ -651,6 +645,8 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 
 	/* Step 3: find timeouted sources */
+
+	bctbx_mutex_lock(&ml->timer_sources_mutex); /*iterator chain might be alterated by element insertion*/
 	it = bctbx_map_begin(ml->timer_sources);
 	end = bctbx_map_end(ml->timer_sources);
 	while (!bctbx_iterator_equals(it,end)) {
@@ -672,7 +668,7 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 	}
 	bctbx_iterator_delete(it);
 	bctbx_iterator_delete(end);
-	bctbx_mutex_unlock(&ml->sources_mutex);
+	bctbx_mutex_unlock(&ml->timer_sources_mutex);
 
 	/* Step 4: notify those to be notified */
 	for(elem=to_be_notified;elem!=NULL;){
@@ -692,10 +688,11 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 				/*this source needs to be removed*/
 				belle_sip_main_loop_remove_source(ml,s);
 			} else  {
-				bctbx_mutex_lock(&ml->sources_mutex);
 				if (s->expired && s->it) {
+					bctbx_mutex_lock(&ml->timer_sources_mutex);
 					bctbx_map_erase(ml->timer_sources, s->it);
 					bctbx_iterator_delete(s->it);
+					bctbx_mutex_unlock(&ml->timer_sources_mutex);
 					s->it=NULL;
 					belle_sip_object_unref(s);
 				}
@@ -707,11 +704,12 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 						s->expire_ms+=s->timeout;
 					}
 					s->expired=FALSE;
+					bctbx_mutex_lock(&ml->timer_sources_mutex);
 					s->it = bctbx_map_insert_and_delete_with_returned_it(ml->timer_sources,
 							(bctbx_pair_t*)bctbx_pair_ullong_new(s->expire_ms, s));
+					bctbx_mutex_unlock(&ml->timer_sources_mutex);
 					belle_sip_object_ref(s);
 				}
-				bctbx_mutex_unlock(&ml->sources_mutex);
 			}
 		} else {
 			belle_sip_main_loop_remove_source(ml,s);
@@ -727,8 +725,8 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		belle_sip_object_unref(tmp_pool);
 		tmp_pool=NULL;
 	}
-
 end:
+
 	belle_sip_free(pfd);
 }
 
