@@ -9,8 +9,8 @@ RUN git clone https://gitlab.linphone.org/BC/public/linphone-sdk.git -b ${branch
 RUN mkdir linphone-sdk-build
 
 WORKDIR linphone-sdk-build
-RUN cmake ../linphone-sdk -DCMAKE_BUILD_TYPE=${build_type} -DENABLE_LIME_X3DH=YES
-RUN cmake --build . -j ${njobs}
+RUN /bin/bash -c "source /opt/rh/devtoolset-8/enable; cmake ../linphone-sdk -DCMAKE_BUILD_TYPE=${build_type} -DENABLE_LIME_X3DH=YES"
+RUN /bin/bash -c "source /opt/rh/devtoolset-8/enable; cmake --build . -j ${njobs}"
 RUN rm -rf ../linphone-sdk
 RUN find . -maxdepth 1 ! -name linphone-sdk -exec rm -rf {} \;
 
