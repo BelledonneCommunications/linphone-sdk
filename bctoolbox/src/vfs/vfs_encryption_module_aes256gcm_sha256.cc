@@ -79,7 +79,7 @@ const std::vector<uint8_t> VfsEM_AES256GCM_SHA256::getModuleFileHeader(const Vfs
 	}
 	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
 	// so it is useless to authenticate it
-	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.r_getHeader());
+	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.rawHeaderGet());
 
 	// Append the actual file salt value to the tag
 	auto ret = m_fileSalt;
@@ -133,7 +133,7 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 
 	// decrypt and auth
 	std::vector<uint8_t> plain;
-	if (AEAD_decrypt<AES256GCM128>(key, IV, cipher, AD, tag, plain) == false) {
+	if (AEADDecrypt<AES256GCM128>(key, IV, cipher, AD, tag, plain) == false) {
 		throw EVFS_EXCEPTION<<"Authentication failure during chunk decryption";
 	}
 
@@ -162,7 +162,7 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 
 	std::vector<uint8_t> AD{};
 	std::vector<uint8_t> tag(AES256GCM128::tagSize());
-	std::vector<uint8_t> rawChunk = AEAD_encrypt<AES256GCM128>(key, IV, plainData, AD, tag);
+	std::vector<uint8_t> rawChunk = AEADEncrypt<AES256GCM128>(key, IV, plainData, AD, tag);
 
 	// insert header:
 	std::vector<uint8_t> chunkHeader(chunkHeaderSize,0);
@@ -188,7 +188,7 @@ bool VfsEM_AES256GCM_SHA256::checkIntegrity(const VfsEncryption &fileContext) {
 	}
 	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
 	// so it is useless to authenticate it
-	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.r_getHeader());
+	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.rawHeaderGet());
 
 	return (std::equal(tag.cbegin(), tag.cend(), m_fileHeaderIntegrity.cbegin()));
 }

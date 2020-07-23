@@ -33,21 +33,21 @@ namespace bctoolbox {
  * @brief This dedicated exception inherits \ref BctoolboxException.
  *
  */
-class EVfsException : public BctbxException {
+class EvfsException : public BctbxException {
 public:
-	EVfsException() = default;
-	EVfsException(const std::string &message): BctbxException(message) {}
-	EVfsException(const char *message): BctbxException(message) {}
-	virtual ~EVfsException() throw() {}
-	EVfsException(const EVfsException &other): BctbxException(other) {}
+	EvfsException() = default;
+	EvfsException(const std::string &message): BctbxException(message) {}
+	EvfsException(const char *message): BctbxException(message) {}
+	virtual ~EvfsException() throw() {}
+	EvfsException(const EvfsException &other): BctbxException(other) {}
 
-	template <typename T> EVfsException &operator<<(const T &val) {
+	template <typename T> EvfsException &operator<<(const T &val) {
 		BctbxException::operator<<(val);
 		return *this;
 	}
 };
 
-#define EVFS_EXCEPTION EVfsException() << " " << __FILE__ << ":" << __LINE__ << " "
+#define EVFS_EXCEPTION EvfsException() << " " << __FILE__ << ":" << __LINE__ << " "
 
 
 /**
@@ -94,20 +94,20 @@ class VfsEncryption {
 		/**
 		 * at file opening a callback ask for crypto material, it is class property, set it using this class method
 		 */
-		static void openCallback_set(EncryptedVfsOpenCb cb) noexcept;
-		static EncryptedVfsOpenCb openCallback_get() noexcept;
+		static void openCallbackSet(EncryptedVfsOpenCb cb) noexcept;
+		static EncryptedVfsOpenCb openCallbackGet() noexcept;
 
 	/* Object properties and methods */
 	private:
 		uint16_t m_versionNumber; /**< version number of the encryption vfs */
 		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
-		size_t r_chunkSize() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
+		size_t rawChunkSizeGet() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
 		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module : if nullptr, assume we deal with regular plain file */
 		size_t m_headerExtensionSize; /**< header extension size */
 		const std::string m_filename; /**< the filename as given to the open function */
 		uint64_t m_fileSize; /**< size of the plaintext file */
 
-		uint64_t r_fileSize() const noexcept; /**< return the size of the raw file */
+		uint64_t rawFileSizeGet() const noexcept; /**< return the size of the raw file */
 		uint32_t getChunkIndex(uint64_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
@@ -120,7 +120,7 @@ class VfsEncryption {
 		 * Parse the header of an encrypted file, check everything seems correct
 		 * may perform integrity checking if the encryption module provides it
 		 *
-		 * @throw a EVfsException if something goes wrong
+		 * @throw a EvfsException if something goes wrong
 		 */
 		void parseHeader();
 		/**
@@ -128,7 +128,7 @@ class VfsEncryption {
 		 * Create the needed structures if the file is actually empty
 		 * @param[in] fp	if a file pointer is given write to this one, otherwise use the pFileStp property
 		 *
-		 * @throw a EVfsException if something goes wrong
+		 * @throw a EvfsException if something goes wrong
 		 **/
 		void writeHeader(bctbx_vfs_file_t *fp=nullptr);
 
@@ -145,7 +145,7 @@ class VfsEncryption {
 		/**
 		 * @return the size of the plain text file
 		 */
-		int64_t fileSize_get() const noexcept;
+		int64_t fileSizeGet() const noexcept;
 
 		/* Read from file at given offset the requested size */
 		std::vector<uint8_t> read(size_t offset, size_t count) const;
@@ -160,7 +160,7 @@ class VfsEncryption {
 		 *  Get the filename
 		 *  @return a string with the filename as given to the open function
 		 */
-		std::string filename_get() const noexcept;
+		std::string filenameGet() const noexcept;
 
 
 
@@ -172,24 +172,24 @@ class VfsEncryption {
 		 * When called at file creation, select the module to use for this file
 		 * When called at the opening of an existing file, check it is the suite used at file creation, throw an exception if they differs
 		 */
-		void encryptionSuite_set(const EncryptionSuite);
+		void encryptionSuiteSet(const EncryptionSuite);
 
 		/**
 		 * Set the secret Material in the encryption module
 		 * This function cannot be called if a encryption suite was not set.
 		 */
-		void secretMaterial_set(const std::vector<uint8_t> &secretMaterial);
+		void secretMaterialSet(const std::vector<uint8_t> &secretMaterial);
 
 		/**
 		 * Returns the encryption suite used for this file
 		 * Can be return unset if the file is being created
 		 */
-		EncryptionSuite encryptionSuite_get() const noexcept;
+		EncryptionSuite encryptionSuiteGet() const noexcept;
 
 		/**
 		 * Returns the size of chunks in which the file is divided for encryption
 		 */
-		size_t chunkSize_get() const noexcept;
+		size_t chunkSizeGet() const noexcept;
 		/**
 		 * Set the size, in bytes, of chunks in which the file is divided for encryption
 		 * This size must be a multiple of 16, accepted values in range [16, (2^16-1)*16].
@@ -197,13 +197,13 @@ class VfsEncryption {
 		 * Default chunk size at file creation is 4kB.
 		 * A file holds a maximum of 2^32-1 chunks. 16 bytes chunks - not recommended smallest admissible value - limit the file size to 64GB
 		 */
-		void chunkSize_set(const size_t size);
+		void chunkSizeSet(const size_t size);
 
 		/**
 		 * Get raw header: encryption module might check integrity on header
 		 * This function returns the raw header, without the encryption module part
 		 */
-		const std::vector<uint8_t>& r_getHeader() const noexcept;
+		const std::vector<uint8_t>& rawHeaderGet() const noexcept;
 
 
 };

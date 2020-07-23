@@ -106,7 +106,7 @@ VfsEncryptionModuleDummy::VfsEncryptionModuleDummy(const std::vector<uint8_t> &f
 
 const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const VfsEncryption &fileContext) const {
 	// Update the integrity on fileHeader
-	auto header = fileContext.r_getHeader();
+	auto header = fileContext.rawHeaderGet();
 	// append the part of the module file header we want to authentify
 	auto moduleAuthentifiedPart = globalIV();
 	header.insert(header.end(), moduleAuthentifiedPart.cbegin(), moduleAuthentifiedPart.cend());
@@ -243,7 +243,7 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunk
  */
 bool VfsEncryptionModuleDummy::checkIntegrity(const VfsEncryption &fileContext) {
 	// Integrity is performed on the header only - each chunk take care of its own
-	auto header = fileContext.r_getHeader();
+	auto header = fileContext.rawHeaderGet();
 	// append the part of the module file header we want to authentify
 	auto moduleAuthentifiedPart = globalIV();
 	header.insert(header.end(), moduleAuthentifiedPart.cbegin(), moduleAuthentifiedPart.cend());

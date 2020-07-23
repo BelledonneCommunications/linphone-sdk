@@ -29,7 +29,7 @@ namespace bctoolbox {
  *
  * This wrapper provides an interface to a RNG.
  * Two ways to get some random numbers:
- *  - calling the static class functions(c_randomize) : do not use this to feed cryptographic functions
+ *  - calling the static class functions(cRandomize) : do not use this to feed cryptographic functions
  *  - instanciate a RNG object and call the randomize method : use this one for cryptographic quality random
  *
  * Any call (including creation), may throw an exception if some error are detected on the random source
@@ -62,13 +62,13 @@ class RNG {
 		 *
 		 * @note This function uses a shared RNG context, do not use it to generate sensitive material
 		 **/
-		static void c_randomize(uint8_t *buffer, size_t size);
+		static void cRandomize(uint8_t *buffer, size_t size);
 		/**
 		 * generates a 32 bits random unsigned number
 		 *
 		 * @note This function uses a shared RNG context, do not use it to generate sensitive material
 		 **/
-		static uint32_t c_randomize();
+		static uint32_t cRandomize();
 
 		RNG();
 		~RNG();
@@ -188,7 +188,7 @@ struct AES256GCM128 {
  * @return	the cipher text
  */
 template <typename AEADAlgo>
-std::vector<uint8_t> AEAD_encrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
 		std::vector<uint8_t> &tag);
 
 /**
@@ -204,14 +204,14 @@ std::vector<uint8_t> AEAD_encrypt(const std::vector<uint8_t> &key, const std::ve
  * @return true if authentication tag match and decryption was successful
  */
 template <typename AEADAlgo>
-bool AEAD_decrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+bool AEADDecrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
 		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
 
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+template <> std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
 		std::vector<uint8_t> &tag);
 
-template <> bool AEAD_decrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
 		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
 
 } // namespace bctoolbox

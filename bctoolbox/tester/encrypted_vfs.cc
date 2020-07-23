@@ -28,25 +28,25 @@ using namespace bctoolbox;
 /* A callback to position the key material and algorithm suite to use */
 static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-	settings.encryptionSuite_set(EncryptionSuite::dummy);
-	settings.secretMaterial_set(keyMaterial);
-	settings.chunkSize_set(16);
+	settings.encryptionSuiteSet(EncryptionSuite::dummy);
+	settings.secretMaterialSet(keyMaterial);
+	settings.chunkSizeSet(16);
 });
 
 static EncryptedVfsOpenCb set_plain_encryption_info([](VfsEncryption &settings) {
-	settings.encryptionSuite_set(EncryptionSuite::plain);
+	settings.encryptionSuiteSet(EncryptionSuite::plain);
 });
 
 static EncryptedVfsOpenCb set_aes256_encryption_info([](VfsEncryption &settings) {
 	const std::vector<uint8_t> keyMaterial{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0xf0,
 						0x11, 0x12, 0x13, 0x54, 0x55, 0x56, 0xa7, 0xa8, 0xa9, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0xef};
-	settings.encryptionSuite_set(EncryptionSuite::aes256gcm128_sha256);
-	settings.secretMaterial_set(keyMaterial);
-	settings.chunkSize_set(16);
+	settings.encryptionSuiteSet(EncryptionSuite::aes256gcm128_sha256);
+	settings.secretMaterialSet(keyMaterial);
+	settings.chunkSizeSet(16);
 });
 
 static EncryptedVfsOpenCb set_encryption_info([](VfsEncryption &settings) {
-	auto filename = settings.filename_get();
+	auto filename = settings.filenameGet();
 
 	if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::plain)) != std::string::npos) {
 		set_plain_encryption_info(settings);
@@ -243,7 +243,7 @@ void basic_encryption_test(bctoolbox::EncryptionSuite suite, bool closeFile = tr
 
 void basic_encryption_test() {
 	/* set the encrypted vfs callback */
-	VfsEncryption::openCallback_set(set_encryption_info);
+	VfsEncryption::openCallbackSet(set_encryption_info);
 
 	basic_encryption_test(EncryptionSuite::dummy, false);
 	basic_encryption_test(EncryptionSuite::dummy, true);
@@ -252,7 +252,7 @@ void basic_encryption_test() {
 	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, false);
 	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, true);
 
-	VfsEncryption::openCallback_set(nullptr);
+	VfsEncryption::openCallbackSet(nullptr);
 }
 
 /**
@@ -312,12 +312,12 @@ void auth_fail_test(bctoolbox::EncryptionSuite suite) {
 }
 void auth_fail_test() {
 	/* set the encrypted vfs callback */
-	VfsEncryption::openCallback_set(set_encryption_info);
+	VfsEncryption::openCallbackSet(set_encryption_info);
 
 	auth_fail_test(EncryptionSuite::dummy);
 	auth_fail_test(EncryptionSuite::aes256gcm128_sha256);
 
-	VfsEncryption::openCallback_set(nullptr);
+	VfsEncryption::openCallbackSet(nullptr);
 }
 
 /**
@@ -383,12 +383,12 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 }
 void migration_test() {
 	/* set the encrypted vfs callback */
-	VfsEncryption::openCallback_set(set_encryption_info);
+	VfsEncryption::openCallbackSet(set_encryption_info);
 
 	migration_test(EncryptionSuite::dummy);
 	migration_test(EncryptionSuite::aes256gcm128_sha256);
 
-	VfsEncryption::openCallback_set(nullptr);
+	VfsEncryption::openCallbackSet(nullptr);
 }
 
 void recovery_test(bctoolbox::EncryptionSuite suite) {
@@ -461,12 +461,12 @@ void recovery_test(bctoolbox::EncryptionSuite suite) {
 
 void recovery_test() {
 	/* set the encrypted vfs callback */
-	VfsEncryption::openCallback_set(set_encryption_info);
+	VfsEncryption::openCallbackSet(set_encryption_info);
 
 	recovery_test(EncryptionSuite::dummy);
 	recovery_test(EncryptionSuite::aes256gcm128_sha256);
 
-	VfsEncryption::openCallback_set(nullptr);
+	VfsEncryption::openCallbackSet(nullptr);
 }
 
 static test_t encrypted_vfs_tests[] = {

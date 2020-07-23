@@ -660,7 +660,7 @@ static void rng_test_32_args(size_t calls_nb) noexcept {
 
 	try {
 		for (size_t i=0; i<calls_nb; i++) {
-			rng_stats_update(stat_count, stat_mean, stat_m2, bctoolbox::RNG::c_randomize());
+			rng_stats_update(stat_count, stat_mean, stat_m2, bctoolbox::RNG::cRandomize());
 		}
 		// normalized mean shall be around 0.5
 		stat_mean /= std::pow(2,32)-1;
@@ -715,7 +715,7 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 
 	try {
 		for (size_t i=0; i<calls_nb; i++) {
-			bctoolbox::RNG::c_randomize(alea, buffer_size);
+			bctoolbox::RNG::cRandomize(alea, buffer_size);
 			for (size_t j=0; j<buffer_size; j++) {
 				rng_stats_update(stat_count, stat_mean, stat_m2, alea[j]);
 			}
@@ -786,7 +786,7 @@ static void rng_test(void) {
 	try {
 		constexpr size_t buffer_size=50000;
 		uint8_t buffer[buffer_size];
-		bctoolbox::RNG::c_randomize(buffer, buffer_size);
+		bctoolbox::RNG::cRandomize(buffer, buffer_size);
 	} catch (BctbxException const &e) {
 		exceptionRaised = true;
 	}
@@ -813,10 +813,10 @@ static void AEAD(void) {
 	std::vector<uint8_t> AD{};
 	AD.clear();
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.2 */
@@ -826,7 +826,7 @@ static void AEAD(void) {
 	pattern_plain.clear();
 	pattern_cipher.clear();
 	pattern_tag={0x2d, 0x45, 0x55, 0x2d, 0x85, 0x75, 0x92, 0x2b, 0x3c, 0xa3, 0xcc, 0x53, 0x84, 0x42, 0xfa, 0x26};
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(tag==pattern_tag);
 
 	/* Test D3.3 */
@@ -839,10 +839,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.4 */
@@ -855,10 +855,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.5 */
@@ -871,10 +871,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.6 */
@@ -891,10 +891,10 @@ static void AEAD(void) {
 		repeatAD.insert(repeatAD.end(), AD.cbegin(), AD.cend());
 	}
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, repeatAD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, repeatAD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, repeatAD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, repeatAD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.7 */
@@ -907,10 +907,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.8 */
@@ -923,10 +923,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.9 */
@@ -939,10 +939,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.10 */
@@ -955,10 +955,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.11 */
@@ -971,10 +971,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 
 	/* Test D3.12 */
@@ -987,10 +987,10 @@ static void AEAD(void) {
 	cipher.resize(pattern_plain.size());
 	plain.resize(pattern_plain.size());
 
-	cipher = AEAD_encrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
 	BC_ASSERT_TRUE(cipher==pattern_cipher);
 	BC_ASSERT_TRUE(tag==pattern_tag);
-	BC_ASSERT_TRUE(AEAD_decrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
 	BC_ASSERT_TRUE(plain==pattern_plain);
 }
 

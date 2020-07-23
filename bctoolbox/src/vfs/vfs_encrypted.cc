@@ -52,7 +52,7 @@ static size_t moduleFileHeaderSize(const uint16_t suite) {
 	}
 }
 
-// is called at file creation when the encryption suite is set using encryptionSuite_set
+// is called at file creation when the encryption suite is set using encryptionSuiteSet
 static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const EncryptionSuite suite) {
 	switch (suite) {
 		case EncryptionSuite::dummy:
@@ -144,8 +144,8 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 	}
 
 	/* if the static callback is set, call it */
-	if (VfsEncryption::openCallback_get() != nullptr) {
-		(VfsEncryption::openCallback_get())(*this);
+	if (VfsEncryption::openCallbackGet() != nullptr) {
+		(VfsEncryption::openCallbackGet())(*this);
 	} else {
 		throw EVFS_EXCEPTION << "Encrypted VFS: must provide a callback to setup key material";
 	}
@@ -214,7 +214,7 @@ VfsEncryption::VfsEncryption(bctbx_vfs_file_t *stdFp, const std::string &filenam
 			} else { // header integrity is Ok
 				if (m_integrityFullCheck == true) { // file size in header is wrong, check each chunk and update header
 					for (auto chunkIndex = getChunkIndex(m_fileSize); chunkIndex >0; chunkIndex--) { // start from last chunk
-						std::vector<uint8_t> rawData(r_chunkSize());
+						std::vector<uint8_t> rawData(rawChunkSizeGet());
 						ssize_t readSize = bctbx_file_read(pFileStd, rawData.data(), rawData.size(), getChunkOffset(chunkIndex));
 						if (readSize >= 0) {
 							rawData.resize(readSize);
@@ -251,7 +251,7 @@ VfsEncryption::~VfsEncryption() {
 /**
  * Returns the size of chunks in which the file is divided for encryption
  */
-size_t VfsEncryption::chunkSize_get() const noexcept {
+size_t VfsEncryption::chunkSizeGet() const noexcept {
 	return (m_chunkSize==0?defaultChunkSize:m_chunkSize); // m_chunkSize to 0 means it is not initialised yet, so return the default value in this case
 };
 
@@ -261,7 +261,7 @@ size_t VfsEncryption::chunkSize_get() const noexcept {
  * If the size is set on an existing file and differs from previous setting, an exception is generated
  * Default chunk size at file creation is 4kB
  */
-void VfsEncryption::chunkSize_set(const size_t size) {
+void VfsEncryption::chunkSizeSet(const size_t size) {
 	if (size < 16 || size > 1048560) {
 		throw EVFS_EXCEPTION<<"Encrypted VFS cannot set a chunk size "<<size<<" bytes. Acceptable range is [16, 1048560]";
 	}
@@ -283,21 +283,21 @@ void VfsEncryption::chunkSize_set(const size_t size) {
 /**
  * Set a callback called during file opening to get the encryption material and suite
  */
-void VfsEncryption::openCallback_set(EncryptedVfsOpenCb cb) noexcept {
+void VfsEncryption::openCallbackSet(EncryptedVfsOpenCb cb) noexcept {
 	VfsEncryption::s_openCallback = cb;
 }
 
 /**
  * Get the callback called during file opening to get the encryption material and suite
  */
-EncryptedVfsOpenCb VfsEncryption::openCallback_get() noexcept {
+EncryptedVfsOpenCb VfsEncryption::openCallbackGet() noexcept {
 	return VfsEncryption::s_openCallback;
 }
 
 /**
  * Copy the secret material
  */
-void VfsEncryption::secretMaterial_set(const std::vector<uint8_t> &secretMaterial) {
+void VfsEncryption::secretMaterialSet(const std::vector<uint8_t> &secretMaterial) {
 	if (m_module == nullptr) {
 		if (m_fileSize > 0 && m_accessMode == O_RDONLY) { // we are opening a read only plain file, ignore the secret material
 			BCTBX_SLOGW<<" Encrypted VFS access a plain file "<<m_filename<<"as read only. Secret material setting ignored";
@@ -312,12 +312,12 @@ void VfsEncryption::secretMaterial_set(const std::vector<uint8_t> &secretMateria
 /**
  * Set an encryption suite
  */
-void VfsEncryption::encryptionSuite_set(const EncryptionSuite suite) {
+void VfsEncryption::encryptionSuiteSet(const EncryptionSuite suite) {
 	if (m_module == nullptr && m_fileSize == 0) { // file creation
 		m_module = make_VfsEncryptionModule(suite);
-	} else { // file already exists (if m_filesize!=0 and m_module is nullptr, it is an existing plain file, the encryptionSuite_get would return plain)
-		if (encryptionSuite_get() != suite) {
-			if (encryptionSuite_get() == bctoolbox::EncryptionSuite::plain) { // we want to migrate a plain file to an encrypted one
+	} else { // file already exists (if m_filesize!=0 and m_module is nullptr, it is an existing plain file, the encryptionSuiteGet would return plain)
+		if (encryptionSuiteGet() != suite) {
+			if (encryptionSuiteGet() == bctoolbox::EncryptionSuite::plain) { // we want to migrate a plain file to an encrypted one
 				if (m_accessMode != O_RDONLY) { // Do not migrate read-only file
 					m_encryptExistingPlainFile = true;
 					m_module = make_VfsEncryptionModule(suite);
@@ -325,7 +325,7 @@ void VfsEncryption::encryptionSuite_set(const EncryptionSuite suite) {
 					BCTBX_SLOGW<<" Encrypted VFS access a plain file "<<m_filename<<"as read only. Kept it plain";
 				}
 			} else {
-				throw EVFS_EXCEPTION << "Encryption suite for file "<<m_filename<<" is already set to "<<encryptionSuiteString(encryptionSuite_get())<<" but we're trying to set it to "<<encryptionSuiteString(suite);
+				throw EVFS_EXCEPTION << "Encryption suite for file "<<m_filename<<" is already set to "<<encryptionSuiteString(encryptionSuiteGet())<<" but we're trying to set it to "<<encryptionSuiteString(suite);
 			}
 		}
 	}
@@ -333,7 +333,7 @@ void VfsEncryption::encryptionSuite_set(const EncryptionSuite suite) {
 /**
  * Get the encryption suite
  */
-EncryptionSuite VfsEncryption::encryptionSuite_get() const noexcept {
+EncryptionSuite VfsEncryption::encryptionSuiteGet() const noexcept {
 	if (m_module != nullptr) {
 		return m_module->getEncryptionSuite();
 	}
@@ -345,7 +345,7 @@ EncryptionSuite VfsEncryption::encryptionSuite_get() const noexcept {
 }
 
 /* return the size of the raw file */
-uint64_t VfsEncryption::r_fileSize() const noexcept {
+uint64_t VfsEncryption::rawFileSizeGet() const noexcept {
 	// first compute the number of chunks in our file
 	uint64_t n = 0;
 	// if we have an incomplete chunk
@@ -363,7 +363,7 @@ uint64_t VfsEncryption::r_fileSize() const noexcept {
  * Get raw header: encryption module might check integrity on header
  * This function returns the raw header, without the encryption module part
  */
-const std::vector<uint8_t>& VfsEncryption::r_getHeader() const noexcept {
+const std::vector<uint8_t>& VfsEncryption::rawHeaderGet() const noexcept {
 	return r_header;
 }
 
@@ -381,7 +381,7 @@ const std::vector<uint8_t>& VfsEncryption::r_getHeader() const noexcept {
  *    - [Optionnal Encryption module data - size is given by the encryption suite selected]
  *
  *
- * @throw a EVfsException is something goes wrong
+ * @throw a EvfsException is something goes wrong
  */
 void VfsEncryption::parseHeader() {
 	// check file exists
@@ -452,16 +452,16 @@ void VfsEncryption::parseHeader() {
 
 	// check file size match what we have :
 	// If they do not match, check all chunks integrity and update the header. Recovery from failure between write and header update at last write/truncate
-	if (r_fileSize() != fileSize) {
+	if (rawFileSizeGet() != fileSize) {
 		BCTBX_SLOGW<<"Encrypted FS: meta data file size "<<m_fileSize<<" and actual raw filesize "<<fileSize<<" do not match this value. Whole file integrity check";
 		m_integrityFullCheck = true;
 		// update file size to what it is supposed to be
 		m_fileSize = fileSize - (baseFileHeaderSize + m_headerExtensionSize + m_module->getModuleFileHeaderSize()); // remove file header size
 		uint64_t chunkNb = 0;
-		if (m_fileSize % r_chunkSize() > 0) {
+		if (m_fileSize % rawChunkSizeGet() > 0) {
 			chunkNb = 1;
 		}
-		chunkNb += m_fileSize / r_chunkSize();
+		chunkNb += m_fileSize / rawChunkSizeGet();
 		m_fileSize -= chunkNb*m_module->getChunkHeaderSize();
 		BCTBX_SLOGW<<"Encrypted FS: Actual file size seems to be "<<m_fileSize;
 	}
@@ -517,7 +517,7 @@ void VfsEncryption::writeHeader(bctbx_vfs_file_t *fp) {
 	}
 }
 
-int64_t VfsEncryption::fileSize_get() const noexcept {
+int64_t VfsEncryption::fileSizeGet() const noexcept {
 	// plain file?
 	if (m_module == nullptr) {
 		return bctbx_file_size(pFileStd);
@@ -526,7 +526,7 @@ int64_t VfsEncryption::fileSize_get() const noexcept {
 }
 
 /** return the size of a chunk including its encryption header */
-size_t VfsEncryption::r_chunkSize() const noexcept {
+size_t VfsEncryption::rawChunkSizeGet() const noexcept {
 	return m_chunkSize + m_module->getChunkHeaderSize();
 };
 
@@ -541,7 +541,7 @@ uint32_t VfsEncryption::getChunkIndex(uint64_t offset) const noexcept {
  * @returns the offset, in the actual file, of the begining of the given chunk
  */
 size_t VfsEncryption::getChunkOffset(uint32_t index) const noexcept {
-	return r_chunkSize()*index // all previous chunks
+	return rawChunkSizeGet()*index // all previous chunks
 		+ baseFileHeaderSize + m_headerExtensionSize + m_module->getModuleFileHeaderSize();
 }
 
@@ -560,7 +560,7 @@ std::vector<uint8_t> VfsEncryption::read(size_t offset, size_t count) const {
 	size_t offsetInFirstChunk = offset%m_chunkSize;
 
 	// allocate a vector large enough to store all the data to read : number of chunks * size of raw chunk(payload+header)
-	std::vector<uint8_t> rawData((lastChunk-firstChunk+1)*r_chunkSize());
+	std::vector<uint8_t> rawData((lastChunk-firstChunk+1)*rawChunkSizeGet());
 
 	/* read all chunks from actual file */
 	ssize_t readSize = bctbx_file_read(pFileStd, rawData.data(), rawData.size(), getChunkOffset(firstChunk));
@@ -577,10 +577,10 @@ std::vector<uint8_t> VfsEncryption::read(size_t offset, size_t count) const {
 
 	// decrypt everything we have chunk by chunk, use firstChunk as chunk index
 	while (rawData.size() > m_module->getChunkHeaderSize()) {
-		std::vector<uint8_t> plainChunk = m_module->decryptChunk(firstChunk++, std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin()+std::min(r_chunkSize(), rawData.size())));
+		std::vector<uint8_t> plainChunk = m_module->decryptChunk(firstChunk++, std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin()+std::min(rawChunkSizeGet(), rawData.size())));
 		plainData.insert(plainData.end(), plainChunk.cbegin(), plainChunk.cend());
 		// remove the decrypted chunk
-		rawData.erase(rawData.begin(), rawData.begin()+std::min(r_chunkSize(), rawData.size()));
+		rawData.erase(rawData.begin(), rawData.begin()+std::min(rawChunkSizeGet(), rawData.size()));
 	}
 
 	// return only the requested part
@@ -613,7 +613,7 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 
 	uint32_t firstChunk = getChunkIndex(offset);
 	uint32_t lastChunk = getChunkIndex(offset+plain.size()-1); // -1 as we write data from indexes offset to offset + data size - 1
-	size_t rawDataSize = (lastChunk-firstChunk+1)*r_chunkSize(); // maximum size used, last chunk might be incomplete
+	size_t rawDataSize = (lastChunk-firstChunk+1)*rawChunkSizeGet(); // maximum size used, last chunk might be incomplete
 	std::vector<uint8_t> rawData{}; // Store the existing encrypted chunks with header that are overwritten by this operation
 
 	// Are we overwritting some chunks?
@@ -628,7 +628,7 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	// prepend the plain buffer if needed
 	if (readOffset<offset) { // we need to get the plain data from readOffset to offset
 		// decrypt the first chunk
-		auto plainChunk = m_module->decryptChunk(firstChunk, std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin() + std::min(r_chunkSize(), rawData.size())));
+		auto plainChunk = m_module->decryptChunk(firstChunk, std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin() + std::min(rawChunkSizeGet(), rawData.size())));
 		plain.insert(plain.begin(), plainChunk.cbegin(), plainChunk.cbegin()+offset-readOffset); // prepend the begining to our plain buffer
 	}
 
@@ -644,9 +644,9 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	uint32_t currentChunkIndex = firstChunk;
 	while (rawData.size()>0) {
 		// get a chunk to re-encrypt
-		std::vector<uint8_t> rawChunk(rawData.cbegin(), rawData.cbegin()+std::min(r_chunkSize(), rawData.size()));
+		std::vector<uint8_t> rawChunk(rawData.cbegin(), rawData.cbegin()+std::min(rawChunkSizeGet(), rawData.size()));
 		// delete it
-		rawData.erase(rawData.begin(), rawData.begin()+std::min(r_chunkSize(), rawData.size()));
+		rawData.erase(rawData.begin(), rawData.begin()+std::min(rawChunkSizeGet(), rawData.size()));
 		// re-encrypt
 		m_module->encryptChunk(currentChunkIndex++, rawChunk, std::vector<uint8_t>(plain.cbegin(), plain.cbegin()+std::min(m_chunkSize, plain.size())));
 		// delete consumed plain
@@ -693,13 +693,13 @@ void VfsEncryption::truncate(const uint64_t newSize) {
 		// If the last chunk is modified, we must re-encrypt it
 		if (newSize%m_chunkSize != 0) {
 			// allocate a vector large enough to store a complete chunk
-			std::vector<uint8_t> rawData(r_chunkSize());
+			std::vector<uint8_t> rawData(rawChunkSizeGet());
 
 			// read the future last chunk from actual file
 			ssize_t readSize = bctbx_file_read(pFileStd, rawData.data(), rawData.size(), getChunkOffset(getChunkIndex(newSize)));
 			rawData.resize(readSize);
 			// decrypt it
-			auto plainLastChunk = m_module->decryptChunk(getChunkIndex(newSize), std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin()+std::min(r_chunkSize(), rawData.size())));
+			auto plainLastChunk = m_module->decryptChunk(getChunkIndex(newSize), std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin()+std::min(rawChunkSizeGet(), rawData.size())));
 			// truncate the part we don't need anymore
 			plainLastChunk.resize(newSize%m_chunkSize);
 			// re-encrypt it
@@ -713,13 +713,13 @@ void VfsEncryption::truncate(const uint64_t newSize) {
 		// update file size in meta data
 		m_fileSize = newSize;
 		// truncate the actual file
-		bctbx_file_truncate(pFileStd, r_fileSize());
+		bctbx_file_truncate(pFileStd, rawFileSizeGet());
 		// update the header
 		writeHeader();
 	}
 }
 
-std::string VfsEncryption::filename_get() const noexcept {
+std::string VfsEncryption::filenameGet() const noexcept {
 	return m_filename;
 }
 
@@ -789,8 +789,8 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t of
 
 			memcpy (buf, readBuffer.data(), readBuffer.size());
 			return readBuffer.size();
-		} catch (EVfsException const &e) { // cannot let raise an exception to a C context
-			BCTBX_SLOGE<<"Encrypted VFS: error while reading "<<count<<" bytes from file "<<ctx->filename_get()<<" at offset "<<offset<<". "<<e;
+		} catch (EvfsException const &e) { // cannot let raise an exception to a C context
+			BCTBX_SLOGE<<"Encrypted VFS: error while reading "<<count<<" bytes from file "<<ctx->filenameGet()<<" at offset "<<offset<<". "<<e;
 		}
 	}
 	return BCTBX_VFS_ERROR;
@@ -825,7 +825,7 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
-		return ctx->fileSize_get();
+		return ctx->fileSizeGet();
 	}
 	return ret;
 }
@@ -858,7 +858,7 @@ static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
 static bool_t bcIsEncrypted(bctbx_vfs_file_t *pFile) {
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
-		return (ctx->encryptionSuite_get() == bctoolbox::EncryptionSuite::plain)?FALSE:TRUE;
+		return (ctx->encryptionSuiteGet() == bctoolbox::EncryptionSuite::plain)?FALSE:TRUE;
 	}
 	return FALSE;
 }
@@ -903,7 +903,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 		pFile->pUserData = static_cast<void *>(ctx);
 		return BCTBX_VFS_OK;
 
-	} catch (EVfsException const &e) {// caller is most likely a C file(vfs.c), so swallow all exceptions
+	} catch (EvfsException const &e) {// caller is most likely a C file(vfs.c), so swallow all exceptions
 		if (stdFp != nullptr) {
 			bctbx_file_close(stdFp);
 		}

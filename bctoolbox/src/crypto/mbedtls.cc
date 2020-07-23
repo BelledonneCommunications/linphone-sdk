@@ -109,16 +109,16 @@ uint32_t RNG::randomize() {
  * class randomize functions
  * These use the class RNG context
  */
-void RNG::c_randomize(uint8_t *buffer, size_t size) {
+void RNG::cRandomize(uint8_t *buffer, size_t size) {
 	int ret = mbedtls_ctr_drbg_random(&(pImplClass->ctr_drbg), buffer, size);
 	if ( ret != 0) {
 		throw BCTBX_EXCEPTION << ((ret == MBEDTLS_ERR_CTR_DRBG_REQUEST_TOO_BIG)?"RNG failure: Request too big":"RNG failure: entropy source failure");
 	}
 }
 
-uint32_t RNG::c_randomize() {
+uint32_t RNG::cRandomize() {
 	uint8_t buffer[4];
-	c_randomize(buffer, 4);
+	cRandomize(buffer, 4);
 	return (buffer[0]<<24) | (buffer[1]<<16) | (buffer[2]<<8) | buffer[3];
 }
 
@@ -208,27 +208,27 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
 /*****************************************************************************/
 /* AEAD template must be specialized */
 template <typename AEADAlgo>
-std::vector<uint8_t> AEAD_encrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
 		std::vector<uint8_t> &tag) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
-	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_encrypt function template");
+	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEADEncrypt function template");
 	return std::vector<uint8_t>(0);
 }
 
 template <typename AEADAlgo>
-bool AEAD_decrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+bool AEADDecrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
 		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type */
-	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEAD_encrypt function template");
+	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEADEncrypt function template");
 	return false;
 }
 
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
+template <> std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
 		std::vector<uint8_t> &tag) {
 	// check key size (could have use array but Windows won't compile templates with constexpr functions result as parameter)
 	if (key.size() != AES256GCM128::keySize()) {
-		throw BCTBX_EXCEPTION<<"AEAD_encrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
+		throw BCTBX_EXCEPTION<<"AEADEncrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
 	}
 	tag.resize(AES256GCM128::tagSize());
 
@@ -251,14 +251,14 @@ template <> std::vector<uint8_t> AEAD_encrypt<AES256GCM128>(const std::vector<ui
 	return cipher;
 }
 
-template <> bool AEAD_decrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
+template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
 		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain) {
 	// check key and tag size (could have use array but Windows won't compile templates with constexpr functions result as parameter)
 	if (key.size() != AES256GCM128::keySize()) {
-		throw BCTBX_EXCEPTION<<"AEAD_decrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
+		throw BCTBX_EXCEPTION<<"AEADDecrypt: Bad input parameter, key is expected to be "<<AES256GCM128::keySize()<<" bytes but "<<key.size()<<" provided";
 	}
 	if (tag.size() != AES256GCM128::tagSize()) {
-		throw BCTBX_EXCEPTION<<"AEAD_decrypt: Bad input parameter, tag is expected to be "<<AES256GCM128::tagSize()<<" bytes but "<<tag.size()<<" provided";
+		throw BCTBX_EXCEPTION<<"AEADDecrypt: Bad input parameter, tag is expected to be "<<AES256GCM128::tagSize()<<" bytes but "<<tag.size()<<" provided";
 	}
 
 	mbedtls_gcm_context gcmContext;
