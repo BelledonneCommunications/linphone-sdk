@@ -80,28 +80,28 @@ uint32_t VfsEncryptionModuleDummy::getChunkIndex(const std::vector<uint8_t> &chu
  * Get global IV. Part of IV common to all chunks
  */
 std::vector<uint8_t> VfsEncryptionModuleDummy::globalIV() const {
-	return m_fileHeader;
+	return mFileHeader;
 }
 
 VfsEncryptionModuleDummy::VfsEncryptionModuleDummy() {
 	// this is a constant for the dummy suite to help debug, real module would do otherwise
 	// the fileHeader also holds a integrity part computed on the whole fileHeader in the get function
-	m_fileHeader = std::vector<uint8_t>{0xaa, 0x55, 0xbb, 0x44, 0xcc, 0x33, 0xdd, 0x22};
-	m_fileHeaderIntegrity.resize(8);
-	m_secret = std::vector<uint8_t>{};
+	mFileHeader = std::vector<uint8_t>{0xaa, 0x55, 0xbb, 0x44, 0xcc, 0x33, 0xdd, 0x22};
+	mFileHeaderIntegrity.resize(8);
+	mSecret = std::vector<uint8_t>{};
 }
 
 VfsEncryptionModuleDummy::VfsEncryptionModuleDummy(const std::vector<uint8_t> &fileHeader) {
-	m_secret = std::vector<uint8_t>{};
-	m_fileHeader.resize(8);
-	m_fileHeaderIntegrity.resize(8);
+	mSecret = std::vector<uint8_t>{};
+	mFileHeader.resize(8);
+	mFileHeaderIntegrity.resize(8);
 
 	if (fileHeader.size() != fileHeaderSize) {
 		throw EVFS_EXCEPTION<<"The dummy encryption module expect a fileHeader of size "<<fileHeaderSize<<" bytes but "<<fileHeader.size()<<" are provided";
 	}
 	// File header Data is 8 bytes of integrity data, 8 bytes of actual header (a global IV)
-	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+8, m_fileHeaderIntegrity.begin());
-	std::copy(fileHeader.cbegin()+8, fileHeader.cend(), m_fileHeader.begin());
+	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+8, mFileHeaderIntegrity.begin());
+	std::copy(fileHeader.cbegin()+8, fileHeader.cend(), mFileHeader.begin());
 }
 
 const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const VfsEncryption &fileContext) const {
@@ -112,15 +112,15 @@ const std::vector<uint8_t> VfsEncryptionModuleDummy::getModuleFileHeader(const V
 	header.insert(header.end(), moduleAuthentifiedPart.cbegin(), moduleAuthentifiedPart.cend());
 	std::vector<uint8_t> tag(8);
 	// Compute HMAC keyed with global key
-	bctbx_hmacSha256(m_secret.data(), secretMaterialSize,
+	bctbx_hmacSha256(mSecret.data(), secretMaterialSize,
 		header.data(),
 		header.size(),
 		8, // get 8 bytes out of the HMAC
 		tag.data());
 
 	// Append the actual file header value to the tag
-	tag.insert(tag.end(), m_fileHeader.cbegin(), m_fileHeader.cend());
-	BCTBX_SLOGD<<"get Module file header returns "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
+	tag.insert(tag.end(), mFileHeader.cbegin(), mFileHeader.cend());
+	BCTBX_SLOGD<<"get Module file header returns "<<getHex(tag)<<std::endl<<" Key "<<getHex(mSecret)<<std::endl<<" Header "<<getHex(header);
 	return tag;
 }
 
@@ -128,7 +128,7 @@ void VfsEncryptionModuleDummy::setModuleSecretMaterial(const std::vector<uint8_t
 	if (secret.size() != secretMaterialSize) {
 		throw EVFS_EXCEPTION<<"The dummy encryption module expect a secret material of size "<<secretMaterialSize<<" bytes but "<<secret.size()<<" are provided";
 	}
-	m_secret = secret;
+	mSecret = secret;
 }
 
 std::vector<uint8_t> VfsEncryptionModuleDummy::decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) {
@@ -148,7 +148,7 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::decryptChunk(const uint32_t chunk
 	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(globalIV()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin()+8, rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
-	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
+	std::transform(XORkey.begin(), XORkey.end(), mSecret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	BCTBX_SLOGD<<"decryptChunk :"<<std::endl<<"   chunk is "<<getHex(plainData)<<std::endl<<"   key is "<<getHex(XORkey);
 	// Xor it all, 16 bytes at a time
@@ -190,7 +190,7 @@ void VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunkIndex, std::vect
 	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(globalIV()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin()+8, rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
-	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
+	std::transform(XORkey.begin(), XORkey.end(), mSecret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	// Xor it all, 16 bytes at a time
 	for (size_t i=0; i<plainData.size(); i+=16) {
@@ -220,7 +220,7 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunk
 	// The 16 bytes result is then xor with the secret material
 	std::vector<uint8_t> XORkey(globalIV()); // Xor key is file header material
 	XORkey.insert(XORkey.end(), rawChunk.cbegin()+8, rawChunk.cbegin()+chunkHeaderSize); // and chunkHeaderMaterial
-	std::transform(XORkey.begin(), XORkey.end(), m_secret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
+	std::transform(XORkey.begin(), XORkey.end(), mSecret.cbegin(), XORkey.begin(), std::bit_xor<uint8_t>());
 
 	// Xor it all, 16 bytes at a time
 	for (size_t i=0; i<plainData.size(); i+=16) {
@@ -237,9 +237,9 @@ std::vector<uint8_t> VfsEncryptionModuleDummy::encryptChunk(const uint32_t chunk
 }
 
 /**
- * When this function is called, m_fileHeader holds the integrity tag in its 8 first bytes
+ * When this function is called, mFileHeader holds the integrity tag in its 8 first bytes
  * Compute the HMAC on the whole rawfileHeader + the module header
- * Check it match what we have in the m_fileHeader
+ * Check it match what we have in the mFileHeader
  */
 bool VfsEncryptionModuleDummy::checkIntegrity(const VfsEncryption &fileContext) {
 	// Integrity is performed on the header only - each chunk take care of its own
@@ -249,19 +249,19 @@ bool VfsEncryptionModuleDummy::checkIntegrity(const VfsEncryption &fileContext) 
 	header.insert(header.end(), moduleAuthentifiedPart.cbegin(), moduleAuthentifiedPart.cend());
 	std::vector<uint8_t> tag(8);
 	// Compute HMAC keyed with global key
-	bctbx_hmacSha256(m_secret.data(), secretMaterialSize,
+	bctbx_hmacSha256(mSecret.data(), secretMaterialSize,
 		header.data(),
 		header.size(),
 		8, // get 8 bytes out of the HMAC
 		tag.data());
-	BCTBX_SLOGD<<"check integrity compute  "<<getHex(tag)<<std::endl<<" Key "<<getHex(m_secret)<<std::endl<<" Header "<<getHex(header);
+	BCTBX_SLOGD<<"check integrity compute  "<<getHex(tag)<<std::endl<<" Key "<<getHex(mSecret)<<std::endl<<" Header "<<getHex(header);
 
-	return (std::equal(tag.cbegin(), tag.cend(), m_fileHeaderIntegrity.cbegin()));
+	return (std::equal(tag.cbegin(), tag.cend(), mFileHeaderIntegrity.cbegin()));
 }
 
 std::vector<uint8_t> VfsEncryptionModuleDummy::chunkIntegrityTag(const std::vector<uint8_t> &chunk) const {
 	std::vector<uint8_t> tag(8);
-	bctbx_hmacSha256(m_secret.data(), secretMaterialSize,
+	bctbx_hmacSha256(mSecret.data(), secretMaterialSize,
 		chunk.data()+8, // compute integrity on the whole block (header included) but skip the integrity tag (8 first bytes)
 		chunk.size()-8,
 		8, // get 8 bytes out of the HMAC

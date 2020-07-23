@@ -210,7 +210,7 @@ BCTBX_PUBLIC off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int wh
  * @param  pFile  File handle pointer.
  * @return true if the file is encrypted
  */
-BCTBX_PUBLIC bool_t bctbx_file_isEncrypted(bctbx_vfs_file_t *pFile);
+BCTBX_PUBLIC bool_t bctbx_file_is_encrypted(bctbx_vfs_file_t *pFile);
 
 /**
  * Set default VFS pointer pDefault to my_vfs.

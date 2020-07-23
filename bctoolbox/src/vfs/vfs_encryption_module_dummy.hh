@@ -28,9 +28,9 @@ class VfsEncryptionModuleDummy : public VfsEncryptionModule {
 		/**
 		 * Store the file header and secret
 		 */
-		std::vector<uint8_t> m_fileHeader;
-		std::vector<uint8_t> m_fileHeaderIntegrity;
-		std::vector<uint8_t> m_secret;
+		std::vector<uint8_t> mFileHeader;
+		std::vector<uint8_t> mFileHeaderIntegrity;
+		std::vector<uint8_t> mSecret;
 
 		/**
 		 * Compute the integrity tag in the given chunk

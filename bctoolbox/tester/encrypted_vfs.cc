@@ -350,7 +350,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	memset(readBuffer, 0, sizeof(readBuffer));
 
 	// file shall not be encrypted
-	BC_ASSERT_FALSE(bctbx_file_isEncrypted(fp));
+	BC_ASSERT_FALSE(bctbx_file_is_encrypted(fp));
 
 	// close file
 	bctbx_file_close(fp);
@@ -362,7 +362,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	BC_ASSERT_EQUAL(bctbx_file_read(fp, readBuffer, 42, 0), 42, ssize_t, "%ld");
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 	// now it shall still be plain
-	BC_ASSERT_FALSE(bctbx_file_isEncrypted(fp));
+	BC_ASSERT_FALSE(bctbx_file_is_encrypted(fp));
 	bctbx_file_close(fp);
 
 
@@ -375,7 +375,7 @@ void migration_test(bctoolbox::EncryptionSuite suite) {
 	BC_ASSERT_TRUE(memcmp(readBuffer, message, 42)==0);
 
 	// now it shall be encrypted
-	BC_ASSERT_TRUE(bctbx_file_isEncrypted(fp));
+	BC_ASSERT_TRUE(bctbx_file_is_encrypted(fp));
 	bctbx_file_close(fp);
 
 	// cleaning

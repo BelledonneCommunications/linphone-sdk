@@ -99,22 +99,22 @@ class VfsEncryption {
 
 	/* Object properties and methods */
 	private:
-		uint16_t m_versionNumber; /**< version number of the encryption vfs */
-		size_t m_chunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
+		uint16_t mVersionNumber; /**< version number of the encryption vfs */
+		size_t mChunkSize; /**< size of the file chunks payload in bytes : default is 4kB */
 		size_t rawChunkSizeGet() const noexcept; /** return the size of a chunk including its encryption header, as stored in the raw file */
 		std::shared_ptr<VfsEncryptionModule> m_module; /**< one of the available encryption module : if nullptr, assume we deal with regular plain file */
-		size_t m_headerExtensionSize; /**< header extension size */
-		const std::string m_filename; /**< the filename as given to the open function */
-		uint64_t m_fileSize; /**< size of the plaintext file */
+		size_t mHeaderExtensionSize; /**< header extension size */
+		const std::string mFilename; /**< the filename as given to the open function */
+		uint64_t mFileSize; /**< size of the plaintext file */
 
 		uint64_t rawFileSizeGet() const noexcept; /**< return the size of the raw file */
 		uint32_t getChunkIndex(uint64_t offset) const noexcept; /**< return the chunk index where to find the given offset */
 		size_t getChunkOffset(uint32_t index) const noexcept; /**< return the offset in the actual file of the begining of the chunk */
 		std::vector<uint8_t> r_header; /**< a cache of the header - without the encryption module data */
 		/** flags use to communicate during differents functions involved at file opening **/
-		bool m_encryptExistingPlainFile; /**< when opening a plain file, if the callback set an encryption suite and key material : migrate the file */
-		bool m_integrityFullCheck; /**< if the file size given in the header metadata is incorrect, full check the file integrity and revrite header */
-		int m_accessMode; /**< the flags used to open the file, filtered on the access mode */
+		bool mEncryptExistingPlainFile; /**< when opening a plain file, if the callback set an encryption suite and key material : migrate the file */
+		bool mIntegrityFullCheck; /**< if the file size given in the header metadata is incorrect, full check the file integrity and revrite header */
+		int mAccessMode; /**< the flags used to open the file, filtered on the access mode */
 
 		/**
 		 * Parse the header of an encrypted file, check everything seems correct

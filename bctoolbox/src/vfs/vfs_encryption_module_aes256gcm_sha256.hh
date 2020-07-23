@@ -44,18 +44,18 @@ class VfsEM_AES256GCM_SHA256 : public VfsEncryptionModule {
 		/**
 		 * The local RNG
 		 */
-		std::shared_ptr<bctoolbox::RNG> m_RNG; // list it first so it is available in the constructor's init list
+		std::shared_ptr<bctoolbox::RNG> mRNG; // list it first so it is available in the constructor's init list
 
 		/**
 		 * File header
 		 */
-		std::vector<uint8_t> m_fileSalt;
-		std::array<uint8_t, SHA256::ssize()> m_fileHeaderIntegrity;
+		std::vector<uint8_t> mFileSalt;
+		std::array<uint8_t, SHA256::ssize()> mFileHeaderIntegrity;
 
 		/** keys
 		 */
-		std::vector<uint8_t> s_masterKey; // used to derive all keys
-		std::vector<uint8_t> s_fileHeaderHMACKey; // used to feed HMAC integrity check on file header
+		std::vector<uint8_t> sMasterKey; // used to derive all keys
+		std::vector<uint8_t> sFileHeaderHMACKey; // used to feed HMAC integrity check on file header
 
 		/**
 		 * Derive the key from master key for the given chunkIndex:

@@ -49,40 +49,40 @@ static constexpr size_t masterKeySize=32;
 
 /** constructor called at file creation */
 VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256() :
-	m_RNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
-	m_fileSalt(m_RNG->randomize(fileSaltSize)) // generate a random file Salt
+	mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
+	mFileSalt(mRNG->randomize(fileSaltSize)) // generate a random file Salt
 {
 }
 
 /** constructor called when opening an existing file */
 VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256(const std::vector<uint8_t> &fileHeader) :
-	m_RNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
-	m_fileSalt(std::vector<uint8_t>(fileSaltSize))
+	mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
+	mFileSalt(std::vector<uint8_t>(fileSaltSize))
 {
 	if (fileHeader.size() != fileHeaderSize) {
 		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module expect a fileHeader of size "<<fileHeaderSize<<" bytes but "<<fileHeader.size()<<" are provided";
 	}
 	// File header Data is 32 bytes of integrity data, 16 bytes of global salt
-	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+fileAuthTagSize, m_fileHeaderIntegrity.begin());
-	std::copy(fileHeader.cbegin()+fileAuthTagSize, fileHeader.cend(), m_fileSalt.begin());
+	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+fileAuthTagSize, mFileHeaderIntegrity.begin());
+	std::copy(fileHeader.cbegin()+fileAuthTagSize, fileHeader.cend(), mFileSalt.begin());
 }
 
 /** destructor ensure proper cleaning of any key material **/
 VfsEM_AES256GCM_SHA256::~VfsEM_AES256GCM_SHA256() {
-	bctbx_clean(s_masterKey.data(), s_masterKey.size());
-	bctbx_clean(s_fileHeaderHMACKey.data(), s_fileHeaderHMACKey.size());
+	bctbx_clean(sMasterKey.data(), sMasterKey.size());
+	bctbx_clean(sFileHeaderHMACKey.data(), sFileHeaderHMACKey.size());
 }
 
 const std::vector<uint8_t> VfsEM_AES256GCM_SHA256::getModuleFileHeader(const VfsEncryption &fileContext) const {
-	if (s_fileHeaderHMACKey.empty()) {
+	if (sFileHeaderHMACKey.empty()) {
 		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
 	}
 	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
 	// so it is useless to authenticate it
-	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.rawHeaderGet());
+	auto tag = HMAC<SHA256>(sFileHeaderHMACKey, fileContext.rawHeaderGet());
 
 	// Append the actual file salt value to the tag
-	auto ret = m_fileSalt;
+	auto ret = mFileSalt;
 	ret.insert(ret.begin(), tag.cbegin(), tag.cend());
 	return ret;
 }
@@ -91,10 +91,10 @@ void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> 
 	if (secret.size() != masterKeySize) {
 		throw EVFS_EXCEPTION<<"The AES256GCM128 SHA256 encryption module expect a secret material of size "<<masterKeySize<<" bytes but "<<secret.size()<<" are provided";
 	}
-	s_masterKey = secret;
+	sMasterKey = secret;
 
 	// Now that we have a master key, we can derive the header authentication one
-	s_fileHeaderHMACKey = bctoolbox::HKDF<SHA256>(m_fileSalt, s_masterKey, "EVFS file Header", masterKeySize);
+	sFileHeaderHMACKey = bctoolbox::HKDF<SHA256>(mFileSalt, sMasterKey, "EVFS file Header", masterKeySize);
 }
 
 /**
@@ -106,16 +106,16 @@ void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> 
  * @return	the AES256-GCM128 key
  */
 std::vector<uint8_t> VfsEM_AES256GCM_SHA256::deriveChunkKey(uint32_t chunkIndex) {
-	std::vector<uint8_t> chunkSalt{m_fileSalt};
+	std::vector<uint8_t> chunkSalt{mFileSalt};
 	chunkSalt.push_back((chunkIndex>>24)&0xFF);
 	chunkSalt.push_back((chunkIndex>>16)&0xFF);
 	chunkSalt.push_back((chunkIndex>>8)&0xFF);
 	chunkSalt.push_back(chunkIndex&0xFF);
-	return bctoolbox::HKDF<SHA256>(chunkSalt, s_masterKey, "EVFS chunk", AES256GCM128::keySize());
+	return bctoolbox::HKDF<SHA256>(chunkSalt, sMasterKey, "EVFS chunk", AES256GCM128::keySize());
 }
 
 std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) {
-	if (s_masterKey.empty()) {
+	if (sMasterKey.empty()) {
 		throw EVFS_EXCEPTION<<"No encryption Master key set, cannot decrypt";
 	}
 
@@ -151,11 +151,11 @@ void VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex, std::vector
 }
 
 std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) {
-	if (s_masterKey.empty()) {
+	if (sMasterKey.empty()) {
 		throw EVFS_EXCEPTION<<"No encryption Master key set, cannot encrypt";
 	}
 	// generate a random IV
-	auto IV = m_RNG->randomize(chunkIVSize);
+	auto IV = mRNG->randomize(chunkIVSize);
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
 	std::vector<uint8_t> key{deriveChunkKey(chunkIndex)};
@@ -178,19 +178,19 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 
 /**
  * When this function is called, m_fileHeader holds the integrity tag read from file
- * and s_fileHeaderHMACKey holds the derived key for header authentication
+ * and sFileHeaderHMACKey holds the derived key for header authentication
  * Compute the HMAC on the whole rawfileHeader + the module header
  * Check it match what we have in the m_fileHeader
  */
 bool VfsEM_AES256GCM_SHA256::checkIntegrity(const VfsEncryption &fileContext) {
-	if (s_fileHeaderHMACKey.empty()) {
+	if (sFileHeaderHMACKey.empty()) {
 		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
 	}
 	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
 	// so it is useless to authenticate it
-	auto tag = HMAC<SHA256>(s_fileHeaderHMACKey, fileContext.rawHeaderGet());
+	auto tag = HMAC<SHA256>(sFileHeaderHMACKey, fileContext.rawHeaderGet());
 
-	return (std::equal(tag.cbegin(), tag.cend(), m_fileHeaderIntegrity.cbegin()));
+	return (std::equal(tag.cbegin(), tag.cend(), mFileHeaderIntegrity.cbegin()));
 }
 /**
  * This function exists as static and non static

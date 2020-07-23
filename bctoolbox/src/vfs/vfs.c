@@ -287,7 +287,7 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
 	return BCTBX_VFS_ERROR;
 }
 
-bool_t bctbx_file_isEncrypted(bctbx_vfs_file_t *pFile) {
+bool_t bctbx_file_is_encrypted(bctbx_vfs_file_t *pFile) {
 	if (pFile && pFile->pMethods && pFile->pMethods->pFuncIsEncrypted){
 		return pFile->pMethods->pFuncIsEncrypted(pFile);
 	}
