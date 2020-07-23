@@ -108,30 +108,6 @@ int32_t bctbx_base64_decode(unsigned char *output, size_t *output_length, const 
 	return ret;
 }
 
-/*** Random Number Generation ***/
-struct bctbx_rng_context_struct {
-	mbedtls_entropy_context entropy;
-	mbedtls_ctr_drbg_context ctr_drbg;
-};
-
-bctbx_rng_context_t *bctbx_rng_context_new(void) {
-	bctbx_rng_context_t *ctx = bctbx_malloc0(sizeof(bctbx_rng_context_t));
-	mbedtls_entropy_init(&(ctx->entropy));
-	mbedtls_ctr_drbg_init(&(ctx->ctr_drbg));
-	mbedtls_ctr_drbg_seed(&(ctx->ctr_drbg), mbedtls_entropy_func, &(ctx->entropy), NULL, 0);
-	return ctx;
-}
-
-int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char*output, size_t output_length) {
-	return mbedtls_ctr_drbg_random(&(context->ctr_drbg), output, output_length);
-}
-
-void bctbx_rng_context_free(bctbx_rng_context_t *context) {
-	mbedtls_ctr_drbg_free(&(context->ctr_drbg));
-	mbedtls_entropy_free(&(context->entropy));
-	bctbx_free(context);
-}
-
 /*** signing key ***/
 bctbx_signing_key_t *bctbx_signing_key_new(void) {
 	mbedtls_pk_context *key = bctbx_malloc0(sizeof(mbedtls_pk_context));

@@ -32,6 +32,7 @@
 
 
 #include "bctoolbox/crypto.hh"
+#include "bctoolbox/crypto.h"
 #include "bctoolbox/exception.hh"
 
 #include <array>
@@ -285,3 +286,24 @@ template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, cons
 
 
 } // namespace bctoolbox
+
+/*** Random Number Generation: C API ***/
+struct bctbx_rng_context_struct {
+	std::unique_ptr<bctoolbox::RNG> m_rng; // encapsulate the RNG in a unique_ptr
+};
+
+bctbx_rng_context_t *bctbx_rng_context_new(void) {
+	bctbx_rng_context_t *context = new bctbx_rng_context_struct();
+	context->m_rng = std::unique_ptr<bctoolbox::RNG>(new bctoolbox::RNG());
+	return context;
+}
+
+int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char*output, size_t output_length) {
+	context->m_rng->randomize(output, output_length);
+	return 0; // always return 0, in case of problem an exception is raised by randomize
+}
+
+void bctbx_rng_context_free(bctbx_rng_context_t *context) {
+	context->m_rng=nullptr; // destroy the RNG
+	delete(context);
+}
