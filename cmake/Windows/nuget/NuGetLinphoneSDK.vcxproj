@@ -55,13 +55,13 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="NuGetLinphoneSDK\content\share\belr\grammars\cpim_grammar">
+    <None Include="NuGetLinphoneSDK\content\Assets\belr\grammars\cpim_grammar">
       <DeploymentContent>true</DeploymentContent>
     </None>
-    <None Include="NuGetLinphoneSDK\content\share\belr\grammars\vcard_grammar">
+    <None Include="NuGetLinphoneSDK\content\Assets\belr\grammars\vcard_grammar">
       <DeploymentContent>true</DeploymentContent>
     </None>
-	<None Include="NuGetLinphoneSDK\content\share\belr\grammars\identity_grammar">
+	<None Include="NuGetLinphoneSDK\content\Assets\belr\grammars\identity_grammar">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
