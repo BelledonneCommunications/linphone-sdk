@@ -133,10 +133,11 @@ namespace lime {
 /**
  * @brief Random number generator interface
  *
- * This abstract class is used to hold a RNG object which then is passed to internal crypto primitives
- * who may need it (and dynamically cast to their need which it must fit)
- * The only "external" use of RNG is to generate a random seed and some 32 bits id, provide explicit
- * functions for that.
+ * This abstract class is used to hold a RNG object
+ * It provides explicit functions to generate:
+ * - random key for Double Ratchet
+ * - random keys Id on 31 bits.
+ * It also expose a generic function to generate random in a buffer
  */
 class RNG {
 	public:
@@ -155,6 +156,13 @@ class RNG {
 		 * @return a random 32 bits unsigned integer
 		 */
 		virtual uint32_t randomize() = 0;
+
+		/**
+		 * fill a buffer with random numbers
+		 * @param[in,out]	buffer 	The buffer to be filled with random (callers responsability to allocate memory)
+		 * @param[in]		size	size in bytes of the random generated, buffer must be at least of this size
+		 **/
+		virtual void randomize(uint8_t *buffer, const size_t size) = 0;
 
 		virtual ~RNG() = default;
 }; //class RNG

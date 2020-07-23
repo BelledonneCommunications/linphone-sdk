@@ -19,6 +19,7 @@
 
 #include "lime_crypto_primitives.hpp"
 #include "bctoolbox/crypto.h"
+#include "bctoolbox/crypto.hh"
 #include "bctoolbox/exception.hh"
 
 namespace lime {
@@ -52,42 +53,22 @@ namespace lime {
  */
 class bctbx_RNG : public RNG {
 	private :
-		bctbx_rng_context_t *m_context; // the bctoolbox RNG context
-
-		/* only bctbx_EDDSA and bctbx_ECDH needs a direct access to the actual RNG context */
-		template <typename Curve> friend class bctbx_EDDSA;
-		template <typename Curve> friend class bctbx_ECDH;
-
-		/**
-		 * @brief access internal RNG context
-		 * Used internally by the bctoolbox wrapper, is not exposed to the lime_crypto_primitive API.
-		 *
-		 * @return a pointer to the RNG context
-		 */
-		bctbx_rng_context_t *get_context(void) {
-			return m_context;
-		}
+		bctoolbox::RNG m_context; // the bctoolbox RNG context
 
 	public:
 
 		void randomize(sBuffer<lime::settings::DRrandomSeedSize> &buffer) override {
-			bctbx_rng_get(m_context, buffer.data(), buffer.size());
+			m_context.randomize(buffer.data(), buffer.size());
 		};
 
 		uint32_t randomize() override {
-			std::array<uint8_t, 4> buffer;
-			bctbx_rng_get(m_context, buffer.data(), buffer.size());
+			uint32_t ret = m_context.randomize();
 			// we are on 31 bits: keep the uint32_t MSb set to 0 (see RNG interface definition)
-			return (static_cast<uint32_t>(buffer[0]&0x7F)<<24 | static_cast<uint32_t>(buffer[1])<<16 | static_cast<uint32_t>(buffer[2])<<8 | static_cast<uint32_t>(buffer[3]));
+			return (ret & 0x7FFFFFFF);
 		};
 
-		bctbx_RNG() {
-			m_context = bctbx_rng_context_new();
-		}
-	
-		~bctbx_RNG() {
-			bctbx_rng_context_free(m_context);
-			m_context = nullptr;
+		void randomize(uint8_t *buffer, const size_t size) override {
+			m_context.randomize(buffer, size);
 		}
 }; // class bctbx_RNG
 
@@ -162,8 +143,13 @@ class bctbx_EDDSA : public Signature<Curve> {
 		}
 
 		void createKeyPair(std::shared_ptr<lime::RNG> rng) override {
-			// the dynamic cast will generate an exception if RNG is not actually a bctbx_RNG
-			bctbx_EDDSACreateKeyPair(m_context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, dynamic_cast<lime::bctbx_RNG&>(*rng).get_context());
+			// Generate a random secret key
+			DSA<Curve, lime::DSAtype::privateKey> secret;
+			rng->randomize(secret.data(), secret.size());
+			// set it in the context
+			set_secret(secret);
+			// and generate the public value
+			derivePublic();
 		}
 
 		void derivePublic(void) override {
@@ -329,8 +315,13 @@ class bctbx_ECDH : public keyExchange<Curve> {
 		}
 
 		void createKeyPair(std::shared_ptr<lime::RNG> rng) override {
-			// the dynamic cast will generate an exception if RNG is not actually a bctbx_RNG
-			bctbx_ECDHCreateKeyPair(m_context, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, dynamic_cast<lime::bctbx_RNG&>(*rng).get_context());
+			// Generate a random secret key
+			X<Curve, lime::Xtype::privateKey> secret;
+			rng->randomize(secret.data(), secret.size());
+			// set it in the context
+			set_secret(secret);
+			// and generate the public value
+			deriveSelfPublic();
 		}
 
 		void deriveSelfPublic(void) override {
