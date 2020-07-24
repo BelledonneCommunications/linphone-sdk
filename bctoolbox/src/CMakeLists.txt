@@ -35,9 +35,6 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	conversion/charconv_encoding.cc
 	utils/exception.cc
 	utils/regex.cc
-	vfs/vfs_encrypted.cc
-	vfs/vfs_encryption_module_dummy.cc
-	vfs/vfs_encryption_module_aes256gcm_sha256.cc
 )
 
 set(BCTOOLBOX_PRIVATE_HEADER_FILES
@@ -72,7 +69,11 @@ if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 endif()
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
-	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/mbedtls.cc)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES
+		crypto/mbedtls.cc
+		vfs/vfs_encrypted.cc
+		vfs/vfs_encryption_module_dummy.cc
+		vfs/vfs_encryption_module_aes256gcm_sha256.cc)
 endif()
 if(POLARSSL_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/polarssl.c)

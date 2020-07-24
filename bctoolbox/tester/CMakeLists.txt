@@ -33,10 +33,11 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		containers.cc
 		port.c
 		parser.c
-		encrypted_vfs.cc
 	)
 	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
-		list(APPEND TESTER_SOURCES crypto.cc)
+		list(APPEND TESTER_SOURCES
+			crypto.cc
+			encrypted_vfs.cc)
 	endif()
 	if(APPLE)
 		list(APPEND TESTER_SOURCES ios_utils.cc)
