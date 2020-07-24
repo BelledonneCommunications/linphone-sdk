@@ -480,6 +480,12 @@ BCTBX_PUBLIC void bctbx_timespec_add(bctoolboxTimeSpec *ts, const int64_t lap);
  */
 BCTBX_PUBLIC uint32_t bctbx_time_string_to_sec(const char *timeString);
 
+
+/**
+ * Generate a non cryptographically usable alea
+ *
+ * @return a 32 bits unsigned random. DO NOT USE THIS RANDOM SOURCE FOR ANY CRYPTOGRAPHIC OPERATION
+ */
 BCTBX_PUBLIC unsigned int bctbx_random(void);
 
 
