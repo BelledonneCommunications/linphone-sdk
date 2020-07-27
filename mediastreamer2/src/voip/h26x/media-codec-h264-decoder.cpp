@@ -202,7 +202,8 @@ private:
 
 const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder::_tvDevices = {
 	{"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
-	{"rockchip", "X9-LX", "rk3288"}
+	{"rockchip", "X9-LX", "rk3288"},
+	{"rockchip", "rk3368", "rk3368"}
 };
 
 }
