@@ -110,6 +110,12 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
 		obj->window_id = window_id;
+#ifdef ANDROID
+		if (obj->window_id) {
+			JNIEnv *env = ms_get_jni_env();
+			obj->window_id = (*env)->NewGlobalRef(env, obj->window_id);
+		}
+#endif
 	}
 	obj->factory = factory;
 	obj->loop_interval = -1;
@@ -119,6 +125,13 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 void ms_media_player_free(MSMediaPlayer *obj) {
 	ms_media_player_close(obj);
 	ms_snd_card_unref(obj->snd_card);
+#ifdef ANDROID
+	if (obj->window_id) {
+		JNIEnv *env = ms_get_jni_env();
+		(*env)->DeleteGlobalRef(env, obj->window_id);
+		obj->window_id = NULL;
+	}
+#endif
 	ms_free_if_not_null(obj->video_display);
 	ms_free(obj);
 }
@@ -413,6 +426,7 @@ static void _create_sinks(MSMediaPlayer *obj) {
 			ms_error("Could not create audio sink. Soundcard=%s", obj->snd_card->name);
 		}
 	}
+
 	if(obj->video_pin_fmt.fmt) {
 		if(obj->video_display) {
 			obj->video_sink = ms_factory_create_filter_from_name(obj->factory, obj->video_display);
