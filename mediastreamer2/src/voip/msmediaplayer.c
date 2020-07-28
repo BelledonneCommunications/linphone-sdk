@@ -140,6 +140,26 @@ void * ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
+void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id) {
+#ifdef ANDROID
+	if (obj->window_id) {
+		JNIEnv *env = ms_get_jni_env();
+		(*env)->DeleteGlobalRef(env, obj->window_id);
+		obj->window_id = NULL;
+	}
+#endif
+	obj->window_id = window_id;
+#ifdef ANDROID
+	if (obj->window_id) {
+		JNIEnv *env = ms_get_jni_env();
+		obj->window_id = (*env)->NewGlobalRef(env, obj->window_id);
+	}
+#endif
+	if (obj->video_sink) {
+		ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &obj->window_id);
+	}
+}
+
 bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	wave_header_t header;
 	int fd;
@@ -426,11 +446,10 @@ static void _create_sinks(MSMediaPlayer *obj) {
 			ms_error("Could not create audio sink. Soundcard=%s", obj->snd_card->name);
 		}
 	}
-
-	if(obj->video_pin_fmt.fmt) {
-		if(obj->video_display) {
+	if (obj->video_pin_fmt.fmt) {
+		if (obj->video_display) {
 			obj->video_sink = ms_factory_create_filter_from_name(obj->factory, obj->video_display);
-			if(obj->video_sink) {
+			if (obj->video_sink) {
 				if(obj->window_id) ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, &obj->window_id);
 			} else {
 				ms_error("Could not create video sink: %s", obj->video_display);
