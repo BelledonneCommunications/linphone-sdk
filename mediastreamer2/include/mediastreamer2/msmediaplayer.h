@@ -171,6 +171,13 @@ MS2_PUBLIC bool_t ms_media_player_matroska_supported(void);
  */
 MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj);
 
+/**
+ * Returns whether the file has video and if it can be displayed
+ * @param obj The player
+ * @return TRUE if file has video and it can be displayed, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj);
+
 #ifdef __cplusplus
 }
 #endif

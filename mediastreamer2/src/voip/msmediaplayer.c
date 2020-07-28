@@ -107,7 +107,7 @@ MSMediaPlayer *ms_media_player_new(MSFactory* factory, MSSndCard *snd_card, cons
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	ms_mutex_init(&obj->cb_access, NULL);
 	obj->snd_card = ms_snd_card_ref(snd_card);
-	if(video_display_name != NULL && strlen(video_display_name) > 0) {
+	if (video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
 		obj->window_id = window_id;
 #ifdef ANDROID
@@ -224,6 +224,10 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
 	return TRUE;
+}
+
+bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {
+	return obj->video_sink != NULL;
 }
 
 void ms_media_player_close(MSMediaPlayer *obj) {
