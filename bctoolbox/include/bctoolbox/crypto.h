@@ -315,7 +315,7 @@ BCTBX_PUBLIC void  bctbx_x509_certificate_free(bctbx_x509_certificate_t *cert);
  *
  * @return a pointer to a null terminated string containing the certificate in PEM format. This buffer must then be freed by caller. NULL on failure.
  */
-BCTBX_PUBLIC char *bctbx_x509_certificates_chain_get_pem(bctbx_x509_certificate_t *cert);
+BCTBX_PUBLIC char *bctbx_x509_certificates_chain_get_pem(const bctbx_x509_certificate_t *cert);
 
 /**
  * @brief	Return an informational string about the certificate
