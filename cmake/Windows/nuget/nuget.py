@@ -87,11 +87,11 @@ def main(argv=None):
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.pdb'))
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.XML'))
 
-    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars')):
-            os.makedirs(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
 
     for grammar in grammars:
-        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
+        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for pdb in pdbs:
@@ -109,8 +109,15 @@ def main(argv=None):
       <Content Include="$(MSBuildThisFileDirectory)\$(Platform)\*.dll;$(MSBuildThisFileDirectory)\$(Platform)\*.pdb">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
-    </ItemGroup>
-  </Target>
+    </ItemGroup>   
+  </Target>  
+  <ItemGroup>
+    <RequiredFiles Include="$(MSBuildThisFileDirectory)\..\..\content\**\*_grammar" />
+    <None Include="@(RequiredFiles)">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>  
+  </ItemGroup>
 </Project>"""
     f = open(os.path.join(work_dir, 'build', 'uap10.0', target_id + '.targets'), 'w')
     f.write(targets)
@@ -124,20 +131,17 @@ def main(argv=None):
     <version>{version}</version>
     <authors>Belledonne Communications</authors>
     <owners>Belledonne Communications</owners>
-    <licenseUrl>http://www.gnu.org/licenses/old-licenses/gpl-2.0.html</licenseUrl>
+    <licenseUrl>https://www.gnu.org/licenses/gpl-3.0.html</licenseUrl>
     <projectUrl>https://linphone.org/</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/BelledonneCommunications/linphone-windows10/master/Linphone/Assets/logo-BC.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>{target_desc}</description>
     <releaseNotes>Nothing new</releaseNotes>
-    <copyright>Copyright 2017-2019 Belledonne Communications</copyright>
+    <copyright>Copyright 2017-2020 Belledonne Communications</copyright>
     <tags>SIP</tags>
-    <contentFiles>
-      <files include="**/*grammar" buildAction="EmbeddedResource" />
-    </contentFiles>
   </metadata>
   <files>
-    <file src="contentFiles\**\*grammar" target="content\" />
+    <file src="contentFiles\**" target="content\" />
     <file src="lib\**" target="lib\" />
     <file src="build\**" target="build\" />
   </files>
