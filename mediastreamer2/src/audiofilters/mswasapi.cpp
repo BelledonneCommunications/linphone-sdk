@@ -572,7 +572,7 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 #else
 	HRESULT result = CoInitialize(NULL);
 #endif
-	result = CoCreateInstanceBT(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
 	result = pEnumerator->GetDefaultAudioEndpoint(data_flow, eCommunications, &pEndpoint);
 	if (result == S_OK) {

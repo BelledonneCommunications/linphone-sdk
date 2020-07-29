@@ -123,7 +123,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 #else
 	CoInitialize(NULL);
 #endif
-	result = CoCreateInstanceBT(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
+	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
 	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
 	mCaptureId = id;
 	result = pEnumerator->GetDevice(mCaptureId, &pDevice);

@@ -421,7 +421,7 @@ static int v4w_configure_videodevice(V4wState *s)
 	CoInitialize(NULL);
 #endif
 	// get a Graph
-	HRESULT hr= CoCreateInstanceBT (CLSID_FilterGraph,
+	HRESULT hr= CoCreateInstance (CLSID_FilterGraph,
 		NULL,
 		CLSCTX_INPROC_SERVER,
 		IID_IGraphBuilder, //IID_IBaseFilter,
@@ -432,7 +432,7 @@ static int v4w_configure_videodevice(V4wState *s)
 	}
 
 	// get a CaptureGraphBuilder2
-	hr= CoCreateInstanceBT (CLSID_CaptureGraphBuilder2,
+	hr= CoCreateInstance (CLSID_CaptureGraphBuilder2,
 		NULL,
 		CLSCTX_INPROC_SERVER,
 		IID_ICaptureGraphBuilder2, //IID_IBaseFilter,
@@ -459,7 +459,7 @@ static int v4w_configure_videodevice(V4wState *s)
 
 	ULONG nFetched = 0;
 
-	hr = CoCreateInstanceBT(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
+	hr = CoCreateInstance(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
 		IID_ICreateDevEnum, (PVOID *)&pCreateDevEnum);
 	if(FAILED(hr))
 	{
@@ -633,7 +633,7 @@ static int v4w_open_videodevice(V4wState *s)
 #endif
 
 	// get a Graph
-	HRESULT hr= CoCreateInstanceBT (CLSID_FilterGraph,
+	HRESULT hr= CoCreateInstance (CLSID_FilterGraph,
 		NULL,
 		CLSCTX_INPROC_SERVER,
 		IID_IGraphBuilder, //IID_IBaseFilter,
@@ -644,7 +644,7 @@ static int v4w_open_videodevice(V4wState *s)
 	}
 
 	// get a CaptureGraphBuilder2
-	hr= CoCreateInstanceBT (CLSID_CaptureGraphBuilder2,
+	hr= CoCreateInstance (CLSID_CaptureGraphBuilder2,
 		NULL,
 		CLSCTX_INPROC_SERVER,
 		IID_ICaptureGraphBuilder2, //IID_IBaseFilter,
@@ -671,7 +671,7 @@ static int v4w_open_videodevice(V4wState *s)
 
 	ULONG nFetched = 0;
 
-	hr = CoCreateInstanceBT(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
+	hr = CoCreateInstance(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
 		IID_ICreateDevEnum, (PVOID *)&pCreateDevEnum);
 	if(FAILED(hr))
 	{
@@ -911,7 +911,7 @@ static int v4w_open_videodevice(V4wState *s)
 
 
 	// get null renderer
-	hr=CoCreateInstanceBT (CLSID_NullRenderer,
+	hr=CoCreateInstance (CLSID_NullRenderer,
 		NULL,
 		CLSCTX_INPROC_SERVER,
 		IID_IBaseFilter,
@@ -1455,7 +1455,7 @@ static void vfw_detect(MSWebCamManager *obj){
 #else
 	CoInitialize(NULL);
 #endif
-	hr = CoCreateInstanceBT(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
+	hr = CoCreateInstance(CLSID_SystemDeviceEnum, NULL, CLSCTX_INPROC_SERVER,
 		IID_ICreateDevEnum, (PVOID *)&pCreateDevEnum);
 	if(FAILED(hr))
 	{

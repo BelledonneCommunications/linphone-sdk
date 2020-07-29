@@ -127,7 +127,7 @@ private:
 template <typename _ComType>
 SharedComPtr<_ComType> makeShared(REFCLSID rclsid,LPUNKNOWN pUnkOuter,DWORD dwClsContext,REFIID riid){
 	_ComType *ptr=NULL;
-	if (CoCreateInstanceBT(rclsid,pUnkOuter,dwClsContext,riid,(void**)&ptr)!=S_OK) return SharedComPtr<_ComType>();
+	if (CoCreateInstance(rclsid,pUnkOuter,dwClsContext,riid,(void**)&ptr)!=S_OK) return SharedComPtr<_ComType>();
 	return SharedComPtr<_ComType>(ptr);
 }
 
@@ -688,12 +688,22 @@ static void ms_dshow_detect(MSWebCamManager *obj){
 	CoInitialize(NULL);
 #endif
 
+#ifdef 	ENABLE_MICROSOFT_STORE_APP
+	ICreateDevEnum *createDevEnum;
+	if (!SUCCEEDED(CoCreateInstance(CLSID_SystemDeviceEnum, NULL,
+					CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&createDevEnum))))
+	{
+		ms_error( "Could not create device enumerator" );
+		return ;
+	}
+#else
 	SharedComPtr< ICreateDevEnum > createDevEnum;
 	if ((createDevEnum=makeShared<ICreateDevEnum>( CLSID_SystemDeviceEnum,
                                     IID_ICreateDevEnum))==NULL){
 		ms_error( "Could not create device enumerator" );
 		return ;
 	}
+#endif
  	SharedComPtr< IEnumMoniker > enumMoniker;
 	if (createDevEnum->CreateClassEnumerator( CLSID_VideoInputDeviceCategory, &enumMoniker, 0 )!=S_OK){
 		ms_error("Fail to create class enumerator.");
