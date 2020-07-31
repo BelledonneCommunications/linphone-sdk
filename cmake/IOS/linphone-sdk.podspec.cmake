@@ -13,7 +13,6 @@ Pod::Spec.new do |s|
   s.platform     = :ios, "9.0"
   s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
-  s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.resource = "linphone-sdk/apple-darwin/Resources/**"
   s.module_name   = 'linphonesw' # name of the swift package
 

@@ -25,7 +25,7 @@ job-ios-upload:
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/ios/
     - pod repo remove linphone-sdk || true
     - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git
-    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --swift-version=4.0 --verbose
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --use-libraries  --swift-version=4.0 --verbose
     - pod repo remove linphone-sdk
 
 #################################################
