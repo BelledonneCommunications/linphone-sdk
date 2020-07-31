@@ -1,18 +1,18 @@
 [submodule "belle-sip"]
 	path = belle-sip
-	url = ../belle-sip.git
+	url = https://gitlab.linphone.org/BC/public/belle-sip.git
 [submodule "cmake-builder"]
 	path = cmake-builder
-	url = ../linphone-cmake-builder.git
+	url = https://gitlab.linphone.org/BC/public/linphone-cmake-builder.git
 [submodule "liblinphone"]
 	path = liblinphone
-	url = ../liblinphone.git
+	url = https://gitlab.linphone.org/BC/public/liblinphone.git
 [submodule "bcg729"]
 	path = bcg729
-	url = ../bcg729.git
+	url = https://gitlab.linphone.org/BC/public/bcg729.git
 [submodule "bzrtp"]
 	path = bzrtp
-	url = ../bzrtp.git
+	url = https://gitlab.linphone.org/BC/public/bzrtp.git
 [submodule "msamr"]
 	path = msamr
 	url = https://gitlab.linphone.org/BC/public/msamr.git
@@ -27,22 +27,22 @@
 	url = https://gitlab.linphone.org/BC/public/mswebrtc.git
 [submodule "belcard"]
 	path = belcard
-	url = ../belcard.git
+	url = https://gitlab.linphone.org/BC/public/belcard.git
 [submodule "belr"]
 	path = belr
-	url = ../belr.git
+	url = https://gitlab.linphone.org/BC/public/belr.git
 [submodule "bctoolbox"]
 	path = bctoolbox
-	url = ../bctoolbox.git
+	url = https://gitlab.linphone.org/BC/public/bctoolbox.git
 [submodule "bcunit"]
 	path = bcunit
-	url = ../bcunit.git
+	url = https://gitlab.linphone.org/BC/public/bcunit.git
 [submodule "ortp"]
 	path = ortp
-	url = ../ortp.git
+	url = https://gitlab.linphone.org/BC/public/ortp.git
 [submodule "mediastreamer2"]
 	path = mediastreamer2
-	url = ../mediastreamer2.git
+	url = https://gitlab.linphone.org/BC/public/mediastreamer2.git
 [submodule "mswasapi"]
 	path = mswasapi
 	url = https://gitlab.linphone.org/BC/public/mswasapi.git
@@ -117,7 +117,7 @@
 	url = https://gitlab.linphone.org/BC/public/external/opencore-amr.git
 [submodule "lime"]
 	path = lime
-	url = ../lime.git
+	url = https://gitlab.linphone.org/BC/public/lime.git
 [submodule "msaaudio"]
 	path = msaaudio
 	url = https://gitlab.linphone.org/BC/public//msaaudio.git
