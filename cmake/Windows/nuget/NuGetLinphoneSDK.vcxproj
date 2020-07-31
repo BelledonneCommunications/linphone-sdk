@@ -56,7 +56,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemGroup>
   <ItemGroup>
    <Content Include="$(ProjectName).targets" PackagePath="build\uap10.0\" />
-   <Content Include="Assets\**\*_grammar" Pack="true" PackagePath="content\">
+   <Content Include="Assets\*" Pack="true" PackagePath="content\">
      <PackageCopyToOutput>true</PackageCopyToOutput>
    </Content>
   </ItemGroup>

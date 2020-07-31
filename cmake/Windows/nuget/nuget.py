@@ -75,6 +75,11 @@ def main(argv=None):
     sdk_dir = os.path.abspath(args.sdk_dir)
     platform_dir = 'linphone-sdk\desktop'
     grammars = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'Belr', 'grammars', '*_grammar' ))
+    sounds = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', '*.wav' ))
+    sounds += glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', '*.mkv' ))
+    rings = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', 'rings', '*.wav' ))
+    rings += glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', 'rings', '*.mkv' ))
+    images = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'images', '*.jpg' ))
     dlls = glob.glob(os.path.join(sdk_dir, platform_dir, 'bin', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', 'mediastreamer', 'plugins', '*.dll'))
@@ -89,9 +94,17 @@ def main(argv=None):
 
     if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars')):
             os.makedirs(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings'))
 
     for grammar in grammars:
         shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
+    for sound in sounds:
+        shutil.copy(sound, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets'))
+    for ring in rings:
+        shutil.copy(ring, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings'))
+    for image in images:
+        shutil.copy(image, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for pdb in pdbs:
@@ -112,7 +125,7 @@ def main(argv=None):
     </ItemGroup>   
   </Target>  
   <ItemGroup>
-    <RequiredFiles Include="$(MSBuildThisFileDirectory)\..\..\content\**\*_grammar" />
+    <RequiredFiles Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" />
     <None Include="@(RequiredFiles)">
       <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
