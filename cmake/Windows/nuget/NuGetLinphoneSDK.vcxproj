@@ -55,12 +55,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="NuGetLinphoneSDK\content\Asset\belr\grammars\cpim_grammar">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="NuGetLinphoneSDK\content\Asset\belr\grammars\vcard_grammar">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
+   <Content Include="$(ProjectName).targets" PackagePath="build\uap10.0\" />
+   <Content Include="Assets\*" Pack="true" PackagePath="content\">
+     <PackageCopyToOutput>true</PackageCopyToOutput>
+   </Content>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
