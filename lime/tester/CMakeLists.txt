@@ -40,6 +40,7 @@ set(SOURCE_FILES_CXX
 	lime_helloworld-tester.cpp
 	lime_crypto-tester.cpp
 	lime_massive_group-tester.cpp
+	lime_multidomains-tester.cpp
 )
 
 set(SOURCE_FILES_C

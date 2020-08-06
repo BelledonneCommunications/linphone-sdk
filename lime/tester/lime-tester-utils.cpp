@@ -40,8 +40,11 @@ namespace lime_tester {
 std::string test_x3dh_server_url{"localhost"};
 std::string test_x3dh_c25519_server_port{"25519"};
 std::string test_x3dh_c448_server_port{"25520"};
+std::string test_x3dh_domainA_server_port{"25521"};
+std::string test_x3dh_domainB_server_port{"25522"};
+std::string test_x3dh_domainC_server_port{"25523"};
 
-/* for testing purpose RNG, no need to be good one */
+// for testing purpose RNG, no need to be a good one
 std::random_device rd;
 std::uniform_int_distribution<int> uniform_dist(0,255);
 

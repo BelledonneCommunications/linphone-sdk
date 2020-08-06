@@ -3585,10 +3585,10 @@ static void user_registration_failure_test(const lime::CurveId curve, const std:
 
 static void user_registration_failure(void) {
 #ifdef EC25519_ENABLED
-	user_registration_failure_test(lime::CurveId::c25519, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	user_registration_failure_test(lime::CurveId::c25519, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 #endif
 #ifdef EC448_ENABLED
-	user_registration_failure_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	user_registration_failure_test(lime::CurveId::c448, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 }
 

@@ -37,6 +37,9 @@ namespace lime_tester {
 extern std::string test_x3dh_server_url;
 extern std::string test_x3dh_c25519_server_port;
 extern std::string test_x3dh_c448_server_port;
+extern std::string test_x3dh_domainA_server_port;
+extern std::string test_x3dh_domainB_server_port;
+extern std::string test_x3dh_domainC_server_port;
 
 // messages pattern
 extern std::string shortMessage;
