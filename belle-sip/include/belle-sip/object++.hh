@@ -31,7 +31,7 @@ namespace bellesip {
 
 class ObjectCAccessors;
 
-class BELLESIP_EXPORT Object {
+class BELLESIP_EXPORT Object{
 	friend ObjectCAccessors;
 	public:
 		Object();
@@ -75,9 +75,12 @@ class BELLESIP_EXPORT Object {
  * }
  * The C object can be obtained with toC() method, directly casted in the expected type.
  * The C++ object can be obtained from C object with static method toCpp().
- * The destructor MUST be kept protected so that no one can call delete operator on the object. Instead unref() must be used.
- * make_shared<>() MUST NOT be used to instanciate an HybridObject, use create() instead.
- * a shared_ptr<> can be obtained at any time from an HybridObject using getSharedFromThis().
+ * 
+ * VERY IMPORTANT USAGE RULES:
+ * - The destructor MUST be kept protected so that no one can call delete operator on the object. Instead unref() must be used.
+ * - make_shared<>() or shared_ptr<>(new ...) MUST NOT be used to instanciate an HybridObject, use create() instead.
+ * 
+ * A shared_ptr<> can be obtained at any time from an HybridObject using getSharedFromThis().
  * The static getSharedFromThis(_Ctype*) method can be used to directly obtain a shared_ptr from the C object.
  * 
  * The clone() method must be overriden to return a new _CppType contructed with copy contructor,
@@ -94,16 +97,15 @@ class BELLESIP_EXPORT Object {
 template <typename _CType, typename _CppType>
 class HybridObject : public Object {
 	public:
-		//Create the C++ object returned as a shared_ptr. Ref is managed by shared_ptr, unref will be called on last ref.
+		//Create the C++ object returned as a shared_ptr. Reference counting is managed by shared_ptr automatically.
 		template <typename... _Args>
 		static inline std::shared_ptr<_CppType> create(_Args&&... __args) {
 			return (new _CppType(std::forward<_Args>(__args)...))->toSharedPtr();
 		}
-		//Convenience creator to get the C object object instead. Automatically aquires a ref. Consumers have the responsibility to unref
+		//Convenience creator to get the C object object instead. Automatically acquires a ref. Consumers have the responsibility to unref
 		template <typename... _Args>
 		static inline _CType *createCObject(_Args&&... __args) {
-			_CppType *obj = new _CppType(std::forward<_Args>(__args)...);
-			return obj->toC();
+			return (new _CppType(std::forward<_Args>(__args)...))->toC();
 		}
 		//Obtain the C object from this.
 		_CType *toC(){
@@ -123,13 +125,11 @@ class HybridObject : public Object {
 		}
 		//Obtain a shared_ptr from the C++ object.
 		std::shared_ptr<_CppType> getSharedFromThis() {
-			this->ref();
-			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fn(&Object::unref));
+			return sharedFromThis(false);
 		}
 		//Obtain a shared_ptr from the C++ object in the const case.
 		std::shared_ptr<const _CppType> getSharedFromThis () const {
-			this->ref();
-			return std::shared_ptr<const _CppType>(static_cast<const _CppType *>(this), std::mem_fn(&HybridObject<_CType,_CppType>::constUnref));
+			return sharedFromThis(false);
 		}
 		//Convenience method for easy CType -> shared_ptr<CppType> conversion
 		static std::shared_ptr<_CppType> getSharedFromThis(_CType *ptr) {
@@ -143,10 +143,10 @@ class HybridObject : public Object {
 		// Use this method with caution as it will transfer the ownership of the object to the shared_ptr, unlike getSharedFromThis() that
 		// gives you a new reference to the object.
 		// This method should be only useful to transfer into a shared_ptr an object that was created as a normal pointer, for example
-		// by clone() method.
-		// There should be NO const variant of this method.
+		// by clone() or createCObject() methods.
+		// There should be NO public const variant of this method.
 		std::shared_ptr<_CppType> toSharedPtr(){
-			return std::shared_ptr<_CppType>(static_cast<_CppType *>(this), std::mem_fn(&Object::unref));
+			return sharedFromThis(true);
 		}
 		
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion
@@ -191,9 +191,27 @@ class HybridObject : public Object {
 		}
 
 	protected:
-		virtual ~HybridObject() {}
+		virtual ~HybridObject() = default;
 		HybridObject() {}
 		HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other) {}
+	private:
+		std::shared_ptr<_CppType> sharedFromThis(bool withTransfer)const{
+			std::shared_ptr<_CppType> sp;
+			if ((sp = mSelf.lock()) == nullptr){
+				sp = std::shared_ptr<_CppType>(static_cast<_CppType *>(const_cast<HybridObject<_CType, _CppType> *>(this)), 
+								  std::mem_fn(&HybridObject<_CType, _CppType>::constUnref));
+				mSelf = sp;
+				if (!withTransfer){
+					sp->ref();
+				}
+			}else{
+				if (withTransfer){
+					belle_sip_fatal("This HybridObject already has shared_ptr<> instances pointing to it.");
+				}
+			}
+			return sp;
+		}
+		mutable std::weak_ptr<_CppType> mSelf;
 };
 
 

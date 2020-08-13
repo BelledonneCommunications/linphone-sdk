@@ -178,6 +178,17 @@ static void dual_object_shared_ptr(void){
 	ev = Event::toCpp((LinphoneEvent*)c_obj)->getSharedFromThis(); // we get again a shared_ptr.
 	belle_sip_object_unref(c_obj);
 	BC_ASSERT_FALSE(object_destroyed); // the unref() shall not cause the object to be destroyed, since the shared_ptr has a reference to it.
+	// Get a manual reference again:
+	belle_sip_object_ref(c_obj);
+	// Drop the shared_ptr:
+	ev.reset();
+	BC_ASSERT_FALSE(object_destroyed);
+	// Get again a shared_ptr, this will test the re-instanciation of the internal weak_ptr (as std::enable_shared_from_this)
+	ev = Event::getSharedFromThis((LinphoneEvent*)c_obj);
+	// Drop the C reference:
+	belle_sip_object_unref(c_obj);
+	BC_ASSERT_FALSE(object_destroyed);
+	
 	ev.reset();
  	BC_ASSERT_TRUE(object_destroyed); // Now the object should be destroyed.
 }
@@ -213,6 +224,29 @@ static void dual_object_shared_from_this_from_c(void){
 	BC_ASSERT_TRUE(object_destroyed);
 }
 
+static void dual_object_in_weak_ptr(void){
+	int object_destroyed = 0;
+	std::shared_ptr<Event> ev = Event::create();
+	belle_sip_object_t *c_obj = ev->getCObject();
+	BC_ASSERT_PTR_NOT_NULL(c_obj);
+	if (c_obj){
+		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
+	}
+	//Here we mix manual reference from C and shared_ptr.
+	belle_sip_object_ref(c_obj);
+	ev.reset();
+	BC_ASSERT_FALSE(object_destroyed); // the reset() shall not cause the object to be destroyed.
+	ev = Event::toCpp((LinphoneEvent*)c_obj)->getSharedFromThis(); // we get again a shared_ptr.
+	std::weak_ptr<Event> ev_weak = Event::toCpp((LinphoneEvent*)c_obj)->getSharedFromThis(); /* get another shared_ptr to make the weak one */
+	BC_ASSERT_TRUE(ev_weak.lock() != nullptr);
+	belle_sip_object_unref(c_obj);
+	BC_ASSERT_FALSE(object_destroyed); // the unref() shall not cause the object to be destroyed, since the shared_ptr has a reference to it.
+	ev.reset();
+ 	BC_ASSERT_TRUE(object_destroyed); // Now the object should be destroyed.
+	/* the weak_ptr shall be reset too. */
+	BC_ASSERT_TRUE(ev_weak.lock() == nullptr);
+}
+
 static void main_loop_cpp_do_later(void){
 	int test = 0;
 	belle_sip_main_loop_t *ml = belle_sip_main_loop_new();
@@ -231,6 +265,7 @@ static test_t object_tests[] = {
 	TEST_NO_TAG("Hybrid C/C++ object with shared_ptr", dual_object_shared_ptr),
 	TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis()", dual_object_shared_from_this),
 	TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis() from C object", dual_object_shared_from_this_from_c),
+	TEST_NO_TAG("Hybrid C/C++ object with in a weak_ptr", dual_object_in_weak_ptr),
 	TEST_NO_TAG("Mainloop's do_later in c++", main_loop_cpp_do_later)
 };
 
