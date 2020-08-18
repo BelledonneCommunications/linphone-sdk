@@ -440,6 +440,8 @@ struct _AudioStream
 	bool_t spk_eq_active;
 	bool_t use_ng;/*noise gate*/
 	bool_t is_ec_delay_set;
+	bool_t disable_record_on_mute;
+	float last_mic_gain_level_db;
 };
 
 /**
@@ -638,6 +640,25 @@ static MS2_INLINE void audio_stream_enable_adaptive_bitrate_control(AudioStream 
 static MS2_INLINE void audio_stream_enable_adaptive_jittcomp(AudioStream *stream, bool_t enabled) {
 	media_stream_enable_adaptive_jittcomp(&stream->ms, enabled);
 }
+/**
+ * Calling this method with disable=true will cause the microhone to be completely deactivated when muted
+ * Currently only implemented for IOS, this will cause the playback sound to be interrupted for a short moment while the audio is reconfigured.
+ * On IOS 14, it will also disable Apple's microphone recording indicator when microphone is muted.
+ *
+ * @param stream The stream.
+ * @param disable True if you wish to entirely stop the audio recording when muting the microphone.
+ */
+MS2_PUBLIC void audio_stream_disable_record_on_mute(AudioStream *stream, bool_t disable);
+
+/**
+ * Mute or unmute the microphone
+ * For IOS, if "audio_stream_disable_record_on_mute" was enabled, this will completely stop the microphone recording.
+ * Else, sound recording remains active but silence is sent instead of recorded audiow@
+ *
+ * @param stream The stream.
+ * @param enable Wether the microphone must be enabled.
+ */
+MS2_PUBLIC void audio_stream_enable_mic(AudioStream *stream, bool_t enable);
 
 /**
  * Apply a software gain on the microphone.
@@ -653,6 +674,7 @@ MS2_PUBLIC void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db)
 
 
 /**
+ * @deprecated
  * Like audio_stream_set_mic_gain_db() excepted that the gain is specified
  * in percentage.
  *

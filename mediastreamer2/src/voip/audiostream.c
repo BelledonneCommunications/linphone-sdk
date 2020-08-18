@@ -38,6 +38,7 @@
 #include "mediastreamer2/msgenericplc.h"
 #include "mediastreamer2/mseventqueue.h"
 #include "private.h"
+#include <math.h>
 
 #ifdef __ANDROID__
 #include "mediastreamer2/devices.h"
@@ -1553,6 +1554,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	stream->use_agc=FALSE;
 	stream->use_ng=FALSE;
 	stream->features=AUDIO_STREAM_FEATURE_ALL;
+	stream->disable_record_on_mute=FALSE;
 
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
 
@@ -1569,6 +1571,7 @@ AudioStream *audio_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_p
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port, ms_factory_get_mtu(factory));
 	obj=audio_stream_new_with_sessions(factory, &sessions);
 	obj->ms.owns_sessions=TRUE;
+	obj->last_mic_gain_level_db = 0;
 	return obj;
 }
 
@@ -1630,12 +1633,29 @@ void audio_stream_enable_noise_gate(AudioStream *stream, bool_t val){
 	}
 }
 
+void audio_stream_enable_mic(AudioStream *stream, bool_t enabled) {
+	if (stream->soundread) {
+		if (stream->disable_record_on_mute && ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_MUTE)) {
+			bool_t muted = !enabled;
+			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_MUTE, &muted);
+		}
+	}
+		
+	if (enabled)
+		audio_stream_set_mic_gain_db(stream, stream->last_mic_gain_level_db);
+	else
+		audio_stream_set_mic_gain(stream, 0);
+}
+
 void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db) {
 	audio_stream_set_rtp_output_gain_db(stream, gain_db);
 }
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){
-	if (stream->volsend){
+	if (stream->volsend) {
+		if (gain!=0) {
+			stream->last_mic_gain_level_db = 10*ortp_log10f(gain);
+		}
 		ms_filter_call_method(stream->volsend,MS_VOLUME_SET_GAIN,&gain);
 	}else ms_warning("Could not apply gain: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");
@@ -1891,6 +1911,7 @@ static void audio_stream_set_rtp_output_gain_db(AudioStream *stream, float gain_
 #endif
 
 	if (stream->volsend){
+		stream->last_mic_gain_level_db = gain_db;
 		ms_filter_call_method(stream->volsend, MS_VOLUME_SET_DB_GAIN, &gain);
 	} else ms_warning("Could not apply gain on sent RTP packets: gain control wasn't activated. "
 			"Use audio_stream_enable_gain_control() before starting the stream.");

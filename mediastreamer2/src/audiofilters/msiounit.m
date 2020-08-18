@@ -125,6 +125,7 @@ typedef struct au_card {
 	bool_t will_be_used;
 	bool_t audio_session_activated;
 	bool_t callkit_enabled;
+	bool_t mic_enabled;
 } au_card_t;
 
 typedef struct au_filter_base {
@@ -280,10 +281,10 @@ static void configure_audio_unit(au_card_t *card){
 								   kAudioOutputUnitProperty_EnableIO,
 								   kAudioUnitScope_Input ,
 								   inputBus,
-								   &doSetProperty,
-								   sizeof (doSetProperty)
+								   (card->mic_enabled) ? &doSetProperty : &doNotSetProperty,
+								   sizeof ((card->mic_enabled) ? doSetProperty : doNotSetProperty)
 								   );
-
+    
 	check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
 	auresult=AudioUnitSetProperty (
 								   card->audio_unit,
@@ -295,7 +296,7 @@ static void configure_audio_unit(au_card_t *card){
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
 	/*end of: enable mic for scheduling render call back, why ?*/
-
+    
 	//setup stream format
 	auresult=AudioUnitSetProperty (
 								   card->audio_unit,
@@ -447,6 +448,7 @@ static void au_init(MSSndCard *card){
 	card->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER|MS_SND_CARD_CAP_IS_SLOW;
 	ms_mutex_init(&d->mutex,NULL);
 	card->data=d;
+	d->mic_enabled = TRUE;
 }
 
 static void au_uninit(MSSndCard *card){
@@ -891,17 +893,48 @@ static int get_nchannels(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int mute_mic(MSFilter *f, void *data){
+    UInt32 enableMic = *((bool *)data) ? 0 : 1;
+    au_filter_base_t *d=(au_filter_base_t*)f->data;
+    
+    if (enableMic == d->card->mic_enabled)
+        return 0;
+    
+    d->card->mic_enabled = enableMic;
+    OSStatus auresult;
+    
+    if (d->card->audio_unit_state != MSAudioUnitStarted) {
+        auresult=AudioUnitSetProperty (d->card->audio_unit,
+                                       kAudioOutputUnitProperty_EnableIO,
+                                       kAudioUnitScope_Input,
+                                       inputBus,
+                                       &enableMic,
+                                       sizeof (enableMic)
+                                       );
+        check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
+    } else {
+        stop_audio_unit_with_param(d->card, TRUE);
+        configure_audio_unit(d->card);
+        start_audio_unit(d->card, 0);
+    }
+    
+    return 0;
+}
+
 static int set_muted(MSFilter *f, void *data){
 	au_filter_base_t *d=(au_filter_base_t*)f->data;
 	d->muted = *(int*)data;
 	return 0;
 }
 
+
+
 static MSFilterMethod au_read_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	, read_set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate	},
 	{	MS_FILTER_SET_NCHANNELS		, read_set_nchannels	},
 	{	MS_FILTER_GET_NCHANNELS		, get_nchannels	},
+	{	MS_AUDIO_CAPTURE_MUTE		, mute_mic },
 	{	0				, NULL		}
 };
 
