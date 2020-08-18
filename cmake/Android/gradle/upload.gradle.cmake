@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.2'
+        classpath 'com.android.tools.build:gradle:4.0.1'
     }
 }
 
@@ -65,6 +65,7 @@ publishing {
                 }
             }
         }
+
         release(MavenPublication) {
             groupId artefactGroupId
             artifactId 'linphone-sdk-android'
@@ -90,6 +91,7 @@ publishing {
             }
         }
     }
+    
     repositories {
         maven {
             url "./maven_repository/"
