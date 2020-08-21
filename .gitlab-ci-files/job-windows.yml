@@ -125,9 +125,9 @@ job-windows-vs2017-ninja-win32:
     refs:
       - schedules
   variables:
-    CMAKE_C_COMPILER : "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/cl.exe"
-    CMAKE_CXX_COMPILER : "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/cl.exe"
-    CMAKE_RC_COMPILER : "C:/Program Files (x86)/Windows Kits/10/bin/x86/rc.exe"
+    CMAKE_C_COMPILER : cl.exe
+    CMAKE_CXX_COMPILER : cl.exe
+    CMAKE_RC_COMPILER : rc.exe
     
 ######################################################
 # NIGHTLY
