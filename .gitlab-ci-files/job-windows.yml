@@ -92,7 +92,7 @@
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
     - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
-    - cmake --build . --target sdk --config Release -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
+    - cmake --build . --target sdk --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
   artifacts:
@@ -153,7 +153,7 @@ test-linphone-windows-win32:
   tags: [ "windows" ]
   allow_failure: true
   dependencies:
-    - job-windows-vs2017-win32
+    - job-windows-vs2017-ninja-win32
     - job-windows-vs2017-win32-scheduled
   only:
     variables:
