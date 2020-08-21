@@ -1653,7 +1653,7 @@ void audio_stream_set_mic_gain_db(AudioStream *stream, float gain_db) {
 
 void audio_stream_set_mic_gain(AudioStream *stream, float gain){
 	if (stream->volsend) {
-		if (gain!=0) {
+		if (gain!=0) {
 			stream->last_mic_gain_level_db = 10*ortp_log10f(gain);
 		}
 		ms_filter_call_method(stream->volsend,MS_VOLUME_SET_GAIN,&gain);
