@@ -27,8 +27,11 @@
 #include <mbedtls/md.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
-#include <mbedtls/hkdf.h>
 #include <mbedtls/gcm.h>
+#if MBEDTLS_VERSION_NUMBER >= 0x020B0000 // v2.11.0
+#include <mbedtls/hkdf.h> // HKDF implemented in version 2.11.0 of mbedtls
+#endif
+
 
 
 #include "bctoolbox/crypto.hh"
@@ -156,6 +159,7 @@ template <> std::vector<uint8_t> HMAC<SHA512>(const std::vector<uint8_t> &key, c
 	return  hmacOutput;
 }
 
+
 /* HKDF templates */
 /* HKDF must use a specialized template */
 template <typename hashAlgo>
@@ -172,6 +176,7 @@ std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt, const std::vector<ui
 	return std::vector<uint8_t>(0);
 }
 
+#if MBEDTLS_VERSION_NUMBER >= 0x020B0000 // v2.11.0 - HKDF provided by mbedtls
 /* HKDF specialized template for SHA256 */
 template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
 	std::vector<uint8_t> okm(outputSize);
@@ -203,6 +208,54 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
 	}
 	return okm;
 };
+
+#else // MBEDTLS_VERSION_NUMBER >= 0x020B0000 - HKDF not provided by mbedtls
+
+/* generic implementation, of HKDF RFC-5869 - use this one if mbedtls does not provide it */
+template <typename hashAlgo, typename infoType>
+std::vector<uint8_t> HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, size_t outputSize) {
+	// extraction
+	auto prk = HMAC<hashAlgo>(salt, ikm);
+
+	// expansion round 0
+	std::vector<uint8_t> T(info.cbegin(), info.cend());
+	T.push_back(0x01);
+	auto output = HMAC<hashAlgo>(prk, T);
+	output.reserve(outputSize);
+
+	// successives expansion rounds
+	size_t index = std::min(outputSize, hashAlgo::ssize());
+	for(uint8_t i=0x02; index < outputSize; i++) {
+		T.assign(output.cbegin()+(i-2)*hashAlgo::ssize(), output.cbegin()+(i-1)*hashAlgo::ssize());
+		T.insert(T.end(), info.cbegin(), info.cend());
+		T.push_back(i);
+		auto round = HMAC<hashAlgo>(prk, T);
+		output.insert(output.end(), round.cbegin(), round.cend());
+		index += hashAlgo::ssize();
+	}
+	bctbx_clean(prk.data(), prk.size());
+	bctbx_clean(T.data(), T.size());
+	output.resize(outputSize); // dump what is not needed (each round compute hashAlgo::ssize() bytes of data, we may need only a fraction of the last round)
+	return output;
+}
+
+/* HKDF specialized template for SHA256 */
+template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
+	return HMAC_KDF<SHA256, std::vector<uint8_t>>(salt, ikm, info, outputSize);
+};
+template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize) {
+	return HMAC_KDF<SHA256, std::string>(salt, ikm, info, outputSize);
+};
+
+/* HKDF specialized template for SHA512 */
+template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
+	return HMAC_KDF<SHA512, std::vector<uint8_t>>(salt, ikm, info, outputSize);
+};
+template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize) {
+	return HMAC_KDF<SHA512, std::string>(salt, ikm, info, outputSize);
+};
+
+#endif // MBEDTLS_VERSION_NUMBER >= 0x020B0000
 
 /*****************************************************************************/
 /***                      Authenticated Encryption                         ***/
