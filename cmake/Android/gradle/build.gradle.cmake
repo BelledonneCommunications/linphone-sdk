@@ -68,6 +68,7 @@ if (!isGeneratedJavaWrapperAvailable()) {
     javaExcludes.add('**/AudioHelper.java')
     javaExcludes.add('**/BluetoothHelper.java')
     javaExcludes.add('**/BluetoothReceiver.java')
+    javaExcludes.add('**/ShutdownReceiver.java')
     javaExcludes.add('**/CoreManager.java')
     javaExcludes.add('**/CoreService.java')
     javaExcludes.add('**/FirebaseMessaging.java')
