@@ -596,7 +596,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 }
 #endif
 
-static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t first_time){
+static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t source_changed){
 	MSVideoSize cam_vsize = {320, 240};
 	MSVideoConfiguration vconf;
 	MSPixFmt format=MS_PIX_FMT_UNKNOWN;
@@ -606,7 +606,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	MSPinFormat pf={0};
 	bool_t is_player=ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID;
 
-	if (first_time) {
+	if (source_changed) {
 		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
 		/* It is important that the internal_event_cb is called synchronously! */
 		ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
@@ -1506,7 +1506,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			if (!skip_bitrate) apply_bitrate_limit(stream ,pt);
 		}
 
-		configure_video_source(stream, skip_bitrate, FALSE);
+		configure_video_source(stream, skip_bitrate, change_source);
 
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_link (stream->source, 0, stream->tee, 0);
