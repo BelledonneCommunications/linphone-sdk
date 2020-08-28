@@ -792,12 +792,19 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 		}
 	}
 
+	if (surfaceTexture == nullptr) {
+		ms_error("[Camera2 Capture] SurfaceTexture is null, can't create a Surface!");
+		return;
+	}
+
+	ms_message("[Camera2 Capture] Creating Surface from SurfaceTexture %p", surfaceTexture);
 	jmethodID ctor = env->GetMethodID(surfaceClass, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
 	surface = env->NewObject(surfaceClass, ctor, surfaceTexture);
 	if (!surface) {
 		ms_error("[Camera2 Capture] Could not instanciate android.view.Surface object");
 		return;
 	}
+	
 	d->surface = (jobject)env->NewGlobalRef(surface);
 	ms_message("[Camera2 Capture] Got Surface %p from SurfaceTexture %p",  d->surface, surfaceTexture);
 }
