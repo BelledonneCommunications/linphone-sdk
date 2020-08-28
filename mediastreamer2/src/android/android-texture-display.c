@@ -153,6 +153,11 @@ static void android_texture_display_create_surface_from_surface_texture(AndroidT
 		}
 	}
 
+	if (windowId == NULL) {
+		ms_error("[TextureView Display] SurfaceTexture is null, can't create a Surface!");
+		return;
+	}
+
 	ms_message("[TextureView Display] Creating Surface from SurfaceTexture %p", windowId);
 	jmethodID ctor = (*env)->GetMethodID(env, surfaceClass, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
 	surface = (*env)->NewObject(env, surfaceClass, ctor, windowId);
