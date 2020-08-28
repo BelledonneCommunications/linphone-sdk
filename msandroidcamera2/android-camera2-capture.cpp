@@ -517,6 +517,9 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 		ms_error("[Camera2 Capture] Failed to set null image listener, error is %i", status);
 	}
 
+	// Seems to provoke an ANR on some devices if the camera close is done after the capture session
+	android_camera2_capture_close_camera(d);
+
 	if (d->captureSession) {
 		camera_status_t camera_status = ACameraCaptureSession_abortCaptures(d->captureSession);
 		if (camera_status != ACAMERA_OK) {
@@ -569,8 +572,6 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 		ACaptureSessionOutputContainer_free(d->captureSessionOutputContainer);
 		d->captureSessionOutputContainer = nullptr;
 	}
-
-	android_camera2_capture_close_camera(d);
 
 	if (d->imageReader) {
 		AImageReader_delete(d->imageReader);
