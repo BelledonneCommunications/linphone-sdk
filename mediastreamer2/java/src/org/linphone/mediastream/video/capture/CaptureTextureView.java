@@ -28,28 +28,24 @@ import android.view.TextureView;
 import android.view.WindowManager;
 
 public class CaptureTextureView extends TextureView {
-    private Context mContext;
     private double mCapturedVideoWidth = 0;
     private double mCapturedVideoHeight = 0;
+    private int mRotation = 0;
 
     public CaptureTextureView(Context context) {
         this(context, null);
-        mContext = context;
     }
 
     public CaptureTextureView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
-        mContext = context;
     }
 
     public CaptureTextureView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mContext = context;
     }
 
-    public void rotateToMatchDisplayOrientation() {
-        WindowManager windowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
-        int rotation = windowManager.getDefaultDisplay().getRotation() * 90;
+    public void rotateToMatchDisplayOrientation(int rotation) {
+        mRotation = rotation;
 
         Matrix matrix = new Matrix();
         int width = getWidth();
@@ -98,6 +94,6 @@ public class CaptureTextureView extends TextureView {
         mCapturedVideoWidth = width;
         mCapturedVideoHeight = height;
 
-        rotateToMatchDisplayOrientation();
+        rotateToMatchDisplayOrientation(mRotation);
     }
 }
