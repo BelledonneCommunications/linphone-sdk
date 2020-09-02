@@ -115,7 +115,7 @@ test-linphone-macosx:
     GIT_STRATEGY: none
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts --show-account-manager-logs"
+    ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
 
   script:
     #Where am I when the zip is extracted ?
