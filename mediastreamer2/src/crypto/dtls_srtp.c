@@ -938,7 +938,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
-	ms_message("DTLS start stream on stream sessions [%p], RCTP mux is %s, MTU is %d", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled", context->mtu);
+	ms_message("DTLS start stream on stream sessions [%p], RTCP mux is %s, MTU is %d", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled", context->mtu);
 
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
