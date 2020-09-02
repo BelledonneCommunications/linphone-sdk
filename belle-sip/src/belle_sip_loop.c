@@ -470,6 +470,7 @@ void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms) 
 
 void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms) {
 	belle_sip_main_loop_t *ml = s->ml;
+	int removed_from_map = FALSE;
 	// take the mutex only when the source has been added to the mail loop
 	if (ml) bctbx_mutex_lock(&ml->sources_mutex);
 	if (!s->expired){
@@ -478,11 +479,17 @@ void belle_sip_source_set_timeout_int64(belle_sip_source_t *s, int64_t value_ms)
 			/*this timeout is already sorted in the timer_sources map, we need to move it to its new place*/
 			bctbx_map_erase(ml->timer_sources, s->it);
 			bctbx_iterator_delete(s->it);
-			s->it = bctbx_map_insert_and_delete_with_returned_it(ml->timer_sources,
-				(bctbx_pair_t*)bctbx_pair_ullong_new(s->expire_ms, s));
+			if (value_ms != -1){
+				s->it = bctbx_map_insert_and_delete_with_returned_it(ml->timer_sources,
+					(bctbx_pair_t*)bctbx_pair_ullong_new(s->expire_ms, s));
+			}else {
+				s->it = NULL;
+				removed_from_map = TRUE;
+			}
 		}
 	}
-	s->timeout=value_ms;
+	s->timeout = value_ms;
+	if (removed_from_map) belle_sip_object_unref(s);
 	if (ml) bctbx_mutex_unlock(&ml->sources_mutex);
 }
 
@@ -680,10 +687,10 @@ static void belle_sip_main_loop_iterate(belle_sip_main_loop_t *ml){
 		next=elem->next;
 		if (!s->cancelled){
 
-			if (s->timeout > 0 && belle_sip_log_level_enabled(BELLE_SIP_LOG_DEBUG)) {
+			if (belle_sip_log_level_enabled(BELLE_SIP_LOG_DEBUG)) {
 				/*to avoid too many traces*/
 				char *objdesc=belle_sip_object_to_string((belle_sip_object_t*)s);
-				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,revents,s->timeout);
+				belle_sip_debug("source %s notified revents=%u, timeout=%i",objdesc,s->revents,(int)s->timeout);
 				belle_sip_free(objdesc);
 			}
 

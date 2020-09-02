@@ -1070,8 +1070,12 @@ void belle_sip_channel_notify_server_error(belle_sip_channel_t *obj){
 }
 
 void channel_set_state(belle_sip_channel_t *obj, belle_sip_channel_state_t state) {
-	belle_sip_message("channel %p: state %s",obj,belle_sip_channel_state_to_string(state));
+	belle_sip_message("channel[%p]: entering state %s",obj,belle_sip_channel_state_to_string(state));
 
+	if (obj->state == state) {
+		belle_sip_error("channel_set_state() called twice with the same state. This is a programming mistake.");
+		return;
+	}
 	if (state==BELLE_SIP_CHANNEL_ERROR){
 		belle_sip_channel_handle_error(obj);
 	}else{

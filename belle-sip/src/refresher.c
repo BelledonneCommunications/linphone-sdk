@@ -117,7 +117,6 @@ static void process_dialog_terminated(belle_sip_listener_t *user_ctx, const bell
 		if (refresher->listener) refresher->listener(refresher,refresher->user_data,481, "dialod terminated", TRUE);
 
 	}
-
 }
 
 static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_error_event_t *event){
@@ -147,21 +146,24 @@ static void process_io_error(belle_sip_listener_t *user_ctx, const belle_sip_io_
 		/*something went wrong on this provider, checking if my channel is still up*/
 		if (refresher->state==started  /*refresher started or trying to refresh */
 				&& belle_sip_transaction_get_state(BELLE_SIP_TRANSACTION(refresher->transaction)) == BELLE_SIP_TRANSACTION_TERMINATED /*else we are notified by transaction error*/
-				&& refresher->transaction->base.channel /*transaction may not have any channel*/
-				&&	(belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_DISCONNECTED
-								||belle_sip_channel_get_state(refresher->transaction->base.channel) == BELLE_SIP_CHANNEL_ERROR)) {
-			belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error"
+				&& refresher->transaction->base.channel /*transaction may not have any channel*/){
+			switch (belle_sip_channel_get_state(refresher->transaction->base.channel)){
+				case BELLE_SIP_CHANNEL_DISCONNECTED:
+				case BELLE_SIP_CHANNEL_ERROR:
+				case BELLE_SIP_CHANNEL_RETRY:
+					belle_sip_message("refresher [%p] has channel [%p] in state [%s], reporting error"
 								,refresher
 								,refresher->transaction->base.channel
 								,belle_sip_channel_state_to_string(belle_sip_channel_get_state(refresher->transaction->base.channel)));
-			if (refresher->state==started) retry_later_on_io_error(refresher);
-			if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error", refresher->state == started);
-			refresher->on_io_error=1;
+					if (refresher->state==started) retry_later_on_io_error(refresher);
+					if (refresher->listener) refresher->listener(refresher,refresher->user_data,503, "io error", refresher->state == started);
+					refresher->on_io_error=1;
+				break;
+				default:
+				break;
+			}
 		}
 		return;
-	}else {
-		/*belle_sip_error("Refresher process_io_error not implemented yet for non transaction/provider source");*/
-		/*nop, because already handle at transaction layer*/
 	}
 }
 
@@ -424,6 +426,8 @@ static void destroy(belle_sip_refresher_t *refresher){
 	if (refresher->first_acknowledged_request) belle_sip_object_unref(refresher->first_acknowledged_request);
 	if (refresher->dialog) belle_sip_object_unref(refresher->dialog);
 }
+
+
 
 BELLE_SIP_IMPLEMENT_INTERFACE_BEGIN(belle_sip_refresher_t,belle_sip_listener_t)
 	process_dialog_terminated,
