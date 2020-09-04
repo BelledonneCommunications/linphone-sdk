@@ -19,8 +19,9 @@ job-ios-upload:
   script:
 
     - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
     #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/docs/liblinphone/swift
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
 
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/ios/
     - pod repo remove linphone-sdk || true
@@ -155,10 +156,11 @@ job-debian-doc-upload:
   script:
     #getting the version number to push the right version of the doc
     #SINCE git tag MAY differ from project version, we now get the first directory available
-    #- LINPHONE_VERSION=$(git describe | sed -e 's/-.*//g')
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
     #using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     #- echo "Linphone version =" $LINPHONE_VERSION
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/linphone/*/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/multilang
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/c/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/cpp/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
 
 #################################################
 # Xamarin upload

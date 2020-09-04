@@ -20,7 +20,7 @@ RUN pacman --noconfirm --noprogressbar -Syu && \
 RUN pacman --noconfirm --noprogressbar -Syu && \
     pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make nasm ninja openssh patch pkgconf python-pip python-six yasm && \
     pacman -Scc && \
-    pip install pystache javasphinx sphinx sphinx_csharp
+    pip install pystache
 
 # Install linphone & flexisip dependencies development packages
 RUN pacman --noconfirm --noprogressbar -Syu && \
