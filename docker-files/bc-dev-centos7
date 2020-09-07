@@ -14,7 +14,6 @@ RUN yum install -y epel-release && \
 # Install development tools
 RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch pystache python-six python3-pip redhat-lsb-core rpm-build yasm && \
     yum clean all && \
-    pip3 install sphinx javasphinx sphinx_csharp && \
     ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
     ln -s /usr/bin/cmake3 /usr/bin/cmake && \
     ln -s /usr/bin/cpack3 /usr/bin/cpack && \
