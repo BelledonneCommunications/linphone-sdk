@@ -64,9 +64,7 @@ belle_sip_certificates_chain_t* belle_sip_auth_event_get_client_certificates_cha
 }
 
 void belle_sip_auth_event_set_client_certificates_chain(belle_sip_auth_event_t* event, belle_sip_certificates_chain_t* value) {
-	if (event->cert) belle_sip_object_unref(event->cert);
-	event->cert=value;
-	if (event->cert) belle_sip_object_ref(event->cert);
+	SET_OBJECT_PROPERTY(event,cert,value);
 }
 
 belle_sip_signing_key_t* belle_sip_auth_event_get_signing_key(const belle_sip_auth_event_t* event) {
