@@ -32,8 +32,7 @@ RUN curl -o cmake.tar.gz https://cmake.org/files/v3.11/cmake-3.11.4.tar.gz && \
     tar xvzf cmake.tar.gz && rm cmake.tar.gz && cd cmake-3.11.4 && cmake . && make -j5 install && cd .. && rm -rf cmake-3.11.4
 
 RUN apt-get purge -y cmake && \
-    apt-get clean && \
-    pip install sphinx==1.8.5 javasphinx sphinx_csharp
+    apt-get clean
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \

@@ -201,6 +201,6 @@
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    ADDITIONNAL_OPTIONS: "--dns-hosts ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts --show-account-manager-logs"
+    ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "liblinphone"
