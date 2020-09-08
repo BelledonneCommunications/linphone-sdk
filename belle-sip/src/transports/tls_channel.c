@@ -476,7 +476,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tls_channel_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_context_t *ssl_ctx, unsigned char *dn, size_t dn_length) {
+static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_context_t *ssl_ctx, const bctbx_list_t *names) {
 	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)data;
 
 	/* ask certificate */
@@ -484,7 +484,7 @@ static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_c
 			,belle_sip_channel_listener_t
 			,on_auth_requested
 			,&channel->base.base
-			,(char *)dn);
+			,(names==NULL)?NULL:(char *)names->data); // forward only the first name of the list, this functionnality is not used for now anyway
 
 	/* if we got one, set it in the ssl handshake context */
 	if (channel->client_cert_chain && channel->client_cert_key) {
@@ -502,7 +502,7 @@ static int belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_c
 		return 0;
 	}
 
-	belle_sip_warning("Channel [%p] cannot get client certificate to answer server request for dn [%s]", channel, (dn==NULL)?"null":(char *)dn);
+	belle_sip_warning("Channel [%p] cannot get client certificate to answer server request", channel);
 
 	return 0; /* we couldn't find any certificate, just keep on going, server may decide to abort the handshake */
 }
