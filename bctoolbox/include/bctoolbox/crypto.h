@@ -510,7 +510,7 @@ BCTBX_PUBLIC int32_t bctbx_ssl_config_set_transport (bctbx_ssl_config_t *ssl_con
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmode);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_rng(bctbx_ssl_config_t *ssl_config, int(*rng_function)(void *, unsigned char *, size_t), void *rng_context);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_callback_verify(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_x509_certificate_t *, int, uint32_t *), void *callback_data);
-BCTBX_PUBLIC int32_t bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t), void *callback_data);
+BCTBX_PUBLIC int32_t bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_ssl_context_t *, const bctbx_list_t *), void *callback_data);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *ca_chain);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config,const int *ciphersuites);
