@@ -75,6 +75,11 @@ def main(argv=None):
     sdk_dir = os.path.abspath(args.sdk_dir)
     platform_dir = 'linphone-sdk\desktop'
     grammars = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'Belr', 'grammars', '*_grammar' ))
+    sounds = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', '*.wav' ))
+    sounds += glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', '*.mkv' ))
+    rings = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', 'rings', '*.wav' ))
+    rings += glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'sounds', 'linphone', 'rings', '*.mkv' ))
+    images = glob.glob(os.path.join(sdk_dir, platform_dir, 'share', 'images', '*.jpg' ))
     dlls = glob.glob(os.path.join(sdk_dir, platform_dir, 'bin', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', '*.dll'))
     dlls += glob.glob(os.path.join(sdk_dir, platform_dir, 'lib', 'mediastreamer', 'plugins', '*.dll'))
@@ -86,12 +91,19 @@ def main(argv=None):
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.dll'))
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.pdb'))
         wrappers += glob.glob(os.path.join(args.cswrapper_dir, 'bin', 'x86', '*', '*.XML'))
-
-    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars')):
-            os.makedirs(os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
+    if not os.path.exists(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings')):
+            os.makedirs(os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings'))
 
     for grammar in grammars:
-        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'uap10.0', 'belr', 'grammars'))
+        shutil.copy(grammar, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'belr', 'grammars'))
+    for sound in sounds:
+        shutil.copy(sound, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets'))
+    for ring in rings:
+        shutil.copy(ring, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets', 'rings'))
+    for image in images:
+        shutil.copy(image, os.path.join(work_dir, 'contentFiles', 'AppX', 'Assets'))
     for dll in dlls:
         shutil.copy(dll, os.path.join(work_dir, 'build', 'uap10.0', 'x86'))
     for pdb in pdbs:
@@ -110,7 +122,14 @@ def main(argv=None):
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </Content>
     </ItemGroup>
-  </Target>
+  </Target>  
+  <ItemGroup>
+    <RequiredFiles Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" />
+    <None Include="@(RequiredFiles)">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>  
+  </ItemGroup>
 </Project>"""
     f = open(os.path.join(work_dir, 'build', 'uap10.0', target_id + '.targets'), 'w')
     f.write(targets)
@@ -124,20 +143,20 @@ def main(argv=None):
     <version>{version}</version>
     <authors>Belledonne Communications</authors>
     <owners>Belledonne Communications</owners>
-    <licenseUrl>http://www.gnu.org/licenses/old-licenses/gpl-2.0.html</licenseUrl>
+    <licenseUrl>https://www.gnu.org/licenses/gpl-3.0.html</licenseUrl>
     <projectUrl>https://linphone.org/</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/BelledonneCommunications/linphone-windows10/master/Linphone/Assets/logo-BC.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>{target_desc}</description>
     <releaseNotes>Nothing new</releaseNotes>
-    <copyright>Copyright 2017-2019 Belledonne Communications</copyright>
+    <copyright>Copyright 2017-2020 Belledonne Communications</copyright>
     <tags>SIP</tags>
     <contentFiles>
       <files include="**/*grammar" buildAction="EmbeddedResource" />
     </contentFiles>
   </metadata>
   <files>
-    <file src="contentFiles\**\*grammar" target="content\" />
+    <file src="contentFiles\**" target="content\" />
     <file src="lib\**" target="lib\" />
     <file src="build\**" target="build\" />
   </files>
