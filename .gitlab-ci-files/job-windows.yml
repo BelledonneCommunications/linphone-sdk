@@ -102,7 +102,8 @@
     - "echo \"build stopped: subcommand failed\" > ninja_buildlog.txt"
     # Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
     # GitlabCI limitation : when having ': ', the whole line must be in ""
-    - "FOR /F %G IN ('FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt') DO FINDSTR"
+    - "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt"
+    #- "FOR /F %G IN ('FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt') DO FINDSTR"
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
   artifacts:
