@@ -98,7 +98,7 @@
     #Store outputs in a file log    
     - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
-#    - type ninja_buildlog.txt
+    - type ninja_buildlog.txt
     # Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
 #    - FOR /F %G IN ('FINDSTR /C:"build stopped: subcommand failed" ninja_buildlog.txt') DO FINDSTR
     - C:\PROGRA~1\Python37\Scripts\cl -s
