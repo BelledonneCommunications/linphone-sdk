@@ -96,21 +96,15 @@
     - echo Building with Ninja. See ninja_buildlog.txt to get details before completing the build.
     #Warning : Ninja doesn't return an error code on Linker error.
     #Store outputs in a file log    
-    #- cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
+    - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
-    #- type ninja_buildlog.txt
-    - "echo \"build stopped: subcommand failed\" > ninja_buildlog.txt"
-    - echo echo A > invertSearch.bat
-    - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt >> invertSearch.bat"
-    - echo echo B >> invertSearch.bat
+    - type ninja_buildlog.txt
+    #GitlabCI stop at the first command that failed : Embedd commands in a script.
+    #GitlabCI limitation : when having ': ', the whole line must be in ""
+    - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > invertSearch.bat"
+    # Inverse the error code level of FINDSTR. It must be an error if the line has been found.
     - echo if ^%%ERRORLEVEL^%% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat
-    - echo echo C >> invertSearch.bat
-    # Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
-    # GitlabCI limitation : when having ': ', the whole line must be in ""
     - invertSearch.bat
-    #- "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > toto.txt" ; forfiles /M toto.txt /C "cmd /c if @fsize NEQ 0 FINDSTR"
-    #- forfiles /M toto.txt /C "cmd /c if @fsize NEQ 0 FINDSTR"
-    #- "FOR /F %%G IN ('FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt') DO FINDSTR"
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
   artifacts:
