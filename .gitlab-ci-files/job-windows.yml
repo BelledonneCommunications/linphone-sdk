@@ -101,7 +101,7 @@
     #- type ninja_buildlog.txt
     - "echo \"build stopped: subcommand ldishj failed\" > ninja_buildlog.txt"
     - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > invertSearch.bat"
-    - "echo if ^%ERRORLEVEL^% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat"
+    - "echo if ^%ERRORLEVEL^% EQU 0 (exit /b 1) else (dir) >> invertSearch.bat"
     # Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
     # GitlabCI limitation : when having ': ', the whole line must be in ""
     - invertSearch.bat
