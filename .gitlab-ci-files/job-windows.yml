@@ -99,12 +99,13 @@
     #- cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
     #- type ninja_buildlog.txt
+    - echo if ^%ERRORLEVEL^% EQU 0 (exit /b 1) else (exit /b 0) > invertErrorLevel.bat
     - "echo \"build stopped: subcommand ldishj failed\" > ninja_buildlog.txt"
     # Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
     # GitlabCI limitation : when having ': ', the whole line must be in ""
-    #- "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt"
-    - "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > toto.txt"
-    - forfiles /M toto.txt /C "cmd /c if @fsize NEQ 0 FINDSTR"
+    - "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt" & invertErrorLevel.bat
+    #- "FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > toto.txt" ; forfiles /M toto.txt /C "cmd /c if @fsize NEQ 0 FINDSTR"
+    #- forfiles /M toto.txt /C "cmd /c if @fsize NEQ 0 FINDSTR"
     #- "FOR /F %%G IN ('FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt') DO FINDSTR"
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
