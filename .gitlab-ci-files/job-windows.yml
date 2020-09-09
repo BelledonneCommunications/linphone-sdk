@@ -93,7 +93,14 @@
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
     - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=%MAKEFILE_JOBS% -DCMAKE_C_COMPILER=%CMAKE_C_COMPILER% -DCMAKE_CXX_COMPILER=%CMAKE_CXX_COMPILER% -DCMAKE_RC_COMPILER=%CMAKE_RC_COMPILER% %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
-    - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier"
+    - echo "Building with Ninja. See ninja_buildlog.txt to get details before completing the build"
+#Warning : Ninja doesn't return an error code on Linker error.
+#Store outputs in a file log    
+    - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
+#Print the file to get a feedback on CI    
+    - type ninja_buildlog.txt
+# Generate an error by calling FINDSTR without arguments if the error string exists in ninja log.
+    - FOR /F %G IN ('FINDSTR /C:"build stopped: subcommand failed" ninja_buildlog.txt') DO FINDSTR
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
   artifacts:
