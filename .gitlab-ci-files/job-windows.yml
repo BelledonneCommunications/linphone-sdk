@@ -99,7 +99,7 @@
     #- cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
     #- type ninja_buildlog.txt
-    - "echo \"build stopped: subcommand ldishj failed\" > ninja_buildlog.txt"
+    - "echo \"build stopped: subcommand failed\" > ninja_buildlog.txt"
     - echo echo A > invertSearch.bat
     - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt >> invertSearch.bat"
     - echo echo B >> invertSearch.bat
