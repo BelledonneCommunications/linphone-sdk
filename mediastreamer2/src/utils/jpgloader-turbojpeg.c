@@ -41,13 +41,13 @@
 #define free_and_reset_msg(m) \
 	freemsg(m); \
 	m = NULL
-
 mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	MSPicture dest;
 	mblk_t *m = NULL;
 	uint8_t *rgbBuf = NULL;
 	int imgsrch, imgsrcw, imgsrcsubsamp, imgsrccolor, sfnum, i;
 	int scaledw = 0, scaledh = 0;
+	int requestw, requesth;
 	tjscalingfactor* sf = NULL;
 	tjhandle turbojpegDec = tjInitDecompress();
 	tjhandle *yuvEncoder = NULL;
@@ -69,18 +69,27 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 		ms_error("tjDecompressHeader3() failed, error: %s", tjGetErrorStr());
 	}
 
+	if( reqsize->width == MS_VIDEO_SIZE_UNKNOWN_W)
+		requestw = imgsrcw;
+	else
+		requestw = reqsize->width;
+	if( reqsize->height == MS_VIDEO_SIZE_UNKNOWN_H)
+		requesth = imgsrch;
+	else
+		requesth = reqsize->height;
+
 	sf = tjGetScalingFactors(&sfnum);
 
 	// Prevision of height and width
 	for(i = 0; i < sfnum; i++) {
 		scaledw = TJSCALED(imgsrcw, sf[i]);
 		scaledh = TJSCALED(imgsrch, sf[i]);
-		if (scaledw <= reqsize->width && scaledh <= reqsize->height)
+		if (scaledw <= requestw && scaledh <= requesth)
 			break;
 	}
 
 	if (scaledw <= 0 && scaledh <= 0) {
-		ms_error("No resolution size found for (%ix%i)", reqsize->width, reqsize->height);
+		ms_error("No resolution size found for (%ix%i)", requestw, requesth);
 		goto clean;
 	}
 
@@ -97,7 +106,7 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 			dest.strides,
 			dest.h,
 			0
-			) != 0) {
+			) <0 && tjGetErrorCode(turbojpegDec) != TJERR_WARNING) {
 			ms_error("tjDecompressToYUVPlanes() failed, error: %s", tjGetErrorStr());
 			free_and_reset_msg(m);
 			goto clean;
@@ -124,7 +133,7 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 			scaledh,
 			TJPF_RGB,
 			0
-		) != 0) {
+		) <0 && tjGetErrorCode(turbojpegDec) != TJERR_WARNING) {
 			ms_error("tjDecompress2() failed, error: %s", tjGetErrorStr());
 			free_and_reset_msg(m);
 			goto clean;
@@ -141,7 +150,7 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 			dest.strides,
 			TJSAMP_420,
 			0
-		) != 0) {
+		) <0 && tjGetErrorCode(yuvEncoder) != TJERR_WARNING) {
 			ms_error("tjEncodeYUVPlanes() failed, error: %s", tjGetErrorStr());
 			free_and_reset_msg(m);
 			goto clean;

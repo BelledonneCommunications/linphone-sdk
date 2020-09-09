@@ -247,6 +247,9 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/jpgloader-turbojpeg.c
 		)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/msturbojpeg.cpp	#MJPEG using turbojpeg
+		)
 	else()
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/jpgloader-stub.c
@@ -258,7 +261,9 @@ if(ENABLE_VIDEO)
 			list(APPEND VOIP_SOURCE_FILES_C videofilters/drawdib-display.c)
 		endif()
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			videofilters/msdscap.cc
+			videofilters/msmfoundationcap.cpp	#Media-Foundation
+			videofilters/msmfoundationcap.h
+			videofilters/msdscap.cc				#DirectShow
 		)
 	endif()
 	if(APPLE)
@@ -549,6 +554,12 @@ if(ENABLE_SHARED)
 				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
+		endif()
+	endif()
+	if(ENABLE_LIBYUV)
+		if( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.3)
+			message(STATUS "Mediastreamer2 : Build with position independent code")
+			set_property(TARGET mediastreamer PROPERTY POSITION_INDEPENDENT_CODE ON)
 		endif()
 	endif()
 	install(TARGETS mediastreamer EXPORT ${EXPORT_TARGETS_NAME}Targets

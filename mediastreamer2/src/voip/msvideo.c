@@ -232,8 +232,7 @@ void ms_yuv_buf_allocator_set_max_frames(MSYuvBufAllocator *obj, int max_frames)
 	msgb_allocator_set_max_blocks(obj, max_frames);
 }
 
-mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h) {
-	int size=(w * (h & 0x1 ? h+1 : h) *3)/2; /*swscale doesn't like odd numbers of line*/
+mblk_t *ms_yuv_allocator_get(MSYuvBufAllocator *obj, int size, int w, int h) {
 	const int header_size = sizeof(mblk_video_header);
 	const int padding=16;
 	mblk_video_header* hdr;
@@ -244,8 +243,15 @@ mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, 
 	hdr->h = h;
 	msg->b_rptr += header_size;
 	msg->b_wptr += header_size;
-	ms_yuv_buf_init(buf,w,h,w,msg->b_wptr);
 	msg->b_wptr+=size;
+	return msg;
+}
+
+mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h) {
+	int size=(w * (h & 0x1 ? h+1 : h) *3)/2; /*swscale doesn't like odd numbers of line*/
+	mblk_t *msg = ms_yuv_allocator_get(obj, size, w, h);
+	if (msg == NULL) return NULL;
+	ms_yuv_buf_init(buf,w,h,w,msg->b_rptr);
 	return msg;
 }
 

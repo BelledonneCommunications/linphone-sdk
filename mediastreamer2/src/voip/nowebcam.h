@@ -21,8 +21,15 @@
 #ifndef nowebcam_h
 #define nowebcam_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 MS2_PUBLIC mblk_t *ms_load_jpeg_as_yuv(const char *path, MSVideoSize *reqsize);
 MS2_PUBLIC mblk_t *ms_load_nowebcam(MSFactory *factory, MSVideoSize *reqsize, int idx);
 MS2_PUBLIC mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

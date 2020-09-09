@@ -181,6 +181,7 @@ extern MSWebCamDesc v4l2_card_desc;
 #endif
 
 #ifdef _WIN32
+extern MSWebCamDesc ms_mfoundationcap_desc;
 extern MSWebCamDesc ms_vfw_cam_desc;
 #endif
 
@@ -227,6 +228,9 @@ static MSWebCamDesc * ms_web_cam_descs[]={
 #endif
 #ifdef HAVE_LINUX_VIDEODEV_H
 	&v4l_desc,
+#endif
+#if defined(_WIN32)
+	&ms_mfoundationcap_desc,
 #endif
 #if defined(_WIN32) && defined(HAVE_VFW)
 	&ms_vfw_cam_desc,

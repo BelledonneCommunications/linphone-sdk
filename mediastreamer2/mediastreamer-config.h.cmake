@@ -53,6 +53,7 @@
 
 #cmakedefine HAVE_LIBAVCODEC_AVCODEC_H 1
 #cmakedefine HAVE_LIBSWSCALE_SWSCALE_H 1
+#cmakedefine HAVE_LIBYUV_H 1
 #cmakedefine HAVE_FUN_avcodec_get_context_defaults3 1
 #cmakedefine HAVE_FUN_avcodec_open2 1
 #cmakedefine HAVE_FUN_avcodec_encode_video2 1

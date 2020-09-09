@@ -276,6 +276,7 @@ MS2_PUBLIC MSYuvBufAllocator *ms_yuv_buf_allocator_new(void);
  * Only frames satisfying the w / h size request are counted.
  */
 MS2_PUBLIC void ms_yuv_buf_allocator_set_max_frames(MSYuvBufAllocator *obj, int max_frames);
+MS2_PUBLIC mblk_t *ms_yuv_allocator_get(MSYuvBufAllocator *obj, int size, int w, int h);
 MS2_PUBLIC mblk_t *ms_yuv_buf_allocator_get(MSYuvBufAllocator *obj, MSPicture *buf, int w, int h);
 MS2_PUBLIC void ms_yuv_buf_allocator_free(MSYuvBufAllocator *obj);
 
