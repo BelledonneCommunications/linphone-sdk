@@ -28,7 +28,7 @@ include:
   - '.gitlab-ci-files/job-android.yml'
   - '.gitlab-ci-files/job-ios.yml'
   - '.gitlab-ci-files/job-linux-desktop.yml'
-  - '.gitlab-ci-files/job-raspbian.yml'
+#  - '.gitlab-ci-files/job-raspbian.yml'
   - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos8.yml'
