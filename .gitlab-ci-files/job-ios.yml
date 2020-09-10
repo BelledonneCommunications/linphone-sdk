@@ -63,7 +63,9 @@ job-ios-makefile:
 
 
 job-ios-ninja:
-
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -99,12 +101,12 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#      - $DEPLOY_RUN_IOS
+#      - $NIGHTLY_RELEASE
+#      - $ENABLE_IOS_TESTS
 
   variables:
     CMAKE_GENERATOR: Xcode
