@@ -211,9 +211,9 @@ static MSFilterMethod methods[]={
 
 #ifndef _MSC_VER
 
-MSFilterDesc ms_mjpeg_dec_desc={
+MSFilterDesc ms_turbojpeg_mjpeg_dec_desc={
 	.id=MS_MJPEG_DEC_ID,
-	.name="MSTMJpegDec",// ??MSTMJpegDec
+	.name="MSTMJpegDec",
 	.text="A MJPEG decoder using turbojpeg library",
 	.category=MS_FILTER_DECODER,
 	.enc_fmt="MJPEG",
@@ -229,7 +229,7 @@ MSFilterDesc ms_mjpeg_dec_desc={
 
 #else
 
-MSFilterDesc ms_mjpeg_dec_desc={
+MSFilterDesc ms_turbojpeg_mjpeg_dec_desc={
 	MS_MJPEG_DEC_ID,
 	"MSTMJpegDec",
 	N_("A MJPEG decoder using turbojpeg library"),
@@ -247,4 +247,4 @@ MSFilterDesc ms_mjpeg_dec_desc={
 
 #endif
 }// extern "C"
-MS_FILTER_DESC_EXPORT(ms_mjpeg_dec_desc)
+MS_FILTER_DESC_EXPORT(ms_turbojpeg_mjpeg_dec_desc)
