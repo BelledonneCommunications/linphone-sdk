@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.3.2'
+        classpath 'com.android.tools.build:gradle:4.0.1'
     }
 }
 
@@ -27,7 +27,6 @@ configurations {
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
 
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
@@ -69,6 +68,7 @@ if (!isGeneratedJavaWrapperAvailable()) {
     javaExcludes.add('**/AudioHelper.java')
     javaExcludes.add('**/BluetoothHelper.java')
     javaExcludes.add('**/BluetoothReceiver.java')
+    javaExcludes.add('**/ShutdownReceiver.java')
     javaExcludes.add('**/CoreManager.java')
     javaExcludes.add('**/CoreService.java')
     javaExcludes.add('**/FirebaseMessaging.java')
@@ -93,10 +93,12 @@ task listPlugins() {
 project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+    
     defaultConfig {
-        compileSdkVersion 28
         minSdkVersion 23
-        targetSdkVersion 28
+        targetSdkVersion 29
         versionCode 4400
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
@@ -113,21 +115,18 @@ android {
     }
 
     buildTypes {
-        release {
-            signingConfig signingConfigs.release
-            minifyEnabled false
-            useProguard false
-            resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
-            resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
-            buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
-            
-        }
         debug {
             minifyEnabled false
-            useProguard false
             debuggable true
             jniDebuggable true
             resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@-debug"
+            resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
+            buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
+        }
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            resValue "string", "linphone_sdk_version", "@LINPHONESDK_VERSION@"
             resValue "string", "linphone_sdk_branch", "@LINPHONESDK_BRANCH@"
             buildConfigField "String[]", "PLUGINS_ARRAY", "{" + pluginsList +  "}"
         }
@@ -172,7 +171,7 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     source = srcDir
     excludes = javaExcludes.plus(['**/**.html', '**/**.aidl'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
+    //classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
