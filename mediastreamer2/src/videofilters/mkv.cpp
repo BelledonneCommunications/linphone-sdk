@@ -2512,6 +2512,9 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 	} else {
 		int newpos = mkv_reader_seek(obj->reader, position);
 		if (newpos < 0) return FALSE;
+		if (obj->time != newpos) {
+			obj->position_changed = TRUE;
+		}
 		obj->time = newpos;
 	}
 
@@ -2519,7 +2522,6 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 		if (obj->players[i]) mkv_track_player_flush(obj->players[i]);
 	}
 
-	obj->position_changed = TRUE;
 	return TRUE;
 }
 
