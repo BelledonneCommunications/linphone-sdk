@@ -6,8 +6,9 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 ENV SHELL=/bin/bash
 
 # Configure additional repositories and install common general tools
-RUN yum install -y epel-release && \
-    rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm && \
+RUN yum -y update  ca-certificates && \
+    yum install -y epel-release && \
+   # rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
     yum install -y nano sudo which && \
     yum clean all
 
