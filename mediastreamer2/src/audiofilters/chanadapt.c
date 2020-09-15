@@ -32,8 +32,8 @@ typedef struct AdapterState {
 	size_t buffer_size;
 	uint8_t *buffer1;
 	uint8_t *buffer2;
-	MSBufferizer input_buffer1;
-	MSBufferizer input_buffer2;
+	MSFlowControlledBufferizer input_buffer1;
+	MSFlowControlledBufferizer input_buffer2;
 }AdapterState;
 
 static void adapter_init(MSFilter *f) {
@@ -55,46 +55,52 @@ static void adapter_preprocess(MSFilter *f) {
 		s->buffer_size = ((f->ticker->interval * s->sample_rate) / 1000) * 2;
 		s->buffer1 = ms_new(uint8_t, s->buffer_size);
 		s->buffer2 = ms_new(uint8_t, s->buffer_size);
-		ms_bufferizer_init(&s->input_buffer1);
-		ms_bufferizer_init(&s->input_buffer2);
+		ms_flow_controlled_bufferizer_init(&s->input_buffer1, f, s->sample_rate, 1);
+		ms_flow_controlled_bufferizer_set_drop_method(&s->input_buffer1, MSFlowControlledBufferizerImmediateDrop);
+		ms_flow_controlled_bufferizer_set_max_size_ms(&s->input_buffer1, f->ticker->interval *2);
+		ms_flow_controlled_bufferizer_init(&s->input_buffer2, f, s->sample_rate, 1);
+		ms_flow_controlled_bufferizer_set_drop_method(&s->input_buffer2, MSFlowControlledBufferizerImmediateDrop);
+		ms_flow_controlled_bufferizer_set_max_size_ms(&s->input_buffer2, f->ticker->interval *2);
+	}
+}
+
+static void adapter_process_2_inputs_to_single_stereo_output(MSFilter *f){
+	AdapterState *s = (AdapterState*)f->data;
+	size_t buffer_size1, buffer_size2;
+
+	ms_flow_controlled_bufferizer_put_from_queue(&s->input_buffer1, f->inputs[0]);
+	ms_flow_controlled_bufferizer_put_from_queue(&s->input_buffer2, f->inputs[1]);
+
+	buffer_size1 = ms_flow_controlled_bufferizer_get_avail(&s->input_buffer1);
+	buffer_size2 = ms_flow_controlled_bufferizer_get_avail(&s->input_buffer2);
+
+	if (buffer_size1 >= s->buffer_size || buffer_size2 >= s->buffer_size) {
+		mblk_t *om;
+		unsigned int i;
+
+		if (buffer_size1 < s->buffer_size) memset(s->buffer1, 0, s->buffer_size);
+		if (buffer_size2 < s->buffer_size) memset(s->buffer2, 0, s->buffer_size);
+
+		ms_flow_controlled_bufferizer_read(&s->input_buffer1, s->buffer1, s->buffer_size);
+		ms_flow_controlled_bufferizer_read(&s->input_buffer2, s->buffer2, s->buffer_size);
+
+		om = allocb(s->buffer_size * 2, 0);
+
+		for (i = 0 ; i < s->buffer_size / sizeof(int16_t) ; i++ , om->b_wptr += 4) {
+			((int16_t*)om->b_wptr)[0] = ((int16_t*)s->buffer1)[i];
+			((int16_t*)om->b_wptr)[1] = ((int16_t*)s->buffer2)[i];
+		}
+
+		ms_queue_put(f->outputs[0], om);
 	}
 }
 
 static void adapter_process(MSFilter *f) {
 	AdapterState *s = (AdapterState*)f->data;
 
-	// Two mono input to stereo output
+	// Two mono inputs to stereo output
 	if (f->inputs[0] != NULL && f->inputs[1] != NULL) {
-		size_t buffer_size1, buffer_size2;
-
-		ms_bufferizer_put_from_queue(&s->input_buffer1, f->inputs[0]);
-		ms_bufferizer_put_from_queue(&s->input_buffer2, f->inputs[1]);
-
-		buffer_size1 = ms_bufferizer_get_avail(&s->input_buffer1);
-		buffer_size2 = ms_bufferizer_get_avail(&s->input_buffer2);
-
-		if (buffer_size1 >= s->buffer_size || buffer_size2 >= s->buffer_size) {
-			mblk_t *om;
-			unsigned int i;
-
-			if (buffer_size1 < s->buffer_size) memset(s->buffer1, 0, s->buffer_size);
-			if (buffer_size2 < s->buffer_size) memset(s->buffer2, 0, s->buffer_size);
-
-			ms_bufferizer_read(&s->input_buffer1, s->buffer1, s->buffer_size);
-			ms_bufferizer_read(&s->input_buffer2, s->buffer2, s->buffer_size);
-
-			om = allocb(s->buffer_size * 2, 0);
-
-			for (i = 0 ; i < s->buffer_size / sizeof(int16_t) ; i++ , om->b_wptr += 4) {
-				((int16_t*)om->b_wptr)[0] = ((int16_t*)s->buffer1)[i];
-				((int16_t*)om->b_wptr)[1] = ((int16_t*)s->buffer2)[i];
-			}
-
-			ms_queue_put(f->outputs[0], om);
-
-			buffer_size1 = ms_bufferizer_get_avail(&s->input_buffer1);
-			buffer_size2 = ms_bufferizer_get_avail(&s->input_buffer2);
-		}
+		adapter_process_2_inputs_to_single_stereo_output(f);
 	} else {
 		mblk_t *im, *om;
 		size_t msgsize;
@@ -126,12 +132,14 @@ static void adapter_process(MSFilter *f) {
 
 static void adapter_postprocess(MSFilter *f) {
 	AdapterState *s = (AdapterState*)f->data;
-	ms_bufferizer_uninit(&s->input_buffer1);
-	ms_bufferizer_uninit(&s->input_buffer2);
-	if (s->buffer1) ms_free(s->buffer1);
-	if (s->buffer2) ms_free(s->buffer2);
-	s->buffer1 = NULL;
-	s->buffer2 = NULL;
+	if (s->buffer1 && s->buffer2){
+		ms_flow_controlled_bufferizer_uninit(&s->input_buffer1);
+		ms_flow_controlled_bufferizer_uninit(&s->input_buffer2);
+		ms_free(s->buffer1);
+		ms_free(s->buffer2);
+		s->buffer1 = NULL;
+		s->buffer2 = NULL;
+	}
 }
 
 static int adapter_set_sample_rate(MSFilter *f, void *data) {
@@ -193,7 +201,8 @@ MSFilterDesc ms_channel_adapter_desc = {
 	adapter_process,
 	adapter_postprocess,
 	adapter_uninit,
-	methods
+	methods,
+	MS_FILTER_IS_PUMP
 };
 
 MS_FILTER_DESC_EXPORT(ms_channel_adapter_desc)

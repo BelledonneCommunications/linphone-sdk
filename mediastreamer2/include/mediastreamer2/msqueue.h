@@ -127,6 +127,10 @@ struct _MSBufferizer{
 	size_t size;
 };
 
+/**
+ * The MSFlowControlledBufferizer is an object that buffer audio samples provided as mblk_t of any size,
+ * and allows a reader to read (in a FIFO manner) with an arbitrary size.
+ */
 typedef struct _MSBufferizer MSBufferizer;
 
 /*allocates and initialize */
@@ -160,10 +164,19 @@ MS2_PUBLIC void ms_bufferizer_uninit(MSBufferizer *obj);
 
 MS2_PUBLIC void ms_bufferizer_destroy(MSBufferizer *obj);
 
+/**
+ * The drop method explicits how the MSFlowControlledBufferizer should react when
+ * it detects an excessive amount of samples.
+ */
+typedef enum _MSFlowControlledBufferizerDropMethod{
+	MSFlowControlledBufferizerSendEvent, /**< Send a MS_AUDIO_FLOW_CONTROL_DROP_EVENT to be caught by the upper layer */
+	MSFlowControlledBufferizerImmediateDrop /**< Immediately and abruptly drop samples */
+}MSFlowControlledBufferizerDropMethod;
 
 struct _MSFlowControlledBufferizer {
 	MSBufferizer base;
 	struct _MSFilter *filter;
+	MSFlowControlledBufferizerDropMethod drop_method;
 	uint64_t flow_control_time;
 	uint32_t flow_control_interval_ms;
 	uint32_t max_size_ms;
@@ -173,11 +186,21 @@ struct _MSFlowControlledBufferizer {
 	int nchannels;
 };
 
+/**
+ * The MSFlowControlledBufferizer is an object that buffer audio samples provided as mblk_t of any size,
+ * and allows a reader to read (in a FIFO manner) with an arbitrary size, exactly as the MSBufferizer, but with an additional feature:
+ * it monitors the actual fullness (minimum amount of sample) of the internal buffer over a period of time.
+ * If this amount exceeds a give maximum size, it can either raise an event to request samples to be dropped
+ * by an upstream filter, or simply eliminate such amount of samples in excess.
+ * It is particularly useful when synchronizing several streams together, that may not operate at exactly the same rate.
+ */
 typedef struct _MSFlowControlledBufferizer MSFlowControlledBufferizer;
 
 MS2_PUBLIC MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(struct _MSFilter *f, int samplerate, int nchannels);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, struct _MSFilter *f, int samplerate, int nchannels);
+
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_drop_method(MSFlowControlledBufferizer *obj, MSFlowControlledBufferizerDropMethod method);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_max_size_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
 

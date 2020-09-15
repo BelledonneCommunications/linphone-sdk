@@ -537,9 +537,9 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 #define SOUND_TEST_1 "sounds/hello8000.wav"
 #define SOUND_TEST_2 "sounds/arpeggio_8000_mono.wav"
-#define RECORD_SOUND "sounds/mixed_file.wav"
+#define RECORD_SOUND "mixed_file.wav"
 
-static void two_mono_into_one_stereo(void) {
+static void _two_mono_into_one_stereo(bool_t with_unsynchronized_inputs) {
 	//struct stat sound_file1, sound_file2, sound_record;
 	//unsigned int max_sound_size;
 	player_callback_data player1_data, player2_data;
@@ -548,8 +548,9 @@ static void two_mono_into_one_stereo(void) {
 	int sample_rate1, sample_rate2, nb_channels = 2;
 	char* played_file1 = bc_tester_res(SOUND_TEST_1);
 	char* played_file2 = bc_tester_res(SOUND_TEST_2);
-	char* recorded_file = bc_tester_res(RECORD_SOUND);
+	char* recorded_file = bc_tester_file(RECORD_SOUND);
 
+	unlink(recorded_file); /*make sure the file doesn't exist, otherwise new content will be appended.*/
 	player1_data.end_of_file = FALSE;
 	player2_data.end_of_file = FALSE;
 
@@ -578,6 +579,12 @@ static void two_mono_into_one_stereo(void) {
 		ms_filter_call_method_noarg(player1, MS_FILE_PLAYER_CLOSE);
 		ms_filter_call_method_noarg(player2, MS_FILE_PLAYER_CLOSE);
 		goto end;
+	}
+	
+	if (with_unsynchronized_inputs){
+		int bit_too_fast_rate = sample_rate1 + (sample_rate1 * 10 / 100);
+		ms_filter_call_method(player1, MS_FILTER_SET_SAMPLE_RATE, &bit_too_fast_rate);
+		ms_message("Player 1 configured with a sample rate of %i Hz", bit_too_fast_rate);
 	}
 
 	ms_filter_call_method(mixer_mono, MS_FILTER_SET_SAMPLE_RATE, &sample_rate1);
@@ -634,6 +641,15 @@ static void two_mono_into_one_stereo(void) {
 	if (played_file1) ms_free(played_file1);
 	if (played_file2) ms_free(played_file2);
 }
+
+static void two_mono_into_one_stereo(void){
+	_two_mono_into_one_stereo(FALSE);
+}
+
+static void two_mono_into_one_stereo_with_unsynchronized_inputs(void){
+	_two_mono_into_one_stereo(TRUE);
+}
+
 static void max_ptime(void) {
 	const bctbx_list_t * filters = ms_factory_get_filter_decs(msFactory);
 	bctbx_list_t * it = bctbx_list_copy(filters);
@@ -689,7 +705,8 @@ test_t basic_audio_tests[] = {
 #endif
 	TEST_NO_TAG("dtmfgen-enc-rtp-dec-tonedet", dtmfgen_enc_rtp_dec_tonedet),
 	TEST_NO_TAG("dtmfgen-filerec-fileplay-tonedet", dtmfgen_filerec_fileplay_tonedet),
-	TEST_NO_TAG("Mixe two mono file into one stereo file", two_mono_into_one_stereo),
+	TEST_NO_TAG("Mix two mono files into one stereo file", two_mono_into_one_stereo),
+	TEST_NO_TAG("Mix two mono files into one stereo file with unsynchronized inputs", two_mono_into_one_stereo_with_unsynchronized_inputs),
 	TEST_NO_TAG("Max ptime", max_ptime)
 };
 

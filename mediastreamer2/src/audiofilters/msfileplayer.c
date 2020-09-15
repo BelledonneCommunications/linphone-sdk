@@ -438,8 +438,10 @@ static int player_get_sr(MSFilter *f, void*arg){
 static int player_set_sr(MSFilter *f, void *arg) {
 	/* This function should be used only when playing a PCAP or raw file */
 	PlayerData *d = (PlayerData *)f->data;
-	if (d->is_raw) d->rate = *((int *)arg);
-	else return -1;
+	d->rate = *((int *)arg);
+	if (!d->is_raw){
+		ms_warning("MSFilePlayer[%p]: rate explicitely while playing a wav file. Hoping it is intended.", f);
+	}
 	return 0;
 }
 
