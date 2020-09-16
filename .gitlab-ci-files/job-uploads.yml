@@ -71,12 +71,18 @@ job-android-upload:
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
     - cd build
+    # AAR maven upload
     - mkdir -p maven_repository/org/linphone/
     - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
     - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $ANDROID_MAVEN_URL/org/linphone/
+    # Java doc upload
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
+    - rsync -rlv linphone-sdk/bin/docs/javadoc/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java/
 
   after_script:
     - rm -rf ~/.ssh || true
