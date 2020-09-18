@@ -45,7 +45,7 @@
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   script:
     #handling the case of previous job cancellation
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -78,7 +78,7 @@
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DENABLE_LIME_X3DH=NO -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   script:
     #handling the case of previous job cancellation
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
