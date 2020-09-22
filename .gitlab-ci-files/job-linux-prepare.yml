@@ -1,5 +1,8 @@
 .linux-prepare:
 
+  #storing cache per job name per branch
+  #cache management between containers is managed by Gitlab
+
   cache:
     key: $CI_JOB_NAME
     paths:
