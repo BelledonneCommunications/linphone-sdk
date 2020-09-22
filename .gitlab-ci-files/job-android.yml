@@ -8,6 +8,15 @@
 
   extends: .linux-prepare
 
+  #Cache parameters of job-linux-prepare
+  #with gradle cache too
+  cache:
+    key: $CI_JOB_NAME
+    paths:
+      - ccache/
+      - .gradle/
+
+
   except:
     variables:
       - $DOCKER_UPDATE
