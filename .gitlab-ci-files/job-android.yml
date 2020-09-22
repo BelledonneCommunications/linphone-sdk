@@ -95,6 +95,7 @@ job-android-ninja-r17c-no-video:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    ADDITIONAL_BUILD_OPTIONS: -v
   extends: .job-android
 
 #job-android-ninja-r17c-macos:
