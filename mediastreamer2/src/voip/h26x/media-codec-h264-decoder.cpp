@@ -40,8 +40,16 @@ MediaCodecH264Decoder::MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {
 	DeviceInfo info = getDeviceInfo();
 	ms_message("MediaCodecH264Decoder: got device info: %s", info.toString().c_str());
 	if (find(_tvDevices.cbegin(), _tvDevices.cend(), info) != _tvDevices.cend()) {
-		ms_message("MediaCodecH264Decoder: enabling reset on new SPS/PPS mode");
+		ms_message("MediaCodecH264Decoder: found exact device, enabling reset on new SPS/PPS mode");
 		_resetOnPsReceiving = true;
+	} else {
+		for (auto it = _tvDevices.cbegin(); it != _tvDevices.cend(); it++) {
+			if (info.weakEquals(*it)) {
+				ms_message("MediaCodecH264Decoder: found matching manufacturer/platform, enabling reset on new SPS/PPS mode");
+				_resetOnPsReceiving = true;
+				return;
+			}
+		}
 	}
 }
 
@@ -79,6 +87,11 @@ bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 bool MediaCodecH264Decoder::DeviceInfo::operator==(const DeviceInfo &info) const {
 	return this->manufacturer == info.manufacturer
 		&& this->model == info.model
+		&& this->platform == info.platform;
+}
+
+bool MediaCodecH264Decoder::DeviceInfo::weakEquals(const DeviceInfo &info) const {
+	return this->manufacturer == info.manufacturer
 		&& this->platform == info.platform;
 }
 
@@ -204,6 +217,7 @@ const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder
 	{"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
 	{"rockchip", "X9-LX", "rk3288"},
 	{"rockchip", "rk3288", "rk3288"},
+	{"rockchip", "rk3399", "rk3399"},
 	{"rockchip", "rk3368", "rk3368"}
 };
 

@@ -38,6 +38,7 @@ private:
 		std::string platform;
 
 		bool operator==(const DeviceInfo &info) const;
+		bool weakEquals(const DeviceInfo &info) const;
 		std::string toString() const;
 	};
 
