@@ -8,19 +8,22 @@
 
   extends: .linux-prepare
 
+  except:
+    variables:
+      - $DOCKER_UPDATE
+      - $SKIP_ANDROID
+
   #Cache parameters of job-linux-prepare
   #with gradle cache too
   cache:
     key: $CI_JOB_NAME
     paths:
       - ccache/
-      - ~/.gradle/
+      - cache/.gradle
 
-
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_ANDROID
+  before_script:
+    - mkdir -p cache/.gradle
+    - export GRADLE_USER_HOME=cache/.gradle
 
   script:
     - sdkmanager
