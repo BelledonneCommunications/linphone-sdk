@@ -426,13 +426,13 @@ job-test-upload-libl-centos8:
     PLATFORM: "linux-centos8"
     TESTER: "liblinphone"
 
-job-test-upload-libl-debian8:
-  extends: .job-test-report-upload-scheduled
-  dependencies:
-    - test-liblinphone-debian8
-  variables:
-    PLATFORM: "linux-debian8"
-    TESTER: "liblinphone"
+#job-test-upload-libl-debian8:
+#  extends: .job-test-report-upload-scheduled
+#  dependencies:
+#    - test-liblinphone-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "liblinphone"
 
 job-test-upload-libl-debian9:
   extends: .job-test-report-upload-scheduled
@@ -450,13 +450,13 @@ job-test-upload-libl-debian10:
     PLATFORM: "linux-debian10"
     TESTER: "liblinphone"
 
-job-test-upload-libl-ubuntu:
-  extends: .job-test-report-upload-scheduled
-  dependencies:
-    - test-liblinphone-ubuntu
-  variables:
-    PLATFORM: "linux-ubuntu-rolling"
-    TESTER: "liblinphone"
+#job-test-upload-libl-ubuntu:
+#  extends: .job-test-report-upload-scheduled
+#  dependencies:
+#    - test-liblinphone-ubuntu
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "liblinphone"
 
 job-test-upload-libl-arch:
   extends: .job-test-report-upload-scheduled
