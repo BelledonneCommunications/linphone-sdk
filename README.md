@@ -23,7 +23,7 @@ The software products developed in the context of the Linphone project are dual 
 ### Common to all target platforms
 
 The following tools must be installed on the build machine:
- - cmake >= 3.6
+ - cmake >= 3.11
  - python = 2.7 (python 3.7 if C# wrapper generation is disabled)
  - pip
  - yasm
@@ -72,7 +72,9 @@ in the next subsections.
 
 ### iOS
 
-Requirement: Xcode 11 or 10.
+Requirement: 
+ - Xcode >= 10
+ - cmake >= 3.18.2 
 
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
