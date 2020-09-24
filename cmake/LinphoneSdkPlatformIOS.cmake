@@ -22,6 +22,8 @@
 
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsIOS)
+#set default SYSROOT for IOS to avoid xcode12/cmake 3.18.2 to not be able to detect clang for x86_64
+set(CMAKE_OSX_SYSROOT "iphonesimulator" CACHE STRING "System root for iOS" FORCE)
 
 set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
