@@ -33,6 +33,7 @@
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
+    - ccache -z
 
   after_script:
     - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
