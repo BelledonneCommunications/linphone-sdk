@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-xcode12" ]
   except:
     variables:
       - $DOCKER_UPDATE
@@ -99,12 +99,12 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
+#      - $DEPLOY_RUN_IOS
+#      - $NIGHTLY_RELEASE
+#      - $ENABLE_IOS_TESTS
 
   variables:
     CMAKE_GENERATOR: Xcode
