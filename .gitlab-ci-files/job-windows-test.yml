@@ -168,7 +168,7 @@ test-linphone-windows-win32:
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
+    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
@@ -184,4 +184,7 @@ test-linphone-windows-win32:
     paths:
       - results/*
     when: always
+    reports:
+      junit:
+	- ${CI_PROJECT_DIR}/results/BCUnitAutomated-Results.xml
     expire_in: 4 week
