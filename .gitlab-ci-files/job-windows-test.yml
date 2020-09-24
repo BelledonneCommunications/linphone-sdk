@@ -186,5 +186,5 @@ test-linphone-windows-win32:
     when: always
     reports:
       junit:
-        - %CI_PROJECT_DIR%/results/BCUnitAutomated-Results.xml
+        - "${CI_PROJECT_DIR}/results/BCUnitAutomated-Results.xml"
     expire_in: 4 week
