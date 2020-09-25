@@ -30,9 +30,9 @@ job-docker-rebuild-ubuntu-rolling-ms-test-image:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
     - cd docker-files
-    - docker build -f ./bc-dev-ubuntu-rolling-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-ubuntu-rolling-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
-    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-test-mediastreamer:latestupdated
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
 
 job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
   stage: docker-update-build-liblinphone
@@ -49,9 +49,9 @@ job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-ubuntu-rolling-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-ubuntu-rolling-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
-    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-test-liblinphone:latestupdated
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated
 
 job-rebuild-ubuntu-rolling-newdocker-makefile-gcc:
   extends: job-ubuntu-rolling-makefile-gcc
