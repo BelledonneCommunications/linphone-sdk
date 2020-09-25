@@ -65,6 +65,12 @@ typedef struct _Type_ComponentID {
 	uint16_t componentID;
 } Type_ComponentID;
 
+typedef struct _Type_Family_ComponentID {
+	IceCandidateType type;
+	int family;
+	uint16_t componentID;
+} Type_Family_ComponentID;
+
 typedef struct _Foundation_Pair_Priority_ComponentID {
 	const IcePairFoundation *foundation;
 	IceCandidatePair *pair;
@@ -142,6 +148,7 @@ static int ice_compare_pairs(const IceCandidatePair *p1, const IceCandidatePair 
 static int ice_compare_candidates(const IceCandidate *c1, const IceCandidate *c2);
 static int ice_find_host_candidate(const IceCandidate *candidate, const ComponentID_Family *cf);
 static int ice_find_candidate_from_type_and_componentID(const IceCandidate *candidate, const Type_ComponentID *tc);
+static int ice_find_candidate_from_type_family_and_componentID(const IceCandidate *candidate, const Type_Family_ComponentID *tc);
 static void ice_create_turn_permissions(IceCheckList *cl);
 static int ice_find_nominated_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
 static int ice_find_selected_valid_pair_from_componentID(const IceValidCandidatePair* valid_pair, const uint16_t* componentID);
@@ -234,6 +241,7 @@ static void ice_session_init(IceSession *session)
 	session->gathering_end_ts.tv_sec = session->gathering_end_ts.tv_nsec = -1;
 	session->connectivity_checks_start_ts.tv_sec = session->connectivity_checks_start_ts.tv_nsec = -1;
 	session->check_message_integrity=TRUE;
+	session->default_candidates_prefer_ipv6 = TRUE;
 	session->default_types[0] = ICT_RelayedCandidate;
 	session->default_types[1] = ICT_ServerReflexiveCandidate;
 	session->default_types[2] = ICT_HostCandidate;
@@ -271,6 +279,10 @@ void ice_session_destroy(IceSession *session)
 
 void ice_session_set_default_candidates_types(IceSession *session, const IceCandidateType types[ICT_CandidateTypeMax]){
 	memcpy(session->default_types, types, sizeof(session->default_types));
+}
+
+void ice_sesession_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred){
+	session->default_candidates_prefer_ipv6 = ipv6_preferred;
 }
 
 void ice_session_enable_message_integrity_check(IceSession *session,bool_t enable) {
@@ -3351,23 +3363,48 @@ static int ice_find_candidate_from_type_and_componentID(const IceCandidate *cand
 	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID));
 }
 
+static int ice_find_candidate_from_type_family_and_componentID(const IceCandidate *candidate, const Type_Family_ComponentID *tc)
+{
+	return !((candidate->type == tc->type) && (candidate->componentID == tc->componentID) && candidate->taddr.family == tc->family);
+}
+
 static void ice_choose_local_or_remote_default_candidates(IceCheckList *cl, bctbx_list_t *list)
 {
-	Type_ComponentID tc;
+	Type_Family_ComponentID tc;
 	bctbx_list_t *l;
 	int i,k;
 
 	/* Choose the default candidate for each componentID as defined in 4.1.4. */
 	for (i = ICE_MIN_COMPONENTID; i <= ICE_MAX_COMPONENTID; i++) {
+		IceCandidate *candidate = NULL;
+		
 		tc.componentID = i;
 		l = NULL;
 		for(k = 0; k < ICT_CandidateTypeMax && cl->session->default_types[k] != ICT_CandidateInvalid; ++k){
+			IceCandidate *inet_candidate = NULL;
+			IceCandidate *inet6_candidate = NULL;
 			tc.type = cl->session->default_types[k];
-			l = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_candidate_from_type_and_componentID, &tc);
-			if (l) break;
+			
+			tc.family = AF_INET;
+			l = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_candidate_from_type_family_and_componentID, &tc);
+			inet_candidate = l ? (IceCandidate*)l->data : NULL;
+			
+			tc.family = AF_INET6;
+			l = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_candidate_from_type_family_and_componentID, &tc);
+			inet6_candidate = l ? (IceCandidate*)l->data : NULL;
+			
+			if (inet6_candidate && cl->session->default_candidates_prefer_ipv6){
+				candidate = inet6_candidate;
+			}else if (inet_candidate && !cl->session->default_candidates_prefer_ipv6){
+				candidate = inet_candidate;
+			}else if (inet_candidate){
+				candidate = inet_candidate;
+			}else{
+				candidate = inet6_candidate;
+			}
+			if (candidate) break;
 		}
-		if (l != NULL) {
-			IceCandidate *candidate = (IceCandidate *)l->data;
+		if (candidate) {
 			candidate->is_default = TRUE;
 			if (cl->session->turn_enabled) {
 				ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, i), candidate->type == ICT_RelayedCandidate);

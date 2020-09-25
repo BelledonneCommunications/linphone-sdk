@@ -670,7 +670,9 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 		}
 
 		ms_filter_lock(f);
-		vpx_codec_enc_config_set(&s->codec, &s->cfg);
+		if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
+			ms_error("VP8 encoder new configuration failed to apply.");
+		}
 		ms_filter_unlock(f);
 	}
 

@@ -129,6 +129,7 @@ typedef struct _IceSession {
 	bool_t forced_relay;	/**< Force use of relay by modifying the local and reflexive candidates */
 	bool_t turn_enabled;	/**< TURN protocol enabled */
 	bool_t short_turn_refresh;	/**< Short TURN refresh for tests */
+	bool_t default_candidates_prefer_ipv6; /** < Whether ipv6 candidates should be prefered compared to their ipv4 equivalent as "default candidate" */
 } IceSession;
 
 typedef struct _IceStunServerRequestTransaction {
@@ -289,6 +290,11 @@ MS2_PUBLIC IceSession * ice_session_new(void);
  **/
 MS2_PUBLIC void ice_session_set_default_candidates_types(IceSession *session,
 					const IceCandidateType types[ICT_CandidateTypeMax]);
+
+/**
+ * Set the AF_INET/AF_INET6 preference for electing the default candidates, when both are available.
+ */
+MS2_PUBLIC void ice_sesession_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred);
 /**
  * Destroy a previously allocated ICE session.
  *
