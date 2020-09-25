@@ -1,6 +1,6 @@
 FROM ubuntu:rolling
 
-MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 
 
 # Configure locale
@@ -24,8 +24,9 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python-pip python-pystache python-six yasm && \
-    apt-get clean
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python3-pip python3-pystache python-six yasm && \
+    apt-get clean && \
+    pip3 install sphinx javasphinx sphinx_csharp
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
