@@ -3522,9 +3522,8 @@ static void ice_prune_candidate_pairs(IceCheckList *cl)
 		for (i = 0; i < (nb_pairs - 1); i++) list = bctbx_list_next(list);
 		for (i = 0; i < nb_pairs_to_remove; i++) {
 			cl->pairs = bctbx_list_remove(cl->pairs, list->data);
-			ice_free_candidate_pair(list->data, cl);
 			prev = list->prev;
-			cl->check_list = bctbx_list_erase_link(cl->check_list, list);
+			ice_free_candidate_pair(list->data, cl);// this function remove list in cl too
 			list = prev;
 		}
 	}

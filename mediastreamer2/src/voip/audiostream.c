@@ -1063,7 +1063,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	}
 
 	if (stream->ec){
-		if (!stream->is_ec_delay_set) {
+		if (!stream->is_ec_delay_set && io->input.soundcard) {
 			int delay_ms=ms_snd_card_get_minimal_latency(io->input.soundcard);
 			ms_message("Setting echo canceller delay with value provided by soundcard: %i ms",delay_ms);
 			ms_filter_call_method(stream->ec,MS_ECHO_CANCELLER_SET_DELAY,&delay_ms);

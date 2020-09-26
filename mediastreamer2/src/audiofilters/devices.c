@@ -246,7 +246,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext
 
 #else
 
-static SoundDeviceDescription devices[]={
+static const SoundDeviceDescription devices[]={
 	{ NULL, NULL, NULL, 0, 0, 0, NULL }
 };
 
@@ -291,7 +291,7 @@ void ms_sound_device_description_add(const char *manufacturer, const char *model
 MSDevicesInfo *ms_devices_info_new(void) {
 	MSDevicesInfo *devices_info = ms_new0(MSDevicesInfo, 1);
 
-	SoundDeviceDescription *d = &devices[0];
+	const SoundDeviceDescription *d = &devices[0];
 	while (d->manufacturer != NULL) {
 		ms_devices_info_add(devices_info, d->manufacturer, d->model, d->platform, d->flags, d->delay, d->recommended_rate);
 		d++;

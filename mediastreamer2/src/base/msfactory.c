@@ -586,7 +586,7 @@ int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *pl
 	plugins_list_size = bctbx_list_size(plugins_list);
 
 	for (it = plugins_list; it != NULL; it = bctbx_list_next(it)) {
-		const char *plugin_name = bctbx_list_get_data(it);
+		const char *plugin_name = (const char*)bctbx_list_get_data(it);
 #if defined(HAVE_DLOPEN)
 		if (ms_factory_dlopen_plugin(factory, optionnal_plugins_path, plugin_name)) {
 			num++;
@@ -762,7 +762,7 @@ void ms_factory_uninit_plugins(MSFactory *factory){
 	for(elem=factory->ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
 	{
 		HINSTANCE handle=(HINSTANCE )elem->data;
-		FreeLibrary(handle) ;
+		FreeLibrary(handle);
 	}
 
 	factory->ms_plugins_loaded_list = bctbx_list_free(factory->ms_plugins_loaded_list);
