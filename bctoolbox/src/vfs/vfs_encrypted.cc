@@ -618,6 +618,7 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 
 	// Are we overwritting some chunks?
 	size_t readOffset = offset - offset%mChunkSize; // we must start read/write at the begining of a chunk
+
 	if (readOffset<mFileSize) { // Yes we are overwritting some data, read all the existing chunks we are overwritting
 		rawData.resize(rawDataSize);
 		ssize_t overwrittenSize = bctbx_file_read(pFileStd, rawData.data(), rawDataSize, getChunkOffset(firstChunk));
@@ -629,7 +630,7 @@ size_t VfsEncryption::write(const std::vector<uint8_t> &plainData, size_t offset
 	if (readOffset<offset) { // we need to get the plain data from readOffset to offset
 		// decrypt the first chunk
 		auto plainChunk = m_module->decryptChunk(firstChunk, std::vector<uint8_t>(rawData.cbegin(), rawData.cbegin() + std::min(rawChunkSizeGet(), rawData.size())));
-		plain.insert(plain.begin(), plainChunk.cbegin(), plainChunk.cbegin()+offset-readOffset); // prepend the begining to our plain buffer
+		plain.insert(plain.begin(), plainChunk.cbegin(), plainChunk.cbegin()+(offset-readOffset)); // prepend the begining to our plain buffer
 	}
 
 	// append the plain buffer if needed:
