@@ -140,3 +140,9 @@ test-liblinphone-centos7-mr:
       - $ENABLE_TESTS_IN_MR
   except:
    - schedules
+
+test-liblinphone-centos7-force:
+  extends: .test-liblinphone-centos7
+  only:
+    variables:
+      - $ENABLE_TESTS_LIBLINPHONE

@@ -414,6 +414,7 @@ job-test-upload-libl-centos7:
   dependencies:
     - test-liblinphone-centos7-schedule
     - test-liblinphone-centos7-mr
+    - test-liblinphone-centos7-force
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
