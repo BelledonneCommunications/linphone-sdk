@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-xcode12" ]
   except:
     variables:
       - $DOCKER_UPDATE
