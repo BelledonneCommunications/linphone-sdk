@@ -31,7 +31,7 @@ apply plugin: 'com.android.library'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    compileOnly "androidx.media:media:1.1.0"
+    compileOnly "androidx.media:media:1.2.0"
     implementation 'androidx.annotation:annotation:1.1.0'
     compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
