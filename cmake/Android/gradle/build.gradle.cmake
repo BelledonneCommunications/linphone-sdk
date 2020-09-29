@@ -169,7 +169,7 @@ android {
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     source = srcDir
-    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**', '**/org/linphone/mediastream/**'])
+    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     //classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
