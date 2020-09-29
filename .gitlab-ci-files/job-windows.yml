@@ -110,7 +110,7 @@ job-windows-vs2017-win32-novideo:
 test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
-  tags: [ "windows" ]
+  tags: [ "windows-test" ]
   allow_failure: true
   dependencies:
     - job-windows-vs2017-win32
@@ -157,6 +157,8 @@ test-linphone-windows-win32:
     # -z coredump location
     # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
     - echo %cd%
+    - timeout 1000 /nobreak
+    - cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_*
     - for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v
 
     - echo %CI_PROJECT_DIR%
