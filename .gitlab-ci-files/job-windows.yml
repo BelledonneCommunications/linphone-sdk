@@ -110,7 +110,7 @@ job-windows-vs2017-win32-novideo:
 test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
-  tags: [ "windows-test" ]
+  tags: [ "windows" ]
   allow_failure: true
   dependencies:
     - job-windows-vs2017-win32
@@ -157,9 +157,28 @@ test-linphone-windows-win32:
     # -z coredump location
     # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
     - echo %cd%
-    - ping 127.0.0.1 -n1 -w 10000 >NUL
-    - cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_*
-    - for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v
+    - dir
+    - dir /b liblinphone_tester.exe_*
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; q" -ee c++ -v -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".symfix; .lines; ^!analyze -v; q" -ee c++ -v -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; q" -v -i liblinphone_tester.exe -y . -z %%v -netsyms yes || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".symfix; .reload; .lines; ^!!analyze -v; q" -v -i liblinphone_tester.exe -y . -z %%v -netsyms yes || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - cdb -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%\build-desktop\linphone-sdk\desktop\bin || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin -z liblinphone_tester.exe_*.dmp || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin -z liblinphone_tester.exe_* || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_* || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_* || set ErrorLevel=0
 
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
