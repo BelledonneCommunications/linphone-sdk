@@ -138,7 +138,7 @@ test-linphone-windows-win32:
     # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
     # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
 
-    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml --resource-dir %CI_PROJECT_DIR%/liblinphone/tester
+    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
@@ -157,9 +157,20 @@ test-linphone-windows-win32:
     # -z coredump location
     # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
     - echo %cd%
-    - ping 127.0.0.1 -n1 -w 10000 >NUL
-    - cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_*
-    - for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v
+    - dir
+    - dir /b liblinphone_tester.exe_*
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%\build-desktop\linphone-sdk\desktop\bin -z %%v || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin -z liblinphone_tester.exe_*.dmp || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin -z liblinphone_tester.exe_* || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_* || set ErrorLevel=0
+    - echo %ErrorLevel%
+    - if NOT %ErrorLevel%==0 cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_* || set ErrorLevel=0
 
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
