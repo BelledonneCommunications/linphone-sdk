@@ -108,7 +108,9 @@ int main(int argc, char *argv[]) {
 	int ret;
 
 	lime_tester_init(nullptr);
-
+#if (__APPLE__ || defined(__ANDROID__))
+	soci::register_factory_sqlite3();
+#endif
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
 		char prefix[200];
