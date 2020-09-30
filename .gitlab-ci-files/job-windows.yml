@@ -157,7 +157,7 @@ test-linphone-windows-win32:
     # -z coredump location
     # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
     - echo %cd%
-    - ping 127.0.0.1 -n1 -w 10000 >NUL
+    - timeout /t 1000 /nobreak > NUL
     - cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z liblinphone_tester.exe_*
     - for %%v in (liblinphone_tester.exe_*) do cdb -c ".lines; !analyze -v; q" -v -ee c++ -i liblinphone_tester.exe -y %cd% -z %%v
 
