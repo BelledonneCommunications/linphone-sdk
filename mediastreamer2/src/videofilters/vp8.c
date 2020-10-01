@@ -108,6 +108,7 @@ typedef struct EncState {
 	MSWorkerThread *process_thread;
 	queue_t entry_q;
 	MSQueue *exit_q;
+	ms_mutex_t vp8_mutex;
 } EncState;
 
 #define MIN_KEY_FRAME_DIST 4 /*since one i-frame is allowed to be 4 times bigger of the target bitrate*/
@@ -134,11 +135,13 @@ static void enc_init(MSFilter *f) {
 #endif
 	s->avpf_enabled = FALSE;
 	enc_reset_frames_state(s);
+	ms_mutex_init(&s->vp8_mutex, NULL);
 	f->data = s;
 }
 
 static void enc_uninit(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
+	ms_mutex_destroy(&s->vp8_mutex);
 	ms_free(s);
 }
 
@@ -503,14 +506,18 @@ static void enc_process_frame_task(void *obj) {
 	ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
 		s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
 #endif
+	ms_mutex_lock(&s->vp8_mutex);
 	err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, (unsigned long)((double)1000000/(2.0*(double)s->vconf.fps))); /*encoder has half a framerate interval to encode*/
 	if (err) {
+		ms_mutex_unlock(&s->vp8_mutex);
 		ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
 	} else {
 		vpx_codec_iter_t iter = NULL;
 		const vpx_codec_cx_pkt_t *pkt;
 		bctbx_list_t *list = NULL;
 		int current_partition_id = -1;
+		
+		ms_mutex_unlock(&s->vp8_mutex);
 
 		/* Update the frames state. */
 		is_ref_frame=FALSE;
@@ -669,11 +676,11 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 			s->vconf.vsize = vsize;
 		}
 
-		ms_filter_lock(f);
+		ms_mutex_lock(&s->vp8_mutex);
 		if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
 			ms_error("VP8 encoder new configuration failed to apply.");
 		}
-		ms_filter_unlock(f);
+		ms_mutex_unlock(&s->vp8_mutex);
 	}
 
 	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
