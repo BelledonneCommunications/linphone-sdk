@@ -39,6 +39,7 @@ extern test_suite_t crypto_test_suite;
 extern test_suite_t parser_test_suite;
 extern test_suite_t ios_utils_test_suite;
 extern test_suite_t encrypted_vfs_test_suite;
+extern test_suite_t param_string_test_suite;
 
 #ifdef __cplusplus
 };

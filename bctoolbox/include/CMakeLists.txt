@@ -35,6 +35,7 @@ set(HEADER_FILES
 	vfs.h
 	vfs_standard.h
 	vfs_encrypted.hh
+	param_string.h
 )
 
 if(APPLE)

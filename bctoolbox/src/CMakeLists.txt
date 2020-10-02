@@ -28,6 +28,7 @@ set(BCTOOLBOX_C_SOURCE_FILES
 	vconnect.c
 	vfs/vfs.c
 	vfs/vfs_standard.c
+	param_string.c
 )
 
 set(BCTOOLBOX_CXX_SOURCE_FILES
