@@ -129,6 +129,13 @@ struct OpenSLESOutputContext {
 		currentBuffer = 0;
 		playBuffer[0] = NULL;
 		playBuffer[1] = NULL;
+
+		// Invalidate objects
+		outputMixObject = NULL;
+		playerObject = NULL;
+		playerPlay = NULL;
+		playerBufferQueue = NULL;
+		playerConfig = NULL;
 	}
 
 	~OpenSLESOutputContext() {
@@ -347,6 +354,16 @@ static void android_native_snd_card_uninit(MSSndCard *card) {
 	delete ctx;
 }
 
+static void opensles_reset_recorder(OpenSLESInputContext *ictx) {
+	if (ictx->recorderObject != NULL) {
+		(*ictx->recorderObject)->Destroy(ictx->recorderObject);
+		ictx->recorderObject = NULL;
+		ictx->recorderRecord = NULL;
+		ictx->recorderBufferQueue = NULL;
+	}
+}
+
+
 static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 	SLresult result;
 	SLuint32 sample_rate = convertSamplerate(ictx->opensles_context->samplerate);
@@ -396,36 +413,42 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 
 	result = (*ictx->opensles_context->engineEngine)->CreateAudioRecorder(ictx->opensles_context->engineEngine, &ictx->recorderObject, &audio_src, &audio_sink, 2, ids, req);
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while creating the audio recorder", result);
 		return result;
 	}
 
 	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_ANDROIDCONFIGURATION, &ictx->recorderConfig);
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while getting the recorder's android config interface", result);
 		return result;
 	}
 
 	result = (*ictx->recorderConfig)->SetConfiguration(ictx->recorderConfig, SL_ANDROID_KEY_RECORDING_PRESET, &ictx->streamType, sizeof(SLint32));
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while setting the audio recorder configuration", result);
 		return result;
 	}
 
 	result = (*ictx->recorderObject)->Realize(ictx->recorderObject, SL_BOOLEAN_FALSE);
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while realizing the audio recorder", result);
 		return result;
 	}
 
 	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_RECORD, &ictx->recorderRecord);
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while getting the audio recorder's interface", result);
 		return result;
 	}
 
 	result = (*ictx->recorderObject)->GetInterface(ictx->recorderObject, SLW_IID_ANDROIDSIMPLEBUFFERQUEUE, &ictx->recorderBufferQueue);
 	if (SL_RESULT_SUCCESS != result) {
+		opensles_reset_recorder(ictx);
 		ms_error("[OpenSLES] Error %u while getting the audio recorder's buffer interface", result);
 		return result;
 	}
@@ -738,17 +761,30 @@ static SLresult opensles_mixer_init(OpenSLESOutputContext *octx) {
 	const SLboolean req[] = {};
 	result = (*octx->opensles_context->engineEngine)->CreateOutputMix(octx->opensles_context->engineEngine, &(octx->outputMixObject), nbInterface, ids, req);
 	if (result != SL_RESULT_SUCCESS) {
+
 		ms_error("[OpenSLES] Error %u while creating output mixer", result);
 		return result;
 	}
 
 	result = (*octx->outputMixObject)->Realize(octx->outputMixObject, SL_BOOLEAN_FALSE);
 	if (result != SL_RESULT_SUCCESS) {
+		if (octx->outputMixObject != NULL) {
+			octx->outputMixObject = NULL;
+		}
 		ms_error("[OpenSLES] Error %u while realizing output mixer", result);
 		return result;
 	}
 
 	return result;
+}
+
+static void opensles_reset_sink(OpenSLESOutputContext *octx) {
+	if (octx->playerObject != NULL) {
+		(*octx->playerObject)->Destroy(octx->playerObject);
+		octx->playerObject = NULL;
+		octx->playerPlay = NULL;
+		octx->playerBufferQueue = NULL;
+	}
 }
 
 static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
@@ -796,12 +832,14 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	const SLboolean req[] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 	result = (*octx->opensles_context->engineEngine)->CreateAudioPlayer(octx->opensles_context->engineEngine, &(octx->playerObject), &audio_src, &audio_sink, nbInterface, ids, req);
 	if (result != SL_RESULT_SUCCESS) {
+		opensles_reset_sink(octx);
 		ms_error("[OpenSLES] Error %u while creating ouput audio player", result);
 		return result;
 	}
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_ANDROIDCONFIGURATION, &octx->playerConfig);
 	if (result != SL_RESULT_SUCCESS) {
+		opensles_reset_sink(octx);
 		ms_error("[OpenSLES] Error %u while getting android configuration interface", result);
 		return result;
 	}
@@ -809,18 +847,21 @@ static SLresult opensles_sink_init(OpenSLESOutputContext *octx) {
 	octx->updateStreamTypeFromMsSndCard();
 	result = (*octx->playerConfig)->SetConfiguration(octx->playerConfig, SL_ANDROID_KEY_STREAM_TYPE, &octx->streamType, sizeof(SLint32));
 	if (result != SL_RESULT_SUCCESS) {
+		opensles_reset_sink(octx);
 		ms_error("[OpenSLES] Error %u while setting stream type configuration", result);
 		return result;
 	}
 
 	result = (*octx->playerObject)->Realize(octx->playerObject, SL_BOOLEAN_FALSE);
 	if (result != SL_RESULT_SUCCESS) {
+		opensles_reset_sink(octx);
 		ms_error("[OpenSLES] Error %u while realizing output sink", result);
 		return result;
 	}
 
 	result = (*octx->playerObject)->GetInterface(octx->playerObject, SLW_IID_PLAY, &(octx->playerPlay));
 	if (result != SL_RESULT_SUCCESS) {
+		opensles_reset_sink(octx);
 		ms_error("[OpenSLES] Error %u while getting output sink interface play", result);
 		return result;
 	}
@@ -1039,6 +1080,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext*)obj->data;
 
 	if (octx->playerPlay){
+ms_message("%s - context %p  playerPlay %p\n", __func__, octx, octx->playerPlay);
 		result = (*octx->playerPlay)->SetPlayState(octx->playerPlay, SL_PLAYSTATE_STOPPED);
 		if (result != SL_RESULT_SUCCESS) {
 			ms_error("[OpenSLES] Error %u while stopping player", result);
