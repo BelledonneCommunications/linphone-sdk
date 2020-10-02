@@ -91,9 +91,6 @@
 [submodule "external/xerces-c"]
 	path = external/xerces-c
 	url = https://gitlab.linphone.org/BC/public/external/xerces-c.git
-[submodule "external/libxsd"]
-	path = external/libxsd
-	url = https://gitlab.linphone.org/BC/public/external/libxsd.git
 [submodule "external/soci"]
 	path = external/soci
 	url = https://gitlab.linphone.org/BC/public/external/soci.git
