@@ -20,6 +20,10 @@
     - echo $ADDITIONAL_BUILD_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - echo $(git describe) > gitdescribe.txt
+
+  after_script:
+    - git remote prune origin && git fetch --prune
+    - git submodule foreach --recursive 'git remote prune origin && git fetch --prune'
   artifacts:
     paths:
       - build-desktop/gitdescribe.txt

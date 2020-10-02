@@ -33,6 +33,10 @@
     - cat gitdescribecommitnumber.txt
     - ccache -s
 
+  after_script:
+    - git remote prune origin && git fetch --prune
+    - git submodule foreach --recursive 'git remote prune origin && git fetch --prune'
+
   artifacts:
     paths:
       - build-desktop/gitdescribecommitnumber.txt
