@@ -31,8 +31,6 @@
  * Parses a fmtp string such as "profile=0;level=10", finds the value matching
  * parameter param_name, and writes it into result.
  * If a parameter name is found multiple times, only the value of the last occurence is returned.
- * Despite fmtp strings are not used anywhere within oRTP, this function can
- * be useful for people using RTP streams described from SDP.
  * @param paramString the fmtp line (format parameters)
  * @param param_name the parameter to search for
  * @param result the value given for the parameter (if found)
@@ -41,7 +39,13 @@
 **/
 BCTBX_PUBLIC bool_t bctbx_param_string_get_value(const char *paramString, const char *param_name, char *result, size_t result_len);
 
-
+/**
+ * Parses a fmtp string such as "profile=0;level=10". If the value is "true" or "false", returns the corresponding boolean
+ * @param paramString the fmtp line (format parameters)
+ * @param param_name the parameter to search for
+ * @return FALSE if parameter was not found, else TRUE if the parameter value was "true", FALSE if it was "false"
+**/
+BCTBX_PUBLIC bool_t bctbx_param_string_get_bool_value(const char *paramString, const char *param_name);
 #endif /*BCTBX_PARAM_STRING_H_*/
 
 

@@ -18,8 +18,8 @@
  */
 
 
+#include "bctoolbox/port.h"
 #include "bctoolbox/param_string.h"
-#include <stdio.h>
 
 static const char *find_param_occurence_of(const char *fmtp, const char *param){
 	const char *pos=fmtp;
@@ -68,5 +68,17 @@ bool_t bctbx_param_string_get_value(const char *paramString, const char *param_n
 		}
 	}
 	return FALSE;
+}
+
+
+bool_t bctbx_param_string_get_bool_value(const char *paramString, const char *param_name)
+{
+	size_t result_len = 5;
+	char *result = bctbx_malloc(result_len);
+	// True if param is found, false if not
+	bool_t res = bctbx_param_string_get_value(paramString, param_name, result, result_len);
+	res = res && strcmp(result, "true")==0;
+	free(result);
+	return res;
 }
 

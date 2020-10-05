@@ -24,7 +24,7 @@
 
 static void get_value_test(void) {
 	size_t result_len = 10;
-	char result[10];
+	char * result = bctbx_malloc(result_len);
 	
 	char * paramString = "";
 	BC_ASSERT_FALSE(bctbx_param_string_get_value(paramString, "param", result, result_len));
@@ -40,8 +40,20 @@ static void get_value_test(void) {
 	BC_ASSERT_FALSE(bctbx_param_string_get_value(paramString, "notparam", result, result_len));
 }
 
+static void get_bool_value_test(void) {
+	char * paramString = "";
+	BC_ASSERT_FALSE(bctbx_param_string_get_bool_value(paramString, "param"));
+	paramString = "param=false";
+	BC_ASSERT_FALSE(bctbx_param_string_get_bool_value(paramString, "param"));
+	paramString = "param=42";
+	BC_ASSERT_FALSE(bctbx_param_string_get_bool_value(paramString, "param"));
+	paramString = "param=true";
+	BC_ASSERT_TRUE(bctbx_param_string_get_bool_value(paramString, "param"));
+}
+
 static test_t param_string_tests[] = {
-	TEST_NO_TAG("Get value", get_value_test)
+	TEST_NO_TAG("Get value", get_value_test),
+	TEST_NO_TAG("Get bool value", get_bool_value_test)
 };
 
 test_suite_t param_string_test_suite = {"Param string", NULL, NULL, NULL, NULL,
