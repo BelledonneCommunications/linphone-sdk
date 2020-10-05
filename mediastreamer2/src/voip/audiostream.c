@@ -175,7 +175,7 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 }
 
 /*
- * note: Only AAudio and OpenSLES leverage internal ID for input streams.
+ * note: Only AAudio, OpenSLES, and IOS leverage internal ID for input streams.
  */
 static void audio_stream_configure_input_snd_card(AudioStream *stream) {
 	MSSndCard *card = stream->captcard;
@@ -188,7 +188,7 @@ static void audio_stream_configure_input_snd_card(AudioStream *stream) {
 }
 
 /*
- * note: Only AAudio and OpenSLES leverage internal ID for output streams.
+ * note: Only AAudio, OpenSLES, and IOS leverage internal ID for output streams.
  */
 static void audio_stream_configure_output_snd_card(AudioStream *stream) {
 	MSSndCard *card = stream->playcard;

@@ -25,11 +25,14 @@
 
 static bool_t bypass_sndcard_detection = FALSE;
 
+
+
 MSSndCardManager * ms_snd_card_manager_new(void){
 	MSSndCardManager *obj=(MSSndCardManager *)ms_new0(MSSndCardManager,1);
 	obj->factory = NULL;
 	obj->cards=NULL;
 	obj->descs=NULL;
+	obj->paramString=bctbx_strdup_printf("FAST=false;NOVOICEPROC=false;TESTER=false;RINGER=false");
 	return obj;
 }
 
@@ -45,7 +48,17 @@ void ms_snd_card_manager_destroy(MSSndCardManager* scm){
 		bctbx_list_free(scm->cards);
 		bctbx_list_free(scm->descs);
 	}
+	if (scm!=NULL && scm->paramString!= NULL) {
+		bctbx_free(scm->paramString);
+	}
 	ms_free(scm);
+}
+
+void ms_snd_card_manager_set_param_string(MSSndCardManager *m, const char *paramString){
+	if (m->paramString!=NULL) {
+		bctbx_free(m->paramString);
+	}
+	m->paramString = bctbx_strdup(paramString);
 }
 
 MSFactory * ms_snd_card_get_factory(MSSndCard * c){
