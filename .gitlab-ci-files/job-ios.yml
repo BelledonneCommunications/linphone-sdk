@@ -69,6 +69,14 @@ job-ios-ninja:
     ARCHS_OPTIONS: $IOS_ARCHS
   extends: .job-ios
 
+job-ios-ninja-allcodecs:
+
+  variables:
+    CMAKE_GENERATOR: Ninja
+    ARCHS_OPTIONS: $IOS_ARCHS
+    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_CODECS=ON
+  extends: .job-ios
+
 
 job-ios-ninja-novideo:
 
