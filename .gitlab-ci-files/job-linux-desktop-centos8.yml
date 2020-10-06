@@ -55,6 +55,7 @@ job-centos8-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
+    ADDITIONAL_BUILD_OPTIONS: -v
   extends: .job-linux-desktop
 
 
