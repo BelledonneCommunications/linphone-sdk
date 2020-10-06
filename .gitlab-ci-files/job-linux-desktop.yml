@@ -15,10 +15,11 @@
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
+    - echo $SCHEDULE_CMAKE_OPTIONS
     - echo $CMAKE_SANITIZER_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build . --target sdk --verbose -- $ADDITIONAL_BUILD_OPTIONS
     - echo $(git describe) > gitdescribe.txt
   artifacts:
     paths:
