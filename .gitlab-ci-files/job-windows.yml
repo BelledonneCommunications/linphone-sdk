@@ -68,7 +68,7 @@
       - build-desktop\*.zip
     when: always
     expire_in: 1 week
-    
+
 .job-windows-vs2017-ninja:
   extends: .job-prepare
   stage: build
@@ -95,7 +95,7 @@
     - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=%MAKEFILE_JOBS% -DCMAKE_C_COMPILER=%CMAKE_C_COMPILER% -DCMAKE_CXX_COMPILER=%CMAKE_CXX_COMPILER% -DCMAKE_RC_COMPILER=%CMAKE_RC_COMPILER% %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - echo Building with Ninja. See ninja_buildlog.txt to get details before completing the build.
     #Warning : Ninja doesn't return an error code on Linker error.
-    #Store outputs in a file log    
+    #Store outputs in a file log
     - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
     - type ninja_buildlog.txt
@@ -111,7 +111,7 @@
     paths:
       - build-desktop\*
     when: always
-    expire_in: 1 week    
+    expire_in: 1 week
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
@@ -140,10 +140,10 @@ job-windows-vs2017-ninja-win32:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
-    
+
 ######################################################
 # NIGHTLY
-######################################################   
+######################################################
 
 
 
@@ -167,9 +167,10 @@ test-linphone-windows-win32:
   allow_failure: true
   dependencies:
     - job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
+    - job-windows-vs2017-ninja-win32
+  #only:
+  #  variables:
+  #    - $ENABLE_WINDOWS_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
@@ -184,15 +185,39 @@ test-linphone-windows-win32:
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
+    #Procdumps generates a coredump if there is a crash
+    # -ma : Write a dump file with all process memory. The default dump format only includes thread and handle information.
+
+    # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
+    # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
+
+    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated.xml --resource-dir %CI_PROJECT_DIR%/liblinphone/tester
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-    #TODO COREDUMPS MANAGEMENT
+
+    # Coredump management
+
+    # The coredumps pattern is liblinphone_tester.exe_*, so we search
+    # all coredumps matching it and we execute the cdb debugger on it.
+    # -c : startup commands
+    # .lines : explicitely tells cdb to load file lines infos for backtrace
+    # !analyze -v : execute the debugger, prints the backtrace and some info('!' needs to be escaped with '^' since this script is considered as a batch file)
+    # q : quits
+    # -ee c++ : use c++ expression syntax instead of MASM
+    # -i [exe] : path to executable
+    # -y symbols path
+    # -z coredump location
+    # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
+    - echo %cd%
+    - dir
+    - dir /b liblinphone_tester.exe_*
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
+
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
     - dir
-    - echo %cd%
     - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
 
@@ -202,5 +227,5 @@ test-linphone-windows-win32:
     when: always
     reports:
       junit:
-        - results/BCUnitAutomated-win-Results.xml    
+        - results/BCUnitAutomated-win-Results.xml
     expire_in: 4 week
