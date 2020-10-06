@@ -30,6 +30,7 @@
       - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
       - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      - build/linphone-sdk/bin/docs/javadoc/*
 
       #Needed for tester
       - build/libs-debug/*

@@ -45,7 +45,7 @@
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
   script:
     #handling the case of previous job cancellation
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -78,7 +78,7 @@
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
   script:
     #handling the case of previous job cancellation
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
@@ -121,7 +121,6 @@
       - $NIGHTLY_RELEASE
       - $PACKAGE_RUN_WINDOWS
       - $DEPLOY_RUN_WINDOWS
-      - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
@@ -145,31 +144,16 @@ job-windows-vs2017-ninja-win32:
 # NIGHTLY
 ######################################################   
 
-
-
-##      ON SCHEDULE     ##
-job-windows-vs2017-win32-scheduled:
-  extends: .job-windows-vs2017-scheduled
-  variables:
-    CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
-
-job-windows-vs2017-win32-novideo:
-  extends: job-windows-vs2017-win32-scheduled
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#TODO : FACTORIZE TESTERS CODE
-
 test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
   tags: [ "windows" ]
   allow_failure: true
   dependencies:
-    - job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
+    - job-windows-vs2017-ninja-win32
+  except:
+    refs:
+      - schedules
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
@@ -184,7 +168,7 @@ test-linphone-windows-win32:
     #we have a weird bellesip error message
     #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
 
-    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
+    - .\liblinphone_tester --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
@@ -202,5 +186,5 @@ test-linphone-windows-win32:
     when: always
     reports:
       junit:
-        - results/BCUnitAutomated-win-Results.xml    
+        - results/BCUnitAutomated-Results.xml
     expire_in: 4 week

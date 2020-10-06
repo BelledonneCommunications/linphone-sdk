@@ -6,8 +6,9 @@ MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 ENV SHELL=/bin/bash
 
 # Configure additional repositories and install common general tools
-RUN yum install -y epel-release && \
-    rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-1.el7.nux.noarch.rpm && \
+RUN yum -y update  ca-certificates && \
+    yum install -y epel-release && \
+   # rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
     yum install -y nano sudo which && \
     yum clean all
 
@@ -26,12 +27,12 @@ RUN yum install -y centos-release-scl && \
 
 # Install linphone & flexisp dependencies development packages
 RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
-    yum clean all
+#    yum clean all
 
 # Install linphone runtime dependencies
-RUN yum install -y mesa-dri-drivers && \
-    yum clean all && \
-    dbus-uuidgen > /var/lib/dbus/machine-id
+#RUN yum install -y mesa-dri-drivers && \
+#    yum clean all && \
+#    dbus-uuidgen > /var/lib/dbus/machine-id
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
@@ -39,11 +40,9 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Load devtoolset-8 environment on starting
-RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
-RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.shrc
-
-# This tells /bin/sh to load '~/.shrc' on starting
-ENV ENV=~/.shrc 
+RUN echo ' #!/bin/bash \n source /opt/rh/devtoolset-8/enable \n exec "$@" \n' > /entrypoint.sh
+RUN chmod 755 /entrypoint.sh
+ENTRYPOINT ['/entrypoint.sh'] 
 
 
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake

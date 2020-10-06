@@ -13,7 +13,7 @@ job-docker-rebuild-debian10-image:
     - cd docker-files
     - docker build -f ./bc-dev-debian10 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
-    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
 
 job-docker-rebuild-debian10-ms-test-image:
   stage: docker-update-build-ms
