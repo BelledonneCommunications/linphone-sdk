@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.0)
 project(MSCODEC2 VERSION 0.1 LANGUAGES C)
 
 
+set(MSCODEC2_VERSION "${PROJECT_VERSION}")
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
 
