@@ -27,6 +27,7 @@
 #include "mediastreamer2/mswebcam.h"
 #include "nowebcam.h"
 #include "ioshardware.h"
+#include "apple_utils.h"
 
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
@@ -592,7 +593,8 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 static void ioscapture_init(MSFilter *f) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-	f->data = [[IOSCapture alloc] initWithFrame:CGRectMake(0, 0, 0, 0) andFilter:f];
+	DISPATCH_SYNC_MAIN(^{
+		f->data = [[IOSCapture alloc] initWithFrame:CGRectMake(0, 0, 0, 0) andFilter:f];});
 	[myPool drain];
 }
 
@@ -601,10 +603,11 @@ static void ioscapture_uninit(MSFilter *f) {
 
 	if(thiz != nil) {
 		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-		[thiz stop];
+		DISPATCH_SYNC_MAIN(^{
+			[thiz stop];
 
-		[thiz setParentView:nil];
-		[thiz release];
+			[thiz setParentView:nil];
+			[thiz release];});
 		[myPool drain];
 	}
 }
@@ -629,22 +632,23 @@ static void ioscapture_process(MSFilter * obj) {
 static void ioscapture_preprocess(MSFilter *f) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
-		[thiz start];
-		[myPool drain];
+		DISPATCH_SYNC_MAIN(^{
+			NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
+			[thiz start];
+			[myPool drain];
 
-		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)thiz.layer session];
-		if (!session.running) {
-			thiz->startSessionTimer = [NSTimer scheduledTimerWithTimeInterval:100 / 1000.0
-																	   target:thiz
-																	 selector:@selector(startSessionTimerFired:)
-																	 userInfo:nil
-																	  repeats:YES];
-		} else {
-			ms_mutex_lock(&thiz->mutex);
-			thiz->filterIsRunning = 1;
-			ms_mutex_unlock(&thiz->mutex);
-		}
+			AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)thiz.layer session];
+			if (!session.running) {
+				thiz->startSessionTimer = [NSTimer scheduledTimerWithTimeInterval:100 / 1000.0
+																		   target:thiz
+																		 selector:@selector(startSessionTimerFired:)
+																		 userInfo:nil
+																		  repeats:YES];
+			} else {
+				ms_mutex_lock(&thiz->mutex);
+				thiz->filterIsRunning = 1;
+				ms_mutex_unlock(&thiz->mutex);
+			}});
 	}
 }
 
@@ -665,7 +669,8 @@ static void ioscapture_postprocess(MSFilter *f) {
 static int ioscapture_get_fps(MSFilter *f, void *arg) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		*((float*)arg) = ms_average_fps_get(&thiz->averageFps);
+		DISPATCH_SYNC_MAIN(^{
+			*((float*)arg) = ms_average_fps_get(&thiz->averageFps);});
 	}
 	return 0;
 }
@@ -673,7 +678,8 @@ static int ioscapture_get_fps(MSFilter *f, void *arg) {
 static int ioscapture_set_fps(MSFilter *f, void *arg) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		[thiz setFps:*(float*)arg];
+		DISPATCH_SYNC_MAIN(^{
+			[thiz setFps:*(float*)arg];});
 	}
 	return 0;
 }
@@ -686,7 +692,8 @@ static int ioscapture_get_pix_fmt(MSFilter *f,void *arg) {
 static int ioscapture_set_vsize(MSFilter *f, void *arg) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		[thiz setSize:*((MSVideoSize*)arg)];
+		DISPATCH_SYNC_MAIN(^{
+			[thiz setSize:*((MSVideoSize*)arg)];});
 	}
 	return 0;
 }
@@ -694,7 +701,8 @@ static int ioscapture_set_vsize(MSFilter *f, void *arg) {
 static int ioscapture_get_vsize(MSFilter *f, void *arg) {
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != NULL) {
-		*(MSVideoSize*)arg = *[thiz getSize];
+		DISPATCH_SYNC_MAIN(^{
+			*(MSVideoSize*)arg = *[thiz getSize];});
 	}
 	return 0;
 }
@@ -742,9 +750,10 @@ static int ioscapture_set_device_orientation (MSFilter *f, void *arg) {
 static int ioscapture_set_device_orientation_display (MSFilter *f, void *arg) {
 	IOSCapture *thiz=(IOSCapture*)f->data;
 	if (thiz != NULL) {
-		AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
-		if ([previewLayer.connection isVideoOrientationSupported])
-			previewLayer.connection.videoOrientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));
+		DISPATCH_SYNC_MAIN(^{
+			AVCaptureVideoPreviewLayer *previewLayer = (AVCaptureVideoPreviewLayer *)thiz.layer;
+			if ([previewLayer.connection isVideoOrientationSupported])
+				previewLayer.connection.videoOrientation = Angle2AVCaptureVideoOrientation(*(int*)(arg));});
 	}
 	return 0;
 }
@@ -826,7 +835,8 @@ static void ms_v4ios_cam_init(MSWebCam *cam) {
 static MSFilter *ms_v4ios_create_reader(MSWebCam *obj) {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	MSFilter *f= ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj),(&ms_ioscapture_desc));
-	[((IOSCapture*)f->data) openDevice:obj->data];
+	DISPATCH_SYNC_MAIN(^{
+		[((IOSCapture*)f->data) openDevice:obj->data];});
 	[pool drain];
 	return f;
 }

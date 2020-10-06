@@ -40,6 +40,7 @@
 #import <OpenGLES/ES2/gl.h>
 
 #include "opengles_display.h"
+#include "apple_utils.h"
 
 @interface IOSDisplay : UIView {
 @public
@@ -242,7 +243,8 @@
 
 static void iosdisplay_init(MSFilter *f) {
 	NSAutoreleasePool *loopPool = [[NSAutoreleasePool alloc] init];
-	f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];
+	DISPATCH_SYNC_MAIN(^{
+		f->data = [[IOSDisplay alloc] initWithFrame:CGRectMake(0, 0, 0, 0)];});
 	[loopPool drain];
 }
 
