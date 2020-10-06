@@ -213,7 +213,7 @@ test-linphone-windows-win32:
     - dir
     - dir /b liblinphone_tester.exe_*
     - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
-    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
+    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
 
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
