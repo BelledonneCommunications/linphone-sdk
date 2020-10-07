@@ -110,18 +110,18 @@ job-android-ninja-r17c-no-video:
 job-android-ninja-r20:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
 
 job-android-ninja-r20-smallsdk:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
   extends: job-android-ninja-r20
