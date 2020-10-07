@@ -18,9 +18,9 @@ job-centos8-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -32,9 +32,9 @@ job-centos8-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -61,9 +61,9 @@ job-centos8-ninja-gcc:
 job-centos8-ninja-gcc-novideo:
 
   tags: [ "docker" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos8-ninja-gcc
@@ -72,9 +72,9 @@ job-centos8-ninja-gcc-novideo:
 job-centos8-ninja-clang:
 
   tags: [ "docker" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -85,9 +85,9 @@ job-centos8-ninja-clang:
 
 job-centos8-ninja-clang-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-centos8-ninja-clang
