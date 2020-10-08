@@ -68,6 +68,10 @@
 
 #endif
 
+#ifdef HAVE_DNS_SERVICE // must be tested after config.h is included
+#include "dispatch/dispatch.h"
+#endif /* HAVE_DNS_SERVICE */
+
 
 /*etc*/
 
@@ -564,6 +568,9 @@ struct belle_sip_stack{
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;
+#ifdef HAVE_DNS_SERVICE
+	dispatch_queue_t dns_service_queue;
+#endif /* HAVE_DNS_SERVICE */
 };
 
 BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new(const char* transport, const char *cname, const char* host,int port);

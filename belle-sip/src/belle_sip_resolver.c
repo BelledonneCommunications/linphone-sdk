@@ -18,7 +18,6 @@
  */
 
 #include "belle_sip_internal.h"
-#include "dns.h"
 #include <bctoolbox/defs.h>
 
 #ifdef HAVE_MDNS
@@ -29,6 +28,17 @@
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif
+
+#ifdef HAVE_DNS_SERVICE
+/* When HAVE_DNS_SERVICE is on, the resolve is performed using Apple DNSService */
+#include "TargetConditionals.h"
+#include "dns.h"
+#include <dns_sd.h>
+#include <dns_util.h>
+#else /* HAVE_DNS_SERVICE */
+/* Otherwise, resolution uses dns.c source */
+#include "dns/dns.h"
+#endif /* else HAVE_DNS_SERVICE */
 
 #define DNS_EAGAIN  EAGAIN
 
@@ -96,6 +106,23 @@ belle_sip_dns_srv_t *belle_sip_mdns_srv_create(short unsigned int priority, shor
 }
 #endif
 
+#ifdef HAVE_DNS_SERVICE
+belle_sip_dns_srv_t *belle_sip_dns_srv_create(dns_resource_record_t *rr){
+	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
+	size_t end_pos;
+	obj->priority=rr->data.SRV->priority;
+	obj->weight=rr->data.SRV->weight;
+	obj->port=rr->data.SRV->port;
+	obj->target=belle_sip_strdup(rr->data.SRV->target);
+	/*remove trailing '.' at the end*/
+	end_pos = strlen(obj->target);
+	if (end_pos > 0){
+		end_pos--;
+		if (obj->target[end_pos] == '.') obj->target[end_pos] = '\0';
+	}
+	return obj;
+}
+#else /* HAVE_DNS_SERVICE */
 belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
 	belle_sip_dns_srv_t *obj=belle_sip_object_new(belle_sip_dns_srv_t);
 	size_t end_pos;
@@ -111,6 +138,7 @@ belle_sip_dns_srv_t *belle_sip_dns_srv_create(struct dns_srv *srv){
 	}
 	return obj;
 }
+#endif /* else HAVE_DNS_SERVICE */
 
 const char *belle_sip_dns_srv_get_target(const belle_sip_dns_srv_t *obj){
 	return obj->target;
@@ -228,10 +256,16 @@ struct belle_sip_simple_resolver_context{
 	belle_sip_resolver_srv_callback_t srv_cb;
 	void *cb_data;
 	void *srv_cb_data;
+#ifdef HAVE_DNS_SERVICE
+	DNSServiceRef dns_service;
+	dispatch_source_t dns_service_timer;
+	uint16_t type;
+#else /*HAVE_DNS_SERVICE */
 	struct dns_resolv_conf *resconf;
 	struct dns_hosts *hosts;
 	struct dns_resolver *R;
 	enum dns_type type;
+#endif /* else HAVE_DNS_SERVICE */
 	char *name;
 	int port;
 	struct addrinfo *ai_list;
@@ -258,6 +292,7 @@ struct belle_sip_simple_resolver_context{
 #endif
 #endif
 	bool_t not_using_dns_socket;
+
 };
 
 struct belle_sip_combined_resolver_context{
@@ -290,9 +325,12 @@ struct belle_sip_dual_resolver_context{
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
 	obj->stack=stack;
 	obj->min_ttl = UINT32_MAX;
+#ifndef HAVE_DNS_SERVICE
 	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
+#endif /* HAVE_DNS_SERVICE */
 }
 
+#ifndef HAVE_DNS_SERVICE
 static int dns_resconf_nameservers_from_list(struct dns_resolv_conf *resconf, const belle_sip_list_t *l) {
 	int max_servers = sizeof(resconf->nameserver)/sizeof(struct sockaddr_storage);
 	int i;
@@ -423,6 +461,7 @@ static struct dns_hosts *hosts(belle_sip_simple_resolver_context_t *ctx) {
 
 	return ctx->hosts;
 }
+#endif /* ndef HAVE_DNS_SERVICE */
 
 struct dns_cache *cache(belle_sip_simple_resolver_context_t *ctx) {
 	return NULL;
@@ -553,7 +592,19 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 
 static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_simple_resolver_context_t *ctx = BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj);
+#ifdef HAVE_DNS_SERVICE
+	if (ctx->dns_service_timer) {
+		dispatch_source_cancel(ctx->dns_service_timer);
+		ctx->dns_service_timer = NULL;
+	}
+	if (ctx->dns_service) {
+		DNSServiceRefDeallocate(ctx->dns_service);
+		ctx->dns_service = NULL;
+	}
+	if ((ctx->type == kDNSServiceType_A) || (ctx->type == kDNSServiceType_AAAA)) {
+#else /* HAVE_DNS_SERVICE */
 	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
+#endif /* else HAVE_DNS_SERVICE */
 		struct addrinfo **ai_list = &ctx->ai_list;
 		belle_sip_resolver_results_t *results;
 #if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
@@ -563,7 +614,11 @@ static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 		ctx->cb(ctx->cb_data, results);
 		*ai_list = NULL;
 		belle_sip_object_unref(results);
+#ifdef HAVE_DNS_SERVICE
+	} else if (ctx->type == kDNSServiceType_SRV) {
+#else /* HAVE_DNS_SERVICE */
 	} else if (ctx->type == DNS_T_SRV) {
+#endif /* else HAVE_DNS_SERVICE */
 		ctx->srv_list = srv_select_by_weight(ctx->srv_list);
 		ctx->srv_cb(ctx->srv_cb_data, ctx->name, ctx->srv_list, BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl);
 	}
@@ -618,6 +673,7 @@ static void append_dns_result(belle_sip_simple_resolver_context_t *ctx, struct a
 	belle_sip_message("%s resolved to %s", ctx->name, host);
 }
 
+#ifndef HAVE_DNS_SERVICE
 static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsigned int revents) {
 	struct dns_packet *ans;
 	struct dns_rr_i *I;
@@ -720,6 +776,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	}
 	return BELLE_SIP_CONTINUE;
 }
+#endif /* ndef HAVE_DNS_SERVICE */
 
 #if defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)
 static void * _resolver_getaddrinfo_thread(void *ptr) {
@@ -804,6 +861,97 @@ static int is_mdns_query(const char *name){
 }
 #endif
 
+#ifdef HAVE_DNS_SERVICE
+static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *fullname, uint16_t rrtype, uint16_t rrclass, uint16_t rdlen, const void *rdata, uint32_t ttl, void *context) {
+	belle_sip_simple_resolver_context_t *ctx = (belle_sip_simple_resolver_context_t *)context;
+
+	if (errorCode != kDNSServiceErr_NoError) {
+		if (errorCode == kDNSServiceErr_NoSuchRecord) {
+			belle_sip_message("%s : resolving %s : no such record", __FUNCTION__, fullname);
+		} else {
+			belle_sip_error("%s : resolving %s got error %d", __FUNCTION__, fullname, errorCode);
+		}
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	}
+
+	if (rrclass != kDNSServiceClass_IN) {
+		belle_sip_error("%s : resolving %s got class %d while IN(0x01) expected", __FUNCTION__, fullname, rrclass);
+		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	}
+
+	bool_t got_valid_answer = FALSE;
+	switch (rrtype) {
+		case kDNSServiceType_A :
+			if (rdlen == 4) {
+				struct sockaddr_in sin;
+				memset(&sin, 0, sizeof(sin));
+				memcpy(&sin.sin_addr, rdata, sizeof(sin.sin_addr));
+				sin.sin_family = AF_INET;
+				sin.sin_port = ctx->port;
+				append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin,sizeof(sin));
+				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = ttl;
+				got_valid_answer = TRUE;
+			}
+			break;
+		case kDNSServiceType_AAAA :
+			if (rdlen == 16) {
+				struct sockaddr_in6 sin;
+				memset(&sin, 0, sizeof(sin));
+				memcpy(&sin.sin6_addr, rdata, sizeof(sin.sin6_addr));
+				sin.sin6_family = AF_INET6;
+				sin.sin6_port = ctx->port;
+				append_dns_result(ctx,&ctx->ai_list,(struct sockaddr*)&sin,sizeof(sin));
+				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = ttl;
+				got_valid_answer = TRUE;
+			}
+			break;
+
+		case kDNSServiceType_SRV :
+			if (rdlen > 6) {
+
+				/* re-create a DNS packet to be able to use dns_util.h dns_parse_resource_record */
+				/* Must add: name, type, class, ttl, rdlength before pasting the rdata to be parsed */
+				char *dnsPacket = belle_sip_malloc(rdlen+11);
+				dnsPacket[0] = 0; // name is empty: 0 length
+				dnsPacket[1] = 0xFF & (kDNSServiceType_SRV >> 8); // type is SRV
+				dnsPacket[2] = 0xFF & kDNSServiceType_SRV;
+				dnsPacket[3] = 0xFF & (kDNSServiceClass_IN >> 8); // Class is IN
+				dnsPacket[4] = 0xFF & kDNSServiceClass_IN;
+				dnsPacket[5] = 0x01; // ttl is not relevant, just put fixed value
+				dnsPacket[6] = 0x01; // ttl is not relevant, just put fixed value
+				dnsPacket[7] = 0x01; // ttl is not relevant, just put fixed value
+				dnsPacket[8] = 0x01; // ttl is not relevant, just put fixed value
+				dnsPacket[9] = 0xFF & (rdlen >> 8); // use the given size
+				dnsPacket[10] = 0xFF & rdlen;
+				memcpy(dnsPacket+11, rdata, rdlen);
+				dns_resource_record_t *rr = dns_parse_resource_record(dnsPacket, rdlen+11);
+				belle_sip_free(dnsPacket);
+
+				char host[NI_MAXHOST + 1];
+				belle_sip_dns_srv_t * b_srv=belle_sip_dns_srv_create(rr);
+				snprintf(host, sizeof(host), "[target:%s port:%d prio:%d weight:%d]", b_srv->target, b_srv->port, b_srv->priority, b_srv->weight);
+
+				ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
+				belle_sip_message("SRV %s resolved to %s", ctx->name, host);
+				if (ttl < BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl = ttl;
+
+				got_valid_answer = TRUE;
+			}
+			break;
+		case kDNSServiceType_CNAME :
+			belle_sip_message("%s : resolving %s got CNAME DNS answer. Ignore it, DNS Service will recurse it by itself", __FUNCTION__, fullname);
+			break;
+		default:
+			belle_sip_error("%s : resolving %s got DNS answer type %d - just ignore it", __FUNCTION__, fullname, rrtype);
+			return;
+	}
+
+	if (!(flags & kDNSServiceFlagsMoreComing) && (got_valid_answer==TRUE)) { // notify only when nothing more is coming and we had a valid answer
+		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+	}
+}
+#else /* HAVE_DNS_SERVICE */
+
 static int _resolver_send_query(belle_sip_simple_resolver_context_t *ctx) {
 	int error = 0;
 
@@ -852,6 +1000,7 @@ static int resolver_process_data_delayed(belle_sip_simple_resolver_context_t *ct
 
 	return BELLE_SIP_STOP;
 }
+#endif /* else HAVE_DNS_SERVICE */
 
 #ifdef HAVE_MDNS
 typedef struct belle_sip_mdns_source belle_sip_mdns_source_t;
@@ -1033,10 +1182,53 @@ static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, 
 #endif
 
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
-#ifdef HAVE_MDNS
-
 	if (!ctx->name) return -1;
+#ifdef HAVE_DNS_SERVICE
+	/* Create the DNSServiceRef */
+	DNSServiceErrorType err = kDNSServiceErr_NoError;
+	err = DNSServiceQueryRecord(
+			&(ctx->dns_service),
+			kDNSServiceFlagsReturnIntermediates,
+			0,                                      // interfaceIndex
+			ctx->name,
+			ctx->type,
+			kDNSServiceClass_IN,
+			dns_service_query_record_cb,
+			(void *)ctx);
 
+	if (err != kDNSServiceErr_NoError) {
+		belle_sip_error("DNS query resolving %s, DNSServiceQueryRecord returned %d", ctx->name, err);
+		return -1;
+	}
+	/* dispatch it */
+	if (!ctx->base.stack->resolver_send_error) {
+		err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->base.stack->dns_service_queue);
+		if (err != kDNSServiceErr_NoError) {
+			belle_sip_message("DNS start_query resolving %s, DNSServiceSetDispatchQueue returned %d", ctx->name, err);
+			return -1;
+		}
+
+		/* Set a timer */
+		ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->base.stack->dns_service_queue);
+		int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
+		dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
+					dispatch_source_cancel(ctx->dns_service_timer); // timer fires just once, disarm it
+					ctx->dns_service_timer = NULL;
+					belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
+					belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+
+				});
+		dispatch_source_set_timer(ctx->dns_service_timer, dispatch_time(DISPATCH_TIME_NOW,timeout*NSEC_PER_MSEC), timeout*NSEC_PER_MSEC, 0); // timeout given is in Nano seconds
+		dispatch_resume(ctx->dns_service_timer);
+	} else {
+		/* Error simulation */
+		belle_sip_error("%s DNSServiceRefSockFD error [%s]: simulated error %d", __FUNCTION__, ctx->name, ctx->base.stack->resolver_send_error);
+		return -1;
+	}
+
+	return 0;
+#else /* HAVE_DNS_SERVICE */
+#ifdef HAVE_MDNS
 	if (is_mdns_query(ctx->name) && ctx->type == DNS_T_SRV) {
 		DNSServiceErrorType error;
 		DNSServiceRef browse_ref;
@@ -1059,7 +1251,6 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 		int error;
 		struct dns_resolv_conf *conf;
 
-		if (!ctx->name) return -1;
 
 		conf=resconf(ctx);
 		if (conf){
@@ -1094,6 +1285,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 #ifdef HAVE_MDNS
 	}
 #endif
+#endif /* else HAVE_DNS_SERVICE */
 }
 
 static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
@@ -1165,6 +1357,16 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		belle_sip_free(ctx->name);
 		ctx->name = NULL;
 	}
+#ifdef HAVE_DNS_SERVICE
+	if (ctx->dns_service) {
+		DNSServiceRefDeallocate(ctx->dns_service);
+		ctx->dns_service = NULL;
+	}
+	if (ctx->dns_service_timer) {
+		dispatch_source_cancel(ctx->dns_service_timer);
+		ctx->dns_service_timer = NULL;
+	}
+#else /* HAVE_DNS_SERVICE */
 	if (ctx->R != NULL) {
 		dns_res_close(ctx->R);
 		ctx->R = NULL;
@@ -1177,6 +1379,7 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		free(ctx->resconf);
 		ctx->resconf = NULL;
 	}
+#endif /* else HAVE_DNS_SERVICE */
 #ifdef HAVE_MDNS
 	if (ctx->srv_prefix) {
 		belle_sip_free(ctx->srv_prefix);
@@ -1447,7 +1650,11 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	belle_sip_object_ref(ctx);
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
+#ifdef HAVE_DNS_SERVICE
+	ctx->type = (ctx->family == AF_INET6) ? kDNSServiceType_AAAA : kDNSServiceType_A;
+#else /* HAVE_DNS_SERVICE */
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
+#endif /* else HAVE_DNS_SERVICE */
 #if (defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)) && defined(_WIN32)
 	ctx->ctlevent = (belle_sip_fd_t)-1;
 #endif
@@ -1577,7 +1784,11 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 	ctx->browse_finished = FALSE;
 #endif
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
+#ifdef HAVE_DNS_SERVICE
+	ctx->type = kDNSServiceType_SRV;
+#else /* HAVE_DNS_SERVICE */
 	ctx->type = DNS_T_SRV;
+#endif /* else HAVE_DNS_SERVICE */
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
 	/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 	belle_sip_object_ref(ctx);

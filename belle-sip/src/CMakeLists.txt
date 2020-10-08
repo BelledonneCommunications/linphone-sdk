@@ -107,17 +107,15 @@ set(BELLE_SIP_SOURCE_FILES_C
 	belle_sip_mdns_register.c
 	belle_sip_object.c
 	belle_sip_parameters.c
-	belle_sip_resolver.c
 	belle_sip_uri_impl.c
 	belle_sip_utils.c
+	belle_sip_resolver.c
 	bodyhandler.c
 	channel.c
 	channel.h
 	clock_gettime.c
 	clock_gettime.h
 	dialog.c
-	dns.c
-	dns.h
 	generic-uri.c
 	http-listener.c
 	http-message.c
@@ -151,6 +149,10 @@ set(BELLE_SIP_SOURCE_FILES_C
 	${TUNNEL_SOURCE_FILES_C}
 )
 
+if (NOT ENABLE_DNS_SERVICE)
+	list(APPEND BELLE_SIP_SOURCE_FILES_C dns/dns.c dns/dns.h)
+endif()
+
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="belle-sip"
 )
@@ -183,11 +185,11 @@ if(MSVC)
 		" /wd4305" # Disable "'initializing': truncation from 'unsigned int' to 'UCHAR'" warnings
 		" /wd4018" # Disable "signed/unsigned mismatch" warnings
 	)
-	set_property(SOURCE dns.c APPEND_STRING PROPERTY COMPILE_FLAGS ${DNS_C_COMPILE_FLAGS})
+	set_property(SOURCE dns/dns.c APPEND_STRING PROPERTY COMPILE_FLAGS ${DNS_C_COMPILE_FLAGS})
 	set_property(SOURCE grammars/belle_sdpParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
 	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
 else()
-	set_property(SOURCE dns.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-override-init -Wno-implicit-fallthrough -Wno-array-bounds")
+	set_property(SOURCE dns/dns.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-override-init -Wno-implicit-fallthrough -Wno-array-bounds")
 	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare")
 endif()
 

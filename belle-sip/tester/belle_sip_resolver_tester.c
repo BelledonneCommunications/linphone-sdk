@@ -21,7 +21,6 @@
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
 
-
 #define IPV4_SIP_DOMAIN		"sip.linphone.org"
 #define IPV4_SIP_IP		"91.121.209.194"
 #define IPV4_CNAME		"stun.linphone.org"
@@ -97,8 +96,9 @@ static void a_resolve_done(void *data, belle_sip_resolver_results_t *results) {
 	if (belle_sip_resolver_results_get_addrinfos(results)) {
 		client->ai_list = belle_sip_resolver_results_get_addrinfos(results);
 		client->resolve_done = 1;
-	} else
+	} else {
 		client->resolve_ko = 1;
+	}
 }
 
 static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv_list, uint32_t ttl) {
@@ -155,7 +155,7 @@ static void ipv4_cname_a_query(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_STREAM, IPV4_CNAME_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_STREAM, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
@@ -376,7 +376,7 @@ static void srv_a_query_no_srv_result(void) {
 		struct sockaddr_in *sock_in = (struct sockaddr_in *)client->ai_list->ai_addr;
 		int ntohsi = (int)ntohs(sock_in->sin_port);
 		BC_ASSERT_EQUAL(ntohsi, SIP_PORT, int, "%d");
-		ai = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_STREAM, IPV4_CNAME_IP, SIP_PORT);
+		ai = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_STREAM, IPV4_SIP_IP, SIP_PORT);
 		if (ai) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);

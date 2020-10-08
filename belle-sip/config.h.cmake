@@ -41,3 +41,4 @@
 #cmakedefine ENABLE_SERVER_SOCKETS
 
 #cmakedefine HAVE_MDNS
+#cmakedefine HAVE_DNS_SERVICE

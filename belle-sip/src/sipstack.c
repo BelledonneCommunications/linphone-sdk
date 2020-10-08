@@ -139,6 +139,12 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
 	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
 	belle_sip_list_free_with_data(stack->dns_servers, belle_sip_free);
+#ifdef HAVE_DNS_SERVICE
+	if (stack->dns_service_queue) {
+		dispatch_release(stack->dns_service_queue);
+		stack->dns_service_queue = NULL;
+	}
+#endif /* HAVE_DNS_SERVICE */
 	bctbx_uninit_logger();
 }
 
@@ -158,6 +164,9 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->dns_search_enabled=TRUE;
 	stack->inactive_transport_timeout=3600; /*one hour*/
 	stack->unreliable_transport_timeout = 120;
+#ifdef HAVE_DNS_SERVICE
+	stack->dns_service_queue = dispatch_queue_create("com.belledonne_communications.belle_sip.dns_service_queue", DISPATCH_QUEUE_SERIAL);
+#endif /* HAVE_DNS_SERVICE */
 	return stack;
 }
 
