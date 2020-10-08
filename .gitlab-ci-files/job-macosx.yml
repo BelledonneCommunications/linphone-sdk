@@ -98,7 +98,7 @@ job-macosx-xcode:
 #    variables:
 #      - $NIGHTLY_MASTER
 #      - $NIGHTLY_RELEASE
-#      - $DEPLOY_RUN_MACOSX
+      - $DEPLOY_RUN_MACOSX
 
 test-linphone-macosx:
   stage: test
