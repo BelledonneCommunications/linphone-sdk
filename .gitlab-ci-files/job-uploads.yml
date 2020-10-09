@@ -43,7 +43,7 @@ job-ios-upload:
 
 job-android-upload:
   stage: deploy
-  tags: [ "docker-android" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
   only:
@@ -83,7 +83,7 @@ job-android-upload:
 
 job-android-doc-upload:
   stage: deploy
-  tags: [ "docker-android" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
 
   only:

@@ -16,7 +16,7 @@
 
 job-centos8-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   only:
     variables:
@@ -30,7 +30,7 @@ job-centos8-makefile-gcc:
 
 job-centos8-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   only:
     variables:
@@ -49,7 +49,7 @@ job-centos8-makefile-clang:
 
 job-centos8-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
   variables:
     CMAKE_GENERATOR: Ninja
@@ -60,7 +60,7 @@ job-centos8-ninja-gcc:
 
 job-centos8-ninja-gcc-novideo:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -71,7 +71,7 @@ job-centos8-ninja-gcc-novideo:
 
 job-centos8-ninja-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   only:
     variables:
       - $NIGHTLY_MASTER
