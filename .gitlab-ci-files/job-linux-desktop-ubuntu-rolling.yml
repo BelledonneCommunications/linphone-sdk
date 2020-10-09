@@ -16,7 +16,7 @@
 
 job-ubuntu-rolling-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   only:
     variables:
@@ -74,7 +74,7 @@ job-ubuntu-rolling-makefile-gcc:
 
 
 job-ubuntu-rolling-ninja-clang:
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
   variables:
     CMAKE_GENERATOR: Ninja

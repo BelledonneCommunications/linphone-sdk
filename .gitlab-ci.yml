@@ -4,7 +4,7 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
-  MAKEFILE_JOBS: 5
+  MAKEFILE_JOBS: 10
   CCACHE_SIZE: 2G
 
   #Lime X3DH activated by default, if there is a problem, see the default

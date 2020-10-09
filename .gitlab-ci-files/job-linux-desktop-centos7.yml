@@ -21,7 +21,7 @@
 
 job-centos7-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   only:
     variables:
@@ -42,7 +42,7 @@ job-centos7-makefile-gcc:
 
 job-centos7-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
   except:
     variables:

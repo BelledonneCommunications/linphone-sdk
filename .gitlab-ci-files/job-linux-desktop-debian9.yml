@@ -51,7 +51,7 @@
 
 job-debian9-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
   except:
     variables:

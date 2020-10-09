@@ -16,7 +16,7 @@
 
 job-debian10-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   only:
     variables:
@@ -31,7 +31,7 @@ job-debian10-makefile-gcc:
 
 job-debian10-makefile-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   only:
     variables:
@@ -51,7 +51,7 @@ job-debian10-makefile-clang:
 
 job-debian10-ninja-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   variables:
     CMAKE_GENERATOR: Ninja
@@ -83,7 +83,7 @@ job-debian10-ninja-gcc-smallsdk:
 
 job-debian10-ninja-clang:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   only:
     variables:
       - $NIGHTLY_MASTER

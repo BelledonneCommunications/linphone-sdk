@@ -16,7 +16,7 @@
 
 job-debian8-makefile-gcc:
 
-  tags: [ "docker" ]
+  tags: [ "docker-shuttle-monster" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:8
   variables:
     CMAKE_GENERATOR: Unix Makefiles
