@@ -57,6 +57,16 @@ job-android-makefile-r17c:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
+job-android-makefile-r17c-g729:
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_ANDROID
+  variables:
+    CMAKE_OPTIONS: -DENABLE_G729=ON
+  extends: job-android-makefile-r17c
+
 job-android-makefile-r17c-no-java-wrapper:
   only:
     variables:
