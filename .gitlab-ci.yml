@@ -3,6 +3,7 @@
 #################################################
 
 variables:
+  GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 10
   CCACHE_SIZE: 2G
