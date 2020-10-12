@@ -1553,7 +1553,7 @@ int state_secure(bzrtpEvent_t event) {
  * State will be changed to state_confirmation_responderSendingConfirm1 or state_confirmation_responderSendingDHPart1 depending on DHM or non-DHM operation mode
  *
  * @param[in]		zrtpContext				The current zrtp Context
- * @param[in/out]	zrtpChannelContext		The channel we are operating
+ * @param[in,out]	zrtpChannelContext		The channel we are operating
  * @param[in]		zrtpPacket				The zrtpPacket receives, it contains the commit message
  * @param[in]		commitMessage			A direct pointer to the commitMessage structure contained in the zrtp packet
  *
@@ -1646,7 +1646,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
  * - if agreed on a non-DHM mode : compute s0 and derive keys from it TODO
  *
  * @param[in]		zrtpContext				The current zrtp Context
- * @param[in/out]	zrtpChannelContext		The channel we are operating
+ * @param[in,out]	zrtpChannelContext		The channel we are operating
  * @param[in]		zrtpPacket				The zrtpPacket received, it contains the hello message
  *
  * @return 0 on succes, error code otherwise
@@ -2077,7 +2077,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
  * Keys computed are: mackeyi, mackeyr, zrtpkeyi and zrtpkeyr, srtpkeys and salt
  *
  * param[in]		zrtpContext			The context we are operation on(contains ZRTPSess)
- * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0 and will get the computed keys)
+ * param[in,out]	zrtpChannelContext	The channel context we are operation on(contains s0 and will get the computed keys)
  *
  * return 0 on success, error code otherwise
  *
@@ -2109,7 +2109,7 @@ int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
  * The whole bzrtpSrtpSecrets_t structure is ready after this call
  *
  * param[in]		zrtpContext			The context we are operation on
- * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0 and will get the computed keys)
+ * param[in,out]	zrtpChannelContext	The channel context we are operation on(contains s0 and will get the computed keys)
  *
  * return 0 on success, error code otherwise
  *
@@ -2205,7 +2205,7 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
  * @brief Compute the new rs1 and update the cached secrets according to rfc section 4.6.1
  *
  * param[in]		zrtpContext			The context we are operation on
- * param[in/out]	zrtpChannelContext	The channel context we are operation on(contains s0)
+ * param[in,out]	zrtpChannelContext	The channel context we are operation on(contains s0)
  *
  * return 0 on success, error code otherwise
  */

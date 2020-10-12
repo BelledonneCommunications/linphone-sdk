@@ -113,9 +113,10 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 /**
  * @brief Set the pointer allowing cache access
  *
- * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
- * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in,out]	context			The ZRTP context we're dealing with
+ * @param[in]		zidCache		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   	selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   	peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
  *
  * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
@@ -146,15 +147,14 @@ int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, const char *selfU
 }
 
 /**
- * @brief Set the pointer allowing cache access, this version of the function get a mutex to lock the cache when accessing it
+ * @brief Set the pointer allowing cache access,
+ * this version of the function get a mutex to lock the cache when accessing it
  *
- * Note: bzrtp does not manage the given mutex pointer, it has to be already initialized
- *       and shall be destroyed by environment after the BZRTP session is completed.
- *
- * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
- * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   zidCacheMutex		Points to a mutex used to lock zidCache database access. Can be NULL, the zidcache is then non locked.
+ * @param[in,out]	context			The ZRTP context we're dealing with
+ * @param[in]		zidCache		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]		selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]		peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]		zidCacheMutex		Points to a mutex used to lock zidCache database access
  *
  * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
@@ -302,7 +302,7 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 
 /*
  * @brief Allocate a function pointer to the callback function identified by his id
- * @param[in/out]	context				The zrtp context to set the callback function
+ * @param[in,out]	context				The zrtp context to set the callback function
  * @param[in] 		cbs 				A structure containing all the callbacks to supply.
  *
  * @return 0 on success
@@ -320,7 +320,7 @@ int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallbacks_t *cbs) {
 /**
  * @brief Add a channel to an existing context, this can be done only if the first channel has concluded a DH key agreement
  *
- * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel. Must be in secure state.
+ * @param[in,out]	zrtpContext	The zrtp context who will get the additionnal channel. Must be in secure state.
  * @param[in]		selfSSRC	The SSRC given to the channel context
  *
  * @return 0 on succes, error code otherwise
@@ -369,7 +369,7 @@ int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 /*
  * @brief Start the state machine of the specified channel
  *
- * @param[in/out]	zrtpContext			The ZRTP context hosting the channel to be started
+ * @param[in,out]	zrtpContext			The ZRTP context hosting the channel to be started
  * @param[in]		selfSSRC			The SSRC identifying the channel to be started(will start sending Hello packets and listening for some)
  *
  * @return			0 on succes, error code otherwise
@@ -422,7 +422,7 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 /*
  * @brief Send the current time to a specified channel, it will check if it has to trig some timer
  *
- * @param[in/out]	zrtpContext			The ZRTP context hosting the channel
+ * @param[in,out]	zrtpContext			The ZRTP context hosting the channel
  * @param[in]		selfSSRC			The SSRC identifying the channel
  * @param[in]		timeReference		The current time in ms
  *
@@ -466,7 +466,7 @@ int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint64_t timeR
 /*
  * @brief Set the client data pointer in a channel context
  * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
- * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext		The ZRTP context we're dealing with
  * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
  * @param[in]		clientData		The clientData pointer, casted to a (void *)
  *
@@ -489,7 +489,7 @@ int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, void *cl
 /*
  * @brief Process a received message
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		selfSSRC				The SSRC identifying the channel receiving the message
  * @param[in]		zrtpPacketString		The packet received
  * @param[in]		zrtpPacketStringLength	Length of the packet in bytes
@@ -561,7 +561,7 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
  * @brief Called by user when the SAS has been verified
  * update the cache(if any) to set the previously verified flag
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  */
 void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
@@ -583,7 +583,7 @@ void bzrtp_SASVerified(bzrtpContext_t *zrtpContext) {
  * @brief Called by user when the SAS has been set to unverified
  * update the cache(if any) to unset the previously verified flag
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  */
 void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
 	if (zrtpContext != NULL) {
@@ -604,7 +604,7 @@ void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext) {
  * @param[in]		label			Label used in the KDF
  * @param[in]		labelLength		Length of previous buffer
  * @param[out]		derivedKey		Buffer to store the derived key
- * @param[in/out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
+ * @param[in,out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
  *
  * @return 0 on succes, error code otherwise
  */
@@ -661,7 +661,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
  *  - when in responder role, zrtp engine only answer to packets sent by the initiator.
  *  - if we are still in discovery phase, Hello or Commit packets will be resent.
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		selfSSRC				The SSRC identifying the channel to reset
  *
  * return 0 on success, error code otherwise
@@ -693,7 +693,7 @@ int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSR
 /**
  * @brief Get the supported crypto types
  *
- * @param[int]		zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		zrtpContext				The ZRTP context we're dealing with
  * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
  * @param[out]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  *
@@ -724,7 +724,7 @@ uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoT
 /**
  * @brief set the supported crypto types
  *
- * @param[int/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
  * @param[in]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in]		supportedTypesCount		number of supported crypto types
@@ -767,7 +767,7 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 /**
  * @brief Set the peer hello hash given by signaling to a ZRTP channel
  *
- * @param[in/out]	zrtpContext						The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext						The ZRTP context we're dealing with
  * @param[in]		selfSSRC						The SSRC identifying the channel
  * @param[out]		peerHelloHashHexString			A NULL terminated string containing the hexadecimal form of the hash received in signaling,
  * 													may contain ZRTP version as header.
@@ -913,7 +913,7 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 /**
  * @brief Get the self hello hash from ZRTP channel
  *
- * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext			The ZRTP context we're dealing with
  * @param[in]		selfSSRC			The SSRC identifying the channel
  * @param[out]		output				A NULL terminated string containing the hexadecimal form of the hash received in signaling,
  * 										contain ZRTP version as header. Buffer must be allocated by caller.
@@ -1069,7 +1069,7 @@ static bzrtpChannelContext_t *getChannelContext(bzrtpContext_t *zrtpContext, uin
  * Initialise some vectors
  *
  * @param[in] 		zrtpContext			The zrtpContext hosting this channel, needed to acces the RNG
- * @param[out]		zrtpChanneContext	The channel context to be initialised
+ * @param[out]		zrtpChannelContext	The channel context to be initialised
  * @param[in]		selfSSRC			The SSRC allocated to this channel
  * @param[in]		isMain				This channel is channel 0 or an additional channel
  *

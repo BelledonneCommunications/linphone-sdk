@@ -26,7 +26,7 @@
  * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
  *		Note: this function also retrieve zuid(set in the context) wich allow successive calls to cache operation to be faster.
  *
- * @param[in/out]	context		the current context, used to get the cache db pointer, self and peer URI and store results
+ * @param[in,out]	context		the current context, used to get the cache db pointer, self and peer URI and store results
  * @param[in]		peerZID		a byte array of the peer ZID
  *
  * return 	0 on succes, error code otherwise 
@@ -38,7 +38,7 @@ BZRTP_EXPORT int bzrtp_getPeerAssociatedSecrets(bzrtpContext_t *context, uint8_t
  *	Providing a valid local URI(already present in cache), a peer ZID and peer URI will return the zuid creating it if needed and requested
  *	Any pair ZID/sipURI shall identify an account on a device.
  *
- * @param[in/out]	db		the opened sqlite database pointer
+ * @param[in,out]	dbPointer	the opened sqlite database pointer
  * @param[in]		selfURI		local URI, must be already associated to a ZID in the DB(association is performed by any call of getSelfZID on this URI)
  * @param[in]		peerURI		peer URI
  * @param[in]		peerZID		peer ZID
@@ -64,7 +64,7 @@ BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const
  *		All three arrays must be the same lenght: columnsCount
  * 		If the row isn't present in the given table, it will be inserted
  *
- * @param[in/out]	context		the current context, used to get the cache db pointer, zuid and cache mutex
+ * @param[in,out]	context		the current context, used to get the cache db pointer, zuid and cache mutex
  * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
  * @param[in]		values		An array of buffers containing the values to insert/update matching the order of columns array

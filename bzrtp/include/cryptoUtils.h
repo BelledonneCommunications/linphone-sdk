@@ -70,6 +70,7 @@ BZRTP_EXPORT int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t ke
  *
  * @param[in]	sas		The 32 bits SAS
  * @param[out]	output	The 4 chars string to be displayed to user for vocal confirmation
+ * @param[in]	outputSize	size of the ouput buffer
  *
  */
 void bzrtp_base32(uint32_t sas, char *output, int outputSize);
@@ -78,8 +79,9 @@ void bzrtp_base32(uint32_t sas, char *output, int outputSize);
  * @brief SAS rendering from 32 bits to pgp word list
  * Function defined in rfc section 5.1.6
  *
- * @param[in]	sas	The 32 bits SAS
- * @param[out]	output	The output list. Passed in array must be at least 32 bytes
+ * @param[in]	sas		The 32 bits SAS
+ * @param[out]	output		The output list. Passed in array must be at least 32 bytes
+ * @param[in]	outputSize	size of the ouput buffer
  *
  */
 void bzrtp_base256(uint32_t sas, char *output, int outputSize);
@@ -127,7 +129,7 @@ BZRTP_EXPORT int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpCha
 /**
  * @brief Update context crypto function pointer according to related values of choosen algorithms fields (hashAlgo, cipherAlgo, etc..)
  *
- * @param[in/out]	zrtpChannelContext		The bzrtp channel context to be updated
+ * @param[in,out]	zrtpChannelContext		The bzrtp channel context to be updated
  *
  * @return			0 on succes
  */
@@ -157,8 +159,8 @@ uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint
  * - SAS
  *
  * @param[in]		algoType		mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
- * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
- * @param[in/out]	algoTypesCount	number of algo types
+ * @param[in,out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
+ * @param[in,out]	algoTypesCount		number of algo types
  */
 BZRTP_EXPORT void bzrtp_addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount);
 
@@ -176,7 +178,7 @@ BZRTP_EXPORT uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_
  * @brief Unmap the string description of algo type to an int defined in cryptoWrapper.h
  *
  * @param[in] algoTypeInt	The integer algo type defined in crypoWrapper.h
- * @param[in] algoFamily	The string code for the algorithm as defined in rfc 5.1.2 to 5.1.6
+ * @param[in] algoTypeString	The string code for the algorithm as defined in rfc 5.1.2 to 5.1.6
  */
 BZRTP_EXPORT void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]);
 
@@ -185,7 +187,7 @@ BZRTP_EXPORT void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t a
  * Key is not freed, caller must deal with memory management.
  * Does nothing if the key pointer is NULL
  *
- * @param[in/out]	key			The key to be destroyed
+ * @param[in,out]	key			The key to be destroyed
  * @param[in]		keyLength	The keyLength in bytes
  * @param[in]		rngContext	The context for RNG
  */

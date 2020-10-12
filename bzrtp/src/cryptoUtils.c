@@ -290,7 +290,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
  *   rfc section 5.1.5
  * The other algorithm choice will finally be set by the endpoint acting as initiator in the commit packet
  *
- * @param[in/out]	zrtpContext			The context contains the list of available algo and is set with the selected ones and associated functions
+ * @param[in,out]	zrtpContext			The context contains the list of available algo and is set with the selected ones and associated functions
  * @param[in]		peerHelloMessage	The peer hello message containing his set of available algos
  *
  * return			0 on succes, error code otherwise
@@ -439,7 +439,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
  * @brief Update context crypto function pointer according to related values of choosen algorithms fields (hashAlgo, cipherAlgo, etc..)
  * The associated length are updated too
  *
- * @param[in/out]	context		The bzrtp context to be updated
+ * @param[in,out]	context		The bzrtp context to be updated
  *
  * @return			0 on succes
  */
@@ -587,8 +587,8 @@ uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint
  * - SAS
  *
  * @param[in]		algoType		mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
- * @param[in/out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
- * @param[in/out]	algoTypesCount	number of algo types
+ * @param[in,out]	algoTypes		mapped to uint8_t value of the 4 char strings giving the algo types as string according to rfc section 5.1.2 to 5.1.6
+ * @param[in,out]	algoTypesCount	number of algo types
  */
 void bzrtp_addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7], uint8_t *algoTypesCount)
 {
@@ -825,7 +825,7 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
  * @brief Destroy a key by setting it to a random number
  * Key is not freed, caller must deal with memory management
  *
- * @param[in/out]	key			The key to be destroyed
+ * @param[in,out]	key			The key to be destroyed
  * @param[in]		keyLength	The keyLength in bytes
  * @param[in]		rngContext	The context for RNG
  */

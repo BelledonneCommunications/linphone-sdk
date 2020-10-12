@@ -248,7 +248,7 @@ BZRTP_EXPORT int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t sel
 
 /**
  * @brief Allocate a function pointer to the callback function identified by his id 
- * @param[in/out]	context				The zrtp context to set the callback function
+ * @param[in,out]	context				The zrtp context to set the callback function
  * @param[in] 		cbs 				A structure containing all the callbacks to supply.
  *
  * @return 0 on success
@@ -260,10 +260,11 @@ BZRTP_EXPORT int bzrtp_setCallbacks(bzrtpContext_t *context, const bzrtpCallback
  * @brief Set the pointer allowing cache access,
  * this version of the function get a mutex to lock the cache when accessing it
  *
- * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
- * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   zidCacheMutex		Points to a mutex used to lock zidCache database access
+ * @param[in,out]	context			The ZRTP context we're dealing with
+ * @param[in]		zidCache		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]		selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]		peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]		zidCacheMutex		Points to a mutex used to lock zidCache database access
  *
  * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
@@ -272,9 +273,10 @@ BZRTP_EXPORT int bzrtp_setZIDCache_lock(bzrtpContext_t *context, void *zidCache,
 /**
  * @brief Set the pointer allowing cache access
  *
- * @param[in]	zidCachePointer		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
- * @param[in]   selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
- * @param[in]   peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in,out]	context			The ZRTP context we're dealing with
+ * @param[in]		zidCache		Used by internal function to access cache: turn into a sqlite3 pointer if cache is enabled
+ * @param[in]   	selfURI			Local URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
+ * @param[in]   	peerURI			Peer URI used for this communication, needed to perform cache operation, NULL terminated string, duplicated by this function
  *
  * @return 0 or BZRTP_CACHE_SETUP(if cache is populated by this call) on success, error code otherwise
 */
@@ -283,7 +285,7 @@ BZRTP_EXPORT int bzrtp_setZIDCache(bzrtpContext_t *context, void *zidCache, cons
 /**
  * @brief Set the client data pointer in a channel context
  * This pointer is returned to the client by the callbacks function, used to store associated contexts (RTP session)
- * @param[in/out]	zrtpContext		The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext		The ZRTP context we're dealing with
  * @param[in]		selfSSRC		The SSRC identifying the channel to be linked to the client Data
  * @param[in]		clientData		The clientData pointer, casted to a (void *)
  *
@@ -295,7 +297,7 @@ BZRTP_EXPORT int bzrtp_setClientData(bzrtpContext_t *zrtpContext, uint32_t selfS
 /**
  * @brief Add a channel to an existing context
  *
- * @param[in/out]	zrtpContext	The zrtp context who will get the additionnal channel
+ * @param[in,out]	zrtpContext	The zrtp context who will get the additionnal channel
  * @param[in]		selfSSRC	The SSRC given to the channel context
  *
  * @return 0 on succes, error code otherwise
@@ -307,7 +309,7 @@ BZRTP_EXPORT int bzrtp_addChannel(bzrtpContext_t *zrtpContext, uint32_t selfSSRC
  * @brief Start the state machine of the specified channel
  * To be able to start an addional channel, we must be in secure state
  *
- * @param[in/out]	zrtpContext			The ZRTP context hosting the channel to be started
+ * @param[in,out]	zrtpContext			The ZRTP context hosting the channel to be started
  * @param[in]		selfSSRC			The SSRC identifying the channel to be started(will start sending Hello packets and listening for some)
  *
  * @return			0 on succes, error code otherwise
@@ -317,7 +319,7 @@ BZRTP_EXPORT int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t 
 /**
  * @brief Send the current time to a specified channel, it will check if it has to trig some timer
  *
- * @param[in/out]	zrtpContext			The ZRTP context hosting the channel
+ * @param[in,out]	zrtpContext			The ZRTP context hosting the channel
  * @param[in]		selfSSRC			The SSRC identifying the channel
  * @param[in]		timeReference		The current time in ms
  *
@@ -328,7 +330,7 @@ BZRTP_EXPORT int bzrtp_iterate(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, u
 /**
  * @brief Process a received message
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		selfSSRC				The SSRC identifying the channel receiving the message
  * @param[in]		zrtpPacketString		The packet received
  * @param[in]		zrtpPacketStringLength	Length of the packet in bytes
@@ -340,14 +342,14 @@ BZRTP_EXPORT int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t self
 /**
  * @brief Called by user when the SAS has been verified
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  */
 BZRTP_EXPORT void bzrtp_SASVerified(bzrtpContext_t *zrtpContext); 
 
 /**
  * @brief Called by user when the SAS has been set to unverified
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  */
 BZRTP_EXPORT void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
 
@@ -357,7 +359,7 @@ BZRTP_EXPORT void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
  *  - when in responder role, zrtp engine only answer to packets sent by the initiator.
  *  - if we are still in discovery phase, Hello or Commit packets will be resent.
  *
- * @param[in/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		selfSSRC				The SSRC identifying the channel to reset
  *
  * return 0 on success, error code otherwise
@@ -367,7 +369,7 @@ BZRTP_EXPORT int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uin
 /**
  * @brief Get the supported crypto types
  *
- * @param[int]		zrtpContext				The ZRTP context we're dealing with
+ * @param[in]		zrtpContext				The ZRTP context we're dealing with
  * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
  * @param[out]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  *
@@ -378,7 +380,7 @@ BZRTP_EXPORT uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, 
 /**
  * @brief set the supported crypto types
  *
- * @param[int/out]	zrtpContext				The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
  * @param[in]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in]		supportedTypesCount		number of supported crypto types
@@ -388,7 +390,7 @@ BZRTP_EXPORT void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uin
 /**
  * @brief Set the peer hello hash given by signaling to a ZRTP channel
  *
- * @param[in/out]	zrtpContext						The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext						The ZRTP context we're dealing with
  * @param[in]		selfSSRC						The SSRC identifying the channel
  * @param[in]		peerHelloHashHexString			A NULL terminated string containing the hexadecimal form of the hash received in signaling,
  * 													may contain ZRTP version as header.
@@ -402,7 +404,7 @@ BZRTP_EXPORT int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t se
 /**
  * @brief Get the self hello hash from ZRTP channel
  *
- * @param[in/out]	zrtpContext			The ZRTP context we're dealing with
+ * @param[in,out]	zrtpContext			The ZRTP context we're dealing with
  * @param[in]		selfSSRC			The SSRC identifying the channel
  * @param[out]		output				A NULL terminated string containing the hexadecimal form of the hash received in signaling,
  * 										contain ZRTP version as header. Buffer must be allocated by caller.
@@ -445,8 +447,8 @@ BZRTP_EXPORT int bzrtp_setAuxiliarySharedSecret(bzrtpContext_t *zrtpContext, con
 
 /**
  * @brief Get the ZRTP auxiliary shared secret mismatch status
- * @param[in]		ctx	MSZRTP context
- * @return 0 on match, 1 otherwise
+ * @param[in]		zrtpContext			The ZRTP context we're dealing with
+ * @return	BZRTP_AUXSECRET_MATCH on match, BZRTP_AUXSECRET_MISMATCH on mismatch, BZRTP_AUXSECRET_UNSET if auxiliary shared secret is unused
  */
 BZRTP_EXPORT uint8_t bzrtp_getAuxiliarySharedSecretMismatch(bzrtpContext_t *zrtpContext);
 
@@ -454,7 +456,7 @@ BZRTP_EXPORT uint8_t bzrtp_getAuxiliarySharedSecretMismatch(bzrtpContext_t *zrtp
 /**
  * @brief Check the given sqlite3 DB and create requested tables if needed
  * 	Also manage DB schema upgrade
- * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * @param[in,out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
  *
  * @return 0 on success, BZRTP_CACHE_SETUP if cache was empty, BZRTP_CACHE_UPDATE if db structure was updated, error code otherwise
@@ -467,7 +469,7 @@ BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_initCache(void *db);
  *
  * this version of the function gets a mutex to lock the cache when accessing it
  *
- * @param[in/out]	db	Pointer to the sqlite3 db open connection
+ * @param[in,out]	db	Pointer to the sqlite3 db open connection
  * 				Use a void * to keep this API when building cacheless
  * @param[in]   zidCacheMutex	Points to a mutex used to lock zidCache database access, ignored if NULL
  *
@@ -480,7 +482,7 @@ BZRTP_EXPORT int bzrtp_initCache_lock(void *db, bctbx_mutex_t *zidCacheMutex);
  * ZID is randomly generated if cache is empty or inexistant
  * ZID is randomly generated in case of cacheless implementation(db argument is NULL)
  *
- * @param[in/out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
+ * @param[in,out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
  * 					Use a void * to keep this API when building cacheless
  * @param[in]		selfURI		the sip uri of local user, NULL terminated string
  * @param[out]		selfZID		the ZID, retrieved from cache or randomly generated
@@ -496,7 +498,7 @@ BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_getSelfZID(void *db, const char *selfURI
  * ZID is randomly generated in case of cacheless implementation(db argument is NULL)
  * this version of the function gets a mutex to lock the cache when accessing it
  *
- * @param[in/out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
+ * @param[in,out] 	db		sqlite3 database(or NULL if we don't use cache at runtime)
  * 					Use a void * to keep this API when building cacheless
  * @param[in]		selfURI		the sip uri of local user, NULL terminated string
  * @param[out]		selfZID		the ZID, retrieved from cache or randomly generated
@@ -513,7 +515,7 @@ BZRTP_EXPORT int bzrtp_getSelfZID_lock(void *db, const char *selfURI, uint8_t se
  *		All three arrays must be the same lenght: columnsCount
  * 		If the row isn't present in the given table, it will be inserted
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in,out]	dbPointer	Pointer to an already opened sqlite db
  * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
  * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
@@ -532,7 +534,7 @@ BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_cache_write(void *dbPointer, int zuid, c
  * 		If the row isn't present in the given table, it will be inserted
  * this version of the function gets a mutex to lock the cache when accessing it
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in,out]	dbPointer	Pointer to an already opened sqlite db
  * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
  * @param[in]		tableName	The name of the table to write in the db, must already exists. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to update
@@ -551,7 +553,7 @@ BZRTP_EXPORT int bzrtp_cache_write_lock(void *dbPointer, int zuid, const char *t
  *		Produce an array of values(uint8_t arrays) and a array of corresponding lengths
  *		Values memory is allocated by this function and must be freed by caller
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in,out]	dbPointer	Pointer to an already opened sqlite db
  * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
  * @param[in]		tableName	The name of the table to read in the db. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to read, the array's length  is columnsCount
@@ -570,7 +572,7 @@ BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_cache_read(void *dbPointer, int zuid, co
  *		Values memory is allocated by this function and must be freed by caller
  * this version of the function gets a mutex to lock the cache when accessing it
  *
- * @param[in/out]	dbPointer	Pointer to an already opened sqlite db
+ * @param[in,out]	dbPointer	Pointer to an already opened sqlite db
  * @param[in]		zuid		The DB internal id to adress the correct row(binding between local uri and peer ZID+URI)
  * @param[in]		tableName	The name of the table to read in the db. Null terminated string
  * @param[in]		columns		An array of null terminated strings containing the name of the columns to read, the array's length  is columnsCount
@@ -587,8 +589,8 @@ BZRTP_EXPORT int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *ta
  * @brief Perform migration from xml version to sqlite3 version of cache
  *	Warning: new version of cache associate a ZID to each local URI, the old one did not
  *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
- * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using bzrtp_cache_init function
+ * @param[in]		cacheXmlPtr	a pointer to an xmlDocPtr structure containing the old cache to be migrated
+ * @param[in,out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using bzrtp_cache_init function
  * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
  *
  * @return	0 on success, BZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, BZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
@@ -604,7 +606,7 @@ BZRTP_EXPORT int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, con
  * @param[in]		label			Label used in the KDF
  * @param[in]		labelLength		Length of previous buffer
  * @param[out]		derivedKey		Buffer to store the derived key
- * @param[in/out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
+ * @param[in,out]	derivedKeyLength	Length of previous buffer(updated to fit actual length of data produced if too long)
  *
  * @return 0 on succes, error code otherwise
  */
