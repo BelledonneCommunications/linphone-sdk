@@ -431,7 +431,7 @@ ms_mutex_t mutex;
 }
 
 -(void)stop_audio_unit_with_param: (bool_t) isConfigured {
-	if (_audio_unit_state == MSAudioUnitStarted) {
+	if (_audio_unit_state == MSAudioUnitStarted || _audio_unit_state == MSAudioUnitConfigured) {
 		check_audiounit_call( AudioOutputUnitStop(_audio_unit) );
 		ms_message("AudioUnit stopped");
 		_audio_session_configured = isConfigured;
