@@ -1,7 +1,7 @@
 .job-android:
 
   stage: build
-  tags: [ "docker-shuttle-monster" ]
+  tags: [ "docker" ]
 
   variables:
     CCACHE_SIZE: 4G
