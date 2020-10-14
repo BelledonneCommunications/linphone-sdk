@@ -40,6 +40,7 @@ extern test_suite_t perf_sip_uri_test_suite;
 extern test_suite_t headers_test_suite;
 extern test_suite_t core_test_suite;
 extern test_suite_t sdp_test_suite;
+extern test_suite_t sdp_belr_test_suite;
 extern test_suite_t resolver_test_suite;
 extern test_suite_t message_test_suite;
 extern test_suite_t authentication_helper_test_suite;

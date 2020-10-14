@@ -116,7 +116,7 @@ static void testInviteMessage(void) {
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Contact"));
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Authorization"));
 	BC_ASSERT_PTR_NOT_NULL(belle_sip_message_get_header(message,"Content-Type"));
-	
+
 	belle_sip_header_supported_t* header_support;
 	BC_ASSERT_PTR_NOT_NULL(header_support=BELLE_SIP_HEADER_SUPPORTED(belle_sip_message_get_header(message,"Supported")));
 	if (header_support) {
@@ -133,7 +133,7 @@ static void testInviteMessage(void) {
 			}
 		}
 	}
-	
+
 	check_uri_and_headers(message);
 	belle_sip_object_unref(message);
 	belle_sip_free(encoded_message);

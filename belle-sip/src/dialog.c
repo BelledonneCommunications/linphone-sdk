@@ -439,21 +439,21 @@ static void belle_sip_dialog_update_local_cseq(belle_sip_dialog_t *obj, const ch
 static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *dialog, unsigned int rseq, unsigned int cseq, const char* method){
 	belle_sip_request_t *prack;
 	belle_sip_request_t *invite = dialog->last_out_invite;
-	
+
 	if (!invite){
 		belle_sip_error("No INVITE to PACK.");
 		return NULL;
 	}
 
 	prack = belle_sip_dialog_create_request(dialog, "PRACK");
-	
+
 	if (prack){
 		//RAck
 		char header[50];
 		snprintf(header,sizeof(header),"%d %d %s", rseq, cseq, method);
 		belle_sip_header_t *rack = belle_sip_header_create("RAck", header);
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(prack), rack);
-		
+
 		//Contact
 		belle_sip_header_from_t* from_header = belle_sip_message_get_header_by_type(prack, belle_sip_header_from_t);
 		belle_sip_uri_t* req_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t*)from_header);
@@ -461,7 +461,7 @@ static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *di
 		belle_sip_header_address_set_uri((belle_sip_header_address_t*)contact_header, belle_sip_uri_new());
 		belle_sip_uri_set_user(belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact_header),belle_sip_uri_get_user(req_uri));
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(prack),BELLE_SIP_HEADER(contact_header));
-		
+
 		const belle_sip_list_t *aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Authorization");
 		const belle_sip_list_t *prx_aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Proxy-Authorization");
 		if (aut)
@@ -469,7 +469,7 @@ static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *di
 		if (prx_aut)
 			belle_sip_message_add_headers((belle_sip_message_t*)prack, prx_aut);
 	}
-	
+
 	return prack;
 }
 
@@ -483,11 +483,11 @@ static int belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, bel
 	belle_sip_message_t* msg = (belle_sip_message_t*)resp;
 	belle_sip_header_cseq_t *header_cseq_resp = belle_sip_message_get_header_by_type(msg, belle_sip_header_cseq_t);
 	int ret = 0;
-	
+
 	if (header_cseq_resp == NULL){
 		belle_sip_message("Message [%p] does not contain CSeq header!", msg);
 	}
-	
+
 	belle_sip_header_require_t* header_require = belle_sip_message_get_header_by_type(msg, belle_sip_header_require_t);
 	if (header_require){
 		belle_sip_list_t* list = belle_sip_header_require_get_require(header_require);
@@ -756,7 +756,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		}
 		to_tag = belle_sip_header_to_get_tag(to);
 	}
-	
+
 	if (strcmp(belle_sip_request_get_method(t->request),"INVITE") == 0){
 		type = BELLE_SIP_DIALOG_INVITE;
 	}else if (strcmp(belle_sip_request_get_method(t->request),"SUBSCRIBE") == 0){
@@ -765,7 +765,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 		belle_sip_error("belle_sip_dialog_new(): unsupported request [%s] for creating a dialog.", belle_sip_request_get_method(t->request));
 		return NULL;
 	}
-	
+
 	if (type == BELLE_SIP_DIALOG_SUBSCRIBE_NOTIFY) {
 		belle_sip_header_expires_t *expires = belle_sip_message_get_header_by_type(t->request,belle_sip_header_expires_t);
 		if (expires && belle_sip_header_expires_get_expires(expires) < 1) {

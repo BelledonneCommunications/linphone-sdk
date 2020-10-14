@@ -1393,4 +1393,3 @@ void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, 
 void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code) {
 	prov->unconditional_answer=code;
 }
-

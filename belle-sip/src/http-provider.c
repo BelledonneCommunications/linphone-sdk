@@ -105,14 +105,14 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		}
 
 		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
-    
+
 		if (header) {
 			belle_sip_header_address_t *from_address = belle_sip_header_address_parse(belle_sip_header_get_unparsed_value(header));
 			from_uri = belle_sip_header_address_get_uri(from_address);
 		} else if (username && !passwd) {
 			from_uri = belle_sip_uri_create(username,realm);
 		}
-		
+
 		if (!username || !passwd) {
 			ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,from_uri);
 			belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
@@ -259,7 +259,7 @@ static void http_channel_context_handle_disconnection(belle_http_channel_context
 	belle_sip_list_t *elem;
 	belle_http_request_t *req=NULL;
 	belle_sip_list_t *to_be_resubmitted = NULL;
-	
+
 	for (elem = chan->outgoing_messages ; elem != NULL ; elem = elem->next){
 		to_be_resubmitted = bctbx_list_append(to_be_resubmitted, elem->data);
 	}
@@ -347,7 +347,7 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 				provider_remove_channel(ctx->provider,chan);
 			}
 			break;
-			
+
 	}
 }
 

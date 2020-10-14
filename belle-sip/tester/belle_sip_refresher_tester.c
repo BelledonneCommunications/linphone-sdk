@@ -185,7 +185,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 	const char *algo_ref = "SHA-256";
 
 	belle_sip_message("caller_process_request_event received [%s] message", belle_sip_request_get_method(belle_sip_request_event_get_request(event)));
-	
+
 	if (endpoint->retry_after) {
 		unsigned int response_code;
 		response_code = 404;
@@ -199,7 +199,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(www_authenticate));
 		}
 		retry_after_header = BELLE_SIP_HEADER_RETRY_AFTER(belle_sip_header_retry_after_create(endpoint->retry_after));
-		
+
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp), BELLE_SIP_HEADER(retry_after_header));
 
 		endpoint->retry_after = 0;
@@ -350,7 +350,7 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			}
 		}
 	}
-	
+
 	if (endpoint->received) {
 		via = belle_sip_message_get_header_by_type(req, belle_sip_header_via_t);
 		belle_sip_header_via_set_received(via, endpoint->received);
@@ -567,7 +567,7 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 		belle_sip_object_unref(trans);
 		belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 		int timeout = client->retry_after + client->register_count;
-		
+
 		begin = belle_sip_time_ms();
 		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0), timeout*1000 + 1000));
 		end = belle_sip_time_ms();
@@ -800,7 +800,7 @@ static void subscribe_base(int with_resource_lists) {
 /*
 Peio : assert qui pète à chaque fois et ce bug DOIT être corrigé.
 il serait utile de commenter l'assert afin de savoir à quoi elle sert précisément
-avant d'avoir à relire tout le code qui lui est liée.  
+avant d'avoir à relire tout le code qui lui est liée.
 Issue assignée à Jehan
 
 	if (with_resource_lists) {

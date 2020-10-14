@@ -38,11 +38,11 @@ static void perf(void) {
 		belle_sip_uri_t * uri = belle_sip_uri_parse("sip:+331231231231@sip.exmaple.org;user=phone");
 		belle_sip_object_unref(uri);
 	}
-	
+
 	t1 = bctbx_get_cur_time_ms() - start;
 	start=bctbx_get_cur_time_ms();
 	belle_sip_message("t1 = %" PRIu64 "",t1);
-	
+
 	for (i=0;i<1000;i++) {
 		belle_sip_uri_t * uri = belle_sip_fast_uri_parse("sip:+331231231231@sip.exmaple.org;user=phone");
 		belle_sip_object_unref(uri);

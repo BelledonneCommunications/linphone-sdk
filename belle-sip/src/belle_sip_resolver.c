@@ -1839,12 +1839,12 @@ static void on_ipv4_results(void *data, belle_sip_resolver_results_t *results) {
 	ctx->a_notified = TRUE;
 
 	if (!ctx->aaaa_notified && ctx->a_results && belle_sip_aaaa_timeout_after_a_received > 0){
-		/* 
-		 * Start a global timer in order to workaround buggy home routers that don't respond to AAAA requests when there is no 
+		/*
+		 * Start a global timer in order to workaround buggy home routers that don't respond to AAAA requests when there is no
 		 * corresponding AAAA record for the queried domain. It is only started if we have a A result.
 		 */
 		belle_sip_message("resolver[%p]: starting aaaa timeout since A response is received.", ctx);
-		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)dual_resolver_aaaa_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
+		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)dual_resolver_aaaa_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT,
 				belle_sip_aaaa_timeout_after_a_received);
 		belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
 	}

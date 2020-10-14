@@ -18,6 +18,8 @@
  */
 
 
+#include <string>
+
 #include <belle-sip/mainloop.h>
 #include "bctoolbox/crypto.hh"
 

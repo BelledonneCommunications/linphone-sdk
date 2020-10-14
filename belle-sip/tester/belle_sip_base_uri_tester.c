@@ -367,7 +367,7 @@ static void test_uri_equals(void) {
 	BC_ASSERT_FALSE(belle_sip_uri_equals(a,b));
 	belle_sip_object_unref(a);
 	belle_sip_object_unref(b);
-	
+
 	a = belle_sip_uri_parse("sip:bob@biloxi.com");
 	if (!BC_ASSERT_PTR_NOT_NULL(a)) return;
 	b = belle_sip_uri_parse("sip:boba@biloxi.com");
@@ -536,4 +536,3 @@ static test_t uri_tests[] = {
 	TEST_NO_TAG("URI components", testUriComponentsChecker),
 	TEST_NO_TAG("Empty password", test_empty_password),
 };
-

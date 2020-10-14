@@ -85,6 +85,8 @@ find_package(Threads)
 
 find_package(ZLIB)
 
+find_package(belr REQUIRED CONFIG)
+
 if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
@@ -175,7 +177,7 @@ else()
 	elseif(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 		list(APPEND STRICT_OPTIONS_C "-Werror=vla") # Forbids usage of variable length arrays since Visual Studio's compiler does not support them.
 		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=pragmas")
-		
+
 		if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 8)
 			list(APPEND STRICT_OPTIONS_C "-Wno-error=cast-function-type" )
 		endif()

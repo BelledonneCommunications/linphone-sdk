@@ -121,14 +121,14 @@ static void transaction_handle_channel_error(belle_sip_transaction_t *t, belle_s
 	belle_sip_io_error_event_t ev;
 	belle_sip_transaction_state_t tr_state=belle_sip_transaction_get_state((belle_sip_transaction_t*)t);
 	const belle_sip_timer_config_t *timercfg = NULL;
-	
+
 	belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the listener*/
-	
+
 	ev.transport=belle_sip_channel_get_transport_name(chan);
 	ev.source=BELLE_SIP_OBJECT(t);
 	ev.port=chan->peer_port;
 	ev.host=chan->peer_name;
-	
+
 	if ( tr_state!=BELLE_SIP_TRANSACTION_COMPLETED
 		&& tr_state!=BELLE_SIP_TRANSACTION_CONFIRMED
 		&& tr_state!=BELLE_SIP_TRANSACTION_ACCEPTED

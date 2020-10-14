@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2021 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -17,14 +17,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belle-sip/belle-sip.h"
-#include "belle_sip_tester.h"
-#include "belle_sip_internal.h"
+#include <belr/grammarbuilder.h>
+#include <belr/abnf.h>
 
+using namespace std;
 
-/*test body*/
-#include "belle_sip_base_uri_tester.c"
-
-
-test_suite_t sip_uri_test_suite = {"SIP URI", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
-	sizeof(uri_tests) / sizeof(uri_tests[0]), uri_tests};
+namespace bellesip {
+    namespace SDP {
+        class Parser {
+            public:
+                static Parser *getInstance();
+                void * parse(const string &input, const string &rule);
+            private:
+                static Parser *instance;
+                Parser();
+                ~Parser();
+                shared_ptr<belr::Grammar> loadGrammar();
+                shared_ptr<belr::Parser<void*>> _parser;
+        };
+    }
+}

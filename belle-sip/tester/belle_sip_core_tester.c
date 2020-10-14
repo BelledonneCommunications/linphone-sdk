@@ -304,20 +304,20 @@ static void test_presence_marshal(void) {
 	}
 	desc = belle_sip_object_to_string(mpbh);
 	BC_ASSERT_PTR_NOT_NULL(desc);
-	
+
 	if (desc != NULL) {
 		BC_ASSERT_EQUAL((unsigned int)strlen(desc), 4688, unsigned int, "%u");
 		belle_sip_message("Body is [%s]",desc);
 	}
 	belle_sip_multipart_body_handler_t *memory_mpbh = belle_sip_multipart_body_handler_new_from_buffer(desc, strlen(desc), belle_sip_multipart_body_handler_get_boundary(mpbh));
-	
+
 	const bctbx_list_t * parts = belle_sip_multipart_body_handler_get_parts(memory_mpbh);
 	for (i = 0; i < 7 ; i++) {
 		belle_sip_body_handler_t *part = (belle_sip_body_handler_t *)parts->data;
 		BC_ASSERT_EQUAL((int)belle_sip_body_handler_get_size(part), (int)strlen(parts_content[i]), int, "%i");
 		parts = parts->next;
 	}
-	
+
 	belle_sip_object_unref(mpbh);
 	belle_sip_object_unref(memory_mpbh);
 }

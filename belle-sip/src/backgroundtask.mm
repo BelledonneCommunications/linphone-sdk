@@ -30,12 +30,12 @@ using namespace bctoolbox;
 
 unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data){
     auto &iOSUtils = IOSUtils::getUtils();
-    
+
     std::function<void()> callback;
     if (cb) {
         callback = std::bind(cb, data);
     }
-    
+
     return iOSUtils.beginBackgroundTask(name, callback);
 }
 
@@ -81,4 +81,3 @@ void belle_sip_end_background_task(unsigned long id){
 }
 
 #endif
-
