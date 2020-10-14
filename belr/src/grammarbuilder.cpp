@@ -85,6 +85,17 @@ void ABNFNumval::setBinVal(const string& binval){
 	parseValues(binval,2);
 }
 
+ostream & ABNFNumval::describe(ostream & ostr) const{
+	ostr << "num-val with values [";
+	bool needSeparator = false;
+	for( auto v : mValues){
+		if (needSeparator) ostr << ", ";
+		ostr << v;
+		needSeparator = true;
+	}
+	return ostr;
+}
+
 shared_ptr< Recognizer > ABNFOption::buildRecognizer(const shared_ptr< Grammar >& grammar){
 	return Foundation::loop()->setRecognizer(mAlternation->buildRecognizer(grammar),0,1);
 }
@@ -95,6 +106,13 @@ shared_ptr< ABNFOption > ABNFOption::create(){
 
 void ABNFOption::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
+}
+
+ostream & ABNFOption::describe(ostream &ostr) const{
+	ostr << "option with alternation [";
+	mAlternation->describe(ostr);
+	ostr << "]";
+	return ostr;
 }
 
 shared_ptr< ABNFGroup > ABNFGroup::create(){
@@ -109,6 +127,13 @@ void ABNFGroup::setAlternation(const shared_ptr< ABNFAlternation >& a){
 	mAlternation=a;
 }
 
+ostream & ABNFGroup::describe(ostream &ostr) const{
+	ostr << "group with alternation [";
+	mAlternation->describe(ostr);
+	ostr << "]";
+	return ostr;
+}
+
 shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar >& grammar){
 	if (mElement)
 		return mElement->buildRecognizer(grammar);
@@ -120,12 +145,30 @@ shared_ptr< Recognizer > ABNFElement::buildRecognizer(const shared_ptr< Grammar 
 		else
 			return Utils::literal(mCharVal);
 	}
-	bctbx_fatal("ABNFElement::buildRecognizer is empty, should not happen!");
+	bctbx_fatal("ABNFElement is empty, should not happen!");
 	return nullptr;
 }
 
 shared_ptr< ABNFElement > ABNFElement::create(){
 	return make_shared<ABNFElement>();
+}
+
+bool ABNFElement::isDefined()const{
+	if (!mElement || !mRulename.empty() || !mCharVal.empty()){
+		return true;
+	}
+	return false;
+}
+
+ostream & ABNFElement::describe(ostream &ostr)const{
+	if (mElement) {
+		ostringstream st;
+		mElement->describe(st);
+		ostr << "Element referencing [" << st.str() << "]";
+	}else if (!mRulename.empty()) ostr << "Element referencing rule name [" << mRulename << "]";
+	else if (!mCharVal.empty()) ostr << "Element containing char-val [" << mCharVal << "]";
+	else ostr << "Empty element !";
+	return ostr;
 }
 
 void ABNFElement::setElement(const shared_ptr< ABNFBuilder >& e){
@@ -142,7 +185,7 @@ void ABNFElement::setCharVal(const string& charval){
 
 void ABNFElement::setProseVal(const string& prose){
 	if (!prose.empty()){
-		bctbx_fatal("prose-val is not supported.");
+		bctbx_fatal("prose-val '%s' is not supported.", prose.c_str());
 	}
 }
 
@@ -179,6 +222,13 @@ shared_ptr< Recognizer > ABNFRepetition::buildRecognizer(const shared_ptr< Gramm
 	}
 }
 
+ostream & ABNFRepetition::describe(ostream & ostr)const{
+	ostringstream st;
+	mElement->describe(st);
+	ostr << "repetition of [" << st.str() << "]";
+	return ostr;
+}
+
 shared_ptr<ABNFConcatenation> ABNFConcatenation::create(){
 	return make_shared<ABNFConcatenation>();
 }
@@ -203,6 +253,18 @@ void ABNFConcatenation::addRepetition(const shared_ptr< ABNFRepetition >& r){
 	mRepetitions.push_back(r);
 }
 
+ostream & ABNFConcatenation::describe(ostream & ostr)const{
+	ostr << "concatenation of [";
+	bool needSeparator = false;
+	for (auto r : mRepetitions){
+		if (needSeparator) ostr << " followed by ";
+		r->describe(ostr);
+		needSeparator = true;
+	}
+	ostr << "]";
+	return ostr;
+}
+
 shared_ptr<ABNFAlternation> ABNFAlternation::create(){
 	return make_shared<ABNFAlternation>();
 }
@@ -222,6 +284,19 @@ shared_ptr< Recognizer > ABNFAlternation::buildRecognizerNoOptim(const shared_pt
 		sel->addRecognizer((*it)->buildRecognizer(grammar));
 	}
 	return sel;
+}
+
+ostream & ABNFAlternation::describe(ostream & ostr)const{
+
+	bool needSeparator = false;
+	ostr << "alternation of [";
+	for (auto c : mConcatenations){
+		if (needSeparator) ostr << " or ";
+		c->describe(ostr);
+		needSeparator = true;
+	}
+	ostr << "]";
+	return ostr;
 }
 
 shared_ptr<ABNFRule> ABNFRule::create(){
@@ -247,6 +322,14 @@ shared_ptr<Recognizer> ABNFRule::buildRecognizer(const shared_ptr<Grammar> &gram
 
 void ABNFRule::setDefinedAs(const string& defined_as){
 	mDefinedAs=defined_as;
+}
+
+ostream & ABNFRule::describe(ostream & ostr) const{
+	ostr << "rule with name [" << mName << "] " << (isExtension() ? "extended with " : "defined as ") ;
+	ostr << "[";
+	mAlternation->describe(ostr);
+	ostr << "]";
+	return ostr;
 }
 
 
@@ -284,6 +367,15 @@ shared_ptr<Recognizer> ABNFRuleList::buildRecognizer(const shared_ptr<Grammar> &
 	return nullptr;
 }
 
+ostream & ABNFRuleList::describe(ostream &ostr)const{
+	ostr << "rule-list contaning:" << endl;
+	for (auto r : mRules){
+		r->describe(ostr);
+		ostr << endl;
+	}
+	return ostr;
+}
+
 ABNFGrammarBuilder::ABNFGrammarBuilder()
 : mParser(make_shared<ABNFGrammar>()){
 	mParser.setHandler("rulelist", make_fn(&ABNFRuleList::create))
@@ -308,7 +400,7 @@ ABNFGrammarBuilder::ABNFGrammarBuilder()
 		->setCollector("option", make_sfn(&ABNFElement::setElement))
 		->setCollector("char-val", make_sfn(&ABNFElement::setCharVal))
 		->setCollector("num-val", make_sfn(&ABNFElement::setElement))
-		->setCollector("prose-val", make_sfn(&ABNFElement::setElement));
+		->setCollector("prose-val", make_sfn(&ABNFElement::setProseVal));
 	mParser.setHandler("group", make_fn(&ABNFGroup::create))
 		->setCollector("alternation", make_sfn(&ABNFGroup::setAlternation));
 	mParser.setHandler("option", make_fn(&ABNFOption::create))
@@ -331,9 +423,13 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 		bctbx_error("Only %llu bytes parsed over a total of %llu.", (unsigned long long)parsed, (unsigned long long) abnf.size());
 		return nullptr;
 	}
+	bctbx_message("Grammar parsed.");
+	//ostringstream ostr;
+	//builder->describe(ostr);
+	//bctbx_message("Dump of grammar:\n %s", ostr.str().c_str());
 
 	shared_ptr<Grammar> retGram;
-	if (gram==nullptr) retGram=make_shared<Grammar>(abnf);
+	if (gram==nullptr) retGram=make_shared<Grammar>("");
 	else retGram=gram;
 
 	builder->buildRecognizer(retGram);
@@ -345,7 +441,7 @@ shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnf(const string &abnf, const
 	}else{
 		bctbx_warning("Grammar is not complete.");
 	}
-	return gram;
+	return retGram;
 }
 
 shared_ptr<Grammar> ABNFGrammarBuilder::createFromAbnfFile(const string &path, const shared_ptr<Grammar> &gram){
