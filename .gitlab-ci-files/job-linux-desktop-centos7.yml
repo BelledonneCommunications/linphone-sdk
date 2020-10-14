@@ -28,6 +28,7 @@ job-centos7-makefile-gcc:
       - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
