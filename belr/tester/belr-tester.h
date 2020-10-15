@@ -35,14 +35,18 @@
 #include <chrono>
 
 
+namespace belr{
 std::string bcTesterFile(const std::string &name);
 std::string bcTesterRes(const std::string &name);
+std::string openFile(const std::string &name);
+}
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern test_suite_t grammar_suite;
+extern test_suite_t parser_suite;
 
 
 void belr_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));

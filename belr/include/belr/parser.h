@@ -302,6 +302,21 @@ inline std::function< _retT (_arg1T,_arg2T)> make_fn(_retT (*arg)(_arg1T,_arg2T)
 	return std::function< _retT (_arg1T,_arg2T)>(arg);
 }
 
+template <typename _retT, typename _arg1T>
+struct StringToCharMapper{
+	StringToCharMapper(const std::function< _retT (_arg1T, const char*)> &cfunc) : mCFunc(cfunc){
+	}
+	std::function< _retT (_arg1T, const char*)> mCFunc; 
+	_retT operator()(_arg1T arg1, const std::string & arg2){
+		return mCFunc(arg1, arg2.c_str());
+	}
+};
+
+template <typename _retT, typename _arg1T>
+inline std::function< _retT (_arg1T, const std::string &)> make_fn(_retT (*arg)(_arg1T, const char*)){
+	return StringToCharMapper<_retT, _arg1T>(arg);
+}
+
 template <typename _klassT, typename _argT>
 inline std::function< void (_klassT*,_argT)> make_fn(void (_klassT::*arg)(_argT)){
 	return std::function< void (_klassT*,_argT)>(std::mem_fn(arg));

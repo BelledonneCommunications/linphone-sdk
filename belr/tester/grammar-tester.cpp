@@ -19,21 +19,11 @@
 
 #include "belr-tester.h"
 #include <cstdio>
+#include "bctoolbox/logging.h"
 
 using namespace::std;
 using namespace::belr;
 
-static string openFile(const string &name) {
-	ifstream istr(name, std::ios::binary);
-	if (!istr.is_open()) {
-		BC_FAIL(name);
-	}
-
-	stringstream tmpStream;
-	tmpStream << istr.rdbuf();
-	string tmp = tmpStream.str();
-	return tmp;
-}
 
 static bool parseMessage(shared_ptr<Grammar> grammar,  const string &message) {
 	shared_ptr<DebugParser> parser = make_shared<DebugParser>(grammar);
@@ -51,9 +41,9 @@ static bool parseMessage(shared_ptr<Grammar> grammar,  const string &message) {
 
 static void sipgrammar_save_and_load(void) {
 
-	string grammarToParse = bcTesterRes("res/sipgrammar.txt");
+	string grammarToParse = bcTesterRes("sipgrammar.txt");
 	string grammarDump = bcTesterFile("grammarDump.bin");
-	string sipmessage = openFile(bcTesterRes("res/register.txt"));
+	string sipmessage = openFile(bcTesterRes("register.txt"));
 
 	remove(grammarDump.c_str());
 	
@@ -98,8 +88,8 @@ static void sipgrammar_save_and_load(void) {
  * with a parser handler, as the recognizer behind it was named "token".
  */
 static void aliases_rules(void) {
-	string grammarToParse = bcTesterRes("res/sipgrammar.txt");
-	string sipmessage = openFile(bcTesterRes("res/response.txt"));
+	string grammarToParse = bcTesterRes("sipgrammar.txt");
+	string sipmessage = openFile(bcTesterRes("response.txt"));
 	
 	BC_ASSERT_TRUE(sipmessage.size() > 0);
 

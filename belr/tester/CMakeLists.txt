@@ -40,6 +40,7 @@ set(HEADER_FILES_CXX belr-tester.h)
 set(SOURCE_FILES_CXX
 	belr-tester.cpp
 	grammar-tester.cpp
+	parser.cpp
 )
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")

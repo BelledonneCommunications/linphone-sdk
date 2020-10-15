@@ -19,6 +19,12 @@
 
 #include "belr-tester.h"
 #include "bctoolbox/logging.h"
+#include <fstream>
+#include <sstream>
+
+using namespace::std;
+
+namespace belr{
 
 std::string bcTesterFile(const std::string &name){
 	char *file = bc_tester_file(name.c_str());
@@ -34,6 +40,22 @@ std::string bcTesterRes(const std::string &name){
 	return ret;
 }
 
+std::string openFile(const std::string &name) {
+	std::ifstream istr(name, std::ios::binary);
+	if (!istr.is_open()) {
+		bctbx_error("Fail to open %s", name.c_str());
+		BC_FAIL("Fail to open file");
+		return "";
+	}
+
+	std::stringstream tmpStream;
+	tmpStream << istr.rdbuf();
+	return tmpStream.str();;
+}
+
+
+}
+
 
 int main(int argc, char *argv[]) {
 	int i;
@@ -41,13 +63,17 @@ int main(int argc, char *argv[]) {
 
 	belr_tester_init(NULL);
 
-	if (strstr(argv[0], ".libs")) {
-		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
-		char prefix[200] = { 0 };
-		snprintf(prefix, sizeof(prefix)-1, "%s%.*s", argv[0][0] == '/' ? "" : "./", prefix_length, argv[0]);
-		bc_tester_set_resource_dir_prefix(prefix);
-		bc_tester_set_writable_dir_prefix(prefix);
+	char *dirname = bctbx_dirname(argv[0]);
+	std::string resDir = string(dirname) + "/../share/belr-tester/res/";
+	std::string testResource = resDir + "sipgrammar.txt";
+	bctbx_free(dirname);
+	if (bctbx_file_exist(testResource.c_str()) == 0){
+		bc_tester_set_resource_dir_prefix(resDir.c_str());
+		printf("Resource dir set to %s\n", resDir.c_str());
+	}else{
+		bc_tester_set_resource_dir_prefix("./res");
 	}
+	bc_tester_set_writable_dir_prefix("./");
 
 	for(i = 1; i < argc; ++i) {
 		int ret = bc_tester_parse_args(argc, argv, i);
@@ -84,6 +110,7 @@ void belr_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list 
 	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, ".");
 
 	bc_tester_add_suite(&grammar_suite);
+	bc_tester_add_suite(&parser_suite);
 
 
 }
