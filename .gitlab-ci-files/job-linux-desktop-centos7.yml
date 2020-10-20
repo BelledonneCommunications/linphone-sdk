@@ -147,3 +147,10 @@ test-liblinphone-centos7-force:
   only:
     variables:
       - $ENABLE_TESTS_LIBLINPHONE
+
+test-lime-centos7:
+  extends: .test-lime
+  dependencies:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
+
