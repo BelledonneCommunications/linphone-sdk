@@ -479,7 +479,7 @@ ms_mutex_t mutex;
 		return;
 	}
 
-	if ( bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
+	if ( !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
 		/*check that category wasn't changed*/
 		NSString *currentCategory = audioSession.category;
 		NSString *newCategory = AVAudioSessionCategoryPlayAndRecord;
