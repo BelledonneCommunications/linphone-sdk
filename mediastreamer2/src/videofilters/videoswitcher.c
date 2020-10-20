@@ -24,6 +24,7 @@
 #include "vp8rtpfmt.h"
 
 #define SWITCHER_MAX_CHANNELS 20
+#define SWITCHER_MAX_INPUT_CHANNELS SWITCHER_MAX_CHANNELS+1 //one more pin for static image
 
 static bool_t is_vp8_key_frame(mblk_t *m){
 	uint8_t *p;
@@ -81,7 +82,7 @@ typedef struct _OutputContext{
 }OutputContext;
 
 typedef struct SwitcherState{
-	InputContext input_contexts[SWITCHER_MAX_CHANNELS];
+	InputContext input_contexts[SWITCHER_MAX_INPUT_CHANNELS];
 	OutputContext output_contexts[SWITCHER_MAX_CHANNELS];
 	int focus_pin;
 	is_key_frame_func_t is_key_frame;
@@ -324,7 +325,7 @@ static int switcher_notify_pli(MSFilter *f, void *data){
 	SwitcherState *s=(SwitcherState *)f->data;
 	int pin = *(int*)data;
 	int source_pin;
-	if (pin < 0 || pin >= f->desc->ninputs){
+	if (pin < 0 || pin >= f->desc->noutputs){
 		ms_error("%s: invalid argument to MS_VIDEO_SWITCHER_NOTIFY_PLI", f->desc->name);
 		return -1;
 	}
@@ -340,7 +341,7 @@ static int switcher_notify_fir(MSFilter *f, void *data){
 	SwitcherState *s=(SwitcherState *)f->data;
 	int pin = *(int*)data;
 	int source_pin;
-	if (pin < 0 || pin >= f->desc->ninputs){
+	if (pin < 0 || pin >= f->desc->noutputs){
 		ms_error("%s: invalid argument to MS_VIDEO_SWITCHER_NOTIFY_PLI", f->desc->name);
 		return -1;
 	}
@@ -369,7 +370,7 @@ MSFilterDesc ms_video_switcher_desc={
 	N_("A filter that switches video streams from several inputs, used for video conferencing."),
 	MS_FILTER_OTHER,
 	NULL,
-	SWITCHER_MAX_CHANNELS,
+	SWITCHER_MAX_INPUT_CHANNELS,
 	SWITCHER_MAX_CHANNELS,
 	switcher_init,
 	switcher_preprocess,
@@ -386,7 +387,7 @@ MSFilterDesc ms_video_switcher_desc={
 	.name="MSVideoSwitcher",
 	.text=N_("A filter that switches video streams from several inputs, used for video conferencing."),
 	.category=MS_FILTER_OTHER,
-	.ninputs=SWITCHER_MAX_CHANNELS,
+	.ninputs=SWITCHER_MAX_INPUT_CHANNELS,
 	.noutputs=SWITCHER_MAX_CHANNELS,
 	.init=switcher_init,
 	.preprocess=switcher_preprocess,

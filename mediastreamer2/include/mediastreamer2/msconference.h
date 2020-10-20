@@ -321,6 +321,13 @@ MS2_PUBLIC void ms_video_conference_remove_member(MSVideoConference *obj, MSVide
 MS2_PUBLIC void ms_video_conference_set_focus(MSVideoConference *obj, MSVideoEndpoint *ep);
 
 /**
+* Get the video placeholder member, as MSVideoEndpoint.
+* @param obj the conference
+* @return a MSVideoEndpoint object.
+*/
+MS2_PUBLIC MSVideoEndpoint *ms_video_conference_get_video_placeholder_member(const MSVideoConference *obj);
+
+/**
  * Get the list of members, as MSVideoEndpoints.
  * @param obj the conference
  * @return a list of MSVideoEndpoint objects.
