@@ -266,14 +266,14 @@ static int stream_channel_process_data(belle_sip_stream_channel_t *obj,unsigned 
 	return BELLE_SIP_CONTINUE;
 }
 
-void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
+void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *dest, int port, int no_srv){
 	belle_sip_channel_init((belle_sip_channel_t*)obj, stack
-					,bindip,localport,peer_cname,dest,port);
+					,bindip,localport,peer_cname,dest,port, no_srv);
 }
 
-belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,const char *bindip, int localport, const char *peer_cname, const char *dest, int port){
+belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,const char *bindip, int localport, const char *peer_cname, const char *dest, int port, int no_srv){
 	belle_sip_stream_channel_t *obj=belle_sip_object_new(belle_sip_stream_channel_t);
-	belle_sip_stream_channel_init_client(obj,stack,bindip,localport,peer_cname,dest,port);
+	belle_sip_stream_channel_init_client(obj,stack,bindip,localport,peer_cname,dest,port, no_srv);
 	return (belle_sip_channel_t*)obj;
 }
 

@@ -418,7 +418,7 @@ void channel_parser_tester_recovery_from_error_base (const char* prelude,const c
 																	, 45421
 																	, NULL
 																	, "127.0.0.1"
-																	, 45421);
+																	, 45421, TRUE);
 
 
 	belle_sip_request_t* request;
@@ -999,7 +999,7 @@ void channel_parser_http_response(void) {
 																	, 45421
 																	, NULL
 																	, "127.0.0.1"
-																	, 45421);
+																	, 45421, TRUE);
 
 	const char * raw_message=	"HTTP/1.1 200 OK\r\n"
 								"Cache-Control: private\r\n"
@@ -1071,7 +1071,7 @@ void testGetBody(void) {
 																	, LISTENING_POINT_PORT
 																	, NULL
 																	, "127.0.0.1"
-																	, LISTENING_POINT_PORT);
+																	, LISTENING_POINT_PORT, TRUE);
 
 
 	belle_sip_message_t* message;

@@ -42,7 +42,7 @@ static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, 
 														,belle_sip_uri_get_host(lp->listening_uri)
 														,belle_sip_uri_get_port(lp->listening_uri)
 														,hop->host
-														,hop->port);
+														,hop->port, hop->port_is_explicit);
 	return chan;
 }
 

@@ -504,9 +504,9 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	}
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
-			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port);
+			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port, FALSE);
 		} else if (strcasecmp(hop->transport,"tls")==0){
-			chan=belle_sip_channel_new_tls(obj->stack,obj->crypto_config,obj->bind_ip,0,hop->cname,hop->host,hop->port);
+			chan=belle_sip_channel_new_tls(obj->stack,obj->crypto_config,obj->bind_ip,0,hop->cname,hop->host,hop->port, FALSE);
 		}
 
 		if (!chan){

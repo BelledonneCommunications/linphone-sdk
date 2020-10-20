@@ -128,9 +128,10 @@ struct belle_sip_channel{
 	unsigned char about_to_be_closed;
 	unsigned char srv_overrides_port; /*set when this channel was connected to destination port provided by SRV resolution*/
 	unsigned char soft_error; /*set when this channel enters ERROR state because of error detected in upper layer */
-	int stop_logging_buffer; /*log buffer content only if this is non binary data, and stop it at the first occurence*/
-	bool_t closed_by_remote; /*If the channel has been remotely closed*/
-	bool_t dns_ttl_timedout;
+	unsigned char stop_logging_buffer; /*log buffer content only if this is non binary data, and stop it at the first occurence*/
+	unsigned char closed_by_remote; /*If the channel has been remotely closed*/
+	unsigned char dns_ttl_timedout;
+	unsigned char no_srv; /* Set to 1 if SRV must be skipped */
 };
 
 #define BELLE_SIP_CHANNEL(obj)		BELLE_SIP_CAST(obj,belle_sip_channel_t)
@@ -160,7 +161,7 @@ int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buf
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen);
 /*only used by channels implementation*/
 void belle_sip_channel_set_ready(belle_sip_channel_t *obj, const struct sockaddr *addr, socklen_t slen);
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport, const char *peer_cname, const char *peername, int peer_port);
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip,int localport, const char *peer_cname, const char *peername, int peer_port, int no_srv);
 void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport, const struct sockaddr *peer_addr, socklen_t addrlen);
 void belle_sip_channel_set_socket(belle_sip_channel_t *obj, belle_sip_socket_t sock, belle_sip_source_func_t datafunc);
 /*end of channel implementations*/

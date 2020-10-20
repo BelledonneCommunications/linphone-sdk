@@ -749,15 +749,16 @@ static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv){
  * peername peer's hostname, either ip address or DNS name
  * peer_port peer's port to connect to.
  */
-void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port){
+void belle_sip_channel_init(belle_sip_channel_t *obj, belle_sip_stack_t *stack,const char *bindip,int localport,const char *peer_cname, const char *peername, int peer_port, int no_srv){
 	/*to initialize our base class:*/
 	belle_sip_channel_set_socket(obj,-1,NULL);
-
+	belle_sip_message("belle_sip_channel_init(); peer_cname=%s", peer_cname);
 	/*then initialize members*/
 	obj->ai_family=AF_INET;
 	obj->peer_cname=peer_cname ? belle_sip_strdup(peer_cname) : NULL;
 	obj->peer_name=belle_sip_strdup(peername);
 	obj->peer_port=peer_port;
+	obj->no_srv = (unsigned char)no_srv;
 	obj->stack=stack;
 	if (bindip){
 		if (strcmp(bindip,"::0")!=0 && strcmp(bindip,"0.0.0.0")!=0)
@@ -788,7 +789,7 @@ void belle_sip_channel_init_with_addr(belle_sip_channel_t *obj, belle_sip_stack_
 	ai.ai_addr=(struct sockaddr*)peer_addr;
 	ai.ai_addrlen=addrlen;
 	bctbx_addrinfo_to_ip_address(&ai,remoteip,sizeof(remoteip),&peer_port);
-	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port);
+	belle_sip_channel_init(obj,stack,bindip,localport,NULL,remoteip,peer_port, TRUE);
 	obj->peer_list = obj->current_peer = obj->static_peer_list = bctbx_ip_address_to_addrinfo(ai.ai_family, ai.ai_socktype, obj->peer_name,obj->peer_port);
 	obj->ai_family=ai.ai_family;
 }
@@ -1560,7 +1561,7 @@ static void channel_res_done(void *data, belle_sip_resolver_results_t *results){
 void belle_sip_channel_resolve(belle_sip_channel_t *obj){
 	belle_sip_message("channel [%p]: starting resolution of %s", obj, obj->peer_name);
 	channel_set_state(obj,BELLE_SIP_CHANNEL_RES_IN_PROGRESS);
-	if (belle_sip_stack_dns_srv_enabled(obj->stack) && obj->lp!=NULL)
+	if (belle_sip_stack_dns_srv_enabled(obj->stack) && obj->lp!=NULL && obj->no_srv == 0)
 		obj->resolver_ctx=belle_sip_stack_resolve(obj->stack, "sip", belle_sip_channel_get_transport_name_lower_case(obj), obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);
 	else
 		obj->resolver_ctx=belle_sip_stack_resolve_a(obj->stack, obj->peer_name, obj->peer_port, obj->ai_family, channel_res_done, obj);

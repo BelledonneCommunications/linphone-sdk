@@ -900,13 +900,13 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj){
 	return 0;
 }
 
-belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port) {
+belle_sip_channel_t * belle_sip_channel_new_tls(belle_sip_stack_t *stack, belle_tls_crypto_config_t *crypto_config, const char *bindip, int localport, const char *peer_cname, const char *dest, int port, int no_srv) {
 	belle_sip_tls_channel_t *obj=belle_sip_object_new(belle_sip_tls_channel_t);
 	belle_sip_stream_channel_t* super=(belle_sip_stream_channel_t*)obj;
 
 	belle_sip_stream_channel_init_client(super
 					,stack
-					,bindip,localport,peer_cname,dest,port);
+					,bindip,localport,peer_cname,dest,port, no_srv);
 
 	obj->crypto_config=(belle_tls_crypto_config_t*)belle_sip_object_ref(crypto_config);
 	obj->rng = bctbx_rng_context_new();

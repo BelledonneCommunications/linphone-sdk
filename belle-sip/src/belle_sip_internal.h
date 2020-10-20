@@ -536,6 +536,7 @@ struct belle_sip_hop{
 	char *host;
 	char *transport;
 	int port;
+	int port_is_explicit;
 };
 
 
