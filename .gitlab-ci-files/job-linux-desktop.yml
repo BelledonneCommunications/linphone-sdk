@@ -208,7 +208,7 @@
     LOG_PATTERN: "logLimeAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/lime_tester"
-    ADDITIONNAL_OPTIONS: "--x3dh-server-name sip5.linphone.org --xml-file BCUnitAutomated_lime"
+    ADDITIONNAL_OPTIONS: "--x3dh-server-name sip7.linphone.org --xml-file BCUnitAutomated_lime"
     TESTER: "lime"
 
 
