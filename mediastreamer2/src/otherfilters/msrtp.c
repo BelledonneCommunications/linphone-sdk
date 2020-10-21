@@ -425,8 +425,8 @@ static void compute_processing_delay_stats(MSFilter *f, mblk_t *im) {
 
 static void print_processing_delay_stats(SenderData *d) {
 	int payloadId = d->session->snd.pt;
-	int payloadType = d->session->snd.profile->payload[payloadId]->type;
-	if (payloadType == PAYLOAD_VIDEO) {
+	PayloadType *pt = d->session->snd.profile->payload[payloadId];
+	if (pt && pt->type == PAYLOAD_VIDEO) {
 		char *box_plot_str = ms_box_plot_to_string(&d->processing_delay_stats, "ms");
 		ms_message("video processing delay = %s (RtpSession=%p)", box_plot_str, d->session);
 		ms_box_plot_reset(&d->processing_delay_stats);
