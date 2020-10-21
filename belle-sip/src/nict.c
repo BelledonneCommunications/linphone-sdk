@@ -31,12 +31,13 @@ static int nict_on_timer_K(belle_sip_nict_t *obj){
 static void nict_set_completed(belle_sip_nict_t *obj, belle_sip_response_t *resp){
 	belle_sip_transaction_t *base=(belle_sip_transaction_t*)obj;
 	const belle_sip_timer_config_t *cfg=belle_sip_transaction_get_timer_config(base);
+	int channel_is_reliable = belle_sip_channel_is_reliable(base->channel);
 	belle_sip_transaction_set_state(base,BELLE_SIP_TRANSACTION_COMPLETED);
 	if (obj->timer_K) belle_sip_fatal("Should never happen.");
 
 	belle_sip_client_transaction_notify_response((belle_sip_client_transaction_t*)obj,resp);
-
-	if (!belle_sip_channel_is_reliable(base->channel)){
+	/* After the response is notified, the channel may be shutdown and cleared immediately, this is why it shall be accessed before.*/
+	if (!channel_is_reliable){
 		obj->timer_K=belle_sip_timeout_source_new((belle_sip_source_func_t)nict_on_timer_K,obj,cfg->T4);
 		belle_sip_object_set_name((belle_sip_object_t*)obj->timer_K,"timer_K");
 		belle_sip_transaction_start_timer(base,obj->timer_K);

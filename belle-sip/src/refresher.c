@@ -366,7 +366,9 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		case 503:
 			if (refresher->target_expires>0) {
 				if (refresher->dialog) retry_later_on_io_error(refresher);
-				else retry_later(refresher);
+				else {
+					schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
+				}
 			}else will_retry = FALSE;
 			break;
 		default:
