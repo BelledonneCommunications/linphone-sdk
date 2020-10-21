@@ -634,9 +634,10 @@ double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_sampl
 	   Imagine that the soundcard stops for some reason: without this check the msticker would stop as well.
 	*/
 	if (nb_samples > ts->current_nsamples || ts->offset == 0){
-		uint64_t ms = ((1000 * nb_samples) / (uint64_t)sample_rate);
+		uint64_t ms = ((1000 * (nb_samples - ts->current_nsamples)) / (uint64_t)sample_rate) + ts->current_ms;
 		MSTimeSpec timespec;
 		ts->current_nsamples = nb_samples;
+		ts->current_ms = ms;
 		timespec.tv_nsec = (ms % 1000) * 1000000LL;
 		timespec.tv_sec = ms / 1000LL;
 		return ms_ticker_synchronizer_set_external_time(ts, &timespec);

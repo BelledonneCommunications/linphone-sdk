@@ -101,6 +101,7 @@ typedef void (*MSSndCardSetUsageHintFunc)(struct _MSSndCard *obj, bool_t is_goin
 typedef void (*MSSndCardUnloadFunc)(MSSndCardManager *obj);
 typedef void (*MSSndCardAudioSessionFunc)(struct _MSSndCard *obj, bool_t actived);
 typedef void (*MSSndCardCallKitFunc)(struct _MSSndCard *obj, bool_t enabled);
+typedef void (*MSSndCardAudioRouteFunc)(struct _MSSndCard *obj);
 
 
 struct _MSSndCardDesc{
@@ -120,6 +121,7 @@ struct _MSSndCardDesc{
 	MSSndCardSetUsageHintFunc usage_hint;
 	MSSndCardAudioSessionFunc audio_session_activated;
 	MSSndCardCallKitFunc callkit_enabled;
+	MSSndCardAudioRouteFunc audio_route_changed;
 };
 
 /**
@@ -696,6 +698,14 @@ MS2_PUBLIC void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be
  * @param actived    TRUE if audio session is activated, FALSE otherwise.
  */
 MS2_PUBLIC void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_t activated);
+
+/**
+ * Used by application to notify whether audio route is changed. On most platform this function is useless.
+ * But  an iOS application needs to explicitely notify mediastreamer2 with ms_snd_card_notify_audio_route_changed() about the changment of audio route to ajust the sample rate for playback/record.
+ *
+ * @param obj      A sound card object.
+*/
+MS2_PUBLIC void ms_snd_card_notify_audio_route_changed(MSSndCard *obj);
 
 /**
  * Used by application to tell the MSSndCard if rely on notifications of activation of audio session.

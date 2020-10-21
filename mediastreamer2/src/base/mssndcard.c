@@ -475,6 +475,11 @@ void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_t activated
 		obj->desc->audio_session_activated(obj,activated);
 }
 
+void ms_snd_card_notify_audio_route_changed(MSSndCard *obj) {
+	if (obj->desc->audio_route_changed != NULL)
+		obj->desc->audio_route_changed(obj);
+}
+
 void ms_snd_card_app_notifies_activation(MSSndCard *obj, bool_t yesno) {
 	if (obj->desc->callkit_enabled != NULL)
 		obj->desc->callkit_enabled(obj, yesno);

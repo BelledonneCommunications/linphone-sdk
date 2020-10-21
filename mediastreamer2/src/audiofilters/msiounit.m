@@ -114,8 +114,8 @@ typedef enum _MSAudioUnitState{
 @property unsigned int	bits;
 @property unsigned int	nchannels;
 @property uint64_t last_failed_iounit_start_time;
-@property au_filter_read_data_t* read_filter_data;
-@property au_filter_write_data_t* write_filter_data;
+@property MSFilter* read_filter;
+@property MSFilter* write_filter;
 @property MSSndCard* ms_snd_card;
 @property bool_t audio_session_configured;
 @property bool_t read_started;
@@ -614,7 +614,7 @@ static void au_uninit(MSSndCard *card){
 
 static void check_unused(){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	if ([au_holder read_filter_data] || [au_holder write_filter_data])
+	if ([au_holder read_filter] || [au_holder write_filter])
 		return;
 	
 	if ( ([au_holder ms_snd_card] != NULL && bctbx_param_string_get_bool_value([au_holder ms_snd_card]->sndcardmanager->paramString, SCM_PARAM_TESTER)) || ![au_holder will_be_used] ) {
@@ -630,6 +630,30 @@ static void au_usage_hint(MSSndCard *card, bool_t used){
 
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
+
+static void au_audio_route_changed(MSSndCard *obj) {
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	//au_card_t *d = (au_card_t*)obj->data;
+	unsigned int rate = (int)[[AVAudioSession sharedInstance] sampleRate];
+	if (rate >= [au_holder rate]) {
+		return;
+	}
+
+	[au_holder stop_audio_unit];
+	[au_holder setRate:rate];
+	ms_message("MSAURead/MSAUWrite: AVAudioSession is configured from at sample rate %i.", [au_holder rate]);
+	[au_holder configure_audio_unit];
+	[au_holder start_audio_unit:0];
+
+	if ([au_holder write_filter]) {
+		au_filter_write_data_t *ft=(au_filter_write_data_t*)[au_holder write_filter]->data;
+		ms_flow_controlled_bufferizer_set_samplerate(ft->bufferizer, rate);
+		ms_filter_notify_no_arg([au_holder write_filter], MS_FILTER_OUTPUT_FMT_CHANGED);
+	}
+	if ([au_holder read_filter]) {
+		ms_filter_notify_no_arg([au_holder read_filter], MS_FILTER_OUTPUT_FMT_CHANGED);
+	}
+}
 
 static void au_audio_session_activated(MSSndCard *obj, bool_t actived) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
@@ -668,7 +692,8 @@ MSSndCardDesc au_card_desc={
 .duplicate=au_duplicate,
 .usage_hint=au_usage_hint,
 .audio_session_activated=au_audio_session_activated,
-.callkit_enabled=au_callkit_enabled
+.callkit_enabled=au_callkit_enabled,
+.audio_route_changed=au_audio_route_changed
 };
 
 static MSSndCard *au_duplicate(MSSndCard *obj){
@@ -731,12 +756,12 @@ static OSStatus au_read_cb (
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 
 	[au_holder mutex_lock];
-	if (![au_holder read_filter_data]) {
+	if (![au_holder read_filter]) {
 		//just return from now;
 		[au_holder mutex_unlock];
 		return 0;
 	}
-	au_filter_read_data_t *d = [au_holder read_filter_data];
+	au_filter_read_data_t *d = [au_holder read_filter]->data;
 	if (d->readTimeStamp.mSampleTime <0) {
 		d->readTimeStamp=*inTimeStamp;
 	}
@@ -781,13 +806,13 @@ static OSStatus au_write_cb (
 	ioData->mNumberBuffers=1;
 	
 	[au_holder mutex_lock];
-	au_filter_write_data_t *d = [au_holder write_filter_data];
-	if( d==NULL ){
+	if(![au_holder write_filter]){
 		[au_holder mutex_unlock];
 		memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
 		return 0;
 	}
 
+	au_filter_write_data_t *d = [au_holder write_filter]->data;
 	unsigned int size;
 	ms_mutex_lock(&d->mutex);
 	size = inNumberFrames*[au_holder bits]/8;
@@ -1028,7 +1053,7 @@ static void au_read_uninit(MSFilter *f) {
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 
 	[au_holder mutex_lock];
-	[au_holder setRead_filter_data:NULL];
+	[au_holder setRead_filter:NULL];
 	[au_holder mutex_unlock];
 
 	check_unused();
@@ -1044,7 +1069,7 @@ static void au_write_uninit(MSFilter *f) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 
 	[au_holder mutex_lock];
-	[au_holder setWrite_filter_data:NULL];
+	[au_holder setWrite_filter:NULL];
 	[au_holder mutex_unlock];
 
 	check_unused();
@@ -1094,7 +1119,7 @@ static MSFilter *ms_au_read_new(MSSndCard *mscard){
 	qinit(&d->rq);
 	d->readTimeStamp.mSampleTime=-1;
 	ms_mutex_init(&d->mutex,NULL);
-	[au_holder setRead_filter_data:d];
+	[au_holder setRead_filter:f];
 	f->data=d;
 	return f;
 }
@@ -1109,7 +1134,7 @@ static MSFilter *ms_au_write_new(MSSndCard *mscard){
 	ms_flow_controlled_bufferizer_set_max_size_ms(d->bufferizer, flowControlThreshold);
 	ms_flow_controlled_bufferizer_set_flow_control_interval_ms(d->bufferizer, flowControlInterval);
 	ms_mutex_init(&d->mutex,NULL);
-	[au_holder setWrite_filter_data:d];
+	[au_holder setWrite_filter:f];
 	f->data=d;
 	return f;
 }

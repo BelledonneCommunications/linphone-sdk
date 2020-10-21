@@ -116,6 +116,7 @@ struct _MSTickerSynchronizer
 	double av_skew; /**< mean skew */
 	unsigned int external_time_count; /**< number of times ms_ticker_synchronizer_set_external_time() is called */
 	uint64_t current_nsamples; /**< The last number of samples read notified with ms_ticker_synchronizer_update*/
+	uint64_t current_ms; /**< The last time notified with ms_ticker_synchronizer_update*/
 };
 
 /**

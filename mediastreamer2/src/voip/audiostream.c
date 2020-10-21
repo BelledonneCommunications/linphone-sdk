@@ -277,6 +277,36 @@ bool_t audio_stream_started(AudioStream *stream){
 	return media_stream_started(&stream->ms);
 }
 
+static void write_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
+	AudioStream *stream=(AudioStream *)ud;
+	switch(id){
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
+			if (f==stream->soundwrite){
+				MSFilter *to = stream->soundwrite;
+				if (stream->write_encoder) to = stream->write_encoder;
+				audio_stream_configure_resampler(stream, stream->write_resampler, stream->ms.decoder, to);
+			}
+		break;
+		default:
+		break;
+	}
+}
+
+static void read_callback(void *ud, MSFilter *f, unsigned int id, void *arg){
+	AudioStream *stream=(AudioStream *)ud;
+	switch(id){
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
+			if (f==stream->soundread){
+				MSFilter *from = stream->soundread;
+				if (stream->read_decoder) from = stream->read_decoder;
+				audio_stream_configure_resampler(stream, stream->read_resampler, from, stream->ms.encoder);
+			}
+		break;
+		default:
+		break;
+	}
+}
+
 /* This function is used either on IOS to workaround the long time to initialize the Audio Unit or for ICE candidates gathering. */
 void audio_stream_prepare_sound(AudioStream *stream, MSSndCard *playcard, MSSndCard *captcard){
 	audio_stream_unprepare_sound(stream);
@@ -366,6 +396,8 @@ static void setup_local_player(AudioStream *stream, int samplerate, int channels
 	ms_filter_call_method(stream->local_mixer,MS_FILTER_SET_NCHANNELS,&channels);
 	ms_filter_call_method(stream->local_mixer,MS_AUDIO_MIXER_SET_MASTER_CHANNEL,&master);
 	ms_filter_add_notify_callback(stream->local_player,player_callback,stream,TRUE);
+	ms_filter_add_notify_callback(stream->soundwrite, write_callback, stream, TRUE);
+	ms_filter_add_notify_callback(stream->soundread, read_callback, stream, TRUE);
 }
 
 static OrtpRtcpXrPlcStatus audio_stream_get_rtcp_xr_plc_status(void *userdata) {
