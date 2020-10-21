@@ -31,7 +31,7 @@ apply plugin: 'com.android.library'
 dependencies {
     implementation 'org.apache.commons:commons-compress:1.16.1'
     javadocDeps 'org.apache.commons:commons-compress:1.16.1'
-    compileOnly "androidx.media:media:1.1.0"
+    compileOnly "androidx.media:media:1.2.0"
     implementation 'androidx.annotation:annotation:1.1.0'
     compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
@@ -169,7 +169,7 @@ android {
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     source = srcDir
-    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**', '**/org/linphone/mediastream/**'])
+    excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
     //classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
