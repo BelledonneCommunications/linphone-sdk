@@ -27,6 +27,7 @@ using namespace::belr;
 typedef struct sip_uri{
 	char *user;
 	char *host;
+	int port;
 } sip_uri_t;
 
 typedef struct sip_response{
@@ -45,6 +46,10 @@ void sip_uri_set_user(sip_uri_t *uri, const char *user){
 
 void sip_uri_set_host(sip_uri_t *uri, const char *host){
 	uri->host = bctbx_strdup(host);
+}
+
+void sip_uri_set_port(sip_uri_t *uri, int port){
+	uri->port = port;
 }
 
 void sip_uri_destroy(sip_uri_t *uri){
@@ -97,7 +102,8 @@ static void parser_connected_to_c_functions(void) {
 		->setCollector("host", make_fn(&sip_uri_set_host));
 	parser->setHandler("to", make_fn(&sip_uri_create))
 		->setCollector("user", make_fn(&sip_uri_set_user))
-		->setCollector("host", make_fn(&sip_uri_set_host));
+		->setCollector("host", make_fn(&sip_uri_set_host))
+		->setCollector("port", make_fn(&sip_uri_set_port));
 	size_t pos = 0;
 	void * elem = parser->parseInput("response", sipmessage, &pos);
 	BC_ASSERT_PTR_NOT_NULL(elem);
@@ -115,6 +121,7 @@ static void parser_connected_to_c_functions(void) {
 		BC_ASSERT_STRING_EQUAL(to->user, "smorlat2");
 		BC_ASSERT_STRING_EQUAL(from->host, "siptest.linphone.org");
 		BC_ASSERT_STRING_EQUAL(to->host, "siptest.linphone.org");
+		BC_ASSERT_EQUAL(to->port, 5060, int, "%i");
 		
 	}
 	sip_response_destroy(resp);

@@ -68,14 +68,21 @@ private:
 		// no op.
 	}
 	template <typename _valueT>
-	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, int>::value, const std::string&>::type value){
+	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_integral<_valueT>::value, const std::string&>::type value){
 		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atoi(value.c_str()));
+	}
+	template <typename _valueT>
+	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_floating_point<_valueT>::value, const std::string&>::type value){
+		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atof(value.c_str()));
 	}
 	template <typename _valueT>
 	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, std::string>::value, _parserElementT>::type child){
 	}
 	template <typename _valueT>
-	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, int>::value, _parserElementT>::type child){
+	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_integral<_valueT>::value, _parserElementT>::type child){
+	}
+	template <typename _valueT>
+	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_floating_point<_valueT>::value, _parserElementT>::type child){
 	}
 	template <typename _valueT>
 	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, _parserElementT>::value, _parserElementT>::type child){
