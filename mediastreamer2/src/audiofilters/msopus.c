@@ -60,6 +60,7 @@ typedef struct _OpusEncData {
 	int stereo;
 	int vbr;
 	int useinbandfec;
+	int packetlosspercentage;
 	int usedtx;
 	bool_t ptime_set;
 
@@ -70,6 +71,7 @@ static void apply_max_bitrate(OpusEncData *d);
 static void compute_max_bitrate(OpusEncData *d, int ptimeStep);
 static int ms_opus_enc_set_vbr(MSFilter *f);
 static int ms_opus_enc_set_inbandfec(MSFilter *f);
+static int ms_opus_enc_set_packetlosspercentage(MSFilter *f);
 static int ms_opus_enc_set_dtx(MSFilter *f);
 
 /******************************************************************************
@@ -96,6 +98,7 @@ static void ms_opus_enc_init(MSFilter *f) {
 	d->channels = 1;
 	d->vbr = 1;
 	d->useinbandfec = 0;
+	d->packetlosspercentage = 10;
 	d->usedtx = 0;
 
 	f->data = d;
@@ -140,14 +143,10 @@ static void ms_opus_enc_preprocess(MSFilter *f) {
 		opus_encoder_ctl(d->state, OPUS_SET_COMPLEXITY(opusComplexity));
 	} /*otherwise we let opus with its default value, which is 9*/
 	
-	error = opus_encoder_ctl(d->state, OPUS_SET_PACKET_LOSS_PERC(10));
-	if (error != OPUS_OK) {
-		ms_error("Could not set default loss percentage to opus encoder: %s", opus_strerror(error));
-	}
-
-	/* set the encoder parameters: VBR, IN_BAND_FEC, DTX and bitrate settings */
+	/* set the encoder parameters: VBR, IN_BAND_FEC, PACKET_LOSS_PERCENT, DTX and bitrate settings */
 	ms_opus_enc_set_vbr(f);
 	ms_opus_enc_set_inbandfec(f);
+	ms_opus_enc_set_packetlosspercentage(f);
 	ms_opus_enc_set_dtx(f);
 	/* if decoder prefers mono signal, force encoder to output mono signal */
 	if (d->stereo == 0) {
@@ -259,6 +258,8 @@ static void ms_opus_enc_process(MSFilter *f) {
 					ret = opus_encoder_ctl(d->state, OPUS_SET_INBAND_FEC(d->useinbandfec));
 					if (ret != OPUS_OK) {
 						ms_error("could not set inband FEC to opus encoder: %s", opus_strerror(ret));
+					}else if(d->packetlosspercentage >=0 ){
+						ms_opus_enc_set_packetlosspercentage(f);
 					}
 				}
 				if (!repacketizer_frame_buffer[i]) repacketizer_frame_buffer[i] = ms_malloc(max_frame_byte_size); /* the repacketizer need the pointer to packet to remain valid, so we shall have a buffer for each coded frame */
@@ -565,6 +566,22 @@ static int ms_opus_enc_set_inbandfec(MSFilter *f) {
 	return 0;
 }
 
+static int ms_opus_enc_set_packetlosspercentage(MSFilter *f) {
+	OpusEncData *d = (OpusEncData *)f->data;
+	int error;
+
+	if (d->state) {
+		error = opus_encoder_ctl(d->state, OPUS_SET_PACKET_LOSS_PERC(d->packetlosspercentage));
+		if (error != OPUS_OK) {
+			ms_error("could not set packet loss percentage for FEC to opus encoder: %s", opus_strerror(error));
+		}
+	}
+
+	return 0;
+}
+
+
+
 static int ms_opus_enc_set_dtx(MSFilter *f) {
 	OpusEncData *d = (OpusEncData *)f->data;
 	int error;
@@ -613,6 +630,9 @@ static int ms_opus_enc_add_fmtp(MSFilter *f, void *arg) {
 	}
 	if ( fmtp_get_value ( fmtp,"useinbandfec",buf,sizeof ( buf ) ) ) {
 		d->useinbandfec = atoi(buf);
+	}
+	if ( fmtp_get_value ( fmtp,"packetlosspercentage",buf,sizeof ( buf ) ) ) {
+		d->packetlosspercentage = atoi(buf);
 	}
 	if ( fmtp_get_value ( fmtp,"usedtx",buf,sizeof ( buf ) ) ) {
 		d->usedtx = atoi(buf);

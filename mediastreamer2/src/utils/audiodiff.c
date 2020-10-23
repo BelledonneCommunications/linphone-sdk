@@ -204,7 +204,7 @@ static int _ms_audio_diff_one_chunk(int16_t *s1, int16_t *s2, int nsamples, int 
 		
 		max_pos = 0;
 		/*sum the square of r and l xcorr signals to determine the global maximum*/
-		for (i = 0; i < max_shift_samples; ++i){
+		for (i = 0; i <= max_shift_samples; ++i){// max_shift_samples is takken account because of the correlation computation that compute the shift at the shift index and not shift-1. At 0, there is no shift then, for next index we add step*(n1+i) and remove the base reference s2_padded[step*i] each times : The scope is moved. So, the max_shift_samples index is included to the max computation.
 			xcorr_r[i] = xcorr_r[i]*xcorr_r[i] + xcorr_l[i]*xcorr_l[i];
 			if (xcorr_r[i] > max){
 				max = xcorr_r[i];
