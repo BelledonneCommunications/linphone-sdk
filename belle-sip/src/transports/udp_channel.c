@@ -39,11 +39,15 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	belle_sip_udp_channel_t *chan=(belle_sip_udp_channel_t *)obj;
 	int err;
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
-
-	err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
-	if (err==-1){
-		belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
-		return -errno;
+	if(sock){
+		err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
+		if (err==-1){
+			belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
+			return -errno;
+		}
+	}else {
+		belle_sip_error("channel [%p]: no socket are available to send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
+		err = -errno;
 	}
 	return err;
 }
