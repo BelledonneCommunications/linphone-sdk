@@ -106,7 +106,7 @@ typedef struct belle_sip_tunnel_listening_point belle_sip_tunnel_listening_point
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_tunnel_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 #define BELLE_SIP_TUNNEL_LISTENING_POINT(obj) BELLE_SIP_CAST(obj,belle_sip_tunnel_listening_point_t)
-belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *s, void *tunnelclient, const char *bindip, int localport, const char *name, int port);
+belle_sip_channel_t * belle_sip_channel_new_tunnel(belle_sip_stack_t *s, void *tunnelclient, const char *bindip, int localport, const char *name, int port, int no_srv);
 #endif
 
 #include "transports/stream_channel.h"

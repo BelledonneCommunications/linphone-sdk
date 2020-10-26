@@ -28,7 +28,7 @@ struct belle_sip_tunnel_listening_point{
 static belle_sip_channel_t *tunnel_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
 	belle_sip_channel_t *chan=belle_sip_channel_new_tunnel(lp->stack, ((belle_sip_tunnel_listening_point_t*)lp)->tunnelclient,
 								belle_sip_uri_get_host(lp->listening_uri), belle_sip_uri_get_port(lp->listening_uri),
-								hop->host, hop->port);
+								hop->host, hop->port, hop->port_is_explicit);
 	return chan;
 }
 
