@@ -589,7 +589,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 			BCTBX_NO_BREAK; /*intentionally no break*/
 		case BELLE_SIP_DIALOG_EARLY:
 			/*don't terminate dialog for UPDATE*/
-			if (code>=300 && (is_invite || is_subscribe)) {
+			if (code>=300 && ((is_invite && code!=407) || is_subscribe)) {
 				/*12.3 Termination of a Dialog
 			   	   Independent of the method, if a request outside of a dialog generates
 			   	   a non-2xx final response, any early dialogs created through
