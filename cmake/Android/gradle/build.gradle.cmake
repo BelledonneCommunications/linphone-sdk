@@ -213,6 +213,7 @@ task copyAssets(type: Sync) {
     include '**/*.pem'
     include '**/*.mkv'
     include '**/*.wav'
+    include '**/*.jpg'
     include '**/*_grammar'
 
     //rename '(.*)', '$1'.toLowerCase()
