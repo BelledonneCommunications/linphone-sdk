@@ -231,7 +231,7 @@ SIP_URI_GET_SET_INT_PARAM(ttl)
 SIP_URI_HAS_SET_BOOL_PARAM(lr)
 
 
-const belle_sip_parameters_t*	belle_sip_uri_get_headers(const belle_sip_uri_t* uri) {
+const belle_sip_parameters_t* belle_sip_uri_get_headers(const belle_sip_uri_t* uri) {
 	return uri->header_list;
 }
 

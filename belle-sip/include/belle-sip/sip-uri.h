@@ -53,14 +53,19 @@ BELLESIP_EXPORT belle_sip_uri_t* belle_sip_uri_create (const char* username,cons
 
 
 /**
- *	Returns the value of the named header, or null if it is not set.
+ * Returns the value of the named header, or null if it is not set.
  *
  */
 BELLESIP_EXPORT const char*	belle_sip_uri_get_header(const belle_sip_uri_t* uri,const char* name);
 
+/**
+ * Returns all URI headers
+ *
+ */
+BELLESIP_EXPORT const belle_sip_parameters_t* belle_sip_uri_get_headers(const belle_sip_uri_t* uri);
 
 /**
- *	remove all headers
+ * Remove all headers
  *
  */
 BELLESIP_EXPORT void belle_sip_uri_headers_clean(belle_sip_uri_t* uri);
