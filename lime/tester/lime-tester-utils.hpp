@@ -40,6 +40,8 @@ extern std::string test_x3dh_c448_server_port;
 extern std::string test_x3dh_domainA_server_port;
 extern std::string test_x3dh_domainB_server_port;
 extern std::string test_x3dh_domainC_server_port;
+extern std::string test_x3dh_c25519_stop_on_request_limit_server_port;
+extern std::string test_x3dh_c448_stop_on_request_limit_server_port;
 
 // messages pattern
 extern std::string shortMessage;
@@ -50,6 +52,11 @@ extern std::vector<std::string> messages_pattern;
 
 // default value for the timeout
 extern int wait_for_timeout;
+
+// bundle request limit as configured on test server
+extern int bundle_request_limit;
+// bundle request restriction timespan (as configured on stop on request limit server)
+extern int bundle_request_limit_timespan;
 
 // default value for initial OPk batch size, keep it small so not too many OPks generated
 extern uint16_t OPkInitialBatchSize;

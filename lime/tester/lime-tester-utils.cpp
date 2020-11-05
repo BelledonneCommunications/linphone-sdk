@@ -43,6 +43,8 @@ std::string test_x3dh_c448_server_port{"25520"};
 std::string test_x3dh_domainA_server_port{"25521"};
 std::string test_x3dh_domainB_server_port{"25522"};
 std::string test_x3dh_domainC_server_port{"25523"};
+std::string test_x3dh_c25519_stop_on_request_limit_server_port{"25524"};
+std::string test_x3dh_c448_stop_on_request_limit_server_port{"25525"};
 
 // for testing purpose RNG, no need to be a good one
 std::random_device rd;
@@ -50,6 +52,11 @@ std::uniform_int_distribution<int> uniform_dist(0,255);
 
 // default value for the timeout
 int wait_for_timeout=4000;
+// bundle request restriction timespan (as configured on stop on request limit server). 20s (in ms)
+int bundle_request_limit_timespan=20000;
+
+// bundle request limit as configured on test server
+int bundle_request_limit=5;
 
 // default value for initial OPk batch size, keep it small so not too many OPks generated
 uint16_t OPkInitialBatchSize=3;
