@@ -33,6 +33,7 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
+option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
@@ -180,15 +181,18 @@ install(FILES
 	DESTINATION ${ConfigPackageLocation}
 )
 
-# Doxygen
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-	add_custom_target(doc
-		${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-		COMMENT "Generating API documentation with Doxygen" VERBATIM
-)
+if(ENABLE_DOC)
+	# Doxygen
+	find_package(Doxygen)
+	if (DOXYGEN_FOUND)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+		add_custom_target(doc ALL
+			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+			COMMENT "Generating API documentation with Doxygen" VERBATIM)
+		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html/"
+			DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/lime-${LIME_VERSION}")
+	endif()
 endif()
 
 if (ENABLE_PACKAGE_SOURCE)
