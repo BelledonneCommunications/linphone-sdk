@@ -29,6 +29,7 @@ option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
+option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" YES)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
@@ -143,17 +144,18 @@ install(FILES
 	DESTINATION ${CONFIG_PACKAGE_LOCATION}
 )
 
-# Doxygen
-find_package(Doxygen)
-if (DOXYGEN_FOUND)
-	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-	add_custom_target(doc ALL
-		${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-		COMMENT "Generating API documentation with Doxygen" VERBATIM)
-	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html/"
-		DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/bzrtp-${PROJECT_VERSION}")
-
+if(ENABLE_DOC)
+	# Doxygen
+	find_package(Doxygen)
+	if (DOXYGEN_FOUND)
+		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+		add_custom_target(doc ALL
+			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+			COMMENT "Generating API documentation with Doxygen" VERBATIM)
+		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html/"
+			DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/bzrtp-${PROJECT_VERSION}")
+	endif()
 endif()
 
 if (ENABLE_PACKAGE_SOURCE)
