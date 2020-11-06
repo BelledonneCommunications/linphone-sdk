@@ -498,8 +498,23 @@ void android_video_capture_detect_cameras_legacy(MSWebCamManager *obj) {
 }
 
 static void video_capture_detect(MSWebCamManager *obj) {
-	if (ms_get_android_sdk_version() >= 26) {
-		ms_warning("[Legacy Capture] Android >= 8.0 detected, disabling legacy capture filter");
+	bool msAndroidCamera2PluginFound = false;
+	const char *plugin_to_find = "libmsandroidcamera2.so";
+	bctbx_list_t *plugins_list = ms_get_android_plugins_list();
+	bctbx_list_t *it = plugins_list;
+	if (it != NULL) {
+		for (it = plugins_list; it != NULL; it = bctbx_list_next(it)) {
+			const char *plugin_name = (const char*)bctbx_list_get_data(it);
+			if (plugin_name && strcmp(plugin_name, plugin_to_find) == 0) {
+				msAndroidCamera2PluginFound = true;
+				break;
+			}
+		}
+		ms_list_free_with_data(plugins_list, ms_free);
+	}
+
+	if (ms_get_android_sdk_version() >= 26 && msAndroidCamera2PluginFound) {
+		ms_warning("[Legacy Capture] Android >= 8.0 detected and msAndroidCamera2 plugin found, disabling legacy capture filter");
 		return;
 	}
 
