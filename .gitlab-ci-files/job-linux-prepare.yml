@@ -19,6 +19,7 @@
     - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then echo "$TUNNEL_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null; fi
     - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then mkdir -p ~/.ssh && chmod 700 ~/.ssh; fi
     - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
+    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
 
     ##
     ## Then configure ccache
