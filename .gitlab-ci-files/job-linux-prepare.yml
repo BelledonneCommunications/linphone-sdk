@@ -32,6 +32,11 @@
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
 
+    #Configure dev-toolset for centos-7
+
+    - CENTOS_VERSION=$(cat /etc/centos-release) || true
+    - if [ -n "$CENTOS" ] && [ -n "$(echo $CENTOS | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
+
   after_script:
     - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
     - export CCACHE_DIR=${PWD}/ccache
