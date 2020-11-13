@@ -32,22 +32,6 @@ job-centos7-makefile-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
-  before_script:
-    - source /opt/rh/devtoolset-8/enable
-  script:
-    - export CC=$CC
-    - export CXX=$CXX
-    - mkdir -p build-desktop
-    - cd build-desktop
-    - echo $CMAKE_GENERATOR
-    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
-    - echo $CMAKE_OPTIONS
-    - echo $CMAKE_SANITIZER_OPTIONS
-    - sleep 25000
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - echo $(git describe) > gitdescribe.txt
 
 
 #################################################
@@ -70,22 +54,7 @@ job-centos7-ninja-gcc:
   except:
     variables:
       - $SKIP_LINUX
-  before_script:
-    - source /opt/rh/devtoolset-8/enable
-  script:
-    - export CC=$CC
-    - export CXX=$CXX
-    - mkdir -p build-desktop
-    - cd build-desktop
-    - echo $CMAKE_GENERATOR
-    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
-    - echo $CMAKE_OPTIONS
-    - echo $CMAKE_SANITIZER_OPTIONS
-    - sleep 25000
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
-    - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - echo $(git describe) > gitdescribe.txt
+
 
 #################################################
 # TESTS
