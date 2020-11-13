@@ -711,12 +711,13 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	}
 	stream->configured_fps=vconf.fps;
 
-	ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+	if(stream->ms.encoder)
+	    ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 
 	encoder_supports_source_format.supported = FALSE;
 	encoder_supports_source_format.pixfmt = format;
 
-	if (ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT) == TRUE) {
+	if (stream->ms.encoder && ms_filter_has_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT) == TRUE) {
 		ret = ms_filter_call_method(stream->ms.encoder, MS_VIDEO_ENCODER_SUPPORTS_PIXFMT, &encoder_supports_source_format);
 	} else {
 		ret = -1;
@@ -754,7 +755,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		ms_bitrate_controller_destroy(stream->ms.rc);
 		stream->ms.rc=NULL;
 	}
-	if (stream->ms.rc_enable){
+	if (stream->ms.rc_enable && stream->ms.encoder){
 		switch (stream->ms.rc_algorithm){
 		case MSQosAnalyzerAlgorithmSimple:
 			stream->ms.rc=ms_av_bitrate_controller_new(NULL,NULL,stream->ms.sessions.rtp_session,stream->ms.encoder);
@@ -1181,8 +1182,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if (stream->preview_window_id!=0){
 				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,&stream->preview_window_id);
 			}
-
-			if (ms_filter_get_id(stream->output2) == MS_OGL_ID) {
+			if( ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface) ) {
 				assign_value_to_mirroring_flag_to_preview(stream);
 			}
 			ms_filter_link(stream->tee,1,stream->output2,0);
@@ -1442,13 +1442,15 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			if (stream->sizeconv) {
 				ms_filter_unlink (stream->tee, 0, stream->sizeconv, 0);
 				if (stream->source_performs_encoding == FALSE) {
-					ms_filter_unlink(stream->sizeconv, 0, stream->ms.encoder, 0);
+					if( stream->ms.encoder)
+						ms_filter_unlink(stream->sizeconv, 0, stream->ms.encoder, 0);
 				} else {
 					ms_filter_unlink(stream->sizeconv, 0, stream->ms.rtpsend, 0);
 				}
 			} else {
 				if (stream->source_performs_encoding == FALSE) {
-					ms_filter_unlink(stream->tee, 0, stream->ms.encoder, 0);
+					if(stream->ms.encoder)
+						ms_filter_unlink(stream->tee, 0, stream->ms.encoder, 0);
 				} else {
 					ms_filter_unlink(stream->tee, 0, stream->ms.rtpsend, 0);
 				}
@@ -1489,7 +1491,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 		}
 
-		if (!skip_payload_config) {
+		if (!skip_payload_config && stream->ms.sessions.rtp_session) {
 			PayloadType *pt;
 			RtpProfile *profile;
 			int payload;
@@ -1517,13 +1519,15 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			if (stream->sizeconv) {
 				ms_filter_link (stream->tee, 0, stream->sizeconv, 0);
 				if (stream->source_performs_encoding == FALSE) {
-					ms_filter_link(stream->sizeconv, 0, stream->ms.encoder, 0);
+					if(stream->ms.encoder)
+						ms_filter_link(stream->sizeconv, 0, stream->ms.encoder, 0);
 				} else {
 					ms_filter_link(stream->sizeconv, 0, stream->ms.rtpsend, 0);
 				}
 			} else {
 				if (stream->source_performs_encoding == FALSE) {
-					ms_filter_link(stream->tee, 0, stream->ms.encoder, 0);
+					if(stream->ms.encoder)
+						ms_filter_link(stream->tee, 0, stream->ms.encoder, 0);
 				} else {
 					ms_filter_link(stream->tee, 0, stream->ms.rtpsend, 0);
 				}
@@ -1531,7 +1535,7 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		}
 
 		// Change value of mirroring as potentially the webcam was changed
-		if (stream->output2 && ms_filter_get_id(stream->output2) == MS_OGL_ID) {
+		if (stream->output2 && ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface) ) {
 			assign_value_to_mirroring_flag_to_preview(stream);
 		}
 
@@ -2068,6 +2072,9 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 		if (stream->tee) {
 			ms_connection_helper_link(&ch, stream->tee, 0, 0);
 			if (stream->output2) {
+				if( ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface) ) {
+				    assign_value_to_mirroring_flag_to_preview(stream);
+				}
 				ms_filter_link(stream->tee, 1, stream->output2, 0);
 			}
 			if (stream->local_jpegwriter) {
