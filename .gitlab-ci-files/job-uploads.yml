@@ -304,17 +304,6 @@ job-xamarin-upload:
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
-  except:
-    variables:
-      - $DEPLOY_RUN_MACOSX
-      - $DEPLOY_RUN_ANDROID
-      - $DEPLOY_RUN_IOS
-      - $DEPLOY_RUN_WINDOWS
-      - $PACKAGE_RUN_WINDOWS
-      - $DOCKER_UPDATE
-      - $UPLOAD_XAMARIN
-      - $NIGHTLY_RELEASE
-
   script:
     #getting the version number for each submodule and writing it in environment.properties file
     #this file will be parsed by allure and will help to display additionnal information in the web view
@@ -460,24 +449,67 @@ job-xamarin-upload:
     #  }
     #]
 
-.job-test-report-upload-scheduled:
+.job-test-report-upload-linux-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $ENABLE_LINUX_TESTS
+      
+.job-test-report-upload-windows-scheduled:
+  extends: .job-test-report-upload
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS
+      
+.job-test-report-upload-macos-scheduled:
+  extends: .job-test-report-upload
+  only:
+    variables:
+      - $ENABLE_MACOSX_TESTS
+      
+.job-test-report-upload-ios-scheduled:
+  extends: .job-test-report-upload
+  only:
+    variables:
+      - $ENABLE_IOS_TESTS
 
-job-test-upload-libl-centos7:
+job-test-upload-libl-centos7-mr:
   extends: .job-test-report-upload
   dependencies:
-    - test-liblinphone-centos7-schedule
     - test-liblinphone-centos7-mr
-    - test-liblinphone-centos7-force
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"  
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+    - schedules
+    
+job-test-upload-libl-centos7-schedule:
+  extends: .job-test-report-upload-linux-scheduled
+  dependencies:
+    - test-liblinphone-centos7-schedule
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
+    
+job-test-upload-libl-centos7-forced:
+  extends: .job-test-report-upload
+  dependencies:
+    - test-liblinphone-centos7-force
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"  
+  only:
+    variables:
+      - $ENABLE_TESTS_LIBLINPHONE
 
 job-test-upload-libl-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-liblinphone-centos8
   variables:
@@ -485,7 +517,7 @@ job-test-upload-libl-centos8:
     TESTER: "liblinphone"
 
 #job-test-upload-libl-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-liblinphone-debian8
 #  variables:
@@ -493,7 +525,7 @@ job-test-upload-libl-centos8:
 #    TESTER: "liblinphone"
 
 job-test-upload-libl-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-liblinphone-debian9
   variables:
@@ -501,7 +533,7 @@ job-test-upload-libl-debian9:
     TESTER: "liblinphone"
 
 job-test-upload-libl-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-liblinphone-debian10
   variables:
@@ -509,7 +541,7 @@ job-test-upload-libl-debian10:
     TESTER: "liblinphone"
 
 #job-test-upload-libl-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-liblinphone-ubuntu
 #  variables:
@@ -517,7 +549,7 @@ job-test-upload-libl-debian10:
 #    TESTER: "liblinphone"
 
 job-test-upload-libl-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-liblinphone-arch
   variables:
@@ -525,7 +557,7 @@ job-test-upload-libl-arch:
     TESTER: "liblinphone"
 
 job-test-upload-libl-ios:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-ios-scheduled
   dependencies:
     - test-liblinphone-ios
   variables:
@@ -535,7 +567,7 @@ job-test-upload-libl-ios:
 
 
 job-test-upload-bct-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bctoolbox-centos7
   variables:
@@ -543,7 +575,7 @@ job-test-upload-bct-centos7:
     TESTER: "bctoolbox"
 
 job-test-upload-bct-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bctoolbox-centos8
   variables:
@@ -551,7 +583,7 @@ job-test-upload-bct-centos8:
     TESTER: "bctoolbox"
 
 job-test-upload-bct-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bctoolbox-debian9
   variables:
@@ -559,7 +591,7 @@ job-test-upload-bct-debian9:
     TESTER: "bctoolbox"
 
 job-test-upload-bct-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bctoolbox-debian10
   variables:
@@ -567,7 +599,7 @@ job-test-upload-bct-debian10:
     TESTER: "bctoolbox"
 
 #job-test-upload-bct-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-bctoolbox-ubuntu
 #  variables:
@@ -575,7 +607,7 @@ job-test-upload-bct-debian10:
 #    TESTER: "bctoolbox"
 
 job-test-upload-bct-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bctoolbox-arch
   variables:
@@ -583,7 +615,7 @@ job-test-upload-bct-arch:
     TESTER: "bctoolbox"
 
 job-test-upload-bsip-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bellesip-centos7
   variables:
@@ -591,7 +623,7 @@ job-test-upload-bsip-centos7:
     TESTER: "bellesip"
 
 job-test-upload-bsip-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bellesip-centos8
   variables:
@@ -599,7 +631,7 @@ job-test-upload-bsip-centos8:
     TESTER: "bellesip"
 
 #job-test-upload-bsip-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-bellesip-debian8
 #  variables:
@@ -607,7 +639,7 @@ job-test-upload-bsip-centos8:
 #    TESTER: "bellesip"
 
 job-test-upload-bsip-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bellesip-debian9
   variables:
@@ -615,7 +647,7 @@ job-test-upload-bsip-debian9:
     TESTER: "bellesip"
 
 job-test-upload-bsip-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bellesip-debian10
   variables:
@@ -623,7 +655,7 @@ job-test-upload-bsip-debian10:
     TESTER: "bellesip"
 
 #job-test-upload-bsip-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-bellesip-ubuntu
 #  variables:
@@ -631,7 +663,7 @@ job-test-upload-bsip-debian10:
 #    TESTER: "bellesip"
 
 job-test-upload-bsip-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bellesip-arch
   variables:
@@ -639,7 +671,7 @@ job-test-upload-bsip-arch:
     TESTER: "bellesip"
 
 job-test-upload-ms2-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-mediastreamer-centos7
   variables:
@@ -649,7 +681,7 @@ job-test-upload-ms2-centos7:
 #commented as long as ms2 testeres aren't running everywhere
 
 #job-test-upload-ms2-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-mediastreamer-debian8
 #  variables:
@@ -657,7 +689,7 @@ job-test-upload-ms2-centos7:
 #    TESTER: "mediastreamer"
 
 #job-test-upload-ms2-debian9:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-mediastreamer-debian9
 #  variables:
@@ -665,7 +697,7 @@ job-test-upload-ms2-centos7:
 #    TESTER: "mediastreamer"
 
 #job-test-upload-ms2-debian10:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-mediastreamer-debian10
 #  variables:
@@ -673,7 +705,7 @@ job-test-upload-ms2-centos7:
 #    TESTER: "mediastreamer"
 
 #job-test-upload-ms2-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #   - test-mediastreamer-ubuntu
 #  variables:
@@ -681,7 +713,7 @@ job-test-upload-ms2-centos7:
 #    TESTER: "mediastreamer"
 
 #job-test-upload-ms2-arch:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-mediastreamer-arch
 #  variables:
@@ -690,7 +722,7 @@ job-test-upload-ms2-centos7:
 
 
 job-test-upload-belr-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belr-centos7
   variables:
@@ -698,7 +730,7 @@ job-test-upload-belr-centos7:
     TESTER: "belr"
 
 job-test-upload-belr-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belr-centos8
   variables:
@@ -706,7 +738,7 @@ job-test-upload-belr-centos8:
     TESTER: "belr"
 
 #job-test-upload-belr-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-belr-debian8
 #  variables:
@@ -714,7 +746,7 @@ job-test-upload-belr-centos8:
 #    TESTER: "belr"
 
 job-test-upload-blr-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belr-debian9
   variables:
@@ -722,7 +754,7 @@ job-test-upload-blr-debian9:
     TESTER: "belr"
 
 job-test-upload-belr-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belr-debian10
   variables:
@@ -730,7 +762,7 @@ job-test-upload-belr-debian10:
     TESTER: "belr"
 
 #job-test-upload-belr-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-belr-ubuntu
 #  variables:
@@ -738,7 +770,7 @@ job-test-upload-belr-debian10:
 #    TESTER: "belr"
 
 job-test-upload-belr-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belr-arch
   variables:
@@ -746,7 +778,7 @@ job-test-upload-belr-arch:
     TESTER: "belr"
 
 job-test-upload-belcard-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belcard-centos7
   variables:
@@ -754,7 +786,7 @@ job-test-upload-belcard-centos7:
     TESTER: "belcard"
 
 job-test-upload-belcard-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belcard-centos8
   variables:
@@ -762,7 +794,7 @@ job-test-upload-belcard-centos8:
     TESTER: "belcard"
 
 #job-test-upload-belcard-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-belcard-debian8
 #  variables:
@@ -770,7 +802,7 @@ job-test-upload-belcard-centos8:
 #    TESTER: "belcard"
 
 job-test-upload-belcard-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belcard-debian9
   variables:
@@ -778,7 +810,7 @@ job-test-upload-belcard-debian9:
     TESTER: "belcard"
 
 job-test-upload-belcard-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belcard-debian10
   variables:
@@ -786,7 +818,7 @@ job-test-upload-belcard-debian10:
     TESTER: "belcard"
 
 #job-test-upload-belcard-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-belcard-ubuntu
 #  variables:
@@ -794,7 +826,7 @@ job-test-upload-belcard-debian10:
 #    TESTER: "belcard"
 
 job-test-upload-belcard-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-belcard-arch
   variables:
@@ -802,7 +834,7 @@ job-test-upload-belcard-arch:
     TESTER: "belcard"
 
 job-test-upload-bzrtp-centos7:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bzrtp-centos7
   variables:
@@ -810,7 +842,7 @@ job-test-upload-bzrtp-centos7:
     TESTER: "bzrtp"
 
 job-test-upload-bzrtp-centos8:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bzrtp-centos8
   variables:
@@ -818,7 +850,7 @@ job-test-upload-bzrtp-centos8:
     TESTER: "bzrtp"
 
 #job-test-upload-bzrtp-debian8:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-bzrtp-debian8
 #  variables:
@@ -826,7 +858,7 @@ job-test-upload-bzrtp-centos8:
 #    TESTER: "bzrtp"
 
 job-test-upload-bzrtp-debian9:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bzrtp-debian9
   variables:
@@ -834,7 +866,7 @@ job-test-upload-bzrtp-debian9:
     TESTER: "bzrtp"
 
 job-test-upload-bzrtp-debian10:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bzrtp-debian10
   variables:
@@ -842,7 +874,7 @@ job-test-upload-bzrtp-debian10:
     TESTER: "bzrtp"
 
 #job-test-upload-bzrtp-ubuntu:
-#  extends: .job-test-report-upload-scheduled
+#  extends: .job-test-report-upload-linux-scheduled
 #  dependencies:
 #    - test-bzrtp-ubuntu
 #  variables:
@@ -850,7 +882,7 @@ job-test-upload-bzrtp-debian10:
 #    TESTER: "bzrtp"
 
 job-test-upload-bzrtp-arch:
-  extends: .job-test-report-upload-scheduled
+  extends: .job-test-report-upload-linux-scheduled
   dependencies:
     - test-bzrtp-arch
   variables:
