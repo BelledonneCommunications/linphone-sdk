@@ -17,6 +17,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
+#include <memory>
+
 #define bool_t matroska_bool_t
 extern "C" {
 #include <matroska/matroska.h>
@@ -620,7 +623,7 @@ static const ModuleDesc vp8_module_desc = {
  * µLaw module                                                                               *
  *********************************************************************************************/
 /* WavPrivate */
-typedef struct {
+struct WavPrivate {
 	uint16_t wFormatTag;
 	uint16_t nbChannels;
 	uint32_t nSamplesPerSec;
@@ -628,7 +631,7 @@ typedef struct {
 	uint16_t nBlockAlign;
 	uint16_t wBitsPerSample;
 	uint16_t cbSize;
-} WavPrivate;
+};
 
 static void wav_private_set(WavPrivate *data, const MSFmtDescriptor *obj) {
 	uint16_t bitsPerSample = 8;
@@ -650,8 +653,8 @@ static void wav_private_serialize(const WavPrivate *obj, uint8_t **data, size_t 
 	memcpy(*data, obj, *size);
 }
 
-static void wav_private_load(WavPrivate *obj, const uint8_t *data) {
-	memcpy(obj, data, sizeof(WavPrivate));
+static void wav_private_load(WavPrivate *obj, const uint8_t *data, size_t size) {
+	memcpy(obj, data, std::min(sizeof(WavPrivate), size));
 }
 
 /* µLaw module */
@@ -676,7 +679,7 @@ static void mu_law_module_get_private_data(const void *o, uint8_t **data, size_t
 static void mu_law_module_load_private(void *o, const uint8_t *data, size_t size) {
 	if (size > 0) {
 		WavPrivate *obj = (WavPrivate *)o;
-		wav_private_load(obj, data);
+		wav_private_load(obj, data, size);
 	}
 }
 
@@ -2324,7 +2327,7 @@ static MKVBlockQueue *mkv_block_queue_new(void) {
 }
 
 static void mkv_block_queue_flush(MKVBlockQueue *obj) {
-	obj->queue = bctbx_list_free_with_data(obj->queue, (void( *)(void *))mkv_block_free);
+	obj->queue = bctbx_list_free_with_data(obj->queue, [](void *block){delete static_cast<MKVBlock *>(block);});
 	obj->min_timestamp = -1;
 }
 
@@ -2335,8 +2338,8 @@ static void mkv_block_queue_free(MKVBlockQueue *obj) {
 
 static void mkv_block_queue_push(MKVBlockQueue *obj, MKVBlock *block) {
 	obj->queue = bctbx_list_append(obj->queue, block);
-	if(obj->min_timestamp < 0 || (int64_t)block->timestamp < obj->min_timestamp) {
-		obj->min_timestamp = (int64_t)block->timestamp;
+	if(obj->min_timestamp < 0 || (int64_t)block->mTimestamp < obj->min_timestamp) {
+		obj->min_timestamp = (int64_t)block->mTimestamp;
 	}
 }
 
@@ -2376,7 +2379,7 @@ static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 
 static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_flush(obj->queue);
-	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
+	if(obj->waiting_block) delete obj->waiting_block;
 	obj->waiting_block = NULL;
 	obj->prev_timestamp = 0;
 	obj->prev_min_ts = 0;
@@ -2384,15 +2387,15 @@ static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 
 static void mkv_block_group_maker_free(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_free(obj->queue);
-	if(obj->waiting_block) mkv_block_free(obj->waiting_block);
+	if(obj->waiting_block) delete obj->waiting_block;
 	ms_free(obj);
 }
 
 static void mkv_block_group_maker_get_next_group(MKVBlockGroupMaker *obj, MKVBlockQueue *out_queue, ms_bool_t *eot) {
-	MKVBlock *block = NULL;
-	ms_bool_t _eot;
 	do {
-		mkv_track_reader_next_block(obj->track_reader, &block, &_eot);
+		std::unique_ptr<MKVBlock> block{};
+		bool _eot;
+		obj->track_reader->nextBlock(block, _eot);
 		if(_eot) {
 			*eot = TRUE;
 			if(obj->waiting_block) mkv_block_queue_push(out_queue, obj->waiting_block);
@@ -2400,15 +2403,14 @@ static void mkv_block_group_maker_get_next_group(MKVBlockGroupMaker *obj, MKVBlo
 			return;
 		}
 		if(obj->waiting_block == NULL) {
-			obj->waiting_block = block;
-			obj->prev_timestamp = block->timestamp;
-			block = NULL;
+			obj->prev_timestamp = block->mTimestamp;
+			obj->waiting_block = block.release();
 		} else {
 			mkv_block_queue_push(out_queue, obj->waiting_block);
-			obj->waiting_block = block;
+			obj->waiting_block = block.release();
 		}
-	} while(block == NULL || block->timestamp < obj->prev_timestamp);
-	obj->prev_timestamp = block->timestamp;
+	} while(obj->waiting_block == NULL || obj->waiting_block->mTimestamp < obj->prev_timestamp);
+	obj->prev_timestamp = obj->waiting_block->mTimestamp;
 
 	out_queue->dts = obj->prev_min_ts;
 	obj->prev_min_ts = out_queue->min_timestamp;
@@ -2428,35 +2430,35 @@ typedef struct {
 
 static MKVTrackPlayer *mkv_track_player_new(MSFactory *factory, MKVReader *reader, const MKVTrack *track) {
 	MKVTrackPlayer *obj;
-	const char *codec_name = codec_id_to_rfc_name(track->codec_id);
+	const char *codec_name = codec_id_to_rfc_name(track->mCodecId.c_str());
 
 	if(codec_name == NULL) {
-		ms_error("Cannot create MKVTrackPlayer. %s codec is not supported", track->codec_id);
+		ms_error("Cannot create MKVTrackPlayer. %s codec is not supported", track->mCodecId.c_str());
 		return NULL;
 	}
 	obj = ms_new0(MKVTrackPlayer, 1);
 	obj->track = track;
-	if(track->type == MKV_TRACK_TYPE_VIDEO) {
+	if(track->mType == MKV_TRACK_TYPE_VIDEO) {
 		MKVVideoTrack *v_track = (MKVVideoTrack *)track;
 		MSVideoSize vsize;
-		vsize.width = v_track->width;
-		vsize.height = v_track->height;
-		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, (float)v_track->frame_rate, NULL);
+		vsize.width = v_track->mWidth;
+		vsize.height = v_track->mHeight;
+		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, (float)v_track->mFrameRate, NULL);
 
-	} else if(track->type == MKV_TRACK_TYPE_AUDIO) {
+	} else if(track->mType == MKV_TRACK_TYPE_AUDIO) {
 		MKVAudioTrack *a_track = (MKVAudioTrack *)track;
-		obj->output_pin_desc = ms_factory_get_audio_format(factory, codec_name, a_track->sampling_freq, a_track->channels, NULL);
+		obj->output_pin_desc = ms_factory_get_audio_format(factory, codec_name, a_track->mSamplingFreq, a_track->mChannels, NULL);
 	} else {
-		ms_error("MKVTrackPlayer: unsupported track type: %d", track->type);
+		ms_error("MKVTrackPlayer: unsupported track type: %d", track->mType);
 		ms_free(obj);
 		return NULL;
 	}
 	obj->module = module_new(factory, codec_name);
-	if(obj->track->codec_private) {
-		module_load_private_data(obj->module, track->codec_private, track->codec_private_length);
+	if(!obj->track->mCodecPrivate.empty()) {
+		module_load_private_data(obj->module, track->mCodecPrivate.data(), track->mCodecPrivate.size());
 	}
 	obj->first_frame = TRUE;
-	obj->track_reader = mkv_reader_get_track_reader(reader, track->num);
+	obj->track_reader = reader->getTrackReader(track->mNum);
 	obj->block_queue = mkv_block_queue_new();
 	obj->group_maker = mkv_block_group_maker_new(obj->track_reader);
 	return obj;
@@ -2470,12 +2472,12 @@ static void mkv_track_player_free(MKVTrackPlayer *obj) {
 }
 
 static void mkv_track_player_send_block(MSFactory *f, MKVTrackPlayer *obj, const MKVBlock *block, MSQueue *output) {
-	mblk_t *tmp = allocb(block->data_length, 0);
-	memcpy(tmp->b_wptr, block->data, block->data_length);
-	tmp->b_wptr += block->data_length;
-	mblk_set_timestamp_info(tmp, block->timestamp);
+	mblk_t *tmp = allocb(block->mData.size(), 0);
+	memcpy(tmp->b_wptr, block->mData.data(), block->mData.size());
+	tmp->b_wptr += block->mData.size();
+	mblk_set_timestamp_info(tmp, block->mTimestamp);
 	changeClockRate(tmp, 1000, obj->output_pin_desc->rate);
-	module_reverse(f, obj->module, tmp, output, obj->first_frame, block->codec_state_data, block->codec_state_size);
+	module_reverse(f, obj->module, tmp, output, obj->first_frame, block->mCodecState.data(), block->mCodecState.size());
 	if(obj->first_frame) {
 		obj->first_frame = FALSE;
 	}
@@ -2511,10 +2513,10 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 	if (position == 0) {
 		obj->time = 0;
 		for(i = 0; i < 2; i++) {
-			if (obj->players[i]) mkv_track_reader_reset(obj->players[i]->track_reader);
+			if (obj->players[i]) obj->players[i]->track_reader->reset();
 		}
 	} else {
-		int newpos = mkv_reader_seek(obj->reader, position);
+		int newpos = obj->reader->seek(position);
 		if (newpos < 0) return FALSE;
 		if (obj->time != newpos) {
 			obj->position_changed = TRUE;
@@ -2546,7 +2548,7 @@ static void player_uninit(MSFilter *f) {
 
 	ms_filter_lock(f);
 	if(obj->state != MSPlayerClosed) {
-		mkv_reader_close(obj->reader);
+		delete obj->reader;
 	}
 	for(i = 0; i < 2; i++) {
 		if(obj->players[i]) {
@@ -2569,18 +2571,20 @@ static int player_open_file(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: fail to open %s. A file is already opened", filename);
 		goto fail;
 	}
-	ms_message("MKVPlayer: opening %s", filename);
-	obj->reader = mkv_reader_open(filename);
-	if(obj->reader == NULL) {
-		ms_error("MKVPlayer: %s could not be opened in read-only mode", filename);
+	try {
+		ms_message("MKVPlayer: opening %s", filename);
+		obj->reader = new MKVReader{filename};
+	} catch (const std::runtime_error &e) {
+		ms_error("%s", e.what());
+		ms_error("mkvplayer: %s could not be opened in read-only mode", filename);
 		goto fail;
 	}
 	for(i = 0; i < 2; i++) {
 		const char *typeString[2] = {"video", "audio"};
-		track = mkv_reader_get_default_track(obj->reader, typeList[i]);
+		track = obj->reader->getDefaultTrack(typeList[i]);
 		if(track == NULL) {
 			ms_warning("MKVPlayer: no default %s track. Looking for first %s track", typeString[i], typeString[i]);
-			track = mkv_reader_get_first_track(obj->reader, typeList[i]);
+			track = obj->reader->getFirstTrack(typeList[i]);
 			if(track == NULL) {
 				ms_warning("MKVPlayer: no %s track found", typeString[i]);
 			}
@@ -2588,7 +2592,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 		if(track) {
 			obj->players[i] = mkv_track_player_new(f->factory, obj->reader, track);
 			if(obj->players[i] == NULL) {
-				ms_warning("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->num);
+				ms_warning("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->mNum);
 			}
 		}
 	}
@@ -2641,7 +2645,7 @@ static void player_process(MSFilter *f) {
 				MKVBlock *block;
 				while((block = mkv_block_queue_pull(t_player->block_queue))) {
 					mkv_track_player_send_block(f->factory, t_player, block, f->outputs[i]);
-					mkv_block_free(block);
+					delete block;
 				}
 				mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
 			}
@@ -2669,7 +2673,7 @@ static int player_close(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
 	if(obj->state != MSPlayerClosed) {
-		mkv_reader_close(obj->reader);
+		delete obj->reader;
 		for(i = 0; i < f->desc->noutputs; i++) {
 			if(obj->players[i]) mkv_track_player_free(obj->players[i]);
 			obj->players[i] = NULL;
@@ -2765,7 +2769,7 @@ static int player_get_duration(MSFilter *f, void *arg) {
 		ms_error("MKVPlayer: cannot get duration. No file is open");
 		goto fail;
 	}
-	*(int *)arg = (int)mkv_reader_get_segment_info(obj->reader)->duration;
+	*(int *)arg = (int)obj->reader->getSegmentInfo()->mDuration;
 	ms_filter_unlock(f);
 	return 0;
 

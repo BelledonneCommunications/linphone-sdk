@@ -402,10 +402,10 @@ if(ENABLE_VIDEO)
 endif()
 if(BCMATROSKA2_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C
-		utils/mkv_reader.c
 		voip/rfc2429.h
 	)
 	list(APPEND VOIP_SOURCE_FILES_CXX
+		utils/mkv_reader.cpp
 		videofilters/mkv.cpp
 	)
 endif()

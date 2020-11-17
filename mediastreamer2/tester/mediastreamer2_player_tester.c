@@ -21,6 +21,10 @@
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mediastream.h"
 
+#ifndef max
+#define max(a, b) ((a) > (b)) ? a : b
+#endif
+
 static MSFactory* _factory = NULL;
 
 typedef enum {
@@ -104,12 +108,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	}
 
 	duration = ms_media_player_get_duration(file_player);
-	if(ms_media_player_get_file_format(file_player) == MS_FILE_FORMAT_WAVE) {
-		BC_ASSERT_TRUE(duration == -1);
-		duration = 20000;
-	} else {
-		BC_ASSERT_TRUE(duration >= 0);
-	}
+	BC_ASSERT_GREATER(duration, 0, int, "%d");
 
 	if(flags & PLAYER_TEST_SEEKING) {
 		timeout = duration - seek_time;
@@ -121,7 +120,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 		ms_media_player_set_loop(file_player, interval_time);
 		timeout += (duration + interval_time);
 	}
-	timeout = (int)(timeout * (1.0 + timeout_prec));
+	timeout = max( (int)(timeout * (1.0 + timeout_prec)) , 100);
 
 	succeed = ms_media_player_start(file_player);
 	BC_ASSERT_TRUE(succeed);
@@ -193,9 +192,14 @@ static void play_sintel_trailer_opus_vp8_mkv(void) {
 	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags);
 }
 
-static void seeking_test(void) {
+static void seeking_sintel_trailer_opus_vp8_mkv(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
 	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_SEEKING);
+}
+
+static void seeking_hello_opus_mka(void) {
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	play_root_file("sounds/hello_opus.mka", flags | PLAYER_TEST_SEEKING);
 }
 
 static void playing_twice_test(void) {
@@ -209,16 +213,17 @@ static void loop_test(void) {
 }
 
 static test_t tests[] = {
-	TEST_NO_TAG("Play hello8000.wav"                 , play_hello_8000_wav),
-	TEST_NO_TAG("Play hello16000.wav"                , play_hello_16000_wav),
-	TEST_NO_TAG("Play hello_pcmu.mka"                , play_hello_pcmu_mka),
-	TEST_NO_TAG("Play hello_opus.mka"                , play_hello_opus_mka),
-	TEST_NO_TAG("Play sintel_trailer_pcmu_h264.mkv"  , play_sintel_trailer_pcmu_h264_mkv),
-	TEST_NO_TAG("Play sintel_trailer_opus_h264.mkv"  , play_sintel_trailer_opus_h264_mkv),
-	TEST_NO_TAG("Play sintel_trailer_opus_vp8.mkv"   , play_sintel_trailer_opus_vp8_mkv),
-	TEST_NO_TAG("Seeking"                            , seeking_test),
-	TEST_NO_TAG("Playing twice"                      , playing_twice_test),
-	TEST_NO_TAG("Loop test"                          , loop_test)
+	TEST_NO_TAG("Play hello8000.wav"                  , play_hello_8000_wav                 ),
+	TEST_NO_TAG("Play hello16000.wav"                 , play_hello_16000_wav                ),
+	TEST_NO_TAG("Play hello_pcmu.mka"                 , play_hello_pcmu_mka                 ),
+	TEST_NO_TAG("Play hello_opus.mka"                 , play_hello_opus_mka                 ),
+	TEST_NO_TAG("Play sintel_trailer_pcmu_h264.mkv"   , play_sintel_trailer_pcmu_h264_mkv   ),
+	TEST_NO_TAG("Play sintel_trailer_opus_h264.mkv"   , play_sintel_trailer_opus_h264_mkv   ),
+	TEST_NO_TAG("Play sintel_trailer_opus_vp8.mkv"    , play_sintel_trailer_opus_vp8_mkv    ),
+	TEST_NO_TAG("Seeking sintel_trailer_opus_vp8.mkv" , seeking_sintel_trailer_opus_vp8_mkv ),
+	TEST_NO_TAG("Seeking hello_opus.mka (no CUEs)"    , seeking_hello_opus_mka              ),
+	TEST_NO_TAG("Playing twice"                       , playing_twice_test                  ),
+	TEST_NO_TAG("Loop test"                           , loop_test                           )
 };
 
 test_suite_t player_test_suite = {
