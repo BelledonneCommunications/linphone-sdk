@@ -157,7 +157,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t* prov, bell
 				}
 			}else if ((strcmp("INVITE",method)==0)&&(ev.dialog->needs_ack)){
 				belle_sip_dialog_stop_200Ok_retrans(ev.dialog);
-			}else if (!belle_sip_dialog_is_authorized_transaction(ev.dialog,method)){
+			}else if (!belle_sip_dialog_can_accept_request(ev.dialog, req)){
 				belle_sip_server_transaction_t *tr=belle_sip_provider_create_server_transaction(prov,req);
 				belle_sip_server_transaction_send_response(tr,
 					belle_sip_response_create_from_request(req,491));
