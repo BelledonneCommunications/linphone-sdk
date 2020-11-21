@@ -29,19 +29,19 @@
 #  extends: .job-linux-desktop
 
 
-#job-debian9-makefile-clang:
-#
-#  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+job-debian9-makefile-clang:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
 #  only:
 #    variables:
 #      - $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-#  extends: .job-linux-desktop
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .job-linux-desktop
 
 
 #################################################
