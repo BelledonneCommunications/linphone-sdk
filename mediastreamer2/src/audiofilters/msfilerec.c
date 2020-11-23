@@ -25,6 +25,8 @@
 #include "waveheader.h"
 #include "asyncrw.h"
 
+#include "fd_portab.h" // keep this include at the last of the inclusion sequence!
+
 
 static int rec_close(MSFilter *f, void *arg);
 static void write_wav_header(int fd, int rate, int nchannels, int size);

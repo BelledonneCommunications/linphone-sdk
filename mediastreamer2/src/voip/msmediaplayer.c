@@ -27,6 +27,8 @@
 #include <mmreg.h>
 #endif
 
+#include "fd_portab.h"
+
 #define ms_filter_destroy_and_reset(obj) \
 	ms_filter_destroy(obj); \
 	obj = NULL

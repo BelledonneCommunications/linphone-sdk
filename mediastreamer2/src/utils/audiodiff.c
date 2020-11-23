@@ -23,6 +23,8 @@
 
 #include <math.h>
 
+#include "fd_portab.h" // keep this include at the last of the inclusion sequence!
+
 typedef struct {
 	int rate;
 	int nchannels;

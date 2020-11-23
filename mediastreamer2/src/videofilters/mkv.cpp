@@ -1925,7 +1925,11 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 		ms_error("MKVRecorder: %s is alread open", filename);
 		goto fail;
 	}
-	if(access(filename, R_OK | W_OK) == 0) {
+#ifdef WIN32
+	if(_access(filename, 0) == 0) {
+#else
+	if(access(filename, F_OK) == 0) {
+#endif
 		obj->openMode = MKV_OPEN_APPEND;
 	} else {
 		obj->openMode = MKV_OPEN_CREATE;

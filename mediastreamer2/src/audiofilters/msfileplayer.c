@@ -30,10 +30,7 @@
 #include <pcap/pcap.h>
 #endif
 
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
+#include "fd_portab.h" // keep this include at the end of the inclusion sequence.
 
 
 static int player_close(MSFilter *f, void *arg);
