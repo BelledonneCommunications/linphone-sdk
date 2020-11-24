@@ -149,21 +149,24 @@ int MKVSegmentInfo::parse(const ebml_element *seg_info_elt) noexcept {
 }
 
 std::unique_ptr<MKVTrack> MKVTrack::parseTrack(const ebml_element *track_elt) noexcept {
+	unique_ptr<MKVTrack> track{};
 	auto track_type = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackType));
 	switch (track_type) {
 		case TRACK_TYPE_VIDEO: {
 			auto vtrack = make_unique<MKVVideoTrack>();
 			vtrack->parse(track_elt);
-			return vtrack;
+			track = move(vtrack);
+			break;
 		}
 		case TRACK_TYPE_AUDIO: {
 			auto atrack = make_unique<MKVAudioTrack>();
 			atrack->parse(track_elt);
-			return atrack;
+			track = move(atrack);
+			break;
 		}
-		default:
-			return nullptr;
+		default: break;
 	}
+	return track;
 }
 
 void MKVTrack::parse(const ebml_element *track_elt) noexcept {
