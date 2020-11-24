@@ -103,8 +103,8 @@ static char * tag_name = NULL;
 static char * expected_res = NULL;
 static size_t max_vm_kb = 0;
 static int run_skipped_tests = 0;
-//0 if deactivated, or > 0, representing the maximum number of subprocesses to launch
-static int parallel_suites = 0;
+static int max_parallel_suites = 0; /*if 0, but parallel is requested, an arbitrary value is determined.*/
+static int run_in_parallel = 0;
 static uint64_t globalTimeout = 0;
 
 //To keep record of the process name who started and args
@@ -405,7 +405,7 @@ void merge_and_print_results_files(void) {
 
 static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
-	if (parallel_suites != 0) {
+	if (run_in_parallel != 0) {
 		if (suite_name) {
 			char *results = CU_get_run_results_string();
 			write_suite_result_file(suite_name, results);
@@ -622,9 +622,14 @@ void merge_log_files(const char *base_logfile_name) {
 }
 
 //Number of test suites to run concurrently
-//TODO better default or add cli option ?
 int bc_tester_get_max_parallel_processes(void) {
-	return (nb_test_suites / 2) + 1;
+	if (max_parallel_suites == 0)
+		return (nb_test_suites / 2) + 1;
+	return MIN(max_parallel_suites, nb_test_suites);
+}
+
+void bc_tester_set_max_parallel_suites(int nb_suites){
+	max_parallel_suites = nb_suites;
 }
 
 #ifdef _WIN32
@@ -831,7 +836,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 		char *xml_file_name;
 		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
 
-		if (parallel_suites != 0) {
+		if (run_in_parallel != 0) {
 			//Sub-process started by parent in bc_tester_run_parallel
 			if (suite_name) {
 				CU_automated_enable_partial_junit(TRUE);
@@ -1168,7 +1173,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		}
 		//Defaults to JUnit report if parallel is enabled
 		xml_enabled = 1;
-		parallel_suites = 1;
+		run_in_parallel = 1;
 	} else if (strcmp(argv[i], "--timeout") == 0) {
 		CHECK_ARG("--timeout", ++i, argc);
 		globalTimeout = atoi(argv[i]);
