@@ -218,7 +218,8 @@ const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder
 	{"rockchip", "X9-LX", "rk3288"},
 	{"rockchip", "rk3288", "rk3288"},
 	{"rockchip", "rk3399", "rk3399"},
-	{"rockchip", "rk3368", "rk3368"}
+	{"rockchip", "rk3368", "rk3368"},
+	{"freescale", "Control4-imx8mm", "imx8"}
 };
 
 }
