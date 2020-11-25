@@ -39,7 +39,7 @@ class BELLESIP_EXPORT Object{
 		const Object *ref() const;
 		void unref();
 		//Overrides should keep	the size of toString() lower than BELLE_SIP_MAX_TO_STRING_SIZE
-	        virtual std::string toString() const;
+		virtual std::string toString() const;
 		virtual Object *clone()const;
 		belle_sip_cpp_object_t *getCObject();
 		const belle_sip_cpp_object_t *getCObject()const;
@@ -75,22 +75,22 @@ class BELLESIP_EXPORT Object{
  * }
  * The C object can be obtained with toC() method, directly casted in the expected type.
  * The C++ object can be obtained from C object with static method toCpp().
- * 
+ *
  * VERY IMPORTANT USAGE RULES:
  * - The destructor MUST be kept protected so that no one can call delete operator on the object. Instead unref() must be used.
  * - make_shared<>() or shared_ptr<>(new ...) MUST NOT be used to instanciate an HybridObject, use create() instead.
- * 
+ *
  * A shared_ptr<> can be obtained at any time from an HybridObject using getSharedFromThis().
  * The static getSharedFromThis(_Ctype*) method can be used to directly obtain a shared_ptr from the C object.
- * 
+ *
  * The clone() method must be overriden to return a new _CppType contructed with copy contructor,
  * or return nullptr if the object is defined to be not clonable.
  *
  * Rational for using this template:
  * - You have an existing library in C where all C objects are inheriting from belle_sip_object_t (for refcounting, data_set etc...).
  * - You want to use C++ in your library without making any disruption in the API.
- * IMPORTANT: 
- * If you don't care about belle_sip_object_t inheritance in your C api, 
+ * IMPORTANT:
+ * If you don't care about belle_sip_object_t inheritance in your C api,
  * or if you don't need any C api associated to this object at all, DON'T USE THIS.
  * An usage example is shown in tester/object_tester.cc .
 **/
@@ -148,7 +148,7 @@ class HybridObject : public Object {
 		std::shared_ptr<_CppType> toSharedPtr(){
 			return sharedFromThis(true);
 		}
-		
+
 		//Convenience method for easy bctbx_list(_Ctype) -> std::list<_CppType> conversion
 		//It does not take ownership of the hybrid object, but takes a ref.
 		static std::list<std::shared_ptr<_CppType>> getCppListFromCList(const bctbx_list_t *cList) {
@@ -190,6 +190,11 @@ class HybridObject : public Object {
 			return result;
 		}
 
+		static const char * nullifyEmptyString(const std::string& cppString){
+			if (cppString.empty()) return nullptr;
+			else return cppString.c_str();
+		}
+
 	protected:
 		virtual ~HybridObject() = default;
 		HybridObject() {}
@@ -198,7 +203,7 @@ class HybridObject : public Object {
 		std::shared_ptr<_CppType> sharedFromThis(bool withTransfer)const{
 			std::shared_ptr<_CppType> sp;
 			if ((sp = mSelf.lock()) == nullptr){
-				sp = std::shared_ptr<_CppType>(static_cast<_CppType *>(const_cast<HybridObject<_CType, _CppType> *>(this)), 
+				sp = std::shared_ptr<_CppType>(static_cast<_CppType *>(const_cast<HybridObject<_CType, _CppType> *>(this)),
 								  std::mem_fn(&HybridObject<_CType, _CppType>::constUnref));
 				mSelf = sp;
 				if (!withTransfer){
@@ -213,7 +218,6 @@ class HybridObject : public Object {
 		}
 		mutable std::weak_ptr<_CppType> mSelf;
 };
-
 
 }//end of namespace
 
