@@ -732,7 +732,9 @@ static int ioscapture_set_device_orientation (MSFilter *f, void *arg) {
 	if (thiz != NULL) {
 		if (thiz->mDeviceOrientation != *(int*)(arg)) {
 			thiz->mDeviceOrientation = *(int*)(arg);
-			[thiz setSize:thiz->mOutputVideoSize]; //to update size from orientation
+			DISPATCH_SYNC_MAIN(^{
+				[thiz setSize:thiz->mOutputVideoSize]; //to update size from orientation
+			});
 
 			// delete frame if any
 			ms_mutex_lock(&thiz->mutex);
