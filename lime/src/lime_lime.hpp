@@ -157,6 +157,16 @@ namespace lime {
 		 */
 		virtual std::string get_x3dhServerUrl() = 0;
 
+		/**
+		 * @brief Stale all sessions between localDeviceId and peerDevice.
+		 * If peerDevice keep using this session to encrypt and we decrypt with success, the session will be reactivated
+		 * but to encrypt a message to this peerDevice, a new session will be created.
+		 * If no session is active between the given device, this call has no effect
+		 *
+		 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+		 */
+		virtual void stale_sessions(const std::string &peerDeviceId) = 0;
+
 		virtual ~LimeGeneric() {};
 	};
 

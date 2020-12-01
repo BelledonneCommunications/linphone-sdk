@@ -308,6 +308,18 @@ public class LimeManager {
 	public native void set_x3dhServerUrl(String localDeviceId, String serverURL) throws LimeException;
 
 	/**
+	 * @brief Stale all sessions between localDeviceId and peerDevice.
+	 * If peerDevice keep using this session to encrypt and we decrypt with success, the session will be reactivated
+	 * but to encrypt a message to this peerDevice, a new session will be created.
+	 * If no session is active between the given device, this call has no effect
+	 *
+	 * @param[in]	localDeviceId	Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+	 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+	 */
+	public native void stale_sessions(String localDeviceId, String peerDeviceId) throws LimeException;
+
+
+	/**
 	 * @brief Get the X3DH key server URL for this identified user
 	 * if specified localDeviceId is not found in local Storage, throw an exception
 	 *

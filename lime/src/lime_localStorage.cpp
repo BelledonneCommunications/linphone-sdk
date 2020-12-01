@@ -1348,6 +1348,22 @@ void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
 	tr.commit();
 }
 
+template <typename Curve>
+void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
+	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+	transaction tr(m_localStorage->sql);
+
+	// update in DB, do not check presence as we're called after a load_user who already ensure that
+	try {
+		m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1 AND Did = (SELECT Did FROM lime_PeerDevices WHERE DeviceId= :peerDeviceId LIMIT 1)", use(m_db_Uid), use(peerDeviceId);
+	} catch (exception const &e) {
+		tr.rollback();
+		throw BCTBX_EXCEPTION << "Cannot stale sessions between user "<<m_selfDeviceId<<" and user "<<peerDeviceId<<". DB backend says: "<<e.what();
+	}
+
+	tr.commit();
+}
+
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
 	template bool Lime<C255>::create_user();
@@ -1362,6 +1378,7 @@ void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
 	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
+	template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
 #endif
 
 #ifdef EC448_ENABLED
@@ -1377,6 +1394,7 @@ void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
 	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
+	template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
 #endif
 
 

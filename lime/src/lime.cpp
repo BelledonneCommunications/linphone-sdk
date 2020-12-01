@@ -327,6 +327,7 @@ namespace lime {
 	extern template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
 	extern template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	extern template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
+	extern template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
 	extern template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
 	extern template std::shared_ptr<DR<C255>> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
@@ -352,6 +353,7 @@ namespace lime {
 	extern template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
 	extern template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	extern template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
+	extern template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
 	extern template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
 	extern template std::shared_ptr<DR<C448>> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
