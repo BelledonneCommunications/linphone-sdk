@@ -277,6 +277,7 @@ namespace lime {
 		std::vector<std::shared_ptr<DR<Curve>>> DRSessions{};
 		// load in DRSessions all the session found in cache for this peer device, except the one with id db_sessionIdInCache(is ignored if 0) as we already tried it
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
+		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId<<" : found "<<DRSessions.size()<<" sessions in DB";
 		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
 			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession); // store it in cache
