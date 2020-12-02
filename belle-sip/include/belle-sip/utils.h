@@ -164,6 +164,7 @@ BELLESIP_EXPORT void belle_sip_end_background_task(unsigned long id);
 BELLESIP_EXPORT int belle_sip_mkdir(const char *path);
 
 BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff);
+BELLESIP_EXPORT char* belle_sip_username_unescape_unnecessary_characters(const char* buff);
 BELLESIP_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
 
 BELLE_SIP_END_DECLS

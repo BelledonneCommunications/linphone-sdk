@@ -422,6 +422,9 @@ static const bctbx_noescape_rules_t* get_sip_uri_header_noescapes(void) {
 char* belle_sip_uri_to_escaped_username(const char* buff) {
 	return bctbx_escape(buff, *get_sip_uri_username_noescapes());
 }
+char* belle_sip_username_unescape_unnecessary_characters(const char* buff) {
+	return bctbx_unescaped_string_only_chars_in_rules(buff, *get_sip_uri_username_noescapes());
+}
 char* belle_sip_uri_to_escaped_userpasswd(const char* buff) {
 	return bctbx_escape(buff, *get_sip_uri_userpasswd_noescapes());
 }

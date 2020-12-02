@@ -440,12 +440,31 @@ static void test_escaping_bad_chars(void){
 	char bad_uri[13] = { 'h', 'e', 'l', 'l', 'o', (char)0xa0, (char)0xc8, 'w', 'o', 'r', 'l', 'd', 0x0 };
 	char *escaped = belle_sip_uri_to_escaped_username(bad_uri);
 	const char *expected="hello%a0%c8world";
-
 	BC_ASSERT_STRING_EQUAL(escaped, expected);
+	belle_sip_free(escaped);
 
+	char *bad_uri2 = "François";
+	escaped = belle_sip_uri_to_escaped_username(bad_uri2);
+	const char *expected2="Fran%c3%a7ois";
+	BC_ASSERT_STRING_EQUAL(escaped, expected2);
 	belle_sip_free(escaped);
 }
 
+static void test_unescaping_good_chars(void){
+	char phone_number[13] = { (char)0x2b, '3', '3', '6', '4', '5', '4', '9', '9', '9', '4', '3', 0x0 };
+	char *unescaped = belle_sip_username_unescape_unnecessary_characters(phone_number);
+	// '+' can be unescaped
+	const char *expected="+33645499943";
+	BC_ASSERT_STRING_EQUAL(unescaped, expected);
+	belle_sip_free(unescaped);
+
+	char username[10] = { 'F', 'r', 'a', 'n', (char)0xc3, (char)0xa7, 'o', 'i', 's', 0x0 };
+	unescaped = belle_sip_username_unescape_unnecessary_characters(username);
+	// 'ç' needs to be kept escaped
+	const char *expected2="Fran%c3%a7ois";
+	BC_ASSERT_STRING_EQUAL(unescaped, expected2);
+	belle_sip_free(unescaped);
+}
 
 static belle_sip_header_address_t* test_header_address_parsing(const char* address, int expect_fail){
 	belle_sip_header_address_t* header_address = belle_sip_header_address_parse(address);
@@ -485,6 +504,7 @@ static test_t uri_tests[] = {
 	TEST_NO_TAG("Complex URI", testCOMPLEXURI),
 	TEST_NO_TAG("Escaped username", test_escaped_username),
 	TEST_NO_TAG("Escaped username with bad chars", test_escaping_bad_chars),
+	TEST_NO_TAG("Unescape username", test_unescaping_good_chars),
 	TEST_NO_TAG("Escaped parameter", test_escaped_parameter),
 	TEST_NO_TAG("Escaped passwd", test_escaped_passwd),
 	TEST_NO_TAG("User passwd", test_user_passwd),
