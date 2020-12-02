@@ -74,26 +74,51 @@ static int is_escaped_char(const char *a){
 	return a[0] == '%' && a[1] != '\0' && a[2] != '\0';
 }
 
-size_t bctbx_get_char (const char*a, char*out) {
+size_t bctbx_get_char (const char* a, char* out) {
 	if (is_escaped_char(a)) {
 		unsigned int tmp;
-		sscanf(a+1,"%02x",&tmp);
-		*out=(char)tmp;
+		sscanf(a + 1, "%02x", &tmp);
+		*out = (char)tmp;
 		return 3;
 	} else {
-		*out=*a;
+		*out = *a;
 		return 1;
 	}
 }
 
 char* bctbx_unescaped_string(const char* buff) {
-	char *output_buff=bctbx_malloc(strlen(buff)+1);
+	char *output_buff = bctbx_malloc(strlen(buff)+1);
 	size_t i;
-	size_t out_buff_index=0;
+	size_t out_buff_index = 0;
 	
-	for(i=0; buff[i]!='\0'; out_buff_index++) {
-		i+=bctbx_get_char(buff+i,output_buff+out_buff_index);
+	for (i = 0; buff[i] != '\0'; out_buff_index++) {
+		i += bctbx_get_char(buff + i, output_buff + out_buff_index);
 	}
-	output_buff[out_buff_index]='\0';
+
+	output_buff[out_buff_index] = '\0';
+	return output_buff;
+}
+
+char* bctbx_unescaped_string_only_chars_in_rules(const char* buff, const bctbx_noescape_rules_t unescape) {
+	size_t max_len = strlen(buff) + 1;
+	char *output_buff = bctbx_malloc(max_len);
+	size_t i;
+	size_t out_buff_index = 0;
+	
+	for (i = 0; buff[i] != '\0'; ) {
+		i += bctbx_get_char(buff + i, output_buff + out_buff_index);
+		
+		int c = ((unsigned char*)output_buff)[out_buff_index];
+		if (unescape[c] == 0 && is_escaped_char(buff + i)) {
+			// we unescaped a character that should stay escaped
+			max_len += 3;
+			output_buff = bctbx_realloc(output_buff, max_len);
+			out_buff_index += snprintf(output_buff + out_buff_index, max_len - out_buff_index, "%%%02x", c);
+		} else {
+			out_buff_index += 1;
+		}
+	}
+
+	output_buff[out_buff_index] = '\0';
 	return output_buff;
 }

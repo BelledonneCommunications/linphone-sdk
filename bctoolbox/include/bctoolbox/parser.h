@@ -73,6 +73,13 @@ BCTBX_PUBLIC void bctbx_noescape_rules_add_alfanums(bctbx_noescape_rules_t noesc
  */
 BCTBX_PUBLIC char* bctbx_unescaped_string(const char* buff);
 
+/**
+ * Does the same as bctbx_unescaped_string() except it does it only for characters in unescape_rules
+ * @param  buff  NULL terminated input buffer.
+ * @param  unescape_rules bctbx_noescape_rules_t characters to unescape, other will be kept escaped
+ * @return a newly allocated null terminated string with unescated values.
+ */
+BCTBX_PUBLIC char* bctbx_unescaped_string_only_chars_in_rules(const char* buff, const bctbx_noescape_rules_t unescape_rules);
 	
 /**
  *Convert a single input "a" into unscaped output if need.
