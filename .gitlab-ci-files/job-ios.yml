@@ -42,19 +42,6 @@
 #################################################
 
 
-job-ios-makefile:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
 
 
 #################################################
@@ -62,61 +49,7 @@ job-ios-makefile:
 #################################################
 
 
-job-ios-ninja:
 
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-job-ios-ninja-allcodecs:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: $IOS_ARCHS
-    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_CODECS=ON
-  extends: .job-ios
-
-
-job-ios-ninja-g729:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_G729=ON
-  extends: job-ios-ninja
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
-job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: job-ios-ninja
 
 
 #################################################
@@ -124,18 +57,11 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
-
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_RELEASES_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS
+    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_RELEASES_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_DNS_SERVICE=NO -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
-    ARCHS_OPTIONS: "arm64,armv7,x86_64"
+    ARCHS_OPTIONS: "x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   extends: .job-ios
@@ -150,10 +76,6 @@ test-liblinphone-ios:
   allow_failure: true
   dependencies:
     - job-ios-xcode
-
-  only:
-    variables:
-      - $ENABLE_IOS_TESTS
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
