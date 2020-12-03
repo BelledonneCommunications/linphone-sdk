@@ -5,7 +5,7 @@
 
 job-ios-upload:
   stage: deploy
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-xcode12" ]
 
 
   dependencies:
