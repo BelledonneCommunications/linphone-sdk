@@ -323,12 +323,10 @@ private:
 };
 
 
-#if (__GNUC__ == 4 && __GNUC_MINOR__ < 5 && __cplusplus > 199711L)
 template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
 	(static_cast<std::ostringstream &>(__os)) << __x;
 	return __os;
 }
-#endif
 
 #define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
