@@ -32,8 +32,6 @@ job-centos7-makefile-gcc:
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
-  before_script:
-    - source /opt/rh/devtoolset-8/enable
 
 
 #################################################
@@ -56,8 +54,6 @@ job-centos7-ninja-gcc:
   except:
     variables:
       - $SKIP_LINUX
-  before_script:
-    - source /opt/rh/devtoolset-8/enable
 
 #################################################
 # TESTS
