@@ -72,11 +72,11 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "--dns-hosts $(SRCROOT)/../../../liblinphone/tester/tester_hosts"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--verbose"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

@@ -59,7 +59,7 @@ job-ios-xcode:
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_RELEASES_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS -DENABLE_DNS_SERVICE=NO
+    CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_RELEASES_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
@@ -100,7 +100,8 @@ test-liblinphone-ios:
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
+    - trainer ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult -o .
+    - mv Run*.xml $XML_PATTERN.xml
 
 
     - BRANCH=$CI_COMMIT_REF_NAME
