@@ -614,7 +614,7 @@ static void au_uninit(MSSndCard *card){
 
 static void check_unused(){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	if ([au_holder read_filter] || [au_holder write_filter])
+	if ([au_holder audio_unit_state] == MSAudioUnitNotCreated || [au_holder read_filter] || [au_holder write_filter])
 		return;
 	
 	if ( ([au_holder ms_snd_card] != NULL && bctbx_param_string_get_bool_value([au_holder ms_snd_card]->sndcardmanager->paramString, SCM_PARAM_TESTER)) || ![au_holder will_be_used] ) {
