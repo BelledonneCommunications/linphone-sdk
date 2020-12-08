@@ -22,6 +22,8 @@
 
 #include <limits.h>
 
+static const int max_non_reference_frame_after_sli_or_pli = 60;
+
 /*#define VP8RTPFMT_DEBUG*/
 
 #if (defined(__GNUC__) && __GNUC__) || defined(__SUNPRO_C)
@@ -402,6 +404,7 @@ static MSVideoSize get_size_from_key_frame(Vp8RtpFmtFrame *frame) {
 
 static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ctx->avpf_enabled == TRUE) {
+		ctx->sli_pending = FALSE;
 		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
 	} else {
 		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
@@ -411,6 +414,7 @@ static void send_pli(Vp8RtpFmtUnpackerCtx *ctx) {
 
 static void send_fir(Vp8RtpFmtUnpackerCtx *ctx) {
 	if (ctx->avpf_enabled == TRUE) {
+		ctx->sli_pending = FALSE;
 		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_FIR);
 	} else {
 		if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_DECODING_ERRORS);
@@ -421,11 +425,11 @@ static void send_fir(Vp8RtpFmtUnpackerCtx *ctx) {
 static void send_sli(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame *frame) {
 	if (ctx->avpf_enabled == TRUE) {
 		if (frame->pictureid_present == TRUE) {
-			MSVideoCodecSLI sli;
-			sli.first = 0;
-			sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
-			sli.picture_id = frame->pictureid & 0x3F;
-			if(ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &sli);
+			ctx->current_sli.first = 0;
+			ctx->current_sli.number = (ctx->video_size.width * ctx->video_size.height) / (16 * 16);
+			ctx->current_sli.picture_id = frame->pictureid & 0x3F;
+			ctx->sli_pending = TRUE;
+			if(ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &ctx->current_sli);
 		} else {
 			send_pli(ctx);
 		}
@@ -625,14 +629,14 @@ static void notify_frame_error_if_any(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame 
 static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t **packets_list) {
 	Vp8RtpFmtFrame *frame;
 
-	if (bctbx_list_size(*packets_list) > 0) {
+	if (*packets_list != NULL) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_frame_partitions_list(frame, *packets_list);
 		check_frame_partitions_list(ctx, frame);
 		notify_frame_error_if_any(ctx, frame);
 		ctx->frames_list = bctbx_list_append(ctx->frames_list, (void *)frame);
+		bctbx_list_free(*packets_list);
 	}
-	bctbx_list_free(*packets_list);
 	*packets_list = NULL;
 }
 
@@ -643,14 +647,9 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t *packet
 	uint32_t ts;
 
 	/* If we have some packets from the previous iteration, put them in the frame_packets_list. */
-	//for (it=ctx->non_processed_packets_list; it!=NULL; it=it->next) {
-	//	packet = (Vp8RtpFmtPacket*) it->data;
-	//	frame_packets_list = bctbx_list_append(frame_packets_list, packet);
-	//}
 	if (ctx->non_processed_packets_list){
 		frame_packets_list = bctbx_list_concat(ctx->non_processed_packets_list, frame_packets_list);
 	}
-	//bctbx_list_free(ctx->non_processed_packets_list);
 	ctx->non_processed_packets_list = NULL;
 
 	/* Process newly received packets. */
@@ -734,7 +733,7 @@ static void output_partitions_of_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, 
 static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 	Vp8RtpFmtFrame *frame;
 	size_t nb_frames = bctbx_list_size(ctx->frames_list);
-
+	bool_t pli_sent = FALSE;
 	if (nb_frames == 0) return -1;
 	frame = (Vp8RtpFmtFrame *)bctbx_list_nth_data(ctx->frames_list, 0);
 	switch (frame->error) {
@@ -743,6 +742,7 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 				ctx->valid_keyframe_received = TRUE;
 				ctx->video_size = get_size_from_key_frame(frame);
 				ctx->waiting_for_reference_frame = FALSE;
+				ctx->waiting_for_reference_frame_count = 0;
 				if (ctx->error_notified == TRUE) {
 					if(ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_RECOVERED_FROM_ERRORS);
 					ctx->error_notified = FALSE;
@@ -750,6 +750,8 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 			}
 			if ((ctx->avpf_enabled == TRUE) && (frame->reference == TRUE)) {
 				ctx->waiting_for_reference_frame = FALSE;
+				ctx->waiting_for_reference_frame_count = 0;
+				ctx->sli_pending = FALSE;
 			}
 			if ((ctx->valid_keyframe_received == TRUE) && (ctx->waiting_for_reference_frame == FALSE)) {
 				/* Output the complete valid frame if a reference frame has been received. */
@@ -768,6 +770,7 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 					 * HOWEVER, the local decoder (if has just been re-instancianted) had no KF at all to start decoding.*/
 					send_fir(ctx);
 					send_pli(ctx);
+					pli_sent = TRUE;
 				}
 				if (ctx->waiting_for_reference_frame == TRUE) {
 					/* Do not decode frames while we are waiting for a reference frame. */
@@ -775,6 +778,17 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame: pictureID=%i", (int)frame->pictureid);
 					else
 						ms_warning("VP8 decoder: Drop frame because we are waiting for reference frame.");
+					ctx->waiting_for_reference_frame_count++;
+					if (!pli_sent){
+						if (ctx->waiting_for_reference_frame_count > max_non_reference_frame_after_sli_or_pli){
+							/* Workaround/security: if SLI has no effect after a certain number of received frames, use PLI. */
+							ms_warning("VP8 decoder: requesting PLI, reference frame still not received.");
+							if (ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
+						}else if (ctx->sli_pending){
+							/* retransmit last SLI */
+							if (ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &ctx->current_sli);
+						}
+					}
 				} else {
 					/* Drop frames until the first keyframe is successfully received. */
 					ms_warning("VP8 frame dropped because keyframe has not been received yet.");
@@ -974,6 +988,8 @@ void vp8rtpfmt_unpacker_init(Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf
 	ctx->error_notified = FALSE;
 	ctx->initialized_last_ts = FALSE;
 	ctx->initialized_ref_cseq = FALSE;
+	ctx->waiting_for_reference_frame_count = 0;
+	ctx->sli_pending = 0;
 }
 
 void vp8rtpfmt_unpacker_uninit(Vp8RtpFmtUnpackerCtx *ctx) {
@@ -1026,7 +1042,7 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 		frame_info->pictureid_present = frame->pictureid_present;
 		frame_info->pictureid = frame->pictureid;
 		frame_info->keyframe = frame->keyframe;
-	} else if (bctbx_list_size(ctx->non_processed_packets_list) > 0) {
+	} else if (ctx->non_processed_packets_list != NULL) {
 		ms_debug("VP8 packets are remaining for next iteration of the filter.");
 	}
 	clean_frame(ctx);
