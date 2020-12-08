@@ -25,13 +25,12 @@ include(LinphoneSdkCheckBuildToolsUWP)
 
 
 #set(LINPHONESDK_UWP_ARCHS "ARM, x64, x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
-set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
-#set(LINPHONESDK_UWP_ARCHS "x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
-
+#set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
+set(LINPHONESDK_UWP_ARCHS "x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x64]")
+#set(LINPHONESDK_UWP_ARCHS "x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_UWP_ARCHS}" _archs)
 list(GET _archs 0 _first_arch)
-
 
 if(LINPHONESDK_PREBUILD_DEPENDENCIES)
 	set(_ep_depends DEPENDS ${LINPHONESDK_PREBUILD_DEPENDENCIES})
@@ -55,9 +54,12 @@ foreach(_arch IN LISTS _archs)
 	)
 	if( _arch STREQUAL "x64")
 		list(APPEND _cmake_args "-DCMAKE_SYSTEM_PROCESSOR=x86_64")
-		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR} Win64")
+		list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=x64")
+		#set(SYSTEM_GENERATOR "${CMAKE_GENERATOR} Win64")#Only for VS 2017
+		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	else()
 		list(APPEND _cmake_args "-DCMAKE_SYSTEM_PROCESSOR=${_arch}")
+		list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=Win32")
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	endif()
 	linphone_sdk_get_inherited_cmake_args()
@@ -93,35 +95,31 @@ foreach(_arch IN LISTS _archs)
 		ALWAYS 1
 	)
 
-    ExternalProject_Add(uwp-wrapper-${_arch}
-            DEPENDS uwp-${_arch}
-            SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/wrapper"
-            BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/wrapper"
-            CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
-            CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
-            #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-            BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-            INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-    )
-    ExternalProject_Add(uwp-mswinrtvideo-${_arch}
-        DEPENDS uwp-wrapper-${_arch}
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/mswinrtvideo"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/mswinrtvideo"
-        CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
-        CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
-        #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-        BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-        INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-)
+	ExternalProject_Add(uwp-wrapper-${_arch}
+		DEPENDS uwp-${_arch}
+		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/wrapper"
+		BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/wrapper"
+		CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
+		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
+		BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+		INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+	)
+#remove it when mswinrtvid is no more needed
+	ExternalProject_Add(uwp-mswinrtvideo-${_arch}
+		DEPENDS uwp-wrapper-${_arch}
+		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/mswinrtvideo"
+		BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/mswinrtvideo"
+		CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
+		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
+		BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+		INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+	)
 
-#    ExternalProject_Add_Step(uwp-${_arch} wrapper_build
-#            COMMENT "Build wrapper libraries for 'uwp-${_arch}'"
-#            DEPENDEES install
-#            ALWAYS 1
-#            COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
-#            "-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateWrapper.cmake"
-#    )
-	list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch} uwp-mswinrtvideo-${_arch})
+	list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch})
+#remove it when mswinrtvid is no more needed	
+	list(APPEND  _uwp_build_targets uwp-mswinrtvideo-${_arch})
 endforeach()
 
 ExternalProject_Add(uwp-nuget
