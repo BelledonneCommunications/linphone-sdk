@@ -105,6 +105,8 @@ extern "C"{
 		MSList *frames_list;
 		MSList *non_processed_packets_list;
 		MSVideoSize video_size;
+		MSVideoCodecSLI current_sli;
+		int waiting_for_reference_frame_count;
 		uint32_t last_ts;
 		uint16_t ref_cseq;
 		bool_t avpf_enabled;
@@ -115,6 +117,7 @@ extern "C"{
 		bool_t valid_keyframe_received;
 		bool_t initialized_last_ts;
 		bool_t initialized_ref_cseq;
+		bool_t sli_pending;
 	} Vp8RtpFmtUnpackerCtx;
 
 	typedef struct Vp8RtpFmtPackerCtx {
