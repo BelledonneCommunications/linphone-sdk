@@ -101,7 +101,7 @@ test-liblinphone-ios:
 
   after_script:
     - trainer ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult -o .
-    - mv Run*.xml $XML_PATTERN.xml
+    - mv *.xml $XML_PATTERN.xml
 
 
     - BRANCH=$CI_COMMIT_REF_NAME
