@@ -47,7 +47,7 @@ typedef struct endpoint {
 } endpoint_t;
 
 static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int expected_value, int timeout) {
-#define ITER 100
+#define ITER 1
 	uint64_t begin, end;
 	begin = belle_sip_time_ms();
 	end = begin + timeout;
@@ -133,6 +133,174 @@ static void ipv4_a_query(void) {
 			BC_ASSERT_EQUAL(sock_in->sin_addr.s_addr, ((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr, int, "%d");
 			bctbx_freeaddrinfo(ai);
 		}
+	}
+
+	destroy_endpoint(client);
+}
+
+/* Cancel A query */
+static void a_query_cancelled(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+	int i,dummy=0;
+
+
+	/* First run a successfull query, to the result is in the system cache */
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	/* Then run 50 times a query and cancel it(just to try some race conditions) */
+	for (i=0; i<50; i++) {
+		reset_endpoint(client);
+		client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
+		belle_sip_resolver_context_cancel(client->resolver_ctx);
+		BC_ASSERT_TRUE(client->resolve_done==0);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+
+		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+	}
+
+	destroy_endpoint(client);
+
+}
+
+/* Cancel a SRV query */
+static void srv_query_cancelled(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+	int i,dummy=0;
+
+
+	/* First run a successfull query, to the result is in the system cache */
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "sip", "udp", SRV_DOMAIN, srv_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->srv_list);
+	BC_ASSERT_NOT_EQUAL((unsigned int)belle_sip_list_size(client->srv_list), 0,unsigned int,"%u");
+	if (client->srv_list && (belle_sip_list_size(client->srv_list) > 0)) {
+		belle_sip_dns_srv_t *result_srv = belle_sip_list_nth_data(client->srv_list, 0);
+		BC_ASSERT_EQUAL(belle_sip_dns_srv_get_port(result_srv), SIP_PORT, int, "%d");
+	}
+
+	/* Then run 50 times a query and cancel it(just to try some race conditions) */
+	for (i=0; i<50; i++) {
+		reset_endpoint(client);
+		client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "sip", "udp", SRV_DOMAIN, srv_resolve_done, client);
+		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
+		belle_sip_resolver_context_cancel(client->resolver_ctx);
+		BC_ASSERT_TRUE(client->resolve_done==0);
+		BC_ASSERT_PTR_NULL(client->srv_list);
+
+		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_EQUAL((unsigned int)belle_sip_list_size(client->srv_list), 0,unsigned int,"%u");
+	}
+
+	destroy_endpoint(client);
+}
+
+/* Cancel a SRV + A or AAAA query */
+static void srv_a_query_cancelled(void) {
+	int timeout;
+	endpoint_t *client = create_endpoint();
+	int i,dummy=0;
+
+
+	/* First run a successfull query, to the result is in the system cache */
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	/* Then run 50 times a query and cancel it(just to try some race conditions) */
+	for (i=0; i<50; i++) {
+		reset_endpoint(client);
+		client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
+		belle_sip_resolver_context_cancel(client->resolver_ctx);
+		BC_ASSERT_TRUE(client->resolve_done==0);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+
+		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+	}
+
+	destroy_endpoint(client);
+}
+
+/* Cancel A+AAAA query */
+static void aaaa_query_cancelled(void) {
+	int timeout;
+	endpoint_t *client;
+	int i,dummy=0;
+
+	if (!belle_sip_tester_ipv6_available()){
+		belle_sip_warning("Test skipped, IPv6 connectivity not available.");
+		return;
+	}
+	client = create_endpoint();
+
+	/* First run a successfull query, to the result is in the system cache */
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	timeout = belle_sip_stack_get_dns_timeout(client->stack);
+	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
+	BC_ASSERT_PTR_NOT_NULL(client->ai_list);
+
+	/* Then run 50 times a query and cancel it(just to try some race conditions) */
+	for (i=0; i<50; i++) {
+		reset_endpoint(client);
+		client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
+		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
+		belle_sip_resolver_context_cancel(client->resolver_ctx);
+		BC_ASSERT_TRUE(client->resolve_done==0);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+
+		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+	}
+
+	destroy_endpoint(client);
+}
+
+/* Cancel A query during timeout*/
+static void timeout_query_cancelled(void) {
+	endpoint_t *client = create_endpoint();
+	int i,dummy=0;
+
+
+	belle_sip_stack_set_dns_timeout(client->stack, 0);
+	/* Then run 50 times a query and cancel it(just to try some race conditions) */
+	for (i=0; i<50; i++) {
+		client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "toto.com", SIP_PORT, AF_INET, a_resolve_done, client);
+		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
+		belle_sip_resolver_context_cancel(client->resolver_ctx);
+		BC_ASSERT_TRUE(client->resolve_done==0);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+
+		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_PTR_NULL(client->ai_list);
+		reset_endpoint(client);
 	}
 
 	destroy_endpoint(client);
@@ -719,6 +887,11 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("DNS fallback because of invalid IPv6", dns_fallback_because_of_invalid_ipv6),
 	TEST_NO_TAG("IPv6 DNS server", ipv6_dns_server),
 	TEST_NO_TAG("IPv4 and v6 DNS servers", ipv4_and_ipv6_dns_server),
+	TEST_NO_TAG("A query (IPv4) cancelled", a_query_cancelled),
+	TEST_NO_TAG("SRV query cancelled", srv_query_cancelled),
+	TEST_NO_TAG("SRV + A query cancelled", srv_a_query_cancelled),
+	TEST_NO_TAG("AAAA query cancelled", aaaa_query_cancelled),
+	TEST_NO_TAG("A query in time out cancelled", timeout_query_cancelled),
 #ifdef HAVE_MDNS
 	TEST_NO_TAG("MDNS query", mdns_query),
 	TEST_NO_TAG("MDNS query with ipv6", mdns_query_ipv6),
