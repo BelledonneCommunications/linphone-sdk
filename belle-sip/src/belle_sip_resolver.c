@@ -248,6 +248,7 @@ struct belle_sip_resolver_context{
 	uint8_t notified;
 	uint8_t cancelled;
 	uint8_t pad[2];
+	bool_t is_simple;
 };
 
 struct belle_sip_simple_resolver_context{
@@ -322,9 +323,10 @@ struct belle_sip_dual_resolver_context{
 	uint8_t pad[2];
 };
 
-void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
+void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack, bool_t is_simple){
 	obj->stack=stack;
 	obj->min_ttl = UINT32_MAX;
+	obj->is_simple = is_simple;
 #ifndef HAVE_DNS_SERVICE
 	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
 #endif /* HAVE_DNS_SERVICE */
@@ -593,14 +595,6 @@ static belle_sip_list_t *srv_select_by_weight(belle_sip_list_t *srv_list){
 static void simple_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	belle_sip_simple_resolver_context_t *ctx = BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj);
 #ifdef HAVE_DNS_SERVICE
-	if (ctx->dns_service_timer) {
-		dispatch_source_cancel(ctx->dns_service_timer);
-		ctx->dns_service_timer = NULL;
-	}
-	if (ctx->dns_service) {
-		DNSServiceRefDeallocate(ctx->dns_service);
-		ctx->dns_service = NULL;
-	}
 	if ((ctx->type == kDNSServiceType_A) || (ctx->type == kDNSServiceType_AAAA)) {
 #else /* HAVE_DNS_SERVICE */
 	if ((ctx->type == DNS_T_A) || (ctx->type == DNS_T_AAAA)) {
@@ -862,6 +856,17 @@ static int is_mdns_query(const char *name){
 #endif
 
 #ifdef HAVE_DNS_SERVICE
+static void dns_service_deallocate(belle_sip_simple_resolver_context_t *ctx) {
+	if (ctx->dns_service_timer) {
+		dispatch_source_cancel(ctx->dns_service_timer);
+		ctx->dns_service_timer = NULL;
+	}
+	if (ctx->dns_service) {
+		DNSServiceRefDeallocate(ctx->dns_service);
+		ctx->dns_service = NULL;
+	}
+}
+
 static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *fullname, uint16_t rrtype, uint16_t rrclass, uint16_t rdlen, const void *rdata, uint32_t ttl, void *context) {
 	belle_sip_simple_resolver_context_t *ctx = (belle_sip_simple_resolver_context_t *)context;
 
@@ -871,12 +876,16 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 		} else {
 			belle_sip_error("%s : resolving %s got error %d", __FUNCTION__, fullname, errorCode);
 		}
-		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		dns_service_deallocate(ctx);
+		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		return;
 	}
 
 	if (rrclass != kDNSServiceClass_IN) {
 		belle_sip_error("%s : resolving %s got class %d while IN(0x01) expected", __FUNCTION__, fullname, rrclass);
-		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		dns_service_deallocate(ctx);
+		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		return;
 	}
 
 	bool_t got_valid_answer = FALSE;
@@ -947,6 +956,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 	}
 
 	if (!(flags & kDNSServiceFlagsMoreComing) && (got_valid_answer==TRUE)) { // notify only when nothing more is coming and we had a valid answer
+		dns_service_deallocate(ctx);
 		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
 }
@@ -1203,6 +1213,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	/* dispatch it */
 	if (!ctx->base.stack->resolver_send_error) {
 		err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->base.stack->dns_service_queue);
+
 		if (err != kDNSServiceErr_NoError) {
 			belle_sip_message("DNS start_query resolving %s, DNSServiceSetDispatchQueue returned %d", ctx->name, err);
 			return -1;
@@ -1212,8 +1223,7 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 		ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->base.stack->dns_service_queue);
 		int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
 		dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
-					dispatch_source_cancel(ctx->dns_service_timer); // timer fires just once, disarm it
-					ctx->dns_service_timer = NULL;
+					dns_service_deallocate(ctx); /* disarm timer - we need it once and deallocate the query */
 					belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
 					belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
 
@@ -1293,6 +1303,7 @@ static belle_sip_simple_resolver_context_t * resolver_start_query(belle_sip_simp
 
 	/* Take a ref for this part of code because _resolver_start_query() can notify the results and free the ctx if this is not the case. */
 	belle_sip_object_ref(ctx);
+
 	error = _resolver_start_query(ctx);
 	if (error == 0) {
 		if (!ctx->base.notified) {
@@ -1358,13 +1369,17 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		ctx->name = NULL;
 	}
 #ifdef HAVE_DNS_SERVICE
-	if (ctx->dns_service) {
-		DNSServiceRefDeallocate(ctx->dns_service);
-		ctx->dns_service = NULL;
-	}
-	if (ctx->dns_service_timer) {
-		dispatch_source_cancel(ctx->dns_service_timer);
-		ctx->dns_service_timer = NULL;
+	// deallocate the query and disarm timer on the dns service thread
+	dispatch_sync(ctx->base.stack->dns_service_queue, ^{
+		dns_service_deallocate(ctx);
+		});
+	// Cancel is just doing nothing, so if we cancelled, we must
+	// also deallocated the results
+	if (ctx->base.cancelled == TRUE) {
+		if (ctx->srv_list != NULL) {
+			bctbx_list_free_with_data(ctx->srv_list, belle_sip_object_unref);
+			ctx->srv_list = NULL;
+		}
 	}
 #else /* HAVE_DNS_SERVICE */
 	if (ctx->R != NULL) {
@@ -1608,7 +1623,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 	if (res == NULL) {
 		/* First perform asynchronous DNS SRV query */
 		belle_sip_combined_resolver_context_t *ctx = belle_sip_object_new(belle_sip_combined_resolver_context_t);
-		belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
+		belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack, FALSE);
 		belle_sip_object_ref(ctx);/*we don't want the object to be destroyed until the end of this function*/
 		ctx->cb=cb;
 		ctx->cb_data = data;
@@ -1639,7 +1654,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_stack_t *stack, const char *name, int port, int family, int flags, belle_sip_resolver_callback_t cb , void *data){
 	/* Then perform asynchronous DNS A or AAAA query */
 	belle_sip_simple_resolver_context_t *ctx = belle_sip_object_new(belle_sip_simple_resolver_context_t);
-	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
+	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack, TRUE);
 	ctx->cb_data = data;
 	ctx->cb = cb;
 	ctx->name = belle_sip_strdup(name);
@@ -1726,7 +1741,7 @@ static void on_ipv6_results(void *data, belle_sip_resolver_results_t *results) {
 static belle_sip_resolver_context_t * belle_sip_stack_resolve_dual(belle_sip_stack_t *stack, const char *name, int port, belle_sip_resolver_callback_t cb , void *data){
 	/* Then perform asynchronous DNS A or AAAA query */
 	belle_sip_dual_resolver_context_t *ctx = belle_sip_object_new(belle_sip_dual_resolver_context_t);
-	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
+	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack, FALSE);
 	belle_sip_object_ref(ctx);/*we don't want the object to be destroyed until the end of this function*/
 	ctx->cb_data = data;
 	ctx->cb = cb;
@@ -1774,7 +1789,7 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_a(belle_sip_stack_t *stac
 belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *stack, const char *service, const char *transport, const char *name, belle_sip_resolver_srv_callback_t cb, void *data) {
 	belle_sip_simple_resolver_context_t *ctx = belle_sip_object_new(belle_sip_simple_resolver_context_t);
 	char *srv_prefix = srv_prefix_from_service_and_transport(service, transport);
-	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack);
+	belle_sip_resolver_context_init((belle_sip_resolver_context_t*)ctx,stack,TRUE);
 	ctx->srv_cb_data = data;
 	ctx->srv_cb = cb;
 #ifdef HAVE_MDNS
@@ -1800,8 +1815,20 @@ void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 	if (belle_sip_resolver_context_can_be_cancelled(obj)) {
 		obj->cancelled = TRUE;
 		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_resolver_context_t)->cancel(obj);
+#ifdef HAVE_DNS_SERVICE
+		// Do not really cancel, just prevent results to be notified
+		// Using DNS Service, the results arrive on another thread
+		// So just let them arrive to avoid race conditions: Do not unref
+		// If resolver is combined or dual, the notify would never reach
+		// as the underlying resolver will not notify so unref or we will leak object
+		if (obj->is_simple == FALSE) {
+			belle_sip_object_unref(obj);
+		}
+#else
 		belle_sip_object_unref(obj);
+#endif /*  HAVE_DNS_SERVICE */
 	}
+
 }
 
 void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *obj) {
@@ -1810,6 +1837,15 @@ void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_resolver_context_t)->notify(obj);
 		belle_sip_object_unref(obj);
 	}
+#ifdef HAVE_DNS_SERVICE
+	else {
+		/* If the query was cancelled, do not forward the notification but unref the object
+		 * as in a regular notify */
+		if(obj->cancelled == true) {
+			belle_sip_object_unref(obj);
+		}
+	}
+#endif /* HAVE_DNS_SERVICE */
 }
 
 /*
