@@ -8,3 +8,4 @@ cmake/Windows/wrapper/LinphoneWrapper.cs
 cmake/Windows/nuget/Win32
 cmake/Windows/nuget/NuGetLinphoneSDK
 **/*.temp
+build*/*
