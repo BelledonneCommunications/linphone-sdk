@@ -571,6 +571,7 @@ struct belle_sip_stack{
 	unsigned char reconnect_to_primary_asap;
 #ifdef HAVE_DNS_SERVICE
 	dispatch_queue_t dns_service_queue;
+	unsigned char use_dns_service;
 #endif /* HAVE_DNS_SERVICE */
 };
 

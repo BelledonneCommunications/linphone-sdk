@@ -116,6 +116,8 @@ set(BELLE_SIP_SOURCE_FILES_C
 	clock_gettime.c
 	clock_gettime.h
 	dialog.c
+	dns/dns.c
+	dns/dns.h
 	generic-uri.c
 	http-listener.c
 	http-message.c
@@ -148,10 +150,6 @@ set(BELLE_SIP_SOURCE_FILES_C
 	${SIP_MESSAGE_GENERATED_SOURCE_FILES_C}
 	${TUNNEL_SOURCE_FILES_C}
 )
-
-if (NOT ENABLE_DNS_SERVICE)
-	list(APPEND BELLE_SIP_SOURCE_FILES_C dns/dns.c dns/dns.h)
-endif()
 
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="belle-sip"
