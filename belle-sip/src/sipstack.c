@@ -170,6 +170,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->unreliable_transport_timeout = 120;
 #ifdef HAVE_DNS_SERVICE
 	stack->dns_service_queue = dispatch_queue_create("com.belledonne_communications.belle_sip.dns_service_queue", DISPATCH_QUEUE_SERIAL);
+	stack->use_dns_service = TRUE;
 #endif /* HAVE_DNS_SERVICE */
 	return stack;
 }
@@ -202,6 +203,30 @@ int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack) {
 void belle_sip_stack_set_dns_timeout(belle_sip_stack_t *stack, int timeout) {
 	stack->dns_timeout = timeout;
 }
+
+unsigned char belle_sip_stack_get_dns_engine(const belle_sip_stack_t *stack) {
+#ifdef HAVE_DNS_SERVICE
+	return stack->use_dns_service==TRUE?BELLE_SIP_DNS_APPLE_DNS_SERVICE:BELLE_SIP_DNS_DNS_C;
+#else /* HAVE_DNS_SERVICE */
+	return BELLE_SIP_DNS_DNS_C;
+#endif /* else HAVE_DNS_SERVICE*/
+}
+
+void belle_sip_stack_set_dns_engine(belle_sip_stack_t *stack, unsigned char dns_engine) {
+#ifdef HAVE_DNS_SERVICE
+	switch (dns_engine) {
+		case BELLE_SIP_DNS_APPLE_DNS_SERVICE:
+			stack->use_dns_service = TRUE;
+			break;
+		case BELLE_SIP_DNS_DNS_C:
+			stack->use_dns_service = FALSE;
+			break;
+		default:
+			belle_sip_error("Cannot set DNS engine to unknown value : %d", dns_engine);
+	}
+#endif /* HAVE_DNS_SERVICE */
+}
+
 
 unsigned char belle_sip_stack_dns_srv_enabled(const belle_sip_stack_t *stack) {
 	return stack->dns_srv_enabled;

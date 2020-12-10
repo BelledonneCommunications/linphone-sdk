@@ -230,6 +230,18 @@ BELLESIP_EXPORT void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *
 **/
 BELLESIP_EXPORT void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port);
 
+#define BELLE_SIP_DNS_APPLE_DNS_SERVICE 0x01
+#define BELLE_SIP_DNS_DNS_C		0x02
+/**
+ * Set the dns engine to use.
+ * @param dns_engine	Must be one of BELLE_SIP_DNS_APPLE_DNS_SERVICE or BELLE_SIP_DNS_DNS_C
+**/
+BELLESIP_EXPORT void belle_sip_stack_set_dns_engine(belle_sip_stack_t *stack, unsigned char dns_engine);
+/**
+ * Get the dns engine used
+ * @return BELLE_SIP_DNS_APPLE_DNS_SERVICE or BELLE_SIP_DNS_DNS_C
+**/
+BELLESIP_EXPORT unsigned char belle_sip_stack_get_dns_engine(const belle_sip_stack_t *stack);
 
 /*
  * End of test functions.

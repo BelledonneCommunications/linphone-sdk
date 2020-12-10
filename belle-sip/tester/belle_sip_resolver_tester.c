@@ -113,12 +113,13 @@ static void srv_resolve_done(void *data, const char *name, belle_sip_list_t *srv
 }
 
 /* Successful IPv4 A query */
-static void ipv4_a_query(void) {
+static void ipv4_a_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -137,9 +138,15 @@ static void ipv4_a_query(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv4_a_query(void) {
+	ipv4_a_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Cancel A query */
-static void a_query_cancelled(void) {
+static void a_query_cancelled_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -147,6 +154,7 @@ static void a_query_cancelled(void) {
 
 	/* First run a successfull query, to the result is in the system cache */
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -171,9 +179,15 @@ static void a_query_cancelled(void) {
 	destroy_endpoint(client);
 
 }
+static void a_query_cancelled(void) {
+	a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Cancel a SRV query */
-static void srv_query_cancelled(void) {
+static void srv_query_cancelled_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -181,6 +195,7 @@ static void srv_query_cancelled(void) {
 
 	/* First run a successfull query, to the result is in the system cache */
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "sip", "udp", SRV_DOMAIN, srv_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -209,9 +224,15 @@ static void srv_query_cancelled(void) {
 
 	destroy_endpoint(client);
 }
+static void srv_query_cancelled(void) {
+	srv_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	srv_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Cancel a SRV + A or AAAA query */
-static void srv_a_query_cancelled(void) {
+static void srv_a_query_cancelled_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -219,6 +240,7 @@ static void srv_a_query_cancelled(void) {
 
 	/* First run a successfull query, to the result is in the system cache */
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -242,9 +264,15 @@ static void srv_a_query_cancelled(void) {
 
 	destroy_endpoint(client);
 }
+static void srv_a_query_cancelled(void) {
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Cancel A+AAAA query */
-static void aaaa_query_cancelled(void) {
+static void aaaa_query_cancelled_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client;
 	int i,dummy=0;
@@ -257,6 +285,7 @@ static void aaaa_query_cancelled(void) {
 
 	/* First run a successfull query, to the result is in the system cache */
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -280,13 +309,20 @@ static void aaaa_query_cancelled(void) {
 
 	destroy_endpoint(client);
 }
+static void aaaa_query_cancelled(void) {
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Cancel A query during timeout*/
-static void timeout_query_cancelled(void) {
+static void timeout_query_cancelled_engine(unsigned char dns_engine) {
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
 
-
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	/* Then run 50 times a query and cancel it(just to try some race conditions) */
 	for (i=0; i<50; i++) {
@@ -305,15 +341,22 @@ static void timeout_query_cancelled(void) {
 
 	destroy_endpoint(client);
 }
+static void timeout_query_cancelled(void) {
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful IPv4 A query to a CNAME*/
 /*This tests the recursion of dns.c*/
-static void ipv4_cname_a_query(void) {
+static void ipv4_cname_a_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -333,11 +376,19 @@ static void ipv4_cname_a_query(void) {
 	destroy_endpoint(client);
 }
 
-static void local_query(void) {
+static void ipv4_cname_a_query(void) {
+	ipv4_cname_a_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_cname_a_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
+
+static void local_query_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, timeout));
@@ -350,13 +401,20 @@ static void local_query(void) {
 	destroy_endpoint(client);
 }
 
+static void local_query(void) {
+	local_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	local_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful IPv4 A query with no result */
-static void ipv4_a_query_no_result(void) {
+static void ipv4_a_query_no_result_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_BAD_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -365,12 +423,19 @@ static void ipv4_a_query_no_result(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv4_a_query_no_result(void) {
+	ipv4_a_query_no_result_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_no_result_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* IPv4 A query send failure */
-static void ipv4_a_query_send_failure(void) {
+static void ipv4_a_query_send_failure_engine(unsigned char dns_engine) {
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	belle_sip_stack_set_resolver_send_error(client->stack, -1);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NULL(client->resolver_ctx);
@@ -378,13 +443,20 @@ static void ipv4_a_query_send_failure(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv4_a_query_send_failure(void) {
+	ipv4_a_query_send_failure_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_send_failure_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* IPv4 A query timeout */
-static void ipv4_a_query_timeout(void) {
+static void ipv4_a_query_timeout_engine(unsigned char dns_engine) {
 
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	belle_sip_stack_set_dns_timeout(client->stack, 0);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, "toto.com", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -393,13 +465,20 @@ static void ipv4_a_query_timeout(void) {
 	BC_ASSERT_EQUAL(client->resolve_ko,1, int, "%d");
 	destroy_endpoint(client);
 }
+static void ipv4_a_query_timeout(void) {
+	ipv4_a_query_timeout_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_timeout_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful IPv4 A query with multiple results */
-static void ipv4_a_query_multiple_results(void) {
+static void ipv4_a_query_multiple_results_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_MULTIRES_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -411,8 +490,14 @@ static void ipv4_a_query_multiple_results(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv4_a_query_multiple_results(void) {
+	ipv4_a_query_multiple_results_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_multiple_results_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
-static void ipv4_a_query_with_v4mapped_results(void) {
+static void ipv4_a_query_with_v4mapped_results_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client;
 
@@ -424,6 +509,7 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 	client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -432,10 +518,16 @@ static void ipv4_a_query_with_v4mapped_results(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv4_a_query_with_v4mapped_results(void) {
+	ipv4_a_query_with_v4mapped_results_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_a_query_with_v4mapped_results_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 
 /* Successful IPv6 AAAA query */
-static void ipv6_aaaa_query(void) {
+static void ipv6_aaaa_query_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client;
@@ -447,6 +539,7 @@ static void ipv6_aaaa_query(void) {
 
 	client = create_endpoint();
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV6_SIP_DOMAIN, SIP_PORT, AF_INET6, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -492,13 +585,20 @@ static void ipv6_aaaa_query(void) {
 	}
 	destroy_endpoint(client);
 }
+static void ipv6_aaaa_query(void) {
+	ipv6_aaaa_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv6_aaaa_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful SRV query */
-static void srv_query(void) {
+static void srv_query_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve_srv(client->stack, "sip", "udp", SRV_DOMAIN, srv_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -512,13 +612,20 @@ static void srv_query(void) {
 
 	destroy_endpoint(client);
 }
+static void srv_query(void) {
+	srv_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	srv_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful SRV + A or AAAA queries */
-static void srv_a_query(void) {
+static void srv_a_query_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -527,14 +634,21 @@ static void srv_a_query(void) {
 
 	destroy_endpoint(client);
 }
+static void srv_a_query(void) {
+	srv_a_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	srv_a_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* Successful SRV query with no result + A query */
-static void srv_a_query_no_srv_result(void) {
+static void srv_a_query_no_srv_result_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", IPV4_CNAME, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -553,12 +667,19 @@ static void srv_a_query_no_srv_result(void) {
 
 	destroy_endpoint(client);
 }
+static void srv_a_query_no_srv_result(void) {
+	srv_a_query_no_srv_result_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	srv_a_query_no_srv_result_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
-static void local_full_query(void) {
+static void local_full_query_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "tcp", "localhost", SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
@@ -571,13 +692,20 @@ static void local_full_query(void) {
 	}
 	destroy_endpoint(client);
 }
+static void local_full_query(void) {
+	local_full_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	local_full_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
 /* No query needed because already resolved */
-static void no_query_needed(void) {
+static void no_query_needed_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", IPV4_SIP_IP, SIP_PORT, AF_INET, a_resolve_done, client);
 	BC_ASSERT_PTR_NULL(client->resolver_ctx);
 	BC_ASSERT_TRUE(client->resolve_done);
@@ -594,6 +722,12 @@ static void no_query_needed(void) {
 	}
 
 	destroy_endpoint(client);
+}
+static void no_query_needed(void) {
+	no_query_needed_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	no_query_needed_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
 }
 
 static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
@@ -613,12 +747,13 @@ static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
 	free(resolv_file);
 }
 
-static void _dns_fallback(const char *nameservers[]) {
+static void _dns_fallback(const char *nameservers[], unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client = create_endpoint();
 
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
@@ -645,7 +780,10 @@ static void dns_fallback(void) {
 		"8.8.8.8", /* public nameserver, should work*/
 		NULL
 	};
-	_dns_fallback(nameservers);
+	_dns_fallback(nameservers,BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	_dns_fallback(nameservers,BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
 }
 
 static void dns_fallback_because_of_scope_link_ipv6(void) {
@@ -654,7 +792,10 @@ static void dns_fallback_because_of_scope_link_ipv6(void) {
 		"8.8.8.8", /* public nameserver, should work*/
 		NULL
 	};
-	_dns_fallback(nameservers);
+	_dns_fallback(nameservers,BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	_dns_fallback(nameservers,BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
 }
 
 static void dns_fallback_because_of_invalid_ipv6(void) {
@@ -663,10 +804,13 @@ static void dns_fallback_because_of_invalid_ipv6(void) {
 		"8.8.8.8", /* public nameserver, should work*/
 		NULL
 	};
-	_dns_fallback(nameservers);
+	_dns_fallback(nameservers,BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	_dns_fallback(nameservers,BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
 }
 
-static void ipv6_dns_server(void) {
+static void ipv6_dns_server_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client;
@@ -682,6 +826,7 @@ static void ipv6_dns_server(void) {
 
 	client = create_endpoint();
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
@@ -701,8 +846,14 @@ static void ipv6_dns_server(void) {
 
 	destroy_endpoint(client);
 }
+static void ipv6_dns_server(void) {
+	ipv6_dns_server_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv6_dns_server_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
 
-static void ipv4_and_ipv6_dns_server(void) {
+static void ipv4_and_ipv6_dns_server_engine(unsigned char dns_engine) {
 	struct addrinfo *ai;
 	int timeout;
 	endpoint_t *client;
@@ -718,6 +869,7 @@ static void ipv4_and_ipv6_dns_server(void) {
 	}
 	client = create_endpoint();
 	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
 	timeout = belle_sip_stack_get_dns_timeout(client->stack);
 	set_custom_resolv_conf(client->stack,nameservers);
 	client->resolver_ctx = belle_sip_stack_resolve_a(client->stack, IPV4_SIP_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
@@ -736,6 +888,12 @@ static void ipv4_and_ipv6_dns_server(void) {
 	}
 
 	destroy_endpoint(client);
+}
+static void ipv4_and_ipv6_dns_server(void) {
+	ipv4_and_ipv6_dns_server_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	ipv4_and_ipv6_dns_server_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
 }
 
 #ifdef HAVE_MDNS
