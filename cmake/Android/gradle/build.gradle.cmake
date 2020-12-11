@@ -93,13 +93,13 @@ task listPlugins() {
 project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     buildToolsVersion "29.0.3"
     
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 29
-        versionCode 4400
+        targetSdkVersion 30
+        versionCode 4500
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
