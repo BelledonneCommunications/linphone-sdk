@@ -169,6 +169,18 @@ job-windows-vs2017-uwp-scheduled:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
 
+job-windows-vs2017-uwp-upload:
+  stage: deploy
+  tags: [ "windows"]
+  only:
+    variables:
+      - $DEPLOY_RUN_WINDOWS
+      - $NIGHTLY_MASTER
+  dependencies:
+    - job-windows-vs2017-uwp-scheduled
+  script:
+    - scp build-desktop/linphone-sdk/packages/*.* "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+
 
 #TODO : FACTORIZE TESTERS CODE
 
