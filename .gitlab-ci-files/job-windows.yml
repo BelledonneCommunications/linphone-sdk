@@ -46,6 +46,7 @@
       - $SKIP_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    LINPHONESDK_PLATFORM: Desktop
   script:
     #handling the case of previous job cancellation
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -58,7 +59,7 @@
     - echo %DEFAULT_CMAKE_OPTIONS%
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
-    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
+    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=%LINPHONESDK_PLATFORM% -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target sdk --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
@@ -158,6 +159,17 @@ job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+
+job-windows-vs2017-uwp-scheduled:
+  extends: .job-windows-vs2017-scheduled
+  except:
+    refs:
+      - schedules
+  variables:
+    LINPHONESDK_PLATFORM: UWP
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
+
+
 #TODO : FACTORIZE TESTERS CODE
 
 test-linphone-windows-win32:
