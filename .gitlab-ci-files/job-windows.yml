@@ -65,7 +65,7 @@
 ################
   artifacts:
     paths:
-      - build-desktop\linphone-sdk\desktop
+      - build-desktop\linphone-sdk\
       - build-desktop\*.zip
     when: always
     expire_in: 1 week
@@ -162,23 +162,9 @@ job-windows-vs2017-win32-novideo:
 
 job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017
-  except:
-    refs:
-      - schedules
   variables:
     LINPHONESDK_PLATFORM: UWP
 
-job-windows-vs2017-uwp-upload:
-  stage: deploy
-  tags: [ "windows"]
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-  dependencies:
-    - job-windows-vs2017-uwp-scheduled
-  script:
-    - scp build-desktop/linphone-sdk/packages/*.* "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
 
 
 #TODO : FACTORIZE TESTERS CODE
