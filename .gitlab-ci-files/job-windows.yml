@@ -65,7 +65,8 @@
 ################
   artifacts:
     paths:
-      - build-desktop\*
+      - build-desktop\linphone-sdk\*
+      - build-desktop\*.zip
     when: always
     expire_in: 1 week
 
@@ -160,7 +161,7 @@ job-windows-vs2017-win32-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
 job-windows-vs2017-uwp-scheduled:
-  extends: .job-windows-vs2017
+  extends: .job-windows-vs2017-scheduled
   variables:
     LINPHONESDK_PLATFORM: UWP
 
