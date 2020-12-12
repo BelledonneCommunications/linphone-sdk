@@ -86,7 +86,7 @@ foreach(_arch IN LISTS _archs)
                 CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
                 CMAKE_ARGS ${_cmake_args}
                 #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-                INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+                INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
         )
         ExternalProject_Add_Step(uwp-${_arch} force_build
                 COMMENT "Forcing build for 'uwp-${_arch}'"
@@ -102,8 +102,8 @@ foreach(_arch IN LISTS _archs)
                 CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
                 CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
                 #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-                BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-                INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+                BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+                INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
         )
 #remove it when mswinrtvid is no more needed
         ExternalProject_Add(uwp-mswinrtvideo-${_arch}
@@ -113,8 +113,8 @@ foreach(_arch IN LISTS _archs)
                 CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
                 CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
                 #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-                BUILD_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
-                INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
+                BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+                INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
         )
 
         list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch})
@@ -130,7 +130,6 @@ ExternalProject_Add(uwp-nuget
         CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
 #	INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Install step will not be done by external project"
         CMAKE_CACHE_ARGS ${_cmake_cache_args}
-#	INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
         BUILD_ALWAYS 1
 )
 ExternalProject_Add(uwp-nuget-only
@@ -140,7 +139,6 @@ ExternalProject_Add(uwp-nuget-only
         CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
 #	INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Install step will not be done by external project"
         CMAKE_CACHE_ARGS ${_cmake_cache_args}
-#	INSTALL_COMMAND "${CMAKE_SOURCE_DIR}/cmake/dummy.sh"
         BUILD_ALWAYS 1
         EXCLUDE_FROM_ALL 1
 )
