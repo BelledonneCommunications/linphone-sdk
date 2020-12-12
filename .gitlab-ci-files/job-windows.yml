@@ -161,7 +161,7 @@ job-windows-vs2017-win32-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
 job-windows-vs2017-uwp-scheduled:
-  extends: .job-windows-vs2017-scheduled
+  extends: .job-windows-vs2017
   except:
     refs:
       - schedules
