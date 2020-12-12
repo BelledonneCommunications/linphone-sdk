@@ -167,7 +167,6 @@ job-windows-vs2017-uwp-scheduled:
       - schedules
   variables:
     LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
 
 job-windows-vs2017-uwp-upload:
   stage: deploy
