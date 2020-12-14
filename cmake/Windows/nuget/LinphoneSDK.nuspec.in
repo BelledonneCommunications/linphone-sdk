@@ -48,6 +48,7 @@
         <file src="$OutputSdkDir$\uwp-x64\share\Belr\grammars\*_grammar" target="content\AppX\Assets\belr\grammars" />
         <file src="$OutputSdkDir$\uwp-x64\share\sounds\linphone\**" target="content\AppX\Assets" />
         <file src="$OutputSdkDir$\uwp-x64\share\images\**" target="content\AppX\Assets" />
+        <file src="$OutputSdkDir$\uwp-x64\share\Linphone\*.pem" target="content\AppX\Assets" />
         <file src="$OutputSdkDir$\uwp-x64\bin\*.winmd" target="lib\UAP10.0\" />
         <file src="$OutputSdkDir$\uwp-x64\bin\**\*.*" target="build\UAP10.0\x64" />
         <file src="$OutputSdkDir$\uwp-x64\lib\**\*.*" target="build\UAP10.0\x64" />
