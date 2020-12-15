@@ -95,12 +95,18 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
 
 ### Android (using Docker)
 
-Download and load the build environment for Android:
+Download the Docker image of Android build environment:
+
+```bash
+docker login gitlab.linphone.org:4567
+docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+```
+
+Load build environment:
 
 ```bash
 cd <linphone-sdk-source>
-docker login gitlab.linphone.org:4567
-docker run docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c /bin/bash -i
+docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c /bin/bash -i
 ```
 
 Next command lines must be typed in the docker shell:
