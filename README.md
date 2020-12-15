@@ -93,6 +93,41 @@ If nothing is specified, the SDK will be built in Debug mode.
 
 Please note that the Xcode backend is very slow: about one hour of build time, compared to approximately 15 mn for Ninja.
 
+### Android (using Docker)
+
+Download the Docker image of the Android build environment:
+
+```bash
+docker login gitlab.linphone.org:4567
+docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+```
+
+Load the build environment:
+
+```bash
+cd <linphone-sdk-source>
+docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c /bin/bash -i
+```
+
+Next command lines must be typed in the docker shell:
+
+```bash
+# Make build directory
+mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
+
+# Configure the build
+cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+
+# Build
+make -j <njobs>
+
+# Quit build environment
+exit
+```
+
+The freshly built SDK is located in `<linphone-sdk>/build`.
+
+
 ### Windows
 
  `cmake --build .` works on Windows as for all platforms.
