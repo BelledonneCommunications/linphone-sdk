@@ -95,12 +95,13 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
 
 ### Android (using Docker)
 
-    # Add our Docker registry
-    docker login gitlab.linphone.org:4567
+Download and load the build environment for Android:
 
-    # Load build environment for Android using Docker
+    docker login gitlab.linphone.org:4567
     cd <linphone-sdk-source>
     docker run docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c /bin/bash -i
+
+Next command lines must be typed in the docker shell:
 
     # Make build directory
     docker-shell> mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
@@ -112,7 +113,7 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
     docker-shell> make -j <njobs>
 
     # Quit build environment
-    docker-shell> `exit`
+    docker-shell> exit
 
 The freshly built SDK is located in `<linphone-sdk>/build`.
 
