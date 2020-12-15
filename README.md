@@ -104,16 +104,16 @@ Download and load the build environment for Android:
 Next command lines must be typed in the docker shell:
 
     # Make build directory
-    docker-shell> mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
+    mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
 
     # Configure the build
-    docker-shell> cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+    cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
 
     # Build
-    docker-shell> make -j <njobs>
+    make -j <njobs>
 
     # Quit build environment
-    docker-shell> exit
+    exit
 
 The freshly built SDK is located in `<linphone-sdk>/build`.
 
