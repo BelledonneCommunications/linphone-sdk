@@ -351,7 +351,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		case 404:
 		case 480:
 		case 500: {
-			if (refresher->target_expires>0) {
+			if (refresher->target_expires>0 && retry_after_header) {
 				schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
 				return; /*do not notify this kind of error*/
 			}
