@@ -105,21 +105,8 @@ foreach(_arch IN LISTS _archs)
                 BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
                 INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
         )
-#remove it when mswinrtvid is no more needed
-        ExternalProject_Add(uwp-mswinrtvideo-${_arch}
-                DEPENDS uwp-wrapper-${_arch}
-                SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/mswinrtvideo"
-                BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/mswinrtvideo"
-                CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
-                CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
-                #CMAKE_CACHE_ARGS ${_cmake_cache_args}
-                BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
-                INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
-        )
 
         list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch})
-#remove it when mswinrtvid is no more needed
-        list(APPEND  _uwp_build_targets uwp-mswinrtvideo-${_arch})
 endforeach()
 
 ExternalProject_Add(uwp-nuget
