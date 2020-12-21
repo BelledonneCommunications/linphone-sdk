@@ -109,9 +109,24 @@ bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const i
 	return NULL;
 }
 
+static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile) {
+	if (pFile->fSize == 0) {
+		return 0;
+	}
+	ssize_t r = bctbx_file_write(pFile, pFile->fPage, pFile->fSize, pFile->fPageOffset);
+	if (r > 0) {
+		pFile->fSize = 0;
+	}
+	return r;
+}
+
 ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile) {
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncRead(pFile, buf, count, offset);
 		/*check if error : in this case pErrSvd is initialized*/
 		if (ret == BCTBX_VFS_ERROR) {
@@ -128,6 +143,10 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile) {
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncClose(pFile);
 		if (ret != 0) {
 			bctbx_error("bctbx_file_close: Error %s freeing file handle anyway", strerror(-(ret)));
@@ -140,6 +159,10 @@ int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 int bctbx_file_sync(bctbx_vfs_file_t *pFile) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile) {
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncSync(pFile);
 		if (ret != BCTBX_VFS_OK) {
 			bctbx_error("bctbx_file_sync: Error %s ", strerror(-(ret)));
@@ -152,6 +175,10 @@ int bctbx_file_sync(bctbx_vfs_file_t *pFile) {
 int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 	int64_t ret = BCTBX_VFS_ERROR;
 	if (pFile){
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncFileSize(pFile);
 		if (ret < 0) bctbx_error("bctbx_file_size: Error file size %s", strerror((int)-(ret)));
 	} 
@@ -162,6 +189,10 @@ int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 int bctbx_file_truncate(bctbx_vfs_file_t *pFile, int64_t size) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pFile){
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncTruncate(pFile, size);
 		if (ret < 0) bctbx_error("bctbx_file_truncate: Error truncate  %s", strerror((int)-(ret)));
 	} 
@@ -180,7 +211,38 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 		va_end(args);
 		count = strlen(ret);
 
-		if (offset != 0) pFile->offset = offset;
+		if (offset != 0) {
+			bctbx_file_flush(pFile);
+			pFile->offset = offset;
+		}
+
+		// Shall we write in cache or in the file
+		if (count + pFile->fSize < BCTBX_VFS_PRINTF_PAGE_SIZE) { // Data fits in current page
+			memcpy(pFile->fPage+pFile->fSize, ret, count);
+			if (pFile->fSize == 0) {
+				pFile->fPageOffset = pFile->offset;
+			}
+			bctbx_free(ret);
+			pFile->offset += count;
+			pFile->fSize += count;
+			return count;
+		} else if ((pFile->fSize > 0) && (count < BCTBX_VFS_PRINTF_PAGE_SIZE)){ // one page to write and start a new one
+			size_t writtenSize = BCTBX_VFS_PRINTF_PAGE_SIZE-pFile->fSize;
+			memcpy(pFile->fPage+pFile->fSize, ret, writtenSize);
+			r = bctbx_file_write(pFile, pFile->fPage, BCTBX_VFS_PRINTF_PAGE_SIZE, pFile->fPageOffset);
+			if (r<0) {
+				bctbx_free(ret);
+				return r;
+			}
+			memcpy(pFile->fPage, ret+writtenSize, count-writtenSize);
+			bctbx_free(ret);
+			pFile->fSize = count-writtenSize;
+			pFile->fPageOffset = pFile->offset +  writtenSize;
+			pFile->offset += count;
+			return count;
+		}
+		// more than one page to write, flush and write all
+		bctbx_file_flush(pFile);
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);
 		bctbx_free(ret);
 		if (r > 0) pFile->offset += r;
@@ -194,6 +256,10 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
  */
 off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 	off_t ret = BCTBX_VFS_ERROR;
+
+	if (bctbx_file_flush(pFile) < 0) {
+		return BCTBX_VFS_ERROR;
+	}
 
 	if (pFile) {
 		switch (whence) {
@@ -244,6 +310,10 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 	if (s == NULL || max_len < 1) {
 		return BCTBX_VFS_ERROR;
 	}
+	if (bctbx_file_flush(pFile) < 0) {
+		return BCTBX_VFS_ERROR;
+	}
+
 
 	sizeofline = 0;
 	s[max_len-1] = '\0';
@@ -278,6 +348,10 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 
 int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
 	if (pFile) { /* if the vfs does not implement this method, use the generic one */
+		if (bctbx_file_flush(pFile) < 0) {
+			return BCTBX_VFS_ERROR;
+		}
+
 		if (pFile->pMethods && pFile->pMethods->pFuncGetLineFromFd) {
 			return pFile->pMethods->pFuncGetLineFromFd(pFile, s, maxlen);
 		} else {

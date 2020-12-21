@@ -54,6 +54,7 @@
 
 #define BCTBX_VFS_ERROR       -255   /* Some kind of disk I/O error occurred */
 
+#define BCTBX_VFS_PRINTF_PAGE_SIZE 4096 /* Size of the page hold in memory by fprintf */
 
 #ifdef __cplusplus
 extern "C"{
@@ -75,6 +76,9 @@ struct bctbx_vfs_file_t {
 	 * them useful*/
 	void* pUserData; 				/* Developpers can store private data under this pointer */
 	off_t offset;					/* File offset used by bctbx_file_fprintf and bctbx_file_get_nxtline */
+	char fPage[BCTBX_VFS_PRINTF_PAGE_SIZE];		/* Buffer storing the current page cached by fprintf */
+	off_t fPageOffset;				/* The original offset of the cached page */
+	size_t fSize;					/* number of bytes in cache */
 };
 
 
