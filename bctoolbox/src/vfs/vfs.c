@@ -30,6 +30,8 @@
 #include <errno.h>
 
 
+static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile);
+
 /* Pointer to default VFS initialized to standard VFS implemented here.*/
 static bctbx_vfs_t *pDefaultVfs = &bcStandardVfs; /* bcStandardVfs is defined int vfs_standard.h*/
 
@@ -54,6 +56,10 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count,
 	ssize_t ret;
 
 	if (pFile != NULL) {
+		if (bctbx_file_flush(pFile) < 0) { // make sure our write is not overwritten by a page flush
+			return BCTBX_VFS_ERROR;
+		}
+
 		ret = pFile->pMethods->pFuncWrite(pFile, buf, count, offset);
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_write file error");
@@ -113,9 +119,11 @@ static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile) {
 	if (pFile->fSize == 0) {
 		return 0;
 	}
-	ssize_t r = bctbx_file_write(pFile, pFile->fPage, pFile->fSize, pFile->fPageOffset);
-	if (r > 0) {
-		pFile->fSize = 0;
+	size_t fSize = pFile->fSize; // save the size so we could restore it if something goes wrong
+	pFile->fSize = 0; // set it to 0 now so when we call write it won't enter in an infinite loop(as write will call flush)
+	ssize_t r = bctbx_file_write(pFile, pFile->fPage, fSize, pFile->fPageOffset);
+	if (r < 0) { // something went wrong, restore the page size
+		pFile->fSize = fSize;
 	}
 	return r;
 }
