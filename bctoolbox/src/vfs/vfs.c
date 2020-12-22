@@ -68,6 +68,7 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count,
 			bctbx_error("bctbx_file_write error %s", strerror(-(ret)));
 			return BCTBX_VFS_ERROR;
 		}
+		pFile->gSize = 0; // cancel get cache, as it might be dirty now
 		return ret;
 	}
 	return BCTBX_VFS_ERROR;
@@ -233,6 +234,7 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 			bctbx_free(ret);
 			pFile->offset += count;
 			pFile->fSize += count;
+			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return count;
 		} else if ((pFile->fSize > 0) && (count < BCTBX_VFS_PRINTF_PAGE_SIZE)){ // one page to write and start a new one
 			size_t writtenSize = BCTBX_VFS_PRINTF_PAGE_SIZE-pFile->fSize;
@@ -247,6 +249,7 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 			pFile->fSize = count-writtenSize;
 			pFile->fPageOffset = pFile->offset +  writtenSize;
 			pFile->offset += count;
+			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return count;
 		}
 		// more than one page to write, flush and write all
@@ -290,6 +293,17 @@ off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 	return BCTBX_VFS_ERROR;
 }
 
+static char *findNextLine(const char *buf) {
+	char *pNextLine = NULL;
+	char *pNextLineR = NULL;
+	char *pNextLineN = NULL;
+	pNextLineR = strchr(buf, '\r');
+	pNextLineN = strchr(buf, '\n');
+	if ((pNextLineR != NULL) && (pNextLineN != NULL)) pNextLine = MIN(pNextLineR, pNextLineN);
+	else if (pNextLineR != NULL) pNextLine = pNextLineR;
+	else if (pNextLineN != NULL) pNextLine = pNextLineN;
+	return pNextLine;
+}
 /* a generic implementation of get_nxt_line
  * if a vfs does not specify one, use this one
  */
@@ -309,8 +323,6 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 	int64_t ret;
 	int sizeofline;
 	char *pNextLine = NULL;
-	char *pNextLineR = NULL;
-	char *pNextLineN = NULL;
 
 	if (!pFile) {
 		return BCTBX_VFS_ERROR;
@@ -324,16 +336,51 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 
 
 	sizeofline = 0;
-	s[max_len-1] = '\0';
 
+	// If we have a cached page and the current offset is in this page
+	if ((pFile->gSize > 0) && (pFile->gPageOffset<=pFile->offset) && (pFile->gPageOffset + (off_t)pFile->gSize > pFile->offset)) {
+		// look for a new line in the cache
+		const char *c = pFile->gPage + (pFile->offset - pFile->gPageOffset);
+		pNextLine = findNextLine(c);
+		if (pNextLine) {
+			/* Got a line! Comments use \n to describe EOL while it can be \r too */
+			sizeofline = (int)(pNextLine - c + 1); // 1 one so it actually includes the \n char
+			pFile->offset += sizeofline; // offset to next beginning of line
+			if (pNextLine[1] == '\n') pFile->offset += 1; // take into account the \r\n case, this case can pass underdetected if page ends in between, not a problem we will just get an extra empty line
+			memcpy(s,c,sizeofline-1); // copy all before the \n
+			s[sizeofline-1] = '\0'; // add a \0 at the end where the \n was
+			return sizeofline; // return size including the termination, so an empty line returns 1 (0 is for EOF)
+		} else { // No end of line found, did we reach the EOF?
+			if (pFile->gPage[pFile->gSize-1] == 0x04) { // 0x04 is EOT in ASCII, put in cache to signal the end of file
+				sizeofline = pFile->gSize - (pFile->offset - pFile->gPageOffset) -1; // size does not include the EOT char(which is part of the page size). so -1
+				pFile->offset += sizeofline; // offset now points on the EOT char
+				memcpy(s,c,sizeofline); // copy everything before the EOT
+				s[sizeofline] = '\0';
+				return sizeofline; // Can be 0 if we were already pointing on EOT when we enter this call
+			}
+		}
+	}
+
+	// not in cache, read it from file
+	s[max_len-1] = '\0';
 	/* Read returns 0 if end of file is found */
 	ret = bctbx_file_read(pFile, s, max_len - 1, pFile->offset);
 	if (ret > 0) {
-		pNextLineR = strchr(s, '\r');
-		pNextLineN = strchr(s, '\n');
-		if ((pNextLineR != NULL) && (pNextLineN != NULL)) pNextLine = MIN(pNextLineR, pNextLineN);
-		else if (pNextLineR != NULL) pNextLine = pNextLineR;
-		else if (pNextLineN != NULL) pNextLine = pNextLineN;
+		size_t readSize = (size_t)ret;
+		// Store it in cache
+		if (max_len - 2 < BCTBX_VFS_GETLINE_PAGE_SIZE) {
+			memcpy(pFile->gPage, s, readSize);
+			pFile->gPageOffset = pFile->offset;
+			pFile->gSize = readSize;
+			if (ret<max_len - 1) { // read did not return as much as asked, we reached EOF
+				pFile->gPage[readSize] = 0x04; // 0x04 is ASCII for EOT, use it to store the EOF in the buffer
+				pFile->gSize += 1; // the EOT is part of the cached page
+			}
+			pFile->gPage[pFile->gSize] = '\0';
+		} else {
+			bctbx_warning("bctbx_get_nxtline given a max size value %d bigger than cache size (%d), please adjust one or the other", max_len, BCTBX_VFS_GETLINE_PAGE_SIZE);
+		}
+		pNextLine = findNextLine(s);
 		if (pNextLine) {
 			/* Got a line! */
 			*pNextLine = '\0';
@@ -346,7 +393,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 			/*did not find end of line char, is EOF?*/
 			sizeofline = (int)ret;
 			pFile->offset += sizeofline;
-			s[ret] = '\0';
+			s[readSize] = '\0';
 		}
 	} else if (ret < 0) {
 		bctbx_error("bcGetLine error");
