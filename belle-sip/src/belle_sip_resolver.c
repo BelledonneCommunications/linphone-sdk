@@ -41,8 +41,15 @@
 
 #define DNS_EAGAIN  EAGAIN
 
+/* Default value for a timeout to wait AAAA results after A result for the same host have been received.
+ * This is to compensate buggy routers that don't really support IPv6 and never provide any answer to AAAA queries.
+ */
+static const int belle_sip_aaaa_timeout_after_a_received = 3000;
 
-
+/* Default value for a timeout to wait for SRV results after a A/AAAA result for the same domain has been received.
+ * This is to compensate buggy routers that don't really support SRV and never provide any answer to SRV queries.
+ */
+static const int belle_sip_srv_timeout_after_a_received = 3000;
 
 typedef struct belle_sip_simple_resolver_context belle_sip_simple_resolver_context_t;
 #define BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_sip_simple_resolver_context_t)
@@ -308,9 +315,13 @@ struct belle_sip_combined_resolver_context{
 	int port;
 	int family;
 	struct addrinfo *final_results;
+	struct addrinfo *a_fallback_results;
 	belle_sip_list_t *srv_results;
 	belle_sip_resolver_context_t *srv_ctx;
 	belle_sip_resolver_context_t *a_fallback_ctx;
+	int a_fallback_ttl;
+	unsigned char srv_completed;
+	unsigned char a_fallback_completed;
 };
 
 struct belle_sip_dual_resolver_context{
@@ -1360,6 +1371,11 @@ static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resol
 		belle_sip_object_unref(obj->a_fallback_ctx);
 		obj->a_fallback_ctx=NULL;
 	}
+	if (obj->a_fallback_results){
+		/* we don't a/aaaa results since SRV provided results*/
+		bctbx_freeaddrinfo(obj->a_fallback_results);
+		obj->a_fallback_results = NULL;
+	}
 }
 
 
@@ -1467,6 +1483,16 @@ static void simple_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 
 static void combined_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
+	bctbx_list_t *elem;
+	
+	for(elem=ctx->srv_results;elem!=NULL;elem=elem->next){
+		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
+		if (srv->a_resolver){
+			belle_sip_resolver_context_cancel(srv->a_resolver);
+			belle_sip_object_unref(srv->a_resolver);
+			srv->a_resolver = NULL;
+		}
+	}
 	if (ctx->srv_ctx) {
 		belle_sip_resolver_context_cancel(ctx->srv_ctx);
 		belle_sip_object_unref(ctx->srv_ctx);
@@ -1564,36 +1590,74 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *results){
-	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
-	ctx->final_results = results->ai_list;
-	results->ai_list = NULL;
-	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
-}
+
 
 static void combined_resolver_context_check_finished(belle_sip_combined_resolver_context_t *obj, uint32_t ttl){
 	belle_sip_list_t *elem;
 	struct addrinfo *final=NULL;
-	unsigned char finished=TRUE;
 
 	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl = ttl;
-	for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
-		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
-		if (!srv->a_done) {
-			finished=FALSE;
-			break;
-		}
-	}
-	if (finished){
-		belle_sip_message("All A/AAAA results for combined resolution have arrived.");
+
+	if (!obj->srv_completed && obj->srv_results){
+		unsigned char finished = TRUE;
 		for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
-			final=ai_list_append(final,srv->a_results);
-			srv->dont_free_a_results = TRUE;
+			if (!srv->a_done) {
+				finished=FALSE;
+				break;
+			}
 		}
-		obj->final_results=final;
+		if (finished){
+			belle_sip_message("All A/AAAA results for combined resolution have arrived.");
+			obj->srv_completed = TRUE;
+			for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
+				belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
+				final=ai_list_append(final,srv->a_results);
+				srv->dont_free_a_results = TRUE;
+			}
+			obj->final_results=final;
+		}
+	}
+	if (obj->srv_completed && obj->a_fallback_completed){
+		if (obj->final_results == NULL){
+			/* No SRV results, use a/aaaa fallback */
+			obj->final_results = obj->a_fallback_results;
+			obj->base.min_ttl = obj->a_fallback_ttl;
+			obj->a_fallback_results = NULL;
+		}
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(obj));
 	}
+}
+
+static int combined_resolver_srv_timeout(belle_sip_combined_resolver_context_t *ctx){
+	belle_sip_message("No SRV results while A/AAAA fallback resulted arrived a while ago. Giving up SRV.");
+	if (ctx->srv_ctx) {
+		belle_sip_resolver_context_cancel(ctx->srv_ctx);
+		belle_sip_object_unref(ctx->srv_ctx);
+		ctx->srv_ctx = NULL;
+	}
+	ctx->srv_completed = TRUE;
+	combined_resolver_context_check_finished(ctx, BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl);
+	return BELLE_SIP_STOP;
+}
+
+static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *results){
+	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
+	ctx->a_fallback_results = results->ai_list;
+	results->ai_list = NULL;
+	ctx->a_fallback_ttl = results->ttl;
+	ctx->a_fallback_completed = TRUE;
+	
+	/* 
+	* Start a global timer in order to workaround buggy home routers that don't respond to SRV requests.
+	* If A fallback response arrived, SRV shall not take a lot longer.
+	*/
+	belle_sip_message("resolver[%p]: starting SRV timeout since A/AAAA fallback response is received.", ctx);
+	belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)combined_resolver_srv_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
+			belle_sip_srv_timeout_after_a_received);
+	belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
+	
+	combined_resolver_context_check_finished(ctx, ctx->base.min_ttl);
 }
 
 static void process_a_from_srv(void *data, belle_sip_resolver_results_t *results){
@@ -1622,6 +1686,13 @@ static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_
 static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results, uint32_t ttl){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
 	/*take a ref here, because the A resolution might succeed synchronously and terminate the context before exiting this function*/
+	
+	if (ctx->base.stack->simulate_non_working_srv) {
+		belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
+		belle_sip_message("SRV results ignored for testing.");
+		return;
+	}
+	
 	belle_sip_object_ref(ctx);
 	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl = ttl;
 	if (srv_results){
@@ -1637,11 +1708,18 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 			srv_resolve_a(ctx,srv);
 		}
 		srv_results = belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
+		/* Since we have SRV results, we can cancel the srv timeout, and cancel the fallback a/aaaa resolution */
+		belle_sip_source_cancel((belle_sip_source_t*)ctx);
+		if (ctx->a_fallback_ctx){
+			ctx->a_fallback_completed = TRUE; /* we don't need a/aaaa fallback anymore.*/
+			belle_sip_resolver_context_cancel(ctx->a_fallback_ctx);
+			belle_sip_object_unref(ctx->a_fallback_ctx);
+			ctx->a_fallback_ctx = NULL;
+		}
 	}else{
-		/*no SRV results, perform A query */
-		belle_sip_message("No SRV result for [%s], trying A/AAAA.",name);
-		ctx->a_fallback_ctx=belle_sip_stack_resolve_a(ctx->base.stack,ctx->name,ctx->port,ctx->family,process_a_fallback_result,ctx);
-		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
+		/* No SRV result. Possibly notify the a/aaaa fallback if already arrived*/
+		ctx->srv_completed = TRUE;
+		combined_resolver_context_check_finished(ctx, ctx->base.min_ttl);
 	}
 	belle_sip_object_unref(ctx);
 }
@@ -1666,7 +1744,12 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 		belle_sip_object_ref(ctx);
 		ctx->srv_ctx=belle_sip_stack_resolve_srv(stack,service,transport,name,process_srv_results,ctx);
-		if (ctx->srv_ctx) belle_sip_object_ref(ctx->srv_ctx);
+		if (ctx->srv_ctx) {
+			belle_sip_object_ref(ctx->srv_ctx);
+		}
+		/*In parallel and in case of no SRV result, perform A query */
+		ctx->a_fallback_ctx=belle_sip_stack_resolve_a(ctx->base.stack,ctx->name,ctx->port,ctx->family,process_a_fallback_result,ctx);
+		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
 		if (ctx->base.notified) {
 			belle_sip_object_unref(ctx);
 			return NULL;
@@ -1741,20 +1824,19 @@ static int dual_resolver_aaaa_timeout(void *data, unsigned int event){
 
 static void on_ipv4_results(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
-	int aaaa_timeout = 3000;
 
 	ctx->a_results = results->ai_list;
 	results->ai_list = NULL;
 	ctx->a_notified = TRUE;
 
-	if (!ctx->aaaa_notified && ctx->a_results && aaaa_timeout > 0){
+	if (!ctx->aaaa_notified && ctx->a_results && belle_sip_aaaa_timeout_after_a_received > 0){
 		/* 
 		 * Start a global timer in order to workaround buggy home routers that don't respond to AAAA requests when there is no 
 		 * corresponding AAAA record for the queried domain. It is only started if we have a A result.
 		 */
 		belle_sip_message("resolver[%p]: starting aaaa timeout since A response is received.", ctx);
 		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)dual_resolver_aaaa_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
-				aaaa_timeout);
+				belle_sip_aaaa_timeout_after_a_received);
 		belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
 	}
 	dual_resolver_context_check_finished(ctx);

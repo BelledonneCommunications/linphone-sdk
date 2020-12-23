@@ -569,6 +569,7 @@ struct belle_sip_stack{
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;
+	unsigned char simulate_non_working_srv;
 #ifdef HAVE_DNS_SERVICE
 	dispatch_queue_t dns_service_queue;
 	unsigned char use_dns_service;

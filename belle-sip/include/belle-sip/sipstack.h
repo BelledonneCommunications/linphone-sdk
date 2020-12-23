@@ -243,6 +243,11 @@ BELLESIP_EXPORT void belle_sip_stack_set_dns_engine(belle_sip_stack_t *stack, un
 **/
 BELLESIP_EXPORT unsigned char belle_sip_stack_get_dns_engine(const belle_sip_stack_t *stack);
 
+/**
+ * Requests the stack to simulate a router that doesn't respond to SRV requests. This is for test ONLY.
+**/
+BELLESIP_EXPORT void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t *stack, int yesno);
+
 /*
  * End of test functions.
  */

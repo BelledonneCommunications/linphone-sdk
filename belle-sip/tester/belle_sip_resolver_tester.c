@@ -60,6 +60,7 @@ static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int 
 
 static void destroy_endpoint_stack(endpoint_t *endpoint) {
 	if (endpoint->stack != NULL) {
+		belle_sip_stack_sleep(endpoint->stack, 1);
 		belle_sip_object_unref(endpoint->stack);
 		endpoint->stack=NULL;
 	}
@@ -743,6 +744,30 @@ static void srv_a_query_no_srv_result(void) {
 #endif /* HAVE_DNS_SERVICE */
 }
 
+
+static void non_working_srv_a_query_engine(unsigned char dns_engine) {
+	endpoint_t *client = create_endpoint();
+
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+	belle_sip_stack_simulate_non_working_srv(client->stack, TRUE);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	/* the results should arrive before the normal timeout (10s).*/
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 5000));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+
+	destroy_endpoint(client);
+}
+
+static void non_working_srv_a_query(void) {
+	non_working_srv_a_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	non_working_srv_a_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
+
+
 static void local_full_query_engine(unsigned char dns_engine) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
@@ -1107,6 +1132,7 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("SRV query", srv_query),
 	TEST_NO_TAG("SRV + A query", srv_a_query),
 	TEST_NO_TAG("SRV + A query with no SRV result", srv_a_query_no_srv_result),
+	TEST_NO_TAG("Non working SRV + A query", non_working_srv_a_query),
 	TEST_NO_TAG("Local SRV+A query", local_full_query),
 	TEST_NO_TAG("No query needed", no_query_needed),
 	TEST_NO_TAG("DNS fallback", dns_fallback),

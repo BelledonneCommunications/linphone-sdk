@@ -317,6 +317,10 @@ void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_
 	stack->resolver_send_error = send_error;
 }
 
+void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t *stack, int yesno){
+	stack->simulate_non_working_srv = yesno;
+}
+
 const char * belle_sip_stack_get_dns_user_hosts_file(const belle_sip_stack_t *stack) {
 	return stack->dns_user_hosts_file;
 }
