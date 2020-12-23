@@ -34,6 +34,7 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		port.c
 		parser.c
 		param_string.c
+		vfs.c
 	)
 	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
 		list(APPEND TESTER_SOURCES

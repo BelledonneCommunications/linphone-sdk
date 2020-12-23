@@ -22,6 +22,7 @@
 #endif
 
 #include "bctoolbox/vfs.h"
+#include "bctoolbox/crypto.h"
 #include "bctoolbox/vfs_standard.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/logging.h"
@@ -155,6 +156,11 @@ int bctbx_file_close(bctbx_vfs_file_t *pFile) {
 		if (bctbx_file_flush(pFile) < 0) {
 			return BCTBX_VFS_ERROR;
 		}
+		/* clean the fprint and getline cache as they might hold the plain version of an encrypted file */
+		if (bctbx_file_is_encrypted(pFile)) {
+			bctbx_clean(pFile->fPage, BCTBX_VFS_PRINTF_PAGE_SIZE);
+			bctbx_clean(pFile->gPage, BCTBX_VFS_GETLINE_PAGE_SIZE);
+		}
 
 		ret = pFile->pMethods->pFuncClose(pFile);
 		if (ret != 0) {
@@ -236,24 +242,26 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 			pFile->fSize += count;
 			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return count;
-		} else if ((pFile->fSize > 0) && (count < BCTBX_VFS_PRINTF_PAGE_SIZE)){ // one page to write and start a new one
-			size_t writtenSize = BCTBX_VFS_PRINTF_PAGE_SIZE-pFile->fSize;
-			memcpy(pFile->fPage+pFile->fSize, ret, writtenSize);
-			r = bctbx_file_write(pFile, pFile->fPage, BCTBX_VFS_PRINTF_PAGE_SIZE, pFile->fPageOffset);
-			if (r<0) {
+		} else if (pFile->fSize > 0){ // There is a cache but the new data won't fit in : write the cache and the new data
+			char *buf = bctbx_malloc(count+pFile->fSize); // allocate a temporary buffer, to store the current cache and the data to be written
+			if (buf == NULL) {
 				bctbx_free(ret);
+				return BCTBX_VFS_ERROR;
+			}
+			memcpy(buf, pFile->fPage, pFile->fSize); // concatenate the cache and new data
+			memcpy(buf+pFile->fSize, ret, count);
+			bctbx_free(ret);
+			r = bctbx_file_write(pFile, buf, pFile->fSize + count, pFile->fPageOffset); // write all
+			bctbx_free(buf);
+			if (r<0) {
 				return r;
 			}
-			memcpy(pFile->fPage, ret+writtenSize, count-writtenSize);
-			bctbx_free(ret);
-			pFile->fSize = count-writtenSize;
-			pFile->fPageOffset = pFile->offset +  writtenSize;
+			pFile->fSize = 0; // f cache is now empty
 			pFile->offset += count;
 			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return count;
 		}
-		// more than one page to write, flush and write all
-		bctbx_file_flush(pFile);
+		// no cache and more than one page to write, just write it
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);
 		bctbx_free(ret);
 		if (r > 0) pFile->offset += r;
