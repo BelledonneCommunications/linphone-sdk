@@ -354,7 +354,9 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 			/* Got a line! Comments use \n to describe EOL while it can be \r too */
 			sizeofline = (int)(pNextLine - c + 1); // 1 one so it actually includes the \n char
 			pFile->offset += sizeofline; // offset to next beginning of line
-			if (pNextLine[1] == '\n') pFile->offset += 1; // take into account the \r\n case, this case can pass underdetected if page ends in between, not a problem we will just get an extra empty line
+			if ((pNextLine[0] == '\r') && (pNextLine[1] == '\n')) { // take into account the \r\n case, this case can pass underdetected if page ends in between, not a problem we will just get an extra empty line
+				pFile->offset += 1;
+			}
 			memcpy(s,c,sizeofline-1); // copy all before the \n
 			s[sizeofline-1] = '\0'; // add a \0 at the end where the \n was
 			return sizeofline; // return size including the termination, so an empty line returns 1 (0 is for EOF)
@@ -376,7 +378,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 	if (ret > 0) {
 		size_t readSize = (size_t)ret;
 		// Store it in cache
-		if (max_len - 2 < BCTBX_VFS_GETLINE_PAGE_SIZE) {
+		if (max_len - 1 < BCTBX_VFS_GETLINE_PAGE_SIZE) {
 			memcpy(pFile->gPage, s, readSize);
 			pFile->gPageOffset = pFile->offset;
 			pFile->gSize = readSize;
@@ -391,12 +393,13 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 		pNextLine = findNextLine(s);
 		if (pNextLine) {
 			/* Got a line! */
-			*pNextLine = '\0';
 			sizeofline = (int)(pNextLine - s + 1);
-			if (pNextLine[1] == '\n') sizeofline += 1; /*take into account the \r\n" case*/
-
 			/* offset to next beginning of line*/
 			pFile->offset += sizeofline;
+			if ((pNextLine[0] == '\r') && (pNextLine[1] == '\n')) {/*take into account the \r\n" case*/
+				pFile->offset += 1;
+			}
+			*pNextLine = '\0';
 		} else {
 			/*did not find end of line char, is EOF?*/
 			sizeofline = (int)ret;

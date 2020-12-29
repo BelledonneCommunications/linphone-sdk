@@ -29,6 +29,7 @@ static char *patterns[] = {
 
 // convenience define for test buffer size
 #define F_SIZE 2*BCTBX_VFS_PRINTF_PAGE_SIZE
+#define G_SIZE BCTBX_VFS_GETLINE_PAGE_SIZE-1
 
 void file_fprint_simple_test() {
 	char in_buf[F_SIZE];
@@ -157,9 +158,117 @@ void file_fprint_and_write_test() {
 	bctbx_free(path);
 }
 
+
+void file_get_nxtline_test() {
+	//char in_buf[F_SIZE];
+	char out_buf[2*G_SIZE];
+	//memset(in_buf, 0, F_SIZE);
+	memset(out_buf, 0, 2*G_SIZE);
+
+	/* create a file */
+	char *path = bc_tester_file("vfs_get_nxtline.txt");
+	remove(path); // make sure it does not exist
+	bctbx_vfs_file_t *fp = bctbx_file_open2(&bcStandardVfs, path, O_RDWR|O_CREAT); // open using standard vfs
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	/* write a test file using fprintf, alternate line ending with \n, \r or \r\n */
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\n", patterns[0]) - strlen(patterns[0]) - 1 == 0);
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\r", patterns[1]) - strlen(patterns[1]) -1 == 0);
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\r\n", patterns[0]) - strlen(patterns[0]) -2 == 0);
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\n", patterns[1]) - strlen(patterns[1]) -1 == 0);
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "\n") - 1 == 0); //empty line
+	/* parse all the lines */
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[0]) - 1 == 0);
+	BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[0], strlen(patterns[0]));
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[1]) - 1 == 0);
+	BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[1], strlen(patterns[1]));
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[0]) - 1 == 0);
+	BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[0], strlen(patterns[0]));
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[1]) - 1 == 0);
+	BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[1], strlen(patterns[1]));
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - 1 == 0);
+	/* cleaning */
+	bctbx_file_close(fp);
+	remove(path);
+	fp = bctbx_file_open2(&bcStandardVfs, path, O_RDWR|O_CREAT); // open using standard vfs
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	/* write a file larger than a read cache page, with lines ending with \n */
+	size_t written = 0;
+	int i,count = 0;
+	while (written < BCTBX_VFS_GETLINE_PAGE_SIZE + 1000) {
+		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\n", patterns[0]) - strlen(patterns[0]) - 1 == 0);
+		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\n", patterns[1]) - strlen(patterns[1]) -1 == 0);
+		count++;
+		written += strlen(patterns[0]) + strlen(patterns[1]) + 2;
+	}
+	/* parse it */
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer
+	for (i=0; i< count; i++) {
+		BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[0]) - 1 == 0);
+		BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[0], strlen(patterns[0]));
+		BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, G_SIZE) - strlen(patterns[1]) - 1 == 0);
+		BC_ASSERT_NSTRING_EQUAL(out_buf, patterns[1], strlen(patterns[1]));
+	}
+
+	/* cleaning */
+	bctbx_file_close(fp);
+	remove(path);
+	fp = bctbx_file_open2(&bcStandardVfs, path, O_RDWR|O_CREAT); // open using standard vfs
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	/* write a file with one line larger than read cache */
+	written = 0;
+	count = 0;
+	while (written < BCTBX_VFS_GETLINE_PAGE_SIZE + 1000) {
+		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s", patterns[1]) - strlen(patterns[1]) == 0);
+		count++;
+		written += strlen(patterns[1]);
+	}
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "\n") - 1 == 0); //empty line
+	/* parse it */
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, BCTBX_VFS_GETLINE_PAGE_SIZE) - (BCTBX_VFS_GETLINE_PAGE_SIZE -1) == 0); // read the size of a page cache, there is no \n in it, but it cannot send more data than given buffer -1
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, 2*G_SIZE) - (written +1) == 0); // read more, we shall get a warning in the logs but the whole line in return
+	for (i=0; i<count; i++) {
+		BC_ASSERT_TRUE(memcmp(out_buf+i*strlen(patterns[1]), patterns[1], strlen(patterns[1])) == 0);
+	}
+
+	/* cleaning */
+	bctbx_file_close(fp);
+	remove(path);
+	fp = bctbx_file_open2(&bcStandardVfs, path, O_RDWR|O_CREAT); // open using standard vfs
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	/* write a file with one line exactly the size of read cache */
+	written = 0;
+	count = 0;
+	while (written < BCTBX_VFS_GETLINE_PAGE_SIZE -strlen(patterns[1])) {
+		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s", patterns[1]) - strlen(patterns[1]) == 0);
+		count++;
+		written += strlen(patterns[1]);
+	}
+	out_buf[BCTBX_VFS_GETLINE_PAGE_SIZE-written-1] = '\0';
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s\n", out_buf) - strlen(out_buf) - 1 == 0);
+	BC_ASSERT_TRUE(bctbx_file_size(fp) - BCTBX_VFS_GETLINE_PAGE_SIZE == 0);
+	/* parse it */
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, 10) - 9 == 0); // small read to load the cache, max buf is 10, so 9 char will be read
+	bctbx_file_seek(fp, 0, SEEK_SET); // reset print/get file pointer - this has no effect on the read cache
+	BC_ASSERT_TRUE(bctbx_file_get_nxtline(fp, out_buf, BCTBX_VFS_GETLINE_PAGE_SIZE ) - (BCTBX_VFS_GETLINE_PAGE_SIZE - 1) == 0); // read more, we shall get a warning in the logs but the whole line in return
+
+	/* cleaning */
+	bctbx_file_close(fp);
+	remove(path);
+	bctbx_free(path);
+}
+
 static test_t vfs_tests[] = {
 	TEST_NO_TAG("File fprint - simple", file_fprint_simple_test),
-	TEST_NO_TAG("File fprint and file_write mixed", file_fprint_and_write_test)
+	TEST_NO_TAG("File fprint and file_write mixed", file_fprint_and_write_test),
+	TEST_NO_TAG("File get next line", file_get_nxtline_test)
 };
 
 test_suite_t vfs_test_suite = {"vfs", NULL, NULL, NULL, NULL, sizeof(vfs_tests) / sizeof(vfs_tests[0]), vfs_tests};
