@@ -599,13 +599,13 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 				ms_message("DTLS Handshake successful but unable to agree on srtp_profile to use");
 			} else {
 				if (ms_dtls_srtp_check_certificate_fingerprint(bctbx_ssl_get_peer_certificate(ctx->rtp_dtls_context->ssl), (const char *)(ctx->peer_fingerprint)) == 1) {
-					char dtls_srtp_key_material[128];
+					uint8_t dtls_srtp_key_material[128];
 					size_t dtls_srt_key_material_length = 128;
 					uint8_t *key = (uint8_t *)ms_malloc0(256);
 					ms_message("DTLS Handshake on RTP channel successful and fingerprints match, srtp protection profile %d", agreed_srtp_protection_profile);
 
 					ctx->rtp_time_reference = 0; /* unarm the timer */
-					ret = bctbx_ssl_get_dtls_srtp_key_material(ctx->rtp_dtls_context->ssl, dtls_srtp_key_material, &dtls_srt_key_material_length);
+					ret = bctbx_ssl_get_dtls_srtp_key_material(ctx->rtp_dtls_context->ssl_config, dtls_srtp_key_material, &dtls_srt_key_material_length);
 					if (ret < 0) {
 						ms_error("DTLS RTP Handshake : Unable to retrieve DTLS SRTP key material [-0x%x]", -ret);
 						return 0;
@@ -684,7 +684,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 				ms_error("DTLS RTCP Handshake successful but unable to agree on srtp_profile to use");
 			} else {
 				if (ms_dtls_srtp_check_certificate_fingerprint(bctbx_ssl_get_peer_certificate(ctx->rtcp_dtls_context->ssl), (const char *)(ctx->peer_fingerprint)) == 1) {
-					char dtls_srtp_key_material[128];
+					uint8_t dtls_srtp_key_material[128];
 					size_t dtls_srt_key_material_length = 128;
 					uint8_t *key = (uint8_t *)ms_malloc0(256);
 
@@ -692,7 +692,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 
 					ctx->rtcp_time_reference = 0; /* unarm the timer */
 
-					ret = bctbx_ssl_get_dtls_srtp_key_material(ctx->rtcp_dtls_context->ssl, dtls_srtp_key_material, &dtls_srt_key_material_length);
+					ret = bctbx_ssl_get_dtls_srtp_key_material(ctx->rtcp_dtls_context->ssl_config, dtls_srtp_key_material, &dtls_srt_key_material_length);
 					if (ret < 0) {
 						ms_error("DTLS RTCP Handshake : Unable to retrieve DTLS SRTP key material [-0x%x]", -ret);
 						return 0;
@@ -818,7 +818,7 @@ static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtls
 	/* This is useless as peer would certainly be a self signed certificate and we won't verify it but avoid runtime warnings */
 	bctbx_ssl_config_set_ca_chain(dtlsContext->ssl_config, dtlsContext->crt);
 
-	/* we are not ready yet to actually start the ssl context, this will be done by calling bctbx_ssl_setup when stream starts */
+	/* we are not ready yet to actually start the ssl context, this will be done by calling bctbx_ssl_context_setup when stream starts */
 	return 0;
 
 }
