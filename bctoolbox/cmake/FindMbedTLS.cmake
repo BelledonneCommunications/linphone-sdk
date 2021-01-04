@@ -74,7 +74,7 @@ if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
 endif()
 
 if(MBEDTLS_LIBRARIES)
-	check_symbol_exists(mbedtls_ssl_get_dtls_srtp_protection_profile "mbedtls/ssl.h" HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
+	check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.h" DTLS_SRTP_AVAILABLE)
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -87,4 +87,4 @@ cmake_pop_check_state()
 
 
 
-mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES HAVE_SSL_GET_DTLS_SRTP_PROTECTION_PROFILE)
+mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES DTLS_SRTP_AVAILABLE)
