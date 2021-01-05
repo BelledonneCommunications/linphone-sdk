@@ -145,7 +145,7 @@ job-ios-xcode:
 #################################################
 
 test-liblinphone-ios:
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-xcode12" ]
   stage: test
   allow_failure: true
   dependencies:
@@ -176,7 +176,8 @@ test-liblinphone-ios:
         -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
 
   after_script:
-    - xcresult2junit.rb ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult | tee $XML_PATTERN.xml
+    - trainer ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult -o .
+    - mv *.xml $XML_PATTERN.xml
 
 
     - BRANCH=$CI_COMMIT_REF_NAME
