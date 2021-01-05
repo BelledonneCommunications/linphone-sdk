@@ -38,68 +38,12 @@
 #################################################
 
 
-job-ios-makefile:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-#################################################
-# Ninja
-#################################################
-
-
-job-ios-ninja:
-
-  variables:
-    CMAKE_GENERATOR: Ninja
-    ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
-
-
-job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
-
-
-job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
-  variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: job-ios-ninja
-
 
 #################################################
 # XCode
 #################################################
 job-ios-xcode:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -109,74 +53,3 @@ job-ios-xcode:
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
   extends: .job-ios
-
-#################################################
-# Tests
-#################################################
-
-test-liblinphone-ios:
-  tags: [ "macosx" ]
-  stage: test
-  allow_failure: true
-  dependencies:
-    - job-ios-xcode
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-
-  variables:
-    LOG_PATTERN: "logLiblinphoneIos"
-
-  script:
-    - unzip build-ios/linphone-sdk-*.zip -d build-ios/
-    - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
-    - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
-    - pod install
-
-    # Test launching
-    - |
-        xcodebuild -workspace LinphoneTester.xcworkspace \
-        -scheme LinphoneTester -sdk iphonesimulator \
-        -destination name='iPhone 7 Plus' \
-        -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
-
-  after_script:
-    #ocunit2junit will produce .xml file by testsuite.
-    - cat tester/IOS/LinphoneTester/$LOG_PATTERN.txt | ocunit2junit
-
-    - BRANCH=$CI_COMMIT_REF_NAME
-    - echo $BRANCH
-    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
-    - echo $ESCAPED_BRANCH
-    - COMMIT=$(git describe)
-    - echo $COMMIT
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT/ios/liblinphone/allure-report
-
-    - echo "<\!DOCTYPE HTML>" >> index.html
-    - echo "<meta charset=\"UTF-8\">" >> index.html
-    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
-    - echo "<script>" >> index.html
-    - echo "  window.location.href = \"$URL\"" >> index.html
-    - echo "</script>" >> index.html
-    - echo "<title>Page Redirection</title>" >> index.html
-    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
-    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
-    - cat index.html
-
-    - echo "TEST REPORTS URL $URL"
-
-    #Gathering artifacts in one folder to ease their use
-    - mkdir ${CI_PROJECT_DIR}/results
-    - cp -r tester/IOS/LinphoneTester/$LOG_PATTERN.txt ${CI_PROJECT_DIR}/results
-    - cp -r test-reports/* ${CI_PROJECT_DIR}/results
-    - cp index.html ${CI_PROJECT_DIR}/results
-
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - ${CI_PROJECT_DIR}/results/*.xml
-    expire_in: 4 week
