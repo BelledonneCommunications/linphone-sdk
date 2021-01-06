@@ -146,14 +146,12 @@ job-windows-vs2017-ninja-win32:
 # NIGHTLY
 ######################################################
 
-
-
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_MSWINRTVIDEO=YES	
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
@@ -164,8 +162,6 @@ job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     LINPHONESDK_PLATFORM: UWP
-
-
 
 #TODO : FACTORIZE TESTERS CODE
 

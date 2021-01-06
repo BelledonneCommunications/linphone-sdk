@@ -92,7 +92,11 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\CsWrapper.rd.xml" />
   </ItemGroup>
-
+  <ItemDefinitionGroup>
+	 <Link>
+	   <WINMD></WINMD>
+	 </Link>
+   </ItemDefinitionGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '15.0' ">
     <VisualStudioVersion>15.0</VisualStudioVersion>
   </PropertyGroup>

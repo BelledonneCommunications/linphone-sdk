@@ -43,14 +43,15 @@ if(APPLE)
 	endif()
 endif()
 
-
+set(_desktop_install_prefix "${CMAKE_BINARY_DIR}/linphone-sdk/desktop")
 set(_cmake_args
-        "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
-        "-DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/linphone-sdk/desktop"
+	"-DCMAKE_INSTALL_PREFIX=${_desktop_install_prefix}"
+	"-DCMAKE_PREFIX_PATH=${_desktop_install_prefix}"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
-        "-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"
+	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"
 	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${PROJECT_SOURCE_DIR}"
 	"-DLINPHONE_BUILDER_CONFIG_FILE=configs/config-desktop.cmake"
+	"-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
 )
 
 if(_dummy_libraries)
@@ -75,23 +76,12 @@ endif()
 ExternalProject_Add(sdk
 	${_ep_depends}
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/cmake-builder"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/desktop"
+	BINARY_DIR "${CMAKE_BINARY_DIR}/desktop"
 	CMAKE_GENERATOR "${CMAKE_GENERATOR}"
 	CMAKE_ARGS ${_cmake_args}
 	CMAKE_CACHE_ARGS ${_inherited_cmake_args}
 	INSTALL_COMMAND ${_install_command}
 )
-
-
-
-if(APPLE)
-	add_custom_command(TARGET sdk
-		COMMENT "Clean the SDK zip file"
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
-		"-P" "${LINPHONESDK_DIR}/cmake/macos/CleanSDK.cmake"
-	)
-endif()
-
 ExternalProject_Add_Step(sdk force_build
 	COMMENT "Forcing build for 'desktop'"
 	DEPENDEES configure
@@ -99,18 +89,63 @@ ExternalProject_Add_Step(sdk force_build
 	ALWAYS 1
 )
 
-if(APPLE)
-	set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/" CACHE STRING "URL of the repository where the macos SDK zip files are located")
-	add_custom_command(TARGET sdk
-		COMMENT "Generating the SDK (zip file and podspec)"
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
-		"-P" "${LINPHONESDK_DIR}/cmake/macos/GenerateSDK.cmake"
+if(WIN32 AND ENABLE_CSHARP_WRAPPER)
+	set(last_target sdk-wrapper-csharp)
+	ExternalProject_Add(sdk-wrapper-csharp
+		DEPENDS sdk
+		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/wrapper"
+		BINARY_DIR "${CMAKE_BINARY_DIR}/desktop/wrapper"
+		CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/desktop" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=x86" ${_cmake_args} 
+		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
+		BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
 	)
-elseif(WIN32)
-	set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
-	add_custom_command(TARGET sdk
+#remove it when mswinrtvid is no more needed
+	if(ENABLE_MSWINRTVIDEO)
+		set(last_target sdk-mswinrtvideo)
+		ExternalProject_Add(sdk-mswinrtvideo
+			DEPENDS sdk-wrapper-csharp
+			SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/mswinrtvideo"
+			BINARY_DIR "${CMAKE_BINARY_DIR}/desktop/mswinrtvideo"
+			CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
+			CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/desktop" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=x86" ${_cmake_args}
+			#CMAKE_CACHE_ARGS ${_cmake_cache_args}
+			BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
+			INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
+		)
+	endif()
+	
+	ExternalProject_Add_Step(${last_target} compress
 		COMMENT "Generating the SDK (zip file)"
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=${CMAKE_GENERATOR_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
+		DEPENDEES install
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=${CMAKE_GENERATOR_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/linphone-sdk" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DCMAKE_INSTALL_PREFIX=${_desktop_install_prefix}"
 		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
+		ALWAYS 1
 	)
-endif()
+else()	
+	
+	if(APPLE)
+		add_custom_command(TARGET sdk
+			COMMENT "Clean the SDK zip file"
+			COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
+			"-P" "${LINPHONESDK_DIR}/cmake/macos/CleanSDK.cmake"
+		)
+	endif()
+	
+	if(APPLE)
+		set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/sdk" CACHE STRING "URL of the repository where the macos SDK zip files are located")
+		add_custom_command(TARGET sdk
+			COMMENT "Generating the SDK (zip file and podspec)"
+			COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
+			"-P" "${LINPHONESDK_DIR}/cmake/macos/GenerateSDK.cmake"
+		)
+	elseif(WIN32)
+		set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
+		add_custom_command(TARGET sdk
+			COMMENT "Generating the SDK (zip file)"
+			COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=${CMAKE_GENERATOR_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DCMAKE_INSTALL_PREFIX=${_desktop_install_prefix}"
+			"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
+		)
+	endif()
+endif()	
