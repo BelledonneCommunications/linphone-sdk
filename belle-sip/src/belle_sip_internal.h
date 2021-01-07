@@ -639,7 +639,7 @@ typedef struct listener_ctx{
 /*
  * http provider
  */
-belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char *bind_ip);
+belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char *bind_ip, bool_t https_only);
 
 
 /*

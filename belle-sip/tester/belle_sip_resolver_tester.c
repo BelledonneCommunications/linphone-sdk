@@ -197,7 +197,6 @@ static void a_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_st
 	}
 
 	destroy_endpoint(client);
-	bctbx_message("JOHAN End of the tests");
 }
 
 static void a_query_cancelled(void) {

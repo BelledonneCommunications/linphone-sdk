@@ -76,16 +76,19 @@ static void process_auth_requested(void *data, belle_sip_auth_event_t *event){
 
 static belle_sip_stack_t *stack=NULL;
 static belle_http_provider_t *prov=NULL;
+static belle_http_provider_t *prov_https_only=NULL;
 
 static int http_before_all(void) {
 	stack=belle_sip_stack_new(NULL);
 	belle_sip_tester_set_dns_host_file(stack);
 
 	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
+	prov_https_only=belle_sip_stack_create_https_only_provider(stack,"0.0.0.0");
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
 		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 		belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());
 		belle_http_provider_set_tls_crypto_config(prov,crypto_config);
+		belle_http_provider_set_tls_crypto_config(prov_https_only,crypto_config);
 		belle_sip_object_unref(crypto_config);
 
 	}
@@ -94,6 +97,7 @@ static int http_before_all(void) {
 
 static int http_after_all(void) {
 	belle_sip_object_unref(prov);
+	belle_sip_object_unref(prov_https_only);
 	belle_sip_object_unref(stack);
 	return 0;
 }
@@ -105,7 +109,7 @@ static int url_supported(const char *url) {
 	}
 	return 0;
 }
-static int one_get(const char *url,http_counters_t* counters, int *counter){
+static int one_get_prov(const char *url,http_counters_t* counters, int *counter, belle_http_provider_t *provider){
 	if (url_supported(url)==-1) {
 		return -1;
 	} else {
@@ -124,12 +128,18 @@ static int one_get(const char *url,http_counters_t* counters, int *counter){
 		cbs.process_io_error=process_io_error;
 		cbs.process_auth_requested=process_auth_requested;
 		l=belle_http_request_listener_create_from_callbacks(&cbs,counters);
-		belle_http_provider_send_request(prov,req,l);
+		if (belle_http_provider_send_request(provider,req,l) != 0) {
+			belle_sip_object_unref(l);
+			return -1;
+		}
 		wait_for(stack,counter,1,10000);
 
 		belle_sip_object_unref(l);
 		return 0;
 	}
+}
+static int one_get(const char *url,http_counters_t* counters, int *counter){
+	return one_get_prov(url,counters,counter,prov);
 }
 
 static void one_http_get(void){
@@ -165,6 +175,18 @@ static void one_https_get(void){
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 	}
+}
+
+static void one_https_only_get(void){
+	http_counters_t counters={0};
+	// first perform one get on https using the https only provider, it shall work
+	if (one_get_prov("https://smtp.linphone.org",&counters,&counters.response_count,prov_https_only) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
+	}
+	// then try to perform a http request using the same provider, it shall fail
+	BC_ASSERT_EQUAL(one_get_prov("http://smtp.linphone.org",&counters,&counters.response_count,prov_https_only), -1, int, "%d");
 }
 
 static void one_https_get_with_maddr(void){
@@ -367,7 +389,8 @@ test_t http_tests[] = {
 	TEST_NO_TAG("https digest GET", https_digest_get),/*, FIXME, need a server for testing
 	TEST_NO_TAG("https with client certificate", https_client_cert_connection),*/
 	TEST_NO_TAG("https POST with long body", https_post_long_body),
-	TEST_NO_TAG("http GET with long user body", http_get_long_user_body)
+	TEST_NO_TAG("http GET with long user body", http_get_long_user_body),
+	TEST_NO_TAG("https only", one_https_only_get),
 };
 
 test_suite_t http_test_suite = {"HTTP stack", http_before_all, http_after_all, NULL,
