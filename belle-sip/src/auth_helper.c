@@ -28,7 +28,7 @@
 
 #define CHECK_IS_PRESENT(obj,header_name,name) \
 	if (!belle_sip_header_##header_name##_get_##name(obj)) {\
-		 belle_sip_error("parameter ["#name"]not found for header ["#header_name"]");\
+		 belle_sip_error("parameter ["#name"] not found for header ["#header_name"]");\
 		 return-1;\
 	}
 
@@ -111,7 +111,7 @@ int belle_sip_auth_helper_compute_ha1_for_algorithm(const char *userid, const ch
 		return -1;
 	}
 	if (!realm) {
-		belle_sip_error("belle_sip_fill_authorization_header, password not found ");
+		belle_sip_error("belle_sip_fill_authorization_header, realm not found ");
 		return -1;
 	}
 

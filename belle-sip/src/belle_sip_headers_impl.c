@@ -1421,11 +1421,7 @@ belle_sip_error_code belle_sip_header_authorization_marshal(belle_sip_header_aut
 	}
 	if (authorization->qop) {
 		const char* format;
-		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(authorization,belle_http_header_authorization_t)) {
-			format="%sqop=\"%s\"";
-		} else {
-			format="%sqop=%s";
-		}
+		format="%sqop=%s";
 		error=belle_sip_snprintf(buff,buff_size,offset,format,border,authorization->qop);
 		if (error!=BELLE_SIP_OK) return error;
 	}
