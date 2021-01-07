@@ -47,35 +47,41 @@ endif()
 set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
 set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP")
 
-if (LINPHONESDK_PLATFORM STREQUAL "Android")
-  include(LinphoneSdkCheckBuildToolsAndroid)
+set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
+set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
+
+if(NOT LINPHONESDK_PACKAGER OR LINPHONESDK_PACKAGER STREQUAL "OFF")
+	if (LINPHONESDK_PLATFORM STREQUAL "Android")
+	  include(LinphoneSdkCheckBuildToolsAndroid)
+	endif()
+	
+	# TODO: This will be deletable once we get rid of cmake-builder
+	string(TOLOWER "${LINPHONESDK_PLATFORM}" _lowercase_platform)
+	include(cmake-builder/cmake/LinphoneOptions.cmake)
+	include(cmake-builder/configs/options-${_lowercase_platform}.cmake)
+	include(cmake-builder/options/common.cmake)
+	include(cmake-builder/options/bctoolbox.cmake)
+	include(cmake-builder/options/bellesip.cmake)
+	include(cmake-builder/options/ms2.cmake)
+	include(cmake-builder/options/linphone.cmake)
+	
+	# Give a feature summary
+	include(FeatureSummary)
+	feature_summary(FILENAME "${CMAKE_BINARY_DIR}/enabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
+	
+	if (ENABLE_SANITIZER)
+	   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-sanitizer.cmake")
+	endif()
+	if (ENABLE_HW_SANITIZER)
+	   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-hwsanitizer.cmake")
+	endif()
+	include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
+else()
+	include(LinphoneSdkPackager)
 endif()
-
-# TODO: This will be deletable once we get rid of cmake-builder
-string(TOLOWER "${LINPHONESDK_PLATFORM}" _lowercase_platform)
-include(cmake-builder/cmake/LinphoneOptions.cmake)
-include(cmake-builder/configs/options-${_lowercase_platform}.cmake)
-include(cmake-builder/options/common.cmake)
-include(cmake-builder/options/bctoolbox.cmake)
-include(cmake-builder/options/bellesip.cmake)
-include(cmake-builder/options/ms2.cmake)
-include(cmake-builder/options/linphone.cmake)
-
-# Give a feature summary
-include(FeatureSummary)
-feature_summary(FILENAME "${CMAKE_BINARY_DIR}/enabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
-
-if (ENABLE_SANITIZER)
-   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-sanitizer.cmake")
-endif()
-if (ENABLE_HW_SANITIZER)
-   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake-builder/configs/config-hwsanitizer.cmake")
-endif()
-
-include(LinphoneSdkPlatform${LINPHONESDK_PLATFORM})
 
 
 if(ENABLE_GPL_THIRD_PARTIES)

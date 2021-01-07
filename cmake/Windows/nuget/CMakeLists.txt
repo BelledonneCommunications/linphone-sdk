@@ -23,15 +23,32 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(uwp-nuget)
-
+#Configuration files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.nuspec.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.nuspec @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.props.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.props @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.targets.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.targets @ONLY)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/nuget.exe DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+if(LINPHONESDK_OUTPUT_DIR)
+	file(TO_NATIVE_PATH "${LINPHONESDK_OUTPUT_DIR}" WINDOWS_INSTALL_PATH)
+else()
+	file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}" WINDOWS_INSTALL_PATH)
+endif()
 
-file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}" WINDOWS_INSTALL_PATH)
-execute_process(
-	COMMAND "nuget.exe" "pack" "LinphoneSDK.nuspec" "-Properties" "OutputSdkDir=${WINDOWS_INSTALL_PATH}" "-OutputDirectory" "packages"
+#Nuget binary
+find_program(NUGET_PROGRAM nuget.exe)
+if(NOT NUGET_PROGRAM)
+	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/nuget.exe DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+	set(NUGET_PROGRAM "nuget.exe")
+endif()
+
+add_custom_target(nuget ALL)
+
+#add_custom_command(TARGET nuget PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E rm -rRf "${CMAKE_CURRENT_BINARY_DIR}/packages"
+#)
+	
+#message(${NUGET_PROGRAM} "pack" "LinphoneSDK.nuspec" "-Properties" "OutputSdkDir=${WINDOWS_INSTALL_PATH}" "-OutputDirectory" "packages")
+add_custom_command(TARGET nuget
+	COMMAND ${NUGET_PROGRAM} "pack" "LinphoneSDK.nuspec" "-Properties" "OutputSdkDir=${WINDOWS_INSTALL_PATH}" "-OutputDirectory" "packages"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 # "-OutputDirectory" "${WINDOWS_INSTALL_PATH}"
