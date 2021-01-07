@@ -18,18 +18,29 @@ job-ios-upload:
 
   script:
 
-    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+    #Only get major and minor version (ex: 4.5) for documentation directory
 
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY/test2
+
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
+
     # Create the directory if it does not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
-    # Using rsync with following options(verbose, keeping symbolic links, and copy recursively)
+
+    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
 
     - echo $UPLOAD_ROOT_DIRECTORY
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/
@@ -455,25 +466,25 @@ job-xamarin-upload:
   only:
     variables:
       - $ENABLE_LINUX_TESTS
-      
+
 .job-test-report-upload-windows-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS
-      
+
 .job-test-report-upload-macos-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_MACOSX_TESTS
-      
+
 .job-test-report-upload-ios-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_IOS_TESTS
-      
+
 .job-test-report-upload-android-scheduled:
   extends: .job-test-report-upload
   only:
@@ -486,7 +497,7 @@ job-test-upload-libl-centos7-mr:
     - test-liblinphone-centos7-mr
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     refs:
       - branches
@@ -495,7 +506,7 @@ job-test-upload-libl-centos7-mr:
       - $ENABLE_TESTS_IN_MR
   except:
     - schedules
-    
+
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
   dependencies:
@@ -503,14 +514,14 @@ job-test-upload-libl-centos7-schedule:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-    
+
 job-test-upload-libl-centos7-forced:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-centos7-force
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     variables:
       - $ENABLE_TESTS_LIBLINPHONE
