@@ -466,22 +466,6 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *context) {
 	SLresult result;
 	OpenSLESInputContext *ictx = (OpenSLESInputContext *)context;
-
-	if (ictx->mTickerSynchronizer == NULL) {
-		MSFilter *obj = ictx->mFilter;
-		/*
-		 * ABSOLUTE HORRIBLE HACK. We temporarily disable logs to prevent ms_ticker_set_synchronizer() to output a debug log.
-		 * This is horrible because this also suspends logs for all concurrent threads during these two lines of code.
-		 * Possible way to do better:
-		 *  1) understand why AudioRecord thread doesn't detach.
-		 *  2) disable logs just for this thread (using a TLS)
-		 */
-		int loglevel=bctbx_get_log_level_mask(BCTBX_LOG_DOMAIN);
-		bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR|BCTBX_LOG_FATAL);
-		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
-		bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, loglevel);
-	}
 	ictx->read_samples += ictx->inBufSize / sizeof(int16_t);
 
 	mblk_t *m = allocb(ictx->inBufSize, 0);
@@ -560,6 +544,12 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->inBufSize = DeviceFavoriteBufferSize * sizeof(int16_t) * ictx->opensles_context->nchannels;
 	ictx->recBuffer[0] = (uint8_t *) calloc(ictx->inBufSize, sizeof(uint8_t));
 	ictx->recBuffer[1] = (uint8_t *) calloc(ictx->inBufSize, sizeof(uint8_t));
+	
+	if (ictx->mTickerSynchronizer == NULL) {
+		MSFilter *obj = ictx->mFilter;
+		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
+		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
+	}
 
 	if (SL_RESULT_SUCCESS != opensles_recorder_init(ictx)) {
 	    ms_error("[OpenSLES] Problem when initialization of opensles recorder");
@@ -573,7 +563,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	if (ictx->opensles_context->builtin_aec) {
 		//android_snd_read_activate_hardware_aec(obj);
 	}
-
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -634,8 +623,10 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 
 	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ictx->mutex);
-	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
-	ictx->mTickerSynchronizer = NULL;
+	if (ictx->mTickerSynchronizer) {
+		ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
+		ictx->mTickerSynchronizer = NULL;
+	}
 	ms_mutex_unlock(&ictx->mutex);
 }
 
