@@ -30,9 +30,8 @@ option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 option(ENABLE_DOC "Enable API documentation generation." NO)
-option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" YES)
+option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
-
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
