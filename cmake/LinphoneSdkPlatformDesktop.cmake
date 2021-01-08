@@ -103,6 +103,7 @@ if(WIN32 AND ENABLE_CSHARP_WRAPPER)
 	)
 #remove it when mswinrtvid is no more needed
 	if(ENABLE_MSWINRTVIDEO)
+		message(STATUS "Enabling MSWinRTVideo. This module is deprecated.")
 		set(last_target sdk-mswinrtvideo)
 		ExternalProject_Add(sdk-mswinrtvideo
 			DEPENDS sdk-wrapper-csharp
