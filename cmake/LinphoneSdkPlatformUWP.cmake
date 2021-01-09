@@ -26,7 +26,7 @@ include(LinphoneSdkCheckBuildToolsUWP)
 
 #set(LINPHONESDK_UWP_ARCHS "ARM, x64, x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
 #set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
-set(LINPHONESDK_UWP_ARCHS "x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x64]")
+set(LINPHONESDK_UWP_ARCHS "x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x86, x64]")
 #set(LINPHONESDK_UWP_ARCHS "x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_UWP_ARCHS}" _archs)
@@ -121,24 +121,3 @@ foreach(_arch IN LISTS _archs)
 	)
 	list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch})
 endforeach()
-
-#ExternalProject_Add(uwp-nuget
-#        DEPENDS ${_uwp_build_targets}
-#        SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
-#        BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
-#        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-#        CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
-##	INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Install step will not be done by external project"
-#        CMAKE_CACHE_ARGS ${_cmake_cache_args}
-#        BUILD_ALWAYS 1
-#)
-#ExternalProject_Add(uwp-nuget-only
-#        SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
-#        BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
-#        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-#        CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
-##	INSTALL_COMMAND ${CMAKE_COMMAND} -E echo "Install step will not be done by external project"
-#        CMAKE_CACHE_ARGS ${_cmake_cache_args}
-#        BUILD_ALWAYS 1
-#        EXCLUDE_FROM_ALL 1
-#)
