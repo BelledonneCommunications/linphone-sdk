@@ -20,14 +20,15 @@
 #if defined(HAVE_CONFIG_H)
 #include "mediastreamer-config.h"
 #endif
+#include <stdint.h>
+#include <string.h>
 
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/flowcontrol.h"
 
-#include <stdint.h>
-#include <string.h>
+
 
 
 MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 ){

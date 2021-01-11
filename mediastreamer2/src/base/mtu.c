@@ -29,7 +29,7 @@
 #define IPV4_HEADER_SIZE 20
 #define IPV6_HEADER_SIZE 40
 
-#if defined(_WIN32) && !defined(_WIN32_WCE) && defined(MS2_WINDOWS_DESKTOP)
+#if defined(_WIN32) && !defined(_WIN32_WCE) && defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 
 HINSTANCE m_IcmpInst = NULL;
 

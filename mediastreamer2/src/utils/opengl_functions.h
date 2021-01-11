@@ -23,7 +23,12 @@
 #include "mediastreamer2/msogl_functions.h"
 
 // -----------------------------------------------------------------------------
-
+#if defined __cplusplus
+extern "C" {
+#endif
 void opengl_functions_default_init (OpenGlFunctions *f);
+#if defined __cplusplus
+}//extern "C"
+#endif
 
 #endif

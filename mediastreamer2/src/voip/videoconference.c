@@ -358,7 +358,7 @@ static void ms_video_conference_update_bitrate_request(MSVideoConference *obj){
 }
 
 int ms_video_conference_get_size(MSVideoConference *obj){
-	return bctbx_list_size(obj->members);
+	return (int)bctbx_list_size(obj->members);
 }
 
 const bctbx_list_t* ms_video_conference_get_members(const MSVideoConference *obj){

@@ -29,7 +29,7 @@
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 const IID IID_ISimpleAudioVolume = __uuidof(ISimpleAudioVolume);
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UWP)
 const IID IID_IAudioClient2 = __uuidof(IAudioClient2);
 #else
 const IID IID_IAudioClient = __uuidof(IAudioClient);

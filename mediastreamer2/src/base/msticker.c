@@ -325,7 +325,7 @@ static int set_high_prio(MSTicker *obj){
 
 	if (prio>MS_TICKER_PRIO_NORMAL){
 #ifdef _WIN32
-#ifdef MS2_WINDOWS_DESKTOP
+#if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 		MMRESULT mm;
 		TIMECAPS ptc;
 		mm=timeGetDevCaps(&ptc,sizeof(ptc));
@@ -346,6 +346,8 @@ static int set_high_prio(MSTicker *obj){
 		if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)){
 			ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 		}
+#else
+		ms_warning("SetThreadPriority() is not implemented. %s priority left to normal.",obj->name);
 #endif
 #else
 		struct sched_param param;
@@ -393,7 +395,7 @@ static int set_high_prio(MSTicker *obj){
 
 static void unset_high_prio(int precision){
 #ifdef _WIN32
-#ifdef MS2_WINDOWS_DESKTOP
+#if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 	if(!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL)){
 		ms_warning("SetThreadPriority() failed (%d)\n", (int)GetLastError());
 	}

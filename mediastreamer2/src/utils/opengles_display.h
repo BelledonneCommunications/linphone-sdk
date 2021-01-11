@@ -42,12 +42,21 @@ struct opengles_display *ogl_display_new (void);
 void ogl_display_free (struct opengles_display *gldisp);
 
 /**
+ * Perform initialization of opaque structure that will be auto-managed.
+ *
+ * @param f OpenGL functions to use. Can be NULL.
+ * @param window The native window where a Surface will be created
+ */
+void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window);
+
+/**
  * Perform initialization of opaque structure.
  *
  * @param f OpenGL functions to use. Can be NULL.
  * @param width Width of the display area
  * @param height Height of the display area.
  */
+
 void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height);
 
 /**

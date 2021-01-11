@@ -52,6 +52,9 @@
 
 #include "opengl_functions.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 /* Shader Utilities */
 GLint glueCompileShader (const OpenGlFunctions *f, GLenum target, GLsizei count, const GLchar *sources, GLuint *shader);
 GLint glueLinkProgram (const OpenGlFunctions *f, GLuint program);

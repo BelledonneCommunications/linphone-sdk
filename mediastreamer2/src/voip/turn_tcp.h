@@ -48,9 +48,9 @@ inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
 	tv.tv_usec = 0;
 
 	if (write) {
-		return select(socket + 1, NULL, &fds, NULL, &tv);
+		return select((int)socket + 1, NULL, &fds, NULL, &tv);
 	} else {
-		return select(socket + 1, &fds, NULL, NULL, &tv);
+		return select((int)socket + 1, &fds, NULL, NULL, &tv);
 	}
 }
 

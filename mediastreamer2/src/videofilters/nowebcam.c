@@ -69,7 +69,7 @@ static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 #else
 	const char *wUnicode = jpgpath;
 #endif
-#ifndef MS2_WINDOWS_DESKTOP
+#if !defined(MS2_WINDOWS_DESKTOP) || defined(MS2_WINDOWS_UWP)
 	fd = CreateFile2(wUnicode, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, NULL);
 #else
 	fd = CreateFile(wUnicode, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -80,7 +80,7 @@ static mblk_t *_ms_load_jpeg_as_yuv(const char *jpgpath, MSVideoSize *reqsize) {
 	}
 	st_sizel = 0;
 	st_sizeh = 0;
-#ifndef MS2_WINDOWS_DESKTOP
+#if !defined(MS2_WINDOWS_DESKTOP) || defined(MS2_WINDOWS_UWP)
 	{
 		WIN32_FILE_ATTRIBUTE_DATA attr_data;
 		GetFileAttributesEx(wUnicode, GetFileExInfoStandard, &attr_data);
@@ -380,7 +380,7 @@ void ms_static_image_set_default_image(const char *path){
 	if (ms_nowebcam_def_image[0] != 0)
 		ms_nowebcam_def_image[0] = 0;
 	if (path) {
-		int min = MIN(DEF_IMAGE_MAX_SIZE, strlen(path));
+		int min = MIN(DEF_IMAGE_MAX_SIZE, (int)strlen(path));
 		strncpy(ms_nowebcam_def_image, path, min);
 		ms_nowebcam_def_image[min] = '\0';
 	}

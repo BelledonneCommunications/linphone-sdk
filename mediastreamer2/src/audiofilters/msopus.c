@@ -17,13 +17,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdint.h>
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
 #include "mediastreamer2/msticker.h"
 #include "ortp/rtp.h"
 
-#include <stdint.h>
+
 #if defined(MS2_WINDOWS_PHONE)
 #include <opus.h>
 #else

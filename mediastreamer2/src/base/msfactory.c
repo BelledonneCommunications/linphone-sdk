@@ -574,8 +574,8 @@ static bool_t ms_factory_dlopen_plugin(MSFactory *factory, const char *plugin_pa
 }
 
 int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *plugins_list, const char *optionnal_plugins_path) {
-	int num = 0;
-	int plugins_list_size = 0;
+	size_t num = 0;
+	size_t plugins_list_size = 0;
 	const bctbx_list_t *it = NULL;
 
 	if (plugins_list == NULL || bctbx_list_size(plugins_list) == 0) {
@@ -600,7 +600,7 @@ int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *pl
 		ms_message("All plugins in list correctly loaded");
 	}
 
-	return num;
+	return (int)num;
 }
 
 int ms_factory_load_plugins(MSFactory *factory, const char *dir){
@@ -654,7 +654,7 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #else
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 #endif
-#ifdef MS2_WINDOWS_DESKTOP
+#if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
 
 #ifdef UNICODE

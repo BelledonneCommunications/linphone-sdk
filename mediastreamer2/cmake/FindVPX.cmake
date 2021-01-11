@@ -38,12 +38,20 @@ find_path(VPX_INCLUDE_DIRS
 if(VPX_INCLUDE_DIRS)
 	set(HAVE_VPX_VPX_ENCODER_H 1)
 endif()
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64") 
+	find_library(VPX_LIBRARIES
+		NAMES vpx vpxmd
+		HINTS _VPX_ROOT_PATHS
+		PATH_SUFFIXES bin lib lib/x64
+	)
+else()
+    find_library(VPX_LIBRARIES
+            NAMES vpx vpxmd
+            HINTS _VPX_ROOT_PATHS
+            PATH_SUFFIXES bin lib lib/Win32
+    )
+endif()
 
-find_library(VPX_LIBRARIES
-	NAMES vpx vpxmd
-	HINTS _VPX_ROOT_PATHS
-	PATH_SUFFIXES bin lib lib/Win32
-)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VPX

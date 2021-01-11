@@ -660,6 +660,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 			//Use the size returned by the above call to MS_VIDEO_ENCODER_GET_CONFIGURATION directly
 			cam_vsize = vconf.vsize;
 		} else {
+			vconf.vsize = preview_vsize;
 			ms_filter_call_method(stream->source,MS_FILTER_SET_VIDEO_SIZE,&preview_vsize);
 			/*the camera may not support the target size and suggest a one close to the target */
 			ms_filter_call_method(stream->source,MS_FILTER_GET_VIDEO_SIZE,&cam_vsize);

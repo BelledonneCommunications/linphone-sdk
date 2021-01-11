@@ -38,6 +38,7 @@
 #cmakedefine SRTP_VERSION ${SRTP_VERSION}
 #cmakedefine HAVE_ZRTP
 #cmakedefine HAVE_DTLS
+#cmakedefine MS2_USE_OLD_OPENGL_PROTOTYPE
 
 #cmakedefine __ALSA_ENABLED__
 #cmakedefine __ARTS_ENABLED__

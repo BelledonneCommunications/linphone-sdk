@@ -246,7 +246,7 @@ static int random_generator(void *ctx, unsigned char *ptr, size_t size) {
 static int tls_callback_read(void *ctx, unsigned char *buf, size_t len) {
 	ortp_socket_t *socket = (ortp_socket_t *)ctx;
 
-	int ret = recv(*socket, (char *)buf, len, 0);
+	int ret = recv(*socket, (char *)buf, (int)len, 0);
 	if (ret < 0) {
 		ret = -ret;
 		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR)
@@ -259,7 +259,7 @@ static int tls_callback_read(void *ctx, unsigned char *buf, size_t len) {
 static int tls_callback_write(void *ctx, const unsigned char *buf, size_t len) {
 	ortp_socket_t *socket = (ortp_socket_t *)ctx;
 
-	int ret = send(*socket, (const char *)buf, len, 0);
+	int ret = send(*socket, (const char *)buf, (int)len, 0);
 	if (ret < 0) {
 		ret = -ret;
 		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR)
@@ -385,7 +385,7 @@ int TurnSocket::connect() {
 	ms_message("TurnSocket [%p]: trying to connect to %s:%d", this, mClient->mTurnServerIp.c_str(),
 			   mClient->mTurnServerPort);
 
-	int error = ::connect(mSocket, ai->ai_addr, ai->ai_addrlen);
+	int error = ::connect(mSocket, ai->ai_addr, (int) ai->ai_addrlen);
 	if (error != 0 && getSocketErrorCode() != TURN_EWOULDBLOCK && getSocketErrorCode() != TURN_EINPROGRESS) {
 		ms_error("TurnSocket [%p]: connect failed: %s", this, getSocketError());
 		bctbx_freeaddrinfo(ai);
@@ -571,7 +571,7 @@ int TurnSocket::send(std::unique_ptr<Packet> packet) {
 	if (mSsl) {
 		error = mSsl->write(packet->data(), packet->length());
 	} else {
-		error = ::send(mSocket, (const char *)packet->data(), packet->length(), 0);
+		error = ::send(mSocket, (const char *)packet->data(), (int)packet->length(), 0);
 	}
 
 	if (error <= 0) {
@@ -724,7 +724,7 @@ int TurnClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_
 		getsockname(mTurnConnection->mSocket, (struct sockaddr *)&addr, &addrlen);
 		ortp_sockaddr_to_recvaddr((struct sockaddr *)&addr, &msg->recv_addr);
 
-		return p->length();
+		return (int)p->length();
 	}
 
 	return 0;
@@ -737,7 +737,7 @@ int TurnClient::sendto(mblk_t *msg, int flags, const struct sockaddr *to, sockle
 	auto p = std::make_unique<Packet>(msg, true); // Add padding at this point.
 	p->setTimestampCurrent();
 
-	int length = p->length();
+	int length = (int)p->length();
 
 	mTurnConnection->addToSendingQueue(std::move(p));
 

@@ -91,14 +91,14 @@ void H264NalPacker::NaluAggregator::putNalSize(mblk_t *m, size_t sz) {
 
 void H264NalPacker::NaluSpliter::feed(mblk_t *nalu) {
 	mblk_t *m;
-	int payload_max_size = _maxSize - 2; /*minus FU-A header*/
+	size_t payload_max_size = _maxSize - 2; /*minus FU-A header*/
 	uint8_t fu_indicator;
 	uint8_t type = ms_h264_nalu_get_type(nalu);
 	uint8_t nri = ms_h264_nalu_get_nri(nalu);
 	bool start = true;
 
 	H264Tools::nalHeaderInit(&fu_indicator, nri, MSH264NaluTypeFUA);
-	while (nalu->b_wptr - nalu->b_rptr > payload_max_size) {
+	while ((size_t)(nalu->b_wptr - nalu->b_rptr) > payload_max_size) {
 		m = dupb(nalu);
 		nalu->b_rptr += payload_max_size;
 		m->b_wptr = nalu->b_rptr;
