@@ -109,7 +109,7 @@ static void parser_connected_to_c_functions(void) {
 	BC_ASSERT_PTR_NOT_NULL(elem);
 	if (!elem) return;
 	
-	BC_ASSERT_EQUAL(pos, sipmessage.size(), int, "%i");
+	BC_ASSERT_EQUAL((int)pos, (int)sipmessage.size(), int, "%i");
 	
 	sip_response_t *resp = (sip_response_t*)elem;
 	sip_uri_t *from = resp->from;
@@ -268,7 +268,7 @@ static void parser_with_inheritance(void){
 	BC_ASSERT_TRUE(elem != nullptr);
 	if (!elem) return;
 	
-	BC_ASSERT_EQUAL(pos, sipmessage.size(), int, "%i");
+	BC_ASSERT_EQUAL(pos, sipmessage.size(), size_t, "%zu");
 	shared_ptr<SipRequest> request = dynamic_pointer_cast<SipRequest>(elem);
 	BC_ASSERT_TRUE(request != nullptr);
 	if (!request) return;

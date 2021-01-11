@@ -108,7 +108,7 @@ static void aliases_rules(void) {
 	shared_ptr<DebugElement> elem = parser->parseInput("sip-message", sipmessage, &pos);
 	BC_ASSERT_TRUE(elem != nullptr);
 	if (!elem) return;
-	BC_ASSERT_EQUAL(pos, sipmessage.size(), int, "%i");
+	BC_ASSERT_EQUAL((int)pos, (int)sipmessage.size(), int, "%i");
 	BC_ASSERT_TRUE(sipmessage == elem->getValue());
 	list<shared_ptr<DebugElement>> headerNames;
 	elem->findChildren("header-name", headerNames);
