@@ -100,6 +100,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		}
 		if (strcasecmp("Digest",belle_sip_header_www_authenticate_get_scheme(authenticate)) != 0) {
 			belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate", belle_sip_header_www_authenticate_get_scheme(authenticate),resp);
+			belle_sip_list_free(authenticate_lst);
 			return -1;
 		}
 
@@ -133,6 +134,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			break;
 		}
 	}
+	belle_sip_list_free(authenticate_lst);
 
 	if (ha1) {
 		belle_http_header_authorization_t* authorization;
