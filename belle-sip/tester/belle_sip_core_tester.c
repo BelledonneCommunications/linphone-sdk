@@ -314,7 +314,7 @@ static void test_presence_marshal(void) {
 	const bctbx_list_t * parts = belle_sip_multipart_body_handler_get_parts(memory_mpbh);
 	for (i = 0; i < 7 ; i++) {
 		belle_sip_body_handler_t *part = (belle_sip_body_handler_t *)parts->data;
-		BC_ASSERT_EQUAL(belle_sip_body_handler_get_size(part), strlen(parts_content[i]), int, "%i");
+		BC_ASSERT_EQUAL((int)belle_sip_body_handler_get_size(part), (int)strlen(parts_content[i]), int, "%i");
 		parts = parts->next;
 	}
 	

@@ -141,7 +141,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	if (stack->test_bind_port != 0){
 		struct addrinfo *bind_ai = bctbx_ip_address_to_addrinfo(ai->ai_family, SOCK_STREAM, ai->ai_family == AF_INET6 ? "::0" : "0.0.0.0", stack->test_bind_port); 
 		
-		err = bctbx_bind(sock, bind_ai->ai_addr, bind_ai->ai_addrlen);
+		err = bctbx_bind(sock, bind_ai->ai_addr, (socklen_t)bind_ai->ai_addrlen);
 		if (err != 0){
 			belle_sip_error("bctbx_bind failed: [%s]",belle_sip_get_socket_error_string());
 			belle_sip_close_socket(sock);

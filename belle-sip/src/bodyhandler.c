@@ -480,7 +480,7 @@ static void belle_sip_buffering_recv(belle_sip_body_handler_buffer_t *buffer, of
 			uint8_t *next_buffer_input = input + *size - buffer->index;
 
 			*size = total_size - buffer->index; /* size must be 0 mod (buffer index) */
-			buffer->next_offset += *size;
+			buffer->next_offset += (off_t)*size;
 			/* create this chunk */
 			if (bufferized_size > 0) { /* if we had some previously buffered data, prepend, otherwise, directly use the input, the modified size will do the trick */
 				*output = (uint8_t *)belle_sip_malloc(*size);
@@ -494,7 +494,7 @@ static void belle_sip_buffering_recv(belle_sip_body_handler_buffer_t *buffer, of
 			memcpy(buffer->data, next_buffer_input, buffer->index);
 		} else if (*size == 0 ) { /* this is the end, pass the content of the buffer */
 			*size = buffer->index;
-			buffer->next_offset += *size;
+			buffer->next_offset += (off_t)*size;
 			*output = buffer->data;
 		} else { /* just add the current chunk into the buffer */
 			memcpy(buffer->data+buffer->index, input, *size);
