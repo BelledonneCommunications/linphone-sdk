@@ -164,12 +164,12 @@ job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     LINPHONESDK_PLATFORM: UWP
-	
+
 job-windows-vs2017-win32store-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
-	
+
 
 #TODO : FACTORIZE TESTERS CODE
 
