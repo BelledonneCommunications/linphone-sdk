@@ -10,8 +10,8 @@ job-windows-vs2017-nuget-package:
     - job-windows-vs2017-uwp-scheduled
   only:
     variables:
+      - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
-      - $PACKAGE_RUN_WINDOWS
       - $NIGHTLY_RELEASE
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"

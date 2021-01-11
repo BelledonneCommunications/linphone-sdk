@@ -184,10 +184,11 @@ job-windows-vs2017-win32-upload:
     variables:
       - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   dependencies:
     - job-windows-vs2017-win32-scheduled
   script:
-    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
     
 job-windows-vs2017-uwp-upload:
   stage: deploy
@@ -196,10 +197,11 @@ job-windows-vs2017-uwp-upload:
     variables:
       - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   dependencies:
     - job-windows-vs2017-uwp-scheduled
   script:
-    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
 
 job-windows-vs2017-nuget-upload:
   stage: deploy
@@ -208,10 +210,11 @@ job-windows-vs2017-nuget-upload:
     variables:
       - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   dependencies:
     - job-windows-vs2017-nuget-package
   script:
-    - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+    - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
 
 #################################################
 # Debian doc upload
