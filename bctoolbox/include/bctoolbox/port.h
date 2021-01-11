@@ -141,13 +141,107 @@ unsigned long __bctbx_thread_self(void);
 #if defined(__MINGW32__) || !defined(WINAPI_FAMILY_PARTITION) || !defined(WINAPI_PARTITION_DESKTOP)
 #define BCTBX_WINDOWS_DESKTOP 1
 #elif defined(WINAPI_FAMILY_PARTITION)
+//WINAPI_PARTITION_PC_APP => UWP
+//WINAPI_PARTITION_DESKTOP => Win32 Only
+//WINAPI_PARTITION_PHONE_APP => Windows Phone Store
+//WINAPI_PARTITION_APP => UWP+Windows Phone Store
+// On UWP, we have : 1001
+// On Desktop : we have : 1101
+// Uncomment line below to check combination
+//#define BCTBX_CHECK_FAMILY
+#ifdef BCTBX_CHECK_FAMILY
+        #if defined (WINAPI_PARTITION_PC_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PC_APP)
+        #define FAMILY1
+        #endif
+        #if defined (WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        #define FAMILY2
+        #endif
+        #if defined (WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
+        #define FAMILY3
+        #endif
+        #if defined (WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
+        #define FAMILY4
+        #endif
+
+        #ifdef FAMILY1
+                #ifdef FAMILY2
+                        #ifdef FAMILY3
+                                #ifdef FAMILY4
+                                        #error 1111
+                                #else
+                                        #error 1110
+                                #endif
+                        #else
+                                #ifdef FAMILY4
+                                        #error 1101
+                                #else
+                                        #error 1100
+                                #endif
+
+                        #endif
+                #else
+                        #ifdef FAMILY3
+                                #ifdef FAMILY4
+                                        #error 1011
+                                #else
+                                        #error 1010
+                                #endif
+                        #else
+                                #ifdef FAMILY4
+                                        #error 1001
+                                #else
+                                        #error 1000
+                                #endif
+
+                        #endif
+                #endif
+        #else
+                #ifdef FAMILY2
+                        #ifdef FAMILY3
+                                #ifdef FAMILY4
+                                        #error 0111
+                                #else
+                                        #error 0110
+                                #endif
+                        #else
+                                #ifdef FAMILY4
+                                        #error 0101
+                                #else
+                                        #error 0100
+                                #endif
+
+                        #endif
+                #else
+                        #ifdef FAMILY3
+                                #ifdef FAMILY4
+                                        #error 0011
+                                #else
+                                        #error 0010
+                                #endif
+                        #else
+                                #ifdef FAMILY4
+                                        #error 0001
+                                #else
+                                        #error 0000
+                                #endif
+
+                        #endif
+                #endif
+        #endif
+#endif
+
 #if defined(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
 #define BCTBX_WINDOWS_DESKTOP 1
+#elif defined (WINAPI_PARTITION_PC_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PC_APP)
+#define BCTBX_WINDOWS_DESKTOP 1
+#define BCTBX_WINDOWS_UWP 1
 #elif defined(WINAPI_PARTITION_PHONE_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PHONE_APP)
 #define BCTBX_WINDOWS_PHONE 1
 #elif defined(WINAPI_PARTITION_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP)
 #define BCTBX_WINDOWS_UNIVERSAL 1
 #endif
+
+
 #endif
 
 #ifndef BCTBX_DEPRECATED

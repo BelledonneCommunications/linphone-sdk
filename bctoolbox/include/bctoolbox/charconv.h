@@ -74,6 +74,15 @@ BCTBX_PUBLIC char *bctbx_utf8_to_locale (const char *str);
  */
 BCTBX_PUBLIC char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding);
 
+/**
+ * @brief Convert the char string to wide char string. Only available for Windows platform
+ *
+ * @param[in] str string to convert
+ *
+ * @return a pointer to a null-terminated string containing the converted string. NULL on failure.
+ */
+BCTBX_PUBLIC const wchar_t* bctbx_string_to_wide_string(const char* s);
+
 #ifdef __cplusplus
 }
 #endif

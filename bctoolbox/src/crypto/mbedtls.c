@@ -236,7 +236,7 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 		if( mbedtls_cert->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME ) {
 			const mbedtls_x509_sequence *cur = &(mbedtls_cert->subject_alt_names);
 			while (cur != NULL) {
-				ret = bctbx_list_append(ret, bctbx_strndup((const char*)cur->buf.p, cur->buf.len));
+				ret = bctbx_list_append(ret, bctbx_strndup((const char*)cur->buf.p, (int)cur->buf.len));
 				cur = cur->next;
 			}
 		}
@@ -245,7 +245,7 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 		const mbedtls_x509_name *subject = &(mbedtls_cert->subject);
 		while (subject != NULL) { // Certificate should hold only one CN, but be permissive and parse several if they are in the certificate
 			if( MBEDTLS_OID_CMP( MBEDTLS_OID_AT_CN, &subject->oid ) == 0 ) { // subject holds all the distinguished name in asn1 format, get the CN only
-				ret = bctbx_list_append(ret, bctbx_strndup((const char*)subject->val.p, subject->val.len));
+				ret = bctbx_list_append(ret, bctbx_strndup((const char*)subject->val.p, (int)subject->val.len));
 			}
 			subject = subject->next;
 		}

@@ -109,3 +109,9 @@ char *bctbx_utf8_to_locale (const char *str) {
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 	return convert_from_to(str, encoding, "UTF-8");
 }
+
+const wchar_t* bctbx_string_to_wide_string(const char* str){
+// TODO	
+	bctbx_error("Conversion from string to wide string is not implemented");
+    return NULL;
+}

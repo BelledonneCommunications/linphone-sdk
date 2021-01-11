@@ -289,7 +289,7 @@ template <> std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uin
 	mbedtls_gcm_context gcmContext;
 	mbedtls_gcm_init(&gcmContext);
 
-	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), key.size()*8); // key size in bits
+	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), (unsigned int)key.size()*8); // key size in bits
 	if (ret != 0) {
 		mbedtls_gcm_free(&gcmContext);
 		throw BCTBX_EXCEPTION<<"Unable to set key in AES_GCM context : return value "<<ret;
@@ -317,7 +317,7 @@ template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, cons
 
 	mbedtls_gcm_context gcmContext;
 	mbedtls_gcm_init(&gcmContext);
-	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), key.size()*8); // key size in bits
+	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(), (unsigned int)key.size()*8); // key size in bits
 	if (ret != 0) {
 		mbedtls_gcm_free(&gcmContext);
 		throw BCTBX_EXCEPTION<<"Unable to set key in AES_GCM context : return value "<<ret;
