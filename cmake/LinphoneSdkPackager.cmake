@@ -43,11 +43,11 @@ endif()
 
 ExcludeFromList(USER_ARGS LINPHONESDK_PACKAGER ${USER_ARGS})
 if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
-	if(LINPHONESDK_DESKTOP_ZIP_PATH AND LINPHONESDK_UWP_ZIP_PATH)
+	if(LINPHONESDK_DESKTOP_ZIP_PATH OR LINPHONESDK_UWP_ZIP_PATH)
 		project(nuget)
 		set(LINPHONESDK_OUTPUT_DIR ${CMAKE_BINARY_DIR}/WORK/packages/nuget)
 		add_custom_target( unzip ALL)
-		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E rm -rRf ${LINPHONESDK_OUTPUT_DIR})
+		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove_directory ${LINPHONESDK_OUTPUT_DIR})
 		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR})
 #--------------		Desktop x86		
 		FILE(GLOB DESKTOP_ZIP_FILES ${LINPHONESDK_DESKTOP_ZIP_PATH}/*.zip)
@@ -84,7 +84,7 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 			ALWAYS 1
 	)
 	else()
-		message(FATAL_ERROR "You need specify LINPHONESDK_DESKTOP_ZIP_PATH and LINPHONESDK_UWP_ZIP_PATH")
+		message(FATAL_ERROR "You need specify LINPHONESDK_DESKTOP_ZIP_PATH or LINPHONESDK_UWP_ZIP_PATH")
 	set(_packager_depends)
 	
 #--------------		Desktop x86

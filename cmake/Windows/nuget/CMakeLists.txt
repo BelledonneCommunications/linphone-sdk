@@ -35,7 +35,7 @@ endif()
 
 #Nuget binary
 find_program(NUGET_PROGRAM nuget.exe)
-if(NUGET_PROGRAM-NOTFOUND)
+if(NOT NUGET_PROGRAM)
 	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/nuget.exe DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 	set(NUGET_PROGRAM "nuget.exe")
 endif()
