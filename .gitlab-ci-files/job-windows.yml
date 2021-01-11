@@ -153,6 +153,10 @@ job-windows-vs2017-win32-scheduled:
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
