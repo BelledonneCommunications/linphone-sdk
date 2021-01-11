@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>LinphoneSDK</id>
+    <version>@LINPHONESDK_VERSION@</version>
+    <authors>Belledonne Communications</authors>
+    <owners>Belledonne Communications</owners>
+    <licenseUrl>https://www.gnu.org/licenses/gpl-3.0.html</licenseUrl>
+    <projectUrl>https://linphone.org/</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/BelledonneCommunications/linphone-windows10/master/Linphone/Assets/logo-BC.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Linphone SDK</description>
+    <releaseNotes>Nothing new</releaseNotes>
+    <copyright>Copyright 2017-2020 Belledonne Communications</copyright>
+    <tags>SIP</tags>
+    <dependencies>
+        <group targetFramework="UAP10.0" />
+    </dependencies>
+    </metadata>
+    <files>
+	
+<!-- X86 Win32 -->		
+		<file src="$OutputSdkDir$\desktop\bin\*.winmd" target="lib\UAP10.0\" />
+		<file src="$OutputSdkDir$\desktop\bin\**\*.*" target="lib\UAP10.0\x86" exclude="**\*.pc;**\cmake\**"/>
+		<file src="$OutputSdkDir$\desktop\lib\**\*.*" target="lib\UAP10.0\x86" exclude="**\*.pc;**\cmake\**"/>
+<!-- ************************************************************************************* -->
+
+<!-- X64 UWP -->
+		<file src="$OutputSdkDir$\uwp-x64\bin\**\*.*" target="lib\UAP10.0\x64" exclude="**\*.pc;**\cmake\**"/>
+		<file src="$OutputSdkDir$\uwp-x64\lib\**\*.*" target="lib\UAP10.0\x64" exclude="**\*.pc;**\cmake\**"/>
+<!-- ************************************************************************************* -->
+
+<!-- Generic Data -->
+		<file src="$OutputSdkDir$\uwp-x64\share\**\*" exclude="**\cmake\**" target="content\" />
+		<file src="LinphoneSDK.targets" target="build\UAP10.0" />
+		
+    </files>
+</package>
