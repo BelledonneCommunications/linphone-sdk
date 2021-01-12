@@ -41,7 +41,7 @@ struct belle_http_provider{
 	belle_sip_list_t *tcp_channels;
 	belle_sip_list_t *tls_channels;
 	belle_tls_crypto_config_t *crypto_config;
-	bool_t https_only; /**< when true, forbid connection using tcp channels */
+	uint8_t transports; /**< a mask of enabled transports, availables: BELLE_SIP_HTTP_TRANSPORT_TCP and BELLE_SIP_HTTP_TRANSPORT_TLS */
 };
 
 #define BELLE_HTTP_REQUEST_INVOKE_LISTENER(obj,method,arg) \
@@ -411,13 +411,13 @@ static void http_provider_uninit(belle_http_provider_t *obj){
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_http_provider_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_http_provider_t,belle_sip_object_t,http_provider_uninit,NULL,NULL,FALSE);
 
-belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char *bind_ip, bool_t https_only){
+belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char *bind_ip, const uint8_t transports){
 	belle_http_provider_t *p=belle_sip_object_new(belle_http_provider_t);
 	p->stack=s;
 	p->bind_ip=belle_sip_strdup(bind_ip);
 	p->ai_family=strchr(p->bind_ip,':') ? AF_INET6 : AF_INET;
 	p->crypto_config=belle_tls_crypto_config_new();
-	p->https_only=https_only;
+	p->transports=transports;
 	return p;
 }
 
@@ -505,9 +505,9 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 	}
 	if (!chan){
 		if (strcasecmp(hop->transport,"tcp")==0){
-			if (obj->https_only == TRUE) {
+			if ((obj->transports & BELLE_SIP_HTTP_TRANSPORT_TCP)==0) {
 				char *uri_as_string = belle_generic_uri_to_string(req->orig_uri ? req->orig_uri : req->req_uri);
-				belle_sip_error("%s: cannot process request to [%s] as this provider is configured to process https requests only",
+				belle_sip_error("%s: cannot process request to [%s] as this provider is not configured to process http requests",
 						__FUNCTION__, uri_as_string);
 				belle_sip_free(uri_as_string);
 				belle_sip_object_unref(hop);
@@ -515,6 +515,14 @@ int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_requ
 			}
 			chan=belle_sip_stream_channel_new_client(obj->stack,obj->bind_ip,0,hop->cname,hop->host,hop->port, FALSE);
 		} else if (strcasecmp(hop->transport,"tls")==0){
+			if ((obj->transports & BELLE_SIP_HTTP_TRANSPORT_TLS)==0) {
+				char *uri_as_string = belle_generic_uri_to_string(req->orig_uri ? req->orig_uri : req->req_uri);
+				belle_sip_error("%s: cannot process request to [%s] as this provider is not configured to process https requests",
+						__FUNCTION__, uri_as_string);
+				belle_sip_free(uri_as_string);
+				belle_sip_object_unref(hop);
+				return -1;
+			}
 			chan=belle_sip_channel_new_tls(obj->stack,obj->crypto_config,obj->bind_ip,0,hop->cname,hop->host,hop->port, FALSE);
 		}
 

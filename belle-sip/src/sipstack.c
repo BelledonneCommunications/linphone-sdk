@@ -268,12 +268,11 @@ belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, bell
 }
 
 belle_http_provider_t *belle_sip_stack_create_http_provider(belle_sip_stack_t *s, const char *bind_ip){
-	belle_http_provider_t *p=belle_http_provider_new(s, bind_ip, FALSE);
-	return p;
+	return belle_sip_stack_create_http_provider_with_transports(s, bind_ip, BELLE_SIP_HTTP_TRANSPORT_TCP|BELLE_SIP_HTTP_TRANSPORT_TLS);
 }
 
-belle_http_provider_t *belle_sip_stack_create_https_only_provider(belle_sip_stack_t *s, const char *bind_ip){
-	belle_http_provider_t *p=belle_http_provider_new(s, bind_ip, TRUE);
+belle_http_provider_t *belle_sip_stack_create_http_provider_with_transports(belle_sip_stack_t *s, const char *bind_ip, const uint8_t transports){
+	belle_http_provider_t *p=belle_http_provider_new(s, bind_ip, transports);
 	return p;
 }
 

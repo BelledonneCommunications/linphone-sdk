@@ -83,7 +83,7 @@ static int http_before_all(void) {
 	belle_sip_tester_set_dns_host_file(stack);
 
 	prov=belle_sip_stack_create_http_provider(stack,"0.0.0.0");
-	prov_https_only=belle_sip_stack_create_https_only_provider(stack,"0.0.0.0");
+	prov_https_only=belle_sip_stack_create_http_provider_with_transports(stack,"0.0.0.0",BELLE_SIP_HTTP_TRANSPORT_TLS); // Enable TLS transport only
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
 		belle_tls_crypto_config_t *crypto_config=belle_tls_crypto_config_new();
 		belle_tls_crypto_config_set_root_ca(crypto_config,belle_sip_tester_get_root_ca_path());

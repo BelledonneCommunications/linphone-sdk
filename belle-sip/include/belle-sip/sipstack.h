@@ -54,7 +54,18 @@ BELLESIP_EXPORT belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_
 
 BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider(belle_sip_stack_t *s, const char *bind_ip);
 
-BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_https_only_provider(belle_sip_stack_t *s, const char *bind_ip);
+#define BELLE_SIP_HTTP_TRANSPORT_TCP 0x01
+#define BELLE_SIP_HTTP_TRANSPORT_TLS 0x02
+/**
+ * Create a HTTP provider attached to a given stack enabling specific transports
+ * @param[in]	s	The stack to attach the transport
+ * @param[in]	bind_ip
+ * @param[in]	transports a mask of authorized transports for this provider, availables are BELLE_SIP_HTTP_TRANSPORT_TCP and BELLE_SIP_HTTP_TRANSPORT_TLS
+ *
+ * @return The HTTP provider
+ *
+ */
+BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider_with_transports(belle_sip_stack_t *s, const char *bind_ip, const uint8_t transports);
 
 BELLESIP_EXPORT belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 
