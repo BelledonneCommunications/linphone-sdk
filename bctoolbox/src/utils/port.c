@@ -520,9 +520,10 @@ bctbx_pipe_t bctbx_server_pipe_create(const char *name){
 	bctbx_pipe_t h;
 	char *pipename=make_pipe_name(name);
 #ifdef BCTBX_WINDOWS_UWP
-	h=CreateNamedPipe(bctbx_string_to_wide_string(pipename),PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
+	wchar_t * wPipename = bctbx_string_to_wide_string(pipename);
+	h=CreateNamedPipe(wPipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
 						32768,32768,0,NULL);
-	
+	bctbx_free(wPipename);
 #else
 	h=CreateNamedPipe(pipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
 						32768,32768,0,NULL);
@@ -638,11 +639,17 @@ static bctbx_list_t *maplist=NULL;
 
 void *bctbx_shm_open(unsigned int keyid, int size, int create){
 #ifdef BCTBX_WINDOWS_DESKTOP
-	HANDLE h;
-	char name[64];
+	HANDLE h;	
 	void *buf;
-
+#ifdef BCTBX_WINDOWS_UWP
+	char nameBuf[64];
+	snprintf(nameBuf,sizeof(nameBuf),"%x",keyid);
+	wchar_t * name = bctbx_string_to_wide_string(nameBuf);
+#else
+	char name[64];
 	snprintf(name,sizeof(name),"%x",keyid);
+#endif
+
 	if (create){
 		h = CreateFileMapping(
 			INVALID_HANDLE_VALUE,    // use paging file
@@ -650,20 +657,12 @@ void *bctbx_shm_open(unsigned int keyid, int size, int create){
 			PAGE_READWRITE,          // read/write access
 			0,                       // maximum object size (high-order DWORD)
 			size,                // maximum object size (low-order DWORD)
-#ifdef BCTBX_WINDOWS_UWP
-			bctbx_string_to_wide_string(name));    
-#else			    
 			name);                 // name of mapping object
-#endif
 	}else{
 		h = OpenFileMapping(
 			FILE_MAP_ALL_ACCESS,   // read/write access
 			FALSE,                 // do not inherit the name
-#ifdef BCTBX_WINDOWS_UWP
-			bctbx_string_to_wide_string(name));    
-#else
 			name);               // name of mapping object
-#endif
 	}
 	if (h==(HANDLE)-1) {
 		bctbx_error("Fail to open file mapping (create=%i)",create);
@@ -683,6 +682,9 @@ void *bctbx_shm_open(unsigned int keyid, int size, int create){
 		CloseHandle(h);
 		bctbx_error("MapViewOfFile failed");
 	}
+#ifdef BCTBX_WINDOWS_UWP
+	bctbx_free(name);
+#endif
 	return buf;
 #else
 	bctbx_error("%s not supported!", __FUNCTION__);

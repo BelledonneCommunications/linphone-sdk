@@ -79,9 +79,10 @@ BCTBX_PUBLIC char *bctbx_convert_any_to_utf8 (const char *str, const char *encod
  *
  * @param[in] str string to convert
  *
- * @return a pointer to a null-terminated string containing the converted string. NULL on failure.
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
  */
-BCTBX_PUBLIC const wchar_t* bctbx_string_to_wide_string(const char* s);
+BCTBX_PUBLIC wchar_t* bctbx_string_to_wide_string(const char* s);
 
 #ifdef __cplusplus
 }

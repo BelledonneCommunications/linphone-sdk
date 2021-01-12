@@ -180,14 +180,12 @@ char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 	return convertFromTo(str, encoding, "UTF-8");
 }
 
-const wchar_t* bctbx_string_to_wide_string(const char* str){
+wchar_t* bctbx_string_to_wide_string(const char* str){
     std::string s(str);
     int len;
     int slength = (int)s.length() + 1;
     len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
-    wchar_t* buf = new wchar_t[len];
+    wchar_t* buf = (wchar_t *) bctbx_malloc(len*sizeof(wchar_t));
     MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-    std::wstring r(buf);
-    delete[] buf;
-    return r.c_str();
+    return buf;
 }

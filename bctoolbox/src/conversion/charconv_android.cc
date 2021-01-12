@@ -43,7 +43,7 @@ char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 	return bctbx_strdup(str);
 }
 
-const wchar_t* bctbx_string_to_wide_string(const char* str){
+wchar_t* bctbx_string_to_wide_string(const char* str){
 // TODO	
 	bctbx_error("Conversion from string to wide string is not implemented");
     return NULL;
