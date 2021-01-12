@@ -189,19 +189,6 @@ job-windows-vs2017-win32-upload:
     - job-windows-vs2017-win32-scheduled
   script:
     - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
-    
-job-windows-vs2017-uwp-upload:
-  stage: deploy
-  tags: [ "windows"]
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-  dependencies:
-    - job-windows-vs2017-uwp-scheduled
-  script:
-    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
 
 job-windows-vs2017-nuget-upload:
   stage: deploy
