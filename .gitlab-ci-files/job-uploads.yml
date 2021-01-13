@@ -23,7 +23,7 @@ job-ios-upload:
 
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/test4
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
 
     - echo $UPLOAD_ROOT_DIRECTORY
