@@ -27,7 +27,7 @@ job-ios-upload:
 
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY/test2
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
 
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
