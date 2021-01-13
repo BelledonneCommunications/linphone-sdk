@@ -19,11 +19,11 @@ job-ios-upload:
 
     - LIBLINPHONE_VERSION=4.3-ephemeral
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY/test4
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
 
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/test4
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
 
     - echo $UPLOAD_ROOT_DIRECTORY
