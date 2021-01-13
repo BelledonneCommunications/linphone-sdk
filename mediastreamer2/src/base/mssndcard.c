@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2020 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
  *
@@ -22,6 +22,7 @@
 #endif
 
 #include "mediastreamer2/mssndcard.h"
+#include <bctoolbox/regex.h>
 
 static bool_t bypass_sndcard_detection = FALSE;
 
@@ -73,8 +74,10 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id) {
 	bctbx_list_t *elem;
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard*)elem->data;
+// Exact search
 		if (id == NULL) return card;
-		if (strcmp(ms_snd_card_get_string_id(card), id) == 0) return card;
+		const char * card_id = ms_snd_card_get_string_id(card);
+		if (strcmp(card_id, id) == 0) return card;
 		
 		char * legacy_id = ms_snd_card_get_legacy_string_id(card);
 		if (strcmp(legacy_id, id) == 0) {
@@ -83,6 +86,10 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id) {
 			return card;
 		}
 		ms_free(legacy_id);
+// Regex search on card id that will contains at least "Filter : Model"
+		if( bctbx_is_matching_regex(card_id, id)){
+			return card;
+		}
 	}
 
 	if (id != NULL) ms_warning("no card with id %s", id);
@@ -94,9 +101,10 @@ MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, 
 	for (elem = m->cards; elem != NULL; elem = elem->next) {
 		MSSndCard *card = (MSSndCard*)elem->data;
 		if ((card->capabilities & capabilities) != capabilities) continue;
-
+// Exact search
 		if (id == NULL) return card;
-		if (strcmp(ms_snd_card_get_string_id(card), id) == 0) return card;
+		const char * card_id = ms_snd_card_get_string_id(card);
+		if (strcmp(card_id, id) == 0) return card;
 		
 		char * legacy_id = ms_snd_card_get_legacy_string_id(card);
 		if (strcmp(legacy_id, id) == 0) {
@@ -105,6 +113,10 @@ MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, 
 			return card;
 		}
 		ms_free(legacy_id);
+// Regex search on card id that will contains at least "Filter : Model"
+		if( bctbx_is_matching_regex(card_id, id)){
+			return card;
+		}
 	}
 
 	if (id != NULL) ms_warning("no card with id %s", id);
