@@ -22,7 +22,7 @@
 #endif
 
 #include "mediastreamer2/mssndcard.h"
-#include <bctoolbox/regex.h>
+#include "bctoolbox/regex.h"
 
 static bool_t bypass_sndcard_detection = FALSE;
 

@@ -239,6 +239,8 @@ MS2_PUBLIC void ms_snd_card_manager_set_param_string(MSSndCardManager *m, const 
 
 /**
  * Retreive a sound card object based on it's id.
+ * The id can be a regex string. In this case, the search will be done on "Driver_type : ID."
+ * eg: "PulseAudio?( .*)?:.*Build in.*" will retrieve a card with an ID that contains "Build in" and use the PulseAudio Driver.
  *
  * @param m    A sound card manager containing sound cards.
  * @param id   An id for card to search.
@@ -249,6 +251,8 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const c
 
 /**
  * Retreive a sound card object based on it's id and capabilities.
+ * The id can be a regex string. In this case, the search will be done on "Filter : ID."
+ * eg: "PulseAudio?( .*)?:.*Build-in.*" will retrieve a card with an ID that contains "Build-in" in PulseAudio Filter.
  *
  * @param m    A sound card manager containing sound cards.
  * @param id   An id for card to search.
