@@ -999,11 +999,7 @@ const char * ms_factory_get_default_video_renderer(MSFactory *f) {
 	return "MSWP8Dis";
 #elif defined(MS2_WINDOWS_DESKTOP)
 	// Check if UWP filter is created
-	if (ms_factory_lookup_filter_by_name(f, "MSWinRTBackgroundDis")) {
-		return "MSWinRTBackgroundDis";
-	} else {
-		return "MSDrawDibDisplay";
-	}
+	return "MSOGL";
 #elif defined(__ANDROID__)
 	return "MSAndroidTextureDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
