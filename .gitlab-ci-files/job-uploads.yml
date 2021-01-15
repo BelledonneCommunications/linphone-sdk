@@ -122,12 +122,21 @@ job-android-doc-upload:
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
+    #Only get major and minor version (ex: 4.4) for documentation directory
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY/testAndroid
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
+    - echo $UPLOAD_ROOT_DIRECTORY
     - cd build
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
     - rsync -rlv -e ssh linphone-sdk/bin/docs/javadoc/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java/
