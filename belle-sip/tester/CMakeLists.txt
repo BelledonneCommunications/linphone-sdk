@@ -26,6 +26,9 @@ else()
 	set(PROJECT_LIBS bellesip)
 endif()
 
+list(APPEND PROJECT_LIBS bctoolbox)
+
+
 set(SOURCE_FILES_C
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
@@ -110,9 +113,9 @@ else()
 		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	if(WIN32)
-		target_link_libraries(belle_sip_tester "Ws2_32")
+		target_link_libraries(belle_sip_tester PRIVATE "Ws2_32")
 	endif()
-	target_link_libraries(belle_sip_tester bctoolbox bctoolbox-tester ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_tester PRIVATE ${PROJECT_LIBS} bctoolbox-tester)
 	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
 	if(NOT IOS)
 		install(TARGETS belle_sip_tester
@@ -131,7 +134,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_object_describe bctoolbox ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_object_describe ${PROJECT_LIBS})
 
 	set(OBJECT_RESOLVE_SOURCES resolve.c)
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
@@ -140,7 +143,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_resolve PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_resolve bctoolbox ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_resolve ${PROJECT_LIBS})
 
 	set(PARSE_SOURCES parse.c)
 
@@ -150,7 +153,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_parse bctoolbox ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_parse ${PROJECT_LIBS})
 
 	set(GET_SOURCES get.c)
 
@@ -160,7 +163,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle_sip_http_get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_http_get bctoolbox ${PROJECT_LIBS})
+	target_link_libraries(belle_sip_http_get ${PROJECT_LIBS})
 
 endif()
 
