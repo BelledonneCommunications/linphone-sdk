@@ -68,7 +68,7 @@ public:
 
 	void setName(const std::string &name);
 	const std::string &getName()const;
-	BELR_PUBLIC size_t feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	BELR_PUBLIC size_t feed(ParserContextBase &ctx, const std::string &input, size_t pos);
 	unsigned int getId()const{
 		return mId;
 	}
@@ -84,7 +84,7 @@ protected:
 	/*returns true if the transition map is complete, false otherwise*/
 	virtual bool _getTransitionMap(TransitionMap *mask);
 	virtual void _optimize(int recursionLevel)=0;
-	virtual size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) = 0;
+	virtual size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) = 0;
 
 	std::string mName;
 	unsigned int mId = 0;
@@ -108,7 +108,7 @@ public:
 	CharRecognizer(int to_recognize, bool caseSensitive=false);
 	CharRecognizer(BinaryGrammarBuilder &istr);
 private:
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 	void _optimize(int recursionLevel) override;
 	virtual void _serialize(BinaryOutputStream &fstr) override;
 
@@ -123,11 +123,11 @@ public:
 	Selector(BinaryGrammarBuilder &istr);
 protected:
 	void _optimize(int recursionLevel) override;
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 	bool _getTransitionMap(TransitionMap *mask) override;
 	virtual void _serialize(BinaryOutputStream &fstr) override;
 
-	size_t _feedExclusive(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos);
+	size_t _feedExclusive(ParserContextBase &ctx, const std::string &input, size_t pos);
 
 	std::list<std::shared_ptr<Recognizer>> mElements;
 	bool mIsExclusive = false;
@@ -139,7 +139,7 @@ public:
 	ExclusiveSelector();
 	ExclusiveSelector(BinaryGrammarBuilder &istr);
 private:
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 };
 
 class Sequence : public Recognizer{
@@ -154,7 +154,7 @@ protected:
 	void _optimize(int recursionLevel) override;
 
 private:
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 
 	std::list<std::shared_ptr<Recognizer>> mElements;
 };
@@ -171,7 +171,7 @@ protected:
 	void _optimize(int recursionLevel) override;
 
 private:
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 
 	std::shared_ptr<Recognizer> mRecognizer;
 	int mMin = 0;
@@ -195,7 +195,7 @@ public:
 private:
 	virtual void _serialize(BinaryOutputStream &fstr) override;
 	void _optimize(int recursionLevel) override;
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 
 	int mBegin;
 	int mEnd;
@@ -210,7 +210,7 @@ public:
 private:
 	void _optimize(int recursionLevel) override;
 	virtual void _serialize(BinaryOutputStream &fstr) override;
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 
 	std::string mLiteral;
 	size_t mLiteralSize;
@@ -237,7 +237,7 @@ public:
 private:
 	void _optimize(int recursionLevel) override;
 	virtual void _serialize(BinaryOutputStream &fstr) override;
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 
 	std::shared_ptr<Recognizer> mRecognizer;
 };
@@ -259,7 +259,7 @@ public:
 private:
 	void _optimize(int recursionLevel) override;
 	virtual void _serialize(BinaryOutputStream &fstr) override;
-	size_t _feed(const std::shared_ptr<ParserContextBase> &ctx, const std::string &input, size_t pos) override;
+	size_t _feed(ParserContextBase &ctx, const std::string &input, size_t pos) override;
 	std::shared_ptr<Recognizer> mRecognizer;
 };
 

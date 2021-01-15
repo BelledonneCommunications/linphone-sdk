@@ -46,6 +46,12 @@ inline T universal_pointer_cast(const std::shared_ptr<U>& sp){
 	return std::static_pointer_cast<typename T::element_type>(sp);
 }
 
+
+//template <class T, class U>
+//inline std::shared_ptr<T> universal_pointer_cast(const std::shared_ptr<U>& sp){
+//	return std::static_pointer_cast<T>(sp);
+//}
+
 template <class T, class U>
 inline T universal_pointer_cast(U * p){
 	return static_cast<T>(p);
@@ -85,7 +91,9 @@ private:
 	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_floating_point<_valueT>::value, _parserElementT>::type child){
 	}
 	template <typename _valueT>
-	inline void _invokeWithChild(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, _parserElementT>::value, _parserElementT>::type child){
+	inline void _invokeWithChild(
+		typename std::enable_if< std::is_convertible<typename _functorT::first_argument_type, _parserElementT>::value, _parserElementT>::type obj, 
+		typename std::enable_if< std::is_convertible<_valueT, _parserElementT>::value, _parserElementT>::type child ){
 		mFunc(universal_pointer_cast<typename std::remove_reference<typename _functorT::first_argument_type>::type>(obj), 
 			universal_pointer_cast<typename std::remove_reference<typename _functorT::second_argument_type>::type>(child));
 	}
@@ -126,6 +134,7 @@ private:
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
 };
 
+
 template <typename _createElementFn, typename _parserElementT>
 class ParserHandler :  public ParserHandlerBase<_parserElementT>{
 public:
@@ -147,7 +156,6 @@ private:
 	}
 	template <typename _funcT>
 	typename std::enable_if<std::is_convertible<_funcT, std::function<_derivedParserElementT()>>::value, _derivedParserElementT>::type _invoke(const std::string &value, size_t begin, size_t count){
-		// Case where the create func accepts two strings for rulename and matched characters.
 		return mHandlerCreateFunc();
 	}
 	_createElementFn mHandlerCreateFunc;
@@ -293,11 +301,11 @@ public:
 	BELR_PUBLIC std::shared_ptr<DebugElement> parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size);
 };
 
-//Utility functions for handlers/collectors objects instantiation and properties accessors
-template <typename _retT>
-inline std::function< std::shared_ptr<_retT> ()> make_fn() {
-	return std::bind(&std::make_shared<_retT>);
-}
+//
+// Utility functions for handlers/collectors objects instantiation and properties accessors
+//
+
+/* For parser relying on raw pointers */
 
 template <typename _retT>
 inline std::function< _retT ()> make_fn(_retT (*arg)()){
@@ -327,6 +335,13 @@ inline std::function< _retT (_arg1T, const std::string &)> make_fn(_retT (*arg)(
 template <typename _klassT, typename _argT>
 inline std::function< void (_klassT*,_argT)> make_fn(void (_klassT::*arg)(_argT)){
 	return std::function< void (_klassT*,_argT)>(std::mem_fn(arg));
+}
+
+/* For parsers using shared_ptr<> */
+
+template <typename _retT>
+inline std::function< std::shared_ptr<_retT> ()> make_fn() {
+	return std::bind(&std::make_shared<_retT>);
 }
 
 template <typename _klassT, typename _argT>
@@ -487,7 +502,7 @@ inline void ParserContext<_parserElementT>::_beginParse(ParserLocalContext & lct
 	if (mHandlerStack.empty()){
 		fatal("Cannot parse when mHandlerStack is empty. You must define a top-level rule handler.");
 	}
-	lctx.set(ctx,rec,mHandlerStack.back()->getLastIterator());
+	lctx.set(ctx, rec, mHandlerStack.back()->getLastIterator());
 }
 
 template <typename _parserElementT>
@@ -615,14 +630,21 @@ template <typename _parserElementT>
 _parserElementT Parser<_parserElementT>::parseInput(const std::string &rulename, const std::string &input, size_t *parsed_size){
 	size_t parsed;
 	std::shared_ptr<Recognizer> rec=mGrammar->getRule(rulename);
-	auto pctx=std::make_shared<ParserContext<_parserElementT>>(*this);
+	ParserContext<_parserElementT> pctx(*this);
+	
+	auto h=getHandler(rec->getId());
+	if (!h){
+		std::ostringstream str;
+		str<<"There is no handler for rule '"<<rulename<<"'.";
+		fatal(str.str().c_str());
+	}
 
 	//auto t_start = std::chrono::high_resolution_clock::now();
 	parsed=rec->feed(pctx, input, 0);
 	//auto t_end = std::chrono::high_resolution_clock::now();
 	//cout<<"Recognition done in "<<std::chrono::duration<double, std::milli>(t_end-t_start).count()<<" milliseconds"<<std::endl;
 	if (parsed_size) *parsed_size=parsed;
-	auto ret= pctx->createRootObject(input, parsed);
+	auto ret= pctx.createRootObject(input, parsed);
 	return ret;
 }
 }

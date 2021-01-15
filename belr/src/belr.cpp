@@ -30,6 +30,24 @@ void fatal(const char *message){
 	bctbx_fatal("%s", message);
 }
 
+/* Dummy ParserContext, actually used for optimization phase, to let invoke the feed() function without
+ * instanciating anything.*/
+class DummyParserContext : public ParserContextBase{
+public:
+	virtual void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec) override{
+	}
+	virtual void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count) override{
+	}
+	virtual std::shared_ptr<HandlerContextBase> branch() override{
+		return nullptr;
+	}
+	virtual void merge(const std::shared_ptr<HandlerContextBase> &other) override{
+	}
+	virtual void removeBranch(const std::shared_ptr<HandlerContextBase> &other) override{
+	}
+};
+
+
 // =============================================================================
 
 TransitionMap::TransitionMap(){
@@ -170,7 +188,7 @@ const string &Recognizer::getName()const{
 	return mName;
 }
 
-size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t Recognizer::feed(ParserContextBase &ctx, const string &input, size_t pos){
 	size_t match;
 
 #ifdef BELR_DEBUG
@@ -178,7 +196,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 #endif
 
 	ParserLocalContext hctx;
-	if (ctx) ctx->beginParse(hctx, shared_from_this());
+	ctx.beginParse(hctx, shared_from_this());
 	match=_feed(ctx, input, pos);
 	if (match!=string::npos && match>0){
 		#ifdef BELR_DEBUG
@@ -188,7 +206,7 @@ size_t Recognizer::feed(const shared_ptr<ParserContextBase> &ctx, const string &
 			}
 		#endif
 	}
-	if (ctx) ctx->endParse(hctx, input, pos, match);
+	ctx.endParse(hctx, input, pos, match);
 
 	return match;
 }
@@ -212,7 +230,8 @@ bool Recognizer::_getTransitionMap(TransitionMap* mask){
 	input.resize(2,'\0');
 	for(int i=0;i<256;++i){
 		input[0]=i;
-		if (feed(nullptr,input,0)==1)
+		DummyParserContext pctx;
+		if (feed(pctx,input,0)==1)
 			mask->mPossibleChars[i]=true;
 	}
 	return true;
@@ -237,7 +256,7 @@ CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive) : mToRecogn
 	}
 }
 
-size_t CharRecognizer::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t CharRecognizer::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	int c = (unsigned char)input[pos];
 	if (mCaseSensitive){
 		return c == mToRecognize ? 1 : string::npos;
@@ -278,7 +297,7 @@ bool Selector::_getTransitionMap(TransitionMap* mask){
 	return true;
 }
 
-size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t Selector::_feedExclusive(ParserContextBase &ctx, const string &input, size_t pos){
 	size_t matched=0;
 
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
@@ -290,7 +309,7 @@ size_t Selector::_feedExclusive(const shared_ptr<ParserContextBase> &ctx, const 
 	return string::npos;
 }
 
-size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t Selector::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	if (mIsExclusive) return _feedExclusive(ctx, input, pos);
 
 	size_t matched=0;
@@ -299,20 +318,19 @@ size_t Selector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &i
 
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		shared_ptr<HandlerContextBase> br;
-		if (ctx) br=ctx->branch();
+		br = ctx.branch();
 		matched=(*it)->feed(ctx, input, pos);
 		if (matched!=string::npos && matched>bestmatch) {
 			bestmatch=matched;
-			if (bestBranch) ctx->removeBranch(bestBranch);
+			if (bestBranch) ctx.removeBranch(bestBranch);
 			bestBranch=br;
 		}else{
-			if (ctx)
-				ctx->removeBranch(br);
+			ctx.removeBranch(br);
 		}
 	}
 	if (bestmatch==0) return string::npos;
-	if (ctx && bestmatch!=string::npos){
-		ctx->merge(bestBranch);
+	if (bestmatch!=string::npos){
+		ctx.merge(bestBranch);
 	}
 	return bestmatch;
 }
@@ -341,6 +359,11 @@ Selector::Selector(BinaryGrammarBuilder& istr) : Recognizer(istr){
 }
 
 
+/* The purpose of the optimization is to determine if a selector is exclusive, ie that only a single branch can match.
+ * This is done by examining if the character transitions to jump to each branch (sub-recognizers) do intersect.
+ * If no, it means that the first branch that will match during the parsing will necessarily be the good one, so that there is no need to 
+ * examine others.
+ */
 void Selector::_optimize(int recursionLevel){
 	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
 		(*it)->optimize(recursionLevel);
@@ -373,7 +396,7 @@ ExclusiveSelector::ExclusiveSelector() : Selector(true){
 ExclusiveSelector::ExclusiveSelector(BinaryGrammarBuilder &istr) : Selector(istr){
 }
 
-size_t ExclusiveSelector::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t ExclusiveSelector::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	return Selector::_feedExclusive(ctx, input, pos);
 }
 
@@ -395,7 +418,7 @@ bool Sequence::_getTransitionMap(TransitionMap* mask){
 }
 
 
-size_t Sequence::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t Sequence::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 
@@ -442,7 +465,7 @@ shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int 
 	return static_pointer_cast<Loop>(shared_from_this());
 }
 
-size_t Loop::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t Loop::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	size_t matched=0;
 	size_t total=0;
 	int repeat;
@@ -482,7 +505,7 @@ void Loop::_optimize(int recursionLevel){
 CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end){
 }
 
-size_t CharRange::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t CharRange::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	int c = (unsigned char)input[pos];
 	if (c >= mBegin && c <= mEnd) return 1;
 	return string::npos;
@@ -530,7 +553,7 @@ Literal::Literal(const string& lit) : mLiteral(tolower(lit)), mLiteralSize(mLite
 
 }
 
-size_t Literal::_feed(const shared_ptr< ParserContextBase >& ctx, const string& input, size_t pos){
+size_t Literal::_feed(ParserContextBase &ctx, const string& input, size_t pos){
 	size_t i;
 	for(i=0;i<mLiteralSize;++i){
 		if (::tolower(input[pos+i])!=mLiteral[i]) return string::npos;
@@ -569,7 +592,7 @@ shared_ptr<Recognizer> RecognizerPointer::getPointed(){
 	return mRecognizer;
 }
 
-size_t RecognizerPointer::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t RecognizerPointer::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	if (mRecognizer){
 		return mRecognizer->feed(ctx, input, pos);
 	}else{
@@ -601,7 +624,7 @@ shared_ptr<Recognizer> RecognizerAlias::getPointed(){
 	return mRecognizer;
 }
 
-size_t RecognizerAlias::_feed(const shared_ptr<ParserContextBase> &ctx, const string &input, size_t pos){
+size_t RecognizerAlias::_feed(ParserContextBase &ctx, const string &input, size_t pos){
 	if (mRecognizer){
 		return mRecognizer->feed(ctx, input, pos);
 	}else{

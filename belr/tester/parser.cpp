@@ -127,10 +127,171 @@ static void parser_connected_to_c_functions(void) {
 	sip_response_destroy(resp);
 }
 
+//
+// Parser with inheritance. 
+//
+
+/* Base class for all parser elements*/
+class Object{
+public:
+	virtual ~Object() = default;
+};
+
+/* Base class for SIP headers */
+class SipHeader : public Object{
+public:
+	SipHeader(const string &headerName) : mHeaderName(headerName){}
+	const string &getName()const{
+		return mHeaderName;
+	}
+protected:
+	void setHeaderName(const string &headerName){
+		mHeaderName = headerName;
+	}
+private:
+	string mHeaderName;
+};
+
+/*
+ * The SipHeaderHolder is a kind of container for all possible types of SIP headers.
+ * This special type is needed so that it is possible to parse headers in an unitary way (not in a full message).
+ * It does not have to be part of the parser API. Keep it internal as an utility.
+ */
+class SipHeaderHolder : public Object{
+public:
+	SipHeaderHolder(){};
+	void setHeader(const shared_ptr<SipHeader> &header){
+		mHeader = header;
+	}
+	shared_ptr<SipHeader> getHeader()const{
+		return mHeader;
+	}
+private:
+	shared_ptr<SipHeader> mHeader;
+};
+
+/*
+ * SIP From
+ */
+class SipFrom : public SipHeader{
+public:
+	SipFrom() : SipHeader("From"){};
+	void setUri(const string& uri){
+		mUri = uri;
+	}
+	const string &getUri()const{
+		return mUri;
+	}
+private:
+	string mUri;
+};
+
+/*
+ * Extension header
+ */
+class ExtensionHeader : public SipHeader{
+public:
+	ExtensionHeader() : SipHeader("generic"){};
+	void setName(const string &headerName){
+		SipHeader::setHeaderName(headerName);
+	}
+	void setValue(const string &headerValue){
+		mHeaderValue = headerValue;
+	}
+	const string &getValue()const{
+		return mHeaderValue;
+	}
+private:
+	string mHeaderValue;
+};
+
+/*
+ * SIP request. Contains headers.
+ */
+class SipRequest : public Object{
+public:
+	SipRequest(){};
+	void addHeader(const shared_ptr<SipHeader> &header){
+		mHeaders.push_back(header);
+	}
+	shared_ptr <SipHeader> getHeader(const string &name){
+		for (auto h : mHeaders){
+			if (strcasecmp(h->getName().c_str(), name.c_str()) == 0) return h;
+		}
+		return nullptr;
+	}
+	
+	/* Hide this from the API documentation */
+	void addHeaderHolder(const shared_ptr<SipHeaderHolder> &holder){
+		if (holder->getHeader())
+			addHeader(holder->getHeader());
+	}
+private:
+	list<shared_ptr<SipHeader>> mHeaders;
+};
+
+
+static void parser_with_inheritance(void){
+	string grammarToParse = bcTesterRes("sipgrammar.txt");
+	string sipmessage = openFile(bcTesterRes("register.txt"));
+	size_t pos = 0;
+	
+	BC_ASSERT_TRUE(sipmessage.size() > 0);
+
+	ABNFGrammarBuilder builder;
+
+	//Read grammar put it in object grammar
+	shared_ptr<Grammar> grammar=builder.createFromAbnfFile(grammarToParse, make_shared<CoreRules>());
+
+	BC_ASSERT_FALSE(!grammar);
+	
+	if (!grammar) return;
+	
+	shared_ptr<Parser<shared_ptr<Object>>> parser = make_shared<Parser<shared_ptr<Object>>>(grammar);
+	/* The request collects headers in a generic way, thanks to the SipHeaderHolder. */
+	parser->setHandler("request", make_fn<SipRequest>())
+		->setCollector("message-header", make_sfn(&SipRequest::addHeaderHolder));
+	parser->setHandler("from", make_fn<SipFrom>())
+		->setCollector("sip-uri", make_sfn(&SipFrom::setUri));
+	parser->setHandler("extension-header", make_fn<ExtensionHeader>())
+		->setCollector("header-name", make_sfn(&ExtensionHeader::setName))
+		->setCollector("header-value", make_sfn(&ExtensionHeader::setValue));
+		
+	/* The message-header rule (representing all sub-rules of SIP headers) is handled by the SipHeaderHolder.
+	 * It requires explicit collectors for all sub-rules. */
+	parser->setHandler("message-header", make_fn<SipHeaderHolder>())
+		->setCollector("from", make_sfn(&SipHeaderHolder::setHeader))
+		->setCollector("extension-header", make_sfn(&SipHeaderHolder::setHeader));
+	
+	// Parse the full message
+	shared_ptr<Object> elem = parser->parseInput("request", sipmessage, &pos);
+	BC_ASSERT_TRUE(elem != nullptr);
+	if (!elem) return;
+	
+	BC_ASSERT_EQUAL(pos, sipmessage.size(), int, "%i");
+	shared_ptr<SipRequest> request = dynamic_pointer_cast<SipRequest>(elem);
+	BC_ASSERT_TRUE(request != nullptr);
+	if (!request) return;
+	
+	BC_ASSERT_TRUE(request->getHeader("from") != nullptr);
+	BC_ASSERT_TRUE(request->getHeader("CustomHeader") != nullptr);
+	
+	// Parse a single sip header
+	
+	elem = parser->parseInput("message-header", "From: <sip:bob@example.net>\r\n", &pos);
+	BC_ASSERT_TRUE(elem != nullptr);
+	if (!elem) return;
+	auto holder = dynamic_pointer_cast<SipHeaderHolder>(elem);
+	BC_ASSERT_TRUE(holder != nullptr);
+	if (!holder) return;
+	BC_ASSERT_TRUE(dynamic_pointer_cast<SipFrom>(holder->getHeader()) != nullptr);
+}
+
 
 
 static test_t tests[] = {
 	TEST_NO_TAG("Parser connected to C functions", parser_connected_to_c_functions),
+	TEST_NO_TAG("Parser with inheritance", parser_with_inheritance)
 };
 
 test_suite_t parser_suite = {
