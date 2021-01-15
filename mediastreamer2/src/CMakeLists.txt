@@ -545,11 +545,11 @@ if(ENABLE_SHARED)
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
         endif()
-	target_include_directories(mediastreamer INTERFACE
-		$<INSTALL_INTERFACE:include/>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
-		PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
-	)
+		target_include_directories(mediastreamer INTERFACE
+			$<INSTALL_INTERFACE:include/>
+			$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+			PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
+		)
         target_link_libraries(mediastreamer PRIVATE ${LINK_LIBS})
 	if(IOS)
 		target_link_libraries(mediastreamer INTERFACE "-framework Foundation" "-framework AVFoundation")

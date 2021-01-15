@@ -39,7 +39,7 @@ int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame
 
 
 #ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
-int avcodec_get_context_defaults3 (AVCodecContext *s, const AVCodec *codec) {
+int avcodec_get_context_defaults3 (AVCodecContext *s, AVCodec *codec) {
 	avcodec_get_context_defaults(s);
 	return 0;
 }
@@ -53,7 +53,7 @@ AVCodecContext *avcodec_alloc_context3(AVCodec *codec){
 
 
 #ifndef HAVE_FUN_avcodec_open2 /**/
-int avcodec_open2 (AVCodecContext *avctx, const AVCodec *codec, /*AVDictionary*/ void **options) {
+int avcodec_open2 (AVCodecContext *avctx, AVCodec *codec, AVDictionary **options) {
 	return avcodec_open(avctx, (AVCodec*)codec);
 }
 #endif

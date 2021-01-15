@@ -31,6 +31,7 @@
 #define LOCAL_BORDER_SIZE 2
 
 #include <vfw.h>
+#include <winuser.h> // GWLP_USERDATA
 
 static void draw_background(HDC hdc, MSVideoSize wsize, MSRect mainrect, int color[3]);
 static void erase_window(HWND window, int color[3]);
@@ -116,7 +117,7 @@ static void yuv2rgb_draw(Yuv2RgbCtx *ctx, HDRAWDIB ddh, HDC hdc, int dstx, int d
 		bi.biPlanes=1;
 		bi.biBitCount=24;
 		bi.biCompression=BI_RGB;
-		bi.biSizeImage=ctx->rgblen;
+		bi.biSizeImage=(DWORD)ctx->rgblen;
 
 		DrawDibDraw(ddh,hdc,dstx,dsty,-1,-1,&bi,ctx->rgb,
 			0,0,ctx->dsize.width,ctx->dsize.height,0);
@@ -148,15 +149,15 @@ static LRESULT CALLBACK window_proc(
     WPARAM wParam,    // first message parameter
     LPARAM lParam)    // second message parameter
 {
-	DDDisplay *wd=(DDDisplay*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
+	LONG *wd=(LONG*)GetWindowLongPtr(hwnd,GWLP_USERDATA);
 	switch(uMsg){
 		case WM_CREATE:
-			wd=(DDDisplay*)((LPCREATESTRUCT)lParam)->lpCreateParams;
-			SetWindowLongPtr(hwnd,GWL_USERDATA,(long)wd);
+			wd=(LONG*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+			SetWindowLongPtr(hwnd,GWLP_USERDATA,*wd);
 			break;
 		case WM_DESTROY:
 			if (wd){
-				wd->window=NULL;
+				((DDDisplay*)wd)->window=NULL;
 			}
 		break;
 		case WM_SIZE:
@@ -167,7 +168,7 @@ static LRESULT CALLBACK window_proc(
 				ms_message("Resized to %i,%i",w,h);
 				
 				if (wd!=NULL){
-					wd->need_repaint=TRUE;
+					((DDDisplay*)wd)->need_repaint=TRUE;
 					//wd->window_size.width=w;
 					//wd->window_size.height=h;
 				}else{
@@ -177,7 +178,7 @@ static LRESULT CALLBACK window_proc(
 		break;
 		case WM_PAINT:
 			if (wd!=NULL){
-				wd->need_repaint=TRUE;
+				((DDDisplay*)wd)->need_repaint=TRUE;
 			}
 		default:
 			return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -518,7 +519,7 @@ static void dd_display_process(MSFilter *f){
 static int get_native_window_id(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
 	if(obj->auto_window) {
-		*(long*)data=(long)obj->window;
+		*(HWND*)data=obj->window;
 	} else {
 		*(unsigned long*)data=MS_FILTER_VIDEO_NONE;
 	}
@@ -529,7 +530,7 @@ static int set_native_window_id(MSFilter *f, void *data){
 	DDDisplay *obj=(DDDisplay*)f->data;
 	unsigned long winId = *((unsigned long*)data);
 	if(winId != MS_FILTER_VIDEO_NONE) {
-		obj->window=(HWND)(*(long*)data);
+		obj->window=(HWND)(*(HWND*)data);
 		obj->own_window=FALSE;
 		obj->auto_window=TRUE;
 	} else {

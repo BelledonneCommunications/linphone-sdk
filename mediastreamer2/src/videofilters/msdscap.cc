@@ -661,10 +661,13 @@ static void ms_dshow_detect(MSWebCamManager *obj);
 static MSFilter * ms_dshow_create_reader(MSWebCam *obj){
 	MSFilter *f=ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_dscap_desc);
 	DSCapture *s=(DSCapture*)f->data;
-	s->setDeviceIndex((int)obj->data);
+	s->setDeviceIndex(*(int*)obj->data);
 	return f;
 }
-
+static void ms_dshow_uinit(MSWebCam *cam){
+	if(cam->data)
+		ms_free(cam->data);
+}
 #ifdef _MSC_VER
 extern "C" {
 #endif
@@ -673,6 +676,7 @@ MSWebCamDesc ms_dshow_cam_desc={
 	&ms_dshow_detect,
 	NULL,
 	&ms_dshow_create_reader,
+	&ms_dshow_uinit,
 	NULL
 };
 #ifdef _MSC_VER
@@ -723,7 +727,8 @@ static void ms_dshow_detect(MSWebCamManager *obj){
 		WideCharToMultiByte(CP_ACP,0,var.bstrVal,-1,szName,256,0,0);
 		MSWebCam *cam=ms_web_cam_new(&ms_dshow_cam_desc);
 		cam->name=ms_strdup(szName);
-		cam->data=(void*)i;
+		cam->data=ms_malloc(sizeof(int));
+		*(int*)cam->data = i;
 		ms_web_cam_manager_prepend_cam(obj,cam);
 		VariantClear(&var);
 	}
