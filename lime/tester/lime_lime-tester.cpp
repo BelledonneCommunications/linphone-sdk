@@ -1462,7 +1462,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 				i++;
 			}
 			aliceManager->delete_user(*aliceDeviceId, callback);
-			expected_success += 1+bobManagers.size();
+			expected_success += 1+(int)bobManagers.size();
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -1526,7 +1526,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		size_t SPkCount=0;
 		uint32_t activeSPkId=0;
 		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
-		BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+		BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 		// We will create a bob device and encrypt for each new epoch
 		std::vector<std::unique_ptr<LimeManager>> bobManagers{};
@@ -1572,7 +1572,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			SPkCount=0;
 			activeSPkId=0;
 			BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
-			BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+			BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 			// create a device for bob and use it to encrypt
 			bobManagers.push_back(std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost)));
@@ -1610,7 +1610,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		SPkCount=0;
 		activeSPkId=0;
 		BC_ASSERT_TRUE(lime_tester::get_SPks(dbFilenameAlice, *aliceDeviceId, SPkCount, activeSPkId));
-		BC_ASSERT_EQUAL(SPkCount, SPkExpectedCount, int, "%d");
+		BC_ASSERT_EQUAL((int)SPkCount, (int)SPkExpectedCount, int, "%d");
 
 		// Try to decrypt all message: the first message must fail to decrypt as we just deleted the SPk needed to create the session
 		std::vector<uint8_t> receivedMessage{};
@@ -1630,7 +1630,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 				i++;
 			}
 			aliceManager->delete_user(*aliceDeviceId, callback);
-			expected_success += 1+bobManagers.size();
+			expected_success += 1+(int)bobManagers.size();
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 			remove(dbFilenameAlice.data());
 			remove(dbFilenameBob.data());
@@ -3901,10 +3901,10 @@ static void lime_multithread_test(const lime::CurveId curve, const std::string &
 		// get a mailbox for each of them, same index
 		auto mailbox = make_shared<std::map<std::string, std::shared_ptr<mth_mailbox>>>();
 		auto expectedMessageCount = 9*test_multithread_message_number; // each recipient shall get 9 times the number of expedited messages by each encryption thread
-		mailbox->emplace(std::make_pair(deviceList[0], make_shared<mth_mailbox>(deviceList[0], expectedMessageCount)));
-		mailbox->emplace(std::make_pair(deviceList[1], make_shared<mth_mailbox>(deviceList[1], expectedMessageCount)));
-		mailbox->emplace(std::make_pair(deviceList[2], make_shared<mth_mailbox>(deviceList[2], expectedMessageCount)));
-		mailbox->emplace(std::make_pair(deviceList[3], make_shared<mth_mailbox>(deviceList[3], expectedMessageCount)));
+		mailbox->emplace(std::make_pair(deviceList[0], make_shared<mth_mailbox>(deviceList[0], (int)expectedMessageCount)));
+		mailbox->emplace(std::make_pair(deviceList[1], make_shared<mth_mailbox>(deviceList[1], (int)expectedMessageCount)));
+		mailbox->emplace(std::make_pair(deviceList[2], make_shared<mth_mailbox>(deviceList[2], (int)expectedMessageCount)));
+		mailbox->emplace(std::make_pair(deviceList[3], make_shared<mth_mailbox>(deviceList[3], (int)expectedMessageCount)));
 
 		// create Manager
 		auto aliceManager = std::make_shared<LimeManager>(dbFilenameAlice, X3DHServerPost_mutex);
