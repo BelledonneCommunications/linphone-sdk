@@ -103,17 +103,17 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 		openglLibrary = LoadPackagedLibrary(L"libGLESv2.dll", 0);// UWP compatibility
 #endif
 		if( openglLibrary == NULL ){
-			ms_warning("[MSOpenGL] Function : Fail to load plugin libGLESv2.dll: error %i", (int)GetLastError());
+			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.dll: error %i", (int)GetLastError());
 		}
 	
 #else
 		openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
 		if( openglLibrary == NULL ){
-			ms_warning("[MSOpenGL] Function : Fail to load plugin libGLESv2.so: %s", dlerror());
+			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.so: %s", dlerror());
 		}
 		firstFallbackLibrary = dlopen("libGLEW.so", RTLD_LAZY);
 		if( firstFallbackLibrary == NULL )
-			ms_warning("[MSOpenGL] Function : Fail to load plugin libGLEW.so: %s", dlerror());
+			ms_warning("[ogl_functions] Function : Fail to load plugin libGLEW.so: %s", dlerror());
 	
 #endif// _WIN32
 	f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture);
@@ -165,12 +165,12 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 		openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0);// UWP compatibility
 #endif
 		if( openglLibrary == NULL ){
-			ms_warning("[MSOpenGL] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
+			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
 		}
 #else
 		openglLibrary = dlopen("libEGL.so", RTLD_LAZY);
 		if( openglLibrary == NULL ){
-			ms_warning("[MSOpenGL] Function : Fail to load plugin libEGL.so: %s", dlerror());
+			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());
 		}
 #endif// _WIN32
 	f->eglGetProcAddress = CAST(resolveEGLGetProcAddress, eglGetProcAddress);
@@ -194,6 +194,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->eglDestroyContext = CAST_EGL( resolveEGLDestroyContext, eglDestroyContext);
 	f->eglTerminate = CAST_EGL( resolveEGLTerminate, eglTerminate);
 	
+	f->initialized = TRUE;
 }
 
 #ifdef __cplusplus

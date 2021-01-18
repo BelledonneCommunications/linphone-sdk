@@ -26,16 +26,9 @@
 
 // =============================================================================
 
-struct _ContextInfo {
-	EGLNativeWindowType window;// Set it to use EGL auto managing or else, set sizes below
-	GLuint width;
-	GLuint height;
-	OpenGlFunctions *functions;
-};
-typedef struct _ContextInfo ContextInfo;
-
 struct _FilterData {
-	ContextInfo context_info;
+	MSOglContextInfo context_info;
+	OpenGlFunctions functions;
 
 	struct opengles_display *display;
 
@@ -62,6 +55,7 @@ static void ogl_init (MSFilter *f) {
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;
 	data->prev_inm = NULL;
+	data->functions.initialized = FALSE;
 
 	f->data = data;
 }
@@ -71,9 +65,11 @@ static void ogl_uninit (MSFilter *f) {
 	ogl_display_free(data->display);
 	ms_free(data);
 }
+
+static int ogl_call_render (MSFilter *f, void *arg);
 static void ogl_process (MSFilter *f) {
 	FilterData *data;
-	ContextInfo *context_info;
+	MSOglContextInfo *context_info;
 	MSPicture src;
 	mblk_t *inm;
 
@@ -84,7 +80,6 @@ static void ogl_process (MSFilter *f) {
 
 	// No context given or video disabled.
 	if ( !data->show_video || (!context_info->window && (!context_info->width || !context_info->height)) )
-	//if (!context_info->width || !context_info->height || !data->show_video)
 		goto end;
 
 	if (
@@ -116,6 +111,9 @@ end:
 
 	if (f->inputs[1] != NULL)
 		ms_queue_flush(f->inputs[1]);
+#if defined(MS2_WINDOWS_UWP) || (defined(MS2_WINDOWS_DESKTOP) && defined(ENABLE_MICROSOFT_STORE_APP) )
+	ogl_call_render(f, NULL);
+#endif	
 }
 
 // =============================================================================
@@ -132,21 +130,22 @@ static int ogl_set_video_size (MSFilter *f, void *arg) {
 
 static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 	FilterData *data;
-	ContextInfo *context_info;
+	MSOglContextInfo *context_info;
 
 	ms_filter_lock(f);
 
 	data = (FilterData *)f->data;
-	context_info = *((ContextInfo **)arg);
+	context_info = *((MSOglContextInfo **)arg);
 	if (context_info && (unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] set native window id : %p", (void*)context_info);
-		if(  data->context_info.functions != context_info->functions
+		if(  data->context_info.getProcAddress != context_info->getProcAddress
 				|| (context_info->window && data->context_info.window != context_info->window)
 				|| (!context_info->window && ( data->context_info.width != context_info->width
 					|| data->context_info.height != context_info->height) )
 			){
 			if(data->context_info.window)
 				ogl_display_uninit(data->display, FALSE);
+			data->functions.getProcAddress = context_info->getProcAddress;
 			data->context_info = *context_info;
 			data->update_context = TRUE;
 		}
@@ -199,7 +198,7 @@ static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 
 static int ogl_call_render (MSFilter *f, void *arg) {
 	FilterData *data;
-	const ContextInfo *context_info;
+	const MSOglContextInfo *context_info;
 
 	(void)arg;
 
@@ -210,9 +209,9 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 	if (data->show_video && ( context_info->window || (!context_info->window && context_info->width && context_info->height)) ){
 		if (data->update_context) {
 			if( context_info->window )// Window is set : do EGL initialization
-				ogl_display_auto_init(data->display, context_info->functions, context_info->window);
+				ogl_display_auto_init(data->display, &data->functions, context_info->window);
 			else// Just use input size as it is needed for viewport
-				ogl_display_init(data->display, context_info->functions, context_info->width, context_info->height);
+				ogl_display_init(data->display, &data->functions, context_info->width, context_info->height);
 			data->update_context = FALSE;
 		}
 
