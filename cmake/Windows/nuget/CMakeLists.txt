@@ -23,9 +23,44 @@
 cmake_minimum_required(VERSION 3.2)
 
 project(uwp-nuget)
+
+#Configuration
+
+if(NUSPEC_HAVE_WIN32)
+	set(NUSPEC_WIN32 "<file src=\"$OutputSdkDir$\\desktop\\desktop\\bin\\*.winmd\" target=\"lib\\win\\\" />
+			<file src=\"$OutputSdkDir$\\desktop\\desktop\\bin\\**\\*.*\" target=\"lib\\win\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"$OutputSdkDir$\\desktop\\desktop\\lib\\**\\*.*\" target=\"lib\\win\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"LinphoneSDK.targets\" target=\"build\\win\" />
+			")
+endif()
+
+if(NUSPEC_HAVE_WINDOWSSTORE)
+	set(NUSPEC_WINDOWSSTORE "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\*.winmd\" target=\"lib\\netcore50\\\" />
+		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\**\\*.*\" target=\"lib\\netcore50\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\lib\\**\\*.*\" target=\"lib\\netcore50\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+		<file src=\"LinphoneSDK.targets\" target=\"build\\netcore50\" />
+		")
+endif()
+
+if(NUSPEC_HAVE_UWP)
+	set(NUSPEC_UWP "<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
+			<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\bin\\**\\*.*\" target=\"lib\\uap10.0\\x64\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\lib\\**\\*.*\" target=\"lib\\uap10.0\\x64\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"LinphoneSDK.targets\" target=\"build\\UAP10.0\" />
+			")
+endif()
+
+if(NUSPEC_HAVE_UWP)
+	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+elseif(NUSPEC_HAVE_WINDOWSSTORE)
+	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+else()
+	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\desktop\\desktop\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")	
+endif()
+
 #Configuration files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.nuspec.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.nuspec @ONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.props.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.props @ONLY)
+#configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.props.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.props @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.targets.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.targets @ONLY)
 if(LINPHONESDK_OUTPUT_DIR)
 	file(TO_NATIVE_PATH "${LINPHONESDK_OUTPUT_DIR}" WINDOWS_INSTALL_PATH)

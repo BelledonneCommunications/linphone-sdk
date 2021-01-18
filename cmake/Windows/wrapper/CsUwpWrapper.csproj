@@ -10,9 +10,9 @@
     <RootNamespace>CsWrapper</RootNamespace>
     <AssemblyName>CsWrapper</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
-    <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
+    <TargetPlatformIdentifier>uap</TargetPlatformIdentifier>
     <TargetPlatformVersion Condition=" '$(TargetPlatformVersion)' == '' ">10.0.17763.0</TargetPlatformVersion>
-    <TargetFramework>UAP,Version=v10.0</TargetFramework>
+    <TargetFramework>uap,Version=v10.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.10240.0</TargetPlatformMinVersion>
     <MinimumVisualStudioVersion>14</MinimumVisualStudioVersion>
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>

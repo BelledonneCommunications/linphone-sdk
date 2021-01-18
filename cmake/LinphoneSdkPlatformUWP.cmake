@@ -64,13 +64,15 @@ foreach(_arch IN LISTS _archs)
 		#list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=x64")
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR} Win64")#Only for VS 2017
 		#set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
+		message("A")
 	else()
 		list(APPEND _cmake_args "-DCMAKE_SYSTEM_PROCESSOR=${_arch}")
 		list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=Win32")
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
+		message("B")
 	endif()
 	
-	list(APPEND _cmake_args ${_enable_cmake_args})
+	list(APPEND _cmake_args ${_enable_cmake_args} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
 	
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
@@ -84,7 +86,7 @@ foreach(_arch IN LISTS _archs)
 	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_VERSION ${_inherited_cmake_args})
 	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_PROCESSOR ${_inherited_cmake_args})
 	ExcludeFromList(_cmake_cache_args CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD ${_inherited_cmake_args})
-	message("${_arch} : ${_cmake_args}")
+	message("${_arch} : ${_cmake_args}, ${SYSTEM_GENERATOR}")
 	ExternalProject_Add(uwp-${_arch}
 		${_ep_depends}
 		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"

@@ -43,37 +43,80 @@ endif()
 
 ExcludeFromList(USER_ARGS LINPHONESDK_PACKAGER ${USER_ARGS})
 if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
-	if(LINPHONESDK_DESKTOP_ZIP_PATH OR LINPHONESDK_UWP_ZIP_PATH)
+	if(LINPHONESDK_DESKTOP_ZIP_PATH OR LINPHONESDK_UWP_ZIP_PATH OR LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 		project(nuget)
 		set(LINPHONESDK_OUTPUT_DIR ${CMAKE_BINARY_DIR}/WORK/packages/nuget)
 		add_custom_target( unzip ALL)
 		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove_directory ${LINPHONESDK_OUTPUT_DIR})
-		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR})
-#--------------		Desktop x86		
+		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/desktop)
+		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/uwp)
+		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/windowsstore)
+		
+		set(NUSPEC_HAVE "")
+		if(LINPHONESDK_DESKTOP_ZIP_PATH)
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WIN32=1")
+			message(STATUS "Retrieve Desktop build")
+		endif()
+		if(LINPHONESDK_UWP_ZIP_PATH)
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_UWP=1")
+			message(STATUS "Retrieve UWP build")
+		endif()
+		if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WINDOWSSTORE=1")
+			message(STATUS "Retrieve Windows Store build")
+		endif()
 		FILE(GLOB DESKTOP_ZIP_FILES ${LINPHONESDK_DESKTOP_ZIP_PATH}/*.zip)
 		foreach(item ${DESKTOP_ZIP_FILES})
-			list(APPEND ALL_ZIP_FILES ${item})
-		endforeach(item) 
-#--------------		UWP x64		
-		FILE(GLOB UWP_ZIP_FILES ${LINPHONESDK_UWP_ZIP_PATH}/*.zip)
-		foreach(item ${UWP_ZIP_FILES})
-			list(APPEND ALL_ZIP_FILES ${item})
-		endforeach(item)
-		list(REMOVE_DUPLICATES ALL_ZIP_FILES)
-		foreach(item ${ALL_ZIP_FILES})
 			add_custom_command(TARGET unzip PRE_BUILD
 				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
-				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget
+				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/desktop
 				COMMENT "Unzipping files : ${item}"
 				VERBATIM)
 		endforeach(item)
+		
+		FILE(GLOB UWP_ZIP_FILES ${LINPHONESDK_UWP_ZIP_PATH}/*.zip)
+		foreach(item ${UWP_ZIP_FILES})
+			add_custom_command(TARGET unzip PRE_BUILD
+				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
+				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/uwp
+				COMMENT "Unzipping files : ${item}"
+				VERBATIM)
+		endforeach(item)
+		
+		FILE(GLOB WINSTORE_ZIP_FILES ${LINPHONESDK_WINDOWSSTORE_ZIP_PATH}/*.zip)
+		foreach(item ${WINSTORE_ZIP_FILES})
+			add_custom_command(TARGET unzip PRE_BUILD
+				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
+				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/windowsstore
+				COMMENT "Unzipping files : ${item}"
+				VERBATIM)
+		endforeach(item)
+		
+#--------------		Desktop x86		
+#		FILE(GLOB DESKTOP_ZIP_FILES ${LINPHONESDK_DESKTOP_ZIP_PATH}/*.zip)
+#		foreach(item ${DESKTOP_ZIP_FILES})
+#			list(APPEND ALL_ZIP_FILES ${item})
+#		endforeach(item) 
+#--------------		UWP x64		
+#		FILE(GLOB UWP_ZIP_FILES ${LINPHONESDK_UWP_ZIP_PATH}/*.zip)
+#		foreach(item ${UWP_ZIP_FILES})
+#			list(APPEND ALL_ZIP_FILES ${item})
+#		endforeach(item)
+#		list(REMOVE_DUPLICATES ALL_ZIP_FILES)
+#		foreach(item ${ALL_ZIP_FILES})
+#			add_custom_command(TARGET unzip PRE_BUILD
+#				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
+#				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget
+#				COMMENT "Unzipping files : ${item}"
+#				VERBATIM)
+#		endforeach(item)
 		
 		ExternalProject_Add(uwp-nuget
 		        DEPENDS unzip
 		        SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
 		        BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
 		        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-		        CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}"
+		        CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}" ${NUSPEC_HAVE}
 		        CMAKE_CACHE_ARGS ${_cmake_cache_args}
 		        BUILD_ALWAYS 1
 		)

@@ -5,8 +5,9 @@
 	<PropertyGroup>
 		<LinphoneSDK-Platform Condition="'$(Platform)' == 'Win32'">x86</LinphoneSDK-Platform>
 		<LinphoneSDK-Platform Condition="'$(Platform)' != 'Win32'">$(Platform)</LinphoneSDK-Platform>
-		<LinphoneSDK-Framework Condition="'$(LinphoneSDK-Platform)' == 'x86'">UAP10.0</LinphoneSDK-Framework>
-		<LinphoneSDK-Framework Condition="'$(LinphoneSDK-Platform)' != 'x86'">UAP10.0</LinphoneSDK-Framework>
+		<LinphoneSDK-Framework Condition="'$(TargetPlatformIdentifier)' != 'UAP10.0' and '$(TargetPlatformIdentifier)' != 'UAP'">win</LinphoneSDK-Framework>
+		<LinphoneSDK-Framework Condition="'$(LinphoneSDK-Platform)' == 'x86' and ('$(TargetPlatformIdentifier)' == 'UAP10.0' or '$(TargetPlatformIdentifier)' == 'UAP') ">netcore50</LinphoneSDK-Framework>
+		<LinphoneSDK-Framework Condition="'$(LinphoneSDK-Platform)' == 'x64' and ('$(TargetPlatformIdentifier)' == 'UAP10.0' or '$(TargetPlatformIdentifier)' == 'UAP')">uap10.0</LinphoneSDK-Framework>
 		<LinphoneSDK-Content Condition="'$(LinphoneSDK-Content)' == ''">share</LinphoneSDK-Content>
 		<LinphoneSDK-LibrariesPath>$(MSBuildThisFileDirectory)\..\..\lib\$(LinphoneSDK-Framework)\$(LinphoneSDK-Platform)</LinphoneSDK-LibrariesPath>
 	</PropertyGroup>
@@ -17,6 +18,7 @@
 			</Reference>
 		</ItemGroup>
 	</Target>
+
 	<Target Name="CopyNativeLibraries" AfterTargets="ResolveAssemblyReferences">
 		<ItemGroup Condition=" '$(LinphoneSDK-Platform)' == 'x86' or '$(LinphoneSDK-Platform)' == 'x64' or '$(LinphoneSDK-Platform)' == 'ARM'">
 			<Content Include="$(LinphoneSDK-LibrariesPath)\**\*.dll;$(LinphoneSDK-LibrariesPath)\**\*.pdb">
