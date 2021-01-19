@@ -50,7 +50,7 @@
 #endif
 	#include <EGL/egl.h>
 #endif
-
+#include "bctoolbox/port.h"
 // =============================================================================
 
 typedef void (GL_APIENTRY *resolveGlActiveTexture)(GLenum texture);
@@ -294,7 +294,7 @@ struct OpenGlFunctions {
 	resolveGlGetError glGetError;
 	// resolveGlGetFloatv glGetFloatv;
 	//resolveGlGetFramebufferAttachmentParameteriv glGetFramebufferAttachmentParameteriv;
-	//resolveGlGetIntegerv glGetIntegerv;
+	resolveGlGetIntegerv glGetIntegerv;
 	resolveGlGetProgramInfoLog glGetProgramInfoLog;
 	resolveGlGetProgramiv glGetProgramiv;
 	//resolveGlGetRenderbufferParameteriv glGetRenderbufferParameteriv;

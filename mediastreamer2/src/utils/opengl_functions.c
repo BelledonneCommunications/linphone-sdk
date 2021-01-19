@@ -133,6 +133,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray);
 	f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures);
 	f->glGetError = CAST(resolveGlGetError, glGetError);
+	f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv);
 	f->glGetProgramInfoLog = CAST(resolveGlGetProgramInfoLog, glGetProgramInfoLog);
 	f->glGetProgramiv = CAST(resolveGlGetProgramiv, glGetProgramiv);
 	f->glGetShaderInfoLog = CAST(resolveGlGetShaderInfoLog, glGetShaderInfoLog);
