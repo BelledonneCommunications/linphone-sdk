@@ -17,10 +17,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "opengles_display.h"
+#include <EGL/eglext.h>
 #include "mediastreamer2/mscommon.h"
 #include "shader_util.h"
 
+#include "opengl_functions.h"
+
+#ifdef HAVE_GLX
+#include <X11/Xlib.h>
+#include <GL/glx.h>
+#endif
 enum ImageType {
 	REMOTE_IMAGE = 0,
 	PREVIEW_IMAGE,
@@ -629,8 +637,53 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 	GL_OPERATION(f, glViewport(0, 0, width, height))
 	check_GL_errors(f, "ogl_display_set_size");
 }
+
+#ifdef HAVE_GLX
+bool_t ogl_create_window(EGLNativeWindowType *window){
+	Display                 *dpy;
+	Window                  root;
+	GLint                   att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 8, GLX_DOUBLEBUFFER, None };
+	XVisualInfo             *vi;
+	Colormap                cmap;
+	XSetWindowAttributes    swa;
+	dpy = XOpenDisplay(NULL);
+	XSync(dpy, False);
+	root = DefaultRootWindow(dpy);
+	vi = glXChooseVisual(dpy, 0, att);
+	cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
+	swa.colormap = cmap;
+	swa.background_pixmap = None ;
+	swa.border_pixel	= 0;
+	swa.event_mask	  = StructureNotifyMask;
+	*window = XCreateWindow(dpy, root, 200, 200, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
+	XStoreName( dpy, *window, "Video" );
+	int error = XMapWindow(dpy, *window);
+	XSync( dpy, False );
+	if(error>0)
+		ms_error("[ogl_display] Cannot show Window : %d", error);
+	return (*window) != (EGLNativeWindowType)0;
+}
+
+void ogl_destroy_window(EGLNativeWindowType *window){
+	if(*window){
+		Display *dpy = XOpenDisplay(NULL);
+		XSync(dpy,FALSE);
+		XDestroyWindow(dpy,*window);
+		*window = (EGLNativeWindowType)0;
+		XCloseDisplay(dpy);
+	}
+}
+#else
+bool_t ogl_create_window(EGLNativeWindowType *window){
+	ms_error("[ogl_display] Ceating a Window is not supported for the current platform");
+	return FALSE;
+}
+void ogl_destroy_window(EGLNativeWindowType *window){
+}
+#endif
+
 #ifdef _WIN32
-void ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
+bool_t ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
 	int configAttributes[] ={
 		EGL_RED_SIZE, 8,
 		EGL_GREEN_SIZE, 8,
@@ -685,23 +738,12 @@ void ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctio
 	ogl_display_clean(gldisp);// Clean the display before creating surface
 	// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
 
-	EGLenum api = f->eglQueryAPI();
-	if( api != EGL_OPENGL_API) {
-		if(f->eglBindAPI(EGL_OPENGL_API) == EGL_FALSE) {
-			ms_error("[ogl_display] Failed to Bind EGL_OPENGL_API");
-			api = f->eglQueryAPI();
-			if( api != EGL_NONE)	
-				f->eglBindAPI( EGL_OPENGL_ES_API );
-		}
-	}
-	
-	
 	gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
 	check_EGL_errors(f, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 		ms_error("[ogl_display] Failed to get EGL display (D3D11 10.0+).");
 	}
-	
+
 	int major=0, minor=0;
 	if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
 		// This tries to initialize EGL to D3D11 Feature Level 9_3, if 10_0+ is unavailable (e.g. on some mobile devices).
@@ -709,7 +751,6 @@ void ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctio
 		if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 			ms_error("[ogl_display] Failed to get EGL display (D3D11 9.3).");
 		}
-		
 		if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)
 		{
 			// This initializes EGL to D3D11 Feature Level 11_0 on WARP, if 9_3+ is unavailable on the default GPU.
@@ -717,10 +758,9 @@ void ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctio
 			if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 				ms_error("[ogl_display] Failed to get EGL display (D3D11 11.0 WARP)");
 			}
-			
 			if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
 				// If all of the calls to eglInitialize returned EGL_FALSE then an error has occurred.
-				ms_error("[ogl_display] Failed to initialize EGL");
+				ms_error("[ogl_display] Failed to initialize EGLDisplay");
 			}
 		}
 	}
@@ -752,16 +792,80 @@ void ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctio
 			}
 		}
 	}
+	return gldisp->mRenderSurface != EGL_NO_SURFACE;
+}
+#else
+bool_t ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
+	int configAttributes[] ={
+		EGL_RED_SIZE, 8,
+		EGL_GREEN_SIZE, 8,
+		EGL_BLUE_SIZE, 8,
+		EGL_ALPHA_SIZE, 8,
+		EGL_DEPTH_SIZE, 8,
+		EGL_STENCIL_SIZE, 8,
+		EGL_NONE
+	};
+	EGLint contextAttributes[] = {
+		EGL_CONTEXT_CLIENT_VERSION, 2,
+		EGL_NONE,
+		EGL_NONE
+	};
+	ogl_display_clean(gldisp);// Clean the display before creating surface
+
+	//gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_KHR, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
+	gldisp->mEglDisplay = f->eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	check_EGL_errors(f, "ogl_create_surface");
+	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
+		ms_error("[ogl_display] Failed to get EGL display.");
+	}
+
+	int major=0, minor=0;
+	if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
+		ms_error("[ogl_display] Failed to initialize EGLDisplay");
+	}
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
+	check_EGL_errors(f, "ogl_create_surface");
+	if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
+		int numConfigs = 0;
+		if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+			ms_error("[ogl_display] Failed to choose first EGLConfig");
+			check_EGL_errors(f, "ogl_create_surface");
+		}else{
+			gldisp->mEglContext = f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, contextAttributes);
+			if (gldisp->mEglContext == EGL_NO_CONTEXT) {
+				ms_error("[ogl_display] Failed to create EGL context");
+				check_EGL_errors(f, "ogl_create_surface");
+			}
+
+			gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
+			if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
+				ms_error("[ogl_display] Failed to create EGL Render Surface");
+				check_EGL_errors(f, "ogl_create_surface");
+			}
+		}
+	}
+	return gldisp->mRenderSurface != EGL_NO_SURFACE;
 }
 #endif
 void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
-	if( window ){// Creating a windows from EGLNativeWindowType is specific to Windows yet.
+	bool_t haveSurface = FALSE;
+	if( window ){
 #ifdef WIN32
-		ogl_create_surface_win(gldisp, f, window);
+		haveSurface = ogl_create_surface_win(gldisp, f, window);
 #else
-		ms_error("[ogl_display] Creating eglCreateWindowSurface is not yet supported outside of Windows platform.");
-#endif	
-	}else{// Use pointers to set surface (we don't create)
+		haveSurface =ogl_create_surface_default(gldisp, f, window);
+#endif
+		if(!haveSurface)
+			ms_error("[ogl_display] Couldn't create a eglCreateWindowSurface. Try to get one from EGL");
+	}
+	if(!haveSurface){// Use pointers to set surface (we don't create)
 		gldisp->mEglDisplay = f->eglGetCurrentDisplay();
 		gldisp->mEglContext = f->eglGetCurrentContext();
 		gldisp->mRenderSurface = f->eglGetCurrentSurface();
@@ -790,10 +894,12 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
 		gldisp->functions = f;
 	else
 		gldisp->functions = gldisp->default_functions;
-	
+
 	if( !gldisp->functions)
 		ms_error("[ogl_display] functions is still NULL!");
-	// Update gl functions.
+	if( gldisp->mRenderSurface != EGL_NO_SURFACE){
+		ogl_display_uninit(gldisp,FALSE);
+	}
 	ogl_create_surface(gldisp, gldisp->functions, window);
 	if (gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
 	{

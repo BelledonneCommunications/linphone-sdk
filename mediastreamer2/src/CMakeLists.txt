@@ -255,6 +255,9 @@ if(ENABLE_VIDEO)
 			utils/jpgloader-stub.c
 		)
 	endif()
+	if(ENABLE_QT_GL)
+		set(QT_VOIP_SOURCE_FILES_CXX videofilters/msqogl.cpp )
+	endif()
 	if(WIN32)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/msmfoundationcap.cpp	#Media-Foundation
@@ -471,6 +474,10 @@ if(VOIP_SOURCE_FILES_CXX)
 	set_source_files_properties(${VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 	bc_apply_compile_flags(VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 endif()
+if(QT_VOIP_SOURCE_FILES_CXX)
+	set_source_files_properties(${QT_VOIP_SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
+	bc_apply_compile_flags(QT_VOIP_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
+endif()
 
 if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 	set(NEON_SOURCE_FILES
@@ -536,6 +543,11 @@ if(ENABLE_SHARED)
   			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
+		if(ENABLE_QT_GL AND QT5_PACKAGES)
+			foreach (package ${QT5_PACKAGES})
+				add_custom_command(TARGET mediastreamer POST_BUILD COMMAND install_name_tool -change "/usr/local/opt/qt/lib/Qt${package}.framework/Versions/5/Qt${package}" "@rpath/Qt${package}.framework/Versions/5/Qt${package}" $<TARGET_FILE:mediastreamer>)
+			endforeach()
+		endif()
 	endif()
 	if(ANDROID)
 		if(ENABLE_VPX)
@@ -578,6 +590,69 @@ if(ENABLE_SHARED)
     
 endif()
 
+#Qt Plugin
+if(ENABLE_QT_GL)
+	if(ENABLE_STATIC)
+		add_library(msqogl-static STATIC ${QT_VOIP_SOURCE_FILES_CXX})
+		set_target_properties(msqogl-static PROPERTIES OUTPUT_NAME msqogl)
+		set_target_properties(msqogl-static PROPERTIES LINKER_LANGUAGE CXX)
+		install(TARGETS msqogl-static
+			ARCHIVE DESTINATION "${MS2_PLUGINS_LOCATION}"
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
+	if(ENABLE_SHARED)
+#		if(NOT IOS)
+#			add_library(msqogl MODULE ${QT_VOIP_SOURCE_FILES_CXX})
+#		else()
+			add_library(msqogl SHARED ${QT_VOIP_SOURCE_FILES_CXX})
+#		endif()
+		target_link_libraries(msqogl PRIVATE mediastreamer bctoolbox)
+		set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
+		
+		target_include_directories(msqogl INTERFACE
+			$<INSTALL_INTERFACE:include/>
+			$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+			PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS}
+		)
+        target_link_libraries(msqogl PRIVATE ${QT_LINK_LIBS})
+		
+		if(APPLE)
+			if(IOS)
+				set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+				set_target_properties(msqogl 	PROPERTIES
+								FRAMEWORK TRUE
+								MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msqogl
+								MACOSX_FRAMEWORK_INFO_PLIST msqogl.Info.plist.in
+				)
+	
+			else()
+				set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+			endif()
+	
+			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
+		endif()
+		if(MSVC)
+			if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+				install(FILES $<TARGET_PDB_FILE:msqogl>
+					DESTINATION ${CMAKE_INSTALL_BINDIR}
+					PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+				)
+			endif()
+			if(NOT IOS)
+				set_target_properties(msqogl PROPERTIES PREFIX "lib")
+			endif()
+		endif()
+		install(TARGETS msqogl
+				RUNTIME DESTINATION ${MS2_PLUGINS_LOCATION}
+				LIBRARY DESTINATION ${MS2_PLUGINS_LOCATION}
+				ARCHIVE DESTINATION ${MS2_PLUGINS_LOCATION}
+				FRAMEWORK DESTINATION Frameworks
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
+	
+endif()
 
 
 if(FFMPEG_FOUND AND NOT WIN32)

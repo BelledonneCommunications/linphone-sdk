@@ -29,6 +29,7 @@
 struct _FilterData {
 	MSOglContextInfo context_info;
 	OpenGlFunctions functions;
+	unsigned long video_mode;
 
 	struct opengles_display *display;
 
@@ -56,26 +57,40 @@ static void ogl_init (MSFilter *f) {
 	data->update_mirroring = FALSE;
 	data->prev_inm = NULL;
 	data->functions.initialized = FALSE;
-
+	data->video_mode = MS_FILTER_VIDEO_AUTO;
+	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
+	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
 	f->data = data;
 }
 
 static void ogl_uninit (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
 	ogl_display_free(data->display);
+	if( data->video_mode == MS_FILTER_VIDEO_AUTO)
+		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window);
 	ms_free(data);
 }
 
-static int ogl_call_render (MSFilter *f, void *arg);
+static void ogl_preprocess(MSFilter *f){
+	FilterData *data = (FilterData *)f->data;
+	if (data->show_video) {
+		if(data->video_mode == MS_FILTER_VIDEO_AUTO && !data->context_info.window){
+			ogl_create_window((EGLNativeWindowType*)&data->context_info.window);
+			data->update_context = TRUE;
+			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
+			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
+		}
+	}
+}
+
 static void ogl_process (MSFilter *f) {
-	FilterData *data;
+	FilterData *data = (FilterData *)f->data;
 	MSOglContextInfo *context_info;
 	MSPicture src;
 	mblk_t *inm;
 
 	ms_filter_lock(f);
 
-	data = (FilterData *)f->data;
 	context_info = &data->context_info;
 
 	// No context given or video disabled.
@@ -111,9 +126,6 @@ end:
 
 	if (f->inputs[1] != NULL)
 		ms_queue_flush(f->inputs[1]);
-#if defined(MS2_WINDOWS_UWP) || (defined(MS2_WINDOWS_DESKTOP) && defined(ENABLE_MICROSOFT_STORE_APP) )
-	ogl_call_render(f, NULL);
-#endif	
 }
 
 // =============================================================================
@@ -127,7 +139,6 @@ static int ogl_set_video_size (MSFilter *f, void *arg) {
 
 	return 0;
 }
-
 static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 	FilterData *data;
 	MSOglContextInfo *context_info;
@@ -136,8 +147,15 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 
 	data = (FilterData *)f->data;
 	context_info = *((MSOglContextInfo **)arg);
-	if (context_info && (unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
+	if ((unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] set native window id : %p", (void*)context_info);
+		if( (unsigned long long)context_info == (unsigned long long)MS_FILTER_VIDEO_AUTO){// Create a new Window
+			ogl_create_window((EGLNativeWindowType*)&data->context_info.window);
+			data->update_context = TRUE;
+			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
+			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
+			data->video_mode = MS_FILTER_VIDEO_AUTO;
+		}else
 		if(  data->context_info.getProcAddress != context_info->getProcAddress
 				|| (context_info->window && data->context_info.window != context_info->window)
 				|| (!context_info->window && ( data->context_info.width != context_info->width
@@ -154,6 +172,7 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 			ogl_display_uninit(data->display, FALSE);
 		ms_message("[MSOGL] reset native window id");
 		memset(&data->context_info, 0, sizeof data->context_info);
+		data->video_mode = MS_FILTER_VIDEO_NONE;
 		data->update_context = TRUE;
 	}
 
@@ -208,8 +227,8 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 	context_info = &data->context_info;
 	if (data->show_video && ( context_info->window || (!context_info->window && context_info->width && context_info->height)) ){
 		if (data->update_context) {
-			if( context_info->window )// Window is set : do EGL initialization
-				ogl_display_auto_init(data->display, &data->functions, context_info->window);
+			if( context_info->window )// Window is set : do EGL initialization from it
+				ogl_display_auto_init(data->display, &data->functions, (EGLNativeWindowType)context_info->window);
 			else// Just use input size as it is needed for viewport
 				ogl_display_init(data->display, &data->functions, context_info->width, context_info->height);
 			data->update_context = FALSE;
@@ -246,6 +265,7 @@ MSFilterDesc ms_ogl_desc = {
 	.ninputs = 2,
 	.noutputs = 0,
 	.init = ogl_init,
+	.preprocess= ogl_preprocess,
 	.process = ogl_process,
 	.uninit = ogl_uninit,
 	.methods = methods

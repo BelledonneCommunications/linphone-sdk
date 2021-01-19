@@ -104,6 +104,12 @@ void ogl_display_enable_mirroring_to_display(struct opengles_display *gldisp, bo
  */
 void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled);
 
+/**
+ * Create a new Window and store it into the EGLNativeWindowType generic structure
+ */
+bool_t ogl_create_window(EGLNativeWindowType *window);
+void ogl_destroy_window(EGLNativeWindowType *window);
+
 #if defined __cplusplus
 };
 #endif

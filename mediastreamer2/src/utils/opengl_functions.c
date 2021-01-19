@@ -180,6 +180,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->eglBindAPI = CAST_EGL(resolveEGLBindAPI, eglBindAPI);
 	f->eglQueryString = CAST_EGL(resolveEGLQueryString, eglQueryString);
 	f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT);
+	f->eglGetDisplay = CAST_EGL(resolveEGLGetDisplay, eglGetDisplay);
 	f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay);
 	f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentContext);
 	f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentSurface);
