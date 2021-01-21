@@ -1,6 +1,20 @@
 #################################################
 # iOS
 #################################################
+job-ios-dsym-upload:
+  stage: deploy
+  tags: [ "macosx-xcode11" ]
+
+  only:
+    variables:
+      - $DEPLOY_IOS_DSYM
+
+  dependencies:
+    - job-ios-xcode
+
+  script:
+    - scp build-ios/build.zip $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/ios/
+
 
 
 job-ios-upload:
