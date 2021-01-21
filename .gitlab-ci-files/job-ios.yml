@@ -23,6 +23,7 @@
     # get SDK version from cached cmake variables
     - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
+    - zip build.zip WORK/ios-arm64/Build
     - ccache -s
 
   artifacts:
@@ -32,6 +33,7 @@
       - build-ios/linphone-sdk.podspec
       - build-ios/docs
       - tester/IOS/LinphoneTester/Podfile
+      - build-ios/build.zip
 
     when: always
     expire_in: 1 week
@@ -101,10 +103,7 @@ job-ios-xcode:
 
   only:
     variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
+      - $DEPLOY_IOS_DSYM
 
   variables:
     CMAKE_GENERATOR: Xcode
