@@ -65,6 +65,10 @@ job-ios-makefile:
 
 
 job-ios-ninja:
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Ninja
