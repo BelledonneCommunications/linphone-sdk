@@ -336,6 +336,7 @@ job-xamarin-upload:
 
     - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
     - cd results
+    - echo PIPELINE_TRIGGERED_BY=$GITLAB_USER_NAME | tee -a environment.properties
     - echo BRANCH=$BRANCH | tee -a environment.properties
     - echo SDK_VERSION=$SDK_VERSION | tee -a environment.properties
     - echo BCTOOLBOX_VERSION=$BCTOOLBOX_VERSION | tee -a environment.properties
@@ -455,25 +456,25 @@ job-xamarin-upload:
   only:
     variables:
       - $ENABLE_LINUX_TESTS
-      
+
 .job-test-report-upload-windows-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS
-      
+
 .job-test-report-upload-macos-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_MACOSX_TESTS
-      
+
 .job-test-report-upload-ios-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_IOS_TESTS
-      
+
 .job-test-report-upload-android-scheduled:
   extends: .job-test-report-upload
   only:
@@ -486,7 +487,7 @@ job-test-upload-libl-centos7-mr:
     - test-liblinphone-centos7-mr
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     refs:
       - branches
@@ -495,7 +496,7 @@ job-test-upload-libl-centos7-mr:
       - $ENABLE_TESTS_IN_MR
   except:
     - schedules
-    
+
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
   dependencies:
@@ -503,14 +504,14 @@ job-test-upload-libl-centos7-schedule:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-    
+
 job-test-upload-libl-centos7-forced:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-centos7-force
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     variables:
       - $ENABLE_TESTS_LIBLINPHONE
