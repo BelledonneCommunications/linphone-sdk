@@ -4,11 +4,6 @@
   stage: build
   tags: [ "macosx-xcode11" ]
 
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_MACOSX
-
   script:
     - ccache -s
     - if [ -d "build-desktop" ]; then rm -rf build-desktop; fi;
@@ -50,9 +45,6 @@
 
 job-macosx-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -74,9 +66,6 @@ job-macosx-ninja:
 
 job-macosx-ninja-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-macosx-ninja
@@ -94,11 +83,6 @@ job-macosx-xcode:
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_MACOSX
 
 test-linphone-macosx:
   stage: test

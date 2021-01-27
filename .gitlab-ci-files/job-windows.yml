@@ -40,10 +40,6 @@
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   script:
@@ -73,10 +69,6 @@
   extends: .job-prepare
   stage: build
   tags: [ "windows" ]
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   script:
@@ -115,13 +107,7 @@
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $PACKAGE_RUN_WINDOWS
-      - $DEPLOY_RUN_WINDOWS
-      - $ENABLE_WINDOWS_TESTS
+
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
