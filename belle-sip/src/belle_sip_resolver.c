@@ -269,6 +269,7 @@ struct belle_sip_simple_resolver_context{
 	void *srv_cb_data;
 #ifdef HAVE_DNS_SERVICE
 	bctbx_mutex_t notify_mutex; // result is notified first on a specific thread, mutex to manage interactions with cancel
+	DNSServiceErrorType err; // used to pass the request dispatching status from the dns_service_queue to the main thread
 	DNSServiceRef dns_service;
 	dispatch_source_t dns_service_timer;
 	uint16_t dns_service_type;
@@ -1239,34 +1240,42 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 			belle_sip_error("DNS query resolving %s, DNSServiceQueryRecord returned %d", ctx->name, err);
 			return -1;
 		}
-		/* dispatch it */
-		if (!ctx->base.stack->resolver_send_error) {
-			err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->dns_service_queue);
 
-			if (err != kDNSServiceErr_NoError) {
+		/* Create a timer */
+		ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->dns_service_queue);
+		int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
+		dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
+				bctbx_mutex_lock(&(ctx->notify_mutex));
+				dns_service_deallocate(ctx); /* disarm timer - we need it once and deallocate the query */
+				if (ctx->base.cancelled == TRUE) {
+					// resolver was cancelled, we may not have the stack anymore, just unref ourselve
+					bctbx_mutex_unlock(&(ctx->notify_mutex));
+					belle_sip_object_unref(ctx);
+					return;
+				}
+				belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
+				belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+				bctbx_mutex_unlock(&(ctx->notify_mutex));
+			});
+
+		/* dispatch them */
+		if (!ctx->base.stack->resolver_send_error) {
+			dispatch_sync(ctx->dns_service_queue, ^{ // disptach them from the queue listening their events to avoid troubles, this block captures the ctx
+				bctbx_mutex_lock(&(ctx->notify_mutex));
+				dispatch_source_set_timer(ctx->dns_service_timer, dispatch_time(DISPATCH_TIME_NOW,timeout*NSEC_PER_MSEC), timeout*NSEC_PER_MSEC, 0); // timeout given is in Nano seconds
+				dispatch_resume(ctx->dns_service_timer);
+				ctx->err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->dns_service_queue); // could return an error to be passed back to the main thread
+				if (ctx->err != kDNSServiceErr_NoError) {
+					dns_service_deallocate(ctx); /* failed to dispatch, deallocate and disarm timer(which may already have fired) */
+				}
+				bctbx_mutex_unlock(&(ctx->notify_mutex));
+			});
+
+			if (ctx->err != kDNSServiceErr_NoError) {
 				belle_sip_message("DNS start_query resolving %s, DNSServiceSetDispatchQueue returned %d", ctx->name, err);
 				return -1;
 			}
 
-			/* Set a timer */
-			ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->dns_service_queue);
-			int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
-			dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
-					dns_service_deallocate(ctx); /* disarm timer - we need it once and deallocate the query */
-					bctbx_mutex_lock(&(ctx->notify_mutex));
-					if (ctx->base.cancelled == TRUE) {
-						// resolver was cancelled, we may not have the stack anymore, just unref ourselve
-						bctbx_mutex_unlock(&(ctx->notify_mutex));
-						belle_sip_object_unref(ctx);
-						return;
-					}
-					belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
-					belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
-					bctbx_mutex_unlock(&(ctx->notify_mutex));
-
-				});
-			dispatch_source_set_timer(ctx->dns_service_timer, dispatch_time(DISPATCH_TIME_NOW,timeout*NSEC_PER_MSEC), timeout*NSEC_PER_MSEC, 0); // timeout given is in Nano seconds
-			dispatch_resume(ctx->dns_service_timer);
 		} else {
 			/* Error simulation */
 			belle_sip_error("%s DNSServiceRefSockFD error [%s]: simulated error %d", __FUNCTION__, ctx->name, ctx->base.stack->resolver_send_error);
