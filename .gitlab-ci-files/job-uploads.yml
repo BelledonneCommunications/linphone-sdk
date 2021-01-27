@@ -408,6 +408,10 @@ job-xamarin-upload:
     #we move the BCUnit report and environment.properties to the desired folder to prepare allure report generation
     - echo "mv ../../../../environment.properties . && mv ../../../../$XML_FILENAME_START_PATTERN* ." | tee -a allure_launch_script
 
+    #symlink with username to ease searching
+    - echo "mkdir -p ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM" | tee -a allure_launch_script
+    - echo "ln -s $(pwd) ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM/$TESTER" | tee -a allure_launch_script
+
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
     - cat allure_launch_script
@@ -455,25 +459,25 @@ job-xamarin-upload:
   only:
     variables:
       - $ENABLE_LINUX_TESTS
-      
+
 .job-test-report-upload-windows-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS
-      
+
 .job-test-report-upload-macos-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_MACOSX_TESTS
-      
+
 .job-test-report-upload-ios-scheduled:
   extends: .job-test-report-upload
   only:
     variables:
       - $ENABLE_IOS_TESTS
-      
+
 .job-test-report-upload-android-scheduled:
   extends: .job-test-report-upload
   only:
@@ -486,7 +490,7 @@ job-test-upload-libl-centos7-mr:
     - test-liblinphone-centos7-mr
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     refs:
       - branches
@@ -495,7 +499,7 @@ job-test-upload-libl-centos7-mr:
       - $ENABLE_TESTS_IN_MR
   except:
     - schedules
-    
+
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
   dependencies:
@@ -503,14 +507,14 @@ job-test-upload-libl-centos7-schedule:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-    
+
 job-test-upload-libl-centos7-forced:
   extends: .job-test-report-upload
   dependencies:
     - test-liblinphone-centos7-force
   variables:
     PLATFORM: "linux-centos7"
-    TESTER: "liblinphone"  
+    TESTER: "liblinphone"
   only:
     variables:
       - $ENABLE_TESTS_LIBLINPHONE
