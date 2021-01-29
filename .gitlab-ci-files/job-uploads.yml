@@ -452,6 +452,12 @@ job-xamarin-upload:
     #     "matchedStatuses": ["broken"]
     #  }
     #]
+    - echo "https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/KyronNextLevel/$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM/$TESTER/allure-report" | tee report_url
+
+  artifacts:
+    paths:
+      - report_url
+    expire_in: 4 week
 
 .job-test-report-upload-linux-scheduled:
   extends: .job-test-report-upload
