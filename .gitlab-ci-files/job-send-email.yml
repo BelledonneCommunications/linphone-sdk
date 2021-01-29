@@ -3,11 +3,12 @@
 #################################################
 
 send-email-test-report:
-  stage: deploy
+  stage: email-notif
   tags: [ "docker" ]
 
-  dependencies: []
+  dependencies:
+    - job-test-upload-libl-centos7-mr
 
   script:
-    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject='Test results to pipeline number x' -F text='testing mailgun'
+    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject='Centos 7 Tests failed for pipeline' -F text='The Centos 7 tests failed on your pipeline. Check the following link for the graphical report $(echo report_url)'
     - echo $?
