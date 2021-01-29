@@ -8,4 +8,6 @@ send-email-test-report:
 
   dependencies: []
 
-  script: curl -s --user "api:$MAILGUN_API_KEY" "https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject= 'Test results to pipeline number x' -F text='testing mailgun'
+  script:
+    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject='Test results to pipeline number x' -F text='testing mailgun'
+    - echo $?
