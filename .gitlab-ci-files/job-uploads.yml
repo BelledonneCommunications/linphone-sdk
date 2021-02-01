@@ -409,6 +409,10 @@ job-xamarin-upload:
     #we move the BCUnit report and environment.properties to the desired folder to prepare allure report generation
     - echo "mv ../../../../environment.properties . && mv ../../../../$XML_FILENAME_START_PATTERN* ." | tee -a allure_launch_script
 
+    #symlink with username to ease searching
+    - echo "mkdir -p ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM" | tee -a allure_launch_script
+    - echo "ln -s \$(pwd) ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM/$TESTER" | tee -a allure_launch_script
+
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
     - cat allure_launch_script
