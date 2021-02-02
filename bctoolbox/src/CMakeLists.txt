@@ -36,6 +36,7 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	conversion/charconv_encoding.cc
 	utils/exception.cc
 	utils/regex.cc
+	utils/utils.cc
 )
 
 set(BCTOOLBOX_PRIVATE_HEADER_FILES

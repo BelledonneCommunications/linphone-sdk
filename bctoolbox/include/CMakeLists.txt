@@ -25,6 +25,7 @@ set(HEADER_FILES
 	compiler.h
 	defs.h
 	exception.hh
+	utils.hh
 	list.h
 	logging.h
 	map.h
