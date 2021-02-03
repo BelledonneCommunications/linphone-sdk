@@ -658,6 +658,13 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	[au_holder setAudio_session_activated:activated];
 	ms_message("AVAudioSession activated: %i", (int)activated);
+	if(activated) {
+		/*
+		 For callkit (outgoing call), audio session should be configured earlier.
+		 To avoid configuring audio session in background (bad thread), which will not work for callkit.
+		 */
+		[au_holder configure_audio_session];
+	}
 	
 	if (activated && [au_holder audio_unit_state] == MSAudioUnitCreated){
 		/* 
