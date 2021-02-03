@@ -3748,7 +3748,7 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 		}
 		if (valid_it){
 			valid_pair = (IceValidCandidatePair*) valid_it->data;
-			if (valid_pair->generated_from->remote->type == ICT_RelayedCandidate){
+			if (valid_pair->generated_from->remote->type == ICT_RelayedCandidate || valid_pair->generated_from->local->type == ICT_RelayedCandidate){
 				need_more_time = TRUE;
 			}
 			best_valid_list = bctbx_list_append(best_valid_list, valid_pair);
