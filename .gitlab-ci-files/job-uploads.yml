@@ -188,6 +188,17 @@ job-windows-vs2017-win32-upload:
     - job-windows-vs2017-win32-scheduled
   script:
     - scp build-desktop/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
+    # Getting the version number to push the right version of the doc
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    # Create the directory if it do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/cs
+    # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/cs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/cs
 
 #################################################
 # Debian doc upload
