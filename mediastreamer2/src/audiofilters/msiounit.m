@@ -1032,27 +1032,24 @@ static int set_muted(MSFilter *f, void *data){
 	return 0;
 }
 
-static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
-{
-	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	MSSndCard *newCard = (MSSndCard *)newSndCard;
-	MSSndCard *oldCard = [au_holder ms_snd_card];
+static int set_audio_unit_sound_card(MSSndCard * newCard) {
 	
-	// Handle the internal linphone part with the MSSndCards
-	if (strcmp(newCard->name, oldCard->name)==0) {
-		return 0;
-	}
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	[au_holder mutex_lock];
-	[au_holder setMs_snd_card:newSndCard];
+	[au_holder setMs_snd_card:newCard];
 	[au_holder mutex_unlock];
 	
 	// Make sure the apple audio route matches this state
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
 	NSError *err=nil;
-	if (newCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER && currentRoute.outputs[0].portType != AVAudioSessionPortBuiltInSpeaker) {
-		// If we're switching to speaker and the route output isn't the speaker already
-		[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
+	if (newCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) // Only possible if called from audio_playback_set_internal_id
+	{
+		bool_t currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
+		if (!currentOutputIsSpeaker) {
+			// If we're switching to speaker and the route output isn't the speaker already
+			[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
+		}
 	}
 	else {
 		// As AudioSession do not allow a way to nicely change the output port except with the override to Speaker,
@@ -1066,6 +1063,41 @@ static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
 			}
 		}
 	}
+}
+
+static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
+{
+	MSSndCard *oldCard = [[AudioUnitHolder sharedInstance] ms_snd_card];
+	MSSndCard *newCard = (MSSndCard *)newSndCard;
+	
+	if (oldCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
+		ms_warning("audio_capture_set_internal_id(): no effect on the audio route when the current output is %s.", oldCard->name);
+		return -1;
+	}
+	if (newCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
+		ms_error("audio_capture_set_internal_id(): %s is not a valid input device.", newCard->name);
+		return -1;
+	}
+	
+	// Handle the internal linphone part with the MSSndCards
+	if (strcmp(newCard->name, oldCard->name)==0) {
+		return 0;
+	}
+	
+	set_audio_unit_sound_card(newCard);
+	return 0;
+}
+
+static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
+{
+	MSSndCard *oldCard = [[AudioUnitHolder sharedInstance] ms_snd_card];
+	MSSndCard *newCard = (MSSndCard *)newSndCard;
+	
+	// Handle the internal linphone part with the MSSndCards
+	if (strcmp(newCard->name, oldCard->name)==0) {
+		return 0;
+	}
+	set_audio_unit_sound_card(newCard);
 	return 0;
 }
 
@@ -1075,7 +1107,7 @@ static MSFilterMethod au_read_methods[]={
 	{	MS_FILTER_SET_NCHANNELS			 , set_nchannels					},
 	{	MS_FILTER_GET_NCHANNELS			 , get_nchannels					},
 	{	MS_AUDIO_CAPTURE_MUTE			 , mute_mic 						},
-	{	MS_AUDIO_CAPTURE_SET_INTERNAL_ID , audio_playback_set_internal_id	},
+	{	MS_AUDIO_CAPTURE_SET_INTERNAL_ID , audio_capture_set_internal_id	},
 	{	0				, NULL		}
 };
 
