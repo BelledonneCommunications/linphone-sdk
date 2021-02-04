@@ -48,8 +48,8 @@ job-xamarin-package:
   variables:
     GIT_STRATEGY: none
   dependencies:
-    - job-ios-ninja
-    - job-android-makefile-r17c
+  #  - job-ios-ninja
+  #  - job-android-makefile-r17c
   only:
     variables:
       - $NIGHTLY_RELEASE
