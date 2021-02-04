@@ -190,6 +190,24 @@ job-windows-vs2017-win32-upload:
     - scp build-desktop/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%/windows/sdk/"
 
 #################################################
+# Windows (C#) doc upload
+#################################################
+
+job-windows-cs-doc-upload:
+  stage: deploy
+  tags: [ "windows"]
+  only:
+    variables:
+      - $UPLOAD_CS_DOC
+  dependencies:
+    - job-windows-vs2017-win32-scheduled
+  script:
+    # Getting the version number to push the right version of the doc
+    - echo %LINPHONE_VERSION%
+    - echo %LINPHONE_STATE%
+    - echo %CMAKE_CURRENT_BINARY_DIR%
+
+#################################################
 # Debian doc upload
 #################################################
 
