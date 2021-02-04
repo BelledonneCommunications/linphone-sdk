@@ -58,6 +58,7 @@
     - echo %DEFAULT_CMAKE_OPTIONS%
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
+    - echo %SCHEDULE_CMAKE_OPTIONS%
     - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target sdk --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
@@ -92,6 +93,7 @@
     - echo %DEFAULT_CMAKE_OPTIONS%
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
+    - echo %SCHEDULE_CMAKE_OPTIONS%
     - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=%MAKEFILE_JOBS% -DCMAKE_C_COMPILER=%CMAKE_C_COMPILER% -DCMAKE_CXX_COMPILER=%CMAKE_CXX_COMPILER% -DCMAKE_RC_COMPILER=%CMAKE_RC_COMPILER% %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - echo Building with Ninja. See ninja_buildlog.txt to get details before completing the build.
     #Warning : Ninja doesn't return an error code on Linker error.
