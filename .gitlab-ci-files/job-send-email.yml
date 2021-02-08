@@ -12,5 +12,5 @@ send-email-test-report:
   script:
     - ls -lah results
     - MAILGUN_TEXT="The Centos 7 tests failed on your pipeline  $CI_PIPELINE_URL. \n Failing job $CI_JOB_URL \nCheck the following link for the graphical report $(cat results/report_url)"
-    - 'curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from=\'Gitlab <gitlab@belledonne-communications.com>\' -F to=$GITLAB_USER_EMAIL -F subject="Linphone-SDK Centos 7 Tests failed for a pipeline of branch $CI_COMMIT_REF_NAME, commit $CI_COMMIT_SHA ($CI_COMMIT_TITLE)" -F text="$(echo $MAILGUN_TEXT)"'
+    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from=\'Gitlab <gitlab@belledonne-communications.com>\' -F to=$GITLAB_USER_EMAIL -F subject="Linphone-SDK Centos 7 Tests failed for a pipeline of branch $CI_COMMIT_REF_NAME, commit $CI_COMMIT_SHA ($CI_COMMIT_TITLE)" -F text="$(echo $MAILGUN_TEXT)"
     - echo $?
