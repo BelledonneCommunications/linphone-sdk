@@ -250,7 +250,7 @@ test-linphone-windows-win32:
 test-linphone-windows-uwp:
   stage: test
   extends: .job-prepare
-  tags: [ "windows" ]
+  tags: [ "windows-tests" ]
   allow_failure: true
   dependencies:
     - job-windows-vs2017-uwp-scheduled
@@ -260,12 +260,19 @@ test-linphone-windows-uwp:
       - $ENABLE_WINDOWS_UWP_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
-    GIT_SUBMODULE_STRATEGY: none
+    #GIT_SUBMODULE_STRATEGY: none
 
   script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
+  # Build VS project
+    - cd tester\Windows\LinphoneTester_uwp
+    - msbuild /t:restore
+    - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal
+    # WinAppDeployCmd need to be paried at first time : use -pin <PIN> where <PIN> comes from Windows Settings => Developer Area => Discover enabled =>Pair and get the one-time code.
+    # Add signing certificate, put it in "Local Machine" and "Trusted Root Certification Authorities"
+    - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
+    - UpdatePermissions.bat
     - echo %CI_PROJECT_DIR%
-    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win --resource-dir %CI_PROJECT_DIR%/liblinphone/tester
+    - procdump -ma -e -x . LinphoneTester_uwp.exe --parallel
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
@@ -280,6 +287,7 @@ test-linphone-windows-uwp:
     - dir
     - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
+    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
 
   artifacts:
     paths:

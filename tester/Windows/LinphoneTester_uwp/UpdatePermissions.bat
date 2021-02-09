@@ -1,0 +1,1 @@
+regedit.exe /s LinphoneTester_uwp_permissions.reg

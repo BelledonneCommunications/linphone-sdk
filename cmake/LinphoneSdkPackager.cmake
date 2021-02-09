@@ -70,7 +70,7 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 			add_custom_command(TARGET unzip PRE_BUILD
 				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
 				WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/desktop
-				COMMENT "Unzipping files : ${item}"
+				COMMENT "Unzipping files : ${item}\n"
 				VERBATIM)
 		endforeach(item)
 		

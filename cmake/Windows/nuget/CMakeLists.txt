@@ -35,10 +35,10 @@ if(NUSPEC_HAVE_WIN32)
 endif()
 
 if(NUSPEC_HAVE_WINDOWSSTORE)
-	set(NUSPEC_WINDOWSSTORE "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\*.winmd\" target=\"lib\\netcore50\\\" />
-		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\**\\*.*\" target=\"lib\\netcore50\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\lib\\**\\*.*\" target=\"lib\\netcore50\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-		<file src=\"LinphoneSDK.targets\" target=\"build\\netcore50\" />
+	set(NUSPEC_WINDOWSSTORE "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\*.winmd\" target=\"lib\\netcore\\\" />
+		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\**\\*.*\" target=\"lib\\netcore\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\lib\\**\\*.*\" target=\"lib\\netcore\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+		<file src=\"LinphoneSDK.targets\" target=\"build\\netcore\" />
 		")
 endif()
 
