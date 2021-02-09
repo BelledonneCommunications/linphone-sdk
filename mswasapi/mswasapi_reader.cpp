@@ -173,7 +173,7 @@ int MSWASAPIReader::activate()
 
 	if (!mIsInitialized) goto error;
 
-#ifdef MS2_WINDOWS_PHONE
+#if defined( MS2_WINDOWS_PHONE )
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 #endif
 
@@ -201,7 +201,14 @@ int MSWASAPIReader::activate()
 	}
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
+		mAudioClient->Reset();
+		result = mAudioClient->GetMixFormat(&pSupportedWfx);
+		pUsedWfx = pSupportedWfx;
+		result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
+		if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
+			mAudioClient->Reset();
+			REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
+		}
 	}
 	mNBlockAlign = pUsedWfx->nBlockAlign;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
@@ -255,8 +262,8 @@ void MSWASAPIReader::stop()
 		if (result != S_OK) {
 			ms_error("Could not stop capture on the MSWASAPI audio input interface [%x]", result);
 		}
-		ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 	}
+	ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 }
 
 int MSWASAPIReader::feed(MSFilter *f)
