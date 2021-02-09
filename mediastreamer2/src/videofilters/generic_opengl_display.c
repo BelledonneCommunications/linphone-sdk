@@ -21,13 +21,22 @@
 #include "mediastreamer2/msogl_functions.h"
 #include "mediastreamer2/msogl.h"
 #include "mediastreamer2/msvideo.h"
-
+#ifdef MS2_WINDOWS_UWP
+using namespace Windows::UI::Core;
+using namespace Windows::ApplicationModel::Core;
+using namespace Platform;
+#endif
 #include "opengles_display.h"
 
 // =============================================================================
 
 struct _FilterData {
 	MSOglContextInfo context_info;
+#ifdef MS2_WINDOWS_UWP
+	Platform::Agile<CoreApplicationView> window_id;// This switch avoid using marshalling and /clr. This is the cause of not using void**
+#else
+	void * window_id;// Used for window managment. On UWP, it is a CoreWindow that can be closed.
+#endif
 	OpenGlFunctions functions;
 	unsigned long video_mode;
 
@@ -67,7 +76,7 @@ static void ogl_uninit (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
 	ogl_display_free(data->display);
 	if( data->video_mode == MS_FILTER_VIDEO_AUTO)
-		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window);
+		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id );
 	ms_free(data);
 }
 
@@ -75,7 +84,7 @@ static void ogl_preprocess(MSFilter *f){
 	FilterData *data = (FilterData *)f->data;
 	if (data->show_video) {
 		if(data->video_mode == MS_FILTER_VIDEO_AUTO && !data->context_info.window){
-			ogl_create_window((EGLNativeWindowType*)&data->context_info.window);
+			ogl_create_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id);
 			data->update_context = TRUE;
 			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
@@ -150,7 +159,7 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 	if ((unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] set native window id : %p", (void*)context_info);
 		if( (unsigned long long)context_info == (unsigned long long)MS_FILTER_VIDEO_AUTO){// Create a new Window
-			ogl_create_window((EGLNativeWindowType*)&data->context_info.window);
+			ogl_create_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id);
 			data->update_context = TRUE;
 			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
@@ -245,7 +254,9 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 // =============================================================================
 // Register filter.
 // =============================================================================
-
+#ifdef __cplusplus
+extern "C"{
+#endif
 static MSFilterMethod methods[] = {
 	{ MS_FILTER_SET_VIDEO_SIZE, ogl_set_video_size },
 	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, ogl_set_native_window_id },
@@ -257,6 +268,24 @@ static MSFilterMethod methods[] = {
 	{ 0, NULL }
 };
 
+MSFilterDesc ms_ogl_desc = {
+	MS_OGL_ID,
+	"MSOGL",
+	N_("A generic opengl video display"),
+	 MS_FILTER_OTHER,
+	NULL,
+	2,
+	0,
+	ogl_init,
+	ogl_preprocess,
+	ogl_process,
+	NULL,
+	ogl_uninit,
+	methods
+};
+#ifdef __cplusplus
+}// extern "C"
+#else
 MSFilterDesc ms_ogl_desc = {
 	.id = MS_OGL_ID,
 	.name = "MSOGL",
@@ -270,5 +299,5 @@ MSFilterDesc ms_ogl_desc = {
 	.uninit = ogl_uninit,
 	.methods = methods
 };
-
+#endif
 MS_FILTER_DESC_EXPORT(ms_ogl_desc)

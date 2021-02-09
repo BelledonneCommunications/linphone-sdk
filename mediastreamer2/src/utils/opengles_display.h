@@ -24,6 +24,12 @@
 #include "mediastreamer2/msfilter.h"
 
 #include "opengl_functions.h"
+#ifdef MS2_WINDOWS_UWP
+#include <agile.h>
+using namespace Windows::UI::Core;
+using namespace Windows::ApplicationModel::Core;
+using namespace Platform;
+#endif
 
 #if defined __cplusplus
 extern "C" {
@@ -107,8 +113,16 @@ void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bo
 /**
  * Create a new Window and store it into the EGLNativeWindowType generic structure
  */
-bool_t ogl_create_window(EGLNativeWindowType *window);
-void ogl_destroy_window(EGLNativeWindowType *window);
+#ifdef MS2_WINDOWS_UWP
+bool_t ogl_create_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView>* windowId);
+void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView>* windowId);
+#else
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id);
+void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id);
+#endif
+
+
+
 
 #if defined __cplusplus
 };

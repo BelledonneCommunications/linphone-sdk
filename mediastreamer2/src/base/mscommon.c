@@ -233,7 +233,7 @@ void ms_set_plugins_dir(const char *path) {
 
 void ms_sleep(int seconds){
 #ifdef _WIN32
-#ifdef MS2_WINDOWS_DESKTOP
+#if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
 	Sleep(seconds*1000);
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);
@@ -254,7 +254,7 @@ void ms_sleep(int seconds){
 
 void ms_usleep(uint64_t usec){
 #ifdef _WIN32
-#ifdef MS2_WINDOWS_DESKTOP
+#if defined( MS2_WINDOWS_DESKTOP ) && !defined(MS2_WINDOWS_UWP)
 	Sleep((DWORD)(usec/1000));
 #else
 	HANDLE sleepEvent = CreateEventEx(NULL, NULL, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS);

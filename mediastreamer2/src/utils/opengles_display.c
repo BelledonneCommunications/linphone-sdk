@@ -106,13 +106,13 @@ struct opengles_display {
 	float zoom_factor;
 	float zoom_cx;
 	float zoom_cy;
-	
+
 	/* whether mirroring (vertical flip) is requested*/
 	bool_t do_mirroring[MAX_IMAGE];
 
 	OpenGlFunctions *default_functions;
 	const OpenGlFunctions *functions;
-	
+
 	EGLDisplay mEglDisplay;
 	EGLContext mEglContext;
 	EGLConfig mEglConfig;// No need to be cleaned
@@ -639,7 +639,7 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 }
 
 #ifdef HAVE_GLX
-bool_t ogl_create_window(EGLNativeWindowType *window){
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
 	Display                 *dpy;
 	Window                  root;
 	GLint                   att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 8, GLX_DOUBLEBUFFER, None };
@@ -656,6 +656,8 @@ bool_t ogl_create_window(EGLNativeWindowType *window){
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
 	*window = XCreateWindow(dpy, root, 200, 200, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
+	if(windowId != NULL)
+		*windowId = NULL;
 	XStoreName( dpy, *window, "Video" );
 	int error = XMapWindow(dpy, *window);
 	XSync( dpy, False );
@@ -673,8 +675,58 @@ void ogl_destroy_window(EGLNativeWindowType *window){
 		XCloseDisplay(dpy);
 	}
 }
+#elif defined(MS2_WINDOWS_UWP)
+
+#include <agile.h>
+#include <mfidl.h>
+#include <windows.h>
+#include <Memorybuffer.h>
+#include <collection.h>
+#include <ppltasks.h>
+
+using namespace Windows::UI::ViewManagement;
+using namespace Windows::UI::Core;
+using namespace Windows::System::Threading;
+using namespace Concurrency;
+using namespace Windows::ApplicationModel::Core;
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml;
+using namespace Windows::Foundation;
+
+using namespace Platform;
+
+bool_t ogl_create_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView>* windowId){
+	auto worker = ref new WorkItemHandler([window,windowId ](IAsyncAction ^workItem) {
+		CoreApplicationView^ coreView = CoreApplication::CreateNewView();
+		*windowId = Platform::Agile<CoreApplicationView>(coreView);
+
+		Concurrency::create_task(coreView->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([window,windowId](){
+			auto layoutRoot = ref new Grid();
+			SwapChainPanel^ panel = ref new SwapChainPanel();
+			panel->HorizontalAlignment = HorizontalAlignment::Stretch;
+			panel->VerticalAlignment = VerticalAlignment::Stretch;
+
+			layoutRoot->Children->Append(panel);
+			Window::Current->Content = layoutRoot;
+			Window::Current->Activate();
+			*window = (EGLNativeWindowType)panel;
+			ApplicationViewSwitcher::TryShowAsStandaloneAsync(Windows::UI::ViewManagement::ApplicationView::GetForCurrentView()->Id);
+		}))).wait();
+	});
+	Concurrency::create_task(ThreadPool::RunAsync(worker)).then([]{
+		}).wait();
+	return (*window) != (EGLNativeWindowType)0;
+}
+
+void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView>* windowId){
+	Concurrency::create_task(windowId->Get()->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([](){
+			CoreWindow::GetForCurrentThread()->Close();
+		}))).wait();
+		*window = (EGLNativeWindowType)0;
+		*windowId = NULL;
+}
 #else
-bool_t ogl_create_window(EGLNativeWindowType *window){
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
 	ms_error("[ogl_display] Ceating a Window is not supported for the current platform");
 	return FALSE;
 }
@@ -1090,6 +1142,6 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 }
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif

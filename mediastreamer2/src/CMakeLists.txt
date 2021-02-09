@@ -367,7 +367,14 @@ if(ENABLE_VIDEO)
 			utils/qrcode_image.cpp
 		)
 	endif()
-	if(OPENGL_FOUND OR QTANGLE_FOUND OR WIN32)
+	if(WIN32)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			utils/opengl_functions.c
+			utils/opengles_display.c
+			utils/shader_util.c
+			videofilters/generic_opengl_display.c
+		)
+	elseif(OPENGL_FOUND OR QTANGLE_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
 			utils/opengles_display.c

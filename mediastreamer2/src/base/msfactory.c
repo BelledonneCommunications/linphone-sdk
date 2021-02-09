@@ -76,7 +76,11 @@ MS2_DEPRECATED static MSFactory *fallback_factory=NULL;
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
+#ifdef _WIN32
+#define DEFAULT_MAX_PAYLOAD_SIZE 1400
+#else
 #define DEFAULT_MAX_PAYLOAD_SIZE 1440
+#endif
 
 int ms_factory_get_payload_max_size(const MSFactory *factory) {
 	return factory->max_payload_size;
@@ -86,8 +90,11 @@ void ms_factory_set_payload_max_size(MSFactory *obj, int size){
 	if (size<=0) size=DEFAULT_MAX_PAYLOAD_SIZE;
 	obj->max_payload_size=size;
 }
-
+#ifdef _WIN32
+#define MS_MTU_DEFAULT 1460	// Limited by WSock2
+#else
 #define MS_MTU_DEFAULT 1500
+#endif
 
 void ms_factory_set_mtu(MSFactory *obj, int mtu){
 	/*60= IPv6+UDP+RTP overhead */
