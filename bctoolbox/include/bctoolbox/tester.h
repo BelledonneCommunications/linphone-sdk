@@ -89,6 +89,8 @@ BCTBX_PUBLIC void bc_tester_set_writable_dir_prefix(const char *name);
 BCTBX_PUBLIC void bc_tester_set_silent_func(int (*func)(const char*));
 BCTBX_PUBLIC void bc_tester_set_verbose_func(int (*func)(const char*));
 BCTBX_PUBLIC void bc_tester_set_logfile_func(int (*func)(const char*));
+BCTBX_PUBLIC void bc_tester_set_process_events_func(void (*func)(void));
+BCTBX_PUBLIC void bc_tester_process_events();
 
 BCTBX_PUBLIC int bc_tester_nb_suites(void);
 BCTBX_PUBLIC int bc_tester_nb_tests(const char* name);

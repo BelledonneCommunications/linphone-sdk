@@ -214,7 +214,7 @@ static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName,
 	if (pFile == NULL || fName == NULL) {
 		return BCTBX_VFS_ERROR;
 	}
-#if _WIN32
+#ifdef _WIN32
 	openFlags |= O_BINARY;
 #endif
 
