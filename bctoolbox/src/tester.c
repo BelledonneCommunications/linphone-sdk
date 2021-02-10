@@ -117,7 +117,7 @@ static int (*silent_arg_func)(const char *arg) = NULL;
 static int (*logfile_arg_func)(const char *arg) = NULL;
 
 //Processing custom native events for processing events (like PeekMessage for Windows) that is not implemented by Linphone 
-static void (*process_events)() = NULL;
+static void (*process_events)(void) = NULL;
 
 void bc_tester_set_silent_func(int (*func)(const char*)) {
 	if (func) {
