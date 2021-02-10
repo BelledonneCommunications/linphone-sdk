@@ -97,6 +97,7 @@ class MSMFoundationUwpImpl : public MSMFoundationCap{
 //----------------------------------------  Variables
 	
 		bool mStreaming = false;
+		Windows::Media::Capture::MediaCaptureSharingMode mCameraSharingMode;
 		Platform::Agile<Windows::Media::Capture::MediaCapture^> mMediaCapture;
 		Windows::Media::Capture::Frames::MediaFrameSource^ mSource;
 		Windows::Media::Capture::Frames::MediaFrameReader^ mReader;

@@ -523,6 +523,7 @@ public:
 };
 
 MSMFoundationUwpImpl::MSMFoundationUwpImpl() : MSMFoundationCap() {
+	mCameraSharingMode = MediaCaptureSharingMode::ExclusiveControl;
 }
 
 MSMFoundationUwpImpl::~MSMFoundationUwpImpl() {
@@ -579,18 +580,23 @@ task<bool> MSMFoundationUwpImpl::tryInitializeCaptureAsync() {
 	mMediaCapture = ref new MediaCapture(); // Create a new media capture object.
 	auto settings = ref new MediaCaptureInitializationSettings();
 	settings->SourceGroup = mSourceGroup; // Select the source we will be reading from.
-	settings->SharingMode = MediaCaptureSharingMode::ExclusiveControl; // This media capture has exclusive control of the source.
+	settings->SharingMode = mCameraSharingMode; // This media capture has exclusive control of the source.
 	//settings->SharingMode = MediaCaptureSharingMode::SharedReadOnly; // This media capture has exclusive control of the source.
 	settings->MemoryPreference = MediaCaptureMemoryPreference::Cpu;// Set to CPU to ensure frames always contain CPU SoftwareBitmap images,instead of preferring GPU D3DSurface images.
 	settings->StreamingCaptureMode = StreamingCaptureMode::Video;// Capture only video. Audio device will not be initialized.
-	//try{
 	try{
 		create_task(mMediaCapture->InitializeAsync(settings)).wait();
 		ms_warning("[MSMFoundationCap] Successfully initialized MediaCapture");
 		return task_from_result<bool>(true);
-	}catch(...){
-		ms_warning("[MSMFoundationCap] 1. Failed to initialize media capture");
-		return task_from_result<bool>(false);
+	}catch(Platform::Exception ^ e){
+		if(  e->HResult == 0xc00d3704 && mCameraSharingMode == MediaCaptureSharingMode::ExclusiveControl){
+			mCameraSharingMode = MediaCaptureSharingMode::SharedReadOnly; // This media capture has shared control of the source.
+			disposeMediaCapture();
+			return tryInitializeCaptureAsync();
+		}else{
+			ms_warning("[MSMFoundationCap] 1. Failed to initialize media capture");
+			return task_from_result<bool>(false);
+		}
 	}
 		/*
 		return task_from_result<bool>(create_task(mMediaCapture->InitializeAsync(settings)).then([this](task<void> initializeMediaCaptureTask) {
@@ -629,8 +635,13 @@ task<void> MSMFoundationUwpImpl::createReaderAsync() {
 				mFrameArrivedToken = mReader->FrameArrived += ref new TypedEventHandler<MediaFrameReader ^, MediaFrameArrivedEventArgs ^>( gApp, &App::reader_FrameArrived, CallbackContext::Any);
 				ms_message("[MSMFoundationCap] Reader created on source");
 				LeaveCriticalSection(&mCriticalSection);
-			}catch(...){//CreateFrameReaderAsync
-				return task_from_result();
+			}catch(Platform::Exception ^ e){//CreateFrameReaderAsync
+				if( e->HResult == 0xc00d3704 && mCameraSharingMode == MediaCaptureSharingMode::ExclusiveControl){
+					mCameraSharingMode = MediaCaptureSharingMode::SharedReadOnly; // This media capture has shared control of the source.
+					disposeMediaCapture();
+					return createReaderAsync();
+				}else
+					return task_from_result();
 			}
 		}else {
 			ms_error("[MSMFoundationCap] Cannot create source");
@@ -701,8 +712,10 @@ void MSMFoundationUwpImpl::activate() {
 
 void MSMFoundationUwpImpl::disposeMediaCapture() {
 	mSource = nullptr;
-	delete mMediaCapture.Get();
-	mMediaCapture = nullptr;
+	if(mMediaCapture != nullptr){
+		delete mMediaCapture.Get();
+		mMediaCapture = nullptr;
+	}
 }
 
 void MSMFoundationUwpImpl::processFrame(Windows::Media::Capture::Frames::MediaFrameReference ^ frame) {
