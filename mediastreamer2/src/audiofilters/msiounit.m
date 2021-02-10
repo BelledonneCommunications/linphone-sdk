@@ -162,7 +162,21 @@ struct au_filter_write_data{
 	MSFlowControlledBufferizer *bufferizer;
 	unsigned int n_lost_frame;
 };
- 
+
+static void update_audio_unit_holder_ms_snd_card(MSSndCard * newcard) {
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	MSSndCard * oldCard = [au_holder ms_snd_card];
+	
+	ms_snd_card_ref(newcard);
+	[au_holder mutex_lock];
+	[au_holder setMs_snd_card:newcard];
+	[au_holder mutex_unlock];
+	if (oldCard != NULL) {
+		ms_snd_card_unref(oldCard);
+	}
+	ms_message("au_update_ms_snd_card");
+}
+
 /*
  mediastreamer2 function
  */
@@ -459,6 +473,14 @@ ms_mutex_t mutex;
 		ms_message("AudioUnit destroyed");
 		_audio_unit_state = MSAudioUnitNotCreated;
 	}
+	if (_ms_snd_card) {
+		MSSndCard * cardbuffer = _ms_snd_card;
+		[self mutex_lock];
+		_ms_snd_card = NULL;
+		[self mutex_unlock];
+		ms_snd_card_unref(cardbuffer);
+		ms_message("au_destroy_audio_unit set holder card to NULL");
+	}
 }
 
 -(void)mutex_lock {
@@ -598,27 +620,24 @@ static void au_init(MSSndCard *card){
 
 static void au_uninit(MSSndCard *card){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	if ([au_holder ms_snd_card] == card)
-	{
-		[au_holder stop_audio_unit];
+	if ([au_holder ms_snd_card] == card) {
 		[au_holder destroy_audio_unit];
 	}
 }
-
-static void check_unused(){
+// If the both read&write filters have been destroyed, we're not in test mode, and will_be_used == FALSE, then stop&destroy the audio unit
+static void destroy_audio_unit_if_not_needed_anymore(){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	if ([au_holder audio_unit_state] == MSAudioUnitNotCreated || [au_holder read_filter] || [au_holder write_filter])
 		return;
 	
 	if ( ([au_holder ms_snd_card] != NULL && bctbx_param_string_get_bool_value([au_holder ms_snd_card]->sndcardmanager->paramString, SCM_PARAM_TESTER)) || ![au_holder will_be_used] ) {
-		[au_holder stop_audio_unit];
 		[au_holder destroy_audio_unit];
 	}
 }
 
 static void au_usage_hint(MSSndCard *card, bool_t used){
 	[[AudioUnitHolder sharedInstance] setWill_be_used:used];
-	check_unused();
+	destroy_audio_unit_if_not_needed_anymore();
 }
 
 static void au_detect(MSSndCardManager *m);
@@ -736,21 +755,19 @@ MSSndCardDeviceType deduceDeviceTypeFromInputAudioPortType(AVAudioSessionPort in
 }
 
 static void au_detect(MSSndCardManager *m){
-	ms_debug("au_detect");
-	
 	NSArray *inputs = [[AVAudioSession sharedInstance] availableInputs];
 	
 	for (AVAudioSessionPortDescription *input in inputs) {
 		MSSndCard *card = au_card_new(ms_strdup_printf("%s", [input.portName UTF8String]));
 		card->device_type = deduceDeviceTypeFromInputAudioPortType(input.portType);
 		ms_snd_card_manager_add_card(m, card);
-		ms_message("au_detect, creating snd card %p", card);
+		ms_debug("au_detect, creating snd card %p", card);
 	}
 	
 	MSSndCard *speakerCard = au_card_new(SPEAKER_CARD_NAME);
 	speakerCard->device_type = MS_SND_CARD_DEVICE_TYPE_SPEAKER;
 	ms_snd_card_manager_add_card(m, speakerCard);
-	ms_message("au_detect -- speaker snd card %p", speakerCard);
+	ms_debug("au_detect -- speaker snd card %p", speakerCard);
 }
 
 static bool_t check_timestamp_discontinuity(const AudioTimeStamp *t1, const AudioTimeStamp *t2, unsigned int usualSampleCount){
@@ -879,6 +896,7 @@ static OSStatus au_write_cb (
 /***********************************read function********************/
 
 static void au_read_preprocess(MSFilter *f){
+	ms_message("au_read_preprocess");
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	au_filter_read_data_t *d= (au_filter_read_data_t*)f->data;
 
@@ -1036,9 +1054,7 @@ static int set_muted(MSFilter *f, void *data){
 static int set_audio_unit_sound_card(MSSndCard * newCard) {
 	
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	[au_holder mutex_lock];
-	[au_holder setMs_snd_card:newCard];
-	[au_holder mutex_unlock];
+	update_audio_unit_holder_ms_snd_card(newCard);
 	
 	// Make sure the apple audio route matches this state
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
@@ -1123,6 +1139,7 @@ static MSFilterMethod au_write_methods[]={
 };
 
 static void au_read_uninit(MSFilter *f) {
+	ms_message("au_read_uninit");
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 
@@ -1130,7 +1147,7 @@ static void au_read_uninit(MSFilter *f) {
 	[au_holder setRead_filter:NULL];
 	[au_holder mutex_unlock];
 
-	check_unused();
+	destroy_audio_unit_if_not_needed_anymore();
 
 	ms_mutex_destroy(&d->mutex);
 
@@ -1146,7 +1163,7 @@ static void au_write_uninit(MSFilter *f) {
 	[au_holder setWrite_filter:NULL];
 	[au_holder mutex_unlock];
 
-	check_unused();
+	destroy_audio_unit_if_not_needed_anymore();
 
 	ms_mutex_destroy(&d->mutex);
 	ms_flow_controlled_bufferizer_destroy(d->bufferizer);
@@ -1185,9 +1202,12 @@ MSFilterDesc au_write_desc={
 // This interface gives the impression that there will be 2 different MSSndCard for the Read filter and the Write filter.
 // In reality, we'll always be using a single same card for both.
 static MSFilter *ms_au_read_new(MSSndCard *mscard){
-	ms_debug("ms_au_read_new");
+	ms_message("ms_au_read_new, sound card : %p", mscard);
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	[au_holder setMs_snd_card:mscard];
+	if ([au_holder read_filter] != NULL) {
+		ms_fatal("Trying to create a new au_read filter when there is already one existing");
+	}
+	update_audio_unit_holder_ms_snd_card(mscard);
 	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(mscard), &au_read_desc);
 	au_filter_read_data_t *d=ms_new0(au_filter_read_data_t,1);
 	qinit(&d->rq);
@@ -1199,9 +1219,12 @@ static MSFilter *ms_au_read_new(MSSndCard *mscard){
 }
 
 static MSFilter *ms_au_write_new(MSSndCard *mscard){
-	ms_debug("ms_au_write_new");
+	ms_message("ms_au_write_new, sound card : %p", mscard);
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	[au_holder setMs_snd_card:mscard];
+	if ([au_holder write_filter] != NULL) {
+		ms_fatal("Trying to create a new au_write filter when there is already one existing");
+	}
+	update_audio_unit_holder_ms_snd_card(mscard);
 	MSFilter *f=ms_factory_create_filter_from_desc(ms_snd_card_get_factory(mscard), &au_write_desc);
 	au_filter_write_data_t *d=ms_new0(au_filter_write_data_t,1);
 	d->bufferizer= ms_flow_controlled_bufferizer_new(f, [au_holder rate], [au_holder nchannels]);
