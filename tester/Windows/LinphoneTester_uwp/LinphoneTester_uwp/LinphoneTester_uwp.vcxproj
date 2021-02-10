@@ -94,6 +94,13 @@
     <PlatformToolset>v141</PlatformToolset>
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
+  <PropertyGroup>    
+    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Debug|'">..\..\..\..\builduwp_debug\linphone-sdk\uwp-x64</LinphoneSDK-Path>
+    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Release|'">..\..\..\..\builduwp\linphone-sdk\uwp-x64</LinphoneSDK-Path>
+    <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Debug'">d</LinphoneSDK-Suffix>
+    <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Release'">
+    </LinphoneSDK-Suffix>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -172,7 +179,9 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share"  /E /H /C /I /Y</Command>
+      <Command>robocopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
+				if %errorlevel% leq 1 exit 0 else exit %errorlevel%
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -185,16 +194,12 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share"  /E /H /C /I /Y</Command>
+      <Command>robocopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
+				if %errorlevel% leq 1 exit 0 else exit %errorlevel%
+				</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <PropertyGroup>
-    <LinphoneSDK-Path Condition="'$(Configuration)' == 'Debug'">..\..\..\..\desktop-uwp\linphone-sdk\builduwp_debug\linphone-sdk\uwp-x64</LinphoneSDK-Path>
-    <LinphoneSDK-Path Condition="'$(Configuration)' == 'Release'">..\..\..\..\desktop-uwp\linphone-sdk\builduwp\linphone-sdk\uwp-x64</LinphoneSDK-Path>
-    <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Debug'">d</LinphoneSDK-Suffix>
-    <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Release'">
-    </LinphoneSDK-Suffix>
-  </PropertyGroup>
+  
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
@@ -355,5 +360,10 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets'))" />
+  </Target>
+  <Target Name="AddAppFiles" AfterTargets="Build">
+    <ItemGroup>
+      <Content Include="$(LinphoneSDK-Path)\share\**\*.*" />
+    </ItemGroup>
   </Target>
 </Project>

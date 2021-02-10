@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5" xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4" xmlns:iot2="http://schemas.microsoft.com/appx/manifest/iot/windows10/2" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" xmlns:uap6="http://schemas.microsoft.com/appx/manifest/uap/windows10/6" xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10" xmlns:uap4="http://schemas.microsoft.com/appx/manifest/uap/windows10/4" xmlns:uap2="http://schemas.microsoft.com/appx/manifest/uap/windows10/2" xmlns:mobile="http://schemas.microsoft.com/appx/manifest/mobile/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap mp desktop4 iot2 uap3 uap6 iot uap4 uap2 mobile rescap">
-  <Identity Name="LinphoneTester-uwp" Publisher="CN=BelledonneCommunications" Version="1.0.0.0" />
+  <Identity Name="LinphoneTester-uwp" Publisher="CN=Belledonne Communications" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="34fa58f9-8828-472d-be3d-9b281d4812eb" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>LinphoneTester_uwp</DisplayName>
