@@ -639,7 +639,7 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 }
 
 #ifdef HAVE_GLX
-bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	Display                 *dpy;
 	Window                  root;
 	GLint                   att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 8, GLX_DOUBLEBUFFER, None };
@@ -656,8 +656,8 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
 	*window = XCreateWindow(dpy, root, 200, 200, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
-	if(windowId != NULL)
-		*windowId = NULL;
+	if(window_id != NULL)
+		*window_id = NULL;
 	XStoreName( dpy, *window, "Video" );
 	int error = XMapWindow(dpy, *window);
 	XSync( dpy, False );
@@ -666,7 +666,8 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
 	return (*window) != (EGLNativeWindowType)0;
 }
 
-void ogl_destroy_window(EGLNativeWindowType *window){
+void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
+	(void **) window_id;
 	if(*window){
 		Display *dpy = XOpenDisplay(NULL);
 		XSync(dpy,FALSE);
@@ -726,11 +727,15 @@ void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplica
 		*windowId = NULL;
 }
 #else
-bool_t ogl_create_window(EGLNativeWindowType *window, void ** windowId){
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
+	(EGLNativeWindowType *) window;
+	(void **) window_id;
 	ms_error("[ogl_display] Ceating a Window is not supported for the current platform");
 	return FALSE;
 }
-void ogl_destroy_window(EGLNativeWindowType *window){
+void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
+	(EGLNativeWindowType *) window;
+	(void **) window_id;
 }
 #endif
 
