@@ -860,7 +860,8 @@ static CU_ErrorCode run_single_suite(CU_pSuite pSuite, CU_pRunSummary pRunSummar
 
   pSuite->uiNumberOfTestsFailed = 0;
   pSuite->uiNumberOfTestsSuccess = 0;
-
+ 
+  srand((unsigned int)time(0));// random based on seed time because it may interfer with other process (=same number). Keep the seed for whole suite
   /* run handler for suite start, if any */
   if (NULL != f_pSuiteStartMessageHandler) {
 	(*f_pSuiteStartMessageHandler)(pSuite);
