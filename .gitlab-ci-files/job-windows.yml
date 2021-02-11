@@ -289,6 +289,7 @@ test-linphone-windows-uwp:
     - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\*.log "%CI_PROJECT_DIR%/results"
     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
+    - taskkill /F /IM "LinphoneTester_uwp.exe" /T
     #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
     #- echo %cd%
     #- dir
