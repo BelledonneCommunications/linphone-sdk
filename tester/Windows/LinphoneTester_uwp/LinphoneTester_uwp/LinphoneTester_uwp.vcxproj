@@ -179,9 +179,11 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>robocopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
-				if %errorlevel% leq 1 exit 0 else exit %errorlevel%
-</Command>
+		<Command>	robocopy $(LinphoneSDK-Path)\share "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
+					robocopy $(LinphoneSDK-Path)\bin "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
+					robocopy $(LinphoneSDK-Path)\lib\mediastreamer\plugins "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
+					if %errorlevel% leq 7 exit 0 else exit %errorlevel%
+		</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -194,9 +196,11 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>robocopy "$(LinphoneSDK-Path)\share" "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
-				if %errorlevel% leq 1 exit 0 else exit %errorlevel%
-				</Command>
+		<Command>	robocopy $(LinphoneSDK-Path)\share "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
+					robocopy $(LinphoneSDK-Path)\bin "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
+					robocopy $(LinphoneSDK-Path)\lib\mediastreamer\plugins "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
+					if %errorlevel% leq 7 exit 0 else exit %errorlevel%
+		</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   
@@ -222,96 +226,6 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bctoolbox-tester.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bctoolbox.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bcunit.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\belcard.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bellesip.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\belr.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bv16.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bzrtp.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\CsWrapper.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\gsm.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\jpeg62.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\libbcg729.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\liblinphone.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedcrypto.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedtls.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedx509.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mediastreamer.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\ortp.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\soci_core_4_0.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\soci_sqlite3_4_0.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\speex.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\speexdsp.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\sqlite3.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\srtp2.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\turbojpeg.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\xerces-c.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\xml2.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\zlib$(LinphoneSDK-Suffix).dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\lib\mediastreamer\plugins\libmswasapi.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="$(LinphoneSDK-Path)\lib\mediastreamer\plugins\libmswebrtc.dll">
-      <FileType>Document</FileType>
-    </CopyFileToFolders>
     <None Include="LinphoneTester_uwp_TemporaryKey.pfx" />
     <None Include="packages.config" />
   </ItemGroup>

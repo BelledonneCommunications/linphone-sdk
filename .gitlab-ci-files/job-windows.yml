@@ -264,6 +264,7 @@ test-linphone-windows-uwp:
 
   script:
   # Build VS project
+    - set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86
     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
     - set LINPHONE_PATH=%cd%
     - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
@@ -277,10 +278,17 @@ test-linphone-windows-uwp:
     - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
     - UpdatePermissions.bat
     - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
-    - start /wait LinphoneTester_uwp.exe --parallel --keep --silent
+    - start /wait LinphoneTester_uwp.exe --parallel --silent
     #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
 
   after_script:
+    - powershell -command "Get-AppxPackage *LinphoneTester-uwp*).PackageFamilyName" > packageFolder.txt
+    - set /p PACKAGE_FOLDER=<packageFolder.txt
+    - del packageFolder.txt
+    - mkdir "%CI_PROJECT_DIR%/results"
+    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\BCUnitAutomated* "%CI_PROJECT_DIR%/results"
+    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\*.log "%CI_PROJECT_DIR%/results"
+    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
     #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
     #- echo %cd%
     #- dir
@@ -293,7 +301,6 @@ test-linphone-windows-uwp:
     #- dir
     #- copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     #- copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
 
   artifacts:
     paths:
