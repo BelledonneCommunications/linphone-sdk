@@ -124,7 +124,9 @@ public class MediastreamerAndroidContext {
 		AudioManager audiomanager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 		final AudioDeviceInfo[] devices = audiomanager.getDevices(flag);
 		for (AudioDeviceInfo device : devices) {
-			Log.i("[getAudioDevices] DEBUG Found device: name " + device.getProductName() + " ID " + device.getId() + " type " + device.getType() + " isSource " + device.isSource() + " isSink " + device.isSink() + ".");
+			int type = device.getType();
+			String stringType = getHumanReadableAudioDeviceType(type);
+			Log.i("[Audio Manager] Found device: name [" + device.getProductName() + "], ID [" + device.getId() + "], type [" + stringType + " (" + type + ")], isSource [" + device.isSource() + "], isSink [" + device.isSink() + "]");
 		}
 		return devices;
 	}
@@ -206,5 +208,60 @@ public class MediastreamerAndroidContext {
 		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, AudioManager.STREAM_VOICE_CALL, 0);
 		//try { Thread.sleep(100); } catch (Exception e) { }
 		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, AudioManager.STREAM_VOICE_CALL, 0);
+	}
+
+	private static String getHumanReadableAudioDeviceType(int type) {
+		if (type == 19/*AudioDeviceInfo.TYPE_AUX_LINE*/) {
+			return "Auxiliary line";
+		} else if (type == 8/*AudioDeviceInfo.TYPE_BLUETOOTH_A2DP*/) {
+			return "Bluetooth A2DP";
+		} else if (type == 7/*AudioDeviceInfo.TYPE_BLUETOOTH_SCO*/) {
+			return "Bluetooth SCO";
+		} else if (type == 1/*AudioDeviceInfo.TYPE_BUILTIN_EARPIECE*/) {
+			return "Built-in earpiece";
+		} else if (type == 15/*AudioDeviceInfo.TYPE_BUILTIN_MIC*/) {
+			return "Built-in microphone";
+		} else if (type == 2/*AudioDeviceInfo.TYPE_BUILTIN_SPEAKER*/) {
+			return "Built-in speaker";
+		} else if (type == 24/*AudioDeviceInfo.TYPE_BUILTIN_SPEAKER_SAFE*/) {
+			return "Built-in speaker (safe)";
+		} else if (type == 21/*AudioDeviceInfo.TYPE_BUS*/) {
+			return "Type agnostic bus";
+		} else if (type == 13/*AudioDeviceInfo.TYPE_DOCK*/) {
+			return "Dock";
+		} else if (type == 14/*AudioDeviceInfo.TYPE_FM*/) {
+			return "FM";
+		} else if (type == 16/*AudioDeviceInfo.TYPE_FM_TUNER*/) {
+			return "FM tuner";
+		} else if (type == 9/*AudioDeviceInfo.TYPE_HDMI*/) {
+			return "HDMI";
+		} else if (type == 10/*AudioDeviceInfo.TYPE_HDMI_ARC*/) {
+			return "HDMI Audio Return Channel";
+		} else if (type == 23/*AudioDeviceInfo.TYPE_HEARING_AID*/) {
+			return "Hearing aid";
+		} else if (type == 20/*AudioDeviceInfo.TYPE_IP*/) {
+			return "IP";
+		} else if (type == 5/*AudioDeviceInfo.TYPE_LINE_ANALOG*/) {
+			return "Analog";
+		} else if (type == 6/*AudioDeviceInfo.TYPE_LINE_DIGITAL*/) {
+			return "Digital";
+		} else if (type == 18/*AudioDeviceInfo.TYPE_TELEPHONY*/) {
+			return "Telephony";
+		} else if (type == 17/*AudioDeviceInfo.TYPE_TV_TUNER*/) {
+			return "TV tuner";
+		} else if (type == 0/*AudioDeviceInfo.TYPE_UNKNOWN*/) {
+			return "Unknown";
+		} else if (type == 12/*AudioDeviceInfo.TYPE_USB_ACCESSORY*/) {
+			return "USB accessory";
+		} else if (type == 11/*AudioDeviceInfo.TYPE_USB_DEVICE*/) {
+			return "USB";
+		} else if (type == 22/*AudioDeviceInfo.TYPE_USB_HEADSET*/) {
+			return "USB headset";
+		} else if (type == 4/*AudioDeviceInfo.TYPE_WIRED_HEADPHONES*/) {
+			return "Headphones";
+		} else if (type == 3 /*AudioDeviceInfo.TYPE_WIRED_HEADSET*/) {
+			return "Headset";
+		}
+		return "UNEXPECTED";
 	}
 }
