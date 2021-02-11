@@ -46,30 +46,33 @@ public:
 	virtual ~ConfigurationManager(){};
 	virtual void clean(){mSortedList.clear();}
 	Format getMediaConfiguration(GUID* videoFormat, UINT32* width, UINT32 *height, float * fps){// Return Best Format from parameters
-		auto mediaWidth = mSortedList.lower_bound(*width);
-		if(mediaWidth == mSortedList.end() )
-			--mediaWidth;
-		auto mediaHeight = mediaWidth->second.lower_bound(*height);
-		if(mediaHeight == mediaWidth->second.end() )
-			--mediaHeight;
-		auto mediaFps = mediaHeight->second.upper_bound(*fps);// Try to get more FPS than target
-		if(mediaFps == mediaHeight->second.end() )
-			--mediaFps;
+		if( mSortedList.size() > 0){
+			auto mediaWidth = mSortedList.lower_bound(*width);
+			if(mediaWidth == mSortedList.end() )
+				--mediaWidth;
+			auto mediaHeight = mediaWidth->second.lower_bound(*height);
+			if(mediaHeight == mediaWidth->second.end() )
+				--mediaHeight;
+			auto mediaFps = mediaHeight->second.upper_bound(*fps);// Try to get more FPS than target
+			if(mediaFps == mediaHeight->second.end() )
+				--mediaFps;
 
-		auto mediaVideo = mediaFps->second.find(*videoFormat);
-		if( mediaVideo == mediaFps->second.end())
-			mediaVideo = mediaFps->second.find(MFVideoFormat_NV12);// The format is not found. Try with NV12
-		if(mediaVideo == mediaFps->second.end())
-			mediaVideo = mediaFps->second.find(MFVideoFormat_MJPG);// Try with MFVideoFormat_MJPG format
-		if(mediaVideo == mediaFps->second.end()){
+			auto mediaVideo = mediaFps->second.find(*videoFormat);
+			if( mediaVideo == mediaFps->second.end())
+				mediaVideo = mediaFps->second.find(MFVideoFormat_NV12);// The format is not found. Try with NV12
+			if(mediaVideo == mediaFps->second.end())
+				mediaVideo = mediaFps->second.find(MFVideoFormat_MJPG);// Try with MFVideoFormat_MJPG format
+			if(mediaVideo == mediaFps->second.end()){
+				return nullptr;
+			}else{
+				*videoFormat = mediaVideo->first;
+				*width = mediaWidth->first;
+				*height = mediaHeight->first;
+				*fps = mediaFps->first;
+				return mediaVideo->second;
+			}
+		}else
 			return nullptr;
-		}else{
-			*videoFormat = mediaVideo->first;
-			*width = mediaWidth->first;
-			*height = mediaHeight->first;
-			*fps = mediaFps->first;
-			return mediaVideo->second;
-		}
 
 	}
 };
