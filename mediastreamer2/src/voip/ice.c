@@ -446,6 +446,17 @@ const char *ice_candidate_type(const IceCandidate *candidate)
 	return candidate_type_values[candidate->type];
 }
 
+bool_t ice_candidate_is_relay(const IceCandidate *candidate){
+	if (candidate->type == ICT_RelayedCandidate) return TRUE;
+	if (candidate->base && candidate->base->type == ICT_RelayedCandidate){
+		/* case where the TURN server is itself behind a firewall. 
+		 A peer reflexive candidate is then discovered thanks to the binding response received from the remote.
+		 This peer reflexive candidate has the relay candidate as base.*/
+		return TRUE; 
+	}
+	return FALSE;
+}
+
 /******************************************************************************
  * CANDIDATE PAIR ACCESSORS                                                   *
  *****************************************************************************/
@@ -680,7 +691,7 @@ IceCandidateType ice_check_list_selected_valid_candidate_type(const IceCheckList
 	elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 	if (elem == NULL) return type;
 	pair = ((IceValidCandidatePair *)elem->data)->valid;
-	if (pair->local->type == ICT_RelayedCandidate) return ICT_RelayedCandidate;
+	if (ice_candidate_is_relay(pair->local)) return ICT_RelayedCandidate;
 	type = pair->remote->type;
 	/**
 	 * If the pair is reflexive, check if there is a pair with the same addresses and componentID that is of host type to
@@ -3986,8 +3997,8 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 						rtcp_local_candidate = NULL;
 						ice_check_list_selected_valid_local_candidate(cl, &rtp_local_candidate, &rtcp_local_candidate);
 						if (rtp_local_candidate) {
-							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), rtp_local_candidate->type == ICT_RelayedCandidate);
-							if (rtp_local_candidate->type == ICT_RelayedCandidate) {
+							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 1), ice_candidate_is_relay(rtp_local_candidate));
+							if (ice_candidate_is_relay(rtp_local_candidate)) {
 								rtp_session_get_transports(cl->rtp_session, &rtptp, NULL);
 								ice_check_list_create_turn_channel(cl, rtptp, (struct sockaddr *)&cl->rtp_session->rtp.gs.loc_addr, cl->rtp_session->rtp.gs.loc_addrlen, &rtp_remote_candidate->taddr, 1);
 							} else {
@@ -3995,8 +4006,8 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 							}
 						}
 						if (rtcp_local_candidate) {
-							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 2), rtcp_local_candidate->type == ICT_RelayedCandidate);
-							if (rtcp_local_candidate->type == ICT_RelayedCandidate && rtcp_remote_candidate) {
+							ms_turn_context_set_force_rtp_sending_via_relay(ice_get_turn_context_from_check_list_componentID(cl, 2), ice_candidate_is_relay(rtcp_local_candidate));
+							if (ice_candidate_is_relay(rtcp_local_candidate) && rtcp_remote_candidate) {
 								rtp_session_get_transports(cl->rtp_session, NULL, &rtptp);
 								ice_check_list_create_turn_channel(cl, rtptp, (struct sockaddr *)&cl->rtp_session->rtcp.gs.loc_addr, cl->rtp_session->rtcp.gs.loc_addrlen, &rtcp_remote_candidate->taddr, 2);
 							} else {
