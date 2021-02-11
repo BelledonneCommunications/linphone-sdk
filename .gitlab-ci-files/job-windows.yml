@@ -276,7 +276,7 @@ test-linphone-windows-uwp:
     # Add signing certificate, put it in "Local Machine" and "Trusted Root Certification Authorities"
     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
     - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
-    - UpdatePermissions.bat
+    - call UpdatePermissions.bat
     - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
     - start /wait LinphoneTester_uwp.exe --parallel --silent
     #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
