@@ -434,6 +434,7 @@ void * ms_ticker_run(void *arg)
 	int lastlate=0;
 	int precision=2;
 	int late;
+	unsigned int lateMessageCount = 0;// Avoid spamming late messages
 
 	ms_mutex_lock(&s->lock);
 
@@ -469,9 +470,11 @@ void * ms_ticker_run(void *arg)
 		s->time+=s->interval;
 		late=s->wait_next_tick(s->wait_next_tick_data,s->time);
 		if (late>s->interval*5 && late>lastlate){
-			ms_warning("%s: We are late of %d miliseconds.",s->name,late);
+			if((++lateMessageCount)%10 == 1)
+				ms_warning("%s: We are late of %d miliseconds.",s->name,late);
 			late_tick_time=ms_get_cur_time_ms();
-		}
+		}else if(late == 0)// Reset spam count
+			lateMessageCount = 0;
 		lastlate=late;
 		ms_mutex_lock(&s->lock);
 		if (late_tick_time){
