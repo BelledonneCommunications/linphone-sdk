@@ -718,7 +718,7 @@ int start_sub_process(const char *suite_name, PROCESS_INFORMATION * pi) {
 		NULL,           // Process handle not inheritable
 		NULL,           // Thread handle not inheritable
 		FALSE,          // Set handle inheritance to FALSE
-		CREATE_NEW_CONSOLE,              // No creation flags
+		0,//CREATE_NEW_CONSOLE,              // No creation flags
 		NULL,           // Use parent's environment block
 		NULL,           // Use parent's starting directory
 		&si,            // Pointer to STARTUPINFO structure
