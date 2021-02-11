@@ -267,7 +267,7 @@ static MSFilterMethod methods[] = {
 	{ MS_OGL_RENDER, ogl_call_render },
 	{ 0, NULL }
 };
-
+#ifdef __cplusplus
 MSFilterDesc ms_ogl_desc = {
 	MS_OGL_ID,
 	"MSOGL",
@@ -283,7 +283,6 @@ MSFilterDesc ms_ogl_desc = {
 	ogl_uninit,
 	methods
 };
-#ifdef __cplusplus
 }// extern "C"
 #else
 MSFilterDesc ms_ogl_desc = {

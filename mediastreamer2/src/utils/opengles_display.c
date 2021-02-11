@@ -667,7 +667,6 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 }
 
 void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
-	(void **) window_id;
 	if(*window){
 		Display *dpy = XOpenDisplay(NULL);
 		XSync(dpy,FALSE);
@@ -728,14 +727,10 @@ void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplica
 }
 #else
 bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
-	(EGLNativeWindowType *) window;
-	(void **) window_id;
 	ms_error("[ogl_display] Ceating a Window is not supported for the current platform");
 	return FALSE;
 }
 void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
-	(EGLNativeWindowType *) window;
-	(void **) window_id;
 }
 #endif
 
