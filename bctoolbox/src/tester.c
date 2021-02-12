@@ -556,12 +556,10 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	bctbx_vfs_file_t* bctbx_file;
 	ssize_t read_bytes = 0, file_size = 0, offset = 0;
 	int i;
-	char * file_path;
 
 	suite_junit_xml_results = malloc(sizeof(char *) * nb_test_suites);
 	for (i = 0; i < nb_test_suites; i++) {
 		file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
-		file_path = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), file_name);
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 		if (bctbx_file != NULL) {
 			file_size = (ssize_t)bctbx_file_size(bctbx_file);
@@ -570,24 +568,24 @@ void merge_junit_xml_files(const char *dst_file_name) {
 			if (read_bytes == file_size) {
 				total_size += file_size;
 				suite_junit_xml_results[i][file_size] = '\0';
+				//Also remove the file
+				bctbx_file_close(bctbx_file);
+				remove(file_name);
 			} else {
 				bc_tester_printf(bc_printf_verbosity_error, "Could not read JUnit XML file '%s' to merge", file_name);
 				bctbx_free(suite_junit_xml_results[i]);
 				suite_junit_xml_results[i] = NULL;
+				bctbx_file_close(bctbx_file);
 			}
 		} else {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not open JUnit XML file '%s' to merge", file_name);
 			suite_junit_xml_results[i] = NULL;
+			bctbx_file_close(bctbx_file);
 		}
-		bctbx_file_close(bctbx_file);
-		//Also remove the file
-		remove(file_path);
 		bctbx_free(file_name);
-		bctbx_free(file_path);
 	}
 	//Empty the destination file
-	file_path = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), dst_file_name);
-	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), file_path, "w+");
+	bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), dst_file_name, "w+");
 	if(bctbx_file){
 		bctbx_file_truncate(bctbx_file, 0);
 		offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
@@ -601,7 +599,6 @@ void merge_junit_xml_files(const char *dst_file_name) {
 		bctbx_file_close(bctbx_file);
 	}
 	bctbx_free(suite_junit_xml_results);
-	bctbx_free(file_path);
 }
 
 //In case tests are started in parallel AND --log-file was given
@@ -612,18 +609,16 @@ void merge_log_files(const char *base_logfile_name) {
 	void *buf;
 	ssize_t	offset = 0, file_size = 0, read_bytes = 0;
 	int i;
-	char * file_path = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), base_logfile_name);
-	dst_file = bctbx_file_open(bctbx_vfs_get_default(), file_path, "w+");
-	bctbx_free(file_path);
+
+	dst_file = bctbx_file_open(bctbx_vfs_get_default(), base_logfile_name, "w+");
 	if (!dst_file) {
 		bc_tester_printf(bc_printf_verbosity_error, "Failed to create target log file '%s'", base_logfile_name);
 		return;
 	}
 	for (i = 0; i < nb_test_suites; ++i) {
 		char *suite_logfile_name = get_logfile_name(log_file_name, test_suite[i]->name);
-		file_path = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), suite_logfile_name);
-		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_path, O_RDONLY);
-		bctbx_free(file_path);
+		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), suite_logfile_name, O_RDONLY);
+		
 		if (!bctbx_file) {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not open log file '%s' to merge into '%s'", suite_logfile_name, base_logfile_name);
 			continue;
@@ -683,18 +678,19 @@ int start_sub_process(const char *suite_name, PROCESS_INFORMATION * pi) {
 	//const char *argv[origin_argc + 10]; //Assume safey 10 more parameters
 	char * commandLine = bctbx_strdup(origin_argv[0]);
 	char * commandLineTemp = NULL;
+	bool_t propagateXmlFileSetter = TRUE;
+	bool_t propagateLogFileSetter = log_file_name!=NULL;// Log file has not been set : Don't propagate it
 
 	for (i = 1; origin_argv[i]; ++i) {
+		if (strcmp(origin_argv[i], "--xml-file") == 0) {
+			propagateXmlFileSetter = FALSE;
+		}
 		if (strcmp(origin_argv[i], "--log-file") == 0) {
 			//Create a specific log file for this suite
 			commandLineTemp = commandLine;
-			commandLine = bc_sprintf("%s %s %s", commandLineTemp, origin_argv[i], get_logfile_name(log_file_name, suite_name) );
+			commandLine = bc_sprintf("%s %s \"%s\"", commandLineTemp, origin_argv[i], get_logfile_name(log_file_name, suite_name) );
 			bctbx_free(commandLineTemp);
-			++i;
-		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
-			commandLineTemp = commandLine;
-			commandLine = bc_sprintf("%s %s %s", commandLineTemp, origin_argv[i], origin_argv[i+1] );
-			bctbx_free(commandLineTemp);
+			propagateLogFileSetter = FALSE;
 			++i;
 		} else {
 			//Keep other parameters
@@ -706,6 +702,16 @@ int start_sub_process(const char *suite_name, PROCESS_INFORMATION * pi) {
 	commandLineTemp = commandLine;
 	commandLine = bc_sprintf("%s --xml --child --suite \"%s\"", commandLineTemp, suite_name);
 	bctbx_free(commandLineTemp);
+	if( propagateXmlFileSetter){// Add current xml_file to child commands
+		commandLineTemp = commandLine;
+		commandLine = bc_sprintf("%s --xml-file \"%s\"", commandLineTemp, xml_file);
+		bctbx_free(commandLineTemp);
+	}
+	if(propagateLogFileSetter){
+		commandLineTemp = commandLine;
+		commandLine = bc_sprintf("%s --log-file \"%s\"", commandLineTemp, get_logfile_name(log_file_name, suite_name) );
+		bctbx_free(commandLineTemp);
+	}
 	
 	// Start the child process.
 	STARTUPINFOA si;
@@ -980,24 +986,20 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 	CU_set_suite_cleanup_failure_handler(suite_cleanup_failure_message_handler);
 
 	if (xml_enabled == 1) {
-		char *xml_file_name, *xml_file_name_tmp;
+		char *xml_file_name;//, *xml_file_name_tmp;
 		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
 
 		if (run_in_parallel != 0) {
 			//Sub-process started by parent in bc_tester_run_parallel
 			if (suite_name) {
 				CU_automated_enable_partial_junit(TRUE);
-				xml_file_name_tmp = get_junit_xml_file_name(suite_name, NULL);
-				xml_file_name = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), xml_file_name_tmp);
-				bctbx_free(xml_file_name_tmp);
+				xml_file_name = get_junit_xml_file_name(suite_name, NULL);
 				CU_set_output_filename(xml_file_name);
 				bctbx_free(xml_file_name);
 				CU_automated_run_tests();
 			} else { //Starting registered suites in parallel
 				ret = bc_tester_run_parallel();
-				xml_file_name_tmp = get_junit_xml_file_name(NULL, "-Results.xml");
-				xml_file_name = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), xml_file_name_tmp);
-				bctbx_free(xml_file_name_tmp);
+				xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
 				merge_junit_xml_files(xml_file_name);
 				bctbx_free(xml_file_name);
 				if (log_file_name) {
@@ -1006,9 +1008,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 				return ret;
 			}
 		} else { //Classic, non-parallel run
-			xml_file_name_tmp = get_junit_xml_file_name(NULL, NULL);
-			xml_file_name = bc_sprintf("%s/%s", bc_tester_get_writable_dir_prefix(), xml_file_name_tmp);
-			bctbx_free(xml_file_name_tmp);
+			xml_file_name = get_junit_xml_file_name(NULL, NULL);
 			CU_set_output_filename(xml_file_name);
 			CU_automated_run_tests();
 			bctbx_free(xml_file_name);
