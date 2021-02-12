@@ -121,7 +121,6 @@
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_WINDOWS
       - $ENABLE_WINDOWS_TESTS
-      - $ENABLE_WINDOWS_UWP_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
@@ -163,6 +162,12 @@ job-windows-vs2017-win32-novideo:
 
 job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
+      - $ENABLE_WINDOWS_UWP_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
@@ -287,7 +292,7 @@ test-linphone-windows-uwp:
     - call UpdatePermissions.bat
     - echo %USERDOMAIN%\%USERNAME%
     - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
-    - start /wait LinphoneTester_uwp.exe --parallel --silent --parallel-max 5
+    - start /wait LinphoneTester_uwp.exe --parallel --silent --parallel-max 10
     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
     #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
