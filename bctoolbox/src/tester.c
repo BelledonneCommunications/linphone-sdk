@@ -1268,6 +1268,7 @@ void bc_tester_helper(const char *name, const char* additionnal_helper) {
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--max-alloc <size in ko> (maximum amount of memory obtained via malloc allocator)\n"
 			 "\t\t\t--parallel (Execute tests concurrently and with JUnit report)\n"
+			 "\t\t\t--parallel-max (Number Max of parallel processes)\n"
 			 "\t\t\t--timeout <timeout in minutes> (sets the global timeout when used alongside to the parallel option, the default value is 60)\n"
 			 "And additionally:\n"
 			 "%s",
@@ -1327,6 +1328,9 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		//Defaults to JUnit report if parallel is enabled
 		xml_enabled = 1;
 		run_in_parallel = 1;
+	} else if (strcmp(argv[i], "--parallel-max") == 0) {
+		CHECK_ARG("--parallel-max", ++i, argc);
+		bc_tester_set_max_parallel_suites(atoi(argv[i]));
 	} else if (strcmp(argv[i], "--timeout") == 0) {
 		CHECK_ARG("--timeout", ++i, argc);
 		globalTimeout = atoi(argv[i]);
