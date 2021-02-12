@@ -265,6 +265,7 @@ test-linphone-windows-uwp:
   before_script:
     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
+    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
 
   script:
   # Build VS project
@@ -272,14 +273,16 @@ test-linphone-windows-uwp:
     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
     - set LINPHONE_PATH=%cd%
     - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
+    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
     - powershell -command "Remove-Item x64 -Recurse -Force ; exit 0"
+    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
     - ..\..\..\cmake\Windows\nuget\nuget.exe Restore
     - msbuild /t:restore
     - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
+    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
     - makeappx unpack /p x64\Release\LinphoneTester_uwp\LinphoneTester_uwp_1.0.0.0_x64.appx /d x64\Release\LinphoneTester_uwp\ /o
     # WinAppDeployCmd need to be paried at first time : use -pin <PIN> where <PIN> comes from Windows Settings => Developer Area => Discover enabled =>Pair and get the one-time code.
     # Add signing certificate, put it in "Local Machine" and "Trusted Root Certification Authorities"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
     - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
     - call UpdatePermissions.bat
     - echo %USERDOMAIN%\%USERNAME%
@@ -296,8 +299,7 @@ test-linphone-windows-uwp:
     - set /p PACKAGE_FOLDER=<packageFolder.txt
     - del packageFolder.txt
     - mkdir "%CI_PROJECT_DIR%/results"
-    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\*.log "%CI_PROJECT_DIR%/results"
+    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\LibLinphoneWindows10* "%CI_PROJECT_DIR%/results"
     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
 
     #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
