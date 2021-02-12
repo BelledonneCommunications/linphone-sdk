@@ -303,7 +303,7 @@ task<void> App::InitializeTests(){
 	
 	SetCurrentDirectory (c->Data());
 
-	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, false);// when ui is true, we don't sotre in xml (that means that test is run only for selected test)
+	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, false);// when ui is true, we don't store in xml (that means that test is run only for selected test)
 	NativeTester::Instance->runAllToXml();
 	return  task_from_result();
 }

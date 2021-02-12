@@ -272,6 +272,7 @@ test-linphone-windows-uwp:
     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
     - set LINPHONE_PATH=%cd%
     - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
+    - powershell -command "Remove-Item x64 -Recurse -Force ; exit 0"
     - ..\..\..\cmake\Windows\nuget\nuget.exe Restore
     - msbuild /t:restore
     - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
