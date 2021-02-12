@@ -187,7 +187,8 @@ void MSMFoundationCap::processFrame(byte* inputBytes, DWORD inputCapacity, int i
 		mFrameData = NULL;
 	}
 	if (mVideoFormat == MFVideoFormat_NV12) { // Process raw data from NV12
-		mFrameData = copy_ycbcrbiplanar_to_true_yuv_with_rotation(mAllocator, inputBytes, inputBytes + mHeight * abs(inputStride), mOrientation, mWidth, mHeight, inputStride, inputStride, TRUE);
+		if( inputCapacity >= mHeight * inputStride)// Ensure to get enough data in frame
+			mFrameData = copy_ycbcrbiplanar_to_true_yuv_with_rotation(mAllocator, inputBytes, inputBytes + mHeight * abs(inputStride), mOrientation, mWidth, mHeight, inputStride, inputStride, TRUE);
 	} else if (mVideoFormat == MFVideoFormat_MJPG) { // Process raw data from MJPEG
 		mFrameData = ms_yuv_allocator_get(mAllocator, inputCapacity, mWidth, mHeight);
 		if (mFrameData) {
@@ -677,14 +678,20 @@ task<void> MSMFoundationUwpImpl::stopReaderAsync() {
 task<void> MSMFoundationUwpImpl::startReaderAsync() {
 	createReaderAsync().wait();
 	if (mReader != nullptr && !mStreaming) {
-		MediaFrameReaderStartStatus result = create_task(mReader->StartAsync()).get();
-		ms_message("[MSMFoundationCap] Start reader");
-		EnterCriticalSection(&mCriticalSection);
-		if (result == MediaFrameReaderStartStatus::Success) {
-			mStreaming = true;
+		try{
+			MediaFrameReaderStartStatus result = create_task(mReader->StartAsync()).get();
+			EnterCriticalSection(&mCriticalSection);
+			if (result == MediaFrameReaderStartStatus::Success) {
+				mStreaming = true;
+				ms_message("[MSMFoundationCap] Start reader");
+			}else
+				ms_warning("[MSMFoundationCap] Cannot start Reader. Staus is %d", (int)result);
+			LeaveCriticalSection(&mCriticalSection);
+			return task_from_result();
+		}catch(Platform::Exception ^ e){
+			ms_warning("[MSMFoundationCap] Exception on Reader StartAsync. Reader will not stream : %d", (int)e->HResult);
+			return task_from_result();
 		}
-		LeaveCriticalSection(&mCriticalSection);
-		return task_from_result();
 	}
 	return task_from_result();
 }
@@ -739,6 +746,7 @@ void MSMFoundationUwpImpl::processFrame(Windows::Media::Capture::Frames::MediaFr
 	// Close objects that need closing.
 	delete inputReference;
 	delete input;
+	delete inputBitmap;
 	LeaveCriticalSection(&mCriticalSection);
 }
 
