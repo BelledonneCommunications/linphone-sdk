@@ -27,7 +27,7 @@ namespace InvokeServer
                                          ProtocolType.Tcp);
             listener.Bind(ep);
             listener.Listen(1);
-            int count = 0;
+            //int count = 0;
             while (true)
             {
                 Console.WriteLine("waiting..");
@@ -46,7 +46,7 @@ namespace InvokeServer
                 Console.WriteLine("raceived data = {0}\n", receiveString);
 
                 //var p = System.Diagnostics.Process.Start("LinphoneTester_uwp.exe","--suite \"Register\"");
-                if(count++ >=0){// DEBUG SWITCH
+                //if(count++ >=0){// DEBUG SWITCH
                     /*
                     ProcessStartInfo _processStartInfo = new ProcessStartInfo();
                     _processStartInfo.WorkingDirectory = @"C:\\projects\\test\\3\\LinphoneTester_uwp\\x64\\Debug\\LinphoneTester_uwp\\AppX";
@@ -57,6 +57,7 @@ namespace InvokeServer
                     var parsedCommand = receiveString.Split(' ');
                     var parameters = string.Join(" ", parsedCommand.Skip(1));
                     var process = System.Diagnostics.Process.Start(parsedCommand[0], parameters);
+                    process.PriorityClass = ProcessPriorityClass.BelowNormal;// Avoid freezing OS
                     process.EnableRaisingEvents = true;
                     process.Exited += (sender, e) => {
                         Debug.WriteLine("Process exited with exit code " + process.ExitCode.ToString());
@@ -69,7 +70,7 @@ namespace InvokeServer
                         }
                     };
 
-                }
+                //}
 
                 //byte[] sendData = Encoding.UTF8.GetBytes("Ok\n");
                 //byte[] sendData = new byte[1];
