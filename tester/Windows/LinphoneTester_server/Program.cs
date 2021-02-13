@@ -15,6 +15,7 @@ namespace InvokeServer
         {
             IPAddress localIP = IPAddress.Parse("127.0.0.1");
             int portNo = 50000;
+            int count = -1;
 
             Console.WriteLine("---- Listener ----");
             Console.WriteLine("Local IP = {0}", localIP);
@@ -27,8 +28,8 @@ namespace InvokeServer
                                          ProtocolType.Tcp);
             listener.Bind(ep);
             listener.Listen(1);
-            //int count = 0;
-            while (true)
+
+            while (count == -1 || count > 0)
             {
                 Console.WriteLine("waiting..");
                 Socket connection = listener.Accept();
@@ -45,18 +46,12 @@ namespace InvokeServer
                 Console.WriteLine("received!");
                 Console.WriteLine("raceived data = {0}\n", receiveString);
 
-                //var p = System.Diagnostics.Process.Start("LinphoneTester_uwp.exe","--suite \"Register\"");
-                //if(count++ >=0){// DEBUG SWITCH
-                    /*
-                    ProcessStartInfo _processStartInfo = new ProcessStartInfo();
-                    _processStartInfo.WorkingDirectory = @"C:\\projects\\test\\3\\LinphoneTester_uwp\\x64\\Debug\\LinphoneTester_uwp\\AppX";
-                    _processStartInfo.FileName = @"LinphoneTester_uwp.exe";
-                    _processStartInfo.Arguments = "--xml --suite \"Video Call quality\"";
-                    //_processStartInfo.CreateNoWindow = true;
-                    Process myProcess = Process.Start(_processStartInfo);*/
+                if( ++count == 0)
+                    count = 1;
                     var parsedCommand = receiveString.Split(' ');
                     var parameters = string.Join(" ", parsedCommand.Skip(1));
                     var process = System.Diagnostics.Process.Start(parsedCommand[0], parameters);
+                    Console.WriteLine("Start process : {0} {1}", parsedCommand[0], parameters);
                     process.PriorityClass = ProcessPriorityClass.BelowNormal;// Avoid freezing OS
                     process.EnableRaisingEvents = true;
                     process.Exited += (sender, e) => {
@@ -65,16 +60,12 @@ namespace InvokeServer
                         try{
                             connection.Send(sendData);
                             connection.Close();
+                            --count;
                         }catch
                         {
+                            --count;
                         }
                     };
-
-                //}
-
-                //byte[] sendData = Encoding.UTF8.GetBytes("Ok\n");
-                //byte[] sendData = new byte[1];
-                //connection.Send(sendData);
             }
         }
     }

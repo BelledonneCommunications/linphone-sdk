@@ -265,7 +265,7 @@ test-linphone-windows-uwp:
       - $ENABLE_WINDOWS_UWP_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
-    #GIT_SUBMODULE_STRATEGY: none
+    GIT_SUBMODULE_STRATEGY: none
 
   before_script:
     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
@@ -286,8 +286,6 @@ test-linphone-windows-uwp:
     - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
     - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
     - makeappx unpack /p x64\Release\LinphoneTester_uwp\LinphoneTester_uwp_1.0.0.0_x64.appx /d x64\Release\LinphoneTester_uwp\ /o
-    # WinAppDeployCmd need to be paried at first time : use -pin <PIN> where <PIN> comes from Windows Settings => Developer Area => Discover enabled =>Pair and get the one-time code.
-    # Add signing certificate, put it in "Local Machine" and "Trusted Root Certification Authorities"
     - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
     - call UpdatePermissions.bat
     - echo %USERDOMAIN%\%USERNAME%
@@ -326,5 +324,5 @@ test-linphone-windows-uwp:
     when: always
     reports:
       junit:
-        - results/BCUnitAutomated-win-Results.xml
+        - results/LibLinphoneWindows10-Results.xml
     expire_in: 4 week    
