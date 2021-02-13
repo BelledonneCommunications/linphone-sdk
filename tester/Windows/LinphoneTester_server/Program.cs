@@ -60,13 +60,17 @@ namespace InvokeServer
                         try{
                             connection.Send(sendData);
                             connection.Close();
-                            --count;
-                        }catch
+                            if(--count == 0)
+                                listener.Close();
+                        }
+                        catch
                         {
-                            --count;
+                            if (--count == 0)
+                                listener.Close();
                         }
                     };
             }
+            
         }
     }
 }
