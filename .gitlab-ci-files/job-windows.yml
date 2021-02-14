@@ -290,7 +290,7 @@ test-linphone-windows-uwp:
     - call UpdatePermissions.bat
     - echo %USERDOMAIN%\%USERNAME%
     - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
-    - start /wait LinphoneTester_uwp.exe --parallel --silent --parallel-max 10
+    - start /wait LinphoneTester_uwp.exe --parallel --parallel-max 10
     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
     #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
