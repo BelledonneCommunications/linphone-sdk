@@ -50,7 +50,7 @@
 
 job-android-makefile-r17c:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_VERSION
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -95,7 +95,7 @@ job-android-makefile-r17c-minimal-size:
 
 job-android-ninja-r17c-no-video:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -119,7 +119,7 @@ job-android-ninja-r17c-no-video:
 
 job-android-ninja-r20:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
