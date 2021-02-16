@@ -56,7 +56,7 @@ job-ios-upload:
 job-android-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
 
   only:
     variables:
@@ -96,7 +96,7 @@ job-android-upload:
 job-android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
 
   only:
     variables:
