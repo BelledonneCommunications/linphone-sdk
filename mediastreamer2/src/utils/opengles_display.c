@@ -719,11 +719,13 @@ bool_t ogl_create_window(EGLNativeWindowType *window, Platform::Agile<CoreApplic
 }
 
 void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplicationView>* windowId){
-	Concurrency::create_task(windowId->Get()->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([](){
+	if(windowId->Get()){
+		Concurrency::create_task(windowId->Get()->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([](){
 			CoreWindow::GetForCurrentThread()->Close();
 		}))).wait();
 		*window = (EGLNativeWindowType)0;
 		*windowId = NULL;
+	}
 }
 #else
 bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){

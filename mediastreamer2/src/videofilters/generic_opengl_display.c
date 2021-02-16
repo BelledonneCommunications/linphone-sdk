@@ -175,10 +175,13 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 			data->functions.getProcAddress = context_info->getProcAddress;
 			data->context_info = *context_info;
 			data->update_context = TRUE;
+			data->video_mode = MS_FILTER_VIDEO_NONE;
 		}
 	} else {
 		if(data->context_info.window )
 			ogl_display_uninit(data->display, FALSE);
+		if( data->video_mode == MS_FILTER_VIDEO_AUTO)
+			ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id );
 		ms_message("[MSOGL] reset native window id");
 		memset(&data->context_info, 0, sizeof data->context_info);
 		data->video_mode = MS_FILTER_VIDEO_NONE;
