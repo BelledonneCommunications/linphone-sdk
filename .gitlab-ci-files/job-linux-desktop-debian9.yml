@@ -5,7 +5,7 @@
 
 .factorize_debian9: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian9
 
@@ -17,7 +17,7 @@
 #job-debian9-makefile-gcc:
 #
 #  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
 #  only:
 #    variables:
 #      - $NIGHTLY_MASTER
@@ -32,7 +32,7 @@
 job-debian9-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -52,7 +52,7 @@ job-debian9-makefile-clang:
 job-debian9-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   except:
     variables:
       - $DOCKER_UPDATE
@@ -88,7 +88,7 @@ job-debian9-ninja-gcc-smallsdk:
 #  only:
 #    variables:
 #      - $NIGHTLY_MASTER
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_DOC=ON
 #    CMAKE_GENERATOR: Ninja
@@ -122,7 +122,7 @@ test-bellesip-debian9:
   dependencies:
     - job-debian9-ninja-gcc
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:9
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian9
 
@@ -145,7 +145,7 @@ test-bzrtp-debian9:
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian9:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone:$DEBIAN_9_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-debian9-ninja-gcc
