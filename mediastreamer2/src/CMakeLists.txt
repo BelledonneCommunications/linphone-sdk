@@ -437,7 +437,7 @@ add_custom_target(ms2-voipdescs-header
 )
 
 if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND)
-	find_package(PythonInterp REQUIRED)
+	find_package(PythonInterp 3 REQUIRED)
 	find_program(SED_PROGRAM sed CMAKE_FIND_ROOT_PATH_BOTH)
 	if(NOT SED_PROGRAM)
 		message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
