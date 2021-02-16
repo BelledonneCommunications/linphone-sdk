@@ -193,7 +193,7 @@
     TESTER: "bzrtp"
 
 .test-liblinphone:
-  tags: [ "docker-test-liblinphone" ]
+  tags: [ "docker-test-liblinphone-shuttle-linux" ]
   extends: .test
   variables:
     TESTER_BIN: "liblinphone_tester"
