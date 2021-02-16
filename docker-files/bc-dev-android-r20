@@ -27,8 +27,17 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config python-pystache python-six yasm && \
+    apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config yasm && \
     apt-get clean
+
+# Install python3 and python modules
+RUN apt-get install -y python-pip python3 python3-pip && \
+    python -m pip install six && \
+    python -m pip install pystache && \
+    python -m pip install graphviz && \
+    python3 -m pip install six && \
+    python3 -m pip install pystache && \
+    python3 -m pip install graphviz
 
 # Install CMake (version from the debian repository is too old)
 ENV CMAKE3_HOME /opt/cmake3
