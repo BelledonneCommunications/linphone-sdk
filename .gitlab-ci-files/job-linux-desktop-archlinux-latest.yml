@@ -5,7 +5,7 @@
 
 .factorize_arch: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   variables:
     PLATFORM: linux-arch
 
@@ -17,7 +17,7 @@
 job-archlinux-latest-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -31,7 +31,7 @@ job-archlinux-latest-makefile-gcc:
 job-archlinux-latest-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -50,7 +50,7 @@ job-archlinux-latest-makefile-clang:
 job-archlinux-latest-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -75,7 +75,7 @@ job-archlinux-latest-ninja-gcc-novideo:
 job-archlinux-latest-ninja-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   except:
     variables:
       - $DOCKER_UPDATE
@@ -114,7 +114,7 @@ test-bellesip-arch:
     - job-archlinux-latest-ninja-clang
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_VERSION
   variables:
     PLATFORM: linux-arch
 
@@ -137,7 +137,7 @@ test-bzrtp-arch:
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-arch:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:$ARCHLINUX_TEST_LIBLIN_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-archlinux-latest-ninja-clang

@@ -5,7 +5,7 @@
 
 .factorize_centos7: &docker_image_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:20210217_python3
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -22,7 +22,7 @@
 job-centos7-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:20210217_python3
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -42,7 +42,7 @@ job-centos7-makefile-gcc:
 job-centos7-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:20210217_python3
   except:
     variables:
       - $DOCKER_UPDATE
@@ -72,7 +72,7 @@ test-bellesip-centos7:
     - job-centos7-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:20210217_python3
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -98,7 +98,7 @@ test-bzrtp-centos7:
 
 test-mediastreamer-centos7:
   tags: [ "docker-test-liblinphone" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_VERSION
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
@@ -115,7 +115,7 @@ test-mediastreamer-centos7:
 
 
 .test-liblinphone-centos7:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:7
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-centos7-ninja-gcc
