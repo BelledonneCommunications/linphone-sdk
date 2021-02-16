@@ -23,8 +23,17 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python-pip python-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch yasm && \
     apt-get clean
+
+# Install python modules
+RUN apt-get install -y python-pip python3-pip && \
+    python -m pip install six && \
+    python -m pip install pystache && \
+    python -m pip install graphviz && \
+    python3 -m pip install six && \
+    python3 -m pip install pystache && \
+    python3 -m pip install graphviz
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \

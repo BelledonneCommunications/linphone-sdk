@@ -13,12 +13,21 @@ RUN yum -y update  ca-certificates && \
     yum clean all
 
 # Install development tools
-RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch pystache python-six python3-pip redhat-lsb-core rpm-build yasm && \
+RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm && \
     yum clean all && \
     ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
     ln -s /usr/bin/cmake3 /usr/bin/cmake && \
     ln -s /usr/bin/cpack3 /usr/bin/cpack && \
     ln -s /usr/bin/ctest3 /usr/bin/ctest
+
+# Install python3 and python modules
+RUN yum install -y python-pip python3 python3-pip && \
+    python -m pip install six && \
+    python -m pip install pystache && \
+    python -m pip install graphviz && \
+    python3 -m pip install six && \
+    python3 -m pip install pystache && \
+    python3 -m pip install graphviz
 
 # Install Developer Toolset 8 (for a newer gcc) and LLVM Toolset 7 (for newer clang)
 RUN yum install -y centos-release-scl && \
@@ -27,12 +36,12 @@ RUN yum install -y centos-release-scl && \
 
 # Install linphone & flexisp dependencies development packages
 RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
-#    yum clean all
+    yum clean all
 
 # Install linphone runtime dependencies
-#RUN yum install -y mesa-dri-drivers && \
-#    yum clean all && \
-#    dbus-uuidgen > /var/lib/dbus/machine-id
+RUN yum install -y mesa-dri-drivers && \
+    yum clean all && \
+    dbus-uuidgen > /var/lib/dbus/machine-id
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
@@ -40,9 +49,11 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Load devtoolset-8 environment on starting
-RUN echo ' #!/bin/bash \n source /opt/rh/devtoolset-8/enable \n exec "$@" \n' > /entrypoint.sh
-RUN chmod 755 /entrypoint.sh
-ENTRYPOINT ['/entrypoint.sh'] 
+RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
+RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.shrc
+
+# This tells /bin/sh to load '~/.shrc' on starting
+ENV ENV=~/.shrc 
 
 
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
