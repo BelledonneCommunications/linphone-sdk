@@ -812,11 +812,11 @@ static OSStatus au_read_cb (
 		if (check_timestamp_discontinuity(&d->readTimeStamp, inTimeStamp, inNumberFrames)){
 			ms_warning("AudioUnit capture sample time discontinuity (current=%u, previous=%u, inNumberFrames=%u) ! This usually happens during audio route changes.",
 				(unsigned)inTimeStamp->mSampleTime, (unsigned)d->readTimeStamp.mSampleTime, (unsigned)inNumberFrames);
+			ms_mutex_lock(&d->mutex);
 			if (d->ticker_synchronizer){
-				ms_mutex_lock(&d->mutex);
 				ms_ticker_synchronizer_resync(d->ticker_synchronizer);
-				ms_mutex_unlock(&d->mutex);
 			}
+			ms_mutex_unlock(&d->mutex);
 		}
 		d->readTimeStamp = *inTimeStamp;
 	}
@@ -911,6 +911,7 @@ static void au_read_postprocess(MSFilter *f){
 	flushq(&d->rq,0);
 	ms_ticker_set_synchronizer(f->ticker, NULL);
 	ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
+	d->ticker_synchronizer = NULL;
 	[[AudioUnitHolder sharedInstance] setRead_started:FALSE];
 	ms_mutex_unlock(&d->mutex);
 }
