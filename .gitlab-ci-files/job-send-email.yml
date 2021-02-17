@@ -11,10 +11,17 @@ send-email-test-report:
 
   script:
     - ls -lah results
-    - MAILGUN_TEXT="The Centos 7 tests failed on your pipeline  $CI_PIPELINE_URL. \nFailing job $CI_JOB_URL \nCheck the following link for the graphical report $(cat results/report_url)"
+    #we use singles quotes around commands to escape colon followed by space
+    - 'echo "GITLAB_USER_EMAIL: $GITLAB_USER_EMAIL"'
+    - 'echo "CI_PIPELINE_URL: $CI_PIPELINE_URL"'
+    - 'echo "CI_COMMIT_SHA: $CI_COMMIT_SHA"'
+    - 'echo "Tests report URL: $(cat results/report_url)"'
+    - 'echo "Sending email to $GITLAB_USER_EMAIL with results of pipeline triggered by commit $CI_COMMIT_SHA ($CI_COMMIT_TITLE)"'
+    - 'MAILGUN_TEXT="Branch: $CI_COMMIT_REF_NAME \n\nCommit hash: $CI_COMMIT_SHA \n\nCommit message: $CI_COMMIT_MESSAGE \n\nCommit timestamp: $CI_COMMIT_TIMESTAMP (not supported yet) \n\nPipeline URL: $CI_PIPELINE_URL \n\nAllure report: $(cat results/report_url)"'
     #echo -e interprets escaped characters
-    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject="Linphone-SDK Centos 7 Tests failed for a pipeline of branch $CI_COMMIT_REF_NAME, commit $CI_COMMIT_SHA ($CI_COMMIT_TITLE)" -F text="$(echo -e $MAILGUN_TEXT)"
+    - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject="Linphone-SDK Centos 7 Tests results for pipeline $CI_PIPELINE_ID triggered by commit $CI_COMMIT_SHORT_SHA to branch $CI_COMMIT_REF_NAME" -F text="$(echo -e $MAILGUN_TEXT)"
     - echo $?
+
   only:
     refs:
       - branches
