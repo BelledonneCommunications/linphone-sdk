@@ -678,7 +678,12 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 #if HAVE_AVCODEC_SNOW
 	else if (s->codec==CODEC_ID_SNOW && s->input==NULL) inm=parse_snow_header(s,inm);
 #endif
-	else if (s->codec==CODEC_ID_MJPEG && f->desc->id==MS_JPEG_DEC_ID) inm=read_rfc2435_header(s,inm);
+	else if (s->codec==CODEC_ID_MJPEG){
+		if(f->desc->id==MS_JPEG_DEC_ID)
+			inm=read_rfc2435_header(s,inm);
+		else if (f->desc->id == MS_MJPEG_DEC_ID) // Marker info has to be set for MJPEG decoder
+			mblk_set_marker_info(inm, TRUE);
+	}
 
 	if (inm){
 		/* accumulate the video packet until we have the rtp markbit*/
