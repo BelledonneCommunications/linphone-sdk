@@ -9,6 +9,7 @@
 #import <XCTest/XCTest.h>
 #include "linphone/linphonecore.h"
 #include "linphonetester/liblinphone_tester.h"
+#include "AppDelegate.h"
 #import "NSObject+DTRuntime.h"
 //#import "Utils.h"
 #import "Log.h"
@@ -505,3 +506,33 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
+@interface IncomingPushTest : LinphoneTesterBase
+@end
+
+@implementation IncomingPushTest
++ (void)initialize {
+}
+
+- (void)testIncomingPush {
+	NSData *pushToken = ((AppDelegate*) UIApplication.sharedApplication.delegate).pushToken;
+	
+	const char *tokenData = [pushToken bytes];
+	NSMutableString *stringDeviceToken = [NSMutableString string];
+	for (NSUInteger i = 0; i < [pushToken length]; i++) {
+		[stringDeviceToken appendFormat:@"%02.2hhX", tokenData[i]];
+	}
+	NSString *appId = [[NSBundle mainBundle] bundleIdentifier];
+	
+	LinphoneCoreManager * marie = linphone_core_manager_new("account_creator_rc");
+	LinphoneAccountCreator *creator = linphone_account_creator_new(marie->lc, "http://subscribe.example.org:8082/flexisip-account-manager/xmlrpc.php");
+	
+	linphone_account_creator_set_pn_provider(creator, "apns.dev");
+	linphone_account_creator_set_pn_param(creator, appId.UTF8String);
+	linphone_account_creator_set_pn_prid(creator, tokenData);
+	
+	char *provider = linphone_account_creator_get_pn_provider(creator);
+	char *param = linphone_account_creator_get_pn_param(creator);
+	char *prid = linphone_account_creator_get_pn_prid(creator);
+	
+}
+@end
