@@ -9,10 +9,19 @@
 using namespace LinphoneTester_uwp;
 
 using namespace Platform;
+using namespace Concurrency;
+using namespace System::Threading::Core;
 using namespace Windows::ApplicationModel;
 using namespace Windows::ApplicationModel::Activation;
+using namespace Windows::ApplicationModel::Core;
 using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
+using namespace Windows::Storage;
+using namespace Windows::Storage::Streams;
+using namespace Windows::System;
+using namespace Windows::System::Threading;
+using namespace Windows::UI::Core;
+using namespace Windows::UI::ViewManagement;
 using namespace Windows::UI::Xaml;
 using namespace Windows::UI::Xaml::Controls;
 using namespace Windows::UI::Xaml::Controls::Primitives;
@@ -22,29 +31,13 @@ using namespace Windows::UI::Xaml::Interop;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Navigation;
 
-using namespace Concurrency;
-using namespace Windows::ApplicationModel::Core;
-
-using namespace Windows::Storage;
 using namespace BelledonneCommunications::Linphone::Tester;
-
-using namespace Windows::UI::ViewManagement;
-using namespace Windows::UI::Core;
-using namespace Windows::System::Threading;
-using namespace Windows::System;
 
 #include <stdlib.h>
 #include <iostream>
 
 #include <ppltasks.h>
 #include <sstream>
-
-using namespace Windows::Foundation;
-using namespace Windows::Storage::Streams;
-using namespace Windows::UI::Core;
-using namespace Windows::UI::Xaml::Navigation;
-
-using namespace System::Threading::Core;
 
 task<void> init(){
 	Windows::ApplicationModel::Core::CoreApplication::MainView->CoreWindow->Dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,
@@ -222,57 +215,24 @@ void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Naviga
 {
     throw ref new FailureException("Failed to load Page " + e->SourcePageType.Name);
 }
-task<void> App::InitializeTests(){
-	auto a = ApplicationData::Current->LocalCacheFolder->Path;
-	auto b = ApplicationData::Current->LocalFolder->Path;
-	auto c = Windows::ApplicationModel::Package::Current->InstalledLocation->Path;	
-	auto d = ApplicationData::Current->RoamingFolder->Path;
-	auto f = ApplicationData::Current->TemporaryFolder->Path;
-	
-	SetCurrentDirectory (c->Data());
 
-	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, false);// when ui is true, we don't store in xml (that means that test is run only for selected test)
+task<void> App::InitializeTests(){
+	SetCurrentDirectory (Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
+	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, false);
 	NativeTester::Instance->runAllToXml();
 	return  task_from_result();
 }
+
 task<void> waitForTests(){
 	Concurrency::create_task(NativeTester::Instance->AsyncAction).wait();
 	return  task_from_result();
 }
+
 void App::startTests(){
-	//auto worker = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
-		//});
-	
 	Concurrency::create_task(InitializeTests()).then([](){
 		return waitForTests();
-		}).then([this]{if(mIsExitOnEnd) CoreApplication::Exit();});
-		
-
-	/*
-		auto worker = ref new WorkItemHandler([this](IAsyncAction ^workItem) {
-		  
-		});
-		Concurrency::create_task(ThreadPool::RunAsync(worker)).then([]{
-		   //return NativeTester::Instance->AsyncAction;
-			return t();
 		}).then([this]{
-			//while(1){}
-			//if(mIsMain){
-			//	wprintf(L"Press 'Enter' to continue: ");
-			//	getchar();
-			//}else
-			//	CoreApplication::Exit();
+			if(mIsExitOnEnd) 
+				CoreApplication::Exit();
 		});
-		*/
 }
-/*
-using namespace System;
-int __cdecl main(::Platform::Array<::Platform::String^>^ args)
-{
-    (void)args; // Unused parameter
-    ::Windows::UI::Xaml::Application::Start(ref new ::Windows::UI::Xaml::ApplicationInitializationCallback(
-        [](::Windows::UI::Xaml::ApplicationInitializationCallbackParams^ p) {
-            (void)p; // Unused parameter
-            auto app = ref new ::LinphoneTester_uwp::App();
-        }));
-}*/
