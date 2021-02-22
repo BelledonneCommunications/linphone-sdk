@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Common">
+      <UniqueIdentifier>4a0e77d3-07c9-44c1-b49d-bc024c7e6671</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>d5007477-0e2d-4869-8457-77f43f30ce38</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Filter Include="dll">
+      <UniqueIdentifier>{7d81fa65-75d1-431e-aaa4-2553b7c54124}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="App.xaml.cpp" />
+    <ClCompile Include="MainPage.xaml.cpp" />
+    <ClCompile Include="pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="App.xaml.h" />
+    <ClInclude Include="MainPage.xaml.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\LockScreenLogo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\SplashScreen.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square150x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\StoreLogo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="Assets\Wide310x150Logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LinphoneTester_uwp_TemporaryKey.pfx" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainPage.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="LinphoneTester_uwp.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bctoolbox.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bctoolbox-tester.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bcunit.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\belcard.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bellesip.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\belr.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bv16.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\bzrtp.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\CsWrapper.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\gsm.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\jpeg62.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\libbcg729.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\liblinphone.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedcrypto.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedtls.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mbedx509.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\mediastreamer.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\ortp.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\soci_core_4_0.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\soci_sqlite3_4_0.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\speex.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\speexdsp.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\sqlite3.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\srtp2.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\turbojpeg.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\xerces-c.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\xml2.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\lib\mediastreamer\plugins\libmswasapi.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\lib\mediastreamer\plugins\libmswebrtc.dll">
+      <Filter>dll</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="$(LinphoneSDK-Path)\bin\zlib$(LinphoneSDK-Suffix).dll" />
+  </ItemGroup>
+</Project>
