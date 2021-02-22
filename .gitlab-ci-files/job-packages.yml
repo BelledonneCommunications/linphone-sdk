@@ -36,7 +36,7 @@ job-xamarin-package:
   stage: package
   tags: [ "deploy" ]
   variables:
-    GIT_STRATEGY: nonepoiop
+    GIT_STRATEGY: none
   dependencies:
     - job-ios-ninja
     - job-android-makefile-r17c
