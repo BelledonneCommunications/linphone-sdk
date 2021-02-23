@@ -127,3 +127,6 @@
 [submodule "msandroidcamera2"]
 	path = msandroidcamera2
 	url = https://gitlab.linphone.org/BC/public/msandroidcamera2.git
+[submodule "external/openldap"]
+	path = external/openldap
+	url = https://gitlab.linphone.org/BC/public/external/openldap.git
