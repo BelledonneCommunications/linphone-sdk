@@ -202,6 +202,7 @@ static void ring_stream_configure_output_snd_card(RingStream *stream) {
 void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard * sndcard_playback) {
 	if (stream->card) {
 		ms_snd_card_unref(stream->card);
+		stream->card = NULL;
 	}
 	stream->card = ms_snd_card_ref(sndcard_playback);
 	ring_stream_configure_output_snd_card(stream);

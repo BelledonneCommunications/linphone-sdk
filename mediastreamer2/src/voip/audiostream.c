@@ -905,6 +905,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		if (stream->soundread==NULL)
 			stream->soundread = ms_snd_card_create_reader(card);
 		has_builtin_ec=!!(ms_snd_card_get_capabilities(io->input.soundcard) & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER);
+		if (stream->captcard) {
+			ms_snd_card_unref(stream->captcard);
+			stream->captcard = NULL;
+		}
 		stream->captcard = ms_snd_card_ref(card);
 	} else if (io->input.type == MSResourceRtp) {
 		stream->rtp_io_session = io->input.session;
@@ -920,7 +924,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		MSSndCard * card = io->output.soundcard;
 		if (stream->soundwrite==NULL)
 			stream->soundwrite=ms_snd_card_create_writer(card);
-
+		if (stream->playcard) {
+			ms_snd_card_unref(stream->playcard);
+			stream->playcard = NULL;
+		}
 		stream->playcard = ms_snd_card_ref(card);
 	} else if (io->output.type == MSResourceRtp) {
 		stream->rtp_io_session = io->output.session;
@@ -2049,18 +2056,22 @@ void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
 }
 
 void audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture) {
+	MSSndCard* captcard = ms_snd_card_ref(sndcard_capture);
 	if (stream->captcard) {
 		ms_snd_card_unref(stream->captcard);
+		stream->captcard = NULL;
 	}
-	stream->captcard = ms_snd_card_ref(sndcard_capture);
+	stream->captcard = captcard;
 	audio_stream_configure_input_snd_card(stream);
 }
 
 void audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback) {
+	MSSndCard* playcard = ms_snd_card_ref(sndcard_playback);
 	if (stream->playcard) {
 		ms_snd_card_unref(stream->playcard);
+		stream->playcard = NULL;
 	}
-	stream->playcard = ms_snd_card_ref(sndcard_playback);
+	stream->playcard = playcard;
 	audio_stream_configure_output_snd_card(stream);
 }
 
