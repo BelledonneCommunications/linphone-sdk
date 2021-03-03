@@ -928,7 +928,7 @@ void ms_stun_message_destroy(MSStunMessage *msg) {
 	if (msg->message_integrity) ms_free(msg->message_integrity);
 	if (msg->software) ms_free(msg->software);
 	if (msg->error_code.reason) ms_free(msg->error_code.reason);
-	if (msg->data) ms_free(msg->data);
+	if (msg->data && msg->own_data) ms_free(msg->data);
 	ms_free(msg);
 }
 
@@ -1307,15 +1307,20 @@ uint16_t ms_stun_message_get_data_length(const MSStunMessage *msg) {
 	return msg->data_length;
 }
 
-void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length) {
-	if (msg->data != NULL) {
+void ms_stun_message_set_data_2(MSStunMessage *msg, uint8_t *data, uint16_t length, bool_t with_ownership) {
+	if (msg->data != NULL && msg->own_data) {
 		ms_free(msg->data);
 		msg->data = NULL;
+		msg->own_data = FALSE;
 	}
 	msg->data = data;
 	msg->data_length = length;
+	msg->own_data = with_ownership;
 }
 
+void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length) {
+	ms_stun_message_set_data_2(msg, data, length, TRUE);
+}
 
 MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_session) {
 	MSTurnContext *context = ms_new0(MSTurnContext, 1);
@@ -1626,41 +1631,39 @@ static bool_t ms_turn_rtp_endpoint_should_be_sent_to_turn_server(MSTurnContext *
 
 static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
-	MSStunMessage *stun_msg = NULL;
 	bool_t send_via_turn_tcp = FALSE;
 	int ret = msgdsize(msg);
 	int sub_ret = 0;
-	mblk_t *new_msg = NULL;
 	struct sockaddr_storage sourceAddr;
 	socklen_t sourceAddrLen;
+	mblk_t *new_msg = NULL; /* If a new mblk_t is forged, it will have to be destroyed at the end of this function. 'msg' itself is freed by the caller.*/
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
 		ortp_recvaddr_to_sockaddr(&msg->recv_addr, (struct sockaddr*) &sourceAddr, &sourceAddrLen);
 		if (ms_turn_rtp_endpoint_should_be_sent_to_turn_server(context, to, tolen)) {
-			ms_message("Sent to TURN server.");
 			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
 				send_via_turn_tcp = TRUE;
 			}
 		}else if (ms_turn_rtp_endpoint_send_via_turn_relay(context, (struct sockaddr*) &sourceAddr, sourceAddrLen)) {
 			if (ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) {
 				/* Use a TURN ChannelData message */
-				new_msg = allocb(4, 0);
-				*((uint16_t *)new_msg->b_wptr) = htons(ms_turn_context_get_channel_number(context));
-				new_msg->b_wptr += 2;
-				*((uint16_t *)new_msg->b_wptr) = htons((uint16_t)msgdsize(msg));
-				new_msg->b_wptr += 2;
-				mblk_meta_copy(msg, new_msg);
-				concatb(new_msg, dupmsg(msg));
-				msg = new_msg;
+				mblk_t *header = NULL;
+				header = allocb(4, 0);
+				*((uint16_t *)header->b_wptr) = htons(ms_turn_context_get_channel_number(context));
+				header->b_wptr += 2;
+				*((uint16_t *)header->b_wptr) = htons((uint16_t)ret);
+				header->b_wptr += 2;
+				concatb(header, dupmsg(msg));
+				new_msg = msg = header;
 				context->stats.nb_sent_channel_msg++;
 			} else {
 				/* Use a TURN send indication to encapsulate the data to be sent */
 				struct sockaddr_storage realto;
 				socklen_t realtolen = sizeof(realto);
 				MSStunAddress stun_addr;
+				MSStunMessage *stun_msg = NULL;
 				char *buf = NULL;
 				size_t len;
-				uint8_t *data;
 				uint16_t datalen;
 				
 				msgpullup(msg, -1);
@@ -1668,13 +1671,15 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				bctbx_sockaddr_ipv6_to_ipv4(to, (struct sockaddr *)&realto, &realtolen);
 				ms_sockaddr_to_stun_address((struct sockaddr *)&realto, &stun_addr);
 				stun_msg = ms_turn_send_indication_create(stun_addr);
-				data = ms_malloc(datalen);
-				memcpy(data, msg->b_rptr, datalen);
-				ms_stun_message_set_data(stun_msg, data, datalen);
-				msg->b_rptr = msg->b_wptr;
+				
+				/* the data is actually within our 'msg', we don't want ms_stun_message_destroy() to free it.*/
+				ms_stun_message_set_data_2(stun_msg, msg->b_rptr, datalen, FALSE);
 				len = ms_stun_message_encode(stun_msg, &buf);
-				msgappend(msg, buf, len, FALSE);
-				ms_free(buf);
+				
+				ms_stun_message_destroy(stun_msg);
+				/* Allocate a new mblk_t englobing the STUN encoded message. */
+				new_msg = msg = esballoc((uint8_t*)buf, len, 0, ms_free);
+				msg->b_wptr += len;
 				context->stats.nb_send_indication++;
 			}
 			to = (const struct sockaddr *)&context->turn_server_addr;
@@ -1691,10 +1696,7 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 			sub_ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
 		}
 	}
-	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
-	if (new_msg != NULL) {
-		freemsg(new_msg);
-	}
+	if (new_msg) freemsg(new_msg);
 	return sub_ret > 0 ? ret : sub_ret; /* The sendto() function shall not return more or less than requested. The same amount, otherwise an error.*/
 }
 
