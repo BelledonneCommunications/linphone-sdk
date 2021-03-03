@@ -37,6 +37,7 @@
 #include "mediastreamer2/msvaddtx.h"
 #include "mediastreamer2/msgenericplc.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/flowcontrol.h"
 #include "private.h"
 #include <math.h>
 
@@ -845,6 +846,14 @@ static int get_usable_telephone_event(RtpProfile *profile, int clock_rate){
 	 */
 	if (fallback_pt !=-1) ms_warning("The remote equipment doesn't conform to RFC4733 2.1 - it wants to use telephone-event/8000 despite the clock rate of the audio codec is %i", clock_rate);
 	return fallback_pt;
+}
+
+static void ms_audio_flow_control_event_handler(void *user_data, MSFilter *source, unsigned int event, void *eventdata) {
+	if (event == MS_AUDIO_FLOW_CONTROL_DROP_EVENT) {
+		MSFilter *flow_controller = (MSFilter *)user_data;
+		MSAudioFlowControlDropEvent *ev = (MSAudioFlowControlDropEvent *)eventdata;
+		ms_filter_call_method(flow_controller, MS_AUDIO_FLOW_CONTROL_DROP, ev);
+	}
 }
 
 int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
