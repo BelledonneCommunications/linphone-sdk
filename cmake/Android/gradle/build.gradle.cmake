@@ -149,6 +149,11 @@ android {
             jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 ///////////// Task /////////////
