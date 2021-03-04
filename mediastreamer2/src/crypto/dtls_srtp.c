@@ -149,7 +149,7 @@ static uint8_t ms_dtls_srtp_check_certificate_fingerprint(const bctbx_x509_certi
 	} else if (strncasecmp(peer_fingerprint, "sha-512 ", 8) ==0 ){
 		hash_function = BCTBX_MD_SHA512;
 	} else { /* we have an unknown hash function: return null */
-		ms_error("DTLS-SRTP received invalid peer fingerprint, hash function unknown");
+		ms_error("DTLS-SRTP received invalid peer fingerprint %s, hash function unknown", peer_fingerprint);
 		return 0;
 	}
 
@@ -188,7 +188,7 @@ static MSCryptoSuite ms_dtls_srtp_bctbx_protection_profile_to_ms_crypto_suite(bc
 		case BCTBX_SRTP_AES128_CM_HMAC_SHA1_32:
 			return MS_AES_128_SHA1_32;
 		case BCTBX_SRTP_NULL_HMAC_SHA1_80:
-			return MS_NO_CIPHER_SHA1_80;
+			return MS_AES_128_SHA1_80_NO_CIPHER;
 		case BCTBX_SRTP_NULL_HMAC_SHA1_32: /* this profile is defined in DTLS-SRTP rfc but not implemented by libsrtp */
 			return MS_CRYPTO_SUITE_INVALID;
 		default:
@@ -586,7 +586,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 
 	/* check if it is a DTLS packet and process it */
 	if (ms_dtls_srtp_process_dtls_packet(msg, ctx, &ret, TRUE) == TRUE){
-		
 		if ((ret==0) && (ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING)) { /* handshake is over, give the keys to srtp : 128 bits client write - 128 bits server write - 112 bits client salt - 112 server salt */
 			MSCryptoSuite agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 			uint8_t old_status = ctx->rtp_channel_status;
@@ -852,17 +851,46 @@ void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *p
 	}
 }
 
+void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context) {
+	if (context) {
+		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
+
+		ms_message("Reseting DTLS context [%p] and SSL connections", context);
+
+		if ((context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) || (context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER )) {
+			bctbx_ssl_session_reset( context->rtp_dtls_context->ssl );
+		}
+
+		context->rtp_channel_status = DTLS_STATUS_CONTEXT_READY;
+
+		if ((context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) || (context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER )) {
+			bctbx_ssl_session_reset( context->rtcp_dtls_context->ssl );
+		}
+
+		context->rtcp_channel_status = DTLS_STATUS_CONTEXT_READY;
+
+		context->role = MSDtlsSrtpRoleUnset;
+
+		ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
+
+	}
+}
+
 void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role) {
 	if (context) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
 		ms_mutex_lock(&context->rtcp_dtls_context->ssl_context_mutex);
 
 		/* if role has changed and handshake already setup and going, reset the session */
-		if (context->role != role && context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
-			bctbx_ssl_session_reset( context->rtp_dtls_context->ssl );
-		}
-		if (context->role != role && context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) {
-			bctbx_ssl_session_reset( context->rtcp_dtls_context->ssl );
+		if (context->role != role) {
+			if ((context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) || (context->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER )) {
+				bctbx_ssl_session_reset( context->rtp_dtls_context->ssl );
+			}
+			if ((context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_ONGOING ) || (context->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER )) {
+				bctbx_ssl_session_reset( context->rtcp_dtls_context->ssl );
+			}
 		}
 
 		/* if role is isServer and was Unset, we must complete the server setup */
@@ -938,7 +966,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		ms_warning("DTLS start but no context\n");
 		return;
 	}
-	ms_message("DTLS start stream on stream sessions [%p], RTCP mux is %s, MTU is %d", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled", context->mtu);
+	ms_message("DTLS start stream on stream sessions [%p], RTCP mux is %s, MTU is %d, role is %s", context->stream_sessions, rtp_session_rtcp_mux_enabled(context->stream_sessions->rtp_session)?"enabled":"disabled", context->mtu,context->role==MSDtlsSrtpRoleIsServer?"server":(context->role==MSDtlsSrtpRoleIsClient?"client":"unset role"));
 
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {

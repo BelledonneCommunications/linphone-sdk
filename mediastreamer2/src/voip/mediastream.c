@@ -196,6 +196,13 @@ const char * media_stream_type_str(MediaStream *stream) {
 	return ms_format_type_to_string(stream->type);
 }
 
+void media_stream_reset_zrtp_context(MediaStream *stream){
+	MSMediaStreamSessions *sessions = &(stream->sessions);
+	if (sessions && sessions->zrtp_context!=NULL) {
+		ms_zrtp_context_reset(sessions->zrtp_context);
+	}
+}
+
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 	if (sessions->srtp_context) {
 		ms_srtp_context_delete(sessions->srtp_context);
@@ -554,29 +561,48 @@ RtpSession * media_stream_get_rtp_session(const MediaStream *stream) {
 MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *descrption){
 	const char *name=descrption->name, *parameters=descrption->params;
 	if (keywordcmp ( "AES_CM_128_HMAC_SHA1_80",name ) == 0 ){
-		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) return MS_NO_CIPHER_SHA1_80;
-		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_NO_AUTH;
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) return MS_AES_128_SHA1_80_NO_CIPHER;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) return MS_AES_128_SHA1_80_SRTP_NO_CIPHER;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) return MS_AES_128_SHA1_80_SRTCP_NO_CIPHER;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_SHA1_80_NO_AUTH;
 		else return MS_AES_128_SHA1_80;
 	}else if ( keywordcmp ( "AES_CM_128_HMAC_SHA1_32",name ) == 0 ){
-		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
-		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_NO_AUTH;
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_SHA1_32_NO_AUTH;
 		else return MS_AES_128_SHA1_32;
 	}else if ( keywordcmp ("AES_256_CM_HMAC_SHA1_32", name) == 0 ){
-		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
-		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
-		return MS_AES_256_SHA1_32;
+
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_256_SHA1_32;
 	}else if ( keywordcmp ("AES_256_CM_HMAC_SHA1_80", name) == 0 ){
-		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
-		if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
-		return MS_AES_256_SHA1_80;
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_256_SHA1_80;
 	}else if ( keywordcmp ("AES_CM_256_HMAC_SHA1_80", name) == 0 ){
-        if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
-        if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
-        return MS_AES_CM_256_SHA1_80;
-    }
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_CM_256_SHA1_80;
+	}
 error:
-    ms_error("Unsupported crypto suite '%s' with parameters '%s'",name, parameters ? parameters : "");
-    return MS_CRYPTO_SUITE_INVALID;
+	ms_error("Unsupported crypto suite '%s' with parameters '%s'",name, parameters ? parameters : "");
+	return MS_CRYPTO_SUITE_INVALID;
+}
+
+bool_t ms_crypto_suite_is_unencrypted(MSCryptoSuite cs){
+	return (cs == MS_AES_128_SHA1_80_SRTP_NO_CIPHER) || (cs == MS_AES_128_SHA1_80_SRTCP_NO_CIPHER) || (cs == MS_AES_128_SHA1_80_NO_CIPHER);
+}
+
+bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs){
+	return (cs == MS_AES_128_SHA1_80_NO_AUTH) || (cs == MS_AES_128_SHA1_32_NO_AUTH);
 }
 
 int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *params ){
@@ -591,11 +617,23 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
      	case MS_AES_128_SHA1_32:
      		params->name="AES_CM_128_HMAC_SHA1_32";
      		break;
-     	case MS_AES_128_NO_AUTH:
+     	case MS_AES_128_SHA1_80_NO_AUTH:
      		params->name="AES_CM_128_HMAC_SHA1_80";
      		params->params="UNAUTHENTICATED_SRTP";
      		break;
-     	case MS_NO_CIPHER_SHA1_80:
+     	case MS_AES_128_SHA1_32_NO_AUTH:
+     		params->name="AES_CM_128_HMAC_SHA1_32";
+     		params->params="UNAUTHENTICATED_SRTP";
+     		break;
+     	case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+     		params->name="AES_CM_128_HMAC_SHA1_80";
+     		params->params="UNENCRYPTED_SRTP";
+     		break;
+     	case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+     		params->name="AES_CM_128_HMAC_SHA1_80";
+     		params->params="UNENCRYPTED_SRTCP";
+     		break;
+     	case MS_AES_128_SHA1_80_NO_CIPHER:
      		params->name="AES_CM_128_HMAC_SHA1_80";
      		params->params="UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
      		break;

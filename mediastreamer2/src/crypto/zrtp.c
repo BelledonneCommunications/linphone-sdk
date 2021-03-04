@@ -588,6 +588,10 @@ void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessi
 /* header declared in include/mediastreamer2/zrtp.h */
 bool_t ms_zrtp_available(){return TRUE;}
 
+void ms_zrtp_context_reset(MSZrtpContext* context) {
+	bzrtp_resetBzrtpContext(context->zrtpContext);
+}
+
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	MSZrtpContext *userData;
 	bzrtpContext_t *context;
@@ -770,6 +774,10 @@ int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *se
 }
 
 #else /* HAVE_ZRTP */
+
+void ms_zrtp_context_reset(MSZrtpContext* context) {
+	ms_message("ZRTP is disabled");
+}
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params){
 	ms_message("ZRTP is disabled");

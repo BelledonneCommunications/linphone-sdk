@@ -134,6 +134,8 @@ MS2_PUBLIC bool_t ms_zrtp_available(void);
  */
 MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpParams *params);
 
+MS2_PUBLIC void ms_zrtp_context_reset(MSZrtpContext* context);
+
 /**
  * Create an initialise a ZRTP context on a channel when a ZRTP exchange was already performed on an other one
  * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready

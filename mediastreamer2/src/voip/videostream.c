@@ -2139,8 +2139,9 @@ void video_stream_send_only_stop(VideoStream *vs){
 void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astream){
 	if (astream->ms.sessions.zrtp_context != NULL && vstream->ms.sessions.zrtp_context == NULL) {
 		vstream->ms.sessions.zrtp_context=ms_zrtp_multistream_new(&(vstream->ms.sessions), astream->ms.sessions.zrtp_context);
-	} else if (vstream->ms.sessions.zrtp_context && !media_stream_secured(&vstream->ms))
+	} else if (vstream->ms.sessions.zrtp_context && !media_stream_secured(&vstream->ms)) {
 		ms_zrtp_reset_transmition_timer(vstream->ms.sessions.zrtp_context);
+	}
 }
 
 void video_stream_start_zrtp(VideoStream *stream) {

@@ -2006,10 +2006,11 @@ float audio_stream_get_average_lq_quality_rating(AudioStream *stream) {
 }
 
 void audio_stream_enable_zrtp(AudioStream *stream, MSZrtpParams *params){
-	if (stream->ms.sessions.zrtp_context==NULL)
+	if (stream->ms.sessions.zrtp_context==NULL) {
 		stream->ms.sessions.zrtp_context=ms_zrtp_context_new( &(stream->ms.sessions), params);
-	else if (!media_stream_secured(&stream->ms))
+	} else if (!media_stream_secured(&stream->ms)) {
 		ms_zrtp_reset_transmition_timer(stream->ms.sessions.zrtp_context);
+	}
 }
 
 void audio_stream_start_zrtp(AudioStream *stream) {

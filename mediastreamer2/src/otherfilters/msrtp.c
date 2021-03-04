@@ -83,14 +83,14 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet sent for session [%p]",s);
+			ms_message("Stun packet of length %0zd sent on rtp for session [%p]",len, s);
 			rtp_session_sendm_with_ts(s, mp, 0);
 		}
 		if (enable_rtcp) {
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet sent on rtcp for session [%p]",s);
+			ms_message("Stun packet of length %0zd sent on rtcp for session [%p]",len, s);
 			rtp_session_rtcp_sendm_raw(s,mp);
 		}
 	}

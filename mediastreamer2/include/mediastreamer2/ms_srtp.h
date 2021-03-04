@@ -37,11 +37,14 @@ typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
 typedef enum _MSCryptoSuite{
         MS_CRYPTO_SUITE_INVALID=0,
         MS_AES_128_SHA1_80,
-        MS_AES_128_SHA1_32,
-        MS_AES_128_NO_AUTH,
-        MS_NO_CIPHER_SHA1_80,
+        MS_AES_128_SHA1_80_NO_AUTH,
+        MS_AES_128_SHA1_80_SRTP_NO_CIPHER,
+        MS_AES_128_SHA1_80_SRTCP_NO_CIPHER,
+        MS_AES_128_SHA1_80_NO_CIPHER,
         MS_AES_256_SHA1_80,
         MS_AES_CM_256_SHA1_80,
+        MS_AES_128_SHA1_32,
+        MS_AES_128_SHA1_32_NO_AUTH,
         MS_AES_256_SHA1_32
 } MSCryptoSuite;
 
@@ -52,6 +55,8 @@ typedef struct _MSCryptoSuiteNameParams{
 
 MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
 MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
+MS2_PUBLIC bool_t ms_crypto_suite_is_unencrypted(MSCryptoSuite cs);
+MS2_PUBLIC bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs);
 
 
 /* defined in srtp.h*/
@@ -142,6 +147,11 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
+/**
+ * Free ressources used by SRTP context
+ * @param[in/out]	context		the DTLS-SRTP context
+ */
+MS2_PUBLIC void ms_srtp_context_delete(MSSrtpCtx *session);
 
 #ifdef __cplusplus
 }

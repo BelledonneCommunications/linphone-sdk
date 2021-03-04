@@ -107,7 +107,6 @@ void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_receive
 void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
 
 MSSrtpCtx* ms_srtp_context_new(void);
-void ms_srtp_context_delete(MSSrtpCtx *session);
 
 
 void register_video_preset_high_fps(MSVideoPresetsManager *manager);
