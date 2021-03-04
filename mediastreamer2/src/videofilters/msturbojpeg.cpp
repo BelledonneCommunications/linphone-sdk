@@ -27,9 +27,6 @@
 #include "../voip/nowebcam.h"
 #include "turbojpeg.h"
 
-#ifdef HAVE_LIBYUV_H
-#include "libyuv/convert.h"
-#endif
 extern "C" {
 	MS2_PUBLIC mblk_t *jpeg2yuv_details(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize, tjhandle turbojpegDec, tjhandle yuvEncoder, MSYuvBufAllocator * allocator, uint8_t **gRgbBuf, size_t *gRgbBufLen);
 }
