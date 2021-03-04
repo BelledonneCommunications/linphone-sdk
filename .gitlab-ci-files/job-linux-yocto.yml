@@ -1,8 +1,7 @@
 job-debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9-yocto" ]
-  #currently described in runner config. Uncomment to override.
-  #image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:latest
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:$DEBIAN_9_METABC_YOCTO_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
