@@ -116,43 +116,44 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 			ms_warning("[ogl_functions] Function : Fail to load plugin libGLEW.so: %s", dlerror());
 	
 #endif// _WIN32
-	f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture);
-	f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader);
-	f->glBindAttribLocation = CAST(resolveGlBindAttribLocation, glBindAttribLocation);
-	f->glBindTexture = CAST(resolveGlBindTexture, glBindTexture);
-	f->glClear = CAST(resolveGlClear, glClear);
-	f->glClearColor = CAST(resolveGlClearColor, glClearColor);
-	f->glCompileShader = CAST(resolveGlCompileShader, glCompileShader);
-	f->glCreateProgram = CAST(resolveGlCreateProgram, glCreateProgram);
-	f->glCreateShader = CAST(resolveGlCreateShader, glCreateShader);
-	f->glDeleteProgram = CAST(resolveGlDeleteProgram, glDeleteProgram);
-	f->glDeleteShader = CAST(resolveGlDeleteShader, glDeleteShader);
-	f->glDeleteTextures = CAST(resolveGlDeleteTextures, glDeleteTextures);
-	f->glDisable = CAST(resolveGlDisable,glDisable);
-	f->glDrawArrays = CAST(resolveGlDrawArrays, glDrawArrays);
-	f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray);
-	f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures);
-	f->glGetError = CAST(resolveGlGetError, glGetError);
-	f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv);
-	f->glGetProgramInfoLog = CAST(resolveGlGetProgramInfoLog, glGetProgramInfoLog);
-	f->glGetProgramiv = CAST(resolveGlGetProgramiv, glGetProgramiv);
-	f->glGetShaderInfoLog = CAST(resolveGlGetShaderInfoLog, glGetShaderInfoLog);
-	f->glGetShaderiv = CAST(resolveGlGetShaderiv, glGetShaderiv);
-	f->glGetString = CAST(resolveGlGetString, glGetString);
-	f->glGetUniformLocation = CAST(resolveGlGetUniformLocation, glGetUniformLocation);
-	f->glLinkProgram = CAST(resolveGlLinkProgram, glLinkProgram);
-	f->glPixelStorei = CAST(resolveGlPixelStorei, glPixelStorei);
-	f->glShaderSource = CAST(resolveGlShaderSource, glShaderSource);
-	f->glTexImage2D = CAST(resolveGlTexImage2D, glTexImage2D);
-	f->glTexParameteri = CAST(resolveGlTexParameteri, glTexParameteri);
-	f->glTexSubImage2D = CAST(resolveGlTexSubImage2D, glTexSubImage2D);
-	f->glUniform1f = CAST(resolveGlUniform1f, glUniform1f);
-	f->glUniform1i = CAST(resolveGlUniform1i, glUniform1i);
-	f->glUniformMatrix4fv = CAST(resolveGlUniformMatrix4fv, glUniformMatrix4fv);
-	f->glUseProgram = CAST(resolveGlUseProgram, glUseProgram);
-	f->glValidateProgram = CAST(resolveGlValidateProgram, glValidateProgram);
-	f->glVertexAttribPointer = CAST(resolveGlVertexAttribPointer, glVertexAttribPointer);
-	f->glViewport = CAST(resolveGlViewport, glViewport);
+	f->glInitialized = TRUE;
+	f->glInitialized &= ((f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture)) != NULL);
+	f->glInitialized &= ((f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader)) != NULL);
+	f->glInitialized &= ((f->glBindAttribLocation = CAST(resolveGlBindAttribLocation, glBindAttribLocation)) != NULL);
+	f->glInitialized &= ((f->glBindTexture = CAST(resolveGlBindTexture, glBindTexture)) != NULL);
+	f->glInitialized &= ((f->glClear = CAST(resolveGlClear, glClear)) != NULL);
+	f->glInitialized &= ((f->glClearColor = CAST(resolveGlClearColor, glClearColor)) != NULL);
+	f->glInitialized &= ((f->glCompileShader = CAST(resolveGlCompileShader, glCompileShader)) != NULL);
+	f->glInitialized &= ((f->glCreateProgram = CAST(resolveGlCreateProgram, glCreateProgram)) != NULL);
+	f->glInitialized &= ((f->glCreateShader = CAST(resolveGlCreateShader, glCreateShader)) != NULL);
+	f->glInitialized &= ((f->glDeleteProgram = CAST(resolveGlDeleteProgram, glDeleteProgram)) != NULL);
+	f->glInitialized &= ((f->glDeleteShader = CAST(resolveGlDeleteShader, glDeleteShader)) != NULL);
+	f->glInitialized &= ((f->glDeleteTextures = CAST(resolveGlDeleteTextures, glDeleteTextures)) != NULL);
+	f->glInitialized &= ((f->glDisable = CAST(resolveGlDisable,glDisable)) != NULL);
+	f->glInitialized &= ((f->glDrawArrays = CAST(resolveGlDrawArrays, glDrawArrays)) != NULL);
+	f->glInitialized &= ((f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
+	f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures)) != NULL);
+	f->glInitialized &= ((f->glGetError = CAST(resolveGlGetError, glGetError)) != NULL);
+	f->glInitialized &= ((f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv)) != NULL);
+	f->glInitialized &= ((f->glGetProgramInfoLog = CAST(resolveGlGetProgramInfoLog, glGetProgramInfoLog)) != NULL);
+	f->glInitialized &= ((f->glGetProgramiv = CAST(resolveGlGetProgramiv, glGetProgramiv)) != NULL);
+	f->glInitialized &= ((f->glGetShaderInfoLog = CAST(resolveGlGetShaderInfoLog, glGetShaderInfoLog)) != NULL);
+	f->glInitialized &= ((f->glGetShaderiv = CAST(resolveGlGetShaderiv, glGetShaderiv)) != NULL);
+	f->glInitialized &= ((f->glGetString = CAST(resolveGlGetString, glGetString)) != NULL);
+	f->glInitialized &= ((f->glGetUniformLocation = CAST(resolveGlGetUniformLocation, glGetUniformLocation)) != NULL);
+	f->glInitialized &= ((f->glLinkProgram = CAST(resolveGlLinkProgram, glLinkProgram)) != NULL);
+	f->glInitialized &= ((f->glPixelStorei = CAST(resolveGlPixelStorei, glPixelStorei)) != NULL);
+	f->glInitialized &= ((f->glShaderSource = CAST(resolveGlShaderSource, glShaderSource)) != NULL);
+	f->glInitialized &= ((f->glTexImage2D = CAST(resolveGlTexImage2D, glTexImage2D)) != NULL);
+	f->glInitialized &= ((f->glTexParameteri = CAST(resolveGlTexParameteri, glTexParameteri)) != NULL);
+	f->glInitialized &= ((f->glTexSubImage2D = CAST(resolveGlTexSubImage2D, glTexSubImage2D)) != NULL);
+	f->glInitialized &= ((f->glUniform1f = CAST(resolveGlUniform1f, glUniform1f)) != NULL);
+	f->glInitialized &= ((f->glUniform1i = CAST(resolveGlUniform1i, glUniform1i)) != NULL);
+	f->glInitialized &= ((f->glUniformMatrix4fv = CAST(resolveGlUniformMatrix4fv, glUniformMatrix4fv)) != NULL);
+	f->glInitialized &= ((f->glUseProgram = CAST(resolveGlUseProgram, glUseProgram)) != NULL);
+	f->glInitialized &= ((f->glValidateProgram = CAST(resolveGlValidateProgram, glValidateProgram)) != NULL);
+	f->glInitialized &= ((f->glVertexAttribPointer = CAST(resolveGlVertexAttribPointer, glVertexAttribPointer)) != NULL);
+	f->glInitialized &= ((f->glViewport = CAST(resolveGlViewport, glViewport)) != NULL);
 	//----------------------    EGL
 #if defined(_WIN32)// On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to embedd "libEGL.dll" with the app
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
@@ -176,27 +177,28 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 #endif// _WIN32
 	f->eglGetProcAddress = CAST(resolveEGLGetProcAddress, eglGetProcAddress);
 
-	f->eglQueryAPI = CAST_EGL(resolveEGLQueryAPI, eglQueryAPI);
-	f->eglBindAPI = CAST_EGL(resolveEGLBindAPI, eglBindAPI);
-	f->eglQueryString = CAST_EGL(resolveEGLQueryString, eglQueryString);
-	f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT);
-	f->eglGetDisplay = CAST_EGL(resolveEGLGetDisplay, eglGetDisplay);
-	f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay);
-	f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentContext);
-	f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentSurface);
-	f->eglInitialize = CAST_EGL(resolveEGLInitialize, eglInitialize);
-	f->eglChooseConfig = CAST_EGL(resolveEGLChooseConfig, eglChooseConfig);
-	f->eglCreateContext = CAST_EGL(resolveEGLCreateContext, eglCreateContext);
-	f->eglCreateWindowSurface = CAST_EGL(resolveEGLCreateWindowSurface, eglCreateWindowSurface);
-	f->eglMakeCurrent = CAST_EGL(resolveEGLMakeCurrent, eglMakeCurrent);
-	f->eglGetError = CAST_EGL(resolveEGLGetError, eglGetError);
-	f->eglSwapBuffers = CAST_EGL(resolveEGLSwapBuffers, eglSwapBuffers);
-	f->eglQuerySurface = CAST_EGL(resolveEGLQuerySurface, eglQuerySurface);
-	f->eglDestroySurface = CAST_EGL( resolveEGLDestroySurface, eglDestroySurface);
-	f->eglDestroyContext = CAST_EGL( resolveEGLDestroyContext, eglDestroyContext);
-	f->eglTerminate = CAST_EGL( resolveEGLTerminate, eglTerminate);
+	f->eglInitialized = TRUE;
+	f->eglInitialized &= ((f->eglQueryAPI = CAST_EGL(resolveEGLQueryAPI, eglQueryAPI)) != NULL);
+	f->eglInitialized &= ((f->eglBindAPI = CAST_EGL(resolveEGLBindAPI, eglBindAPI)) != NULL);
+	f->eglInitialized &= ((f->eglQueryString = CAST_EGL(resolveEGLQueryString, eglQueryString)) != NULL);
+	f->eglInitialized &= ((f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT)) != NULL);
+	f->eglInitialized &= ((f->eglGetDisplay = CAST_EGL(resolveEGLGetDisplay, eglGetDisplay)) != NULL);
+	f->eglInitialized &= ((f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay)) != NULL);
+	f->eglInitialized &= ((f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentContext)) != NULL);
+	f->eglInitialized &= ((f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentSurface)) != NULL);
+	f->eglInitialized &= ((f->eglInitialize = CAST_EGL(resolveEGLInitialize, eglInitialize)) != NULL);
+	f->eglInitialized &= ((f->eglChooseConfig = CAST_EGL(resolveEGLChooseConfig, eglChooseConfig)) != NULL);
+	f->eglInitialized &= ((f->eglCreateContext = CAST_EGL(resolveEGLCreateContext, eglCreateContext)) != NULL);
+	f->eglInitialized &= ((f->eglCreateWindowSurface = CAST_EGL(resolveEGLCreateWindowSurface, eglCreateWindowSurface)) != NULL);
+	f->eglInitialized &= ((f->eglMakeCurrent = CAST_EGL(resolveEGLMakeCurrent, eglMakeCurrent)) != NULL);
+	f->eglInitialized &= ((f->eglGetError = CAST_EGL(resolveEGLGetError, eglGetError)) != NULL);
+	f->eglInitialized &= ((f->eglSwapBuffers = CAST_EGL(resolveEGLSwapBuffers, eglSwapBuffers)) != NULL);
+	f->eglInitialized &= ((f->eglQuerySurface = CAST_EGL(resolveEGLQuerySurface, eglQuerySurface)) != NULL);
+	f->eglInitialized &= ((f->eglDestroySurface = CAST_EGL( resolveEGLDestroySurface, eglDestroySurface)) != NULL);
+	f->eglInitialized &= ((f->eglDestroyContext = CAST_EGL( resolveEGLDestroyContext, eglDestroyContext)) != NULL);
+	f->eglInitialized &= ((f->eglTerminate = CAST_EGL( resolveEGLTerminate, eglTerminate)) != NULL);
 	
-	f->initialized = TRUE;
+	
 }
 
 #ifdef __cplusplus

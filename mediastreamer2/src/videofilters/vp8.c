@@ -450,7 +450,7 @@ static bool_t is_frame_independent(unsigned int flags){
 	return FALSE;
 }
 
-void enc_process_frame_task(void *obj) {
+static void enc_process_frame_task(void *obj) {
 	mblk_t *im, *prev_im = NULL;
 	MSFilter *f = (MSFilter*)obj;
 	EncState *s = (EncState *)f->data;

@@ -65,7 +65,8 @@ static void ogl_init (MSFilter *f) {
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;
 	data->prev_inm = NULL;
-	data->functions.initialized = FALSE;
+	data->functions.glInitialized = FALSE;
+	data->functions.eglInitialized = FALSE;
 	data->video_mode = MS_FILTER_VIDEO_AUTO;
 	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
@@ -91,7 +92,7 @@ static void ogl_preprocess(MSFilter *f){
 		}
 	}
 }
-
+static int ogl_call_render (MSFilter *f, void *arg);
 static void ogl_process (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
 	MSOglContextInfo *context_info;
@@ -135,6 +136,7 @@ end:
 
 	if (f->inputs[1] != NULL)
 		ms_queue_flush(f->inputs[1]);
+	ogl_call_render(f, NULL);
 }
 
 // =============================================================================
@@ -253,6 +255,7 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 
 	return 0;
 }
+
 
 // =============================================================================
 // Register filter.

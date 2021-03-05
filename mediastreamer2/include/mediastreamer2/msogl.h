@@ -23,17 +23,29 @@
 #define MS_OGL_RENDER MS_FILTER_METHOD_NO_ARG(MS_OGL_ID, 0)
 
 /**
- * Use an instance of this structure in setNativePreviewWindowId or setNativeVideoWindowId
- * On Windows, fill the window with a EGLNativeWindowType in order to auto manage the OpenGL surface
- * If you're not on windows or you cannot use EGL functions, you can fill the size.
+ * #MSOglContextInfo is used for the "MSOGL" filter (OpenGL Display) that can be set with #linphone_core_set_video_display_filter.
+ * This type is available on Desktop platforms (Linux, MacOS and Windows) but not for UWP where you have to use directly a SwapChainPanel(see #linphone_core_set_native_video_window_id)
+ * Use an instance of this structure in #linphone_core_set_native_preview_window_id or #linphone_core_set_native_video_window_id
+ * At runtime, you need to ensure to have an access to OpenGL libraries (libGLESv2/libGLEW/opengl32 and libEGL) as it is not provided by the SDK.
+ * For example, you can use the nuget package `ANGLE.WindowsStore` for Windows as libraries are not packaged with the OS.
  *
- * Use the pointer to function `getProcAddress` to customize openGL calls. If this variable is not set, Linphone will try to load functions directly from OpenGL libraries
+ * Fill `window` with a EGLNativeWindowType in order to auto manage the OpenGL surface.
+ ** `CALayer*` for Mac
+ ** `HWND` for Windows
+ ** `IInspectable*` for Windows Store
+ ** `Window` for X11
+ *
+ * If you cannot use EGL functions(libEGL), you must fill the size (width and height).
+ *
+ * Set `getProcAddress` to customize OpenGL calls : "MSOGL" will use this function to initialize all pointers on OpenGL functions at runtime.
+ * If this variable is not set, "MSOGL" will try to load default functions directly from OpenGL libraries at runtime.
+ *
 **/
 struct _MSOglContextInfo {
 	void *window;// Set it to use EGL auto managing or else, set sizes below
 	unsigned int width;
 	unsigned int height;
-	void *(*getProcAddress)(const char *name);
+	void *(*getProcAddress)(const char *name);	// Optional, set to NULL for using default OpenGL functions
 };
 typedef struct _MSOglContextInfo MSOglContextInfo;
 

@@ -65,7 +65,7 @@ public:
 	void decodeFrame(MSFilter *filter, mblk_t *inm){
 		if (inm->b_cont!=NULL) inm=inm->b_cont; /*skip potential video header */
 		if( mTurboJpegDecompressor){
-			mblk_t *m = jpeg2yuv_details(inm->b_rptr, inm->b_wptr-inm->b_rptr, &mSize,mTurboJpegDecompressor,mTurboJpegCompressor,mAllocator,&mRgbBuffer,&mRgbBufferSize );
+			mblk_t *m = jpeg2yuv_details(inm->b_rptr, (int)(inm->b_wptr-inm->b_rptr), &mSize,mTurboJpegDecompressor,mTurboJpegCompressor,mAllocator,&mRgbBuffer,&mRgbBufferSize );
 			if(m){
 				uint32_t timestamp;
 				timestamp = (uint32_t)(filter->ticker->time * 90);// rtp uses a 90000 Hz clockrate for video
