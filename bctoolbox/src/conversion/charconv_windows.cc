@@ -181,11 +181,11 @@ char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
 }
 
 wchar_t* bctbx_string_to_wide_string(const char* str){
-    std::string s(str);
-    int len;
-    int slength = (int)s.length() + 1;
-    len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0); 
-    wchar_t* buf = (wchar_t *) bctbx_malloc(len*sizeof(wchar_t));
-    MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-    return buf;
+	std::string s(str);
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t* buf = (wchar_t *) bctbx_malloc(len*sizeof(wchar_t));
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	return buf;
 }
