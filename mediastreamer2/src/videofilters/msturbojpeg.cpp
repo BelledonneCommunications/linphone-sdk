@@ -30,26 +30,23 @@
 #ifdef HAVE_LIBYUV_H
 #include "libyuv/convert.h"
 #endif
-
+extern "C" {
+	MS2_PUBLIC mblk_t *jpeg2yuv_details(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize, tjhandle turbojpegDec, tjhandle yuvEncoder, MSYuvBufAllocator * allocator, uint8_t **gRgbBuf, size_t *gRgbBufLen);
+}
 class MSTurboJpegDec{
 public:
 	MSTurboJpegDec(){
 		mFps=60.0;
 		mDciSize = 0;
-		mBufferSize = 0;
-		mBuffer = nullptr;
-		mTempBufferSize = 0;
-		mTempBuffer = nullptr;
+		mRgbBufferSize = 0;
+		mRgbBuffer = nullptr;
 		mSize.width = MS_VIDEO_SIZE_UNKNOWN_W;
 		mSize.height = MS_VIDEO_SIZE_UNKNOWN_H;
 		mAllocator = ms_yuv_buf_allocator_new();
 	}
 	~MSTurboJpegDec(){
-		if( mBufferSize > 0){
-			delete [] mBuffer;
-		}
-		if( mTempBufferSize > 0){
-			delete [] mTempBuffer;
+		if( mRgbBufferSize > 0){
+			bctbx_free(mRgbBuffer);// jpeg2yuv_details use bctbx_new
 		}
 		ms_free(mAllocator);
 	}
@@ -61,68 +58,23 @@ public:
 	float mFps;
 
 	tjhandle mTurboJpegDecompressor;
-	unsigned char * mBuffer;
-	unsigned long mBufferSize;
+	tjhandle mTurboJpegCompressor;
 	MSYuvBufAllocator * mAllocator;
-	unsigned char * mTempBuffer;
-	unsigned long mTempBufferSize;
+	uint8_t * mRgbBuffer;
+	size_t mRgbBufferSize;
 
 	float getFps(){return mFps;}
 
 	void decodeFrame(MSFilter *filter, mblk_t *inm){
 		if (inm->b_cont!=NULL) inm=inm->b_cont; /*skip potential video header */
 		if( mTurboJpegDecompressor){
-			unsigned long imageSize = 0;
-			unsigned char * imageData = inm->b_rptr;
-			int flags = 0;
-			int subSamp = TJSAMP_420, colorSpace = 0;
-			MSVideoSize headerSize;
-			imageSize = (unsigned long)(inm->b_wptr-inm->b_rptr);
-			int error = tjDecompressHeader3(mTurboJpegDecompressor,imageData,imageSize , &headerSize.width, &headerSize.height, &subSamp, &colorSpace);
-
-			mblk_t *m = nullptr;
-			if(error == 0){
-				mSize = headerSize;// Update new size from headers
-				if( subSamp != TJSAMP_420){
-#ifdef HAVE_LIBYUV_H
-// Optimized method : decompress with turbojpeg and convert subsampling with libyuv
-					unsigned int neededConversionSize = tjBufSizeYUV2(mSize.width, 4, mSize.height, subSamp);
-					MSPicture sourcePicture, destPicture;
-					mblk_t *m2;
-					const int padding=16;
-					m = ms_yuv_buf_allocator_get(mAllocator, &destPicture, mSize.width, mSize.height);
-					m2 = msgb_allocator_alloc(mAllocator, neededConversionSize+padding);
-					if(m2 ){
-						ms_yuv_buf_init(&sourcePicture,mSize.width,mSize.height,mSize.width,m2->b_wptr);// Get a MSPicture for planes
-						m2->b_wptr+=neededConversionSize;
-					}
-					if(tjDecompressToYUVPlanes(mTurboJpegDecompressor,imageData,imageSize,sourcePicture.planes,mSize.width,sourcePicture.strides,mSize.height,0)<0 && tjGetErrorCode(mTurboJpegDecompressor) != TJERR_WARNING )
-						ms_error("[MSTMJpegDec] tjDecompressToYUVPlanes() failed, error: %s, (%d)", tjGetErrorStr(), tjGetErrorCode(mTurboJpegDecompressor));
-					else
-						libyuv::I422ToI420(sourcePicture.planes[0],sourcePicture.strides[0],sourcePicture.planes[1],sourcePicture.strides[1],sourcePicture.planes[2],sourcePicture.strides[2],
-							destPicture.planes[0],destPicture.strides[0],destPicture.planes[1],destPicture.strides[1],destPicture.planes[2],destPicture.strides[2],
-							mSize.width,mSize.height);
-					freemsg(m2);
-
-#else
-					m = jpeg2yuv(inm->b_rptr, (int)(inm->b_wptr-inm->b_rptr), &mSize);// This function is not fully optimized as memory is not managed
-#endif
-				}else{
-					unsigned int neededSize = tjBufSizeYUV2(mSize.width, 4, mSize.height, TJSAMP_420);
-					m = ms_yuv_allocator_get(mAllocator, neededSize, mSize.width, mSize.height);
-					if(m){
-						tjDecompressToYUV2(mTurboJpegDecompressor,imageData, imageSize, m->b_rptr, mSize.width, 4, mSize.height, flags);
-					}
-				}
-				if(m){
-					uint32_t timestamp;
-					timestamp = (uint32_t)(filter->ticker->time * 90);// rtp uses a 90000 Hz clockrate for video
-					mblk_set_timestamp_info(m, timestamp);
-					ms_queue_put(filter->outputs[0], m);
-					ms_average_fps_update(&mAvgFps,filter->ticker->time);
-				}
-			}else{
-				ms_error("[MSTMJpegDec] Cannot get headers from bitstream of %d length. %s", (int)imageSize, tjGetErrorStr2(mTurboJpegDecompressor));
+			mblk_t *m = jpeg2yuv_details(inm->b_rptr, inm->b_wptr-inm->b_rptr, &mSize,mTurboJpegDecompressor,mTurboJpegCompressor,mAllocator,&mRgbBuffer,&mRgbBufferSize );
+			if(m){
+				uint32_t timestamp;
+				timestamp = (uint32_t)(filter->ticker->time * 90);// rtp uses a 90000 Hz clockrate for video
+				mblk_set_timestamp_info(m, timestamp);
+				ms_queue_put(filter->outputs[0], m);
+				ms_average_fps_update(&mAvgFps,filter->ticker->time);
 			}
 		}
 	}
@@ -134,6 +86,7 @@ public:
 static void ms_turbojpeg_dec_mjpeg_init(MSFilter *filter){
 	MSTurboJpegDec *dec = new MSTurboJpegDec();
 	dec->mTurboJpegDecompressor = tjInitDecompress();
+	dec->mTurboJpegCompressor = tjInitCompress();
 	filter->data = dec;
 }
 
@@ -156,7 +109,10 @@ static void ms_turbojpeg_dec_postprocess(MSFilter *filter) {
 
 static void ms_turbojpeg_dec_uninit(MSFilter *filter) {
 	MSTurboJpegDec *dec = static_cast<MSTurboJpegDec *>(filter->data);
-	tjDestroy(dec->mTurboJpegDecompressor);
+	if( dec->mTurboJpegDecompressor)
+		tjDestroy(dec->mTurboJpegDecompressor);
+	if( dec->mTurboJpegCompressor)
+		tjDestroy(dec->mTurboJpegCompressor);
 }
 //---------------------------------------------------------------------------------
 

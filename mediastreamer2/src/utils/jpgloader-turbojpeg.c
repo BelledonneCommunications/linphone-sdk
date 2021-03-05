@@ -41,7 +41,8 @@
 #define free_and_reset_msg(m) \
 	freemsg(m); \
 	m = NULL
-mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
+
+mblk_t *jpeg2yuv_details(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize, tjhandle turbojpegDec, tjhandle yuvEncoder, MSYuvBufAllocator * allocator, uint8_t **gRgbBuf, size_t *gRgbBufLen) {
 	MSPicture dest;
 	mblk_t *m = NULL;
 	uint8_t *rgbBuf = NULL;
@@ -49,9 +50,13 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	int scaledw = 0, scaledh = 0;
 	int requestw, requesth;
 	tjscalingfactor* sf = NULL;
-	tjhandle turbojpegDec = tjInitDecompress();
-	tjhandle *yuvEncoder = NULL;
+	bool_t haveDecoder = (turbojpegDec != NULL);
+	bool_t haveEncoder = (yuvEncoder != NULL);
+	if( gRgbBuf != NULL)
+		rgbBuf = *gRgbBuf;
 
+	if(!haveDecoder)
+		turbojpegDec = tjInitDecompress();
 	if (turbojpegDec == NULL) {
 		ms_error("tjInitDecompress error: %s", tjGetErrorStr());
 		return NULL;
@@ -92,8 +97,10 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 		ms_error("No resolution size found for (%ix%i)", requestw, requesth);
 		goto clean;
 	}
-
-	m = ms_yuv_buf_alloc(&dest, scaledw, scaledh);
+	if(allocator != NULL){
+		m = ms_yuv_buf_allocator_get(allocator, &dest, scaledw, scaledh);
+	}else
+		m = ms_yuv_buf_alloc(&dest, scaledw, scaledh);
 	if (m == NULL) goto clean;
 
 	if (imgsrccolor == TJCS_YCbCr && imgsrcsubsamp == TJSAMP_420) {
@@ -114,15 +121,22 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	} else {
 		size_t pitch = scaledw * tjPixelSize[TJPF_RGB];
 		size_t rgbBufSize = pitch * scaledh;
-		
-		yuvEncoder = tjInitCompress();
+		if(!haveEncoder)
+			yuvEncoder = tjInitCompress();
 		if (yuvEncoder == NULL) {
 			ms_error("tjInitCompress() failed, error: %s", tjGetErrorStr());
 			free_and_reset_msg(m);
 			goto clean;
 		}
-		
-		rgbBuf = bctbx_new(uint8_t, rgbBufSize);
+		if(gRgbBufLen != NULL) {
+			if(*gRgbBufLen < rgbBufSize){
+				bctbx_free(rgbBuf);
+				rgbBuf = bctbx_new(uint8_t, rgbBufSize);
+				*gRgbBufLen = rgbBufSize;
+				*gRgbBuf = rgbBuf;
+			}
+		}else
+			rgbBuf = bctbx_new(uint8_t, rgbBufSize);
 		if (tjDecompress2(
 			turbojpegDec,
 			jpgbuf,
@@ -161,19 +175,25 @@ mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
 	reqsize->height = scaledh;
 
 	clean:
-	if (turbojpegDec != NULL) {
-		if (tjDestroy(turbojpegDec) != 0)
-			ms_error("tjDestroy decompress error: %s", tjGetErrorStr());
-	}
-	if (yuvEncoder != NULL) {
+
+	if (!haveEncoder && yuvEncoder != NULL) {
 		if (tjDestroy(yuvEncoder) != 0) {
 			ms_error("YUV encoder destroying failed: %s", tjGetErrorStr());
 		}
 	}
-	if (rgbBuf != NULL) bctbx_free(rgbBuf);
+
+	if (!haveDecoder && turbojpegDec != NULL) {
+		if (tjDestroy(turbojpegDec) != 0)
+			ms_error("tjDestroy decompress error: %s", tjGetErrorStr());
+	}
+
+	if (gRgbBufLen == NULL && rgbBuf != NULL) bctbx_free(rgbBuf);
 	return m;
 }
 
+mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize) {
+	return jpeg2yuv_details(jpgbuf,bufsize,reqsize, NULL, NULL, NULL, NULL, NULL);
+}
 #if __clang__
 #pragma clang diagnostic pop
 #endif
