@@ -811,13 +811,18 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t)
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data) {
-	struct stat statbuf;
+	// Get file size
+	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
+	bctbx_vfs_file_t *fp = bctbx_file_open(vfs, filepath, "r");
+	int64_t expected_size = bctbx_file_size(fp);
+	bctbx_file_close(fp);
+
 	belle_sip_file_body_handler_t *obj = belle_sip_object_new(belle_sip_file_body_handler_t);
 	belle_sip_body_handler_init((belle_sip_body_handler_t*)obj, progress_cb, data);
 	obj->filepath = belle_sip_strdup(filepath);
 	obj->user_bh = NULL;
-	if (stat(obj->filepath, &statbuf) == 0) {
-		obj->base.expected_size = statbuf.st_size;
+	if (expected_size != BCTBX_VFS_ERROR) {
+		obj->base.expected_size = expected_size;
 	}
 	obj->buffer.size=0;
 	obj->buffer.index=0;
