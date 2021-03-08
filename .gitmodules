@@ -127,3 +127,6 @@
 [submodule "msandroidcamera2"]
 	path = msandroidcamera2
 	url = https://gitlab.linphone.org/BC/public/msandroidcamera2.git
+[submodule "external/jsoncpp"]
+	path = external/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
