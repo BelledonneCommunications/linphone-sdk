@@ -65,7 +65,6 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
  * @param width Width of the display area
  * @param height Height of the display area.
  */
-
 void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height);
 
 /**

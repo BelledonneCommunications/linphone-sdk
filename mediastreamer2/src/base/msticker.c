@@ -434,7 +434,8 @@ void * ms_ticker_run(void *arg)
 	int lastlate=0;
 	int precision=2;
 	int late;
-	unsigned int lateMessageCount = 0;// Avoid spamming late messages
+	int maxLate=0;
+	uint64_t late_time_checkpoint=0;
 
 	ms_mutex_lock(&s->lock);
 
@@ -446,7 +447,7 @@ void * ms_ticker_run(void *arg)
 	ms_mutex_unlock(&s->cur_time_lock);
 
 	while(s->run){
-		uint64_t late_tick_time=0;
+		uint64_t late_tick_time=0, current_time;
 
 		s->ticks++;
 		/*Step 1: run the graphs*/
@@ -469,12 +470,18 @@ void * ms_ticker_run(void *arg)
 		/*Step 2: wait for next tick*/
 		s->time+=s->interval;
 		late=s->wait_next_tick(s->wait_next_tick_data,s->time);
+		current_time = ms_get_cur_time_ms();
+		if(current_time > late_time_checkpoint + 1000) {// We print max late each 1s
+			if( maxLate > 0){// We have a counted late
+				ms_warning("%s: We are late of %d miliseconds.",s->name,maxLate);
+				maxLate = 0;// Reset max
+			}
+			late_time_checkpoint = current_time;// Reset time
+		}
 		if (late>s->interval*5 && late>lastlate){
-			if((++lateMessageCount)%10 == 1)
-				ms_warning("%s: We are late of %d miliseconds.",s->name,late);
-			late_tick_time=ms_get_cur_time_ms();
-		}else if(late == 0)// Reset spam count
-			lateMessageCount = 0;
+			maxLate = (late > maxLate? late : maxLate);// Get the max
+			late_tick_time=current_time;
+		}
 		lastlate=late;
 		ms_mutex_lock(&s->lock);
 		if (late_tick_time){
