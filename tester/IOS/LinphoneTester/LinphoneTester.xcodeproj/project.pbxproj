@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,6 +19,7 @@
 		6167AF04221473E000A40550 /* Log.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AEED2214558E00A40550 /* Log.m */; };
 		6167AF1222157EEA00A40550 /* DTObjectBlockExecutor.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AF1122157EEA00A40550 /* DTObjectBlockExecutor.m */; };
 		6167AF1522157EFD00A40550 /* NSObject+DTRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */; };
+		66D4319125E90CF5009580F6 /* LinphoneTesterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D4319025E90CF5009580F6 /* LinphoneTesterTests.swift */; };
 		B0397DBF25BB1181DFBB9811 /* Pods_LinphoneTesterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 97930F104BD964CA38172238 /* Pods_LinphoneTesterTests.framework */; };
 		C1C504984E96DC7125A9D1B3 /* Pods_LinphoneTester.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 028116FDD805FCA816A70EBB /* Pods_LinphoneTester.framework */; };
 /* End PBXBuildFile section */
@@ -58,6 +59,9 @@
 		6167AF1122157EEA00A40550 /* DTObjectBlockExecutor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DTObjectBlockExecutor.m; sourceTree = "<group>"; };
 		6167AF1322157EF600A40550 /* NSObject+DTRuntime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+DTRuntime.h"; sourceTree = "<group>"; };
 		6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+DTRuntime.m"; sourceTree = "<group>"; };
+		669C13CE25E812990080B5D9 /* LinphoneTesterTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LinphoneTesterTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		66D4317525E81CCB009580F6 /* LinphoneTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LinphoneTester.entitlements; sourceTree = "<group>"; };
+		66D4319025E90CF5009580F6 /* LinphoneTesterTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LinphoneTesterTests.swift; sourceTree = "<group>"; };
 		85DA0FB04A682D0A9B19A6CF /* Pods-LinphoneTester.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LinphoneTester.debug.xcconfig"; path = "Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester.debug.xcconfig"; sourceTree = "<group>"; };
 		97930F104BD964CA38172238 /* Pods_LinphoneTesterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LinphoneTesterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E78CC1E841A117F4BD59A71 /* Pods-LinphoneTesterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LinphoneTesterTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-LinphoneTesterTests/Pods-LinphoneTesterTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -108,6 +112,7 @@
 		6167AEBA221441F400A40550 /* LinphoneTester */ = {
 			isa = PBXGroup;
 			children = (
+				66D4317525E81CCB009580F6 /* LinphoneTester.entitlements */,
 				6167AEBB221441F400A40550 /* AppDelegate.h */,
 				6167AEBC221441F400A40550 /* AppDelegate.m */,
 				6167AEBE221441F400A40550 /* ViewController.h */,
@@ -132,6 +137,8 @@
 				6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */,
 				6167AED4221441F500A40550 /* LinphoneTesterTests.m */,
 				6167AED6221441F500A40550 /* Info.plist */,
+				66D4319025E90CF5009580F6 /* LinphoneTesterTests.swift */,
+				669C13CE25E812990080B5D9 /* LinphoneTesterTests-Bridging-Header.h */,
 			);
 			path = LinphoneTesterTests;
 			sourceTree = "<group>";
@@ -211,9 +218,11 @@
 				TargetAttributes = {
 					6167AEB7221441F400A40550 = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1240;
 					};
 					6167AECF221441F500A40550 = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1240;
 						TestTargetID = 6167AEB7221441F400A40550;
 					};
 				};
@@ -397,6 +406,7 @@
 				6167AED5221441F500A40550 /* LinphoneTesterTests.m in Sources */,
 				6167AF1222157EEA00A40550 /* DTObjectBlockExecutor.m in Sources */,
 				6167AF1522157EFD00A40550 /* NSObject+DTRuntime.m in Sources */,
+				66D4319125E90CF5009580F6 /* LinphoneTesterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -547,6 +557,8 @@
 			baseConfigurationReference = 85DA0FB04A682D0A9B19A6CF /* Pods-LinphoneTester.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTester/Info.plist;
@@ -557,6 +569,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64 armv7 i386 x86_64";
 			};
@@ -567,6 +581,8 @@
 			baseConfigurationReference = 3A2BC95A0DF87C4593A537E0 /* Pods-LinphoneTester.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTester/Info.plist;
@@ -577,6 +593,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTester;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "arm64 armv7 i386 x86_64";
 			};
@@ -587,6 +604,7 @@
 			baseConfigurationReference = 0559CB1CCD2AF9B951D4450C /* Pods-LinphoneTesterTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
@@ -598,6 +616,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/LinphoneTester";
 				VALID_ARCHS = "arm64 i386 armv7 x86_64";
@@ -609,6 +630,7 @@
 			baseConfigurationReference = 9E78CC1E841A117F4BD59A71 /* Pods-LinphoneTesterTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
@@ -620,6 +642,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/LinphoneTester";
 				VALID_ARCHS = "arm64 i386 armv7 x86_64";

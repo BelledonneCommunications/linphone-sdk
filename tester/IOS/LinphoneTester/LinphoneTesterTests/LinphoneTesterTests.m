@@ -505,7 +505,7 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 	[self testForSuiteAsync:@"Push Incoming Call"];
 }
 @end
-
+/*
 @interface IncomingPushTest : LinphoneTesterBase
 @end
 
@@ -536,3 +536,4 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 	
 }
 @end
+*/

@@ -8,10 +8,11 @@
 
 #import <UIKit/UIKit.h>
 
+extern NSString *const kPushReceivedEvent;
+
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
-
+@property NSMutableString *pushToken;
 
 @end
-

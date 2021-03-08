@@ -8,6 +8,8 @@
 
 #import "AppDelegate.h"
 
+NSString *const kPushReceivedEvent = @"PushReceived";
+
 @interface AppDelegate ()
 
 @end
@@ -17,6 +19,7 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+	[application registerForRemoteNotifications];
     return YES;
 }
 
@@ -47,5 +50,24 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
 
+- (void)application:(UIApplication *)application
+didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+	const char *tokenData = [deviceToken bytes];
+	NSMutableString *stringDeviceToken = [NSMutableString string];
+	for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+		[stringDeviceToken appendFormat:@"%02.2hhX", tokenData[i]];
+	}
+	_pushToken = stringDeviceToken;
+}
+- (void)application:(UIApplication *)application
+didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+}
 
+// This function is called when a Background Push notification is received
+- (void)application:(UIApplication *)application
+didReceiveRemoteNotification:(NSDictionary *)userInfo
+fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler
+{
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushReceivedEvent object:self userInfo:userInfo];
+}
 @end
