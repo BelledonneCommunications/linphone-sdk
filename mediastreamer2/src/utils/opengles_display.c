@@ -629,7 +629,11 @@ void ogl_display_free (struct opengles_display *gldisp) {
 			gldisp->yuv[i] = NULL;
 		}
 	}
-
+	
+	if (gldisp->default_functions) {
+		ms_free(gldisp->default_functions);
+		gldisp->default_functions = NULL;
+	}
 	ms_mutex_destroy(&gldisp->yuv_mutex);
 
 	free(gldisp);
@@ -734,6 +738,88 @@ void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<CoreApplica
 		}))).wait();
 		*window = (EGLNativeWindowType)0;
 		*windowId = NULL;
+	}
+}
+#elif defined(_WIN32)
+
+struct WindowsThreadData{
+	HWND window;	// Window to monitor
+	bool_t stop;	// Flag to stop event loop thread
+	ms_cond_t running;// Signal to indicate that the thread is running
+	ms_mutex_t locker;
+	ms_thread_t thread;
+};
+
+LRESULT CALLBACK WindowProc(__in HWND hWindow,__in UINT uMsg,__in WPARAM wParam,__in LPARAM lParam) {
+    switch (uMsg)
+    {
+    case WM_CLOSE:
+        ShowWindow(hWindow, SW_HIDE);// Destroying windows is reserved to mediatreamer. We just hide the Window on Close.
+        break;
+    default:
+        return DefWindowProc(hWindow, uMsg, wParam, lParam);
+    }
+    return 0;
+}
+
+// CreateWindow need to be in the same thread as Message loop. If not, PeekMessage/GetMessage will not receive all events. We need the event loop to avoid unresponding window.
+static void  * window_thread(void *p){
+	WindowsThreadData * data = (WindowsThreadData *)p;
+#ifdef UNICODE
+	const wchar_t className[]  = L"Video";
+	const wchar_t title[]  = L"Video";
+#else
+	const char className[]  = "Video";
+	const char title[]  = "Video";
+#endif
+	HINSTANCE hInstance = ::GetModuleHandle(NULL);
+	WNDCLASS wc = { };
+	wc.lpfnWndProc   = WindowProc;
+	wc.hInstance     = hInstance;
+	wc.lpszClassName = className;
+	RegisterClass(&wc);
+	data->window = CreateWindow(className,title,WS_OVERLAPPEDWINDOW,CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance, NULL );
+	if(data->window!=NULL){
+		ShowWindow(data->window, SW_SHOWNORMAL);
+	}
+	ms_cond_signal(&data->running);
+	while(!data->stop && data->window!=NULL){// No need to protect stop for threadsafe as it is a boolean and used like that
+		MSG msg;
+		while( PeekMessage(&msg, data->window, NULL, NULL, PM_REMOVE) != 0 ){
+			if( msg.message == WM_DESTROY || msg.message == WM_CLOSE){
+				data->stop = TRUE;
+				break;
+			}else{
+				TranslateMessage(&msg);
+			    DispatchMessage(&msg);
+			}
+		}
+	}
+	ms_thread_exit(NULL);
+	return NULL;
+}
+
+bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
+	WindowsThreadData * data = (WindowsThreadData *)ms_malloc(sizeof(WindowsThreadData));
+	ms_cond_init(&data->running, NULL);
+	ms_mutex_init(&data->locker, NULL);
+	data->stop = FALSE;
+	ms_thread_create(&data->thread,NULL, window_thread, data );// Create the event loop and wait when Window can be used
+	ms_cond_wait(&data->running, &data->locker);
+	*window_id = data;
+	*window = data->window;// It is safe to use this data as the event loop doesn't make any changes on it after signaling running
+	return *window!= NULL;
+}
+
+void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
+	if( window_id != NULL){
+		WindowsThreadData * data = (WindowsThreadData *)(*window_id);
+		data->stop = TRUE;// Stop event loop and wait till its end
+		ms_thread_join(data->thread, NULL);
+		DestroyWindow(*window);
+		ms_free(data);
+		*window_id = NULL;
+		*window=NULL;
 	}
 }
 #else
@@ -942,8 +1028,7 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 	}
 }
 
-void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window) {
-	int width = 0, height = 0;// Size comes from render surface
+void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height) {
 	if (!gldisp) {
 		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
 		return;
@@ -976,10 +1061,11 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
 				if( gldisp->mRenderSurface != EGL_NO_SURFACE){
 					gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width);
 					gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height);
-					ogl_display_init (gldisp, gldisp->functions, width, height);
-				}
+				}// On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
 			}
 		}
+		if( width!=0 && height!=0)
+			ogl_display_init (gldisp, gldisp->functions, width, height);
 	}
 }
 
@@ -1082,11 +1168,6 @@ void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources
 
 	if (f) check_GL_errors(f, "ogl_display_uninit");
 
-	if (gldisp->default_functions) {
-		ms_free(gldisp->default_functions);
-		gldisp->default_functions = NULL;
-	}
-
 	gldisp->glResourcesInitialized = FALSE;
 }
 
@@ -1110,12 +1191,11 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 		{
 			ms_error("[ogl_display] Failed to make EGLSurface current");
 		}else{
-			if( gldisp->mRenderSurface != EGL_NO_SURFACE){
-				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width);
-				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height);
-				if( width != gldisp->backingWidth || height != gldisp->backingHeight)// Size has changed : update display (buffers, viewport, etc.)
+			if( gldisp->mRenderSurface != EGL_NO_SURFACE
+				&& EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width)
+				&& EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height)
+				&& (width != gldisp->backingWidth || height != gldisp->backingHeight) )// Size has changed : update display (buffers, viewport, etc.)
 					ogl_display_init(gldisp, f, width, height);
-			}
 		}
 	}
 	if(gldisp->functions->glInitialized){

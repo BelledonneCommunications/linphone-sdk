@@ -70,14 +70,18 @@ static void ogl_init (MSFilter *f) {
 	data->video_mode = MS_FILTER_VIDEO_AUTO;
 	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
+	data->context_info.window = NULL;
 	f->data = data;
 }
 
 static void ogl_uninit (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
+	ms_filter_lock(f);
 	ogl_display_free(data->display);
-	if( data->video_mode == MS_FILTER_VIDEO_AUTO)
+	data->display = NULL;
+	if( data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window)
 		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id );
+	ms_filter_unlock(f);
 	ms_free(data);
 }
 
@@ -92,6 +96,7 @@ static void ogl_preprocess(MSFilter *f){
 		}
 	}
 }
+
 static int ogl_call_render (MSFilter *f, void *arg);
 static void ogl_process (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
@@ -104,7 +109,7 @@ static void ogl_process (MSFilter *f) {
 	context_info = &data->context_info;
 
 	// No context given or video disabled.
-	if ( !data->show_video || (!context_info->window && (!context_info->width || !context_info->height)) )
+	if ( !data->show_video || !context_info->window)
 		goto end;
 
 	if (
@@ -161,13 +166,13 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 	if ((unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] set native window id : %p", (void*)context_info);
 		if( (unsigned long long)context_info == (unsigned long long)MS_FILTER_VIDEO_AUTO){// Create a new Window
-			ogl_create_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id);
+			if(!data->context_info.window)
+				ogl_create_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id);
 			data->update_context = TRUE;
 			data->context_info.width = MS_VIDEO_SIZE_CIF_W;
 			data->context_info.height = MS_VIDEO_SIZE_CIF_H;
 			data->video_mode = MS_FILTER_VIDEO_AUTO;
-		}else
-		if(  data->context_info.getProcAddress != context_info->getProcAddress
+		}else if(  data->context_info.getProcAddress != context_info->getProcAddress
 				|| (context_info->window && data->context_info.window != context_info->window)
 				|| (!context_info->window && ( data->context_info.width != context_info->width
 					|| data->context_info.height != context_info->height) )
@@ -242,7 +247,7 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 	if (data->show_video && ( context_info->window || (!context_info->window && context_info->width && context_info->height)) ){
 		if (data->update_context) {
 			if( context_info->window )// Window is set : do EGL initialization from it
-				ogl_display_auto_init(data->display, &data->functions, (EGLNativeWindowType)context_info->window);
+				ogl_display_auto_init(data->display, &data->functions, (EGLNativeWindowType)context_info->window, context_info->width, context_info->height);
 			else// Just use input size as it is needed for viewport
 				ogl_display_init(data->display, &data->functions, context_info->width, context_info->height);
 			data->update_context = FALSE;

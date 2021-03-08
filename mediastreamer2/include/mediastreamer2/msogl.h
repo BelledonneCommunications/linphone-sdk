@@ -29,16 +29,15 @@
  * At runtime, you need to ensure to have an access to OpenGL libraries (libGLESv2/libGLEW/opengl32 and libEGL) as it is not provided by the SDK.
  * For example, you can use the nuget package `ANGLE.WindowsStore` for Windows as libraries are not packaged with the OS.
  *
- * Fill `window` with a EGLNativeWindowType in order to auto manage the OpenGL surface.
+ * Fill `window` with your EGLNativeWindowType in order to auto manage the OpenGL surface.
  ** `CALayer*` for Mac
- ** `HWND` for Windows
- ** `IInspectable*` for Windows Store
+ ** `HWND` for Windows of `IInspectable*` for Windows Store
  ** `Window` for X11
  *
- * If you cannot use EGL functions(libEGL), you must fill the size (width and height).
+ * Mediastreamer will use EGL functions(libEGL) to get sizes. If they cannot be retrieved, it will use the input sizes as default.
  *
- * Set `getProcAddress` to customize OpenGL calls : "MSOGL" will use this function to initialize all pointers on OpenGL functions at runtime.
- * If this variable is not set, "MSOGL" will try to load default functions directly from OpenGL libraries at runtime.
+ * Set `getProcAddress` to customize OpenGL calls : Mediastreamer will use this function to initialize all pointers on OpenGL functions at runtime.
+ * If this variable is not set, Mediastreamer will try to load default functions directly from OpenGL libraries at runtime.
  *
 **/
 struct _MSOglContextInfo {
