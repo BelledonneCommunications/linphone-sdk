@@ -72,12 +72,6 @@ static void android_snd_read_init(MSFilter *obj) {
 
 static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
 	AAudioInputContext *ictx = (AAudioInputContext *)userData;
-
-	if (ictx->mTickerSynchronizer == NULL) {
-		MSFilter *obj = ictx->mFilter;
-		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
-	}
 	ictx->read_samples += numFrames * ictx->samplesPerFrame;
 
 	if (numFrames <= 0) {
@@ -204,6 +198,12 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->read_samples = 0;
 	aaudio_recorder_init(ictx);
 
+	if (ictx->mTickerSynchronizer == NULL) {
+		MSFilter *obj = ictx->mFilter;
+		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
+		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
+	}
+
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 }
@@ -254,8 +254,10 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 
 	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ictx->mutex);
-	ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
-	ictx->mTickerSynchronizer = NULL;
+	if (ictx->mTickerSynchronizer != NULL) {
+		ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
+		ictx->mTickerSynchronizer = NULL;
+	}
 
 	JNIEnv *env = ms_get_jni_env();
 
