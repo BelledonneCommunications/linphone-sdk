@@ -2,20 +2,22 @@ job-debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9-yocto" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:$DEBIAN_9_METABC_YOCTO_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  #only:
+  #  variables:
+  #    - $NIGHTLY_MASTER
   script:
     - export WORKSPACE_PATH="$CI_PROJECT_DIR"
    #update to latest version of meta-bc for current branch (see docker file from meta-bc)
     - cd /home/build/poky/meta-bc
     - git pull
+    - git checkout fix/sdk_multi_versions
     - cd /home/build/poky
-    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH"
+    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH PREFERED_LINPHONE_SDK_RECIPE_VERSION"
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
     - echo $LINPHONE_SDK_REV
     - export LINPHONE_SDK_BRANCH="$CI_COMMIT_REF_NAME"
     - echo $LINPHONE_SDK_BRANCH
+    - export PREFERED_LINPHONE_SDK_RECIPE_VERSION="4.5.x"
     - source oe-init-build-env
     - bitbake -c cleanall linphone-sdk
     - bitbake -f linphone-sdk 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
