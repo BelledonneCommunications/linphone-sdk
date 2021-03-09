@@ -10,13 +10,14 @@ job-debian9-yocto-sumo:
    #update to latest version of meta-bc for current branch (see docker file from meta-bc)
     - cd /home/build/poky/meta-bc
     - git pull
-    - git checkout 096b388e833e44a921a6bce02419f00a1ef26b24 # Quick and dirty fix, awaiting a better Yocto build management
     - cd /home/build/poky
-    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH"
+    - export BB_ENV_EXTRAWHITE="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH PREFERED_LINPHONE_SDK_RECIPE_VERSION"
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
     - echo $LINPHONE_SDK_REV
     - export LINPHONE_SDK_BRANCH="$CI_COMMIT_REF_NAME"
     - echo $LINPHONE_SDK_BRANCH
+    - export PREFERED_LINPHONE_SDK_RECIPE_VERSION="latest"
+    - echo $PREFERED_LINPHONE_SDK_RECIPE_VERSION
     - source oe-init-build-env
     - bitbake -c cleanall linphone-sdk
     - bitbake -f linphone-sdk 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
