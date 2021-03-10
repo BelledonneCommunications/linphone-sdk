@@ -143,7 +143,7 @@ Before embedding these features in your final application, **make sure to have t
 
 ## Windows UWP
 You can use linphone-sdk in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
-The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop
+The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
 The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. It is for x64 builds. You will find all libraries in linphone-sdk/uwp-x64
 
 Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
