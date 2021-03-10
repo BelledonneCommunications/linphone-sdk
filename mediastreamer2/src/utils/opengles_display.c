@@ -597,19 +597,37 @@ struct opengles_display *ogl_display_new (void) {
 
 void ogl_display_clean(struct opengles_display *gldisp) {
 	if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
+		if( gldisp->functions->eglInitialized){
+			gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );
+			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglMakeCurrent");
+		}
 		if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
-			if( gldisp->functions->eglInitialized)
+			if( gldisp->functions->eglInitialized){
 				gldisp->functions->eglDestroySurface(gldisp->mEglDisplay, gldisp->mRenderSurface);
+				check_EGL_errors(gldisp->functions, "ogl_display_clean: eglDestroySurface");
+			}
 			gldisp->mRenderSurface = EGL_NO_SURFACE;
 		}
 		if( gldisp->mEglContext != EGL_NO_CONTEXT) {
-			if( gldisp->functions->eglInitialized)
+			if( gldisp->functions->eglInitialized){
 				gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);
+				check_EGL_errors(gldisp->functions, "ogl_display_clean: eglDestroyContext");
+			}
 			gldisp->mEglContext = EGL_NO_CONTEXT;
 		}
-		if( gldisp->functions->eglInitialized)
-			gldisp->functions->eglTerminate(gldisp->mEglDisplay);
+		//if( gldisp->functions->eglInitialized){
+			//gldisp->functions->eglTerminate(gldisp->mEglDisplay);// Crash on multithread. Because of cleaning with eglMakeCurrent? Use eglReleaseThread
+			//check_EGL_errors(gldisp->functions, "ogl_display_clean");
+		//}
+		if( gldisp->functions->eglInitialized){
+			gldisp->functions->eglReleaseThread();
+			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglReleaseThread");
+		}
 		gldisp->mEglDisplay = EGL_NO_DISPLAY;
+		if( gldisp->functions->eglInitialized){
+			gldisp->functions->glFinish();// Synchronize the clean
+			check_EGL_errors(gldisp->functions, "ogl_display_clean: glFinish");
+		}
 	}
 }
 
@@ -884,7 +902,7 @@ bool_t ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunct
 		// 3) If eglInitialize fails for step 2 (e.g. because 9_3+ isn't supported by the default GPU), then we try again
 		//    using "warpDisplayAttributes".  This corresponds to D3D11 Feature Level 11_0 on WARP, a D3D11 software rasterizer.
 		//
-		ogl_display_clean(gldisp);// Clean the display before creating surface
+		//ogl_display_clean(gldisp);// Clean the display before creating surface
 		// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
 
 		gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
@@ -1019,7 +1037,7 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 		if(f->eglInitialized){
 			gldisp->mEglDisplay = f->eglGetCurrentDisplay();
 			gldisp->mEglContext = f->eglGetCurrentContext();
-			gldisp->mRenderSurface = f->eglGetCurrentSurface();
+			gldisp->mRenderSurface = f->eglGetCurrentSurface(EGL_DRAW);
 		}
 		if( gldisp->mEglDisplay == EGL_NO_DISPLAY || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->mRenderSurface == EGL_NO_SURFACE) {
 			ms_error("[ogl_display] Display/Context/Surface couldn't be set");
@@ -1049,9 +1067,6 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
 	if( !gldisp->functions)
 		ms_error("[ogl_display] functions is still NULL!");
 	else{
-		if( gldisp->mRenderSurface != EGL_NO_SURFACE){
-			ogl_display_uninit(gldisp,FALSE);
-		}
 		ogl_create_surface(gldisp, gldisp->functions, window);
 		if(gldisp->functions->eglInitialized ){
 			if ( gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
@@ -1143,8 +1158,6 @@ void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources
 
 	ms_message("[ogl_display] uninit opengles_display (gl initialized:%d)\n", gldisp->glResourcesInitialized);
 
-	ogl_display_clean(gldisp);
-
 	for(i = 0; i < MAX_IMAGE; i++) {
 		if (gldisp->yuv[i]) {
 			freemsg(gldisp->yuv[i]);
@@ -1164,6 +1177,7 @@ void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources
 		}
 		if(f->glInitialized)
 			GL_OPERATION(f, glDeleteProgram(gldisp->program));
+		ogl_display_clean(gldisp);
 	}
 
 	if (f) check_GL_errors(f, "ogl_display_uninit");

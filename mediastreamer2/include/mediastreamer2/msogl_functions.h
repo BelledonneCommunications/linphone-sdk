@@ -213,7 +213,7 @@ typedef EGLDisplay (GL_APIENTRY *resolveEGLGetPlatformDisplayEXT)(EGLenum platfo
 typedef EGLDisplay (GL_APIENTRY *resolveEGLGetDisplay)(EGLNativeDisplayType display);
 typedef EGLDisplay (GL_APIENTRY *resolveEGLGetCurrentDisplay)(void);
 typedef EGLContext (GL_APIENTRY *resolveEGLGetCurrentContext)(void);
-typedef EGLSurface (GL_APIENTRY *resolveEGLGetCurrentSurface)(void);
+typedef EGLSurface (GL_APIENTRY *resolveEGLGetCurrentSurface)(EGLint readdraw);
 typedef EGLBoolean (GL_APIENTRY *resolveEGLInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
 typedef EGLBoolean (GL_APIENTRY *resolveEGLChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
 typedef EGLContext (GL_APIENTRY *resolveEGLCreateContext)(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
@@ -224,6 +224,8 @@ typedef EGLBoolean (GL_APIENTRY *resolveEGLQuerySurface)(EGLDisplay dpy, EGLSurf
 typedef EGLBoolean (GL_APIENTRY *resolveEGLDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (GL_APIENTRY *resolveEGLDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLBoolean (GL_APIENTRY *resolveEGLTerminate)(EGLDisplay dpy);
+typedef EGLBoolean (GL_APIENTRY *resolveEGLReleaseThread)(void);
+
 
 
 
@@ -277,7 +279,7 @@ struct OpenGlFunctions {
 	// resolveGlDrawElements glDrawElements;
 	// resolveGlEnable glEnable;
 	resolveGlEnableVertexAttribArray glEnableVertexAttribArray;
-	// resolveGlFinish glFinish;
+	 resolveGlFinish glFinish;
 	// resolveGlFlush glFlush;
 	// resolveGlFramebufferRenderbuffer glFramebufferRenderbuffer;
 	// resolveGlFramebufferTexture2D glFramebufferTexture2D;
@@ -397,6 +399,7 @@ struct OpenGlFunctions {
 	resolveEGLDestroySurface eglDestroySurface;
 	resolveEGLDestroyContext eglDestroyContext;
 	resolveEGLTerminate eglTerminate;
+	resolveEGLReleaseThread eglReleaseThread;
 	
 	void * (*getProcAddress)(const char * name);// Set it to let MS2 initialize all functions
 	bool_t eglInitialized;

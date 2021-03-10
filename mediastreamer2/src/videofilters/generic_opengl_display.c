@@ -21,19 +21,48 @@
 #include "mediastreamer2/msogl_functions.h"
 #include "mediastreamer2/msogl.h"
 #include "mediastreamer2/msvideo.h"
+
 #ifdef MS2_WINDOWS_UWP
+
+#include <ppltasks.h>
+
 using namespace Windows::UI::Core;
 using namespace Windows::ApplicationModel::Core;
 using namespace Platform;
+using namespace Windows::Foundation;
+using namespace Windows::System::Threading;
+using namespace Concurrency;
 #endif
 #include "opengles_display.h"
 
+/*
+
+
+#include <agile.h>
+#include <mfidl.h>
+#include <windows.h>
+#include <Memorybuffer.h>
+#include <collection.h>
+
+
+using namespace Windows::UI::ViewManagement;
+using namespace Windows::UI::Core;
+
+
+using namespace Windows::UI::Xaml::Controls;
+using namespace Windows::UI::Xaml;
+
+
+using namespace Platform;
+*/
 // =============================================================================
 
 struct _FilterData {
 	MSOglContextInfo context_info;
 #ifdef MS2_WINDOWS_UWP
 	Platform::Agile<CoreApplicationView> window_id;// This switch avoid using marshalling and /clr. This is the cause of not using void**
+	
+	//int currentThreadCount;
 #else
 	void * window_id;// Used for window managment. On UWP, it is a CoreWindow that can be closed.
 #endif
@@ -50,13 +79,40 @@ struct _FilterData {
 	bool_t update_context;
 
 	mblk_t * prev_inm;
+	ms_mutex_t lock;
+	ms_thread_t renderThread;
+	bool_t rendering;
 };
 
 typedef struct _FilterData FilterData;
+static ms_mutex_t gLock;	// Protect OpenGL call from threads
+static bool_t gMutexInitialized = FALSE;
 
 // =============================================================================
 // Process.
 // =============================================================================
+
+static int ogl_call_render (MSFilter *f, void *arg);
+ static void *threadRendering(void*args){
+	 FilterData *data = (FilterData *)args;
+	 while (!data->rendering){}
+	 while (data->rendering){
+		ms_mutex_lock(&data->lock);// Use data lock instead of filter lock to keep control on memory (Filter can be freed while still being in the thread)
+		ms_mutex_lock(&gLock);
+		ogl_call_render(NULL, data);
+		ms_mutex_unlock(&gLock);
+		ms_mutex_unlock(&data->lock);
+	}
+	if( data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window){
+		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id );
+	}
+	ogl_display_uninit(data->display, TRUE);
+	ogl_display_free(data->display);
+	data->display = NULL;
+	ms_mutex_destroy(&data->lock);
+	ms_free(data);
+	return (void*)0;
+}
 
 static void ogl_init (MSFilter *f) {
 	FilterData *data = ms_new0(FilterData, 1);
@@ -65,24 +121,45 @@ static void ogl_init (MSFilter *f) {
 	data->mirroring = TRUE;
 	data->update_mirroring = FALSE;
 	data->prev_inm = NULL;
+	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.glInitialized = FALSE;
 	data->functions.eglInitialized = FALSE;
 	data->video_mode = MS_FILTER_VIDEO_AUTO;
 	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
 	data->context_info.window = NULL;
+	ms_mutex_init(&data->lock, NULL);
+	data->rendering = FALSE;
 	f->data = data;
+	if(!gMutexInitialized){
+		gMutexInitialized = TRUE;
+		ms_mutex_init(&gLock, NULL);
+	}
+	ms_thread_create(&data->renderThread, NULL, threadRendering, f->data);// Create a rendering thread for the current filter
+}
+
+static void ogl_uninit_data (FilterData *data) {
+	/* Workaround for UWP in case of crash
+	ms_mutex_lock(&data->lock);
+	if( data->currentThreadCount>0){
+		ms_mutex_unlock(&data->lock);
+#ifdef MS2_WINDOWS_UWP
+		Concurrency::create_task(CoreApplication::MainView->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([data](){
+			ogl_uninit_data(data);
+		})));
+#endif
+	}else{
+		ms_mutex_unlock(&data->lock);
+		data->rendering = FALSE;
+	}*/
+	data->rendering = FALSE;
 }
 
 static void ogl_uninit (MSFilter *f) {
-	FilterData *data = (FilterData *)f->data;
 	ms_filter_lock(f);
-	ogl_display_free(data->display);
-	data->display = NULL;
-	if( data->video_mode == MS_FILTER_VIDEO_AUTO && data->context_info.window)
-		ogl_destroy_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id );
+	FilterData *data = (FilterData *)f->data;
+	ogl_uninit_data(data);
 	ms_filter_unlock(f);
-	ms_free(data);
 }
 
 static void ogl_preprocess(MSFilter *f){
@@ -97,14 +174,16 @@ static void ogl_preprocess(MSFilter *f){
 	}
 }
 
-static int ogl_call_render (MSFilter *f, void *arg);
+
 static void ogl_process (MSFilter *f) {
+	//ms_mutex_lock(&gLock);
 	FilterData *data = (FilterData *)f->data;
 	MSOglContextInfo *context_info;
 	MSPicture src;
 	mblk_t *inm;
 
 	ms_filter_lock(f);
+	ms_mutex_lock(&data->lock);
 
 	context_info = &data->context_info;
 
@@ -133,7 +212,22 @@ static void ogl_process (MSFilter *f) {
 		data->prev_inm = inm;
 	}
 
+/*	Workaround for UWP in case of crash
+#ifdef MS2_WINDOWS_UWP
+	ms_mutex_lock(&data->lock);
+	++data->currentThreadCount;
+	ms_mutex_unlock(&data->lock);
+	Concurrency::create_task(CoreApplication::MainView->Dispatcher->RunAsync(CoreDispatcherPriority::Normal,ref new DispatchedHandler([data](){
+		ogl_call_render(NULL, data);
+		ms_mutex_lock(&data->lock);
+		--data->currentThreadCount;
+		ms_mutex_unlock(&data->lock);
+	})));
+#endif
+*/
+	data->rendering = TRUE;// Start/Keep rendering
 end:
+	ms_mutex_unlock(&data->lock);
 	ms_filter_unlock(f);
 
 	if (f->inputs[0] != NULL)
@@ -141,7 +235,6 @@ end:
 
 	if (f->inputs[1] != NULL)
 		ms_queue_flush(f->inputs[1]);
-	ogl_call_render(f, NULL);
 }
 
 // =============================================================================
@@ -184,6 +277,7 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 			data->update_context = TRUE;
 			data->video_mode = MS_FILTER_VIDEO_NONE;
 		}
+		ms_filter_unlock(f);
 	} else {
 		if(data->context_info.window )
 			ogl_display_uninit(data->display, FALSE);
@@ -193,16 +287,16 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 		memset(&data->context_info, 0, sizeof data->context_info);
 		data->video_mode = MS_FILTER_VIDEO_NONE;
 		data->update_context = TRUE;
+		ms_filter_unlock(f);
 	}
-
-	ms_filter_unlock(f);
 
 	return 0;
 }
 
 static int ogl_get_native_window_id (MSFilter *f, void *arg) {
-	(void)f;
-	(void)arg;
+	FilterData *s=(FilterData*)f->data;
+	MSOglContextInfo **id=(MSOglContextInfo**)arg;
+	*id=&s->context_info;
 
 	return 0;
 }
@@ -236,13 +330,15 @@ static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 
 static int ogl_call_render (MSFilter *f, void *arg) {
 	FilterData *data;
+	if( f == NULL)
+		data = (FilterData*)arg;
+	else{
+		ms_filter_lock(f);
+		data = (FilterData *)f->data;
+	}
+	
 	const MSOglContextInfo *context_info;
-
-	(void)arg;
-
-	ms_filter_lock(f);
-
-	data = (FilterData *)f->data;
+	
 	context_info = &data->context_info;
 	if (data->show_video && ( context_info->window || (!context_info->window && context_info->width && context_info->height)) ){
 		if (data->update_context) {
@@ -255,13 +351,22 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 
 		ogl_display_render(data->display, 0);
 	}
-
-	ms_filter_unlock(f);
-
+	if( f != NULL)
+		ms_filter_unlock(f);
 	return 0;
 }
 
-
+// Only used for testing reset process
+/*
+static void ogl_reset(MSFilter *f) {
+	FilterData *data = (FilterData *)f->data;
+	MSOglContextInfo d = data->context_info;
+	MSOglContextInfo * dd = &d;
+	ogl_uninit(f);
+	ogl_init(f);
+	ogl_set_native_window_id(f, &dd);
+}
+*/
 // =============================================================================
 // Register filter.
 // =============================================================================

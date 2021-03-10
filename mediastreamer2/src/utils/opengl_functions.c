@@ -132,6 +132,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glDisable = CAST(resolveGlDisable,glDisable)) != NULL);
 	f->glInitialized &= ((f->glDrawArrays = CAST(resolveGlDrawArrays, glDrawArrays)) != NULL);
 	f->glInitialized &= ((f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
+	f->glInitialized &= ((f->glFinish = CAST(resolveGlFinish, glFinish)) != NULL);
 	f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures)) != NULL);
 	f->glInitialized &= ((f->glGetError = CAST(resolveGlGetError, glGetError)) != NULL);
 	f->glInitialized &= ((f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv)) != NULL);
@@ -184,8 +185,8 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->eglInitialized &= ((f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT)) != NULL);
 	f->eglInitialized &= ((f->eglGetDisplay = CAST_EGL(resolveEGLGetDisplay, eglGetDisplay)) != NULL);
 	f->eglInitialized &= ((f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay)) != NULL);
-	f->eglInitialized &= ((f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentContext)) != NULL);
-	f->eglInitialized &= ((f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentSurface)) != NULL);
+	f->eglInitialized &= ((f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentContext, eglGetCurrentContext)) != NULL);
+	f->eglInitialized &= ((f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentSurface, eglGetCurrentSurface)) != NULL);
 	f->eglInitialized &= ((f->eglInitialize = CAST_EGL(resolveEGLInitialize, eglInitialize)) != NULL);
 	f->eglInitialized &= ((f->eglChooseConfig = CAST_EGL(resolveEGLChooseConfig, eglChooseConfig)) != NULL);
 	f->eglInitialized &= ((f->eglCreateContext = CAST_EGL(resolveEGLCreateContext, eglCreateContext)) != NULL);
@@ -196,9 +197,8 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->eglInitialized &= ((f->eglQuerySurface = CAST_EGL(resolveEGLQuerySurface, eglQuerySurface)) != NULL);
 	f->eglInitialized &= ((f->eglDestroySurface = CAST_EGL( resolveEGLDestroySurface, eglDestroySurface)) != NULL);
 	f->eglInitialized &= ((f->eglDestroyContext = CAST_EGL( resolveEGLDestroyContext, eglDestroyContext)) != NULL);
+	f->eglInitialized &= ((f->eglReleaseThread = CAST_EGL( resolveEGLReleaseThread, eglReleaseThread)) != NULL);
 	f->eglInitialized &= ((f->eglTerminate = CAST_EGL( resolveEGLTerminate, eglTerminate)) != NULL);
-	
-	
 }
 
 #ifdef __cplusplus
