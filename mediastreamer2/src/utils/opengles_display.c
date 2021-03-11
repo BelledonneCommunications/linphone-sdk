@@ -1202,12 +1202,12 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 	clean_GL_errors(f);
 
 	if(gldisp->functions->eglInitialized){
-		int width, height;// Get current surface size from EGL if we can
-		if (gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
-		{
+		if ( gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
+		{// No need to test other variable as if mRenderSurface is set, then others are too.
 			ms_error("[ogl_display] Failed to make EGLSurface current");
 			render = FALSE;
 		}else{
+			int width, height;// Get current surface size from EGL if we can
 			if( gldisp->mRenderSurface != EGL_NO_SURFACE
 				&& EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width)
 				&& EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height)

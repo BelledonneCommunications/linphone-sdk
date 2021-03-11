@@ -1004,8 +1004,7 @@ int ms_factory_get_expected_bandwidth(MSFactory *f) {
 const char * ms_factory_get_default_video_renderer(MSFactory *f) {
 #if defined(MS2_WINDOWS_PHONE)
 	return "MSWP8Dis";
-#elif defined(MS2_WINDOWS_DESKTOP)
-	// Check if UWP filter is created
+#elif defined(MS2_WINDOWS_DESKTOP) || defined (MS2_WINDOWS_UWP)
 	return "MSOGL";
 #elif defined(__ANDROID__)
 	return "MSAndroidTextureDisplay";

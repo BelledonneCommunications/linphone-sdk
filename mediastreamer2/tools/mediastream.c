@@ -1283,7 +1283,7 @@ static bool_t parse_addr(const char *addr, char *ip, size_t len, int *port)
 {
 	const char *semicolon=NULL;
 	size_t iplen;
-	int slen;
+	size_t slen;
 	const char *p;
 
 	*port=0;

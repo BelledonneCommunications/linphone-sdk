@@ -83,6 +83,7 @@ static void qogl_init (MSFilter *f) {
 	data->prev_inm = NULL;
 	data->renderer = NULL;
 	data->parent = f;
+	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
 	
 	f->data = data;

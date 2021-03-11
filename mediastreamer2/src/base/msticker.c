@@ -431,10 +431,10 @@ static int wait_next_tick(void *data, uint64_t virt_ticker_time){
 void * ms_ticker_run(void *arg)
 {
 	MSTicker *s=(MSTicker*)arg;
-	int lastlate=0;
+	int last_late=0;
 	int precision=2;
 	int late;
-	int maxLate=0;
+	int max_late=0;
 	uint64_t late_time_checkpoint=0;
 
 	ms_mutex_lock(&s->lock);
@@ -472,17 +472,17 @@ void * ms_ticker_run(void *arg)
 		late=s->wait_next_tick(s->wait_next_tick_data,s->time);
 		current_time = ms_get_cur_time_ms();
 		if(current_time > late_time_checkpoint + 1000) {// We print max late each 1s
-			if( maxLate > 0){// We have a counted late
-				ms_warning("%s: We are late of %d miliseconds.",s->name,maxLate);
-				maxLate = 0;// Reset max
+			if( max_late > 0){// We have a counted late
+				ms_warning("%s: We are late of %d miliseconds.",s->name,max_late);
+				max_late = 0;// Reset max
 			}
 			late_time_checkpoint = current_time;// Reset time
 		}
-		if (late>s->interval*5 && late>lastlate){
-			maxLate = (late > maxLate? late : maxLate);// Get the max
+		if (late>s->interval*5 && late>last_late){
+			max_late = (late > max_late? late : max_late);// Get the max
 			late_tick_time=current_time;
 		}
-		lastlate=late;
+		last_late=late;
 		ms_mutex_lock(&s->lock);
 		if (late_tick_time){
 			s->late_event.lateMs=late;
