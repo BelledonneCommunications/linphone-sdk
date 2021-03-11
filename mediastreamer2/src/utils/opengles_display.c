@@ -598,7 +598,7 @@ struct opengles_display *ogl_display_new (void) {
 void ogl_display_clean(struct opengles_display *gldisp) {
 	if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
 		if( gldisp->functions->eglInitialized){
-			gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );
+			gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );// Allow OpenGL to Release memory without delay as the current is no more binded
 			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglMakeCurrent");
 		}
 		if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
@@ -609,25 +609,25 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 			gldisp->mRenderSurface = EGL_NO_SURFACE;
 		}
 		if( gldisp->mEglContext != EGL_NO_CONTEXT) {
-			if( gldisp->functions->eglInitialized){
-				gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);
-				check_EGL_errors(gldisp->functions, "ogl_display_clean: eglDestroyContext");
-			}
+			//if( gldisp->functions->eglInitialized){
+			//	gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);// This lead to crash on future eglMakeCurrent. Bug? Let eglReleaseThread to do it.
+			//	check_EGL_errors(gldisp->functions, "ogl_display_clean: eglDestroyContext");
+			//}
 			gldisp->mEglContext = EGL_NO_CONTEXT;
 		}
 		//if( gldisp->functions->eglInitialized){
-			//gldisp->functions->eglTerminate(gldisp->mEglDisplay);// Crash on multithread. Because of cleaning with eglMakeCurrent? Use eglReleaseThread
-			//check_EGL_errors(gldisp->functions, "ogl_display_clean");
+		//	gldisp->functions->eglTerminate(gldisp->mEglDisplay);// Do not call terminate. It will delete all other context/rendering surface that can be still in used. Let eglReleaseThread to do it. Reminder : mEglDisplay is the same for all.
+		//	check_EGL_errors(gldisp->functions, "ogl_display_clean: eglTerminate");
 		//}
 		if( gldisp->functions->eglInitialized){
-			gldisp->functions->eglReleaseThread();
+			gldisp->functions->eglReleaseThread();// Release all OpenGL resources
 			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglReleaseThread");
 		}
-		gldisp->mEglDisplay = EGL_NO_DISPLAY;
 		if( gldisp->functions->eglInitialized){
 			gldisp->functions->glFinish();// Synchronize the clean
 			check_EGL_errors(gldisp->functions, "ogl_display_clean: glFinish");
 		}
+		gldisp->mEglDisplay = EGL_NO_DISPLAY;
 	}
 }
 
@@ -647,7 +647,6 @@ void ogl_display_free (struct opengles_display *gldisp) {
 			gldisp->yuv[i] = NULL;
 		}
 	}
-	
 	if (gldisp->default_functions) {
 		ms_free(gldisp->default_functions);
 		gldisp->default_functions = NULL;
@@ -690,10 +689,8 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	if(window_id != NULL)
 		*window_id = NULL;
 	XStoreName( dpy, *window, "Video" );
-	int error = XMapWindow(dpy, *window);
+	XMapWindow(dpy, *window);
 	XSync( dpy, False );
-	if(error>0)
-		ms_error("[ogl_display] Cannot show Window : %d", error);
 	return (*window) != (EGLNativeWindowType)0;
 }
 
@@ -1035,9 +1032,12 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 	}
 	if(!haveSurface ){// Use pointers to set surface (we don't create)
 		if(f->eglInitialized){
-			gldisp->mEglDisplay = f->eglGetCurrentDisplay();
-			gldisp->mEglContext = f->eglGetCurrentContext();
-			gldisp->mRenderSurface = f->eglGetCurrentSurface(EGL_DRAW);
+			if( gldisp->mEglDisplay == EGL_NO_DISPLAY)
+				gldisp->mEglDisplay = f->eglGetCurrentDisplay();
+			if( gldisp->mEglContext == EGL_NO_CONTEXT )
+				gldisp->mEglContext = f->eglGetCurrentContext();
+			if( gldisp->mRenderSurface == EGL_NO_SURFACE)
+				gldisp->mRenderSurface = f->eglGetCurrentSurface(EGL_DRAW);
 		}
 		if( gldisp->mEglDisplay == EGL_NO_DISPLAY || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->mRenderSurface == EGL_NO_SURFACE) {
 			ms_error("[ogl_display] Display/Context/Surface couldn't be set");
@@ -1069,7 +1069,8 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
 	else{
 		ogl_create_surface(gldisp, gldisp->functions, window);
 		if(gldisp->functions->eglInitialized ){
-			if ( gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
+			gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );
+			if ( gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
 			{
 				ms_error("[ogl_display] Failed to make EGLSurface current");
 			}else{
@@ -1195,15 +1196,17 @@ void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mb
 
 void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 	const OpenGlFunctions *f = gldisp->functions;
+	bool_t render = TRUE;
 
 	check_GL_errors(f, "ogl_display_render");
 	clean_GL_errors(f);
 
 	if(gldisp->functions->eglInitialized){
 		int width, height;// Get current surface size from EGL if we can
-		if (gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
+		if (gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
 		{
 			ms_error("[ogl_display] Failed to make EGLSurface current");
+			render = FALSE;
 		}else{
 			if( gldisp->mRenderSurface != EGL_NO_SURFACE
 				&& EGL_TRUE == gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width)
@@ -1212,7 +1215,7 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 					ogl_display_init(gldisp, f, width, height);
 		}
 	}
-	if(gldisp->functions->glInitialized){
+	if(render && gldisp->functions->glInitialized){
 		GL_OPERATION(f, glClearColor(0.f, 0.f, 0.f, 0.f));
 		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		GL_OPERATION(f, glUseProgram(gldisp->program))
