@@ -510,9 +510,9 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 	size_t inputlen = wcslen(wname) + 1;
 	size_t returnlen;
 	UINT currentCodePage = GetACP();
-	int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, wname, inputlen, NULL, 0, NULL, NULL);
+	int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, wname, (int)inputlen, NULL, 0, NULL, NULL);
 	std::string strConversion( sizeNeeded, 0 );
-	if(WideCharToMultiByte(currentCodePage, 0, wname, inputlen, &strConversion[0], sizeNeeded, NULL, NULL)){
+	if(WideCharToMultiByte(currentCodePage, 0, wname, (int)inputlen, &strConversion[0], sizeNeeded, NULL, NULL)){
 		nameStr = (char *)ms_malloc(strConversion.length()+1 );
 		strcpy(nameStr, strConversion.c_str());
 	}
