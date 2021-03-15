@@ -35,6 +35,7 @@ typedef struct {
 }JpegWriter;
 
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
+	MSJpegWriteEventData eventData = {{0}};
 	if (obj->file) {
 		fclose(obj->file);
 		obj->file = NULL;
@@ -43,7 +44,8 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 		if (rename(obj->tmpFilename, obj->filename) != 0) {
 			ms_error("Could not rename %s into %s", obj->tmpFilename, obj->filename);
 		} else {
-			ms_filter_notify(obj->f, MS_JPEG_WRITER_SNAPSHOT_TAKEN, (void *)obj->filename);
+			strncpy(eventData.filePath, obj->filename, sizeof(eventData)-1);
+			ms_filter_notify(obj->f, MS_JPEG_WRITER_SNAPSHOT_TAKEN, &eventData);
 		}
 	}
 	ms_free(obj->filename);
