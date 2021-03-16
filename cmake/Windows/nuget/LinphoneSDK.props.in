@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Reference Include="LinphoneSDK" Condition="'$(LinphoneSDK-Platform)' == 'x86'">
+      <HintPath>$(MSBuildThisFileDirectory)..\build\native\$(LinphoneSDK-Platform)\*.dll</HintPath>
+    </Reference>
+    <Reference Include="LinphoneSDK" Condition="'$(LinphoneSDK-Platform)' == 'x64'">
+      <HintPath>$(MSBuildThisFileDirectory)..\build\UAP10.0\$(LinphoneSDK-Platform)\*.dll</HintPath>
+    </Reference>
+	<Reference Include="LinphoneSDK" Condition="'$(LinphoneSDK-Platform)' == 'ARM'">
+      <HintPath>$(MSBuildThisFileDirectory)..\build\UAP10.0\$(LinphoneSDK-Platform)\*.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition=" '$(LinphoneSDK-Platform)' == 'x64' or '$(LinphoneSDK-Platform)' == 'ARM'">
+    <FilamentLibs Include="$(MSBuildThisFileDirectory)..\build\UAP10.0\$(Platform)\*.lib" />
+  </ItemGroup>
+  <ItemGroup Condition=" '$(LinphoneSDK-Platform)' == 'x86'">
+    <FilamentLibs Include="$(MSBuildThisFileDirectory)..\build\native\$(LinphoneSDK-Platform)\*.lib" />
+  </ItemGroup>
+</Project>
