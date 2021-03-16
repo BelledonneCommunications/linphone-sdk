@@ -22,8 +22,8 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     liblinphone_tester_keep_accounts(TRUE);
-    
-    NSString *bundlePath = [NSString stringWithFormat:@"%@/liblinphone_tester/", [[NSBundle mainBundle] bundlePath]] ;
+
+    NSString *bundlePath = [NSString stringWithFormat:@"%@/Frameworks/linphonetester.framework/", [[NSBundle mainBundle] bundlePath]] ;
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *writablePath = [paths objectAtIndex:0];
     
