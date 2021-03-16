@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5" xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4" xmlns:iot2="http://schemas.microsoft.com/appx/manifest/iot/windows10/2" xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3" xmlns:uap6="http://schemas.microsoft.com/appx/manifest/uap/windows10/6" xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10" xmlns:uap4="http://schemas.microsoft.com/appx/manifest/uap/windows10/4" xmlns:uap2="http://schemas.microsoft.com/appx/manifest/uap/windows10/2" xmlns:mobile="http://schemas.microsoft.com/appx/manifest/mobile/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap mp desktop4 iot2 uap3 uap6 iot uap4 uap2 mobile rescap">
+  <Identity Name="LinphoneTester-uwp" Publisher="CN=Belledonne Communications" Version="1.0.0.0" />
+  <mp:PhoneIdentity PhoneProductId="34fa58f9-8828-472d-be3d-9b281d4812eb" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <Properties>
+    <DisplayName>LinphoneTester_uwp</DisplayName>
+    <PublisherDisplayName>BelledonneCommunications</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="x-generate" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="LinphoneTester_uwp.App" desktop4:SupportsMultipleInstances="true" iot2:SupportsMultipleInstances="true">
+      <uap:VisualElements DisplayName="LinphoneTester_uwp" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" Description="LinphoneTester_uwp" BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png">
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="LinphoneTester_uwp.exe" EntryPoint="LinphoneTester_uwp.App">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="LinphoneTester_uwp.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+    <Capability Name="allJoyn" />
+    <Capability Name="codeGeneration" />
+    <Capability Name="internetClientServer" />
+    <Capability Name="privateNetworkClientServer" />
+    <uap:Capability Name="appointments" />
+    <uap3:Capability Name="backgroundMediaPlayback" />
+    <uap:Capability Name="blockedChatMessages" />
+    <uap:Capability Name="chat" />
+    <uap:Capability Name="contacts" />
+    <uap:Capability Name="enterpriseAuthentication" />
+    <uap6:Capability Name="graphicsCapture" />
+    <iot:Capability Name="lowLevelDevices" />
+    <uap:Capability Name="musicLibrary" />
+    <uap:Capability Name="objects3D" />
+    <uap4:Capability Name="offlineMapsManagement" />
+    <uap:Capability Name="phoneCall" />
+    <uap2:Capability Name="phoneCallHistoryPublic" />
+    <uap:Capability Name="picturesLibrary" />
+    <mobile:Capability Name="recordedCallsFolder" />
+    <uap3:Capability Name="remoteSystem" />
+    <uap:Capability Name="removableStorage" />
+    <uap:Capability Name="sharedUserCertificates" />
+    <uap2:Capability Name="spatialPerception" />
+    <iot:Capability Name="systemManagement" />
+    <uap:Capability Name="userAccountInformation" />
+    <uap4:Capability Name="userDataTasks" />
+    <uap3:Capability Name="userNotificationListener" />
+    <uap:Capability Name="videosLibrary" />
+    <uap:Capability Name="voipCall" />
+    <rescap:Capability Name="broadFileSystemAccess" />
+    <!--
+    <rescap:Capability Name="backgroundMediaRecording" />
+    <rescap:Capability Name="runFullTrust" />
+    -->
+    <DeviceCapability Name="webcam" />
+    <DeviceCapability Name="microphone" />
+    <DeviceCapability Name="bluetooth" />
+    <DeviceCapability Name="gazeInput" />
+    <DeviceCapability Name="location" />
+    <DeviceCapability Name="lowLevel" />
+    <DeviceCapability Name="pointOfService" />
+    <DeviceCapability Name="proximity" />
+  </Capabilities>
+</Package>
