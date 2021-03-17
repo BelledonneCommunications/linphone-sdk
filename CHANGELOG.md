@@ -18,6 +18,9 @@ changes made to these components.__
 - Audio routes API for Android & iOS
 - Core now automatically handles certain tasks for Android & iOS (see liblinphone changelog)
 
+### Changed
+- Update libvpx to 1.9.0
+
 ## [4.4.0] 2020-06-16
 
 ### Added
