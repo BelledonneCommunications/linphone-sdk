@@ -218,9 +218,9 @@ static int ogl_set_native_window_id (MSFilter *f, void *arg) {
 
 	data = (FilterData *)f->data;
 	context_info = *((MSOglContextInfo **)arg);
-	if ((unsigned long long)context_info != (unsigned long long)MS_FILTER_VIDEO_NONE) {
+	if ((intptr_t)context_info != (intptr_t)MS_FILTER_VIDEO_NONE) {
 		ms_message("[MSOGL] set native window id : %p", (void*)context_info);
-		if( (unsigned long long)context_info == (unsigned long long)MS_FILTER_VIDEO_AUTO){// Create a new Window
+		if( (intptr_t)context_info == (intptr_t)MS_FILTER_VIDEO_AUTO){// Create a new Window
 			if(!data->context_info.window)
 				ogl_create_window((EGLNativeWindowType*)&data->context_info.window, &data->window_id);
 			data->update_context = UPDATE_CONTEXT_UPDATE;
