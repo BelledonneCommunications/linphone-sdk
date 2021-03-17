@@ -40,7 +40,6 @@
       - build/upload.gradle
       - build/gradle.properties
       - build/LinphoneSdkManifest.xml
-      - build/*
     when: always
     expire_in: 1 week
 
