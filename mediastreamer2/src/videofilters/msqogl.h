@@ -21,6 +21,7 @@
 #define _MS_QOGL_H
 
 #include <QQuickFramebufferObject>
+#include <QOpenGLFunctions>
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msogl_functions.h"

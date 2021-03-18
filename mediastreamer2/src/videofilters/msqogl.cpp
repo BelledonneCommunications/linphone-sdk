@@ -17,14 +17,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <QOpenGLFunctions>
+// Windows Redefinitions error
+#ifdef _WIN32
+#include <winsock2.h>
+#endif
+#include "msqogl.h"
 #include <QOpenGLFramebufferObjectFormat>
 #include <QThread>
 #include <QQuickWindow>
 
 #include "mediastreamer2/msvideo.h"
-
-#include "msqogl.h"
 
 // Based on generic_opengl_display.c
 // =============================================================================
@@ -233,7 +235,24 @@ static MSFilterMethod methods[] = {
 	//{ MS_OGL_RENDER, qogl_call_render }, // qogl_call_render is autocalled by Qt, there is no need to put it in interface
 	{ 0, NULL }
 };
+#ifdef _WIN32
+MSFilterDesc ms_qogl_desc = {
+	MS_FILTER_PLUGIN_ID,
+	"MSQOGL",
+	"A Qt opengl video display",
+	MS_FILTER_OTHER,
+	NULL,
+	2,
+	0,
+	qogl_init,
+	NULL,
+	qogl_process,
+	NULL,
+	qogl_uninit,
+	methods
+};
 
+#else
 MSFilterDesc ms_qogl_desc = {
 	.id = MS_FILTER_PLUGIN_ID,
 	.name = "MSQOGL",
@@ -246,7 +265,7 @@ MSFilterDesc ms_qogl_desc = {
 	.uninit = qogl_uninit,
 	.methods = methods
 };
-
+#endif
 #ifndef VERSION
 #define VERSION "debug"
 #endif

@@ -608,7 +608,8 @@ if(ENABLE_QT_GL)
 #		else()
 			add_library(msqogl SHARED ${QT_VOIP_SOURCE_FILES_CXX})
 #		endif()
-		target_link_libraries(msqogl PRIVATE mediastreamer bctoolbox)
+		add_dependencies(msqogl mediastreamer)
+		target_link_libraries(msqogl PRIVATE mediastreamer bctoolbox ortp)
 		set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
 		
 		target_include_directories(msqogl INTERFACE
