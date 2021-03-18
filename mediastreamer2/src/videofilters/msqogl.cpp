@@ -21,6 +21,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
+
 #include "msqogl.h"
 #include <QOpenGLFramebufferObjectFormat>
 #include <QThread>
@@ -162,7 +163,7 @@ static int qogl_set_native_window_id (MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	
 	data = (FilterData *)f->data;
-	if( !arg || arg && !(*(QQuickFramebufferObject::Renderer**)arg) ){
+	if( !arg || (arg && !(*(QQuickFramebufferObject::Renderer**)arg) )){
 		data->renderer = NULL;
 	}
 	ms_filter_unlock(f);

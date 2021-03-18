@@ -47,8 +47,14 @@
 #else
 #ifndef QOPENGLFUNCTIONS_H // glew is already included by QT.
 	#include <GL/glew.h>
-#endif
 	#include <EGL/egl.h>
+#else
+	#include <EGL/egl.h>
+// Workaround for Qt, we need to undefine these defines. Fix error: expected unqualified-id before numeric constant on CursorShape
+	#undef None
+	#undef CursorShape
+#endif
+
 #endif
 #include <GLES2/gl2platform.h>
 #include "bctoolbox/port.h"
