@@ -36,8 +36,12 @@ BufferRenderer::BufferRenderer () {
 
 BufferRenderer::~BufferRenderer () {
 	qInfo() << QStringLiteral("Delete Renderer");
-	if(mParent)
-		mParent->renderer = NULL;
+	if(mParent){
+		ms_filter_lock(mParent->parent);
+		if( mParent->renderer == this)// Check if it is the same object. This deletion could be delayed for any reasons (Managed by Qt). We don't want to remove a new created object.
+			mParent->renderer = NULL;
+		ms_filter_unlock(mParent->parent);
+	}
 }
 
 QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject (const QSize &size) {
@@ -158,7 +162,7 @@ static int qogl_set_native_window_id (MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	
 	data = (FilterData *)f->data;
-	if( !arg){
+	if( !arg || arg && !(*(QQuickFramebufferObject::Renderer**)arg) ){
 		data->renderer = NULL;
 	}
 	ms_filter_unlock(f);
