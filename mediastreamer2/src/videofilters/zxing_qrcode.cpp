@@ -67,10 +67,6 @@ typedef struct {
 	MSFilter *f;
 }QRCodeReaderStruct;
 
-typedef struct {
-	char resultText[512];//Can be changed depending on the size of the URL
-}QRCodeReaderNotifyStruct;
-
 static void qrcode_init(MSFilter *f) {
 	QRCodeReaderStruct *qrc = ms_new0(QRCodeReaderStruct, 1);
 	qrc->searchQRCode = TRUE;
@@ -105,7 +101,6 @@ static int set_decoder_rect(MSFilter *f, void *arg) {
 static void read_qrcode(MSFilter *f) {
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
 	if (qrc->image) {
-		QRCodeReaderNotifyStruct qrcNotify;
 		Ref<Result> result;
 		Ref<Binarizer> binarizer;
 		binarizer = new HybridBinarizer(qrc->image->getLuminanceSource());
@@ -119,9 +114,10 @@ static void read_qrcode(MSFilter *f) {
 			return;
 		}
 		Ref<String> text = result->getText();
-		snprintf(qrcNotify.resultText, sizeof(qrcNotify.resultText), "%s", text->getText().c_str());
+		MSQrCodeReaderEventData data = {{0}};
+		snprintf(data.data, sizeof(data.data), "%s", text->getText().c_str());
 		qrc->searchQRCode = FALSE;
-		ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, qrcNotify.resultText);
+		ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, &data);
 	}
 }
 
