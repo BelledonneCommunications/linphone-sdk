@@ -77,6 +77,7 @@
     variables:
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
+      - $TESTOUILLE
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   script:
@@ -135,6 +136,9 @@ job-windows-vs2017-ninja-win32:
   except:
     refs:
       - schedules
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -147,6 +151,9 @@ job-windows-vs2017-ninja-win32:
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES	
@@ -168,6 +175,7 @@ job-windows-vs2017-uwp-scheduled:
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_WINDOWS
       - $ENABLE_WINDOWS_UWP_TESTS
+      - $TESTOUILLE
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
