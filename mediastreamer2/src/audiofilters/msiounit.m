@@ -490,12 +490,47 @@ ms_mutex_t mutex;
 	ms_mutex_unlock(&mutex);
 }
 
+-(void) configure_audio_session_by_default {
+	ms_message("configure_audio_session_by_default(): configure audio session by default for playback/record.");
+	NSError *err = nil;;
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+
+	[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
+			withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
+				  error:&err];
+	if (err) {
+		ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
+		err = nil;
+	}
+	[audioSession setMode:AVAudioSessionModeVoiceChat error:&err];
+	if (err) {
+		ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
+		err = nil;
+	}
+	double sampleRate = defaultSampleRate;
+	[audioSession setPreferredSampleRate:sampleRate error:&err];
+	if (err) {
+		ms_error("Unable to change preferred sample rate because : %s", [err localizedDescription].UTF8String);
+		err = nil;
+	}
+	[audioSession setActive:TRUE error:&err];
+	if(err){
+		ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+		err = nil;
+	}
+}
+
 -(void) configure_audio_session {
 	NSError *err = nil;;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 
-		if (_audio_unit_state == MSAudioUnitStarted){
+	if (_audio_unit_state == MSAudioUnitNotCreated){
+		ms_message("configure_audio_session(): AudioUnit is not created, skipping this process.");
+		return;
+	}
+
+	if (_audio_unit_state == MSAudioUnitStarted){
 		ms_message("configure_audio_session(): AudioUnit is already started, skipping this process.");
 		return;
 	}
@@ -706,6 +741,11 @@ static void au_callkit_enabled(MSSndCard *obj, bool_t enabled) {
 	}
 }
 
+static void au_configure(MSSndCard *obj) {
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	[au_holder configure_audio_session_by_default];
+}
+
 MSSndCardDesc au_card_desc={
 .driver_type="AU",
 .detect=au_detect,
@@ -722,7 +762,8 @@ MSSndCardDesc au_card_desc={
 .usage_hint=au_usage_hint,
 .audio_session_activated=au_audio_session_activated,
 .callkit_enabled=au_callkit_enabled,
-.audio_route_changed=au_audio_route_changed
+.audio_route_changed=au_audio_route_changed,
+.configure=au_configure
 };
 
 static MSSndCard *au_duplicate(MSSndCard *obj){
