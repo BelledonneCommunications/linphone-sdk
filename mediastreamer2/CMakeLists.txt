@@ -645,6 +645,8 @@ else()
 	list(APPEND STRICT_OPTIONS_C "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
 	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		list(APPEND STRICT_OPTIONS_CXX "-x c++")
+	elseif(ENABLE_QT_GL AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "9")
+		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=deprecated-copy")#introduced by gcc 9
 	endif()
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
 		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments" "-Wno-unused-function" "-Wno-array-bounds")
