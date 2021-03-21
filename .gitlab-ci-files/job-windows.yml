@@ -47,6 +47,7 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     LINPHONESDK_PLATFORM: Desktop
+    OUTPUT_ZIP_FOLDER: win32
   script:
     #handling the case of previous job cancellation
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -62,6 +63,9 @@
     - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=%LINPHONESDK_PLATFORM% -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
+    - cd linphone-sdk
+    - mkdir %OUTPUT_ZIP_FOLDER%
+    - copy /B *.zip "%CI_PROJECT_DIR%/build-desktop/linphone-sdk/%OUTPUT_ZIP_FOLDER%"
 ################
   artifacts:
     paths:
@@ -149,7 +153,8 @@ job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES	
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    OUTPUT_ZIP_FOLDER: win32
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
@@ -171,11 +176,13 @@ job-windows-vs2017-uwp-scheduled:
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
+    OUTPUT_ZIP_FOLDER: uwp
 
 job-windows-vs2017-win32store-scheduled:
   extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    OUTPUT_ZIP_FOLDER: win32store
 
 
 #TODO : FACTORIZE TESTERS CODE
