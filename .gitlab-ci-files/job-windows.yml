@@ -150,7 +150,7 @@ job-windows-vs2017-ninja-win32:
 
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
-  extends: .job-windows-vs2017
+  extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
@@ -166,7 +166,7 @@ job-windows-vs2017-win32-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
 job-windows-vs2017-uwp-scheduled:
-  extends: .job-windows-vs2017
+  extends: .job-windows-vs2017-scheduled
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -179,7 +179,7 @@ job-windows-vs2017-uwp-scheduled:
     OUTPUT_ZIP_FOLDER: uwp
 
 job-windows-vs2017-win32store-scheduled:
-  extends: .job-windows-vs2017
+  extends: .job-windows-vs2017-scheduled
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
     OUTPUT_ZIP_FOLDER: win32store

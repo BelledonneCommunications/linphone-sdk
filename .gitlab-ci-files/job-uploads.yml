@@ -176,23 +176,23 @@ job-macosx-upload:
 #################################################
 # Windows
 #################################################
-
+# batch nightmare to set the output of a command in a variable
 .check_snapshot_or_release_windows: &check_snapshot_or_release_windows |
   SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
-  #batch nightmare to set the output of a command as a variable
   FOR /F "tokens=*" %%i IN ('git -C liblinphone describe') DO SET describe=%%i
   FOR /F "tokens=*" %%i IN ('powershell "'%describe%' -match 'alpha|beta'"') DO SET describe_check=%%i
   if %describe_check% == True SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%
+  echo %DEPLOY_ROOT_DIRECTORY%
 
 
 job-windows-vs2017-win32-upload:
   stage: deploy
   tags: [ "windows"]
-  #only:
-  #  variables:
-  #    - $DEPLOY_RUN_WINDOWS
-  #    - $NIGHTLY_MASTER
-  #    - $NIGHTLY_RELEASE
+  only:
+    variables:
+      - $DEPLOY_RUN_WINDOWS
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   dependencies:
     - job-windows-vs2017-win32-scheduled
   script:
