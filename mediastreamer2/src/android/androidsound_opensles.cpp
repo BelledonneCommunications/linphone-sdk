@@ -1206,7 +1206,10 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) ||
-		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE)
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)
 	) {
 
 		const char * name = ms_strdup(ms_android_get_device_product_name(env, deviceInfo));
