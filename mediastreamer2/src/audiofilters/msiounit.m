@@ -525,17 +525,12 @@ ms_mutex_t mutex;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 
-	if (_audio_unit_state == MSAudioUnitNotCreated){
-		ms_message("configure_audio_session(): AudioUnit is not created, skipping this process.");
-		return;
-	}
-
 	if (_audio_unit_state == MSAudioUnitStarted){
 		ms_message("configure_audio_session(): AudioUnit is already started, skipping this process.");
 		return;
 	}
 
-	if ( !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
+	if (_ms_snd_card && _ms_snd_card->sndcardmanager && !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
 		/*check that category wasn't changed*/
 		NSString *currentCategory = audioSession.category;
 		NSString *newCategory = AVAudioSessionCategoryPlayAndRecord;
