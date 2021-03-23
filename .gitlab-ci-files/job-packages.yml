@@ -9,11 +9,11 @@ job-windows-vs2017-nuget-package:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
     - job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  #only:
+  #  variables:
+  #    - $DEPLOY_RUN_WINDOWS
+  #    - $NIGHTLY_MASTER
+  #    - $NIGHTLY_RELEASE
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
