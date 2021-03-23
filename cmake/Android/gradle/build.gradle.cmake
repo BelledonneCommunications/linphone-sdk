@@ -73,6 +73,7 @@ if (!isGeneratedJavaWrapperAvailable()) {
     javaExcludes.add('**/CoreService.java')
     javaExcludes.add('**/FirebaseMessaging.java')
     javaExcludes.add('**/FirebasePushHelper.java')
+    javaExcludes.add('**/HeadsetReceiver.java')
     javaExcludes.add('**/PushNotificationUtils.java')
 
     // Add the previous wrapper to sources
