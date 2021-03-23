@@ -6,15 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [4.5.0] - 2021-03-29
+
 ### Changed
 - Use DNSService framework on iOS, to workaround the local network permission request triggered on iOS >= 14
 
 ### Fixed
 - Fix routing according to RFC3263: uri with a port number shall not be resolved with SRV.
+- See git commits for full list of fixes.
 
 
-
-## [4.4.0] - 2019-06-09
+## [4.4.0] - 2020-06-09
 
 ### Added
 - New C++ facilities:
