@@ -176,6 +176,14 @@ job-macosx-upload:
 #################################################
 # Windows
 #################################################
+# batch nightmare to set the output of a command in a variable
+.check_snapshot_or_release_windows: &check_snapshot_or_release_windows |
+  SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
+  FOR /F "tokens=*" %%i IN ('git -C liblinphone describe') DO SET describe=%%i
+  FOR /F "tokens=*" %%i IN ('powershell "'%describe%' -match 'alpha|beta'"') DO SET describe_check=%%i
+  if %describe_check% == True SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%
+  echo %DEPLOY_ROOT_DIRECTORY%
+
 
 job-windows-vs2017-win32-upload:
   stage: deploy
@@ -185,10 +193,13 @@ job-windows-vs2017-win32-upload:
       - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
+  variables:
+    DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
   dependencies:
     - job-windows-vs2017-win32-scheduled
   script:
-    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
+    - *check_snapshot_or_release_windows
+    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/%DEPLOY_DEST_DIR_SDK_WINDOWS%/"
 
 job-windows-vs2017-nuget-upload:
   stage: deploy
@@ -198,10 +209,13 @@ job-windows-vs2017-nuget-upload:
       - $DEPLOY_RUN_WINDOWS
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
+  variables:
+    DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
   dependencies:
     - job-windows-vs2017-nuget-package
   script:
-    - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/windows/sdk/"
+    - *check_snapshot_or_release_windows
+    - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/%DEPLOY_DEST_DIR_SDK_WINDOWS%/"
 
 #################################################
 # Debian doc upload
