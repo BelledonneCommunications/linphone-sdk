@@ -457,6 +457,15 @@ ms_mutex_t mutex;
 	[self stop_audio_unit_with_param:FALSE];
 }
 
+-(void)recreate_audio_unit{
+	[self stop_audio_unit_with_param:FALSE];
+	if (_audio_unit) {
+		AudioComponentInstanceDispose (_audio_unit);
+		_audio_unit = NULL;
+	}
+	[self create_audio_unit];
+}
+
 -(void)destroy_audio_unit {
 	[self stop_audio_unit];
 	
@@ -464,7 +473,7 @@ ms_mutex_t mutex;
 		AudioComponentInstanceDispose (_audio_unit);
 		_audio_unit = NULL;
 		
-		if ( !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
+		if (!_callkit_enabled && !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
 			NSError *err = nil;;
 			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
 			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
@@ -705,8 +714,18 @@ static void au_audio_route_changed(MSSndCard *obj) {
 
 static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	[au_holder setAudio_session_activated:activated];
+	
 	ms_message("AVAudioSession activated: %i", (int)activated);
+	
+	if (au_holder.audio_session_activated && activated){
+		ms_warning("Callkit notifies that AVAudioSession is activated while it was supposed to be already activated. It means that a device disconnection happened.");
+		/* Do first as if the session was deactivated */
+		if ([au_holder audio_unit_state] == MSAudioUnitStarted) {
+			[au_holder recreate_audio_unit];
+		}
+	}
+	
+	[au_holder setAudio_session_activated:activated];
 	
 	if (activated && [au_holder audio_unit_state] == MSAudioUnitCreated){
 		/* 
@@ -717,7 +736,7 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 		/* The next is done on a separate thread because it is considerably slow, so don't block the application calling thread here. */
 		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
 				[[AudioUnitHolder sharedInstance] configure_audio_unit];
-				[[AudioUnitHolder sharedInstance]start_audio_unit:0];
+				[[AudioUnitHolder sharedInstance] start_audio_unit:0];
 		});
 	}else if (!activated && [au_holder audio_unit_state] == MSAudioUnitStarted) {
 		[au_holder stop_audio_unit_with_param:TRUE];
