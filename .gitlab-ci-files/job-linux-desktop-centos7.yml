@@ -66,6 +66,20 @@ test-bctoolbox-centos7:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
 
+test-bctoolbox-centos7-mr:
+  extends: .test-bctoolbox
+  dependencies:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
+
 test-bellesip-centos7:
   extends: .test-bellesip
   dependencies:
@@ -83,6 +97,20 @@ test-belr-centos7:
   dependencies:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
+
+test-belr-centos7-mr:
+  extends: .test-belr
+  dependencies:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 test-belcard-centos7:
   extends: .test-belcard
