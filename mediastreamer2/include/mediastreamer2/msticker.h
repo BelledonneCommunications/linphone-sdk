@@ -114,9 +114,10 @@ struct _MSTickerSynchronizer
 {
 	uint64_t offset; /**<the default offset of ticker*/
 	double av_skew; /**< mean skew */
-	unsigned int external_time_count; /**< number of times ms_ticker_synchronizer_set_external_time() is called */
+	uint64_t origin_nsamples; /**< Sample count when ms_ticker_synchronizer_update() is called for the first time */
 	uint64_t current_nsamples; /**< The last number of samples read notified with ms_ticker_synchronizer_update*/
-	uint64_t current_ms; /**< The last time notified with ms_ticker_synchronizer_update*/
+	uint64_t last_log_time; /**< The last time the skew log was issued*/
+	unsigned int sample_rate;
 };
 
 /**
@@ -289,6 +290,14 @@ MS2_PUBLIC double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64
  * @return A corrected current time.
  */
 MS2_PUBLIC uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts);
+
+/**
+ * Ask the ticker synchronizer to resynchronize. Use this when you are aware of an overrun/underrun and you think that the
+ * next update will report an errouneous sample count.
+ * @param ts  A #MSTickerSynchronizer object.
+ * @return A corrected current time.
+ */
+MS2_PUBLIC void ms_ticker_synchronizer_resync(MSTickerSynchronizer* ts);
 
 /**
  * Destroy a ticker synchronizer.

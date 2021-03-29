@@ -219,6 +219,7 @@ static SoundDeviceDescription devices[]={
 	{	"HUAWEI",				"HUAWEI VNS-L31",		"hi6250",		DEVICE_MCH264ENC_NO_PIX_FMT_CONV, 0 },
 	{	"HUAWEI",				"ALE-L21",				"hi6210sft",	DEVICE_MCH264ENC_NO_PIX_FMT_CONV, 0 },
 	{	"Huawei",				"AOSP on angler",		"msm8994",		DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000},
+	{	"HUAWEI",				"SLA-L02",				"msm8937",	DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0, 16000 },
 
 	{	"WIKO", 				"HIGHWAY 4G",			"tegra",		DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },
 	{	"Symphony",				"HIGHWAY 4G",			"",				DEVICE_HAS_UNSTANDARD_LIBMEDIA, 0 },

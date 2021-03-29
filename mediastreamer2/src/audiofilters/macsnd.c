@@ -54,11 +54,13 @@ The BSD license below is for the original work.
 #include <CoreServices/CoreServices.h>
 #include <AudioUnit/AudioUnit.h>
 #include <AudioToolbox/AudioToolbox.h>
+
 //#include <CoreServices/CarbonCore/Debugging.h>
 
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/devices.h"
 
 #if __LP64__ 
 #define UINT32_PRINTF "u"
@@ -190,6 +192,57 @@ static MSSndCard *au_card_duplicate(MSSndCard * obj)
 	return card;
 }
 
+static void ca_set_device_type(AudioDeviceID deviceId, MSSndCard * card){
+	AudioObjectPropertyAddress request;
+	UInt32 terminalType= 0;
+	UInt32 returnSize = 0;
+
+	// Check transport
+	AudioDevicePropertyID transportType;
+	request.mSelector = kAudioDevicePropertyTransportType;
+	request.mScope = kAudioObjectPropertyScopeGlobal;
+	request.mElement = kAudioObjectPropertyElementMaster;
+	returnSize = sizeof(AudioDevicePropertyID);
+	AudioObjectGetPropertyData(deviceId, &request, 0, 0, &returnSize, &transportType);
+	// Check Terminal Type
+	request.mSelector = kAudioDevicePropertyDataSource;
+	request.mScope = kAudioObjectPropertyScopeGlobal;
+	request.mElement = kAudioObjectPropertyElementMaster;
+	returnSize = sizeof(UInt32);
+	AudioObjectGetPropertyData(deviceId, &request, 0, NULL, &returnSize, &terminalType);
+	// Terminal type can be not set on same cases like in Builtin card. If unknown,  check deeper in the source that depends of the capability
+	if( terminalType == kAudioStreamTerminalTypeUnknown ){
+		request.mSelector = kAudioDevicePropertyDataSource;
+		request.mElement = kAudioObjectPropertyElementMaster;
+		returnSize = sizeof(UInt32);
+		if( card->capabilities == MS_SND_CARD_CAP_CAPTURE){// Multiple capability is not supported
+			request.mScope = kAudioObjectPropertyScopeInput;
+			returnSize = sizeof(UInt32);
+			AudioObjectGetPropertyData(deviceId, &request, 0, NULL, &returnSize, &terminalType);
+		}else if( card->capabilities == MS_SND_CARD_CAP_PLAYBACK){
+			request.mScope = kAudioObjectPropertyScopeOutput;
+			AudioObjectGetPropertyData(deviceId, &request, 0, NULL, &returnSize, &terminalType);
+		}
+	}
+// 'ispk', 'espk', 'imic' and 'emic' are undocumented terminalType on Mac. This seems to be IOS types but can be retrieve by the mac API
+	if( transportType == kAudioDeviceTransportTypeBluetooth || transportType == kAudioDeviceTransportTypeBluetoothLE)
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
+	else if(terminalType == kAudioStreamTerminalTypeReceiverSpeaker)
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_EARPIECE;
+	else if(terminalType == kAudioStreamTerminalTypeSpeaker || terminalType == 'ispk' || terminalType == 'espk')
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_SPEAKER;
+	else if(terminalType == kAudioStreamTerminalTypeMicrophone || terminalType == kAudioStreamTerminalTypeReceiverMicrophone || terminalType== 'imic' || terminalType== 'emic')
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
+	else if(terminalType == kAudioStreamTerminalTypeHeadsetMicrophone)
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_HEADSET;
+	else if(terminalType == kAudioStreamTerminalTypeHeadphones)
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
+	else if(transportType == kAudioDeviceTransportTypeUSB)
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_GENERIC_USB;
+	else
+		card->device_type = MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
+}
+
 static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDeviceID dev, unsigned cap)
 {
 	MSSndCard *card = ms_snd_card_new(&ca_card_desc);
@@ -227,6 +280,7 @@ static MSSndCard *ca_card_new(const char *name, const char * uidname, AudioDevic
 			d->rate=format.mSampleRate;
 		}
 	}
+	ca_set_device_type(dev, card);
 	return card;
 }
 

@@ -170,6 +170,7 @@ typedef struct {
 	bool_t has_channel_number;
 	bool_t has_requested_transport;
 	bool_t has_requested_address_family;
+	bool_t own_data;
 } MSStunMessage;
 
 typedef enum {

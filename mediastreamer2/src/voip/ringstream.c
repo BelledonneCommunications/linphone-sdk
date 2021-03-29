@@ -59,7 +59,9 @@ RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interv
 	MSPinFormat pinfmt={0};
 
 	stream=(RingStream *)ms_new0(RingStream,1);
-	stream->card = ms_snd_card_ref(sndcard);
+	if (sndcard != NULL) {
+		stream->card = ms_snd_card_ref(sndcard);
+	}
 	if (file) {
 		stream->source=_ms_create_av_player(file,factory);
 		if (stream->source == NULL){
@@ -75,7 +77,7 @@ RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interv
 	if (func!=NULL)
 		ms_filter_add_notify_callback(stream->source,func,user_data,FALSE);
 	stream->gendtmf=ms_factory_create_filter(factory, MS_DTMF_GEN_ID);
-	stream->sndwrite=ms_snd_card_create_writer(sndcard);
+	stream->sndwrite= (sndcard != NULL) ? ms_snd_card_create_writer(sndcard) : ms_factory_create_filter(factory, MS_VOID_SINK_ID);
 	stream->write_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 
 	if (file){
@@ -202,6 +204,7 @@ static void ring_stream_configure_output_snd_card(RingStream *stream) {
 void ring_stream_set_output_ms_snd_card(RingStream *stream, MSSndCard * sndcard_playback) {
 	if (stream->card) {
 		ms_snd_card_unref(stream->card);
+		stream->card = NULL;
 	}
 	stream->card = ms_snd_card_ref(sndcard_playback);
 	ring_stream_configure_output_snd_card(stream);

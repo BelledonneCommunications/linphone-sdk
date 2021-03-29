@@ -27,6 +27,7 @@
 #include "nowebcam.h"
 
 #import <AVFoundation/AVFoundation.h>
+#import <AppKit/AppKit.h> // for NSApplication
 struct v4mState;
 
 @interface NsMsWebCam : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate>
@@ -51,6 +52,7 @@ struct v4mState;
 - (void)initDevice:(NSString*)deviceId;
 - (void)openDevice:(NSString*) deviceId;
 - (int)getPixFmt;
+- (void)resetVideoSettings;
 
 
 - (AVCaptureSession *)session;
@@ -117,8 +119,8 @@ static void capture_queue_cleanup(void* p) {
 	qinit(&rq);
 	ms_mutex_init(&mutex,NULL);
 	session = [[AVCaptureSession alloc] init];
-    output = [[AVCaptureVideoDataOutput alloc] init];
-    [output alwaysDiscardsLateVideoFrames];
+	output = [[AVCaptureVideoDataOutput alloc] init];
+	[output alwaysDiscardsLateVideoFrames];
 	allocator = ms_yuv_buf_allocator_new();
 	isStretchingCamera = FALSE;
 	usedSize = MS_VIDEO_SIZE_VGA;
@@ -161,7 +163,6 @@ static void capture_queue_cleanup(void* p) {
 		dispatch_set_finalizer_f(queue, capture_queue_cleanup);
 		[output setSampleBufferDelegate:self queue:queue];
 		dispatch_release(queue);
-		session.sessionPreset = [self videoSizeToPreset:usedSize];
 		
 		// At the time of macosx 10.11, it's mandatory to keep old settings, otherwise pixel buffer size is no preserved
 		NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:
@@ -170,11 +171,18 @@ static void capture_queue_cleanup(void* p) {
 							 [NSNumber numberWithUnsignedInteger:kCVPixelFormatType_420YpCbCr8Planar], (id)kCVPixelBufferPixelFormatTypeKey,
 							 nil];
 		[output setVideoSettings:dic];
-		
+		[session beginConfiguration];
+		[session setSessionPreset:[self videoSizeToPreset:usedSize]];
+		[session commitConfiguration];
 		[session startRunning];
 		ms_message("AVCapture: Engine started");
 	}
 	return 0;
+}
+- (void) resetVideoSettings {
+	[self stop];
+	ms_message("AVCapture: Resetting video settings to %dx%d", usedSize.width, usedSize.height);
+	[self start];
 }
 
 - (int)stop {
@@ -195,7 +203,7 @@ static void capture_queue_cleanup(void* p) {
 	unsigned int i = 0;
 	device = NULL;
 
-    NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
+	NSArray * array = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
 
 	for (i = 0 ; i < [array count]; i++) {
 		AVCaptureDevice * currentDevice = [array objectAtIndex:i];
@@ -206,29 +214,29 @@ static void capture_queue_cleanup(void* p) {
 	}
 	if (device == NULL) {
 		ms_error("Error: camera %s not found, using default one", [deviceId UTF8String]);
-        device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+		device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
 	}
 }
 
 - (void)openDevice:(NSString*)deviceId {
 	NSError *error = nil;
 	[self initDevice:deviceId];
-    input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
+	input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
         if (error) {
             ms_error("%s", [[error localizedDescription] UTF8String]);
-            return;
-        }
-    if (input && [session canAddInput:input]) {
-        [input retain]; // keep reference on an externally allocated object
-        [session addInput:input];
-    } else {
-        ms_error("Error: input nil or cannot be added: %p", input);
-    }
-    if (output && [session canAddOutput:output]) {
-        [session addOutput:output];
-    } else {
-        ms_error("Error: output nil or cannot be added: %p", output);
-    }
+	    return;
+	}
+	if (input && [session canAddInput:input]) {
+		[input retain]; // keep reference on an externally allocated object
+		[session addInput:input];
+	} else {
+		ms_error("Error: input nil or cannot be added: %p", input);
+	}
+	if (output && [session canAddOutput:output]) {
+		[session addOutput:output];
+	} else {
+		ms_error("Error: output nil or cannot be added: %p", output);
+	}
 }
 
 
@@ -399,6 +407,8 @@ static void v4m_process(MSFilter * obj){
 			} else {
 				ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), discarding...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
 				freemsg(om);
+				if ([[NSApplication sharedApplication] isActive])// Reset camera only if the application is in foreground to avoid conflicting between applications
+					[s->webcam resetVideoSettings];
 			}
 		}
 	}

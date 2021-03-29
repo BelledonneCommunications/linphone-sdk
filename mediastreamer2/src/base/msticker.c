@@ -618,7 +618,11 @@ MSTickerSynchronizer* ms_ticker_synchronizer_new(void) {
 	return obj;
 }
 
-
+void ms_ticker_synchronizer_resync(MSTickerSynchronizer* ts){
+	ts->offset = 0;
+	ts->origin_nsamples = 0;
+	ts->current_nsamples = 0;
+}
 
 double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const MSTimeSpec *time) {
 	int64_t sound_time;
@@ -626,12 +630,16 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	uint64_t wc = get_wallclock_ms();
 	uint64_t ms = get_ms(time);
 	if (ts->offset == 0) {
-		ts->offset = wc - ms;
+		/* In case of resync, the av_skew must be preserved */
+		ts->offset = wc - ms - (uint64_t)ts->av_skew;
 	}
 	sound_time = ts->offset + ms;
 	diff = wc - sound_time;
 	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
-	if ((++ts->external_time_count) % 100 == 0) {
+	
+	if (ts->last_log_time == 0) ts->last_log_time = wc;
+	else if (wc - ts->last_log_time >= 5000 ) {
+		ts->last_log_time = wc;
 #ifndef __ANDROID__
 		ms_message("sound/wall clock skew is average=%f ms", ts->av_skew);
 #endif
@@ -645,11 +653,19 @@ double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_sampl
 	   What we need is that each time we get new samples, we correlate them with system time to make a correction on the msticker timer.
 	   Imagine that the soundcard stops for some reason: without this check the msticker would stop as well.
 	*/
-	if (nb_samples > ts->current_nsamples || ts->offset == 0){
-		uint64_t ms = ((1000 * (nb_samples - ts->current_nsamples)) / (uint64_t)sample_rate) + ts->current_ms;
+	if (ts->sample_rate != sample_rate){
+		ms_ticker_synchronizer_resync(ts);
+		ts->sample_rate = sample_rate;
+	}
+	if (nb_samples == 0) return 0.0; /* ignore a measurement that measured nothing */
+	if (ts->origin_nsamples == 0){ /* setup origin of sample count*/
+		ts->current_nsamples = ts->origin_nsamples = nb_samples;
+		return 0.0;
+	}
+	if (nb_samples > ts->current_nsamples){
 		MSTimeSpec timespec;
+		uint64_t ms = (1000 * (nb_samples - ts->origin_nsamples)) / (uint64_t)sample_rate;
 		ts->current_nsamples = nb_samples;
-		ts->current_ms = ms;
 		timespec.tv_nsec = (ms % 1000) * 1000000LL;
 		timespec.tv_sec = ms / 1000LL;
 		return ms_ticker_synchronizer_set_external_time(ts, &timespec);
@@ -668,5 +684,6 @@ uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts) {
 }
 
 void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts) {
+	ms_message("ms_ticker_synchronizer_destroy(): sound/wall clock skew was in average=%f ms", ts->av_skew);
 	ms_free(ts);
 }

@@ -6,8 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [4.5.0] - 2021-03-29
+
 ### Added
 - Audio route API to choose which device to use for capture & playback on Android & iOS.
+- New camera capture backend based on Windows MediaFoundation 
+- MSMediaPlayer enhancements.
+- VideoConference API and engine prototype (active speaker switching only)
+
+
+### Changed
+- audio flow control algorithm improved, silent portions are dropped first.
+- MKVPlayer supports seek in files without cue table.
+- 'packetlosspercentage' is now configurable in opus encoder.
+
+### Fixed
+- misfunction in DTLS handshake over TURN
+- fix arythmetic issue in clock skew computation, causing bad audio when the sound device outputs 
+  audio fragments not multiple of 10ms.
+- iOS AudioUnit configured with bad sample rate issue.
+- wrong selection of ICE TURN candidates when the TURN server is behind a firewall
+- unsent TURN SenderIndication packets on iOS
+- fix video freeze in VP8, due to lack of retransmission of SLIs.
+All these fix were backported to 4.4 branch.
 
 ## [4.4.0] - 2020-06-16
 

@@ -46,7 +46,8 @@ static void qrcode_found_cb(void *data, MSFilter *f, unsigned int event_id, void
 	if (event_id == MS_QRCODE_READER_QRCODE_FOUND) {
 		qrcode_callback_data *found = (qrcode_callback_data *)data;
 		found->qrcode_found = TRUE;
-		if (arg) found->text = ms_strdup((char *)arg);
+		MSQrCodeReaderEventData *data = (MSQrCodeReaderEventData *)arg;
+		if (arg) found->text = ms_strdup((char *)data->data);
 	}
 }
 

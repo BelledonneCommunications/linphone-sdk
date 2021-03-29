@@ -928,7 +928,7 @@ void ms_stun_message_destroy(MSStunMessage *msg) {
 	if (msg->message_integrity) ms_free(msg->message_integrity);
 	if (msg->software) ms_free(msg->software);
 	if (msg->error_code.reason) ms_free(msg->error_code.reason);
-	if (msg->data) ms_free(msg->data);
+	if (msg->data && msg->own_data) ms_free(msg->data);
 	ms_free(msg);
 }
 
@@ -1307,15 +1307,20 @@ uint16_t ms_stun_message_get_data_length(const MSStunMessage *msg) {
 	return msg->data_length;
 }
 
-void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length) {
-	if (msg->data != NULL) {
+void ms_stun_message_set_data_2(MSStunMessage *msg, uint8_t *data, uint16_t length, bool_t with_ownership) {
+	if (msg->data != NULL && msg->own_data) {
 		ms_free(msg->data);
 		msg->data = NULL;
+		msg->own_data = FALSE;
 	}
 	msg->data = data;
 	msg->data_length = length;
+	msg->own_data = with_ownership;
 }
 
+void ms_stun_message_set_data(MSStunMessage *msg, uint8_t *data, uint16_t length) {
+	ms_stun_message_set_data_2(msg, data, length, TRUE);
+}
 
 MSTurnContext * ms_turn_context_new(MSTurnContextType type, RtpSession *rtp_session) {
 	MSTurnContext *context = ms_new0(MSTurnContext, 1);
@@ -1564,26 +1569,52 @@ static int ms_turn_rtp_endpoint_recvfrom(RtpTransport *rtptp, mblk_t *msg, int f
 	return msgsize;
 }
 
+/* This function checks whether the specified source address requires to go through the TURN relay.
+ * The convention is that when source address is the relay address of the TURN server, then it has to go through TURN.
+ * One exception: if the address is INADDR_ANY or has family AF_UNSPEC, which means that the source address wasn't specified
+ * by the originator of the packet, then the default policy of the context in force_rtp_sending_via_relay is used.
+ * The code is a bit complex because we have to take into account that the source address is a V4 mapped address.
+ */
 static bool_t ms_turn_rtp_endpoint_send_via_turn_relay(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
 	struct sockaddr_storage relay_ss;
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 	socklen_t relay_sa_len = sizeof(relay_ss);
-
+	
+	if (from->sa_family == AF_UNSPEC || fromlen == 0) return context->force_rtp_sending_via_relay;
 	memset(relay_sa, 0, relay_sa_len);
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
-	if (relay_sa->sa_family != from->sa_family) return FALSE;
+	
 	if (relay_sa->sa_family == AF_INET) {
 		struct sockaddr_in *relay_sa_in = (struct sockaddr_in *)relay_sa;
-		struct sockaddr_in *from_in = (struct sockaddr_in *)from;
-		return (relay_sa_in->sin_port == from_in->sin_port) && (relay_sa_in->sin_addr.s_addr == from_in->sin_addr.s_addr);
+		struct sockaddr_storage removed_v4mapping;
+		socklen_t removed_v4mapping_len = sizeof(removed_v4mapping);
+		if (from->sa_family == AF_INET6){
+			/* Handle the case of a V4 mapped address. */
+			bctbx_sockaddr_remove_v4_mapping(from, (struct sockaddr*)&removed_v4mapping, &removed_v4mapping_len);
+			if (removed_v4mapping.ss_family == AF_INET){
+				struct sockaddr_in *from_in = (struct sockaddr_in *)&removed_v4mapping;
+				return relay_sa_in->sin_addr.s_addr == from_in->sin_addr.s_addr
+				|| (context->force_rtp_sending_via_relay && from_in->sin_addr.s_addr == 0);
+			}else{
+				/* It is a pure IPv6, so this can't match our IPv4 relay address.*/
+				return FALSE;
+			}
+		}else{
+			struct sockaddr_in *from_in = (struct sockaddr_in *)from;
+			return relay_sa_in->sin_addr.s_addr == from_in->sin_addr.s_addr
+				|| (context->force_rtp_sending_via_relay && from_in->sin_addr.s_addr == 0);
+		}
 	} else if (relay_sa->sa_family == AF_INET6) {
 		struct sockaddr_in6 *relay_sa_in6 = (struct sockaddr_in6 *)relay_sa;
 		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
-		return (relay_sa_in6->sin6_port == from_in6->sin6_port) && (memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(from_in6->sin6_addr)) == 0);
-	} else return FALSE;
+		return memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(from_in6->sin6_addr)) == 0
+			|| (context->force_rtp_sending_via_relay && memcmp(&from_in6->sin6_addr, &in6addr_any, sizeof(from_in6->sin6_addr)) == 0);
+		
+	}
+	return FALSE;
 }
 
-static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
+static bool_t ms_turn_rtp_endpoint_should_be_sent_to_turn_server(MSTurnContext *context, const struct sockaddr *from, socklen_t fromlen) {
 	struct sockaddr *turn_server_sa = (struct sockaddr *)&context->turn_server_addr;
 
 	if (turn_server_sa->sa_family != from->sa_family) return FALSE;
@@ -1600,50 +1631,55 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_server(MSTurnContext *context, 
 
 static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
-	MSStunMessage *stun_msg = NULL;
-	bool_t rtp_packet = FALSE;
 	bool_t send_via_turn_tcp = FALSE;
-	int ret = 0;
-	mblk_t *new_msg = NULL;
+	int ret = msgdsize(msg);
+	int sub_ret = 0;
 	struct sockaddr_storage sourceAddr;
 	socklen_t sourceAddrLen;
+	mblk_t *new_msg = NULL; /* If a new mblk_t is forged, it will have to be destroyed at the end of this function. 'msg' itself is freed by the caller.*/
 
 	if ((context != NULL) && (context->rtp_session != NULL)) {
-		if ((msgdsize(msg) >= RTP_FIXED_HEADER_SIZE) && (rtp_get_version(msg) == 2)) rtp_packet = TRUE;
 		ortp_recvaddr_to_sockaddr(&msg->recv_addr, (struct sockaddr*) &sourceAddr, &sourceAddrLen);
-		if ((rtp_packet && context->force_rtp_sending_via_relay) || ms_turn_rtp_endpoint_send_via_turn_relay(context, (struct sockaddr*) &sourceAddr, sourceAddrLen)) {
+		if (ms_turn_rtp_endpoint_should_be_sent_to_turn_server(context, to, tolen)) {
+			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
+				send_via_turn_tcp = TRUE;
+			}
+		}else if (ms_turn_rtp_endpoint_send_via_turn_relay(context, (struct sockaddr*) &sourceAddr, sourceAddrLen)) {
 			if (ms_turn_context_get_state(context) >= MS_TURN_CONTEXT_STATE_CHANNEL_BOUND) {
 				/* Use a TURN ChannelData message */
-				new_msg = allocb(4, 0);
-				*((uint16_t *)new_msg->b_wptr) = htons(ms_turn_context_get_channel_number(context));
-				new_msg->b_wptr += 2;
-				*((uint16_t *)new_msg->b_wptr) = htons((uint16_t)msgdsize(msg));
-				new_msg->b_wptr += 2;
-				mblk_meta_copy(msg, new_msg);
-				concatb(new_msg, dupmsg(msg));
-				msg = new_msg;
+				mblk_t *header = NULL;
+				header = allocb(4, 0);
+				*((uint16_t *)header->b_wptr) = htons(ms_turn_context_get_channel_number(context));
+				header->b_wptr += 2;
+				*((uint16_t *)header->b_wptr) = htons((uint16_t)ret);
+				header->b_wptr += 2;
+				concatb(header, dupmsg(msg));
+				new_msg = msg = header;
 				context->stats.nb_sent_channel_msg++;
 			} else {
 				/* Use a TURN send indication to encapsulate the data to be sent */
 				struct sockaddr_storage realto;
 				socklen_t realtolen = sizeof(realto);
 				MSStunAddress stun_addr;
+				MSStunMessage *stun_msg = NULL;
 				char *buf = NULL;
 				size_t len;
-				uint8_t *data;
 				uint16_t datalen;
+				
 				msgpullup(msg, -1);
 				datalen = (uint16_t)(msg->b_wptr - msg->b_rptr);
 				bctbx_sockaddr_ipv6_to_ipv4(to, (struct sockaddr *)&realto, &realtolen);
 				ms_sockaddr_to_stun_address((struct sockaddr *)&realto, &stun_addr);
 				stun_msg = ms_turn_send_indication_create(stun_addr);
-				data = ms_malloc(datalen);
-				memcpy(data, msg->b_rptr, datalen);
-				ms_stun_message_set_data(stun_msg, data, datalen);
-				msg->b_rptr = msg->b_wptr;
+				
+				/* the data is actually within our 'msg', we don't want ms_stun_message_destroy() to free it.*/
+				ms_stun_message_set_data_2(stun_msg, msg->b_rptr, datalen, FALSE);
 				len = ms_stun_message_encode(stun_msg, &buf);
-				msgappend(msg, buf, len, FALSE);
-				ms_free(buf);
+				
+				ms_stun_message_destroy(stun_msg);
+				/* Allocate a new mblk_t englobing the STUN encoded message. */
+				new_msg = msg = esballoc((uint8_t*)buf, len, 0, ms_free);
+				msg->b_wptr += len;
 				context->stats.nb_send_indication++;
 			}
 			to = (const struct sockaddr *)&context->turn_server_addr;
@@ -1652,26 +1688,16 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
 				send_via_turn_tcp = TRUE;
 			}
-		} else if (ms_turn_rtp_endpoint_send_via_turn_server(context, to, tolen)) {
-			// This is not a RTP packet and it is in destination of the turn server
-			// then it's a STUN packet and it still should go through the turn TCP client
-			// if the transport is not set to UDP
-			if (context->transport != MS_TURN_CONTEXT_TRANSPORT_UDP) {
-				send_via_turn_tcp = TRUE;
-			}
 		}
 
 		if (send_via_turn_tcp && context->turn_tcp_client) {
-			ret = ms_turn_tcp_client_sendto(context->turn_tcp_client, msg, flags, to, tolen);
+			sub_ret = ms_turn_tcp_client_sendto(context->turn_tcp_client, msg, flags, to, tolen);
 		} else {
-			ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
+			sub_ret = rtp_session_sendto(context->rtp_session, context->type == MS_TURN_CONTEXT_TYPE_RTP, msg, flags, to, tolen);
 		}
 	}
-	if (stun_msg != NULL) ms_stun_message_destroy(stun_msg);
-	if (new_msg != NULL) {
-		freemsg(new_msg);
-	}
-	return ret;
+	if (new_msg) freemsg(new_msg);
+	return sub_ret > 0 ? ret : sub_ret; /* The sendto() function shall not return more or less than requested. The same amount, otherwise an error.*/
 }
 
 static void ms_turn_rtp_endpoint_close(RtpTransport *rtptp) {

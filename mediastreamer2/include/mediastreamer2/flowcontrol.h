@@ -20,9 +20,18 @@
 #ifndef flowcontrol_h
 #define flowcontrol_h
 
+typedef enum _MSAudioFlowControlStrategy{
+	MSAudioFlowControlBasic, /**< Immediately drop requested number of samples */
+	MSAudioFlowControlSoft /**< Elimate silent frames first, use zero-crossing sample deletion */
+}MSAudioFlowControlStrategy;
 
+typedef struct _MSAudioFlowControlConfig{
+	MSAudioFlowControlStrategy strategy;
+	float silent_threshold; /**< threshold under which a frame is considered as silent (linear), used by "soft" strategy */ 
+}MSAudioFlowControlConfig;
 
 typedef struct _MSAudioFlowController {
+	MSAudioFlowControlConfig config;
 	uint32_t target_samples;
 	uint32_t total_samples;
 	uint32_t current_pos;
@@ -35,6 +44,8 @@ extern "C"{
 #endif
 
 MS2_PUBLIC void ms_audio_flow_controller_init(MSAudioFlowController *ctl);
+
+MS2_PUBLIC void ms_audio_flow_controller_set_config(MSAudioFlowController *ctl, const MSAudioFlowControlConfig *config);
 
 MS2_PUBLIC void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, uint32_t samples_to_drop, uint32_t total_samples);
 
@@ -50,9 +61,21 @@ typedef struct _MSAudioFlowControlDropEvent{
 } MSAudioFlowControlDropEvent;
 
 /**
- * Event sent by the filter each time some samples need to be dropped.
+ * Event than can be emitted by any filter each time some samples need to be dropped.
+ * @FIXME It is badly named. It should belong to MSFilter base class or to a specific audio interface.
 **/
 #define MS_AUDIO_FLOW_CONTROL_DROP_EVENT MS_FILTER_EVENT(MS_AUDIO_FLOW_CONTROL_ID, 0, MSAudioFlowControlDropEvent)
+
+/**
+ * Set configuration of the flow controller. It can be changed at run-time.
+ */
+#define MS_AUDIO_FLOW_CONTROL_SET_CONFIG MS_FILTER_METHOD(MS_AUDIO_FLOW_CONTROL_ID, 0, MSAudioFlowControlConfig)
+
+/**
+ * Request to drop samples.
+ */
+#define MS_AUDIO_FLOW_CONTROL_DROP MS_FILTER_METHOD(MS_AUDIO_FLOW_CONTROL_ID, 1, MSAudioFlowControlDropEvent)
+
 
 
 #ifdef __cplusplus
