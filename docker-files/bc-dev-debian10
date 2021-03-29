@@ -21,20 +21,23 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python-pip python-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch yasm && \
     apt-get clean
+
+# Install python modules
+RUN apt-get install -y python-pip python3-pip && \
+    python -m pip install six && \
+    python -m pip install pystache && \
+    python -m pip install graphviz && \
+    python3 -m pip install six && \
+    python3 -m pip install pystache && \
+    python3 -m pip install graphviz
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
     apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmariadbclient-dev libmbedtls-dev libopus-dev libpq-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev xsdcxx && \
     apt-get clean
 
-# Build qt5.10
-#RUN git clone https://gitlab.linphone.org/BC/public/linphone-desktop.git && \
-#    ./linphone-desktop/tools/build_qt_rpm && \
-#    find "./linphone-desktop/rpm-linphone-qt-5.10/rpmbuild/RPMS/x86_64/" -iname "*.rpm" -exec fakeroot alien -d {} + && \
-#    find "." -maxdepth 1 -iname "*.deb" -exec dpkg -i {} + && \
-#    rm -rf ./linphone-desktop
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \

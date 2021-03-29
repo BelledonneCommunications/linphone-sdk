@@ -25,8 +25,7 @@ RUN apt-get update && \
 # Install development tools
 RUN apt-get update && \
     apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python3-pip python3-pystache python-six yasm && \
-    apt-get clean && \
-    pip3 install sphinx javasphinx sphinx_csharp
+    apt-get clean
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
