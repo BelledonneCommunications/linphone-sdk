@@ -3986,6 +3986,117 @@ static void lime_multithread(void) {
 	}
 }
 
+/*
+ * Scenario
+ * - Establish a session between Alice and Bob
+ * - Alice encrypts to Bob, check it does not holds a X3DH init message
+ * - Alice cancel session with bob
+ * - Alice encrypts to Bob, check it does holds a X3DH init message
+ * - Bob encrypts a message to Alice using the old session
+ * - Bob and Alice decrypt them all (including the one encrypted with now stale session)
+ */
+static void lime_session_cancel_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+	std::string dbFilenameAlice;
+	std::shared_ptr<std::string> aliceDeviceId;
+	std::unique_ptr<LimeManager> aliceManager;
+	std::string dbFilenameBob;
+	std::shared_ptr<std::string> bobDeviceId;
+	std::unique_ptr<LimeManager> bobManager;
+
+	lime_tester::events_counters_t counters={};
+	int expected_success=0;
+
+	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
+					if (returnCode == lime::CallbackReturn::success) {
+						counters.operation_success++;
+					} else {
+						counters.operation_failed++;
+						LIME_LOGE<<"Lime operation failed : "<<anythingToSay;
+					}
+				});
+
+	try {
+		lime_session_establishment(curve, dbBaseFilename, x3dh_server_url,
+					dbFilenameAlice, aliceDeviceId, aliceManager,
+					dbFilenameBob, bobDeviceId, bobManager);
+
+		/* Alice encrypts to Bob */
+		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
+		aliceRecipients->emplace_back(*bobDeviceId);
+		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
+
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients)[0].DRmessage)); // no X3DH init as this session is fully establsihed
+
+		/* force reset so the active session is not in cache anymore */
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		/* Alice stale session with Bob */
+		aliceManager->stale_sessions(*aliceDeviceId, *bobDeviceId);
+
+		/* Alice encrypts to Bob again */
+		auto aliceRecipients2 = make_shared<std::vector<RecipientData>>();
+		aliceRecipients2->emplace_back(*bobDeviceId);
+		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
+		auto aliceCipherMessage2 = make_shared<std::vector<uint8_t>>();
+
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients2, aliceMessage, aliceCipherMessage2, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*aliceRecipients2)[0].DRmessage)); // X3DH init message in, it is a new session
+
+		/* Bob encrypts to Alice, he uses the old session staled by Alice */
+		auto bobRecipients = make_shared<std::vector<RecipientData>>();
+		bobRecipients->emplace_back(*aliceDeviceId);
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
+
+		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
+		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*bobRecipients)[0].DRmessage)); // no X3DH init as this session is fully establsihed
+
+		/* Everyone decrypt */
+		std::vector<uint8_t> receivedMessage{};
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0]);
+
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients2)[0].DRmessage, *aliceCipherMessage2, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		receivedMessage.clear();
+		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2]);
+
+		// cleaning
+		if (cleanDatabase) {
+			aliceManager->delete_user(*aliceDeviceId, callback);
+			bobManager->delete_user(*bobDeviceId, callback);
+			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success+2,lime_tester::wait_for_timeout));
+			remove(dbFilenameAlice.data());
+			remove(dbFilenameBob.data());
+		}
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("");
+	}
+}
+
+static void lime_session_cancel(void) {
+#ifdef EC25519_ENABLED
+	lime_session_cancel_test(lime::CurveId::c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
+	lime_session_cancel_test(lime::CurveId::c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
+#endif
+#ifdef EC448_ENABLED
+	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
+#endif
+}
+
 static test_t tests[] = {
 	TEST_NO_TAG("Basic", x3dh_basic),
 	TEST_NO_TAG("User Management", user_management),
@@ -4007,7 +4118,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Encryption Policy", lime_encryptionPolicy),
 	TEST_NO_TAG("Encryption Policy Error", lime_encryptionPolicyError),
 	TEST_NO_TAG("Identity theft", lime_identity_theft),
-	TEST_NO_TAG("Multithread", lime_multithread)
+	TEST_NO_TAG("Multithread", lime_multithread),
+	TEST_NO_TAG("Session cancel", lime_session_cancel),
 };
 
 test_suite_t lime_lime_test_suite = {

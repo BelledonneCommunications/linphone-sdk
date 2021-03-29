@@ -415,6 +415,11 @@ int lime_ffi_delete_peerDevice(lime_manager_t manager, const char *peerDeviceId)
 	return LIME_FFI_SUCCESS;
 }
 
+int lime_ffi_stale_sessions(lime_manager_t manager, const char *localDeviceId, const char *peerDeviceId) {
+	manager->context->stale_sessions(std::string(localDeviceId), std::string(peerDeviceId));
+	return LIME_FFI_SUCCESS;
+}
+
 int lime_ffi_update(lime_manager_t manager,  const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 	// just intercept the lime callback, convert the arguments to the correct types, add the userData and forward it to the C side
 	limeCallback cb([callback, callbackUserData](const lime::CallbackReturn status, const std::string message){

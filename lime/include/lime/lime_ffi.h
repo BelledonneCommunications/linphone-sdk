@@ -382,6 +382,17 @@ enum lime_ffi_PeerDeviceStatus lime_ffi_get_peerDeviceStatus(lime_manager_t mana
 int lime_ffi_delete_peerDevice(lime_manager_t manager, const char *peerDeviceId);
 
 /**
+ * @brief Stale all sessions between localDeviceId and peerDevice.
+ * If peerDevice keep using this session to encrypt and we decrypt with success, the session will be reactivated
+ * but to encrypt a message to this peerDevice, a new session will be created.
+ * If no session is active between the given device, this call has no effect
+ *
+ * @param[in]	manager		pointer to the opaque structure used to interact with lime
+ * @param[in]	localDeviceId	Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+ * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+ */
+int lime_ffi_stale_sessions(lime_manager_t manager,  const char *localDeviceId, const char *peerDeviceId);
+/**
  * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations
  *
  *  - check if we shall update a new SPk to X3DH server(SPk lifetime is set in settings)

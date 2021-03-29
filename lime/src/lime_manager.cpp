@@ -241,6 +241,18 @@ namespace lime {
 		localStorage->delete_peerDevice(peerDeviceId);
 	}
 
+	void LimeManager::stale_sessions(const std::string &localDeviceId, const std::string &peerDeviceId) {
+		// load user (generate an exception if not found, let it flow up)
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
+
+		// Delete session from cache - if any
+		user->delete_peerDevice(peerDeviceId);
+
+		// stale session in DB
+		user->stale_sessions(peerDeviceId);
+	}
+
 	void LimeManager::set_x3dhServerUrl(const std::string &localDeviceId, const std::string &x3dhServerUrl) {
 		// load user (generate an exception if not found, let it flow up)
 		std::shared_ptr<LimeGeneric> user;

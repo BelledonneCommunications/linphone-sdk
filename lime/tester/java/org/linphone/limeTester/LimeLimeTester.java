@@ -1308,20 +1308,17 @@ public class LimeLimeTester {
 			// set the device with the fake Ik but to unsafe so the key shall not be registered in base but the user will
 			bobManager.set_peerDeviceStatus(aliceDeviceId, fakeIk.buffer, LimePeerDeviceStatus.UNSAFE);
 			assert(bobManager.get_peerDeviceStatus(aliceDeviceId) == LimePeerDeviceStatus.UNSAFE);
+
+			// Set it to trusted, still using the fake Ik, it shall replace the invalid/empty Ik replacing it with the fake one
+			bobManager.set_peerDeviceStatus(aliceDeviceId, fakeIk.buffer, LimePeerDeviceStatus.TRUSTED);
+			assert(bobManager.get_peerDeviceStatus(aliceDeviceId) == LimePeerDeviceStatus.TRUSTED);
+			bobManager.set_peerDeviceStatus(aliceDeviceId, fakeIk.buffer, LimePeerDeviceStatus.TRUSTED); // do it twice so we're sure the store Ik is the fake one
+			assert(bobManager.get_peerDeviceStatus(aliceDeviceId) == LimePeerDeviceStatus.TRUSTED);
+
 		}
 		catch (LimeException e) {
 			assert(false):"Got an unexpected exception during Multidev operation queue test : "+e.getMessage();
 		}
-
-		try {
-			// try to set it to trusted, still using the fake Ik, it shall generate an exception as the Ik is invalid in storage
-			bobManager.set_peerDeviceStatus(aliceDeviceId, fakeIk.buffer, LimePeerDeviceStatus.TRUSTED);
-		} catch (LimeException e) {
-			gotException = true;
-		}
-
-		assert(gotException);
-		gotException = false;
 
 		try {
 			// same than above but using the actual key : try to set it to trusted, still using the fake Ik, it shall generate an exception as the Ik is invalid in storage
@@ -1405,16 +1402,9 @@ public class LimeLimeTester {
 			assert (statusCallback.wait_for_success(++expected_success));
 			assert(recipients[0].getPeerStatus() == LimePeerDeviceStatus.UNKNOWN);
 
-			// alice tries again to decrypt but it will fail as the identity key in X3DH init packet is not matching the invalid one set in base by setting its status to unsafe
+			// alice decrypts, this will update the empty Bob's Ik in storage using the X3DH init packet but shall give an unsafe status
 			decodedMessage = new LimeOutputBuffer();
-			assert(aliceManager.decrypt(aliceDeviceId, "alice", bobDeviceId, recipients[0].DRmessage, cipherMessage.buffer, decodedMessage) == LimePeerDeviceStatus.FAIL);
-
-			// alice fails again to encrypt to Bob as key fetched from X3DH server won't match the one we assert as verified
-			recipients = new RecipientData[1];
-			recipients[0] = new RecipientData(bobDeviceId);
-			cipherMessage = new LimeOutputBuffer();
-			aliceManager.encrypt(aliceDeviceId, "bob", recipients, LimeTesterUtils.patterns[5].getBytes(), cipherMessage, statusCallback);
-			assert (statusCallback.wait_for_fail(++expected_fail));
+			assert(aliceManager.decrypt(aliceDeviceId, "alice", bobDeviceId, recipients[0].DRmessage, cipherMessage.buffer, decodedMessage) == LimePeerDeviceStatus.UNSAFE);
 
 			// delete bob's key from alice context
 			aliceManager.delete_peerDevice(bobDeviceId);

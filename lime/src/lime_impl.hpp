@@ -113,6 +113,7 @@ namespace lime {
 			lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override;
 			std::string get_x3dhServerUrl() override;
+			void stale_sessions(const std::string &peerDeviceId) override;
 	};
 
 	/**

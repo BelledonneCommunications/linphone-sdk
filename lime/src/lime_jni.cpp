@@ -480,6 +480,17 @@ struct jLimeManager {
 		}
 	}
 
+	void stale_sessions(jni::JNIEnv &env, const jni::String &jlocalDeviceId, const jni::String &jpeerDeviceId) {
+		try {
+			m_manager->stale_sessions(jni::Make<std::string>(env, jlocalDeviceId), jni::Make<std::string>(env, jpeerDeviceId));
+		} catch (BctbxException const &e) {
+			ThrowJavaLimeException(env, e.str());
+		} catch (std::exception const &e) { // catch anything
+			ThrowJavaLimeException(env, e.what());
+		}
+	}
+
+
 	jni::Local<jni::String> get_x3dhServerUrl(jni::JNIEnv &env, const jni::String &jlocalDeviceId) {
 		std::string url{};
 		try {

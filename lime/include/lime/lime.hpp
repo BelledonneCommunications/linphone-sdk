@@ -350,6 +350,17 @@ namespace lime {
 			void delete_peerDevice(const std::string &peerDeviceId);
 
 			/**
+			 * @brief Stale all sessions between localDeviceId and peerDevice.
+			 * If peerDevice keep using this session to encrypt and we decrypt with success, the session will be reactivated
+			 * but to encrypt a message to this peerDevice, a new session will be created.
+			 * If no session is active between the given device, this call has no effect
+			 *
+			 * @param[in]	localDeviceId	Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
+			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
+			 */
+			void stale_sessions(const std::string &localDeviceId, const std::string &peerDeviceId);
+
+			/**
 			 * @brief Set the X3DH key server URL for this identified user
 			 *
 			 * @param[in]	localDeviceId		Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU

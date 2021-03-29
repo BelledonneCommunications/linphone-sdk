@@ -45,7 +45,7 @@ to build it for various targets.
 Documentation
 -------------
 
-To generate the Doxygen documentation files (having ran the cmake command):
+To generate the Doxygen documentation files (having ran the cmake command with ENABLE_DOC On):
 
 ```
  make doc
@@ -75,6 +75,8 @@ Test suite names are
 - *double_ratchet*: Specific to the Double Ratchet protocol
 - *hello_world*: Basic Lime test, mostly a demo code. Requires a live X3DH server on localhost
 - *lime*: Complete testing of all features provided by the library. Requires a live X3DH server on localhost
+- *multidomains*: Tests specific to the server multidomain management. Requires a live X3DH server on localhost, does not work with the nodejs server provided with the library.
+- *server*: Tests some server configuration(resource usage limitation). Requires a live X3DH server on localhost, does not work with the nodejs server provided with the library.
 - *C_ffi*: Available only if C interface is enabled, test the C89 foreign function interface
 - *JNI*: Available only if JNI is enabled, test the Java foreign function interface
 
@@ -107,6 +109,7 @@ Options
 - `ENABLE_PROFILING`              : Enable code profiling for GCC (default NO)
 - `ENABLE_C_INTERFACE`            : Enable support of C89 foreign function interface (default NO)
 - `ENABLE_JNI`                    : Enable support of Java foreign function interface (default NO)
+- `ENABLE_DOC`                    : Enable documenation generation, requires Doxygen (default NO)
 
 ------------------
 
