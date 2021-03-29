@@ -1,6 +1,9 @@
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20210217_init
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
+
+# Install mediastreamer test dependencies
+RUN sudo pacman --noconfirm -Sy alsa-utils pulseaudio
 
 #Getting dependencies to run tests headlessly
 RUN sudo pacman --noconfirm -Sy -y xorg-server-xvfb
