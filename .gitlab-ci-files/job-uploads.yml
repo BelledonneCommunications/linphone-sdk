@@ -18,18 +18,29 @@ job-ios-upload:
 
   script:
 
-    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+    #Only get major and minor version (ex: 4.5) for documentation directory
 
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
+
     # Create the directory if it does not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
-    # Using rsync with following options(verbose, keeping symbolic links, and copy recursively)
+
+    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
 
     - echo $UPLOAD_ROOT_DIRECTORY
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/
@@ -45,7 +56,7 @@ job-ios-upload:
 job-android-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
 
   only:
     variables:
@@ -85,7 +96,7 @@ job-android-upload:
 job-android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r17c
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
 
   only:
     variables:
@@ -111,12 +122,21 @@ job-android-doc-upload:
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+
+    #Only get major and minor version (ex: 4.4) for documentation directory
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
+    - echo $UPLOAD_ROOT_DIRECTORY
     - cd build
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
     - rsync -rlv -e ssh linphone-sdk/bin/docs/javadoc/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java/
@@ -216,6 +236,31 @@ job-windows-vs2017-nuget-upload:
   script:
     - *check_snapshot_or_release_windows
     - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/%DEPLOY_DEST_DIR_SDK_WINDOWS%/"
+
+#################################################
+# Windows (C#) doc upload
+#################################################
+
+job-windows-cs-doc-upload:
+  stage: deploy
+  tags: [ "windows"]
+  only:
+    variables:
+      - $UPLOAD_CS_DOC
+  dependencies:
+    - job-windows-vs2017-win32-scheduled
+  script:
+    # Getting the version number to push the right version of the doc
+    - echo %CI_PROJECT_DIR%
+    - for /f "delims== tokens=1,2" %%G in (build-desktop/linphone-sdk/desktop/share/version.txt) do set %%G=%%H
+    - set UPLOAD_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
+    - if "%LINPHONE_STATE%" == "snapshots" (set UPLOAD_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%)
+    - echo %LINPHONE_STATE%
+    - echo %LINPHONE_VERSION%
+    - echo %DEPLOY_SERVER%
+    - echo %UPLOAD_ROOT_DIRECTORY%
+    - ssh %DEPLOY_SERVER% mkdir -p %UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
+    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
 
 #################################################
 # Debian doc upload

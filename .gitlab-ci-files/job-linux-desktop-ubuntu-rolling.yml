@@ -5,7 +5,7 @@
 
 .factorize_ubuntu-rolling: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     PLATFORM: linux-ubuntu-rolling
 
@@ -17,7 +17,7 @@
 job-ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -33,7 +33,7 @@ job-ubuntu-rolling-makefile-gcc:
 #job-ubuntu-rolling-makefile-clang:
 
 #  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
 #  only:
 #    variables:
 #      - $NIGHTLY_MASTER
@@ -53,7 +53,7 @@ job-ubuntu-rolling-makefile-gcc:
 #job-ubuntu-rolling-ninja-gcc:
 
 #  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
 #  only:
 #    variables:
 #      - $NIGHTLY_MASTER
@@ -75,7 +75,7 @@ job-ubuntu-rolling-makefile-gcc:
 
 job-ubuntu-rolling-ninja-clang:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -108,7 +108,7 @@ test-bellesip-ubuntu:
   dependencies:
     - job-ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rolling
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     PLATFORM: linux-ubuntu-rolling
 
@@ -131,7 +131,7 @@ test-bzrtp-ubuntu:
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-ubuntu:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-ubuntu-rolling-ninja-clang
