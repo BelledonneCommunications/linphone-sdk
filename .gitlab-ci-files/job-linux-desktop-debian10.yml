@@ -5,7 +5,7 @@
 
 .factorize_debian10: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian10
 
@@ -17,7 +17,7 @@
 job-debian10-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -32,7 +32,7 @@ job-debian10-makefile-gcc:
 job-debian10-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -52,7 +52,7 @@ job-debian10-makefile-clang:
 job-debian10-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -87,7 +87,7 @@ job-debian10-ninja-clang:
   only:
     variables:
       - $NIGHTLY_MASTER
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -126,7 +126,7 @@ test-bellesip-debian10:
     - job-debian10-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian10
 
@@ -149,7 +149,7 @@ test-bzrtp-debian10:
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian10:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:$DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-debian10-ninja-gcc
