@@ -20,10 +20,7 @@
 #
 ############################################################################
 
-find_package(PythonInterp)
-if(NOT PYTHONINTERP_FOUND)
-	message(FATAL_ERROR "Could not find python!")
-endif()
+find_package(PythonInterp 3 REQUIRED)
 
 linphone_sdk_check_git()
 

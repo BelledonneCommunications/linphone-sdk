@@ -280,6 +280,33 @@ void dummy_logger(const char *domain, OrtpLogLevel lev, const char *fmt, va_list
 }
 @end
 
+@interface AudioQualityTests : LinphoneTesterBase
+@end
+
+@implementation AudioQualityTests
++ (void)initialize {
+	[self testForSuite:@"Audio Call quality"];
+}
+@end
+
+@interface AudioRoutesTests : LinphoneTesterBase
+@end
+
+@implementation AudioRoutesTests
++ (void)initialize {
+	[self testForSuite:@"Audio Routes"];
+}
+@end
+
+@interface AudioVideoConferenceTests : LinphoneTesterBase
+@end
+
+@implementation AudioVideoConferenceTests
++ (void)initialize {
+	[self testForSuite:@"Audio video conference"];
+}
+@end
+
 @interface ContentsTests : LinphoneTesterBase
 @end
 

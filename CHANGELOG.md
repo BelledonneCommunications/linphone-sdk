@@ -13,10 +13,15 @@ changes made to these components.__
 
 ## [Unreleased]
 
+
+## [4.5.0] 2021-03-29
+
 ### Added
 - Windows Store compatibility
-- Audio routes API for Android & iOS
-- Core now automatically handles certain tasks for Android & iOS (see liblinphone changelog)
+
+### Changed
+- Android minimum compatibility has been increased to Android 6 (Android SDK 23).
+- Most of changes are documented in liblinphone and mediastreamer2's CHANGELOG.md files.
 
 ### Changed
 - Update libvpx to 1.9.0

@@ -5,7 +5,7 @@
 
 .factorize_centos8: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos8
 
@@ -17,7 +17,7 @@
 job-centos8-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -32,7 +32,7 @@ job-centos8-makefile-gcc:
 job-centos8-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   only:
     variables:
       - $NIGHTLY_MASTER
@@ -52,7 +52,7 @@ job-centos8-makefile-clang:
 job-centos8-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -77,7 +77,7 @@ job-centos8-ninja-clang:
   only:
     variables:
       - $NIGHTLY_MASTER
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -112,7 +112,7 @@ test-bellesip-centos8:
     - job-centos8-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos8
 
@@ -148,7 +148,7 @@ test-bzrtp-centos8:
 #    PLATFORM: linux-centos8
 
 test-liblinphone-centos8:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos-test-liblinphone:8
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:$CENTOS_8_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   dependencies:
     - job-centos8-ninja-gcc
