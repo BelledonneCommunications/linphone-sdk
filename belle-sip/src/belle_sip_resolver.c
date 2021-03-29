@@ -1240,14 +1240,6 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 			belle_sip_error("DNS query resolving %s, DNSServiceQueryRecord returned %d", ctx->name, err);
 			return -1;
 		}
-		/* dispatch it */
-		if (!ctx->base.stack->resolver_send_error) {
-			err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->base.stack->dns_service_queue);
-
-			if (err != kDNSServiceErr_NoError) {
-				belle_sip_message("DNS start_query resolving %s, DNSServiceSetDispatchQueue returned %d", ctx->name, err);
-				return -1;
-			}
 
 		/* Create a timer */
 		ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->dns_service_queue);
