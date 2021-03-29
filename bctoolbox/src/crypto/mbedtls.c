@@ -1002,13 +1002,13 @@ void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) {
 
 static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_srtp_profile mbedtls_profile) {
 	switch (mbedtls_profile) {
-		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80:
+		case MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80:
 			return BCTBX_SRTP_AES128_CM_HMAC_SHA1_80;
-		case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32:
+		case MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32:
 			return BCTBX_SRTP_AES128_CM_HMAC_SHA1_32;
-		case MBEDTLS_SRTP_NULL_HMAC_SHA1_80:
+		case MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80:
 			return BCTBX_SRTP_NULL_HMAC_SHA1_80;
-		case MBEDTLS_SRTP_NULL_HMAC_SHA1_32:
+		case MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32:
 			return BCTBX_SRTP_NULL_HMAC_SHA1_32;
 		default:
 			return BCTBX_SRTP_UNDEFINED;
@@ -1018,42 +1018,29 @@ static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ss
 static mbedtls_ssl_srtp_profile bctbx_srtp_profile_bctoolbox2mbedtls(bctbx_dtls_srtp_profile_t bctbx_profile) {
 	switch (bctbx_profile) {
 		case BCTBX_SRTP_AES128_CM_HMAC_SHA1_80:
-			return MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80;
+			return MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_80;
 		case BCTBX_SRTP_AES128_CM_HMAC_SHA1_32:
-			return MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32;
+			return MBEDTLS_TLS_SRTP_AES128_CM_HMAC_SHA1_32;
 		case BCTBX_SRTP_NULL_HMAC_SHA1_80:
-			return MBEDTLS_SRTP_NULL_HMAC_SHA1_80;
+			return MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_80;
 		case BCTBX_SRTP_NULL_HMAC_SHA1_32:
-			return MBEDTLS_SRTP_NULL_HMAC_SHA1_32;
+			return MBEDTLS_TLS_SRTP_NULL_HMAC_SHA1_32;
 		default:
-			return MBEDTLS_SRTP_UNSET_PROFILE;
+			return MBEDTLS_TLS_SRTP_UNSET;
 	}
 }
+
 
 bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
 	if (ssl_ctx==NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
-	return bctbx_srtp_profile_mbedtls2bctoolbox(mbedtls_ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
+	mbedtls_dtls_srtp_info dtls_srtp_negotiation_result;
+	mbedtls_ssl_get_dtls_srtp_negotiation_result(&(ssl_ctx->ssl_ctx), &dtls_srtp_negotiation_result);
+	return bctbx_srtp_profile_mbedtls2bctoolbox(dtls_srtp_negotiation_result.chosen_dtls_srtp_profile);
 };
 
-
-int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
-	int ret = 0;
-	if (ssl_ctx==NULL) {
-		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
-	}
-
-	ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, *output_length, output_length);
-
-	/* remap the output error code */
-	if (ret == MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL) {
-		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
-	}
-
-	return 0;
-}
 #else /* HAVE_DTLS_SRTP */
 /* dummy DTLS api when not available */
 uint8_t bctbx_dtls_srtp_supported(void) {
@@ -1066,21 +1053,29 @@ bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_c
 	return BCTBX_SRTP_UNDEFINED;
 }
 
-int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
-	*output_length = 0;
-	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
-}
 #endif /* HAVE_DTLS_SRTP */
 
 /** DTLS SRTP functions **/
 
 /** config **/
+#ifdef HAVE_DTLS_SRTP
+typedef struct bctbx_dtls_srtp_keys {
+	uint8_t master_secret[48]; // master secret generated during handshake
+	uint8_t randoms[64]; // client || server randoms, 32 bytes each
+	mbedtls_tls_prf_types tls_prf_type; // prf function identification
+} bctbx_dtls_srtp_keys_t;
+#endif /* HAVE_DTLS_SRTP */
+
 struct bctbx_ssl_config_struct {
 	mbedtls_ssl_config *ssl_config; /**< actual config structure */
 	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created threw the new function */
 	int(*callback_cli_cert_function)(void *, bctbx_ssl_context_t *, const bctbx_list_t *); /**< pointer to the callback called to update client certificate during handshake
 												callback params are user_data, ssl_context, list of server certificate subject alt name and CN (null terminated strings) */
 	void *callback_cli_cert_data; /**< data passed to the client cert callback */
+#ifdef HAVE_DTLS_SRTP
+	mbedtls_ssl_srtp_profile dtls_srtp_mbedtls_profiles[MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH + 1]; /**< list of supported DTLS-SRTP profiles, mbedtls won't hold the reference, so we must do it for the lifetime of the config structure. (size is +1 to add the list termination) */
+	bctbx_dtls_srtp_keys_t dtls_srtp_keys; /**< Key material is stored during the handshake there and used after completion to generate the DTLS-SRTP shared secret */
+#endif /* HAVE_DTLS_SRTP */
 };
 
 bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
@@ -1130,6 +1125,11 @@ void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
 		mbedtls_ssl_config_free(ssl_config->ssl_config);
 		bctbx_free(ssl_config->ssl_config);
 	}
+
+#ifdef HAVE_DTLS_SRTP
+	bctbx_clean(ssl_config->dtls_srtp_keys.master_secret, sizeof(ssl_config->dtls_srtp_keys.master_secret));
+	bctbx_clean(ssl_config->dtls_srtp_keys.randoms, sizeof(ssl_config->dtls_srtp_keys.randoms));
+#endif /* HAVE_DTLS_SRTP */
 
 	bctbx_free(ssl_config);
 }
@@ -1317,26 +1317,66 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509
 
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
+/* key derivation code */
+
+/* This callback is executed during the DTLS handshake, extract the master secret and randoms needed to generate the DTLS-SRTP keys
+ * The generation itself is performed after the handshake */
+static int bctbx_ssl_dtls_srtp_key_derivation(void *key_ctx, const unsigned char *ms,
+		const unsigned char *kb, size_t maclen, size_t keylen, size_t ivlen, // these params are useless for our purpose
+		const unsigned char client_random[32], const unsigned char server_random[32],
+		mbedtls_tls_prf_types tls_prf_type ) {
+
+	bctbx_dtls_srtp_keys_t *keys = (bctbx_dtls_srtp_keys_t *)key_ctx;
+	memcpy(keys->master_secret, ms, sizeof(keys->master_secret)); // copy the master secret
+	memcpy(keys->randoms, client_random, 32); // the client and server random
+	memcpy(keys->randoms + 32, server_random, 32);
+	keys->tls_prf_type = tls_prf_type; // the prf id
+	return(0);
+}
+
+int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_config, uint8_t *output, size_t *output_length) {
+	int ret = 0;
+	if (ssl_config==NULL) {
+		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
+	}
+
+	//ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, *output_length, output_length);
+	ret = mbedtls_ssl_tls_prf( ssl_config->dtls_srtp_keys.tls_prf_type, ssl_config->dtls_srtp_keys.master_secret, sizeof( ssl_config->dtls_srtp_keys.master_secret ), "EXTRACTOR-dtls_srtp", ssl_config->dtls_srtp_keys.randoms, sizeof( ssl_config->dtls_srtp_keys.randoms ), output, *output_length );
+
+	/* remap the output error code */
+	if (ret == MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL) {
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+	}
+
+	return 0;
+}
+
 int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
 	size_t i;
-	mbedtls_ssl_srtp_profile dtls_srtp_mbedtls_profiles[4];
-
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
 
 	/* convert the profiles array into a mbedtls profiles array */
-	for (i=0; i<profiles_number && i<4; i++) { /* 4 profiles defined max */
-		dtls_srtp_mbedtls_profiles[i] = bctbx_srtp_profile_bctoolbox2mbedtls(profiles[i]);
+	for (i=0; i<profiles_number && i<MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH; i++) { /* MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH profiles defined max */
+		ssl_config->dtls_srtp_mbedtls_profiles[i] = bctbx_srtp_profile_bctoolbox2mbedtls(profiles[i]);
 	}
-	for (;i<4; i++) { /* make sure to have harmless values in the rest of the array */
-		dtls_srtp_mbedtls_profiles[i] = MBEDTLS_SRTP_UNSET_PROFILE;
+	for (;i<=MBEDTLS_TLS_SRTP_MAX_PROFILE_LIST_LENGTH; i++) { /* make sure to have a MBEDTLS_TLS_SRTP_UNSET terminated list and harmless values in the rest of the array */
+		ssl_config->dtls_srtp_mbedtls_profiles[i] = MBEDTLS_TLS_SRTP_UNSET;
 	}
 
-	return mbedtls_ssl_conf_dtls_srtp_protection_profiles(ssl_config->ssl_config, dtls_srtp_mbedtls_profiles, profiles_number);
+	/* set the callback to compute the key material */
+	mbedtls_ssl_conf_export_keys_ext_cb(ssl_config->ssl_config, bctbx_ssl_dtls_srtp_key_derivation, &(ssl_config->dtls_srtp_keys));
+
+	return mbedtls_ssl_conf_dtls_srtp_protection_profiles(ssl_config->ssl_config, ssl_config->dtls_srtp_mbedtls_profiles); // no profile number, list is UNSET terminated
 }
 
 #else /* HAVE_DTLS_SRTP */
+int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_ctx, uint8_t *output, size_t *output_length) {
+	*output_length = 0;
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
+}
+
 int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }

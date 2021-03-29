@@ -54,6 +54,7 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
     bc_tester_add_suite(&ios_utils_test_suite);
 #endif
 	bc_tester_add_suite(&param_string_test_suite);
+	bc_tester_add_suite(&vfs_test_suite);
 }
 
 void bctoolbox_tester_uninit(void) {
