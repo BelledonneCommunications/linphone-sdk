@@ -839,15 +839,15 @@ void belle_sip_channel_remove_listener(belle_sip_channel_t *obj, belle_sip_chann
 
 int belle_sip_channel_matches(const belle_sip_channel_t *obj, const belle_sip_hop_t *hop, const struct addrinfo *addr){
 	if (hop){
-		if (obj->current_peer_cname && strcmp(hop->host, obj->current_peer_cname)==0 && hop->port==obj->peer_port){
+		if (obj->current_peer_cname && strcasecmp(hop->host, obj->current_peer_cname)==0 && hop->port==obj->peer_port){
 			/*We are matching a specific node of a SRV record set. */
-			if (hop->cname && obj->peer_cname && strcmp(hop->cname,obj->current_peer_cname) != 0)
+			if (hop->cname && obj->peer_cname && strcasecmp(hop->cname,obj->current_peer_cname) != 0)
 				return 0; /*cname mismatch*/
 			return 1;
 		}
 		if (strcmp(hop->host,obj->peer_name)==0 && (hop->port==obj->peer_port || obj->srv_overrides_port)){
 			/*We may be matching the general name of the service, in that case the port doesn't matter.*/ 
-			if (hop->cname && obj->peer_cname && strcmp(hop->cname,obj->peer_cname) != 0){
+			if (hop->cname && obj->peer_cname && strcasecmp(hop->cname,obj->peer_cname) != 0){
 				return 0; /*cname mismatch*/
 			}
 			return 1;

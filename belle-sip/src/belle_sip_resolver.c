@@ -35,13 +35,21 @@
 #include "dns.h"
 #include <dns_sd.h>
 #include <dns_util.h>
+#include "bctoolbox/port.h" // mutex
 #endif /* HAVE_DNS_SERVICE */
 #include "dns/dns.h"
 
 #define DNS_EAGAIN  EAGAIN
 
+/* Default value for a timeout to wait AAAA results after A result for the same host have been received.
+ * This is to compensate buggy routers that don't really support IPv6 and never provide any answer to AAAA queries.
+ */
+static const int belle_sip_aaaa_timeout_after_a_received = 3000;
 
-
+/* Default value for a timeout to wait for SRV results after a A/AAAA result for the same domain has been received.
+ * This is to compensate buggy routers that don't really support SRV and never provide any answer to SRV queries.
+ */
+static const int belle_sip_srv_timeout_after_a_received = 3000;
 
 typedef struct belle_sip_simple_resolver_context belle_sip_simple_resolver_context_t;
 #define BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj) BELLE_SIP_CAST(obj,belle_sip_simple_resolver_context_t)
@@ -245,7 +253,12 @@ struct belle_sip_resolver_context{
 	uint32_t min_ttl;
 	uint8_t notified;
 	uint8_t cancelled;
+#ifdef HAVE_DNS_SERVICE
+	uint8_t use_dns_service;
+	uint8_t pad[1];
+#else /* HAVE_DNS_SERVICE */
 	uint8_t pad[2];
+#endif /* else HAVE_DNS_SERVICE */
 };
 
 struct belle_sip_simple_resolver_context{
@@ -255,9 +268,12 @@ struct belle_sip_simple_resolver_context{
 	void *cb_data;
 	void *srv_cb_data;
 #ifdef HAVE_DNS_SERVICE
+	bctbx_mutex_t notify_mutex; // result is notified first on a specific thread, mutex to manage interactions with cancel
+	DNSServiceErrorType err; // used to pass the request dispatching status from the dns_service_queue to the main thread
 	DNSServiceRef dns_service;
 	dispatch_source_t dns_service_timer;
 	uint16_t dns_service_type;
+	dispatch_queue_t dns_service_queue; // this queue is created by the stack, but store a ref on it anyway
 #endif /*HAVE_DNS_SERVICE */
 	struct dns_resolv_conf *resconf;
 	struct dns_hosts *hosts;
@@ -300,9 +316,13 @@ struct belle_sip_combined_resolver_context{
 	int port;
 	int family;
 	struct addrinfo *final_results;
+	struct addrinfo *a_fallback_results;
 	belle_sip_list_t *srv_results;
 	belle_sip_resolver_context_t *srv_ctx;
 	belle_sip_resolver_context_t *a_fallback_ctx;
+	int a_fallback_ttl;
+	unsigned char srv_completed;
+	unsigned char a_fallback_completed;
 };
 
 struct belle_sip_dual_resolver_context{
@@ -322,6 +342,9 @@ struct belle_sip_dual_resolver_context{
 void belle_sip_resolver_context_init(belle_sip_resolver_context_t *obj, belle_sip_stack_t *stack){
 	obj->stack=stack;
 	obj->min_ttl = UINT32_MAX;
+#ifdef HAVE_DNS_SERVICE
+	obj->use_dns_service = obj->stack->use_dns_service; // the object might actually survive the stack, so save crucial information
+#endif /* HAVE_DNS_SERVICE */
 	belle_sip_init_sockets(); /* Need to be called for DNS resolution to work on Windows platform. */
 }
 
@@ -858,6 +881,14 @@ static void dns_service_deallocate(belle_sip_simple_resolver_context_t *ctx) {
 
 static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode, const char *fullname, uint16_t rrtype, uint16_t rrclass, uint16_t rdlen, const void *rdata, uint32_t ttl, void *context) {
 	belle_sip_simple_resolver_context_t *ctx = (belle_sip_simple_resolver_context_t *)context;
+	bctbx_mutex_lock(&(ctx->notify_mutex));
+	if (ctx->base.cancelled == TRUE) {
+		dns_service_deallocate(ctx);
+		// resolver was cancelled, we may not have the stack anymore, just unref ourselve
+		bctbx_mutex_unlock(&(ctx->notify_mutex));
+		belle_sip_object_unref(ctx);
+		return;
+	}
 
 	if (errorCode != kDNSServiceErr_NoError) {
 		if (errorCode == kDNSServiceErr_NoSuchRecord) {
@@ -867,6 +898,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 		}
 		dns_service_deallocate(ctx);
 		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		bctbx_mutex_unlock(&(ctx->notify_mutex));
 		return;
 	}
 
@@ -874,6 +906,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 		belle_sip_error("%s : resolving %s got class %d while IN(0x01) expected", __FUNCTION__, fullname, rrclass);
 		dns_service_deallocate(ctx);
 		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		bctbx_mutex_unlock(&(ctx->notify_mutex));
 		return;
 	}
 
@@ -941,6 +974,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 			break;
 		default:
 			belle_sip_error("%s : resolving %s got DNS answer type %d - just ignore it", __FUNCTION__, fullname, rrtype);
+			bctbx_mutex_unlock(&(ctx->notify_mutex));
 			return;
 	}
 
@@ -948,6 +982,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 		dns_service_deallocate(ctx);
 		belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
 	}
+	bctbx_mutex_unlock(&(ctx->notify_mutex));
 }
 #endif /* HAVE_DNS_SERVICE */
 
@@ -1182,10 +1217,11 @@ static int resolver_process_mdns_browse_result(belle_sip_mdns_source_t *source, 
 static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 	if (!ctx->name) return -1;
 #ifdef HAVE_DNS_SERVICE
-	if (ctx->base.stack->use_dns_service == TRUE ) {
+	if (ctx->base.use_dns_service == TRUE ) {
 		// Take a ref on the context so we are sure it will still exists when the notify is called
 		// When returning an error, the notify is called anyway so do not unref, the matching unref
-		// is always performed in the belle_sip_resolver_context_notify function
+		// is always performed in the belle_sip_resolver_context_notify function or directly in the callback
+		// when the resolve has been cancelled
 		belle_sip_object_ref(ctx);
 
 		/* Create the DNSServiceRef */
@@ -1213,17 +1249,41 @@ static int _resolver_start_query(belle_sip_simple_resolver_context_t *ctx) {
 				return -1;
 			}
 
-			/* Set a timer */
-			ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->base.stack->dns_service_queue);
-			int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
-			dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
-					dns_service_deallocate(ctx); /* disarm timer - we need it once and deallocate the query */
-					belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
-					belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+		/* Create a timer */
+		ctx->dns_service_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, ctx->dns_service_queue);
+		int timeout = belle_sip_stack_get_dns_timeout(ctx->base.stack); // timeout is in ms
+		dispatch_source_set_event_handler(ctx->dns_service_timer, ^{ // block captures ctx
+				bctbx_mutex_lock(&(ctx->notify_mutex));
+				dns_service_deallocate(ctx); /* disarm timer - we need it once and deallocate the query */
+				if (ctx->base.cancelled == TRUE) {
+					// resolver was cancelled, we may not have the stack anymore, just unref ourselve
+					bctbx_mutex_unlock(&(ctx->notify_mutex));
+					belle_sip_object_unref(ctx);
+					return;
+				}
+				belle_sip_message("DNS timer fired while resolving %s ", ctx->name);
+				belle_sip_main_loop_do_later(ctx->base.stack->ml, (belle_sip_callback_t)belle_sip_resolver_context_notify, BELLE_SIP_RESOLVER_CONTEXT(ctx));
+				bctbx_mutex_unlock(&(ctx->notify_mutex));
+			});
 
-				});
-			dispatch_source_set_timer(ctx->dns_service_timer, dispatch_time(DISPATCH_TIME_NOW,timeout*NSEC_PER_MSEC), timeout*NSEC_PER_MSEC, 0); // timeout given is in Nano seconds
-			dispatch_resume(ctx->dns_service_timer);
+		/* dispatch them */
+		if (!ctx->base.stack->resolver_send_error) {
+			dispatch_sync(ctx->dns_service_queue, ^{ // disptach them from the queue listening their events to avoid troubles, this block captures the ctx
+				bctbx_mutex_lock(&(ctx->notify_mutex));
+				dispatch_source_set_timer(ctx->dns_service_timer, dispatch_time(DISPATCH_TIME_NOW,timeout*NSEC_PER_MSEC), timeout*NSEC_PER_MSEC, 0); // timeout given is in Nano seconds
+				dispatch_resume(ctx->dns_service_timer);
+				ctx->err = DNSServiceSetDispatchQueue(ctx->dns_service, ctx->dns_service_queue); // could return an error to be passed back to the main thread
+				if (ctx->err != kDNSServiceErr_NoError) {
+					dns_service_deallocate(ctx); /* failed to dispatch, deallocate and disarm timer(which may already have fired) */
+				}
+				bctbx_mutex_unlock(&(ctx->notify_mutex));
+			});
+
+			if (ctx->err != kDNSServiceErr_NoError) {
+				belle_sip_message("DNS start_query resolving %s, DNSServiceSetDispatchQueue returned %d", ctx->name, err);
+				return -1;
+			}
+
 		} else {
 			/* Error simulation */
 			belle_sip_error("%s DNSServiceRefSockFD error [%s]: simulated error %d", __FUNCTION__, ctx->name, ctx->base.stack->resolver_send_error);
@@ -1328,7 +1388,13 @@ static void belle_sip_combined_resolver_context_destroy(belle_sip_combined_resol
 		belle_sip_object_unref(obj->a_fallback_ctx);
 		obj->a_fallback_ctx=NULL;
 	}
+	if (obj->a_fallback_results){
+		/* we don't a/aaaa results since SRV provided results*/
+		bctbx_freeaddrinfo(obj->a_fallback_results);
+		obj->a_fallback_results = NULL;
+	}
 }
+
 
 static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_context_t *ctx){
 	/* Do not free elements of ctx->ai_list with bctbx_freeaddrinfo(). Let the caller do it, otherwise
@@ -1363,11 +1429,13 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 		ctx->name = NULL;
 	}
 #ifdef HAVE_DNS_SERVICE
-	if (ctx->base.stack->use_dns_service == TRUE) {
+	if (ctx->base.use_dns_service == TRUE) {
 		// deallocate the query and disarm timer on the dns service thread
-		dispatch_sync(ctx->base.stack->dns_service_queue, ^{
-			dns_service_deallocate(ctx);
-			});
+		if (ctx->dns_service != NULL || ctx->dns_service_timer != NULL) { // make sure we do not call this if we are in the dns thread
+			dispatch_sync(ctx->dns_service_queue, ^{
+				dns_service_deallocate(ctx);
+				});
+		}
 		// Cancel might not deallocate results when they arrive after the cancel, make sure they are
 		if (ctx->base.cancelled == TRUE) {
 			if (ctx->srv_list != NULL) {
@@ -1375,6 +1443,8 @@ static void belle_sip_simple_resolver_context_destroy(belle_sip_simple_resolver_
 				ctx->srv_list = NULL;
 			}
 		}
+		bctbx_mutex_destroy(&ctx->notify_mutex);
+		dispatch_release(ctx->dns_service_queue);
 	}
 #endif /* HAVE_DNS_SERVICE */
 	if (ctx->R != NULL) {
@@ -1430,6 +1500,16 @@ static void simple_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 
 static void combined_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
 	belle_sip_combined_resolver_context_t *ctx = BELLE_SIP_COMBINED_RESOLVER_CONTEXT(obj);
+	bctbx_list_t *elem;
+	
+	for(elem=ctx->srv_results;elem!=NULL;elem=elem->next){
+		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
+		if (srv->a_resolver){
+			belle_sip_resolver_context_cancel(srv->a_resolver);
+			belle_sip_object_unref(srv->a_resolver);
+			srv->a_resolver = NULL;
+		}
+	}
 	if (ctx->srv_ctx) {
 		belle_sip_resolver_context_cancel(ctx->srv_ctx);
 		belle_sip_object_unref(ctx->srv_ctx);
@@ -1527,36 +1607,74 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *results){
-	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
-	ctx->final_results = results->ai_list;
-	results->ai_list = NULL;
-	belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
-}
+
 
 static void combined_resolver_context_check_finished(belle_sip_combined_resolver_context_t *obj, uint32_t ttl){
 	belle_sip_list_t *elem;
 	struct addrinfo *final=NULL;
-	unsigned char finished=TRUE;
 
 	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(obj)->min_ttl = ttl;
-	for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
-		belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
-		if (!srv->a_done) {
-			finished=FALSE;
-			break;
-		}
-	}
-	if (finished){
-		belle_sip_message("All A/AAAA results for combined resolution have arrived.");
+
+	if (!obj->srv_completed && obj->srv_results){
+		unsigned char finished = TRUE;
 		for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
 			belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
-			final=ai_list_append(final,srv->a_results);
-			srv->dont_free_a_results = TRUE;
+			if (!srv->a_done) {
+				finished=FALSE;
+				break;
+			}
 		}
-		obj->final_results=final;
+		if (finished){
+			belle_sip_message("All A/AAAA results for combined resolution have arrived.");
+			obj->srv_completed = TRUE;
+			for(elem=obj->srv_results;elem!=NULL;elem=elem->next){
+				belle_sip_dns_srv_t *srv=(belle_sip_dns_srv_t*)elem->data;
+				final=ai_list_append(final,srv->a_results);
+				srv->dont_free_a_results = TRUE;
+			}
+			obj->final_results=final;
+		}
+	}
+	if (obj->srv_completed && obj->a_fallback_completed){
+		if (obj->final_results == NULL){
+			/* No SRV results, use a/aaaa fallback */
+			obj->final_results = obj->a_fallback_results;
+			obj->base.min_ttl = obj->a_fallback_ttl;
+			obj->a_fallback_results = NULL;
+		}
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(obj));
 	}
+}
+
+static int combined_resolver_srv_timeout(belle_sip_combined_resolver_context_t *ctx){
+	belle_sip_message("No SRV results while A/AAAA fallback resulted arrived a while ago. Giving up SRV.");
+	if (ctx->srv_ctx) {
+		belle_sip_resolver_context_cancel(ctx->srv_ctx);
+		belle_sip_object_unref(ctx->srv_ctx);
+		ctx->srv_ctx = NULL;
+	}
+	ctx->srv_completed = TRUE;
+	combined_resolver_context_check_finished(ctx, BELLE_SIP_RESOLVER_CONTEXT(ctx)->min_ttl);
+	return BELLE_SIP_STOP;
+}
+
+static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *results){
+	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
+	ctx->a_fallback_results = results->ai_list;
+	results->ai_list = NULL;
+	ctx->a_fallback_ttl = results->ttl;
+	ctx->a_fallback_completed = TRUE;
+	
+	/* 
+	* Start a global timer in order to workaround buggy home routers that don't respond to SRV requests.
+	* If A fallback response arrived, SRV shall not take a lot longer.
+	*/
+	belle_sip_message("resolver[%p]: starting SRV timeout since A/AAAA fallback response is received.", ctx);
+	belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)combined_resolver_srv_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
+			belle_sip_srv_timeout_after_a_received);
+	belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
+	
+	combined_resolver_context_check_finished(ctx, ctx->base.min_ttl);
 }
 
 static void process_a_from_srv(void *data, belle_sip_resolver_results_t *results){
@@ -1585,6 +1703,13 @@ static void srv_resolve_a(belle_sip_combined_resolver_context_t *obj, belle_sip_
 static void process_srv_results(void *data, const char *name, belle_sip_list_t *srv_results, uint32_t ttl){
 	belle_sip_combined_resolver_context_t *ctx=(belle_sip_combined_resolver_context_t *)data;
 	/*take a ref here, because the A resolution might succeed synchronously and terminate the context before exiting this function*/
+	
+	if (ctx->base.stack->simulate_non_working_srv) {
+		belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
+		belle_sip_message("SRV results ignored for testing.");
+		return;
+	}
+	
 	belle_sip_object_ref(ctx);
 	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl = ttl;
 	if (srv_results){
@@ -1600,11 +1725,18 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 			srv_resolve_a(ctx,srv);
 		}
 		srv_results = belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
+		/* Since we have SRV results, we can cancel the srv timeout, and cancel the fallback a/aaaa resolution */
+		belle_sip_source_cancel((belle_sip_source_t*)ctx);
+		if (ctx->a_fallback_ctx){
+			ctx->a_fallback_completed = TRUE; /* we don't need a/aaaa fallback anymore.*/
+			belle_sip_resolver_context_cancel(ctx->a_fallback_ctx);
+			belle_sip_object_unref(ctx->a_fallback_ctx);
+			ctx->a_fallback_ctx = NULL;
+		}
 	}else{
-		/*no SRV results, perform A query */
-		belle_sip_message("No SRV result for [%s], trying A/AAAA.",name);
-		ctx->a_fallback_ctx=belle_sip_stack_resolve_a(ctx->base.stack,ctx->name,ctx->port,ctx->family,process_a_fallback_result,ctx);
-		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
+		/* No SRV result. Possibly notify the a/aaaa fallback if already arrived*/
+		ctx->srv_completed = TRUE;
+		combined_resolver_context_check_finished(ctx, ctx->base.min_ttl);
 	}
 	belle_sip_object_unref(ctx);
 }
@@ -1629,7 +1761,12 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve(belle_sip_stack_t *stack,
 		/* Take a ref for the entire duration of the DNS procedure, it will be released when it is finished */
 		belle_sip_object_ref(ctx);
 		ctx->srv_ctx=belle_sip_stack_resolve_srv(stack,service,transport,name,process_srv_results,ctx);
-		if (ctx->srv_ctx) belle_sip_object_ref(ctx->srv_ctx);
+		if (ctx->srv_ctx) {
+			belle_sip_object_ref(ctx->srv_ctx);
+		}
+		/*In parallel and in case of no SRV result, perform A query */
+		ctx->a_fallback_ctx=belle_sip_stack_resolve_a(ctx->base.stack,ctx->name,ctx->port,ctx->family,process_a_fallback_result,ctx);
+		if (ctx->a_fallback_ctx) belle_sip_object_ref(ctx->a_fallback_ctx);
 		if (ctx->base.notified) {
 			belle_sip_object_unref(ctx);
 			return NULL;
@@ -1660,7 +1797,12 @@ static belle_sip_resolver_context_t * belle_sip_stack_resolve_single(belle_sip_s
 	if (family == 0) family = AF_UNSPEC;
 	ctx->family = family;
 #ifdef HAVE_DNS_SERVICE
+	ctx->dns_service_queue =  stack->dns_service_queue;
+	dispatch_retain(ctx->dns_service_queue); // take a ref on the dispatch queue
 	ctx->dns_service_type = (ctx->family == AF_INET6) ? kDNSServiceType_AAAA : kDNSServiceType_A;
+	if (stack->use_dns_service == TRUE) {
+		bctbx_mutex_init(&ctx->notify_mutex,NULL);
+	}
 #endif /* HAVE_DNS_SERVICE */
 	ctx->type = (ctx->family == AF_INET6) ? DNS_T_AAAA : DNS_T_A;
 #if (defined(USE_GETADDRINFO_FALLBACK) || defined(HAVE_MDNS)) && defined(_WIN32)
@@ -1699,20 +1841,19 @@ static int dual_resolver_aaaa_timeout(void *data, unsigned int event){
 
 static void on_ipv4_results(void *data, belle_sip_resolver_results_t *results) {
 	belle_sip_dual_resolver_context_t *ctx = BELLE_SIP_DUAL_RESOLVER_CONTEXT(data);
-	int aaaa_timeout = 3000;
 
 	ctx->a_results = results->ai_list;
 	results->ai_list = NULL;
 	ctx->a_notified = TRUE;
 
-	if (!ctx->aaaa_notified && ctx->a_results && aaaa_timeout > 0){
+	if (!ctx->aaaa_notified && ctx->a_results && belle_sip_aaaa_timeout_after_a_received > 0){
 		/* 
 		 * Start a global timer in order to workaround buggy home routers that don't respond to AAAA requests when there is no 
 		 * corresponding AAAA record for the queried domain. It is only started if we have a A result.
 		 */
 		belle_sip_message("resolver[%p]: starting aaaa timeout since A response is received.", ctx);
 		belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)dual_resolver_aaaa_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
-				aaaa_timeout);
+				belle_sip_aaaa_timeout_after_a_received);
 		belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
 	}
 	dual_resolver_context_check_finished(ctx);
@@ -1793,7 +1934,12 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 #endif
 	ctx->name = belle_sip_concat(srv_prefix, name, NULL);
 #ifdef HAVE_DNS_SERVICE
+	ctx->dns_service_queue =  stack->dns_service_queue;
+	dispatch_retain(ctx->dns_service_queue); // take a ref on the dispatch queue
 	ctx->dns_service_type = kDNSServiceType_SRV;
+	if (stack->use_dns_service == TRUE) {
+		bctbx_mutex_init(&ctx->notify_mutex,NULL);
+	}
 #endif /* HAVE_DNS_SERVICE */
 	ctx->type = DNS_T_SRV;
 	belle_sip_object_set_name((belle_sip_object_t*)ctx, ctx->name);
@@ -1804,11 +1950,30 @@ belle_sip_resolver_context_t * belle_sip_stack_resolve_srv(belle_sip_stack_t *st
 }
 
 void belle_sip_resolver_context_cancel(belle_sip_resolver_context_t *obj) {
+#ifdef HAVE_DNS_SERVICE
+	bctbx_mutex_t *notify_mutex = NULL;
+	if ((obj->use_dns_service == TRUE) && (BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj, belle_sip_simple_resolver_context_t) == TRUE)) {
+		notify_mutex = &(BELLE_SIP_SIMPLE_RESOLVER_CONTEXT(obj)->notify_mutex);
+		bctbx_mutex_lock(notify_mutex);
+	}
+#endif /* HAVE_DNS_SERVICE */
 	if (belle_sip_resolver_context_can_be_cancelled(obj)) {
 		obj->cancelled = TRUE;
 		BELLE_SIP_OBJECT_VPTR(obj, belle_sip_resolver_context_t)->cancel(obj);
+#ifdef HAVE_DNS_SERVICE
+		if (notify_mutex != NULL) {
+			bctbx_mutex_unlock(notify_mutex);
+		}
+#endif /* HAVE_DNS_SERVICE */
 		belle_sip_object_unref(obj);
 	}
+#ifdef HAVE_DNS_SERVICE
+	else {
+		if (notify_mutex != NULL) {
+			bctbx_mutex_unlock(notify_mutex);
+		}
+	}
+#endif /* HAVE_DNS_SERVICE */
 
 }
 
@@ -1819,7 +1984,7 @@ void belle_sip_resolver_context_notify(belle_sip_resolver_context_t *obj) {
 	 * Check before performing the actual notify if we must unref it
 	 * as the notify may destroy the object (when the resolver is not simple
 	 * and unref after the notify if needed */
-	bool_t unref_me = ((obj->stack->use_dns_service == TRUE) && (BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj, belle_sip_simple_resolver_context_t) == TRUE));
+	bool_t unref_me = ((obj->use_dns_service == TRUE) && (BELLE_SIP_OBJECT_IS_INSTANCE_OF(obj, belle_sip_simple_resolver_context_t) == TRUE));
 #endif /* HAVE_DNS_SERVICE */
 	if (belle_sip_resolver_context_can_be_notified(obj)) {
 		obj->notified = TRUE;

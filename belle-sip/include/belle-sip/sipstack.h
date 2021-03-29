@@ -54,6 +54,19 @@ BELLESIP_EXPORT belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_
 
 BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider(belle_sip_stack_t *s, const char *bind_ip);
 
+#define BELLE_SIP_HTTP_TRANSPORT_TCP 0x01
+#define BELLE_SIP_HTTP_TRANSPORT_TLS 0x02
+/**
+ * Create a HTTP provider attached to a given stack enabling specific transports
+ * @param[in]	s	The stack to attach the transport
+ * @param[in]	bind_ip
+ * @param[in]	transports a mask of authorized transports for this provider, availables are BELLE_SIP_HTTP_TRANSPORT_TCP and BELLE_SIP_HTTP_TRANSPORT_TLS
+ *
+ * @return The HTTP provider
+ *
+ */
+BELLESIP_EXPORT belle_http_provider_t * belle_sip_stack_create_http_provider_with_transports(belle_sip_stack_t *s, const char *bind_ip, const uint8_t transports);
+
 BELLESIP_EXPORT belle_sip_main_loop_t* belle_sip_stack_get_main_loop(belle_sip_stack_t *stack);
 
 BELLESIP_EXPORT void belle_sip_stack_main(belle_sip_stack_t *stack);
@@ -242,6 +255,11 @@ BELLESIP_EXPORT void belle_sip_stack_set_dns_engine(belle_sip_stack_t *stack, un
  * @return BELLE_SIP_DNS_APPLE_DNS_SERVICE or BELLE_SIP_DNS_DNS_C
 **/
 BELLESIP_EXPORT unsigned char belle_sip_stack_get_dns_engine(const belle_sip_stack_t *stack);
+
+/**
+ * Requests the stack to simulate a router that doesn't respond to SRV requests. This is for test ONLY.
+**/
+BELLESIP_EXPORT void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t *stack, int yesno);
 
 /*
  * End of test functions.

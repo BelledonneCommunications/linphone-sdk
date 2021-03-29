@@ -177,6 +177,7 @@ void belle_sip_tester_after_each(void) {
 		belle_sip_object_flush_active_objects();
 		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, format);
 		belle_sip_error("%s", format);
+		belle_sip_free(format);
 
 		all_leaks_buffer = all_leaks_buffer ? belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format) : belle_sip_strdup_printf("\n%s", format);
 	}

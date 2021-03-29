@@ -58,10 +58,23 @@ static unsigned int  wait_for(belle_sip_stack_t *stack, int *current_value, int 
 	else return TRUE;
 }
 
+static void destroy_endpoint_stack(endpoint_t *endpoint) {
+	if (endpoint->stack != NULL) {
+		belle_sip_stack_sleep(endpoint->stack, 1);
+		belle_sip_object_unref(endpoint->stack);
+		endpoint->stack=NULL;
+	}
+}
+
+static void init_endpoint_stack(endpoint_t *endpoint) {
+	destroy_endpoint_stack(endpoint);
+	endpoint->stack = belle_sip_stack_new(NULL);
+}
+
 static endpoint_t* create_endpoint(void) {
 	endpoint_t* endpoint;
 	endpoint = belle_sip_new0(endpoint_t);
-	endpoint->stack = belle_sip_stack_new(NULL);
+	init_endpoint_stack(endpoint);
 	return endpoint;
 }
 
@@ -82,7 +95,7 @@ static void reset_endpoint(endpoint_t *endpoint) {
 
 static void destroy_endpoint(endpoint_t *endpoint) {
 	reset_endpoint(endpoint);
-	belle_sip_object_unref(endpoint->stack);
+	destroy_endpoint_stack(endpoint);
 	belle_sip_free(endpoint);
 	belle_sip_uninit_sockets();
 }
@@ -146,7 +159,7 @@ static void ipv4_a_query(void) {
 }
 
 /* Cancel A query */
-static void a_query_cancelled_engine(unsigned char dns_engine) {
+static void a_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -168,26 +181,37 @@ static void a_query_cancelled_engine(unsigned char dns_engine) {
 		BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
 		/* cancel the query (do it immediately otherwise the result might arrive before the cancel) */
 		belle_sip_resolver_context_cancel(client->resolver_ctx);
-		BC_ASSERT_TRUE(client->resolve_done==0);
 		BC_ASSERT_PTR_NULL(client->ai_list);
+		if (destroy_stack == TRUE) {
+			destroy_endpoint_stack(client);
+			bctbx_sleep_ms(50);
+			init_endpoint_stack(client);
+			belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+		} else {
+			/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+			wait_for(client->stack, &dummy, 1, 50);
+		}
 
-		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
-		wait_for(client->stack, &dummy, 1, 100);
+		BC_ASSERT_TRUE(client->resolve_done==0);
 		BC_ASSERT_PTR_NULL(client->ai_list);
 	}
 
 	destroy_endpoint(client);
-
 }
+
 static void a_query_cancelled(void) {
-	a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+	a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, FALSE);
+	a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, TRUE);
 #ifdef HAVE_DNS_SERVICE
-	a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+	belle_sip_object_inhibit_leak_detector(TRUE); // leak detector is not thread safe
+	a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, FALSE);
+	a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, TRUE);
+	belle_sip_object_inhibit_leak_detector(FALSE);
 #endif /* HAVE_DNS_SERVICE */
 }
 
 /* Cancel a SRV query */
-static void srv_query_cancelled_engine(unsigned char dns_engine) {
+static void srv_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -217,22 +241,33 @@ static void srv_query_cancelled_engine(unsigned char dns_engine) {
 		BC_ASSERT_TRUE(client->resolve_done==0);
 		BC_ASSERT_PTR_NULL(client->srv_list);
 
-		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
-		wait_for(client->stack, &dummy, 1, 100);
+		if (destroy_stack == TRUE) {
+			destroy_endpoint_stack(client);
+			bctbx_sleep_ms(50);
+			init_endpoint_stack(client);
+			belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+		} else {
+			/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+			wait_for(client->stack, &dummy, 1, 50);
+		}
 		BC_ASSERT_EQUAL((unsigned int)belle_sip_list_size(client->srv_list), 0,unsigned int,"%u");
 	}
 
 	destroy_endpoint(client);
 }
 static void srv_query_cancelled(void) {
-	srv_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+	srv_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, FALSE);
+	srv_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, TRUE);
 #ifdef HAVE_DNS_SERVICE
-	srv_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+	belle_sip_object_inhibit_leak_detector(TRUE); // leak detector is not thread safe
+	srv_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, FALSE);
+	srv_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, TRUE);
+	belle_sip_object_inhibit_leak_detector(FALSE);
 #endif /* HAVE_DNS_SERVICE */
 }
 
 /* Cancel a SRV + A or AAAA query */
-static void srv_a_query_cancelled_engine(unsigned char dns_engine) {
+static void srv_a_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
@@ -258,21 +293,33 @@ static void srv_a_query_cancelled_engine(unsigned char dns_engine) {
 		BC_ASSERT_PTR_NULL(client->ai_list);
 
 		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
-		wait_for(client->stack, &dummy, 1, 100);
+		if (destroy_stack == TRUE) {
+			destroy_endpoint_stack(client);
+			bctbx_sleep_ms(50);
+			init_endpoint_stack(client);
+			belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+		} else {
+			/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+			wait_for(client->stack, &dummy, 1, 50);
+		}
 		BC_ASSERT_PTR_NULL(client->ai_list);
 	}
 
 	destroy_endpoint(client);
 }
 static void srv_a_query_cancelled(void) {
-	srv_a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, FALSE);
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, TRUE);
 #ifdef HAVE_DNS_SERVICE
-	srv_a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+	belle_sip_object_inhibit_leak_detector(TRUE); // leak detector is not thread safe
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, FALSE);
+	srv_a_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, TRUE);
+	belle_sip_object_inhibit_leak_detector(FALSE);
 #endif /* HAVE_DNS_SERVICE */
 }
 
 /* Cancel A+AAAA query */
-static void aaaa_query_cancelled_engine(unsigned char dns_engine) {
+static void aaaa_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	int timeout;
 	endpoint_t *client;
 	int i,dummy=0;
@@ -302,22 +349,33 @@ static void aaaa_query_cancelled_engine(unsigned char dns_engine) {
 		BC_ASSERT_TRUE(client->resolve_done==0);
 		BC_ASSERT_PTR_NULL(client->ai_list);
 
-		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
-		wait_for(client->stack, &dummy, 1, 100);
+		if (destroy_stack == TRUE) {
+			destroy_endpoint_stack(client);
+			bctbx_sleep_ms(50);
+			init_endpoint_stack(client);
+			belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+		} else {
+			/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+			wait_for(client->stack, &dummy, 1, 50);
+		}
 		BC_ASSERT_PTR_NULL(client->ai_list);
 	}
 
 	destroy_endpoint(client);
 }
 static void aaaa_query_cancelled(void) {
-	aaaa_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, FALSE);
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, TRUE);
 #ifdef HAVE_DNS_SERVICE
-	aaaa_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+	belle_sip_object_inhibit_leak_detector(TRUE); // leak detector is not thread safe
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, FALSE);
+	aaaa_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, TRUE);
+	belle_sip_object_inhibit_leak_detector(FALSE);
 #endif /* HAVE_DNS_SERVICE */
 }
 
 /* Cancel A query during timeout*/
-static void timeout_query_cancelled_engine(unsigned char dns_engine) {
+static void timeout_query_cancelled_engine(unsigned char dns_engine, bool_t destroy_stack) {
 	endpoint_t *client = create_endpoint();
 	int i,dummy=0;
 
@@ -333,8 +391,15 @@ static void timeout_query_cancelled_engine(unsigned char dns_engine) {
 		BC_ASSERT_TRUE(client->resolve_done==0);
 		BC_ASSERT_PTR_NULL(client->ai_list);
 
-		/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
-		wait_for(client->stack, &dummy, 1, 100);
+		if (destroy_stack == TRUE) {
+			destroy_endpoint_stack(client);
+			bctbx_sleep_ms(50);
+			init_endpoint_stack(client);
+			belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+		} else {
+			/* wait a little (query result is already in the system cache so it shall be fast) to give the time a to potential answer to reach cancelled request */
+			wait_for(client->stack, &dummy, 1, 50);
+		}
 		BC_ASSERT_PTR_NULL(client->ai_list);
 		reset_endpoint(client);
 	}
@@ -342,9 +407,13 @@ static void timeout_query_cancelled_engine(unsigned char dns_engine) {
 	destroy_endpoint(client);
 }
 static void timeout_query_cancelled(void) {
-	timeout_query_cancelled_engine(BELLE_SIP_DNS_DNS_C);
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, FALSE);
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_DNS_C, TRUE);
 #ifdef HAVE_DNS_SERVICE
-	timeout_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+	belle_sip_object_inhibit_leak_detector(TRUE); // leak detector is not thread safe
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, FALSE);
+	timeout_query_cancelled_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE, TRUE);
+	belle_sip_object_inhibit_leak_detector(FALSE);
 #endif /* HAVE_DNS_SERVICE */
 }
 
@@ -673,6 +742,30 @@ static void srv_a_query_no_srv_result(void) {
 	srv_a_query_no_srv_result_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
 #endif /* HAVE_DNS_SERVICE */
 }
+
+
+static void non_working_srv_a_query_engine(unsigned char dns_engine) {
+	endpoint_t *client = create_endpoint();
+
+	if (!BC_ASSERT_PTR_NOT_NULL(client)) return;
+	belle_sip_stack_set_dns_engine(client->stack, dns_engine);
+	belle_sip_stack_simulate_non_working_srv(client->stack, TRUE);
+	client->resolver_ctx = belle_sip_stack_resolve(client->stack, "sip", "udp", SRV_DOMAIN, SIP_PORT, AF_INET, a_resolve_done, client);
+	BC_ASSERT_PTR_NOT_NULL(client->resolver_ctx);
+	/* the results should arrive before the normal timeout (10s).*/
+	BC_ASSERT_TRUE(wait_for(client->stack, &client->resolve_done, 1, 5000));
+	BC_ASSERT_PTR_NOT_EQUAL(client->ai_list, NULL);
+
+	destroy_endpoint(client);
+}
+
+static void non_working_srv_a_query(void) {
+	non_working_srv_a_query_engine(BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	non_working_srv_a_query_engine(BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
+
 
 static void local_full_query_engine(unsigned char dns_engine) {
 	int timeout;
@@ -1038,6 +1131,7 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("SRV query", srv_query),
 	TEST_NO_TAG("SRV + A query", srv_a_query),
 	TEST_NO_TAG("SRV + A query with no SRV result", srv_a_query_no_srv_result),
+	TEST_NO_TAG("Non working SRV + A query", non_working_srv_a_query),
 	TEST_NO_TAG("Local SRV+A query", local_full_query),
 	TEST_NO_TAG("No query needed", no_query_needed),
 	TEST_NO_TAG("DNS fallback", dns_fallback),

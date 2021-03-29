@@ -268,7 +268,11 @@ belle_sip_provider_t *belle_sip_stack_create_provider(belle_sip_stack_t *s, bell
 }
 
 belle_http_provider_t *belle_sip_stack_create_http_provider(belle_sip_stack_t *s, const char *bind_ip){
-	belle_http_provider_t *p=belle_http_provider_new(s, bind_ip);
+	return belle_sip_stack_create_http_provider_with_transports(s, bind_ip, BELLE_SIP_HTTP_TRANSPORT_TCP|BELLE_SIP_HTTP_TRANSPORT_TLS);
+}
+
+belle_http_provider_t *belle_sip_stack_create_http_provider_with_transports(belle_sip_stack_t *s, const char *bind_ip, const uint8_t transports){
+	belle_http_provider_t *p=belle_http_provider_new(s, bind_ip, transports);
 	return p;
 }
 
@@ -315,6 +319,10 @@ void belle_sip_stack_set_resolver_tx_delay(belle_sip_stack_t *stack, int delay_m
 
 void belle_sip_stack_set_resolver_send_error(belle_sip_stack_t *stack, int send_error) {
 	stack->resolver_send_error = send_error;
+}
+
+void belle_sip_stack_simulate_non_working_srv(belle_sip_stack_t *stack, int yesno){
+	stack->simulate_non_working_srv = yesno;
 }
 
 const char * belle_sip_stack_get_dns_user_hosts_file(const belle_sip_stack_t *stack) {
