@@ -1632,7 +1632,7 @@ static bool_t ms_turn_rtp_endpoint_should_be_sent_to_turn_server(MSTurnContext *
 static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	MSTurnContext *context = (MSTurnContext *)rtptp->data;
 	bool_t send_via_turn_tcp = FALSE;
-	int ret = msgdsize(msg);
+	int ret = (int)msgdsize(msg);
 	int sub_ret = 0;
 	struct sockaddr_storage sourceAddr;
 	socklen_t sourceAddrLen;

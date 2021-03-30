@@ -402,6 +402,7 @@ if(WIN32)
 			list(APPEND LINK_LIBS gdi32 strmiids user32 vfw32)
 		endif()
 	endif()
+	list(APPEND LINK_LIBS ws2_32)# symbols for in6addr_any
 endif()
 if(LIBM)
 	list(APPEND LINK_LIBS m)
