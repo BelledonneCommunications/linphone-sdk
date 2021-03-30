@@ -238,10 +238,10 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 				pFile->fPageOffset = pFile->offset;
 			}
 			bctbx_free(ret);
-			pFile->offset += count;
+			pFile->offset += (off_t)count;
 			pFile->fSize += count;
 			pFile->gSize = 0; // cancel get cache, as it might be dirty now
-			return count;
+			return (ssize_t)count;
 		} else if (pFile->fSize > 0){ // There is a cache but the new data won't fit in : write the cache and the new data
 			char *buf = bctbx_malloc(count+pFile->fSize); // allocate a temporary buffer, to store the current cache and the data to be written
 			if (buf == NULL) {
@@ -257,9 +257,9 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 				return r;
 			}
 			pFile->fSize = 0; // f cache is now empty
-			pFile->offset += count;
+			pFile->offset += (off_t)count;
 			pFile->gSize = 0; // cancel get cache, as it might be dirty now
-			return count;
+			return (ssize_t)count;
 		}
 		// no cache and more than one page to write, just write it
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);
@@ -362,7 +362,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 			return sizeofline; // return size including the termination, so an empty line returns 1 (0 is for EOF)
 		} else { // No end of line found, did we reach the EOF?
 			if (pFile->gPage[pFile->gSize-1] == 0x04) { // 0x04 is EOT in ASCII, put in cache to signal the end of file
-				sizeofline = pFile->gSize - (pFile->offset - pFile->gPageOffset) -1; // size does not include the EOT char(which is part of the page size). so -1
+				sizeofline = (int)(pFile->gSize - (pFile->offset - pFile->gPageOffset) -1); // size does not include the EOT char(which is part of the page size). so -1
 				pFile->offset += sizeofline; // offset now points on the EOT char
 				memcpy(s,c,sizeofline); // copy everything before the EOT
 				s[sizeofline] = '\0';
