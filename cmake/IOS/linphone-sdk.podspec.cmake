@@ -14,13 +14,11 @@ Pod::Spec.new do |s|
   s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
-  s.resource = "linphone-sdk/apple-darwin/Resources/**"
   s.module_name   = 'linphonesw' # name of the swift package
   s.swift_version = '4.0'
 
   s.subspec 'all-frameworks' do |sp|
     sp.vendored_frameworks = "linphone-sdk/apple-darwin/Frameworks/**"
-    sp.resource = "linphone-sdk/apple-darwin/Resources/**"
   end
 
   s.subspec 'basic-frameworks' do |sp|
