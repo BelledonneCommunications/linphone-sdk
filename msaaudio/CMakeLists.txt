@@ -21,7 +21,6 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
-project(mediastreamer2 VERSION 5.0.0 LANGUAGES C CXX)
 
 #Builds aaudio with android sdk 28 while others projects are builds with another version
 #(defined in cmake builer toolchain android file)
