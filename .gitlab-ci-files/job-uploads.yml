@@ -56,7 +56,7 @@ job-ios-upload:
 job-android-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
 
   only:
     variables:
@@ -71,7 +71,7 @@ job-android-upload:
     MAVEN_REPO_PATH: linphone-sdk-android*
 
   dependencies:
-    - job-android-makefile-r17c
+    - job-android-makefile-r20
 
   before_script:
     - eval $(ssh-agent -s)
@@ -96,7 +96,7 @@ job-android-upload:
 job-android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r17c:$ANDROID_R17C_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
 
   only:
     variables:
@@ -109,7 +109,7 @@ job-android-doc-upload:
     GIT_STRATEGY: fetch
 
   dependencies:
-    - job-android-makefile-r17c
+    - job-android-makefile-r20
 
   before_script:
     - eval $(ssh-agent -s)
@@ -147,7 +147,7 @@ job-android-doc-upload:
 job-android-upload-no-video:
   extends: job-android-upload
   dependencies:
-    - job-android-ninja-r17c-no-video
+    - job-android-ninja-r20-no-video
   variables:
     GRADLE_OPTIONS: -Pno-video -i
     MAVEN_REPO_PATH: no-video
@@ -155,18 +155,10 @@ job-android-upload-no-video:
 job-android-upload-minimal-size:
   extends: job-android-upload
   dependencies:
-    - job-android-makefile-r17c-minimal-size
+    - job-android-makefile-r20-minimal-size
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
-
-job-android-upload-legacy:
-  extends: job-android-upload
-  dependencies:
-    - job-android-makefile-r17c-no-java-wrapper
-  variables:
-    GRADLE_OPTIONS: -Plegacy-wrapper -i
-    MAVEN_REPO_PATH: legacy
 
 #################################################
 # Macosx
