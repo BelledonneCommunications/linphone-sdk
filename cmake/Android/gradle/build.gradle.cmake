@@ -56,30 +56,7 @@ def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
 
 if (!isGeneratedJavaWrapperAvailable()) {
-    // We have to remove some classes that requires the new java wrapper
-    println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
-
-    // This classes uses the new DialPlan wrapped object
-    javaExcludes.add('**/Utils.java')
-    javaExcludes.add('**/H264Helper.java')
-
-    // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
-    javaExcludes.add('**/ActivityMonitor.java')
-    javaExcludes.add('**/AudioHelper.java')
-    javaExcludes.add('**/BluetoothHelper.java')
-    javaExcludes.add('**/BluetoothReceiver.java')
-    javaExcludes.add('**/ShutdownReceiver.java')
-    javaExcludes.add('**/CoreManager.java')
-    javaExcludes.add('**/CoreService.java')
-    javaExcludes.add('**/FirebaseMessaging.java')
-    javaExcludes.add('**/FirebasePushHelper.java')
-    javaExcludes.add('**/HeadsetReceiver.java')
-    javaExcludes.add('**/PushNotificationUtils.java')
-
-    // Add the previous wrapper to sources
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/impl/']
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/j2se/']
+    throw new GradleException("JAVA wrapper wasn't enabled! Use -DENABLE_JAVA_WRAPPER=ON to enable it (should be enable by default for Android target).")
 }
 
 def pluginsList = ""
@@ -100,7 +77,7 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 4500
+        versionCode 5000
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
