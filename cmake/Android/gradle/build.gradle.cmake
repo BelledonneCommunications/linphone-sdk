@@ -36,11 +36,6 @@ dependencies {
     compileOnly 'com.google.firebase:firebase-messaging:19.0.1'
 }
 
-static def isGeneratedJavaWrapperAvailable() {
-    File coreWrapper = new File('@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@/share/linphonej/java/org/linphone/core/Core.java')
-    return coreWrapper.exists()
-}
-
 def rootSdk = '@LINPHONESDK_BUILD_DIR@/linphone-sdk/android-@LINPHONESDK_FIRST_ARCH@'
 def srcDir = ['@LINPHONESDK_DIR@/mediastreamer2/java/src']
 def pluginsDir = rootSdk + '/lib/mediastreamer/plugins/'
@@ -54,33 +49,6 @@ excludePackage.add('**/LICENSE.txt')
 
 def javaExcludes = []
 javaExcludes.add('**/mediastream/MediastreamerActivity.java')
-
-if (!isGeneratedJavaWrapperAvailable()) {
-    // We have to remove some classes that requires the new java wrapper
-    println("Old java wrapper detected, adding it to sources and removing some incompatible classes")
-
-    // This classes uses the new DialPlan wrapped object
-    javaExcludes.add('**/Utils.java')
-    javaExcludes.add('**/H264Helper.java')
-
-    // This classes use some of the new Java objects like Core, Call, ProxyConfig, etc...
-    javaExcludes.add('**/ActivityMonitor.java')
-    javaExcludes.add('**/AudioHelper.java')
-    javaExcludes.add('**/BluetoothHelper.java')
-    javaExcludes.add('**/BluetoothReceiver.java')
-    javaExcludes.add('**/ShutdownReceiver.java')
-    javaExcludes.add('**/CoreManager.java')
-    javaExcludes.add('**/CoreService.java')
-    javaExcludes.add('**/FirebaseMessaging.java')
-    javaExcludes.add('**/FirebasePushHelper.java')
-    javaExcludes.add('**/HeadsetReceiver.java')
-    javaExcludes.add('**/PushNotificationUtils.java')
-
-    // Add the previous wrapper to sources
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/common/']
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/impl/']
-    srcDir += ['@LINPHONESDK_DIR@/liblinphone/java/j2se/']
-}
 
 def pluginsList = ""
 
@@ -100,7 +68,7 @@ android {
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 30
-        versionCode 4500
+        versionCode 5000
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
