@@ -335,6 +335,27 @@ belle_sip_header_address_t* belle_sip_header_address_create2(const char* display
 	return address;
 }
 
+int belle_sip_header_address_equals(const belle_sip_header_address_t* addr_a, const belle_sip_header_address_t* addr_b) {
+	// Addresses are not identical if either is NULL
+	if (!addr_a | !addr_b) return -1;
+	belle_sip_uri_t* uri_a = belle_sip_header_address_get_uri(addr_a);
+	belle_sip_uri_t* uri_b = belle_sip_header_address_get_uri(addr_b);
+	// URIs are not identical if either is NULL
+	if (!uri_a | !uri_b) return -1;
+	const bool_t uri_equal = (belle_sip_uri_equals(uri_a, uri_b) != 0);
+
+	const char* displayname_a = belle_sip_header_address_get_displayname(addr_a);
+	const char* displayname_b = belle_sip_header_address_get_displayname(addr_b);
+	bool_t displayname_equal = FALSE;
+	if (displayname_a && displayname_b) {
+		displayname_equal = (strcmp(displayname_a, displayname_b) == 0);
+	} else if (!displayname_a & !displayname_b) {
+		displayname_equal = TRUE;
+	}
+
+	return ((uri_equal && displayname_equal) ? 0 : -1);
+}
+
 /*fast header address implemenation*/
 typedef belle_sip_header_address_t belle_sip_fast_header_address_t;
 #define belle_sip_fast_header_address_parse belle_sip_header_address_fast_parse

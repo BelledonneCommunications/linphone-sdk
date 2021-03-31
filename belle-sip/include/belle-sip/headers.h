@@ -61,6 +61,7 @@ BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_fast_parse 
  * returns a sip uri. A header address cannot have both a sip uri and an absolute uri.
  */
 BELLESIP_EXPORT belle_sip_uri_t* belle_sip_header_address_get_uri(const belle_sip_header_address_t* address);
+
 /**
  * set an absolute uri. A header address cannot have both a sip uri and an absolute uri. This function also to absolute uri to NULL
  */
@@ -96,6 +97,10 @@ BELLESIP_EXPORT void belle_sip_header_address_set_displayname(belle_sip_header_a
  * */
 BELLESIP_EXPORT belle_sip_header_address_t* belle_sip_header_address_clone(const belle_sip_header_address_t* orig);
 
+/**
+ * returns 0 if the header addresses are identical, -1 otherwise.
+ */
+BELLESIP_EXPORT int belle_sip_header_address_equals(const belle_sip_header_address_t* addr_a, const belle_sip_header_address_t* addr_b);
 
 #define BELLE_SIP_HEADER_ADDRESS(t) BELLE_SIP_CAST(t,belle_sip_header_address_t)
 
