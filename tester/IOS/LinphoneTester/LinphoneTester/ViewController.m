@@ -22,8 +22,8 @@
     // Do any additional setup after loading the view, typically from a nib.
     
     liblinphone_tester_keep_accounts(TRUE);
-    
-    NSString *bundlePath = [NSString stringWithFormat:@"%@/liblinphone_tester/", [[NSBundle mainBundle] bundlePath]] ;
+
+	NSString *bundlePath = [self getResourceDirPath:@"com.belledonne-communications.linphonetester" resource:@"images"];
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *writablePath = [paths objectAtIndex:0];
     
@@ -36,6 +36,28 @@
 	bc_tester_register_suite_by_name(suite.UTF8String);
 	bc_tester_run_tests(suite.UTF8String, test.UTF8String, NULL);
 }
+
+-(NSString *)getResourceDirPath: (NSString *)framework resource: (NSString *)resource {
+	CFStringEncoding encodingMethod = CFStringGetSystemEncoding();
+	CFStringRef cfFramework = CFStringCreateWithCString(NULL, framework.UTF8String, encodingMethod);
+	CFStringRef cfResource = CFStringCreateWithCString(NULL, resource.UTF8String, encodingMethod);
+	CFBundleRef bundle = CFBundleGetBundleWithIdentifier(cfFramework);
+	CFURLRef resourceUrl = CFBundleCopyResourceURL(bundle, cfResource, NULL, NULL);
+	NSString *path = @"";
+	if (resourceUrl) {
+		CFURLRef resourceUrlDirectory = CFURLCreateCopyDeletingLastPathComponent(NULL, resourceUrl);
+		CFStringRef resourcePath = CFURLCopyFileSystemPath(resourceUrlDirectory, kCFURLPOSIXPathStyle);
+		path =  [NSString stringWithCString:CFStringGetCStringPtr(resourcePath, encodingMethod) encoding:encodingMethod];
+		CFRelease(resourcePath);
+		CFRelease(resourceUrlDirectory);
+		CFRelease(resourceUrl);
+	}
+
+	CFRelease(cfResource);
+	CFRelease(cfFramework);
+	return path;
+}
+
 - (IBAction)onClick:(id)sender {
 	liblinphone_tester_init(NULL);
 	[self testForSuiteTest:@"Shared Core" andTest:@"Executor Shared Core get new chat room from invite"];
