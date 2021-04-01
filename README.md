@@ -24,13 +24,13 @@ The software products developed in the context of the Linphone project are dual 
 
 The following tools must be installed on the build machine:
  - cmake >= 3.11
- - python = 2.7 (python 3.7 if C# wrapper generation is disabled)
- - pip
+ - python >= 3.6
+ - pip (or pip3 if the build machine has both python2 and python3)
  - yasm
  - nasm
  - doxygen
- - Pystache (use `pip install pystache`)
- - six (use `pip install six`)
+ - Pystache (use `pip install pystache` or `pip3 install pystache`)
+ - six (use `pip install six` or `pip3 install six`)
 
 ### Retrieve the dependencies
 
