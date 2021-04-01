@@ -130,6 +130,4 @@
 [submodule "external/openldap"]
 	path = external/openldap
 	url = https://gitlab.linphone.org/BC/public/external/openldap.git
-[submodule "external/cyrus-sasl"]
-	path = external/cyrus-sasl
-	url = https://gitlab.linphone.org/BC/public/external/cyrus-sasl
+
