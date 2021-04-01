@@ -22,6 +22,7 @@ changes made to these components.__
 ### Changed
 - Android minimum compatibility has been increased to Android 6 (Android SDK 23).
 - Most of changes are documented in liblinphone and mediastreamer2's CHANGELOG.md files.
+- Python >= 3.6 is now required for build (was python 2.7 previously)
 
 ## [4.4.0] 2020-06-16
 
