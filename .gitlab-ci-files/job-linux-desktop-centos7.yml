@@ -110,6 +110,7 @@ test-mediastreamer-centos7:
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     PLATFORM: linux-centos7
+    TESTER: "mediastreamer"
   before_script:
     - source /opt/rh/devtoolset-8/enable
 

@@ -153,6 +153,9 @@
     LOG_PATTERN: "logBctoolboxAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     TESTER: "bctoolbox"
+  only:
+    changes:
+      - bctoolbox
 
 .test-bellesip:
   extends: .test
@@ -162,6 +165,9 @@
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/"
     TESTER: "bellesip"
+  only:
+    changes:
+      - belle-sip
 
 
 .test-belr:
@@ -170,8 +176,11 @@
     TESTER_BIN: "belr_tester"
     LOG_PATTERN: "logBelrAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    RESOURCES_DIR: "--resource-dir ../share/belr-tester"
+    RESOURCES_DIR: "--resource-dir ../share/belr-tester/res"
     TESTER: "belr"
+  only:
+    changes:
+      - bctoolbox
 
 .test-belcard:
   extends: .test
@@ -180,6 +189,9 @@
     LOG_PATTERN: "logBelcardAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     TESTER: "belcard"
+  only:
+    changes:
+      - belcard
 
 .test-bzrtp:
   extends: .test
@@ -191,6 +203,9 @@
     #different behaviour from other testers
     RESOURCES_DIR: "--resource-dir ."
     TESTER: "bzrtp"
+  only:
+    changes:
+      - bzrtp
 
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
