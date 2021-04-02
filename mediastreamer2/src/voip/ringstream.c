@@ -100,8 +100,8 @@ RingStream * ring_start_with_cb(MSFactory* factory, const char *file, int interv
 			pinfmt.fmt = ms_factory_get_audio_format(factory, "pcm", 8000, 1, NULL);
 		}
 	}
-	srcrate = pinfmt.fmt->rate;
-	srcchannels = pinfmt.fmt->nchannels;
+	dstrate = srcrate = pinfmt.fmt->rate;
+	dstchannels = srcchannels = pinfmt.fmt->nchannels;
 
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_SET_SAMPLE_RATE,&srcrate);
 	ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&dstrate);
