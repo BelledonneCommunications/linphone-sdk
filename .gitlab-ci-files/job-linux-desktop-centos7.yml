@@ -3,11 +3,9 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_centos7: &docker_image_needs_platform_runner_tag_dev_toolset
+.factorize_centos7: &docker_image_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  needs:
-    - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -61,72 +59,68 @@ job-centos7-ninja-gcc:
 # TESTS
 #################################################
 
+
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  needs:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
-test-belr-centos7:
-  extends: .test-belr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-test-belr-centos7-mr:
-  extends: .test-belr-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-test-belcard-centos7:
-  extends: .test-belcard
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-test-belcard-centos7-mr:
-  extends: .test-belcard-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-test-bzrtp-centos7:
-  extends: .test-bzrtp
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-test-bzrtp-centos7-mr:
-  extends: .test-bzrtp-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
-
-.factorize_bs_centos7: &docker_image_needs_tag_platform_devtoolset_bs
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
+test-bellesip-centos7:
+  extends: .test-bellesip
   needs:
     - job-centos7-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos7
   before_script:
     - source /opt/rh/devtoolset-8/enable
 
-test-bellesip-centos7:
-  extends: .test-bellesip
-  <<: *docker_image_needs_tag_platform_devtoolset_bs
-
-test-bellesip-centos7-mr:
-  extends: .test-bellesip-mr
-  <<: *docker_image_needs_tag_platform_devtoolset_bs
-
-.factorize_ms2_centos7: &docker_image_needs_platform_devtoolset_ms
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+test-belr-centos7:
+  extends: .test-belr
   needs:
     - job-centos7-ninja-gcc
-  variables:
-    PLATFORM: linux-centos7
-  before_script:
-    - source /opt/rh/devtoolset-8/enable
+  <<: *docker_image_platform_runner_tag_dev_toolset
+
+test-belcard-centos7:
+  extends: .test-belcard
+  needs:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
+
+test-bzrtp-centos7:
+  extends: .test-bzrtp
+  needs:
+    - job-centos7-ninja-gcc
+  <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-mediastreamer-centos7:
-  extends: .test-mediastreamer
-  <<: *docker_image_needs_platform_devtoolset_ms
-
-test-mediastreamer-centos7-mr:
-  extends: .test-mediastreamer-mr
-  <<: *docker_image_needs_platform_devtoolset_ms
-
-.factorize_liblinphone_centos7: &docker_image_needs_platform_devtoolset_libl
+  tags: [ "docker-test-liblinphone" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+  extends: .test
+  needs:
+    - job-centos7-ninja-gcc
+  only:
+    changes:
+      - mediastreamer2
+  variables:
+    TESTER_BIN: "mediastreamer2_tester"
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    PULSEAUDIO_KILL: "pulseaudio --kill"
+    LOG_PATTERN: "logMediastreamerAllPar"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
+    PLATFORM: linux-centos7
+    TESTER: "mediastreamer"
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
+
+
+.test-liblinphone-centos7:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+  extends: .test-liblinphone
   needs:
     - job-centos7-ninja-gcc
   variables:
@@ -134,17 +128,22 @@ test-mediastreamer-centos7-mr:
   before_script:
     - source /opt/rh/devtoolset-8/enable
 
-test-liblinphone-centos7:
-  extends: .test-liblinphone
-  <<: *docker_image_needs_platform_devtoolset_libl
+test-liblinphone-centos7-schedule:
+  extends: .test-liblinphone-centos7
 
 test-liblinphone-centos7-mr:
-  extends: .test-liblinphone-mr
-  <<: *docker_image_needs_platform_devtoolset_libl
+  extends: .test-liblinphone-centos7
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 test-liblinphone-centos7-force:
-  extends: .test-liblinphone
-  <<: *docker_image_needs_platform_devtoolset_libl
+  extends: .test-liblinphone-centos7
   only:
     variables:
       - $ENABLE_TESTS_LIBLINPHONE
