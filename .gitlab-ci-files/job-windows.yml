@@ -193,7 +193,7 @@ test-linphone-windows-win32:
   extends: .job-prepare
   tags: [ "windows" ]
   allow_failure: true
-  dependencies:
+  needs:
     - job-windows-vs2017-win32-scheduled
     - job-windows-vs2017-ninja-win32
   only:
@@ -265,7 +265,7 @@ test-linphone-windows-uwp:
   extends: .job-prepare
   tags: [ "windows-tests" ]
   allow_failure: true
-  dependencies:
+  needs:
     - job-windows-vs2017-uwp-scheduled
   only:
     variables:

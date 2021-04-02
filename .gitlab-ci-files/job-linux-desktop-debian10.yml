@@ -116,13 +116,13 @@ job-debian10-ninja-clang-novideo:
 
 test-bctoolbox-debian10:
   extends: .test-bctoolbox
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-debian10:
   extends: .test-bellesip
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
@@ -132,26 +132,26 @@ test-bellesip-debian10:
 
 test-belr-debian10:
   extends: .test-belr
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-belcard-debian10:
   extends: .test-belcard
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-debian10:
   extends: .test-bzrtp
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian10:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:$DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  dependencies:
+  needs:
     - job-debian10-ninja-gcc
   variables:
     PLATFORM: linux-debian10
