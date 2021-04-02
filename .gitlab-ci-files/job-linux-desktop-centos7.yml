@@ -62,13 +62,13 @@ job-centos7-ninja-gcc:
 
 test-bctoolbox-centos7:
   extends: .test-bctoolbox
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-bellesip-centos7:
   extends: .test-bellesip
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
@@ -80,19 +80,19 @@ test-bellesip-centos7:
 
 test-belr-centos7:
   extends: .test-belr
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-belcard-centos7:
   extends: .test-belcard
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   <<: *docker_image_platform_runner_tag_dev_toolset
 
@@ -100,7 +100,7 @@ test-mediastreamer-centos7:
   tags: [ "docker-test-liblinphone" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   extends: .test
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   variables:
     TESTER_BIN: "mediastreamer2_tester"
@@ -117,7 +117,7 @@ test-mediastreamer-centos7:
 .test-liblinphone-centos7:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  dependencies:
+  needs:
     - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
