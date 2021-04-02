@@ -25,7 +25,7 @@ job-docker-rebuild-debian10-ms-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-debian10-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
@@ -44,7 +44,7 @@ job-docker-rebuild-debian10-liblinphone-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-debian10-ms-test-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
@@ -102,5 +102,5 @@ test-liblinphone-debian10-newdocker:
   only:
     variables:
       - $DOCKER_UPDATE_DEBIAN10
-  dependencies:
+  needs:
     - job-rebuild-debian10-newdocker-makefile-gcc
