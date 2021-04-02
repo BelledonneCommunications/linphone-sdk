@@ -578,7 +578,7 @@ job-test-upload-libl-centos7-mr:
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
   needs:
-    - test-liblinphone-centos7-schedule
+    - test-liblinphone-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
