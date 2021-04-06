@@ -25,7 +25,7 @@
 
 // =============================================================================
 
-#if defined( __ANDROID__ )
+#if defined( __ANDROID__ ) || TARGET_OS_IPHONE
 #  define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)fn)
 #elif defined(WIN32)
 
@@ -72,7 +72,7 @@ void *getAnyGLFuncAddress(void* library, void *firstFallback, const char *name)
 #endif
 
 // Remove EGL from Android
-#if defined( __ANDROID__ )
+#if defined( __ANDROID__ ) || TARGET_OS_IPHONE
 #define CAST_EGL(type, fn) NULL
 #else
 #define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn):CAST(type,fn))
@@ -176,7 +176,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());
 		}
 #endif// _WIN32
-	f->eglGetProcAddress = CAST(resolveEGLGetProcAddress, eglGetProcAddress);
+	f->eglGetProcAddress = CAST_EGL(resolveEGLGetProcAddress, eglGetProcAddress);
 
 	f->eglInitialized = TRUE;
 	f->eglInitialized &= ((f->eglQueryAPI = CAST_EGL(resolveEGLQueryAPI, eglQueryAPI)) != NULL);
