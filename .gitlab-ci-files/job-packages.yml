@@ -5,7 +5,7 @@
 job-windows-vs2017-nuget-package:
   stage: package
   tags: [ "windows" ]
-  dependencies:
+  needs:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
     - job-windows-vs2017-win32-scheduled
@@ -37,7 +37,7 @@ job-xamarin-package:
   tags: [ "deploy" ]
   variables:
     GIT_STRATEGY: none
-  dependencies:
+  needs:
     - job-ios-ninja
     - job-android-makefile-r20
   only:

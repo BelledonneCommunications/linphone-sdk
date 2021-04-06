@@ -21,7 +21,7 @@ job-docker-rebuild-archlinux-ms-test-image:
   only:
     variables:
       - $DOCKER_UPDATE_ARCHLINUX
-  dependencies:
+  needs:
     - job-docker-rebuild-archlinux-image
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
@@ -44,7 +44,7 @@ job-docker-rebuild-archlinux-liblinphone-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-archlinux-ms-test-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
@@ -102,5 +102,5 @@ test-liblinphone-archlinux-newdocker:
   only:
     variables:
       - $DOCKER_UPDATE_ARCHLINUX
-  dependencies:
+  needs:
     - job-rebuild-archlinux-newdocker-makefile-gcc
