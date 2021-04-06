@@ -69,7 +69,7 @@ job-rebuild-centos7-newdocker-ninja-gcc:
       - $DOCKER_UPDATE_CENTOS7
 
 test-liblinphone-centos7-newdocker:
-  extends: .test-liblinphone-centos7
+  extends: test-liblinphone-centos7
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:latestupdated
   only:
     variables:
