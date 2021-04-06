@@ -148,7 +148,7 @@ test-liblinphone-ios:
   tags: [ "macosx-xcode12" ]
   stage: test
   allow_failure: true
-  dependencies:
+  needs:
     - job-ios-xcode
 
   only:
