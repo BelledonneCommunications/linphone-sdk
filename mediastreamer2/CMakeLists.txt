@@ -648,14 +648,14 @@ if(MSVC)
 else()
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized")
 	list(APPEND STRICT_OPTIONS_C "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
+
 	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		list(APPEND STRICT_OPTIONS_CXX "-x c++")
-	endif()
-	
-	if(ENABLE_QT_GL 
-		AND ((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "9")
-			OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "10" )))
-		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=deprecated-copy") # introduced by gcc 9 and clang 10
+		if(${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "10")
+			list(APPEND STRICT_OPTIONS_CXX "-Wno-deprecated-copy") # introduced by clang 10
+		endif()
+	elseif(ENABLE_QT_GL AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER "9")
+		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=deprecated-copy") # introduced by gcc 9
 	endif()
 
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
