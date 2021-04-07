@@ -21,7 +21,7 @@ job-docker-rebuild-centos8-ms-test-image:
   only:
     variables:
       - $DOCKER_UPDATE_CENTOS8
-  dependencies:
+  needs:
     - job-docker-rebuild-centos8-image
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
@@ -44,7 +44,7 @@ job-docker-rebuild-centos8-liblinphone-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-centos8-ms-test-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
@@ -102,5 +102,5 @@ test-liblinphone-centos8-newdocker:
   only:
     variables:
       - $DOCKER_UPDATE_CENTOS8
-  dependencies:
+  needs:
     - job-rebuild-centos8-newdocker-makefile-gcc
