@@ -149,7 +149,7 @@ test-android-r20:
   tags: [ "docker-android-test-r20" ]
   stage: test
   allow_failure: true
-  dependencies:
+  needs:
     - job-android-makefile-r20
   only:
     variables:
