@@ -5,7 +5,7 @@
 job-windows-vs2017-win32-package:
   stage: package
   tags: [ "windows" ]
-  dependencies:
+  needs:
     - job-windows-vs2017-win32-scheduled
   only:
     variables:
@@ -47,7 +47,7 @@ job-xamarin-package:
   tags: [ "deploy" ]
   variables:
     GIT_STRATEGY: none
-  dependencies:
+  needs:
     - job-ios-ninja
     - job-android-makefile-r17c
   only:
