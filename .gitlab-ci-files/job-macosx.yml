@@ -90,9 +90,17 @@ job-macosx-ninja-novideo:
 job-macosx-xcode:
   extends: .job-macosx-desktop
   variables:
-    XCODE_OPTIONS: -DLINPHONESDK_MACOS_BASE_URL=$MACOS_RELEASES_URL
+    XCODE_OPTIONS: -DLINPHONESDK_MACOS_BASE_URL=$MACOS_DEPLOY_URL
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+
+  before_script:
+    - MACOS_DEPLOY_URL=$MACOS_RELEASES_URL
+    - |
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+        then MACOS_DEPLOY_URL=$MACOS_SNAPSHOTS_URL
+        fi
+    - echo $MACOS_DEPLOY_URL
 
   only:
     variables:
