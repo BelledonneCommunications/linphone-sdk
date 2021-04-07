@@ -153,6 +153,19 @@
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     TESTER: "bctoolbox"
 
+.test-bctoolbox-mr:
+  extends: .test-bctoolbox
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - bctoolbox
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
+
 .test-bellesip:
   extends: .test
   variables:
@@ -163,14 +176,44 @@
     TESTER: "bellesip"
 
 
+.test-bellesip-mr:
+  extends: .test-bellesip
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - belle-sip
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
+
+
 .test-belr:
   extends: .test
   variables:
     TESTER_BIN: "belr_tester"
     LOG_PATTERN: "logBelrAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
-    RESOURCES_DIR: "--resource-dir ../share/belr-tester"
+    RESOURCES_DIR: "--resource-dir ../share/belr-tester/res"
     TESTER: "belr"
+  only:
+    changes:
+      - belr
+
+.test-belr-mr:
+  extends: .test-belr
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - belr
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 .test-belcard:
   extends: .test
@@ -179,6 +222,23 @@
     LOG_PATTERN: "logBelcardAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     TESTER: "belcard"
+  only:
+    changes:
+      - belcard
+
+
+.test-belcard-mr:
+  extends: .test-belcard
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - belcard
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 .test-bzrtp:
   extends: .test
@@ -190,6 +250,44 @@
     #different behaviour from other testers
     RESOURCES_DIR: "--resource-dir ."
     TESTER: "bzrtp"
+
+.test-bzrtp-mr:
+  extends: .test-bzrtp
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - bzrtp
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
+
+.test-mediastreamer:
+  tags: [ "docker-test-liblinphone" ]
+  extends: .test
+  variables:
+    TESTER_BIN: "mediastreamer2_tester"
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    PULSEAUDIO_KILL: "pulseaudio --kill"
+    LOG_PATTERN: "logMediastreamerAllPar"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
+    TESTER: "mediastreamer"
+
+.test-mediastreamer-mr:
+  extends: .test-mediastreamer
+  only:
+    refs:
+      - branches
+      - tags
+    changes:
+      - mediastreamer2
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules
 
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
@@ -204,3 +302,14 @@
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "liblinphone"
+
+.test-liblinphone-mr:
+  extends: .test-liblinphone
+  only:
+    refs:
+      - branches
+      - tags
+    variables:
+      - $ENABLE_TESTS_IN_MR
+  except:
+   - schedules

@@ -25,7 +25,7 @@ job-docker-rebuild-ubuntu-rolling-ms-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-ubuntu-rolling-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
@@ -44,7 +44,7 @@ job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
   variables:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
-  dependencies:
+  needs:
     - job-docker-rebuild-ubuntu-rolling-ms-test-image
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
@@ -101,5 +101,5 @@ test-liblinphone-ubuntu-rolling-newdocker:
   only:
     variables:
       - $DOCKER_UPDATE_UBUNTU
-  dependencies:
+  needs:
     - job-rebuild-ubuntu-rolling-newdocker-makefile-gcc
