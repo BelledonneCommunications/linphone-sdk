@@ -159,7 +159,7 @@ test-android-r17c:
   tags: [ "docker-android-test-r17c" ]
   stage: test
   allow_failure: true
-  dependencies:
+  needs:
     - job-android-makefile-r17c
   only:
     variables:
