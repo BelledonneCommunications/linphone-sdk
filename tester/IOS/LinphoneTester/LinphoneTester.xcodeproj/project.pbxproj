@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,6 +19,7 @@
 		6167AF04221473E000A40550 /* Log.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AEED2214558E00A40550 /* Log.m */; };
 		6167AF1222157EEA00A40550 /* DTObjectBlockExecutor.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AF1122157EEA00A40550 /* DTObjectBlockExecutor.m */; };
 		6167AF1522157EFD00A40550 /* NSObject+DTRuntime.m in Sources */ = {isa = PBXBuildFile; fileRef = 6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */; };
+		66BDE4B8261D85DD00241021 /* LinphoneTesterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66BDE4B7261D85DD00241021 /* LinphoneTesterTests.swift */; };
 		B0397DBF25BB1181DFBB9811 /* Pods_LinphoneTesterTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 97930F104BD964CA38172238 /* Pods_LinphoneTesterTests.framework */; };
 		C1C504984E96DC7125A9D1B3 /* Pods_LinphoneTester.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 028116FDD805FCA816A70EBB /* Pods_LinphoneTester.framework */; };
 /* End PBXBuildFile section */
@@ -58,6 +59,9 @@
 		6167AF1122157EEA00A40550 /* DTObjectBlockExecutor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DTObjectBlockExecutor.m; sourceTree = "<group>"; };
 		6167AF1322157EF600A40550 /* NSObject+DTRuntime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSObject+DTRuntime.h"; sourceTree = "<group>"; };
 		6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSObject+DTRuntime.m"; sourceTree = "<group>"; };
+		66BDE4B6261D85DD00241021 /* LinphoneTesterTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "LinphoneTesterTests-Bridging-Header.h"; sourceTree = "<group>"; };
+		66BDE4B7261D85DD00241021 /* LinphoneTesterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinphoneTesterTests.swift; sourceTree = "<group>"; };
+		66BDE4BB261D868600241021 /* LinphoneTester.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LinphoneTester.entitlements; sourceTree = "<group>"; };
 		85DA0FB04A682D0A9B19A6CF /* Pods-LinphoneTester.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LinphoneTester.debug.xcconfig"; path = "Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester.debug.xcconfig"; sourceTree = "<group>"; };
 		97930F104BD964CA38172238 /* Pods_LinphoneTesterTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_LinphoneTesterTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		9E78CC1E841A117F4BD59A71 /* Pods-LinphoneTesterTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-LinphoneTesterTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-LinphoneTesterTests/Pods-LinphoneTesterTests.release.xcconfig"; sourceTree = "<group>"; };
@@ -108,6 +112,7 @@
 		6167AEBA221441F400A40550 /* LinphoneTester */ = {
 			isa = PBXGroup;
 			children = (
+				66BDE4BB261D868600241021 /* LinphoneTester.entitlements */,
 				6167AEBB221441F400A40550 /* AppDelegate.h */,
 				6167AEBC221441F400A40550 /* AppDelegate.m */,
 				6167AEBE221441F400A40550 /* ViewController.h */,
@@ -132,6 +137,8 @@
 				6167AF1422157EFD00A40550 /* NSObject+DTRuntime.m */,
 				6167AED4221441F500A40550 /* LinphoneTesterTests.m */,
 				6167AED6221441F500A40550 /* Info.plist */,
+				66BDE4B7261D85DD00241021 /* LinphoneTesterTests.swift */,
+				66BDE4B6261D85DD00241021 /* LinphoneTesterTests-Bridging-Header.h */,
 			);
 			path = LinphoneTesterTests;
 			sourceTree = "<group>";
@@ -170,7 +177,6 @@
 				6167AEB5221441F400A40550 /* Frameworks */,
 				6167AEB6221441F400A40550 /* Resources */,
 				33E2E8246F0C6E7060D44B36 /* [CP] Embed Pods Frameworks */,
-				1AB989A8F263ABAFE69A5CA8 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -214,6 +220,7 @@
 					};
 					6167AECF221441F500A40550 = {
 						CreatedOnToolsVersion = 10.1;
+						LastSwiftMigration = 1240;
 						TestTargetID = 6167AEB7221441F400A40550;
 					};
 				};
@@ -258,78 +265,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		1AB989A8F263ABAFE69A5CA8 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Resources/liblinphone_tester",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/liblinphone_tester",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		33E2E8246F0C6E7060D44B36 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox-tester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/bctoolbox.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belcard.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/belr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/lime.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/limetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphone.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/linphonetester.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mediastreamer2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msamr.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mscodec2.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msopenh264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mssilk.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/mswebrtc.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/msx264.framework",
-				"${PODS_ROOT}/../../../../build-ios/linphone-sdk/apple-darwin/Frameworks/ortp.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-			);
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox-tester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/bctoolbox.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belcard.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/belr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/lime.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/limetester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/linphone.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/linphonetester.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mediastreamer2.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msamr.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mscodec2.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msopenh264.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mssilk.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/mswebrtc.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/msx264.framework",
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ortp.framework",
+				"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-LinphoneTester/Pods-LinphoneTester-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		4926824997E3F9D31CE75C49 /* [CP] Check Pods Manifest.lock */ = {
@@ -397,6 +347,7 @@
 				6167AED5221441F500A40550 /* LinphoneTesterTests.m in Sources */,
 				6167AF1222157EEA00A40550 /* DTObjectBlockExecutor.m in Sources */,
 				6167AF1522157EFD00A40550 /* NSObject+DTRuntime.m in Sources */,
+				66BDE4B8261D85DD00241021 /* LinphoneTesterTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -547,10 +498,11 @@
 			baseConfigurationReference = 85DA0FB04A682D0A9B19A6CF /* Pods-LinphoneTester.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTester/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -567,10 +519,11 @@
 			baseConfigurationReference = 3A2BC95A0DF87C4593A537E0 /* Pods-LinphoneTester.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LinphoneTester/LinphoneTester.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTester/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -587,10 +540,11 @@
 			baseConfigurationReference = 0559CB1CCD2AF9B951D4450C /* Pods-LinphoneTesterTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -598,6 +552,9 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/LinphoneTester";
 				VALID_ARCHS = "arm64 i386 armv7 x86_64";
@@ -609,10 +566,11 @@
 			baseConfigurationReference = 9E78CC1E841A117F4BD59A71 /* Pods-LinphoneTesterTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = Z2V957B3D6;
 				INFOPLIST_FILE = LinphoneTesterTests/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -620,6 +578,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = belledonne.LinphoneTesterTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "LinphoneTesterTests/LinphoneTesterTests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LinphoneTester.app/LinphoneTester";
 				VALID_ARCHS = "arm64 i386 armv7 x86_64";
