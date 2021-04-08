@@ -8,7 +8,16 @@
       - $DOCKER_UPDATE
       - $SKIP_IOS
 
+  before_script:
+   - IOS_DEPLOY_URL=$IOS_RELEASES_URL
+   - |
+       if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+       then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
+       fi
+   - echo $IOS_DEPLOY_URL
+
   script:
+    - echo $IOS_RELEASES_URL
     - ccache -s
     - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
     - mkdir -p build-ios
@@ -137,14 +146,6 @@ job-ios-xcode:
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
-
-  before_script:
-    - IOS_DEPLOY_URL=$IOS_RELEASES_URL
-    - |
-        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
-        then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
-        fi
-    - echo $IOS_DEPLOY_URL
 
   extends: .job-ios
 
