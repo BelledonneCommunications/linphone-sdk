@@ -139,6 +139,8 @@ job-ios-xcode:
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+
   before_script:
    - IOS_DEPLOY_URL=$IOS_RELEASES_URL
    - |

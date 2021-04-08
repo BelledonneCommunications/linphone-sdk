@@ -101,6 +101,7 @@ job-macosx-xcode:
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_MACOSX
 
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
   before_script:
     - MACOS_DEPLOY_URL=$MACOS_RELEASES_URL
     - |
