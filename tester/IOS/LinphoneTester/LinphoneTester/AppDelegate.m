@@ -7,7 +7,11 @@
 //
 
 #import "AppDelegate.h"
+#include "linphonetester/liblinphone_tester.h"
 
+NSString *const kPushTokenReceived = @"PushTokenReceived";
+NSString *const kRemotePushTokenReceived = @"RemotePushTokenReceived";
+NSString *const kPushNotificationReceived = @"PushNotificationReceived";
 @interface AppDelegate ()
 
 @end
@@ -47,5 +51,52 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
 
+- (void)application:(UIApplication *)application
+didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+	const char *tokenData = [deviceToken bytes];
+	NSMutableString *stringDeviceToken = [NSMutableString string];
+	for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+		[stringDeviceToken appendFormat:@"%02.2hhX", tokenData[i]];
+	}
+	
+	linphone_factory_set_user_data(linphone_factory_get(), (__bridge void*)deviceToken);
+	[NSNotificationCenter.defaultCenter postNotificationName:kRemotePushTokenReceived object:self];
+}
+- (void)application:(UIApplication *)application
+didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+}
 
+- (void)application:(UIApplication *)application
+didReceiveRemoteNotification:(NSDictionary *)userInfo
+fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler {
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushNotificationReceived object:self];
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didInvalidatePushTokenForType:(NSString *)type
+{
+}
+ 
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(NSString *)type
+{
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushNotificationReceived object:self];
+}
+ 
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(NSString *)type
+{
+	NSMutableString *tokenString = nil;
+	const unsigned char *tokenBuffer = (const unsigned char *)[credentials.token bytes];
+	tokenString = [NSMutableString stringWithCapacity:[credentials.token length] * 2];
+	for (unsigned long i = 0; i < [credentials.token length]; ++i) {
+		[tokenString appendFormat:@"%02X", (unsigned int)tokenBuffer[i]];
+	}
+	[tokenString appendFormat:@":%@",@"voip"];
+	_voipToken = tokenString;
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushTokenReceived object:self];
+}
+
+- (void) enableVoipPush {
+	_voipRegistry = [[PKPushRegistry alloc] initWithQueue:dispatch_get_main_queue()];
+	_voipRegistry.delegate = self;
+	_voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
+}
 @end
