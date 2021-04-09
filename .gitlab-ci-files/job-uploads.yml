@@ -371,6 +371,8 @@ job-xamarin-upload:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
   script:
+
+    - ls -la
     #getting the version number for each submodule and writing it in environment.properties file
     #this file will be parsed by allure and will help to display additionnal information in the web view
     #git -C allows to run a git command in the given folder without moving"
@@ -390,6 +392,7 @@ job-xamarin-upload:
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - TEST_REPORT_TIMESTAMP=$(cat tests_timestamp)
     - |
         if [[ -z $ESCAPED_BRANCH ]];
         then ESCAPED_BRANCH=master
@@ -404,6 +407,7 @@ job-xamarin-upload:
     - echo PIPELINE_TRIGGERED_BY=$GITLAB_USER_NAME | tee -a environment.properties
     - echo BRANCH=$BRANCH | tee -a environment.properties
     - echo SDK_VERSION=$SDK_VERSION | tee -a environment.properties
+    - echo TEST_REPORT_TIMESTAMP=$TEST_REPORT_TIMESTAMP | tee -a environment.properties
     - echo BCTOOLBOX_VERSION=$BCTOOLBOX_VERSION | tee -a environment.properties
     - echo ORTP_VERSION=$ORTP_VERSION | tee -a environment.properties
     - echo BCG729_VERSION=$BCG729_VERSION | tee -a environment.properties
@@ -435,12 +439,13 @@ job-xamarin-upload:
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
-    - echo "if [[ -n \$(find -maxdepth 1 -name $SDK_VERSION) ]];" | tee -a allure_launch_script
-    - echo "  then cd $SDK_VERSION || exit 1;" | tee -a allure_launch_script
+    - FIND_DIR=\$(find -maxdepth 1 -name "$SDK_VERSION*")
+    - echo "if [[ -n $FIND_DIR ]];" | tee -a allure_launch_script
+    - echo "  then cd /$(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
     - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo " LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo " mkdir $SDK_VERSION && cd $SDK_VERSION || exit 1 ;" | tee -a allure_launch_script
+    - echo " mkdir $SDK_VERSION-$TEST_REPORT_TIMESTAMP && cd $SDK_VERSION-$TEST_REPORT_TIMESTAMP || exit 1 ;" | tee -a allure_launch_script
     - echo " CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
     - echo "if [[ -n \$(ls | grep $PLATFORM) ]];" | tee -a allure_launch_script
@@ -464,7 +469,7 @@ job-xamarin-upload:
     - echo "  then" | tee -a allure_launch_script
     - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
-    - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
+    - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_TIMESTAMP/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
     - echo "  cp -r ../../../../$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo "  cp -r \$(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
@@ -475,8 +480,8 @@ job-xamarin-upload:
     - echo "mv ../../../../environment.properties . && mv ../../../../$XML_FILENAME_START_PATTERN* ." | tee -a allure_launch_script
 
     #symlink with username to ease searching
-    - echo "mkdir -p ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM" | tee -a allure_launch_script
-    - echo "ln -s \$(pwd) ../../../$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM/$TESTER" | tee -a allure_launch_script
+    - echo "mkdir -p ../../../$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_TIMESTAMP/$PLATFORM" | tee -a allure_launch_script
+    - echo "ln -s \$(pwd) ../../../$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_TIMESTAMP/$PLATFORM/$TESTER" | tee -a allure_launch_script
 
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
@@ -519,7 +524,7 @@ job-xamarin-upload:
     #     "matchedStatuses": ["broken"]
     #  }
     #]
-    - echo "https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION/$PLATFORM/$TESTER/allure-report" | tee report_url
+    - echo "https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_TIMESTAMP/$PLATFORM/$TESTER/allure-report" | tee report_url
     - pwd
     - ls -lah
     - ls -lah ${CI_PROJECT_DIR}
