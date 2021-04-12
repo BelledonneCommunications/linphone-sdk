@@ -7,7 +7,10 @@
 //
 
 #import "AppDelegate.h"
+#include "linphonetester/liblinphone_tester.h"
 
+NSString *const kPushTokenReceived = @"PushTokenReceived";
+NSString *const kPushNotificationReceived = @"PushNotificationReceived";
 @interface AppDelegate ()
 
 @end
@@ -47,5 +50,25 @@
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
 
+- (void)application:(UIApplication *)application
+didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+	const char *tokenData = [deviceToken bytes];
+	NSMutableString *stringDeviceToken = [NSMutableString string];
+	for (NSUInteger i = 0; i < [deviceToken length]; i++) {
+		[stringDeviceToken appendFormat:@"%02.2hhX", tokenData[i]];
+	}
+	_pushDeviceToken = deviceToken;
+	
+	linphone_factory_set_user_data(linphone_factory_get(), (__bridge void*)deviceToken);
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushTokenReceived object:self];
+}
+- (void)application:(UIApplication *)application
+didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+}
 
+- (void)application:(UIApplication *)application
+didReceiveRemoteNotification:(NSDictionary *)userInfo
+fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))completionHandler {
+	[NSNotificationCenter.defaultCenter postNotificationName:kPushNotificationReceived object:self];
+}
 @end
