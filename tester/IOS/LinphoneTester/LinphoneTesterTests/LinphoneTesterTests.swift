@@ -128,15 +128,15 @@ class IncomingPushTest: XCTestCase {
 		let paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
 		
 		let paulineAccount = paulineCore.defaultAccount!
-		let newParams = paulineAccount.params?.clone()
-		newParams!.pushNotificationAllowed = true
-		paulineAccount.params = newParams
-		
+		let marieAccount = marieCore.defaultAccount!
+		marieCore.pushNotificationEnabled = false
 		marieCore.autoIterateEnabled = true
 		paulineCore.autoIterateEnabled = true
 		
-		
-		let paulineAddress = Address.getSwiftObject(cObject: pauline!.pointee.identity)
+		let marieShouldNotHavePushDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			XCTAssertTrue(account.params!.pushNotificationConfig?.voipToken == nil)
+		})
+		marieAccount.addDelegate(delegate: marieShouldNotHavePushDelegate)
 		
 		let unlockExpec = expectation(description: "Test")
 		unlockExpec.assertForOverFulfill = false
@@ -156,7 +156,10 @@ class IncomingPushTest: XCTestCase {
 			}
 		})
 		paulineCore.addDelegate(delegate: paulineCallDelegate)
-		var call = marieCore.inviteAddress(addr: paulineAddress)
+		
+		paulineCore.callkitEnabled = true
+		paulineCore.autoIterateEnabled = false
+		var call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
 		waitForExpectations(timeout: 5000)
 	}
 	
