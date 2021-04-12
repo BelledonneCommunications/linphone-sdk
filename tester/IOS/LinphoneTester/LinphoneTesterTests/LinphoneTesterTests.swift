@@ -10,36 +10,13 @@
 import Foundation
 import XCTest
 import linphonesw
-import CallKit
 
 class IncomingPushTest: XCTestCase {
 	
 	var tokenReceivedExpect : XCTestExpectation!
-	//var core : Core!
-	//var creator : AccountCreator!
-	//var creatorCallbacks = AccountCreatorCallbacks()
+	var pushReceivedExpect : XCTestExpectation!
 	
 	/*
-	override func setUp() {
-		super.setUp()
-		let factory = Factory.Instance // Instanciate
-		let configDir = factory.getConfigDir(context: nil)
-		core = try! factory.createCore(configPath: "\(configDir)/MyConfig", factoryConfigPath: "", systemContext: nil)
-		core.autoIterateEnabled = true
-		core.pushNotificationEnabled = true
-		core.config!.setString(section: "sip", key: "flexiapi_url", value: "http://centos7-quentin.local/flexiapi/api/")
-		try! core.start()
-		
-		creator = try! core.createAccountCreator(xmlrpcUrl: "http://centos7-quentin.local/flexisip-account-manager/xmlrpc.php")
-		
-	}
-	
-	func receivedPushCallback(_ notification: Notification) {
-		let payload = notification.userInfo!["customPayload"] as! [String : String]
-		creator.token = payload["token"]! as String
-		tokenReceivedExpect.fulfill()
-	}
-	
 	func testTokenReception() {
 		NotificationCenter.default.addObserver(self,
 											   selector:#selector(self.receivedPushCallback),
@@ -64,90 +41,47 @@ class IncomingPushTest: XCTestCase {
 		
 	}
 	
-	class AccountCreatorCallbacks : AccountCreatorDelegate {
-		var expect : XCTestExpectation!
-		
-		func onSendToken(creator: AccountCreator, status: AccountCreator.Status, response: String) {
-			XCTAssert(status == AccountCreator.Status.RequestOk)
-			expect.fulfill()
-		}
-		func onCreateAccount(creator: AccountCreator, status: AccountCreator.Status, response: String) {
-			XCTAssert(status == AccountCreator.Status.RequestOk)
-			expect.fulfill()
-		}
-	}
 	*/
 	
-	func testIncomingCall() {
-		let factory = Factory.Instance // Instanciate
-		let configDir = factory.getConfigDir(context: nil)
-		let core = try! factory.createCore(configPath: "\(configDir)/MyConfig", factoryConfigPath: "", systemContext: nil)
-
-		// main loop for receiving notifications and doing background linphonecore work:
-		core.autoIterateEnabled = true
-		core.pushNotificationEnabled = true
-		
-		try? core.start()
-		
-		let proxy_cfg = try! core.createProxyConfig()
-		let address = try! factory.createAddress(addr: "sip:quentindev@sip.linphone.org")
-		let info = try! factory.createAuthInfo(username: address.username, userid: "", passwd: "dev", ha1: "", realm: "", domain: address.domain)
-		core.addAuthInfo(info: info)
-
-		try! proxy_cfg.setIdentityaddress(newValue: address)
-		let server_addr = "sip:" + address.domain + ";transport=tls"
-		try! proxy_cfg.setServeraddr(newValue: server_addr)
-		proxy_cfg.registerEnabled = true
-		proxy_cfg.pushNotificationAllowed = true
-		try! core.addProxyConfig(config: proxy_cfg)
-		if ( core.defaultProxyConfig == nil)
-		{
-			// IMPORTANT : default proxy config setting MUST be done AFTER adding the config to the core !
-			core.defaultProxyConfig = proxy_cfg
-		}
-		
-		let expectIncomingCall = expectation(description: "Incoming Call Received")
-		let expectPushIncoming = expectation(description: "Incoming Push Received")
-		let coreDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
-			print("CallTrace - \(cstate)")
-			if (cstate == .PushIncomingReceived){
-				expectPushIncoming.fulfill()
-			}
-			else if (cstate == .IncomingReceived) {
-				expectIncomingCall.fulfill()
-			}
-		})
-		core.addDelegate(delegate: coreDelegate)
-		waitForExpectations(timeout: 1000)
-	}
-	
-	func testCall() {
+	func testVoipPushCall() {
 		let marie = linphone_core_manager_new("marie_rc")
 		let marieCore = Core.getSwiftObject(cObject: marie!.pointee.lc)
 		let pauline = linphone_core_manager_new("pauline_rc")
-		let paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
+		var paulineCore : Core? = Core.getSwiftObject(cObject: pauline!.pointee.lc)
 		
-		let paulineAccount = paulineCore.defaultAccount!
-		let newParams = paulineAccount.params?.clone()
-		newParams!.pushNotificationAllowed = true
-		paulineAccount.params = newParams
-		
+		var paulineAccount = paulineCore!.defaultAccount!
+		let marieAccount = marieCore.defaultAccount!
+		marieCore.pushNotificationEnabled = false
 		marieCore.autoIterateEnabled = true
-		paulineCore.autoIterateEnabled = true
+		paulineCore!.callkitEnabled = true
+		paulineCore!.autoIterateEnabled = true
+		
+		// Marie has push notification disabled, so we should never register get a voip token for her
+		let marieShouldNotHavePushDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			XCTAssertTrue(account.params!.pushNotificationConfig?.voipToken == nil)
+		})
+		marieAccount.addDelegate(delegate: marieShouldNotHavePushDelegate)
 		
 		
-		let paulineAddress = Address.getSwiftObject(cObject: pauline!.pointee.identity)
-		
-		let unlockExpec = expectation(description: "Test")
-		unlockExpec.assertForOverFulfill = false
+		let voipRegisteredExpect = expectation(description: "Registered with voip token")
 		let paulineRegisterDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
-			if (account.params!.pushNotificationConfig?.voipToken != nil) {
-				unlockExpec.fulfill()
+			if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+				voipRegisteredExpect.fulfill()
 			}
 		})
 		paulineAccount.addDelegate(delegate: paulineRegisterDelegate)
-		waitForExpectations(timeout: 5000)
-		//let callKitProviderDelegate = CallKitProviderDelegate()
+		waitForExpectations(timeout: 40)
+		
+		
+		let expectCoreStopped = expectation(description: "Pauline Core Stopped")
+		let paulineCoreStoppedDelegate = CoreDelegateStub(onGlobalStateChanged: { (lc: Core, gstate: GlobalState, message: String) in
+			if (gstate == GlobalState.Off){
+				expectCoreStopped.fulfill()
+			}
+		})
+		paulineCore!.addDelegate(delegate: paulineCoreStoppedDelegate)
+		paulineCore!.stopAsync()
+		waitForExpectations(timeout: 10)
 		
 		let expectPushIncoming = expectation(description: "Incoming Push Received")
 		let paulineCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
@@ -155,56 +89,110 @@ class IncomingPushTest: XCTestCase {
 				expectPushIncoming.fulfill()
 			}
 		})
-		paulineCore.addDelegate(delegate: paulineCallDelegate)
-		var call = marieCore.inviteAddress(addr: paulineAddress)
-		waitForExpectations(timeout: 5000)
-	}
-	
- }
-
-class CallKitProviderDelegate : NSObject
-{
-	private let provider: CXProvider
-	let mCallController = CXCallController()
-	var incomingCallUUID : UUID!
-	var expectIncomingCall : XCTestExpectation!
-	override init()
-	{
-		let providerConfiguration = CXProviderConfiguration(localizedName: Bundle.main.infoDictionary!["CFBundleName"] as! String)
-		providerConfiguration.supportsVideo = true
-		providerConfiguration.supportedHandleTypes = [.generic]
-		providerConfiguration.maximumCallsPerCallGroup = 1
-		providerConfiguration.maximumCallGroups = 1
+		paulineCore!.addDelegate(delegate: paulineCallDelegate)
+		var call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
+		waitForExpectations(timeout: 100)
 		
-		provider = CXProvider(configuration: providerConfiguration)
-		super.init()
-		provider.setDelegate(self, queue: nil) // The CXProvider delegate will trigger CallKit related callbacks
+		let expectCallTerminated = expectation(description: "Call terminated expectation")
+		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+			if (state == Call.State.Released) {
+				expectCallTerminated.fulfill()
+			}
+		})
+		call?.addDelegate(delegate: callTerminatedDelegate)
+		try! call!.terminate()
+		waitForExpectations(timeout: 100)
+		
+		paulineCore = nil
+		linphone_core_manager_restart(pauline, 0)
+		paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
+		let expectSecondPushIncoming = expectation(description: "Second Incoming Push Received")
+		let paulineSecondCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .PushIncomingReceived){
+				expectSecondPushIncoming.fulfill()
+			}
+		})
+		paulineCore!.addDelegate(delegate: paulineSecondCallDelegate)
+		
+		paulineAccount = paulineCore!.defaultAccount!
+		call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
+		waitForExpectations(timeout: 100)
 	}
-	/*
-	func incomingCall()
-	{
-		incomingCallUUID = UUID()
-		let update = CXCallUpdate()
-		update.remoteHandle = CXHandle(type:.generic, value: "CallInc")
-		provider.reportNewIncomingCall(with: incomingCallUUID, update: update, completion: { error in }) // Report to CallKit a call is incoming
-	}
-	*/
-}
-
-
-// In this extension, we implement the action we want to be done when CallKit is notified of something.
-// This can happen through the CallKit GUI in the app, or directly in the code (see outgoingCall(), incomingCall(), stopCall() functions above)
-extension CallKitProviderDelegate: CXProviderDelegate {
 	
-	func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-		action.fulfill()
+	func receivedPushTokenCallback() {
+		tokenReceivedExpect.fulfill()
+	}
+	func receivedPushNotificationCallback() {
+		pushReceivedExpect.fulfill()
 	}
 	
-	func provider(_ provider: CXProvider, perform action: CXEndCallAction) {}
-	func provider(_ provider: CXProvider, perform action: CXSetHeldCallAction) {}
-	func provider(_ provider: CXProvider, perform action: CXStartCallAction) {}
-	func provider(_ provider: CXProvider, perform action: CXSetMutedCallAction) {}
-	func provider(_ provider: CXProvider, perform action: CXPlayDTMFCallAction) {}
-	func provider(_ provider: CXProvider, timedOutPerforming action: CXAction) {}
-	func providerDidReset(_ provider: CXProvider) {}
-}
+	func testChatroom() {
+		tokenReceivedExpect = expectation(description: "Push Token received")
+		tokenReceivedExpect.assertForOverFulfill = false
+		NotificationCenter.default.addObserver(self,
+											   selector:#selector(self.receivedPushTokenCallback),
+											   name: NSNotification.Name(rawValue: kPushTokenReceived),
+											   object:nil);
+		
+		UIApplication.shared.registerForRemoteNotifications()
+		waitForExpectations(timeout: 15)
+
+		let marie = linphone_core_manager_new("marie_rc")
+		let marieCore = Core.getSwiftObject(cObject: marie!.pointee.lc)
+		let pauline = linphone_core_manager_new("pauline_rc")
+		let paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
+		
+		let marieAccount = marieCore.defaultAccount!
+		let marieShouldNotHavePushDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			XCTAssertTrue(account.params!.pushNotificationConfig?.voipToken == nil)
+		})
+		marieAccount.addDelegate(delegate: marieShouldNotHavePushDelegate)
+		marieCore.pushNotificationEnabled = false
+		marieCore.autoIterateEnabled = true
+		
+		let paulineAccount = paulineCore.defaultAccount!
+		let enablePushParams = paulineAccount.params!.clone()
+		enablePushParams?.remotePushNotificationAllowed = true
+		paulineAccount.params = enablePushParams
+		
+		//let testToken = (UIApplication.shared.delegate as! AppDelegate).pushDeviceToken
+		//paulineCore.didRegisterForRemotePush(deviceToken: &(UIApplication.shared.delegate as! AppDelegate).pushDeviceToken)
+		
+		paulineCore.didRegisterForRemotePush(deviceToken: Factory.Instance.userData)
+		paulineCore.autoIterateEnabled = true
+		
+		let remoteTokenAdded = expectation(description: "Test")
+		remoteTokenAdded.assertForOverFulfill = false
+		let paulineRegisterDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			let token = account.params!.pushNotificationConfig!.remoteToken
+			if (!token.isEmpty) {
+				remoteTokenAdded.fulfill()
+			}
+		})
+		paulineAccount.addDelegate(delegate: paulineRegisterDelegate)
+		waitForExpectations(timeout: 15)
+
+		
+		
+		pushReceivedExpect = expectation(description: "Push Notification received")
+		pushReceivedExpect.assertForOverFulfill = false
+		NotificationCenter.default.addObserver(self,
+											   selector:#selector(self.receivedPushNotificationCallback),
+											   name: NSNotification.Name(rawValue: kPushNotificationReceived),
+											   object:nil);
+		paulineCore.autoIterateEnabled = false
+		let chatParams = try! marieCore.createDefaultChatRoomParams()
+		chatParams.backend = ChatRoomBackend.Basic
+		let marieChatroom = try! marieCore.createChatRoom(params: chatParams, localAddr: marieAccount.contactAddress, participants: [paulineAccount.contactAddress!])
+		let chatMsg = try! marieChatroom.createMessageFromUtf8(message: "TestMessage")
+		chatMsg.send()
+		
+		waitForExpectations(timeout: 100)
+		paulineCore.autoIterateEnabled = true
+		let expectMessageIncoming = expectation(description: "Incoming Push Received")
+		let paulineIncomingMessageDelegate = CoreDelegateStub(onMessageReceived: { (lc: Core, chatroom: ChatRoom, message: ChatMessage) in
+			expectMessageIncoming.fulfill()
+		})
+		paulineCore.addDelegate(delegate: paulineIncomingMessageDelegate)
+	}
+ }
