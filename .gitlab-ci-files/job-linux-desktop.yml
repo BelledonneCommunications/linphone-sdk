@@ -136,7 +136,8 @@
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     - cp index.html ${CI_PROJECT_DIR}/results
-    - echo $CI_JOB_STARTED_AT > ${CI_PROJECT_DIR}/results/tests_timestamp
+    - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
+    - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
 
   artifacts:
     paths:
