@@ -19,18 +19,18 @@ RUN patched_glibc=glibc-linux4-2.33-4-x86_64.pkg.tar.zst && \
     bsdtar -C / -xvf "$patched_glibc"
 
 # Install common general tools
-RUN pacman --noconfirm --noprogressbar -Syu && \
+RUN pacman --noconfirm --noprogressbar -Syu --ignore glibc && \
     pacman --noconfirm --noprogressbar -S nano sudo vim && \
     pacman -Scc
 
 # Install development tools
-RUN pacman --noconfirm --noprogressbar -Syu && \
+RUN pacman --noconfirm --noprogressbar -Syu --ignore glibc && \
     pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make nasm ninja openssh patch pkgconf python-pip python-six yasm && \
     pacman -Scc && \
     pip install pystache
 
 # Install linphone & flexisip dependencies development packages
-RUN pacman --noconfirm --noprogressbar -Syu && \
+RUN pacman --noconfirm --noprogressbar -Syu --ignore glibc && \
     pacman --noconfirm --noprogressbar -S alsa-lib ffmpeg glew gsm jansson libbsd libjpeg-turbo libsrtp libvpx libxml2 libxv mariadb mbedtls mesa net-snmp openssl opus postgresql protobuf pulseaudio qt5-base qt5-declarative qt5-quickcontrols2 qt5-speech qt5-svg qt5-tools speex speexdsp sqlite v4l-utils xerces-c xsd && \
     pacman -Scc
 
