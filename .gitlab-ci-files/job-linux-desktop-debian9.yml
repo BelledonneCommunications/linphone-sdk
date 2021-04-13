@@ -113,13 +113,13 @@ job-debian9-ninja-gcc-smallsdk:
 #Commented until fix for ipv6 for debian 8/9
 test-bctoolbox-debian9:
   extends: .test-bctoolbox
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-debian9:
   extends: .test-bellesip
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
@@ -128,26 +128,26 @@ test-bellesip-debian9:
 
 test-belr-debian9:
   extends: .test-belr
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-belcard-debian9:
   extends: .test-belcard
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-debian9:
   extends: .test-bzrtp
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-debian9:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone:$DEBIAN_9_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  dependencies:
+  needs:
     - job-debian9-ninja-gcc
   variables:
     PLATFORM: linux-debian9
