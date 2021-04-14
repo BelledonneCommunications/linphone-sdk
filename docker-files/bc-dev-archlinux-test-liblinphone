@@ -1,4 +1,5 @@
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20210217_init
+ARG tag=20210217_init
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:${tag}
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 

@@ -30,7 +30,7 @@ job-docker-rebuild-archlinux-ms-test-image:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-archlinux-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-archlinux-test-mediastreamer --build-arg tag=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
 
@@ -49,7 +49,7 @@ job-docker-rebuild-archlinux-liblinphone-test-image:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-archlinux-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-archlinux-test-liblinphone --build-arg tag=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated
 

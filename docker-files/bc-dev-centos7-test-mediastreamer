@@ -1,2 +1,3 @@
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:20210217_python3
-RUN sudo yum -y install alsa-utils pulseaudio 
+ARG tag=20210217_python3
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:${tag}
+RUN sudo yum -y install alsa-utils pulseaudio
