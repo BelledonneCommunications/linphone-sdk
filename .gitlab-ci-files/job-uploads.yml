@@ -186,7 +186,12 @@ job-macosx-upload:
     - job-macosx-xcode
 
   script:
-    - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$DEPLOY_RELEASES_DIRECTORY/macosx/sdk
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
     - pod repo remove linphone-sdk-macosx || true
     - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git master
     - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
@@ -244,14 +249,20 @@ job-debian-doc-upload:
 
   only:
     variables:
-      - $NIGHTLY_MASTER
+      - $UPLOAD_C_CPP_DOC
 
   needs:
     - job-debian9-ninja-gcc
 
   script:
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
     #getting the version number to push the right version of the doc
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | sed -e 's/-.*//g')
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
         if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
@@ -261,8 +272,8 @@ job-debian-doc-upload:
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
 
 #################################################
 # Bzrtp doc upload
@@ -280,8 +291,14 @@ job-bzrtp-doc-upload:
     - job-debian9-ninja-gcc
 
   script:
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
     #getting the version number to push the right version of the doc
-    - BZRTP_VERSION=$(git -C bzrtp describe | sed -e 's/-.*//g')
+    - BZRTP_VERSION=$(git -C bzrtp describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
         if [[ $(git -C bzrtp describe) =~ .*(alpha|beta).* ]];
@@ -290,7 +307,7 @@ job-bzrtp-doc-upload:
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/bzrtp-$BZRTP_VERSION/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/bzrtp-$BZRTP_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
 
 #################################################
 # Lime doc upload
@@ -308,8 +325,13 @@ job-lime-doc-upload:
     - job-debian9-ninja-gcc
 
   script:
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
     #getting the version number to push the right version of the doc
-    - LIME_VERSION=$(git -C lime describe | sed -e 's/-.*//g')
+    - LIME_VERSION=$(git -C lime describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
         if [[ $(git -C lime describe) =~ .*(alpha|beta).* ]];
@@ -318,7 +340,7 @@ job-lime-doc-upload:
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
 
 
 #################################################
