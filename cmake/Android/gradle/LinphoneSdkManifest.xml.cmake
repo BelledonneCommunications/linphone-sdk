@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <!-- Needed for bluetooth headset -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- To vibrate while incoming call -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- End of SDK required permissions -->
 	
 </manifest>
