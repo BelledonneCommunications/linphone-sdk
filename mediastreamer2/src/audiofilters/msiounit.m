@@ -719,10 +719,8 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	
 	if (au_holder.audio_session_activated && activated){
 		ms_warning("Callkit notifies that AVAudioSession is activated while it was supposed to be already activated. It means that a device disconnection happened.");
-		/* Do first as if the session was deactivated */
-		if ([au_holder audio_unit_state] == MSAudioUnitStarted) {
-			[au_holder recreate_audio_unit];
-		}
+		/* The audio unit has to be re-created. Not documented anywhere but shown by direct experience. */
+		[au_holder recreate_audio_unit];
 	}
 	
 	[au_holder setAudio_session_activated:activated];
