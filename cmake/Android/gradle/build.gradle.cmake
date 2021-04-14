@@ -178,6 +178,7 @@ task copyProguard(type: Copy) {
 task copyAssets(type: Sync) {
     from rootSdk
     into "${buildDir}/sdk-assets/assets/org.linphone.core"
+    exclude '**/doc/*'
     include '**/*.png'
     include '**/*.pem'
     include '**/*.mkv'
