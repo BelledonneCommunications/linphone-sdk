@@ -40,15 +40,26 @@ Linphone-sdk's git repository comprises git submodules. It must be cloned with t
 
 ### Windows
 
-SDK compilation is supported on Visual Studio 15 2017 and `MSYS2` https://www.msys2.org/.
-You don't have to manually install `Yasm` and `Nasm` as they come from MSYS2 packages.
+SDK compilation is supported on `Visual Studio 15 2017` and `MSYS2` https://www.msys2.org/.
+
+#### MSYS2
+
+Follow MSYS2 instructions on their "Getting Started" page.
+
+For MinGW32, install the needed tools in `MSYS2 MSYS` console:
+ - `pacman -Sy --needed base-devel mingw-w64-i686-toolchain`
+If you are using python from MSYS:
+ - `pacman -S python3-pip` in `MSYS2 MSYS` console
+ - `python3 -m pip install pystache six` in `cmd`
+
+When building the SDK, it will install automatically from MSYS2 : `perl`, `yasm`, `gawk`, `bzip2`, `nasm, `sed`, `patch`, `pkg-config`, `gettext`, `glib2` and `intltool` (if needed)
 
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
 
-Finally add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` to the PATH environement variable from windows advanced settings.
+Finally add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` (the last one is needed by cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
 
 ## Build
 
