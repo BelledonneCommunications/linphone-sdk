@@ -48,8 +48,10 @@
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     LINPHONESDK_PLATFORM: Desktop
     OUTPUT_ZIP_FOLDER: win32
+    MINGW_TYPE: mingw32
   script:
     #handling the case of previous job cancellation
+    - set PATH=%PATH%;C:\msys64\%MINGW_TYPE%\bin
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
@@ -83,7 +85,9 @@
       - $SKIP_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    MINGW_TYPE: mingw32
   script:
+    - set PATH=%PATH%;C:\msys64\%MINGW_TYPE%\bin
     #handling the case of previous job cancellation
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -175,6 +179,7 @@ job-windows-vs2017-uwp-scheduled:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
     OUTPUT_ZIP_FOLDER: uwp
+    MINGW_TYPE: mingw64
 
 job-windows-vs2017-win32store-scheduled:
   extends: .job-windows-vs2017-scheduled
@@ -281,6 +286,7 @@ test-linphone-windows-uwp:
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
+    MINGW_TYPE: mingw64
 
   before_script:
     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
@@ -289,7 +295,7 @@ test-linphone-windows-uwp:
 
   script:
   # Build VS project
-    - set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86
+    - set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86;C:\msys64\%MINGW_TYPE%\bin
     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
     - set LINPHONE_PATH=%cd%
     - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
