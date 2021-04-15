@@ -2587,7 +2587,7 @@ static void ice_schedule_turn_channel_bind_refresh(IceCheckList *cl, int compone
 
 static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *cl, RtpSession *rtp_session, const OrtpEventData *evt_data, const MSStunMessage *msg, const MSStunAddress *remote_addr) {
 	bctbx_list_t *base_elem;
-	IceCandidate *candidate;
+	IceCandidate *base_candidate;
 	OrtpEvent *ev;
 	bool_t stun_server_response = FALSE;
 	struct sockaddr *servaddr = (struct sockaddr *)&cl->session->ss;
@@ -2611,20 +2611,36 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 			memset(&srflx_addr, 0, sizeof(srflx_addr));
 			memset(&relay_addr, 0, sizeof(relay_addr));
 			if ((componentID > 0) && (ice_parse_stun_server_response(msg, &srflx_addr, &relay_addr) >= 0)) {
-				ComponentID_Family cf = { componentID, AF_INET };
-				if (srflx_addr.family == MS_STUN_ADDR_FAMILY_IPV6) cf.family = AF_INET6;
-				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
-				if ((base_elem == NULL) && (cf.family == AF_INET)) {
-					/* Handle NAT64 case where the local candidate is IPv6 but the reflexive candidate returned by STUN is IPv4. */
-					cf.family = AF_INET6;
+				IceTransportAddress taddr = {0};
+				struct sockaddr_storage recv_addr;
+				socklen_t recv_addr_len = sizeof(recv_addr);
+				TransportAddress_ComponentID taci;
+				
+				ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addr_len);
+				bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&recv_addr, (struct sockaddr *)&recv_addr, &recv_addr_len);
+				ice_fill_transport_address_from_sockaddr(&taddr, (struct sockaddr*)&recv_addr, recv_addr_len);
+				taci.componentID = componentID;
+				taci.ta = &taddr;
+				base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_transport_address_and_componentID, &taci);
+				
+				if (cl->rtp_turn_context && ms_turn_context_get_transport(cl->rtp_turn_context) != MS_TURN_CONTEXT_TRANSPORT_UDP){
+					/* fallback code for TCP/TLS, where recv_addr is not needed */
+					ComponentID_Family cf = { componentID, AF_INET };
+					if (srflx_addr.family == MS_STUN_ADDR_FAMILY_IPV6) cf.family = AF_INET6;
 					base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+					if ((base_elem == NULL) && (cf.family == AF_INET)) {
+						/* Handle NAT64 case where the local candidate is IPv6 but the reflexive candidate returned by STUN is IPv4. */
+						cf.family = AF_INET6;
+						base_elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+					}
 				}
+				
 				if (base_elem != NULL) {
-					candidate = (IceCandidate *)base_elem->data;
+					base_candidate = (IceCandidate *)base_elem->data;
 					memset(srflx_addr_str, 0, sizeof(srflx_addr));
 					ms_stun_address_to_ip_address(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str), &srflx_port);
 					if (srflx_port != 0) {
-						candidate = ice_add_local_candidate(cl, "srflx", ms_stun_family_to_af(srflx_addr.family), srflx_addr_str, srflx_port, componentID, candidate);
+						ice_add_local_candidate(cl, "srflx", ms_stun_family_to_af(srflx_addr.family), srflx_addr_str, srflx_port, componentID, base_candidate);
 						ms_stun_address_to_printable_ip_address(&srflx_addr, srflx_addr_str, sizeof(srflx_addr_str));
 						ms_message("ice: Add candidate obtained by STUN/TURN: %s:srflx", srflx_addr_str);
 
@@ -2639,12 +2655,14 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 								if (cl->session->turn_enabled) {
 									ms_turn_context_set_allocated_relay_addr(request->turn_context, relay_addr);
 								}
-								ice_add_local_candidate(cl, "relay", ms_stun_family_to_af(relay_addr.family), relay_addr_str, relay_port, componentID, NULL);
+								ice_add_local_candidate(cl, "relay", ms_stun_family_to_af(relay_addr.family), relay_addr_str, relay_port, componentID, base_candidate);
 								ms_stun_address_to_printable_ip_address(&relay_addr, relay_addr_str, sizeof(relay_addr_str));
 								ms_message("ice: Add candidate obtained by STUN/TURN: %s:relay", relay_addr_str);
 							}
 						}
 					}
+				}else{
+					ms_error("Received allocate response through an unknown local interface.");
 				}
 				request->responded = TRUE;
 				if (cl->session->turn_enabled) {
@@ -4119,17 +4137,7 @@ static int ice_find_gathering_stun_server_request(const IceStunServerRequest *re
 static void ice_remove_gathering_stun_server_requests(IceCheckList *cl) {
 	bctbx_list_t *elem = cl->stun_server_requests;
 	while (elem != NULL) {
-		/* FIXME: Temporary workaround for -Wcast-function-type. */
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic push")
-			_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-		#endif // if __GNUC__ >= 8
-
 		elem = bctbx_list_find_custom(cl->stun_server_requests, (bctbx_compare_func)ice_find_gathering_stun_server_request, NULL);
-
-		#if __GNUC__ >= 8
-			_Pragma("GCC diagnostic pop")
-		#endif // if __GNUC__ >= 8
 
 		if (elem != NULL) {
 			IceStunServerRequest *request = (IceStunServerRequest *)elem->data;
@@ -4252,17 +4260,8 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session)
 	/* Send STUN/TURN server requests (to gather candidates, create/refresh TURN permissions, refresh TURN allocations or bind TURN channels). */
 	bctbx_list_for_each2(cl->stun_server_requests, (void (*)(void*,void*))ice_send_stun_server_requests, cl);
 
-	/* FIXME: Temporary workaround for -Wcast-function-type. */
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic push")
-		_Pragma("GCC diagnostic ignored \"-Wcast-function-type\"")
-	#endif // if __GNUC__ >= 8
 
 	cl->stun_server_requests = bctbx_list_remove_custom(cl->stun_server_requests, (bctbx_compare_func)ice_compare_stun_server_requests_to_remove, NULL);
-
-	#if __GNUC__ >= 8
-		_Pragma("GCC diagnostic pop")
-	#endif // if __GNUC__ >= 8
 
 	/* Send event if needed. */
 	if ((cl->session->send_event == TRUE) && (ice_compare_time(curtime, cl->session->event_time) >= 0)) {
