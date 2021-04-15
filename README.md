@@ -40,23 +40,19 @@ Linphone-sdk's git repository comprises git submodules. It must be cloned with t
 
 ### Windows
 
-SDK compilation is supported on Visual Studio 15 2017.
-Setting the build environment on Windows is a bit tricky.
-In addition to the common components listed above, these components must be installed:
- - MinGW (select all installer options except Ada and Fortran)
- - Yasm:
-	- download yasm-1.3.0-win32.exe
-	- copy it to a `bin` directory of your user directory,
-	- rename yasm-1.3.0-win32.exe as yasm.exe
+SDK compilation is supported on Visual Studio 15 2017 and `MSYS2` https://www.msys2.org/.
+You don't have to manually install `Yasm` and `Nasm` as they come from MSYS2 packages.
 
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
 
-Finally add your user `bin` directory and `C:\Mingw\bin` to the PATH environement variable from windows advanced settings.
+Finally add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` to the PATH environement variable from windows advanced settings.
 
 ## Build
+
+A build with the Ninja generator (`-G "Ninja"` )is prefered for speed-up build times.
 
 The generic steps to build the SDK are:
 
