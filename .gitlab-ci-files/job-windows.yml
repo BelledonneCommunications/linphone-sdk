@@ -256,92 +256,89 @@ job-windows-vs2017-win32store-scheduled:
 
 test-linphone-windows-win32-msbuild:
   extends: .test-linphone-windows-win32
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS_WIN32_MSBUILD
-      - $ENABLE_WINDOWS_TESTS
   needs:
     - job-windows-vs2017-win32-scheduled
-test-linphone-windows-win32-ninja:
-  extends: .test-linphone-windows-win32
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
-      - $ENABLE_WINDOWS_TESTS
-  needs:
-    - job-windows-vs2017-ninja-win32
 
-test-linphone-windows-uwp:
-  stage: test
-  extends: .job-prepare
-  tags: [ "windows-tests" ]
-  allow_failure: true
-  needs:
-    - job-windows-vs2017-uwp-scheduled
-  only:
-    variables:
-      - $ENABLE_WINDOWS_UWP_TESTS
-      - $ENABLE_WINDOWS_TESTS
-  variables:
-    #no need to fetch repo, all the needed files are in input artifacts
-    GIT_SUBMODULE_STRATEGY: none
-
-  before_script:
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-
-  script:
-  # Build VS project
-    - set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86
-    - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
-    - set LINPHONE_PATH=%cd%
-    - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-    - powershell -command "Remove-Item x64 -Recurse -Force ; exit 0"
-    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
-    - ..\..\..\cmake\Windows\nuget\nuget.exe Restore
-    - msbuild /t:restore
-    - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
-    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
-    - makeappx unpack /p x64\Release\LinphoneTester_uwp\LinphoneTester_uwp_1.0.0.0_x64.appx /d x64\Release\LinphoneTester_uwp\ /o
-    - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
-    - call UpdatePermissions.bat
-    - echo %USERDOMAIN%\%USERNAME%
-    - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
-    - start /wait LinphoneTester_uwp.exe --parallel --parallel-max 10
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
-
-  after_script:
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    - powershell -command "(Get-AppxPackage *LinphoneTester-uwp*).PackageFamilyName" > packageFolder.txt
-    - set /p PACKAGE_FOLDER=<packageFolder.txt
-    - del packageFolder.txt
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\LibLinphoneWindows10* "%CI_PROJECT_DIR%/results"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-
-    #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
-    #- echo %cd%
-    #- dir
-    #- dir /b liblinphone_tester.exe_*
-    #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
-    #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
-
-    #- echo %CI_PROJECT_DIR%
-    #- mkdir "%CI_PROJECT_DIR%/results"
-    #- dir
-    #- copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    #- copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
-
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - results/LibLinphoneWindows10-Results.xml
-    expire_in: 4 week
+# test-linphone-windows-win32-ninja:
+#   extends: .test-linphone-windows-win32
+#   only:
+#     variables:
+#       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+#       - $ENABLE_WINDOWS_TESTS
+#   needs:
+#     - job-windows-vs2017-ninja-win32
+#
+# test-linphone-windows-uwp:
+#   stage: test
+#   extends: .job-prepare
+#   tags: [ "windows-tests" ]
+#   allow_failure: true
+#   needs:
+#     - job-windows-vs2017-uwp-scheduled
+#   only:
+#     variables:
+#       - $ENABLE_WINDOWS_UWP_TESTS
+#       - $ENABLE_WINDOWS_TESTS
+#   variables:
+#     #no need to fetch repo, all the needed files are in input artifacts
+#     GIT_SUBMODULE_STRATEGY: none
+#
+#   before_script:
+#     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
+#     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
+#     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
+#
+#   script:
+#   # Build VS project
+#     - set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86
+#     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
+#     - set LINPHONE_PATH=%cd%
+#     - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
+#     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
+#     - powershell -command "Remove-Item x64 -Recurse -Force ; exit 0"
+#     - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
+#     - ..\..\..\cmake\Windows\nuget\nuget.exe Restore
+#     - msbuild /t:restore
+#     - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
+#     - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
+#     - makeappx unpack /p x64\Release\LinphoneTester_uwp\LinphoneTester_uwp_1.0.0.0_x64.appx /d x64\Release\LinphoneTester_uwp\ /o
+#     - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
+#     - call UpdatePermissions.bat
+#     - echo %USERDOMAIN%\%USERNAME%
+#     - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
+#     - start /wait LinphoneTester_uwp.exe --parallel --parallel-max 10
+#     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
+#     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
+#     #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
+#
+#   after_script:
+#     - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
+#     - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
+#     - powershell -command "(Get-AppxPackage *LinphoneTester-uwp*).PackageFamilyName" > packageFolder.txt
+#     - set /p PACKAGE_FOLDER=<packageFolder.txt
+#     - del packageFolder.txt
+#     - mkdir "%CI_PROJECT_DIR%/results"
+#     - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\LibLinphoneWindows10* "%CI_PROJECT_DIR%/results"
+#     - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
+#
+#     #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
+#     #- echo %cd%
+#     #- dir
+#     #- dir /b liblinphone_tester.exe_*
+#     #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
+#     #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
+#
+#     #- echo %CI_PROJECT_DIR%
+#     #- mkdir "%CI_PROJECT_DIR%/results"
+#     #- dir
+#     #- copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
+#     #- copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
+#
+#   artifacts:
+#     paths:
+#       - results/*
+#     when: always
+#     reports:
+#       junit:
+#         - results/LibLinphoneWindows10-Results.xml
+#     expire_in: 4 week
