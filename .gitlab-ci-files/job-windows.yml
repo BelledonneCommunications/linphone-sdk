@@ -135,9 +135,6 @@
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
-  except:
-    refs:
-      - schedules
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -259,15 +256,15 @@ test-linphone-windows-win32-msbuild:
   needs:
     - job-windows-vs2017-win32-scheduled
 
-# test-linphone-windows-win32-ninja:
-#   extends: .test-linphone-windows-win32
-#   only:
-#     variables:
-#       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
-#       - $ENABLE_WINDOWS_TESTS
-#   needs:
-#     - job-windows-vs2017-ninja-win32
-#
+test-linphone-windows-win32-ninja:
+  extends: .test-linphone-windows-win32
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-ninja-win32
+
 test-linphone-windows-uwp:
   stage: test
   extends: .job-prepare
