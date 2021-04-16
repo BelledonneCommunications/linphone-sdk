@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2010-2019 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
@@ -544,14 +544,14 @@ bool_t ice_check_list_remote_credentials_changed(IceCheckList *cl, const char *u
 	if ((cl->remote_ufrag == NULL) || (cl->remote_pwd == NULL)) {
 		if (cl->remote_ufrag == NULL) old_ufrag = cl->session->remote_ufrag;
 		else old_ufrag = cl->remote_ufrag;
-		if ((strlen(ufrag) != strlen(old_ufrag)) || (strcmp(ufrag, old_ufrag) != 0)) return TRUE;
+		if (old_ufrag && strcmp(ufrag, old_ufrag) != 0) return TRUE;
 		if (cl->remote_pwd == NULL) old_pwd = cl->session->remote_pwd;
 		else old_pwd = cl->remote_pwd;
-		if ((strlen(pwd) != strlen(old_pwd)) || (strcmp(pwd, old_pwd) != 0)) return TRUE;
+		if (old_pwd && strcmp(pwd, old_pwd) != 0) return TRUE;
 		return FALSE;
 	}
-	if (strlen(ufrag) != strlen(cl->remote_ufrag) || (strcmp(ufrag, cl->remote_ufrag) != 0)) return TRUE;
-	if (strlen(pwd) != strlen(cl->remote_pwd) || (strcmp(pwd, cl->remote_pwd) != 0)) return TRUE;
+	if (strcmp(ufrag, cl->remote_ufrag) != 0) return TRUE;
+	if (strcmp(pwd, cl->remote_pwd) != 0) return TRUE;
 	return FALSE;
 }
 
