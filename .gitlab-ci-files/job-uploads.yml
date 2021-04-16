@@ -659,6 +659,14 @@ job-test-upload-libl-ios:
     TESTER: "liblinphone"
     XML_FILENAME_START_PATTERN: "TEST"
 
+job-test-upload-libl-macosx-schedule:
+  extends: .job-test-report-upload-macos-scheduled
+  needs:
+    - test-liblinphone-macosx
+  variables:
+    PLATFORM: "macosx"
+    TESTER: "liblinphone"
+
 
 job-test-upload-bct-centos7:
   extends: .job-test-report-upload-linux-scheduled
