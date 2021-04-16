@@ -59,11 +59,11 @@ Visual Studio must also be properly configured with addons. Under "Tools"->"Obta
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
 
-Finally add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` (the last one is needed by cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
+In this order, add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` in your PATH (the last one is needed by cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
 
 ## Build
 
-A build with the Ninja generator (`-G "Ninja"` )is prefered for speed-up build times.
+A build with the Ninja generator (`-G "Ninja"` ) is prefered for speed-up build times.
 
 The generic steps to build the SDK are:
 
