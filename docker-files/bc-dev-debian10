@@ -47,6 +47,15 @@ RUN useradd -ms /bin/bash bc && \
 ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
 ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
 
+# Configure OpenSSL policy
+# Setting 'CipherString' to 'DEFAULT@SECLEVEL=1' forces libssl to allow
+# certificates which are signed with a SHA1 digest algorithm. This must
+# be done because BC's internal CA uses SHA1 for signatures, which is
+# forbidden by default since libssl v1.1.
+# Please keep this modification until the CA certificates has been updated
+# in each project.
+RUN sed -iE 's/^CipherString[ ]*=(.*)$/CipherString = DEFAULT@SECLEVEL=1/' /etc/ssl/openssl.cnf
+
 USER bc
 WORKDIR /home/bc
 COPY --chown=bc rpmmacros /home/bc/.rpmmacros
