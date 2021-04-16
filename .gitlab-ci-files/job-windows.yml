@@ -137,9 +137,6 @@
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
-  except:
-    refs:
-      - schedules
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -174,6 +171,7 @@ job-windows-vs2017-uwp-scheduled:
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_WINDOWS
       - $ENABLE_WINDOWS_UWP_TESTS
+      - $ENABLE_WINDOWS_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
@@ -188,17 +186,11 @@ job-windows-vs2017-win32store-scheduled:
 
 #TODO : FACTORIZE TESTERS CODE
 
-test-linphone-windows-win32:
+.test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
   tags: [ "windows" ]
   allow_failure: true
-  needs:
-    - job-windows-vs2017-win32-scheduled
-    - job-windows-vs2017-ninja-win32
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
@@ -259,6 +251,23 @@ test-linphone-windows-win32:
         - results/BCUnitAutomated-win-Results.xml
     expire_in: 4 week
 
+test-linphone-windows-win32-msbuild:
+  extends: .test-linphone-windows-win32
+  only:
+    variables:
+      - $DEPLOY_RUN_WINDOWS
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-win32-scheduled
+
+test-linphone-windows-win32-ninja:
+  extends: .test-linphone-windows-win32
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-ninja-win32
 
 test-linphone-windows-uwp:
   stage: test
@@ -269,8 +278,8 @@ test-linphone-windows-uwp:
     - job-windows-vs2017-uwp-scheduled
   only:
     variables:
-      - $ENABLE_WINDOWS_TESTS
       - $ENABLE_WINDOWS_UWP_TESTS
+      - $ENABLE_WINDOWS_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
