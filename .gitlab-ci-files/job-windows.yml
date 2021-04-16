@@ -122,8 +122,6 @@
     variables:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
-      - $PACKAGE_RUN_WINDOWS
-      - $DEPLOY_RUN_WINDOWS
       - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
@@ -136,9 +134,6 @@
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
-  except:
-    refs:
-      - schedules
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -163,17 +158,11 @@ job-windows-vs2017-win32-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #TODO : FACTORIZE TESTERS CODE
 
-test-linphone-windows-win32:
+.test-linphone-windows-win32:
   stage: test
   extends: .job-prepare
   tags: [ "windows" ]
   allow_failure: true
-  needs:
-    - job-windows-vs2017-win32-scheduled
-    - job-windows-vs2017-ninja-win32
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
@@ -233,3 +222,20 @@ test-linphone-windows-win32:
       junit:
         - results/BCUnitAutomated-win-Results.xml
     expire_in: 4 week
+
+test-linphone-windows-win32-msbuild:
+  extends: .test-linphone-windows-win32
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-win32-scheduled
+
+test-linphone-windows-win32-ninja:
+  extends: .test-linphone-windows-win32
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-ninja-win32
