@@ -69,25 +69,25 @@ test-belr-centos7:
   extends: .test-belr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-belr-centos7-mr:
-  extends: .test-belr-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+# test-belr-centos7-mr:
+#   extends: .test-belr-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 test-belcard-centos7:
   extends: .test-belcard
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-belcard-centos7-mr:
-  extends: .test-belcard-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+# test-belcard-centos7-mr:
+#   extends: .test-belcard-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 test-bzrtp-centos7:
   extends: .test-bzrtp
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-bzrtp-centos7-mr:
-  extends: .test-bzrtp-mr
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+# test-bzrtp-centos7-mr:
+#   extends: .test-bzrtp-mr
+#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 .factorize_bs_centos7: &docker_image_needs_tag_platform_devtoolset_bs
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
@@ -104,9 +104,9 @@ test-bellesip-centos7:
   extends: .test-bellesip
   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
-test-bellesip-centos7-mr:
-  extends: .test-bellesip-mr
-  <<: *docker_image_needs_tag_platform_devtoolset_bs
+# test-bellesip-centos7-mr:
+#   extends: .test-bellesip-mr
+#   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
 .factorize_ms2_centos7: &docker_image_needs_platform_devtoolset_ms
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
@@ -121,9 +121,9 @@ test-mediastreamer-centos7:
   extends: .test-mediastreamer
   <<: *docker_image_needs_platform_devtoolset_ms
 
-test-mediastreamer-centos7-mr:
-  extends: .test-mediastreamer-mr
-  <<: *docker_image_needs_platform_devtoolset_ms
+# test-mediastreamer-centos7-mr:
+#   extends: .test-mediastreamer-mr
+#   <<: *docker_image_needs_platform_devtoolset_ms
 
 .factorize_liblinphone_centos7: &docker_image_needs_platform_devtoolset_libl
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
