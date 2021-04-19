@@ -507,38 +507,31 @@ job-xamarin-upload:
 
     #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
     #navigation to the branch folder and creation if it doesn't exists
-    - echo "if [[ -n \$(find -maxdepth 1 -name $ESCAPED_BRANCH) ]];" | tee -a allure_launch_script
-    - echo "  then cd $ESCAPED_BRANCH  || exit 1; else mkdir $ESCAPED_BRANCH && cd $ESCAPED_BRANCH || exit 1;" | tee -a allure_launch_script
-    - echo "fi || true" | tee -a allure_launch_script
+    - echo "mkdir -p $ESCAPED_BRANCH || exit 1;" | tee -a allure_launch_script
+    - echo "cd $ESCAPED_BRANCH  || exit 1;" | tee -a allure_launch_script
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
-    #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
-    - echo FIND_DIR="\$(find -path './$SDK_VERSION*/$PLATFORM/$TESTER')" | tee -a allure_launch_script
+    #we search for a report associated to a commit directory
+    # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
+    # LIMITATION : on multiple retries, no guarantee to pick the latest
+    - echo FIND_DIR="\$(find -maxdepth 1 -name '$SDK_VERSION*')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then cd \$(echo \$FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
-    #ugly workaround while we are using cd to reuse the rest of the script without rewriting it
-    - echo "  cd ../.. || exit 1;" | tee -a allure_launch_script
-    - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
+    - echo "  then cd $(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    - echo "  CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo " LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo " mkdir $SDK_VERSION-$TEST_REPORT_ID && cd $SDK_VERSION-$TEST_REPORT_ID || exit 1 ;" | tee -a allure_launch_script
-    - echo " CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
-    - echo "fi" | tee -a allure_launch_script
-    - echo "if [[ -n \$(ls | grep $PLATFORM) ]];" | tee -a allure_launch_script
-    - echo "  then cd $PLATFORM || exit 1" | tee -a allure_launch_script
-    - echo "else" | tee -a allure_launch_script
-    - echo "  mkdir $PLATFORM && cd $PLATFORM || exit 1" | tee -a allure_launch_script
-    - echo "fi" | tee -a allure_launch_script
-    - echo "if [[ -n \$(ls | grep $TESTER) ]];" | tee -a allure_launch_script
-    - echo "  then cd $TESTER || exit 1" | tee -a allure_launch_script
-    - echo "else" | tee -a allure_launch_script
-    - echo "  mkdir $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
+    #LAST_MODIFIED_FOLDER will be either empty (no reports in branch), or containing the latest modified report (will likely be the last created in most cases)
+    #LIMITATION : if the latest modified report isn't the latest report, the history order can be messed up
+    - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
+    - echo "  mkdir $SDK_VERSION-$TEST_REPORT_ID && cd $SDK_VERSION-$TEST_REPORT_ID || exit 1 ;" | tee -a allure_launch_script
+    - echo "  CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
 
+    - echo "mkdir -p $PLATFORM && cd $PLATFORM || exit 1" | tee -a allure_launch_script
+    - echo "mkdir -p $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
     #Not currently needed
     #- echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
-    #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
+    #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it (for a same given branch)
     #in the new folder, to be used by the new allure report generation
 
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
@@ -547,9 +540,10 @@ job-xamarin-upload:
     #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
     - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
-    - echo "  then" | tee -a allure_launch_script
-    - echo "  cd ../../../../\$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
-    - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "then" | tee -a allure_launch_script
+    - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
+    #LIMITATION : no guarantee that find orders the paths by creation date
+    - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
     - echo "  cp -r ../../../../\$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
