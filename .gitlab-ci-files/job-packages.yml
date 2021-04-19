@@ -9,11 +9,6 @@ job-windows-vs2017-nuget-package:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
     - job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
   script:
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
     - cd build-desktop
@@ -40,10 +35,6 @@ job-xamarin-package:
   needs:
     - job-ios-ninja
     - job-android-makefile-r20
-  only:
-    variables:
-      - $NIGHTLY_RELEASE
-      - $UPLOAD_XAMARIN
   script:
     #removing previous results directory to avoid getting incorrect artifacts for current launch
     - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;
