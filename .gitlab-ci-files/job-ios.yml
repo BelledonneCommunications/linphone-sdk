@@ -44,11 +44,6 @@
 
 job-ios-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
@@ -71,11 +66,6 @@ job-ios-ninja:
 
 job-ios-ninja-allcodecs:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -85,11 +75,6 @@ job-ios-ninja-allcodecs:
 
 job-ios-ninja-g729:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
   extends: job-ios-ninja
@@ -97,22 +82,12 @@ job-ios-ninja-g729:
 
 job-ios-ninja-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: job-ios-ninja
 
 
 job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
@@ -123,14 +98,6 @@ job-ios-ninja-smallsdk:
 # XCode
 #################################################
 job-ios-xcode:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
-
   variables:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DLINPHONESDK_IOS_BASE_URL=$IOS_RELEASES_URL -DENABLE_SWIFT_WRAPPER=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS
@@ -150,11 +117,6 @@ test-liblinphone-ios:
   allow_failure: true
   needs:
     - job-ios-xcode
-
-  only:
-    variables:
-      - $ENABLE_IOS_TESTS
-
   variables:
     LOG_PATTERN: "logLiblinphoneIos"
     XML_PATTERN: "TEST"
