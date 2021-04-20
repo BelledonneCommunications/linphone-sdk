@@ -38,9 +38,11 @@ struct v4mState;
 	AVCaptureSession *session;
 	MSYuvBufAllocator *allocator;
 	MSVideoSize usedSize;
+	MSVideoSize usedSizeBeforeForcing; // Keep a backup of needed size when it is not changed by Linphone
 	ms_mutex_t mutex;
 	queue_t rq;
 	BOOL isStretchingCamera;
+	BOOL changingFormat;
 };
 
 - (id)init;
@@ -48,7 +50,11 @@ struct v4mState;
 - (int)start;
 - (int)stop;
 - (void)setSize:(MSVideoSize) size;
+- (void)forceSize:(MSVideoSize) size;// Overload current size and backup old size
+-(BOOL)isForcedSize;				// Test if the current size has been forced
 - (MSVideoSize)getSize;
+-(BOOL)resumeChangingFormat;		// Set changingFormat to FALSE and return if it was changing or not.
+-(BOOL)isChangingFormat;			// Test if the current state is in format transition
 - (void)initDevice:(NSString*)deviceId;
 - (void)openDevice:(NSString*) deviceId;
 - (int)getPixFmt;
@@ -66,50 +72,52 @@ static void capture_queue_cleanup(void* p) {
     [capture release];
 }
 
-
-
 @implementation NsMsWebCam 
 
 - (void)captureOutput:(AVCaptureOutput *)captureOutput didOutputSampleBuffer:( CMSampleBufferRef)sampleBuffer
 	   fromConnection:(AVCaptureConnection *)connection  {	//ms_message("AVCapture: callback is working before");
 	ms_mutex_lock(&mutex);
-	CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer);
-	//OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
-	if (rq.q_mcount >= 5){
-		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
-		ms_warning("AVCapture: dropping %i frames", rq.q_mcount);
-		flushq(&rq, 0);
-	}
-	
-	size_t numberOfPlanes = CVPixelBufferGetPlaneCount(frame);
-	MSPicture pict;
-	size_t w = CVPixelBufferGetWidth(frame);
-	size_t h = CVPixelBufferGetHeight(frame);
-	mblk_t *yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
-	
-	CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
-	if (kCVReturnSuccess != status) {
-		ms_error("Error locking base address: %i", status);
-		return;
-	}
-	size_t p;
-	for (p=0; p < numberOfPlanes; p++) {
-		size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
-		size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, p);
-		size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
-		uint8_t *dst_plane = pict.planes[p];
-		uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
-		size_t l;
-		
-		for (l=0; l<plane_height; l++) {
-			memcpy(dst_plane, src_plane, plane_width);
-			src_plane += fullrow_width;
-			dst_plane += plane_width;
+	if(changingFormat){// If we are changing format, all current frames should be flushed. This step here is just to be sure.
+		if(rq.q_mcount>0)
+			flushq(&rq, 0);
+	}else{
+		CVImageBufferRef frame = CMSampleBufferGetImageBuffer(sampleBuffer);
+		//OSType pixelFormat = CVPixelBufferGetPixelFormatType(frame);
+		if (rq.q_mcount >= 5){
+			/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
+			ms_warning("AVCapture: dropping %i frames", rq.q_mcount);
+			flushq(&rq, 0);
 		}
+		size_t numberOfPlanes = CVPixelBufferGetPlaneCount(frame);
+		MSPicture pict;
+		size_t w = CVPixelBufferGetWidth(frame);
+		size_t h = CVPixelBufferGetHeight(frame);
+		mblk_t *yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
+
+		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
+		if (kCVReturnSuccess != status) {
+			ms_error("Error locking base address: %i", status);
+			return;
+		}
+		size_t p;
+		for (p=0; p < numberOfPlanes; p++) {
+			size_t fullrow_width = CVPixelBufferGetBytesPerRowOfPlane(frame, p);
+			size_t plane_width = CVPixelBufferGetWidthOfPlane(frame, p);
+			size_t plane_height = CVPixelBufferGetHeightOfPlane(frame, p);
+			uint8_t *dst_plane = pict.planes[p];
+			uint8_t *src_plane = CVPixelBufferGetBaseAddressOfPlane(frame, p);
+			size_t l;
+
+			for (l=0; l<plane_height; l++) {
+				memcpy(dst_plane, src_plane, plane_width);
+				src_plane += fullrow_width;
+				dst_plane += plane_width;
+			}
+		}
+		CVPixelBufferUnlockBaseAddress(frame, 0);
+		putq(&rq, yuv_block);
 	}
-	CVPixelBufferUnlockBaseAddress(frame, 0);
-	putq(&rq, yuv_block);
-	
+
 	//ms_message("AVCapture: callback is working after");
 	ms_mutex_unlock(&mutex);
  
@@ -124,6 +132,8 @@ static void capture_queue_cleanup(void* p) {
 	allocator = ms_yuv_buf_allocator_new();
 	isStretchingCamera = FALSE;
 	usedSize = MS_VIDEO_SIZE_VGA;
+	usedSizeBeforeForcing = MS_VIDEO_SIZE_UNKNOWN;
+	changingFormat = FALSE;
 	return self;
 }
 
@@ -179,11 +189,7 @@ static void capture_queue_cleanup(void* p) {
 	}
 	return 0;
 }
-- (void) resetVideoSettings {
-	[self stop];
-	ms_message("AVCapture: Resetting video settings to %dx%d", usedSize.width, usedSize.height);
-	[self start];
-}
+
 
 - (int)stop {
        if (session.running) {
@@ -289,7 +295,7 @@ static void capture_queue_cleanup(void* p) {
 		}else if (min.width > dimensions.width && min.height > dimensions.height){
 			min = dimensions;
 		}
-		
+
 		ms_message("\t- %dx%d", dimensions.width, dimensions.height);
 		if (dimensions.width <= desiredSize.width && dimensions.height <= desiredSize.height) {
 			if (dimensions.width > max.width && dimensions.height > max.height) {
@@ -308,8 +314,40 @@ static void capture_queue_cleanup(void* p) {
 	ms_message("AVCapture: used size is %ix%i", usedSize.width, usedSize.height);
 }
 
+-(BOOL)isForcedSize{
+	return usedSizeBeforeForcing.width != MS_VIDEO_SIZE_UNKNOWN_W && usedSizeBeforeForcing.height != MS_VIDEO_SIZE_UNKNOWN_H;
+}
+
+- (void)forceSize:(MSVideoSize)size {
+	changingFormat = TRUE;
+	flushq(&rq, 0);
+	if( ![self isForcedSize])
+		usedSizeBeforeForcing = usedSize;
+	usedSize=size;
+}
+
+- (void) resetVideoSize {
+	changingFormat = TRUE;
+	flushq(&rq, 0);
+	usedSize = usedSizeBeforeForcing;
+	usedSizeBeforeForcing = MS_VIDEO_SIZE_UNKNOWN;
+	ms_message("AVCapture: Resetting video size to %dx%d", usedSize.width, usedSize.height);
+}
+
 - (MSVideoSize)getSize {
 	return usedSize;
+}
+
+-(BOOL)isChangingFormat{
+	return changingFormat;
+}
+
+-(BOOL)resumeChangingFormat{
+	if(changingFormat){
+		changingFormat = FALSE;
+		return TRUE;
+	}else
+		return FALSE;
 }
 
 - (AVCaptureSession *)session {
@@ -348,8 +386,13 @@ static void v4m_init(MSFilter *f) {
 static int v4m_start(MSFilter *f, void *arg) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
-	[s->webcam start];
-	ms_message("AVCapture video device opened.");
+
+	if([s->webcam resumeChangingFormat]){// A force change that comes from frames doesn't need to restart camera
+		ms_message("AVCapture video device resumed to take account of new frame size.");
+	}else{
+		[s->webcam start];
+		ms_message("AVCapture video device opened.");
+	}
 	[myPool drain];
 	return 0;
 }
@@ -357,8 +400,11 @@ static int v4m_start(MSFilter *f, void *arg) {
 static int v4m_stop(MSFilter *f, void *arg) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
-	[s->webcam stop];
-	ms_message("AVCapture video device closed.");
+	if(![s->webcam isChangingFormat]){// A force change that comes from frames doesn't need to restart camera
+		[s->webcam stop];
+		ms_message("AVCapture video device closed.");
+	}else
+		ms_message("AVCapture video device paused before taking account of new frame size.");
 	[myPool drain];
 	return 0;
 }
@@ -366,6 +412,7 @@ static int v4m_stop(MSFilter *f, void *arg) {
 static void v4m_uninit(MSFilter *f) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
+	[s->webcam resumeChangingFormat];// Reset changing format to stop while being size forced
 	v4m_stop(f,NULL);
 	
 	[s->webcam release];
@@ -397,18 +444,27 @@ static void v4m_process(MSFilter * obj){
 			MSVideoSize desired_size = [s->webcam getSize];
 
 			ms_yuv_buf_init_from_mblk(&frame_size, om);
-
-			if (frame_size.w * frame_size.h == desired_size.width * desired_size.height) { 
+			if (frame_size.w * frame_size.h == desired_size.width * desired_size.height) {
 				timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
 				mblk_set_timestamp_info(om,timestamp);
 				mblk_set_marker_info(om,TRUE);
 				ms_queue_put(obj->outputs[0],om);
 				ms_average_fps_update(&s->afps, obj->ticker->time);
 			} else {
-				ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), discarding...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
 				freemsg(om);
-				if ([[NSApplication sharedApplication] isActive])// Reset camera only if the application is in foreground to avoid conflicting between applications
-					[s->webcam resetVideoSettings];
+				if(![s->webcam isChangingFormat]){
+					ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), notify change and discarding frame ...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
+					MSVideoSize newSize;
+					newSize.width =  frame_size.w;
+					newSize.height =  frame_size.h;
+					[s->webcam forceSize:newSize];// Set the new size. It will be taken account to the notifier by the call of MS_FILTER_GET_VIDEO_SIZE
+					ms_filter_notify_no_arg(obj,MS_FILTER_OUTPUT_FMT_CHANGED);
+				}else
+					ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), discarding...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
+			}
+			if ([[NSApplication sharedApplication] isActive] && [s->webcam isForcedSize]){// Reset camera only if the application is in foreground to avoid conflicting between applications
+				[s->webcam resetVideoSize];
+				ms_filter_notify_no_arg(obj,MS_FILTER_OUTPUT_FMT_CHANGED);
 			}
 		}
 	}
@@ -455,7 +511,8 @@ static int v4m_get_pix_fmt(MSFilter *f,void *arg) {
 static int v4m_set_vsize(MSFilter *f, void *arg) {
 	NSAutoreleasePool* myPool = [[NSAutoreleasePool alloc] init];
 	v4mState *s = (v4mState*)f->data;
-	[s->webcam setSize:*((MSVideoSize*)arg)];
+	if(![s->webcam isForcedSize])// If the size has been forced, it should not change.
+		[s->webcam setSize:*((MSVideoSize*)arg)];
 	[myPool drain];
 	return 0;
 }

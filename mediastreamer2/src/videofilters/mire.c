@@ -38,6 +38,7 @@ typedef struct _MireData{
 	uint64_t starttime;
 	float fps;
 	mblk_t *pic;
+	bool_t keep_fps;
 }MireData;
 
 void mire_init(MSFilter *f){
@@ -48,6 +49,7 @@ void mire_init(MSFilter *f){
 	d->index=0;
 	d->starttime=0;
 	d->pic=NULL;
+	d->keep_fps=FALSE;
 	f->data=d;
 }
 
@@ -117,7 +119,8 @@ static int mire_set_vsize(MSFilter *f, void* data){
 static int mire_set_fps(MSFilter *f, void* data){
 	MireData *d=(MireData*)f->data;
 	ms_filter_lock(f);
-	d->fps=*(float*)data;
+	if( !d->keep_fps)
+		d->fps=*(float*)data;
 	/* if fps is changed dynamically, we need to reset index and starttime too. */
 	d->index = 0;
 	d->starttime = 0;

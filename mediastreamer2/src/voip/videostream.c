@@ -141,6 +141,12 @@ static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata)
 	if (st->eventcb!=NULL){
 		st->eventcb(st->event_pointer,f,event,eventdata);
 	}
+	switch (event) {// Allow a filter to reinitialize all tree formats
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
+			video_stream_update_video_params(st);
+			break;
+		default:{}
+	}
 }
 
 static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *eventdata) {
