@@ -352,7 +352,6 @@ int belle_sip_header_address_equals(const belle_sip_header_address_t* addr_a, co
 	} else if (!displayname_a & !displayname_b) {
 		displayname_equal = TRUE;
 	}
-
 	return ((uri_equal && displayname_equal) ? 0 : -1);
 }
 

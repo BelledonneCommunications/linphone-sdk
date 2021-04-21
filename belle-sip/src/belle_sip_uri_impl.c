@@ -271,9 +271,9 @@ end:
 
 #define IS_EQUAL_CASE(a,b) (uri_strcmp(a,b,FALSE)==0)
 #define PARAM_CASE_CMP(uri_a,uri_b,param) \
-		a_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_a,param); \
-		b_param=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_b,param);\
-		if (!IS_EQUAL_CASE(a_param,b_param)) return 0;
+		a_param_value=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_a,param); \
+		b_param_value=belle_sip_parameters_get_case_parameter((belle_sip_parameters_t*) uri_b,param);\
+		if (!IS_EQUAL_CASE(a_param_value,b_param_value)) return 0;
 
 /*
  * RFC 3261            SIP: Session Initiation Protocol           June 2002
@@ -287,8 +287,9 @@ end:
 */
 static int belle_sip_uri_equals_with_omission(const belle_sip_uri_t* uri_a,const belle_sip_uri_t* uri_b,bool_t uri_omitting) {
 	const belle_sip_list_t *	params;
-	const char* b_param;
-	const char* a_param;
+	belle_sip_param_pair_t * a_param;
+	const char * a_param_value;
+	const char * b_param_value;
 /*
       o  A SIP and SIPS URI are never equivalent.
 */
@@ -376,10 +377,10 @@ static int belle_sip_uri_equals_with_omission(const belle_sip_uri_t* uri_a,const
 	PARAM_CASE_CMP(uri_a,uri_b,"method")
 	PARAM_CASE_CMP(uri_a,uri_b,"maddr")
 
-
 	for(params=belle_sip_parameters_get_parameters((belle_sip_parameters_t*) uri_a);params!=NULL;params=params->next) {
-		if ((b_param=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,(const char*)params->data)) != NULL) {
-			if (!IS_EQUAL_CASE(b_param,(const char*)params->data)) return 0;
+		a_param = (belle_sip_param_pair_t*)(params->data);
+		if ((b_param_value=belle_sip_parameters_get_parameter((belle_sip_parameters_t*) uri_b,a_param->name)) != NULL) {
+			if (!IS_EQUAL_CASE(b_param_value,a_param->value)) return 0;
 		}
 	}
 
