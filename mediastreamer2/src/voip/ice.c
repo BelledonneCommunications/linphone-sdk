@@ -2611,10 +2611,12 @@ static bool_t ice_handle_received_turn_allocate_success_response(IceCheckList *c
 			memset(&srflx_addr, 0, sizeof(srflx_addr));
 			memset(&relay_addr, 0, sizeof(relay_addr));
 			if ((componentID > 0) && (ice_parse_stun_server_response(msg, &srflx_addr, &relay_addr) >= 0)) {
-				IceTransportAddress taddr = {0};
+				IceTransportAddress taddr;
 				struct sockaddr_storage recv_addr;
 				socklen_t recv_addr_len = sizeof(recv_addr);
 				TransportAddress_ComponentID taci;
+				
+				memset(&taddr, 0, sizeof(taddr));
 				
 				ortp_recvaddr_to_sockaddr(&evt_data->packet->recv_addr, (struct sockaddr *)&recv_addr, &recv_addr_len);
 				bctbx_sockaddr_ipv6_to_ipv4((struct sockaddr *)&recv_addr, (struct sockaddr *)&recv_addr, &recv_addr_len);
