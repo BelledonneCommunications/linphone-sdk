@@ -679,7 +679,7 @@ uint64_t ms_ticker_round(uint64_t ms) {
 
 uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts) {
 	/* round skew to timer resolution in order to avoid adapt the ticker just with statistical "noise" */
-	uint64_t rounded_skew=( ((uint64_t)ts->av_skew)/(uint64_t)TICKER_INTERVAL) * (uint64_t)TICKER_INTERVAL;
+	int64_t rounded_skew=( ((int64_t)ts->av_skew)/(int64_t)TICKER_INTERVAL) * (int64_t)TICKER_INTERVAL;
 	return get_wallclock_ms() - rounded_skew;
 }
 
