@@ -389,6 +389,7 @@ job-xamarin-upload:
 .job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
+  allow_failure: true
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
