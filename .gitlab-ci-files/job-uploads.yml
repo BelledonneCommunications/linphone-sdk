@@ -414,6 +414,10 @@ job-xamarin-upload:
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1)
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}')
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}')
     - |
         if [[ -z $ESCAPED_BRANCH ]];
         then ESCAPED_BRANCH=master
@@ -423,7 +427,6 @@ job-xamarin-upload:
         then PARENT_BRANCH=master
         fi
 
-    - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
     - echo $PARENT_BRANCH
     - cd results
 
@@ -491,12 +494,15 @@ job-xamarin-upload:
 
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
-    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n $PARENT_BRANCH ]];" | tee -a allure_launch_script
+
+    #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
+    - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
+    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "  then" | tee -a allure_launch_script
-    - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
+    - echo "  cd ../../../../\$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
-    - echo "  cp -r ../../../../$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
+    - echo "  cp -r ../../../../\$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo "  cp -r \$(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
