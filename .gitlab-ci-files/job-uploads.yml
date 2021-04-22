@@ -424,6 +424,7 @@ job-xamarin-upload:
         fi
 
     - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
+    - echo $PARENT_BRANCH
     - cd results
 
     - TEST_REPORT_ID=$(cat tests_id)
@@ -483,14 +484,14 @@ job-xamarin-upload:
     - echo "else" | tee -a allure_launch_script
     - echo "  mkdir $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
-    - echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
+    #- echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
     #in the new folder, to be used by the new allure report generation
 
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
-    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
+    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n $PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "  then" | tee -a allure_launch_script
     - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
@@ -519,7 +520,7 @@ job-xamarin-upload:
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
     #Double quotes are needed because simple quotes doesn't eveluate the env var before sending the command to the server
-    - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && ./allure_launch_script"
+    - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && bash -x allure_launch_script"
 
     #TODO think about deletion of oldest reports, or compression
 
