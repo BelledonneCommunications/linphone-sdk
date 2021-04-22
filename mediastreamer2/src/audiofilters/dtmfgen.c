@@ -208,6 +208,7 @@ static int dtmfgen_stop(MSFilter *f, void *arg){
 	if (s->pos<min_duration)
 		s->dur=min_duration;
 	else s->dur=0;
+	s->amplitude = 0;// Force silence : we request a stop.
 	memset(&s->current_tone,0,sizeof(s->current_tone));
 	ms_filter_unlock(f);
 	return 0;
