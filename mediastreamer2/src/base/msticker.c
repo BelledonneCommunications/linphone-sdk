@@ -631,7 +631,7 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	uint64_t ms = get_ms(time);
 	if (ts->offset == 0) {
 		/* In case of resync, the av_skew must be preserved */
-		ts->offset = wc - ms - (uint64_t)ts->av_skew;
+		ts->offset = wc - ms - (int64_t)ts->av_skew;
 	}
 	sound_time = ts->offset + ms;
 	diff = wc - sound_time;

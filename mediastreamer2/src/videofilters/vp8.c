@@ -663,6 +663,7 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	const MSVideoConfiguration *vconf = (const MSVideoConfiguration *)data;
 	MSVideoSize vsize = s->vconf.vsize;
+	bool_t fps_changed = vconf->fps != s->vconf.fps;
 
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
@@ -675,15 +676,19 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
 			s->vconf.vsize = vsize;
 		}
-
-		ms_mutex_lock(&s->vp8_mutex);
-		if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
-			ms_error("VP8 encoder new configuration failed to apply.");
+		else if (fps_changed){
+			enc_postprocess(f);
+			enc_preprocess(f);
+		}else{
+			ms_mutex_lock(&s->vp8_mutex);
+			if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
+				ms_error("VP8 encoder new configuration failed to apply.");
+			}
+			ms_mutex_unlock(&s->vp8_mutex);
 		}
-		ms_mutex_unlock(&s->vp8_mutex);
 	}
 
-	ms_message("Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
+	ms_message("VP8 Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
 		   s->vconf.fps, s->vconf.vsize.width, s->vconf.vsize.height, f);
 	return 0;
 }

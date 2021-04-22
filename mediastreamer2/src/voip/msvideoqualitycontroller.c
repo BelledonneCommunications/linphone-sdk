@@ -54,12 +54,13 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 
 			if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) && best_vconf.vsize.width * best_vconf.vsize.height != current_vconf.vsize.width * current_vconf.vsize.height) {
 				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
-
+				/* 
+				 * Changing the resolution requires a call to video_stream_change_camera() so that the video graph is reconfigured.
+				 */
 				obj->stream->sent_vsize = best_vconf.vsize;
 				obj->stream->preview_vsize = best_vconf.vsize;
-				obj->stream->forced_fps = best_vconf.fps;
-				video_stream_change_camera_skip_bitrate(obj->stream, obj->stream->cam);
-
+				media_stream_set_target_network_bitrate(&obj->stream->ms, best_vconf.required_bitrate);
+				video_stream_change_camera(obj->stream, obj->stream->cam);
 				obj->last_vsize = best_vconf.vsize;
 				return;
 			}
@@ -77,6 +78,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 		new_bitrate_limit = bitrate < vconf.bitrate_limit ? bitrate : vconf.bitrate_limit;
 		ms_message("MSVideoQualityController [%p]: Changing video encoder's output bitrate to %i", obj, new_bitrate_limit);
 		current_vconf.required_bitrate = new_bitrate_limit;
+		media_stream_set_target_network_bitrate(&obj->stream->ms, new_bitrate_limit);
 
 		if (ms_filter_call_method(obj->stream->ms.encoder,MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
 			ms_warning("MSVideoQualityController [%p]: Failed to apply fps and bitrate constraint to %s", obj, obj->stream->ms.encoder->desc->name);

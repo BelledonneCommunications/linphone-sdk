@@ -59,7 +59,8 @@ static void mire_preprocess(MSFilter *f){
 	MireData *d=(MireData*)f->data;
 	d->pic=ms_yuv_buf_alloc(&d->pict,d->vsize.width,d->vsize.height);
 	memset(d->pic->b_rptr,0,d->pic->b_wptr-d->pic->b_rptr);
-	d->starttime=f->ticker->time;
+	
+	d->index = 0;
 }
 
 static void plane_draw(uint8_t *p, int w, int h, int lsz, int index, int color1, int color2){
@@ -82,7 +83,12 @@ static void mire_draw(MireData *d){
 
 static void mire_process(MSFilter *f){
 	MireData *d=(MireData*)f->data;
-	float elapsed=(float)(f->ticker->time-d->starttime);
+	float elapsed;
+	
+	ms_filter_lock(f);
+	if (d->starttime == 0) d->starttime = f->ticker->time;
+	elapsed = (float)(f->ticker->time - d->starttime);
+	
 	if ((elapsed*d->fps/1000.0)>d->index){
 		mblk_t *om;
 		mire_draw(d);
@@ -91,6 +97,7 @@ static void mire_process(MSFilter *f){
 		ms_queue_put(f->outputs[0], om);
 		d->index++;
 	}
+	ms_filter_unlock(f);
 }
 
 void mire_postprocess(MSFilter *f){
@@ -109,7 +116,12 @@ static int mire_set_vsize(MSFilter *f, void* data){
 
 static int mire_set_fps(MSFilter *f, void* data){
 	MireData *d=(MireData*)f->data;
+	ms_filter_lock(f);
 	d->fps=*(float*)data;
+	/* if fps is changed dynamically, we need to reset index and starttime too. */
+	d->index = 0;
+	d->starttime = 0;
+	ms_filter_unlock(f);
 	return 0;
 }
 
