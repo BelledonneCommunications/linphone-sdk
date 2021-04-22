@@ -466,7 +466,7 @@ job-xamarin-upload:
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
     - echo FIND_DIR="\$(find -maxdepth 1 -name '$SDK_VERSION*')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then cd $(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    - echo "  then cd \$(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
     - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo " LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
