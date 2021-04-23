@@ -469,9 +469,11 @@ job-xamarin-upload:
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
-    - echo FIND_DIR="\$(find -maxdepth 1 -name '$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo FIND_DIR="\$(find -path './$SDK_VERSION*/$PLATFORM/$TESTER')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
     - echo "  then cd \$(echo \$FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    #ugly workaround while we are using cd to reuse the rest of the script without rewriting it
+    - echo "  cd ../.. || exit 1;" | tee -a allure_launch_script
     - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo " LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
@@ -688,6 +690,14 @@ job-test-upload-libl-ios:
     PLATFORM: "ios"
     TESTER: "liblinphone"
     XML_FILENAME_START_PATTERN: "TEST"
+
+job-test-upload-libl-macosx-schedule:
+  extends: .job-test-report-upload-macos-scheduled
+  needs:
+    - test-liblinphone-macosx
+  variables:
+    PLATFORM: "macosx"
+    TESTER: "liblinphone"
 
 
 job-test-upload-bct-centos7:
