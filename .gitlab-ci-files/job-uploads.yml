@@ -369,6 +369,7 @@ job-xamarin-upload:
 .job-test-report-upload:
   stage: deploy
   tags: [ "deploy" ]
+  allow_failure: true
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
@@ -394,6 +395,10 @@ job-xamarin-upload:
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1)
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}')
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}')
     - |
         if [[ -z $ESCAPED_BRANCH ]];
         then ESCAPED_BRANCH=master
@@ -403,7 +408,7 @@ job-xamarin-upload:
         then PARENT_BRANCH=master
         fi
 
-    - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
+    - echo $PARENT_BRANCH
     - cd results
 
     - TEST_REPORT_ID=$(cat tests_id)
@@ -444,9 +449,11 @@ job-xamarin-upload:
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #no need to search for an history in the case of a retry (if the directory related to the commit already exists)
-    - echo FIND_DIR="\$(find -maxdepth 1 -name '$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo FIND_DIR="\$(find -path './$SDK_VERSION*/$PLATFORM/$TESTER')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then cd $(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    - echo "  then cd \$(echo \$FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    #ugly workaround while we are using cd to reuse the rest of the script without rewriting it
+    - echo "  cd ../.. || exit 1;" | tee -a allure_launch_script
     - echo " CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo " LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
@@ -463,19 +470,22 @@ job-xamarin-upload:
     - echo "else" | tee -a allure_launch_script
     - echo "  mkdir $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
-    - echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
+    #- echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
     #in the new folder, to be used by the new allure report generation
 
     #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
     #current branch = ESCAPED_BRANCH
+
+    #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
+    - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "  then" | tee -a allure_launch_script
-    - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
+    - echo "  cd ../../../../\$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
     - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
-    - echo "  cp -r ../../../../$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
+    - echo "  cp -r ../../../../\$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     - echo "  cp -r \$(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
@@ -499,7 +509,7 @@ job-xamarin-upload:
     #remote launch of allure_launch_script declared above
     #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
     #Double quotes are needed because simple quotes doesn't eveluate the env var before sending the command to the server
-    - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && ./allure_launch_script"
+    - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && bash -x allure_launch_script"
 
     #TODO think about deletion of oldest reports, or compression
 
@@ -660,6 +670,14 @@ job-test-upload-libl-ios:
     PLATFORM: "ios"
     TESTER: "liblinphone"
     XML_FILENAME_START_PATTERN: "TEST"
+
+job-test-upload-libl-macosx-schedule:
+  extends: .job-test-report-upload-macos-scheduled
+  needs:
+    - test-liblinphone-macosx
+  variables:
+    PLATFORM: "macosx"
+    TESTER: "liblinphone"
 
 
 job-test-upload-bct-centos7:
