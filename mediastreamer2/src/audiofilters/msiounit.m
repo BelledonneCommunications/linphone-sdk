@@ -675,8 +675,14 @@ static void destroy_audio_unit_if_not_needed_anymore(){
 }
 
 static void au_usage_hint(MSSndCard *card, bool_t used){
-	[[AudioUnitHolder sharedInstance] setWill_be_used:used];
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	[au_holder setWill_be_used:used];
 	destroy_audio_unit_if_not_needed_anymore();
+	/* Mark the audio session as not activated if Callkit is used */
+	if (au_holder.callkit_enabled && !used){
+		ms_message("AVAudioSession marked as inactivate since sound is no longer used.");
+		[au_holder setAudio_session_activated:FALSE];
+	}
 }
 
 static void au_detect(MSSndCardManager *m);
