@@ -76,19 +76,19 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 		if(LINPHONESDK_DESKTOP_ZIP_PATH)
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WIN32=1")
 			message(STATUS "Retrieve Desktop build")
+			add_command_from_zip(${LINPHONESDK_DESKTOP_ZIP_PATH} "desktop")
 		endif()
 		if(LINPHONESDK_UWP_ZIP_PATH)
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_UWP=1")
 			message(STATUS "Retrieve UWP build")
+			add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
 		endif()
 		if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WINDOWSSTORE=1")
 			message(STATUS "Retrieve Windows Store build")
+			add_command_from_zip(${LINPHONESDK_WINDOWSSTORE_ZIP_PATH} "windowsstore")
 		endif()
 		
-		add_command_from_zip(${LINPHONESDK_DESKTOP_ZIP_PATH} "desktop")
-		add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
-		add_command_from_zip(${LINPHONESDK_WINDOWSSTORE_ZIP_PATH} "windowsstore")
 		
 		
 #--------------		Desktop x86		
@@ -111,20 +111,20 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 #		endforeach(item)
 		
 		ExternalProject_Add(uwp-nuget
-		        DEPENDS unzip
-		        SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
-		        BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
-		        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-		        CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}" ${NUSPEC_HAVE}
-		        CMAKE_CACHE_ARGS ${_cmake_cache_args}
-		        BUILD_ALWAYS 1
+			DEPENDS unzip
+			SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
+			BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
+			CMAKE_GENERATOR "${CMAKE_GENERATOR}"
+			CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}" ${NUSPEC_HAVE}
+			CMAKE_CACHE_ARGS ${_cmake_cache_args}
+			BUILD_ALWAYS 1
 		)
-	ExternalProject_Add_Step(uwp-nuget force_build
+		ExternalProject_Add_Step(uwp-nuget force_build
 			COMMENT "Forcing build for 'uwp-nuget'"
 			DEPENDEES configure
 			DEPENDERS build
 			ALWAYS 1
-	)
+		)
 	else()
 		message(FATAL_ERROR "You need specify LINPHONESDK_DESKTOP_ZIP_PATH or LINPHONESDK_UWP_ZIP_PATH")
 	endif()
