@@ -99,7 +99,7 @@ Download the Docker image of the Android build environment:
 
 ```bash
 docker login gitlab.linphone.org:4567
-docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android:r20
+docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210217_python3
 ```
 
 Load the build environment:
