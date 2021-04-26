@@ -698,7 +698,7 @@ static void handle_sample_rate_change(void){
 	[au_holder setRate:rate];
 	
 	if ([au_holder audio_unit_state] == MSAudioUnitConfigured || [au_holder audio_unit_state] == MSAudioUnitStarted){
-		[au_holder stop_audio_unit];
+		[au_holder recreate_audio_unit];
 		[au_holder configure_audio_unit];
 		[au_holder start_audio_unit:0];
 	}
