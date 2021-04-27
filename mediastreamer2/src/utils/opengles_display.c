@@ -669,6 +669,7 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 }
 
 #ifdef HAVE_GLX
+
 bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	Display                 *dpy;
 	Window                  root;
@@ -676,7 +677,21 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	XVisualInfo             *vi;
 	Colormap                cmap;
 	XSetWindowAttributes    swa;
-	dpy = XOpenDisplay(NULL);
+
+	dpy = XOpenDisplay(NULL);// NULL will look at DISPLAY variable
+	if(dpy == NULL){
+		dpy = XOpenDisplay(":0");// Try to 0
+		if(dpy == NULL){
+			const char* display = getenv("DISPLAY");// For debug feedbacks
+			if(display != NULL)
+				ms_error("[ogl_display] Could not open display %s", display);
+			else
+				ms_error("[ogl_display] Could not open display.");
+			*window = (EGLNativeWindowType)0;
+			*window_id  = NULL;
+			return FALSE;
+		}
+	}
 	XSync(dpy, False);
 	root = DefaultRootWindow(dpy);
 	vi = glXChooseVisual(dpy, 0, att);
@@ -686,8 +701,7 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
 	*window = XCreateWindow(dpy, root, 200, 200, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
-	if(window_id != NULL)
-		*window_id = NULL;
+	*window_id = dpy;
 	XStoreName( dpy, *window, "Video" );
 	XMapWindow(dpy, *window);
 	XSync( dpy, False );
@@ -696,11 +710,14 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 
 void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
 	if(*window){
-		Display *dpy = XOpenDisplay(NULL);
-		XSync(dpy,FALSE);
-		XDestroyWindow(dpy,*window);
-		*window = (EGLNativeWindowType)0;
-		XCloseDisplay(dpy);
+		Display *dpy = (Display *)*window_id;
+		if(dpy!=NULL){
+			XSync(dpy,FALSE);
+			XDestroyWindow(dpy,*window);
+			*window = (EGLNativeWindowType)0;
+			XCloseDisplay(dpy);
+			*window_id = NULL;
+		}
 	}
 }
 #elif defined(MS2_WINDOWS_UWP)
