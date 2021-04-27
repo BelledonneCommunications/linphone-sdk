@@ -120,11 +120,6 @@
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
