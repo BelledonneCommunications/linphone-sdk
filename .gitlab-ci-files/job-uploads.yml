@@ -241,9 +241,6 @@ job-windows-vs2017-nuget-upload:
 job-windows-cs-doc-upload:
   stage: deploy
   tags: [ "windows"]
-  only:
-    variables:
-      - $UPLOAD_CS_DOC
   needs:
     - job-windows-vs2017-win32-scheduled
   script:
@@ -253,11 +250,11 @@ job-windows-cs-doc-upload:
     - set UPLOAD_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
     - if "%LINPHONE_STATE%" == "snapshots" (set UPLOAD_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%)
     - echo %LINPHONE_STATE%
-    - echo %LINPHONE_VERSION%
+    - echo %LIBLINPHONE_VERSION%
     - echo %DEPLOY_SERVER%
     - echo %UPLOAD_ROOT_DIRECTORY%
-    - ssh %DEPLOY_SERVER% mkdir -p %UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
-    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
+    - ssh %DEPLOY_SERVER% mkdir -p %UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LIBLINPHONE_VERSION%/cs
+    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LIBLINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LIBLINPHONE_VERSION%/cs
 
 #################################################
 # Debian doc upload
