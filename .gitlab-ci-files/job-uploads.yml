@@ -241,9 +241,6 @@ job-windows-vs2017-nuget-upload:
 job-windows-cs-doc-upload:
   stage: deploy
   tags: [ "windows"]
-  only:
-    variables:
-      - $UPLOAD_CS_DOC
   needs:
     - job-windows-vs2017-win32-scheduled
   script:
