@@ -13,6 +13,9 @@ changes made to these components.__
 
 ## [Unreleased]
 
+### Added
+- MSYS2 support
+- OpenLDAP on Desktop
 
 ## [4.5.0] 2021-03-29
 
