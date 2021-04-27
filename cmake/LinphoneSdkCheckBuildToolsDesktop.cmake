@@ -20,4 +20,5 @@
 #
 ############################################################################
 
+include(../cmake-builder/cmake/CheckBuildTools)
 include(LinphoneSdkCheckBuildToolsCommon)
