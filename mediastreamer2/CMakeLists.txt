@@ -589,7 +589,7 @@ endif()
 
 if(ENABLE_QT_GL)#Only add headers and lib to Qt plugins
 	set(QT5_PACKAGES Core Gui Quick QmlModels Qml Network)
-	find_package(Qt5 COMPONENTS ${QT5_PACKAGES} OPTIONAL)
+	find_package(Qt5 COMPONENTS ${QT5_PACKAGES} QUIET)
 	foreach (package ${QT5_PACKAGES})
 		if(Qt5${package}_FOUND)
 			get_target_property(Qt${package}_location Qt5::${package} LOCATION)
