@@ -52,6 +52,7 @@
   script:
     #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
     - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
+    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
@@ -92,6 +93,7 @@
   #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
     - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
+    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     #handling the case of previous job cancellation
     - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
@@ -303,6 +305,7 @@ test-linphone-windows-uwp:
   #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
     - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
+    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH=%PATH_TEMP%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
     - set LINPHONE_PATH=%cd%
