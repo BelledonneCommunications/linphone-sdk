@@ -823,7 +823,7 @@ static void no_query_needed(void) {
 #endif /* HAVE_DNS_SERVICE */
 }
 
-static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[3]){
+static void set_custom_resolv_conf(belle_sip_stack_t *stack, const char *ns[]){
 	char *resolv_file = bc_tester_file("tmp_resolv.conf");
 	FILE *f=fopen(resolv_file,"w");
 	BC_ASSERT_PTR_NOT_NULL(f);
