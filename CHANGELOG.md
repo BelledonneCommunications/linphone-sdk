@@ -12,7 +12,7 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.__
 
 ## [Unreleased]
-
+- SDP capability negociation
 
 ## [4.5.0] 2021-03-29
 
