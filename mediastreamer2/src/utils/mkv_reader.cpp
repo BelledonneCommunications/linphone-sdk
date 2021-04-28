@@ -24,7 +24,7 @@
 #include <list>
 #include <memory>
 #include <vector>
-
+#include <limits>
 
 #define bool_t mkv_bool_t
 extern "C" {

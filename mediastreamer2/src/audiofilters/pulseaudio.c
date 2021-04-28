@@ -229,7 +229,7 @@ static void pulse_card_source_create(pa_device_t *pa_device, MSSndCardManager *m
  * output: sink and bidirectionnal cards into sink list, source only card into source list
  * merging is based on pulse audio card description */
 int pulse_card_compare(pa_device_t *sink, pa_device_t *source) {
-	return strncmp(sink->description, source->description, 512);
+	return strncmp(sink->description, source->description, PA_STRING_SIZE);
 }
 
 static void pulse_card_merge_lists(pa_device_t *pa_device, bctbx_list_t **pa_source_list) {
