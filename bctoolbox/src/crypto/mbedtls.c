@@ -1538,7 +1538,7 @@ void bctbx_sha384(const uint8_t *input,
 		uint8_t hashLength,
 		uint8_t *output)
 {
-	uint8_t hashOutput[48];
+	uint8_t hashOutput[64];
 	mbedtls_sha512(input, inputLength, hashOutput, 1); /* last param to one to select SHA384 and not SHA512 */
 
 	/* check output length, can't be>48 */
@@ -1791,8 +1791,8 @@ int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context,
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes128CfbEncrypt(const uint8_t key[16],
-		const uint8_t IV[16],
+void bctbx_aes128CfbEncrypt(const uint8_t *key,
+		const uint8_t *IV,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t *output)
@@ -1823,8 +1823,8 @@ void bctbx_aes128CfbEncrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes128CfbDecrypt(const uint8_t key[16],
-		const uint8_t IV[16],
+void bctbx_aes128CfbDecrypt(const uint8_t *key,
+		const uint8_t *IV,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t *output)
@@ -1855,8 +1855,8 @@ void bctbx_aes128CfbDecrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes256CfbEncrypt(const uint8_t key[32],
-		const uint8_t IV[16],
+void bctbx_aes256CfbEncrypt(const uint8_t *key,
+		const uint8_t *IV,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t *output)
@@ -1884,8 +1884,8 @@ void bctbx_aes256CfbEncrypt(const uint8_t key[32],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes256CfbDecrypt(const uint8_t key[32],
-		const uint8_t IV[16],
+void bctbx_aes256CfbDecrypt(const uint8_t *key,
+		const uint8_t *IV,
 		const uint8_t *input,
 		size_t inputLength,
 		uint8_t *output)

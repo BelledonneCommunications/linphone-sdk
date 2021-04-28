@@ -751,7 +751,7 @@ BCTBX_PUBLIC void bctbx_uint32_to_str(uint8_t output_string[9], uint32_t input_u
  *
  * Note : there is no check on the length or validity as an hexa string on the input, incorrect byte is silently mapped to 0
  */
-BCTBX_PUBLIC uint32_t bctbx_str_to_uint32(const uint8_t input_string[9]);
+BCTBX_PUBLIC uint32_t bctbx_str_to_uint32(const uint8_t *input_string);
 
 /**
  * @brief Convert an unsigned 64 bits integer into the corresponding hexadecimal string(including null termination character)
