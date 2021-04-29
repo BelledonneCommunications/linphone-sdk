@@ -529,9 +529,10 @@ job-xamarin-upload:
     - echo "ls -lah" | tee -a allure_launch_script
     - echo "du -h ." | tee -a allure_launch_script
 
-    - echo "rm -r history" | tee -a allure_launch_script
+    - echo "rm -r history || echo 'deletion of temp history failed. History could not be gathered ?'" | tee -a allure_launch_script
     - cat allure_launch_script
-    - echo "ls -lah" | tee -a allure_launch_script
+
+    #the average size of a report is around 13Mio
     - echo "du -h ." | tee -a allure_launch_script
     - cat allure_launch_script
 
