@@ -198,7 +198,7 @@ test-liblinphone-ios:
     - echo $ESCAPED_BRANCH
     - COMMIT=$(git describe)
     - echo $COMMIT
-    - URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
+    - URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
 
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -213,7 +213,7 @@ test-liblinphone-ios:
 
     - echo "TEST REPORTS URL $URL"
 
-    - echo "alias URL=http://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
+    - echo "alias URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results
