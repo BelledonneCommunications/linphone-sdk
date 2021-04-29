@@ -522,7 +522,19 @@ job-xamarin-upload:
 
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
     - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
+
+    #we now remove the history directory
+    - echo "pwd" | tee -a allure_launch_script
     - cat allure_launch_script
+    - echo "ls -lah" | tee -a allure_launch_script
+    - echo "du -h ." | tee -a allure_launch_script
+
+    - echo "rm -r history" | tee -a allure_launch_script
+    - cat allure_launch_script
+    - echo "ls -lah" | tee -a allure_launch_script
+    - echo "du -h ." | tee -a allure_launch_script
+    - cat allure_launch_script
+
     - chmod u+x allure_launch_script
 
     #upload of the files
