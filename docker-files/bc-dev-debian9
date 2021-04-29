@@ -30,15 +30,6 @@ RUN apt-get update && \
     apt-get -t=stretch-backports install -y cmake && \
     apt-get clean
 
-# Install python modules
-RUN apt-get install -y python-pip python3-pip && \
-    python -m pip install six && \
-    python -m pip install pystache && \
-    python -m pip install graphviz && \
-    python3 -m pip install six && \
-    python3 -m pip install pystache && \
-    python3 -m pip install graphviz
-
 # Install linphone dependencies development packages
 RUN apt-get update && \
     apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmariadbclient-dev libmbedtls-dev libopus-dev libpq-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev xsdcxx && \
@@ -50,6 +41,17 @@ RUN useradd -ms /bin/bash bc && \
     echo 'bc:cotcot' | chpasswd && \
     echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
+# Switch for 'bc' user
 USER bc
 WORKDIR /home/bc
+
+# Install python3 and python modules.
+# This must be done as 'bc' user because some python modules are installed into /usr/local/lib when pip is invoked
+# as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
+# modules to be installed into /home/bc/.local/lib.
+RUN sudo apt-get install -y python-pip python3-pip && sudo apt-get clean -y && \
+    python -m pip install --user six pystache graphviz && \
+    python3 -m pip install --user six pystache graphviz
+
+
 CMD bash
