@@ -459,7 +459,7 @@ job-xamarin-upload:
 
     #Script generation
     #This script will be run on the remote server to organize files and generate test reports
-    - echo "#\!/bin/bash" | tee -a allure_launch_script
+    - echo "#!/bin/bash" | tee -a allure_launch_script
 
     #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
     #navigation to the branch folder and creation if it doesn't exists
@@ -490,6 +490,8 @@ job-xamarin-upload:
     - echo "else" | tee -a allure_launch_script
     - echo "  mkdir $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
+
+    #Not currently needed
     #- echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it
@@ -503,11 +505,11 @@ job-xamarin-upload:
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "  then" | tee -a allure_launch_script
     - echo "  cd ../../../../\$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
-    - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
     - echo "  cp -r ../../../../\$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  cp -r \$(find -O3 ../../../ -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1) history;" | tee -a allure_launch_script
+    - echo "  cp -r \$(find -O3 ../../../ -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
 
 
