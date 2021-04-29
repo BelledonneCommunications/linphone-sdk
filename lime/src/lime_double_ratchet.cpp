@@ -346,7 +346,7 @@ namespace lime {
 			m_active_status = false;
 		}
 
-		if (session_save() == true) {
+		if (session_save(false) == true) { // session_save called with false, will not manage db lock and transaction, it is taken care by ratchetEncrypt caller
 			m_dirty = DRSessionDbStatus::clean; // this session and local storage are back in sync
 		}
 	}
@@ -439,14 +439,14 @@ namespace lime {
 	/* template instanciations for Curve25519 and Curve448 */
 #ifdef EC25519_ENABLED
 	extern template bool DR<C255>::session_load();
-	extern template bool DR<C255>::session_save();
+	extern template bool DR<C255>::session_save(bool commit);
 	extern template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 	template class DR<C255>;
 #endif
 
 #ifdef EC448_ENABLED
 	extern template bool DR<C448>::session_load();
-	extern template bool DR<C448>::session_save();
+	extern template bool DR<C448>::session_save(bool commit);
 	extern template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 	template class DR<C448>;
 #endif
@@ -464,9 +464,10 @@ namespace lime {
 	 * @param[out]		cipherMessage	message encrypted with a random generated key(and IV). May be an empty buffer depending on encryptionPolicy, recipients and plaintext characteristics
 	 * @param[in]		encryptionPolicy	select how to manage the encryption: direct use of Double Ratchet message or encrypt in the cipher message and use the DR message to share the cipher message key\n
 	 * 						default is optimized output size mode.
+	 * @param[in]		localStorage	pointer to the local storage, used to get lock and start transaction on all DR sessions at once
 	 */
 	template <typename Curve>
-	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy) {
+	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
 		bool payloadDirectEncryption;
 		switch (encryptionPolicy) {
@@ -558,16 +559,29 @@ namespace lime {
 		 */
 		AD.insert(AD.end(), sourceDeviceId.cbegin(), sourceDeviceId.cend());
 
-		for(size_t i=0; i<recipients.size(); i++) {
-			std::vector<uint8_t> recipientAD{AD}; // copy AD
-			recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
+		// ratchet encrypt write to the db, to avoid a serie of transaction, manage it outside of the loop
+		// acquire lock and open a transaction
+		std::lock_guard<std::recursive_mutex> lock(*(localStorage->m_db_mutex));
+		localStorage->start_transaction();
 
-			if (payloadDirectEncryption) {
-				recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
-			} else {
-				recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
+		try {
+			for(size_t i=0; i<recipients.size(); i++) {
+				std::vector<uint8_t> recipientAD{AD}; // copy AD
+				recipientAD.insert(recipientAD.end(), recipients[i].deviceId.cbegin(), recipients[i].deviceId.cend()); //insert recipient device id(gruu)
+
+				if (payloadDirectEncryption) {
+					recipients[i].DRSession->ratchetEncrypt(plaintext, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
+				} else {
+					recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
+				}
 			}
+		} catch (...) {
+			localStorage->rollback_transaction();
+			throw;
 		}
+
+		// ratchet encrypt write to the db, to avoid a serie of transaction, manage it outside of the loop
+		localStorage->commit_transaction();
 	}
 
 	/**
@@ -659,11 +673,11 @@ namespace lime {
 
 	/* template instanciations for C25519 and C448 encryption/decryption functions */
 #ifdef EC25519_ENABLED
-	template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
 	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 #ifdef EC448_ENABLED
-	template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy);
+	template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::string& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
 	template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceId, const std::string& recipientDeviceId, const std::string& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 }

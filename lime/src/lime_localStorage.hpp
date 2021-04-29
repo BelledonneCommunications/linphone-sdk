@@ -63,6 +63,9 @@ namespace lime {
 		long int check_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, const bool updateInvalid=false);
 		template <typename Curve>
 		long int store_peerDevice(const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk);
+		void start_transaction();
+		void commit_transaction();
+		void rollback_transaction();
 	};
 
 	/* this templates are instanciated once in the lime_localStorage.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */

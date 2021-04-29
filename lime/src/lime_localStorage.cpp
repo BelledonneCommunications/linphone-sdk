@@ -593,6 +593,33 @@ void Db::delete_LimeUser(const std::string &deviceId)
 	sql<<"DELETE FROM lime_LocalUsers WHERE UserId = :userId;", use(deviceId);
 }
 
+/**
+ * @brief start a transaction on this Db
+ *
+ */
+void Db::start_transaction()
+{
+	sql.begin();
+}
+
+/**
+ * @brief commit a transaction on this Db
+ *
+ */
+void Db::commit_transaction()
+{
+	sql.commit();
+}
+
+/**
+ * @brief rollback a transaction on this Db
+ *
+ */
+void Db::rollback_transaction()
+{
+	sql.rollback();
+}
+
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
 	template long int Db::check_peerDevice<C255>(const std::string &peerDeviceId, const DSA<C255, lime::DSAtype::publicKey> &Ik, const bool updateInvalid);
@@ -610,62 +637,64 @@ void Db::delete_LimeUser(const std::string &deviceId)
 /*                                                                            */
 /******************************************************************************/
 template <typename Curve>
-bool DR<Curve>::session_save() {
+bool DR<Curve>::session_save(bool commit) { // commit default to true
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
-	// open transaction
-	transaction tr(m_localStorage->sql);
-
-	// shall we try to insert or update?
-	bool MSk_DHr_Clean = false; // flag use to signal the need for late cleaning in DR_MSk_DHr table
-	if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
-		// Build blobs from DR session
-		blob DHr(m_localStorage->sql);
-		DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
-		blob DHs(m_localStorage->sql);
-		DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
-		DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
-		blob RK(m_localStorage->sql);
-		RK.write(0, (char *)(m_RK.data()), m_RK.size());
-		blob CKs(m_localStorage->sql);
-		CKs.write(0, (char *)(m_CKs.data()), m_CKs.size());
-		blob CKr(m_localStorage->sql);
-		CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
-		/* this one is written in base only at creation and never updated again */
-		blob AD(m_localStorage->sql);
-		AD.write(0, (char *)(m_sharedAD.data()), m_sharedAD.size());
-
-		// Check if we have a peer device already in storage
-		if (m_peerDid == 0) { // no : we must insert it(failure will result in exception being thrown, let it flow up then)
-			m_peerDid = m_localStorage->store_peerDevice(m_peerDeviceId, m_peerIk);
-		} else {
-			// make sure we have no other session active with this pair local,peer DiD
-			m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+	try {
+		if (commit) {
+			// open transaction
+			m_localStorage->sql.begin();
 		}
 
-		if (m_X3DH_initMessage.size()>0) {
-			blob X3DH_initMessage(m_localStorage->sql);
-			X3DH_initMessage.write(0, (char *)(m_X3DH_initMessage.data()), m_X3DH_initMessage.size());
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid), use(X3DH_initMessage);
-		} else {
-			m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid);
-		}
-		// if insert went well we shall be able to retrieve the last insert id to save it in the Session object
-		/*** WARNING: unportable section of code, works only with sqlite3 backend ***/
-		m_localStorage->sql<<"select last_insert_rowid()",into(m_dbSessionId);
-		/*** above could should work but it doesn't, consistently return false from .get_last_insert_id... ***/
-		/*if (!(sql.get_last_insert_id("DR_sessions", m_dbSessionId))) {
-			throw;
-		} */
+		// shall we try to insert or update?
+		bool MSk_DHr_Clean = false; // flag use to signal the need for late cleaning in DR_MSk_DHr table
+		if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
+			// Build blobs from DR session
+			blob DHr(m_localStorage->sql);
+			DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
+			blob DHs(m_localStorage->sql);
+			DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
+			DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+			blob RK(m_localStorage->sql);
+			RK.write(0, (char *)(m_RK.data()), m_RK.size());
+			blob CKs(m_localStorage->sql);
+			CKs.write(0, (char *)(m_CKs.data()), m_CKs.size());
+			blob CKr(m_localStorage->sql);
+			CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
+			/* this one is written in base only at creation and never updated again */
+			blob AD(m_localStorage->sql);
+			AD.write(0, (char *)(m_sharedAD.data()), m_sharedAD.size());
 
-		// At session creation, we may have to delete an OPk from storage
-		if (m_usedOPkId != 0) {
-			m_localStorage->sql<<"DELETE FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(m_usedOPkId);
-			m_usedOPkId = 0;
-		}
-	} else { // we have an id, it shall already be in the db
-		// Try to update an existing row
-		try{ //TODO: make sure the update was a success, or we shall signal it
+			// Check if we have a peer device already in storage
+			if (m_peerDid == 0) { // no : we must insert it(failure will result in exception being thrown, let it flow up then)
+				m_peerDid = m_localStorage->store_peerDevice(m_peerDeviceId, m_peerIk);
+			} else {
+				// make sure we have no other session active with this pair local,peer DiD
+				m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+			}
+
+			if (m_X3DH_initMessage.size()>0) {
+				blob X3DH_initMessage(m_localStorage->sql);
+				X3DH_initMessage.write(0, (char *)(m_X3DH_initMessage.data()), m_X3DH_initMessage.size());
+				m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid,X3DHInit) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid,:X3DHinit);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid), use(X3DH_initMessage);
+			} else {
+				m_localStorage->sql<<"INSERT INTO DR_sessions(Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Did,Uid) VALUES(:Ns,:Nr,:PN,:DHr,:DHs,:RK,:CKs,:CKr,:AD,:Did,:Uid);", use(m_Ns), use(m_Nr), use(m_PN), use(DHr), use(DHs), use(RK), use(CKs), use(CKr), use(AD), use(m_peerDid), use(m_db_Uid);
+			}
+			// if insert went well we shall be able to retrieve the last insert id to save it in the Session object
+			/*** WARNING: unportable section of code, works only with sqlite3 backend ***/
+			m_localStorage->sql<<"select last_insert_rowid()",into(m_dbSessionId);
+			/*** above could should work but it doesn't, consistently return false from .get_last_insert_id... ***/
+			/*if (!(sql.get_last_insert_id("DR_sessions", m_dbSessionId))) {
+				throw;
+			} */
+
+			// At session creation, we may have to delete an OPk from storage
+			if (m_usedOPkId != 0) {
+				m_localStorage->sql<<"DELETE FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id;", use(m_db_Uid), use(m_usedOPkId);
+				m_usedOPkId = 0;
+			}
+		} else { // we have an id, it shall already be in the db
+			// Update an existing row
 			switch (m_dirty) {
 				case DRSessionDbStatus::dirty: // dirty case shall actually never occurs as a dirty is set only at creation not loading, first save is processed above
 				case DRSessionDbStatus::dirty_ratchet: // ratchet&decrypt modifies all but also request to delete X3DHInit from storage
@@ -717,56 +746,61 @@ bool DR<Curve>::session_save() {
 					LIME_LOGE<<"Double ratchet session saved call on sessionId "<<m_dbSessionId<<" but sessions appears to be clean";
 					break;
 			}
-		} catch (...) {
-			tr.rollback();
-			throw;
-		}
-		// updatesert went well, do we have any mkskipped row to modify
-		if (m_usedDHid !=0 ) { // ok, we consumed a key, remove it from db
-			m_localStorage->sql<<"DELETE from DR_MSk_MK WHERE DHid = :DHid AND Nr = :Nr;", use(m_usedDHid), use(m_usedNr);
-			MSk_DHr_Clean = true; // flag the cleaning needed in DR_MSk_DH table, we may have to remove a row in it if no more row are linked to it in DR_MSk_MK
-		} else { // we did not consume a key
-			if (m_dirty == DRSessionDbStatus::dirty_decrypt || m_dirty == DRSessionDbStatus::dirty_ratchet) { // if we did a message decrypt :
-				// update the count of posterior messages received in the stored skipped messages keys for this session (all stored chains)
-				m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = received + 1 WHERE sessionId = :sessionId", use(m_dbSessionId);
+
+			// updatesert went well, do we have any mkskipped row to modify
+			if (m_usedDHid !=0 ) { // ok, we consumed a key, remove it from db
+				m_localStorage->sql<<"DELETE from DR_MSk_MK WHERE DHid = :DHid AND Nr = :Nr;", use(m_usedDHid), use(m_usedNr);
+				MSk_DHr_Clean = true; // flag the cleaning needed in DR_MSk_DH table, we may have to remove a row in it if no more row are linked to it in DR_MSk_MK
+			} else { // we did not consume a key
+				if (m_dirty == DRSessionDbStatus::dirty_decrypt || m_dirty == DRSessionDbStatus::dirty_ratchet) { // if we did a message decrypt :
+					// update the count of posterior messages received in the stored skipped messages keys for this session (all stored chains)
+					m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = received + 1 WHERE sessionId = :sessionId", use(m_dbSessionId);
+				}
 			}
 		}
+
+		// Shall we insert some skipped Message keys?
+		for ( const auto &rChain : m_mkskipped) { // loop all chains of message keys, each one is a DHr associated to an unordered map of MK indexed by Nr to be saved
+			blob DHr(m_localStorage->sql);
+			DHr.write(0, (char *)(rChain.DHr.data()), rChain.DHr.size());
+			long DHid=0;
+			m_localStorage->sql<<"SELECT DHid FROM DR_MSk_DHr WHERE sessionId = :sessionId AND DHr = :DHr LIMIT 1;",into(DHid), use(m_dbSessionId), use(DHr);
+			if (!m_localStorage->sql.got_data()) { // There is no row in DR_MSk_DHr matching this key, we must add it
+				m_localStorage->sql<<"INSERT INTO DR_MSk_DHr(sessionId, DHr) VALUES(:sessionId, :DHr)", use(m_dbSessionId), use(DHr);
+				m_localStorage->sql<<"select last_insert_rowid()",into(DHid); // WARNING: unportable code, sqlite3 only, see above for more details on similar issue
+			} else { // the chain already exists in storage, just reset its counter of newer message received
+				m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = 0 WHERE DHid = :DHid", use(DHid);
+			}
+			// insert all the skipped key in the chain
+			uint16_t Nr;
+			blob MK(m_localStorage->sql);
+			statement st = (m_localStorage->sql.prepare << "INSERT INTO DR_MSk_MK(DHid,Nr,MK) VALUES(:DHid,:Nr,:Mk)", use(DHid), use(Nr), use(MK));
+
+			for (const auto &kv : rChain.messageKeys) { // messageKeys is an unordered map of MK indexed by Nr.
+				Nr=kv.first;
+				MK.write(0, (char *)kv.second.data(), kv.second.size());
+				st.execute(true);
+			}
+		}
+
+		// Now do the cleaning (remove unused row from DR_MKs_DHr table) if needed
+		if (MSk_DHr_Clean == true) {
+			uint16_t Nr;
+			m_localStorage->sql<<"SELECT Nr from DR_MSk_MK WHERE DHid = :DHid LIMIT 1;", into(Nr), use(m_usedDHid);
+			if (!m_localStorage->sql.got_data()) { // no more MK with this DHid, remove it
+				m_localStorage->sql<<"DELETE from DR_MSk_DHr WHERE DHid = :DHid;", use(m_usedDHid);
+			}
+		}
+	} catch (...) {
+		if (commit) {
+			m_localStorage->sql.rollback();
+		}
+		throw;
 	}
 
-	// Shall we insert some skipped Message keys?
-	for ( const auto &rChain : m_mkskipped) { // loop all chains of message keys, each one is a DHr associated to an unordered map of MK indexed by Nr to be saved
-		blob DHr(m_localStorage->sql);
-		DHr.write(0, (char *)(rChain.DHr.data()), rChain.DHr.size());
-		long DHid=0;
-		m_localStorage->sql<<"SELECT DHid FROM DR_MSk_DHr WHERE sessionId = :sessionId AND DHr = :DHr LIMIT 1;",into(DHid), use(m_dbSessionId), use(DHr);
-		if (!m_localStorage->sql.got_data()) { // There is no row in DR_MSk_DHr matching this key, we must add it
-			m_localStorage->sql<<"INSERT INTO DR_MSk_DHr(sessionId, DHr) VALUES(:sessionId, :DHr)", use(m_dbSessionId), use(DHr);
-			m_localStorage->sql<<"select last_insert_rowid()",into(DHid); // WARNING: unportable code, sqlite3 only, see above for more details on similar issue
-		} else { // the chain already exists in storage, just reset its counter of newer message received
-			m_localStorage->sql<<"UPDATE DR_MSk_DHr SET received = 0 WHERE DHid = :DHid", use(DHid);
-		}
-		// insert all the skipped key in the chain
-		uint16_t Nr;
-		blob MK(m_localStorage->sql);
-		statement st = (m_localStorage->sql.prepare << "INSERT INTO DR_MSk_MK(DHid,Nr,MK) VALUES(:DHid,:Nr,:Mk)", use(DHid), use(Nr), use(MK));
-
-		for (const auto &kv : rChain.messageKeys) { // messageKeys is an unordered map of MK indexed by Nr.
-			Nr=kv.first;
-			MK.write(0, (char *)kv.second.data(), kv.second.size());
-			st.execute(true);
-		}
+	if (commit) {
+		m_localStorage->sql.commit();
 	}
-
-	// Now do the cleaning (remove unused row from DR_MKs_DHr table) if needed
-	if (MSk_DHr_Clean == true) {
-		uint16_t Nr;
-		m_localStorage->sql<<"SELECT Nr from DR_MSk_MK WHERE DHid = :DHid LIMIT 1;", into(Nr), use(m_usedDHid);
-		if (!m_localStorage->sql.got_data()) { // no more MK with this DHid, remove it
-			m_localStorage->sql<<"DELETE from DR_MSk_DHr WHERE DHid = :DHid;", use(m_usedDHid);
-		}
-	}
-
-	tr.commit();
 	return true;
 };
 
@@ -834,13 +868,13 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xt
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
 	template bool DR<C255>::session_load();
-	template bool DR<C255>::session_save();
+	template bool DR<C255>::session_save(bool commit);
 	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 #endif
 
 #ifdef EC448_ENABLED
 	template bool DR<C448>::session_load();
-	template bool DR<C448>::session_save();
+	template bool DR<C448>::session_save(bool commit);
 	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448, lime::Xtype::publicKey> &DHr, DRMKey &MK);
 #endif
 

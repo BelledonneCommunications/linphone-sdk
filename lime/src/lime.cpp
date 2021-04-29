@@ -217,7 +217,7 @@ namespace lime {
 		}
 
 		// We have everyone: encrypt
-		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy);
+		encryptMessage(internal_recipients, *plainMessage, *recipientUserId, m_selfDeviceId, *cipherMessage, encryptionPolicy, m_localStorage);
 
 		// move DR messages to the input/output structure, ignoring again the input with peerStatus set to fail
 		// so the index on the internal_recipients still matches the way we created it from recipients
