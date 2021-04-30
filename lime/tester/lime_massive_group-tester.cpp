@@ -142,7 +142,7 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
  * In allTalking mode:
  * - every device takes turn to send messages to all the others
  */
-static void group_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, const int deviceNumber, bool oneTalking=false) {
+static void group_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, const int deviceNumber, bool oneTalking=false, bool oneDecrypt=false) {
 
 	auto groupName = make_shared<std::string>("group Name");
 
@@ -191,7 +191,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			devicesId.push_back(make_shared<std::string>(deviceId));
 
 			// create user
-			manager->create_user(deviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize+i, callback); // give them at least <index> OPk at creation
+			manager->create_user(deviceId, x3dh_server_url, curve, std::min(lime_tester::OPkInitialBatchSize+i, 200), callback); // give them at least <index> OPk at creation, no more than 200 as the server as a limit on it
 			expected_success++;
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 		}
@@ -260,20 +260,23 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 				auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 				BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[messages_pattern_index]);
 				recipientDecryptIndex++;
+				if (oneDecrypt) {
+					break; // just decrypt one message
+				}
 			}
 
 			if (bench) {
 				if (i==0) { // first run shall be the longest as we have deviceNumber-1 sessions to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"first message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"first message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(oneDecrypt?1:deviceNumber-1))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==1 && senderIndex==0) { // second message in oneTalking mode
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"second message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"second message decrypts in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(oneDecrypt?1:deviceNumber-1))<<" ms/recipient)"<<std::endl;
 				}
 				if (i==deviceNumber-1) { // last run shall be the shortest as we have no session to establish
 					span = bctbx_get_cur_time_ms() - startEncrypt;
-					LIME_LOGE<<"last message decrypts round in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(deviceNumber))<<" ms/recipient)"<<std::endl;
+					LIME_LOGE<<"last message decrypts round in "<<to_string(span)<<" ms ("<<to_string(float(span)/float(oneDecrypt?1:deviceNumber-1))<<" ms/recipient)"<<std::endl;
 				}
 			}
 		}
@@ -322,6 +325,7 @@ static void group_one_talking_bench() {
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
 		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
+		deviceNumber += 3;
 	}
 #endif
 #ifdef EC448_ENABLED
@@ -335,6 +339,38 @@ static void group_one_talking_bench() {
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 448 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
 		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
+		deviceNumber += 3;
+	}
+#endif
+}
+
+static void group_one_talking_one_decrypt_bench() {
+	if (!bench) return;
+	int deviceNumber=10;
+	uint64_t span=0,start = bctbx_get_cur_time_ms();
+#ifdef EC25519_ENABLED
+	while (span < maximumBenchTime) {
+		start = bctbx_get_cur_time_ms();
+		group_basic_test(lime::CurveId::c25519, "group_one_talking_one_decrypt", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), deviceNumber, true, true);
+		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
+		span = bctbx_get_cur_time_ms() - start;
+		LIME_LOGE<<"Curve 25519 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
+		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
+		deviceNumber += 3;
+	}
+#endif
+#ifdef EC448_ENABLED
+	deviceNumber=10;
+	start = bctbx_get_cur_time_ms();
+	span = 0;
+	while (span < maximumBenchTime) {
+		start = bctbx_get_cur_time_ms();
+		group_basic_test(lime::CurveId::c448, "group_one_talking_one_decrypt", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), deviceNumber, true, true);
+		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
+		span = bctbx_get_cur_time_ms() - start;
+		LIME_LOGE<<"Curve 448 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
+		deviceNumber *= int(std::max(float(maximumBenchTime)/float(span), 1.0f) * 1.2);
+		deviceNumber += 3;
 	}
 #endif
 }
@@ -360,6 +396,7 @@ static void group_all_talking_bench() {
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
 		deviceNumber *= int(std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2);
+		deviceNumber += 3;
 	}
 #endif
 #ifdef EC448_ENABLED
@@ -373,6 +410,7 @@ static void group_all_talking_bench() {
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 448 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
 		deviceNumber *= int(std::sqrt(std::max(float(maximumBenchTime)/float(span), 1.0f)) * 1.2);
+		deviceNumber += 3;
 	}
 #endif
 }
@@ -382,6 +420,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("One message each Bench", group_all_talking_bench),
 	TEST_NO_TAG("One encrypt to all", group_one_talking),
 	TEST_NO_TAG("One encrypt to all Bench", group_one_talking_bench),
+	TEST_NO_TAG("One encrypt to all Only one decrypt Bench", group_one_talking_one_decrypt_bench),
 };
 
 test_suite_t lime_massive_group_test_suite = {
