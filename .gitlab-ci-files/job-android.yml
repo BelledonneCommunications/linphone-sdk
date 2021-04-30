@@ -5,6 +5,7 @@
 
   variables:
     CCACHE_SIZE: 4G
+    GIT_STRATEGY: fetch
 
   extends: .linux-prepare
 
