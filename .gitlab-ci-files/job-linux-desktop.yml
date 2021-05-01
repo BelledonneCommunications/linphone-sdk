@@ -295,6 +295,7 @@
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
   extends: .test
+  allow_failure: false
   variables:
     TESTER_BIN: "liblinphone_tester"
     XVFB: "Xvfb :99"
@@ -308,6 +309,7 @@
 
 .test-liblinphone-mr:
   extends: .test-liblinphone
+  allow_failure: false
   only:
     refs:
       - branches
