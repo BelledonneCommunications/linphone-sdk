@@ -78,7 +78,22 @@ static void testIPV6URI(void) {
 	testIPV6URI_base("fe80::1");
 	testIPV6URI_base("2a01:e35:1387:1020:6233:4bff:fe0b:5663");
 	testIPV6URI_base("2a01:e35:1387:1020:6233::5663");
+// Examples from RFC4291 (Keep for testing one digit '0' in address)
+	testIPV6URI_base("2001:DB8:0:0:8:800:200C:417A");//  a unicast address
+	testIPV6URI_base("FF01:0:0:0:0:0:0:101");//  a multicast address
+	testIPV6URI_base("0:0:0:0:0:0:0:1");	// the loopback address
+	testIPV6URI_base("0:0:0:0:0:0:0:0");	// the unspecified address
+// Alternative representations
+	testIPV6URI_base("2001:DB8::8:800:200C:417A");
+	testIPV6URI_base("FF01::101");
 	testIPV6URI_base("::1");
+	testIPV6URI_base("::");
+	testIPV6URI_base("0:0:0:0:0:0:13.1.68.3");
+	testIPV6URI_base("0:0:0:0:0:FFFF:129.144.52.38");
+// Compressed form with IPV4
+	testIPV6URI_base("::13.1.68.3");
+	testIPV6URI_base("::FFFF:129.144.52.38");
+	testIPV6URI_base("2a01:e35:1387:1020::192.168.1.1");
 }
 
 static void testSIPSURI(void) {

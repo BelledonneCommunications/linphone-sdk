@@ -1933,7 +1933,7 @@ toplabel        :   alphanum (  DASH?  alphanum)+;
 
 ipv4address    :  three_digit DOT three_digit DOT three_digit DOT three_digit ;
 ipv6reference returns [const char* ret=NULL]  :  LSBRAQUET ipv6address RSBRAQUET {$ret=(const char *)$ipv6address.text->chars;};
-ipv6address    :  hexpart ( COLON ipv4address )? ;
+ipv6address    :  hexpart ( COLON ipv4address )? | ( hexseq )? COLON COLON ipv4address;
 hexpart        :  hexseq | hexseq COLON COLON ( hexseq )? | COLON COLON ( hexseq )?;
 hexseq         :  hex4 ( COLON hex4)*;
 hex4           :  hexdigit+;/* hexdigit hexdigit hexdigit ;*/
