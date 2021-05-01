@@ -106,6 +106,7 @@ static int run_skipped_tests = 0;
 static int max_parallel_suites = 0; /*if 0, but parallel is requested, an arbitrary value is determined.*/
 static int run_in_parallel = 0;
 static uint64_t globalTimeout = 0;
+static int max_failed_tests_threshold = 0;
 
 //To keep record of the process name who started and args
 static char **origin_argv = NULL;
@@ -649,6 +650,14 @@ void bc_tester_set_max_parallel_suites(int nb_suites){
 	max_parallel_suites = nb_suites;
 }
 
+void bc_tester_set_max_failed_tests_threshold(int threshold){
+	max_failed_tests_threshold = threshold;
+}
+
+void bc_tester_set_global_timeout(int seconds){
+	globalTimeout = seconds * 1000;
+}
+
 #ifdef _WIN32
 
 void kill_sub_processes(int *pids) {
@@ -779,30 +788,31 @@ int start_sub_process(const char *suite_name) {
 //For parallel tests only - handle anormally exited test suites
 //Remove previously generated XML suite file if exited anormally (could cause unusable final JUnit XML)
 //And mark all tests for the suite as failed
-int handle_sub_process_error(int pid, int exitStatus, int *suitesPids) {
-	if (abs(exitStatus) > 1) {
-		int i, j;
-		for (i = 0; i < nb_test_suites; ++i) {
-			if (suitesPids[i] == pid) {
-				ssize_t offset;
-				char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
-				bctbx_vfs_file_t* bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), suite_file_name, "w+");
-				bctbx_file_truncate(bctbx_file, 0);
+int handle_sub_process_error(int pid, int *suitesPids) {
+	int failed_tests = 0;
+	int i, j;
+	for (i = 0; i < nb_test_suites; ++i) {
+		if (suitesPids[i] == pid) {
+			ssize_t offset;
+			char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
+			bctbx_vfs_file_t* bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), suite_file_name, "w+");
+			bctbx_file_truncate(bctbx_file, 0);
 
-				offset = bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
-				for (j=0; j < test_suite[i]->nb_tests; ++j) {
-					offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n", test_suite[i]->name, test_suite[i]->tests[j].name);
-					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
-					offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
-				}
-				bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
-				bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed", test_suite[i]->name);
-				bctbx_file_close(bctbx_file);
-				bctbx_free(suite_file_name);
+			offset = bctbx_file_fprintf(bctbx_file, 0, "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n", test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
+			failed_tests = test_suite[i]->nb_tests;
+			for (j=0; j < test_suite[i]->nb_tests; ++j) {
+				offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n", test_suite[i]->name, test_suite[i]->tests[j].name);
+				offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
+				offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
 			}
+			bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
+			bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed", test_suite[i]->name);
+			bctbx_file_close(bctbx_file);
+			bctbx_free(suite_file_name);
+			break;
 		}
 	}
-	return exitStatus;
+	return failed_tests;
 }
 
 #ifdef _WIN32
@@ -933,14 +943,11 @@ int bc_tester_run_parallel(void) {
 					++testsFinished;
 				}
 				if (WIFSIGNALED(wstatus)) {
-					childRet = WTERMSIG(wstatus);
+					childRet = handle_sub_process_error(childPid, suitesPids);
 				} else {
 					childRet = WEXITSTATUS(wstatus);
 				}
-				handle_sub_process_error(childPid, childRet, suitesPids);
-				if (ret == 0 &&	childRet != 0) {
-					ret = childRet;
-				}
+				ret += childRet;
 				bc_tester_printf(bc_printf_verbosity_error, "Suite sub process (pid %d) terminated with return code %d.", childPid, childRet);
 			}
 		}
@@ -954,7 +961,9 @@ int bc_tester_run_parallel(void) {
 
 	if (elapsed >= timeout) {
 		bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
+		bc_tester_printf(bc_printf_verbosity_error, "Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution.");
 		kill_sub_processes(suitesPids);
+		ret = -1;
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
 	all_complete_message_handler(NULL);
@@ -963,7 +972,11 @@ int bc_tester_run_parallel(void) {
 		
 		bc_tester_printf(bc_printf_verbosity_info, "Full parallel run completed in %2i mn %2i s.\n", seconds/60, seconds % 60);
 	}
-	return ret;
+	if (ret >= 255){
+		bc_tester_printf(bc_printf_verbosity_error, "The number of total failed tests exceeds 255, the maximum value for an exit status.");
+		ret = 255;
+	}
+	return ret > max_failed_tests_threshold;
 }
 
 #endif
@@ -1070,8 +1083,17 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 	bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.",
 			 mallinfo().uordblks / 1024);
 #endif
-
-	return CU_get_number_of_tests_failed()!=0;
+	if (run_in_parallel){
+		// We are a child process, return the number of test failed.
+		int failed_tests = CU_get_number_of_tests_failed();
+		if (failed_tests >= 255) {
+			bc_tester_printf(bc_printf_verbosity_error, "The number of tests exceeded 255, the maximum value for an exit status !");
+			failed_tests = 255;
+		}
+		return failed_tests;
+	}
+	/* Otherwise it is serialized execution.*/
+	return (int)CU_get_number_of_tests_failed() > (int)max_failed_tests_threshold;
 
 }
 
