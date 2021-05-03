@@ -24,20 +24,13 @@
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
     #using only the git describe doesn't work because the commit hashes don't match
-    - GIT_DESCRIBE_WO_HASH=$(git describe | sed 's/-[a-zA-Z0-9]*$//')
-    - echo $GIT_DESCRIBE_WO_HASH
-    - GIT_COMMIT_NUMBER=$(echo $GIT_DESCRIBE_WO_HASH | sed 's/^.....-//' | sed 's/^[a-z]*-//')
-    - echo $GIT_COMMIT_NUMBER
-    - GIT_COMMIT_HASH=+$(git rev-parse --short HEAD)
-    - echo $GIT_COMMIT_HASH
-    - GIT_DESCRIBE_SHORT=$(git describe --abbrev=0)
-    - echo $GIT_DESCRIBE_SHORT.$GIT_COMMIT_NUMBER$GIT_COMMIT_HASH > gitdescribecommitnumber.txt
-    - cat gitdescribecommitnumber.txt
+    - ls -t build-desktop/linphone-sdk-*.zip > sdk_archive_name.txt
+    - cat sdk_archive_name.txt
     - ccache -s
 
   artifacts:
     paths:
-      - build-desktop/gitdescribecommitnumber.txt
+      - build-desktop/sdk_archive_name.txt
       - build-desktop/linphone-sdk-*.zip
       - build-desktop/linphone-sdk.podspec
       - liblinphone/tester/*
@@ -132,10 +125,10 @@ test-liblinphone-macosx:
     #Where am I when the zip is extracted ?
     - pwd
     #using -o for overwrite
-    - GIT_DESCRIBECOMMIT=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribecommitnumber.txt)
-    - echo ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBECOMMIT.zip
+    - SDK_ARCHIVE_NAME=$(cat ${CI_PROJECT_DIR}/build-desktop/sdk_archive_name.txt)
+    - echo ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME
     - ls -la ${CI_PROJECT_DIR}/build-desktop/
-    - unzip -o ${CI_PROJECT_DIR}/build-desktop/linphone-sdk-$GIT_DESCRIBECOMMIT.zip -d ${CI_PROJECT_DIR}/build-desktop
+    - unzip -o ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME -d ${CI_PROJECT_DIR}/build-desktop
     - cd $PATH_TO_TESTER
     - ls -la
     - echo ${CI_PROJECT_DIR}
