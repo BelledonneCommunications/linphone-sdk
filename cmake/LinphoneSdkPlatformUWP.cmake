@@ -41,6 +41,8 @@ list(APPEND _cmake_args ${_enable_cmake_args})
 
 linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
+linphone_sdk_get_sdk_cmake_args()
+
 list(APPEND _uwp_build_targets uwp-win32)
 set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
 foreach(_arch IN LISTS _archs)
@@ -73,7 +75,7 @@ foreach(_arch IN LISTS _archs)
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	endif()
 	
-	list(APPEND _cmake_args ${_enable_cmake_args} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
+	list(APPEND _cmake_args ${_enable_cmake_args} ${_linphone_sdk_cmake_vars} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
 	
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
@@ -109,7 +111,7 @@ foreach(_arch IN LISTS _archs)
 		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/wrapper"
 		BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-${_arch}/wrapper"
 		CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
-		CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/uwp-${_arch}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONE_PLATFORM=${_arch}" ${_cmake_args}
 		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
 		BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
 		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
@@ -118,7 +120,7 @@ foreach(_arch IN LISTS _archs)
 	ExternalProject_Add_Step(uwp-wrapper-${_arch} compress
 		COMMENT "Generating the SDK (zip file)"
 		DEPENDEES install
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=UWP" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" ${_cmake_args}
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATEFORM=UWP" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" ${_cmake_args}
 		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
 		ALWAYS 1
 	)
