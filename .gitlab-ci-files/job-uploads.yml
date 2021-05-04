@@ -251,8 +251,8 @@ job-windows-cs-doc-upload:
     - echo %CI_PROJECT_DIR%
     - for /f "delims== tokens=1,2" %%G in (build-desktop/linphone-sdk/desktop/share/version.txt) do set %%G=%%H
     - set UPLOAD_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
-    - if "%LINPHONE_STATE%" == "snapshots" (set UPLOAD_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%)
-    - echo %LINPHONE_STATE%
+    - if "%LINPHONESDK_STATE%" == "snapshots" (set UPLOAD_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%)
+    - echo %LINPHONESDK_STATE%
     - echo %LINPHONE_VERSION%
     - echo %STRIPPED_LINPHONE_VERSION%
     - echo %DEPLOY_SERVER%
