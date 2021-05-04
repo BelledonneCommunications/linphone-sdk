@@ -525,39 +525,43 @@ static AVCaptureVideoOrientation Angle2AVCaptureVideoOrientation(int deviceOrien
 
 - (void)setFps:(float) value {
 	@synchronized(self) {
-		AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
-		[session beginConfiguration];
+		@try {
+			AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+			[session beginConfiguration];
 
-		if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
-			for( AVCaptureDeviceInput* devinput in [session inputs] ) {
+			if( [[[UIDevice currentDevice] systemVersion] floatValue] >= 7 ){
+				for( AVCaptureDeviceInput* devinput in [session inputs] ) {
 
-				NSError* err = nil;
-				if( [devinput.device lockForConfiguration:&err] == YES ){
+					NSError* err = nil;
+					if( [devinput.device lockForConfiguration:&err] == YES ){
 
-					[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
-					[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
+						[devinput.device setActiveVideoMinFrameDuration:CMTimeMake(1, value)];
+						[devinput.device setActiveVideoMaxFrameDuration:CMTimeMake(1, value)];
 
-					[devinput.device unlockForConfiguration];
-				} else {
-					ms_error("Couldn't obtain lock to set capture FPS: %s", err?[err.description UTF8String] : "");
+						[devinput.device unlockForConfiguration];
+					} else {
+						ms_error("Couldn't obtain lock to set capture FPS: %s", err?[err.description UTF8String] : "");
+					}
+
+					break;
 				}
+			} else {
+				// Pre-iOS7 method
+				NSArray *connections = output.connections;
+				if ([connections count] > 0) {
+					[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
+					[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
+				}
+			}
 
-				break;
-			}
-		} else {
-			// Pre-iOS7 method
-			NSArray *connections = output.connections;
-			if ([connections count] > 0) {
-				[[connections objectAtIndex:0] setVideoMinFrameDuration:CMTimeMake(1, value)];
-				[[connections objectAtIndex:0] setVideoMaxFrameDuration:CMTimeMake(1, value)];
-			}
+			fps=value;
+			snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
+			ms_video_init_framerate_controller(&framerate_controller, fps);
+			ms_video_init_average_fps(&averageFps, fps_context);
+			[session commitConfiguration];
+		} @catch (NSException *exception) {
+			ms_error("Exception while setting FPS with value %f: %s", value, [exception.reason UTF8String]);
 		}
-
-		fps=value;
-		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f, expected=%f", fps);
-		ms_video_init_framerate_controller(&framerate_controller, fps);
-		ms_video_init_average_fps(&averageFps, fps_context);
-		[session commitConfiguration];
 	}
 }
 
