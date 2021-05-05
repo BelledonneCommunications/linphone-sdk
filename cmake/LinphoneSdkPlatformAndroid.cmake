@@ -56,7 +56,8 @@ foreach(_arch IN LISTS _archs)
 
 	linphone_sdk_get_inherited_cmake_args()
 	linphone_sdk_get_enable_cmake_args()
-	list(APPEND _cmake_args ${_enable_cmake_args})
+	linphone_sdk_get_sdk_cmake_args()
+	list(APPEND _cmake_args ${_enable_cmake_args} ${_linphone_sdk_cmake_vars})
 
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
