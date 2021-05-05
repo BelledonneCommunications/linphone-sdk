@@ -3084,20 +3084,24 @@ static void ice_create_turn_permissions(IceCheckList *cl){
 	
 	for (remote_candidate_it = cl->remote_candidates; remote_candidate_it != NULL; remote_candidate_it = remote_candidate_it->next){
 		IceCandidate *candidate = (IceCandidate*) remote_candidate_it->data;
-		ComponentID_Family cf = { candidate->componentID, candidate->taddr.family };
-		bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+		Type_Family_ComponentID tfci = { ICT_RelayedCandidate, candidate->taddr.family, candidate->componentID };
+		bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_from_type_family_and_componentID, &tfci);
 		if (elem != NULL) {
 			IceStunServerRequest *request;
 			IceStunServerRequestTransaction *transaction;
 			IceCandidate *local_candidate = (IceCandidate *)elem->data;
 			RtpTransport *rtptp = NULL;
+			if (!local_candidate->base){
+				ms_error("ice_create_turn_permissions(): Local relay candidate has no base !");
+				continue;
+			}
 			ice_get_transport_from_rtp_session_and_componentID(cl->rtp_session, candidate->componentID, &rtptp);
 			if (rtptp != NULL) {
 				MSStunAddress peer_address = ms_ip_address_to_stun_address(candidate->taddr.family, SOCK_DGRAM, candidate->taddr.ip, 3478);
 				if (peer_address.family == MS_STUN_ADDR_FAMILY_IPV6) peer_address.ip.v6.port = 0;
 				else peer_address.ip.v4.port = 0;
 				request = ice_stun_server_request_new(cl, ice_get_turn_context_from_check_list_componentID(cl, candidate->componentID), rtptp,
-					local_candidate->taddr.family, local_candidate->taddr.ip, local_candidate->taddr.port, MS_TURN_METHOD_CREATE_PERMISSION);
+					local_candidate->base->taddr.family, local_candidate->base->taddr.ip, local_candidate->base->taddr.port, MS_TURN_METHOD_CREATE_PERMISSION);
 				if (request) {
 					request->peer_address = peer_address;
 					request->next_transmission_time = ice_add_ms(ice_current_time(), ICE_DEFAULT_RTO_DURATION);
@@ -3109,7 +3113,7 @@ static void ice_create_turn_permissions(IceCheckList *cl){
 				}
 			}else ms_error("ice_create_turn_permissions(): No RTP transport");
 		}else{
-			ms_warning("IceCheckList[%p]: TURN is activated but no local host candidate.", cl);
+			ms_message("IceCheckList[%p]: no relay candidate to reach %s", cl, candidate->taddr.ip);
 		}
 	}
 }
