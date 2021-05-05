@@ -673,7 +673,17 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	Display                 *dpy;
 	Window                  root;
-	GLint                   att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 8, GLX_DOUBLEBUFFER, None };
+	static GLint visual_attribs[] =
+	{
+		GLX_X_RENDERABLE	, True,
+		GLX_DRAWABLE_TYPE	, GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE , GLX_RGBA_BIT,
+		GLX_RED_SIZE	  , 8,
+		GLX_GREEN_SIZE	, 8,
+		GLX_BLUE_SIZE	 , 8,
+		GLX_DOUBLEBUFFER	, True,
+		None
+	};
 	XVisualInfo             *vi;
 	Colormap                cmap;
 	XSetWindowAttributes    swa;
@@ -693,17 +703,63 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 		}
 	}
 	XSync(dpy, False);
-	root = DefaultRootWindow(dpy);
-	vi = glXChooseVisual(dpy, 0, att);
+	
+	int glx_major, glx_minor;
+	int fbcount;
+	GLXFBConfig *fbc;
+	int best_fbc = -1, worst_fbc = -1, best_num_samp = -1, worst_num_samp = 999;
+	GLXFBConfig bestFbc;
+	// FBConfigs were added in GLX version 1.3.
+	if ( !glXQueryVersion( dpy, &glx_major, &glx_minor ) || ( ( glx_major == 1 ) && ( glx_minor < 3 ) ) || ( glx_major < 1 ) ) {
+		ms_error( "[ogl_display] Invalid GLX version" );
+		return FALSE;
+	}
+
+	ms_message( "[ogl_display] Getting matching framebuffer configs" );
+	fbc = glXChooseFBConfig( dpy, DefaultScreen( dpy ), visual_attribs, &fbcount );
+	if ( !fbc ) {
+		ms_error( "[ogl_display] Failed to retrieve a framebuffer config" );
+		return FALSE;
+	}
+	ms_message( "[ogl_display] Found %d matching FB configs.", fbcount );
+	// Pick the FB config/visual with the most samples per pixel
+	ms_message( "[ogl_display] Getting XVisualInfos" );
+
+	for ( int i = 0; i < fbcount; ++i ) {
+		XVisualInfo *vi = glXGetVisualFromFBConfig( dpy, fbc[i] );
+		if ( vi ) {
+			int samp_buf, samples;
+			glXGetFBConfigAttrib( dpy, fbc[i], GLX_SAMPLE_BUFFERS, &samp_buf );
+			glXGetFBConfigAttrib( dpy, fbc[i], GLX_SAMPLES	 , &samples  );
+			ms_message( "[ogl_display] Matching fbconfig %d, visual ID 0x%lu: SAMPLE_BUFFERS = %d, SAMPLES = %d", i, vi -> visualid, samp_buf, samples );
+			if ( best_fbc < 0 || (samp_buf && samples > best_num_samp) )
+				best_fbc = i, best_num_samp = samples;
+			if ( worst_fbc < 0 || (!samp_buf || samples < worst_num_samp) )
+				worst_fbc = i, worst_num_samp = samples;
+		}
+		XFree( vi );
+	}
+	bestFbc = fbc[ best_fbc ];
+
+	// Be sure to free the FBConfig list allocated by glXChooseFBConfig()
+	XFree( fbc );
+
+	// Get a visual
+	vi = glXGetVisualFromFBConfig( dpy, bestFbc );
+	ms_message( "[ogl_display] Chosen visual ID = 0x%lu", vi->visualid );
+	
+	root = RootWindow( dpy, vi->screen );
 	cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
 	swa.colormap = cmap;
 	swa.background_pixmap = None ;
 	swa.border_pixel	= 0;
 	swa.event_mask	  = StructureNotifyMask;
+	ms_message( "[ogl_display] Creating XWindow");
 	*window = XCreateWindow(dpy, root, 200, 200, MS_VIDEO_SIZE_CIF_W, MS_VIDEO_SIZE_CIF_H, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
 	*window_id = dpy;
 	XStoreName( dpy, *window, "Video" );
 	XMapWindow(dpy, *window);
+	XFree( vi );
 	XSync( dpy, False );
 	return (*window) != (EGLNativeWindowType)0;
 }
