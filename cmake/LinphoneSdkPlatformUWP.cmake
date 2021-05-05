@@ -41,6 +41,8 @@ list(APPEND _cmake_args ${_enable_cmake_args})
 
 linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
+linphone_sdk_get_sdk_cmake_args()
+
 list(APPEND _uwp_build_targets uwp-win32)
 set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
 foreach(_arch IN LISTS _archs)
@@ -73,7 +75,7 @@ foreach(_arch IN LISTS _archs)
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	endif()
 	
-	list(APPEND _cmake_args ${_enable_cmake_args} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
+	list(APPEND _cmake_args ${_enable_cmake_args} ${_linphone_sdk_cmake_vars} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
 	
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
