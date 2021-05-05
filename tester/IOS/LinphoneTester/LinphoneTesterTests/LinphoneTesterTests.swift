@@ -42,6 +42,41 @@ class IncomingPushTest: XCTestCase {
 	}
 	
 	*/
+	func testUpdateContactUriWhenPushConfigurationChanges() {
+		let pauline = linphone_core_manager_new("pauline_rc")
+		let paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
+		let paulineAccount = paulineCore.defaultAccount!
+		paulineCore.autoIterateEnabled = true
+		
+		var newPaulineParams = paulineAccount.params?.clone()
+		paulineAccount.params = newPaulineParams
+		
+		let voipRegisteredExpect = expectation(description: "Registered with voip token")
+		voipRegisteredExpect.assertForOverFulfill = false
+		let paulineRegisterDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+				debugPrint("Current token : \(account.params!.pushNotificationConfig!.voipToken)")
+				voipRegisteredExpect.fulfill()
+			}
+		})
+		paulineAccount.addDelegate(delegate: paulineRegisterDelegate)
+		waitForExpectations(timeout: 40)
+		
+		newPaulineParams = paulineAccount.params?.clone()
+		newPaulineParams?.pushNotificationConfig?.provider = "testprovider"
+		paulineAccount.params = newPaulineParams
+		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-provider=testprovider;"))
+		
+		newPaulineParams = paulineAccount.params?.clone()
+		newPaulineParams?.pushNotificationConfig?.param = "testparams"
+		paulineAccount.params = newPaulineParams
+		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-param=testparams;"))
+		
+		newPaulineParams = paulineAccount.params?.clone()
+		newPaulineParams?.pushNotificationConfig?.voipToken = "testvoiptoken"
+		paulineAccount.params = newPaulineParams
+		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-prid=testvoiptoken"))
+	}
 	
 	func testVoipPushCall() {
 		let marie = linphone_core_manager_new("marie_rc")
@@ -49,10 +84,15 @@ class IncomingPushTest: XCTestCase {
 		let pauline = linphone_core_manager_new("pauline_rc")
 		var paulineCore : Core? = Core.getSwiftObject(cObject: pauline!.pointee.lc)
 		
-		var paulineAccount = paulineCore!.defaultAccount!
+		var paulineAccount : Account! = paulineCore!.defaultAccount
 		let marieAccount = marieCore.defaultAccount!
 		marieCore.pushNotificationEnabled = false
 		marieCore.autoIterateEnabled = true
+		//try! marieCore.start()
+		
+		let newPaulineParams = paulineAccount.params?.clone()
+		newPaulineParams?.pushNotificationConfig?.provider = "apns.dev"
+		paulineAccount.params = newPaulineParams
 		paulineCore!.callkitEnabled = true
 		paulineCore!.autoIterateEnabled = true
 		
@@ -64,48 +104,77 @@ class IncomingPushTest: XCTestCase {
 		
 		
 		let voipRegisteredExpect = expectation(description: "Registered with voip token")
+		voipRegisteredExpect.assertForOverFulfill = false
 		let paulineRegisterDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
 			if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+				debugPrint("Current token : \(account.params!.pushNotificationConfig!.voipToken)")
 				voipRegisteredExpect.fulfill()
 			}
 		})
 		paulineAccount.addDelegate(delegate: paulineRegisterDelegate)
 		waitForExpectations(timeout: 40)
 		
+		func stopCoreAndReceivePushRoutine(iterationNumber: Int) {
+			let expectCoreStopped = self.expectation(description: "Pauline Core Stopped - iteration \(iterationNumber)")
+			let paulineCoreStoppedDelegate = CoreDelegateStub(onGlobalStateChanged: { (lc: Core, gstate: GlobalState, message: String) in
+				if (gstate == GlobalState.Off){
+					expectCoreStopped.fulfill()
+				}
+			})
+			paulineCore!.addDelegate(delegate: paulineCoreStoppedDelegate)
+			paulineCore!.stopAsync()
+			self.waitForExpectations(timeout: 30)
+			paulineCore?.removeDelegate(delegate: paulineCoreStoppedDelegate)
+			
+			let expectPushIncoming = self.expectation(description: "Incoming Push Received - iteration \(iterationNumber)")
+			let paulineCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+				if (cstate == .PushIncomingReceived){
+					expectPushIncoming.fulfill()
+				}
+			})
+			paulineCore!.addDelegate(delegate: paulineCallDelegate)
+			let call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
+			self.waitForExpectations(timeout: 100)
+			paulineCore!.removeDelegate(delegate: paulineCallDelegate)
+			
+			let expectCallTerminated = self.expectation(description: "Call terminated expectation - iteration \(iterationNumber)")
+			let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+				if (state == Call.State.Released) {
+					usleep(5000000)
+					expectCallTerminated.fulfill()
+				}
+			})
+			call?.addDelegate(delegate: callTerminatedDelegate)
+			try! call!.terminate()
+			self.waitForExpectations(timeout: 100)
+			usleep(5000000)
+		}
+		stopCoreAndReceivePushRoutine(iterationNumber: 1)
+		stopCoreAndReceivePushRoutine(iterationNumber: 2)
+		stopCoreAndReceivePushRoutine(iterationNumber: 3)
+		stopCoreAndReceivePushRoutine(iterationNumber: 4)
+		stopCoreAndReceivePushRoutine(iterationNumber: 5)
+		stopCoreAndReceivePushRoutine(iterationNumber: 6)
+		stopCoreAndReceivePushRoutine(iterationNumber: 7)
 		
-		let expectCoreStopped = expectation(description: "Pauline Core Stopped")
-		let paulineCoreStoppedDelegate = CoreDelegateStub(onGlobalStateChanged: { (lc: Core, gstate: GlobalState, message: String) in
-			if (gstate == GlobalState.Off){
-				expectCoreStopped.fulfill()
-			}
-		})
-		paulineCore!.addDelegate(delegate: paulineCoreStoppedDelegate)
-		paulineCore!.stopAsync()
-		waitForExpectations(timeout: 10)
-		
-		let expectPushIncoming = expectation(description: "Incoming Push Received")
-		let paulineCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
-			if (cstate == .PushIncomingReceived){
-				expectPushIncoming.fulfill()
-			}
-		})
-		paulineCore!.addDelegate(delegate: paulineCallDelegate)
-		var call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
-		waitForExpectations(timeout: 100)
-		
-		let expectCallTerminated = expectation(description: "Call terminated expectation")
-		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
-			if (state == Call.State.Released) {
-				expectCallTerminated.fulfill()
-			}
-		})
-		call?.addDelegate(delegate: callTerminatedDelegate)
-		try! call!.terminate()
-		waitForExpectations(timeout: 100)
 		
 		paulineCore = nil
-		linphone_core_manager_restart(pauline, 0)
+		paulineAccount = nil
+		linphone_core_manager_restart(pauline, 1)
 		paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
+		paulineAccount = paulineCore!.defaultAccount!
+		
+		let voipRegisteredExpect2 = expectation(description: "Registered with voip token")
+		voipRegisteredExpect2.assertForOverFulfill = false
+		let paulineRegisterDelegate2 = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+			if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+				debugPrint("Current token : \(account.params!.pushNotificationConfig!.voipToken)")
+				voipRegisteredExpect2.fulfill()
+			}
+		})
+		paulineAccount.addDelegate(delegate: paulineRegisterDelegate2)
+		waitForExpectations(timeout: 40)
+		
 		let expectSecondPushIncoming = expectation(description: "Second Incoming Push Received")
 		let paulineSecondCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
 			if (cstate == .PushIncomingReceived){
@@ -114,9 +183,9 @@ class IncomingPushTest: XCTestCase {
 		})
 		paulineCore!.addDelegate(delegate: paulineSecondCallDelegate)
 		
-		paulineAccount = paulineCore!.defaultAccount!
-		call = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
+		_ = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
 		waitForExpectations(timeout: 100)
+		
 	}
 	
 	func receivedPushTokenCallback() {
