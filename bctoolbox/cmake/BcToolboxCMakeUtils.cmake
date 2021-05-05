@@ -206,6 +206,27 @@ function(bc_compute_full_version OUTPUT_VERSION)
 	endif()
 endfunction()
 
+function(bc_compute_snapshots_or_releases_state OUTPUT_VERSION)
+	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
+	if(GIT_EXECUTABLE)
+		execute_process(
+			COMMAND "${GIT_EXECUTABLE}" "describe"
+			OUTPUT_VARIABLE GIT_DESCRIBE_VERSION
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+			ERROR_QUIET
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+		)
+
+		# Check git describe to see if we are on a release or not
+		set(snapshots_or_releases_state "snapshots")
+		if(NOT GIT_DESC MATCHES ".*(alpha|beta).*")
+			set(snapshots_or_release_state "releases")
+		endif()
+
+		set(${OUTPUT_VERSION} "${snapshots_or_releases_state}" CACHE STRING "" FORCE)
+	endif()
+endfunction()
+
 function(bc_make_package_source_target)
 	set(basename "")
 	string(TOLOWER "${CMAKE_PROJECT_NAME}" basename)
