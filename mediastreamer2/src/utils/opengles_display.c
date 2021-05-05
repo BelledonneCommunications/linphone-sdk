@@ -28,6 +28,9 @@
 #ifdef HAVE_GLX
 #include <X11/Xlib.h>
 #include <GL/glx.h>
+#ifdef HAVE_XV
+#include <X11/extensions/Xvlib.h>
+#endif
 #endif
 enum ImageType {
 	REMOTE_IMAGE = 0,
@@ -687,22 +690,36 @@ bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id){
 	XVisualInfo             *vi;
 	Colormap                cmap;
 	XSetWindowAttributes    swa;
+	const char* display = getenv("DISPLAY");// For debug feedbacks
 
 	dpy = XOpenDisplay(NULL);// NULL will look at DISPLAY variable
 	if(dpy == NULL){
 		dpy = XOpenDisplay(":0");// Try to 0
 		if(dpy == NULL){
-			const char* display = getenv("DISPLAY");// For debug feedbacks
 			if(display != NULL)
-				ms_error("[ogl_display] Could not open display %s", display);
+				ms_error("[ogl_display] Could not open DISPLAY: %s", display);
 			else
-				ms_error("[ogl_display] Could not open display.");
+				ms_error("[ogl_display] Could not open DISPLAY.");
 			*window = (EGLNativeWindowType)0;
 			*window_id  = NULL;
 			return FALSE;
 		}
 	}
 	XSync(dpy, False);
+#ifdef HAVE_XV
+	unsigned int adaptorsCount = 0;
+	XvAdaptorInfo *xai=NULL;
+	if (XvQueryAdaptors(dpy,DefaultRootWindow(dpy), &adaptorsCount, &xai)!=0 ){
+		ms_error("[ogl_display] XvQueryAdaptors failed.");
+		return FALSE;
+	}else if( adaptorsCount == 0){
+		if(display != NULL)
+			ms_error("[ogl_display] Xvfb: No adaptors available on DISPLAY:%s", display);
+		else
+			ms_error("[ogl_display] Xvfb: No adaptors available on DISPLAY");
+		return FALSE;
+	}
+#endif
 	
 	int glx_major, glx_minor;
 	int fbcount;
