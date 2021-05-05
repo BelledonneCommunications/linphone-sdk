@@ -101,6 +101,27 @@ function(linphone_sdk_get_enable_cmake_args)
 	set(_enable_cmake_args ${_enable_cmake_args} PARENT_SCOPE)
 endfunction()
 
+# Add SDK variables here to propagate them through submodules (this function is call from LinphoneSdkPlatform<..>.cmake to set projects variables)
+# For full propagation, theses variables must be added to LINPHONE_BUILDER_EP_VARS in cmake-builder/cmake/CMakeLists.txt too.
+function(linphone_sdk_get_sdk_cmake_args)
+	set(_linphone_sdk_vars
+		LINPHONESDK_STATE:STRING
+		LINPHONESDK_BRANCH:STRING
+	)
+
+	set(_linphone_sdk_cmake_vars)
+	foreach(_var ${_linphone_sdk_vars})
+		string(REPLACE ":" ";" _varname_and_vartype ${_var})
+		list(GET _varname_and_vartype 0 _varname)
+		list(GET _varname_and_vartype 1 _vartype)
+		if (DEFINED ${_varname})
+			list(APPEND _linphone_sdk_cmake_vars "-D${_varname}:${_vartype}=${${_varname}}")
+		endif()
+	endforeach()
+
+	set(_linphone_sdk_cmake_vars ${_linphone_sdk_cmake_vars} PARENT_SCOPE)
+endfunction()
+
 macro(linphone_sdk_convert_comma_separated_list_to_cmake_list INPUT OUTPUT)
 	string(REPLACE " " "" ${OUTPUT} "${INPUT}")
 	string(REPLACE "," ";" ${OUTPUT} "${${OUTPUT}}")

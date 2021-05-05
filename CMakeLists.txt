@@ -30,6 +30,7 @@ include(LinphoneSdkUtils)
 include(bctoolbox/cmake/BcToolboxCMakeUtils.cmake)
 
 bc_compute_full_version(LINPHONESDK_VERSION)
+bc_compute_snapshots_or_releases_state(LINPHONESDK_STATE)
 linphone_sdk_compute_git_branch(LINPHONESDK_BRANCH)
 
 set(LINPHONESDK_PREBUILD_DEPENDENCIES)

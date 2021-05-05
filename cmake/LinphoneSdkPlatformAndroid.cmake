@@ -31,7 +31,7 @@ list(GET _archs 0 _first_arch)
 
 
 add_custom_target(gradle-clean ALL
-	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_BRANCH=${LINPHONESDK_BRANCH}" "-DLINPHONESDK_FIRST_ARCH=${_first_arch}" "-P" "${LINPHONESDK_DIR}/cmake/Android/GradleClean.cmake"
+	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_BRANCH=${LINPHONESDK_BRANCH}" "-DLINPHONESDK_FIRST_ARCH=${_first_arch}" "-P" "${LINPHONESDK_DIR}/cmake/Android/GradleClean.cmake"
 )
 list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES gradle-clean)
 
@@ -56,7 +56,8 @@ foreach(_arch IN LISTS _archs)
 
 	linphone_sdk_get_inherited_cmake_args()
 	linphone_sdk_get_enable_cmake_args()
-	list(APPEND _cmake_args ${_enable_cmake_args})
+	linphone_sdk_get_sdk_cmake_args()
+	list(APPEND _cmake_args ${_enable_cmake_args} ${_linphone_sdk_cmake_vars})
 
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
