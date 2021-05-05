@@ -68,7 +68,8 @@ foreach(_arch IN LISTS _archs)
 	linphone_sdk_get_inherited_cmake_args()
 	linphone_sdk_get_enable_cmake_args()
 	linphone_sdk_get_sdk_cmake_args()
-	list(APPEND _cmake_args ${_enable_cmake_args} ${_linphone_sdk_cmake_vars})
+	list(APPEND _cmake_args ${_enable_cmake_args})
+	list(APPEND _cmake_args ${_linphone_sdk_cmake_vars})
 
 	list(APPEND _cmake_args
 		"-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/${_arch}-apple-darwin.ios"
