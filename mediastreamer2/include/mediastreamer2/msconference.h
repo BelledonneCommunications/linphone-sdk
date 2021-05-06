@@ -41,6 +41,7 @@ typedef void (*MSAudioConferenceNotifyActiveTalker)(struct _MSAudioConference *,
 **/
 struct _MSAudioConferenceParams{
 	int samplerate; /**< Conference audio sampling rate in Hz: 8000, 16000 ...*/
+	int max_volumes; /** Max number of volumes sent with the mixer to client header extension */
 	MSAudioConferenceNotifyActiveTalker active_talker_callback;
 	void *user_data;
 };
@@ -131,6 +132,14 @@ MS2_PUBLIC void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioE
  * @param obj the conference
 **/
 MS2_PUBLIC int ms_audio_conference_get_size(MSAudioConference *obj);
+
+/**
+ * Returns the volume of a participant specified by it's SSRC.
+ * @param obj the conference
+ * @param ssrc the participant's ssrc
+ * @return the volume of the participant in dbm0.
+**/
+MS2_PUBLIC int ms_audio_conference_get_participant_volume(MSAudioConference *obj, uint32_t ssrc);
 
 /**
  * Destroys a conference.

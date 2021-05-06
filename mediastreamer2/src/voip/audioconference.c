@@ -20,6 +20,7 @@
 #include "mediastreamer2/msconference.h"
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/msvolume.h"
+#include "mediastreamer2/msrtp.h"
 #include "private.h"
 
 static const int audio_threshold_min_db = -30;
@@ -179,6 +180,52 @@ static void plumb_to_conf(MSAudioEndpoint *ep){
 	
 }
 
+static int request_volumes(MSFilter *filter, rtp_audio_level_t *audio_levels, void *user_data) {
+	MSAudioEndpoint *ep = (MSAudioEndpoint *) user_data;
+	bctbx_list_t *it;
+	int count = 0;
+
+	for (it = ep->conference->members; it != NULL; it = it->next) {
+		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
+		if (data != ep) {
+			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
+			MSFilter *volume_filter = is_remote ? data->st->volrecv : data->st->volsend;
+			uint32_t ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions.rtp_session) : rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session);
+
+			if (data->muted) continue;
+			if (volume_filter) {
+				float db = MS_VOLUME_DB_LOWEST;
+				if (ms_filter_call_method(volume_filter, MS_VOLUME_GET, &db) == 0) {
+					int max = ep->conference->params.max_volumes;
+					int i, j;
+					// Only keep the "max" biggest volumes
+					for (i = 0; i < max; i++) {
+						if (audio_levels[i].csrc == 0) {
+							audio_levels[i].csrc = ssrc;
+							audio_levels[i].dbov = ms_volume_dbm0_to_dbov(db);
+							count++;
+							break;
+						} else if (audio_levels[i].dbov < ms_volume_dbm0_to_dbov(db)) {
+							for (j = max - 1; j > i; j--) {
+								if (audio_levels[j-1].csrc != 0) {
+									audio_levels[j].csrc = audio_levels[j-1].csrc;
+									audio_levels[j].dbov = audio_levels[j-1].dbov;
+								}
+							}
+							audio_levels[i].csrc = ssrc;
+							audio_levels[i].dbov = ms_volume_dbm0_to_dbov(db);
+							if (count < max) count++;
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return count;
+}
+
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep){
 	/* now connect to the mixer */
 	ep->conference=obj;
@@ -188,6 +235,14 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 	obj->members = bctbx_list_append(obj->members, ep);
 	obj->nmembers++;
 	ms_audio_conference_mute_member(obj, ep, ep->muted);
+
+	// If mixer to client extension id is configured then add the needed callback
+	if (ep->st->mixer_to_client_extension_id > 0) {
+		MSFilterRequestMixerToClientDataCb callback;
+		callback.cb = request_volumes;
+		callback.user_data = ep;
+		ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, &callback);
+	}
 }
 
 static void unplumb_from_conf(MSAudioEndpoint *ep){
@@ -222,6 +277,29 @@ void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep
 
 int ms_audio_conference_get_size(MSAudioConference *obj){
 	return obj->nmembers;
+}
+
+int ms_audio_conference_get_participant_volume(MSAudioConference *obj, uint32_t ssrc) {
+	bctbx_list_t *it;
+
+	for(it = obj->members; it != NULL; it = it->next) {
+		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
+		int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
+		MSFilter *volume_filter = is_remote ? data->st->volrecv : data->st->volsend;
+		uint32_t member_ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions.rtp_session) : rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session);
+
+		if (member_ssrc != ssrc) continue;
+		if (data->muted) return MS_VOLUME_DB_LOWEST;
+
+		if (volume_filter) {
+			float db = MS_VOLUME_DB_LOWEST;
+			if (ms_filter_call_method(volume_filter, MS_VOLUME_GET, &db) == 0) {
+				return (int)db;
+			}
+		}
+	}
+
+	return AUDIOSTREAMVOLUMES_NOT_FOUND;
 }
 
 

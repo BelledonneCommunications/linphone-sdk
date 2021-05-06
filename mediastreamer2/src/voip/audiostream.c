@@ -95,6 +95,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->rtp_io_session) rtp_session_destroy(stream->rtp_io_session);
 	if (stream->captcard) ms_snd_card_unref(stream->captcard);
 	if (stream->playcard) ms_snd_card_unref(stream->playcard);
+	if (stream->participants_volumes) audio_stream_volumes_delete(stream->participants_volumes);
 
 	ms_free(stream);
 }
@@ -787,7 +788,7 @@ static void on_silence_detected(void *data, MSFilter *f, unsigned int event_id, 
 
 static void on_cn_received(void *data, MSFilter *f, unsigned int event_id, void *event_arg){
 	AudioStream *as=(AudioStream*)data;
-	if (as->plc){
+	if (event_id == MS_RTP_RECV_GENERIC_CN_RECEIVED && as->plc){
 		ms_message("CN packet received, given to MSGenericPlc filter.");
 		ms_filter_call_method(as->plc, MS_GENERIC_PLC_SET_CN, event_arg);
 	}
@@ -856,6 +857,35 @@ static void ms_audio_flow_control_event_handler(void *user_data, MSFilter *sourc
 	}
 }
 
+static void on_volumes_received(void *data, MSFilter *f, unsigned int event_id, void *event_arg) {
+	AudioStream *as=(AudioStream*)data;
+	rtp_audio_level_t *mtc_volumes;
+	int i;
+
+	switch(event_id) {
+		case MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED:
+			mtc_volumes = (rtp_audio_level_t *) event_arg;
+			audio_stream_volumes_reset_values(as->participants_volumes);
+			for(i = 0; i < RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL && mtc_volumes[i].csrc != 0; i++) {
+				audio_stream_volumes_insert(as->participants_volumes, mtc_volumes[i].csrc, (int)ms_volume_dbov_to_dbm0(mtc_volumes[i].dbov));
+			}
+			break;
+		case MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED:
+			// Do nothing for now
+			break;
+	}
+}
+
+static int request_stream_volume(MSFilter *filter, void* user_data) {
+	AudioStream *as = (AudioStream *)user_data;
+	MSFilter *volume_filter = as->volsend;
+	float db = MS_VOLUME_DB_LOWEST;
+	
+	ms_filter_call_method(volume_filter, MS_VOLUME_GET, &db);
+
+	return ms_volume_dbm0_to_dbov(db);
+}
+
 int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
 
@@ -883,7 +913,25 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,rtps);
 	stream->ms.rtprecv=ms_factory_create_filter(stream->ms.factory,MS_RTP_RECV_ID);
 	ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,rtps);
+	ms_filter_add_notify_callback(stream->ms.rtprecv, on_volumes_received, stream, TRUE);
 	stream->ms.sessions.rtp_session=rtps;
+
+	// Set the header extension id for mixer to client audio level indication
+	if (stream->mixer_to_client_extension_id > 0) {
+		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_MIXER_TO_CLIENT_EXTENSION_ID,&stream->mixer_to_client_extension_id);
+		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID,&stream->mixer_to_client_extension_id);
+	}
+
+	// Set the header extension id and callback for client audio level indication
+	if (stream->client_to_mixer_extension_id > 0) {
+		MSFilterRequestClientToMixerDataCb callback;
+		callback.cb = request_stream_volume;
+		callback.user_data = stream;
+		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, &callback);
+		ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID,&stream->client_to_mixer_extension_id);
+		
+		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID,&stream->client_to_mixer_extension_id);
+	}
 
 	if((stream->features & AUDIO_STREAM_FEATURE_DTMF_ECHO) != 0)
 		stream->dtmfgen=ms_factory_create_filter(stream->ms.factory, MS_DTMF_GEN_ID);
@@ -1590,6 +1638,9 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 
 	rtp_session_set_rtcp_xr_media_callbacks(stream->ms.sessions.rtp_session, &rtcp_xr_media_cbs);
 
+	stream->participants_volumes = audio_stream_volumes_new();
+	stream->mixer_to_client_extension_id = 0;
+
 	return stream;
 }
 
@@ -2093,4 +2144,16 @@ MSSndCard * audio_stream_get_input_ms_snd_card(AudioStream *stream) {
 
 MSSndCard * audio_stream_get_output_ms_snd_card(AudioStream *stream) {
 	return stream->playcard;
+}
+
+void audio_stream_set_mixer_to_client_extension_id(AudioStream *stream, int extension_id) {
+	stream->mixer_to_client_extension_id = extension_id;
+}
+
+void audio_stream_set_client_to_mixer_extension_id(AudioStream *stream, int extension_id) {
+	stream->client_to_mixer_extension_id = extension_id;
+}
+
+int audio_stream_get_participant_volume(const AudioStream *stream, uint32_t participant_ssrc) {
+	return audio_stream_volumes_find(stream->participants_volumes, participant_ssrc);
 }

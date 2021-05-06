@@ -83,4 +83,15 @@
 
 extern MSFilterDesc ms_volume_desc;
 
+
+// Utils functions to convert volumes
+MS2_PUBLIC float ms_volume_linear_to_dbm0(float linear);
+MS2_PUBLIC int ms_volume_linear_to_dbov(float linear);
+
+MS2_PUBLIC float ms_volume_dbm0_to_linear(float dbm0);
+MS2_PUBLIC int ms_volume_dbm0_to_dbov(float dbm0);
+
+MS2_PUBLIC float ms_volume_dbov_to_linear(int dbov);
+MS2_PUBLIC float ms_volume_dbov_to_dbm0(int dbov);
+
 #endif

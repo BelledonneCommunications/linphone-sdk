@@ -125,29 +125,24 @@ static void volume_uninit(MSFilter *f){
 	ms_free(f->data);
 }
 
-static MS2_INLINE float linear_to_db(float linear){
-	if (linear==0) return MS_VOLUME_DB_LOWEST;
-	return 10*ortp_log10f(linear);
-}
-
 static int volume_get(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=linear_to_db(v->energy);
+	*farg=ms_volume_linear_to_dbm0(v->energy);
 	return 0;
 }
 
 static int volume_get_min(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=linear_to_db(ortp_extremum_get_current(&v->min));
+	*farg=ms_volume_linear_to_dbm0(ortp_extremum_get_current(&v->min));
 	return 0;
 }
 
 static int volume_get_max(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg=linear_to_db(ortp_extremum_get_current(&v->max));
+	*farg=ms_volume_linear_to_dbm0(ortp_extremum_get_current(&v->max));
 	return 0;
 }
 
@@ -292,7 +287,7 @@ static int volume_get_gain(MSFilter *f, void *arg){
 static int volume_get_gain_db(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
-	*farg = linear_to_db (v->static_gain);
+	*farg = ms_volume_linear_to_dbm0 (v->static_gain);
 	return 0;
 }
 
@@ -586,3 +581,20 @@ MSFilterDesc ms_volume_desc={
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_volume_desc)
+
+float ms_volume_linear_to_dbm0(float linear) {
+	if (linear==0) return MS_VOLUME_DB_LOWEST;
+	return 10*ortp_log10f(linear);
+}
+
+int ms_volume_linear_to_dbov(float linear) {
+	return (int)ms_volume_linear_to_dbm0(linear) - 3;
+}
+
+int ms_volume_dbm0_to_dbov(float dbm0) {
+	return (int)dbm0 + 3;
+}
+
+float ms_volume_dbov_to_dbm0(int dbov) {
+	return (float)(dbov - 3);
+}

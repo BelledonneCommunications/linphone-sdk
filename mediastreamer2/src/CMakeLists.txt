@@ -127,6 +127,7 @@ set(VOIP_SOURCE_FILES_C
 set(VOIP_SOURCE_FILES_CXX
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
+	voip/audiostreamvolumes.cpp
 	voip/turn_tcp.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )

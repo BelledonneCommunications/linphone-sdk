@@ -23,6 +23,7 @@
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/mstonedetector.h"
+#include "mediastreamer2/msvolume.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
@@ -659,6 +660,70 @@ static void symetric_rtp_with_wrong_rtcp_port(void)  {
 							  ,5);
 }
 
+static int request_volumes(MSFilter *filter, rtp_audio_level_t *audio_levels, void *user_data) {
+	// Adding some test values
+	audio_levels[0].csrc = 1;
+	audio_levels[0].dbov = -5;
+	audio_levels[1].csrc = 2;
+	audio_levels[1].dbov = -15;
+	audio_levels[2].csrc = 3;
+	audio_levels[2].dbov = -127;
+
+	return 3;
+}
+
+static void participants_volumes_in_audio_stream(void) {
+	AudioStream *marielle = audio_stream_new2(_factory, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
+	stats_t marielle_stats;
+	AudioStream *margaux = audio_stream_new2(_factory, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+	stats_t margaux_stats;
+	RtpProfile *profile = rtp_profile_new("default profile");
+	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+	int dummy=0;
+	MSFilterRequestMixerToClientDataCb callback;
+
+	reset_stats(&marielle_stats);
+	reset_stats(&margaux_stats);
+
+	rtp_profile_set_payload(profile, 0, &payload_type_pcmu8000);
+
+	// Set callback and parameters for audio level indications
+	audio_stream_set_mixer_to_client_extension_id(marielle, 3);
+	audio_stream_set_mixer_to_client_extension_id(margaux, 3);
+	callback.cb = request_volumes;
+	callback.user_data = marielle;
+	ms_filter_call_method(marielle->ms.rtpsend, MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, &callback);
+
+	BC_ASSERT_EQUAL(audio_stream_start_full(margaux, profile, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_IP, MARIELLE_RTCP_PORT,
+		0, 50, hello_file, NULL, NULL, NULL, 0), 0, int, "%d");
+
+	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP, MARGAUX_RTCP_PORT,
+		0, 50, hello_file, NULL, NULL, NULL, 0), 0, int, "%d");
+
+	ms_filter_add_notify_callback(margaux->soundread, notify_cb, &margaux_stats, TRUE);
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
+
+	wait_for_until(&margaux->ms, &marielle->ms, &dummy, 1, 2000);
+
+	BC_ASSERT_TRUE(wait_for_until(&margaux->ms, &marielle->ms, &margaux_stats.number_of_EndOfFile, 1, 12000));
+	BC_ASSERT_TRUE(wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000));
+
+	/*make sure packets can cross from sender to receiver*/
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 2000);
+
+	// Check that mixer to client audio levels are received
+	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 1), (int)ms_volume_dbov_to_dbm0(-5), int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 2), (int)ms_volume_dbov_to_dbm0(-15), int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 3), (int)ms_volume_dbov_to_dbm0(-127), int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 5), AUDIOSTREAMVOLUMES_NOT_FOUND, int, "%d");
+
+	audio_stream_stop(marielle);
+	audio_stream_stop(margaux);
+
+	free(hello_file);
+	rtp_profile_destroy(profile);
+}
+
 
 static test_t tests[] = {
 	TEST_NO_TAG("Basic audio stream", basic_audio_stream),
@@ -674,6 +739,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream),
 	TEST_NO_TAG("Symetric rtp with wrong address", symetric_rtp_with_wrong_addr),
 	TEST_NO_TAG("Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port),
+	TEST_NO_TAG("Participants volumes in audio stream", participants_volumes_in_audio_stream),
 };
 
 test_suite_t audio_stream_test_suite = {

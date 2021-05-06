@@ -444,13 +444,15 @@ struct _AudioStream
 	bool_t is_ec_delay_set;
 	bool_t disable_record_on_mute;
 	float last_mic_gain_level_db;
+	struct _AudioStreamVolumes *participants_volumes;
+	int mixer_to_client_extension_id;
+	int client_to_mixer_extension_id;
 };
 
 /**
  * The AudioStream holds all resources to create and run typical VoIP audiostream.
 **/
 typedef struct _AudioStream AudioStream;
-
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
 MS2_PUBLIC AudioStream *audio_stream_start(MSFactory* factory, RtpProfile * prof, int locport, const char *remip,
@@ -835,7 +837,49 @@ static MS2_INLINE RtpSession * audio_stream_get_rtp_session(const AudioStream *s
 	return media_stream_get_rtp_session(&stream->ms);
 }
 
+/**
+ * Sets the header extension id for mixer to client audio level indication.
+ * This has to be called before starting the audio stream.
+ *
+ * @param stream the audio stream
+ * @param extension_id the extension id
+ */
+MS2_PUBLIC void audio_stream_set_mixer_to_client_extension_id(AudioStream *stream, int extension_id);
 
+/**
+ * Sets the header extension id for client to mixer audio level indication.
+ * This has to be called before starting the audio stream.
+ *
+ * @param stream the audio stream
+ * @param extension_id the extension id
+ */
+MS2_PUBLIC void audio_stream_set_client_to_mixer_extension_id(AudioStream *stream, int extension_id);
+
+/**
+ * Retrieve the volume of the given participant.
+ *
+ * @param stream the audio stream
+ * @param participant_ssrc the ssrc of the participant
+ * @return the volume of the participant in dbm0, if participant isn't found it will return the lowest volume.
+ */
+MS2_PUBLIC int audio_stream_get_participant_volume(const AudioStream *stream, uint32_t participant_ssrc);
+
+/* Map api to be able to keep participants volumes */
+typedef struct _AudioStreamVolumes AudioStreamVolumes;
+
+#define AUDIOSTREAMVOLUMES_NOT_FOUND INT16_MIN
+
+MS2_PUBLIC AudioStreamVolumes* audio_stream_volumes_new(void);
+MS2_PUBLIC void audio_stream_volumes_delete(AudioStreamVolumes *volumes);
+
+MS2_PUBLIC void audio_stream_volumes_insert(AudioStreamVolumes *volumes, uint32_t ssrc, int volume);
+MS2_PUBLIC void audio_stream_volumes_erase(AudioStreamVolumes *volumes, uint32_t ssrc);
+MS2_PUBLIC void audio_stream_volumes_clear(AudioStreamVolumes *volumes);
+
+MS2_PUBLIC int audio_stream_volumes_size(AudioStreamVolumes *volumes);
+MS2_PUBLIC int audio_stream_volumes_find(AudioStreamVolumes *volumes, uint32_t ssrc);
+
+MS2_PUBLIC void audio_stream_volumes_reset_values(AudioStreamVolumes *volumes);
 
 /**
  * @}
