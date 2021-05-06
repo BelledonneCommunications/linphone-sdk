@@ -839,7 +839,7 @@ static void au_detect(MSSndCardManager *m){
 	NSArray *inputs = [[AVAudioSession sharedInstance] availableInputs];
 	
 	for (AVAudioSessionPortDescription *input in inputs) {
-		MSSndCard *card = au_card_new(ms_strdup_printf("%s", [input.portName UTF8String]));
+		MSSndCard *card = au_card_new([input.portName UTF8String]);
 		card->device_type = deduceDeviceTypeFromInputAudioPortType(input.portType);
 		ms_snd_card_manager_add_card(m, card);
 		ms_debug("au_detect, creating snd card %p", card);
