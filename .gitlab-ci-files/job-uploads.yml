@@ -234,10 +234,11 @@ job-windows-cs-doc-upload:
     - if "%LINPHONE_STATE%" == "snapshots" (set UPLOAD_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%)
     - echo %LINPHONE_STATE%
     - echo %LINPHONE_VERSION%
+    - echo %STRIPPED_LINPHONE_VERSION%
     - echo %DEPLOY_SERVER%
     - echo %UPLOAD_ROOT_DIRECTORY%
-    - ssh %DEPLOY_SERVER% mkdir -p %UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
-    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%LINPHONE_VERSION%/cs
+    - ssh %DEPLOY_SERVER% mkdir -p %UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%STRIPPED_LINPHONE_VERSION%/cs
+    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-%LINPHONE_VERSION%/cs/* %DEPLOY_SERVER%:%UPLOAD_ROOT_DIRECTORY%/docs/liblinphone/%STRIPPED_LINPHONE_VERSION%/cs
 
 #################################################
 # Debian doc upload
