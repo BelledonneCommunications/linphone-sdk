@@ -48,9 +48,16 @@ if(ENABLE_TUNNEL)
 	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES tunnel-clone)
 endif()
 
-
-set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
-set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP")
+if(APPLE)
+	if(LINPHONESDK_PLATFORM MATCHES "Desktop")#on Apple, Desktop == Macos
+		set(LINPHONESDK_PLATFORM "Macos" CACHE STRING "Platform to build" FORCE)
+	else()
+		set(LINPHONESDK_PLATFORM "Macos" CACHE STRING "Platform to build")
+	endif()
+else()
+	set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
+endif()
+set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP" "Macos")
 
 set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
 set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
