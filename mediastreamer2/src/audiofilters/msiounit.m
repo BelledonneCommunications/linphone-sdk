@@ -125,6 +125,7 @@ typedef enum _MSAudioUnitState{
 @property bool_t audio_session_activated;
 @property bool_t callkit_enabled;
 @property bool_t mic_enabled;
+@property bool_t zombified;
 
 +(AudioUnitHolder *)sharedInstance;
 - (id)init;
@@ -133,7 +134,7 @@ typedef enum _MSAudioUnitState{
 -(bool_t)start_audio_unit:(uint64_t) time;
 -(void)stop_audio_unit_with_param:(bool_t) isConfigured;
 -(void)stop_audio_unit;
--(void)destroy_audio_unit;
+-(void)destroy_audio_unit: (bool_t) with_snd_card;
 -(void)mutex_lock;
 -(void)mutex_unlock;
 
@@ -153,6 +154,7 @@ struct au_filter_read_data{
 	unsigned int n_lost_frame;
 	MSTickerSynchronizer *ticker_synchronizer;
 	uint64_t read_samples;
+	uint64_t read_samples_last_activity_check;
 };
 
 struct au_filter_write_data{
@@ -243,6 +245,7 @@ ms_mutex_t mutex;
 	 _will_be_used = FALSE;
 	 ms_mutex_init(&mutex,NULL);
 	 _mic_enabled = TRUE;
+	 _zombified = FALSE;
 	}
 	return self;
 }
@@ -285,6 +288,7 @@ ms_mutex_t mutex;
 	if (_audio_unit) {
 		ms_message("AudioUnit created with type %s.", subtype==kAudioUnitSubType_RemoteIO ? "kAudioUnitSubType_RemoteIO" : "kAudioUnitSubType_VoiceProcessingIO" );
 		_audio_unit_state =MSAudioUnitCreated;
+		_zombified = FALSE;
 	}
 	return;
 }
@@ -466,7 +470,7 @@ ms_mutex_t mutex;
 	[self create_audio_unit];
 }
 
--(void)destroy_audio_unit {
+-(void)destroy_audio_unit: (bool_t) with_snd_card{
 	[self stop_audio_unit];
 	
 	if (_audio_unit) {
@@ -482,7 +486,7 @@ ms_mutex_t mutex;
 		ms_message("AudioUnit destroyed");
 		_audio_unit_state = MSAudioUnitNotCreated;
 	}
-	if (_ms_snd_card) {
+	if (with_snd_card && _ms_snd_card) {
 		MSSndCard * cardbuffer = _ms_snd_card;
 		[self mutex_lock];
 		_ms_snd_card = NULL;
@@ -530,7 +534,7 @@ ms_mutex_t mutex;
 }
 
 -(void) configure_audio_session {
-	NSError *err = nil;;
+	NSError *err = nil;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
 	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 
@@ -660,7 +664,7 @@ static void au_init(MSSndCard *card){
 static void au_uninit(MSSndCard *card){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	if ([au_holder ms_snd_card] == card) {
-		[au_holder destroy_audio_unit];
+		[au_holder destroy_audio_unit: TRUE];
 	}
 }
 // If the both read&write filters have been destroyed, we're not in test mode, and will_be_used == FALSE, then stop&destroy the audio unit
@@ -670,7 +674,7 @@ static void destroy_audio_unit_if_not_needed_anymore(){
 		return;
 	
 	if ( ([au_holder ms_snd_card] != NULL && bctbx_param_string_get_bool_value([au_holder ms_snd_card]->sndcardmanager->paramString, SCM_PARAM_TESTER)) || ![au_holder will_be_used] ) {
-		[au_holder destroy_audio_unit];
+		[au_holder destroy_audio_unit: TRUE];
 	}
 }
 
@@ -678,23 +682,19 @@ static void au_usage_hint(MSSndCard *card, bool_t used){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	[au_holder setWill_be_used:used];
 	destroy_audio_unit_if_not_needed_anymore();
-	/* Mark the audio session as not activated if Callkit is used */
-	if (au_holder.callkit_enabled && !used){
-		ms_message("AVAudioSession marked as inactivate since sound is no longer used.");
-		[au_holder setAudio_session_activated:FALSE];
-	}
 }
 
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
 
-static void handle_sample_rate_change(void){
+static void handle_sample_rate_change(int force){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	int rate = (int)[[AVAudioSession sharedInstance] sampleRate];
-	if (rate == (int)[au_holder rate]) {
+	if (!force && rate == (int)[au_holder rate]) {
 		return;
 	}
-	ms_message("MSAURead/MSAUWrite: AVAudioSession's sample rate has changed from %i to %i.", [au_holder rate], rate);
+	if (!force) ms_message("MSAURead/MSAUWrite: AVAudioSession's sample rate has changed from %i to %i.", [au_holder rate], rate);
+	else ms_message("Updating sample rate since audio graph may be running.");
 	[au_holder setRate:rate];
 	
 	if ([au_holder audio_unit_state] == MSAudioUnitConfigured || [au_holder audio_unit_state] == MSAudioUnitStarted){
@@ -715,35 +715,57 @@ static void handle_sample_rate_change(void){
 }
 
 static void au_audio_route_changed(MSSndCard *obj) {
-	handle_sample_rate_change();
+	handle_sample_rate_change(FALSE);
 }
 
 static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	
+	bool_t need_audio_session_reconfiguration = FALSE;
 	ms_message("AVAudioSession activated: %i", (int)activated);
 	
 	if (au_holder.audio_session_activated && activated){
 		ms_warning("Callkit notifies that AVAudioSession is activated while it was supposed to be already activated. It means that a device disconnection happened.");
 		/* The audio unit has to be re-created. Not documented anywhere but shown by direct experience. */
 		[au_holder recreate_audio_unit];
+	}else if (!au_holder.audio_session_activated && !activated){
+		ms_warning("Audio session notified of deactivation twice... Loosy iOS developers.");
+		return;
+	}else if (au_holder.zombified){
+		ms_warning("AudioUnit was marked as zombified. Recreating it.");
+		[au_holder destroy_audio_unit:FALSE];
+		need_audio_session_reconfiguration = TRUE;
 	}
-	
 	[au_holder setAudio_session_activated:activated];
 	
-	if (activated && [au_holder audio_unit_state] == MSAudioUnitCreated){
-		/* 
-		The sample rate is known only after that the AudioSession is activated. 
-		It may have changed compared to the original value we requested while plumbing the graph.
-		*/
-		handle_sample_rate_change();
-		/* The next is done on a separate thread because it is considerably slow, so don't block the application calling thread here. */
-		dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
-				[[AudioUnitHolder sharedInstance] configure_audio_unit];
-				[[AudioUnitHolder sharedInstance] start_audio_unit:0];
-		});
-	}else if (!activated && [au_holder audio_unit_state] == MSAudioUnitStarted) {
-		[au_holder stop_audio_unit_with_param:TRUE];
+	if (activated){
+		if (need_audio_session_reconfiguration) {
+			[au_holder configure_audio_session];
+			[au_holder create_audio_unit];
+		}
+		
+		if ([au_holder audio_unit_state] == MSAudioUnitCreated){
+			/* 
+			The sample rate is known only after that the AudioSession is activated. 
+			It may have changed compared to the original value we requested while plumbing the graph.
+			*/
+			handle_sample_rate_change(need_audio_session_reconfiguration);
+			/* The next is done on a separate thread because it is considerably slow, so don't block the application calling thread here. */
+			dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH,0), ^{
+					[[AudioUnitHolder sharedInstance] configure_audio_unit];
+					[[AudioUnitHolder sharedInstance] start_audio_unit:0];
+			});
+		}
+	}else if (!activated){
+		if ([au_holder audio_unit_state] == MSAudioUnitStarted) {
+			[au_holder stop_audio_unit_with_param:TRUE];
+		}
+		if ([au_holder audio_unit_state] != MSAudioUnitNotCreated) {
+			/*Mark the AudioUnit as zombified. It is unlikely to work in the future and should be recreated 
+			when the AudioSession will be reactivated. */
+			au_holder.zombified = TRUE;
+			ms_message("AudioSession is deactivated while AudioUnit was created. Mark AudioUnit as zombified.");
+		}
+		
 	}
 }
 
@@ -962,6 +984,7 @@ static void au_read_preprocess(MSFilter *f){
 	[au_holder check_audio_unit_is_up];
 	d->ticker_synchronizer = ms_ticker_synchronizer_new();
 	ms_ticker_set_synchronizer(f->ticker, d->ticker_synchronizer);
+	d->read_samples_last_activity_check = (uint64_t)-1;
 	[au_holder setRead_started:TRUE];
 }
 
@@ -970,16 +993,32 @@ static void au_read_process(MSFilter *f){
 	au_filter_read_data_t *d=(au_filter_read_data_t*)f->data;
 	mblk_t *m;
 	/*
-	If audio unit is not started, it means audsion session is not yet activated. Do not ms_ticker_synchronizer_update.
+	If audio unit is not started, it means audio session is not yet activated. Do not ms_ticker_synchronizer_update.
 	*/
 	if ([au_holder audio_unit_state] != MSAudioUnitStarted) return;
-
+	
 	ms_mutex_lock(&d->mutex);
 	while((m = getq(&d->rq)) != NULL){
 		ms_queue_put(f->outputs[0],m);
 	}
 	ms_ticker_synchronizer_update(d->ticker_synchronizer, d->read_samples, [au_holder rate]);
 	ms_mutex_unlock(&d->mutex);
+	if (f->ticker->time % 1000 == 0 && [au_holder mic_enabled] ){
+		/* The purpose of this code is to detect when an AudioUnit becomes silent, which unfortunately happens randomly
+		 * due to persistent bugs in iOS. Callkit's management of AudioSession is really unreliable, with sometimes
+		 * double activations or double deactivations, deactivations shortly after beginning a second call, and sometimes
+		 * AudioUnit that suddenly stops after a few seconds without any error notified to the application.
+		 * That's really poor work, so mediastreamer2 has to adapt
+		 */
+		if (d->read_samples_last_activity_check == d->read_samples && d->read_samples_last_activity_check != (uint64_t)-1){
+			ms_error("Stalled AudioUnit detected, will now restart it");
+			dispatch_async(dispatch_get_main_queue(), ^{
+					[au_holder recreate_audio_unit];
+					[au_holder configure_audio_unit];
+					[au_holder start_audio_unit:0];
+			});
+		}else d->read_samples_last_activity_check = d->read_samples;
+	}
 }
 
 static void au_read_postprocess(MSFilter *f){
@@ -1111,7 +1150,6 @@ static int set_muted(MSFilter *f, void *data){
 }
 
 static int set_audio_unit_sound_card(MSSndCard * newCard) {
-	
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	update_audio_unit_holder_ms_snd_card(newCard);
 	
@@ -1139,6 +1177,7 @@ static int set_audio_unit_sound_card(MSSndCard * newCard) {
 			}
 		}
 	}
+	return 0;
 }
 
 static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
