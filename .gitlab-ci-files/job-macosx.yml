@@ -19,7 +19,7 @@
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_APPLE_SILICON_PROCESSOR=arm64 $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
