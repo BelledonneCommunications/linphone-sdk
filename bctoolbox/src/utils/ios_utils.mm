@@ -40,7 +40,8 @@ IOSUtils& IOSUtils::getUtils() {
 }
 
 IOSUtils::IOSUtils() {
-    if (isApp()) {
+	mIsApp = [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
+    if (mIsApp) {
         openDynamicLib();
         using create_t = IOSUtilsInterface *(*)();
         auto createUtils = reinterpret_cast<create_t>(loadSymbol("bctbx_create_ios_utils_app"));
@@ -51,7 +52,7 @@ IOSUtils::IOSUtils() {
 }
 
 IOSUtils::~IOSUtils() {
-    if (isApp()) {
+    if (mIsApp) {
         using destroy_t = void (*)(IOSUtilsInterface *);
         auto destroyUtils = reinterpret_cast<destroy_t>(loadSymbol("bctbx_destroy_ios_utils_app"));
         destroyUtils(mUtils);
@@ -62,7 +63,7 @@ IOSUtils::~IOSUtils() {
 }
 
 bool IOSUtils::isApp() {
-    return [[[NSBundle mainBundle] bundlePath] hasSuffix:@".app"];
+    return mIsApp;
 }
 
 void IOSUtils::openDynamicLib() {

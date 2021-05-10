@@ -38,6 +38,7 @@ public:
     unsigned long beginBackgroundTask(const char *name, std::function<void()> cb);
     void endBackgroundTask(unsigned long id);
     bool isApplicationStateActive();
+    bool isApp();
     static IOSUtils& getUtils();
     
     IOSUtils(const IOSUtils&) = delete;
@@ -47,10 +48,11 @@ public:
 private:
     void *mHandle;
     IOSUtilsInterface *mUtils;
+    bool mIsApp;
     static std::unique_ptr<IOSUtils> sInstance;
     IOSUtils();
 
-    bool isApp();
+    
     void openDynamicLib();
     void *loadSymbol(const char *symbol);
 };
