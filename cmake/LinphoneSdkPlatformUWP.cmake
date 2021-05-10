@@ -37,10 +37,9 @@ if(LINPHONESDK_PREBUILD_DEPENDENCIES)
 endif()
 set(_uwp_build_targets)
 
-list(APPEND _cmake_args ${_enable_cmake_args})
-
 linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
+list(APPEND _cmake_args ${_enable_cmake_args})
 list(APPEND _uwp_build_targets uwp-win32)
 set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
 foreach(_arch IN LISTS _archs)
