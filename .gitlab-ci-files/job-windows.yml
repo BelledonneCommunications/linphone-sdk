@@ -227,7 +227,7 @@ job-windows-vs2017-win32store-scheduled:
     # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
     # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
 
-    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win --resource-dir %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/share/liblinphone/tester
+    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win --resource-dir %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/share/liblinphone_tester
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
