@@ -27,11 +27,13 @@ include(LinphoneSdkUtils)
 
 # Create the zip file of the SDK
 execute_process(
-	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
+	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/apple-macos"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 # Generate podspec file
 file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" VALID_ARCHS)
+string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 configure_file("${LINPHONESDK_DIR}/cmake/macos/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
