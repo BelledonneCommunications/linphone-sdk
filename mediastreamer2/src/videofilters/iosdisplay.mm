@@ -132,10 +132,10 @@
 }
 
 - (void)drawView {
-	/* no opengl es call made when in background, except that it is now allowed for notification content service extension. */
-	//auto &iOSUtils = bctoolbox::IOSUtils::getUtils();
-	//if (!iOSUtils.isApplicationStateActive())
-	//	return;
+	/* OpenGL calls in an application in background cause internal crash in the libGL implementation of iPhone 6.
+	 * However, using OpenGL is permitted in an app extension, where no notion of background/foreground exists. */
+	auto &iOSUtils = bctoolbox::IOSUtils::getUtils();
+	if (iOSUtils.isApp() && !iOSUtils.isApplicationStateActive()) return;
 	
 	if([lock tryLock]) {
 		if(context == nil) {
