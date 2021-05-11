@@ -327,20 +327,6 @@ char *bc_tester_get_failed_asserts(void) {
 	return buffer;
 }
 
-#ifdef _WIN32
-
-void write_suite_result_file(char *suite_name, char *results_string) {
-	(void)suite_name;
-	(void)results_string;
-	//TODO Windows support
-}
-
-void merge_and_print_results_files(void) {
-	//TODO Windows support
-}
-
-#else
-
 void write_suite_result_file(char *suite_name, char *results_string) {
 	bctbx_vfs_file_t* bctbx_file;
 	char *suite_name_wo_spaces, *file_name;
@@ -372,7 +358,7 @@ void merge_and_print_results_files(void) {
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 
 		if (bctbx_file) {
-			file_size = (int64_t) bctbx_file_size(bctbx_file);
+			file_size = (ssize_t) bctbx_file_size(bctbx_file);
 			if (file_size > 0) {
 				buffer = malloc(file_size + 1);
 				read_bytes = bctbx_file_read(bctbx_file, (void *)buffer, file_size, 0);
@@ -413,8 +399,6 @@ void merge_and_print_results_files(void) {
 		bctbx_free(results);
 	}
 }
-
-#endif
 
 static void all_complete_message_handler(const CU_pFailureRecord pFailure) {
 #ifdef HAVE_CU_GET_SUITE
@@ -1303,7 +1287,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 	int ret = 0;
 	int i = argid;
 
-	if (strcmp(argv[i],"--help")==0 || strcmp(argv[i],"--child")==0){
+	if (strcmp(argv[i],"--help")==0){
 		return -1;
 	} else if (strcmp(argv[i],"--log-file")==0) {
 		CHECK_ARG("--log-file", ++i, argc);
@@ -1365,6 +1349,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 	} else if (strcmp(argv[i], "--writable-dir") == 0) {
 		CHECK_ARG("--writable-dir", ++i, argc);
 		bc_tester_writable_dir_prefix = strdup(argv[i]);
+	}else if(strcmp(argv[i],"--child")==0){//Switch off this parameter as it is used for external processing
 	} else {
 		bc_tester_printf(bc_printf_verbosity_error, "Unknown option \"%s\"", argv[i]);
 		return -1;
