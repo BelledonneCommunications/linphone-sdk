@@ -61,9 +61,9 @@ static int tunnel_channel_send(belle_sip_channel_t *obj, const void *buf, size_t
 	belle_sip_tunnel_channel_t *chan = (belle_sip_tunnel_channel_t *)obj;
 	createTunnelSockets(chan);
 	if (chan->tunnelsocket2) {
-		return tunnel_socket_sendto(chan->tunnelsocket2, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
+		return tunnel_socket_sendto(chan->tunnelsocket2, buf, buflen, obj->current_peer->ai_addr,(socklen_t) obj->current_peer->ai_addrlen);
 	} else if (chan->tunnelsocket) {
-		return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->current_peer->ai_addr, obj->current_peer->ai_addrlen);
+		return tunnel_socket_sendto(chan->tunnelsocket, buf, buflen, obj->current_peer->ai_addr, (socklen_t) obj->current_peer->ai_addrlen);
 	}
 	return 0;
 }
@@ -83,7 +83,7 @@ static int tunnel_channel_connect(belle_sip_channel_t *obj, const struct addrinf
 	struct sockaddr_storage laddr;
 	socklen_t lslen = sizeof(laddr);
 	if (obj->local_ip == NULL) {
-		belle_sip_get_src_addr_for(ai->ai_addr, ai->ai_addrlen, (struct sockaddr *)&laddr, &lslen, obj->local_port);
+		belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t) ai->ai_addrlen, (struct sockaddr *)&laddr, &lslen, obj->local_port);
 	}
 	belle_sip_channel_set_ready(obj, (struct sockaddr *)&laddr, lslen);
 	return 0;
