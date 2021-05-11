@@ -510,7 +510,7 @@ static int belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, bel
 				/*"A response is a retransmission when
 				 its dialog ID, CSeq, and RSeq match the original response". Currently we only store last acknoledged Rseq. This data is used to detect retransmitions*/
 				belle_sip_ict_t * ict = BELLE_SIP_CAST(transaction,belle_sip_ict_t);
-				if (ict->r_cseq > 0 &&  ict->r_cseq <= (unsigned int)rseq) {
+				if (ict->r_cseq > 0 &&  ict->r_cseq >= (unsigned int)rseq) {
 					belle_sip_warning("provisionnal response with sequence number [%ld] already acknoledged, dropping",rseq);
 					ret = -1;
 				} else {
