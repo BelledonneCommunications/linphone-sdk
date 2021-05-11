@@ -212,7 +212,7 @@ job-windows-vs2017-win32store-scheduled:
     - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
 
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
     - echo %CI_PROJECT_DIR%
@@ -227,13 +227,12 @@ job-windows-vs2017-win32store-scheduled:
     # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
     # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
 
-    - procdump -ma -e -x . liblinphone_tester.exe --parallel --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win --resource-dir %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/share/liblinphone_tester
+    - procdump -ma -e -x . bin\liblinphone_tester.exe --parallel --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - echo %CI_PROJECT_DIR%
     - mkdir "%CI_PROJECT_DIR%/results"
-    - dir
     - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
     # Coredump management
