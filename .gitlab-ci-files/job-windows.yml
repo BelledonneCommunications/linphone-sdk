@@ -231,7 +231,11 @@ job-windows-vs2017-win32store-scheduled:
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-
+    - echo %CI_PROJECT_DIR%
+    - mkdir "%CI_PROJECT_DIR%/results"
+    - dir
+    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
+    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
     # Coredump management
 
     # The coredumps pattern is liblinphone_tester.exe_*, so we search
@@ -251,12 +255,6 @@ job-windows-vs2017-win32store-scheduled:
     - dir /b liblinphone_tester.exe_*
     - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
     - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
-
-    - echo %CI_PROJECT_DIR%
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - dir
-    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
 
   artifacts:
     paths:
