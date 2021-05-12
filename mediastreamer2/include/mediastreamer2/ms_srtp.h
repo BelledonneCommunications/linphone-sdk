@@ -148,6 +148,14 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
 
 /**
+ * Convert MSCryptoSuite enum to a string.
+ *
+ * @param[in]		suite		The srtp crypto suite to use
+ * @return	the string corresponding the crypto suite
+ */
+MS2_PUBLIC const char * ms_crypto_suite_to_string(MSCryptoSuite suite);
+
+/**
  * Free ressources used by SRTP context
  * @param[in/out]	context		the DTLS-SRTP context
  */

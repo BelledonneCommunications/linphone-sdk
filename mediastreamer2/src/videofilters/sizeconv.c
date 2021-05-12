@@ -83,7 +83,7 @@ static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
 			return dupmsg(s->om);
 		}else{
 			/*the last msg is still referenced by somebody else*/
-			ms_message("size_conv_alloc_mblk: Somebody still retaining yuv buffer (ref=%i)",ref);
+			ms_message("size_conv_alloc_mblk: Somebody still retaining yuv buffer %p (ref=%i)",s->om->b_datap,ref);
 			freemsg(s->om);
 			s->om=NULL;
 		}
@@ -176,6 +176,7 @@ static int sizeconv_set_vsize(MSFilter *f, void*arg){
 	SizeConvState *s=(SizeConvState*)f->data;
 	ms_filter_lock(f);
 	s->target_vsize=*(MSVideoSize*)arg;
+	ms_message("sizeconv_set_vsize(): set target size w %d, h %d", s->target_vsize.width, s->target_vsize.height);
 	freemsg(s->om);
 	s->om=NULL;
 	if (s->sws_ctx!=NULL) {

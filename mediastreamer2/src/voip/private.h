@@ -28,6 +28,7 @@
 
 #define MAX_RTP_SIZE	UDP_MAX_SIZE
 
+
 struct _MSAudioConference;
 struct _MSVideoConference;
 
@@ -105,6 +106,8 @@ void media_stream_process_tmmbr(MediaStream *ms, int tmmbr_mxtbr);
 void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
 
 void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
+
+void media_stream_print_summary(MediaStream *ms);
 
 MSSrtpCtx* ms_srtp_context_new(void);
 

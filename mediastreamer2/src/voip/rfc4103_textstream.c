@@ -162,13 +162,8 @@ void text_stream_stop(TextStream *stream) {
 			ms_ticker_detach(stream->ms.sessions.ticker, stream->rttsource);
 			ms_ticker_detach(stream->ms.sessions.ticker, stream->ms.rtprecv);
 			
-			if (stream->ms.ice_check_list != NULL) {
-				ice_check_list_print_route(stream->ms.ice_check_list, "Text session's route");
-				stream->ms.ice_check_list = NULL;
-			}
-			
-			rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
-					"             TEXT SESSION'S RTP STATISTICS                ");
+			ms_message("Stopping TextStream");
+			media_stream_print_summary(&stream->ms);
 			
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h, stream->rttsource, -1, 0);

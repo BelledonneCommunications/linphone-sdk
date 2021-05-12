@@ -677,7 +677,9 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 
 void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions ? ctx->stream_sessions->rtp_session : NULL);
-	bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
+	if (ctx) {
+		bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
+	}
 	ms_free(ctx);
 	ms_message("ZRTP context destroyed");
 }

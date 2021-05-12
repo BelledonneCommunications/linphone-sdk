@@ -1915,13 +1915,9 @@ void audio_stream_stop(AudioStream * stream){
 			stream->ms.state=MSStreamStopped;
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->soundread);
 			ms_ticker_detach(stream->ms.sessions.ticker,stream->ms.rtprecv);
-
-			if (stream->ms.ice_check_list != NULL) {
-				ice_check_list_print_route(stream->ms.ice_check_list, "Audio session's route");
-				stream->ms.ice_check_list = NULL;
-			}
-			rtp_stats_display(rtp_session_get_stats(stream->ms.sessions.rtp_session),
-				"             AUDIO SESSION'S RTP STATISTICS                ");
+			
+			ms_message("Stopping AudioStream.");
+			media_stream_print_summary(&stream->ms);
 
 			/*dismantle the outgoing graph*/
 			ms_connection_helper_start(&h);
@@ -2205,4 +2201,12 @@ void audio_stream_set_client_to_mixer_extension_id(AudioStream *stream, int exte
 
 int audio_stream_get_participant_volume(const AudioStream *stream, uint32_t participant_ssrc) {
 	return audio_stream_volumes_find(stream->participants_volumes, participant_ssrc);
+}
+
+uint32_t audio_stream_get_send_ssrc(const AudioStream *stream) {
+	return rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session);
+}
+
+uint32_t audio_stream_get_recv_ssrc(const AudioStream *stream) {
+	return rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
 }

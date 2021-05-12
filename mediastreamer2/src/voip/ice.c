@@ -2088,8 +2088,12 @@ static void ice_transport_address_to_printable_ip_address(const IceTransportAddr
 		*printable_ip = '\0';
 	} else {
 		ai = bctbx_ip_address_to_addrinfo(taddr->family, SOCK_DGRAM, taddr->ip, taddr->port);
-		bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, printable_ip_size);
-		bctbx_freeaddrinfo(ai);
+		if (ai) {
+			bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, printable_ip_size);
+			bctbx_freeaddrinfo(ai);
+		} else {
+			*printable_ip = '\0';
+		}
 	}
 }
 

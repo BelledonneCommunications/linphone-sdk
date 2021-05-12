@@ -311,7 +311,7 @@ static int switcher_set_fmt(MSFilter *f, void *data){
 
 static int switcher_set_local_member_pin(MSFilter *f, void *data){
 	SwitcherState *s=(SwitcherState *)f->data;
-	MSVideoSwitcherPinControl *pc = (MSVideoSwitcherPinControl*)data;
+	MSVideoConferenceFilterPinControl *pc = (MSVideoConferenceFilterPinControl*)data;
 	if (pc->pin >= 0 && pc->pin < f->desc->ninputs){
 		s->input_contexts[pc->pin].ignore_cseq = (unsigned char)pc->enabled;
 		ms_message("MSVideoSwitcher: Pin #%i local member attribute: %i", pc->pin, pc->enabled);

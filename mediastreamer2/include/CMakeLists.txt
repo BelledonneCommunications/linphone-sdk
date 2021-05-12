@@ -86,6 +86,7 @@ set(HEADER_FILES
 	msvideoswitcher.h
 	msanalysedisplay.h
 	msmire.h
+	msvideorouter.h
 )
 
 set(MEDIASTREAMER2_HEADER_FILES )

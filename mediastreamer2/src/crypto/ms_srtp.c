@@ -331,17 +331,47 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
+const char * ms_crypto_suite_to_string(MSCryptoSuite suite) {
+	switch(suite) {
+		case MS_CRYPTO_SUITE_INVALID:
+			return "<invalid-or-unsupported-suite>";
+			break;
+		case MS_AES_128_SHA1_80:
+			return "AES_CM_128_HMAC_SHA1_80";
+			break;
+		case MS_AES_128_SHA1_32:
+			return "AES_CM_128_HMAC_SHA1_32";
+			break;
+		case MS_AES_128_SHA1_80_NO_AUTH:
+			return "AES_CM_128_HMAC_SHA1_80 UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_32_NO_AUTH:
+			return "AES_CM_128_HMAC_SHA1_32 UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+			return "AES_CM_128_HMAC_SHA1_80 UNENCRYPTED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+			return "AES_CM_128_HMAC_SHA1_80 UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+			return "AES_CM_128_HMAC_SHA1_80 UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_256_SHA1_80:
+			return "AES_256_CM_HMAC_SHA1_80";
+			break;
+		case MS_AES_CM_256_SHA1_80:
+			return "AES_CM_256_HMAC_SHA1_80";
+			break;
+		case MS_AES_256_SHA1_32:
+			return "AES_256_CM_HMAC_SHA1_32";
+			break;
+	}
+	return "<invalid-or-unsupported-suite>";
+}
+
 static int ms_srtp_add_or_update_stream(srtp_t session, const srtp_policy_t *policy)
 {
-/*
-	err_status_t status;
-	// Update streams if the session was already initialized
-	if (session->stream_template) {
-		status = srtp_update_stream(session, policy);
-	} else {
-		status = srtp_add_stream(session, policy);
-	}
-*/
 
 	err_status_t status = srtp_update_stream(session, policy);
 	if (status != 0) {

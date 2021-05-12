@@ -35,6 +35,10 @@
 #define INT32_MAX 017777777777
 #endif
 
+#ifdef HAVE_LIBYUV_H
+#include "libyuv.h"
+#endif
+
 bool_t ms_rect_equal(const MSRect *r1, const MSRect *r2) {
 	return r1->x == r2->x && r1->y == r2->y && r1->w == r2->w && r1->h == r2->h;
 }
@@ -453,6 +457,42 @@ void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]){
 	yuv[2]=(uint8_t)(0.439*rgb[0] - 0.368*rgb[1] - 0.071*rgb[2] + 128);
 }
 
+#ifdef HAVE_LIBYUV_H
+struct _MSYuvScalerContext{
+	MSVideoSize source;
+	MSVideoSize target;
+};
+
+typedef struct _MSYuvScalerContext MSYuvScalerContext;
+
+static MSScalerContext *yuv_create_scale_context(int src_w, int src_h, MSPixFmt src_fmt,
+										  int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
+	MSYuvScalerContext *ctx=ms_new0(MSYuvScalerContext,1);
+	ctx->source.width = src_w;
+	ctx->source.height = src_h;
+	ctx->target.width = dst_w;
+	ctx->target.height = dst_h;
+	return (MSScalerContext*)ctx;
+}
+
+static int yuv_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
+	MSYuvScalerContext *fctx=(MSYuvScalerContext*)ctx;
+	int err=I420Scale(src[0], src_strides[0], src[1], src_strides[1], src[2], src_strides[2], fctx->source.width, fctx->source.height, dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height, kFilterBilinear);
+	if (err<0) return -1;
+	return 0;
+}
+
+static void yuv_free(MSScalerContext *ctx){
+	ms_free(ctx);
+}
+
+MSScalerDesc yuv_scaler={
+	yuv_create_scale_context,
+	yuv_scale,
+	yuv_free
+};
+#endif
+
 #if !defined(NO_FFMPEG)
 
 
@@ -686,6 +726,8 @@ MSScalerDesc * ms_video_get_scaler_impl(void){
 	}
 #elif !defined(NO_FFMPEG)
 	scaler_impl=&ffmpeg_scaler;
+#elif defined(HAVE_LIBYUV_H)
+	scaler_impl=&yuv_scaler;
 #endif
 	return scaler_impl;
 }

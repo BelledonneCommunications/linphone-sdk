@@ -35,6 +35,7 @@ static void analyse_display_init(MSFilter *f){
 }
 
 static void analyse_display_uninit(MSFilter *f){
+	ms_free(f->data);
 }
 
 static void analyse_display_process(MSFilter *f){

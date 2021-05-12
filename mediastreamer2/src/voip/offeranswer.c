@@ -66,7 +66,11 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 	}
 	//taking first one by default
 	PayloadType *maching_pt = bctbx_list_get_data(local_h264_list);
-	
+
+	if (remote_h264_list) {
+		bctbx_list_free(remote_h264_list);
+	}
+
 	if (remote_h264_with_packetization_mode_1_pt != NULL ) {
 		//proceeding with packetization-mode=1
 		//at least one offer has packetization-mode=1, so this is the one we want.
@@ -76,6 +80,9 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 		} else {
 			//this is our best choice.
 			if (local_h264_with_packetization_mode_1_pt) {
+				if (local_h264_list) {
+					bctbx_list_free(local_h264_list);
+				}
 				//there is also a packetization-mode=1 in local conf, so taking it
 				maching_pt = local_h264_with_packetization_mode_1_pt;
 			} else {
@@ -100,6 +107,11 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 			}
 		}
 	}
+
+	if (local_h264_list) {
+		bctbx_list_free(local_h264_list);
+	}
+
 	return maching_pt?payload_type_clone(maching_pt):NULL;
 }
 

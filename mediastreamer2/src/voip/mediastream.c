@@ -208,6 +208,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 		ms_srtp_context_delete(sessions->srtp_context);
 		sessions->srtp_context=NULL;
 	}
+
 	if (sessions->rtp_session) {
 		rtp_session_destroy(sessions->rtp_session);
 		sessions->rtp_session=NULL;
@@ -228,6 +229,7 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 
 void media_stream_free(MediaStream *stream) {
 	media_stream_remove_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
+
 	if (stream->sessions.zrtp_context != NULL) {
 		ms_zrtp_set_stream_sessions(stream->sessions.zrtp_context, NULL);
 	}
@@ -623,49 +625,49 @@ bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs){
 }
 
 int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *params ){
-     params->name=NULL;
-     params->params=NULL;
-     switch(cs){
-        case MS_CRYPTO_SUITE_INVALID:
-     		break;
-        case MS_AES_128_SHA1_80:
-     		params->name= "AES_CM_128_HMAC_SHA1_80";
-     		break;
-     	case MS_AES_128_SHA1_32:
-     		params->name="AES_CM_128_HMAC_SHA1_32";
-     		break;
-     	case MS_AES_128_SHA1_80_NO_AUTH:
-     		params->name="AES_CM_128_HMAC_SHA1_80";
-     		params->params="UNAUTHENTICATED_SRTP";
-     		break;
-     	case MS_AES_128_SHA1_32_NO_AUTH:
-     		params->name="AES_CM_128_HMAC_SHA1_32";
-     		params->params="UNAUTHENTICATED_SRTP";
-     		break;
-     	case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
-     		params->name="AES_CM_128_HMAC_SHA1_80";
-     		params->params="UNENCRYPTED_SRTP";
-     		break;
-     	case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
-     		params->name="AES_CM_128_HMAC_SHA1_80";
-     		params->params="UNENCRYPTED_SRTCP";
-     		break;
-     	case MS_AES_128_SHA1_80_NO_CIPHER:
-     		params->name="AES_CM_128_HMAC_SHA1_80";
-     		params->params="UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
-     		break;
-     	case MS_AES_256_SHA1_80:
-     		params->name="AES_256_CM_HMAC_SHA1_80";
-     		break;
-     	case MS_AES_CM_256_SHA1_80:
-     	    params->name="AES_CM_256_HMAC_SHA1_80";
-     	    break;
-     	case MS_AES_256_SHA1_32:
-     		params->name= "AES_256_CM_HMAC_SHA1_32";
-     		break;
-     }
-     if (params->name==NULL) return -1;
-     return 0;
+	params->name=NULL;
+	params->params=NULL;
+	switch(cs){
+		case MS_CRYPTO_SUITE_INVALID:
+			break;
+		case MS_AES_128_SHA1_80:
+			params->name= "AES_CM_128_HMAC_SHA1_80";
+			break;
+		case MS_AES_128_SHA1_32:
+			params->name="AES_CM_128_HMAC_SHA1_32";
+			break;
+		case MS_AES_128_SHA1_80_NO_AUTH:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_32_NO_AUTH:
+			params->name="AES_CM_128_HMAC_SHA1_32";
+			params->params="UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNENCRYPTED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+			params->name="AES_CM_128_HMAC_SHA1_80";
+			params->params="UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_256_SHA1_80:
+			params->name="AES_256_CM_HMAC_SHA1_80";
+			break;
+		case MS_AES_CM_256_SHA1_80:
+			params->name="AES_CM_256_HMAC_SHA1_80";
+			break;
+		case MS_AES_256_SHA1_32:
+			params->name= "AES_256_CM_HMAC_SHA1_32";
+			break;
+	}
+	if (params->name==NULL) return -1;
+	return 0;
 }
 
 OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream) {
@@ -688,6 +690,8 @@ const char *ms_resource_type_to_string(MSResourceType type){
 			return "MSResourceSoundcard";
 		case MSResourceVoid:
 			return "MSResourceVoid";
+		case MSResourceItc:
+			return "MSResourceItc";
 	}
 	return "INVALID";
 }
@@ -706,6 +710,7 @@ bool_t ms_media_resource_is_consistent(const MSMediaResource *r){
 		case MSResourceFile:
 			/*setting up file player/recorder without specifying the file to play immediately is allowed*/
 		case MSResourceDefault:
+		case MSResourceItc:
 			return TRUE;
 		case MSResourceInvalid:
 			ms_error("Invalid resource type specified");
@@ -821,3 +826,16 @@ void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 			break;
 	}
 }
+
+void media_stream_print_summary(MediaStream *ms){
+	ms_message("MediaStream[%p] (%s) with RtpSession[%p] summary:", ms, ms_format_type_to_string(ms->type), ms->sessions.rtp_session);
+	ms_message("send-ssrc = [dec:%u hex:%x]", rtp_session_get_send_ssrc(ms->sessions.rtp_session), rtp_session_get_send_ssrc(ms->sessions.rtp_session));
+	ms_message("recv-ssrc = [dec:%u hex:%x]",rtp_session_get_recv_ssrc(ms->sessions.rtp_session), rtp_session_get_recv_ssrc(ms->sessions.rtp_session));
+	if (ms->ice_check_list != NULL) {
+		ice_check_list_print_route(ms->ice_check_list, "ICE route:");
+		ms->ice_check_list = NULL;
+	}
+	rtp_stats_display(rtp_session_get_stats(ms->sessions.rtp_session),
+		"                     RTP STATISTICS                          ");
+}
+
