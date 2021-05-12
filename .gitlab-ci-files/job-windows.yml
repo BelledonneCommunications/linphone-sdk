@@ -205,9 +205,14 @@ job-windows-vs2017-win32store-scheduled:
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none
+    MINGW_TYPE: mingw32
 
   script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
+    - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
+    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
+    - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
+    - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
 
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
     - echo %CI_PROJECT_DIR%
@@ -222,11 +227,14 @@ job-windows-vs2017-win32store-scheduled:
     # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
     # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
 
-    - procdump -ma -e -x . liblinphone_tester.exe --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win --resource-dir %CI_PROJECT_DIR%/liblinphone/tester
+    - procdump -ma -e -x . bin\liblinphone_tester.exe --parallel --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
 
   after_script:
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-
+    - echo %CI_PROJECT_DIR%
+    - mkdir "%CI_PROJECT_DIR%/results"
+    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
+    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
     # Coredump management
 
     # The coredumps pattern is liblinphone_tester.exe_*, so we search
@@ -246,12 +254,6 @@ job-windows-vs2017-win32store-scheduled:
     - dir /b liblinphone_tester.exe_*
     - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
     - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
-
-    - echo %CI_PROJECT_DIR%
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - dir
-    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
 
   artifacts:
     paths:
