@@ -20,10 +20,9 @@
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsDesktop)
 
-
-
 #set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
-set(LINPHONESDK_MACOS_ARCHS "arm64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64]")
+#set(LINPHONESDK_MACOS_ARCHS "arm64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64]")
+set(LINPHONESDK_MACOS_ARCHS "arm64, x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64, x86_64]")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _archs)
 list(GET _archs 0 _first_arch)
@@ -60,7 +59,7 @@ foreach(_arch IN LISTS _archs)
 		#list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=x64")
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	else()
-		list(APPEND _cmake_args "-DCMAKE_SYSTEM_PROCESSOR=${_arch}")
+		list(APPEND _cmake_args "-DCMAKE_SYSTEM_PROCESSOR=arm64")
 		#list(APPEND _cmake_args "-DCMAKE_GENERATOR_PLATFORM=arm64")
 		set(SYSTEM_GENERATOR "${CMAKE_GENERATOR}")
 	endif()
@@ -97,3 +96,17 @@ foreach(_arch IN LISTS _archs)
 	)
 	list(APPEND _macos_build_targets mac-${_arch})
 endforeach()
+
+
+
+add_custom_target(lipo ALL
+	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_MACOS_ARCHS=${LINPHONESDK_MACOS_ARCHS}" "-P" "${LINPHONESDK_DIR}/cmake/macos/Lipo.cmake"
+	COMMENT "Aggregating frameworks of all architectures using lipo"
+	DEPENDS ${_macos_build_targets}
+)
+
+add_custom_target(sdk ALL
+	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DLINPHONESDK_MACOS_ARCHS=${LINPHONESDK_MACOS_ARCHS}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONE_APP_EXT_FRAMEWORKS=${LINPHONE_APP_EXT_FRAMEWORKS}" "-DLINPHONE_OTHER_FRAMEWORKS=${LINPHONE_OTHER_FRAMEWORKS}" "-P" "${LINPHONESDK_DIR}/cmake/macos/GenerateSDK.cmake"
+	COMMENT "Generating the SDK (zip file and podspec)"
+	DEPENDS lipo
+)

@@ -73,6 +73,8 @@ else()
 	set(_install_command "${PROJECT_SOURCE_DIR}/cmake/dummy.sh")
 endif()
 
+message("${_arch} : ${_cmake_args}, ${SYSTEM_GENERATOR}")
+
 ExternalProject_Add(sdk
 	${_ep_depends}
 	SOURCE_DIR "${PROJECT_SOURCE_DIR}/cmake-builder"
