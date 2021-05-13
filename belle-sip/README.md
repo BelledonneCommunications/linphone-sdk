@@ -61,7 +61,8 @@ Generating the grammar sources
 
 If you edit the `.g` files in the grammars directory you'll need to regenerate the sources.
 
-    ./src/antlr3c/generate_grammar_sources.py
+    cd src/antlr3c
+    ./generate_grammar_sources.py
 
 Build options
 -------------

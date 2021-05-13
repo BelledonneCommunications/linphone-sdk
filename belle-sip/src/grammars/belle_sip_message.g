@@ -764,8 +764,10 @@ addr_spec[belle_sip_header_address_t* object]
 addr_spec_with_generic_uri[belle_sip_header_address_t* object]
   :  lws? (	uri {belle_sip_header_address_set_uri(object,$uri.ret);}
   	|
-  	generic_uri { if (   strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sip") != 0
-					 &&  strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sips") != 0 ) {
+  	generic_uri {
+		const char *scheme = belle_generic_uri_get_scheme($generic_uri.ret);
+		if ( scheme && strcasecmp(scheme,"sip") != 0
+					 &&  strcasecmp(scheme, "sips") != 0 ) {
 						 belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);
 					 } else {
 						 belle_sip_message("Cannot parse a sip/sips uri as a generic uri");
@@ -776,9 +778,11 @@ addr_spec_with_generic_uri[belle_sip_header_address_t* object]
   fast_addr_spec_with_generic_uri[belle_sip_header_address_t* object]
   :  lws? (	fast_uri {belle_sip_header_address_set_uri(object,$fast_uri.ret);}
   	|
-  	generic_uri { if (   strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sip") != 0
-					 &&  strcasecmp(belle_generic_uri_get_scheme($generic_uri.ret),"sips") != 0 ) {
-						 belle_sip_header_address_set_absolute_uri(object,$generic_uri.ret);
+  	generic_uri {
+		const char *scheme = belle_generic_uri_get_scheme($generic_uri.ret);
+		if ( scheme && strcasecmp(scheme, "sip") != 0
+					 &&  strcasecmp(scheme, "sips") != 0 ) {
+						 belle_sip_header_address_set_absolute_uri(object, $generic_uri.ret);
 					 } else {
 						 belle_sip_message("Cannot parse a sip/sips uri as a generic uri");
 						 belle_sip_object_unref($generic_uri.ret);
