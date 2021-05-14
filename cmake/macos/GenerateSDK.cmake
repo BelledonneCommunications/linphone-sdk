@@ -21,9 +21,11 @@
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
+
 # Create the zip file of the SDK
+set(INSTALL_FOLDER "desktop")# Used to podspec
 execute_process(
-	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
+	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/${INSTALL_FOLDER}"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
