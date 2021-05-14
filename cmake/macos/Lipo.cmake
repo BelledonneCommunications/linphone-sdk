@@ -44,40 +44,30 @@ execute_process(
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
-#this function will merge architectures on a file in a path
-function(merge_file _file_name _path _archs)
-	set(_all_arch_files)
-	foreach(_arch ${_archs})
-		list(APPEND _all_arch_files "linphone-sdk/mac-${_arch}/${_path}/${_file_name}")
-	endforeach()
-	string(REPLACE ";" " " _arch_string "${_archs}")
-	get_filename_component(_extension "${_file_name}" LAST_EXT)
-	message (STATUS "Mixing ${_file_name} for archs [${_arch_string}]")
-	if(NOT ${_file_name} MATCHES "(cmake|pkgconfig|objects-${CMAKE_BUILD_TYPE})" AND NOT _extension MATCHES "la")
+#####		MIX
+#Get all files in output
+file(GLOB_RECURSE _binaries RELATIVE "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/" "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/*")
+foreach(_file ${_binaries})
+#Check if lipo can detect an architecture
+	execute_process(COMMAND lipo -archs "linphone-sdk/mac-${_first_arch}/${_file}"
+		OUTPUT_VARIABLE FILE_ARCHITECTURE
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		ERROR_QUIET
+	)
+	if( NOT "${FILE_ARCHITECTURE}" STREQUAL "" )
+#There is at least one architecture : Use this candidate to mix with another architectures
+		set(_all_arch_files)
+		foreach(_arch ${_archs})
+			list(APPEND _all_arch_files "linphone-sdk/mac-${_arch}/${_file}")
+		endforeach()
+		string(REPLACE ";" " " _arch_string "${_archs}")
+		message (STATUS "Mixing ${_file} for archs [${_arch_string}]")
 		execute_process(
-			COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_path}/${_file_name}" ${_all_arch_files}
+			COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_file}" ${_all_arch_files}
 			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endif()
-endfunction()
-
-#Get all files that need to be changed : frameworks, bin and lib
-file(GLOB _frameworks "linphone-sdk/mac-${_first_arch}/Frameworks/*.framework")
-foreach(_framework ${_frameworks})
-	get_filename_component(_framework_name "${_framework}" NAME_WE)
-	merge_file(${_framework_name} "Frameworks/${_framework_name}.framework" "${_archs}")
-endforeach()
-
-file(GLOB _binaries "linphone-sdk/mac-${_first_arch}/bin/*")
-foreach(_file ${_binaries})
-	get_filename_component(_file_name "${_file}" NAME)
-	merge_file(${_file_name} "bin" "${_archs}")
-endforeach()
-
-file(GLOB _libraries "linphone-sdk/mac-${_first_arch}/lib/*")
-foreach(_file ${_libraries})
-	get_filename_component(_file_name "${_file}" NAME)
-	merge_file(${_file_name} "lib" "${_archs}")
 endforeach()
 
 #When done, remove architectures folders and keep only desktop
