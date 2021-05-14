@@ -21,15 +21,9 @@
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
-
 # Create the zip file of the SDK
-if (LINPHONESDK_PLATFORM STREQUAL "Desktop")
-	set(INSTALL_FOLDER "desktop")
-else()
-	set(INSTALL_FOLDER "apple-macos")
-endif()
 execute_process(
-	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/${INSTALL_FOLDER}"
+	COMMAND "zip" "-r" "--symlinks" "linphone-sdk-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 

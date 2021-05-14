@@ -22,7 +22,11 @@ include(LinphoneSdkCheckBuildToolsDesktop)
 
 #set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
 #set(LINPHONESDK_MACOS_ARCHS "arm64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64]")
-set(LINPHONESDK_MACOS_ARCHS "arm64, x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64, x86_64]")
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
+    set(LINPHONESDK_MACOS_ARCHS "arm64, x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64, x86_64]")
+else()
+    set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
+endif()
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _archs)
 list(GET _archs 0 _first_arch)

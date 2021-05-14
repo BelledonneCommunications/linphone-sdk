@@ -24,23 +24,23 @@ include(LinphoneSdkUtils)
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _archs)
 
 
-# Create the apple-macos directory that will contain the merged content of all architectures
+# Create the desktop directory that will contain the merged content of all architectures
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-macos"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-macos"
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/desktop"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 
-# Copy and merge content of all architectures in the apple-macos directory
+# Copy and merge content of all architectures in the desktop directory
 list(GET _archs 0 _first_arch)
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/mac-${_first_arch}/" "linphone-sdk/apple-macos/"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/mac-${_first_arch}/" "linphone-sdk/desktop/"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
@@ -55,7 +55,7 @@ function(merge_file _file_name _path _archs)
 	message (STATUS "Mixing ${_file_name} for archs [${_arch_string}]")
 	if(NOT ${_file_name} MATCHES "(cmake|pkgconfig|objects-${CMAKE_BUILD_TYPE})" AND NOT _extension MATCHES "la")
 		execute_process(
-			COMMAND "lipo" "-create" "-output" "linphone-sdk/apple-macos/${_path}/${_file_name}" ${_all_arch_files}
+			COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_path}/${_file_name}" ${_all_arch_files}
 			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endif()
@@ -80,7 +80,7 @@ foreach(_file ${_libraries})
 	merge_file(${_file_name} "lib" "${_archs}")
 endforeach()
 
-#When done, remove architectures folders and keep only apple-macos
+#When done, remove architectures folders and keep only desktop
 foreach(_arch ${_archs})
 	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/mac-${_arch}/"
