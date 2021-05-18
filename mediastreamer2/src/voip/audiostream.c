@@ -1004,8 +1004,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
 	// First check if we need to use the echo canceller
 	// Overide feature if not requested or done at sound card level
-	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec )
+	if ( ((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec ){
+		ms_message("Software echo cancellation disabled: use_ec=%i, has_builtin_ec=%i", stream->use_ec, has_builtin_ec);
 		stream->features &=~AUDIO_STREAM_FEATURE_EC;
+	}
 
 	/*configure the echo canceller if required */
 	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {

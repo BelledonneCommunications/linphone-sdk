@@ -540,7 +540,7 @@ MS2_PUBLIC const char *ms_snd_card_get_name(const MSSndCard *obj);
  *
  * Returns: A string if successfull, NULL otherwise.
  */
-MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
+MS2_PUBLIC const char *ms_snd_card_get_string_id(const MSSndCard *obj);
 
 /**
  * Retrieve sound card's internal ID.
@@ -550,6 +550,12 @@ MS2_PUBLIC const char *ms_snd_card_get_string_id(MSSndCard *obj);
  * Returns: An integer storing the internal ID value.
  */
 MS2_PUBLIC int ms_snd_card_get_internal_id(MSSndCard *obj);
+
+/**
+ * Returns TRUE if both MSSndCard are equal, which means that they refer to the same
+ * audio device with same capabilities.
+ */
+MS2_PUBLIC bool_t ms_snd_card_equals(const MSSndCard *c1, const MSSndCard *c2);
 
 /**
  * Retreive sound card's capabilities.

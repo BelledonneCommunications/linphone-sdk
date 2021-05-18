@@ -283,6 +283,14 @@ void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *des
 	}
 }
 
+bool_t ms_snd_card_equals(const MSSndCard *c1, const MSSndCard *c2){
+	if (strcmp(ms_snd_card_get_string_id(c1), ms_snd_card_get_string_id(c2)) == 0
+		&& c1->capabilities == c2->capabilities){
+		return TRUE;
+	}
+	return FALSE;
+}
+
 void ms_snd_card_manager_reload(MSSndCardManager *m){
 	bctbx_list_t *elem;
 	bctbx_list_t *cardsToKeep = NULL;
@@ -293,9 +301,7 @@ void ms_snd_card_manager_reload(MSSndCardManager *m){
 		MSSndCard *sndCard = (MSSndCard *)oldCardsIt->data;
 		cardsToKeep = bctbx_list_append(cardsToKeep, ms_snd_card_ref(sndCard));
 	}
-	
-	bctbx_list_for_each(m->cards, (void (*)(void*))ms_snd_card_unref);
-	bctbx_list_free(m->cards);
+	bctbx_list_free_with_data(m->cards, (void (*)(void*))ms_snd_card_unref);
 	m->cards = NULL;
 	for (elem = m->descs; elem != NULL; elem = elem->next) {
 		card_detect(m, (MSSndCardDesc*)elem->data);
@@ -306,8 +312,7 @@ void ms_snd_card_manager_reload(MSSndCardManager *m){
 		MSSndCard *newCard = (MSSndCard *)newCardsIt->data;
 		for (oldCardsIt = cardsToKeep; oldCardsIt != NULL; oldCardsIt = oldCardsIt->next) {
 			MSSndCard *oldCard = (MSSndCard *)oldCardsIt->data;
-			if (strcmp(ms_snd_card_get_string_id(newCard), ms_snd_card_get_string_id(oldCard)) == 0)
-			{
+			if (ms_snd_card_equals(oldCard, newCard)){
 				ms_snd_card_ref(oldCard);
 				newCardsIt->data = oldCard;
 				ms_snd_card_unref(newCard);
@@ -402,13 +407,14 @@ MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj){
 	return obj->latency;
 }
 
-const char *ms_snd_card_get_string_id(MSSndCard *obj) {
+const char *ms_snd_card_get_string_id(const MSSndCard *obj) {
+	MSSndCard *mutable_card = (MSSndCard*)obj;
 	if (obj->id == NULL) {
 		bool_t addExtraData = ((obj->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) && (strcmp(obj->desc->driver_type, "openSLES") != 0));
 		if (addExtraData == TRUE) {
-			obj->id = ms_strdup_printf("%s %s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), cap_to_string(obj->capabilities), obj->name);
+			mutable_card->id = ms_strdup_printf("%s %s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), cap_to_string(obj->capabilities), obj->name);
 		} else {
-			obj->id = ms_strdup_printf("%s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), obj->name);
+			mutable_card->id = ms_strdup_printf("%s %s: %s",obj->desc->driver_type, ms_snd_card_device_type_to_string(obj->device_type), obj->name);
 		}
 	}
 	return obj->id;
