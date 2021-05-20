@@ -25,7 +25,7 @@
 
 // =============================================================================
 
-#if defined( __ANDROID__ ) || TARGET_OS_IPHONE
+#if defined( __ANDROID__ ) || defined(__APPLE__)
 #  define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)fn)
 #elif defined(WIN32)
 
@@ -72,8 +72,10 @@ void *getAnyGLFuncAddress(void* library, void *firstFallback, const char *name)
 #endif
 
 // Remove EGL from Android
-#if defined( __ANDROID__ ) || TARGET_OS_IPHONE
+#if defined( __ANDROID__ ) || defined(__APPLE__)
 #define CAST_EGL(type, fn) NULL
+#elif defined(__APPLE__)
+#define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn):NULL)
 #else
 #define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn):CAST(type,fn))
 #endif
@@ -84,7 +86,7 @@ extern "C"{
 void opengl_functions_default_init (OpenGlFunctions *f) {
 #if defined(_WIN32)
 	HMODULE openglLibrary, firstFallbackLibrary = NULL;
-#else
+#elif !defined(__APPLE__)
 	void * openglLibrary = NULL, *firstFallbackLibrary = NULL;
 #endif
 	
@@ -106,8 +108,9 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.dll: error %i", (int)GetLastError());
 		}
 	
-#else
-		openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
+#elif !defined(__APPLE__)
+		if(openglLibrary == NULL)
+			openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
 		if( openglLibrary == NULL ){
 			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.so: %s", dlerror());
 		}
@@ -170,7 +173,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 		if( openglLibrary == NULL ){
 			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
 		}
-#else
+#elif !defined(__APPLE__)
 		openglLibrary = dlopen("libEGL.so", RTLD_LAZY);
 		if( openglLibrary == NULL ){
 			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());

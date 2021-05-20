@@ -136,16 +136,20 @@ void video_stream_free(VideoStream *stream) {
 	ms_free(stream);
 }
 
+static void source_event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
+	VideoStream *st=(VideoStream*)ud;
+	switch (event) {// Allow a source to reinitialize all tree formats
+		case MS_FILTER_OUTPUT_FMT_CHANGED:
+				video_stream_update_video_params(st);
+			break;
+		default:{}
+	}
+}
+
 static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	VideoStream *st=(VideoStream*)ud;
 	if (st->eventcb!=NULL){
 		st->eventcb(st->event_pointer,f,event,eventdata);
-	}
-	switch (event) {// Allow a filter to reinitialize all tree formats
-		case MS_FILTER_OUTPUT_FMT_CHANGED:
-			video_stream_update_video_params(st);
-			break;
-		default:{}
 	}
 }
 
@@ -614,6 +618,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 
 	if (source_changed) {
 		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
+		ms_filter_add_notify_callback(stream->source, source_event_cb, stream, FALSE);
 		/* It is important that the internal_event_cb is called synchronously! */
 		ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
 	}
