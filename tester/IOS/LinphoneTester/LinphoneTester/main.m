@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 			liblinphonetester_show_account_manager_logs=TRUE;
         }
     }
-	flexisip_tester_dns_ip_addresses = bctbx_list_new((void *)"192.168.0.40");
+	flexisip_tester_dns_ip_addresses = bctbx_list_new((void *)"5.135.31.162");
 	
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
