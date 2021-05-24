@@ -22,7 +22,7 @@
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
     - cmake --build . $ADDITIONAL_BUILD_CONFIGURATIONS --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     # get SDK version from cached cmake variables
-    - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION | cut -d "=" -f2 > linphonesdkversion.txt
+    - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
     - ccache -s
 

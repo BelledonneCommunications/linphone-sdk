@@ -14,9 +14,14 @@
     <copyright>Copyright 2017-2020 Belledonne Communications</copyright>
     <tags>SIP</tags>
     <dependencies>
-		<group targetFramework="uap10.0" />
-		<group targetFramework="netcore" />
-		<group targetFramework="win" />
+		<group targetFramework="uap10.0" /><!--UWP-->
+		<group targetFramework="netcore" /><!--Win32Store-->
+		<group targetFramework="netcore45" /><!--Win32-->
+<!--	Untested frameworks	-->
+		<group targetFramework="net5.0" /><!-- .NET 5 -->
+		<group targetFramework="netstandard2.1" /><!-- .NET Standard -->
+		<group targetFramework="netcoreapp3.1" /><!-- .NET Core -->
+		<group targetFramework="net48" /><!-- .NET Framework -->
     </dependencies>
     </metadata>
     <files>
