@@ -43,6 +43,12 @@ endif()
 
 ExcludeFromList(USER_ARGS LINPHONESDK_PACKAGER ${USER_ARGS})
 
+linphone_sdk_get_inherited_cmake_args()
+linphone_sdk_get_enable_cmake_args()
+linphone_sdk_get_sdk_cmake_args()
+list(APPEND _cmake_args ${_enable_cmake_args})
+list(APPEND _cmake_args ${_linphone_sdk_cmake_vars})
+
 function(add_command_from_zip zip_path nuget_folder)
 	FILE(GLOB ZIP_FILES ${zip_path}/*.zip)
 	set(FILE_ITEM "")
@@ -59,6 +65,8 @@ function(add_command_from_zip zip_path nuget_folder)
 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}
 			COMMENT "Unzipping files : ${FILE_ITEM}\n"
 			VERBATIM)
+	else()
+		message(FATAL_ERROR ".zip files not found in folder : ${zip_path}.")
 	endif()
 endfunction()
 
@@ -77,16 +85,22 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WIN32=1")
 			message(STATUS "Retrieve Desktop build")
 			add_command_from_zip(${LINPHONESDK_DESKTOP_ZIP_PATH} "desktop")
+		else()
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WIN32=0")
 		endif()
 		if(LINPHONESDK_UWP_ZIP_PATH)
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_UWP=1")
 			message(STATUS "Retrieve UWP build")
 			add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
+		else()
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_UWP=0")
 		endif()
 		if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WINDOWSSTORE=1")
 			message(STATUS "Retrieve Windows Store build")
 			add_command_from_zip(${LINPHONESDK_WINDOWSSTORE_ZIP_PATH} "windowsstore")
+		else()
+			list(APPEND NUSPEC_HAVE "-DNUSPEC_HAVE_WINDOWSSTORE=0")
 		endif()
 		
 		
@@ -109,14 +123,13 @@ if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 #				COMMENT "Unzipping files : ${item}"
 #				VERBATIM)
 #		endforeach(item)
-		
 		ExternalProject_Add(uwp-nuget
 			DEPENDS unzip
 			SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake/Windows/nuget"
 			BINARY_DIR "${CMAKE_BINARY_DIR}/uwp-nuget"
 			CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-			CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}" ${NUSPEC_HAVE}
-			CMAKE_CACHE_ARGS ${_cmake_cache_args}
+			CMAKE_ARGS  "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_OUTPUT_DIR=${LINPHONESDK_OUTPUT_DIR}" ${NUSPEC_HAVE} ${_cmake_args}
+			CMAKE_CACHE_ARGS ${_inherited_cmake_args}
 			BUILD_ALWAYS 1
 		)
 		ExternalProject_Add_Step(uwp-nuget force_build
