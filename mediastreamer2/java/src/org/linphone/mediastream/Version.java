@@ -60,6 +60,7 @@ public class Version {
 	public static final int API28_PIE_90 = 28;
 	public static final int API29_ANDROID_10 = 29;
 	public static final int API30_ANDROID_11 = 30;
+	public static final int API31_ANDROID_12 = 31;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
