@@ -202,7 +202,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 			endif()
 		endif()
 
-		set(${OUTPUT_VERSION} "${full_version}" CACHE STRING "" FORCE)
+		set(${OUTPUT_VERSION} "${full_version}" PARENT_SCOPE)
 	endif()
 endfunction()
 
@@ -223,7 +223,7 @@ function(bc_compute_snapshots_or_releases_state OUTPUT_VERSION)
 			set(snapshots_or_release_state "releases")
 		endif()
 
-		set(${OUTPUT_VERSION} "${snapshots_or_releases_state}" CACHE STRING "" FORCE)
+		set(${OUTPUT_VERSION} "${snapshots_or_releases_state}" PARENT_SCOPE)
 	endif()
 endfunction()
 
