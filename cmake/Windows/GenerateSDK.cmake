@@ -23,11 +23,10 @@
 
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
-
 find_program(7Z_PROGRAM 7z.exe)
 if(7Z_PROGRAM)
 	execute_process(
-		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATEFORM}-${LINPHONESDK_VERSION}.zip" ${CMAKE_INSTALL_PREFIX}
+		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATFORM}-${LINPHONESDK_VERSION}.zip" ${CMAKE_INSTALL_PREFIX}
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 else()

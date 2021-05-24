@@ -29,10 +29,17 @@ include(LinphoneSdkUtils)
 
 include(bctoolbox/cmake/BcToolboxCMakeUtils.cmake)
 
-bc_compute_full_version(LINPHONESDK_VERSION)
-bc_compute_snapshots_or_releases_state(LINPHONESDK_STATE)
-linphone_sdk_compute_git_branch(LINPHONESDK_BRANCH)
 
+if(NOT LINPHONESDK_VERSION)#If LINPHONESDK_VERSION exists (ie: is in cache), then the variable has been overriden by user
+	bc_compute_full_version(LINPHONESDK_VERSION)
+endif()
+if(NOT LINPHONESDK_STATE)
+	bc_compute_snapshots_or_releases_state(LINPHONESDK_STATE)
+endif()
+if(NOT LINPHONESDK_BRANCH)
+	linphone_sdk_compute_git_branch(LINPHONESDK_BRANCH)
+endif()
+set(LINPHONESDK_VERSION_CACHED ${LINPHONESDK_VERSION} CACHE STRING "" FORCE)#Put in cache the current version : it is used to read version in cache from 'cmake -L' command
 set(LINPHONESDK_PREBUILD_DEPENDENCIES)
 if(ENABLE_TUNNEL)
 	add_custom_target(tunnel-clone
