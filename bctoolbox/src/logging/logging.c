@@ -663,39 +663,31 @@ static int _try_open_log_collection_file(bctbx_file_log_handler_t *filehandler) 
 static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) {
 	char *log_filename;
 	char *log_filename2;
-	char *file_no_extension = bctbx_strdup(filehandler->name);
-	char *extension = strrchr(file_no_extension, '.');
-	char *extension2 = bctbx_strdup(extension);
 	int n = 1;
-	file_no_extension[extension - file_no_extension] = '\0';
 
-	log_filename = bctbx_strdup_printf("%s/%s_1%s",
+	log_filename = bctbx_strdup_printf("%s/%s_1",
 		filehandler->path,
-		file_no_extension,
-		extension2);
+		filehandler->name);
 	while(access(log_filename, F_OK) != -1) {
 		// file exists
 		n++;
 		bctbx_free(log_filename);
-		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
+		log_filename = bctbx_strdup_printf("%s/%s_%d",
 		filehandler->path,
-		file_no_extension,
-		n,
-		extension2);
+		filehandler->name,
+		n);
 	}
 	
 	while(n > 1) {
 		bctbx_free(log_filename);
-		log_filename = bctbx_strdup_printf("%s/%s_%d%s",
+		log_filename = bctbx_strdup_printf("%s/%s_%d",
 		filehandler->path,
-		file_no_extension,
-		n-1,
-		extension2);
-		log_filename2 = bctbx_strdup_printf("%s/%s_%d%s",
+		filehandler->name,
+		n-1);
+		log_filename2 = bctbx_strdup_printf("%s/%s_%d",
 		filehandler->path,
-		file_no_extension,
-		n,
-		extension2);
+		filehandler->name,
+		n);
 
 		n--;
 		rename(log_filename, log_filename2);
@@ -703,17 +695,14 @@ static void _rotate_log_collection_files(bctbx_file_log_handler_t *filehandler) 
 	}
 	bctbx_free(log_filename);
 	log_filename = bctbx_strdup_printf("%s/%s",
-	filehandler->path,
-	filehandler->name);
-	log_filename2 = bctbx_strdup_printf("%s/%s_1%s",
-	filehandler->path,
-	file_no_extension,
-	extension2);
+		filehandler->path,
+		filehandler->name);
+	log_filename2 = bctbx_strdup_printf("%s/%s_1",
+		filehandler->path,
+		filehandler->name);
 	rename(log_filename, log_filename2);
 	bctbx_free(log_filename);
 	bctbx_free(log_filename2);
-	bctbx_free(extension2);
-	bctbx_free(file_no_extension);
 }
 
 static void _open_log_collection_file(bctbx_file_log_handler_t *filehandler) {
