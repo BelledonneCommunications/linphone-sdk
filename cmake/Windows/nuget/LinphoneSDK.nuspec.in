@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Linphone SDK</description>
     <releaseNotes>Nothing new</releaseNotes>
-    <copyright>Copyright 2017-2020 Belledonne Communications</copyright>
+    <copyright>Copyright 2017-2021 Belledonne Communications</copyright>
     <tags>SIP</tags>
     <dependencies>
 		<group targetFramework="uap10.0" /><!--UWP-->
@@ -19,8 +19,8 @@
 		<group targetFramework="netcore45" /><!--Win32-->
 <!--	Untested frameworks	-->
 		<group targetFramework="net5.0" /><!-- .NET 5 -->
-		<group targetFramework="netstandard2.1" /><!-- .NET Standard -->
-		<group targetFramework="netcoreapp3.1" /><!-- .NET Core -->
+		<group targetFramework="netstandard" /><!-- .NET Standard -->
+		<group targetFramework="netcoreapp" /><!-- .NET Core -->
 		<group targetFramework="net48" /><!-- .NET Framework -->
     </dependencies>
     </metadata>
@@ -51,6 +51,14 @@
 <!-- Generic Data
 		<file src="$OutputSdkDir$\uwp-x64\share\**\*" exclude="**\cmake\**" target="content\" />
 		<file src="LinphoneSDK.targets" target="build\UAP10.0" />
--->		
+-->
+<!-- Used to indicate to Visual Studio that frameworks are supported where assemblies are somewhere else -->
+		<file src="_._" target="ref\uap10.0" />
+		<file src="_._" target="ref\netcore" />
+		<file src="_._" target="ref\netcore45" />
+		<file src="_._" target="ref\net5.0" />
+		<file src="_._" target="ref\netstandard" />
+		<file src="_._" target="ref\netcoreapp" />
+		<file src="_._" target="ref\net48" />
     </files>
 </package>
