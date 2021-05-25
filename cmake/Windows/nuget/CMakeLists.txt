@@ -60,6 +60,7 @@ endif()
 
 #Configuration files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.nuspec.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.nuspec @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/_._ ${CMAKE_CURRENT_BINARY_DIR}/_._)
 #configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.props.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.props @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.targets.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.targets @ONLY)
 if(LINPHONESDK_OUTPUT_DIR)
