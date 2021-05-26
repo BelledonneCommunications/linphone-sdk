@@ -71,6 +71,11 @@ endif()
 
 if(WIN32)
 	set(_install_command "${PROJECT_SOURCE_DIR}/cmake/dummy.bat")
+	if(CMAKE_VS_PLATFORM_NAME)#Do not use MSVC because it isn't set with project(.. LANGUAGES NONE) that comes from the CMakeLists.txt root file.
+		set(PLATFORM_NAME ${CMAKE_VS_PLATFORM_NAME})
+	else()
+		set(PLATFORM_NAME ${CMAKE_GENERATOR_PLATFORM})
+	endif()
 else()
 	set(_install_command "${PROJECT_SOURCE_DIR}/cmake/dummy.sh")
 endif()
@@ -123,7 +128,7 @@ if(WIN32 AND ENABLE_CSHARP_WRAPPER)
 	ExternalProject_Add_Step(${last_target} compress
 		COMMENT "Generating the SDK (zip file)"
 		DEPENDEES install
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATFORM=${CMAKE_GENERATOR_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/linphone-sdk" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATFORM=${PLATFORM_NAME}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}/linphone-sdk" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
 		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
 		ALWAYS 1
 	)
@@ -146,11 +151,6 @@ else()
 		)
 	elseif(WIN32)
 		set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
-		if(CMAKE_VS_PLATFORM_NAME)#Do not use MSVC because it isn't set with project(.. LANGUAGES NONE) that comes from the CMakeLists.txt root file.
-			set(PLATFORM_NAME ${CMAKE_VS_PLATFORM_NAME})
-		else()
-			set(PLATFORM_NAME ${CMAKE_GENERATOR_PLATFORM})
-		endif()
 		
 		add_custom_command(TARGET sdk
 			COMMENT "Generating the SDK (zip file)"
