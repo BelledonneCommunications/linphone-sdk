@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2021 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -166,8 +166,8 @@ if(ENABLE_STATIC)
 	endif()
 	target_include_directories(bcunit-static PUBLIC
 		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers/>
-		$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/BCUnit/Headers/>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers>
+		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/BCUnit/Headers>
 	)
 	install(TARGETS bcunit-static EXPORT BcUnitTargets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -177,10 +177,11 @@ endif()
 if(ENABLE_SHARED)
 	add_library(bcunit SHARED ${SOURCE_FILES})
 	set_target_properties(bcunit PROPERTIES VERSION 1.0.1)
+	target_compile_definitions(bcunit INTERFACE "$<BUILD_INTERFACE:IN_BCUNIT_SOURCES>")
 	target_include_directories(bcunit PUBLIC
 		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers/>
-		$<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/BCUnit/Headers/>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers>
+		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/BCUnit/Headers>
 	)
 	if(CURSES_LIBRARIES)
 		target_link_libraries(bcunit ${CURSES_LIBRARIES})
