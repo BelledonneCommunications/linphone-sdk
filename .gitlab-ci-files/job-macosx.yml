@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode12" ]
 
   except:
     variables:
@@ -107,7 +107,7 @@ job-macosx-xcode:
 test-liblinphone-macosx:
   stage: test
   extends: .job-prepare
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode12" ]
   allow_failure: true
   needs:
     - job-macosx-ninja
