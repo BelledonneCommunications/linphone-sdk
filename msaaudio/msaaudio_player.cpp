@@ -61,7 +61,7 @@ struct AAudioOutputContext {
 		switch (type) {
 			case MS_SND_CARD_STREAM_RING:
 				usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
-				content_type = AAUDIO_CONTENT_TYPE_SONIFICATION;
+				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
 				ms_message("[AAudio] Using RING mode");
 				break;
 			case MS_SND_CARD_STREAM_MEDIA:
