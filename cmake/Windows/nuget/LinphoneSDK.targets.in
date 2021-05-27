@@ -25,10 +25,10 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			</Content>
 		</ItemGroup>
-		<ItemGroup>
-			<Content Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" CopyToPublishDirectory="Always" Link="$(LinphoneSDK-Content)\%(RecursiveDir)%(FileName)%(Extension)">
-				<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			</Content>
-		</ItemGroup>
 	</Target>
+	<ItemGroup>
+		<Content Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" CopyToPublishDirectory="Always" Link="$(LinphoneSDK-Content)\%(RecursiveDir)%(FileName)%(Extension)">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>
