@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2021  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,8 +20,9 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.2)
-set(CMAKE_MACOSX_RPATH ON) # Before cmake 3.0.0, MACOSX_RPATH was not set to ON by default - however this is no good reason to not enable it by default
+# CMake 3.13 required for new Flexisip build process.
+# See [CMP077](https://cmake.org/cmake/help/v3.13/policy/CMP0077.html).
+cmake_minimum_required(VERSION 3.13)
 
 project(bctoolbox VERSION 5.1.0)
 
@@ -42,6 +43,10 @@ option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+
+# Hidden non-cache options:
+# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
+
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -108,7 +113,7 @@ if(POLARSSL_FOUND)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
 endif()
 
-if(ENABLE_TESTS_COMPONENT)
+if(ENABLE_TESTS_COMPONENT AND NOT DISABLE_BC_PACKAGE_SEARCH)
   find_package(BcUnit CONFIG REQUIRED)
   cmake_push_check_state(RESET)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${BCUNIT_INCLUDE_DIRS})
