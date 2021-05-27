@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2021 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,11 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
+
+# CMake 3.13 required for new Flexisip build process.
+# See [CMP077](https://cmake.org/cmake/help/v3.13/policy/CMP0077.html).
+cmake_minimum_required(VERSION 3.13)
+
 project(BELR VERSION 5.1.0 LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")
@@ -31,6 +35,10 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+
+# Hidden non-cache options:
+# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
+
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -50,7 +58,9 @@ endif()
 
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
-find_package(bctoolbox 0.0.5 REQUIRED OPTIONAL_COMPONENTS tester)
+if(NOT DISABLE_BC_PACKAGE_SEARCH)
+	find_package(bctoolbox 0.0.5 REQUIRED OPTIONAL_COMPONENTS tester)
+endif()
 
 set(LINK_FLAGS )
 
@@ -131,9 +141,11 @@ include(CMakePackageConfigHelpers)
 set(EXPORT_TARGET_NAME belr)
 set(ConfigPackageLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${EXPORT_TARGET_NAME}")
 
-export(EXPORT ${EXPORT_TARGET_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Targets.cmake"
-)
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	export(EXPORT ${EXPORT_TARGET_NAME}Targets
+		FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Targets.cmake"
+	)
+endif()
 
 configure_package_config_file(cmake/BelrConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Config.cmake"
