@@ -186,11 +186,16 @@ struct AndroidSndWriteData{
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
 		stype = AUDIO_STREAM_VOICE_CALL;
 		if (type == MS_SND_CARD_STREAM_RING) {
+			ms_message("Sound card configured for RING stream");
 			stype = AUDIO_STREAM_RING;
 		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
+			ms_message("Sound card configured for MEDIA stream");
 			stype = AUDIO_STREAM_MUSIC;
 		} else if (type == MS_SND_CARD_STREAM_DTMF) {
+			ms_message("Sound card configured for DTMF stream");
 			stype = AUDIO_STREAM_DTMF;
+		} else {
+			ms_message("Sound card configured for VOICE stream");
 		}
 	}
 	void setCard(AndroidNativeSndCardData *card){

@@ -157,11 +157,16 @@ struct OpenSLESOutputContext {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
 		streamType = SL_ANDROID_STREAM_VOICE;
 		if (type == MS_SND_CARD_STREAM_RING) {
+			ms_message("[OpenSLES] Sound card configured for RING stream");
 			streamType = SL_ANDROID_STREAM_RING;
 		} else if (type == MS_SND_CARD_STREAM_MEDIA) {
+			ms_message("[OpenSLES] Sound card configured for MEDIA stream");
 			streamType = SL_ANDROID_STREAM_MEDIA;
 		} else if (type == MS_SND_CARD_STREAM_DTMF) {
+			ms_message("[OpenSLES] Sound card configured for DTMF stream");
 			streamType = SL_ANDROID_STREAM_NOTIFICATION;
+		} else {
+			ms_message("[OpenSLES] Sound card configured for VOICE stream");
 		}
 	}
 
