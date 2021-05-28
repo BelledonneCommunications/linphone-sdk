@@ -42,7 +42,11 @@ if(ENABLE_TUNNEL)
 endif()
 
 if(APPLE)
-	set(LINPHONESDK_PLATFORM "Macos" CACHE STRING "Platform to build")
+	if(LINPHONESDK_PLATFORM MATCHES "Desktop")#on Apple, Desktop == Macos
+		set(LINPHONESDK_PLATFORM "Macos" CACHE STRING "Platform to build" FORCE)
+	else()
+		set(LINPHONESDK_PLATFORM "Macos" CACHE STRING "Platform to build")
+	endif()
 else()
 	set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
 endif()

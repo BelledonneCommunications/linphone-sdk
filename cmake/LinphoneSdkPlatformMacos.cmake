@@ -27,7 +27,8 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
 else()
     set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
 endif()
-
+message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR is ${CMAKE_HOST_SYSTEM_PROCESSOR}. Selected architectures are [${LINPHONESDK_MACOS_ARCHS}]")
+message(STATUS "CMAKE_APPLE_SILICON_PROCESSOR : ${CMAKE_APPLE_SILICON_PROCESSOR}")
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _archs)
 list(GET _archs 0 _first_arch)
 
@@ -38,7 +39,9 @@ set(_macos_build_targets)
 
 linphone_sdk_get_inherited_cmake_args()
 linphone_sdk_get_enable_cmake_args()
+linphone_sdk_get_sdk_cmake_args()
 list(APPEND _cmake_args ${_enable_cmake_args})
+list(APPEND _cmake_args ${_linphone_sdk_cmake_vars})
 
 set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/sdk" CACHE STRING "URL of the repository where the macos SDK zip files are located")
 foreach(_arch IN LISTS _archs)
