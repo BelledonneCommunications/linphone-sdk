@@ -46,8 +46,6 @@ class IncomingPushTest: XCTestCase {
 		let core : Core
 		let manager : UnsafeMutablePointer<LinphoneCoreManager>
 		
-		var coreDelegates : [CoreDelegate] = []
-		var accountDelegates : [AccountDelegate] = []
 		
 		init(rcFile : String) {
 			manager = linphone_core_manager_new(rcFile)
@@ -55,18 +53,11 @@ class IncomingPushTest: XCTestCase {
 			core.autoIterateEnabled = true
 		}
 		
-		func cleanupDelegates() {
-			for coreDel in coreDelegates {
-				core.removeDelegate(delegate: coreDel)
-			}
-			coreDelegates.removeAll()
-			for accountDel in accountDelegates {
-				core.defaultAccount!.removeDelegate(delegate: accountDel)
-			}
-			accountDelegates.removeAll()
+		deinit {
+			linphone_core_manager_destroy(manager)
 		}
 		
-		func stopCore(stoppedCoreExpectation: XCTestExpectation, cleanUpAfterWait : Bool = true, waitFn : @escaping()->Void) {
+		func stopCore(stoppedCoreExpectation: XCTestExpectation, waitFn : @escaping()->Void) {
 			let coreStoppedDelegate = CoreDelegateStub(onGlobalStateChanged: { (lc: Core, gstate: GlobalState, message: String) in
 				if (gstate == GlobalState.Off){
 					stoppedCoreExpectation.fulfill()
@@ -75,14 +66,10 @@ class IncomingPushTest: XCTestCase {
 			core.addDelegate(delegate: coreStoppedDelegate)
 			core.stopAsync()
 			waitFn()
-			if (cleanUpAfterWait) {
-				core.removeDelegate(delegate: coreStoppedDelegate)
-			} else {
-				coreDelegates.append(coreStoppedDelegate)
-			}
+			core.removeDelegate(delegate: coreStoppedDelegate)
 		}
 		
-		func waitForVoipTokenRegistration(voipTokenRegisteredExpectation: XCTestExpectation, cleanUpAfterWait : Bool = true, waitFn : @escaping()->Void) {
+		func waitForVoipTokenRegistration(voipTokenRegisteredExpectation: XCTestExpectation, waitFn : @escaping()->Void) {
 			let voipTokenDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
 				if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
 					voipTokenRegisteredExpectation.fulfill()
@@ -90,11 +77,7 @@ class IncomingPushTest: XCTestCase {
 			})
 			core.defaultAccount!.addDelegate(delegate: voipTokenDelegate)
 			waitFn()
-			if (cleanUpAfterWait) {
-				core.defaultAccount!.removeDelegate(delegate: voipTokenDelegate)
-			} else {
-				accountDelegates.append(voipTokenDelegate)
-			}
+			core.defaultAccount!.removeDelegate(delegate: voipTokenDelegate)
 		}
 		
 		func waitForVoipPushIncoming(voipPushIncomingExpectation: XCTestExpectation, cleanUpAfterWait : Bool = true, callAndWaitFn : @escaping() -> Void) {
@@ -105,11 +88,7 @@ class IncomingPushTest: XCTestCase {
 			})
 			core.addDelegate(delegate: receivedPushDelegate)
 			callAndWaitFn()
-			if (cleanUpAfterWait) {
-				core.removeDelegate(delegate: receivedPushDelegate)
-			} else {
-				coreDelegates.append(receivedPushDelegate)
-			}
+			core.removeDelegate(delegate: receivedPushDelegate)
 		}
 	}
 	
@@ -118,7 +97,7 @@ class IncomingPushTest: XCTestCase {
 		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
 		pauline.core.autoIterateEnabled = true
 		
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateContactUriWhenPushConfigurationChanges -- Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		
@@ -145,16 +124,17 @@ class IncomingPushTest: XCTestCase {
 	func testVoipPushCall() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
 		marie.core.pushNotificationEnabled = false
-		let ensureNotRegisteredAgainExp = expectation(description: "Registered with voip token")
-		ensureNotRegisteredAgainExp.isInverted = true
+		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
+		ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
+	
 		marie.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: ensureNotRegisteredAgainExp) {
-			self.waitForExpectations(timeout: 5) // Inverted expectation, this ensure that Marie does not register with a voip token
+			self.waitForExpectations(timeout: 5)
 		}
-
+		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		var pauline = LinphoneTestUser(rcFile: "pauline_rc")
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		
@@ -178,72 +158,6 @@ class IncomingPushTest: XCTestCase {
 		call?.addDelegate(delegate: callTerminatedDelegate)
 		try! call!.terminate()
 		self.waitForExpectations(timeout: 10)
-		
-		/*
-		func stopCoreAndReceivePushRoutine(iterationNumber: Int) {
-			pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped - iteration \(iterationNumber)")) {
-				self.waitForExpectations(timeout: 10)
-			}
-			
-			var call : Call?
-			pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: self.expectation(description: "Incoming Push Received - iteration \(iterationNumber)")) {
-				call = marie.core.inviteAddress(addr: pauline.account.contactAddress!)
-				self.waitForExpectations(timeout: 20)
-			}
-			
-			let expectCallTerminated = self.expectation(description: "Call terminated expectation - iteration \(iterationNumber)")
-			let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
-				if (state == Call.State.Released) {
-					expectCallTerminated.fulfill()
-				}
-			})
-			call?.addDelegate(delegate: callTerminatedDelegate)
-			try! call!.terminate()
-			self.waitForExpectations(timeout: 30)
-		}
-		stopCoreAndReceivePushRoutine(iterationNumber: 1)
-		stopCoreAndReceivePushRoutine(iterationNumber: 2)
-		stopCoreAndReceivePushRoutine(iterationNumber: 3)
-		stopCoreAndReceivePushRoutine(iterationNumber: 4)
-		stopCoreAndReceivePushRoutine(iterationNumber: 5) */
-		
-		
-		pauline = LinphoneTestUser(rcFile: "pauline_rc") // Reset pauline
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
-			self.waitForExpectations(timeout: 20)
-		}
-		/*
-		let newPaulineParams = pauline.account.params?.clone()
-		paulineCore = nil
-		paulineAccount = nil
-		linphone_core_manager_restart(pauline, 1)
-		paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
-		paulineCore!.autoIterateEnabled = true
-		paulineAccount = paulineCore!.defaultAccount!
-		
-		let voipRegisteredExpect2 = expectation(description: "Registered with voip token")
-		voipRegisteredExpect2.assertForOverFulfill = false
-		let paulineRegisterDelegate2 = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
-			if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
-				voipRegisteredExpect2.fulfill()
-			}
-		})
-		paulineAccount.addDelegate(delegate: paulineRegisterDelegate2)
-		waitForExpectations(timeout: 40)
-		
-		paulineCore!.autoIterateEnabled = false
-		let expectSecondPushIncoming = expectation(description: "Second Incoming Push Received")
-		let paulineSecondCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
-			if (cstate == .PushIncomingReceived){
-				expectSecondPushIncoming.fulfill()
-			}
-		})
-		paulineCore!.addDelegate(delegate: paulineSecondCallDelegate)
-		
-		_ = marieCore.inviteAddress(addr: paulineAccount.contactAddress!)
-		waitForExpectations(timeout: 100)
-*/
-		
 	}
 	
 	func testAnswerCallBeforePushIsReceivedOnSecondDevice() {
@@ -258,7 +172,7 @@ class IncomingPushTest: XCTestCase {
 		let pushTimeoutInSecond = 5
 		pushPauline.core.pushIncomingCallTimeout = pushTimeoutInSecond
 		pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
-		pushPauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+		pushPauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testAnswerCallBeforePushIsReceivedOnSecondDevice - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		
