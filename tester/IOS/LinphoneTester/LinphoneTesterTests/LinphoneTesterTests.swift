@@ -153,7 +153,7 @@ class IncomingPushTest: XCTestCase {
 
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		var pauline = LinphoneTestUser(rcFile: "pauline_rc")
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
@@ -207,6 +207,11 @@ class IncomingPushTest: XCTestCase {
 		stopCoreAndReceivePushRoutine(iterationNumber: 4)
 		stopCoreAndReceivePushRoutine(iterationNumber: 5) */
 		
+		
+		pauline = LinphoneTestUser(rcFile: "pauline_rc") // Reset pauline
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+			self.waitForExpectations(timeout: 20)
+		}
 		/*
 		let newPaulineParams = pauline.account.params?.clone()
 		paulineCore = nil
@@ -250,7 +255,8 @@ class IncomingPushTest: XCTestCase {
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		let pushPauline = LinphoneTestUser(rcFile: "pauline_rc")
-		pushPauline.core.pushIncomingCallTimeout = 5
+		let pushTimeoutInSecond = 5
+		pushPauline.core.pushIncomingCallTimeout = pushTimeoutInSecond
 		pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
 		pushPauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
@@ -259,7 +265,6 @@ class IncomingPushTest: XCTestCase {
 		pushPauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
 			self.waitForExpectations(timeout: 10)
 		}
-		
 
 		let expectSipInviteAccepted = self.expectation(description: "Sip invite received")
 		let basicPaulineIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
@@ -286,7 +291,8 @@ class IncomingPushTest: XCTestCase {
 		pushPauline.core.addDelegate(delegate: pushPaulineIncomingCallDelegate)
 		
 		let marieCall = marie.core.invite(url: basicPauline.core.defaultAccount!.params!.identityAddress!.asString())
-		self.waitForExpectations(timeout: TimeInterval(pushPauline.core.pushIncomingCallTimeout - 1))
+		let test = pushPauline.core.pushIncomingCallTimeout
+		self.waitForExpectations(timeout: TimeInterval(pushTimeoutInSecond - 1))
 		basicPauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
 		pushPauline.core.removeDelegate(delegate: pushPaulineIncomingCallDelegate)
 		
