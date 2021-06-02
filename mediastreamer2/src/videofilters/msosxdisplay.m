@@ -366,7 +366,7 @@ static void osx_gl_process(MSFilter* f) {
 			if ((m=ms_queue_peek_last(f->inputs[1])) != NULL) {
 				if (ms_yuv_buf_init_from_mblk (&pic,m) == 0) {
 					if (thiz != nil) {
-						if (!mblk_get_precious_flag(m)) ms_yuv_buf_mirror(&pic);
+						ogl_display_enable_mirroring_to_preview(thiz.glLayer->display_helper, !mblk_get_precious_flag(m));
 						ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper, m);
 
 						// Force redraw
