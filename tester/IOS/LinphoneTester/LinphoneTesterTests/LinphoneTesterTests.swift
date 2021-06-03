@@ -260,7 +260,7 @@ class IncomingPushTest: XCTestCase {
 		
 		let ensureSipInviteDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
 			if (cstate == .IncomingReceived) {
-				XCTAssertFalse(true, "Should never receive sip before pauline declines the call")
+				XCTAssertFalse(true, "Should never receive sip invite before pauline declines the call")
 			}
 		})
 		pauline.core.addDelegate(delegate: ensureSipInviteDelegate)
@@ -283,7 +283,52 @@ class IncomingPushTest: XCTestCase {
 		try! paulineCall!.decline(reason: Reason.Declined)
 		pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
 		pauline.core.autoIterateEnabled = true
-		self.waitForExpectations(timeout: 10)
+		self.waitForExpectations(timeout: 5)
+	}
+	
+	func testAcceptCallBeforeReceivingSipInvite() {
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		marie.core.pushNotificationEnabled = false
+		
+		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
+		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+			self.waitForExpectations(timeout: 20)
+		}
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
+		
+		pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
+			self.waitForExpectations(timeout: 10)
+		}
+	
+		pauline.core.autoIterateEnabled = false // Disable auto iterate to ensure that we do not receive SIP invite before pauline declines the call
+		
+		let ensureSipInviteDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .IncomingReceived) {
+				XCTAssertFalse(true, "Should never receive sip invite before pauline accepts the call")
+			}
+		})
+		pauline.core.addDelegate(delegate: ensureSipInviteDelegate)
+		
+		pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: expectation(description: "Incoming Push Received")) {
+			marie.core.invite(url: paulineAddress)
+			self.waitForExpectations(timeout: 10)
+		}
+		
+		let paulineCall = pauline.core.currentCall
+		
+		let expectCallRunning = self.expectation(description: "Call running expectation")
+		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+			if (state == Call.State.StreamsRunning) {
+				expectCallRunning.fulfill()
+			}
+		})
+		paulineCall?.addDelegate(delegate: callTerminatedDelegate)
+		
+		try! paulineCall!.accept()
+		pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
+		pauline.core.autoIterateEnabled = true
+		self.waitForExpectations(timeout: 5)
 	}
 	
 	// Class wide expectations and functions to use for chatroom tests, since it requires intervention of the application delegate to receive the device token
