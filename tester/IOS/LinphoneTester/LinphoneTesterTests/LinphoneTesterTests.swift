@@ -13,9 +13,6 @@ import linphonesw
 
 class IncomingPushTest: XCTestCase {
 	
-	var tokenReceivedExpect : XCTestExpectation!
-	var pushReceivedExpect : XCTestExpectation!
-	
 	/*
 	func testTokenReception() {
 		NotificationCenter.default.addObserver(self,
@@ -43,6 +40,7 @@ class IncomingPushTest: XCTestCase {
 	
 	*/
 	class LinphoneTestUser {
+		let setupDNSDelegate : CoreDelegate
 		let core : Core
 		let manager : UnsafeMutablePointer<LinphoneCoreManager>
 		
@@ -51,6 +49,14 @@ class IncomingPushTest: XCTestCase {
 			manager = linphone_core_manager_new(rcFile)
 			core = Core.getSwiftObject(cObject: manager.pointee.lc)
 			core.autoIterateEnabled = true
+			
+			setupDNSDelegate = CoreDelegateStub(onGlobalStateChanged: { (lc: Core, gstate: GlobalState, message: String) in
+				if (gstate == .Configuring) {
+					liblinphone_tester_set_dns_engine_by_default(lc.getCobject)
+					linphone_core_set_dns_servers(lc.getCobject, flexisip_tester_dns_ip_addresses)
+				}
+			})
+			core.addDelegate(delegate: setupDNSDelegate)
 		}
 		
 		deinit {
@@ -80,7 +86,7 @@ class IncomingPushTest: XCTestCase {
 			core.defaultAccount!.removeDelegate(delegate: voipTokenDelegate)
 		}
 		
-		func waitForVoipPushIncoming(voipPushIncomingExpectation: XCTestExpectation, cleanUpAfterWait : Bool = true, callAndWaitFn : @escaping() -> Void) {
+		func waitForVoipPushIncoming(voipPushIncomingExpectation: XCTestExpectation, callAndWaitFn : @escaping() -> Void) {
 			let receivedPushDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
 				if (cstate == .PushIncomingReceived){
 					voipPushIncomingExpectation.fulfill()
@@ -92,10 +98,19 @@ class IncomingPushTest: XCTestCase {
 		}
 	}
 	
+	func testVoipTokenInRegistrationWhenPushAreDisabled() {
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		marie.core.pushNotificationEnabled = false
+		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
+		ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
+	
+		marie.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: ensureNotRegisteredAgainExp) {
+			self.waitForExpectations(timeout: 10)
+		}
+	}
 	
 	func testUpdateContactUriWhenPushConfigurationChanges() {
 		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
-		pauline.core.autoIterateEnabled = true
 		
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateContactUriWhenPushConfigurationChanges -- Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
@@ -124,12 +139,6 @@ class IncomingPushTest: XCTestCase {
 	func testVoipPushCall() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
 		marie.core.pushNotificationEnabled = false
-		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
-		ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
-	
-		marie.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: ensureNotRegisteredAgainExp) {
-			self.waitForExpectations(timeout: 5)
-		}
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
@@ -138,14 +147,14 @@ class IncomingPushTest: XCTestCase {
 			self.waitForExpectations(timeout: 20)
 		}
 		
-		let paulineAddress = pauline.core.defaultAccount!.contactAddress!
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
 		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		
 		var call : Call?
 		pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: self.expectation(description: "Incoming Push Received")) {
-			call = marie.core.inviteAddress(addr: paulineAddress)
+			call = marie.core.invite(url: paulineAddress)
 			self.waitForExpectations(timeout: 10)
 		}
 		
@@ -179,7 +188,7 @@ class IncomingPushTest: XCTestCase {
 		pushPauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
 			self.waitForExpectations(timeout: 10)
 		}
-
+		
 		let expectSipInviteAccepted = self.expectation(description: "Sip invite received")
 		let basicPaulineIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
 			if (cstate == .IncomingReceived){
@@ -205,7 +214,6 @@ class IncomingPushTest: XCTestCase {
 		pushPauline.core.addDelegate(delegate: pushPaulineIncomingCallDelegate)
 		
 		let marieCall = marie.core.invite(url: basicPauline.core.defaultAccount!.params!.identityAddress!.asString())
-		let test = pushPauline.core.pushIncomingCallTimeout
 		self.waitForExpectations(timeout: TimeInterval(pushTimeoutInSecond - 1))
 		basicPauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
 		pushPauline.core.removeDelegate(delegate: pushPaulineIncomingCallDelegate)
@@ -230,16 +238,63 @@ class IncomingPushTest: XCTestCase {
 		marieCall?.addDelegate(delegate: callTerminatedDelegate)
 		
 		try! marieCall!.terminate()
-		self.waitForExpectations(timeout: 100)
+		self.waitForExpectations(timeout: 10)
 	}
 	
+	func testDeclineCallBeforeReceivingSipInvite() {
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		marie.core.pushNotificationEnabled = false
+		
+		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
+		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+			self.waitForExpectations(timeout: 20)
+		}
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
+		
+		pauline.stopCore(stoppedCoreExpectation: expectation(description: "Pauline Core Stopped")) {
+			self.waitForExpectations(timeout: 10)
+		}
+		
+		pauline.core.autoIterateEnabled = false // Disable auto iterate to ensure that we do not receive SIP invite before pauline declines the call
+		
+		let ensureSipInviteDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .IncomingReceived) {
+				XCTAssertFalse(true, "Should never receive sip before pauline declines the call")
+			}
+		})
+		pauline.core.addDelegate(delegate: ensureSipInviteDelegate)
+		
+		pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: expectation(description: "Incoming Push Received")) {
+			marie.core.invite(url: paulineAddress)
+			self.waitForExpectations(timeout: 10)
+		}
+		
+		let paulineCall = pauline.core.currentCall
+		
+		let expectCallTerminated = self.expectation(description: "Call terminated expectation")
+		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+			if (state == Call.State.Released) {
+				expectCallTerminated.fulfill()
+			}
+		})
+		paulineCall?.addDelegate(delegate: callTerminatedDelegate)
+		
+		try! paulineCall!.decline(reason: Reason.Declined)
+		pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
+		pauline.core.autoIterateEnabled = true
+		self.waitForExpectations(timeout: 10)
+	}
+	
+	// Class wide expectations and functions to use for chatroom tests, since it requires intervention of the application delegate to receive the device token
+	var tokenReceivedExpect : XCTestExpectation!
+	var pushReceivedExpect : XCTestExpectation!
 	func receivedPushTokenCallback() {
 		tokenReceivedExpect.fulfill()
 	}
 	func receivedPushNotificationCallback() {
 		pushReceivedExpect.fulfill()
 	}
-	
 	func testChatroom() {
 		tokenReceivedExpect = expectation(description: "Push Token received")
 		tokenReceivedExpect.assertForOverFulfill = false
@@ -301,6 +356,6 @@ class IncomingPushTest: XCTestCase {
 		let chatMsg = try! marieChatroom.createMessageFromUtf8(message: "TestMessage")
 		chatMsg.send()
 		
-		waitForExpectations(timeout: 15)
+		waitForExpectations(timeout: 10)
 	}
  }
