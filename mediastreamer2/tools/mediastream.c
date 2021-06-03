@@ -703,9 +703,9 @@ void setup_media_streams(MediastreamDatas* args) {
 		bctbx_set_log_file(args->logfile);
 
 	if (args->is_verbose) {
-		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
+		bctbx_set_log_level(NULL, BCTBX_LOG_DEBUG);
 	} else {
-		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
+		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 	}
 
 	args->factory = factory = ms_factory_new_with_voip();
