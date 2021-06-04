@@ -104,9 +104,14 @@ static MSFilter *ms_android_snd_write_new(MSFactory* factory);
 
 struct OpenSLESContext {
 	OpenSLESContext() {
+
 		samplerate = DeviceFavoriteSampleRate;
 		nchannels = 1;
 		builtin_aec = false;
+
+		engineObject = NULL;
+		engineEngine = NULL;
+
 	}
 
 	int samplerate;
@@ -316,6 +321,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 
 static SLresult opensles_engine_init(OpenSLESContext *ctx) {
 	SLresult result;
+
 
 	result = slwCreateEngine(&(ctx->engineObject), 0, NULL, 0, NULL, NULL);
 	if (result != SL_RESULT_SUCCESS) {
@@ -551,7 +557,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->recBuffer[1] = (uint8_t *) calloc(ictx->inBufSize, sizeof(uint8_t));
 	
 	if (ictx->mTickerSynchronizer == NULL) {
-		MSFilter *obj = ictx->mFilter;
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
@@ -693,7 +698,8 @@ static int android_snd_read_configure_soundcard(MSFilter *obj, void *data) {
 			ictx->soundCard = NULL;
 		}
 		ictx->soundCard = ms_snd_card_ref(card);
-		ictx->setContext((OpenSLESContext*)card->data);
+		OpenSLESContext* opensles_context = (OpenSLESContext*)card->data;
+		ictx->setContext(opensles_context);
 		ms_mutex_unlock(&ictx->mutex);
 	}
 	return 0;
