@@ -166,6 +166,8 @@ static int on_new_connection(void *userdata, unsigned int events){
 
 void belle_sip_stream_listening_point_init(belle_sip_stream_listening_point_t *obj, belle_sip_stack_t *s, const char *ipaddress, int port, belle_sip_source_func_t on_new_connection_cb ){
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)obj,s,ipaddress,port);
+	/* Must init server_sock by default. Otherwise it can be 0 (used by others) and be closed by us. */
+	obj->server_sock = (belle_sip_socket_t)-1;
 	if (port != BELLE_SIP_LISTENING_POINT_DONT_BIND) belle_sip_stream_listening_point_setup_server_socket(obj, on_new_connection_cb);
 }
 
