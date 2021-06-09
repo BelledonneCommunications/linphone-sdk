@@ -139,7 +139,7 @@ test-bzrtp-centos7:
     - source /opt/rh/devtoolset-8/enable
 
 test-mediastreamer-centos7:
-  tags: [ "docker-test-centos7-liblinphone-nuc" ]
+  tags: [ "docker-test-liblinphone" ]
   extends: .test
   dependencies:
     - job-centos7-ninja-gcc
@@ -156,7 +156,7 @@ test-mediastreamer-centos7:
 
 
 .test-liblinphone-centos7:
-  tags: [ "docker-test-centos7-liblinphone-nuc" ]
+  tags: [ "docker-test-liblinphone" ]
   extends: .test-liblinphone
   dependencies:
     - job-centos7-ninja-gcc
