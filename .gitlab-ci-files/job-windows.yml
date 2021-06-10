@@ -158,6 +158,21 @@ job-windows-vs2017-ninja-win32:
 ######################################################
 
 ##      ON SCHEDULE     ##
+job-windows-vs2017-uwp-scheduled:
+  extends: .job-windows-vs2017-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
+      - $ENABLE_WINDOWS_UWP_TESTS
+      - $ENABLE_WINDOWS_TESTS
+  variables:
+    LINPHONESDK_PLATFORM: UWP
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
+    OUTPUT_ZIP_FOLDER: uwp
+    MINGW_TYPE: mingw64
+
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
   only:
@@ -189,23 +204,6 @@ job-windows-vs2017-win32-novideo:
       - $NIGHTLY_RELEASE
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-
-job-windows-vs2017-uwp-scheduled:
-  extends: .job-windows-vs2017-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
-      - $ENABLE_WINDOWS_UWP_TESTS
-      - $ENABLE_WINDOWS_TESTS
-  variables:
-    LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
-    OUTPUT_ZIP_FOLDER: uwp
-    MINGW_TYPE: mingw64
-
-
 
 
 #TODO : FACTORIZE TESTERS CODE
