@@ -86,6 +86,7 @@
     variables:
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     MINGW_TYPE: mingw32
@@ -159,10 +160,26 @@ job-windows-vs2017-ninja-win32:
 ##      ON SCHEDULE     ##
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
     OUTPUT_ZIP_FOLDER: win32
+
+job-windows-vs2017-win32store-scheduled:
+  extends: .job-windows-vs2017-scheduled
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
+  variables:
+    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    OUTPUT_ZIP_FOLDER: win32store
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
@@ -188,11 +205,7 @@ job-windows-vs2017-uwp-scheduled:
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
 
-job-windows-vs2017-win32store-scheduled:
-  extends: .job-windows-vs2017-scheduled
-  variables:
-    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
-    OUTPUT_ZIP_FOLDER: win32store
+
 
 
 #TODO : FACTORIZE TESTERS CODE
