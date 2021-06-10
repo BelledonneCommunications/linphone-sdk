@@ -13,8 +13,7 @@ job-ios-upload:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
 
-  needs:
-    - job-ios-xcode
+
 
   script:
 
@@ -70,8 +69,6 @@ job-android-upload:
     GRADLE_OPTIONS: -i
     MAVEN_REPO_PATH: linphone-sdk-android*
 
-  needs:
-    - job-android-makefile-r20
 
   before_script:
     - eval $(ssh-agent -s)
@@ -108,8 +105,6 @@ job-android-doc-upload:
     CCACHE_SIZE: 4G
     GIT_STRATEGY: fetch
 
-  needs:
-    - job-android-makefile-r20
 
   before_script:
     - eval $(ssh-agent -s)
@@ -146,16 +141,12 @@ job-android-doc-upload:
 
 job-android-upload-no-video:
   extends: job-android-upload
-  needs:
-    - job-android-ninja-r20-no-video
   variables:
     GRADLE_OPTIONS: -Pno-video -i
     MAVEN_REPO_PATH: no-video
 
 job-android-upload-minimal-size:
   extends: job-android-upload
-  needs:
-    - job-android-makefile-r20-minimal-size
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
@@ -174,8 +165,6 @@ job-macosx-upload:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
 
-  needs:
-    - job-macosx-xcode
 
   script:
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
@@ -212,8 +201,6 @@ job-windows-vs2017-win32-upload:
       - $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
-  needs:
-    - job-windows-vs2017-win32-scheduled
   script:
     - *check_snapshot_or_release_windows
     - scp build-desktop/linphone-sdk/linphone-sdk-*.zip "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/%DEPLOY_DEST_DIR_SDK_WINDOWS%/"
@@ -228,8 +215,6 @@ job-windows-vs2017-nuget-upload:
       - $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
-  needs:
-    - job-windows-vs2017-nuget-package
   script:
     - *check_snapshot_or_release_windows
     - scp build-desktop/linphone-sdk/packages/*.nupkg "%DEPLOY_SERVER%:%DEPLOY_ROOT_DIRECTORY%/%DEPLOY_DEST_DIR_SDK_WINDOWS%/"
@@ -244,8 +229,6 @@ job-windows-cs-doc-upload:
   only:
     variables:
       - $UPLOAD_CS_DOC
-  needs:
-    - job-windows-vs2017-win32-scheduled
   script:
     # Getting the version number to push the right version of the doc
     - echo %CI_PROJECT_DIR%
@@ -272,8 +255,6 @@ job-debian-doc-upload:
     variables:
       - $UPLOAD_C_CPP_DOC
 
-  needs:
-    - job-debian9-ninja-gcc
 
   script:
 
@@ -308,8 +289,6 @@ job-bzrtp-doc-upload:
     variables:
        - $UPLOAD_BZRTP_DOC
 
-  needs:
-    - job-debian9-ninja-gcc
 
   script:
 
@@ -342,8 +321,6 @@ job-lime-doc-upload:
     variables:
        - $UPLOAD_LIME_DOC
 
-  needs:
-    - job-debian9-ninja-gcc
 
   script:
     #git -C executes the git command in specified directory
@@ -377,8 +354,6 @@ job-xamarin-upload:
       - $UPLOAD_XAMARIN
       - $NIGHTLY_RELEASE
 
-  needs:
-    - job-xamarin-package
 
   script:
     - rsync -rlv results/xamarin/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/xamarin
@@ -618,8 +593,6 @@ job-xamarin-upload:
 
 job-test-upload-libl-centos7-mr:
   extends: .job-test-report-upload
-  needs:
-    - test-liblinphone-centos7-mr
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
@@ -634,16 +607,12 @@ job-test-upload-libl-centos7-mr:
 
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-liblinphone-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
 
 job-test-upload-libl-centos7-forced:
   extends: .job-test-report-upload
-  needs:
-    - test-liblinphone-centos7-force
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
@@ -653,8 +622,6 @@ job-test-upload-libl-centos7-forced:
 
 job-test-upload-libl-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-liblinphone-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "liblinphone"
@@ -669,16 +636,12 @@ job-test-upload-libl-centos8:
 
 job-test-upload-libl-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-liblinphone-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "liblinphone"
 
 job-test-upload-libl-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-liblinphone-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "liblinphone"
@@ -693,16 +656,12 @@ job-test-upload-libl-debian10:
 
 job-test-upload-libl-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-liblinphone-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
 
 job-test-upload-libl-ios:
   extends: .job-test-report-upload-ios-scheduled
-  needs:
-    - test-liblinphone-ios
   variables:
     PLATFORM: "ios"
     TESTER: "liblinphone"
@@ -710,8 +669,6 @@ job-test-upload-libl-ios:
 
 job-test-upload-libl-macosx-schedule:
   extends: .job-test-report-upload-macos-scheduled
-  needs:
-    - test-liblinphone-macosx
   variables:
     PLATFORM: "macosx"
     TESTER: "liblinphone"
@@ -719,32 +676,24 @@ job-test-upload-libl-macosx-schedule:
 
 job-test-upload-bct-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bctoolbox-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "bctoolbox"
 
 job-test-upload-bct-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bctoolbox-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "bctoolbox"
 
 job-test-upload-bct-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bctoolbox-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "bctoolbox"
 
 job-test-upload-bct-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bctoolbox-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "bctoolbox"
@@ -759,24 +708,18 @@ job-test-upload-bct-debian10:
 
 job-test-upload-bct-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bctoolbox-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "bctoolbox"
 
 job-test-upload-bsip-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bellesip-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "bellesip"
 
 job-test-upload-bsip-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bellesip-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "bellesip"
@@ -791,16 +734,12 @@ job-test-upload-bsip-centos8:
 
 job-test-upload-bsip-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bellesip-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "bellesip"
 
 job-test-upload-bsip-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bellesip-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "bellesip"
@@ -815,16 +754,12 @@ job-test-upload-bsip-debian10:
 
 job-test-upload-bsip-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bellesip-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "bellesip"
 
 job-test-upload-ms2-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-mediastreamer-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "mediastreamer"
@@ -874,16 +809,12 @@ job-test-upload-ms2-centos7:
 
 job-test-upload-belr-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belr-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "belr"
 
 job-test-upload-belr-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belr-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "belr"
@@ -898,16 +829,12 @@ job-test-upload-belr-centos8:
 
 job-test-upload-blr-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belr-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "belr"
 
 job-test-upload-belr-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belr-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "belr"
@@ -922,24 +849,18 @@ job-test-upload-belr-debian10:
 
 job-test-upload-belr-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belr-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "belr"
 
 job-test-upload-belcard-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belcard-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "belcard"
 
 job-test-upload-belcard-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belcard-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "belcard"
@@ -954,16 +875,12 @@ job-test-upload-belcard-centos8:
 
 job-test-upload-belcard-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belcard-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "belcard"
 
 job-test-upload-belcard-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belcard-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "belcard"
@@ -978,24 +895,18 @@ job-test-upload-belcard-debian10:
 
 job-test-upload-belcard-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-belcard-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "belcard"
 
 job-test-upload-bzrtp-centos7:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bzrtp-centos7
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "bzrtp"
 
 job-test-upload-bzrtp-centos8:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bzrtp-centos8
   variables:
     PLATFORM: "linux-centos8"
     TESTER: "bzrtp"
@@ -1010,16 +921,12 @@ job-test-upload-bzrtp-centos8:
 
 job-test-upload-bzrtp-debian9:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bzrtp-debian9
   variables:
     PLATFORM: "linux-debian9"
     TESTER: "bzrtp"
 
 job-test-upload-bzrtp-debian10:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bzrtp-debian10
   variables:
     PLATFORM: "linux-debian10"
     TESTER: "bzrtp"
@@ -1034,8 +941,6 @@ job-test-upload-bzrtp-debian10:
 
 job-test-upload-bzrtp-arch:
   extends: .job-test-report-upload-linux-scheduled
-  needs:
-    - test-bzrtp-arch
   variables:
     PLATFORM: "linux-arch"
     TESTER: "bzrtp"

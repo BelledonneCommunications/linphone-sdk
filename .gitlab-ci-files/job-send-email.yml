@@ -6,8 +6,6 @@ send-email-test-report:
   stage: email-notif
   tags: [ "docker" ]
 
-  needs:
-    - job-test-upload-libl-centos7-mr
 
   script:
     - ls -lah results

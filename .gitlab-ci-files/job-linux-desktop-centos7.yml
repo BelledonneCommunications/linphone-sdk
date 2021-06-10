@@ -6,8 +6,6 @@
 .factorize_centos7: &docker_image_needs_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  needs:
-    - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -91,8 +89,6 @@ test-bzrtp-centos7:
 
 .factorize_bs_centos7: &docker_image_needs_tag_platform_devtoolset_bs
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  needs:
-    - job-centos7-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   variables:
@@ -110,8 +106,6 @@ test-bellesip-centos7:
 
 .factorize_ms2_centos7: &docker_image_needs_platform_devtoolset_ms
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
-  needs:
-    - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -127,8 +121,6 @@ test-mediastreamer-centos7:
 
 .factorize_liblinphone_centos7: &docker_image_needs_platform_devtoolset_libl
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
-  needs:
-    - job-centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:

@@ -269,8 +269,6 @@ test-linphone-windows-win32-msbuild:
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS
-  needs:
-    - job-windows-vs2017-win32-scheduled
 
 test-linphone-windows-win32-ninja:
   extends: .test-linphone-windows-win32
@@ -278,16 +276,14 @@ test-linphone-windows-win32-ninja:
     variables:
       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
       - $ENABLE_WINDOWS_TESTS
-  needs:
-    - job-windows-vs2017-ninja-win32
+
 
 test-linphone-windows-uwp:
   stage: test
   extends: .job-prepare
   tags: [ "windows-tests" ]
   allow_failure: true
-  needs:
-    - job-windows-vs2017-uwp-scheduled
+
   only:
     variables:
       - $ENABLE_WINDOWS_UWP_TESTS

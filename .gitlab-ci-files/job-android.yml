@@ -150,8 +150,6 @@ test-android-r20:
   stage: test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-test-r20:20210416_python3
   allow_failure: true
-  needs:
-    - job-android-makefile-r20
   only:
     variables:
       - $ENABLE_ANDROID_TESTS

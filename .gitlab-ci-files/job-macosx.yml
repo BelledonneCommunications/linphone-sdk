@@ -109,8 +109,6 @@ test-liblinphone-macosx:
   extends: .job-prepare
   tags: [ "macosx-xcode11" ]
   allow_failure: true
-  needs:
-    - job-macosx-ninja
   only:
     variables:
       - $ENABLE_MACOSX_TESTS

@@ -3,7 +3,6 @@ job-check-orphan-commits:
   tags: [ "linux-deploy" ]
   stage: check-orphans
   #prevents jobs from gathering all previous jobs artifacts
-  needs: []
   script :
     #This script checks if there is referenced orphans commits and errors out if there is any.
     #The main purpose if to keep a clean git tree and to prevent fetch errors by earlier versions of git (1.8.x)

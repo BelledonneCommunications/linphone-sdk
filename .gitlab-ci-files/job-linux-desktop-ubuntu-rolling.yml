@@ -99,14 +99,12 @@ job-ubuntu-rolling-ninja-clang:
 
 test-bctoolbox-ubuntu:
   extends: .test-bctoolbox
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-ubuntu:
   extends: .test-bellesip
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
@@ -114,26 +112,22 @@ test-bellesip-ubuntu:
 
 test-belr-ubuntu:
   extends: .test-belr
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   <<: *docker_image_platform_and_runner_tag
 
 test-belcard-ubuntu:
   extends: .test-belcard
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-ubuntu:
   extends: .test-bzrtp
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-ubuntu:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  needs:
-    - job-ubuntu-rolling-ninja-clang
+
   variables:
     PLATFORM: linux-ubuntu-rolling

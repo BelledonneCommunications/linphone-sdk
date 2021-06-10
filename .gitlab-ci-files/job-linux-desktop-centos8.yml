@@ -102,14 +102,10 @@ job-centos8-ninja-clang-novideo:
 
 test-bctoolbox-centos8:
   extends: .test-bctoolbox
-  needs:
-    - job-centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-centos8:
   extends: .test-bellesip
-  needs:
-    - job-centos8-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
@@ -118,20 +114,14 @@ test-bellesip-centos8:
 
 test-belr-centos8:
   extends: .test-belr
-  needs:
-    - job-centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-belcard-centos8:
   extends: .test-belcard
-  needs:
-    - job-centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-centos8:
   extends: .test-bzrtp
-  needs:
-    - job-centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 #test-mediastreamer-centos8:
 #  tags: [ "docker-test-centos8-liblinphone-nuc" ]
@@ -150,7 +140,5 @@ test-bzrtp-centos8:
 test-liblinphone-centos8:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:$CENTOS_8_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  needs:
-    - job-centos8-ninja-gcc
   variables:
     PLATFORM: linux-centos8

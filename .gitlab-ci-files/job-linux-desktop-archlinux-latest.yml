@@ -104,14 +104,11 @@ job-archlinux-latest-ninja-clang-novideo:
 
 test-bctoolbox-arch:
   extends: .test-bctoolbox
-  needs:
-    - job-archlinux-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
 test-bellesip-arch:
   extends: .test-bellesip
-  needs:
-    - job-archlinux-latest-ninja-clang
+
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
@@ -120,26 +117,18 @@ test-bellesip-arch:
 
 test-belr-arch:
   extends: .test-belr
-  needs:
-    - job-archlinux-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
 test-belcard-arch:
   extends: .test-belcard
-  needs:
-    - job-archlinux-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
 test-bzrtp-arch:
   extends: .test-bzrtp
-  needs:
-    - job-archlinux-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
 test-liblinphone-arch:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:$ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
-  needs:
-    - job-archlinux-latest-ninja-clang
   variables:
     PLATFORM: linux-arch

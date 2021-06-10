@@ -160,8 +160,6 @@ test-liblinphone-ios:
   tags: [ "macosx-xcode12" ]
   stage: test
   allow_failure: true
-  needs:
-    - job-ios-xcode
 
   only:
     variables:
