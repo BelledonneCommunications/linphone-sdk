@@ -58,15 +58,24 @@ void H26xDecoderFilter::process() {
 		if (unpacking_ret.frameCorrupted) {
 			ms_warning("H26xDecoder: corrupted frame");
 			requestPli = true;
-			if (_freezeOnError) {
+			if (_freezeOnError){
+				/*in freeze on error mode we must not supply a corrupted frame to the decoder. */
 				ms_queue_flush(&frame);
 				_codec->waitForKeyFrame();
 				continue;
 			}
 		}
-
+		/* 
+		 * Feed the decoder implementation with the full frame.
+		 * In case of feeding error (such too many buffers queued), we will request a PLI.
+		 */
 		if (!_codec->feed(&frame, ms_get_cur_time_ms())) requestPli = true;
 
+		if (requestPli && _freezeOnError) {
+			/* In freeze on error mode, regardless of the decoding failure cause, we must restart with a key-frame. */
+			_codec->waitForKeyFrame();
+		}
+		
 		ms_queue_flush(&frame);
 	}
 
