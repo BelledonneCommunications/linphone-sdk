@@ -237,6 +237,8 @@ BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(void);
  */
 BZRTP_EXPORT int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
 
+BZRTP_EXPORT void bzrtp_resetBzrtpContext(bzrtpContext_t *context);
+
 /**
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
  * @param[in]	context		Context hosting the channel to be destroyed.(note: the context zrtp context itself is destroyed with the last channel)

@@ -174,6 +174,17 @@ int bzrtp_setZIDCache_lock(bzrtpContext_t *context, void *zidCache, const char *
 #endif /* ZIDCACHE_ENABLED */
 }
 
+void bzrtp_resetBzrtpContext(bzrtpContext_t *context) {
+	int i;
+	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+		if (context->channelContext[i]) {
+			void * clientData = context->channelContext[i]->clientData;
+			bzrtp_initChannelContext(context, context->channelContext[i], context->channelContext[i]->selfSSRC, context->channelContext[i]->isMainChannel);
+			context->channelContext[i]->clientData = clientData;
+		}
+	}
+}
+
 /**
  * @brief Perform some initialisation which can't be done without some callback functions:
  *  This function is called once per session when the first channel is created.
