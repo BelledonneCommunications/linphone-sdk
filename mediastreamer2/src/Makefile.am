@@ -311,6 +311,7 @@ libmediastreamer_voip_la_SOURCES+=	voip/rfc2429.h \
 					videofilters/mire.c \
 					videofilters/nowebcam.c videofilters/ffmpegnowebcam.c voip/nowebcam.h \
 					videofilters/extdisplay.c \
+					videofilters/msanalysedisplay.c \
 					utils/bits_rw.c \
 					utils/x11_helper.c \
 					utils/stream_regulator.c utils/stream_regulator.h \

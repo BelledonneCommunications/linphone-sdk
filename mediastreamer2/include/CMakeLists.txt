@@ -43,6 +43,7 @@ set(HEADER_FILES
 	msequalizer.h
 	mseventqueue.h
 	msextdisplay.h
+	msanalysedisplay.h
 	msfactory.h
 	msfileplayer.h
 	msfilerec.h
@@ -82,6 +83,8 @@ set(HEADER_FILES
 	msudp.h
 	mspcapfileplayer.h
 	msvideoswitcher.h
+	msanalysedisplay.h
+	msmire.h
 )
 
 set(MEDIASTREAMER2_HEADER_FILES )

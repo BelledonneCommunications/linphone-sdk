@@ -486,4 +486,5 @@ MS2_PUBLIC bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf
 /* DEPRECATED: Use MS_VIDEO_ENCODER_REQ_VFU instead */
 #define MS_FILTER_REQ_VFU		MS_FILTER_BASE_METHOD_NO_ARG(106)
 
+
 #endif

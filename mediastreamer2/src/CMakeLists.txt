@@ -214,6 +214,7 @@ if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
 		videofilters/extdisplay.c
+		videofilters/msanalysedisplay.c
 		videofilters/mire.c
 		videofilters/nowebcam.c
 		videofilters/pixconv.c
