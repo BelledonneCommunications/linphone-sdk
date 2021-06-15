@@ -155,7 +155,7 @@ static void enc_reset_frames_state(EncState *s){
 	s->frames_state.reconstruct.type=VP8_LAST_FRAME;
 }
 
-static void enc_preprocess(MSFilter *f) {
+static void enc_init_impl(MSFilter *f){
 	EncState *s = (EncState *)f->data;
 	vpx_codec_err_t res;
 	vpx_codec_caps_t caps;
@@ -230,7 +230,12 @@ static void enc_preprocess(MSFilter *f) {
 	} else {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0);
 	}
+}
 
+static void enc_preprocess(MSFilter *f) {
+	EncState *s = (EncState *)f->data;
+	
+	enc_init_impl(f);
 	s->invalid_frame_reported = FALSE;
 	vp8rtpfmt_packer_init(&s->packer);
 	if (s->avpf_enabled == TRUE) {
@@ -242,7 +247,6 @@ static void enc_preprocess(MSFilter *f) {
 	s->process_thread = ms_worker_thread_new();
 	qinit(&s->entry_q);
 	s->exit_q = ms_queue_new(0, 0, 0, 0);
-
 	s->ready = TRUE;
 }
 
@@ -517,8 +521,6 @@ static void enc_process_frame_task(void *obj) {
 		bctbx_list_t *list = NULL;
 		int current_partition_id = -1;
 		
-		ms_mutex_unlock(&s->vp8_mutex);
-
 		/* Update the frames state. */
 		is_ref_frame=FALSE;
 		if (flags & VPX_EFLAG_FORCE_KF) {
@@ -582,6 +584,7 @@ static void enc_process_frame_task(void *obj) {
 				list = bctbx_list_append(list, packet);
 			}
 		}
+		ms_mutex_unlock(&s->vp8_mutex);
 
 #ifdef AVPF_DEBUG
 		ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
@@ -677,8 +680,13 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 			s->vconf.vsize = vsize;
 		}
 		else if (fps_changed){
-			enc_postprocess(f);
-			enc_preprocess(f);
+			/* The VP8 implementation is unreliable for fps change. Simply destroy the encoder and re-create a new one, it is safer.*/
+			if (s->ready){
+				ms_mutex_lock(&s->vp8_mutex);
+				vpx_codec_destroy(&s->codec);
+				enc_init_impl(f);
+				ms_mutex_unlock(&s->vp8_mutex);
+			}
 		}else{
 			ms_mutex_lock(&s->vp8_mutex);
 			if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
