@@ -506,7 +506,7 @@ static int MakeHeaders(u_char *p, int type, int w, int h, u_char *lqt,
         *p++ = 63;              /* last DCT coeff */
         *p++ = 0;               /* sucessive approx. */
 
-        return (p - start);
+        return (int) (p - start);
 };
 
 
@@ -712,7 +712,7 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm){
 			frame=s->input;
 			s->input=NULL;
 			uint32_t frame_ts = mblk_get_timestamp_info(frame);
-			while ( (remain=frame->b_wptr-frame->b_rptr)> 0) {
+			while ( (remain=(int) (frame->b_wptr-frame->b_rptr))> 0) {
 				AVPacket pkt;
 				
 				av_init_packet(&pkt);

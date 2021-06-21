@@ -444,7 +444,7 @@ static int get_gbsc(uint8_t *psc, uint8_t *end)
 #else
 static int get_gbsc_bytealigned(uint8_t *begin, uint8_t *end){
 	int i;
-	int len = end - begin;
+	int len = (int) (end - begin);
 	for (i = len - 2;  /*len + length of scan window*/
 	   i > 2 + 2; /*length of scan window + 2 avoidance of 1st gob or psc*/
 	   i--){
@@ -481,7 +481,7 @@ static void mpeg4_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 	mblk_t *packet=NULL;
 	int len;
 	for (rptr=frame->b_rptr;rptr<frame->b_wptr;){
-		len=MIN(s->mtu,(frame->b_wptr-rptr));
+		len=(int)MIN(s->mtu,(frame->b_wptr-rptr));
 		packet=dupb(frame);
 		packet->b_rptr=rptr;
 		packet->b_wptr=rptr+len;
@@ -495,7 +495,7 @@ static void mpeg4_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 
 static void rfc4629_generate_follow_on_packets(MSFilter *f, EncState *s, mblk_t *frame, uint32_t timestamp, uint8_t *psc, uint8_t *end, bool_t last_packet){
 	mblk_t *packet;
-	int len=end-psc;
+	int len= (int)(end-psc);
 
 	packet=dupb(frame);
 	packet->b_rptr=psc;
@@ -671,7 +671,7 @@ static void mjpeg_fragment_and_send(MSFilter *f,EncState *s,mblk_t *frame, uint3
 			}
 		}
 
-		data_len = s->mtu - (packet->b_wptr - packet->b_rptr);
+		data_len = (int) (s->mtu - (packet->b_wptr - packet->b_rptr));
 		if (data_len >= bytes_left) {
 			data_len = bytes_left;
 			mblk_set_marker_info(packet,TRUE);
@@ -807,7 +807,7 @@ static void process_frame(MSFilter *f, mblk_t *inm){
 	AVCodecContext *c=&s->av_context;
 	int error,got_packet;
 	mblk_t *comp_buf=s->comp_buf;
-	int comp_buf_sz=dblk_lim(comp_buf->b_datap)-dblk_base(comp_buf->b_datap);
+	int comp_buf_sz= (int) (dblk_lim(comp_buf->b_datap)-dblk_base(comp_buf->b_datap));
 	YuvBuf yuv;
 	struct AVPacket packet;
 	memset(&packet, 0, sizeof(packet));
