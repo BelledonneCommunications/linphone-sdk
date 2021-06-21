@@ -141,17 +141,18 @@
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
 
-
 ######################################################
 # JOBS
 ######################################################
-
-job-windows-vs2017-ninja-win32:
-  extends: .job-windows-vs2017-ninja
-  variables:
-    CMAKE_C_COMPILER : cl.exe
-    CMAKE_CXX_COMPILER : cl.exe
-    CMAKE_RC_COMPILER : rc.exe
+    
+job-windows-vs2017-ninja-x64:
+      extends: .job-windows-vs2017-ninja
+      variables:
+        CMAKE_C_COMPILER : cl.exe
+        CMAKE_CXX_COMPILER : cl.exe
+        CMAKE_RC_COMPILER : rc.exe
+        MINGW_TYPE: mingw64
+        OUTPUT_ZIP_FOLDER: x64
 
 ######################################################
 # NIGHTLY
@@ -169,7 +170,7 @@ job-windows-vs2017-uwp-scheduled:
       - $ENABLE_WINDOWS_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
 
@@ -182,7 +183,7 @@ job-windows-vs2017-win32-scheduled:
       - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32
 
 job-windows-vs2017-win32store-scheduled:
