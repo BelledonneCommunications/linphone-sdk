@@ -11,7 +11,7 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.__
 
-## [Unreleased]
+## [5.0.0] Unreleased
 
 ### Added
 - MSYS2 support
