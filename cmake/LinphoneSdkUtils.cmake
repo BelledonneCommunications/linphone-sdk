@@ -108,6 +108,7 @@ function(linphone_sdk_get_sdk_cmake_args)
 		LINPHONESDK_STATE:STRING
 		LINPHONESDK_BRANCH:STRING
 		LINPHONESDK_VERSION:STRING
+		OPENSSL_ROOT_DIR:STRING
 	)
 
 	set(_linphone_sdk_cmake_vars)
