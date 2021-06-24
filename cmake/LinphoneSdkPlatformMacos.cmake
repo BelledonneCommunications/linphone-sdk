@@ -66,6 +66,7 @@ foreach(_arch IN LISTS _archs)
 	
 	list(APPEND _cmake_args ${_enable_cmake_args} "-DCMAKE_GENERATOR=${SYSTEM_GENERATOR}")
 	
+	list(APPEND _cmake_args ${_linphone_sdk_cmake_vars})
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
 	ExcludeFromList(_cmake_cache_args CMAKE_INSTALL_PREFIX ${_inherited_cmake_args})
