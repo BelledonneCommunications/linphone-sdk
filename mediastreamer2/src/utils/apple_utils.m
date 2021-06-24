@@ -39,9 +39,11 @@ char *getBundleResourceDirPath (const char *framework, const char *resource) {
 
 	    if (bundleUrl) {
 	        CFURLRef resourceUrl = CFURLCreateCopyAppendingPathComponent(NULL, bundleUrl, cfResource, true);
-	        path = toSafeCStr(CFURLCopyFileSystemPath(resourceUrl, kCFURLPOSIXPathStyle), encodingMethod);
-		CFRelease(bundleUrl);
-		CFRelease(resourceUrl);
+			CFStringRef cfSystemPath = CFURLCopyFileSystemPath(resourceUrl, kCFURLPOSIXPathStyle);
+	        path = toSafeCStr(cfSystemPath, encodingMethod);
+			CFRelease(cfSystemPath);
+			CFRelease(bundleUrl);
+			CFRelease(resourceUrl);
 	    }
 	    CFRelease(bundle);
 	}
