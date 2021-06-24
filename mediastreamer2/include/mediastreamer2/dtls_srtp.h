@@ -86,6 +86,14 @@ MS2_PUBLIC void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context);
  */
 MS2_PUBLIC void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
 
+
+/**
+ * Get DTLS role: server or client, called when SDP exchange reach the point where we can determine self role
+ * @param[in/out]	context		the DTLS-SRTP context
+ * @return		role		Client/Server/Invalid/Unset according to SDP INVITE processing
+ */
+MS2_PUBLIC MSDtlsSrtpRole ms_dtls_srtp_get_role(const MSDtlsSrtpContext *context);
+
 /**
  * Give to the DTLS-SRTP context the peer certificate fingerprint extracted from trusted SDP INVITE,
  * it will be compared(case insensitive) with locally computed one after DTLS handshake is completed successfully and peer certicate retrieved

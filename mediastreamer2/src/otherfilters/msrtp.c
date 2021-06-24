@@ -56,6 +56,7 @@ struct SenderData {
 	bool_t mute;
 	bool_t use_task;
 	bool_t stun_enabled;
+	bool_t stun_forced_enabled;
 	bool_t enable_ts_adjustment;
 };
 
@@ -70,7 +71,7 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 	char *buf = NULL;
 	size_t len;
 
-	if (!d->stun_enabled) return;
+	if (!d->stun_enabled && !d->stun_forced_enabled) return;
 	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {
 		ms_debug("Stun packet not sent for session [%p] because of multicast",s);
 		return;
@@ -83,14 +84,15 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet of length %0zd sent on rtp for session [%p]",len, s);
+
+			ms_message("Stun packet of length %0zd sent on rtp for session [%p] %s",len, s, d->stun_forced_enabled ?  "(forced)" : "");
 			rtp_session_sendm_with_ts(s, mp, 0);
 		}
 		if (enable_rtcp) {
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet of length %0zd sent on rtcp for session [%p]",len, s);
+			ms_message("Stun packet of length %0zd sent on rtcp for session [%p] %s",len, s, d->stun_forced_enabled ?  "(forced)" : "");
 			rtp_session_rtcp_sendm_raw(s,mp);
 		}
 	}
@@ -384,8 +386,11 @@ static void check_stun_sending(MSFilter *f) {
 	uint64_t last_sent_timeout = 20000;
 	if (rtp_session_get_stats(s)->packet_sent == 0)
 		last_sent_timeout = 2000;
-	if ((d->last_rtp_stun_sent_time == -1) || (((f->ticker->time - d->last_sent_time) > last_sent_timeout)
+	if ((d->last_rtp_stun_sent_time == -1) || (  (d->stun_forced_enabled ||  ((f->ticker->time - d->last_sent_time) > last_sent_timeout))
 											&& (f->ticker->time - d->last_rtp_stun_sent_time) >= 500)) {
+		/* send stun packet every 500 ms: 
+		 * - in absence of any RTP packet for more than last_sent_timeout
+		 * - or always in "forced" mode */
 		d->last_rtp_stun_sent_time = f->ticker->time;
 		send_stun_packet(d,TRUE,FALSE);
 	}
@@ -531,6 +536,12 @@ static int sender_enable_stun(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int sender_enable_stun_forced(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *)f->data;
+	d->stun_forced_enabled = *((bool_t *)data);
+	return 0;
+}
+
 static int get_sender_output_fmt(MSFilter *f, void *arg) {
 	SenderData *d = (SenderData *) f->data;
 	MSPinFormat *pinFmt = (MSPinFormat *)arg;
@@ -558,6 +569,7 @@ static MSFilterMethod sender_methods[] = {
 	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
 	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
 	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
+	{ MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced },
 	{0, NULL}
 };
 

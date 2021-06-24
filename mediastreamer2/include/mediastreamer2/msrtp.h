@@ -50,7 +50,7 @@
 
 #define MS_RTP_SEND_ENABLE_TS_ADJUSTMENT	MS_FILTER_METHOD(MS_RTP_SEND_ID, 8, bool_t)
 
-
+#define MS_RTP_SEND_ENABLE_STUN_FORCED			MS_FILTER_METHOD(MS_RTP_SEND_ID, 9, bool_t)
 
 
 extern MSFilterDesc ms_rtp_send_desc;
