@@ -46,6 +46,7 @@ typedef struct AndroidTextureDisplay {
 	MSWorkerThread *process_thread;
 	queue_t entry_q;
 	jobject nativeWindowId;
+	EGLint width, height;
 } AndroidTextureDisplay;
 
 static void android_texture_display_destroy_opengl(MSFilter *f) {
@@ -230,6 +231,8 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ad->gl_display = display;
 	ad->gl_surface = surface;
 	ad->gl_context = context;
+	ad->width = w;
+	ad->height = h;
 
 	ad->ogl = ogl_display_new();
 	ogl_display_init(ad->ogl, NULL, w, h);
@@ -287,6 +290,15 @@ static void android_texture_display_process(MSFilter *f) {
 			ms_queue_remove(f->inputs[0], m);
 			putq(&ad->entry_q, m);
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void*)f);
+		}
+
+		EGLint w, h;
+		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_WIDTH, &w);
+		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_HEIGHT, &h);
+		if (ad->width != w || ad->height != h) {
+			ms_warning("[TextureView Display] Surface size has changed from %ix%i to %ix%i", ad->width, ad->height, w, h);
+			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
+			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
 		}
 	}
 	ms_filter_unlock(f);
