@@ -289,29 +289,47 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
+
+/* This function decides whether it is necessary to send dummy stun packets for firewall opening. */
+static void media_stream_configure_stun_packet_sending(MediaStream *stream){
+	bool_t stun_enabled = TRUE;
+	if (stream->ice_check_list) stun_enabled = FALSE;
+	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
+		stun_enabled = FALSE;
+	}
+	if (stream->rtpsend != NULL) {
+		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
+		if (stun_enabled && stream->sessions.dtls_context) {
+			/* In case STUN packets are necessary, and DTLS is used and encryption mandatory is set to TRUE,
+			 * no packets will be emitted at all. We must configure the rtpsend filter to regularly send dummy stun packets
+			 * to ensure that firewall gets open to the remote endpoint. 
+			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
+			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
+			 */
+			ms_message("Forcing dummy STUN packet sending because DTLS role is server.");
+			ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN_FORCED, &stun_enabled);
+		}
+	}
+}
+
+
 void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *params){
 	if (stream->sessions.dtls_context == NULL) {
 		MSDtlsSrtpParams params_copy = *params;
 		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
 		if (params_copy.mtu == 0) params_copy.mtu = ms_factory_get_mtu(stream->factory);
+		
 		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), &params_copy);
+		media_stream_configure_stun_packet_sending(stream);
 	}
 }
 
 void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl) {
-	bool_t stun_enabled = TRUE;
 	stream->ice_check_list = cl;
 	if (stream->ice_check_list != NULL) {
 		ice_check_list_set_rtp_session(stream->ice_check_list, stream->sessions.rtp_session);
-		stun_enabled = FALSE;
 	}
-	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
-		ms_message("Disabling stun sending for rtp session %p", stream->sessions.rtp_session);
-		stun_enabled = FALSE;
-	}
-	if (stream->rtpsend != NULL) {
-		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
-	}
+	media_stream_configure_stun_packet_sending(stream);
 }
 
 bool_t media_stream_dtls_supported(void){
