@@ -40,8 +40,8 @@ class IncomingPushTest: XCTestCase {
 	
 	*/
 	class LinphoneTestUser {
-		let setupDNSDelegate : CoreDelegate
-		let core : Core
+		var setupDNSDelegate : CoreDelegate!
+		var core : Core!
 		let manager : UnsafeMutablePointer<LinphoneCoreManager>
 		
 		
@@ -54,12 +54,19 @@ class IncomingPushTest: XCTestCase {
 				if (gstate == .Configuring) {
 					liblinphone_tester_set_dns_engine_by_default(lc.getCobject)
 					linphone_core_set_dns_servers(lc.getCobject, flexisip_tester_dns_ip_addresses)
+				} else if (gstate == .Startup) {
+					let transport = try! Factory.Instance.createTransports()
+					transport.tcpPort = -1
+					transport.tlsPort = -1
+					try! lc.setTransports(newValue: transport)
 				}
 			})
 			core.addDelegate(delegate: setupDNSDelegate)
 		}
 		
 		deinit {
+			core = nil
+			setupDNSDelegate = nil
 			linphone_core_manager_destroy(manager)
 		}
 		
@@ -98,7 +105,80 @@ class IncomingPushTest: XCTestCase {
 		}
 	}
 	
-	func testVoipTokenInRegistrationWhenPushAreDisabled() {
+	func testCallToSRTPMandatoryEncryptionWithNoEncryptionEnabled() {
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		marie.core.pushNotificationEnabled = false
+		try! marie.core.setMediaencryption(newValue: .None)
+		marie.core.avpfMode = .Enabled
+		
+		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		try! pauline.core.setMediaencryption(newValue: .SRTP)
+		pauline.core.mediaEncryptionMandatory = true
+		
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Pauline voip registered")) {
+			self.waitForExpectations(timeout: 10)
+		}
+		
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
+		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) {
+			self.waitForExpectations(timeout: 10)
+		}
+		
+		var call1, call2 : Call?
+		
+		let expectPush1Incoming = expectation(description: "PushIncoming 1 received")
+		let expectPush2Incoming = expectation(description: "PushIncoming 2 received")
+		// We expect 2 calls because once the first call fails, a second one will start to check if it was due to AVPF and not SRTP
+		let receivedPushDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .PushIncomingReceived){
+				if (call1 == nil) {
+					expectPush1Incoming.fulfill()
+					call1 = call
+				} else if (call2 == nil) {
+					expectPush2Incoming.fulfill()
+					call2 = call
+				}
+			}
+		})
+		pauline.core.addDelegate(delegate: receivedPushDelegate)
+		_ = marie.core.invite(url: paulineAddress)
+		self.waitForExpectations(timeout: 30)
+		call1 = nil // this will crash if the extra unref is still there. If not, it means we fixed it.
+		XCTAssertNotNil(call2?.callLog?.callId)
+		call2 = nil
+	}
+	
+	/*
+	func testReproduceHeapCorruption() {
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		marie.core.pushNotificationEnabled = false
+		
+		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		marie.core.pushNotificationEnabled = false
+	
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
+		let expectCall = expectation(description: "Sip call received")
+		let ensureSipInviteDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .IncomingReceived) {
+				expectCall.fulfill()
+			}
+		})
+		pauline.core.addDelegate(delegate: ensureSipInviteDelegate)
+		
+		let call = marie.core.invite(url: paulineAddress)
+		waitForExpectations(timeout: 3)
+		let expectCallTerminated = self.expectation(description: "Call terminated expectation - iteration")
+		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+			if (state == Call.State.Released) {
+				expectCallTerminated.fulfill()
+			}
+		})
+		call?.addDelegate(delegate: callTerminatedDelegate)
+		try! call!.terminate()
+		self.waitForExpectations(timeout: 10)
+	}*/
+	
+	func testNoVoipTokenInRegistrationWhenPushAreDisabled() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
 		marie.core.pushNotificationEnabled = false
 		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
@@ -120,6 +200,7 @@ class IncomingPushTest: XCTestCase {
 		var newPaulineParams = paulineAccount.params?.clone()
 		paulineAccount.params = newPaulineParams
 		
+		let test = newPaulineParams?.identityAddress?.username
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.provider = "testprovider"
 		paulineAccount.params = newPaulineParams
@@ -293,7 +374,7 @@ class IncomingPushTest: XCTestCase {
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
-			self.waitForExpectations(timeout: 20)
+			self.waitForExpectations(timeout: 10)
 		}
 		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
 		
@@ -318,16 +399,29 @@ class IncomingPushTest: XCTestCase {
 		let paulineCall = pauline.core.currentCall
 		
 		let expectCallRunning = self.expectation(description: "Call running expectation")
-		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+		let callRunningDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
 			if (state == Call.State.StreamsRunning) {
 				expectCallRunning.fulfill()
 			}
 		})
-		paulineCall?.addDelegate(delegate: callTerminatedDelegate)
+		paulineCall?.addDelegate(delegate: callRunningDelegate)
 		
 		try! paulineCall!.accept()
 		pauline.core.removeDelegate(delegate: ensureSipInviteDelegate)
 		pauline.core.autoIterateEnabled = true
+		self.waitForExpectations(timeout: 5)
+		paulineCall?.removeDelegate(delegate: callRunningDelegate)
+		
+		
+		let expectCallTerminated = self.expectation(description: "Call terminated expectation")
+		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
+			if (state == Call.State.Released) {
+				expectCallTerminated.fulfill()
+			}
+		})
+		paulineCall?.addDelegate(delegate: callTerminatedDelegate)
+		
+		try! paulineCall!.terminate()
 		self.waitForExpectations(timeout: 5)
 	}
 	
