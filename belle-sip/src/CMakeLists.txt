@@ -201,6 +201,8 @@ else()
 	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare")
 endif()
 
+set(BELLESIP_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar")
+
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)
 	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES} ${GRAMMAR_FILES})
@@ -234,6 +236,7 @@ if(ENABLE_SHARED)
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belle-sip
 			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
+			RESOURCE "${BELLESIP_RESOURCES}"
 			PUBLIC_HEADER "${BELLE_SIP_HEADER_FILES}"
 		)
 		SET_TARGET_PROPERTIES(bellesip PROPERTIES OUTPUT_NAME belle-sip)
@@ -268,11 +271,13 @@ if(ENABLE_SHARED)
 			)
 	endif()
 endif()
+
+install(FILES ${GRAMMAR_FILES}
+	DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars"
+)
+
 #to avoid // build to generate code twice in // leading compilation issues. Might probably be done in a better way
 if (ENABLE_SHARED AND ENABLE_STATIC)
 	add_dependencies(bellesip-static bellesip)
 endif()
 
-install(FILES ${GRAMMAR_FILES}
-	DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars"
-)
