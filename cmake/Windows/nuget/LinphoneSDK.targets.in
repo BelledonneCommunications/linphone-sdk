@@ -12,20 +12,23 @@
 		<LinphoneSDK-LibrariesPath>$(MSBuildThisFileDirectory)\..\..\lib\$(LinphoneSDK-Framework)\$(LinphoneSDK-Platform)</LinphoneSDK-LibrariesPath>
 	</PropertyGroup>
 	<Target Name="InjectReference" BeforeTargets="ResolveAssemblyReferences">
-		<ItemGroup Condition=" '$(LinphoneSDK-Platform)' == 'x86' or '$(LinphoneSDK-Platform)' == 'x64' or '$(LinphoneSDK-Platform)' == 'ARM'">
+		<ItemGroup>
 			<Reference Include="LinphoneSDK">
 				<HintPath>$(LinphoneSDK-LibrariesPath)\CsWrapper.dll</HintPath>
 			</Reference>
 		</ItemGroup>
 	</Target>
 
-	<Target Name="CopyNativeLibraries" AfterTargets="ResolveAssemblyReferences">
-		<ItemGroup Condition=" '$(LinphoneSDK-Platform)' == 'x86' or '$(LinphoneSDK-Platform)' == 'x64' or '$(LinphoneSDK-Platform)' == 'ARM'">
+	<Target Name="CopyNativeLibraries" BeforeTargets="ResolveAssemblyReferences">
+		<ItemGroup>
 			<Content Include="$(LinphoneSDK-LibrariesPath)\**\*.dll;$(LinphoneSDK-LibrariesPath)\**\*.pdb">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			</Content>
 		</ItemGroup>
 	</Target>
-	<ItemGroup Condition="'$(LinphoneSDK-Platform)' == 'x86' or '$(LinphoneSDK-Platform)' == 'x64' or '$(LinphoneSDK-Platform)' == 'ARM'">
-		<Content Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" CopyToPublishDirectory="Always" Link="$(LinphoneSDK-Content)\%(RecursiveDir)%(FileName)%(Extension)" />
+	<ItemGroup>
+		<Content Include="$(MSBuildThisFileDirectory)\..\..\content\**\*" CopyToPublishDirectory="Always" Link="$(LinphoneSDK-Content)\%(RecursiveDir)%(FileName)%(Extension)">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 </Project>
