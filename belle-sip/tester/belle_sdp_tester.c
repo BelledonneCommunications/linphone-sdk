@@ -23,7 +23,7 @@
 
 
 //v=0
-//o=jehan-mac 1239 1239 IN IP4 192.168.0.18
+//o=jehan-mac 1239 1239 IN IP4 192.168.0.19
 //s=Talk
 //c=IN IP4 192.168.0.18
 //t=0 0
@@ -705,7 +705,7 @@ static void test_simple_session_description(void) {
 
 static void test_session_description_with_capability_referenced_before_definition(void) {
 	const char* l_src = "v=0\r\n"\
-						"o=jehan-mac 2463217870 2463217870 IN IP4 192.168.0.18\r\n"\
+						"o=jehan-mac 2463217870 2463217870 IN IP4 192.168.0.19\r\n"\
 						"s=Talk\r\n"\
 						"c=IN IP4 192.168.0.18\r\n"\
 						"t=0 0\r\n"\
@@ -757,7 +757,7 @@ static void test_session_description_with_capability_referenced_before_definitio
 
 	l_origin = belle_sdp_session_description_get_origin(l_session_description);
 	BC_ASSERT_PTR_NOT_NULL(l_origin);
-	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.18");
+	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address(l_origin),"192.168.0.19");
 	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_address_type(l_origin),"IP4");
 	BC_ASSERT_STRING_EQUAL(belle_sdp_origin_get_network_type(l_origin),"IN");
 	BC_ASSERT_EQUAL(belle_sdp_origin_get_session_id(l_origin), 2463217870U, unsigned, "%u");
