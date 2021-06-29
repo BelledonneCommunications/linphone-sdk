@@ -233,11 +233,23 @@ class IncomingPushTest: XCTestCase {
 			self.waitForExpectations(timeout: 10)
 		}
 		
-		var call : Call?
-		pauline.waitForVoipPushIncoming(voipPushIncomingExpectation: self.expectation(description: "Incoming Push Received")) {
-			call = marie.core.invite(url: paulineAddress)
-			self.waitForExpectations(timeout: 10)
-		}
+		// First we receive the push, then the sip invite, since the core is stopped
+		let expectPushIncomingState = expectation(description: "Incoming Push Received")
+		var receivedPushFirst = false
+		let expectIncomingReceivedState = expectation(description: "Sip invite received")
+		let basicPaulineIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			if (cstate == .IncomingReceived){
+				XCTAssertTrue(receivedPushFirst)
+				expectIncomingReceivedState.fulfill()
+			} else if (cstate == .PushIncomingReceived) {
+				receivedPushFirst = true
+				expectPushIncomingState.fulfill()
+			}
+		})
+		pauline.core.addDelegate(delegate: basicPaulineIncomingCallDelegate)
+		
+		let call = marie.core.invite(url: paulineAddress)
+		self.waitForExpectations(timeout: 10)
 		
 		let expectCallTerminated = self.expectation(description: "Call terminated expectation - iteration")
 		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
