@@ -60,6 +60,7 @@ function(add_command_from_zip zip_path nuget_folder)
 		endif()
 	endforeach(item)
 	if(NOT ${FILE_ITEM} STREQUAL "")
+		message(STATUS "-  ${FILE_ITEM}")
 		add_custom_command(TARGET unzip PRE_BUILD
 			COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILE_ITEM}
 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}
