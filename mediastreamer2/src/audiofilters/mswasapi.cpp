@@ -443,7 +443,8 @@ public:
 		} else {
 			DefaultId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
 		}
-		AddOrUpdateCard(DefaultId, DefaultName, _dc);
+		if (DefaultId != "")
+			AddOrUpdateCard(DefaultId, DefaultName, _dc);
 		Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ op = DeviceInformation::FindAllAsync(_dc);
 		op->Completed = ref new Windows::Foundation::AsyncOperationCompletedHandler<DeviceInformationCollection^>(
 				[this](Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ asyncOp, Windows::Foundation::AsyncStatus asyncStatus) {
