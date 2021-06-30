@@ -31,6 +31,7 @@ namespace LinphoneTester_uwp
 		bool mIsExitOnEnd = true;// Keep alive at the end
 		bool mDelegate = false;// Delegate the test or do it in current instance
 		bool mSpecificTest = false;
+		bool mVerbose = false;
 		bool mQuitApp = false;
 		Platform::Array<Platform::String^>^ mArgs;
 		Windows::Networking::Sockets::StreamSocket^ mStreamSocket;
