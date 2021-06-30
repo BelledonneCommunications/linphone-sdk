@@ -451,7 +451,7 @@ char *bctbx_strcat_printf(char* dst, const char *fmt,...){
 	return ret;
 }
 
-#if	defined(_WIN32) || defined(_WIN32_WCE)
+#if	!defined(BCTBX_WINDOWS_UWP) && (defined(_WIN32) || defined(_WIN32_WCE))
 #define ENDLINE "\r\n"
 #else
 #define ENDLINE "\n"
