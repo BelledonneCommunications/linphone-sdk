@@ -94,9 +94,9 @@
     <PlatformToolset>v141</PlatformToolset>
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
-  <PropertyGroup>    
-    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Debug|'">..\..\..\..\builduwp_debug\linphone-sdk\uwp-x64</LinphoneSDK-Path>
-    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Release|'">..\..\..\..\builduwp\linphone-sdk\uwp-x64</LinphoneSDK-Path>
+  <PropertyGroup>
+    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Debug|'">$(MSBuildProjectDirectory)\..\..\..\..\builduwp_debug\linphone-sdk\uwp-x64</LinphoneSDK-Path>
+    <LinphoneSDK-Path Condition="'$(Configuration)|$(LinphoneSDK-Path)' == 'Release|'">$(MSBuildProjectDirectory)\..\..\..\..\builduwp\linphone-sdk\uwp-x64</LinphoneSDK-Path>
     <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Debug'">d</LinphoneSDK-Suffix>
     <LinphoneSDK-Suffix Condition="'$(Configuration)' == 'Release'">
     </LinphoneSDK-Suffix>
@@ -178,13 +178,6 @@
       <NoEntryPoint>false</NoEntryPoint>
       <SubSystem>Windows</SubSystem>
     </Link>
-    <PostBuildEvent>
-		<Command>	robocopy $(LinphoneSDK-Path)\share "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
-					robocopy $(LinphoneSDK-Path)\bin "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
-					robocopy $(LinphoneSDK-Path)\lib\mediastreamer\plugins "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
-					if %errorlevel% leq 7 exit 0 else exit %errorlevel%
-		</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -195,15 +188,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
     </Link>
-    <PostBuildEvent>
-		<Command>	robocopy $(LinphoneSDK-Path)\share "$(OutputPath)\share" /MIR /R:0 /W:0 /XJ /NP
-					robocopy $(LinphoneSDK-Path)\bin "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
-					robocopy $(LinphoneSDK-Path)\lib\mediastreamer\plugins "$(OutputPath)\" *.dll /R:0 /W:0 /XJ /NP
-					if %errorlevel% leq 7 exit 0 else exit %errorlevel%
-		</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
-  
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.xaml.h">
@@ -228,6 +213,9 @@
     </AppxManifest>
     <None Include="LinphoneTester_uwp_TemporaryKey.pfx" />
     <None Include="packages.config" />
+    <None Include="toDeploy\**\*.*">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
@@ -269,15 +257,13 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets" Condition="Exists('..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" />
   </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\LinphoneSDK\LinphoneSDK.targets" Condition="Exists('..\packages\LinphoneSDK\LinphoneSDK.targets')" />
+  </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets'))" />
-  </Target>
-  <Target Name="AddAppFiles" AfterTargets="Build">
-    <ItemGroup>
-      <Content Include="$(LinphoneSDK-Path)\share\**\*.*" />
-    </ItemGroup>
   </Target>
 </Project>
