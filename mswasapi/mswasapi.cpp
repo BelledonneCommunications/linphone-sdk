@@ -401,6 +401,7 @@ public:
 		size_t inputlen;
 		size_t returnlen;
 		uint8_t capabilities = 0;
+		int err;
 
 		inputlen = wcslen(DeviceName->Data())+1;
 		returnlen = inputlen * 2;
@@ -415,6 +416,9 @@ public:
 			break;
 		case DeviceClass::AudioCapture:
 			capabilities = MS_SND_CARD_CAP_CAPTURE;
+			break;
+		default:
+			capabilities = MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_CAPTURE;
 			break;
 		}
 
@@ -447,7 +451,8 @@ public:
 		} else {
 			DefaultId = MediaDevice::GetDefaultAudioRenderId(AudioDeviceRole::Communications);
 		}
-		AddOrUpdateCard(DefaultId, DefaultName, _dc);
+		if(DefaultId != "")
+			AddOrUpdateCard(DefaultId, DefaultName, _dc);
 		Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ op = DeviceInformation::FindAllAsync(_dc);
 		op->Completed = ref new Windows::Foundation::AsyncOperationCompletedHandler<DeviceInformationCollection^>(
 				[this](Windows::Foundation::IAsyncOperation<DeviceInformationCollection^>^ asyncOp, Windows::Foundation::AsyncStatus asyncStatus) {
