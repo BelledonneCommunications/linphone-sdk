@@ -12,20 +12,20 @@ Pod::Spec.new do |s|
   s.author       = { 'Belledonne Communications SARL' => 'linphone-desktop@belledonne-communications.com' }
   s.platform     = :osx, "10.9"
   s.source       = { :http => "@LINPHONESDK_MACOS_BASE_URL@/linphone-sdk-@LINPHONESDK_VERSION@.zip" }
-  s.vendored_frameworks = "linphone-sdk/apple-@INSTALL_FOLDER@/Frameworks/**"
+  s.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   
   s.subspec 'all-frameworks' do |sp|
-    sp.vendored_frameworks = "linphone-sdk/apple-@INSTALL_FOLDER@/Frameworks/**"
+    sp.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/**"
   end
 
   s.subspec 'basic-frameworks' do |sp|
     sp.dependency 'linphone-sdk/app-extension'
-    sp.vendored_frameworks = "linphone-sdk/apple-@INSTALL_FOLDER@/Frameworks/{@LINPHONE_OTHER_FRAMEWORKS@}"
+    sp.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/{@LINPHONE_OTHER_FRAMEWORKS@}"
   end
 
   s.subspec 'app-extension' do |sp|
-    sp.vendored_frameworks = "linphone-sdk/apple-@INSTALL_FOLDER@/Frameworks/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
+    sp.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
   end
 
 
