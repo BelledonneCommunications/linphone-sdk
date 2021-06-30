@@ -49,12 +49,15 @@
     LINPHONESDK_PLATFORM: Desktop
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
+    CMAKE_GENERATOR: "Visual Studio 15 2017"
   script:
     #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
     - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
     - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
+    #handling the case of previous job cancellation
+    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")    
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
@@ -65,7 +68,7 @@
     - echo %DEFAULT_CMAKE_OPTIONS%
     - echo %CMAKE_OPTIONS%
     - echo %CMAKE_ARCHITECTURE%
-    - cmake .. -G "Visual Studio 15 2017" -DLINPHONESDK_PLATFORM=%LINPHONESDK_PLATFORM% -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
+    - cmake .. -G  %CMAKE_GENERATOR% -DLINPHONESDK_PLATFORM=%LINPHONESDK_PLATFORM% -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
     - cd linphone-sdk
@@ -97,7 +100,7 @@
     - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     #handling the case of previous job cancellation
-    - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
+    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") else (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
@@ -141,13 +144,24 @@
     #cache disabled on scheduled builds since we dot not need the fastest build
     - set "CLCACHE_DISABLE=1"
 
-
 ######################################################
 # JOBS
 ######################################################
+    
+job-windows-vs2017-ninja-win64:
+  extends: .job-windows-vs2017-ninja
+  variables:
+    CMAKE_C_COMPILER : cl.exe
+    CMAKE_CXX_COMPILER : cl.exe
+    CMAKE_RC_COMPILER : rc.exe
+    MINGW_TYPE: mingw64
+    OUTPUT_ZIP_FOLDER: win64
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -169,9 +183,10 @@ job-windows-vs2017-uwp-scheduled:
       - $ENABLE_WINDOWS_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
+    CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
 
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
@@ -182,7 +197,7 @@ job-windows-vs2017-win32-scheduled:
       - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32
 
 job-windows-vs2017-win32store-scheduled:
@@ -193,7 +208,7 @@ job-windows-vs2017-win32store-scheduled:
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_WINDOWS
   variables:
-    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32store
 
 job-windows-vs2017-win32-novideo:
@@ -208,7 +223,7 @@ job-windows-vs2017-win32-novideo:
 
 #TODO : FACTORIZE TESTERS CODE
 
-.test-linphone-windows-win32:
+.test-linphone-windows:
   stage: test
   extends: .job-prepare
   tags: [ "windows" ]
@@ -223,6 +238,7 @@ job-windows-vs2017-win32-novideo:
     - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
+    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")    
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
 
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
@@ -276,7 +292,7 @@ job-windows-vs2017-win32-novideo:
     expire_in: 4 week
 
 test-linphone-windows-win32-msbuild:
-  extends: .test-linphone-windows-win32
+  extends: .test-linphone-windows
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS
@@ -284,13 +300,21 @@ test-linphone-windows-win32-msbuild:
     - job-windows-vs2017-win32-scheduled
 
 test-linphone-windows-win32-ninja:
-  extends: .test-linphone-windows-win32
+  extends: .test-linphone-windows
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
-      - $ENABLE_WINDOWS_TESTS
   needs:
     - job-windows-vs2017-ninja-win32
+    
+test-linphone-windows-win64-ninja:
+  extends: .test-linphone-windows
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN64_NINJA
+      - $ENABLE_WINDOWS_TESTS
+  needs:
+    - job-windows-vs2017-ninja-win64
 
 test-linphone-windows-uwp:
   stage: test
