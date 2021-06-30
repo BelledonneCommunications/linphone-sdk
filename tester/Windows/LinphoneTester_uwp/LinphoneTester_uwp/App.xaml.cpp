@@ -84,6 +84,8 @@ App::App()
 			}else{
 				if( s_str == "--suite" || s_str == "--test")
 					mSpecificTest = true;
+				if (s_str == "--verbose")
+					mVerbose = true;
 				mArgs[i]  = ref new Platform::String(w_char);
 			}
 		}
@@ -218,7 +220,7 @@ void App::OnNavigationFailed(Platform::Object ^sender, Windows::UI::Xaml::Naviga
 
 task<void> App::InitializeTests(){
 	SetCurrentDirectory (Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data());
-	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, false);
+	NativeTester::Instance->initialize(mArgs, ApplicationData::Current->LocalFolder, mSpecificTest, mVerbose);
 	NativeTester::Instance->runAllToXml();
 	return  task_from_result();
 }
