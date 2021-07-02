@@ -255,7 +255,7 @@
     <Import Project="..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets" Condition="Exists('..\packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" />
   </ImportGroup>
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\LinphoneSDK\LinphoneSDK.targets" Condition="Exists('..\packages\LinphoneSDK\LinphoneSDK.targets')" />
+    <Import Project="LinphoneSDK\LinphoneSDK.targets" Condition="Exists('LinphoneSDK\LinphoneSDK.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
