@@ -982,7 +982,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 	CU_set_suite_init_failure_handler(suite_init_failure_message_handler);
 	CU_set_suite_cleanup_failure_handler(suite_cleanup_failure_message_handler);
 
-	if (xml_enabled == 1) {
+	if (xml_enabled == 1 && !test_name) {
 		char *xml_file_name;//, *xml_file_name_tmp;
 		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
 
