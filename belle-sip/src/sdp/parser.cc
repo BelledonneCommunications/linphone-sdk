@@ -49,6 +49,7 @@ bellesip::SDP::Parser::Parser() {
            ->setCollector("origin", make_fn(&belle_sdp_session_description_set_origin))
            ->setCollector("proto-version", make_fn(&belle_sdp_session_description_set_version))
            ->setCollector("connection", make_fn(&belle_sdp_session_description_set_connection))
+           ->setCollector("bandwidth", make_fn(&belle_sdp_session_description_add_bandwidth))
            ->setCollector("info", make_fn(&belle_sdp_session_description_set_info))
            ->setCollector("times", make_fn(&belle_sdp_session_description_set_time_description))
            ->setCollector("media-description", make_fn(&belle_sdp_session_description_add_media_description))

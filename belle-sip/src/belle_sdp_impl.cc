@@ -1791,7 +1791,7 @@ void belle_sdp_session_description_set_bandwidth(belle_sdp_session_description_t
 void belle_sdp_session_description_set_bandwidths(belle_sdp_session_description_t* session_description, belle_sip_list_t* bandwidths) {
 	belle_sdp_base_description_set_bandwidths(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),bandwidths);
 }
-void belle_sdp_session_description_add_bandwidth(belle_sdp_session_description_t* session_description, const belle_sdp_bandwidth_t* bandwidth) {
+void belle_sdp_session_description_add_bandwidth(belle_sdp_session_description_t* session_description, belle_sdp_bandwidth_t* bandwidth) {
 	belle_sdp_base_description_add_bandwidth(BELLE_SIP_CAST(session_description,belle_sdp_base_description_t),bandwidth);
 }
 void belle_sdp_session_description_set_connection(belle_sdp_session_description_t* session_description, belle_sdp_connection_t* connection) {
