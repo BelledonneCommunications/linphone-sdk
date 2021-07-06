@@ -639,7 +639,7 @@ void bc_tester_set_max_failed_tests_threshold(int threshold){
 }
 
 void bc_tester_set_global_timeout(int seconds){
-	globalTimeout = seconds * 1000;
+	globalTimeout = seconds;
 }
 
 #ifdef _WIN32
@@ -810,9 +810,9 @@ int bc_tester_run_parallel(void) {
 		//Assume there is a problem if a suite is still running 60mn after the start of the tester. TODO make timeout	a cli parameter ?
 		uint64_t timeout = 0;
 		if (globalTimeout <= 0) {
-				globalTimeout = 60;
+				globalTimeout = 60 * 60;
 		}
-		timeout = time_start + (globalTimeout * 60 * 1000);
+		timeout = time_start + (globalTimeout * 1000);
 
 
 		int maxProcess = bc_tester_get_max_parallel_processes();
@@ -842,6 +842,7 @@ int bc_tester_run_parallel(void) {
 							++testsFinished;
 							bc_tester_printf(bc_printf_verbosity_error, "Suite sub process (ID %d) terminated with return code %d.", i, returnCode);
 							processed[i] = 1;
+							ret += returnCode;
 						}
 					}
 				}
@@ -860,34 +861,36 @@ int bc_tester_run_parallel(void) {
 				if( processed[i] == 0)
 					TerminateProcess(suitesPids[i].hProcess, -1);
 			}
+			bc_tester_printf(bc_printf_verbosity_error, "*** Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution. ***");
+			ret = -1;
 		}
 		for(int i = 0 ;  i < nextSuite ; ++i){
 			CloseHandle( suitesPids[i].hProcess );
 			CloseHandle( suitesPids[i].hThread );
 		}
 		bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
-		all_complete_message_handler(NULL);
-		{
+		
+		if (ret != -1){
 			int seconds = (int)(elapsed - time_start)/1000;
+			all_complete_message_handler(NULL);
 			bc_tester_printf(bc_printf_verbosity_info, "Full parallel run completed in %2i mn %2i s.\n", seconds/60, seconds % 60);
 		}
 		free( suitesPids);
 		free( processed);
 	}
-	return ret;
+	return ret == -1 ?  ret : (ret > max_failed_tests_threshold);
 }
 #else
 
 int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
-
-	//Assume there is a problem if a suite is still running 60mn after the start of the tester. TODO make timeout	a cli parameter ?
 	uint64_t timeout = 0;
+	
 	if (globalTimeout <= 0) {
-			globalTimeout = 60;
+			globalTimeout = 60 * 60;
 	}
-	timeout = time_start + (globalTimeout * 60 * 1000);
+	timeout = time_start + (globalTimeout * 1000);
 
 
 	int maxProcess = bc_tester_get_max_parallel_processes();
@@ -945,22 +948,19 @@ int bc_tester_run_parallel(void) {
 
 	if (elapsed >= timeout) {
 		bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
-		bc_tester_printf(bc_printf_verbosity_error, "Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution.");
+		bc_tester_printf(bc_printf_verbosity_error, "*** Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution. ***");
 		kill_sub_processes(suitesPids);
 		ret = -1;
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
-	all_complete_message_handler(NULL);
-	{
+	
+	if (ret != -1){
 		int seconds = (int)(elapsed - time_start)/1000;
-		
+		all_complete_message_handler(NULL);
 		bc_tester_printf(bc_printf_verbosity_info, "Full parallel run completed in %2i mn %2i s.\n", seconds/60, seconds % 60);
+		return ret > max_failed_tests_threshold;
 	}
-	if (ret >= 255){
-		bc_tester_printf(bc_printf_verbosity_error, "The number of total failed tests exceeds 255, the maximum value for an exit status.");
-		ret = 255;
-	}
-	return ret > max_failed_tests_threshold;
+	return -1;
 }
 
 #endif
@@ -996,11 +996,14 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 				CU_automated_run_tests();
 			} else { //Starting registered suites in parallel
 				ret = bc_tester_run_parallel();
-				xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
-				merge_junit_xml_files(xml_file_name);
-				bctbx_free(xml_file_name);
-				if (log_file_name) {
-					merge_log_files(log_file_name);
+				if (ret != -1){
+					/* -1 means timeout, in this case don't generate junit report. */
+					xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
+					merge_junit_xml_files(xml_file_name);
+					bctbx_free(xml_file_name);
+					if (log_file_name) {
+						merge_log_files(log_file_name);
+					}
 				}
 				return ret;
 			}
@@ -1339,7 +1342,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		bc_tester_set_max_parallel_suites(atoi(argv[i]));
 	} else if (strcmp(argv[i], "--timeout") == 0) {
 		CHECK_ARG("--timeout", ++i, argc);
-		globalTimeout = atoi(argv[i]);
+		globalTimeout = atoi(argv[i]) * 60;
 	} else if (strcmp(argv[i], "--max-alloc") == 0) {
 		CHECK_ARG("--max-alloc", ++i, argc);
 		max_vm_kb = atol(argv[i]);
