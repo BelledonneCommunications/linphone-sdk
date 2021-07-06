@@ -299,14 +299,13 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream){
 	}
 	if (stream->rtpsend != NULL) {
 		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
-		if (stun_enabled && stream->sessions.dtls_context) {
+		if (stream->sessions.dtls_context) {
 			/* In case STUN packets are necessary, and DTLS is used and encryption mandatory is set to TRUE,
 			 * no packets will be emitted at all. We must configure the rtpsend filter to regularly send dummy stun packets
 			 * to ensure that firewall gets open to the remote endpoint. 
 			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
 			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
 			 */
-			ms_message("Forcing dummy STUN packet sending because DTLS role is server.");
 			ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN_FORCED, &stun_enabled);
 		}
 	}
