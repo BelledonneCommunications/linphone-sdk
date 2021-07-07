@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+
+## [5.0.0] - 2021-07-08
+
+## Added
+- API to change media encryption in the fly
+
+## Changed
+- refactoring and simplifications for the MSOgl filter (video OpenGL rendering)
+
+### Fixed
+- video corruption when Android MediaCodec runs out of buffers.
+- absence of dummy stun packets when DTLS is used with "encryption_mandatory" preventing 
+  DTLS handshare to take place
+
+
+
 ## [4.5.0] - 2021-03-29
 
 ### Added
