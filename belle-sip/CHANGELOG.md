@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [5.0.0] - 2021-07-08
+
+### Added
+- Added SDP API for Capability Negociation headers (RFC5939).
+
+### Changed
+- SDP parser no longer uses antlr, but belr.
+
+### Fixed
+- Erroneous closing of file description 0, causing unexpected behaviors.
+- Crash when receiving invalid from header.
+
+
 ## [4.5.0] - 2021-03-29
 
 ### Changed
