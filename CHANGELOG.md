@@ -13,9 +13,14 @@ changes made to these components.__
 
 ## [Unreleased]
 
+## [5.0.0] 2021-07-08
+
 ### Added
-- MSYS2 support
-- OpenLDAP on Desktop
+- Native Windows 10 UWP platform support.
+- OpenLDAP dependency - desktop platforms only.
+
+## Changed
+- Windows build now relying on MSYS2 (for parts not built with MSVC)
 
 ## [4.5.0] 2021-03-29
 
