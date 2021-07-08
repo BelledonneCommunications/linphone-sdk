@@ -9,3 +9,8 @@ cmake/Windows/nuget/Win32
 cmake/Windows/nuget/NuGetLinphoneSDK
 **/*.temp
 build*/*
+tester/Windows/**/x64
+tester/Windows/**/obj
+tester/Windows/**/bin
+tester/Windows/**/Generated*
+tester/Windows/LinphoneTester_uwp/packages
