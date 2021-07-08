@@ -432,6 +432,8 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 
 static void ms_dtls_srtp_check_channels_status(MSDtlsSrtpContext *ctx) {
 
+ms_message("%s - ctx %p ctx->rtp_channel_status %0d  DTLS_STATUS_HANDSHAKE_OVER %0d  rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session) %0d ctx->rtcp_channel_status %0d\n", __func__, ctx, ctx->rtp_channel_status, DTLS_STATUS_HANDSHAKE_OVER, rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session), ctx->rtcp_channel_status);
+
 	if (((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session)))
 		|| ((ctx->rtp_channel_status == DTLS_STATUS_HANDSHAKE_OVER) && (ctx->rtcp_channel_status == DTLS_STATUS_HANDSHAKE_OVER))) {
 		OrtpEventData *eventData;
@@ -636,6 +638,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 				}
 				/* It is possible peer_fingerprint is not set yet, in such case stay in existing status waiting for it to be set */
 				else if (ctx->peer_fingerprint[0]=='\0') {
+ms_message("DEBUG DEBUG DTLS-SRTP empty peer fingerprint context %p role %0d Server %0d Client %0d", ctx, ctx->role, MSDtlsSrtpRoleIsServer, MSDtlsSrtpRoleIsClient);
 					ms_warning("DTLS-SRTP: empty peer_fingerprint, staying in old state...");
 					ctx->rtp_channel_status=old_status;
 					return (int)msgLength;
@@ -848,6 +851,8 @@ void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *p
 		} else {
 			memcpy(context->peer_fingerprint, peer_fingerprint, peer_fingerprint_length);
 		}
+		ms_message("DTLS-SRTP peer fingerprint is %s", context->peer_fingerprint);
+ms_message("DEBUG DEBUG DTLS-SRTP peer fingerprint is %s context %p", context->peer_fingerprint, context);
 	}
 }
 
