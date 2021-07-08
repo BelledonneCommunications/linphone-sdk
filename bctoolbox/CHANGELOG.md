@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [5.0.0] - 2021-07-08
+
+### Added
+- Tester API: add API to set maximum number of failed tests.
+
+### Fixed
+- Few bugfixes (see git log)
+
 
 ## [4.5.0] - 2021-03-29
 
