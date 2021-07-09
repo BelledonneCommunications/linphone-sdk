@@ -783,7 +783,7 @@ static int output_valid_partitions(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out) {
 						if (ctx->waiting_for_reference_frame_count > max_non_reference_frame_after_sli_or_pli){
 							/* Workaround/security: if SLI has no effect after a certain number of received frames, use PLI. */
 							ms_warning("VP8 decoder: requesting PLI, reference frame still not received.");
-							if (ctx->filter) ms_filter_notify_no_arg(ctx->filter, MS_VIDEO_DECODER_SEND_PLI);
+							send_pli(ctx);
 						}else if (ctx->sli_pending){
 							/* retransmit last SLI */
 							if (ctx->filter) ms_filter_notify(ctx->filter, MS_VIDEO_DECODER_SEND_SLI, &ctx->current_sli);
