@@ -175,6 +175,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 
 	octx->updateStreamTypeFromMsSndCard();
 	AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
+	ms_message("[AAudio] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);

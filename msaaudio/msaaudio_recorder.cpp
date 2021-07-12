@@ -84,7 +84,9 @@ static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stre
 	m->b_wptr += bufferSize;
 
 	ms_mutex_lock(&ictx->mutex);
-	ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->aaudio_context->samplerate);
+	if (ictx->mTickerSynchronizer != NULL) {
+		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->aaudio_context->samplerate);
+	}
 	putq(&ictx->q, m);
 	ms_mutex_unlock(&ictx->mutex);
 
@@ -100,9 +102,9 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_error("[AAudio] Couldn't create stream builder for recorder: %i / %s", result, AAudio_convertResultToText(result));
 	}
 
-	ms_message("[AAudio] DEBUG Creating input stream for device ID %0d", ictx->soundCard->internal_id);
-
 	AAudioStreamBuilder_setDeviceId(builder, ictx->soundCard->internal_id);
+	ms_message("[AAudio] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
+	
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
 	AAudioStreamBuilder_setSampleRate(builder, ictx->aaudio_context->samplerate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_recorder_callback, ictx);
@@ -378,7 +380,6 @@ static MSFilter* ms_android_snd_read_new(MSFactory *factory) {
 
 
 MSFilter *android_snd_card_create_reader(MSSndCard *card) {
-	ms_message("[AAudio] DEBUG Setting capture card to: id %s name %s device ID %0d device_type %s capabilities 0'h%0X", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(f->data);
 	ictx->soundCard = ms_snd_card_ref(card);

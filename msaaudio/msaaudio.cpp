@@ -115,7 +115,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 			card=ms_snd_card_ref(card);
 			ms_snd_card_manager_prepend_card(m, card);
 
-			ms_message("[AAudio] Added card: id %s name %s device ID %0d device_type %s capabilities 0'h%0X ", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
+			ms_message("[AAudio] Added card with ID: [%s], name: [%s], device ID: [%0d], type: [%s] and capabilities: [%0d]", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 		} else {
 			free(card);
 		}
