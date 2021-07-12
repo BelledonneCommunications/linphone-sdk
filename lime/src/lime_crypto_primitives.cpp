@@ -370,7 +370,7 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
 /* generic implementation, of HKDF RFC-5869 */
 template <typename hashAlgo, typename infoType>
 void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize) {
-	std::array<uint8_t, hashAlgo::ssize()> prk; // hold the output of pre-computation
+	std::array<uint8_t, hashAlgo::ssize()> prk{}; // hold the output of pre-computation
 	// extraction
 	HMAC<hashAlgo>(salt, saltSize, ikm, ikmSize, prk.data(), prk.size());
 

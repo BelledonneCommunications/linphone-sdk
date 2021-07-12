@@ -47,7 +47,7 @@ namespace lime {
 	template <typename Curve>
 	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<Curve, lime::Xtype::sharedSecret> &dh_out) noexcept {
 		// Ask for twice the size of a DRChainKey for HKDF output
-		lime::sBuffer<2*lime::settings::DRChainKeySize> HKDFoutput;
+		lime::sBuffer<2*lime::settings::DRChainKeySize> HKDFoutput{};
 		HMAC_KDF<SHA512>(RK.data(), RK.size(), dh_out.data(), dh_out.size(), lime::settings::hkdf_DRChainKey_info, HKDFoutput.data(), HKDFoutput.size());
 
 		// First half of the output goes to RootKey (RK)
