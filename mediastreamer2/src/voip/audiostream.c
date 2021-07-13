@@ -179,27 +179,41 @@ static bool_t audio_stream_payload_type_changed(RtpSession *session, void *data)
 /*
  * note: Only AAudio, OpenSLES, and IOS leverage internal ID for input streams.
  */
-static void audio_stream_configure_input_snd_card(AudioStream *stream) {
+static int audio_stream_configure_input_snd_card(AudioStream *stream) {
 	MSSndCard *card = stream->captcard;
+	int ok = -1;
 	if (stream->soundread) {
-		if(ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
-			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_SET_INTERNAL_ID, card);
-			ms_message("[AudioStream] set input sound card for %s:%p to %s", ms_filter_get_name(stream->soundread), stream->soundread, card->id);
+		if(ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface) ) {
+			if( ms_filter_has_method(stream->soundread,MS_AUDIO_CAPTURE_SET_INTERNAL_ID) ) {
+				ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_SET_INTERNAL_ID, card);
+				ms_message("[AudioStream] set input sound card for %s:%p to %s", ms_filter_get_name(stream->soundread), stream->soundread, card->id);
+				ok = 0;
+			}else{
+				ms_warning("[AudioStream] MS_AUDIO_CAPTURE_SET_INTERNAL_ID is not implemented, cannot set input card for %s:%p to %s", ms_filter_get_name(stream->soundread), stream->soundread, card->id);
+			}
 		}
 	}
+	return ok;
 }
 
 /*
  * note: Only AAudio, OpenSLES, and IOS leverage internal ID for output streams.
  */
-static void audio_stream_configure_output_snd_card(AudioStream *stream) {
+static int audio_stream_configure_output_snd_card(AudioStream *stream) {
 	MSSndCard *card = stream->playcard;
+	int ok = -1;
 	if (stream->soundwrite) {
 		if(ms_filter_implements_interface(stream->soundwrite, MSFilterAudioPlaybackInterface)) {
-			ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
-			ms_message("[AudioStream] set output sound card for %s:%p to %s", ms_filter_get_name(stream->soundwrite), stream->soundwrite, card->id);
+			if( ms_filter_has_method(stream->soundwrite,MS_AUDIO_PLAYBACK_SET_INTERNAL_ID) ){
+				ms_filter_call_method(stream->soundwrite, MS_AUDIO_PLAYBACK_SET_INTERNAL_ID, card);
+				ms_message("[AudioStream] set output sound card for %s:%p to %s", ms_filter_get_name(stream->soundwrite), stream->soundwrite, card->id);
+				ok = 0;
+			}else{
+				ms_warning("[AudioStream] MS_AUDIO_PLAYBACK_SET_INTERNAL_ID is not implemented, cannot set output card for %s:%p to %s", ms_filter_get_name(stream->soundread), stream->soundread, card->id);
+			}
 		}
 	}
+	return ok;
 }
 
 /*
@@ -2118,24 +2132,24 @@ void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route) {
 	}
 }
 
-void audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture) {
+int audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture) {
 	MSSndCard* captcard = ms_snd_card_ref(sndcard_capture);
 	if (stream->captcard) {
 		ms_snd_card_unref(stream->captcard);
 		stream->captcard = NULL;
 	}
 	stream->captcard = captcard;
-	audio_stream_configure_input_snd_card(stream);
+	return audio_stream_configure_input_snd_card(stream);
 }
 
-void audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback) {
+int audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback) {
 	MSSndCard* playcard = ms_snd_card_ref(sndcard_playback);
 	if (stream->playcard) {
 		ms_snd_card_unref(stream->playcard);
 		stream->playcard = NULL;
 	}
 	stream->playcard = playcard;
-	audio_stream_configure_output_snd_card(stream);
+	return audio_stream_configure_output_snd_card(stream);
 }
 
 MSSndCard * audio_stream_get_input_ms_snd_card(AudioStream *stream) {

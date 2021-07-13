@@ -1359,15 +1359,17 @@ MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute r
  * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
  * @param[in] stream The AudioStream object
  * @param[in] sndcard_capture The wanted audio input soundcard
+ * @return '0' if MS_AUDIO_CAPTURE_SET_INTERNAL_ID has been successfully called, '-1' if not
  */
-MS2_PUBLIC void audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture);
+MS2_PUBLIC int audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_capture);
 
 /**
  * Asks the audio playback filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
  * @param[in] stream The AudioStream object
  * @param[in] sndcard_playback The wanted audio output soundcard
+ * @return '0' if MS_AUDIO_PLAYBACK_SET_INTERNAL_ID has been successfully called, '-1' if not
  */
-MS2_PUBLIC void audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback);
+MS2_PUBLIC int audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard * sndcard_playback);
 
 /**
  * Retrieve the current sound card from the audio capture filter (currently only used for AAudio and OpenSLES)
