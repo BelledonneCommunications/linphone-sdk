@@ -179,7 +179,7 @@ const char * belle_sip_channel_get_transport_name_lower_case(const belle_sip_cha
 
 const struct addrinfo * belle_sip_channel_get_peer(belle_sip_channel_t *obj);
 
-const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
+BELLESIP_EXPORT const char *belle_sip_channel_get_local_address(belle_sip_channel_t *obj, int *port);
 const char *belle_sip_channel_get_public_address(belle_sip_channel_t *obj, int *port);
 
 /*

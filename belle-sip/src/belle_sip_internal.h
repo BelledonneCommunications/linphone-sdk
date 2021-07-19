@@ -72,7 +72,7 @@
 #include "dispatch/dispatch.h"
 #endif /* HAVE_DNS_SERVICE */
 
-
+#define SOCKET_NOT_SET ((belle_sip_socket_t)-1)
 /*etc*/
 
 #define BELLE_SIP_INTERFACE_GET_METHODS(obj,interface) \

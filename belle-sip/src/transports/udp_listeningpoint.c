@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2021 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -36,9 +36,14 @@ static void belle_sip_udp_listening_point_uninit(belle_sip_udp_listening_point_t
 	if (lp->sock!=-1) belle_sip_close_socket(lp->sock);
 }
 
+
 static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop){
+	belle_sip_udp_listening_point_t *udp_lp = (belle_sip_udp_listening_point_t*)lp;
+	belle_sip_socket_t sock =  SOCKET_NOT_SET;
+	if (belle_sip_listening_point_get_port(lp) != BELLE_SIP_LISTENING_POINT_DONT_BIND)
+		sock=(int)udp_lp->sock;
 	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack
-														,(int)((belle_sip_udp_listening_point_t*)lp)->sock
+														,sock
 														,belle_sip_uri_get_host(lp->listening_uri)
 														,belle_sip_uri_get_port(lp->listening_uri)
 														,hop->host
@@ -64,7 +69,7 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t)
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
 
-static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *family){
+belle_sip_socket_t udp_listening_point_create_udp_socket(const char *addr, int *port, int *family){
 	struct addrinfo hints={0};
 	struct addrinfo *res=NULL;
 	int err;
@@ -118,7 +123,6 @@ static belle_sip_socket_t create_udp_socket(const char *addr, int *port, int *fa
 			err=bctbx_getnameinfo((struct sockaddr*)&saddr,saddr_len,NULL,0,portnum,sizeof(portnum),NI_NUMERICSERV|NI_NUMERICHOST);
 			if (err==0){
 				*port=atoi(portnum);
-				belle_sip_message("Random UDP port is %i",*port);
 			}else belle_sip_error("udp bind failed, getnameinfo(): %s",gai_strerror(err));
 		}else belle_sip_error("udp bind failed, bctbx_getsockname(): %s",belle_sip_get_socket_error_string());
 	}
@@ -129,11 +133,13 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 
 static int belle_sip_udp_listening_point_init_socket(belle_sip_udp_listening_point_t *lp){
 	int port=belle_sip_uri_get_listening_port(((belle_sip_listening_point_t*)lp)->listening_uri);
-	lp->sock=create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
+	lp->sock=udp_listening_point_create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)lp)->listening_uri)
 					,&port,&lp->base.ai_family);
-	if (lp->sock==(belle_sip_socket_t)-1){
+	if (lp->sock==SOCKET_NOT_SET){
 		return -1;
 	}
+	if (belle_sip_uri_get_listening_port(((belle_sip_listening_point_t*)lp)->listening_uri) == BELLE_SIP_LISTENING_POINT_RANDOM_PORT)
+		belle_sip_message("Random port for listening point [%p] is %i",lp , port);
 	belle_sip_uri_set_port(((belle_sip_listening_point_t*)lp)->listening_uri,port);
 	if (lp->base.stack->dscp)
 		belle_sip_socket_set_dscp(lp->sock,lp->base.ai_family,lp->base.stack->dscp);
@@ -144,7 +150,10 @@ static int belle_sip_udp_listening_point_init_socket(belle_sip_udp_listening_poi
 
 static void belle_sip_udp_listening_point_init(belle_sip_udp_listening_point_t *lp, belle_sip_stack_t *s, const char *ipaddress, int port) {
 	belle_sip_listening_point_init((belle_sip_listening_point_t*)lp,s,ipaddress,port);
-	belle_sip_udp_listening_point_init_socket(lp);
+	lp->sock = SOCKET_NOT_SET;
+	if (port != BELLE_SIP_LISTENING_POINT_DONT_BIND)
+		belle_sip_udp_listening_point_init_socket(lp);
+	
 }
 
 /*peek data from the master socket to see where it comes from, and dispatch to matching channel.
@@ -205,7 +214,7 @@ static int on_udp_data(belle_sip_udp_listening_point_t *lp, unsigned int events)
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port){
 	belle_sip_udp_listening_point_t *lp=belle_sip_object_new(belle_sip_udp_listening_point_t);
 	belle_sip_udp_listening_point_init(lp,s,ipaddress, port);
-	if (lp->sock==(belle_sip_socket_t)-1){
+	if (port != BELLE_SIP_LISTENING_POINT_DONT_BIND && lp->sock==SOCKET_NOT_SET){
 		belle_sip_object_unref(lp);
 		return NULL;
 	}

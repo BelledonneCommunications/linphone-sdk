@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2021 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -32,7 +32,11 @@ struct belle_sip_udp_channel{
 typedef struct belle_sip_udp_channel belle_sip_udp_channel_t;
 
 static void udp_channel_uninit(belle_sip_udp_channel_t *obj){
-	/*no close of the socket, because it is owned by the listerning point and shared between all channels*/
+	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)obj);
+	if (obj->shared_socket == SOCKET_NOT_SET && sock != SOCKET_NOT_SET) {
+		belle_sip_close_socket(belle_sip_source_get_socket((belle_sip_source_t*)obj));
+	} /*else
+	no close of the socket, because it is owned by the listerning point and shared between all channels*/
 }
 
 static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buflen){
@@ -40,7 +44,12 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 	int err;
 	belle_sip_socket_t sock=belle_sip_source_get_socket((belle_sip_source_t*)chan);
 	if(sock){
+		if (chan->shared_socket != SOCKET_NOT_SET) {
 		err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
+		} else {
+			/*There is no serveur socket, so we are in connected mode*/
+			err=(int)bctbx_write(sock, buf,buflen);
+		}
 		if (err==-1){
 			belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
 			return -errno;
@@ -82,11 +91,34 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 	memset(&laddr, 0, sizeof(laddr));
 	socklen_t lslen=sizeof(laddr);
 
-	err = belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
-	if (err == -BCTBX_ENETUNREACH || err == -BCTBX_EHOSTUNREACH){
-		return -1;
+	if (obj->local_port == BELLE_SIP_LISTENING_POINT_DONT_BIND) {
+		//Creating socket for this channel here to be compatible with channel's retry mode
+		int port = BELLE_SIP_LISTENING_POINT_RANDOM_PORT;
+		int ai_family = obj->lp->ai_family;
+		belle_sip_socket_t sock = udp_listening_point_create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)obj->lp)->listening_uri)
+									 , &port, &ai_family);
+		belle_sip_socket_set_nonblocking(sock);
+		if (bctbx_connect(sock,ai->ai_addr,ai->ai_addrlen)==-1){
+			err = -get_socket_error();
+			belle_sip_error("bctbx_connect() failed for socket [%i]: cause [%s]",(int)sock,belle_sip_get_socket_error_string_from_code(-err));
+			return -1;
+		}
+		err=bctbx_getsockname(sock,(struct sockaddr*)&laddr,&lslen);
+		if (err<0){
+			belle_sip_error("Failed to retrieve sockname  for socket [%i]: cause [%s]",(int)sock,belle_sip_get_socket_error_string());
+			return -1;
+		}
+		belle_sip_channel_set_socket(BELLE_SIP_CHANNEL(chan), sock, (belle_sip_source_func_t) belle_sip_channel_process_data);
+		belle_sip_source_set_events((belle_sip_source_t*)chan,BELLE_SIP_EVENT_READ|BELLE_SIP_EVENT_ERROR);
+		belle_sip_main_loop_add_source(obj->lp->stack->ml,(belle_sip_source_t*)chan);
+	} else {
+		belle_sip_channel_set_socket(obj, chan->shared_socket, NULL);
+		err = belle_sip_get_src_addr_for(ai->ai_addr,(socklen_t)ai->ai_addrlen,(struct sockaddr*)&laddr,&lslen,obj->local_port);
+		if (err == -BCTBX_ENETUNREACH || err == -BCTBX_EHOSTUNREACH){
+			return -1;
+		}
 	}
-	belle_sip_channel_set_socket(obj, chan->shared_socket, NULL);
+		
 	belle_sip_channel_set_ready(obj, (struct sockaddr*)&laddr, lslen);
 	return 0;
 }

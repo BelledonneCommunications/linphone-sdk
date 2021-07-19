@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2021 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -1129,8 +1129,8 @@ static void test_channel_load(void){
 		belle_sip_client_transaction_t *tr[NUMBER_OF_TRANS];
 		char identity[128];
 		char uri[128];
-
-		snprintf(identity,sizeof(identity),"Tester <sip:%s@%s>","bellesip",auth_domain);
+		char tmp[4];
+		snprintf(identity,sizeof(identity),"Tester <sip:bellesip%s@%s>",belle_sip_random_token(tmp, sizeof(tmp)),auth_domain);
 		snprintf(uri,sizeof(uri),"sip:%s;transport=tcp",auth_domain);
 		belle_sip_listener_callbacks_t listener_callbacks;
 		listener_callbacks.process_dialog_terminated = NULL;
@@ -1178,13 +1178,152 @@ static void test_channel_load(void){
 			belle_sip_object_ref(tr[i]);
 		}
 
-		for (int j=0; j < 10 && number_of_response < NUMBER_OF_TRANS; j++) {
-			belle_sip_stack_sleep(stack, 500);
+		for (int j=0; j < 1000 && number_of_response < NUMBER_OF_TRANS; j++) {
+			belle_sip_stack_sleep(stack, 50);
 		}
 		BC_ASSERT_EQUAL(number_of_response,NUMBER_OF_TRANS,int,"%d");
 	}
 }
 
+static void udp_socket(int  port_mode) {
+	belle_sip_listening_point_t *old_lp=belle_sip_provider_get_listening_point(prov,"UDP");
+	belle_sip_object_ref(old_lp);
+	belle_sip_listening_point_t *new_lp=belle_sip_stack_create_listening_point(stack, "0.0.0.0", port_mode, "UDP");
+	BC_ASSERT_PTR_NOT_NULL(old_lp);
+	BC_ASSERT_PTR_NOT_NULL(new_lp);
+	int number_of_response=0;
+
+	if (old_lp && new_lp) {
+		belle_sip_request_t *req1, *req2;
+		belle_sip_client_transaction_t *tr1, *tr2, *tr3, *tr4;
+		char identity[128];
+		char uri[128];
+		
+		belle_sip_provider_remove_listening_point(prov, old_lp);
+		belle_sip_provider_add_listening_point(prov, new_lp);
+		
+		belle_sip_listener_callbacks_t listener_callbacks;
+		listener_callbacks.process_dialog_terminated = NULL;
+		listener_callbacks.process_io_error = NULL;
+		listener_callbacks.process_request_event = NULL;
+		listener_callbacks.process_response_event = test_channel_load_process_response_event;
+		listener_callbacks.process_timeout = NULL;
+		listener_callbacks.process_transaction_terminated = NULL;
+		listener_callbacks.process_auth_requested = NULL;
+		listener_callbacks.listener_destroyed = NULL;
+
+		belle_sip_listener_t *listener = belle_sip_listener_create_from_callbacks(&listener_callbacks, (void *)&number_of_response);
+		belle_sip_provider_add_sip_listener(prov,listener);
+		char tmp[4];
+		snprintf(identity,sizeof(identity),"Tester <sip:bellesip%s@%s>",belle_sip_random_token(tmp, sizeof(tmp)),test_domain);
+		snprintf(uri,sizeof(uri),"sip:%s",auth_domain);
+		req1 = belle_sip_request_create(
+										belle_sip_uri_parse(uri),
+										"REGISTER",
+										belle_sip_provider_create_call_id(prov),
+										belle_sip_header_cseq_create(20,"REGISTER"),
+										belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+										belle_sip_header_to_create2(identity,NULL),
+										belle_sip_header_via_new(),
+										70);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req1),BELLE_SIP_HEADER(belle_sip_header_expires_create(60)));
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req1),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+
+		tr1 = belle_sip_provider_create_client_transaction(prov, req1);
+		belle_sip_object_ref(tr1);
+		belle_sip_client_transaction_send_request(tr1);
+		
+		snprintf(uri,sizeof(uri),"sip:%s",test_domain);
+		req2 = belle_sip_request_create(
+										belle_sip_uri_parse(uri),
+										"REGISTER",
+										belle_sip_provider_create_call_id(prov),
+										belle_sip_header_cseq_create(20,"REGISTER"),
+										belle_sip_header_from_create2(identity,BELLE_SIP_RANDOM_TAG),
+										belle_sip_header_to_create2(identity,NULL),
+										belle_sip_header_via_new(),
+										70);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req2),BELLE_SIP_HEADER(belle_sip_header_expires_create(60)));
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req2),BELLE_SIP_HEADER(belle_sip_header_contact_new()));
+
+		tr2 = belle_sip_provider_create_client_transaction(prov, req2);
+		belle_sip_object_ref(tr2);
+		belle_sip_client_transaction_send_request(tr2);
+
+	
+		for (int j=0; j < 10 && number_of_response < 1; j++) {
+			belle_sip_stack_sleep(stack, 500);
+		}
+		belle_sip_channel_t *chan1 = belle_sip_provider_get_channel(prov,tr1->next_hop);
+		belle_sip_channel_t *chan2 = belle_sip_provider_get_channel(prov,tr2->next_hop);
+		BC_ASSERT_PTR_NOT_EQUAL(chan1, chan2);
+		belle_sip_socket_t sock1 = belle_sip_source_get_socket((belle_sip_source_t*)chan1);
+		belle_sip_socket_t sock2 = belle_sip_source_get_socket((belle_sip_source_t*)chan2);
+		if (port_mode == BELLE_SIP_LISTENING_POINT_DONT_BIND) {
+			BC_ASSERT_NOT_EQUAL(sock1, sock2,belle_sip_socket_t,"%d");
+			BC_ASSERT_EQUAL(belle_sip_listening_point_get_port(new_lp),BELLE_SIP_LISTENING_POINT_DONT_BIND, int, "%d");
+			int chan1_local_port, chan2_local_port;
+			char socket_local_port[8];
+			struct sockaddr_storage laddr;
+			memset(&laddr, 0, sizeof(laddr));
+			socklen_t lslen=sizeof(laddr);
+			bctbx_getsockname(sock1,(struct sockaddr*)&laddr,&lslen);
+			bctbx_getnameinfo((struct sockaddr*)&laddr,lslen,NULL,0,socket_local_port,sizeof(socket_local_port),NI_NUMERICSERV);
+			BC_ASSERT_PTR_NOT_NULL(belle_sip_channel_get_local_address(chan1, &chan1_local_port));
+			BC_ASSERT_EQUAL(chan1_local_port, atoi(socket_local_port), int, "%d");
+			BC_ASSERT_PTR_NOT_NULL(belle_sip_channel_get_local_address(chan2, &chan2_local_port));
+			BC_ASSERT_NOT_EQUAL(chan1_local_port, chan2_local_port, int, "%d");
+		} else if (port_mode > 0 || port_mode == BELLE_SIP_LISTENING_POINT_RANDOM_PORT ) {
+			BC_ASSERT_EQUAL(sock1, sock2,belle_sip_socket_t,"%d");
+		} else
+			BC_FAIL("Unsupported port mode");
+		
+		BC_ASSERT_EQUAL(number_of_response,2,int,"%d");
+		
+		belle_sip_stack_set_tx_delay(stack,500);
+		tr3 = belle_sip_provider_create_client_transaction(prov, req1);
+		belle_sip_object_ref(tr3);
+		belle_sip_client_transaction_send_request(tr3);
+		tr4 = belle_sip_provider_create_client_transaction(prov, req2);
+		belle_sip_object_ref(tr4);
+		belle_sip_client_transaction_send_request(tr4);
+		belle_sip_channel_t *chan3 = belle_sip_provider_get_channel(prov,tr3->next_hop);
+		belle_sip_channel_t *chan4 = belle_sip_provider_get_channel(prov,tr4->next_hop);
+
+		BC_ASSERT_PTR_EQUAL(chan1, chan3);
+		BC_ASSERT_PTR_EQUAL(chan2, chan4);
+
+		BC_ASSERT_EQUAL(sock1, belle_sip_source_get_socket((belle_sip_source_t*)chan3),belle_sip_socket_t,"%d");
+		BC_ASSERT_EQUAL(sock2, belle_sip_source_get_socket((belle_sip_source_t*)chan4),belle_sip_socket_t,"%d");
+
+		close (sock1);
+		
+		belle_sip_stack_sleep(stack, 2000);
+		
+		if (port_mode == BELLE_SIP_LISTENING_POINT_DONT_BIND) {
+			//only channel 1 is affected
+			BC_ASSERT_EQUAL(belle_sip_channel_get_state(chan1), BELLE_SIP_CHANNEL_ERROR, belle_sip_channel_state_t, "%d");
+			BC_ASSERT_EQUAL(belle_sip_channel_get_state(chan2), BELLE_SIP_CHANNEL_READY, belle_sip_channel_state_t, "%d");
+			BC_ASSERT_EQUAL(number_of_response,2+1,int,"%d");
+		} else if (port_mode > 0 || port_mode == BELLE_SIP_LISTENING_POINT_RANDOM_PORT ) {
+			BC_ASSERT_EQUAL(belle_sip_channel_get_state(chan1), BELLE_SIP_CHANNEL_ERROR, belle_sip_channel_state_t, "%d");
+			BC_ASSERT_EQUAL(belle_sip_channel_get_state(chan2), BELLE_SIP_CHANNEL_ERROR, belle_sip_channel_state_t, "%d");
+			BC_ASSERT_EQUAL(number_of_response,2,int,"%d");
+		} else
+			BC_FAIL("Unsupported port mode");
+		
+		belle_sip_provider_remove_listening_point(prov, new_lp);
+		belle_sip_provider_add_listening_point(prov, old_lp);
+	}
+}
+static void udp_single_socket(void) {
+	udp_socket(BELLE_SIP_LISTENING_POINT_RANDOM_PORT);
+}
+
+static void udp_multiple_socket(void) {
+	udp_socket(BELLE_SIP_LISTENING_POINT_DONT_BIND);
+}
+		
 test_t register_tests[] = {
 	TEST_NO_TAG("Stateful UDP", stateful_register_udp),
 	TEST_NO_TAG("Stateful UDP with keep-alive", stateful_register_udp_with_keep_alive),
@@ -1215,7 +1354,9 @@ test_t register_tests[] = {
 	TEST_NO_TAG("Register with DNS load-balancing", register_dns_load_balancing),
 	TEST_NO_TAG("Nonce reutilization", reuse_nonce),
 	TEST_NO_TAG("Next Nonce", test_register_with_next_nonce),
-	TEST_NO_TAG("Channel load", test_channel_load)
+	TEST_NO_TAG("Channel load", test_channel_load),
+	TEST_NO_TAG("UDP multiple channels single socket", udp_single_socket),
+	TEST_NO_TAG("UDP multiple channels multiple sockets", udp_multiple_socket)
 };
 
 test_suite_t register_test_suite = {"Register", register_before_all, register_after_all, NULL,

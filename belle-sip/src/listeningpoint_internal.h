@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2019 Belledonne Communications SARL.
+ * Copyright (c) 2012-2021 Belledonne Communications SARL.
  *
  * This file is part of belle-sip.
  *
@@ -61,6 +61,7 @@ typedef struct belle_sip_udp_listening_point belle_sip_udp_listening_point_t;
 belle_sip_channel_t * belle_sip_channel_new_udp(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const char *peername, int peerport, int no_srv);
 belle_sip_channel_t * belle_sip_channel_new_udp_with_addr(belle_sip_stack_t *stack, int sock, const char *bindip, int localport, const struct addrinfo *ai);
 belle_sip_listening_point_t * belle_sip_udp_listening_point_new(belle_sip_stack_t *s, const char *ipaddress, int port);
+belle_sip_socket_t udp_listening_point_create_udp_socket(const char *addr, int *port, int *family);
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_udp_listening_point_t,belle_sip_listening_point_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
