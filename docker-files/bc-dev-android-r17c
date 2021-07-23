@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make bc-dev-android-r17c:20210407_update_cmake_3_20
+###############################################################################
+
 FROM debian:stretch
 
 MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
@@ -41,7 +45,7 @@ RUN apt-get install -y python-pip python3 python3-pip && \
 ENV CMAKE3_HOME /opt/cmake3
 RUN mkdir $CMAKE3_HOME && \
     curl --fail --silent --show-error \
-         --location https://cmake.org/files/v3.11/cmake-3.11.4-Linux-x86_64.tar.gz | \
+         --location https://cmake.org/files/v3.20/cmake-3.20.0-linux-x86_64.tar.gz | \
     tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
 
 # Get the Android tools
@@ -50,20 +54,20 @@ RUN wget https://dl.google.com/android/repository/tools_r$ANDROID_SDK-linux.zip 
     rm -f tools_r$ANDROID_SDK-linux.zip
 ENV PATH $ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:$PATH
 
-# Get the Android SDK
-RUN echo "y" | sdkmanager "platforms;android-28" "build-tools;28.0.3" "platforms;android-29" "build-tools;29.0.3" "platforms;android-30" "build-tools;30.0.2" "extras;android;m2repository" "extras;google;m2repository" "platform-tools" "tools"
-
 # Accept Android SDK licenses
-RUN echo "y" | sdkmanager --licenses
+RUN echo yes | sdkmanager --licenses || true
+
+# Get the Android SDK
+RUN echo yes | sdkmanager "platforms;android-28" "build-tools;28.0.3" "platforms;android-29" "build-tools;29.0.3" "platforms;android-30" "build-tools;30.0.2" "extras;android;m2repository" "extras;google;m2repository" "platform-tools" "tools"
 
 # Update if needed
-RUN echo y | android update sdk --no-ui --all --filter platform-tools
-RUN echo y | android update sdk --no-ui --all --filter android-28
-RUN echo y | android update sdk --no-ui --all --filter build-tools-28.0.3
-RUN echo y | android update sdk --no-ui --all --filter android-29
-RUN echo y | android update sdk --no-ui --all --filter build-tools-29.0.3
-RUN echo y | android update sdk --no-ui --all --filter android-30
-RUN echo y | android update sdk --no-ui --all --filter build-tools-30.0.2
+RUN yes | android update sdk --no-ui --all --filter android-28
+RUN yes | android update sdk --no-ui --all --filter platform-tools
+RUN yes | android update sdk --no-ui --all --filter build-tools-28.0.3
+RUN yes | android update sdk --no-ui --all --filter android-29
+RUN yes | android update sdk --no-ui --all --filter build-tools-29.0.3
+RUN yes | android update sdk --no-ui --all --filter android-30
+RUN yes | android update sdk --no-ui --all --filter build-tools-30.0.2
 
 # Get the Android NDK
 RUN wget http://dl.google.com/android/repository/android-ndk-$ANDROID_NDK-linux-x86_64.zip && \
