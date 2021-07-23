@@ -202,6 +202,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 			return slen;
 		}
 	}
+	return 0;
 }
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
 	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m,(int)msgdsize(m));

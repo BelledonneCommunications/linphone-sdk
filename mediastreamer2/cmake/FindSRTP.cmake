@@ -65,8 +65,25 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SRTP
-	DEFAULT_MSG
-	SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION
+	REQUIRED_VARS SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION
+	VERSION_VAR SRTP_VERSION
 )
-
 mark_as_advanced(SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION)
+
+if(SRTP_FOUND)
+	add_library(SRTP SHARED IMPORTED)
+
+	if(NOT WIN32)
+		set(lib_location_property "IMPORTED_LOCATION")
+	else()
+		# The .lib location must be in IMPORTED_IMPLIB specific property.
+		# On Windows, IMPORTED_LOCATION property is to
+		# hold the location of the DLL file, but it isn’t
+		# mandatory somehow.
+		set(lib_location_property "IMPORTED_IMPLIB")
+	endif()
+	set_target_properties(SRTP PROPERTIES
+		INTERFACE_INCLUDE_DIRECTORIES "${SRTP_INCLUDE_DIRS}"
+		${lib_location_property} "${SRTP_LIBRARIES}"
+	)
+endif()

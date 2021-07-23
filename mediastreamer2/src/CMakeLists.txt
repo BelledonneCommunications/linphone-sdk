@@ -50,12 +50,16 @@ endif()
 
 bc_git_version(ms2 ${PROJECT_VERSION})
 
-add_definitions(
-	-D_TRUE_TIME
-	-DMS2_EXPORTS
-	-DMS2_INTERNAL
-	-DMS2_FILTERS
+add_compile_definitions(
+	_TRUE_TIME
+	MS2_EXPORTS
+	MS2_INTERNAL
+	MS2_FILTERS
 )
+if(DISABLE_SRTP_SEARCH)
+	# Set -DSRTP_INTERNAL in order to include srtp.h instead of srtp2/srtp.h
+	add_compile_definitions(SRTP_INTERNAL)
+endif()
 
 set(VOIP_SOURCE_FILES_C
 	audiofilters/alaw.c
@@ -507,6 +511,7 @@ set(MS2_DEPENDENCIES ms2-git-version ms2-basedescs-header ms2-voipdescs-header)
 if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
 	list(APPEND MS2_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
+
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 if(ENABLE_STATIC)

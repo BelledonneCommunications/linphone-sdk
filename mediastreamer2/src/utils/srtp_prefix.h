@@ -23,13 +23,16 @@
 #include "mediastreamer-config.h"
 #endif
 
-#if defined(MS2_WINDOWS_PHONE)
+#if defined(MS2_WINDOWS_PHONE) || defined(SRTP_INTERNAL)
 // Windows phone doesn't use make install
 #include <srtp.h>
 #elif SRTP_VERSION==1
 #include <srtp/srtp.h>
 #else
 #include <srtp2/srtp.h>
+#endif
+
+#if SRTP_VERSION==2
 #define err_status_t srtp_err_status_t
 #define err_status_ok srtp_err_status_ok
 #define crypto_policy_t srtp_crypto_policy_t
@@ -40,6 +43,6 @@
 #define crypto_policy_set_aes_cm_128_hmac_sha1_80 srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80
 #define crypto_policy_set_aes_cm_256_hmac_sha1_32 srtp_crypto_policy_set_aes_cm_256_hmac_sha1_32
 #define ssrc_t srtp_ssrc_t
-#endif
+#endif // SRTP_VERSION==2
 
-#endif
+#endif // __SRTP2_H__
