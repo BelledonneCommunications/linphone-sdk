@@ -237,8 +237,6 @@ void MediaCodecDecoder::resetImpl() noexcept {
 }
 
 bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isPs) {
-	H26xUtils::nalusToByteStream(encodedFrame, _bitstream);
-
 	if (_impl == nullptr) return false;
 
 	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
@@ -248,21 +246,21 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 	}
 
 	size_t bufsize;
+	size_t streamSize;
 	uint8_t *buf = AMediaCodec_getInputBuffer(_impl, iBufidx, &bufsize);
 	if (buf == nullptr) {
 		ms_error("MediaCodecDecoder: AMediaCodec_getInputBuffer() returned NULL");
 		return false;
 	}
 
-	size_t size = _bitstream.size();
-	if (size > bufsize) {
-		ms_error("MediaCodecDecoder: cannot copy the all the bitstream into the input buffer size : %zu and bufsize %zu", size, bufsize);
-		size = min(size, bufsize);
+	try{
+		streamSize = H26xUtils::nalusToByteStream(encodedFrame, buf, bufsize);
+	}catch(const invalid_argument &e){
+		ms_error("MediaCodecDecoder: cannot convert the all the nal units content into the input buffer size : bufsize=%zu", bufsize);
 	}
-	memcpy(buf, _bitstream.data(), size);
 
 	uint32_t flags = isPs ? BufferFlag::CodecConfig : BufferFlag::None;
-	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, size, timestamp * 1000ULL, flags) != 0) {
+	if (AMediaCodec_queueInputBuffer(_impl, iBufidx, 0, streamSize, timestamp * 1000ULL, flags) != 0) {
 		ms_error("MediaCodecDecoder: AMediaCodec_queueInputBuffer() had an exception");
 		return false;
 	}

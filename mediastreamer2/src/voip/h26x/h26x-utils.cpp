@@ -48,73 +48,100 @@ void H26xUtils::naluStreamToNalus(const uint8_t *bytestream, size_t size, MSQueu
 	}
 }
 
-void H26xUtils::byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out) {
-	H26xUtils::byteStreamToNalus(byteStream.data(), byteStream.size(), out);
+void H26xUtils::byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out, bool removePreventionBytes) {
+	H26xUtils::byteStreamToNalus(byteStream.data(), byteStream.size(), out, removePreventionBytes);
 }
 
-void H26xUtils::byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out) {
-	vector<uint8_t> buffer;
-	const uint8_t *end = byteStream + size;
-	for (const uint8_t *it = byteStream; it != end;) {
-		buffer.resize(0);
+static bool isPictureStartCode(const uint8_t *bytestream, size_t size){
+	if (size <= 4) return false;
+	if (bytestream[0] == 0 && bytestream[1] == 0 && bytestream[2] == 0 && bytestream[3] == 1) return true;
+	return false;
+}
 
-		int leadingZero = 0;
-		while (it != end && *it == 0) {
-			leadingZero++;
-			it++;
+mblk_t * H26xUtils::makeNalu(const uint8_t *byteStream, size_t naluSize, bool removePreventionBytes, int *preventionBytesRemoved){
+	mblk_t *nalu = allocb(naluSize, 0);
+	const uint8_t *it;
+	const uint8_t *end = byteStream + naluSize;
+	for(it = byteStream; it < end ;){
+		if (removePreventionBytes && it[0] == 0 && it + 3 < end && it[1] == 0 && it[2] == 3 && it[3] == 1){
+			/* Found 0x00000301, replace by 0x000001*/
+			it += 3;
+			*nalu->b_wptr++ = 0;
+			*nalu->b_wptr++ = 0;
+			*nalu->b_wptr++ = 1;
+			(*preventionBytesRemoved)++;
+		}else{
+			*nalu->b_wptr++ = *it++;
 		}
-		if (it == end) break;
-		if (leadingZero < 2 || *it++ != 1) throw invalid_argument("no starting sequence found in H26x byte stream");
+	}
+	return nalu;
+}
 
-		while (it != end) {
-			if (it + 2 < end && it[0] == 0 && it[1] == 0) {
-				if (it[2] == 0 || it[2] == 1) break;
-				else if (it[2] == 3) {
-					buffer.push_back(0);
-					buffer.push_back(0);
-					it += 3;
-					continue;
-				}
-			}
-			buffer.push_back(*it++);
+void H26xUtils::byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out, bool removePreventionBytes) {
+	int preventionBytesRemoved = 0;
+	size_t i;
+	size_t begin, end;
+	size_t naluSize;
+	
+	if (!isPictureStartCode(byteStream, size)){
+		ms_error("no picture start code found in H26x byte stream");
+		throw invalid_argument("no picutre start code found in H26x byte stream");
+		return;
+	}
+	begin = 4;
+	for (i = begin; i + 3 < size ; ++i){
+		if (byteStream[i] == 0 && byteStream[i+1] == 0 && byteStream[i+2] == 1){
+			end = i;
+			naluSize = end - begin;
+			ms_queue_put(out, makeNalu(byteStream + begin, naluSize, removePreventionBytes, &preventionBytesRemoved));
+			i+=3;
+			begin = i;
 		}
-
-		mblk_t *nalu = allocb(buffer.size(), 0);
-		memcpy(nalu->b_wptr, buffer.data(), buffer.size());
-		nalu->b_wptr += buffer.size();
-		ms_queue_put(out, nalu);
+	}
+	naluSize = size - begin;
+	ms_queue_put(out, makeNalu(byteStream + begin, naluSize, removePreventionBytes, &preventionBytesRemoved));
+	
+	if (preventionBytesRemoved > 0){
+		ms_message("Removed %i start code prevention bytes", preventionBytesRemoved);
 	}
 }
 
-void H26xUtils::nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream) {
+size_t H26xUtils::nalusToByteStream(MSQueue *nalus, uint8_t* byteStream, size_t size) {
 	bool startPicture = true;
-	byteStream.resize(0);
+	uint8_t *byteStreamEnd = byteStream + size;
+	uint8_t *it = byteStream;
+	
+	if (size < 4) throw invalid_argument("Insufficient buffer size");
+	
 	while (mblk_t *im = ms_queue_get(nalus)) {
 		if (startPicture) {
 			// starting picture extra zero byte
-			byteStream.push_back(0);
+			*it++ = 0;
 			startPicture = false;
 		}
 
 		// starting NALu marker
-		byteStream.push_back(0);
-		byteStream.push_back(0);
-		byteStream.push_back(1);
+		*it++ = 0;
+		*it++ = 0;
+		*it++ = 1;
 
 		// copy NALu content
-		for (const uint8_t *src = im->b_rptr; src < im->b_wptr;) {
-			if (src+2 < im->b_wptr && src[0] == 0 && src[1] == 0 && (src[2] == 0 || src[2] == 1)) {
-				byteStream.push_back(0);
-				byteStream.push_back(0);
-				byteStream.push_back(3); // emulation prevention three byte
-				src += 2;
+		for (const uint8_t *src = im->b_rptr; src < im->b_wptr && it < byteStreamEnd ;) {
+			if (src[0] == 0 && src+2 < im->b_wptr && src[1] == 0 && (/*src[2] == 0 ||*/ src[2] == 1)) {
+				if (it + 3 <  byteStreamEnd){
+					*it++ = 0;
+					*it++ = 0;
+					*it++ = 3; // emulation prevention three byte
+					src += 2;
+				}else throw invalid_argument("Insufficient buffer size");
 			} else {
-				byteStream.push_back(*src++);
+				*it++ = *src++;
 			}
 		}
-
 		freemsg(im);
+		if (it == byteStreamEnd) throw invalid_argument("Insufficient buffer size");
 	}
+	return it - byteStream;
 }
 
 void H26xParameterSetsInserter::replaceParameterSet(mblk_t *&ps, mblk_t *newPs) {

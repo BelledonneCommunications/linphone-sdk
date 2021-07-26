@@ -232,8 +232,17 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 		AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);
 		return false;
 	}
-
-	H26xUtils::byteStreamToNalus(buf + info.offset, info.size, &outq);
+	/*
+	 * Split bitstream into NAL units. removePreventionBytes (start code emulation prevention byte) is willingly set to false, which is not obvious.
+	 * Indeed, we should expect that the encoder has inserted prevention bytes (0x03) to escape 0x000001 start codes that could be present
+	 * within slices. When splitting into NAL units, these 0x03 bytes should be removed, since it is allowed to have 0x000001 sequences within a NAL unit.
+	 * However, the practice shows that if we do that, we get random decoding errors at the other end, whatever the other end is an Android or an iOS device.
+	 * If we do not do that, the decoding goes perfectly well. How to explain this ?
+	 * - this could mean that MediaCodec does not insert prevention bytes, but the encoder guarantees by some other means that no 0x000001 sequences can occur.
+	 *   however 0x00000301 may happen but this is not a prevention byte.
+	 * - this could mean that we have another bug elsewhere in H26xUtils routines, but then why decoding goes perfectly well when not removing prevention bytes ?
+	 */
+	H26xUtils::byteStreamToNalus(buf + info.offset, info.size, &outq, false);
 	_psInserter->process(&outq, encodedData);
 
 	AMediaCodec_releaseOutputBuffer(_impl, obufidx, FALSE);

@@ -61,7 +61,6 @@ protected:
 	AMediaCodec *_impl = nullptr;
 	AMediaFormat *_format = nullptr;
 	MSYuvBufAllocator *_bufAllocator = nullptr;
-	std::vector<uint8_t> _bitstream;
 	std::unique_ptr<H26xNaluHeader> _naluHeader;
 	std::unique_ptr<H26xParameterSetsStore> _psStore;
 	int _pendingFrames = 0;

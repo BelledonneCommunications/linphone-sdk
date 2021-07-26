@@ -73,10 +73,14 @@ public:
 	static void naluStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
 	static void naluStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
 
-	static void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out);
-	static void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out);
+	static void byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueue *out, bool removePreventionBytes = true);
+	static void byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueue *out, bool removePreventionBytes = true);
 
-	static void nalusToByteStream(MSQueue *nalus, std::vector<uint8_t> &byteStream);
+	/* Convert nalus to byte stream. If byteStream buffer is not large enough std::invalid_argument is thrown.*/
+	static size_t nalusToByteStream(MSQueue *nalus, uint8_t* byteStream, size_t size);
+	
+private:
+	static mblk_t * makeNalu(const uint8_t *byteStream, size_t naluSize, bool removePreventionBytes, int *preventionBytesRemoved);
 };
 
 

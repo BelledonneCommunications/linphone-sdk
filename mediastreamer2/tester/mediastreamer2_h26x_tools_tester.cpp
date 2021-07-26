@@ -71,7 +71,9 @@ static void bytestream_transcoding_test(const std::vector<uint8_t> &byteStream) 
 	BC_ASSERT(!ms_queue_empty(&nalus));
 
 	vector<uint8_t> byteStream2;
-	H26xUtils::nalusToByteStream(&nalus, byteStream2);
+	byteStream2.resize(byteStream.size() * 2);
+	size_t filled = H26xUtils::nalusToByteStream(&nalus, &byteStream2[0], byteStream2.size());
+	byteStream2.resize(filled);
 	BC_ASSERT(ms_queue_empty(&nalus));
 	BC_ASSERT(byteStream == byteStream2);
 
@@ -124,7 +126,9 @@ static void packing_unpacking_test(const std::vector<uint8_t> &byteStream, const
 	BC_ASSERT(!ms_queue_empty(&nalus));
 
 	vector<uint8_t> byteStream2;
-	H26xUtils::nalusToByteStream(&nalus, byteStream2);
+	byteStream2.resize(2 * byteStream.size());
+	size_t filled = H26xUtils::nalusToByteStream(&nalus, &byteStream2[0], byteStream2.size());
+	byteStream2.resize(filled);
 
 	BC_ASSERT(byteStream == byteStream2);
 }
