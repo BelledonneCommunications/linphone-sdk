@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make bc-dev-android-r20:20210408_update_cmake_3_20
+###############################################################################
+
 FROM debian:stretch
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
@@ -43,7 +47,7 @@ RUN apt-get install -y python-pip python3 python3-pip && \
 ENV CMAKE3_HOME /opt/cmake3
 RUN mkdir $CMAKE3_HOME && \
     curl --fail --silent --show-error \
-         --location https://cmake.org/files/v3.11/cmake-3.11.4-Linux-x86_64.tar.gz | \
+         --location https://cmake.org/files/v3.20/cmake-3.20.0-linux-x86_64.tar.gz | \
     tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
 
 # Get the Android tools
