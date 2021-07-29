@@ -60,6 +60,7 @@ function(add_command_from_zip zip_path nuget_folder)
 		endif()
 	endforeach(item)
 	if(NOT ${FILE_ITEM} STREQUAL "")
+		message(STATUS "-  ${FILE_ITEM}")
 		add_custom_command(TARGET unzip PRE_BUILD
 			COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILE_ITEM}
 			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}
@@ -72,7 +73,7 @@ endfunction()
 
 if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
 	if(LINPHONESDK_DESKTOP_ZIP_PATH OR LINPHONESDK_UWP_ZIP_PATH OR LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
-		project(nuget)
+		project(nuget NONE)
 		set(LINPHONESDK_OUTPUT_DIR ${CMAKE_BINARY_DIR}/WORK/packages/nuget)
 		add_custom_target( unzip ALL)
 		add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove_directory ${LINPHONESDK_OUTPUT_DIR})
