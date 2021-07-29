@@ -1260,7 +1260,7 @@ static void udp_socket(int  port_mode) {
 		belle_sip_socket_t sock1 = belle_sip_source_get_socket((belle_sip_source_t*)chan1);
 		belle_sip_socket_t sock2 = belle_sip_source_get_socket((belle_sip_source_t*)chan2);
 		if (port_mode == BELLE_SIP_LISTENING_POINT_DONT_BIND) {
-			BC_ASSERT_NOT_EQUAL(sock1, sock2,belle_sip_socket_t,"%d");
+			BC_ASSERT_NOT_EQUAL((int)sock1, (int)sock2,int,"%d");
 			BC_ASSERT_EQUAL(belle_sip_listening_point_get_port(new_lp),BELLE_SIP_LISTENING_POINT_DONT_BIND, int, "%d");
 			int chan1_local_port, chan2_local_port;
 			char socket_local_port[8];
@@ -1274,7 +1274,7 @@ static void udp_socket(int  port_mode) {
 			BC_ASSERT_PTR_NOT_NULL(belle_sip_channel_get_local_address(chan2, &chan2_local_port));
 			BC_ASSERT_NOT_EQUAL(chan1_local_port, chan2_local_port, int, "%d");
 		} else if (port_mode > 0 || port_mode == BELLE_SIP_LISTENING_POINT_RANDOM_PORT ) {
-			BC_ASSERT_EQUAL(sock1, sock2,belle_sip_socket_t,"%d");
+			BC_ASSERT_EQUAL((int)sock1, (int)sock2,int,"%d");
 		} else
 			BC_FAIL("Unsupported port mode");
 		
@@ -1293,10 +1293,10 @@ static void udp_socket(int  port_mode) {
 		BC_ASSERT_PTR_EQUAL(chan1, chan3);
 		BC_ASSERT_PTR_EQUAL(chan2, chan4);
 
-		BC_ASSERT_EQUAL(sock1, belle_sip_source_get_socket((belle_sip_source_t*)chan3),belle_sip_socket_t,"%d");
-		BC_ASSERT_EQUAL(sock2, belle_sip_source_get_socket((belle_sip_source_t*)chan4),belle_sip_socket_t,"%d");
+		BC_ASSERT_EQUAL((int)sock1, (int)belle_sip_source_get_socket((belle_sip_source_t*)chan3),int,"%d");
+		BC_ASSERT_EQUAL((int)sock2, (int)belle_sip_source_get_socket((belle_sip_source_t*)chan4),int,"%d");
 
-		close (sock1);
+		close ((int)sock1);
 		
 		belle_sip_stack_sleep(stack, 2000);
 		

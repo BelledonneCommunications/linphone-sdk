@@ -43,7 +43,7 @@ static belle_sip_channel_t *udp_create_channel(belle_sip_listening_point_t *lp, 
 	if (belle_sip_listening_point_get_port(lp) != BELLE_SIP_LISTENING_POINT_DONT_BIND)
 		sock=(int)udp_lp->sock;
 	belle_sip_channel_t *chan=belle_sip_channel_new_udp(lp->stack
-														,sock
+														,(int)sock
 														,belle_sip_uri_get_host(lp->listening_uri)
 														,belle_sip_uri_get_port(lp->listening_uri)
 														,hop->host

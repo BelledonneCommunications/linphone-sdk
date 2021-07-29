@@ -48,7 +48,7 @@ static int udp_channel_send(belle_sip_channel_t *obj, const void *buf, size_t bu
 		err=(int)bctbx_sendto(sock,buf,buflen,0,obj->current_peer->ai_addr,(socklen_t)obj->current_peer->ai_addrlen);
 		} else {
 			/*There is no serveur socket, so we are in connected mode*/
-			err=(int)bctbx_write(sock, buf,buflen);
+			err=(int)bctbx_write((int)sock, buf,buflen);
 		}
 		if (err==-1){
 			belle_sip_error("channel [%p]: could not send UDP packet because [%s]",obj,belle_sip_get_socket_error_string());
@@ -98,7 +98,7 @@ int udp_channel_connect(belle_sip_channel_t *obj, const struct addrinfo *ai){
 		belle_sip_socket_t sock = udp_listening_point_create_udp_socket(belle_sip_uri_get_host(((belle_sip_listening_point_t*)obj->lp)->listening_uri)
 									 , &port, &ai_family);
 		belle_sip_socket_set_nonblocking(sock);
-		if (bctbx_connect(sock,ai->ai_addr,ai->ai_addrlen)==-1){
+		if (bctbx_connect(sock,ai->ai_addr,(socklen_t)ai->ai_addrlen)==-1){
 			err = -get_socket_error();
 			belle_sip_error("bctbx_connect() failed for socket [%i]: cause [%s]",(int)sock,belle_sip_get_socket_error_string_from_code(-err));
 			return -1;
