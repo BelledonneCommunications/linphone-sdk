@@ -64,6 +64,9 @@
 [submodule "external/libvpx"]
 	path = external/libvpx
 	url = https://gitlab.linphone.org/BC/public/external/libvpx.git
+[submodule "external/libyuv"]
+	path = external/libyuv
+	url = https://gitlab.linphone.org/BC/public/external/libyuv.git
 [submodule "external/opus"]
 	path = external/opus
 	url = https://gitlab.linphone.org/BC/public/external/opus.git
