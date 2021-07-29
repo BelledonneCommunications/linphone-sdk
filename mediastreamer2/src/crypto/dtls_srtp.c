@@ -420,6 +420,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 			ms_mutex_lock(mutex);
 			*ret = bctbx_ssl_read(ssl, buf, msgLength);
 			ms_message("DTLS Handshake read %s packet len %d sessions: %p rtp session %p return %s0x%0x", is_rtp==TRUE?"RTP":"RTCP", (int)msgLength, ctx->stream_sessions, ctx->stream_sessions->rtp_session, *ret>0?"+":"-", *ret>0?*ret:-*ret);
+			ms_free(buf);
 			ms_mutex_unlock(mutex);
 		}
 
