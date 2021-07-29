@@ -440,9 +440,6 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 }
 
 static void ms_dtls_srtp_check_channels_status(MSDtlsSrtpContext *ctx) {
-
-ms_message("%s - ctx %p ctx->rtp_channel_status %0d  DTLS_STATUS_HANDSHAKE_OVER %0d  rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session) %0d ctx->rtcp_channel_status %0d\n", __func__, ctx, ctx->rtp_channel_status, DTLS_STATUS_HANDSHAKE_OVER, rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session), ctx->rtcp_channel_status);
-
 	/* Check if we're are ready: rtp_channel done and rtcp mux on or both channels done */
 	if (((ctx->rtp_channel_status == DTLS_STATUS_FINGERPRINT_VERIFIED) && (rtp_session_rtcp_mux_enabled(ctx->stream_sessions->rtp_session)))
 		|| ((ctx->rtp_channel_status == DTLS_STATUS_FINGERPRINT_VERIFIED) && (ctx->rtcp_channel_status == DTLS_STATUS_FINGERPRINT_VERIFIED))) {
@@ -661,7 +658,6 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 				/* Check certificate fingerprint */
 				ms_mutex_lock(&ctx->rtp_dtls_context->ssl_context_mutex); /* fingerprint can be written by incoming SIP packet in an other thread */
 				if (ctx->peer_fingerprint[0]=='\0') { /* fingerprint not set yet - peer's 200Ok didn't arrived yet */
-ms_message("DEBUG DEBUG DTLS-SRTP empty peer fingerprint context %p role %0d Server %0d Client %0d", ctx, ctx->role, MSDtlsSrtpRoleIsServer, MSDtlsSrtpRoleIsClient);
 					ms_warning("DTLS-SRTP: RTP empty peer_fingerprint - waiting for it");
 					ms_mutex_unlock(&ctx->rtp_dtls_context->ssl_context_mutex);
 					return 0;
@@ -728,7 +724,6 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 				/* Check certificate fingerprint */
 				ms_mutex_lock(&ctx->rtcp_dtls_context->ssl_context_mutex); /* fingerprint can be written by incoming SIP packet in an other thread */
 				if (ctx->peer_fingerprint[0]=='\0') { /* fingerprint not set yet - peer's 200Ok didn't arrived yet */
-ms_message("DEBUG DEBUG DTLS-SRTP empty peer fingerprint context %p role %0d Server %0d Client %0d", ctx, ctx->role, MSDtlsSrtpRoleIsServer, MSDtlsSrtpRoleIsClient);
 					ms_warning("DTLS-SRTP on RTCP: handshake complet but empty peer fingerprint - waiting for it");
 					ms_mutex_unlock(&ctx->rtcp_dtls_context->ssl_context_mutex);
 					return 0;
