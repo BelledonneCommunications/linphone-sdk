@@ -60,5 +60,12 @@
 		<file src="_._" target="ref\netstandard" />
 		<file src="_._" target="ref\netcoreapp" />
 		<file src="_._" target="ref\net48" />
+		<file src="LinphoneSDK.targets" target="build\uap10.0" />
+		<file src="LinphoneSDK.targets" target="build\netcore" />
+		<file src="LinphoneSDK.targets" target="build\netcore45" />
+		<file src="LinphoneSDK.targets" target="build\net5.0" />
+		<file src="LinphoneSDK.targets" target="build\netstandard" />
+		<file src="LinphoneSDK.targets" target="build\netcoreapp" />
+		<file src="LinphoneSDK.targets" target="build\net48" />
     </files>
 </package>
