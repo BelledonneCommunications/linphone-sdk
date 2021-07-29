@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <ItemGroup Label="LinphoneSDK">
+    <PackagingOutputs Include="$(LinphoneSDK-Path)\bin\**\*.dll">
+        <OutputGroup>LinphoneSDKBinaries</OutputGroup>
+        <ProjectName>$(ProjectName)</ProjectName>
+        <TargetPath>%(FileName)%(Extension)</TargetPath>
+    </PackagingOutputs>
+	<PackagingOutputs Include="$(LinphoneSDK-Path)\lib\**\*.dll">
+        <OutputGroup>LinphoneSDKBinaries</OutputGroup>
+        <ProjectName>$(ProjectName)</ProjectName>
+        <TargetPath>%(FileName)%(Extension)</TargetPath>
+    </PackagingOutputs>
+	<PackagingOutputs Include="$(LinphoneSDK-Path)\share\**\*.*" >
+        <OutputGroup>LinphoneSDKBinaries</OutputGroup>
+        <ProjectName>$(ProjectName)</ProjectName>
+        <TargetPath>share\%(RecursiveDir)%(FileName)%(Extension)</TargetPath>
+    </PackagingOutputs>
+  </ItemGroup>
+
+</Project>
