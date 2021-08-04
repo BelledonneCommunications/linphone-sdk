@@ -39,8 +39,8 @@ execute_process(
 # Copy and merge content of all architectures in the desktop directory
 list(GET _archs 0 _first_arch)
 
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/mac-${_first_arch}/" "linphone-sdk/desktop/"
+execute_process(# Do not use copy_directory because of symlinks
+	COMMAND "cp" "-R"  "linphone-sdk/mac-${_first_arch}/" "linphone-sdk/desktop/"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
@@ -48,25 +48,28 @@ execute_process(
 #Get all files in output
 file(GLOB_RECURSE _binaries RELATIVE "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/" "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/*")
 foreach(_file ${_binaries})
+	get_filename_component( ABSOLUTE_FILE "linphone-sdk/mac-${_first_arch}/${_file}" ABSOLUTE)
+	if(NOT IS_SYMLINK ${ABSOLUTE_FILE})
 #Check if lipo can detect an architecture
-	execute_process(COMMAND lipo -archs "linphone-sdk/mac-${_first_arch}/${_file}"
-		OUTPUT_VARIABLE FILE_ARCHITECTURE
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-		ERROR_QUIET
-	)
-	if( NOT "${FILE_ARCHITECTURE}" STREQUAL "" )
-#There is at least one architecture : Use this candidate to mix with another architectures
-		set(_all_arch_files)
-		foreach(_arch ${_archs})
-			list(APPEND _all_arch_files "linphone-sdk/mac-${_arch}/${_file}")
-		endforeach()
-		string(REPLACE ";" " " _arch_string "${_archs}")
-		message (STATUS "Mixing ${_file} for archs [${_arch_string}]")
-		execute_process(
-			COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_file}" ${_all_arch_files}
+		execute_process(COMMAND lipo -archs "linphone-sdk/mac-${_first_arch}/${_file}"
+			OUTPUT_VARIABLE FILE_ARCHITECTURE
+			OUTPUT_STRIP_TRAILING_WHITESPACE
 			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			ERROR_QUIET
 		)
+		if( NOT "${FILE_ARCHITECTURE}" STREQUAL "" )
+#There is at least one architecture : Use this candidate to mix with another architectures
+			set(_all_arch_files)
+			foreach(_arch ${_archs})
+				list(APPEND _all_arch_files "linphone-sdk/mac-${_arch}/${_file}")
+			endforeach()
+			string(REPLACE ";" " " _arch_string "${_archs}")
+			message (STATUS "Mixing ${_file} for archs [${_arch_string}]")
+			execute_process(
+				COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_file}" ${_all_arch_files}
+				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			)
+		endif()
 	endif()
 endforeach()
 
