@@ -462,12 +462,6 @@ static belle_sip_request_t *belle_sip_dialog_create_prack(belle_sip_dialog_t *di
 		belle_sip_uri_set_user(belle_sip_header_address_get_uri((belle_sip_header_address_t*)contact_header),belle_sip_uri_get_user(req_uri));
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(prack),BELLE_SIP_HEADER(contact_header));
 
-		const belle_sip_list_t *aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Authorization");
-		const belle_sip_list_t *prx_aut = belle_sip_message_get_headers((belle_sip_message_t*)invite, "Proxy-Authorization");
-		if (aut)
-			belle_sip_message_add_headers((belle_sip_message_t*)prack, aut);
-		if (prx_aut)
-			belle_sip_message_add_headers((belle_sip_message_t*)prack, prx_aut);
 	}
 
 	return prack;
@@ -517,6 +511,8 @@ static int belle_sip_dialog_process_response_100rel(belle_sip_dialog_t *obj, bel
 					/*send PRACK from callee */
 					belle_sip_request_t *prack = belle_sip_dialog_create_prack(obj, rseq, cseq_resp, method_resp);
 					if (prack){
+						/*put auth header*/
+						belle_sip_provider_add_authorization(transaction->provider,prack,transaction->last_response,NULL,NULL,NULL);
 						belle_sip_dialog_send_prack(obj, prack);
 						ict->r_cseq = rseq;
 					} else {
