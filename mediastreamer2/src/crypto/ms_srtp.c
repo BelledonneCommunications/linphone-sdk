@@ -330,6 +330,26 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
+static int ms_srtp_add_or_update_stream(srtp_t session, const srtp_policy_t *policy)
+{
+/*
+	err_status_t status;
+	// Update streams if the session was already initialized
+	if (session->stream_template) {
+		status = srtp_update_stream(session, policy);
+	} else {
+		status = srtp_add_stream(session, policy);
+	}
+*/
+
+	err_status_t status = srtp_update_stream(session, policy);
+	if (status != 0) {
+		status = srtp_add_stream(session, policy);
+	}
+
+	return status;
+}
+
 static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, const char *key, size_t key_length, bool_t is_send, bool_t is_rtp) {
 	srtp_policy_t policy;
 	err_status_t err;
@@ -371,7 +391,7 @@ static int ms_add_srtp_stream(srtp_t srtp, MSCryptoSuite suite, uint32_t ssrc, c
 	policy.key = (uint8_t *)key;
 	policy.next = NULL;
 
-	err = srtp_add_or_update_stream(srtp, &policy);
+	err = ms_srtp_add_or_update_stream(srtp, &policy);
 	if (err != err_status_ok) {
 		ms_error("Failed to add stream to srtp session (%d)", err);
 		return -1;
@@ -551,7 +571,6 @@ int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessio
 int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
 	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,TRUE,stream_type);
 }
-
 
 int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	/*for now, managing all streams in one time*/
