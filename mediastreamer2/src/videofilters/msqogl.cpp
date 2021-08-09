@@ -61,7 +61,7 @@ QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject (const QSize &
 static int qogl_call_render (MSFilter *f, void *arg);
 void BufferRenderer::render () {
 	// Draw with ms filter.
-	if(mParent->parent){
+	if(mParent && mParent->parent){
 		qogl_call_render(mParent->parent, NULL);
 		// Synchronize opengl calls with QML.
 		if (mWindow)
