@@ -879,6 +879,18 @@ static void dns_fallback(void) {
 #endif /* HAVE_DNS_SERVICE */
 }
 
+static void dns_fallback_because_of_server_refused(void) {
+	const char *nameservers[]={
+		"212.245.255.2",
+		"8.8.8.8", /* public nameserver, should work*/
+		NULL
+	};
+	_dns_fallback(nameservers,BELLE_SIP_DNS_DNS_C);
+#ifdef HAVE_DNS_SERVICE
+	_dns_fallback(nameservers,BELLE_SIP_DNS_APPLE_DNS_SERVICE);
+#endif /* HAVE_DNS_SERVICE */
+}
+
 static void dns_fallback_because_of_scope_link_ipv6(void) {
 	const char *nameservers[]={
 		"fe80::fdc5:99ef:ac05:5c55%enp0s25", /* Scope link IPv6 name server that will not respond */
@@ -1135,6 +1147,7 @@ test_t resolver_tests[] = {
 	TEST_NO_TAG("Local SRV+A query", local_full_query),
 	TEST_NO_TAG("No query needed", no_query_needed),
 	TEST_NO_TAG("DNS fallback", dns_fallback),
+	TEST_NO_TAG("DNS fallback because of server refused", dns_fallback_because_of_server_refused),
 	TEST_NO_TAG("DNS fallback because of scope link IPv6", dns_fallback_because_of_scope_link_ipv6),
 	TEST_NO_TAG("DNS fallback because of invalid IPv6", dns_fallback_because_of_invalid_ipv6),
 	TEST_NO_TAG("IPv6 DNS server", ipv6_dns_server),

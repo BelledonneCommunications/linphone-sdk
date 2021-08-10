@@ -7809,6 +7809,10 @@ exec:
 			}
 		}
 
+		if (dns_p_rcode(F->answer) == DNS_RC_REFUSED) {
+			dgoto(R->sp, DNS_R_FOREACH_A);
+		}
+
 		if ((error = dns_rr_parse(&rr, 12, F->query)))
 			goto error;
 
