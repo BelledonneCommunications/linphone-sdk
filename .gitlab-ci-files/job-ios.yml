@@ -152,6 +152,34 @@ job-ios-xcode:
 
   extends: .job-ios
 
+job-ios-xcode-novideo:
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_RELEASE
+
+  variables:
+    CMAKE_GENERATOR: Xcode
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_VIDEO=NO $SCHEDULE_CMAKE_OPTIONS
+    ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
+    ARCHS_OPTIONS: "arm64,armv7,x86_64"
+    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+
+  before_script:
+   - IOS_DEPLOY_URL=$IOS_RELEASES_URL
+   - |
+       if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+       then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
+       fi
+   - echo $IOS_DEPLOY_URL
+   - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
+
+  extends: .job-ios
+
 #################################################
 # Tests
 #################################################
