@@ -49,6 +49,34 @@ job-ios-upload:
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
     - pod repo remove linphone-sdk
 
+job-ios-novideo-upload:
+  stage: deploy
+  tags: [ "macosx-xcode11" ]
+
+  only:
+    variables:
+      - $DEPLOY_RUN_IOS
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+
+  needs:
+    - job-ios-ninja-novideo
+
+  script:
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/novideo/
+
 #################################################
 # Android
 #################################################
