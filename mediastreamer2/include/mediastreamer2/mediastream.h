@@ -94,7 +94,7 @@ typedef struct _MediaStream MediaStream;
 typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t *m);
 
 struct _MSMediaStreamSessions{
-	RtpSession *rtp_session;
+    RtpSession *rtp_session;
 	MSSrtpCtx* srtp_context;
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
@@ -158,7 +158,7 @@ struct _MediaStream {
 	MSFactory *factory;
 	MSBandwidthController *bandwidth_controller;
 	MSVideoQualityController *video_quality_controller;
-	MediaStreamDir direction;
+    MediaStreamDir direction;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -1300,6 +1300,8 @@ MS2_PUBLIC void video_stream_close_remote_record(VideoStream *stream);
 
 MS2_PUBLIC void video_stream_enable_retransmission_on_nack(VideoStream *stream, bool_t enable);
 MS2_PUBLIC void video_stream_set_retransmission_on_nack_max_packet(VideoStream *stream, unsigned int max);
+
+MS2_PUBLIC void video_stream_enable_fec(VideoStream *stream, char* local_ip, int local_port, int local_rtcp_port, char* remote_ip, int remote_port, int L, int D);
 
 /**
  * Small API to display a local preview window.

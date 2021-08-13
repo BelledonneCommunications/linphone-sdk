@@ -159,6 +159,12 @@ typedef struct _MediastreamDatas {
 	char * video_display_filter;
 	FILE * logfile;
 	bool_t enable_speaker;
+
+    bool_t enable_fec;
+    RtpSession *fec_session;
+    FecStream *fec_stream;
+    int L;
+    int D;
 } MediastreamDatas;
 
 
@@ -235,6 +241,7 @@ const char *usage="mediastream --local <port>\n"
 								"[ --width <pixels> ]\n"
 								"[ --zoom zoom factor ]\n"
 								"[ --zrtp (enable zrtp) ]\n"
+                                "[ --fec <L [0-10]> <D [0-10]> (enable fec) ]\n"
 								#if TARGET_OS_IPHONE
 								"[ --speaker route audio to speaker ]\n"
 								#endif
@@ -355,6 +362,8 @@ MediastreamDatas* init_default_args(void) {
 	memset(args->ice_remote_candidates, 0, sizeof(args->ice_remote_candidates));
 	args->ice_local_candidates_nb = args->ice_remote_candidates_nb = 0;
 	args->video_display_filter=NULL;
+
+    args->enable_fec = FALSE;
 
 	return args;
 }
@@ -649,6 +658,12 @@ bool_t parse_args(int argc, char** argv, MediastreamDatas* out) {
 			out->freeze_on_error=TRUE;
 		} else if (strcmp(argv[i], "--speaker") == 0) {
 			out->enable_speaker=TRUE;
+        } else if (strcmp(argv[i], "--fec") == 0){
+            out->enable_fec = TRUE;
+            i++;
+            out->L = atoi(argv[i]);
+            i++;
+            out->D = atoi(argv[i]);
 		} else {
 			ms_error("Unknown option '%s'\n", argv[i]);
 			return FALSE;
@@ -690,6 +705,17 @@ static MSSndCard *get_sound_card(MSSndCardManager *manager, const char* card_nam
 		ms_free(cards);
 	}
 	return play;
+}
+
+void mediastream_fec_enable(MediastreamDatas *args, MSFactory *factory){
+    ms_factory_set_mtu(factory, ms_factory_get_mtu(factory) - (12 + 4*args->L));
+    args->fec_session = ms_create_duplex_rtp_session(ms_is_ipv6(args->ip) ? "::" : "0.0.0.0", rtp_session_get_local_port(args->session)+10, rtp_session_get_local_rtcp_port(args->session)+10, args->mtu);
+    rtp_session_set_remote_addr(args->fec_session, args->ip, args->remoteport+10);
+    args->fec_session->fec_stream = NULL;
+    const FecParameters *params = fec_params_new(args->L, args->D, args->jitter);
+    args->fec_stream = fec_stream_new(args->session, args->fec_session, params);
+    args->session->fec_stream = args->fec_stream;
+    ms_message("FEC SESSION Socket number : %d", args->fec_session->rtp.gs.socket);
 }
 
 void setup_media_streams(MediastreamDatas* args) {
@@ -754,7 +780,7 @@ void setup_media_streams(MediastreamDatas* args) {
 		args->bw_controller = ms_bandwidth_controller_new();
 	}
 
-	if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
+    if (args->mtu) ms_factory_set_mtu(factory, args->mtu);
 	ms_factory_enable_statistics(factory, TRUE);
 	ms_factory_reset_statistics(factory);
 
@@ -996,6 +1022,10 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->srtp_local_master_key,
 					args->srtp_remote_master_key));
 		}
+
+        if(args->enable_fec){
+            mediastream_fec_enable(args, factory);
+        }
 #else
 		ms_error("Error: video support not compiled.\n");
 #endif
@@ -1145,15 +1175,23 @@ void clear_mediastreams(MediastreamDatas* args) {
 		audio_stream_stop(args->audio);
 	}
 #ifdef VIDEO_ENABLED
-	if (args->video) {
-		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
+    if (args->video) {
+        ms_message("Payload max size : %d", ms_factory_get_payload_max_size(args->factory));
+        if(args->enable_fec){
+            ms_message("Number of lost source packets : %d", args->session->fec_stream->total_lost_packets);
+            ms_message("Number of unrepaired packets : %d", args->session->fec_stream->reconstruction_fail);
+            ms_message("Number of repair packets not found : %d", args->session->fec_stream->repair_packet_not_found);
+            ms_message("Number of source packets not found : %d", args->session->fec_stream->source_packets_not_found);
+            ms_message("Number of errors : %d\n", args->session->fec_stream->error);
+        }
+        if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
-		ms_factory_log_statistics(args->video->ms.factory);
+        ms_factory_log_statistics(args->video->ms.factory);
 	}
 #endif
 	if (args->ice_session) ice_session_destroy(args->ice_session);
-	ortp_ev_queue_destroy(args->q);
-	rtp_profile_destroy(args->profile);
+    ortp_ev_queue_destroy(args->q);
+    rtp_profile_destroy(args->profile);
 
 	if (args->logfile)
 		fclose(args->logfile);

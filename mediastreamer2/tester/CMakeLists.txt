@@ -29,6 +29,11 @@ else()
 	endif()
 endif()
 
+if(WIN32)
+    #required for htons()
+    list(APPEND MS2_LIBS_FOR_TESTER Ws2_32)
+endif()
+
 if(SPEEXDSP_FOUND)
 	#required for neon resampler tester
 	list(APPEND MS2_LIBS_FOR_TESTER ${SPEEXDSP_LIBRARIES})
