@@ -33,10 +33,11 @@
 // =============================================================================
 
 BufferRenderer::BufferRenderer () {
+	qInfo() << QStringLiteral("[MSQOGL] Create new Renderer");
 }
 
 BufferRenderer::~BufferRenderer () {
-	qInfo() << QStringLiteral("Delete Renderer");
+	qInfo() << QStringLiteral("[MSQOGL] Delete Renderer");
 	if(mParent){
 		ms_filter_lock(mParent->parent);
 		if( mParent->renderer == this)// Check if it is the same object. This deletion could be delayed for any reasons (Managed by Qt). We don't want to remove a new created object.
@@ -53,7 +54,8 @@ QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject (const QSize &
 	
 	mWidth = size.width();
 	mHeight = size.height();
-	mParent->update_context = TRUE;
+	if(mParent)// if mParent is NULL here, that means that the current FrameBuffer is not associated to a windows. It can happen when changing configuration.
+		mParent->update_context = TRUE;
 	
 	return new QOpenGLFramebufferObject(size, format);
 }
@@ -177,7 +179,11 @@ static int qogl_get_native_window_id (MSFilter *f, void *arg) {
 		data->renderer = new BufferRenderer();
 		data->renderer->mParent = data;
 		data->update_context = TRUE;
-	}	
+	}else if( !data->renderer->mParent){
+		qInfo() << QStringLiteral("[MSQOGL] Framebuffer parent was unset : update context");
+		data->renderer->mParent = data;
+		data->update_context = TRUE;
+	}
 	*(QQuickFramebufferObject::Renderer**)arg=dynamic_cast<QQuickFramebufferObject::Renderer*>(data->renderer);
 	return 0;
 }
