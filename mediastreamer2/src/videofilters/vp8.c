@@ -908,7 +908,6 @@ typedef struct DecState {
 	MSYuvBufAllocator *allocator;
 	MSPicture outbuf;
 	unsigned int yuv_width, yuv_height;
-	MSQueue q;
 	MSAverageFPS fps;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
@@ -935,11 +934,12 @@ static void dec_init(MSFilter *f) {
 	s->yuv_height = 0;
 	s->allocator = ms_yuv_buf_allocator_new();
 	ms_yuv_buf_allocator_set_max_frames(s->allocator, 3);
-	ms_queue_init(&s->q);
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
 	s->freeze_on_error = TRUE;
 	ms_cond_init(&s->thread_cond, NULL);
+	ms_queue_init(&s->entry_q);
+	ms_queue_init(&s->exit_q);
 	f->data = s;
 	ms_average_fps_init(&s->fps, "VP8 decoder: FPS: %f");
 }
@@ -987,8 +987,7 @@ static void dec_preprocess(MSFilter* f) {
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;
 	}
-	ms_queue_init(&s->entry_q);
-	ms_queue_init(&s->exit_q);
+	
 	s->thread_running = TRUE;
 	s->waiting = FALSE;
 	ms_thread_create(&s->thread, NULL, dec_processing_thread, f);
@@ -999,7 +998,8 @@ static void dec_uninit(MSFilter *f) {
 	vp8rtpfmt_unpacker_uninit(&s->unpacker);
 	vpx_codec_destroy(&s->codec);
 	ms_yuv_buf_allocator_free(s->allocator);
-	ms_queue_flush(&s->q);
+	ms_queue_flush(&s->entry_q);
+	ms_queue_flush(&s->exit_q);
 	ms_cond_destroy(&s->thread_cond);
 	ms_free(s);
 }
@@ -1136,6 +1136,9 @@ static void dec_process(MSFilter *f) {
 
 static void dec_postprocess(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
+	/* Shutdown the decoding thread, but leave entry_q and exit_q as they are.
+	 * In case of immediate restart of the graph, they may contain useful data and it is
+	 * stupid to create a discontinuity because of a graph restart.*/
 	ms_filter_lock(f);
 	s->thread_running = FALSE;
 	if (s->waiting) ms_cond_signal(&s->thread_cond);
