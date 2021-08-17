@@ -30,7 +30,7 @@ job-ios-upload:
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
 
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
 
@@ -68,7 +68,7 @@ job-ios-xcode-novideo-upload:
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
 
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
 
@@ -161,7 +161,7 @@ job-android-doc-upload:
 
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     - echo $UPLOAD_ROOT_DIRECTORY
@@ -208,7 +208,7 @@ job-macosx-upload:
   script:
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
@@ -314,7 +314,7 @@ job-debian-doc-upload:
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     # Create the directories if they do not exist
@@ -350,7 +350,7 @@ job-bzrtp-doc-upload:
     - BZRTP_VERSION=$(git -C bzrtp describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
-        if [ "$(git -C bzrtp describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C bzrtp describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     # Create the directories if they do not exist
@@ -383,7 +383,7 @@ job-lime-doc-upload:
     - LIME_VERSION=$(git -C lime describe | grep -o -E '^[0-9]+\.[0-9]+')
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
     - |
-        if [ "$(git -C lime describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C lime describe) =~ .*(alpha|beta).* ]];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     # Create the directories if they do not exist
