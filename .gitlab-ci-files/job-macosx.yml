@@ -98,7 +98,7 @@ job-macosx-xcode:
   before_script:
     - MACOS_DEPLOY_URL=$MACOS_RELEASES_URL
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
         then MACOS_DEPLOY_URL=$MACOS_SNAPSHOTS_URL
         fi
     - echo $MACOS_DEPLOY_URL
