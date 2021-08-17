@@ -307,35 +307,41 @@ namespace bctoolbox {
 
 class pumpstream : public std::ostringstream {
 public:
-	/*contructor used to disable logging*/
-	pumpstream():mDomain(""),mLevel(BCTBX_LOG_DEBUG),mTraceEnabled(false){}
-	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain ? domain : ""), mLevel(level),mTraceEnabled(true) {}
-	~pumpstream() {
-		const char *domain = mDomain.empty() ? NULL : mDomain.c_str();
-		if (mTraceEnabled && bctbx_log_level_enabled(domain, mLevel))
-			bctbx_log(domain, mLevel, "%s", str().c_str());
+	/* This constructor assumes that "domain" remains valid, which is a reasonable assumption because the pumpstream
+	 * is used through macros (below) where the usage is within single line of code. */
+	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain), mLevel(level){
+#ifndef BCTBX_DEBUG_MODE
+		/* If debug mode is not enabled, the pumpstream shall do nothing if level requested is BCTBX_LOG_DEBUG.
+		 * bctbx_log_level_enabled() does not even need to be called. */
+		if (level == BCTBX_LOG_DEBUG) {
+			mTraceEnabled = false;
+			return;
+		}
+#endif
+		mTraceEnabled = bctbx_log_level_enabled(domain, mLevel);
 	}
-
+	~pumpstream() {
+		if (mTraceEnabled)
+			bctbx_log(mDomain, mLevel, "%s", str().c_str());
+	}
+	bool enabled() const{
+		return mTraceEnabled;
+	}
 private:
-	const std::string mDomain;
+	const char *mDomain;
 	const BctbxLogLevel mLevel;
-	const bool mTraceEnabled;
+	bool mTraceEnabled;
 };
 
 
 template <typename _Tp> inline pumpstream &operator<<(pumpstream &&__os, const _Tp &__x) {
-	(static_cast<std::ostringstream &>(__os)) << __x;
+	if (__os.enabled()) (static_cast<std::ostringstream &>(__os)) << __x;
 	return __os;
 }
 
 #define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
-#ifndef BCTBX_DEBUG_MODE
 #define BCTBX_SLOGD BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG)
-#else
-#define BCTBX_SLOGD pumpstream()
-#endif
-
 #define BCTBX_SLOGI BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
 #define BCTBX_SLOGW BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR)
