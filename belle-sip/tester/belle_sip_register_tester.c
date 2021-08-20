@@ -1182,6 +1182,7 @@ static void test_channel_load(void){
 			belle_sip_stack_sleep(stack, 50);
 		}
 		BC_ASSERT_EQUAL(number_of_response,NUMBER_OF_TRANS,int,"%d");
+		belle_sip_provider_remove_sip_listener(prov,listener);
 	}
 }
 
@@ -1255,7 +1256,9 @@ static void udp_socket(int  port_mode) {
 			belle_sip_stack_sleep(stack, 500);
 		}
 		belle_sip_channel_t *chan1 = belle_sip_provider_get_channel(prov,tr1->next_hop);
+		belle_sip_object_ref(chan1);
 		belle_sip_channel_t *chan2 = belle_sip_provider_get_channel(prov,tr2->next_hop);
+		belle_sip_object_ref(chan2);
 		BC_ASSERT_PTR_NOT_EQUAL(chan1, chan2);
 		belle_sip_socket_t sock1 = belle_sip_source_get_socket((belle_sip_source_t*)chan1);
 		belle_sip_socket_t sock2 = belle_sip_source_get_socket((belle_sip_source_t*)chan2);
@@ -1296,7 +1299,7 @@ static void udp_socket(int  port_mode) {
 		BC_ASSERT_EQUAL((int)sock1, (int)belle_sip_source_get_socket((belle_sip_source_t*)chan3),int,"%d");
 		BC_ASSERT_EQUAL((int)sock2, (int)belle_sip_source_get_socket((belle_sip_source_t*)chan4),int,"%d");
 
-		close ((int)sock1);
+		bctbx_socket_close(sock1);
 		
 		belle_sip_stack_sleep(stack, 2000);
 		
@@ -1311,7 +1314,10 @@ static void udp_socket(int  port_mode) {
 			BC_ASSERT_EQUAL(number_of_response,2,int,"%d");
 		} else
 			BC_FAIL("Unsupported port mode");
-		
+
+		belle_sip_object_unref(chan1);
+		belle_sip_object_unref(chan2);
+		belle_sip_provider_remove_sip_listener(prov,listener);
 		belle_sip_provider_remove_listening_point(prov, new_lp);
 		belle_sip_provider_add_listening_point(prov, old_lp);
 	}
