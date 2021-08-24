@@ -83,14 +83,14 @@ class IncomingPushTest: XCTestCase {
 		}
 		
 		func waitForVoipTokenRegistration(voipTokenRegisteredExpectation: XCTestExpectation, waitFn : @escaping()->Void) {
+			voipTokenRegisteredExpectation.assertForOverFulfill = false
 			let voipTokenDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
-				if (!account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+				if (!account.params!.pushNotificationConfig!.voipToken.isEmpty && state == .Ok) {
 					voipTokenRegisteredExpectation.fulfill()
 				}
 			})
 			core.defaultAccount!.addDelegate(delegate: voipTokenDelegate)
 			waitFn()
-			core.defaultAccount!.removeDelegate(delegate: voipTokenDelegate)
 		}
 		
 		func waitForVoipPushIncoming(voipPushIncomingExpectation: XCTestExpectation, callAndWaitFn : @escaping() -> Void) {
@@ -107,11 +107,10 @@ class IncomingPushTest: XCTestCase {
 	
 	func testCallToSRTPMandatoryEncryptionWithNoEncryptionEnabled() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
-		marie.core.pushNotificationEnabled = false
 		try! marie.core.setMediaencryption(newValue: .None)
 		marie.core.avpfMode = .Enabled
 		
-		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		try! pauline.core.setMediaencryption(newValue: .SRTP)
 		pauline.core.mediaEncryptionMandatory = true
 		
@@ -180,50 +179,54 @@ class IncomingPushTest: XCTestCase {
 	
 	func testNoVoipTokenInRegistrationWhenPushAreDisabled() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
-		marie.core.pushNotificationEnabled = false
 		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
 		ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
 	
 		marie.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: ensureNotRegisteredAgainExp) {
-			self.waitForExpectations(timeout: 10)
+			self.waitForExpectations(timeout: 5)
 		}
 	}
 	
-	func testUpdateContactUriWhenPushConfigurationChanges() {
-		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+	func testUpdateRegisterWhenPushConfigurationChanges() {
+		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateContactUriWhenPushConfigurationChanges -- Registered with voip token")) {
-			self.waitForExpectations(timeout: 20)
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- Registered with voip token")) {
+			self.waitForExpectations(timeout: 10)
 		}
 		
 		let paulineAccount = pauline.core.defaultAccount!
 		var newPaulineParams = paulineAccount.params?.clone()
 		paulineAccount.params = newPaulineParams
 		
-		let test = newPaulineParams?.identityAddress?.username
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.provider = "testprovider"
 		paulineAccount.params = newPaulineParams
-		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-provider=testprovider;"))
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing provider")) {
+			self.waitForExpectations(timeout: 10)
+		}
 		
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.param = "testparams"
 		paulineAccount.params = newPaulineParams
-		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-param=testparams;"))
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing params")) {
+			self.waitForExpectations(timeout: 10)
+		}
 		
 		newPaulineParams = paulineAccount.params?.clone()
-		newPaulineParams?.pushNotificationConfig?.voipToken = "testvoiptoken"
+		newPaulineParams?.pushNotificationConfig?.prid = "testprid"
 		paulineAccount.params = newPaulineParams
-		XCTAssertTrue(paulineAccount.params!.contactUriParameters.contains("pn-prid=testvoiptoken"))
+		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing prid")) {
+			self.waitForExpectations(timeout: 10)
+		}
 	}
 	
 	func testVoipPushCall() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
-		marie.core.pushNotificationEnabled = false
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		var pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		var pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
+
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
@@ -267,10 +270,9 @@ class IncomingPushTest: XCTestCase {
 		marie.core.pushNotificationEnabled = false
 		
 		let basicPauline = LinphoneTestUser(rcFile: "pauline_rc")
-		basicPauline.core.pushNotificationEnabled = false
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		let pushPauline = LinphoneTestUser(rcFile: "pauline_rc")
+		let pushPauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		let pushTimeoutInSecond = 5
 		pushPauline.core.pushIncomingCallTimeout = pushTimeoutInSecond
 		pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
@@ -336,10 +338,9 @@ class IncomingPushTest: XCTestCase {
 	
 	func testDeclineCallBeforeReceivingSipInvite() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
-		marie.core.pushNotificationEnabled = false
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
@@ -384,7 +385,7 @@ class IncomingPushTest: XCTestCase {
 		marie.core.pushNotificationEnabled = false
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 10)
 		}
@@ -459,7 +460,7 @@ class IncomingPushTest: XCTestCase {
 
 		let marie = linphone_core_manager_new("marie_rc")
 		let marieCore = Core.getSwiftObject(cObject: marie!.pointee.lc)
-		let pauline = linphone_core_manager_new("pauline_rc")
+		let pauline = linphone_core_manager_new("pauline_push_enabled_rc")
 		let paulineCore = Core.getSwiftObject(cObject: pauline!.pointee.lc)
 		
 		let marieAccount = marieCore.defaultAccount!
