@@ -7,14 +7,19 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <PushKit/PushKit.h>
 
 extern NSString *const kPushTokenReceived;
 extern NSString *const kPushNotificationReceived;
-static void *rawDeviceToken = NULL;
-@interface AppDelegate : UIResponder <UIApplicationDelegate>
+extern NSString *const kRemotePushTokenReceived;
+@interface AppDelegate : UIResponder <UIApplicationDelegate, PKPushRegistryDelegate>
 
+@property (nonatomic, strong) PKPushRegistry* voipRegistry;
 @property (strong, nonatomic) UIWindow *window;
-@property NSData* pushDeviceToken;
+@property NSString* voipToken;
+
+//
+-(void) enableVoipPush;
 
 @end
 
