@@ -72,9 +72,9 @@ job-debian10-ninja-gcc-novideo:
 
 job-debian10-ninja-gcc-smallsdk:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+#  only:
+#    variables:
+#      - $NIGHTLY_MASTER
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DHAVE_FLEXIAPI=NO
@@ -153,5 +153,13 @@ test-liblinphone-debian10:
   extends: .test-liblinphone
   needs:
     - job-debian10-ninja-gcc
+  variables:
+    PLATFORM: linux-debian10
+
+test-liblinphone-debian10-smallsdk:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:$DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION
+  extends: .test-liblinphone-mr
+  needs:
+    - job-debian10-ninja-gcc-smallsdk
   variables:
     PLATFORM: linux-debian10
