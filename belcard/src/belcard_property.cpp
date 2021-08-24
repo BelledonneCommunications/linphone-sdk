@@ -57,8 +57,9 @@ void BelCardProperty::setValue(const string &value) {
 	string s = value;
 
 	// Trim.
-	s.erase(s.begin(), find_if(s.begin(), s.end(), not1(ptr_fun<int, int>(isspace))));
-	s.erase(find_if(s.rbegin(), s.rend(), not1(ptr_fun<int, int>(isspace))).base(), s.end());
+	s.erase(s.begin(), find_if(s.begin(), s.end(), [](const unsigned char& c) { return !isspace(c);}));
+	s.erase(find_if(s.rbegin(), s.rend(), [](const unsigned char& c){ return !isspace(c);}).base(), s.end());
+
 
 	_value = s;
 }
