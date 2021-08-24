@@ -82,14 +82,16 @@ class IncomingPushTest: XCTestCase {
 			core.removeDelegate(delegate: coreStoppedDelegate)
 		}
 		
-		func waitForVoipTokenRegistration(voipTokenRegisteredExpectation: XCTestExpectation, waitFn : @escaping()->Void) {
-			voipTokenRegisteredExpectation.assertForOverFulfill = false
-			let voipTokenDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
-				if (!account.params!.pushNotificationConfig!.voipToken.isEmpty && state == .Ok) {
-					voipTokenRegisteredExpectation.fulfill()
+		func waitForRegistration(registeredExpectation: XCTestExpectation, requireVoipToken : Bool = true, waitFn : @escaping()->Void) {
+			registeredExpectation.assertForOverFulfill = false
+			let registeredDelegate = AccountDelegateStub(onRegistrationStateChanged: { (account: Account, state: RegistrationState, message: String) in
+				if (state == .Ok) {
+					if (!requireVoipToken || !account.params!.pushNotificationConfig!.voipToken.isEmpty) {
+						registeredExpectation.fulfill()
+					}
 				}
 			})
-			core.defaultAccount!.addDelegate(delegate: voipTokenDelegate)
+			core.defaultAccount!.addDelegate(delegate: registeredDelegate)
 			waitFn()
 		}
 		
@@ -114,7 +116,7 @@ class IncomingPushTest: XCTestCase {
 		try! pauline.core.setMediaencryption(newValue: .SRTP)
 		pauline.core.mediaEncryptionMandatory = true
 		
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Pauline voip registered")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "Pauline voip registered")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		
@@ -182,7 +184,7 @@ class IncomingPushTest: XCTestCase {
 		let ensureNotRegisteredAgainExp = expectation(description: "Check that Marie does not register with voip token")
 		ensureNotRegisteredAgainExp.isInverted = true // Inverted expectation, this test ensures that Marie does not register with a voip token
 	
-		marie.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: ensureNotRegisteredAgainExp) {
+		marie.waitForRegistration(registeredExpectation: ensureNotRegisteredAgainExp) {
 			self.waitForExpectations(timeout: 5)
 		}
 	}
@@ -190,7 +192,7 @@ class IncomingPushTest: XCTestCase {
 	func testUpdateRegisterWhenPushConfigurationChanges() {
 		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 		
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- Registered with voip token")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- Registered with voip token")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		
@@ -201,40 +203,38 @@ class IncomingPushTest: XCTestCase {
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.provider = "testprovider"
 		paulineAccount.params = newPaulineParams
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing provider")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing provider")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.param = "testparams"
 		paulineAccount.params = newPaulineParams
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing params")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing params")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		
 		newPaulineParams = paulineAccount.params?.clone()
 		newPaulineParams?.pushNotificationConfig?.prid = "testprid"
 		paulineAccount.params = newPaulineParams
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing prid")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "testUpdateRegisterWhenPushConfigurationChanges -- register again when changing prid")) {
 			self.waitForExpectations(timeout: 10)
 		}
 	}
 	
-	func testVoipPushCall() {
+	func testVoipPushCallWithCorePushEnabled() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		var pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
 
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		
 		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
-		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) {
-			self.waitForExpectations(timeout: 10)
-		}
+		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)	}
 		
 		// First we receive the push, then the sip invite, since the core is stopped
 		let expectPushIncomingState = expectation(description: "Incoming Push Received")
@@ -251,8 +251,9 @@ class IncomingPushTest: XCTestCase {
 		})
 		pauline.core.addDelegate(delegate: basicPaulineIncomingCallDelegate)
 		
-		let call = marie.core.invite(url: paulineAddress)
+		var call = marie.core.invite(url: paulineAddress)
 		self.waitForExpectations(timeout: 10)
+		pauline.core.removeDelegate(delegate: basicPaulineIncomingCallDelegate)
 		
 		let expectCallTerminated = self.expectation(description: "Call terminated expectation - iteration")
 		let callTerminatedDelegate = CallDelegateStub(onStateChanged: { (thisCall: Call, state: Call.State, message : String) in
@@ -263,11 +264,71 @@ class IncomingPushTest: XCTestCase {
 		call?.addDelegate(delegate: callTerminatedDelegate)
 		try! call!.terminate()
 		self.waitForExpectations(timeout: 10)
+		
+		// Now, check that we do not receive it anymore when we disable core push
+		pauline.core.pushNotificationEnabled = false
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token"), requireVoipToken: false) {
+			self.waitForExpectations(timeout: 10)
+		}
+		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)	}
+		
+		let expectNoCall = expectation(description: "Do not receive call when push is disabled")
+		expectNoCall.isInverted = true
+		let ensureNoIncomingCallDelegate = CoreDelegateStub(onCallStateChanged: { (lc: Core, call: Call, cstate: Call.State, message: String) in
+			expectNoCall.fulfill()
+		})
+		pauline.core.addDelegate(delegate: basicPaulineIncomingCallDelegate)
+		call = marie.core.invite(url: paulineAddress)
+		self.waitForExpectations(timeout: 5)
+	}
+	
+	var tokenReceivedExpect : XCTestExpectation!
+	var pushReceivedExpect : XCTestExpectation!
+	func receivedPushTokenCallback() {
+		tokenReceivedExpect.fulfill()
+	}
+	func receivedPushNotificationCallback() {
+		pushReceivedExpect.fulfill()
+	}
+	func testVoipPushCallWithManualManagement() {
+		tokenReceivedExpect = expectation(description: "VOIP Push Token received")
+		NotificationCenter.default.addObserver(self,
+											   selector:#selector(self.receivedPushTokenCallback),
+											   name: NSNotification.Name(rawValue: kPushTokenReceived),
+											   object:nil);
+		
+		(UIApplication.shared.delegate as! AppDelegate).enableVoipPush()
+		waitForExpectations(timeout: 5)
+		let voipToken = (UIApplication.shared.delegate as! AppDelegate).voipToken!
+		
+		let marie = LinphoneTestUser(rcFile: "marie_rc")
+		let pauline = LinphoneTestUser(rcFile: "pauline_rc")
+		
+		let paulineAccount = pauline.core.defaultAccount!
+		let newParams = paulineAccount.params!.clone()
+		newParams?.pushNotificationConfig?.voipToken = voipToken
+		newParams!.contactUriParameters = "pn-prid=" + voipToken + ";pn-provider=apns.dev;pn-param=ABCD1234.belledonne.LinphoneTester.voip;pn-silent=1;pn-timeout=0"
+		paulineAccount.params = newParams
+		
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
+			self.waitForExpectations(timeout: 20)
+		}
+		
+		NotificationCenter.default.addObserver(self,
+											   selector:#selector(self.receivedPushNotificationCallback),
+											   name: NSNotification.Name(rawValue: kPushNotificationReceived),
+											   object:nil);
+		
+		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
+		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)	}
+		
+		pushReceivedExpect = expectation(description: "VOIP Push notification received")
+		var call = marie.core.invite(url: paulineAddress)
+		self.waitForExpectations(timeout: 10)
 	}
 	
 	func testAnswerCallBeforePushIsReceivedOnSecondDevice() {
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
-		marie.core.pushNotificationEnabled = false
 		
 		let basicPauline = LinphoneTestUser(rcFile: "pauline_rc")
 		
@@ -276,7 +337,7 @@ class IncomingPushTest: XCTestCase {
 		let pushTimeoutInSecond = 5
 		pushPauline.core.pushIncomingCallTimeout = pushTimeoutInSecond
 		pushPauline.core.defaultAccount?.params?.conferenceFactoryUri = "sip:conference@fakeserver.com"
-		pushPauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "testAnswerCallBeforePushIsReceivedOnSecondDevice - Registered with voip token")) {
+		pushPauline.waitForRegistration(registeredExpectation: expectation(description: "testAnswerCallBeforePushIsReceivedOnSecondDevice - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		
@@ -341,7 +402,7 @@ class IncomingPushTest: XCTestCase {
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
 		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
@@ -386,7 +447,7 @@ class IncomingPushTest: XCTestCase {
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP. IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
 		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-		pauline.waitForVoipTokenRegistration(voipTokenRegisteredExpectation: expectation(description: "Registered with voip token")) {
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "Registered with voip token")) {
 			self.waitForExpectations(timeout: 10)
 		}
 		let paulineAddress = pauline.core.defaultAccount!.params!.identityAddress!.asString()
@@ -439,20 +500,13 @@ class IncomingPushTest: XCTestCase {
 	}
 	
 	// Class wide expectations and functions to use for chatroom tests, since it requires intervention of the application delegate to receive the device token
-	var tokenReceivedExpect : XCTestExpectation!
-	var pushReceivedExpect : XCTestExpectation!
-	func receivedPushTokenCallback() {
-		tokenReceivedExpect.fulfill()
-	}
-	func receivedPushNotificationCallback() {
-		pushReceivedExpect.fulfill()
-	}
+
 	func testChatroom() {
 		tokenReceivedExpect = expectation(description: "Push Token received")
 		tokenReceivedExpect.assertForOverFulfill = false
 		NotificationCenter.default.addObserver(self,
 											   selector:#selector(self.receivedPushTokenCallback),
-											   name: NSNotification.Name(rawValue: kPushTokenReceived),
+											   name: NSNotification.Name(rawValue: kRemotePushTokenReceived),
 											   object:nil);
 		
 		UIApplication.shared.registerForRemoteNotifications()
@@ -475,9 +529,6 @@ class IncomingPushTest: XCTestCase {
 		let enablePushParams = paulineAccount.params!.clone()
 		enablePushParams?.remotePushNotificationAllowed = true
 		paulineAccount.params = enablePushParams
-		
-		//let testToken = (UIApplication.shared.delegate as! AppDelegate).pushDeviceToken
-		//paulineCore.didRegisterForRemotePush(deviceToken: &(UIApplication.shared.delegate as! AppDelegate).pushDeviceToken)
 		
 		paulineCore.didRegisterForRemotePush(deviceToken: Factory.Instance.userData)
 		paulineCore.autoIterateEnabled = true
