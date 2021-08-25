@@ -166,6 +166,12 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	wave_header_t header;
 	int fd;
 	char *tmp;
+
+	if(obj->is_open) {
+		ms_error("Player is already opened, close it first!");
+		return FALSE;
+	}
+
 	ms_message("Opening %s", filepath);
 	if(access(filepath, F_OK) != 0) {
 		ms_error("Cannot open %s. File does not exist", filepath);
