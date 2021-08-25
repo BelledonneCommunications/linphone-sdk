@@ -144,7 +144,7 @@ job-ios-xcode:
   before_script:
    - IOS_DEPLOY_URL=$IOS_RELEASES_URL
    - |
-       if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+       if git -C liblinphone describe | grep -Eq '.*(alpha|beta).*';
        then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
        fi
    - echo $IOS_DEPLOY_URL
@@ -172,7 +172,7 @@ job-ios-xcode-novideo:
   before_script:
    - IOS_DEPLOY_URL=$IOS_RELEASES_URL
    - |
-       if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+       if git -C liblinphone describe | grep -Eq '.*(alpha|beta).*';
        then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
        fi
    - echo $IOS_DEPLOY_URL
