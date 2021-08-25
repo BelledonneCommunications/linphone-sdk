@@ -7,24 +7,6 @@ variables:
   MAKEFILE_JOBS: 5
   CCACHE_SIZE: 2G
 
-  # Docker image version
-  ANDROID_R17C_IMAGE_VERSION: 20210217_python3
-  ANDROID_R20_IMAGE_VERSION: 20210217_python3
-  ARCHLINUX_IMAGE_VERSION: 20210217_init
-  ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION : 20210217_init
-  CENTOS_7_IMAGE_VERSION: 20210217_python3
-  CENTOS_7_TEST_LIBLIN_IMAGE_VERSION: 20210217_python3
-  CENTOS_8_IMAGE_VERSION: 20210217_python3
-  CENTOS_8_TEST_LIBLIN_IMAGE_VERSION: 20210217_python3
-  DEBIAN_8_IMAGE_VERSION: 20210217_python3
-  DEBIAN_9_IMAGE_VERSION: 20210217_python3
-  DEBIAN_9_TEST_LIBLIN_IMAGE_VERSION: 20210217_python3
-  DEBIAN_9_METABC_YOCTO_IMAGE_VERSION: 20210304_python3
-  DEBIAN_10_IMAGE_VERSION: 20210217_python3
-  DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION: 20210217_python3
-  UBUNTU_ROLLING_IMAGE_VERSION: 20210217_python3
-  UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION: 20210217_python3
-
   #Lime X3DH activated by default, if there is a problem, see the default
   #build options in CMakeBuilder
   #Do not set CMAKE_OPTIONS here as it may be overwritten by child jobs
@@ -43,6 +25,7 @@ variables:
       - $FAST_LINUX_TESTS
 
 include:
+  - '.docker-images.yml'
   - '.gitlab-ci-files/job-linux-prepare.yml'
   - '.gitlab-ci-files/job-android.yml'
   - '.gitlab-ci-files/job-ios.yml'
