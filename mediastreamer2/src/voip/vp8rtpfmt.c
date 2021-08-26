@@ -626,15 +626,17 @@ static void notify_frame_error_if_any(Vp8RtpFmtUnpackerCtx *ctx, Vp8RtpFmtFrame 
 	}
 }
 
-static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t **packets_list) {
+static void add_frame(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t **packets_list, bool_t end_missing) {
 	Vp8RtpFmtFrame *frame;
 
 	if (*packets_list != NULL) {
 		frame = ms_new0(Vp8RtpFmtFrame, 1);
 		generate_frame_partitions_list(frame, *packets_list);
 		check_frame_partitions_list(ctx, frame);
+		if (end_missing) mark_frame_as_invalid(ctx, frame);
 		notify_frame_error_if_any(ctx, frame);
 		ctx->frames_list = bctbx_list_append(ctx->frames_list, (void *)frame);
+		frame->timestamp = ctx->last_ts;
 		bctbx_list_free(*packets_list);
 	}
 	*packets_list = NULL;
@@ -660,7 +662,7 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t *packet
 		if ((ctx->initialized_last_ts == TRUE) && (ts != ctx->last_ts)) {
 			/* The current packet is from a frame different than the previous one
 			* (that apparently is not complete). */
-			add_frame(ctx, &frame_packets_list);
+			add_frame(ctx, &frame_packets_list, TRUE);
 		}
 		ctx->last_ts = ts;
 		ctx->initialized_last_ts = TRUE;
@@ -670,7 +672,7 @@ static void generate_frames_list(Vp8RtpFmtUnpackerCtx *ctx, bctbx_list_t *packet
 
 		if (mblk_get_marker_info(packet->m)) {
 			/* The current packet is the last of the current frame. */
-			add_frame(ctx, &frame_packets_list);
+			add_frame(ctx, &frame_packets_list, FALSE);
 		}
 	}
 
@@ -698,7 +700,8 @@ static void output_frame(MSQueue *out, Vp8RtpFmtFrame *frame) {
 	if (om != NULL) {
 		if (om->b_cont) msgpullup(om, -1);
 		mblk_set_marker_info(om, 1);
-		ms_queue_put(out, (void *)om);
+		mblk_set_timestamp_info(om, frame->timestamp);
+		ms_queue_put(out, om);
 	}
 }
 
@@ -710,7 +713,7 @@ static void output_partition(MSQueue *out, Vp8RtpFmtPartition **partition, bool_
 	if ((*partition)->has_marker || (last == TRUE)) {
 		mblk_set_marker_info((*partition)->m, 1);
 	}
-	ms_queue_put(out, (void *)(*partition)->m);
+	ms_queue_put(out, (*partition)->m);
 	(*partition)->outputted = TRUE;
 }
 
@@ -840,8 +843,8 @@ static void free_partitions_of_frame(void *data) {
 }
 
 static void clean_frame(Vp8RtpFmtUnpackerCtx *ctx) {
-	if (bctbx_list_size(ctx->frames_list) > 0) {
-		Vp8RtpFmtFrame *frame = bctbx_list_nth_data(ctx->frames_list, 0);
+	if (ctx->frames_list) {
+		Vp8RtpFmtFrame *frame = (Vp8RtpFmtFrame*)bctbx_list_nth_data(ctx->frames_list, 0);
 		free_partitions_of_frame(frame);
 		ctx->frames_list = bctbx_list_remove(ctx->frames_list, frame);
 		ms_free(frame);

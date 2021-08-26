@@ -84,6 +84,7 @@ extern "C"{
 		Vp8RtpFmtFramePartitionsInfo partitions_info;
 		Vp8RtpFmtPartition *partitions[9];
 		Vp8RtpFmtErrorCode error;
+		uint32_t timestamp;
 		uint16_t pictureid;
 		bool_t pictureid_present;
 		bool_t unnumbered_partitions;

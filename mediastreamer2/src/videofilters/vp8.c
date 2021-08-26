@@ -909,6 +909,7 @@ typedef struct DecState {
 	MSPicture outbuf;
 	unsigned int yuv_width, yuv_height;
 	MSAverageFPS fps;
+	uint32_t last_timestamp;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
@@ -1031,6 +1032,7 @@ static void *dec_processing_thread(void *obj) {
 			vpx_codec_err_t err;
 			vpx_image_t *img;
 			vpx_codec_iter_t iter = NULL;
+			
 			while ((im = ms_queue_get(&frame)) != NULL) {
 				err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
 				if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
@@ -1039,6 +1041,7 @@ static void *dec_processing_thread(void *obj) {
 				if (err) {
 					ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
 				}
+				s->last_timestamp = mblk_get_timestamp_info(im);
 				freemsg(im);
 			}
 	
@@ -1072,7 +1075,7 @@ static void *dec_processing_thread(void *obj) {
 				if (yuv_msg == NULL) {
 					ms_warning("MSVp8Dec: no more output buffers, frame is discarded.");
 				}else{
-					/* scale/copy frame to destination mblk_t */
+					/* copy frame to destination mblk_t */
 					for (i = 0; i < 3; i++) {
 						uint8_t *dest = s->outbuf.planes[i];
 						uint8_t *src = img->planes[i];
@@ -1084,7 +1087,7 @@ static void *dec_processing_thread(void *obj) {
 							src += img->stride[i];
 						}
 					}
-					
+					mblk_set_timestamp_info(yuv_msg, s->last_timestamp);
 					ms_filter_lock(f);
 					ms_queue_put(&s->exit_q, yuv_msg);
 					ms_filter_unlock(f);

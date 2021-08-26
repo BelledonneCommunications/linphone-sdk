@@ -618,7 +618,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 
 	if (source_changed) {
 		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
-		ms_filter_add_notify_callback(stream->source, source_event_cb, stream, FALSE);
+		if (!is_player) ms_filter_add_notify_callback(stream->source, source_event_cb, stream, FALSE);
 		/* It is important that the internal_event_cb is called synchronously! */
 		ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
 	}
