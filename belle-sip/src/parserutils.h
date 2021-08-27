@@ -39,7 +39,6 @@ static BELLESIP_INLINE int belle_sip_strcasecmp(const char*a, const char* b) {
 #define ANTLR3_LOG_EXCEPTION() belle_sip_message("[\%s] reason [\%s] at line[\%u] position[\%d]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message,EXCEPTION->line,EXCEPTION->charPositionInLine);
 
 
-BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
 
 belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);

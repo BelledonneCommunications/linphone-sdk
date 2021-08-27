@@ -111,6 +111,7 @@ BELLESIP_EXPORT int belle_sip_header_address_equals(const belle_sip_header_addre
 BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_parse (const char* header);
 BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_create (const char* name,const char* value);
 BELLESIP_EXPORT belle_sip_header_t* belle_http_header_create (const char* name,const char* value);
+BELLESIP_EXPORT belle_sip_header_t* belle_sip_header_get_next(const belle_sip_header_t* headers);
 BELLESIP_EXPORT const char* belle_sip_header_get_name (const belle_sip_header_t* obj);
 BELLESIP_EXPORT void belle_sip_header_set_name (belle_sip_header_t* obj,const char* value);
 BELLESIP_EXPORT belle_sip_error_code belle_sip_header_marshal(belle_sip_header_t* header, char* buff, size_t buff_size, size_t *offset);
