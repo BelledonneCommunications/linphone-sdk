@@ -25,33 +25,33 @@
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
-static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
+class OboeOutputCallback;
 
-struct AAudioOutputContext {
-	AAudioOutputContext(MSFilter *f) {
-		mFilter = f;
+struct OboeOutputContext {
+	OboeOutputContext(MSFilter *f) {
+		filter = f;
 		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
 		ms_mutex_init(&mutex, NULL);
-		ms_mutex_init(&stream_mutex, NULL);
+		ms_mutex_init(&streamMutex, NULL);
 		soundCard = NULL;
-		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
-		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
+		usage = oboe::Usage::VoiceCommunication;
+		contentType = oboe::ContentType::Speech;
 		prevXRunCount = 0;
 		bufferCapacity = 0;
 		bufferSize = 0;
 		framesPerBurst = 0;
 	}
 
-	~AAudioOutputContext() {
+	~OboeOutputContext() {
 		ms_flow_controlled_bufferizer_uninit(&buffer);
 		ms_mutex_destroy(&mutex);
-		ms_mutex_destroy(&stream_mutex);
+		ms_mutex_destroy(&streamMutex);
 	}
 	
-	void setContext(AAudioContext *context) {
-		aaudio_context = context;
-		ms_flow_controlled_bufferizer_set_samplerate(&buffer, aaudio_context->samplerate);
-		ms_flow_controlled_bufferizer_set_nchannels(&buffer, aaudio_context->nchannels);
+	void setContext(OboeContext *context) {
+		oboeContext = context;
+		ms_flow_controlled_bufferizer_set_samplerate(&buffer, oboeContext->sampleRate);
+		ms_flow_controlled_bufferizer_set_nchannels(&buffer, oboeContext->nchannels);
 		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
 	}
@@ -60,42 +60,42 @@ struct AAudioOutputContext {
 		MSSndCardStreamType type = ms_snd_card_get_stream_type(soundCard);
 		switch (type) {
 			case MS_SND_CARD_STREAM_RING:
-				usage = AAUDIO_USAGE_NOTIFICATION_RINGTONE;
-				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-				ms_message("[AAudio] Using RING mode");
+				usage = oboe::Usage::NotificationRingtone;
+				contentType = oboe::ContentType::Music;
+				ms_message("[Oboe] Using NotificationRingtone usage / Music content type");
 				break;
 			case MS_SND_CARD_STREAM_MEDIA:
-				usage = AAUDIO_USAGE_MEDIA;
-				content_type = AAUDIO_CONTENT_TYPE_MUSIC;
-				ms_message("[AAudio] Using MEDIA mode");
+				usage = oboe::Usage::Media;
+				contentType = oboe::ContentType::Music;
+				ms_message("[Oboe] Using Media usage / Music content type");
 				break;
 			case MS_SND_CARD_STREAM_DTMF:
-				usage = AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING;
-				content_type =  AAUDIO_CONTENT_TYPE_SONIFICATION ;
-				ms_message("[AAudio] Using DTMF mode");
+				usage = oboe::Usage::VoiceCommunicationSignalling;
+				contentType =  oboe::ContentType::Sonification ;
+				ms_message("[Oboe] Using VoiceCommunicationSignalling usage / Sonification content type");
 				break;
 			case MS_SND_CARD_STREAM_VOICE:
-				usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
-				content_type = AAUDIO_CONTENT_TYPE_SPEECH;
-				ms_message("[AAudio] Using COMMUNICATION mode");
+				usage = oboe::Usage::VoiceCommunication;
+				contentType = oboe::ContentType::Speech;
+				ms_message("[Oboe] Using VoiceCommunication usage / Speech content type");
 				break;
 			default:
-				ms_error("[AAudio] Unknown stream type %0d", type);
+				ms_error("[Oboe] Unknown stream type %0d", type);
 				break;
 		}
 	}
 
-	AAudioContext *aaudio_context;
-	AAudioStream *stream;
-	ms_mutex_t stream_mutex;
+	OboeContext *oboeContext;
+	OboeOutputCallback *oboeCallback;
+	std::shared_ptr<oboe::AudioStream> stream;
+	ms_mutex_t streamMutex;
 
 	MSSndCard *soundCard;
-	MSFilter *mFilter;
+	MSFilter *filter;
 	MSFlowControlledBufferizer buffer;
-	int32_t samplesPerFrame;
 	ms_mutex_t mutex;
-	aaudio_usage_t usage;
-	aaudio_content_type_t content_type;
+	oboe::Usage usage;
+	oboe::ContentType contentType;
 
 	int32_t bufferCapacity;
 	int32_t prevXRunCount;
@@ -103,13 +103,50 @@ struct AAudioOutputContext {
 	int32_t framesPerBurst;
 };
 
+class OboeOutputCallback: public oboe::AudioStreamDataCallback {
+public:
+	virtual ~OboeOutputCallback() = default;
+
+	OboeOutputCallback(OboeOutputContext *context): oboeOutputContext(context) {
+		ms_message("[Oboe] OboeOutputCallback created");
+	}
+
+	oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream, void *audioData, int32_t numFrames) override {
+		OboeOutputContext *octx = oboeOutputContext;
+	
+		if (numFrames <= 0) {
+			ms_error("[Oboe] onAudioReady has %i frames", numFrames);
+			return oboe::DataCallbackResult::Continue;
+		}
+
+		ms_mutex_lock(&octx->mutex);
+		int ask = sizeof(int16_t) * numFrames * oboeStream->getChannelCount();
+		int avail = ms_flow_controlled_bufferizer_get_avail(&octx->buffer);
+		int bytes = MIN(ask, avail);
+		
+		if (bytes > 0) {
+			ms_flow_controlled_bufferizer_read(&octx->buffer, (uint8_t *)audioData, bytes);
+		}
+
+		if (avail < ask) {
+			memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
+		}
+		
+		ms_mutex_unlock(&octx->mutex);
+		return oboe::DataCallbackResult::Continue;
+	}
+
+private:
+	OboeOutputContext *oboeOutputContext;
+};
+
 static void android_snd_write_init(MSFilter *obj){
-	AAudioOutputContext *octx = new AAudioOutputContext(obj);
+	OboeOutputContext *octx = new OboeOutputContext(obj);
 	obj->data = octx;
 }
 
 static void android_snd_write_uninit(MSFilter *obj){
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
 	if (octx->soundCard) {
 		ms_snd_card_unref(octx->soundCard);
 		octx->soundCard = NULL;
@@ -123,157 +160,140 @@ static int android_snd_write_set_sample_rate(MSFilter *obj, void *data) {
 
 static int android_snd_write_get_sample_rate(MSFilter *obj, void *data) {
 	int *n = (int*)data;
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	*n = octx->aaudio_context->samplerate;
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
+	*n = octx->oboeContext->sampleRate;
 	return 0;
 }
 
 static int android_snd_write_set_nchannels(MSFilter *obj, void *data) {
 	int *n = (int*)data;
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	octx->aaudio_context->nchannels = *n;
-	ms_flow_controlled_bufferizer_set_nchannels(&octx->buffer, octx->aaudio_context->nchannels);
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
+	octx->oboeContext->nchannels = *n;
+	ms_flow_controlled_bufferizer_set_nchannels(&octx->buffer, octx->oboeContext->nchannels);
 	return 0;
 }
 
 static int android_snd_write_get_nchannels(MSFilter *obj, void *data) {
 	int *n = (int*)data;
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	*n = octx->aaudio_context->nchannels;
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
+	*n = octx->oboeContext->nchannels;
 	return 0;
 }
 
-static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)userData;
-	
-	if (numFrames <= 0) {
-		ms_error("[AAudio] aaudio_player_callback has %i frames", numFrames);
-	}
-
-	ms_mutex_lock(&octx->mutex);
-	int ask = sizeof(int16_t) * numFrames * octx->samplesPerFrame;
-	int avail = ms_flow_controlled_bufferizer_get_avail(&octx->buffer);
-	int bytes = MIN(ask, avail);
-	
-	if (bytes > 0) {
-		ms_flow_controlled_bufferizer_read(&octx->buffer, (uint8_t *)audioData, bytes);
-	}
-	if (avail < ask) {
-		memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
-	}
-	ms_mutex_unlock(&octx->mutex);
-
-	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
-}
-
-static void aaudio_player_init(AAudioOutputContext *octx) {
-	AAudioStreamBuilder *builder;
-	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
-	if (result != AAUDIO_OK && !builder) {
-		ms_error("[AAudio] Couldn't create stream builder for player: %i / %s", result, AAudio_convertResultToText(result));
-	}
-
+static void oboe_player_init(OboeOutputContext *octx) {
 	octx->updateStreamTypeFromMsSndCard();
-	AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
-	ms_message("[AAudio] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
-	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
-	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);
-	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-	AAudioStreamBuilder_setChannelCount(builder, octx->aaudio_context->nchannels);
-	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE); // If EXCLUSIVE mode isn't available the builder will fall back to SHARED mode.
-	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-	AAudioStreamBuilder_setErrorCallback(builder, aaudio_player_callback_error, octx);
-	AAudioStreamBuilder_setUsage(builder, octx->usage); // Requires NDK build target of 28 instead of 26 !
-	AAudioStreamBuilder_setContentType(builder, octx->content_type); // Requires NDK build target of 28 instead of 26 !
 
-	ms_message("[AAudio] Player stream configured with samplerate %i and %i channels", octx->aaudio_context->samplerate, octx->aaudio_context->nchannels);
+	oboe::AudioStreamBuilder builder;
+
+	oboe::DefaultStreamValues::SampleRate = (int32_t) DeviceFavoriteSampleRate;
+	oboe::DefaultStreamValues::FramesPerBurst = (int32_t) DeviceFavoriteFramesPerBurst;
+
+	builder.setDirection(oboe::Direction::Output);
+	builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
+	builder.setSharingMode(oboe::SharingMode::Exclusive);
+	builder.setFormat(oboe::AudioFormat::I16);
+	builder.setChannelCount(octx->oboeContext->nchannels);
+	builder.setSampleRate(octx->oboeContext->sampleRate);
+
+	octx->oboeCallback = new OboeOutputCallback(octx);
+	builder.setDataCallback(octx->oboeCallback);
+
+	builder.setDeviceId(octx->soundCard->internal_id);
+	ms_message("[Oboe] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	
-	result = AAudioStreamBuilder_openStream(builder, &(octx->stream));
-	if (result != AAUDIO_OK && !octx->stream) {
-		ms_error("[AAudio] Open stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
-		AAudioStreamBuilder_delete(builder);
-		octx->stream = NULL;
+	builder.setUsage(octx->usage);
+	builder.setContentType(octx->contentType);
+
+	builder.setSessionId(oboe::SessionId::None);
+	
+	oboe::Result result = builder.openStream(octx->stream);
+	if (result != oboe::Result::OK) {
+		ms_error("[Oboe] Open stream for player failed: %i / %s", result, oboe::convertToText(result));
+		octx->stream = nullptr;
 		return;
 	} else {
-		ms_message("[AAudio] Player stream opened");
+		ms_message("[Oboe] Player stream opened, status: %s", oboe_state_to_string(octx->stream->getState()));
+		ms_message("[Oboe] Player stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
+			oboe_api_to_string(octx->stream->getAudioApi()), oboe_direction_to_string(octx->stream->getDirection()), 
+			octx->stream->getDeviceId(), oboe_sharing_mode_to_string(octx->stream->getSharingMode()), oboe_performance_mode_to_string(octx->stream->getPerformanceMode()), 
+			octx->stream->getSampleRate(), octx->stream->getChannelCount(), oboe_format_to_string(octx->stream->getFormat()), 
+			octx->stream->getFramesPerBurst(), octx->stream->getBufferCapacityInFrames()
+		);
 	}
 
-	aaudio_content_type_t contentType = AAudioStream_getContentType(octx->stream);
-	aaudio_usage_t usage = AAudioStream_getUsage(octx->stream);
-	ms_message("[AAudio] Expected content type %i, got %i", octx->content_type, contentType);
-	ms_message("[AAudio] Expected usage %i, got %i", octx->usage, usage);
-
-	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
+	int32_t framesPerBust = octx->stream->getFramesPerBurst();
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
-	AAudioStream_setBufferSizeInFrames(octx->stream, octx->framesPerBurst * octx->aaudio_context->nchannels * 2);
-	octx->samplesPerFrame = AAudioStream_getSamplesPerFrame(octx->stream);
+	octx->stream->setBufferSizeInFrames(framesPerBust * octx->oboeContext->nchannels);
 
 	// Current settings
-	octx->bufferCapacity = AAudioStream_getBufferCapacityInFrames(octx->stream);
-	octx->bufferSize = AAudioStream_getBufferSizeInFrames(octx->stream);
+	octx->bufferCapacity = octx->stream->getBufferCapacityInFrames();
+	octx->bufferSize = octx->stream->getBufferSizeInFrames();
 
-	result = AAudioStream_requestStart(octx->stream);
-
-	if (result != AAUDIO_OK) {
-		ms_error("[AAudio] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
-		result = AAudioStream_close(octx->stream);
-		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+	result = octx->stream->start();
+	if (result != oboe::Result::OK) {
+		ms_error("[Oboe] Start stream for player failed: %i / %s", result, oboe::convertToText(result));
+		result = octx->stream->close();
+		if (result != oboe::Result::OK) {
+			ms_error("[Oboe] Player stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[AAudio] Player stream closed");
+			ms_message("[Oboe] Player stream closed");
 		}
-		octx->stream = NULL;
+		octx->stream = nullptr;
 	} else {
-		ms_message("[AAudio] Player stream started");
+		ms_message("[Oboe] Player stream started, status: %s", oboe_state_to_string(octx->stream->getState()));
 	}
-
-	AAudioStreamBuilder_delete(builder);
 }
 
-static void aaudio_player_close(AAudioOutputContext *octx) {
-	ms_mutex_lock(&octx->stream_mutex);
+static void oboe_player_close(OboeOutputContext *octx) {
+	ms_mutex_lock(&octx->streamMutex);
+
 	if (octx->stream) {
-		aaudio_result_t result = AAudioStream_requestStop(octx->stream);
-		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
+		ms_message("[Oboe] Stopping player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
+		oboe::Result result = octx->stream->stop();
+		if (result != oboe::Result::OK) {
+			ms_error("[Oboe] Player stream stop failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[AAudio] Player stream stopped");
+			ms_message("[Oboe] Player stream stopped");
 		}
 
-		result = AAudioStream_close(octx->stream);
-		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+		ms_message("[Oboe] Closing player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
+		result = octx->stream->close();
+		if (result != oboe::Result::OK) {
+			ms_error("[Oboe] Player stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[AAudio] Player stream closed");
+			ms_message("[Oboe] Player stream closed");
 		}
-		octx->stream = NULL;
+		octx->stream = nullptr;
+	} else {
+		ms_warning("[Oboe] Player stream already closed?");
 	}
-	ms_mutex_unlock(&octx->stream_mutex);
-}
 
-static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
-	AAudioOutputContext *octx = (AAudioOutputContext *)userData;
-	ms_error("[AAudio] aaudio_player_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
+	if (octx->oboeCallback) {
+		delete octx->oboeCallback;
+		octx->oboeCallback = nullptr;
+		ms_message("[Oboe] OboeOutputCallback destroyed");
+	}
+
+	ms_mutex_unlock(&octx->streamMutex);
 }
 
 static void android_snd_write_preprocess(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	aaudio_player_init(octx);
+	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
+	oboe_player_init(octx);
 
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 	ms_android_hack_volume(env);
 }
 
-static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
+static void android_snd_adjust_buffer_size(OboeOutputContext *octx) {
 	// Ensure that stream has been created before adjusting buffer size
 	if (octx->stream) {
-		int32_t xRunCount = AAudioStream_getXRunCount(octx->stream);
+		oboe::ResultWithValue<int32_t> xRun = octx->stream->getXRunCount();
+		int32_t xRunCount = xRun.value();
 
 		// If underrunning is getting worse
 		if (xRunCount > octx->prevXRunCount) {
-
 			// New buffer size
 			int32_t newBufferSize = octx->bufferSize + octx->framesPerBurst;
 
@@ -284,8 +304,8 @@ static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
 				newBufferSize = 1;
 			}
 
-			ms_message("[AAudio] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
-			AAudioStream_setBufferSizeInFrames(octx->stream, newBufferSize);
+			ms_message("[Oboe] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
+			octx->stream->setBufferSizeInFrames(newBufferSize);
 
 			octx->bufferSize = newBufferSize;
 			octx->prevXRunCount = xRunCount;
@@ -294,25 +314,23 @@ static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
 }
 
 static void android_snd_write_process(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
 
-	ms_mutex_lock(&octx->stream_mutex);
+	ms_mutex_lock(&octx->streamMutex);
 	if (!octx->stream) {
-		aaudio_player_init(octx);
+		oboe_player_init(octx);
 	} else {
-		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
-		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
-			ms_warning("[AAudio] Player stream has disconnected");
+		oboe::StreamState streamState = octx->stream->getState();
+		if (streamState == oboe::StreamState::Disconnected) {
+			ms_warning("[Oboe] Player stream has disconnected");
 			if (octx->stream) {
-				AAudioStream_close(octx->stream);
-				octx->stream = NULL;
+				octx->stream->close();
+				octx->stream = nullptr;
 			}
 		}
 	}
-
 	android_snd_adjust_buffer_size(octx);
-
-	ms_mutex_unlock(&octx->stream_mutex);
+	ms_mutex_unlock(&octx->streamMutex);
 
 	ms_mutex_lock(&octx->mutex);
 	ms_flow_controlled_bufferizer_put_from_queue(&octx->buffer, obj->inputs[0]);
@@ -320,8 +338,8 @@ static void android_snd_write_process(MSFilter *obj) {
 }
 
 static void android_snd_write_postprocess(MSFilter *obj) {
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	aaudio_player_close(octx);
+	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
+	oboe_player_close(octx);
 	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, FALSE);
@@ -329,11 +347,11 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	ms_message("[AAudio] Requesting to output card. Current %s (device ID %0d) and requested %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
+	ms_message("[Oboe] Requesting to change output card. Current device is %s (device ID %0d) and requested device is %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
+	
 	// Change device ID only if the new value is different from the previous one
 	if (octx->soundCard->internal_id != card->internal_id) {
-		ms_mutex_lock(&octx->stream_mutex);
 		if (octx->soundCard) {
 			ms_snd_card_unref(octx->soundCard);
 			octx->soundCard = NULL;
@@ -341,23 +359,27 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		octx->soundCard = ms_snd_card_ref(card);
 
 		if (octx->stream) {
-			AAudioStream_close(octx->stream);
-			octx->stream = NULL;
+			oboe_player_close(octx);
 		}
+		
+		ms_mutex_lock(&octx->streamMutex);
+		oboe_player_init(octx);
+		ms_mutex_unlock(&octx->streamMutex);
 
-		aaudio_player_init(octx);
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 		ms_android_hack_volume(env);
 
-		ms_mutex_unlock(&octx->stream_mutex);
+	} else {
+		ms_warning("[Oboe] Sound cards internal ids are the same, nothing has been done!");
 	}
+
 	return 0;
 }
 
 static int android_snd_write_get_device_id(MSFilter *obj, void *data) {
 	int *n = (int*)data;
-	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
 	*n = octx->soundCard->internal_id;
 	return 0;
 }
@@ -400,8 +422,8 @@ static MSFilter* ms_android_snd_write_new(MSFactory* factory) {
 
 MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
-	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(f->data);
+	OboeOutputContext *octx = static_cast<OboeOutputContext*>(f->data);
 	octx->soundCard = ms_snd_card_ref(card);
-	octx->setContext((AAudioContext*)card->data);
+	octx->setContext((OboeContext*)card->data);
 	return f;
 }

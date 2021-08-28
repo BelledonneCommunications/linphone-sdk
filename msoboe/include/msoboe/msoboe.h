@@ -25,6 +25,7 @@
 #include <mediastreamer2/mssndcard.h>
 
 extern int DeviceFavoriteSampleRate;
+extern int DeviceFavoriteFramesPerBurst;
 
 struct OboeContext {
 	OboeContext() {
@@ -40,10 +41,17 @@ struct OboeContext {
 	bool device_changed;
 };
 
+const char *oboe_state_to_string(oboe::StreamState state);
+const char *oboe_api_to_string(oboe::AudioApi api);
+const char *oboe_direction_to_string(oboe::Direction direction);
+const char *oboe_sharing_mode_to_string(oboe::SharingMode mode);
+const char *oboe_performance_mode_to_string(oboe::PerformanceMode mode);
+const char *oboe_format_to_string(oboe::AudioFormat format);
+
 MSFilter *android_snd_card_create_reader(MSSndCard *card);
 MSFilter *android_snd_card_create_writer(MSSndCard *card);
 
 void register_oboe_recorder(MSFactory* factory);
-//void register_oboe_player(MSFactory* factory);
+void register_oboe_player(MSFactory* factory);
 
 #endif // ms_oboe_h

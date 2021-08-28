@@ -95,8 +95,7 @@ include_directories(
 
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} oboe ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
-#set(SOURCE_FILES msoboe.cpp msoboe_player.cpp msoboe_recorder.cpp)
-set(SOURCE_FILES msoboe.cpp msoboe_recorder.cpp)
+set(SOURCE_FILES msoboe.cpp msoboe_player.cpp msoboe_recorder.cpp)
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
