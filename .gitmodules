@@ -130,3 +130,6 @@
 [submodule "external/jsoncpp"]
 	path = external/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "msoboe"]
+	path = msoboe
+	url = https://gitlab.linphone.org/BC/public/msoboe.git
