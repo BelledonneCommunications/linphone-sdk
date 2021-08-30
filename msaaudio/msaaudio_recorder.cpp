@@ -32,6 +32,7 @@ struct AAudioInputContext {
 		session_id = AAUDIO_SESSION_ID_NONE;
 		soundCard = NULL;
 		aec = NULL;
+		aecEnabled = true;
 	}
 
 	~AAudioInputContext() {
@@ -58,6 +59,7 @@ struct AAudioInputContext {
 	double mAvSkew;
 	aaudio_session_id_t session_id;
 	jobject aec;
+	bool aecEnabled;
 };
 
 static AAudioInputContext* aaudio_input_context_init() {
@@ -117,9 +119,12 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
 	AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH); // Requires NDK build target of 28 instead of 26 !
 
-	if (ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+	if (ictx->aecEnabled && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ms_message("[AAudio] Asking for a session ID so we can use echo canceller");
 		AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
+	} else {
+		ms_message("[AAudio] Echo canceller isn't available or has been disabled explicitely");
+		AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_NONE);
 	}
 
 	ms_message("[AAudio] Record stream configured with samplerate %i and %i channels", ictx->aaudio_context->samplerate, ictx->aaudio_context->nchannels);
@@ -153,7 +158,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_message("[AAudio] Recorder stream started");
 	}
 
-	if (ictx->stream && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
+	if (ictx->aecEnabled && ictx->stream && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ictx->session_id = AAudioStream_getSessionId(ictx->stream);
 		ms_message("[AAudio] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
 		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
@@ -337,7 +342,14 @@ static int android_snd_read_get_device_id(MSFilter *obj, void *data) {
 	return 0;
 }
 
-static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
+static int android_snd_read_hack_speaker_state(MSFilter *obj, void *data) {
+	return 0;
+}
+
+static int android_snd_read_enable_aec(MSFilter *obj, void *data) {
+	bool *enabled = (bool*)data;
+	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
+	ictx->aecEnabled = !!(*enabled);
 	return 0;
 }
 
@@ -349,6 +361,7 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE, android_snd_read_hack_speaker_state},
 	{MS_AUDIO_CAPTURE_SET_INTERNAL_ID, android_snd_read_set_device_id},
 	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
+	{MS_AUDIO_CAPTURE_ENABLE_AEC, android_snd_read_enable_aec},
 	{0,NULL}
 };
 
