@@ -282,8 +282,11 @@ static void _create_sources(MSMediaRecorder *obj) {
 					ms_error("Could not create video source: %s", obj->web_cam->name);
 				}
 			} else if(obj->snd_card) {
-				if((obj->audio_source = ms_snd_card_create_reader(obj->snd_card))) {
-
+				if ((obj->audio_source = ms_snd_card_create_reader(obj->snd_card))) {
+					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
+						bool_t aec_enabled = FALSE;
+						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
+					}
 				} else {
 					ms_error("Could not create audio source. Soundcard=%s", obj->snd_card->name);
 				}
@@ -291,8 +294,11 @@ static void _create_sources(MSMediaRecorder *obj) {
 			break;
 		case MS_FILE_FORMAT_WAVE:
 			if(obj->snd_card) {
-				if((obj->audio_source = ms_snd_card_create_reader(obj->snd_card))) {
-
+				if ((obj->audio_source = ms_snd_card_create_reader(obj->snd_card))) {
+					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
+						bool_t aec_enabled = FALSE;
+						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
+					}
 				} else {
 					ms_error("Could not create audio source. Soundcard=%s", obj->snd_card->name);
 				}

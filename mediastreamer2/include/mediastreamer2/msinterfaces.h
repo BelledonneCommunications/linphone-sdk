@@ -304,6 +304,8 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 3, int)
 #define MS_AUDIO_CAPTURE_MUTE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 4, int)
+#define MS_AUDIO_CAPTURE_ENABLE_AEC \
+	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 5, bool_t)
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
 
