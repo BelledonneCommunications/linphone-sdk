@@ -30,7 +30,7 @@
     paths:
       - build-ios/linphonesdkversion.txt
       - build-ios/linphone-sdk-*.zip
-      - build-ios/linphone-sdk.podspec
+      - build-ios/linphone-sdk$NOVIDEO_PODSPEC_NAME_EXTENSION.podspec
       - build-ios/docs
       - tester/IOS/LinphoneTester/Podfile
 
@@ -166,6 +166,7 @@ job-ios-xcode-novideo:
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    NOVIDEO_PODSPEC_NAME_EXTENSION: "-novideo"
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
