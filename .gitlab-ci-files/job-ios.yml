@@ -30,7 +30,7 @@
     paths:
       - build-ios/linphonesdkversion.txt
       - build-ios/linphone-sdk-*.zip
-      - build-ios/linphone-sdk.podspec
+      - build-ios/*.podspec
       - build-ios/docs
       - tester/IOS/LinphoneTester/Podfile
 
@@ -175,6 +175,7 @@ job-ios-xcode-novideo:
        if [[ $(git -C liblinphone describe) =~ .*(alpha|beta).* ]];
        then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
        fi
+   - IOS_DEPLOY_URL="$IOS_DEPLOY_URL/novideo"
    - echo $IOS_DEPLOY_URL
    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
 
