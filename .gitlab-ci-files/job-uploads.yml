@@ -2,11 +2,11 @@
 # iOS
 #################################################
 
-
-job-ios-upload:
+.job-ios-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
-
+  variables:
+    - $POD_SDK_NAME
   only:
     variables:
       - $DEPLOY_RUN_IOS
@@ -44,10 +44,22 @@ job-ios-upload:
 
     - echo $UPLOAD_ROOT_DIRECTORY
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/
-    - pod repo remove linphone-sdk || true
-    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git
-    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
-    - pod repo remove linphone-sdk
+    - pod repo remove $POD_SDK_NAME || true
+    - pod repo add $POD_SDK_NAME git@gitlab.linphone.org:BC/public/podspec.git
+    - pod repo push $POD_SDK_NAME build-ios/$PODSPEC_NAME.podspec --skip-import-validation --verbose
+    - pod repo remove $POD_SDK_NAME
+
+job-ios-upload-regular:
+  variables:
+    -PODSPEC_NAME: "linphone-sdk"
+  extends: .job-ios-upload
+
+
+job-ios-upload-novideo:
+  variables:
+    -PODSPEC_NAME: "linphone-sdk-novideo"
+  extends: .job-ios-upload
+
 
 job-ios-xcode-novideo-upload:
   stage: deploy
