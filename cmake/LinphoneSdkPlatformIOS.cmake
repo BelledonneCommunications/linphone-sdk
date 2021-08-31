@@ -26,7 +26,7 @@ include(LinphoneSdkCheckBuildToolsIOS)
 set(CMAKE_OSX_SYSROOT "iphonesimulator" CACHE STRING "System root for iOS" FORCE)
 
 set(LINPHONESDK_IOS_ARCHS "arm64, armv7, x86_64" CACHE STRING "Android architectures to build for: comma-separated list of values in [arm64, armv7, x86_64]")
-set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios/" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
+set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/snapshots/ios/novideo" CACHE STRING "URL of the repository where the iOS SDK zip files are located")
 set(LINPHONE_APP_EXT_FRAMEWORKS "bctoolbox.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mssilk.framework,mswebrtc.framework,msx264.framework,ortp.framework"
 							CACHE STRING "Frameworks which are safe for app extension use")
 set(LINPHONE_OTHER_FRAMEWORKS "bctoolbox-ios.framework" CACHE STRING "Frameworks which aren't safe for app extension use")
