@@ -60,7 +60,14 @@ file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" VALID_ARCHS)
 string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
-configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)
+
+if(ENABLE_VIDEO)
+	set(LINPHONESDK_NAME "linphone-sdk")
+else()
+	set(LINPHONESDK_NAME "linphone-sdk-novideo")
+endif()
+
+configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/${LINPHONESDK_NAME}.podspec" @ONLY)
 
 
 # Generate Podfile file
