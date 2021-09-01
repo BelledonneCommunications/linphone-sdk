@@ -222,13 +222,13 @@ class IncomingPushTest: XCTestCase {
 		}
 	}
 	
-	func testVoipPushCallWithCorePushEnabled() {
+	func voipPushStopWhenDisablingPush(willDisableCorePush: Bool) { // if false, will disable account push allowed instead
 		let marie = LinphoneTestUser(rcFile: "marie_rc")
 		
 		// ONLY A SINGLE VOIP PUSH REGISTRY EXIST PER APP.
 		// IF YOU INSTANCIATE SEVERAL CORES, MAKE SURE THAT THE ONE THAT WILL PROCESS PUSH NOTIFICATION IS CREATE LAST
-		var pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
-
+		let pauline = LinphoneTestUser(rcFile: "pauline_push_enabled_rc")
+		
 		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token")) {
 			self.waitForExpectations(timeout: 20)
 		}
@@ -265,9 +265,15 @@ class IncomingPushTest: XCTestCase {
 		try! call!.terminate()
 		self.waitForExpectations(timeout: 10)
 		
-		// Now, check that we do not receive it anymore when we disable core push
-		pauline.core.pushNotificationEnabled = false
-		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered with voip token"), requireVoipToken: false) {
+		// Now, check that we do not receive it anymore when we disable push
+		if (willDisableCorePush) {
+			pauline.core.pushNotificationEnabled = false
+		} else {
+			let newParams = pauline.core.defaultAccount!.params!.clone()!
+			newParams.pushNotificationAllowed = false
+			pauline.core.defaultAccount!.params = newParams
+		}
+		pauline.waitForRegistration(registeredExpectation: expectation(description: "TestVoipPushCall - Registered after disabling core push"), requireVoipToken: false) {
 			self.waitForExpectations(timeout: 10)
 		}
 		pauline.stopCore(stoppedCoreExpectation: self.expectation(description: "Pauline Core Stopped")) { self.waitForExpectations(timeout: 10)	}
@@ -281,6 +287,13 @@ class IncomingPushTest: XCTestCase {
 		call = marie.core.invite(url: paulineAddress)
 		self.waitForExpectations(timeout: 5)
 	}
+	func testVoipPushStopWhenDisablingCorePush() {
+		voipPushStopWhenDisablingPush(willDisableCorePush: true)
+	}
+	func testVoipPushStopWhenDisablingAccountPush() {
+		voipPushStopWhenDisablingPush(willDisableCorePush: false)
+	}
+	
 	
 	var tokenReceivedExpect : XCTestExpectation!
 	var pushReceivedExpect : XCTestExpectation!
