@@ -987,8 +987,8 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 		CU_automated_enable_junit_xml(TRUE); /* this requires 3.0.1 because previous versions crash automated.c */
 
 		if (run_in_parallel != 0) {
-			//Sub-process started by parent in bc_tester_run_parallel
 			if (suite_name) {
+				//Sub-process started by parent in bc_tester_run_parallel
 				CU_automated_enable_partial_junit(TRUE);
 				xml_file_name = get_junit_xml_file_name(suite_name, NULL);
 				CU_set_output_filename(xml_file_name);
@@ -1013,7 +1013,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 			CU_automated_run_tests();
 			bctbx_free(xml_file_name);
 		}
-		return CU_get_number_of_tests_failed() != 0;
+		goto end;
 	}
 
 #ifndef HAVE_CU_GET_SUITE
@@ -1066,6 +1066,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 					CU_run_all_tests();
 				}
 		}
+end:
 #ifdef __linux__
 	bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.",
 			 mallinfo().uordblks / 1024);
@@ -1073,6 +1074,7 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 	if (run_in_parallel){
 		// We are a child process, return the number of test failed.
 		int failed_tests = CU_get_number_of_tests_failed();
+		bc_tester_printf(bc_printf_verbosity_info, "Suite  %s finished with %i failed tests.", suite_name, failed_tests);
 		if (failed_tests >= 255) {
 			bc_tester_printf(bc_printf_verbosity_error, "The number of tests exceeded 255, the maximum value for an exit status !");
 			failed_tests = 255;
