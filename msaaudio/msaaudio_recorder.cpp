@@ -33,6 +33,7 @@ struct AAudioInputContext {
 		soundCard = NULL;
 		aec = NULL;
 		aecEnabled = true;
+		voiceRecognitionMode = false;
 	}
 
 	~AAudioInputContext() {
@@ -60,6 +61,7 @@ struct AAudioInputContext {
 	aaudio_session_id_t session_id;
 	jobject aec;
 	bool aecEnabled;
+	bool voiceRecognitionMode;
 };
 
 static AAudioInputContext* aaudio_input_context_init() {
@@ -115,9 +117,17 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE); // If EXCLUSIVE mode isn't available the builder will fall back to SHARED mode.
 	AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
 	AAudioStreamBuilder_setErrorCallback(builder, aaudio_recorder_callback_error, ictx);
-	AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
-	AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
+
 	AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH); // Requires NDK build target of 28 instead of 26 !
+	if (ictx->voiceRecognitionMode) {
+		// Voice recognition preset works better when recording voice message
+		ms_message("[AAudio] Using voice recognition input preset");
+		AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_RECOGNITION); // Requires NDK build target of 28 instead of 26 !
+	} else {
+		ms_message("[AAudio] Using voice communication input preset");
+		AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
+		AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION); // Requires NDK build target of 28 instead of 26 !
+	}
 
 	if (ictx->aecEnabled && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ms_message("[AAudio] Asking for a session ID so we can use echo canceller");
@@ -353,6 +363,13 @@ static int android_snd_read_enable_aec(MSFilter *obj, void *data) {
 	return 0;
 }
 
+static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
+	bool *enabled = (bool*)data;
+	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
+	ictx->voiceRecognitionMode = !!(*enabled);
+	return 0;
+}
+
 static MSFilterMethod android_snd_read_methods[] = {
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_read_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_read_get_sample_rate},
@@ -362,6 +379,7 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_AUDIO_CAPTURE_SET_INTERNAL_ID, android_snd_read_set_device_id},
 	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
 	{MS_AUDIO_CAPTURE_ENABLE_AEC, android_snd_read_enable_aec},
+	{MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, android_snd_read_enable_voice_rec},
 	{0,NULL}
 };
 
