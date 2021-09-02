@@ -35,6 +35,7 @@ struct OboeInputContext {
 		soundCard = NULL;
 		aec = NULL;
 		aecEnabled = true;
+		voiceRecognitionMode = false;
 	}
 
 	~OboeInputContext() {
@@ -62,6 +63,7 @@ struct OboeInputContext {
 	oboe::SessionId sessionId;
 	jobject aec;
 	bool aecEnabled;
+	bool voiceRecognitionMode;
 };
 
 class OboeInputCallback: public oboe::AudioStreamDataCallback {
@@ -130,9 +132,16 @@ static void oboe_recorder_init(OboeInputContext *ictx) {
 	builder.setDeviceId(ictx->soundCard->internal_id);
 	ms_message("[Oboe] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
 	
-	builder.setInputPreset(oboe::InputPreset::VoiceCommunication);
-	builder.setUsage(oboe::Usage::VoiceCommunication);
 	builder.setContentType(oboe::ContentType::Speech);
+	if (ictx->voiceRecognitionMode) {
+		// Voice recognition preset works better when recording voice message
+		ms_message("[Oboe] Using voice recognition input preset");
+		builder.setInputPreset(oboe::InputPreset::VoiceRecognition);
+	} else {
+		ms_message("[Oboe] Using voice communication input preset");
+		builder.setInputPreset(oboe::InputPreset::VoiceCommunication);
+		builder.setUsage(oboe::Usage::VoiceCommunication);
+	}
 
 	if (ictx->aecEnabled && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ms_message("[Oboe] Asking for a session ID so we can use echo canceller");
@@ -370,6 +379,13 @@ static int android_snd_read_enable_aec(MSFilter *obj, void *data) {
 	return 0;
 }
 
+static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
+	bool *enabled = (bool*)data;
+	OboeInputContext *ictx = (OboeInputContext*)obj->data;
+	ictx->voiceRecognitionMode = !!(*enabled);
+	return 0;
+}
+
 static MSFilterMethod android_snd_read_methods[] = {
 	{MS_FILTER_SET_SAMPLE_RATE, android_snd_read_set_sample_rate},
 	{MS_FILTER_GET_SAMPLE_RATE, android_snd_read_get_sample_rate},
@@ -379,6 +395,7 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_AUDIO_CAPTURE_SET_INTERNAL_ID, android_snd_read_set_device_id},
 	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
 	{MS_AUDIO_CAPTURE_ENABLE_AEC, android_snd_read_enable_aec},
+	{MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, android_snd_read_enable_voice_rec},
 	{0,NULL}
 };
 
