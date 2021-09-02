@@ -1156,6 +1156,10 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		bool_t aec_enabled = TRUE;
 		ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
 	}
+	if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC)) {
+		bool_t voice_recognition = FALSE;
+		ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, &voice_recognition);
+	}
 
 	ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	ms_filter_call_method(stream->soundwrite, MS_FILTER_SET_NCHANNELS, &nchannels);

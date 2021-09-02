@@ -287,6 +287,10 @@ static void _create_sources(MSMediaRecorder *obj) {
 						bool_t aec_enabled = FALSE;
 						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
 					}
+					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC)) {
+						bool_t voice_recognition = TRUE;
+						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, &voice_recognition);
+					}
 				} else {
 					ms_error("Could not create audio source. Soundcard=%s", obj->snd_card->name);
 				}
@@ -298,6 +302,10 @@ static void _create_sources(MSMediaRecorder *obj) {
 					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
 						bool_t aec_enabled = FALSE;
 						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
+					}
+					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC)) {
+						bool_t voice_recognition = TRUE;
+						ms_filter_call_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, &voice_recognition);
 					}
 				} else {
 					ms_error("Could not create audio source. Soundcard=%s", obj->snd_card->name);

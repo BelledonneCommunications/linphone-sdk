@@ -212,6 +212,7 @@ struct OpenSLESInputContext {
 		currentBuffer = 0;
 		recBuffer[0] = NULL;
 		recBuffer[1] = NULL;
+		voiceRecognitionMode = false;
 	}
 
 	~OpenSLESInputContext() {
@@ -245,6 +246,7 @@ struct OpenSLESInputContext {
 	int inBufSize;
 	int currentBuffer;
 	double mAvSkew;
+	bool voiceRecognitionMode;
 };
 
 static SLuint32 convertSamplerate(int samplerate)
@@ -436,6 +438,11 @@ static SLresult opensles_recorder_init(OpenSLESInputContext *ictx) {
 		return result;
 	}
 
+	if (ictx->voiceRecognitionMode) {
+		// Voice recognition preset works better when recording voice message
+		ms_message("[OpenSLES] Using preset voice recognition (%i) instead of %i", SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION, ictx->streamType);
+		ictx->streamType = SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
+	}
 	result = (*ictx->recorderConfig)->SetConfiguration(ictx->recorderConfig, SL_ANDROID_KEY_RECORDING_PRESET, &ictx->streamType, sizeof(SLint32));
 	if (SL_RESULT_SUCCESS != result) {
 		opensles_reset_recorder(ictx);
@@ -712,7 +719,14 @@ static int android_snd_read_get_device_id(MSFilter *obj, void *data) {
 	return 0;
 }
 
-static int android_snd_read_hack_speaker_state(MSFilter *f, void *arg) {
+static int android_snd_read_hack_speaker_state(MSFilter *obj, void *data) {
+	return 0;
+}
+
+static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
+	bool *enabled = (bool*)data;
+	OpenSLESInputContext *ictx = (OpenSLESInputContext*)obj->data;
+	ictx->voiceRecognitionMode = !!(*enabled);
 	return 0;
 }
 
@@ -724,6 +738,7 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE, android_snd_read_hack_speaker_state},
 	{MS_AUDIO_CAPTURE_SET_INTERNAL_ID, android_snd_read_configure_soundcard},
 	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
+	{MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, android_snd_read_enable_voice_rec},
 	{0,NULL}
 };
 
