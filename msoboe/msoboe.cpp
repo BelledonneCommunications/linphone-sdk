@@ -179,7 +179,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 	) {
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_oboe_card_desc);
 
-		card->name = ms_strdup(ms_android_get_device_product_name(env, deviceInfo));
+		card->name = ms_android_get_device_product_name(env, deviceInfo);
 		card->internal_id = ms_android_get_device_id(env, deviceInfo);
 		card->device_type = type;
 
