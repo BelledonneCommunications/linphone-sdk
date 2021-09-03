@@ -1200,7 +1200,6 @@ static void snd_card_device_create_extra_fields(MSSndCardManager *m, MSSndCard *
 
 
 static void snd_card_device_create(int device_id, const char * name, MSSndCardDeviceType type, unsigned int capabilities, MSSndCardManager *m) {
-
 	MSSndCard *card = ms_snd_card_new(&android_native_snd_opensles_card_desc);
 
 	card->name = ms_strdup(name);
@@ -1238,11 +1237,10 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)
 	) {
 
-		const char * name = ms_strdup(ms_android_get_device_product_name(env, deviceInfo));
+		char *name = ms_android_get_device_product_name(env, deviceInfo);
 		int device_id = ms_android_get_device_id(env, deviceInfo);
 		unsigned int capabilities = ms_android_get_device_capabilities(env, deviceInfo);
-
 		snd_card_device_create(device_id, name, type, capabilities, m);
-
+		ms_free(name);
 	}
 }
