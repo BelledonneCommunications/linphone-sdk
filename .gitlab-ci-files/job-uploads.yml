@@ -81,7 +81,7 @@ job-ios-xcode-novideo-upload:
 # Android
 #################################################
 
-job-android-upload:
+.job-android-upload-common:
   stage: deploy
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
@@ -97,9 +97,7 @@ job-android-upload:
     GIT_STRATEGY: fetch
     GRADLE_OPTIONS: -i
     MAVEN_REPO_PATH: linphone-sdk-android*
-
-  needs:
-    - job-android-makefile-r20
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
 
   before_script:
     - eval $(ssh-agent -s)
@@ -113,13 +111,18 @@ job-android-upload:
     - git config --global user.name "Gitlab"
     - cd build
     - mkdir -p maven_repository/org/linphone/
-    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
-    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $ANDROID_MAVEN_URL/org/linphone/
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $MAVEN_REPO_URL/org/linphone/
 
   after_script:
     - rm -rf ~/.ssh || true
+
+.job-android-private-upload-common:
+  extends: job-android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
 
 job-android-doc-upload:
   stage: deploy
@@ -172,8 +175,13 @@ job-android-doc-upload:
   after_script:
     - rm -rf ~/.ssh || true
 
+job-android-upload:
+  extends: job-android-upload-common
+  needs:
+    - job-android-ninja-r20
+
 job-android-upload-no-video:
-  extends: job-android-upload
+  extends: job-android-upload-common
   needs:
     - job-android-ninja-r20-no-video
   variables:
@@ -181,12 +189,17 @@ job-android-upload-no-video:
     MAVEN_REPO_PATH: no-video
 
 job-android-upload-minimal-size:
-  extends: job-android-upload
+  extends: job-android-upload-common
   needs:
     - job-android-makefile-r20-minimal-size
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
+
+job-android-upload-g729:
+  extends: job-android-private-upload-common
+  needs:
+    - job-android-makefile-r20-g729
 
 #################################################
 # Macosx
