@@ -121,6 +121,46 @@ job-android-upload:
   after_script:
     - rm -rf ~/.ssh || true
 
+job-android-private-upload:
+  stage: deploy
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
+
+  only:
+    variables:
+      - $DEPLOY_RUN_ANDROID
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+
+  variables:
+    CCACHE_SIZE: 4G
+    GIT_STRATEGY: fetch
+    GRADLE_OPTIONS: -i
+    MAVEN_REPO_PATH: linphone-sdk-android*
+
+  needs:
+    - job-android-makefile-r20
+
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+
+  script:
+    - git config --global user.email "gitlab@belledonne-communications.com"
+    - git config --global user.name "Gitlab"
+    - cd build
+    - mkdir -p maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_PRIVATE_MAVEN_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - echo $GRADLE_OPTIONS
+    - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $ANDROID_PRIVATE_MAVEN_URL/org/linphone/
+
+  after_script:
+    - rm -rf ~/.ssh || true
+
 job-android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
@@ -187,6 +227,11 @@ job-android-upload-minimal-size:
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
+
+job-android-upload-g729:
+  extends: job-android-private-upload
+  needs:
+    - job-android-makefile-r20-g729
 
 #################################################
 # Macosx
