@@ -146,6 +146,12 @@ BELLESIP_EXPORT void belle_sip_provider_enable_unconditional_answer(belle_sip_pr
  **/
 BELLESIP_EXPORT void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code);
 
+/**
+ * Check integrity of responses. By default it is true, however for testing purpose it might be useful
+ * to receive and get notified of invalid responses.
+ */
+BELLESIP_EXPORT void belle_sip_provider_enable_response_integrity_checking(belle_sip_provider_t *prov, int value);
+
 /*
  * End of test features.
  */

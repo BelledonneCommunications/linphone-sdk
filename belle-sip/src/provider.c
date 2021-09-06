@@ -287,25 +287,29 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t* p, belle_
 }
 
 void belle_sip_provider_dispatch_message(belle_sip_provider_t *prov, belle_sip_message_t *msg){
-
-	if (TRUE
+	int message_integrity_verified = TRUE;
+	
 #ifndef BELLE_SIP_DONT_CHECK_HEADERS_IN_MESSAGE
-			&& belle_sip_message_check_headers(msg)
+	message_integrity_verified = belle_sip_message_check_headers(msg);
 #endif
-	){
-		if (belle_sip_message_is_request(msg)){
-			belle_sip_provider_dispatch_request(prov,(belle_sip_request_t*)msg);
-		}else{
-			belle_sip_provider_dispatch_response(prov,(belle_sip_response_t*)msg);
-		}
-	}else{
-		/* incorrect message received, answer bad request if it was a request.*/
-		if (belle_sip_message_is_request(msg)){
+
+	if (belle_sip_message_is_request(msg)){
+		if (message_integrity_verified) belle_sip_provider_dispatch_request(prov,(belle_sip_request_t*)msg);
+		else{
 			belle_sip_response_t *resp=belle_sip_response_create_from_request(BELLE_SIP_REQUEST(msg),400);
 			if (resp){
 				belle_sip_provider_send_response(prov,resp);
 			}
-		}/*otherwise what can we do ?*/
+		}
+	}else{
+		if (message_integrity_verified){
+			belle_sip_provider_dispatch_response(prov,(belle_sip_response_t*)msg);
+		}else if (!prov->response_integrity_checking_enabled){
+			belle_sip_message("response_integrity_checking is disabled, the response is notified despite it is invalid.");
+			belle_sip_provider_dispatch_response(prov,(belle_sip_response_t*)msg);
+		}else{
+			/* the response will be silently discarded */
+		}
 	}
 	belle_sip_object_unref(msg);
 }
@@ -567,6 +571,7 @@ belle_sip_provider_t *belle_sip_provider_new(belle_sip_stack_t *s, belle_sip_lis
 	p->stack=s;
 	p->rport_enabled=1;
 	p->unconditional_answer = 480;
+	p->response_integrity_checking_enabled = TRUE;
 	if (lp) belle_sip_provider_add_listening_point(p,lp);
 	return p;
 }
@@ -1392,4 +1397,8 @@ void belle_sip_provider_enable_unconditional_answer(belle_sip_provider_t *prov, 
 
 void belle_sip_provider_set_unconditional_answer(belle_sip_provider_t *prov, unsigned short code) {
 	prov->unconditional_answer=code;
+}
+
+void belle_sip_provider_enable_response_integrity_checking(belle_sip_provider_t *prov, int value){
+	prov->response_integrity_checking_enabled = value;
 }

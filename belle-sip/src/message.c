@@ -1049,6 +1049,25 @@ static message_header_list_t mandatory_headers[] = {
 	return 0;
 }
 */
+
+/* This mainly check for mandatory parameters in some headers. */
+static int belle_sip_message_check_headers_integrity(const belle_sip_message_t *message){
+	{
+		belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(message, belle_sip_header_from_t);
+		const char *from_tag;
+		if (!from) return 0;
+		from_tag = belle_sip_header_from_get_tag(from);
+		if (!from_tag || strlen(from_tag) == 0) {
+			belle_sip_error("No tag in from header.");
+			return 0;
+		}
+	}
+	/* Note: a via without branch parameter is allowed for backward compatibility with RFC2543. */
+	return 1;
+}
+
+/* This checks the presence for mandatory headers, per method, according to RFC3261. 
+ * Returns 1 if the message is compliant, 0 otherwise. */
 int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 	if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(message,belle_sip_request_t)) {
 		int i;
@@ -1065,15 +1084,12 @@ int belle_sip_message_check_headers(const belle_sip_message_t* message) {
 						return 0;
 					}
 				}
-				return 1;
 			}
 		}
-		via=belle_sip_message_get_header_by_type(message,belle_sip_header_via_t);
-		if (!via || belle_sip_header_via_get_branch(via)==NULL) return 0;
+		
 	}
-	/*else fixme should also check responses*/
-	return 1;
-
+	/*else FIXME should also check in esponses*/
+	return belle_sip_message_check_headers_integrity(message);
 }
 
 int belle_sip_request_check_uris_components(const belle_sip_request_t* request) {
