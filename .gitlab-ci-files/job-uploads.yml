@@ -97,6 +97,7 @@ job-android-upload:
     GIT_STRATEGY: fetch
     GRADLE_OPTIONS: -i
     MAVEN_REPO_PATH: linphone-sdk-android*
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
 
   needs:
     - job-android-makefile-r20
@@ -113,13 +114,18 @@ job-android-upload:
     - git config --global user.name "Gitlab"
     - cd build
     - mkdir -p maven_repository/org/linphone/
-    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $ANDROID_MAVEN_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
-    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $ANDROID_MAVEN_URL/org/linphone/
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $MAVEN_REPO_URL/org/linphone/
 
   after_script:
     - rm -rf ~/.ssh || true
+
+job-android-private-upload:
+  extends: job-android-upload
+  variables:
+    MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
 
 job-android-doc-upload:
   stage: deploy
@@ -187,6 +193,11 @@ job-android-upload-minimal-size:
   variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
+
+job-android-upload-g729:
+  extends: job-android-private-upload
+  needs:
+    - job-android-makefile-r20-g729
 
 #################################################
 # Macosx
