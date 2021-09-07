@@ -521,7 +521,10 @@ static void channel_on_sending(belle_sip_channel_listener_t *obj, belle_sip_chan
 	if (belle_sip_message_is_request(msg)){
 		const belle_sip_list_t *rroutes;
 		/*probably better to be in channel*/
-		fix_outgoing_via(prov, chan, msg);
+		if (strcmp("CANCEL",belle_sip_request_get_method(BELLE_SIP_REQUEST(msg))) != 0)
+			fix_outgoing_via(prov, chan, msg);
+			/*else
+			 in case of CANCEL, via header must excatly be equal to INVITE's via header*/
 
 		for (rroutes=belle_sip_message_get_headers(msg,"Record-Route");rroutes!=NULL;rroutes=rroutes->next){
 			belle_sip_header_record_route_t* rr=(belle_sip_header_record_route_t*)rroutes->data;
@@ -706,12 +709,11 @@ belle_sip_dialog_t * belle_sip_provider_create_dialog_internal(belle_sip_provide
 	return dialog;
 }
 
-/*find a dialog given the call id, local-tag and to-tag*/
-belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* local_tag, const char* remote_tag) {
+static belle_sip_dialog_t* _belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* local_tag, const char* remote_tag, bool_t local_tag_mandatory) {
 	belle_sip_list_t* iterator;
 	belle_sip_dialog_t*returned_dialog=NULL;
 
-	if (call_id == NULL || local_tag == NULL || remote_tag == NULL) {
+	if (call_id == NULL || (local_tag_mandatory && (local_tag == NULL)) || remote_tag == NULL) {
 		return NULL;
 	}
 
@@ -722,11 +724,20 @@ belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *p
 		if (belle_sip_dialog_get_state(dialog) != BELLE_SIP_DIALOG_NULL && _belle_sip_dialog_match(dialog,call_id,local_tag,remote_tag)) {
 			if (!returned_dialog)
 				returned_dialog=dialog;
-			else
+			else {
 				belle_sip_fatal("More than 1 dialog is matching, check your app");
+			}
 		}
 	}
 	return returned_dialog;
+}
+/*find a dialog given the call id, local-tag and to-tag*/
+belle_sip_dialog_t* belle_sip_provider_find_dialog(const belle_sip_provider_t *prov, const char* call_id, const char* local_tag, const char* remote_tag) {
+	return _belle_sip_provider_find_dialog(prov, call_id, local_tag, remote_tag, TRUE);
+}
+
+belle_sip_dialog_t* belle_sip_provider_find_dialog_with_remote_tag(const belle_sip_provider_t *prov, const char* call_id,const char* remote_tag) {
+	return _belle_sip_provider_find_dialog(prov, call_id, NULL, remote_tag, FALSE);
 }
 
 /*finds an existing dialog for an outgoing or incoming message */

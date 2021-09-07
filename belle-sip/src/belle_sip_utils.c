@@ -514,12 +514,13 @@ char* belle_generic_uri_to_escaped_path(const char* buff) {
 }
 
 char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff) {
-	char *output_buff=belle_sip_malloc(strlen(buff)+1);
+	size_t buff_len = strlen(buff);
+	char *output_buff=belle_sip_malloc(buff_len+1);
 	unsigned int i;
 	unsigned int out_buff_index=0;
 
 	for(i=0; buff[i] != '\0'; i++) {
-		if (buff[i] == '\\') {
+		if (buff[i] == '\\' && i + 1 < buff_len ) { /*make sure escaped caracter exist*/
 			i++;/*skip \*/
 		}
 		/*make sure to only remove one \ in case of \\*/

@@ -1115,7 +1115,7 @@ int _belle_sip_dialog_match(belle_sip_dialog_t *obj, const char *call_id, const 
 	/*Dialog created by notify matching subscription are still in NULL state if (obj->state==BELLE_SIP_DIALOG_NULL) belle_sip_fatal("_belle_sip_dialog_match() must not be used for dialog in null state.");*/
 	dcid=belle_sip_header_call_id_get_call_id(obj->call_id);
 	return strcmp(dcid,call_id)==0
-		&& strcmp(obj->local_tag,local_tag)==0
+		&& (!local_tag || strcmp(obj->local_tag,local_tag)==0) //local tag is not checked if not provided
 		&& obj->remote_tag /* handle 180 without to tag */ && remote_tag && strcmp(obj->remote_tag,remote_tag)==0;
 }
 

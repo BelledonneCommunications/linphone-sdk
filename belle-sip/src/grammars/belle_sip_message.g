@@ -321,7 +321,7 @@ scope { belle_generic_uri_t* current; }
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($generic_uri::current);
+   belle_sip_object_unref($ret);
    $ret=NULL;
 }
 

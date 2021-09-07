@@ -188,7 +188,9 @@ static void test_from_header_with_paramless_address_spec(void) {
 	BC_ASSERT_STRING_EQUAL(belle_generic_uri_get_scheme(L_absoluteUri), "tel");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_from_get_tag(L_from),"dlfjklcn6545614XX");
 	belle_sip_object_unref(L_from);
-
+	BC_ASSERT_PTR_NULL(belle_sip_header_from_parse("F: x:xx%"));
+	BC_ASSERT_PTR_NULL(belle_sip_header_from_parse("F\"\\"));
+	
 }
 
 static void test_to_header_with_paramless_address_spec(void) {

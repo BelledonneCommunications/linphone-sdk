@@ -827,11 +827,15 @@ belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(const char *filep
 	obj->user_bh = NULL;
 	if (expected_size != BCTBX_VFS_ERROR) {
 		obj->base.expected_size = (size_t)expected_size;
+		belle_sip_message("file body handler created for file [%s] with size [%lu]", filepath, obj->base.expected_size);
+	} else {
+		belle_sip_message("file body handler created for file [%s] with unknown size", filepath);
 	}
 	obj->buffer.size=0;
 	obj->buffer.index=0;
 	obj->buffer.data=NULL;
 	obj->buffer.next_offset=0;
+	
 	return obj;
 }
 
