@@ -26,15 +26,21 @@ include(LinphoneSdkUtils)
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" _archs)
 
+if(ENABLE_VIDEO)
+	set(LINPHONESDK_NAME "linphone-sdk")
+else()
+	set(LINPHONESDK_NAME "linphone-sdk-novideo")
+endif()
+
 
 # Create the apple-darwin directory that will contain the merged content of all architectures
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/apple-darwin"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${LINPHONESDK_NAME}/apple-darwin"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/apple-darwin"
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONESDK_NAME}/apple-darwin"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
@@ -77,19 +83,19 @@ if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
 endif()
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "linphone-sdk/apple-darwin/Frameworks"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "${LINPHONESDK_NAME}/apple-darwin/Frameworks"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/liblinphone_tester" "linphone-sdk/apple-darwin/Resources/liblinphone_tester"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/liblinphone_tester" "${LINPHONESDK_NAME}/apple-darwin/Resources/liblinphone_tester"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonesw" "linphone-sdk/apple-darwin/share/linphonesw"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonesw" "${LINPHONESDK_NAME}/apple-darwin/share/linphonesw"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonecs" "linphone-sdk/apple-darwin/share/linphonecs"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonecs" "${LINPHONESDK_NAME}/apple-darwin/share/linphonecs"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
@@ -104,7 +110,7 @@ foreach(_framework ${_frameworks})
 		if(_framework_name STREQUAL "linphonesw")
 			foreach(_arch ${_archs})
 				execute_process(
-					COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule" "linphone-sdk/apple-darwin/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule"
+					COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule"
 					WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 				)
 			endforeach()
@@ -113,7 +119,7 @@ foreach(_framework ${_frameworks})
 	string(REPLACE ";" " " _arch_string "${_archs}")
 	message (STATUS "Mixing ${_framework_name} for archs [${_arch_string}]")
 	execute_process(
-		COMMAND "lipo" "-create" "-output" "linphone-sdk/apple-darwin/Frameworks/${_framework_name}.framework/${_framework_name}" ${_all_arch_frameworks}
+		COMMAND "lipo" "-create" "-output" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/${_framework_name}.framework/${_framework_name}" ${_all_arch_frameworks}
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 endforeach()
