@@ -44,6 +44,8 @@ struct _FilterData {
 	bool_t mirroring;
 	bool_t update_mirroring;
 	bool_t update_context;
+	bool_t is_sdk_linked;	// The filter Data can be deleted when both qt and sdk are unlinked
+	bool_t is_qt_linked;
 	
 	mblk_t * prev_inm;
 	MSFilter *parent;// Used to call render with the Filter in order to use lock mecanisms

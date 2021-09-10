@@ -34,15 +34,24 @@
 
 BufferRenderer::BufferRenderer () {
 	qInfo() << QStringLiteral("[MSQOGL] Create new Renderer");
+	mParent = nullptr;
 }
 
 BufferRenderer::~BufferRenderer () {
 	qInfo() << QStringLiteral("[MSQOGL] Delete Renderer");
-	if(mParent){
+	if(mParent && mParent->is_qt_linked){
 		ms_filter_lock(mParent->parent);
-		if( mParent->renderer == this)// Check if it is the same object. This deletion could be delayed for any reasons (Managed by Qt). We don't want to remove a new created object.
+		if( mParent->renderer == this){// Check if it is the same object. This deletion could be delayed for any reasons (Managed by Qt). We don't want to remove a new created object.
 			mParent->renderer = NULL;
-		ms_filter_unlock(mParent->parent);
+		}
+		mParent->is_qt_linked = FALSE;
+		if( !mParent->is_sdk_linked) {
+			ms_filter_unlock(mParent->parent);
+			qInfo() << QStringLiteral("[MSQOGL] Qt is freing data");
+			ms_free(mParent);
+		}else{
+			ms_filter_unlock(mParent->parent);
+		}
 	}
 }
 
@@ -92,6 +101,8 @@ static void qogl_init (MSFilter *f) {
 	data->prev_inm = NULL;
 	data->renderer = NULL;
 	data->parent = f;
+	data->is_qt_linked = FALSE;
+	data->is_sdk_linked = TRUE;
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
 	
@@ -100,10 +111,18 @@ static void qogl_init (MSFilter *f) {
 
 static void qogl_uninit (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
+	if( data->parent) ms_filter_lock(data->parent);
 	ogl_display_free(data->display);
 	if( data->renderer)
 		data->renderer->mParent = NULL;
-	ms_free(data);
+	if(!data->is_qt_linked && data->is_sdk_linked){
+		if( data->parent) ms_filter_unlock(data->parent);
+		qInfo() << QStringLiteral("[MSQOGL] qogl is freing data");
+		ms_free(data);
+	}else{
+		data->is_sdk_linked = FALSE;
+		if( data->parent) ms_filter_unlock(data->parent);
+	}
 }
 
 static int qogl_call_render (MSFilter *f, void *arg);
@@ -166,6 +185,7 @@ static int qogl_set_native_window_id (MSFilter *f, void *arg) {
 	
 	data = (FilterData *)f->data;
 	if( !arg || (arg && !(*(QQuickFramebufferObject::Renderer**)arg) )){
+		qInfo() << QStringLiteral("[MSQOGL] reset renderer");
 		data->renderer = NULL;
 	}
 	ms_filter_unlock(f);
@@ -177,6 +197,7 @@ static int qogl_get_native_window_id (MSFilter *f, void *arg) {
 	FilterData *data=(FilterData*)f->data;
 	if( !data->renderer){
 		data->renderer = new BufferRenderer();
+		data->is_qt_linked = TRUE;
 		data->renderer->mParent = data;
 		data->update_context = TRUE;
 	}else if( !data->renderer->mParent){
