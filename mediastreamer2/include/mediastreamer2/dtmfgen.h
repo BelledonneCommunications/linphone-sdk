@@ -68,6 +68,7 @@ typedef struct _MSDtmfGenEvent MSDtmfGenEvent;
  * Event sent by the filter each time a tone or dtmf is generated.
 **/
 #define MS_DTMF_GEN_EVENT		MS_FILTER_EVENT(MS_DTMF_GEN_ID,0,MSDtmfGenEvent)
+#define MS_DTMF_GEN_END			MS_FILTER_EVENT_NO_ARG(MS_DTMF_GEN_ID,0)
 
 extern MSFilterDesc ms_dtmf_gen_desc;
 
