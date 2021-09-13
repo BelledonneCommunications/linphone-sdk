@@ -138,6 +138,13 @@ std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uin
 	return std::vector<uint8_t>(0);
 }
 
+/* HMAC specialized template for SHA1 */
+template <> std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
+    std::vector<uint8_t> hmacOutput(SHA1::ssize());
+    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
+    return  hmacOutput;
+}
+
 /* HMAC specialized template for SHA256 */
 template <> std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	std::vector<uint8_t> hmacOutput(SHA256::ssize());

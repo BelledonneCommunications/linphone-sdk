@@ -84,6 +84,14 @@ class RNG {
 /***                      Hash related function                            ***/
 /*****************************************************************************/
 /**
+ * @brief SHA1 buffer size definition
+ */
+struct SHA1 {
+    /// maximum output size for SHA1 is 20 bytes
+    static constexpr size_t ssize() {return 20;}
+};
+
+/**
  * @brief SHA256 buffer size definition
  */
 struct SHA256 {
@@ -122,6 +130,7 @@ struct SHA512 {
 template <typename hashAlgo>
 std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 /* declare template specialisations */
+template <> std::vector<uint8_t>  HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 template <> std::vector<uint8_t>  HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 template <> std::vector<uint8_t>  HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 template <> std::vector<uint8_t>  HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
