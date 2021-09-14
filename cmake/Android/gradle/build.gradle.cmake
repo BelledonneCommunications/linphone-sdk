@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath 'com.android.tools.build:gradle:7.0.2'
     }
 }
 
@@ -62,13 +62,13 @@ task listPlugins() {
 project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
-    compileSdkVersion 30
-    buildToolsVersion "30.0.2"
+    compileSdkVersion 31
+    buildToolsVersion '31.0.0'
     
     defaultConfig {
         minSdkVersion 23
-        targetSdkVersion 30
-        versionCode 5000
+        targetSdkVersion 31
+        versionCode 5100
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -132,6 +132,13 @@ android {
             jniLibs.srcDirs = ["@LINPHONESDK_BUILD_DIR@/libs"]
         }
     }
+
+	java {
+		toolchain {
+			// Required for javadoc task...
+			languageVersion.set(JavaLanguageVersion.of(8))
+		}
+	}
 }
 
 ///////////// Task /////////////
