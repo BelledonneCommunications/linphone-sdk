@@ -20,6 +20,9 @@ ENV ANDROID_NDK r20
 ENV ANDROID_SDK 25.2.5
 ENV ANDROID_HOME /opt/android-sdk-linux
 
+# Backports required for JDK 11
+RUN echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
+
 # Install common general tools
 RUN apt-get update && \
     apt-get install -y curl nano sudo unzip vim wget && \
@@ -28,6 +31,7 @@ RUN apt-get update && \
 # Install development tools
 RUN apt-get update && \
     apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config yasm && \
+    apt-get -t stretch-backports install -y openjdk-11-jdk-headless && \
     apt-get clean
 
 # Install python3 and python modules
@@ -50,13 +54,23 @@ RUN mkdir $CMAKE3_HOME && \
 RUN wget https://dl.google.com/android/repository/tools_r$ANDROID_SDK-linux.zip && \
     unzip tools_r$ANDROID_SDK-linux.zip -d $ANDROID_HOME && \
     rm -f tools_r$ANDROID_SDK-linux.zip
-ENV PATH $ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:$PATH
+
+# Get latest Android command line tools, otherwise won't work with JDK 11
+RUN mkdir -p $ANDROID_HOME/cmdline-tools/latest
+RUN wget https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip && \
+    unzip commandlinetools-linux-7583922_latest.zip && \
+    cp -R ./cmdline-tools/* $ANDROID_HOME/cmdline-tools/latest/ && \
+    rm -rf ./cmdline-tools && \
+    rm -rf commandlinetools-linux-7583922_latest.zip
+
+# Update path to include all Android SDK tools
+ENV PATH $ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools:ANDROID_NDK_HOME:$PATH
 
 # Get the Android SDK
-RUN echo "y" | sdkmanager "platforms;android-28" "build-tools;28.0.3" "platforms;android-29" "build-tools;29.0.3" "platforms;android-30" "build-tools;30.0.2" "extras;android;m2repository" "extras;google;m2repository" "platform-tools" "tools"
+RUN echo "y" | sdkmanager "platforms;android-28" "build-tools;28.0.3" "platforms;android-29" "build-tools;29.0.3" "platforms;android-30" "build-tools;30.0.2" "platforms;android-31" "build-tools;31.0.0" "extras;android;m2repository" "extras;google;m2repository" "platform-tools" "tools" --sdk_root=$ANDROID_HOME
 
 # Accept Android SDK licenses
-RUN echo "y" | sdkmanager --licenses
+RUN echo "y" | sdkmanager --licenses --sdk_root=$ANDROID_HOME
 
 # Get the Android NDK
 RUN wget http://dl.google.com/android/repository/android-ndk-$ANDROID_NDK-linux-x86_64.zip && \
