@@ -174,7 +174,7 @@ job-android-upload:
   variables:
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
   needs:
-    - job-android-ninja-r20
+    - job-android-makefile-r20
 
 job-android-upload-no-video:
   extends: .job-android-upload-common
