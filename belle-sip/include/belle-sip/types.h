@@ -160,7 +160,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_mdns_register_t),
 	BELLE_SIP_TYPE_ID(belle_sip_resolver_results_t),
 	BELLE_SIP_TYPE_ID(belle_sip_cpp_object_t),
-	BELLE_SIP_TYPE_ID(belle_sip_header_retry_after_t)
+	BELLE_SIP_TYPE_ID(belle_sip_header_retry_after_t),
+	BELLE_SIP_TYPE_ID(belle_sip_digest_authentication_policy_t)
 BELLE_SIP_DECLARE_TYPES_END
 
 

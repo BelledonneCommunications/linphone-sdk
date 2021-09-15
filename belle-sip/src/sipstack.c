@@ -134,11 +134,41 @@ static void belle_sip_hop_clone(belle_sip_hop_t *hop, const belle_sip_hop_t *ori
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_hop_t,belle_sip_object_t,belle_sip_hop_destroy,belle_sip_hop_clone,NULL,TRUE);
 
+
+struct belle_sip_digest_authentication_policy{
+	belle_sip_object_t base;
+	unsigned char allow_md5;
+	unsigned char allow_no_qop;
+};
+
+static void belle_sip_digest_authentication_policy_clone(belle_sip_digest_authentication_policy_t *obj, const belle_sip_digest_authentication_policy_t *from){
+	obj->allow_md5 = from->allow_md5;
+	obj->allow_no_qop = from->allow_no_qop;
+}
+
+
+GET_SET_INT(belle_sip_digest_authentication_policy, allow_md5, unsigned char)
+
+GET_SET_INT(belle_sip_digest_authentication_policy, allow_no_qop, unsigned char)
+
+
+BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_digest_authentication_policy_t);
+BELLE_SIP_INSTANCIATE_VPTR(belle_sip_digest_authentication_policy_t,belle_sip_object_t,NULL,belle_sip_digest_authentication_policy_clone,NULL,TRUE);
+
+
+belle_sip_digest_authentication_policy_t * belle_sip_digest_authentication_policy_new(void){
+	belle_sip_digest_authentication_policy_t *obj = belle_sip_object_new(belle_sip_digest_authentication_policy_t);
+	obj->allow_md5 = TRUE;
+	obj->allow_no_qop = TRUE;
+	return obj;
+}
+
 static void belle_sip_stack_destroy(belle_sip_stack_t *stack){
 	belle_sip_message("stack [%p] destroyed.",stack);
 	if (stack->dns_user_hosts_file) belle_sip_free(stack->dns_user_hosts_file);
 	if (stack->dns_resolv_conf) belle_sip_free(stack->dns_resolv_conf);
 	belle_sip_object_unref(stack->ml);
+	belle_sip_object_unref(stack->digest_auth_policy);
 	if (stack->http_proxy_host) belle_sip_free(stack->http_proxy_host);
 	if (stack->http_proxy_passwd) belle_sip_free(stack->http_proxy_passwd);
 	if (stack->http_proxy_username) belle_sip_free(stack->http_proxy_username);
@@ -172,6 +202,7 @@ belle_sip_stack_t * belle_sip_stack_new(const char *properties){
 	stack->dns_service_queue = dispatch_queue_create("com.belledonne_communications.belle_sip.dns_service_queue", DISPATCH_QUEUE_SERIAL);
 	stack->use_dns_service = TRUE;
 #endif /* HAVE_DNS_SERVICE */
+	belle_sip_stack_set_digest_authentication_policy(stack, belle_sip_digest_authentication_policy_new());
 	return stack;
 }
 
@@ -408,6 +439,33 @@ void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_stack_t *stack, 
 
 int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack) {
 	return stack->reconnect_to_primary_asap;
+}
+
+void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack, belle_sip_digest_authentication_policy_t *policy){
+	SET_OBJECT_PROPERTY(stack, digest_auth_policy, policy);
+}
+
+const belle_sip_digest_authentication_policy_t *belle_sip_stack_get_digest_authentication_policy(const belle_sip_stack_t *stack){
+	return stack->digest_auth_policy;
+}
+
+int belle_sip_stack_check_digest_compatibility(const belle_sip_stack_t *stack, const belle_sip_header_www_authenticate_t *authenticate){
+	const char *algo = belle_sip_header_www_authenticate_get_algorithm(authenticate);
+
+	if (!stack->digest_auth_policy->allow_md5){
+		if (!algo || strcasecmp(algo, "MD5") == 0){
+			belle_sip_warning("Rejecting MD5 digest authentication, not allowed per configuration.");
+			return -1;
+		}
+	}
+	if (!stack->digest_auth_policy->allow_no_qop){
+		const char *qop_value = belle_sip_header_www_authenticate_get_qop_first(authenticate);
+		if (!qop_value || strcasecmp(qop_value, "auth") != 0){
+			belle_sip_warning("Rejecting digest authentication with qop != auth, not allowed per configuration.");
+			return -1;
+		}
+	}
+	return 0;
 }
 
 void belle_sip_stack_set_client_bind_port(belle_sip_stack_t *stack, int port){

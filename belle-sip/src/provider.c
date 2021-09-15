@@ -1141,11 +1141,15 @@ static void  belle_sip_provider_update_or_create_auth_context(belle_sip_provider
 	belle_sip_list_t *auth_context_lst = NULL;
 	belle_sip_list_t *auth_context_it;
 	authorization_context_t *auth_context;
+	const char *algo = belle_sip_header_www_authenticate_get_algorithm(authenticate);
+	
+	if (belle_sip_stack_check_digest_compatibility(p->stack, authenticate) == -1) return;
 
 	for (auth_context_it = auth_context_lst = belle_sip_provider_get_auth_context_by_realm_or_call_id(p, call_id, from_uri, realm);
 	     auth_context_it != NULL; auth_context_it = auth_context_it->next) {
 		auth_context = (authorization_context_t *)auth_context_it->data;
-		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) && ((auth_context->algorithm == NULL) || strcasecmp(auth_context->algorithm, belle_sip_header_www_authenticate_get_algorithm(authenticate)) == 0))  {
+		if ((strcmp(auth_context->realm, belle_sip_header_www_authenticate_get_realm(authenticate)) == 0) && ((auth_context->algorithm == NULL) 
+			|| strcasecmp(auth_context->algorithm, algo) == 0))  {
 			authorization_context_fill_from_auth(auth_context, authenticate, from_uri);
 			goto end; /*only one realm is supposed to be found for now*/
 		}

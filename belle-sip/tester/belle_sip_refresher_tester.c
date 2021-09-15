@@ -77,7 +77,6 @@ typedef struct endpoint {
 	unsigned int nonce_count;
 	const char *received;
 	int rport;
-	unsigned char unreconizable_contact;
 	int connection_family;
 	int register_count;
 	int transiant_network_failure;
@@ -86,10 +85,12 @@ typedef struct endpoint {
 	int number_of_body_found;
 	const char *realm;
 	unsigned int max_nc_count;
-	bool_t bad_next_nonce;
 	const char *algo;
 	const char *ha1;
 	int retry_after;
+	unsigned char unreconizable_contact;
+	unsigned char bad_next_nonce;
+	unsigned char expect_failed_auth;
 } endpoint_t;
 
 
@@ -435,6 +436,7 @@ static void belle_sip_refresher_listener (belle_sip_refresher_t* refresher
 		case 200:endpoint->stat.refreshOk++; break;
 		case 481:endpoint->stat.fourHundredEightyOne++;break;
 		case 503:endpoint->stat.fiveHundredTree++;break;
+		case 401:endpoint->stat.fourHundredOne++;break;
 		default:
 			/*nop*/
 			break;
@@ -466,6 +468,7 @@ static endpoint_t* create_endpoint(const char *ip, int port,const char* transpor
 	endpoint->nonce_count=1;
 	endpoint->register_count=3;
 	endpoint->retry_after=0;
+	endpoint->expect_failed_auth = FALSE;
 	return endpoint;
 }
 
@@ -493,7 +496,7 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 	belle_sip_request_t* req;
 	belle_sip_client_transaction_t* trans;
 	belle_sip_header_route_t* destination_route;
-	belle_sip_refresher_t* refresher;
+	belle_sip_refresher_t* refresher = NULL;
 	const char* identity = "sip:" USERNAME "@" SIPDOMAIN ;
 	const char* domain="sip:" SIPDOMAIN ;
 	belle_sip_header_contact_t* contact=belle_sip_header_contact_new();
@@ -559,7 +562,11 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 			trans=belle_sip_provider_create_client_transaction(client->provider,req);
 			belle_sip_object_ref(trans);
 			belle_sip_client_transaction_send_request(trans);
-			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+			if (client->expect_failed_auth) {
+				BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,1,1000));
+			}else{
+				BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.twoHundredOk,1,1000));
+			}
 		}
 		client->refresher= refresher = belle_sip_client_transaction_create_refresher(trans);
 	}
@@ -568,11 +575,16 @@ static belle_sip_refresher_t*  refresher_base_with_body2( endpoint_t* client
 		belle_sip_refresher_set_listener(refresher,belle_sip_refresher_listener,client);
 		int timeout = client->retry_after + client->register_count;
 
-		begin = belle_sip_time_ms();
-		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0), timeout*1000 + 1000));
-		end = belle_sip_time_ms();
-		BC_ASSERT_GREATER((long double)(end-begin),(client->register_count/number_active_refresher)*1000*.9,long double,"%Lf"); /*because refresh is at 90% of expire*/
-		BC_ASSERT_LOWER_STRICT(end-begin,(timeout*1000 + 2000),unsigned long long,"%llu");
+		if (!client->expect_failed_auth) {
+			begin = belle_sip_time_ms();
+			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.refreshOk,client->register_count+(client->early_refresher?1:0), timeout*1000 + 1000));
+			end = belle_sip_time_ms();
+			BC_ASSERT_GREATER((long double)(end-begin),(client->register_count/number_active_refresher)*1000*.9,long double,"%Lf"); /*because refresh is at 90% of expire*/
+			BC_ASSERT_LOWER_STRICT(end-begin,(timeout*1000 + 2000),unsigned long long,"%llu");
+		}else{
+			/* Will retry one more time before re-scheduling an attempt in 60 seconds */
+			BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,2,3000));
+		}
 	}
 	return refresher;
 }
@@ -583,11 +595,18 @@ static void refresher_base_with_body(endpoint_t *client
                                      , belle_sip_header_content_type_t *content_type
                                      , const char *body) {
 	belle_sip_refresher_t  *refresher = refresher_base_with_body2(client, server, method, content_type, body, 1);
-	/*unregister twice to make sure refresh operation can be safely cascaded*/
+	int fourHundredOneResponses = client->stat.fourHundredOne;
+	
+	
 	belle_sip_refresher_refresh(refresher, 0);
-	belle_sip_refresher_refresh(refresher, 0);
-	BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, client->register_count + 1, 1000));
-	BC_ASSERT_EQUAL(client->stat.refreshOk, client->register_count + 1, int, "%d");
+	if (!client->expect_failed_auth){
+		/*unregister twice to make sure refresh operation can be safely cascaded*/
+		belle_sip_refresher_refresh(refresher, 0);
+		BC_ASSERT_TRUE(wait_for(server->stack, client->stack, &client->stat.refreshOk, client->register_count + 1, 1000));
+		BC_ASSERT_EQUAL(client->stat.refreshOk, client->register_count + 1, int, "%d");
+	}else{
+		BC_ASSERT_TRUE(wait_for(server->stack,client->stack,&client->stat.fourHundredOne,fourHundredOneResponses+1, 2000));
+	}
 	belle_sip_refresher_stop(refresher);
 	belle_sip_object_unref(refresher);
 
@@ -797,15 +816,9 @@ static void subscribe_base(int with_resource_lists) {
 
 	belle_sip_object_unref(refresher);
 
-/*
-Peio : assert qui pète à chaque fois et ce bug DOIT être corrigé.
-il serait utile de commenter l'assert afin de savoir à quoi elle sert précisément
-avant d'avoir à relire tout le code qui lui est liée.
-Issue assignée à Jehan
-
 	if (with_resource_lists) {
-		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ?1:2), int, "%i");
-	}*/
+		BC_ASSERT_EQUAL(server->number_of_body_found, (server->auth == none ?3:6), int, "%i");
+	}
 
 
 	destroy_endpoint(client);
@@ -874,6 +887,92 @@ static void register_with_failure(void) {
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
+
+static void register_with_failure_because_of_no_qop(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	belle_sip_digest_authentication_policy_t * digest_policy = belle_sip_digest_authentication_policy_new();
+	
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=1;
+	server->auth=digest;
+	
+	belle_sip_digest_authentication_policy_set_allow_md5(digest_policy, TRUE);
+	belle_sip_digest_authentication_policy_set_allow_no_qop(digest_policy, FALSE);
+	belle_sip_stack_set_digest_authentication_policy(client->stack, digest_policy);
+	client->expect_failed_auth = TRUE;
+	
+	register_base(client,server);
+	BC_ASSERT_EQUAL(client->stat.twoHundredOk,0,int,"%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+static void register_with_failure_because_of_md5(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	belle_sip_digest_authentication_policy_t * digest_policy =  belle_sip_digest_authentication_policy_new();
+	
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	
+	belle_sip_digest_authentication_policy_set_allow_md5(digest_policy, FALSE);
+	belle_sip_digest_authentication_policy_set_allow_no_qop(digest_policy, TRUE);
+	belle_sip_stack_set_digest_authentication_policy(client->stack, digest_policy);
+	client->expect_failed_auth = TRUE;
+	
+	server = create_udp_endpoint(6788,&server_callbacks);
+	server->expire_in_contact=1;
+	server->auth=digest;
+	
+	register_base(client,server);
+	BC_ASSERT_EQUAL(client->stat.twoHundredOk,0,int,"%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+
+static void refresher_sha256_with_md5_disabled(void){
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t* client,*server;
+	belle_sip_digest_authentication_policy_t * digest_policy = belle_sip_digest_authentication_policy_new();
+	
+	memset(&client_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks,0,sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event=client_process_response_event;
+	client_callbacks.process_auth_requested=client_process_auth_requested;
+	server_callbacks.process_request_event=server_process_request_event;
+	client = create_udp_endpoint(3452,&client_callbacks);
+	
+	belle_sip_digest_authentication_policy_set_allow_md5(digest_policy, FALSE);
+	belle_sip_digest_authentication_policy_set_allow_no_qop(digest_policy, TRUE);
+	belle_sip_stack_set_digest_authentication_policy(client->stack, digest_policy);
+	
+	server = create_udp_endpoint(6788,&server_callbacks);
+	
+	server->auth=digest_auth;
+	server->algo="SHA-256";
+	client->algo="SHA-256";
+	
+	refresher_base_with_body(client,server,"REGISTER",NULL,NULL);
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+
 static void register_with_unrecognizable_contact(void) {
 	belle_sip_listener_callbacks_t client_callbacks;
 	belle_sip_listener_callbacks_t server_callbacks;
@@ -1169,6 +1268,9 @@ test_t refresher_tests[] = {
 	TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256", register_expires_in_contact_header_digest_md_sha256),
 	TEST_NO_TAG("REGISTER Expires in Contact digest auth MD_SHA-256 ha1", register_expires_in_contact_header_digest_md_sha256_ha1),
 	TEST_NO_TAG("REGISTER with failure", register_with_failure),
+	TEST_NO_TAG("REGISTER failed because client does not allow MD5", register_with_failure_because_of_md5),
+	TEST_NO_TAG("REGISTER failed because client requires qop=auth", register_with_failure_because_of_no_qop),
+	TEST_NO_TAG("REGISTER successful with SHA-256 when MD5 is disabled.", refresher_sha256_with_md5_disabled),
 	TEST_NO_TAG("REGISTER with early refresher", register_early_refresher),
 	TEST_NO_TAG("REGISTER with retry after", register_retry_after),
 	TEST_NO_TAG("SUBSCRIBE", subscribe_test),

@@ -103,6 +103,8 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			belle_sip_list_free(authenticate_lst);
 			return -1;
 		}
+		
+		if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
 
 		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 

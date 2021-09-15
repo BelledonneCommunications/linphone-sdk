@@ -257,7 +257,7 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_source_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_mdns_register_t);
 #endif
 BELLE_SIP_DECLARE_VPTR(belle_sip_resolver_results_t);
-
+BELLE_SIP_DECLARE_VPTR(belle_sip_digest_authentication_policy_t);
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_resolver_context_t,belle_sip_source_t)
 	void (*cancel)(belle_sip_resolver_context_t *);
@@ -571,6 +571,7 @@ struct belle_sip_stack{
 	int http_proxy_port;
 	char *http_proxy_username; /*for future use*/
 	char *http_proxy_passwd; /*for future use*/
+	belle_sip_digest_authentication_policy_t *digest_auth_policy;
 
 	unsigned char dns_srv_enabled;
 	unsigned char dns_search_enabled;
@@ -587,6 +588,8 @@ BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_uri(const belle_sip_uri_
 BELLESIP_EXPORT belle_sip_hop_t* belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
 
 BELLESIP_EXPORT belle_sip_hop_t * belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
+/* Return -1 if requested authentication is not compatible with local digest authentication security policy, 0 if compatible. */
+BELLESIP_EXPORT int belle_sip_stack_check_digest_compatibility(const belle_sip_stack_t *stack, const belle_sip_header_www_authenticate_t *authenticate);
 
 /*
  belle_sip_provider_t

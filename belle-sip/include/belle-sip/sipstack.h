@@ -26,10 +26,25 @@ struct belle_sip_timer_config{
 	int T3;
 	int T4;
 };
-
 typedef struct belle_sip_timer_config belle_sip_timer_config_t;
 
+typedef struct belle_sip_digest_authentication_policy belle_sip_digest_authentication_policy_t;
+
+
+
 BELLE_SIP_BEGIN_DECLS
+
+
+BELLESIP_EXPORT belle_sip_digest_authentication_policy_t * belle_sip_digest_authentication_policy_new(void);
+
+BELLESIP_EXPORT unsigned char belle_sip_digest_authentication_policy_get_allow_md5(const belle_sip_digest_authentication_policy_t *obj);
+
+BELLESIP_EXPORT void belle_sip_digest_authentication_policy_set_allow_md5(belle_sip_digest_authentication_policy_t *obj, unsigned char value);
+
+BELLESIP_EXPORT unsigned char belle_sip_digest_authentication_policy_get_allow_no_qop(const belle_sip_digest_authentication_policy_t *obj);
+
+BELLESIP_EXPORT void belle_sip_digest_authentication_policy_set_allow_no_qop(belle_sip_digest_authentication_policy_t *obj, unsigned char value);
+
 
 /**
  * This only affects the resolution of SIP URI in absence of port number, and in absence of SRV record for the SIP domain. The well known ports (udp/tcp and tls/dtls) are static.
@@ -207,6 +222,13 @@ BELLESIP_EXPORT void belle_sip_stack_enable_reconnect_to_primary_asap(belle_sip_
  * @see belle_sip_provider_enable_reconnect_to_primary_asap()
 **/
 BELLESIP_EXPORT int belle_sip_stack_reconnect_to_primary_asap_enabled(const belle_sip_stack_t *stack);
+
+/**
+ * Configure security policies for digest authentication.
+ */
+BELLESIP_EXPORT void belle_sip_stack_set_digest_authentication_policy(belle_sip_stack_t *stack, belle_sip_digest_authentication_policy_t *policy);
+
+BELLESIP_EXPORT const belle_sip_digest_authentication_policy_t *belle_sip_stack_get_digest_authentication_policy(const belle_sip_stack_t *stack);
 
 
 /*
