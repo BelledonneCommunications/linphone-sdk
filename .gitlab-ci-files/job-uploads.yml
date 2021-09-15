@@ -110,7 +110,6 @@ job-ios-xcode-novideo-upload:
     - git config --global user.name "Gitlab"
     - cd build
     - mkdir -p maven_repository/org/linphone/
-    - echo $MAVEN_REPO_URL
     - echo $MAVEN_REPO_PATH
     - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
@@ -182,21 +181,19 @@ job-android-upload-no-video:
   extends: .job-android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
-  needs:
-    - job-android-ninja-r20-no-video
-  variables:
     GRADLE_OPTIONS: -Pno-video -i
     MAVEN_REPO_PATH: no-video
+  needs:
+    - job-android-ninja-r20-no-video
 
 job-android-upload-minimal-size:
   extends: .job-android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_MAVEN_URL
-  needs:
-    - job-android-makefile-r20-minimal-size
-  variables:
     GRADLE_OPTIONS: -Pminimal-size -i
     MAVEN_REPO_PATH: minimal
+  needs:
+    - job-android-makefile-r20-minimal-size
 
 job-android-upload-g729:
   extends: .job-android-upload-common
