@@ -55,6 +55,12 @@ bellesip::SDP::Parser::Parser() {
            ->setCollector("media-description", make_fn(&belle_sdp_session_description_add_media_description))
            ->setCollector("attribute", make_fn(&belle_sdp_session_description_add_attribute_holder));
 
+    _parser->setHandler("content-attribute", make_fn(&belle_sdp_content_attribute_new))
+           ->setCollector("mediacnt", make_fn(&belle_sdp_content_attribute_add_media_tag));
+
+    _parser->setHandler("label-attribute", make_fn(&belle_sdp_label_attribute_new))
+           ->setCollector("pointer", make_fn(&belle_sdp_label_attribute_set_pointer));
+
     _parser->setHandler("csup-attribute", make_fn(&belle_sdp_csup_attribute_new))
            ->setCollector("option-tag", make_fn(&belle_sdp_csup_attribute_add_option_tag));
 
@@ -118,6 +124,8 @@ bellesip::SDP::Parser::Parser() {
            ->setCollector("voip-metrics", make_fn(&belle_sdp_rtcp_xr_attribute_enable_voip_metrics));
 
     _parser->setHandler("attribute", make_fn(&belle_sdp_attribute_holder_new))
+           ->setCollector("label-attribute", make_fn(&belle_sdp_attribute_holder_set_attribute))
+           ->setCollector("content-attribute", make_fn(&belle_sdp_attribute_holder_set_attribute))
            ->setCollector("acfg-attribute", make_fn(&belle_sdp_attribute_holder_set_attribute))
            ->setCollector("creq-attribute", make_fn(&belle_sdp_attribute_holder_set_attribute))
            ->setCollector("csup-attribute", make_fn(&belle_sdp_attribute_holder_set_attribute))

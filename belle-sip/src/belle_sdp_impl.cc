@@ -198,6 +198,96 @@ void belle_sdp_raw_attribute_set_name(belle_sdp_raw_attribute_t* attribute, cons
 }
 
 /***************************************************************************************
+ * RFC4574 Attributes
+ *
+ **************************************************************************************/
+
+struct _belle_sdp_label_attribute {
+	belle_sdp_attribute_t base;
+	const char* pointer;
+};
+
+static void belle_sdp_label_attribute_init(belle_sdp_label_attribute_t* attribute) {
+	belle_sdp_attribute_set_name(BELLE_SDP_ATTRIBUTE(attribute), "label");
+}
+
+void belle_sdp_label_attribute_destroy(belle_sdp_label_attribute_t* attribute) {
+	DESTROY_STRING(attribute,pointer)
+}
+void belle_sdp_label_attribute_clone(belle_sdp_label_attribute_t* attribute, const belle_sdp_label_attribute_t *orig) {
+	belle_sdp_label_attribute_set_pointer(attribute, belle_sdp_label_attribute_get_pointer(orig));
+}
+
+belle_sip_error_code belle_sdp_label_attribute_marshal(belle_sdp_label_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
+	belle_sip_error_code error = belle_sip_snprintf(
+		buff, buff_size, offset,
+		"a=label:%s",
+		attribute->pointer
+	);
+
+	return error;
+}
+
+BELLE_SDP_NEW_WITH_CTR(label_attribute,belle_sdp_attribute)
+BELLE_SDP_BELR_PARSE(label_attribute)
+GET_SET_STRING(belle_sdp_label_attribute,pointer)
+
+/***************************************************************************************
+ * RFC4796 Attributes
+ *
+ **************************************************************************************/
+
+// content
+
+struct _belle_sdp_content_attribute {
+	belle_sdp_attribute_t base;
+	belle_sip_list_t* media_tags;
+};
+
+void belle_sdp_content_attribute_destroy(belle_sdp_content_attribute_t* attribute) {
+	belle_sip_list_free_with_data(attribute->media_tags, belle_sip_free);
+}
+
+void belle_sdp_content_attribute_clone(belle_sdp_content_attribute_t* attribute, const belle_sdp_content_attribute_t *orig) {
+	attribute->media_tags = belle_sip_list_copy_with_data(orig->media_tags, belle_sip_string_copyfunc);
+}
+
+belle_sip_error_code belle_sdp_content_attribute_marshal(belle_sdp_content_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
+	belle_sip_list_t* media_tags=attribute->media_tags;
+
+	belle_sip_error_code error = belle_sip_snprintf(buff,buff_size,offset,"a=content:");
+	if (error != BELLE_SIP_OK) return error;
+
+	int i = 0;
+	for (;media_tags != NULL;media_tags = media_tags->next){
+		error = belle_sip_snprintf(
+			buff, buff_size, offset,
+			"%s%s",
+			i++ == 0 ? "" : ",",
+			(const char*)media_tags->data
+		);
+		if (error != BELLE_SIP_OK) return error;
+	}
+
+	return error;
+}
+
+void belle_sdp_content_attribute_add_media_tag(belle_sdp_content_attribute_t* attribute, const char* media_tag) {
+	attribute->media_tags = belle_sip_list_append(attribute->media_tags, belle_sip_strdup(media_tag));
+}
+
+belle_sip_list_t* belle_sdp_content_attribute_get_media_tags(belle_sdp_content_attribute_t* attribute) {
+	return attribute->media_tags;
+}
+
+static void belle_sdp_content_attribute_init(belle_sdp_content_attribute_t* attribute) {
+	belle_sdp_attribute_set_name(BELLE_SDP_ATTRIBUTE(attribute), "content");
+}
+
+BELLE_SDP_NEW_WITH_CTR(content_attribute,belle_sdp_attribute)
+BELLE_SDP_BELR_PARSE(content_attribute)
+
+/***************************************************************************************
  * RFC5939 Attributes
  *
  **************************************************************************************/

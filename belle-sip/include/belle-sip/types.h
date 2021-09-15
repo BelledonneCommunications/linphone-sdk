@@ -106,6 +106,8 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sdp_repeate_time_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_rtcp_fb_attribute_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_rtcp_xr_attribute_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_label_attribute_t),
+	BELLE_SIP_TYPE_ID(belle_sdp_content_attribute_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_csup_attribute_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_creq_attribute_t),
 	BELLE_SIP_TYPE_ID(belle_sdp_tcap_attribute_t),

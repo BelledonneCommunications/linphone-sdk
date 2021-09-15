@@ -456,3 +456,16 @@ att-cap-list      = att-cap-num *("," att-cap-num)
 att-cap-num       = 1*10(DIGIT)
 ext-cap-name      = 1*(ALPHA / DIGIT)
 ext-cap-list      = 1*VCHAR
+
+; RFC4796
+
+content-attribute   = %x61 "=" "content:" mediacnt-tag
+mediacnt-tag        = mediacnt *("," mediacnt)
+mediacnt            = "slides" / "speaker" / "sl" / "main"
+                             / "alt" / mediacnt-ext
+mediacnt-ext        = token
+
+; RFC4574
+
+label-attribute     = %x61 "=" "label:" pointer
+pointer             = token
