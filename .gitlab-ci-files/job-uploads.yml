@@ -110,6 +110,8 @@ job-ios-xcode-novideo-upload:
     - git config --global user.name "Gitlab"
     - cd build
     - mkdir -p maven_repository/org/linphone/
+    - echo $MAVEN_REPO_URL
+    - echo $MAVEN_REPO_PATH
     - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
     - echo $GRADLE_OPTIONS
     - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
