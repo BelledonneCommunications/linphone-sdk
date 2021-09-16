@@ -582,6 +582,12 @@ if(ENABLE_SHARED)
 			)
 		endif()
 	endif()
+	if(ENABLE_LIBYUV)
+		if( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.3)
+			message(STATUS "Mediastreamer2 : Build with position independent code")
+			set_property(TARGET mediastreamer PROPERTY POSITION_INDEPENDENT_CODE ON)
+		endif()
+	endif()
 	install(TARGETS mediastreamer EXPORT ${EXPORT_TARGETS_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
