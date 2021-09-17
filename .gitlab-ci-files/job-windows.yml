@@ -189,15 +189,10 @@ job-windows-vs2017-uwp-scheduled:
     CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
 
 job-windows-vs2017-win32-scheduled:
-  extends: .job-windows-vs2017-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
+  extends: .job-windows-vs2017
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_DOC=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32
 
 job-windows-vs2017-win32store-scheduled:
