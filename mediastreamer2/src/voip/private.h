@@ -119,6 +119,8 @@ void video_stream_enable_recording(VideoStream *stream, bool_t enabled);
 
 void ms_audio_conference_set_video_conference(struct _MSAudioConference *audioconf, struct _MSVideoConference *videoconf);
 
+bool_t ms_path_ends_with(const char* path, const char* suffix);
+
 /*
  * Currently common to every h264 implementations including plugins
  */

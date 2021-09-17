@@ -45,6 +45,7 @@ struct _MSAudioEndpoint{
 	MSCPoint mixer_out;
 	MSAudioConference *conference;
 	MSFilter *recorder; /* in case it is a recorder endpoint*/
+	MSFilter *recorder_encoder; /* in case the recorder is mkv */
 	MSFilter *player; /* not used at the moment, but we need it so that there is a source connected to the mixer*/
 	int pin;
 	int samplerate;
@@ -157,7 +158,9 @@ static void plumb_to_conf(MSAudioEndpoint *ep){
 		out_rate=in_rate=ep->samplerate;
 	}else in_rate=out_rate=conf->params.samplerate;
 	
-	if (ep->recorder){
+	if (ep->recorder_encoder){
+		ms_filter_call_method(ep->recorder_encoder,MS_FILTER_SET_SAMPLE_RATE,&conf->params.samplerate);
+	}else if (ep->recorder){
 		ms_filter_call_method(ep->recorder,MS_FILTER_SET_SAMPLE_RATE,&conf->params.samplerate);
 	}
 	
@@ -187,7 +190,7 @@ static int request_volumes(MSFilter *filter, rtp_audio_level_t *audio_levels, vo
 
 	for (it = ep->conference->members; it != NULL; it = it->next) {
 		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
-		if (data != ep) {
+		if (data != ep && data->st) {
 			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
 			MSFilter *volume_filter = is_remote ? data->st->volrecv : data->st->volsend;
 			uint32_t ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions.rtp_session) : rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session);
@@ -237,7 +240,7 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 	ms_audio_conference_mute_member(obj, ep, ep->muted);
 
 	// If mixer to client extension id is configured then add the needed callback
-	if (ep->st->mixer_to_client_extension_id > 0) {
+	if (ep->st && ep->st->mixer_to_client_extension_id > 0) {
 		MSFilterRequestMixerToClientDataCb callback;
 		callback.cb = request_volumes;
 		callback.user_data = ep;
@@ -310,7 +313,9 @@ void ms_audio_conference_process_events(MSAudioConference *obj){
 	
 	for (elem = obj->members; elem != NULL; elem = elem->next){
 		MSAudioEndpoint *ep = (MSAudioEndpoint *) elem->data;
-		int is_remote = (ep->in_cut_point_prev.filter == ep->st->volrecv);
+		int is_remote;
+		if (ep->st == NULL) continue; /* This happens for the player/recorder special endpoint */
+		is_remote = (ep->in_cut_point_prev.filter == ep->st->volrecv);
 		MSFilter *volume_filter = is_remote ? ep->st->volrecv : ep->st->volsend;
 		if (ep->muted) continue;
 		if (volume_filter){
@@ -372,35 +377,58 @@ void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj){
 void ms_audio_endpoint_destroy(MSAudioEndpoint *ep){
 	if (ep->in_resampler) ms_filter_destroy(ep->in_resampler);
 	if (ep->out_resampler) ms_filter_destroy(ep->out_resampler);
+	if (ep->recorder_encoder){
+		ms_filter_unlink(ep->recorder_encoder, 0, ep->recorder, 0);
+		ms_filter_destroy(ep->recorder_encoder);
+	}
 	if (ep->recorder) ms_filter_destroy(ep->recorder);
 	if (ep->player) ms_filter_destroy(ep->player);
 	ms_free(ep);
 }
 
-MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory){
+
+MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory, const char *path){
 	MSAudioEndpoint *ep=ms_audio_endpoint_new();
+	
+	if (ms_path_ends_with(path,".mkv")){
+		MSPinFormat pinfmt = {0};
+		
+		ep->recorder_encoder = ms_factory_create_filter(factory, MS_OPUS_ENC_ID);
+		ep->recorder = ms_factory_create_filter(factory, MS_MKV_RECORDER_ID);
+		ms_filter_link(ep->recorder_encoder, 0, ep->recorder, 0);
+		
+		pinfmt.pin = 0;
+		pinfmt.fmt = ms_factory_get_audio_format(factory, "opus", 48000, 2, NULL);
+		ms_filter_call_method(ep->recorder, MS_FILTER_SET_INPUT_FMT, &pinfmt);
+	}else if (ms_path_ends_with(path, ".wav")){
+		ep->recorder=ms_factory_create_filter(factory, MS_FILE_REC_ID);
+	}else{
+		ms_error("Unsupported audio file extension for path %s .", path);
+		ms_audio_endpoint_destroy(ep);
+		return NULL;
+	}
+	ms_filter_call_method(ep->recorder,MS_RECORDER_OPEN,(void*)path);
+	
 	ep->in_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 	ep->out_resampler=ms_factory_create_filter(factory, MS_RESAMPLE_ID);
-	ep->recorder=ms_factory_create_filter(factory, MS_FILE_REC_ID);
 	ep->player=ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
-	ep->mixer_out.filter=ep->recorder;
+	ep->mixer_out.filter= ep->recorder_encoder ? ep->recorder_encoder : ep->recorder;
 	ep->mixer_in.filter=ep->player;
 	ep->samplerate=-1;
 	return ep;
 }
 
-int ms_audio_recorder_endpoint_start(MSAudioEndpoint *ep, const char *path){
-	int err;
+int ms_audio_recorder_endpoint_start(MSAudioEndpoint *ep){
 	MSRecorderState state;
 	if (!ep->recorder){
 		ms_error("This endpoint isn't a recorder endpoint.");
 		return -1;
 	}
 	ms_filter_call_method(ep->recorder,MS_RECORDER_GET_STATE,&state);
-	if (state!=MSRecorderClosed)
-		ms_filter_call_method_noarg(ep->recorder,MS_RECORDER_CLOSE);
-	err=ms_filter_call_method(ep->recorder,MS_RECORDER_OPEN,(void*)path);
-	if (err==-1) return -1;
+	if (state != MSRecorderPaused){
+		ms_error("Recorder not bad state, cannot start.");
+		return -1;
+	}
 	return ms_filter_call_method_noarg(ep->recorder,MS_RECORDER_START);
 }
 

@@ -215,17 +215,17 @@ MS2_PUBLIC void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj);
 /**
  * Creates an audio endpoint (or virtual participant) to record the conference into a wav file.
  * @param factory The factory used by the linphone core.
+ * @param path path for the wav file where to record samples.
 **/
-MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory);
+MS2_PUBLIC MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory, const char *path);
 
 /**
  * Start audio recording.
  * The endpoint must have been created by ms_audio_endpoint_new_recorder().
  * @param ep the endpoint
- * @param path path for the wav file where to record samples.
  * @return 0 if successful, -1 if the path is invalid.
 **/
-MS2_PUBLIC int ms_audio_recorder_endpoint_start(MSAudioEndpoint *ep, const char *path);
+MS2_PUBLIC int ms_audio_recorder_endpoint_start(MSAudioEndpoint *ep);
 
 /**
  * Stop audio recording.
