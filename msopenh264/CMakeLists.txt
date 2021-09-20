@@ -66,10 +66,8 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
 
-add_definitions(-DHAVE_CONFIG_H)
-if(APPLE)
-	add_definitions(-std=c++11)
-endif()
+add_definitions(-DHAVE_CONFIG_H -std=c++11)
+
 if(NOT MSVC)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-error=unknown-pragmas")
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
