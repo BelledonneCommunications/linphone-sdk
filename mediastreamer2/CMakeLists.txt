@@ -607,17 +607,29 @@ endif()
 
 if(ENABLE_QT_GL)#Only add headers and lib to Qt plugins
 	set(QT5_PACKAGES Core Gui Quick QmlModels Qml Network)
+
+# Cmake/Qt hackshit : find_package read CMAKE_PREFIX_PATH and QT5_DIR but cannot find any Qt5Config.cmake even if there are inside them.
+	if(LINPHONESDK_QT_DIR)
+		set(Qt5_base "${LINPHONESDK_QT_DIR}/lib/cmake/")
+		set(Qt5_DIR "${Qt5_base}/Qt5")
+		set(ENV{Qt5_DIR} "${Qt5_base}/Qt5")#Use env and local too because it could not work without them
+		foreach (package ${QT5_PACKAGES})
+			set(Qt5${package}_DIR "${Qt5_base}/Qt5${package}")
+			set(ENV{Qt5${package}_DIR} "${Qt5_base}/Qt5${package}")
+		endforeach ()
+	endif()
+# end of hackshit
+
 	find_package(Qt5 COMPONENTS ${QT5_PACKAGES} QUIET)
 	foreach (package ${QT5_PACKAGES})
 		if(Qt5${package}_FOUND)
 			get_target_property(Qt${package}_location Qt5::${package} LOCATION)
 			string(REPLACE "Qt${package}.framework/Qt${package}" "" Qt${package}_ROOT_LOCATION ${Qt${package}_location})
-			list(APPEND MEDIASTREAMER2_QT_INCLUDE_DIRS "${Qt5${package}_INCLUDE_DIRS}")
+			list(APPEND MEDIASTREAMER2_INCLUDE_DIRS "${Qt5${package}_INCLUDE_DIRS}")
 			list(APPEND QT_LINK_LIBS ${Qt5${package}_LIBRARIES})
 		endif()
 	endforeach ()
 endif()
-
 set(LINK_FLAGS )
 if(APPLE)
 	list(APPEND LINK_FLAGS "-framework CoreFoundation" "-framework AudioToolbox" "-framework CoreAudio")
