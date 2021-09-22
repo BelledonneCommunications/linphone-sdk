@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-xcode12" ]
+  tags: [ "macmini-m1-xcode12" ]
   except:
     variables:
       - $DOCKER_UPDATE
@@ -185,7 +185,7 @@ job-ios-xcode-novideo:
 #################################################
 
 test-liblinphone-ios:
-  tags: [ "macosx-xcode12" ]
+  tags: [ "macmini-m1-xcode12" ]
   stage: test
   allow_failure: true
   needs:
