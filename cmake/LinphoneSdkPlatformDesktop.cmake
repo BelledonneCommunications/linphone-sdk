@@ -41,9 +41,11 @@ if(APPLE)
 endif()
 
 set(_desktop_install_prefix "${CMAKE_BINARY_DIR}/linphone-sdk/desktop")
+set(_desktop_prefix_path ${_desktop_install_prefix} ${CMAKE_PREFIX_PATH})
+string(REPLACE ";" "|" _desktop_prefix_path "${_desktop_prefix_path}")
 set(_cmake_args
 	"-DCMAKE_INSTALL_PREFIX=${_desktop_install_prefix}"
-	"-DCMAKE_PREFIX_PATH=${_desktop_install_prefix}"
+	"-DCMAKE_PREFIX_PATH=${_desktop_prefix_path}"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"
 	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${PROJECT_SOURCE_DIR}"

@@ -46,9 +46,11 @@ list(APPEND _cmake_args ${_linphone_sdk_cmake_vars})
 set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/sdk" CACHE STRING "URL of the repository where the macos SDK zip files are located")
 foreach(_arch IN LISTS _archs)
 	set(_macos_install_prefix "${CMAKE_BINARY_DIR}/linphone-sdk/mac-${_arch}")
+	set(_macos_prefix_path ${_macos_install_prefix} ${CMAKE_PREFIX_PATH})
+	string(REPLACE ";" "|" _macos_prefix_path "${_macos_prefix_path}")
 	set(_cmake_args
 	"-DCMAKE_INSTALL_PREFIX=${_macos_install_prefix}"
-	"-DCMAKE_PREFIX_PATH=${_macos_install_prefix}"
+	"-DCMAKE_PREFIX_PATH=${_macos_prefix_path}"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/mac-${_arch}"
 	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${CMAKE_SOURCE_DIR}"
@@ -88,6 +90,7 @@ foreach(_arch IN LISTS _archs)
 		CMAKE_ARGS ${_cmake_args}
 		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
 		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
+		LIST_SEPARATOR | # Use the alternate list separator
 	)
 	ExternalProject_Add_Step(mac-${_arch} force_build
 		COMMENT "Forcing build for 'mac-${_arch}'"
