@@ -8,6 +8,10 @@
     variables:
       - $DOCKER_UPDATE
       - $SKIP_MACOSX
+  variables:
+    LINPHONESDK_MACOS_ARCHS: "x86_64"
+    LINPHONESDK_OPENSSL_ROOT_DIR_X86_64: "/usr/local/opt/openssl@1.1"
+    LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
 
   script:
     - echo $MACOS_DEPLOY_URL
@@ -19,7 +23,10 @@
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - echo $LINPHONESDK_MACOS_ARCHS
+    - echo $LINPHONESDK_OPENSSL_ROOT_DIR_X86_64
+    - echo $LINPHONESDK_OPENSSL_ROOT_DIR_ARM64
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" -DLINPHONESDK_OPENSSL_ROOT_DIR_X86_64="$LINPHONESDK_OPENSSL_ROOT_DIR_X86_64" -DLINPHONESDK_OPENSSL_ROOT_DIR_ARM64="$LINPHONESDK_OPENSSL_ROOT_DIR_ARM64" $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
@@ -37,6 +44,11 @@
     when: always
     expire_in: 1 week
 
+.job-macosx-m1-desktop:
+  tags: [ "macmini-m1-xcode12" ]
+  variables:
+    LINPHONESDK_MACOS_ARCHS: "arm64, x86_64"
+  extends: .job-macosx-desktop
 
 #################################################
 # Makefile
@@ -53,6 +65,15 @@ job-macosx-makefile:
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
   extends: .job-macosx-desktop
 
+job-macosx-m1-makefile:
+
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .job-macosx-m1-desktop
 
 #################################################
 # Ninja
@@ -66,6 +87,12 @@ job-macosx-ninja:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-macosx-desktop
 
+job-macosx-m1-ninja:
+
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+  extends: .job-macosx-m1-desktop
 
 job-macosx-ninja-novideo:
 
@@ -107,7 +134,7 @@ job-macosx-xcode:
 test-liblinphone-macosx:
   stage: test
   extends: .job-prepare
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode12" ]
   allow_failure: true
   needs:
     - job-macosx-ninja
@@ -118,7 +145,7 @@ test-liblinphone-macosx:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop"
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
 
   script:
@@ -135,7 +162,7 @@ test-liblinphone-macosx:
     - echo ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts
     # Force core dump generation
     - ulimit -c unlimited
-    - ./liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+    - ./bin/liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
 
   after_script:
     - pwd
