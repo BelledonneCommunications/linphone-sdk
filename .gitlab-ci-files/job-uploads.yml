@@ -509,30 +509,31 @@ job-xamarin-upload:
     - echo "#!/bin/bash" | tee -a allure_launch_script
 
     #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
-    #navigation to the branch folder and creation if it doesn't exists
+    #creation if it doesn't exists
     - echo "mkdir -p $ESCAPED_BRANCH || exit 1;" | tee -a allure_launch_script
-    - echo "cd $ESCAPED_BRANCH  || exit 1;" | tee -a allure_launch_script
 
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #we search for a report associated to a commit directory
     # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
     # LIMITATION : on multiple retries, no guarantee to pick the latest
-    - echo FIND_DIR="\$(find -maxdepth 1 -name '$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 1 -name '$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then cd $(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    - echo "  then TEST_WORKSPACE_LOCATION=$(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
     - echo "  CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     #LAST_MODIFIED_FOLDER will be either empty (no reports in branch), or containing the latest modified report (will likely be the last created in most cases)
     #LIMITATION : if the latest modified report isn't the latest report, the history order can be messed up
     - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
-    - echo "  mkdir $SDK_VERSION-$TEST_REPORT_ID && cd $SDK_VERSION-$TEST_REPORT_ID || exit 1 ;" | tee -a allure_launch_script
+
+    - echo "  TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
+
+
     - echo "  CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
 
-    - echo "mkdir -p $PLATFORM && cd $PLATFORM || exit 1" | tee -a allure_launch_script
-    - echo "mkdir -p $TESTER && cd $TESTER || exit 1"| tee -a allure_launch_script
+    - echo "mkdir -p \$TEST_WORKSPACE_LOCATION || exit 1" | tee -a allure_launch_script
+
     #Not currently needed
-    #- echo "cp ../../../../categories.json categories.json;" | tee -a allure_launch_script
 
     #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it (for a same given branch)
     #in the new folder, to be used by the new allure report generation
@@ -544,37 +545,35 @@ job-xamarin-upload:
     - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "then" | tee -a allure_launch_script
-    - echo "  cd ../../../../$PARENT_BRANCH || exit 1" | tee -a allure_launch_script
     #LIMITATION : no guarantee that find orders the paths by creation date
-    - echo "  LAST_MODIFIED_PATH=\$(find -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
-    - echo "  cd ../$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER || exit 1" | tee -a allure_launch_script
-    - echo "  cp -r ../../../../\$PARENT_BRANCH/\$LAST_MODIFIED_PATH history;" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "  cp -r \$(pwd)/\$PARENT_BRANCH/\$LAST_MODIFIED_PATH \$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  cp -r \$(find -O3 ../../../ -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) history;" | tee -a allure_launch_script
+    - echo "  cp -r \$(find -O3 \$(pwd) -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
 
 
     #we move the BCUnit report and environment.properties to the desired folder to prepare allure report generation
-    - echo "mv ../../../../environment.properties . && mv ../../../../$XML_FILENAME_START_PATTERN* ." | tee -a allure_launch_script
+    - echo "mv \$(pwd)/environment.properties \$TEST_WORKSPACE_LOCATION && mv \$(pwd)/$XML_FILENAME_START_PATTERN* \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
 
     #symlink with username to ease searching
-    - echo "mkdir -p ../../../$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
-    - echo "ln -s \$(pwd) ../../../$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER" | tee -a allure_launch_script
+    - echo "mkdir -p \$(pwd)/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
+    - echo "ln -s \$TEST_WORKSPACE_LOCATION \$(pwd)/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
 
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
-    - echo "~/allure-2.10.0/bin/allure generate --clean ." | tee -a allure_launch_script
+    - echo "~/allure-2.10.0/bin/allure generate --clean \$TEST_WORKSPACE_LOCATION -o \$TEST_WORKSPACE_LOCATION/allure-report" | tee -a allure_launch_script
 
     #we now remove the history directory
     - echo "pwd" | tee -a allure_launch_script
     - cat allure_launch_script
     - echo "ls -lah" | tee -a allure_launch_script
-    - echo "du -h ." | tee -a allure_launch_script
+    - echo "du -h \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
 
-    - echo "rm -r history || echo 'deletion of temp history failed. History could not be gathered ?'" | tee -a allure_launch_script
+    - echo "rm -r \$TEST_WORKSPACE_LOCATION/history || echo 'deletion of temp history failed. History could not be gathered ?'" | tee -a allure_launch_script
     - cat allure_launch_script
 
     #the average size of a report is around 13Mio
-    - echo "du -h ." | tee -a allure_launch_script
+    - echo "du -h \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
     - cat allure_launch_script
 
     - chmod u+x allure_launch_script
