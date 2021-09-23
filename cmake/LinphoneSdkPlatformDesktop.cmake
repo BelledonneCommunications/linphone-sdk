@@ -1,24 +1,21 @@
-############################################################################
-# LinphoneSdkPlatformDesktop.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+################################################################################
 #
-############################################################################
+#  Copyright (c) 2010-2021 Belledonne Communications SARL.
+# 
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+# 
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+# 
+#  You should have received a copy of the GNU General Public License
+#  along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-#
-############################################################################
+################################################################################
 
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsDesktop)
@@ -44,9 +41,11 @@ if(APPLE)
 endif()
 
 set(_desktop_install_prefix "${CMAKE_BINARY_DIR}/linphone-sdk/desktop")
+set(_desktop_prefix_path ${_desktop_install_prefix} ${CMAKE_PREFIX_PATH})
+string(REPLACE ";" "|" _desktop_prefix_path "${_desktop_prefix_path}")
 set(_cmake_args
 	"-DCMAKE_INSTALL_PREFIX=${_desktop_install_prefix}"
-	"-DCMAKE_PREFIX_PATH=${_desktop_install_prefix}"
+	"-DCMAKE_PREFIX_PATH=${_desktop_prefix_path}"
 	"-DCMAKE_NO_SYSTEM_FROM_IMPORTED=ON"
 	"-DLINPHONE_BUILDER_WORK_DIR=${CMAKE_BINARY_DIR}/WORK/desktop"
 	"-DLINPHONE_BUILDER_EXTERNAL_SOURCE_PATH=${PROJECT_SOURCE_DIR}"
@@ -146,7 +145,7 @@ else()
 		set(LINPHONESDK_MACOS_BASE_URL "https://www.linphone.org/releases/macosx/sdk" CACHE STRING "URL of the repository where the macos SDK zip files are located")
 		add_custom_command(TARGET sdk
 			COMMENT "Generating the SDK (zip file and podspec)"
-			COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
+			COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATFORM=${LINPHONESDK_PLATFORM}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}" "-DLINPHONESDK_STATE=${LINPHONESDK_STATE}" "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
 			"-P" "${LINPHONESDK_DIR}/cmake/macos/GenerateSDK.cmake"
 		)
 	elseif(WIN32)
