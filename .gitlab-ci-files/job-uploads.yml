@@ -540,7 +540,7 @@ job-xamarin-upload:
 
     #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
     - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
-    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -z \$LAST_MODIFIED_FOLDER && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
+    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "then" | tee -a allure_launch_script
     #LIMITATION : no guarantee that find orders the paths by creation date
     - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
