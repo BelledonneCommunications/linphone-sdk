@@ -459,6 +459,7 @@ job-xamarin-upload:
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
     - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
     - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1)
     - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}')
@@ -467,11 +468,12 @@ job-xamarin-upload:
         if [[ -z $ESCAPED_BRANCH ]];
         then ESCAPED_BRANCH=master
         fi
+    - echo $ESCAPED_BRANCH
     - |
         if [[ $ESCAPED_BRANCH=master ]];
         then PARENT_BRANCH=master
         fi
-
+    - echo $ESCAPED_BRANCH
     - echo $PARENT_BRANCH
     - cd results
 
