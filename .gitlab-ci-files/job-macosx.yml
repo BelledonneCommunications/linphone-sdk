@@ -9,6 +9,7 @@
       - $DOCKER_UPDATE
       - $SKIP_MACOSX
   variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON
     LINPHONESDK_MACOS_ARCHS: "x86_64"
     LINPHONESDK_OPENSSL_ROOT_DIR_X86_64: "/usr/local/opt/openssl@1.1"
     LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
@@ -84,14 +85,14 @@ job-macosx-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
   extends: .job-macosx-desktop
 
 job-macosx-m1-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
   extends: .job-macosx-m1-desktop
 
 job-macosx-ninja-novideo:
@@ -100,7 +101,7 @@ job-macosx-ninja-novideo:
     variables:
       - $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
   extends: job-macosx-ninja
 
 
