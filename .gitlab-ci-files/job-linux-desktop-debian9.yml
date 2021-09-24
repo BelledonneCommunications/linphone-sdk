@@ -58,7 +58,7 @@ job-debian9-ninja-gcc:
       - $DOCKER_UPDATE
       - $SKIP_LINUX
   variables:
-    CMAKE_OPTIONS: -DENABLE_DOC=ON
+    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
@@ -71,14 +71,14 @@ job-debian9-ninja-gcc:
 #    variables:
 #      - $NIGHTLY_MASTER
 #  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
 #  extends: job-debian9-ninja-gcc
 
 
 job-debian9-ninja-gcc-smallsdk:
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DHAVE_FLEXIAPI=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DHAVE_FLEXIAPI=NO -DENABLE_LDAP=NO
   extends: job-debian9-ninja-gcc
 
 
