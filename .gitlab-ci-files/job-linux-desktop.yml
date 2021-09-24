@@ -6,7 +6,8 @@
 
   stage: build
   extends: .linux-prepare
-
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON
   script:
     - export CC=$CC
     - export CXX=$CXX
