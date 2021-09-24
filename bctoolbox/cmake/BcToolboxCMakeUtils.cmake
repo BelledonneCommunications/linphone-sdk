@@ -180,7 +180,7 @@ function(bc_compute_full_version OUTPUT_VERSION)
 			set(short_project_version "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 			if(NOT (short_project_version VERSION_EQUAL short_git_version))
 				message(FATAL_ERROR
-					"project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${full_version}'): "
+					"project and git version are not compatible (project: '${PROJECT_VERSION}', git: '${full_version}', at: '${CMAKE_CURRENT_SOURCE_DIR}'): "
 					"major and minor version are not equal !"
 				)
 			endif()
@@ -215,17 +215,17 @@ endfunction()
 # Parameters:
 # * version [input]           : the full version number as string.
 # * major   [output]          : the major version.
-# * minor   [output]          : the minor version.
-# * patch   [output]          : the patch version.
-# * branch  [output,optional] : aggregation of the branch name (alpha, beta, etc.) and the commit increment since the last tag.
+# * minor   [output]          : the minor version.
+# * patch   [output]          : the patch version.
+# * branch  [output,optional] : aggregation of the branch name (alpha, beta, etc.) and the commit increment since the last tag.
 #                               The whole is prefixed by '-' and the result is empty for releases. 
 # * hash    [output,optional] : the commit hash prefixed by '+' or empty for releases.
 #
 # Example:
 # '5.2.1-alpha.145+e62e126' -> major : 5
 #                              minor : 2
-#                              patch : 1
-#                              branch : '-alpha.145'
+#                              patch : 1
+#                              branch : '-alpha.145'
 #                              hash : '+e62e126'
 #
 # '5.2.1' -> major : 5
@@ -257,9 +257,9 @@ endfunction()
 #
 # Exemple:
 # '5.2.1-alpha.145+e62e126' -> version : '5.2.1'
-#                              release : '0.alpha.145+e62e126'
+#                              release : '0.alpha.145+e62e126'
 #
-# '5.2.1' -> version : '5.2.1'
+# '5.2.1' -> version : '5.2.1'
 #            release : '1'
 function(bc_compute_linux_package_version full_version_in package_version_out package_release_out)
 	bc_parse_full_version("${full_version_in}" version_major version_minor version_patch identifiers metadata)
