@@ -512,15 +512,15 @@ job-xamarin-upload:
     #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
     #we search for a report associated to a commit directory
     # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
-    # LIMITATION : on multiple retries, no guarantee to pick the latest
-    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 1 -name '$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
+    #We enter in the if in case of a retry/commit --amend
+    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 2 -name '*/$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then TEST_WORKSPACE_LOCATION=$(echo $FIND_DIR | head -n 1) || exit 1;" | tee -a allure_launch_script
+    - echo "  then TEST_WORKSPACE_LOCATION=$(echo $FIND_DIR | sort -r | head -n 1) || exit 1;" | tee -a allure_launch_script
     - echo "  CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
     #LAST_MODIFIED_FOLDER will be either empty (no reports in branch), or containing the latest modified report (will likely be the last created in most cases)
     #LIMITATION : if the latest modified report isn't the latest report, the history order can be messed up
-    - echo "  LAST_MODIFIED_FOLDER=\$(ls -ct | head -n1)" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_FOLDER=\$(ls -dct */ | head -n1)" | tee -a allure_launch_script
 
     - echo "  TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
 
