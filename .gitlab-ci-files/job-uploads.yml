@@ -459,19 +459,22 @@ job-xamarin-upload:
     - SDK_VERSION=$(git describe)
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
     - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
     - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1)
     - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}')
     - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}')
+    - echo $PARENT_BRANCH
     - |
         if [[ -z $ESCAPED_BRANCH ]];
         then ESCAPED_BRANCH=master
         fi
+    - echo $ESCAPED_BRANCH
     - |
-        if [[ $ESCAPED_BRANCH=master ]];
+        if [[ $ESCAPED_BRANCH == master ]];
         then PARENT_BRANCH=master
         fi
-
+    - echo $ESCAPED_BRANCH
     - echo $PARENT_BRANCH
     - cd results
 
@@ -518,9 +521,6 @@ job-xamarin-upload:
     - echo "  then TEST_WORKSPACE_LOCATION=$(echo $FIND_DIR | sort -r | head -n 1) || exit 1;" | tee -a allure_launch_script
     - echo "  CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    #LAST_MODIFIED_FOLDER will be either empty (no reports in branch), or containing the latest modified report (will likely be the last created in most cases)
-    #LIMITATION : if the latest modified report isn't the latest report, the history order can be messed up
-    - echo "  LAST_MODIFIED_FOLDER=\$(ls -dct */ | head -n1)" | tee -a allure_launch_script
 
     - echo "  TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
 
@@ -532,10 +532,10 @@ job-xamarin-upload:
 
     #Not currently needed
 
-    #The LAST_MODIFIED_FOLDER variable will help us to save the latest tests history before deletion and move it (for a same given branch)
+    #The LAST_MODIFIED_PATH variable will help us to save the latest tests history before deletion and move it (for a same given branch)
     #in the new folder, to be used by the new allure report generation
 
-    #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_FOLDER)
+    #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_PATh)
     #current branch = ESCAPED_BRANCH
 
     #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
@@ -543,10 +543,10 @@ job-xamarin-upload:
     - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
     - echo "then" | tee -a allure_launch_script
     #LIMITATION : no guarantee that find orders the paths by creation date
-    - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -O3 -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cp -r \$(pwd)/\$PARENT_BRANCH/\$LAST_MODIFIED_PATH \$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  cp -r \$(find -O3 \$(pwd) -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
+    - echo "  cp -r \$(find \$(pwd) -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
 
 
