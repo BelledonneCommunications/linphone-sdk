@@ -154,11 +154,7 @@ job-ios-xcode:
 
 job-ios-xcode-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
+
 
   variables:
     CMAKE_GENERATOR: Xcode
