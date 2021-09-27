@@ -7,7 +7,7 @@
 #
 #  extends: .job-prepare
 #  stage: build
-#  tags: [ "windows" ]
+#  tags: [ "windows-powershell" ]
 #  except:
 #    refs:
 #      - feature/peioMergeCi
@@ -39,7 +39,7 @@
 .job-windows-vs2017:
   extends: .job-prepare
   stage: build
-  tags: [ "windows" ]
+  tags: [ "windows-powershell" ]
   except:
     variables:
       - $DOCKER_UPDATE
@@ -57,7 +57,7 @@
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     #handling the case of previous job cancellation
-    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")    
+    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
     - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
@@ -65,9 +65,9 @@
     #this wrapper relays only needed calls to the real compiler
     #cache stats display
     - C:\PROGRA~1\Python37\Scripts\cl -s
-    - echo %DEFAULT_CMAKE_OPTIONS%
-    - echo %CMAKE_OPTIONS%
-    - echo %CMAKE_ARCHITECTURE%
+    - Write-Output %DEFAULT_CMAKE_OPTIONS%
+    - Write-Output %CMAKE_OPTIONS%
+    - Write-Output %CMAKE_ARCHITECTURE%
     - cmake .. -G  "%CMAKE_GENERATOR%" -DLINPHONESDK_PLATFORM=%LINPHONESDK_PLATFORM% -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
     - C:\PROGRA~1\Python37\Scripts\cl -s
@@ -84,7 +84,7 @@
 .job-windows-vs2017-ninja:
   extends: .job-prepare
   stage: build
-  tags: [ "windows" ]
+  tags: [ "windows-powershell" ]
   except:
     variables:
       - $DOCKER_UPDATE
@@ -95,36 +95,54 @@
     MINGW_TYPE: mingw32
   script:
   #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
-    - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
-    - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
+    - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value + "C:\MinGW\bin;" + "C:\Strawberry\c\bin;" + "C:\Program Files\NASM")
+    # -
+    # - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
+    # - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
+    # - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
+    - $env:Path = ($PATH_TEMP + ";C:\msys64;C:\msys64\usr\bin;C:\msys64\" + $MINGW_TYPE + "\bin")
+    # - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
     #handling the case of previous job cancellation
-    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") else (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
-    - IF EXIST build-desktop RMDIR /S /Q build-desktop
+    - If ($MINGW_TYPE -eq "mingw64") {Start-Process "cmd.exe" "/c C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Start-Process "cmd.exe" "/c C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
+    # - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") else (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
+    - If ( Test-Path -Path "build-desktop" ) {Remove-Item -recurse -force -path "build-desktop" }
+    # - IF EXIST build-desktop RMDIR /S /Q build-desktop
     - mkdir build-desktop
     - cd build-desktop
     #we launch the msvc-cl wrapper located in python scripts folder
     #this wrapper relays only needed calls to the real compiler
     #cache stats display
-    - C:\PROGRA~1\Python37\Scripts\cl -s
-    - echo %DEFAULT_CMAKE_OPTIONS%
-    - echo %CMAKE_OPTIONS%
-    - echo %CMAKE_ARCHITECTURE%
-    - echo %SCHEDULE_CMAKE_OPTIONS%
-    - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=%MAKEFILE_JOBS% -DCMAKE_C_COMPILER=%CMAKE_C_COMPILER% -DCMAKE_CXX_COMPILER=%CMAKE_CXX_COMPILER% -DCMAKE_RC_COMPILER=%CMAKE_RC_COMPILER% %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
-    - echo Building with Ninja. See ninja_buildlog.txt to get details before completing the build.
+    # - C:\PROGRA~1\Python37\Scripts\cl -s
+    - Write-Output $DEFAULT_CMAKE_OPTIONS
+    - Write-Output $CMAKE_OPTIONS
+    - Write-Output $CMAKE_ARCHITECTURE
+    - Write-Output $SCHEDULE_CMAKE_OPTIONS
+    - Write-Output $MAKEFILE_JOBS
+    - Write-Output $CMAKE_C_COMPILER
+    - Write-Output $CMAKE_CXX_COMPILER
+    - Write-Output $CMAKE_RC_COMPILER
+    - Write-Output $DEFAULT_CMAKE_OPTIONS
+    - Write-Output $CMAKE_OPTIONS
+    - Write-Output $CMAKE_ARCHITECTURE
+    - Write-Output $SCHEDULE_CMAKE_OPTIONS
+
+    - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS -DCMAKE_C_COMPILER=$CMAKE_C_COMPILER -DCMAKE_CXX_COMPILER=$CMAKE_CXX_COMPILER -DCMAKE_RC_COMPILER=$CMAKE_RC_COMPILER $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS
+    - Write-Output -NoEnumerate Building with Ninja. See ninja_buildlog.txt to get details before completing the build.
     #Warning : Ninja doesn't return an error code on Linker error.
     #Store outputs in a file log
-    - cmake --build . --target sdk --config RelWithDebInfo --parallel %MAKEFILE_JOBS% | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
+    - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | Select-String -Exclude "inclusion du fichier" > ninja_buildlog.txt 2>&1
+    # - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
     #Print the file to get a feedback on CI
-    - type ninja_buildlog.txt
+    - Get-Content ninja_buildlog.txt
+    # - type ninja_buildlog.txt
     #GitlabCI stop at the first command that failed : Embedd commands in a script.
     #GitlabCI limitation : when having ': ', the whole line must be in ""
-    - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > invertSearch.bat"
+    - "Write-Output -NoEnumerate Select-String -Pattern /C:\"build stopped: subcommand failed\" -SimpleMatch -Path ninja_buildlog.txt > invertSearch.ps1"
+    # - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > invertSearch.bat"
     # Inverse the error code level of FINDSTR. It must be an error if the line has been found.
-    - echo if ^%%ERRORLEVEL^%% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat
-    - invertSearch.bat
+    - Write-Output -NoEnumerate (if $lastexitcode -eq 0) {exit 1} else {exit 0} >> invertSearch.ps1
+    # - echo if ^%%ERRORLEVEL^%% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat
+    - .\invertSearch.ps1
     - C:\PROGRA~1\Python37\Scripts\cl -s
 ################
   artifacts:
@@ -142,12 +160,12 @@
       - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
-    - set "CLCACHE_DISABLE=1"
+    - Set-Variable -Name "CLCACHE_DISABLE" -Value 1"
 
 ######################################################
 # JOBS
 ######################################################
-    
+
 job-windows-vs2017-ninja-win64:
   extends: .job-windows-vs2017-ninja
   variables:
@@ -238,7 +256,7 @@ job-windows-vs2017-win32-novideo:
     - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
     - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
     - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")    
+    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
     - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
 
     #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
@@ -306,7 +324,7 @@ test-linphone-windows-win32-ninja:
       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   needs:
     - job-windows-vs2017-ninja-win32
-    
+
 test-linphone-windows-win64-ninja:
   extends: .test-linphone-windows
   only:
@@ -319,7 +337,7 @@ test-linphone-windows-win64-ninja:
 test-linphone-windows-uwp:
   stage: test
   extends: .job-prepare
-  tags: [ "windows-tests" ]
+  tags: [ "windows" ]
   allow_failure: true
   needs:
     - job-windows-vs2017-uwp-scheduled
