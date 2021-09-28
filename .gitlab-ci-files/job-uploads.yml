@@ -2,8 +2,7 @@
 # iOS
 #################################################
 
-
-job-ios-upload:
+job-ios-xcode-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
 
@@ -49,6 +48,7 @@ job-ios-upload:
     - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
     - pod repo remove linphone-sdk
 
+
 job-ios-xcode-novideo-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
@@ -76,7 +76,10 @@ job-ios-xcode-novideo-upload:
 
     - echo $UPLOAD_ROOT_DIRECTORY
     - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/novideo/
-
+    - pod repo remove linphone-sdk-novideo || true
+    - pod repo add linphone-sdk-novideo git@gitlab.linphone.org:BC/public/podspec.git
+    - pod repo push linphone-sdk-novideo build-ios/linphone-sdk-novideo.podspec --skip-import-validation --verbose
+    - pod repo remove linphone-sdk-novideo
 #################################################
 # Android
 #################################################
