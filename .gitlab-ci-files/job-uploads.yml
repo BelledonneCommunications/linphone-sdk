@@ -456,7 +456,12 @@ job-xamarin-upload:
     - LIME_VERSION=$(git -C lime describe)
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe)
     - MS2_VERSION=$(git -C mediastreamer2 describe)
-    - SDK_VERSION=$(git describe)
+
+    #We get the SDK version from earlier jobs instead of using git describe so the URL generated in the tester job will be the same in the upload job, no matter the platform used and the git version delta
+    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
+    - echo $SDK_VERSION
+    - git describe
+
     - BRANCH=$CI_COMMIT_REF_NAME
     - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
     - echo $ESCAPED_BRANCH
@@ -586,6 +591,7 @@ job-xamarin-upload:
     - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && bash -x allure_launch_script"
 
     #TODO think about deletion of oldest reports, or compression
+    #It is done by a CRON job on the target machine
 
     #categories.json is usefull to define the pattern of the tests states.
     #ex
