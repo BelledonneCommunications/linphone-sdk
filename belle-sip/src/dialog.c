@@ -1176,6 +1176,16 @@ int belle_sip_dialog_request_pending(const belle_sip_dialog_t *dialog){
 	return dialog->needs_ack || (dialog->last_transaction ? belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(dialog->last_transaction)) : FALSE);
 }
 
+int belle_sip_dialog_get_request_retry_timeout(const belle_sip_dialog_t *dialog){
+	/* According to RFC3261 - 14.1 */
+	if (!dialog->is_server){
+		return 2100 + 10 * (((belle_sip_random() % (4000 - 2100))) / 10 );
+	}else{
+		return 10 * ((belle_sip_random() % 2000) / 10 );
+	}
+}
+
+
 /* for notify exception
 As per RFC 3265;
 3.3.4. Dialog creation and termination
