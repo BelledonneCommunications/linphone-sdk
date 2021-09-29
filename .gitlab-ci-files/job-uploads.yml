@@ -556,7 +556,7 @@ job-xamarin-upload:
     - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
     - echo "  cp -r \$LAST_MODIFIED_PATH \$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-    - echo "  cp -r \$(find \$(pwd) -path '*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
+    - echo "  cp -r \$(find \$(pwd) -path '*/$ESCAPED_BRANCH/*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
     - echo "fi;" | tee -a allure_launch_script
 
 
