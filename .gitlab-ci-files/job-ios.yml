@@ -8,6 +8,11 @@
       - $DOCKER_UPDATE
       - $SKIP_IOS
 
+  only:
+    refs:
+      - merge-requests
+      - schedules
+
   script:
     - echo $IOS_DEPLOY_URL
     - ccache -s
