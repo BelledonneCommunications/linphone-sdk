@@ -39,48 +39,48 @@ job-check-orphan-commits:
     - echo $EXIT;
     - exit $EXIT;
 
-# job-test-c:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only:
-#     refs:
-#       - merge-requests
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
-#
-# job-test-wo-ref-c:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only:
-#     - merge-requests
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
-#
-# job-test-wo-ref-alt-c:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only: [merge-requests]
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
-#
+job-test-c:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    refs:
+      - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-c:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-alt-c:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only: [merge-requests]
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
 # job-test-wo-ref-alt1-c:
 #   tags: [ "linux-deploy" ]
 #   stage: check-orphans
