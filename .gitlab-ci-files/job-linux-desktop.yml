@@ -323,5 +323,5 @@
       - $ENABLE_TESTS_IN_MR
   except:
    - schedules
-   - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*/
-   - $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
+   # - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*/
+   # - $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
