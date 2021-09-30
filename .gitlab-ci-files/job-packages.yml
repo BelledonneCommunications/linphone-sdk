@@ -4,7 +4,7 @@
 
 job-windows-vs2017-nuget-package:
   stage: package
-  tags: [ "windows" ]
+  tags: [ "windows-powershell" ]
   needs:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
