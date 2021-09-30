@@ -51,12 +51,12 @@ include:
   - '.gitlab-ci-files/docker-image-update/update-centos7.yml'
 
 stages:
- - docker-update-build
+# - docker-update-build
  - build
- - docker-update-build-ms
- - docker-update-build-liblinphone
- - test
- - check-orphans
- - package
- - deploy
- - email-notif
+# - docker-update-build-ms
+# - docker-update-build-liblinphone
+# - test
+# - check-orphans
+# - package
+# - deploy
+# - email-notif
