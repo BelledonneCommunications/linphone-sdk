@@ -97,7 +97,7 @@ include:
   # - '.gitlab-ci-files/job-windows.yml'
   # - '.gitlab-ci-files/job-packages.yml'
   # - '.gitlab-ci-files/job-uploads.yml'
-  - '.gitlab-ci-files/job-check-orphan-commits.yml'
+  #- '.gitlab-ci-files/job-check-orphan-commits.yml'
   # - '.gitlab-ci-files/job-send-email.yml'
   # - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
   # - '.gitlab-ci-files/docker-image-update/update-archlinux.yml'
