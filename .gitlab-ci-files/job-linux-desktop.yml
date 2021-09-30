@@ -8,6 +8,10 @@
   extends: .linux-prepare
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
+  only:
+    refs:
+      - merge-requests
+      - schedules
   script:
     - export CC=$CC
     - export CXX=$CXX
@@ -86,7 +90,7 @@
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
-    - ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+    - ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
     - $PULSEAUDIO_KILL
     - exit $EXIT
 
@@ -311,11 +315,13 @@
 .test-liblinphone-mr:
   extends: .test-liblinphone
   allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
   only:
     refs:
-      - branches
-      - tags
+      - merge-requests
     variables:
       - $ENABLE_TESTS_IN_MR
   except:
    - schedules
+   - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*/
+   - $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/

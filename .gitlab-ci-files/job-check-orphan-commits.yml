@@ -5,6 +5,7 @@ job-check-orphan-commits:
   #prevents jobs from gathering all previous jobs artifacts
   needs: []
   script :
+    - echo $CI_MERGE_REQUEST_TITLE
     #This script checks if there is referenced orphans commits and errors out if there is any.
     #The main purpose if to keep a clean git tree and to prevent fetch errors by earlier versions of git (1.8.x)
     #For each submodule, we get the referenced commit, and we check if this commit is referenced by a branch.
