@@ -152,11 +152,11 @@
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
-  #     - $ENABLE_WINDOWS_TESTS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - Set-Variable -Name "CLCACHE_DISABLE" -Value 1
@@ -176,9 +176,9 @@ job-windows-vs2017-ninja-win64:
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
-  # only:
-  #   variables:
-  #     - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+  only:
+    variables:
+      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -191,13 +191,13 @@ job-windows-vs2017-ninja-win32:
 ##      ON SCHEDULE     ##
 job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017-scheduled
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
-  #     - $DEPLOY_RUN_WINDOWS
-  #     - $ENABLE_WINDOWS_UWP_TESTS
-  #     - $ENABLE_WINDOWS_TESTS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
+      - $ENABLE_WINDOWS_UWP_TESTS
+      - $ENABLE_WINDOWS_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO
@@ -207,11 +207,11 @@ job-windows-vs2017-uwp-scheduled:
 
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
-  #     - $DEPLOY_RUN_WINDOWS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
@@ -219,21 +219,21 @@ job-windows-vs2017-win32-scheduled:
 
 job-windows-vs2017-win32store-scheduled:
   extends: .job-windows-vs2017-scheduled
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
-  #     - $DEPLOY_RUN_WINDOWS
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32store
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
+  only:
+    variables:
+      - $NIGHTLY_MASTER
+      - $NIGHTLY_RELEASE
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
