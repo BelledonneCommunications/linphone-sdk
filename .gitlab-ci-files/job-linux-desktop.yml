@@ -319,8 +319,8 @@
   only:
     refs:
       - merge-requests
-    variables:
-      - $ENABLE_TESTS_IN_MR
+    # variables:
+    #   - $ENABLE_TESTS_IN_MR
   except:
    - schedules
    # - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*/
