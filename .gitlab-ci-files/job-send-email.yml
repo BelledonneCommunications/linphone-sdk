@@ -24,9 +24,10 @@ send-email-test-report:
 
   only:
     refs:
-      - branches
-      - tags
+      - merge-requests
     variables:
       - $ENABLE_TESTS_IN_MR
   except:
-    - schedules
+   - schedules
+   # - $CI_MERGE_REQUEST_TITLE =~ /^WIP:.*/
+   # - $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
