@@ -23,20 +23,20 @@ variables:
     max: 2
     when: runner_system_failure
 
-job-test:
-  tags: [ "linux-deploy" ]
-  stage: check-orphans
-  #prevents jobs from gathering all previous jobs artifacts
-  needs: []
-  only:
-    refs:
-      - merge-requests
-  variables:
-    CI_DEBUG_TRACE: "true"
-  script :
-    - echo $CI_MERGE_REQUEST_TITLE
-    - echo $CI_OPEN_MERGE_REQUESTS
-    - echo $CI_PIPELINE_SOURCE
+# job-test:
+#   tags: [ "linux-deploy" ]
+#   stage: check-orphans
+#   #prevents jobs from gathering all previous jobs artifacts
+#   needs: []
+#   only:
+#     refs:
+#       - merge-requests
+#   variables:
+#     CI_DEBUG_TRACE: "true"
+#   script :
+#     - echo $CI_MERGE_REQUEST_TITLE
+#     - echo $CI_OPEN_MERGE_REQUESTS
+#     - echo $CI_PIPELINE_SOURCE
 
 job-test-wo-ref:
   tags: [ "linux-deploy" ]
@@ -52,31 +52,31 @@ job-test-wo-ref:
     - echo $CI_OPEN_MERGE_REQUESTS
     - echo $CI_PIPELINE_SOURCE
 
-job-test-wo-ref-alt:
-  tags: [ "linux-deploy" ]
-  stage: check-orphans
-  #prevents jobs from gathering all previous jobs artifacts
-  needs: []
-  only: [merge-requests]
-  variables:
-    CI_DEBUG_TRACE: "true"
-  script :
-    - echo $CI_MERGE_REQUEST_TITLE
-    - echo $CI_OPEN_MERGE_REQUESTS
-    - echo $CI_PIPELINE_SOURCE
-
-job-test-wo-ref-alt1:
-  tags: [ "linux-deploy" ]
-  stage: check-orphans
-  #prevents jobs from gathering all previous jobs artifacts
-  needs: []
-  only: merge-requests
-  variables:
-    CI_DEBUG_TRACE: "true"
-  script :
-    - echo $CI_MERGE_REQUEST_TITLE
-    - echo $CI_OPEN_MERGE_REQUESTS
-    - echo $CI_PIPELINE_SOURCE
+# job-test-wo-ref-alt:
+#   tags: [ "linux-deploy" ]
+#   stage: check-orphans
+#   #prevents jobs from gathering all previous jobs artifacts
+#   needs: []
+#   only: [merge-requests]
+#   variables:
+#     CI_DEBUG_TRACE: "true"
+#   script :
+#     - echo $CI_MERGE_REQUEST_TITLE
+#     - echo $CI_OPEN_MERGE_REQUESTS
+#     - echo $CI_PIPELINE_SOURCE
+#
+# job-test-wo-ref-alt1:
+#   tags: [ "linux-deploy" ]
+#   stage: check-orphans
+#   #prevents jobs from gathering all previous jobs artifacts
+#   needs: []
+#   only: merge-requests
+#   variables:
+#     CI_DEBUG_TRACE: "true"
+#   script :
+#     - echo $CI_MERGE_REQUEST_TITLE
+#     - echo $CI_OPEN_MERGE_REQUESTS
+#     - echo $CI_PIPELINE_SOURCE
 
 include:
   - '.docker-images.yml'
