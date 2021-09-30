@@ -4,6 +4,11 @@
   stage: build
   tags: [ "macosx-xcode11" ]
 
+  only:
+    refs:
+      - merge-requests
+      - schedules
+
   except:
     variables:
       - $DOCKER_UPDATE
