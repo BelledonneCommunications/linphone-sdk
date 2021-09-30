@@ -1,43 +1,43 @@
-job-check-orphan-commits:
-
-  tags: [ "linux-deploy" ]
-  stage: check-orphans
-  #prevents jobs from gathering all previous jobs artifacts
-  needs: []
-  variables:
-    CI_DEBUG_TRACE: "true"
-  script :
-    - echo $CI_MERGE_REQUEST_TITLE
-    - echo $CI_OPEN_MERGE_REQUESTS
-    - echo $CI_PIPELINE_SOURCE
-    #This script checks if there is referenced orphans commits and errors out if there is any.
-    #The main purpose if to keep a clean git tree and to prevent fetch errors by earlier versions of git (1.8.x)
-    #For each submodule, we get the referenced commit, and we check if this commit is referenced by a branch.
-    #Red color ANSI code : \033[0;31m
-    #No color ANSI code : \033[0m
-    # Delete stale branches to avoid tricking the script into a false negative (git fetch --prune is mandatory, even if git remote prune origin should normally be enough)
-    - git remote prune origin && git fetch --prune
-    - git submodule foreach --recursive 'git remote prune origin && git fetch --prune'
-    # uses file to communicate with git submodule shells ($toplevel == linphone-sdk directory)
-    - if [ ! -f exit_code ]; then echo 0 > exit_code; fi;
-    - |
-      git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
-        && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
-        && if [ -n "$BRANCHES_LIST" ]; then \
-             echo "Branches found for commit $COMMIT" \
-             $BRANCHES_LIST; \
-           else \
-             echo "\033[0;31m ERROR : Commit $COMMIT referenced by $path is not on a branch. Maybe the hash was not updated on a merge request after the squash. Please fix this ! Either check if the problem was already fixed by a new commit, or point on the right commit referenced in a branch, instead of the orphan one. \033[0m"; \
-             echo $BRANCHES_LIST; \
-             echo 1 > $toplevel/exit_code; \
-           fi; \
-           echo'
-    - ls exit_code || true
-    - cat exit_code
-    - EXIT=$(cat exit_code)
-    - rm exit_code
-    - echo $EXIT;
-    - exit $EXIT;
+# job-check-orphan-commits:
+#
+#   tags: [ "linux-deploy" ]
+#   stage: check-orphans
+#   #prevents jobs from gathering all previous jobs artifacts
+#   needs: []
+#   variables:
+#     CI_DEBUG_TRACE: "true"
+#   script :
+#     - echo $CI_MERGE_REQUEST_TITLE
+#     - echo $CI_OPEN_MERGE_REQUESTS
+#     - echo $CI_PIPELINE_SOURCE
+#     #This script checks if there is referenced orphans commits and errors out if there is any.
+#     #The main purpose if to keep a clean git tree and to prevent fetch errors by earlier versions of git (1.8.x)
+#     #For each submodule, we get the referenced commit, and we check if this commit is referenced by a branch.
+#     #Red color ANSI code : \033[0;31m
+#     #No color ANSI code : \033[0m
+#     # Delete stale branches to avoid tricking the script into a false negative (git fetch --prune is mandatory, even if git remote prune origin should normally be enough)
+#     - git remote prune origin && git fetch --prune
+#     - git submodule foreach --recursive 'git remote prune origin && git fetch --prune'
+#     # uses file to communicate with git submodule shells ($toplevel == linphone-sdk directory)
+#     - if [ ! -f exit_code ]; then echo 0 > exit_code; fi;
+#     - |
+#       git submodule foreach --recursive 'COMMIT=$(git rev-parse HEAD) \
+#         && BRANCHES_LIST=$(git branch -r --verbose --contains $COMMIT) \
+#         && if [ -n "$BRANCHES_LIST" ]; then \
+#              echo "Branches found for commit $COMMIT" \
+#              $BRANCHES_LIST; \
+#            else \
+#              echo "\033[0;31m ERROR : Commit $COMMIT referenced by $path is not on a branch. Maybe the hash was not updated on a merge request after the squash. Please fix this ! Either check if the problem was already fixed by a new commit, or point on the right commit referenced in a branch, instead of the orphan one. \033[0m"; \
+#              echo $BRANCHES_LIST; \
+#              echo 1 > $toplevel/exit_code; \
+#            fi; \
+#            echo'
+#     - ls exit_code || true
+#     - cat exit_code
+#     - EXIT=$(cat exit_code)
+#     - rm exit_code
+#     - echo $EXIT;
+#     - exit $EXIT;
 
 # job-test-c:
 #   tags: [ "linux-deploy" ]
