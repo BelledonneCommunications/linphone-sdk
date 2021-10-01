@@ -23,47 +23,61 @@ variables:
     max: 2
     when: runner_system_failure
 
-# job-test:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only:
-#     refs:
-#       - merge-requests
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
-#
-# job-test-wo-ref:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only:
-#     - merge-requests
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
-#
-# job-test-wo-ref-alt:
-#   tags: [ "linux-deploy" ]
-#   stage: check-orphans
-#   #prevents jobs from gathering all previous jobs artifacts
-#   needs: []
-#   only: [merge-requests]
-#   variables:
-#     CI_DEBUG_TRACE: "true"
-#   script :
-#     - echo $CI_MERGE_REQUEST_TITLE
-#     - echo $CI_OPEN_MERGE_REQUESTS
-#     - echo $CI_PIPELINE_SOURCE
+job-test-always:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+    - echo "will be always run"
+
+
+job-test:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    refs:
+      - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-alt:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only: [merge-requests]
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
 #
 # job-test-wo-ref-alt1:
 #   tags: [ "linux-deploy" ]
@@ -87,8 +101,8 @@ workflow:
       when: never
     - if: '$CI_COMMIT_BRANCH'
 
-include:
-  - '.docker-images.yml'
+# include:
+#   - '.docker-images.yml'
   # - '.gitlab-ci-files/job-linux-prepare.yml'
   # - '.gitlab-ci-files/job-android.yml'
   # - '.gitlab-ci-files/job-ios.yml'
@@ -106,7 +120,7 @@ include:
   # - '.gitlab-ci-files/job-windows.yml'
   # - '.gitlab-ci-files/job-packages.yml'
   # - '.gitlab-ci-files/job-uploads.yml'
-  - '.gitlab-ci-files/job-check-orphan-commits.yml'
+  # - '.gitlab-ci-files/job-check-orphan-commits.yml'
   # - '.gitlab-ci-files/job-send-email.yml'
   # - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
   # - '.gitlab-ci-files/docker-image-update/update-archlinux.yml'
