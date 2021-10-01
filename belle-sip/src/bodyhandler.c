@@ -1008,6 +1008,8 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_multipart_body_handler_t)
 	}
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
+static const char *boundary_charset = "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789-";
+
 static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_body_handler_t *obj, const char *boundary) {
 	if (obj->boundary != NULL) {
 		belle_sip_free(obj->boundary);
@@ -1015,7 +1017,8 @@ static void belle_sip_multipart_body_handler_set_boundary(belle_sip_multipart_bo
 	if (boundary != NULL) {
 		obj->boundary = belle_sip_strdup(boundary);
 	} else {
-		obj->boundary = belle_sip_strdup(BELLESIP_MULTIPART_BOUNDARY);
+		char random_token[60];// Use a random boundary to reduce the probability of having the same boundary in file (like uploading file logs with file transfer).
+		obj->boundary = belle_sip_strdup_printf("----------%s", belle_sip_random_token_with_charset(random_token, sizeof(random_token), boundary_charset, 63));
 	}
 }
 

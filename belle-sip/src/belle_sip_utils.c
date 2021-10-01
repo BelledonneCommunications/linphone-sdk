@@ -210,10 +210,14 @@ static const char *symbols="aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ
  * Write a random text token of supplied size.
 **/
 char * belle_sip_random_token(char *ret, size_t size){
+	return belle_sip_random_token_with_charset(ret, size, symbols, 64);
+}
+
+char * belle_sip_random_token_with_charset(char *ret, size_t size, const char * charset, size_t charset_length){
 	unsigned int i;
 	belle_sip_random_bytes((unsigned char *)ret, size-1);
 	for(i=0;i<size-1;++i){
-		ret[i]=symbols[ret[i] & 63];
+		ret[i]=charset[ret[i] % charset_length];
 	}
 	ret[i]=0;
 	return ret;
