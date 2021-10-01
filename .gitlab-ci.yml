@@ -78,6 +78,22 @@ job-test-wo-ref-alt:
     - echo $CI_MERGE_REQUEST_TITLE
     - echo $CI_OPEN_MERGE_REQUESTS
     - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-variables:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    variables:
+      - $CI_OPEN_MERGE_REQUESTS
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
 #
 # job-test-wo-ref-alt1:
 #   tags: [ "linux-deploy" ]
