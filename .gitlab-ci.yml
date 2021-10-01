@@ -23,32 +23,126 @@ variables:
     max: 2
     when: runner_system_failure
 
-include:
-  - '.docker-images.yml'
-  - '.gitlab-ci-files/job-linux-prepare.yml'
-  - '.gitlab-ci-files/job-android.yml'
-  - '.gitlab-ci-files/job-ios.yml'
-  - '.gitlab-ci-files/job-linux-desktop.yml'
-  #- '.gitlab-ci-files/job-raspbian.yml'
-  - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
-  - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
-  - '.gitlab-ci-files/job-linux-desktop-centos8.yml'
-  #- '.gitlab-ci-files/job-linux-desktop-debian8.yml'
-  - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
-  - '.gitlab-ci-files/job-linux-yocto.yml'
-  - '.gitlab-ci-files/job-linux-desktop-debian10.yml'
-  - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
-  - '.gitlab-ci-files/job-macosx.yml'
-  - '.gitlab-ci-files/job-windows.yml'
-  - '.gitlab-ci-files/job-packages.yml'
-  - '.gitlab-ci-files/job-uploads.yml'
-  - '.gitlab-ci-files/job-check-orphan-commits.yml'
-  - '.gitlab-ci-files/job-send-email.yml'
-  - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
-  - '.gitlab-ci-files/docker-image-update/update-archlinux.yml'
-  - '.gitlab-ci-files/docker-image-update/update-debian10.yml'
-  - '.gitlab-ci-files/docker-image-update/update-centos8.yml'
-  - '.gitlab-ci-files/docker-image-update/update-centos7.yml'
+job-test-always:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+    - echo "will be always run"
+
+
+job-test:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    refs:
+      - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    - merge-requests
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-alt:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only: [merge-requests]
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+job-test-wo-ref-variables:
+  tags: [ "linux-deploy" ]
+  stage: check-orphans
+  #prevents jobs from gathering all previous jobs artifacts
+  needs: []
+  only:
+    variables:
+      - $CI_OPEN_MERGE_REQUESTS
+  variables:
+    CI_DEBUG_TRACE: "true"
+  script :
+    - echo $CI_MERGE_REQUEST_TITLE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_PIPELINE_SOURCE
+
+#
+# job-test-wo-ref-alt1:
+#   tags: [ "linux-deploy" ]
+#   stage: check-orphans
+#   #prevents jobs from gathering all previous jobs artifacts
+#   needs: []
+#   only: merge-requests
+#   variables:
+#     CI_DEBUG_TRACE: "true"
+#   script :
+#     - echo $CI_MERGE_REQUEST_TITLE
+#     - echo $CI_OPEN_MERGE_REQUESTS
+#     - echo $CI_PIPELINE_SOURCE
+
+workflow:
+  rules:
+    # - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+    #   when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    # - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+    #   when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+# include:
+#   - '.docker-images.yml'
+  # - '.gitlab-ci-files/job-linux-prepare.yml'
+  # - '.gitlab-ci-files/job-android.yml'
+  # - '.gitlab-ci-files/job-ios.yml'
+  # - '.gitlab-ci-files/job-linux-desktop.yml'
+  # #- '.gitlab-ci-files/job-raspbian.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-centos8.yml'
+  # #- '.gitlab-ci-files/job-linux-desktop-debian8.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
+  # - '.gitlab-ci-files/job-linux-yocto.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-debian10.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
+  # - '.gitlab-ci-files/job-macosx.yml'
+  # - '.gitlab-ci-files/job-windows.yml'
+  # - '.gitlab-ci-files/job-packages.yml'
+  # - '.gitlab-ci-files/job-uploads.yml'
+  # - '.gitlab-ci-files/job-check-orphan-commits.yml'
+  # - '.gitlab-ci-files/job-send-email.yml'
+  # - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
+  # - '.gitlab-ci-files/docker-image-update/update-archlinux.yml'
+  # - '.gitlab-ci-files/docker-image-update/update-debian10.yml'
+  # - '.gitlab-ci-files/docker-image-update/update-centos8.yml'
+  # - '.gitlab-ci-files/docker-image-update/update-centos7.yml'
 
 stages:
  - docker-update-build
