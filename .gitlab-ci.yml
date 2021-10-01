@@ -86,7 +86,7 @@ job-test-wo-ref-variables:
   needs: []
   only:
     variables:
-      - $CI_OPEN_MERGE_REQUESTS
+      - $CI_OPEN_MERGE_REQUESTS != ''
   variables:
     CI_DEBUG_TRACE: "true"
   script :
