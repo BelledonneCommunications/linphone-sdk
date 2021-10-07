@@ -45,6 +45,7 @@
 @interface IOSDisplay : UIView {
 @public
 	struct opengles_display* display_helper;
+	MSVideoDisplayMode mode;
 
 @private
 	NSRecursiveLock* lock;
@@ -73,6 +74,7 @@
 	self->display_helper = ogl_display_new();
 	self->prevBounds = CGRectMake(0, 0, 0, 0);
 	self->context = nil;
+	self->mode = MSVideoDisplayBlackBars;
 
 	// Init view
 	[self setOpaque:YES];
@@ -169,7 +171,7 @@
 		if (!animating) {
 			glClear(GL_COLOR_BUFFER_BIT);
 		} else {
-			ogl_display_render(display_helper, deviceRotation);
+			ogl_display_render(display_helper, deviceRotation, mode);
 		}
 
 		[context presentRenderbuffer:GL_RENDERBUFFER];
@@ -320,12 +322,21 @@ static int iosdisplay_set_zoom(MSFilter* f, void* arg) {
 	return 0;
 }
 
+static int iosdisplay_set_mode(MSFilter* f, void* arg) {
+	IOSDisplay* thiz = (IOSDisplay*)f->data;
+	if (!thiz)
+		return 0;
+	thiz->mode = *((MSVideoDisplayMode *)arg);
+	return 0;
+}
+
 static MSFilterMethod iosdisplay_methods[] = {
 	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, iosdisplay_set_native_window },
 	{ MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, iosdisplay_get_native_window },
 	{ MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, iosdisplay_set_device_orientation },
 	{ MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, iosdisplay_set_device_orientation_display },
 	{ MS_VIDEO_DISPLAY_ZOOM, iosdisplay_set_zoom },
+	{ MS_VIDEO_DISPLAY_SET_MODE, iosdisplay_set_mode },
 	{ 0, NULL }
 };
 

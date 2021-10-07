@@ -44,6 +44,14 @@ struct _MSVideoEncoderPixFmt {
 	bool_t supported;
 };
 
+enum _MSVideoDisplayMode {
+	MSVideoDisplayBlackBars = 0,
+	MSVideoDisplayOccupyAllSpace = 1,
+	MSVideoDisplayHybrid = 2,
+};
+
+typedef enum _MSVideoDisplayMode MSVideoDisplayMode;
+
 /**
  * Interface definition for video display filters.
 **/
@@ -95,6 +103,10 @@ struct _MSVideoDisplayDecodingSupport {
 /**Specifiy device orientation from portrait */
 #define MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,11,int)
+
+/**Specify the display mode */
+#define MS_VIDEO_DISPLAY_SET_MODE \
+   MS_FILTER_METHOD(MSFilterVideoDisplayInterface,12,MSVideoDisplayMode)
 
 /**
   * Interface definitions for players

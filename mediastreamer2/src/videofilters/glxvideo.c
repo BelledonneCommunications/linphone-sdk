@@ -74,6 +74,7 @@ typedef struct GLXVideo
 	bool_t ready;
 	bool_t mirror;
 	bool_t autofit;
+	MSVideoDisplayMode mode;
 } GLXVideo;
 
 
@@ -109,6 +110,7 @@ static void glxvideo_init(MSFilter	*f){
 	obj->wsize=def_size; /* the size of the window*/
 	obj->show=TRUE;
 	obj->autofit=TRUE;
+	obj->mode = MSVideoDisplayBlackBars;
 	f->data=obj;
 
 	XSetErrorHandler(x11error_handler);
@@ -279,7 +281,7 @@ static void glxvideo_process(MSFilter *f){
 	}
 
 	const int orientation=0;
-	ogl_display_render(obj->glhelper, orientation);
+	ogl_display_render(obj->glhelper, orientation, obj->mode);
 	glXSwapBuffers ( obj->display, obj->subwindow );
 
 	end:
@@ -492,6 +494,12 @@ static int glxvideo_set_local_view_mode(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int glxvideo_set_mode(MSFilter *f, void *arg){
+	GLXVideo *s=(GLXVideo*)f->data;
+	s->mode=*((MSVideoDisplayMode*)arg);
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_VIDEO_SIZE		, glxvideo_set_vsize },
 	{	MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID	, glxvideo_get_native_window_id },
@@ -501,6 +509,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_DISPLAY_ENABLE_MIRRORING	, glxvideo_enable_mirroring},
 	{	MS_VIDEO_DISPLAY_ENABLE_AUTOFIT		, glxvideo_enable_autofit	},
 	{	MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE	, glxvideo_set_local_view_mode},
+	{	MS_VIDEO_DISPLAY_SET_MODE			, glxvideo_set_mode },
 	{	0	,NULL}
 };
 

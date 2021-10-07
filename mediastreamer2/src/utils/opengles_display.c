@@ -425,7 +425,8 @@ static void ogl_display_render_type(
 	float vpy,
 	float vpw,
 	float vph,
-	int orientation
+	int orientation,
+	MSVideoDisplayMode mode
 ) {
 	const OpenGlFunctions *f = gldisp->functions;
 
@@ -436,6 +437,7 @@ static void ogl_display_render_type(
 	GLfloat x,y,w,h;
 	GLfloat mat[16];
 	float rad;
+	MSVideoDisplayMode usedMode;
 
 	if (!gldisp) {
 		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
@@ -478,22 +480,46 @@ static void ogl_display_render_type(
 		screenH = (GLfloat)gldisp->backingWidth;
 	}
 
+	usedMode = mode;
+	if (mode == MSVideoDisplayHybrid) {
+		// If the image has the same orientation as the screen then use OccupyAllSpace mode
+		if ((screenW > screenH && gldisp->yuv_size[type].width > gldisp->yuv_size[type].height)
+			|| (screenH > screenW && gldisp->yuv_size[type].height > gldisp->yuv_size[type].width)
+		) {
+			usedMode = MSVideoDisplayOccupyAllSpace;
+		} else {
+			usedMode = MSVideoDisplayBlackBars;
+		}
+	}
+
 	// Fill the smallest dimension, then compute the other one using the image ratio
-	if (screenW <= screenH) {
-		float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
-		w = screenW * vpw;
-		h = w * ratio;
-		if (h > screenH) {
-			w *= screenH / (float)h;
-			h = screenH;
+	if (usedMode == MSVideoDisplayBlackBars) {
+		if (screenW <= screenH) {
+			float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
+			w = screenW * vpw;
+			h = w * ratio;
+			if (h > screenH) {
+				w *= screenH / (float)h;
+				h = screenH;
+			}
+		} else {
+			float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
+			h = screenH * vph;
+			w = h * ratio;
+			if (w > screenW) {
+				h *= screenW / (float)w;
+				w = screenW;
+			}
 		}
 	} else {
-		float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
-		h = screenH * vph;
-		w = h * ratio;
-		if (w > screenW) {
-			h *= screenW / (float)w;
-			w = screenW;
+		if (screenW > screenH) {
+			float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
+			w = screenW * vpw;
+			h = w * ratio;
+		} else {
+			float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
+			h = screenH * vph;
+			w = h * ratio;
 		}
 	}
 
@@ -1284,7 +1310,7 @@ void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mb
 	ogl_display_set_yuv(gldisp, yuv, PREVIEW_IMAGE);
 }
 
-void ogl_display_render (struct opengles_display *gldisp, int orientation) {
+void ogl_display_render (struct opengles_display *gldisp, int orientation, MSVideoDisplayMode mode) {
 	const OpenGlFunctions *f = gldisp->functions;
 	bool_t render = TRUE;
 
@@ -1310,9 +1336,9 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation) {
 		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		GL_OPERATION(f, glUseProgram(gldisp->program))
 		check_GL_errors(f, "ogl_display_render");
-		ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation);
+		ogl_display_render_type(gldisp, REMOTE_IMAGE, TRUE, 0, 0, 1, 1, orientation, mode);
 		// preview image already have the correct orientation
-		ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0);
+		ogl_display_render_type(gldisp, PREVIEW_IMAGE, FALSE, 0.4f, -0.4f, 0.2f, 0.2f, 0, MSVideoDisplayBlackBars);
 		gldisp->texture_index = (gldisp->texture_index + 1) % TEXTURE_BUFFER_SIZE;
 		if(f->eglInitialized && gldisp->mRenderSurface != EGL_NO_SURFACE)
 			f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
@@ -1347,7 +1373,7 @@ JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDispl
 
 JNIEXPORT void JNICALL Java_org_linphone_mediastream_video_display_OpenGLESDisplay_render (JNIEnv * env, jobject obj, jlong ptr) {
 	struct opengles_display* d = (struct opengles_display*) ptr;
-	ogl_display_render(d, 0);
+	ogl_display_render(d, 0, MSVideoDisplayBlackBars);
 }
 #endif
 

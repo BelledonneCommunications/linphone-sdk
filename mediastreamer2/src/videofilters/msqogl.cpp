@@ -103,6 +103,7 @@ static void qogl_init (MSFilter *f) {
 	data->parent = f;
 	data->is_qt_linked = FALSE;
 	data->is_sdk_linked = TRUE;
+	data->mode = MSVideoDisplayBlackBars;
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
 	
@@ -233,6 +234,13 @@ static int qogl_enable_mirroring (MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int qogl_set_mode (MSFilter *f, void *arg) {
+	ms_filter_lock(f);
+	((FilterData *)f->data)->mode = *((MSVideoDisplayMode*)arg);
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static int qogl_call_render (MSFilter *f, void *arg) {
 	
 	FilterData *data;
@@ -245,7 +253,7 @@ static int qogl_call_render (MSFilter *f, void *arg) {
 			ogl_display_init(data->display, &data->functions, data->renderer->mWidth , data->renderer->mHeight);
 			data->update_context = FALSE;
 		}
-		ogl_display_render(data->display, 0);
+		ogl_display_render(data->display, 0, data->mode);
 	}
 	
 	ms_filter_unlock(f);
@@ -264,6 +272,7 @@ static MSFilterMethod methods[] = {
 	{ MS_VIDEO_DISPLAY_SHOW_VIDEO, qogl_show_video },
 	{ MS_VIDEO_DISPLAY_ZOOM, qogl_zoom },
 	{ MS_VIDEO_DISPLAY_ENABLE_MIRRORING, qogl_enable_mirroring },
+	{ MS_VIDEO_DISPLAY_SET_MODE, qogl_set_mode },
 	//{ MS_OGL_RENDER, qogl_call_render }, // qogl_call_render is autocalled by Qt, there is no need to put it in interface
 	{ 0, NULL }
 };

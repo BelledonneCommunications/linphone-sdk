@@ -100,8 +100,9 @@ MS2_PUBLIC void ogl_display_set_preview_yuv_to_display (struct opengles_display 
  * Render display. It will update viewport if sizes can be retrieved from EGL Surface. If not, the last size will be used.
  *
  * @param deviceAngleFromPortrait Angle of display. 0=Portrait, 90=Landscape
+ * @param mode Method use for the video display.
  */
-MS2_PUBLIC void ogl_display_render (struct opengles_display *gldisp, int deviceAngleFromPortrait);
+MS2_PUBLIC void ogl_display_render (struct opengles_display *gldisp, int deviceAngleFromPortrait, MSVideoDisplayMode mode);
 
 /**
  * @params contains the zoom parameters: [0] = zoom_factor, [1][2] = zoom center x/y (between [0,1], relative coords to the gl surface. 0.5/0.5 = center)

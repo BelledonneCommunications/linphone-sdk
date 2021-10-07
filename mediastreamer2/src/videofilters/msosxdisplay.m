@@ -30,6 +30,7 @@
 @interface CAMsGLLayer : CAOpenGLLayer {
 @public
 	struct opengles_display* display_helper;
+	MSVideoDisplayMode mode;
 @private
 	CGLPixelFormatObj cglPixelFormat;
 	CGLContextObj cglContext;
@@ -55,6 +56,7 @@
 		self->prevBounds = CGRectMake(0, 0, 0, 0);
 		self->lock = [[NSRecursiveLock alloc] init];
 		self->display_helper = ogl_display_new();
+		self->mode = MSVideoDisplayBlackBars;
 
 		[self setOpaque:YES];
 		[self setAsynchronous:NO];
@@ -141,7 +143,7 @@
 
 		glClearColor(0, 0, 0, 0);
 		glClear(GL_COLOR_BUFFER_BIT);
-		ogl_display_render(display_helper, 0);
+		ogl_display_render(display_helper, 0, mode);
 
 		CGLUnlockContext(cglContext);
 		CGLSetCurrentContext(savedContext);
@@ -461,12 +463,19 @@ static int osx_gl_set_local_view_mode(MSFilter* f, void* arg) {
 	return 0;
 }
 
+static int osx_gl_set_mode(MSFilter* f, void* arg) {
+	OSXDisplay* thiz = (OSXDisplay*) f->data;
+	thiz.glLayer->mode = *(MSVideoDisplayMode*)arg;
+	return 0;
+}
+
 static MSFilterMethod methods[]={
 	{MS_FILTER_SET_VIDEO_SIZE, osx_gl_set_vsize},
 	{MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID, osx_gl_get_native_window_id},
 	{MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, osx_gl_set_native_window_id},
 	{MS_VIDEO_DISPLAY_ENABLE_MIRRORING, osx_gl_enable_mirroring},
 	{MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, osx_gl_set_local_view_mode},
+	{MS_VIDEO_DISPLAY_SET_MODE, osx_gl_set_mode},
 	{ 0, NULL }
 };
 

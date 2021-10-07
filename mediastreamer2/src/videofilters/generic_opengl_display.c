@@ -64,6 +64,7 @@ struct _FilterData {
 	bool_t update_context;
 
 	mblk_t * prev_inm;
+	MSVideoDisplayMode mode;
 };
 
 typedef struct _FilterData FilterData;
@@ -89,6 +90,7 @@ static void ogl_init (MSFilter *f) {
 	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
 	data->context_info.window = NULL;
+	data->mode = MSVideoDisplayBlackBars;
 	f->data = data;
 	if(!gMutexInitialized){
 		gMutexInitialized = TRUE;
@@ -275,6 +277,14 @@ static int ogl_zoom (MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int ogl_set_mode (MSFilter *f, void *arg) {
+	ms_filter_lock(f);
+	((FilterData *)f->data)->mode = *((MSVideoDisplayMode*)arg);
+	ms_filter_unlock(f);
+
+	return 0;
+}
+
 static int ogl_enable_mirroring (MSFilter *f, void *arg) {
 	FilterData *data = (FilterData *)f->data;
 	ms_filter_lock(f);
@@ -311,7 +321,7 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 		data->update_context = UPDATE_CONTEXT_NOTHING;
 	}
 	if (data->show_video && context_info && ( context_info->window || (!context_info->window && context_info->width && context_info->height)) ){
-		ogl_display_render(data->display, 0);
+		ogl_display_render(data->display, 0, data->mode);
 	}
 	ms_mutex_unlock(&gLock);
 	if( f != NULL)
@@ -343,6 +353,7 @@ static MSFilterMethod methods[] = {
 	{ MS_VIDEO_DISPLAY_SHOW_VIDEO, ogl_show_video },
 	{ MS_VIDEO_DISPLAY_ZOOM, ogl_zoom },
 	{ MS_VIDEO_DISPLAY_ENABLE_MIRRORING, ogl_enable_mirroring },
+	{ MS_VIDEO_DISPLAY_SET_MODE, ogl_set_mode },
 	{ MS_OGL_RENDER, ogl_call_render },
 	{ 0, NULL }
 };

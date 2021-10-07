@@ -47,6 +47,7 @@ typedef struct AndroidTextureDisplay {
 	queue_t entry_q;
 	jobject nativeWindowId;
 	EGLint width, height;
+	MSVideoDisplayMode mode;
 } AndroidTextureDisplay;
 
 static void android_texture_display_destroy_opengl(MSFilter *f) {
@@ -260,7 +261,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 	}
 
 	ogl_display_set_yuv_to_display(ad->ogl, m);
-	ogl_display_render(ad->ogl, 0);
+	ogl_display_render(ad->ogl, 0, ad->mode);
 	freemsg(m);
 
 	EGLBoolean result = eglSwapBuffers(ad->gl_display, ad->gl_surface);
@@ -276,6 +277,7 @@ static void android_texture_display_init(MSFilter *f) {
 	ad->surface = NULL;
 	ad->nativeWindowId = NULL;
 	ad->process_thread = ms_worker_thread_new();
+	ad->mode = MSVideoDisplayBlackBars;
 	qinit(&ad->entry_q);
 	f->data = ad;
 }
@@ -365,9 +367,16 @@ static int android_texture_display_set_zoom(MSFilter* f, void* arg) {
 	return 0;
 }
 
+static int android_texture_display_set_mode(MSFilter* f, void* arg) {
+	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
+	ad->mode = *((MSVideoDisplayMode *) arg);
+	return 0;
+}
+
 static MSFilterMethod methods[] = {
 	{	MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID,	android_texture_display_set_window	},
 	{	MS_VIDEO_DISPLAY_ZOOM,					android_texture_display_set_zoom	},
+	{	MS_VIDEO_DISPLAY_SET_MODE, 				android_texture_display_set_mode	},
 	{	0, 										NULL								}
 };
 

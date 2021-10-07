@@ -37,6 +37,7 @@ struct _FilterData {
 	OpenGlFunctions functions;
 	
 	struct opengles_display *display;
+	MSVideoDisplayMode mode;
 	
 	MSVideoSize video_size; // Not used at this moment.
 	
