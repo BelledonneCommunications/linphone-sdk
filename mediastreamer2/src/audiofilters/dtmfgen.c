@@ -329,6 +329,13 @@ static void dtmfgen_process(MSFilter *f){
 	ms_filter_unlock(f);
 }
 
+static int dtmfgen_is_playing(MSFilter *f, void *data){
+	DtmfGenState *s=(DtmfGenState*)f->data;
+	bool_t *is_playing = (bool_t*)data;
+	*is_playing = s->playing;
+	return 0;
+}
+
 MSFilterMethod dtmfgen_methods[]={
 	{	MS_FILTER_SET_SAMPLE_RATE	,	dtmfgen_set_rate	},
 	{	MS_FILTER_GET_SAMPLE_RATE	,	dtmfgen_get_rate	},
@@ -339,6 +346,7 @@ MSFilterMethod dtmfgen_methods[]={
 	{	MS_DTMF_GEN_STOP		, 	dtmfgen_stop },
 	{	MS_DTMF_GEN_PLAY_CUSTOM, dtmfgen_play_tone },
 	{	MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE, dtmfgen_set_amp },
+	{	MS_DTMF_GEN_IS_PLAYING		, dtmfgen_is_playing },
 	{	0				,	NULL			}
 };
 
