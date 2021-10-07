@@ -254,6 +254,20 @@ function(linphone_sdk_check_python_module_is_installed MODULE_NAME)
 	endif()
 endfunction()
 
+function(linphone_sdk_check_python3_module_is_installed MODULE_NAME)
+	execute_process(
+		COMMAND "${Python3_EXECUTABLE}" "-c" "import ${MODULE_NAME}"
+		RESULT_VARIABLE _result
+		OUTPUT_QUIET
+		ERROR_QUIET
+	)
+	if(_result EQUAL 0)
+		message(STATUS "'${MODULE_NAME}' python3 module found")
+	else()
+		message(FATAL_ERROR "'${MODULE_NAME}' python3 module not found")
+	endif()
+endfunction()
+
 function(ExcludeFromList resultVar excludePattern)
 	set(result)
 	foreach(ITR ${ARGN})  # ARGN holds all arguments to function after last named one
