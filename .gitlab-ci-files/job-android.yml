@@ -8,6 +8,11 @@
 
   extends: .linux-prepare
 
+  only:
+    refs:
+      - merge-requests
+      - schedules
+
   except:
     variables:
       - $DOCKER_UPDATE
