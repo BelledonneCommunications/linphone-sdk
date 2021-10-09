@@ -143,6 +143,7 @@
   artifacts:
     paths:
       - results/*
+      - ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt
     when: always
     reports:
       junit:
