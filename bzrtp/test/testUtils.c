@@ -37,6 +37,11 @@
 #endif
 
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
+
 int verbose = 0;
 
 /* trace functions: bzrtp algo code to string */
