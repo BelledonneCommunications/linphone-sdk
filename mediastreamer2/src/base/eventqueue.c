@@ -58,25 +58,24 @@ static void write_event(MSEventQueue *q, MSFilter *f, unsigned int ev_id, void *
 	int argsize=ev_id & 0xff;
 	int header_size = sizeof(MSEventHeader);
 	mblk_t *event_message;
-	
-	
+
 	if (q->q.q_mcount > MS_EVENT_QUEUE_MAX_SIZE){
 		ms_error("Mediastreamer2 event queue is stalled, discarding event.");
 		return;
 	}
-	
+
 	event_message = allocb(header_size + argsize, 0);
 
 	((MSEventHeader *)event_message->b_wptr)->filter = f;
 	((MSEventHeader *)event_message->b_wptr)->ev_id = ev_id;
-	
+
 	event_message->b_wptr += header_size;
-	
+
 	if (argsize > 0) {
 		memcpy(event_message->b_wptr, arg, argsize);
 		event_message->b_wptr += argsize;
 	}
-	
+
 	ms_mutex_lock(&q->mutex);
 	putq(&q->q, event_message);
 	ms_mutex_unlock(&q->mutex);
