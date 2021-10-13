@@ -21,6 +21,9 @@
 
 #include "media-codec-encoder.h"
 
+#include <algorithm>
+#include <limits>
+
 using namespace mediastreamer;
 using namespace std;
 
@@ -160,8 +163,16 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 	}
 
 	size_t bufsize = 0;
+	size_t bufsize_max = numeric_limits<size_t>::max();
 
 	if (_pixelFormatConvertionEnabled) {
+		if (ms2_android_get_sdk_version() >= 31) {
+			// There is a size problem in Android 12
+			// We call getInputBuffer once before getting the image to know the max available size
+			// And use that size when queuing the buffer.
+			AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize_max);
+		}
+
 		AMediaImage image;
 		if (AMediaCodec_getInputImage(_impl, ibufidx, &image)) {
 			if (image.format == 35 /* YUV_420_888 */) {
@@ -185,7 +196,7 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		}
 	}
 
-	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, bufsize, time * 1000, 0) == AMEDIA_ERROR_BASE) {
+	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, min(bufsize, bufsize_max), time * 1000, 0) == AMEDIA_ERROR_BASE) {
 		ms_error("MediaCodecEncoder: error while queuing input buffer");
 		return;
 	}
