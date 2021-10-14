@@ -1846,6 +1846,10 @@ static void configure_video_preview_source(VideoPreview *stream) {
 	if (ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	}
+	
+	ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
+	/* It is important that the internal_event_cb is called synchronously! */
+	ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
 
 	if (!ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
 		ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
