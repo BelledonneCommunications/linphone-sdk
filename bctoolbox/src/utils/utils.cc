@@ -32,4 +32,46 @@ vector<string> bctoolbox::Utils::split (const string &str, const string &delimit
 	return out;
 }
 
+string bctoolbox::Utils::fold (const string &str) {
+	string output = str;
+	size_t crlf = 0;
+	size_t next_crlf = 0;
+	const char *endline = "\r\n";
 
+	while (next_crlf != string::npos) {
+		next_crlf = output.find(endline, crlf);
+		if (next_crlf != string::npos) {
+			if (next_crlf - crlf > 75) {
+				output.insert(crlf + 74, "\r\n ");
+				crlf += 76;
+			} else {
+				crlf = next_crlf + 2;
+			}
+		}
+	}
+
+	return output;
+}
+
+string bctoolbox::Utils::unfold (const string &str) {
+	string output = str;
+	const char *endline = "\r\n";
+	size_t crlf = output.find(endline);
+
+	if (crlf == string::npos) {
+		endline = "\n";
+		crlf = output.find(endline);
+	}
+
+	while (crlf != string::npos) {
+		if (isspace(output[crlf + strlen(endline)])) {
+			output.erase(crlf, strlen(endline) + 1);
+		} else {
+			crlf += strlen(endline);
+		}
+
+		crlf = output.find(endline, crlf);
+	}
+
+	return output;
+}

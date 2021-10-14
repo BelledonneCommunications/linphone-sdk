@@ -40,6 +40,8 @@ namespace bctoolbox {
 			return object; 
 		}
 
+		BCTBX_PUBLIC std::string fold (const std::string &str);
+		BCTBX_PUBLIC std::string unfold (const std::string &str);
 	}
 
 }
