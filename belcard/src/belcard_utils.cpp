@@ -18,6 +18,7 @@
 
 #include "belcard/belcard_utils.hpp"
 #include "bctoolbox/logging.h"
+#include "bctoolbox/utils.hh"
 
 #include <string.h>
 #include <iostream>
@@ -27,47 +28,11 @@
 using namespace::std;
 
 string belcard_fold(const string &input) {
-	string output = input;
-	size_t crlf = 0;
-	size_t next_crlf = 0;
-	const char *endline = "\r\n";
-	
-	while (next_crlf != string::npos) {
-		next_crlf = output.find(endline, crlf);
-		if (next_crlf != string::npos) {
-			if (next_crlf - crlf > 75) {
-				output.insert(crlf + 74, "\r\n ");
-				crlf += 76;
-			} else {
-				crlf = next_crlf + 2;
-			}
-		}
-	}
-	
-	return output;
+	return bctoolbox::Utils::fold(input);
 }
 
 string belcard_unfold(const string &input) {
-	string output = input;
-	const char *endline = "\r\n";
-	size_t crlf = output.find(endline);
-	
-	if (crlf == string::npos) {
-		endline = "\n";
-		crlf = output.find(endline);
-	}
-	
-	while (crlf != string::npos) {
-		if (isspace(output[crlf + strlen(endline)])) {
-			output.erase(crlf, strlen(endline) + 1);
-		} else {
-			crlf += strlen(endline);
-		}
-		
-		crlf = output.find(endline, crlf);
-	}
-	
-	return output;
+	return bctoolbox::Utils::unfold(input);
 }
 
 string belcard_read_file(const string &filename) {
