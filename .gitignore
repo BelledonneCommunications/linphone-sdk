@@ -1,6 +1,7 @@
 tunnel
 **/.vscode
 **/.vs
+**/.idea
 **/*.nupkg
 cmake/Windows/**/obj
 cmake/Windows/**/bin
