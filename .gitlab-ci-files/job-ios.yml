@@ -25,9 +25,11 @@
     - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
     - ccache -s
+    - echo $(git describe) > gitdescribe.txt
 
   artifacts:
     paths:
+      - build-ios/gitdescribe.txt
       - build-ios/linphonesdkversion.txt
       - build-ios/linphone-sdk-*.zip
       - build-ios/linphone-sdk.podspec

@@ -27,9 +27,11 @@
     - ls -t linphone-sdk-*.zip > sdk_archive_name.txt
     - cat sdk_archive_name.txt
     - ccache -s
+    - echo $(git describe) > gitdescribe.txt
 
   artifacts:
     paths:
+      - build-desktop/gitdescribe.txt
       - build-desktop/sdk_archive_name.txt
       - build-desktop/linphone-sdk-*.zip
       - build-desktop/linphone-sdk.podspec

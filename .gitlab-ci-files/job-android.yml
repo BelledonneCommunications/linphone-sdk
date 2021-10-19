@@ -23,9 +23,11 @@
     - echo $CMAKE_OPTIONS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $(git describe) > gitdescribe.txt
 
   artifacts:
     paths:
+      - build/gitdescribe.txt
       - build/linphone-sdk/bin/outputs/aar/*.aar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
