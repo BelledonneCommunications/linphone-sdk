@@ -461,7 +461,7 @@ job-xamarin-upload:
     - MS2_VERSION=$(git -C mediastreamer2 describe)
 
     #We get the SDK version from earlier jobs instead of using git describe so the URL generated in the tester job will be the same in the upload job, no matter the platform used and the git version delta
-    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
+    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build*/gitdescribe.txt)
     - echo $SDK_VERSION
     - git describe
 
