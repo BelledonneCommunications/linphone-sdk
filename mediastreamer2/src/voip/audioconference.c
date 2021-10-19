@@ -398,7 +398,7 @@ MSAudioEndpoint * ms_audio_endpoint_new_recorder(MSFactory* factory, const char 
 		ms_filter_link(ep->recorder_encoder, 0, ep->recorder, 0);
 		
 		pinfmt.pin = 0;
-		pinfmt.fmt = ms_factory_get_audio_format(factory, "opus", 48000, 2, NULL);
+		pinfmt.fmt = ms_factory_get_audio_format(factory, "opus", 48000, 1, NULL);
 		ms_filter_call_method(ep->recorder, MS_FILTER_SET_INPUT_FMT, &pinfmt);
 	}else if (ms_path_ends_with(path, ".wav")){
 		ep->recorder=ms_factory_create_filter(factory, MS_FILE_REC_ID);
