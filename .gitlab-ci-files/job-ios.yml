@@ -8,6 +8,9 @@
       - $DOCKER_UPDATE
       - $SKIP_IOS
 
+  before_script:
+    - export CCACHE_BASEDIR=${PWD}
+
   script:
     - echo $IOS_DEPLOY_URL
     - ccache -s
