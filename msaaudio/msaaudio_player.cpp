@@ -232,16 +232,12 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 }
 
 static void aaudio_player_close(AAudioOutputContext *octx) {
-	ms_mutex_lock(&octx->stream_mutex);
 	if (octx->stream) {
-		aaudio_result_t result = AAudioStream_requestStop(octx->stream);
-		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Player stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
-		} else {
-			ms_message("[AAudio] Player stream stopped");
-		}
-
-		result = AAudioStream_close(octx->stream);
+		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
+		ms_message("[AAudio] Closing player stream, current state is %i", streamState);
+		// According to https://developer.android.com/ndk/guides/audio/aaudio/aaudio#state-transitions
+		// AAudioStream_close can be called from any state
+		aaudio_result_t result = AAudioStream_close(octx->stream);
 		if (result != AAUDIO_OK) {
 			ms_error("[AAudio] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
@@ -249,7 +245,6 @@ static void aaudio_player_close(AAudioOutputContext *octx) {
 		}
 		octx->stream = NULL;
 	}
-	ms_mutex_unlock(&octx->stream_mutex);
 }
 
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
@@ -303,15 +298,10 @@ static void android_snd_write_process(MSFilter *obj) {
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
 			ms_warning("[AAudio] Player stream has disconnected");
-			if (octx->stream) {
-				AAudioStream_close(octx->stream);
-				octx->stream = NULL;
-			}
+			aaudio_player_close(octx);
 		}
 	}
-
 	android_snd_adjust_buffer_size(octx);
-
 	ms_mutex_unlock(&octx->stream_mutex);
 
 	ms_mutex_lock(&octx->mutex);
@@ -321,7 +311,11 @@ static void android_snd_write_process(MSFilter *obj) {
 
 static void android_snd_write_postprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
+
+	ms_mutex_lock(&octx->stream_mutex);
 	aaudio_player_close(octx);
+	ms_mutex_unlock(&octx->stream_mutex);
+
 	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, FALSE);
@@ -341,15 +335,13 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		octx->soundCard = ms_snd_card_ref(card);
 
 		if (octx->stream) {
-			AAudioStream_close(octx->stream);
-			octx->stream = NULL;
+			aaudio_player_close(octx);
 		}
 
 		aaudio_player_init(octx);
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 		ms_android_hack_volume(env);
-
 		ms_mutex_unlock(&octx->stream_mutex);
 	}
 	return 0;
