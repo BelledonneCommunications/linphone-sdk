@@ -68,6 +68,7 @@ struct AndroidCamera2Context {
 		previewSize.width = 0;
 		previewSize.height = 0;
 		ms_mutex_init(&mutex, NULL);
+		ms_mutex_init(&imageReaderMutex, NULL);
 
     	cameraManager = ACameraManager_create();
 		ms_message("[Camera2 Capture] Context ready");
@@ -77,6 +78,7 @@ struct AndroidCamera2Context {
 		ms_message("[Camera2 Capture] Context destroyed");
 		// Don't delete device object in here !
 		ms_mutex_destroy(&mutex);
+		ms_mutex_destroy(&imageReaderMutex);
 		if (bufAllocator) ms_yuv_buf_allocator_free(bufAllocator);
 
 		ACameraManager_delete(cameraManager);
@@ -95,6 +97,7 @@ struct AndroidCamera2Context {
 	int32_t captureFormat;
 
 	ms_mutex_t mutex;
+	ms_mutex_t imageReaderMutex;
 	mblk_t *frame;
 	MSYuvBufAllocator *bufAllocator;
 
@@ -257,21 +260,43 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
 	ms_filter_lock(d->filter);
 	if (!d->filter || !d->filter->ticker || !d->configured) {
 		AImage *image = nullptr;
-		media_status_t status = AImageReader_acquireLatestImage(d->imageReader, &image);
-		if (status == AMEDIA_OK) AImage_delete(image);
+		
+		media_status_t status = AMEDIA_ERROR_UNKNOWN;
+		ms_mutex_lock(&d->imageReaderMutex);
+		if (d->imageReader != nullptr) {
+			status = AImageReader_acquireLatestImage(d->imageReader, &image);
+		} else {
+			ms_error("[Camera2 Capture] Image reader is null in on_image_available callback!");
+		}
+		ms_mutex_unlock(&d->imageReaderMutex);
+
+		if (status == AMEDIA_OK && image != nullptr) AImage_delete(image);
 		ms_filter_unlock(d->filter);
 		return;
 	}
 	ms_filter_unlock(d->filter);
 
 	int32_t format;
-  	media_status_t status = AImageReader_getFormat(reader, &format);
+
+	ms_mutex_lock(&d->imageReaderMutex);
+	if (d->imageReader == nullptr) {
+		ms_error("[Camera2 Capture] Image reader is null in on_image_available callback!");
+		if (reader != nullptr) {
+			ms_warning("[Camera2 Capture] The reader given by the callback isn't null...");
+		} else {
+			ms_warning("[Camera2 Capture] The reader given by the callback is also null...");
+		}
+		ms_mutex_unlock(&d->imageReaderMutex);
+		return;
+	}
+
+  	media_status_t status = AImageReader_getFormat(d->imageReader, &format);
 	if (format == d->captureFormat) {
 		AImage *image = nullptr;
 		// Using AImageReader_acquireLatestImage will lead to the following log if maxImages given to ImageReader is 1
 		// W/NdkImageReader: Unable to acquire a lockedBuffer, very likely client tries to lock more than maxImages buffers
-		status = AImageReader_acquireNextImage(reader, &image);
-		if (status == AMEDIA_OK) {
+		status = AImageReader_acquireNextImage(d->imageReader, &image);
+		if (status == AMEDIA_OK && image != nullptr) {
 			if (ms_video_capture_new_frame(&d->fpsControl, d->filter->ticker->time)) {
 				mblk_t *m = android_camera2_capture_image_to_mblkt(d, image);
 				if (m) {
@@ -284,11 +309,12 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
 			
 			AImage_delete(image);
 		} else {
-			ms_error("[Camera2 Capture] Couldn't acquire image, error is %i", status);
+			ms_error("[Camera2 Capture] Couldn't acquire image, image ptr is %p, error is %i", image, status);
 		}
 	} else {
 		ms_error("[Camera2 Capture] Aquired image is in wrong format %d, expected %d", format, d->captureFormat);
 	}
+	ms_mutex_unlock(&d->imageReaderMutex);
 }
 
 /* ************************************************************************* */
@@ -507,15 +533,18 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	}
 	d->capturing = false;
 
+	ms_mutex_lock(&d->imageReaderMutex);
 	if (d->imageReaderListener) {
 		delete d->imageReaderListener;
 		d->imageReaderListener = nullptr;
 	}
+
 	AImageReader_ImageListener nullListener = {nullptr, nullptr};
   	media_status_t status = AImageReader_setImageListener(d->imageReader, &nullListener);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to set null image listener, error is %i", status);
 	}
+	ms_mutex_unlock(&d->imageReaderMutex);
 
 	// Seems to provoke an ANR on some devices if the camera close is done after the capture session
 	android_camera2_capture_close_camera(d);
@@ -533,50 +562,62 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 
 		ACameraCaptureSession_close(d->captureSession);
 		d->captureSession = nullptr;
+		ms_message("[Camera2 Capture] Capture session closed");
 	}
 
 	if (d->capturePreviewRequest) {
 		ACaptureRequest_removeTarget(d->capturePreviewRequest, d->cameraCaptureOutputTarget);
 		ACaptureRequest_free(d->capturePreviewRequest);
 		d->capturePreviewRequest = nullptr;
+		ms_message("[Camera2 Capture] Preview request freed");
     }
 
 	if (d->cameraCaptureOutputTarget) {
 		ACameraOutputTarget_free(d->cameraCaptureOutputTarget);
 		d->cameraCaptureOutputTarget = nullptr;
+		ms_message("[Camera2 Capture] Camera output target freed");
     }
 
 	if (d->cameraPreviewOutputTarget) {
 		ACameraOutputTarget_free(d->cameraPreviewOutputTarget);
 		d->cameraPreviewOutputTarget = nullptr;
+		ms_message("[Camera2 Capture] Preview preview output target freed");
     }
 
 	if (d->captureSessionOutputContainer) {
+		ms_message("[Camera2 Capture] Freeing capture session output container");
+
 		if (d->sessionCaptureOutput) {
 			ACaptureSessionOutputContainer_remove(d->captureSessionOutputContainer, d->sessionCaptureOutput);
 			ACaptureSessionOutput_free(d->sessionCaptureOutput);
 			d->sessionCaptureOutput = nullptr;
+			ms_message("[Camera2 Capture] Capture session output freed");
 		}
 
 		if (d->sessionPreviewOutput) {
 			ACaptureSessionOutputContainer_remove(d->captureSessionOutputContainer, d->sessionPreviewOutput);
 			ACaptureSessionOutput_free(d->sessionPreviewOutput);
 			d->sessionPreviewOutput = nullptr;
+			ms_message("[Camera2 Capture] Capture session preview output freed");
 		}
 
 		if (d->captureWindow) {
 			ANativeWindow_release(d->captureWindow);
 			d->captureWindow = nullptr;
+			ms_message("[Camera2 Capture] Capture window released");
 		}
 
 		ACaptureSessionOutputContainer_free(d->captureSessionOutputContainer);
 		d->captureSessionOutputContainer = nullptr;
+		ms_message("[Camera2 Capture] Capture session output container freed");
 	}
-
+	ms_mutex_lock(&d->imageReaderMutex);
 	if (d->imageReader) {
 		AImageReader_delete(d->imageReader);
 		d->imageReader = nullptr;
+		ms_message("[Camera2 Capture] Image reader deleted");
 	}
+	ms_mutex_unlock(&d->imageReaderMutex);
 
 	android_camera2_capture_destroy_preview(d);
 
