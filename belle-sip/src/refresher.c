@@ -53,11 +53,13 @@ struct belle_sip_refresher {
 	int retry_after;
 	belle_sip_list_t* auth_events;
 	int auth_failures;
-	int on_io_error; /*flag to avoid multiple error notification*/
 	int number_of_retry; /*counter to count number of unsuccesfull retry, used to know when to retry*/
 	timer_purpose_t timer_purpose;
 	unsigned char manual;
-    unsigned int publish_pending;
+	unsigned int publish_pending;
+	unsigned char on_io_error; /*flag to avoid multiple error notification*/
+	unsigned char contact_fixing; /* flag to indicate that we are submiting an updated REGISTER to fix contact after
+			learning IP/port from previous response*/
 };
 static void set_or_update_dialog(belle_sip_refresher_t* refresher, belle_sip_dialog_t* dialog);
 static int set_expires_from_trans(belle_sip_refresher_t* refresher);
@@ -268,13 +270,20 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		if (refresher->state==started) {
 			if (!refresher->first_acknowledged_request)
 				belle_sip_object_ref(refresher->first_acknowledged_request = request);
-			if (is_contact_address_acurate(refresher,request)
+			if (is_contact_address_acurate(refresher,request) 
 				|| (!belle_sip_provider_nat_helper_enabled(client_transaction->base.provider) || (contact && belle_sip_parameters_has_parameter(BELLE_SIP_PARAMETERS(contact), "pub-gruu"))) ) { /*Disable nat helper in gruu case. Might not be the best fix, maybe better to make reflesh is not mandatory*/
 				schedule_timer(refresher); /*re-arm timer*/
 			} else {
-				belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
-				belle_sip_refresher_refresh(refresher,refresher->target_expires);
-				return;
+				if (!refresher->contact_fixing){
+					belle_sip_message("belle_sip_refresher_start(): refresher [%p] is resubmitting request because contact sent was not correct in original request.",refresher);
+					belle_sip_refresher_refresh(refresher,refresher->target_expires);
+					refresher->contact_fixing = TRUE;
+					return;
+				}else{
+					belle_sip_message("refresher [%p]: unable to fix contact for NAT - asymmetric flow ?", refresher);
+					refresher->contact_fixing = FALSE; /* reset flag and re-arm timer for next refresh */
+					schedule_timer(refresher); /*re-arm timer*/
+				}
 			}
 		}
 		else belle_sip_message("Refresher [%p] not scheduling next refresh, because it was stopped",refresher);
