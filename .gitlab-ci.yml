@@ -33,7 +33,7 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos8.yml'
-  #- '.gitlab-ci-files/job-linux-desktop-debian8.yml'
+  # - '.gitlab-ci-files/job-linux-desktop-debian8.yml'
   - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
   - '.gitlab-ci-files/job-linux-yocto.yml'
   - '.gitlab-ci-files/job-linux-desktop-debian10.yml'

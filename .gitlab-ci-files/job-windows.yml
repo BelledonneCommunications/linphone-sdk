@@ -6,14 +6,7 @@
     variables:
       - $DOCKER_UPDATE
       - $SKIP_WINDOWS
-  variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
-    LINPHONESDK_PLATFORM: Desktop
-    OUTPUT_ZIP_FOLDER: win32
-    MINGW_TYPE: mingw32
-    CMAKE_GENERATOR: "Visual Studio 15 2017"
   script:
-
     - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value)
     - echo $env:Path
     #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
@@ -21,88 +14,19 @@
     - $PATH_TEMP = $PATH_TEMP -replace "C:\\MinGW\\bin;" -replace "C:\\Strawberry\\c\\bin;" -replace "C:\\Program Files\\NASM"
     - echo $PATH_TEMP
     - $env:Path = ($PATH_TEMP + ";C:\msys64;C:\msys64\usr\bin;C:\msys64\" + $MINGW_TYPE + "\bin")
-    # - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
-    # - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
-    # - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
-    # - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    #handling the case of previous job cancellation
+
     - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
 
     - echo $env:Path
-    # - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
+
     - If ( Test-Path -Path "build-desktop" ) {Remove-Item -recurse -force -path "build-desktop" }
-    # - IF EXIST build-desktop RMDIR /S /Q build-desktop
+
     - mkdir build-desktop
     - cd build-desktop
     #we launch the msvc-cl wrapper located in python scripts folder
     #this wrapper relays only needed calls to the real compiler
     #cache stats display
     - C:\PROGRA~1\Python37\Scripts\cl -s
-    - Write-Output $DEFAULT_CMAKE_OPTIONS
-    - Write-Output $CMAKE_OPTIONS
-    - Write-Output $CMAKE_ARCHITECTURE
-    - Write-Output $SCHEDULE_CMAKE_OPTIONS
-    #We are forced to use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
-    #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'", thus making the build fail
-    - Invoke-Expression "& cmake .. -G '$CMAKE_GENERATOR' -DLINPHONESDK_PLATFORM=$LINPHONESDK_PLATFORM -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
-    # - cmake .. -G  "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM="$LINPHONESDK_PLATFORM" -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo "$DEFAULT_CMAKE_OPTIONS" "$CMAKE_OPTIONS" $CMAKE_ARCHITECTURE "$SCHEDULE_CMAKE_OPTIONS"
-    # - Get-Content CMakeCache.txt
-    - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
-    - C:\PROGRA~1\Python37\Scripts\cl -s
-    - cd linphone-sdk
-    - mkdir $OUTPUT_ZIP_FOLDER
-    - Copy-Item -Path "*.zip" -Destination "$CI_PROJECT_DIR/build-desktop/linphone-sdk/$OUTPUT_ZIP_FOLDER" -Recurse
-    # - copy /B *.zip "%CI_PROJECT_DIR%/build-desktop/linphone-sdk/%OUTPUT_ZIP_FOLDER%"
-################
-  artifacts:
-    paths:
-      - build-desktop\linphone-sdk\*
-    when: always
-    expire_in: 1 week
-
-.job-windows-vs2017-ninja:
-  extends: .job-prepare
-  stage: build
-  tags: [ "windows-powershell" ]
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_WINDOWS
-      - $DEPLOY_RUN_WINDOWS
-  variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
-    MINGW_TYPE: mingw32
-  script:
-  #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
-
-    - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value)
-    # - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value + ";C:\MinGW\bin;" + "C:\Strawberry\c\bin;" + "C:\Program Files\NASM")
-
-    # We double the "\" to escape paths as -replace uses regular expressions
-    - $PATH_TEMP = $PATH_TEMP -replace "C:\\MinGW\\bin;" -replace "C:\\Strawberry\\c\\bin;" -replace "C:\\Program Files\\NASM"
-    # -
-    # - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
-    # - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
-    # - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
-    - $env:Path = ($PATH_TEMP + ";C:\msys64;C:\msys64\usr\bin;C:\msys64\" + $MINGW_TYPE + "\bin")
-
-    - echo $env:Path
-    # - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    #handling the case of previous job cancellation
-    - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
-
-    - echo $env:Path
-    # - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") else (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
-    - If ( Test-Path -Path "build-desktop" ) {Remove-Item -recurse -force -path "build-desktop" }
-    # - IF EXIST build-desktop RMDIR /S /Q build-desktop
-    - mkdir build-desktop
-    - cd build-desktop
-    #we launch the msvc-cl wrapper located in python scripts folder
-    #this wrapper relays only needed calls to the real compiler
-    #cache stats display
-    # - C:\PROGRA~1\Python37\Scripts\cl -s
-    - Write-Output $DEFAULT_CMAKE_OPTIONS
-    - Write-Output $CMAKE_OPTIONS
     - Write-Output $CMAKE_ARCHITECTURE
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
     - Write-Output $MAKEFILE_JOBS
@@ -113,51 +37,113 @@
     - Write-Output $CMAKE_OPTIONS
     - Write-Output $CMAKE_ARCHITECTURE
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
+    - Write-Output $CMAKE_GENERATOR
+    - Write-Output $LINPHONESDK_PLATFORM
+    - Write-Output $MINGW_TYPE
+    - Write-Output $CLI_OUTPUT_INFO_NINJA
+    - Write-Output $Write-Output
+    - Write-Output $NINJA_BUILD_PARALLEL_LEVEL
+    - Write-Output $PARALLEL_OPTIONS
+    - Write-Output $NINJA_OPTIMIZATION
+    - Write-Output $NINJA_EXPLICIT_COMPILER_SET
+    - Write-Output $DISPLAY_NINJA_LOG
+    - Write-Output $SEARCH_NINJA_ERROR
+    - Write-Output $DISPLAY_SEARCH_STATUS
+    - Write-Output $SET_EXIT_CODE_BASED_ON_SEARCH_STATUS
+    - Write-Output $SHOW_SEARCH_STATUS_SCRIPT
+    - Write-Output $LAUNCH_SEARCH_STATUS_SCRIPT
 
-    - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" -DCMAKE_RC_COMPILER="$CMAKE_RC_COMPILER" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS
-    - Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
+
+
+
+    #We are forced to use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
+    #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'", thus making the build fail
+    - Invoke-Expression "& cmake .. -G '$CMAKE_GENERATOR' -DLINPHONESDK_PLATFORM=$LINPHONESDK_PLATFORM -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
+
+    - $CLI_OUTPUT_INFO_NINJA
+
     #Warning : Ninja doesn't return an error code on Linker error.
     #Store outputs in a file log
 
     #Only in powershell 7 (Gitlab 14+)
     # - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | Select-String -NotMatch -Raw -Pattern "inclusion du fichier"
+    - Write-Output $PARALLEL_OPTIONS
+    - Write-Output $NINJA_OPTIMIZATION
 
-    - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | find /V "inclusion du fichier" > ninja_buildlog.txt; cmd /c "exit /b 0"
+    # /!\ By design, we must keep $NINJA_OPTIMIZATION as the last option of the line, because it contains an output redirect
 
+    - Invoke-Expression "cmake --build . --target $BUILD_TARGET --config RelWithDebInfo $PARALLEL_OPTIONS $NINJA_OPTIMIZATION"
 
-    # - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | find /V "inclusion du fichier" > ninja_buildlog.txt 2>&1
-    #Print the file to get a feedback on CI
-    - Get-Content ninja_buildlog.txt
-    # - type ninja_buildlog.txt
-    #GitlabCI stop at the first command that failed : Embedd commands in a script.
-    #GitlabCI limitation : when having ': ', the whole line must be in ""
-    - 'Write-Output "`$isFound = (Select-String -Pattern `"build stopped: subcommand failed`" -SimpleMatch -Quiet -Path ninja_buildlog.txt)" > invertSearch.ps1'
-    - Write-Output "echo `$isFound" >> invertSearch.ps1
-    # - "Write-Output -NoEnumerate (Select-String -Pattern /C:\"build stopped: subcommand failed\" -SimpleMatch -Path ninja_buildlog.txt | Out-String) > invertSearch.ps1"
-    # - "echo FINDSTR /C:\"build stopped: subcommand failed\" ninja_buildlog.txt > invertSearch.bat"
-    # It must be an error if the line has been found.
-    #We do not use $LastExitCode because it only works for Win32 commands and not cmdlets
-    # We do not use $? as it only gives the error code of the cmdlet (it shows if it succeeded, not if the pattern was found)
-    - Write-Output -NoEnumerate "If (`$isFound -eq 0) {exit 0} else {exit 1}" >> invertSearch.ps1
-    # - echo if ^%%ERRORLEVEL^%% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat
-    - Get-Content invertSearch.ps1
-    - .\invertSearch.ps1
+    - if ($DISPLAY_NINJA_LOG) { Invoke-Expression "$DISPLAY_NINJA_LOG" } else { Write-Output "DISPLAY_NINJA_LOG is null" }
+
+    - if ($SEARCH_NINJA_ERROR) { Invoke-Expression "$SEARCH_NINJA_ERROR" } else { Write-Output "SEARCH_NINJA_ERROR is null" }
+
+    - if ($DISPLAY_SEARCH_STATUS) { Invoke-Expression "$DISPLAY_SEARCH_STATUS" } else { Write-Output "DISPLAY_SEARCH_STATUS is null" }
+
+    - if ($SET_EXIT_CODE_BASED_ON_SEARCH_STATUS) { Invoke-Expression "$SET_EXIT_CODE_BASED_ON_SEARCH_STATUS" } else { Write-Output "SET_EXIT_CODE_BASED_ON_SEARCH_STATUS is null" }
+
+    - if ($SHOW_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$SHOW_SEARCH_STATUS_SCRIPT" } else { Write-Output "SHOW_SEARCH_STATUS_SCRIPT is null" }
+
+    - if ($LAUNCH_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$LAUNCH_SEARCH_STATUS_SCRIPT" } else { Write-Output "LAUNCH_SEARCH_STATUS_SCRIPT is null" }
+
     - C:\PROGRA~1\Python37\Scripts\cl -s
+    - cd linphone-sdk
+    - mkdir $OUTPUT_ZIP_FOLDER
+    - Copy-Item -Path "*.zip" -Destination "$CI_PROJECT_DIR/build-desktop/linphone-sdk/$OUTPUT_ZIP_FOLDER" -Recurse
+
 ################
   artifacts:
     paths:
       - build-desktop\ninja_buildlog.txt
       - build-desktop\linphone-sdk\*
+      - build-desktop\ninja_buildlog.txt
+      - build-desktop\invertSearch.ps1
     when: always
     expire_in: 1 week
 
-.job-windows-vs2017-scheduled:
+.job-windows-vs2017-ninja:
   extends: .job-windows-vs2017
-  only:
+  except:
     variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $ENABLE_WINDOWS_TESTS
+      - $DOCKER_UPDATE
+      - $SKIP_WINDOWS
+      - $DEPLOY_RUN_WINDOWS
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    MINGW_TYPE: mingw32
+    LINPHONESDK_PLATFORM: Desktop
+    CMAKE_GENERATOR: Ninja
+    CLI_OUTPUT_INFO_NINJA: Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
+    BUILD_TARGET: sdk
+    NINJA_BUILD_PARALLEL_LEVEL: -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS
+    PARALLEL_OPTIONS: "--parallel $MAKEFILE_JOBS"
+    NINJA_OPTIMIZATION: "| find /V \"inclusion du fichier\" > ninja_buildlog.txt; cmd /c \"exit /b 0\""
+    NINJA_EXPLICIT_COMPILER_SET: -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" -DCMAKE_RC_COMPILER="$CMAKE_RC_COMPILER"
+    DISPLAY_NINJA_LOG: Get-Content ninja_buildlog.txt
+    SEARCH_NINJA_ERROR: 'Write-Output "`$$isFound = (Select-String -Pattern `"build stopped: subcommand failed`" -SimpleMatch -Quiet -Path ninja_buildlog.txt)" > invertSearch.ps1'
+    DISPLAY_SEARCH_STATUS: Write-Output 'echo $$isFound' >> invertSearch.ps1
+    SET_EXIT_CODE_BASED_ON_SEARCH_STATUS: Write-Output -NoEnumerate "If (`$$isFound -eq 0) {exit 0} else {exit 1}" >> invertSearch.ps1
+    SHOW_SEARCH_STATUS_SCRIPT: Get-Content invertSearch.ps1
+    LAUNCH_SEARCH_STATUS_SCRIPT: .\invertSearch.ps1
+
+.job-windows-vs2017-msvc:
+  extends: .job-windows-vs2017
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    LINPHONESDK_PLATFORM: Desktop
+    OUTPUT_ZIP_FOLDER: win32
+    MINGW_TYPE: mingw32
+    CMAKE_GENERATOR: "Visual Studio 15 2017"
+    BUILD_TARGET: ALL_BUILD
+    PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
+
+.job-windows-vs2017-scheduled:
+  extends: .job-windows-vs2017-msvc
+  # only:
+  #   variables:
+  #     - $NIGHTLY_MASTER
+  #     - $NIGHTLY_RELEASE
+  #     - $ENABLE_WINDOWS_TESTS
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - Set-Variable -Name "CLCACHE_DISABLE" -Value 1
@@ -180,6 +166,7 @@ job-windows-vs2017-ninja-win32:
   only:
     variables:
       - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -213,9 +200,10 @@ job-windows-vs2017-win32-scheduled:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
       - $DEPLOY_RUN_WINDOWS
+      - $UPLOAD_CS_DOC
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
     OUTPUT_ZIP_FOLDER: win32
 
 job-windows-vs2017-win32store-scheduled:
@@ -235,6 +223,7 @@ job-windows-vs2017-win32-novideo:
     variables:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
+      - $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 

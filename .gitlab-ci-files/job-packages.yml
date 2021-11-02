@@ -4,7 +4,7 @@
 
 job-windows-vs2017-nuget-package:
   stage: package
-  tags: [ "windows" ]
+  tags: [ "windows-powershell" ]
   needs:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
@@ -15,11 +15,20 @@ job-windows-vs2017-nuget-package:
       - $NIGHTLY_MASTER
       - $NIGHTLY_RELEASE
   script:
-    - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"
+    - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
     - cd build-desktop
-    - chdir > chdir_sdk.temp
-    - set /p OUTPUT_SDK_BUILD=<chdir_sdk.temp
-    - cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/win32" -DLINPHONESDK_UWP_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/uwp" -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/win32store" %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
+
+    #We are forced to do it in brackets because powershell displays an human readable object with useless line returns by default...
+    - (Get-Location).path > chdir_sdk.temp
+    - Set-Variable -Name "OUTPUT_SDK_BUILD" -Value ($(Get-Content chdir_sdk.temp))
+    - Write-Output $OUTPUT_SDK_BUILD
+    - Write-Output $DEFAULT_CMAKE_OPTIONS
+    - Write-Output $CMAKE_OPTIONS
+    - Write-Output $CMAKE_ARCHITECTURE
+    - Write-Output $SCHEDULE_CMAKE_OPTIONS
+
+    #We use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
+    - Invoke-Expression "& cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/win32 -DLINPHONESDK_UWP_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/uwp -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/win32store $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
   artifacts:
     paths:
