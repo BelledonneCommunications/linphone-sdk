@@ -202,8 +202,8 @@ time_field:   {IS_TOKEN(t)}?alpha_num EQUAL
               stop_time {belle_sdp_time_description_t* time_description =belle_sdp_time_description_new();
                          belle_sdp_time_t* time_value =belle_sdp_time_new();
 						 belle_sip_list_t* time_description_list;
-                         belle_sdp_time_set_start(time_value,atoi((const char*)$start_time.text->chars));
-                         belle_sdp_time_set_stop(time_value,atoi((const char*)$stop_time.text->chars));
+                         belle_sdp_time_set_start(time_value,atoll((const char*)$start_time.text->chars));
+                         belle_sdp_time_set_stop(time_value,atoll((const char*)$stop_time.text->chars));
                          belle_sdp_time_description_set_time(time_description,time_value);
                          time_description_list = belle_sip_list_append(NULL,time_description);
                          belle_sdp_session_description_set_time_descriptions($session_description::current,time_description_list);};

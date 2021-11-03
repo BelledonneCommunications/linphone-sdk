@@ -453,10 +453,10 @@ typedef struct _belle_sdp_time belle_sdp_time_t;
 BELLESIP_EXPORT belle_sdp_time_t* belle_sdp_time_new(void);
 BELLESIP_EXPORT belle_sdp_time_t* belle_sdp_time_parse (const char* time);
 
-BELLESIP_EXPORT int belle_sdp_time_get_start(const belle_sdp_time_t* time);
-BELLESIP_EXPORT int belle_sdp_time_get_stop(const belle_sdp_time_t* time);
-BELLESIP_EXPORT void belle_sdp_time_set_start(belle_sdp_time_t* time, int value);
-BELLESIP_EXPORT void belle_sdp_time_set_stop(belle_sdp_time_t* time, int value);
+BELLESIP_EXPORT long long belle_sdp_time_get_start(const belle_sdp_time_t* time);
+BELLESIP_EXPORT long long belle_sdp_time_get_stop(const belle_sdp_time_t* time);
+BELLESIP_EXPORT void belle_sdp_time_set_start(belle_sdp_time_t* time, long long value);
+BELLESIP_EXPORT void belle_sdp_time_set_stop(belle_sdp_time_t* time, long long value);
 #define BELLE_SDP_TIME(t) BELLE_SDP_CAST(t,belle_sdp_time_t)
 
 /***************************************************************************************
@@ -466,7 +466,7 @@ BELLESIP_EXPORT void belle_sdp_time_set_stop(belle_sdp_time_t* time, int value);
 typedef struct _belle_sdp_time_description belle_sdp_time_description_t;
 BELLESIP_EXPORT belle_sdp_time_description_t* belle_sdp_time_description_new(void);
 BELLESIP_EXPORT belle_sdp_time_description_t* belle_sdp_time_description_parse (const char* time_description);
-BELLESIP_EXPORT belle_sdp_time_description_t* belle_sdp_time_description_create (int start, int stop);
+BELLESIP_EXPORT belle_sdp_time_description_t* belle_sdp_time_description_create (long long start, long long stop);
 
 BELLESIP_EXPORT belle_sip_list_t* belle_sdp_time_description_get_repeate_times(const belle_sdp_time_description_t* time_description);
 BELLESIP_EXPORT belle_sdp_time_t* belle_sdp_time_description_get_time(const belle_sdp_time_description_t* time_description);

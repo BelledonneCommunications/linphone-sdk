@@ -1935,8 +1935,8 @@ void belle_sdp_session_description_add_attribute_holder(belle_sdp_session_descri
  ***********************/
 struct _belle_sdp_time {
 	belle_sip_object_t base;
-	int start;
-	int stop;
+	long long start;
+	long long stop;
  };
 
 void belle_sdp_time_destroy(belle_sdp_time_t* time) {
@@ -1948,12 +1948,12 @@ void belle_sdp_time_clone(belle_sdp_time_t *time, const belle_sdp_time_t *orig){
 }
 
 belle_sip_error_code belle_sdp_time_marshal(belle_sdp_time_t* time, char* buff, size_t buff_size, size_t *offset) {
-	return belle_sip_snprintf(buff,buff_size,offset,"%i %i",time->start,time->stop);
+	return belle_sip_snprintf(buff,buff_size,offset,"%lld %lld",time->start,time->stop);
 }
 
 BELLE_SDP_NEW(time,belle_sip_object)
-GET_SET_INT(belle_sdp_time,start,int);
-GET_SET_INT(belle_sdp_time,stop,int);
+GET_SET_INT(belle_sdp_time,start,long long);
+GET_SET_INT(belle_sdp_time,stop,long long);
 
 /************************
  * time description
@@ -1978,7 +1978,7 @@ belle_sip_error_code belle_sdp_time_description_marshal(belle_sdp_time_descripti
 
 BELLE_SDP_NEW(time_description,belle_sip_object)
 
-belle_sdp_time_description_t* belle_sdp_time_description_create (int start,int stop) {
+belle_sdp_time_description_t* belle_sdp_time_description_create (long long start,long long stop) {
 	belle_sdp_time_description_t* time_desc= belle_sdp_time_description_new();
 	belle_sdp_time_t* time = belle_sdp_time_new();
 	belle_sdp_time_set_start(time,start);
