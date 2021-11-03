@@ -18,9 +18,8 @@
 #
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_GENERATOR: Unix Makefiles
 #    CC: gcc
@@ -33,9 +32,8 @@ job-debian9-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -53,10 +51,9 @@ job-debian9-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_LINUX
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON
     CMAKE_GENERATOR: Ninja
@@ -67,9 +64,8 @@ job-debian9-ninja-gcc:
 
 #job-debian9-ninja-gcc-novideo:
 #
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+#  rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
 #  extends: job-debian9-ninja-gcc
@@ -85,9 +81,8 @@ job-debian9-ninja-gcc-smallsdk:
 #job-debian9-ninja-clang:
 
 #  tags: [ "docker" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+#  rules:
+#   - if: $NIGHTLY_MASTER
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_DOC=ON
@@ -98,9 +93,8 @@ job-debian9-ninja-gcc-smallsdk:
 
 
 #job-debian9-ninja-clang-novideo:
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+#  rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #  extends: job-debian9-ninja-clang

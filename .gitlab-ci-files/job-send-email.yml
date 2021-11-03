@@ -21,12 +21,5 @@ send-email-test-report:
     #echo -e interprets escaped characters
     - curl -s --user "api:$MAILGUN_API_KEY" "https://api.eu.mailgun.net/v3/$MAILGUN_DOMAIN/messages" -F from='Gitlab <gitlab@belledonne-communications.com>' -F to=$GITLAB_USER_EMAIL -F subject="Linphone-SDK Centos 7 Tests results for pipeline $CI_PIPELINE_ID triggered by commit $CI_COMMIT_SHORT_SHA to branch $CI_COMMIT_REF_NAME" -F text="$(echo -e $MAILGUN_TEXT)"
     - echo $?
-
-  only:
-    refs:
-      - branches
-      - tags
-    variables:
-      - $ENABLE_TESTS_IN_MR
-  except:
-    - schedules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'

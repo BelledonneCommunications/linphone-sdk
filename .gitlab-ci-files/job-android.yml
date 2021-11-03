@@ -8,10 +8,9 @@
 
   extends: .linux-prepare
 
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_ANDROID
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
 
   script:
     - sdkmanager
@@ -60,21 +59,19 @@ job-android-makefile-r20:
   extends: .job-android
 
 job-android-makefile-r20-g729:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_ANDROID
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
   extends: job-android-makefile-r20
 
 job-android-makefile-r20-minimal-size:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_ANDROID
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_ANDROID
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
@@ -88,11 +85,10 @@ job-android-makefile-r20-minimal-size:
 job-android-ninja-r20-no-video:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_ANDROID
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -101,9 +97,8 @@ job-android-ninja-r20-no-video:
 
 #job-android-ninja-r20-macos:
 #  tags: [ "macosx" ]
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_GENERATOR: Ninja
 #    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -112,27 +107,23 @@ job-android-ninja-r20-no-video:
 job-android-ninja-r20:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
   extends: .job-android
 
 job-android-ninja-r20-smallsdk:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
   extends: job-android-ninja-r20
 
 job-android-ninja-r20-allcodecs:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_OPENH264=YES -DENABLE_G729=YES
 
@@ -154,9 +145,8 @@ test-android-r20:
   allow_failure: true
   needs:
     - job-android-makefile-r20
-  only:
-    variables:
-      - $ENABLE_ANDROID_TESTS
+  rules:
+    - if: $ENABLE_ANDROID_TESTS
   script:
     - cd ${CI_PROJECT_DIR}/tester/Android
     # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.

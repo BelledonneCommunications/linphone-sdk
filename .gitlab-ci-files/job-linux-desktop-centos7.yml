@@ -25,9 +25,8 @@ job-centos7-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -45,18 +44,14 @@ job-centos7-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  except:
-    variables:
-      - $DOCKER_UPDATE
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
   extends: .job-linux-desktop
-  except:
-    variables:
-      - $SKIP_LINUX
-
 #################################################
 # TESTS
 #################################################
@@ -145,6 +140,5 @@ test-liblinphone-centos7-mr:
 test-liblinphone-centos7-force:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
-  only:
-    variables:
-      - $ENABLE_TESTS_LIBLINPHONE
+  rules:
+    - if: $ENABLE_TESTS_LIBLINPHONE

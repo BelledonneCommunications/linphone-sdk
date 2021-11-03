@@ -1,9 +1,8 @@
 job-docker-rebuild-centos7-image:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -18,9 +17,8 @@ job-docker-rebuild-centos7-image:
 job-docker-rebuild-centos7-ms-test-image:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
   needs:
     - job-docker-rebuild-centos7-image
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
@@ -37,9 +35,8 @@ job-docker-rebuild-centos7-ms-test-image:
 job-docker-rebuild-centos7-liblinphone-test-image:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -56,23 +53,19 @@ job-docker-rebuild-centos7-liblinphone-test-image:
 job-rebuild-centos7-newdocker-makefile-gcc:
   extends: job-centos7-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
-
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
 
 job-rebuild-centos7-newdocker-ninja-gcc:
   extends: job-centos7-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
 
 test-liblinphone-centos7-newdocker:
   extends: test-liblinphone-centos7
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:latestupdated
-  only:
-    variables:
-      - $DOCKER_UPDATE_CENTOS7
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS7
   needs:
     - job-rebuild-centos7-newdocker-makefile-gcc

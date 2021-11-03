@@ -18,9 +18,8 @@ job-debian10-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -33,9 +32,8 @@ job-debian10-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -63,9 +61,8 @@ job-debian10-ninja-gcc:
 
 job-debian10-ninja-gcc-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
   extends: job-debian10-ninja-gcc
@@ -73,9 +70,8 @@ job-debian10-ninja-gcc-novideo:
 
 job-debian10-ninja-gcc-smallsdk:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
@@ -85,9 +81,8 @@ job-debian10-ninja-gcc-smallsdk:
 job-debian10-ninja-clang:
 
   tags: [ "docker" ]
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
@@ -103,9 +98,8 @@ job-debian10-ninja-clang-sanitizer:
 
 
 job-debian10-ninja-clang-novideo:
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
   extends: job-debian10-ninja-clang

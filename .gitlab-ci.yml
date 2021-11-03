@@ -23,6 +23,17 @@ variables:
     max: 2
     when: runner_system_failure
 
+#https://docs.gitlab.com/ee/ci/yaml/index.html#workflow
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+      when: never
+    #Launch merge request pipeline is there is a merge request open
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:.*/
+    #Launch pipeline if there is a schedule event
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
 include:
   - '.docker-images.yml'
   - '.gitlab-ci-files/job-linux-prepare.yml'
@@ -33,7 +44,7 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
   - '.gitlab-ci-files/job-linux-desktop-centos8.yml'
-  # - '.gitlab-ci-files/job-linux-desktop-debian8.yml'
+  #- '.gitlab-ci-files/job-linux-desktop-debian8.yml'
   - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
   - '.gitlab-ci-files/job-linux-yocto.yml'
   - '.gitlab-ci-files/job-linux-desktop-debian10.yml'

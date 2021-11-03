@@ -9,11 +9,10 @@ job-windows-vs2017-nuget-package:
     - job-windows-vs2017-win32store-scheduled
     - job-windows-vs2017-uwp-scheduled
     - job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
   script:
     - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
     - cd build-desktop
@@ -49,10 +48,10 @@ job-xamarin-package:
   needs:
     - job-ios-ninja
     - job-android-makefile-r20
-  only:
-    variables:
-      - $NIGHTLY_RELEASE
-      - $UPLOAD_XAMARIN
+
+  rules:
+    - if: $UPLOAD_XAMARIN
+    - if: $NIGHTLY_RELEASE
   script:
     #removing previous results directory to avoid getting incorrect artifacts for current launch
     - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;

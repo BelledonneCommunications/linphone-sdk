@@ -3,13 +3,13 @@
   extends: .job-prepare
   stage: build
   tags: [ "macmini-m1-xcode12" ]
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_IOS
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_IOS == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_IOS == null
 
   before_script:
     - export CCACHE_BASEDIR=${PWD}
+
 
   script:
     - echo $IOS_DEPLOY_URL
@@ -49,11 +49,9 @@
 
 
 job-ios-makefile:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -76,11 +74,9 @@ job-ios-ninja:
   extends: .job-ios
 
 job-ios-ninja-allcodecs:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_GENERATOR: Ninja
@@ -91,10 +87,9 @@ job-ios-ninja-allcodecs:
 
 job-ios-ninja-g729:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
@@ -102,11 +97,9 @@ job-ios-ninja-g729:
 
 
 job-ios-ninja-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -114,11 +107,9 @@ job-ios-ninja-novideo:
 
 
 job-ios-ninja-smallsdk:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO
@@ -129,13 +120,11 @@ job-ios-ninja-smallsdk:
 # XCode
 #################################################
 job-ios-xcode:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
-      - $ENABLE_IOS_TESTS
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_IOS
+    - if: $ENABLE_IOS_TESTS
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -158,12 +147,10 @@ job-ios-xcode:
   extends: .job-ios
 
 job-ios-xcode-novideo:
-
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_IOS
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -197,9 +184,8 @@ test-liblinphone-ios:
   needs:
     - job-ios-xcode
 
-  only:
-    variables:
-      - $ENABLE_IOS_TESTS
+  rules:
+    - if: $ENABLE_IOS_TESTS
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"

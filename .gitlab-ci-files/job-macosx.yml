@@ -4,10 +4,10 @@
   stage: build
   tags: [ "macosx-xcode11" ]
 
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_MACOSX
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
+
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
     LINPHONESDK_MACOS_ARCHS: "x86_64"
@@ -60,9 +60,8 @@
 
 job-macosx-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -70,9 +69,8 @@ job-macosx-makefile:
 
 job-macosx-m1-makefile:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -99,9 +97,8 @@ job-macosx-m1-ninja:
 
 job-macosx-ninja-novideo:
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
+  rules:
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
   extends: job-macosx-ninja
@@ -118,11 +115,10 @@ job-macosx-xcode:
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
 
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_MACOSX
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_MACOSX
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
   before_script:
@@ -141,9 +137,8 @@ test-liblinphone-macosx:
   allow_failure: true
   needs:
     - job-macosx-ninja
-  only:
-    variables:
-      - $ENABLE_MACOSX_TESTS
+  rules:
+    - if: $ENABLE_MACOSX_TESTS
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none

@@ -2,10 +2,15 @@
   extends: .job-prepare
   stage: build
   tags: [ "windows-powershell" ]
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_WINDOWS
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    LINPHONESDK_PLATFORM: Desktop
+    OUTPUT_ZIP_FOLDER: win32
+    MINGW_TYPE: mingw32
+    CMAKE_GENERATOR: "Visual Studio 15 2017"
   script:
     - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value)
     - echo $env:Path
@@ -103,11 +108,9 @@
 
 .job-windows-vs2017-ninja:
   extends: .job-windows-vs2017
-  except:
-    variables:
-      - $DOCKER_UPDATE
-      - $SKIP_WINDOWS
-      - $DEPLOY_RUN_WINDOWS
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
     MINGW_TYPE: mingw32
@@ -139,11 +142,12 @@
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017-msvc
-  # only:
-  #   variables:
-  #     - $NIGHTLY_MASTER
-  #     - $NIGHTLY_RELEASE
-  #     - $ENABLE_WINDOWS_TESTS
+
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $ENABLE_WINDOWS_TESTS
+
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
     - Set-Variable -Name "CLCACHE_DISABLE" -Value 1
@@ -163,10 +167,8 @@ job-windows-vs2017-ninja-win64:
 
 job-windows-vs2017-ninja-win32:
   extends: .job-windows-vs2017-ninja
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
-      - $DEPLOY_RUN_WINDOWS
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -179,13 +181,12 @@ job-windows-vs2017-ninja-win32:
 ##      ON SCHEDULE     ##
 job-windows-vs2017-uwp-scheduled:
   extends: .job-windows-vs2017-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
-      - $ENABLE_WINDOWS_UWP_TESTS
-      - $ENABLE_WINDOWS_TESTS
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $ENABLE_WINDOWS_UWP_TESTS
+    - if: $ENABLE_WINDOWS_TESTS
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO
@@ -195,12 +196,11 @@ job-windows-vs2017-uwp-scheduled:
 
 job-windows-vs2017-win32-scheduled:
   extends: .job-windows-vs2017-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
-      - $UPLOAD_CS_DOC
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $UPLOAD_CS_DOC
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
@@ -208,22 +208,21 @@ job-windows-vs2017-win32-scheduled:
 
 job-windows-vs2017-win32store-scheduled:
   extends: .job-windows-vs2017-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_WINDOWS
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32store
 
 job-windows-vs2017-win32-novideo:
   extends: job-windows-vs2017-win32-scheduled
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
-      - $DEPLOY_RUN_WINDOWS
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_WINDOWS
+
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 
@@ -300,26 +299,23 @@ job-windows-vs2017-win32-novideo:
 
 test-linphone-windows-win32-msbuild:
   extends: .test-linphone-windows
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS
   needs:
     - job-windows-vs2017-win32-scheduled
 
 test-linphone-windows-win32-ninja:
   extends: .test-linphone-windows
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   needs:
     - job-windows-vs2017-ninja-win32
 
 test-linphone-windows-win64-ninja:
   extends: .test-linphone-windows
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS_WIN64_NINJA
-      - $ENABLE_WINDOWS_TESTS
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS_WIN64_NINJA
+    - if: $ENABLE_WINDOWS_TESTS
   needs:
     - job-windows-vs2017-ninja-win64
 
@@ -330,10 +326,9 @@ test-linphone-windows-uwp:
   allow_failure: true
   needs:
     - job-windows-vs2017-uwp-scheduled
-  only:
-    variables:
-      - $ENABLE_WINDOWS_UWP_TESTS
-      - $ENABLE_WINDOWS_TESTS
+  rules:
+    - if: $ENABLE_WINDOWS_UWP_TESTS
+    - if: $ENABLE_WINDOWS_TESTS
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none

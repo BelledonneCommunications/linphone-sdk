@@ -18,10 +18,9 @@ job-ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
-  only:
-    variables:
-      - $NIGHTLY_MASTER
-      - $DOCKER_UPDATE
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $DOCKER_UPDATE
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -34,9 +33,8 @@ job-ubuntu-rolling-makefile-gcc:
 
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_GENERATOR: Unix Makefiles
 #    CC: clang
@@ -54,9 +52,8 @@ job-ubuntu-rolling-makefile-gcc:
 
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_GENERATOR: Ninja
 #    CC: gcc
@@ -65,9 +62,8 @@ job-ubuntu-rolling-makefile-gcc:
 
 
 #job-ubuntu-rolling-ninja-gcc-novideo:
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #  extends: job-ubuntu-rolling-ninja-gcc
@@ -85,9 +81,8 @@ job-ubuntu-rolling-ninja-clang:
 
 #job-ubuntu-rolling-ninja-clang-novideo:
 
-#  only:
-#    variables:
-#      - $NIGHTLY_MASTER
+# rules:
+#   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
 #  extends: job-ubuntu-rolling-ninja-clang

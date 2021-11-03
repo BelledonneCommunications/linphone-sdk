@@ -7,9 +7,9 @@
 
   extends: .job-prepare
 
-  except:
-    variables:
-      - $SKIP_LINUX
+  rules:
+    - if: $SKIP_LINUX
+      when: never
 
   before_script:
     ##

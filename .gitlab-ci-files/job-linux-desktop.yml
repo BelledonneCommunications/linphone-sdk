@@ -8,6 +8,9 @@
   extends: .linux-prepare
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null
   script:
     - export CC=$CC
     - export CXX=$CXX
@@ -50,9 +53,10 @@
   variables:
     GIT_STRATEGY: none
     GIT_SUBMODULE_STRATEGY: none
-  only:
-    variables:
-      - $ENABLE_LINUX_TESTS
+  rules:
+    - if: $ENABLE_LINUX_TESTS
+    - if: $SKIP_LINUX
+      when: never
 
   script:
     - cd $PATH_TO_TESTER
@@ -86,7 +90,7 @@
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
-    - ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+    - ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
     - $PULSEAUDIO_KILL
     - exit $EXIT
 
@@ -203,9 +207,9 @@
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/belr-tester/res"
     TESTER: "belr"
-  only:
-    changes:
-      - belr
+  # only:
+  #   changes:
+  #     - belr
 
 # .test-belr-mr:
 #   extends: .test-belr
@@ -227,9 +231,9 @@
     LOG_PATTERN: "logBelcardAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
     TESTER: "belcard"
-  only:
-    changes:
-      - belcard
+  # only:
+  #   changes:
+  #     - belcard
 
 
 # .test-belcard-mr:
@@ -312,11 +316,6 @@
 .test-liblinphone-mr:
   extends: .test-liblinphone
   allow_failure: false
-  only:
-    refs:
-      - branches
-      - tags
-    variables:
-      - $ENABLE_TESTS_IN_MR
-  except:
-   - schedules
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null

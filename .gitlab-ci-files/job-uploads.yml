@@ -6,11 +6,10 @@ job-ios-xcode-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
 
-  only:
-    variables:
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_IOS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   needs:
     - job-ios-xcode
@@ -53,11 +52,10 @@ job-ios-xcode-novideo-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
 
-  only:
-    variables:
-      - $DEPLOY_RUN_IOS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_IOS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   needs:
     - job-ios-xcode-novideo
@@ -89,11 +87,10 @@ job-ios-xcode-novideo-upload:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
 
-  only:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_ANDROID
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CCACHE_SIZE: 4G
@@ -127,11 +124,10 @@ job-android-doc-upload:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
 
-  only:
-    variables:
-      - $DEPLOY_RUN_ANDROID
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_ANDROID
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   variables:
     CCACHE_SIZE: 4G
@@ -213,11 +209,10 @@ job-macosx-upload:
   stage: deploy
   tags: [ "macosx-xcode11" ]
 
-  only:
-    variables:
-      - $DEPLOY_RUN_MACOSX
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_MACOSX
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
 
   needs:
     - job-macosx-xcode
@@ -260,11 +255,11 @@ job-macosx-upload:
 job-windows-vs2017-win32-upload:
   stage: deploy
   tags: [ "windows-powershell"]
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+
+  rules:
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
   needs:
@@ -277,11 +272,10 @@ job-windows-vs2017-win32-upload:
 job-windows-vs2017-nuget-upload:
   stage: deploy
   tags: [ "windows-powershell"]
-  only:
-    variables:
-      - $DEPLOY_RUN_WINDOWS
-      - $NIGHTLY_MASTER
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
   needs:
@@ -298,9 +292,10 @@ job-windows-vs2017-nuget-upload:
 job-windows-cs-doc-upload:
   stage: deploy
   tags: [ "windows-powershell"]
-  only:
-    variables:
-      - $UPLOAD_CS_DOC
+
+  rules:
+    - if: $UPLOAD_CS_DOC
+
   needs:
     - job-windows-vs2017-win32-scheduled
   script:
@@ -332,9 +327,8 @@ job-debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-      - $UPLOAD_C_CPP_DOC
+  rules:
+    - if: $UPLOAD_C_CPP_DOC
 
   needs:
     - job-debian9-ninja-gcc
@@ -368,9 +362,8 @@ job-bzrtp-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-       - $UPLOAD_BZRTP_DOC
+  rules:
+    - if: $UPLOAD_BZRTP_DOC
 
   needs:
     - job-debian9-ninja-gcc
@@ -402,9 +395,8 @@ job-lime-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-       - $UPLOAD_LIME_DOC
+  rules:
+    - if: $UPLOAD_LIME_DOC
 
   needs:
     - job-debian9-ninja-gcc
@@ -436,10 +428,9 @@ job-xamarin-upload:
   stage: deploy
   tags: [ "deploy" ]
 
-  only:
-    variables:
-      - $UPLOAD_XAMARIN
-      - $NIGHTLY_RELEASE
+  rules:
+    - if: $UPLOAD_XAMARIN
+    - if: $NIGHTLY_RELEASE
 
   needs:
     - job-xamarin-package
@@ -455,7 +446,6 @@ job-xamarin-upload:
   stage: deploy
   tags: [ "deploy" ]
   allow_failure: true
-  when: always
   variables:
     XML_FILENAME_START_PATTERN: "BCUnit"
 
@@ -653,33 +643,35 @@ job-xamarin-upload:
 
 .job-test-report-upload-linux-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $ENABLE_LINUX_TESTS
+  rules:
+    - if: $ENABLE_LINUX_TESTS
+      when: always
+    - if: $SKIP_LINUX
+      when: never
 
 .job-test-report-upload-windows-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $ENABLE_WINDOWS_TESTS
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS
+      when: always
 
 .job-test-report-upload-macos-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $ENABLE_MACOSX_TESTS
+  rules:
+    - if: $ENABLE_MACOSX_TESTS
+      when: always
 
 .job-test-report-upload-ios-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $ENABLE_IOS_TESTS
+  rules:
+    - if: $ENABLE_IOS_TESTS
+      when: always
 
 .job-test-report-upload-android-scheduled:
   extends: .job-test-report-upload
-  only:
-    variables:
-      - $ENABLE_ANDROID_TESTS
+  rules:
+    - if: $ENABLE_ANDROID_TESTS
+      when: always
 
 job-test-upload-libl-centos7-mr:
   extends: .job-test-report-upload
@@ -688,14 +680,9 @@ job-test-upload-libl-centos7-mr:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-  only:
-    refs:
-      - branches
-      - tags
-    variables:
-      - $ENABLE_TESTS_IN_MR
-  except:
-    - schedules
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+      when: always
 
 job-test-upload-libl-centos7-schedule:
   extends: .job-test-report-upload-linux-scheduled
@@ -712,9 +699,8 @@ job-test-upload-libl-centos7-forced:
   variables:
     PLATFORM: "linux-centos7"
     TESTER: "liblinphone"
-  only:
-    variables:
-      - $ENABLE_TESTS_LIBLINPHONE
+  rules:
+    - if: $ENABLE_TESTS_LIBLINPHONE
 
 job-test-upload-libl-centos8:
   extends: .job-test-report-upload-linux-scheduled

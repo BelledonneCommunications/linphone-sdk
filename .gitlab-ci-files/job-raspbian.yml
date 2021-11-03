@@ -8,9 +8,8 @@
 #   tags: [ "docker" ]
 #   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspbian
 #   extends: .linux-prepare
-#   only:
-#     variables:
-#       - $NIGHTLY_MASTER
+#   rules:
+#     - if: $NIGHTLY_MASTER
 #   variables:
 #     CMAKE_GENERATOR: Unix Makefiles
 #   stage: build
