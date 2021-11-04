@@ -24,7 +24,7 @@
 # See [CMP077](https://cmake.org/cmake/help/v3.13/policy/CMP0077.html).
 cmake_minimum_required(VERSION 3.13)
 
-project(belle-sip VERSION 5.1.0 LANGUAGES C CXX)
+project(belle-sip VERSION 5.2.0 LANGUAGES C CXX)
 
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
