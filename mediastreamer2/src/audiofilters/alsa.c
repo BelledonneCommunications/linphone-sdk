@@ -52,8 +52,8 @@ having sound quality trouble:*/
 
 static MSSndCard * alsa_card_new(const char *pcmname, int cardindex, const char *card_name);
 static MSSndCard *alsa_card_duplicate(MSSndCard *obj);
-static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev);
-static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev);
+static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev, const char *mix);
+static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev, const char *mix);
 
 
 struct _AlsaData{
@@ -449,9 +449,12 @@ static int get_mixer_element(snd_mixer_t *mixer,const char *name, MixerAction ac
 				if (snd_mixer_selem_has_capture_volume(elem)){
 					snd_mixer_selem_get_capture_volume_range(elem, &sndMixerPMin, &sndMixerPMax);
 					err=snd_mixer_selem_get_capture_volume(elem,SND_MIXER_SCHN_UNKNOWN,&newvol);
+					if (err<0)	// Using SND_MIXER_SCHN_UNKNOWN can lead to an error with 'invalid argument'(error 22) and with a volume at 0. Choose another channel, Mono seems to be neutral.
+						err=snd_mixer_selem_get_capture_volume(elem,SND_MIXER_SCHN_MONO,&newvol);
 					newvol-=sndMixerPMin;
 					value=(100*newvol)/(sndMixerPMax-sndMixerPMin);
-					if (err<0) ms_warning("Could not get capture volume for %s:%s",name,snd_strerror(err));
+					if (err<0) 
+						ms_warning("Could not get capture volume for %s:%s",name,snd_strerror(err));
 					//else ms_message("Successfully get capture level for %s.",elemname);
 					break;
 				}
@@ -500,7 +503,8 @@ static void set_mixer_element(snd_mixer_t *mixer,const char *name, int level,Mix
 				if (snd_mixer_selem_has_capture_volume(elem)){
 					snd_mixer_selem_get_capture_volume_range(elem, &sndMixerPMin, &sndMixerPMax);
 					newvol=(((sndMixerPMax-sndMixerPMin)*level)/100)+sndMixerPMin;
-					snd_mixer_selem_set_capture_volume_all(elem,newvol);
+					int err = snd_mixer_selem_set_capture_volume_all(elem,newvol);
+					if (err<0) ms_warning("Could not set capture volume for %s:%s",name,snd_strerror(err));
 					//ms_message("Successfully set capture level for %s.",elemname);
 					return;
 				}
@@ -535,51 +539,58 @@ static void set_mixer_element(snd_mixer_t *mixer,const char *name, int level,Mix
 	return ;
 }
 
-
-static void alsa_card_set_level(MSSndCard *obj,MSSndCardMixerElem e,int a)
-{
-	snd_mixer_t *mixer;
-	AlsaData *ad=(AlsaData*)obj->data;
-	mixer=alsa_mixer_open(ad->mixdev);
-	if (mixer==NULL) return ;
-	switch(e){
+static int alsa_set_level(const char* mix, MSSndCardMixerElem card_type, const int level){
+	snd_mixer_t *mixer=alsa_mixer_open(mix);
+	if (mixer==NULL) return -1;
+	switch(card_type){
 		case MS_SND_CARD_MASTER:
-			set_mixer_element(mixer,"Master",a,PLAYBACK);
+			set_mixer_element(mixer,"Master",level,PLAYBACK);
 		break;
 		case MS_SND_CARD_CAPTURE:
-			set_mixer_element(mixer,"Capture",a,CAPTURE);
+			set_mixer_element(mixer,"Capture",level,CAPTURE);
 		break;
 		case MS_SND_CARD_PLAYBACK:
-			set_mixer_element(mixer,"PCM",a,PLAYBACK);
+			set_mixer_element(mixer,"PCM",level,PLAYBACK);
 		break;
 		default:
 			ms_warning("alsa_card_set_level: unsupported command.");
 	}
 	alsa_mixer_close(mixer);
+	
+	return 0;
+}
+
+static int alsa_get_level(const char* mix, MSSndCardMixerElem card_type){
+	snd_mixer_t *mixer = alsa_mixer_open(mix);
+	int level = -1;
+	if (mixer==NULL) return 0;
+	switch(card_type){
+		case MS_SND_CARD_MASTER:
+			level=get_mixer_element(mixer,"Master",PLAYBACK);
+			break;
+		case MS_SND_CARD_CAPTURE:
+			level=get_mixer_element(mixer,"Capture",CAPTURE);
+			break;
+		case MS_SND_CARD_PLAYBACK:
+			level=get_mixer_element(mixer,"PCM",PLAYBACK);
+			break;
+		default:
+			ms_warning("alsa_card_set_level: unsupported command.");
+	}
+	alsa_mixer_close(mixer);
+	return level;
+}
+
+static void alsa_card_set_level(MSSndCard *obj,MSSndCardMixerElem e,int a)
+{
+	AlsaData *ad=(AlsaData*)obj->data;
+	alsa_set_level(ad->mixdev, e, a);
 }
 
 static int alsa_card_get_level(MSSndCard *obj, MSSndCardMixerElem e)
 {
-	snd_mixer_t *mixer;
 	AlsaData *ad=(AlsaData*)obj->data;
-	int value = -1;
-	mixer=alsa_mixer_open(ad->mixdev);
-	if (mixer==NULL) return 0;
-	switch(e){
-		case MS_SND_CARD_MASTER:
-			value=get_mixer_element(mixer,"Master",PLAYBACK);
-			break;
-		case MS_SND_CARD_CAPTURE:
-			value=get_mixer_element(mixer,"Capture",CAPTURE);
-			break;
-		case MS_SND_CARD_PLAYBACK:
-			value=get_mixer_element(mixer,"PCM",PLAYBACK);
-			break;
-		default:
-			ms_warning("alsa_card_set_level: unsupported command.");
-	}
-	alsa_mixer_close(mixer);
-	return value;
+	return alsa_get_level(ad->mixdev, e);
 }
 
 static void alsa_card_set_source(MSSndCard *obj,MSSndCardCapture source)
@@ -604,14 +615,14 @@ static void alsa_card_set_source(MSSndCard *obj,MSSndCardCapture source)
 static MSFilter *alsa_card_create_reader(MSSndCard *card)
 {
 	AlsaData *ad=(AlsaData*)card->data;
-	MSFilter *f=ms_alsa_read_new(ms_snd_card_get_factory(card), ad->pcmdev);
+	MSFilter *f=ms_alsa_read_new(ms_snd_card_get_factory(card), ad->pcmdev, ad->mixdev);
 	return f;
 }
 
 static MSFilter *alsa_card_create_writer(MSSndCard *card)
 {
 	AlsaData *ad=(AlsaData*)card->data;
-	MSFilter *f=ms_alsa_write_new(ms_snd_card_get_factory(card), ad->pcmdev);
+	MSFilter *f=ms_alsa_write_new(ms_snd_card_get_factory(card), ad->pcmdev, ad->mixdev);
 	return f;
 }
 
@@ -782,6 +793,7 @@ static MSSndCard * alsa_card_new(const char *pcm_name, int card_index, const cha
 
 struct _AlsaReadData{
 	char *pcmdev;
+	char *mixdev;
 	snd_pcm_t *handle;
 	int rate;
 	int nchannels;
@@ -802,6 +814,7 @@ typedef struct _AlsaReadData AlsaReadData;
 void alsa_read_init(MSFilter *obj){
 	AlsaReadData *ad=ms_new0(AlsaReadData,1);
 	ad->pcmdev=NULL;
+	ad->mixdev=NULL;
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
@@ -927,6 +940,7 @@ void alsa_read_uninit(MSFilter *obj){
 	alsa_stop_r(ad);
 #endif
 	if (ad->pcmdev!=NULL) ms_free(ad->pcmdev);
+	if (ad->mixdev!=NULL) ms_free(ad->mixdev);
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
 #ifdef THREADED_VERSION
 	ms_bufferizer_destroy(ad->bufferizer);
@@ -1016,11 +1030,35 @@ static int alsa_read_set_nchannels(MSFilter *obj, void *param){
 	return 0;
 }
 
+static int alsa_read_set_volume(MSFilter *obj, void *param) {
+	AlsaReadData *ad=(AlsaReadData*)obj->data;
+	const float *volume = (const float *)param;
+	ms_filter_lock(obj);
+	int err = alsa_set_level(ad->mixdev, MS_SND_CARD_CAPTURE, *volume * 100.0);
+	ms_filter_unlock(obj);
+	return err;
+}
+
+static int alsa_read_get_volume(MSFilter *obj, void *param) {
+	AlsaReadData *ad=(AlsaReadData*)obj->data;
+	int level;
+	ms_filter_lock(obj);
+	level = alsa_get_level(ad->mixdev, MS_SND_CARD_CAPTURE);
+	ms_filter_unlock(obj);
+	if( level >= 0) {
+		*(float *)param = (float)level/100.0;
+		return 0;
+	}else
+		return -1;
+}
+
 MSFilterMethod alsa_read_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE,	alsa_read_get_sample_rate},
 	{MS_FILTER_SET_SAMPLE_RATE, alsa_read_set_sample_rate},
 	{MS_FILTER_GET_NCHANNELS, alsa_read_get_nchannels},
 	{MS_FILTER_SET_NCHANNELS, alsa_read_set_nchannels},
+	{MS_AUDIO_CAPTURE_SET_VOLUME_GAIN	, alsa_read_set_volume },
+	{MS_AUDIO_CAPTURE_GET_VOLUME_GAIN	,  alsa_read_get_volume},
 	{0,NULL}
 };
 
@@ -1039,10 +1077,11 @@ MSFilterDesc alsa_read_desc={
 	.methods=alsa_read_methods
 };
 
-static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev){
+static MSFilter * ms_alsa_read_new(MSFactory *factory, const char *dev, const char *mix){
 	MSFilter *f=ms_factory_create_filter_from_desc(factory, &alsa_read_desc);
 	AlsaReadData *ad=(AlsaReadData*)f->data;
 	ad->pcmdev=ms_strdup(dev);
+	ad->mixdev=ms_strdup(mix);
 	return f;
 }
 
@@ -1051,6 +1090,7 @@ typedef struct _AlsaReadData AlsaWriteData;
 void alsa_write_init(MSFilter *obj){
 	AlsaWriteData *ad=ms_new0(AlsaWriteData,1);
 	ad->pcmdev=NULL;
+	ad->mixdev=NULL;
 	ad->handle=NULL;
 	ad->rate=forced_rate!=-1 ? forced_rate : 8000;
 	ad->nchannels=1;
@@ -1067,6 +1107,7 @@ void alsa_write_postprocess(MSFilter *obj){
 void alsa_write_uninit(MSFilter *obj){
 	AlsaWriteData *ad=(AlsaWriteData*)obj->data;
 	if (ad->pcmdev!=NULL) ms_free(ad->pcmdev);
+	if (ad->mixdev!=NULL) ms_free(ad->mixdev);
 	if (ad->handle!=NULL) snd_pcm_close(ad->handle);
 	ms_free(ad);
 }
@@ -1128,11 +1169,35 @@ void alsa_write_process(MSFilter *obj){
 	}
 }
 
+static int alsa_write_set_volume(MSFilter *obj, void *param) {
+	AlsaWriteData *ad=(AlsaWriteData*)obj->data;
+	const float *volume = (const float *)param;
+	ms_filter_lock(obj);
+	int err = alsa_set_level(ad->mixdev, MS_SND_CARD_MASTER, *volume*100);
+	ms_filter_unlock(obj);
+	return err;
+}
+
+static int alsa_write_get_volume(MSFilter *obj, void *param) {
+	AlsaWriteData *ad=(AlsaWriteData*)obj->data;
+	int level;
+	ms_filter_lock(obj);
+	level = (float)alsa_get_level(ad->mixdev, MS_SND_CARD_MASTER);	
+	ms_filter_unlock(obj);
+	if( level >= 0) {
+		*(float *)param = (float)level/100.0;
+		return 0;
+	}else
+		return -1;
+}
+
 MSFilterMethod alsa_write_methods[]={
 	{MS_FILTER_GET_SAMPLE_RATE,	alsa_write_get_sample_rate},
 	{MS_FILTER_SET_SAMPLE_RATE, alsa_write_set_sample_rate},
 	{MS_FILTER_GET_NCHANNELS, alsa_write_get_nchannels},
 	{MS_FILTER_SET_NCHANNELS, alsa_write_set_nchannels},
+	{MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN	, alsa_write_set_volume },
+	{MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN	,  alsa_write_get_volume},
 	{0,NULL}
 };
 
@@ -1151,10 +1216,11 @@ MSFilterDesc alsa_write_desc={
 };
 
 
-static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev){
+static MSFilter * ms_alsa_write_new(MSFactory *factory, const char *dev, const char *mix){
 	MSFilter *f = ms_factory_create_filter_from_desc(factory, &alsa_write_desc);
 	AlsaWriteData *ad=(AlsaWriteData*)f->data;
 	ad->pcmdev=ms_strdup(dev);
+	ad->mixdev=ms_strdup(mix);
 	return f;
 }
 
