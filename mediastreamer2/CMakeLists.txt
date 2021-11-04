@@ -24,7 +24,7 @@
 # See [CMP077](https://cmake.org/cmake/help/v3.13/policy/CMP0077.html).
 cmake_minimum_required(VERSION 3.13)
 
-project(mediastreamer2 VERSION 5.1.0 LANGUAGES C CXX)
+project(mediastreamer2 VERSION 5.2.0 LANGUAGES C CXX)
 
 if(WIN32)
     if( NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
