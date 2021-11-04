@@ -73,10 +73,17 @@ private:
 	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_convertible<_valueT, _parserElementT>::value, const std::string&>::type value){
 		// no op.
 	}
+	#if defined(_MSC_VER)
+	#pragma warning( push )
+	#pragma warning( disable : 4244 )
+	#endif
 	template <typename _valueT>
 	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_integral<_valueT>::value, const std::string&>::type value){
-		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atoi(value.c_str()));
+		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atoll(value.c_str()));
 	}
+	#if defined(_MSC_VER)
+	#pragma warning( pop )
+	#endif
 	template <typename _valueT>
 	inline void _invokeWithValue(_parserElementT obj, typename std::enable_if<std::is_floating_point<_valueT>::value, const std::string&>::type value){
 		mFunc(universal_pointer_cast<typename _functorT::first_argument_type>(obj), std::atof(value.c_str()));
