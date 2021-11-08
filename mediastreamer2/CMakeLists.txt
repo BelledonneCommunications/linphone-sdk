@@ -607,20 +607,18 @@ endif()
 
 if(ENABLE_QT_GL)#Only add headers and lib to Qt plugins
 	set(QT5_PACKAGES Core Gui Quick QmlModels Qml Network)
-
-# Cmake/Qt hackshit : find_package read CMAKE_PREFIX_PATH and QT5_DIR but cannot find any Qt5Config.cmake even if there are inside them.
-	if(LINPHONESDK_QT_DIR)
-		set(Qt5_base "${LINPHONESDK_QT_DIR}/lib/cmake/")
-		set(Qt5_DIR "${Qt5_base}/Qt5")
-		set(ENV{Qt5_DIR} "${Qt5_base}/Qt5")#Use env and local too because it could not work without them
-		foreach (package ${QT5_PACKAGES})
-			set(Qt5${package}_DIR "${Qt5_base}/Qt5${package}")
-			set(ENV{Qt5${package}_DIR} "${Qt5_base}/Qt5${package}")
-		endforeach ()
+# Setting Qt5_DIR is not enough as it needs Qt5<package>_DIR for each packages
+	if(DEFINED ENV{Qt5_DIR} AND NOT DEFINED ${Qt5_DIR})
+		set(Qt5_DIR "$ENV{Qt5_DIR}")
 	endif()
-# end of hackshit
+	set(Qt5_base "${Qt5_DIR}/../")
+	foreach (package ${QT5_PACKAGES})
+		if( NOT DEFINED ${Qt5${package}_DIR})
+			set(Qt5${package}_DIR "${Qt5_base}/Qt5${package}")
+		endif()
+	endforeach ()
 
-	find_package(Qt5 COMPONENTS ${QT5_PACKAGES} QUIET)
+	find_package(Qt5 COMPONENTS ${QT5_PACKAGES} REQUIRED)
 	foreach (package ${QT5_PACKAGES})
 		if(Qt5${package}_FOUND)
 			get_target_property(Qt${package}_location Qt5::${package} LOCATION)
