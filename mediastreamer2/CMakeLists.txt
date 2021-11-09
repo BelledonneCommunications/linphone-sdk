@@ -606,7 +606,7 @@ if(ENABLE_MACAQSND)
 endif()
 
 if(ENABLE_QT_GL)#Only add headers and lib to Qt plugins
-	set(QT5_PACKAGES Core Gui Quick QmlModels Qml Network)
+	set(QT5_PACKAGES Core Gui Quick)
 # Setting Qt5_DIR is not enough as it needs Qt5<package>_DIR for each packages
 	if(DEFINED ENV{Qt5_DIR} AND NOT DEFINED ${Qt5_DIR})
 		set(Qt5_DIR "$ENV{Qt5_DIR}")
