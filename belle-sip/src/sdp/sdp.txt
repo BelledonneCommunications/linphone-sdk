@@ -139,6 +139,7 @@ attribute           = csup-attribute / acap-attribute
                     / tcap-attribute / creq-attribute
                     / pcfg-attribute / acfg-attribute
                     / rtcp-fb-attribute / rtcp-xr-attribute
+                    / label-attribute / content-attribute
                     / raw-attribute
 raw-attribute       = %x61 "=" default-attribute
 default-attribute   = (att-field ":" att-value) / att-field
@@ -339,6 +340,7 @@ rtcp-fb-val        = rtcp-fb-ack-type [rtcp-fb-ack-param]
                     / rtcp-fb-trr-int-type SP rtcp-fb-trr-int
                     / rtcp-fb-ccm-type SP rtcp-fb-ccm-param
                     / rtcp-fb-id rtcp-fb-param
+                    / rtcp-fb-id  ;no or empty param
 
 rtcp-fb-trr-int-type = "trr-int"
 rtcp-fb-trr-int    = 1*DIGIT
@@ -358,7 +360,6 @@ rtcp-fb-id         = 1*(alpha-numeric / "-" / "_")
 rtcp-fb-param      = SP "app" [SP byte-string]
                     / SP token [SP byte-string]
                     / rtcp-fb-trr-int
-                    / text; empty
 
 rtcp-fb-ack-type   = "ack"
 rtcp-fb-ack-param  = SP "rpsi"

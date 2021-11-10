@@ -950,6 +950,30 @@ static void test_session_description(void) {
 	return;
 }
 
+static const char* sdp_with_invalid_rtcp_fb = "v=0\r\n"\
+						"o=jehan-mac 1239 1239 IN IP6 2a01:e35:1387:1020:6233:4bff:fe0b:5663\r\n"\
+						"s=SIP Talk\r\n"\
+						"c=IN IP4 192.168.0.18\r\n"\
+						"b=AS:380\r\n"\
+						"t=0 0\r\n"\
+						"a=ice-pwd:31ec21eb38b2ec6d36e8dc7b\r\n"\
+						"m=audio 7078 RTP/AVP 111 110 3 0 8 101\r\n"\
+						"a=rtcp-fb\r\n"\
+						"a=rtpmap:111 speex/16000\r\n";
+
+static void test_session_description_with_invalid_rtcp_fb(void) {
+	const char* l_src = sdp_with_invalid_rtcp_fb;
+	belle_sip_list_t* media_descriptions;
+	belle_sdp_media_description_t *media_description;
+	belle_sdp_session_description_t* l_session_description = belle_sdp_session_description_parse(l_src);
+	/* make sure that the invalid rtcp-fb is not parsed as a raw attribute. */
+	media_descriptions = belle_sdp_session_description_get_media_descriptions(l_session_description);
+	media_description = (belle_sdp_media_description_t*) media_descriptions->data;
+	BC_ASSERT_PTR_NULL(belle_sdp_media_description_get_attribute(media_description, "rtcp-fb"));
+	belle_sip_object_unref(l_session_description);
+}
+
+
 static void test_overflow(void){
 	belle_sdp_session_description_t* sdp;
 	belle_sip_list_t *mds;
@@ -1132,7 +1156,8 @@ test_t sdp_tests[] = {
 	TEST_NO_TAG("Session description with capability reference before definition", test_session_description_with_capability_referenced_before_definition),
 	TEST_NO_TAG("Session description", test_session_description),
 	TEST_NO_TAG("Session description for fax", test_image_mline),
-	TEST_NO_TAG("Marshal buffer overflow", test_overflow)
+	TEST_NO_TAG("Marshal buffer overflow", test_overflow),
+	TEST_NO_TAG("Invalid specialized attribute not parsed as raw attribute", test_session_description_with_invalid_rtcp_fb)
 };
 
 test_suite_t sdp_test_suite = {"SDP", NULL, NULL, belle_sip_tester_before_each, belle_sip_tester_after_each,
