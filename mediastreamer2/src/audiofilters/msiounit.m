@@ -1162,6 +1162,7 @@ static int set_audio_unit_sound_card(MSSndCard * newCard) {
 		bool_t currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
 		if (!currentOutputIsSpeaker) {
 			// If we're switching to speaker and the route output isn't the speaker already
+			ms_message("set_audio_unit_sound_card(): change AVAudioSession output audio to speaker");
 			[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
 		}
 	}
@@ -1172,6 +1173,7 @@ static int set_audio_unit_sound_card(MSSndCard * newCard) {
 		NSArray *inputs = [audioSession availableInputs];
 		for (AVAudioSessionPortDescription *input in inputs) {
 			if ([input.portName isEqualToString:newPortName ]) {
+				ms_message("set_audio_unit_sound_card(): change AVAudioSession preferred input to %s.", [newPortName UTF8String]);
 				[audioSession setPreferredInput:input error:&err];
 				break;
 			}
@@ -1198,7 +1200,7 @@ static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
 	if (strcmp(newCard->name, oldCard->name)==0) {
 		return 0;
 	}
-	
+	ms_message("audio_capture_set_internal_id(): Trying to change audio input route from %s to %s", oldCard->name, newCard->name);
 	set_audio_unit_sound_card(newCard);
 	return 0;
 }
@@ -1212,6 +1214,7 @@ static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
 	if (strcmp(newCard->name, oldCard->name)==0) {
 		return 0;
 	}
+	ms_message("audio_playback_set_internal_id(): Trying to change audio output route from %s to %s", oldCard->name, newCard->name);
 	set_audio_unit_sound_card(newCard);
 	return 0;
 }
