@@ -128,7 +128,7 @@ job-ios-xcode:
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_DOC=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES $SCHEDULE_CMAKE_OPTIONS
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_DOC=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
@@ -154,7 +154,7 @@ job-ios-xcode-novideo:
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_VIDEO=NO $SCHEDULE_CMAKE_OPTIONS
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_VIDEO=NO
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
@@ -218,7 +218,7 @@ test-liblinphone-ios:
     - echo $ESCAPED_BRANCH
     - COMMIT=$(git describe)
     - echo $COMMIT
-    - URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
+    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
 
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -233,7 +233,7 @@ test-liblinphone-ios:
 
     - echo "TEST REPORTS URL $URL"
 
-    - echo "alias URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
+    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
 
     #Gathering artifacts in one folder to ease their use
     - mkdir ${CI_PROJECT_DIR}/results

@@ -577,7 +577,7 @@ job-xamarin-upload:
     - echo "ln -s \$TEST_WORKSPACE_LOCATION \$(pwd)/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
 
     #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
-    - echo "~/allure-2.10.0/bin/allure generate --clean \$TEST_WORKSPACE_LOCATION -o \$TEST_WORKSPACE_LOCATION/allure-report" | tee -a allure_launch_script
+    - echo "~/allure-2.16.1/bin/allure generate --clean \$TEST_WORKSPACE_LOCATION -o \$TEST_WORKSPACE_LOCATION/allure-report" | tee -a allure_launch_script
 
     #we now remove the history directory
     - echo "pwd" | tee -a allure_launch_script
@@ -631,7 +631,7 @@ job-xamarin-upload:
     #     "matchedStatuses": ["broken"]
     #  }
     #]
-    - echo "https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/allure-report" | tee report_url
+    - echo "https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/allure-report" | tee report_url
     - pwd
     - ls -lah
     - ls -lah ${CI_PROJECT_DIR}
