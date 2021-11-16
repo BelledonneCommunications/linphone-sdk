@@ -607,12 +607,13 @@ endif()
 
 if(ENABLE_QT_GL)#Only add headers and lib to Qt plugins
 	set(QT5_PACKAGES Core Gui Quick)
+	set(QT5_ALL_PACKAGES ${QT5_PACKAGES} QmlModels Qml Network)
 # Setting Qt5_DIR is not enough as it needs Qt5<package>_DIR for each packages
 	if(DEFINED ENV{Qt5_DIR} AND NOT DEFINED ${Qt5_DIR})
 		set(Qt5_DIR "$ENV{Qt5_DIR}")
 	endif()
 	set(Qt5_base "${Qt5_DIR}/../")
-	foreach (package ${QT5_PACKAGES})
+	foreach (package ${QT5_ALL_PACKAGES})
 		if( NOT DEFINED ${Qt5${package}_DIR})
 			set(Qt5${package}_DIR "${Qt5_base}/Qt5${package}")
 		endif()
