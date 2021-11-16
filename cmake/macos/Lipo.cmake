@@ -26,13 +26,11 @@ linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARC
 
 # Create the desktop directory that will contain the merged content of all architectures
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/desktop"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}"
 )
 
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "linphone-sdk/desktop"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}"
 )
 
 
@@ -40,7 +38,7 @@ execute_process(
 list(GET _archs 0 _first_arch)
 
 execute_process(# Do not use copy_directory because of symlinks
-	COMMAND "cp" "-R"  "linphone-sdk/mac-${_first_arch}/" "linphone-sdk/desktop/"
+	COMMAND "cp" "-R"  "linphone-sdk/mac-${_first_arch}/" "${CMAKE_INSTALL_PREFIX}"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
@@ -66,7 +64,7 @@ foreach(_file ${_binaries})
 			string(REPLACE ";" " " _arch_string "${_archs}")
 			message (STATUS "Mixing ${_file} for archs [${_arch_string}]")
 			execute_process(
-				COMMAND "lipo" "-create" "-output" "linphone-sdk/desktop/${_file}" ${_all_arch_files}
+				COMMAND "lipo" "-create" "-output" "${CMAKE_INSTALL_PREFIX}/${_file}" ${_all_arch_files}
 				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 			)
 		endif()
