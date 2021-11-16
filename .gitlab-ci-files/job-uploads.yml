@@ -102,8 +102,7 @@ job-ios-xcode-novideo-upload:
     - eval $(ssh-agent -s)
     - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - echo "$DEPLOY_SERVER_HOST_KEY" >> ~/.ssh/known_hosts
 
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
@@ -140,9 +139,7 @@ job-android-doc-upload:
     - eval $(ssh-agent -s)
     - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - echo -e "Host linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - echo -e "Host www.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
+    - echo "$DEPLOY_SERVER_HOST_KEY" >> ~/.ssh/known_hosts
 
   script:
     - git config --global user.email "gitlab@belledonne-communications.com"
