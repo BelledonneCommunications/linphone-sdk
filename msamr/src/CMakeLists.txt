@@ -20,14 +20,7 @@
 #
 ############################################################################
 
-if(MSVC AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	find_library(LIBGCC NAMES gcc)
-	find_library(LIBMINGWEX NAMES mingwex)
-endif()
-
 set(LIBS
-	${LIBGCC}
-	${LIBMINGWEX}
 	${MEDIASTREAMER2_LIBRARIES}
 	${ORTP_LIBRARIES}
 	${BCTOOLBOX_CORE_LIBRARIES}
