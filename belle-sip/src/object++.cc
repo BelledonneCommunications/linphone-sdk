@@ -34,6 +34,9 @@ public:
 	static void doDelete(belle_sip_object_t *obj) {
 		delete Object::getCppObject(obj);
 	}
+	static const void *getCppAddress(const belle_sip_object_t *obj) {
+		return Object::getCppObject(obj);
+	}
 	static const char *getTypeName(const belle_sip_object_t *obj) {
 		static thread_local std::string readableTypeName;
 		const Object *cppObject = Object::getCppObject(obj);
@@ -74,12 +77,14 @@ Object::Object(const Object &other) {
 }
 
 Object::~Object() {
-	if (mObject.ref != -1) {
+#if 0
+	if (mObject.ref != -1){
 		/*note: throwing an exception here does not work*/
 		belle_sip_fatal("bellesip::Object [%p] has been destroyed directly with delete operator. This is prohibited, "
 		                "use unref() instead.",
 		                this);
 	}
+#endif
 	belle_sip_object_uninit(&mObject);
 	belle_sip_debug("Object destroyed [%p]", &mObject);
 }
@@ -146,6 +151,10 @@ void belle_sip_cpp_object_delete(belle_sip_object_t *obj) {
 
 const char *belle_sip_cpp_object_get_type_name(const belle_sip_object_t *obj) {
 	return bellesip::ObjectCAccessors::getTypeName(obj);
+}
+
+const void *belle_sip_cpp_object_get_address(const belle_sip_object_t *obj) {
+	return bellesip::ObjectCAccessors::getCppAddress(obj);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_cpp_object_t);
