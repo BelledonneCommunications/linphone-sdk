@@ -506,18 +506,13 @@ job-xamarin-upload:
     #we search for a report associated to a commit directory
     # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
     #We enter in the if in case of a retry/commit --amend
-    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 2 -name '*/$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 2 -path '*/$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
     - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
-    - echo "  then TEST_WORKSPACE_LOCATION=$(echo $FIND_DIR | sort -r | head -n 1) || exit 1;" | tee -a allure_launch_script
-    - echo "  CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
+    - echo "  then CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
     - echo "else" | tee -a allure_launch_script
-
-    - echo "  TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
-
-
     - echo "  CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
     - echo "fi" | tee -a allure_launch_script
-
+    - echo "TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
     - echo "mkdir -p \$TEST_WORKSPACE_LOCATION || exit 1" | tee -a allure_launch_script
 
     #Not currently needed
