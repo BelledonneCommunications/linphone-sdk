@@ -258,7 +258,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	ms_android_hack_volume(env);
+	//ms_android_hack_volume(env);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -341,7 +341,10 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		aaudio_player_init(octx);
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-		ms_android_hack_volume(env);
+
+		if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
+			ms_android_hack_volume(env);
+		}
 		ms_mutex_unlock(&octx->stream_mutex);
 	}
 	return 0;
