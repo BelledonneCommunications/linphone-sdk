@@ -100,6 +100,13 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		card->capabilities = ms_android_get_device_capabilities(env, deviceInfo);
 		MSDevicesInfo *devices = ms_factory_get_devices_info(m->factory);
 		SoundDeviceDescription *d = ms_devices_info_get_sound_device_description(devices);
+
+		if (d->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
+			ms_warning("[AAudio] Device has been dynamically blacklisted using DEVICE_HAS_CRAPPY_AAUDIO flag");
+			free(card);
+			return;
+		}
+
 		if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 			card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 			card_data->builtin_aec = true;
