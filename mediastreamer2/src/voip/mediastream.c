@@ -401,6 +401,9 @@ static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t cur
 
 void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir) {
 	stream->direction = dir;
+	if (dir == MediaStreamSendOnly && stream->bandwidth_controller) {
+		ms_bandwidth_controller_elect_controlled_streams(stream->bandwidth_controller);
+	}
 }
 
 MediaStreamDir media_stream_get_direction(const MediaStream *stream) {

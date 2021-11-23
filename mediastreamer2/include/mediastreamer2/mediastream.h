@@ -159,6 +159,7 @@ struct _MediaStream {
 	MSBandwidthController *bandwidth_controller;
 	MSVideoQualityController *video_quality_controller;
     MediaStreamDir direction;
+	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -991,7 +992,6 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	char *label;
-	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 };
 
 typedef struct _VideoStream VideoStream;

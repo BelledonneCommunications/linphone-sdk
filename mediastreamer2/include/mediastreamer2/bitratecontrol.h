@@ -37,7 +37,7 @@ typedef struct _MSBandwidthControllerStats{
 
 struct _MSBandwidthController{
 	bctbx_list_t *streams; /*list of MediaStream objects*/
-	struct _MediaStream *controlled_stream; /*the most bandwidth consuming stream, which is the one flow controlled*/
+	bctbx_list_t *controlled_streams; /*the most bandwidth consuming streams*/
 	MSBandwidthControllerStats stats;
 	float remote_video_bandwidth_available_estimated;
 	float maximum_bw_usage;
@@ -72,6 +72,8 @@ MS2_PUBLIC const MSBandwidthControllerStats * ms_bandwidth_controller_get_stats(
 MS2_PUBLIC void ms_bandwidth_controller_reset_state(MSBandwidthController *obj);
 
 MS2_PUBLIC void ms_bandwidth_controller_destroy(MSBandwidthController *obj);
+
+MS2_PUBLIC void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj);
 	
 
 /**

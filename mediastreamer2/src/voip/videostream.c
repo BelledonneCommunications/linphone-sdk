@@ -444,7 +444,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->freeze_on_error = FALSE;
 	stream->source_performs_encoding = FALSE;
 	stream->output_performs_decoding = FALSE;
-	stream->is_thumbnail = FALSE;
+	stream->ms.is_thumbnail = FALSE;
 	choose_display_name(stream);
 	stream->ms.process_rtcp=video_stream_process_rtcp;
 	video_stream_set_encoder_control_callback(stream, NULL, NULL);
@@ -584,11 +584,14 @@ void video_stream_set_label(VideoStream *s, const char *label){
 }
 
 void video_stream_enable_thumbnail(VideoStream *s, bool_t enabled) {
-	s->is_thumbnail = enabled;
+	s->ms.is_thumbnail = enabled;
+	if (enabled && s->ms.bandwidth_controller) {
+		ms_bandwidth_controller_elect_controlled_streams(s->ms.bandwidth_controller);
+	}
 }
 
 bool_t video_stream_thumbnail_enabled(VideoStream *s) {
-	return s->is_thumbnail;
+	return s->ms.is_thumbnail;
 }
 
 static void ext_display_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
@@ -636,7 +639,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	int ret;
 	MSVideoSize preview_vsize;
 	MSPinFormat pf={0};
-	bool_t is_player= !stream->is_thumbnail && (ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID);
+	bool_t is_player= !stream->ms.is_thumbnail && (ms_filter_get_id(stream->source)==MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source)==MS_MKV_PLAYER_ID);
 
 	if (source_changed) {
 		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
@@ -703,7 +706,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	if (cam_vsize.width*cam_vsize.height<=vconf.vsize.width*vconf.vsize.height){
 		vconf.vsize=cam_vsize;
 		ms_message("Output video size adjusted to match camera resolution (%ix%i)",vconf.vsize.width,vconf.vsize.height);
-	} else if (!stream->is_thumbnail) {
+	} else if (!stream->ms.is_thumbnail) {
 #if TARGET_IPHONE_SIMULATOR || defined(MS_HAS_ARM) || defined(MS2_WINDOWS_UNIVERSAL) || defined(MS2_NO_VIDEO_RESCALING)
 		ms_error("Camera is proposing a size bigger than encoder's suggested size (%ix%i > %ix%i) "
 				   "Using the camera size as fallback because cropping or resizing is not implemented for this device.",
@@ -768,7 +771,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	if ((encoder_supports_source_format.supported == TRUE) || (stream->source_performs_encoding == TRUE)) {
 		ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_PIX_FMT, &format);
 	} else {
-		if (stream->is_thumbnail) {
+		if (stream->ms.is_thumbnail) {
 			stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
 			ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
 		} else {
@@ -963,7 +966,7 @@ int video_stream_start_from_io_and_itc_sink(VideoStream *stream, RtpProfile *pro
 				stream->source = ms_factory_create_filter(stream->ms.factory, MS_VOID_SOURCE_ID);
 			break;
 			case MSResourceItc:
-				stream->is_thumbnail = TRUE;
+				stream->ms.is_thumbnail = TRUE;
 				stream->source = ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
 				if (itc_sink) {
 					ms_filter_call_method(itc_sink,MS_ITC_SINK_CONNECT,stream->source);
@@ -1231,7 +1234,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		/* and then connect all */
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->source, -1, 0);
-		if (!stream->is_thumbnail && stream->pixconv) {
+		if (!stream->ms.is_thumbnail && stream->pixconv) {
 			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 		}
 		if (stream->tee) {

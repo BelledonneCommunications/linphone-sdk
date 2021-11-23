@@ -37,24 +37,28 @@ void ms_bandwidth_controller_reset_state(MSBandwidthController *obj){
 	obj->congestion_detected = 0;
 }
 
-static void ms_bandwidth_controller_send_tmmbr(MSBandwidthController *obj){
-	RtpSession *session;
-	
-	if (!obj->controlled_stream) return;
-	session = obj->controlled_stream->sessions.rtp_session;
+static void ms_bandwidth_controller_send_tmmbr(MSBandwidthController *obj, struct _MediaStream *stream){
+	RtpSession *session = stream->sessions.rtp_session;
+	float bandwidth = 0;
 	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0 && obj->maximum_bw_usage < obj->currently_requested_stream_bandwidth) {
-		ms_message("MSBandwidthController: sending TMMBR for a maximum bandwidth usage of %f bits/s", obj->maximum_bw_usage);
-		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)obj->maximum_bw_usage);
+		bandwidth = obj->maximum_bw_usage/bctbx_list_size(obj->controlled_streams);
+		ms_message("MSBandwidthController: sending TMMBR for a maximum bandwidth usage of %f bits/s", bandwidth);
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)bandwidth);
 	}else{
-		ms_message("MSBandwidthController: sending TMMBR for a bandwidth usage of %f bits/s", obj->currently_requested_stream_bandwidth);
-		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)obj->currently_requested_stream_bandwidth);
+		bandwidth = obj->currently_requested_stream_bandwidth/bctbx_list_size(obj->controlled_streams);
+		ms_message("MSBandwidthController: sending TMMBR for a bandwidth usage of %f bits/s", bandwidth);
+		rtp_session_send_rtcp_fb_tmmbr(session, (uint64_t)bandwidth);
 	}
 }
 
 void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *obj, int bitrate){
 	obj->maximum_bw_usage = (float) bitrate;
 	if (obj->currently_requested_stream_bandwidth > 0 && obj->maximum_bw_usage > 0) {
-		ms_bandwidth_controller_send_tmmbr(obj);
+		bctbx_list_t *elem;
+		for (elem = obj->controlled_streams; elem != NULL; elem = elem->next){
+			MediaStream *ms = (MediaStream*) elem->data;
+			ms_bandwidth_controller_send_tmmbr(obj, ms);
+		}
 	}
 	/* If there is not yet currently_requested_stream_bandwidth (means no congestion detected yet and no bandwidth estimation available),
 	 * then don't request anything. Let the estimation to be available first.
@@ -64,6 +68,7 @@ void ms_bandwidth_controller_set_maximum_bandwidth_usage(MSBandwidthController *
 static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *obj){
 	bctbx_list_t *elem;
 	float bandwidth = 0;
+	float controlled_bandwidth = 0;
 	
 	for (elem = obj->streams; elem != NULL; elem = elem->next){
 		MediaStream *ms = (MediaStream*) elem->data;
@@ -71,10 +76,11 @@ static void ms_bandwidth_controller_estimate_bandwidths(MSBandwidthController *o
 		if (media_stream_get_state(ms) != MSStreamStarted) continue;
 		bw = rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session);
 		bandwidth += bw;
-		if (ms == obj->controlled_stream) obj->stats.controlled_stream_bandwidth = bw;
+		if (bctbx_list_find(obj->controlled_streams, ms)) controlled_bandwidth += bw;
 	}
 	obj->stats.estimated_download_bandwidth = bandwidth;
-	ms_message("MSBandwidthController: total received bandwidth is %f kbit/s, controlled stream bandwidth is %f kbit/s", bandwidth*1e-3, obj->stats.controlled_stream_bandwidth*1.e-3);
+	obj->stats.controlled_stream_bandwidth = controlled_bandwidth;
+	ms_message("MSBandwidthController: total received bandwidth is %f kbit/s, controlled streams bandwidth is %f kbit/s", bandwidth*1e-3, obj->stats.controlled_stream_bandwidth*1.e-3);
 }
 
 static float compute_target_bandwith_for_controlled_stream(MSBandwidthController *obj, float reduction_factor){
@@ -86,7 +92,7 @@ static float compute_target_bandwith_for_controlled_stream(MSBandwidthController
 	new_total_bandwidth_requested = obj->stats.estimated_download_bandwidth * reduction_factor;
 	controlled_stream_bandwidth_requested = new_total_bandwidth_requested - bw_used_by_other_streams;
 	if (controlled_stream_bandwidth_requested <= 0){
-		ms_error("MSBandwidthController: controlled stream bandwidth requested is %f (bug)", controlled_stream_bandwidth_requested);
+		ms_error("MSBandwidthController: total controlled streams bandwidth requested is %f (bug)", controlled_stream_bandwidth_requested);
 	}
 	return controlled_stream_bandwidth_requested;
 }
@@ -105,23 +111,27 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	float controlled_stream_bandwidth_requested;
 	OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
-	
-	if (ms != obj->controlled_stream){
-		ms_message("MSBandwidthController: congestion event (%i) received on stream [%p][%s], not the controlled one.", (int)evd->info.congestion_detected,
-			   ms, ms_format_type_to_string(ms->type));
+
+	if (!bctbx_list_find(obj->controlled_streams, ms)) {
+		ms_message("MSBandwidthController: congestion event (%i) received on stream [%p][%s], not the controlled one.", (int)evd->info.congestion_detected, ms, ms_format_type_to_string(ms->type));
 		return;
 	}
 	obj->congestion_detected = evd->info.congestion_detected;
 	if (evd->info.congestion_detected){
 		/*We are detecting a congestion. First estimate the total bandwidth received at the time of the congestion*/
 		ms_bandwidth_controller_estimate_bandwidths(obj);
+
+		if ((bctbx_list_size(obj->controlled_streams) > 1) && (rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session) > obj->stats.estimated_download_bandwidth/bctbx_list_size(obj->controlled_streams))) {
+			ms_message("MSBandwidthController: congestion detected ignored because stream [%p][%s] recv bandwidth [%f] > average [%f]. Total bandwidth is %f, controlled streams' numbers is %d.", ms, ms_format_type_to_string(ms->type), rtp_session_get_recv_bandwidth_smooth(ms->sessions.rtp_session), obj->stats.estimated_download_bandwidth/bctbx_list_size(obj->controlled_streams), obj->stats.estimated_download_bandwidth, (int)bctbx_list_size(obj->controlled_streams));
+			return;
+		}
+
 		/*we need to clear the congestion by firstly requesting a bandwidth usage much lower than the theoritically possible,
 		 so that the congested router can finaly expedite all the late packets it retains.*/
 		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.7f);
-		
+
 		if (controlled_stream_bandwidth_requested > 0){
-			ms_message("MSBandwidthController: congestion detected - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",
-				   obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), controlled_stream_bandwidth_requested*1e-3);
+			ms_message("MSBandwidthController: congestion detected - sending tmmbr for stream [%p][%s] for target [%f] kbit/s. Total is [%f] kbit/s, controlled streams' numbers is %d.",ms,ms_format_type_to_string(ms->type), controlled_stream_bandwidth_requested*1e-3/bctbx_list_size(obj->controlled_streams), controlled_stream_bandwidth_requested*1e-3,(int)bctbx_list_size(obj->controlled_streams));
 		}
 		video_bandwidth_estimator_params.enabled = FALSE;
 	}else{
@@ -129,17 +139,16 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		controlled_stream_bandwidth_requested = compute_target_bandwith_for_controlled_stream(obj, 0.9f);
 		
 		if (controlled_stream_bandwidth_requested > 0){
-			ms_message("MSBandwidthController: congestion resolved - sending tmmbr for stream [%p][%s] for target [%f] kbit/s",
-				   obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), controlled_stream_bandwidth_requested*1e-3);
+			ms_message("MSBandwidthController: congestion resolved - sending tmmbr for stream [%p][%s] for target [%f] kbit/s. Total is [%f] kbit/s, controlled streams' numbers is %d.",ms,ms_format_type_to_string(ms->type), controlled_stream_bandwidth_requested*1e-3/bctbx_list_size(obj->controlled_streams), controlled_stream_bandwidth_requested*1e-3,(int)bctbx_list_size(obj->controlled_streams));
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
 		video_bandwidth_estimator_params.enabled = TRUE;
 	}
 	obj->currently_requested_stream_bandwidth = controlled_stream_bandwidth_requested;
-	ms_bandwidth_controller_send_tmmbr(obj);
+	ms_bandwidth_controller_send_tmmbr(obj,ms);
 	obj->remote_video_bandwidth_available_estimated = 0;
-	rtp_session_enable_video_bandwidth_estimator(obj->controlled_stream->sessions.rtp_session, &video_bandwidth_estimator_params);
+	rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
 }
 
 static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, void *user_pointer) {
@@ -148,58 +157,55 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	if (!obj->congestion_detected) {
 		float estimated_bitrate = evd->info.video_bandwidth_available;
 		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated * NO_INCREASE_THRESHOLD) {
-			ms_message("MSBandwidthController: not using new video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)",
-				estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
+			ms_message("MSBandwidthController: not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)", estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
 			return;
 		}
 		
-		if (obj->stats.estimated_download_bandwidth != 0 && estimated_bitrate <= NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth){
-			ms_message("MSBandwidthController: not using new video bandwidth estimation (%f kbit/s) because it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
+		if (obj->stats.estimated_download_bandwidth != 0 && estimated_bitrate <= (NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth)){
+			ms_message("MSBandwidthController: not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
 				estimated_bitrate/1000, obj->stats.estimated_download_bandwidth/1000);
 			return;
 		}
 			
-		ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s", 
-					obj->controlled_stream, ms_format_type_to_string(obj->controlled_stream->type), estimated_bitrate / 1000);
+		ms_message("MSBandwidthController: video bandwidth estimation available, sending tmmbr for stream [%p][%s] for target [%f] kbit/s. Total is [%f] kbit/s, controlled streams' number is %d.", ms, ms_format_type_to_string(ms->type), estimated_bitrate / (bctbx_list_size(obj->controlled_streams) * 1000),estimated_bitrate / 1000, (int)bctbx_list_size(obj->controlled_streams));
 		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
 		obj->currently_requested_stream_bandwidth = estimated_bitrate;
-		ms_bandwidth_controller_send_tmmbr(obj);
+		ms_bandwidth_controller_send_tmmbr(obj, ms);
 	}
 }
 
-/*THis function just selects a video stream if any, or an audio stream otherwise.
- * It could be refined to select the most consuming stream...*/
-static void elect_controlled_stream(MSBandwidthController *obj){
+/*This function just selects most consuming video streams, or an audio stream otherwise.*/
+void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj){
 	bctbx_list_t *elem;
-	bool_t done = FALSE;
 	OrtpVideoBandwidthEstimatorParams params = {0};
-	MediaStream *old_controlled_stream = obj->controlled_stream;
-	
-	obj->controlled_stream = NULL;
-	for (elem = obj->streams; elem != NULL && !done; elem = elem->next){
+	MediaStream *as = NULL;
+
+	if (obj->controlled_streams) {
+		bctbx_list_free(obj->controlled_streams);
+		obj->controlled_streams = NULL;
+	}
+
+	for (elem = obj->streams; elem != NULL; elem = elem->next){
 		MediaStream *ms = (MediaStream*) elem->data;
-		switch(ms->type){
-			case MSAudio:
-				obj->controlled_stream = ms;
-			break;
-			case MSVideo:
-				obj->controlled_stream = ms;
-				done = TRUE;
-				ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0, 
-											on_video_bandwidth_estimation_available, ms);
-				params.enabled = TRUE;
-				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
-			break;
-			case MSText:
-			break;
-			case MSUnknownMedia:
-			break;
+		if (ms->type == MSVideo) {
+			ms_message("MSBandwidthController: video stream %p is thumbnail %d direction %d", ms, ms->is_thumbnail,media_stream_get_direction(ms));
+			ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,on_video_bandwidth_estimation_available, ms);
+			params.enabled = TRUE;
+			rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
+			if (!ms->is_thumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
+				obj->controlled_streams = bctbx_list_append(obj->controlled_streams, ms);
+				ms_message("MSBandwidthController: video stream %p add to controlled streams", ms);
+			}
+		} else {
+			as = ms;
 		}
 	}
-	if (obj->controlled_stream != old_controlled_stream && old_controlled_stream != NULL){
-		/*in case of change of controlled stream, we shall reset the state of the bandwidth controller*/
-		ms_bandwidth_controller_reset_state(obj);
+
+	if (!obj->controlled_streams && as) {
+		obj->controlled_streams = bctbx_list_append(obj->controlled_streams, as);
 	}
+
+	ms_bandwidth_controller_reset_state(obj);
 }
 
 void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _MediaStream *stream){
@@ -208,7 +214,7 @@ void ms_bandwidth_controller_add_stream(MSBandwidthController *obj, struct _Medi
 	rtp_session_enable_congestion_detection(stream->sessions.rtp_session, TRUE);
 	stream->bandwidth_controller = obj;
 	obj->streams = bctbx_list_append(obj->streams, stream);
-	elect_controlled_stream(obj);
+	ms_bandwidth_controller_elect_controlled_streams(obj);
 }
 
 void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _MediaStream *stream){
@@ -223,7 +229,7 @@ void ms_bandwidth_controller_remove_stream(MSBandwidthController *obj, struct _M
 	rtp_session_enable_video_bandwidth_estimator(stream->sessions.rtp_session, &params);
 	stream->bandwidth_controller = NULL;
 	obj->streams = bctbx_list_remove(obj->streams, stream);
-	elect_controlled_stream(obj);
+	ms_bandwidth_controller_elect_controlled_streams(obj);
 }
 
 const MSBandwidthControllerStats * ms_bandwidth_controller_get_stats(MSBandwidthController *obj){
@@ -233,5 +239,7 @@ const MSBandwidthControllerStats * ms_bandwidth_controller_get_stats(MSBandwidth
 void ms_bandwidth_controller_destroy(MSBandwidthController *obj){
 	bctbx_list_free(obj->streams);
 	obj->streams = NULL;
+	if (obj->controlled_streams) bctbx_list_free(obj->controlled_streams);
+	obj->controlled_streams = NULL;
 	ms_free(obj);
 }
