@@ -197,8 +197,16 @@ job-windows-vs2017-uwp-scheduled:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_WINDOWS
+    - &nuget_deploy_rule
+      if: $DEPLOY_RUN_NUGET
     - if: $ENABLE_WINDOWS_UWP_TESTS
     - if: $ENABLE_WINDOWS_TESTS
+    - &nuget_dev_rule 
+      if:  $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab-ci-files/job-windows.yml
+        - .gitlab-ci-files/job-packages.yml
+        - cmake/NuGet/Windows/**/*
   variables:
     LINPHONESDK_PLATFORM: UWP
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO
@@ -211,8 +219,10 @@ job-windows-vs2017-win32-scheduled:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_WINDOWS
     - if: $UPLOAD_CS_DOC
+    - if: $DEPLOY_RUN_WINDOWS
+    - *nuget_deploy_rule
+    - *nuget_dev_rule
   variables:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
@@ -224,6 +234,8 @@ job-windows-vs2017-win32store-scheduled:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_WINDOWS
+    - *nuget_deploy_rule
+    - *nuget_dev_rule
   variables:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32store

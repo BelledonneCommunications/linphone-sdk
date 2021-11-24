@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package>
+	<metadata>
+		<id>LinphoneSDK.Xamarin</id>
+		<description>
+@LINPHONESDK_DESCRIPTION@
+
+This package holds the Android and iOS libraries for Xamarin development.
+		</description>
+		<dependencies>
+			<group targetFramework="MonoAndroid8.1"></group>
+			<group targetFramework="Xamarin.iOS1.0"></group>
+			<group targetFramework=".NETStandard2.0"></group>
+		</dependencies>
+		@SHARED_NUSPEC_METADATA@
+	</metadata>
+	<files>
+		<file src="@NUGET_ICON_PATH@" target="icon.png"/>
+
+		<!-- Android -->
+		<file src="LinphoneSDK.Xamarin.Android/bin/Release/Linphone.dll" target="lib/MonoAndroid81/Linphone.dll" />
+		<file src="LinphoneSDK.Xamarin.Android/bin/Release/Linphone.pdb" target="lib/MonoAndroid81/Linphone.pdb" />
+
+		<!-- iOS -->
+		<file src="LinphoneSDK.Xamarin.iOS/bin/Release/Linphone.dll" target="lib/Xamarin.iOS10/Linphone.dll" />
+		<file src="LinphoneSDK.Xamarin.iOS/bin/Release/Linphone.pdb" target="lib/Xamarin.iOS10/Linphone.pdb" />
+
+		<!-- netstandard2.0 -->
+		<file src="LinphoneSDK.Xamarin.Standard/bin/Release/netstandard2.0/Linphone.dll" target="lib/netstandard2.0/Linphone.dll" />
+		<file src="LinphoneSDK.Xamarin.Standard/bin/Release/netstandard2.0/Linphone.pdb" target="lib/netstandard2.0/Linphone.pdb" />
+
+	</files>
+</package>

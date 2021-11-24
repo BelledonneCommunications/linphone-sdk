@@ -270,7 +270,7 @@ job-windows-vs2017-nuget-upload:
   stage: deploy
   tags: [ "windows-powershell"]
   rules:
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: $DEPLOY_RUN_NUGET
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
   variables:
@@ -432,8 +432,9 @@ job-xamarin-upload:
   tags: [ "deploy" ]
 
   rules:
-    - if: $UPLOAD_XAMARIN
+    - if: $DEPLOY_RUN_NUGET
     - if: $NIGHTLY_RELEASE
+    - if: $NIGHTLY_MASTER
 
   needs:
     - job-xamarin-package

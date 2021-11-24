@@ -100,6 +100,10 @@ If nothing is specified, the SDK will be built in Debug mode.
 
 Please note that the Xcode backend is very slow: about one hour of build time, compared to approximately 15 mn for Ninja.
 
+⚙ Note to developers: If a new Apple `.framework` folder needs to be added to the iOS build, remember to update the [NuGet iOS project] to include it.
+
+[NuGet iOS project]: cmake/NuGet/Xamarin/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/LinphoneSDK.Xamarin.iOS.csproj
+
 ### Android (using Docker)
 
 Download the Docker image of the Android build environment:
@@ -161,27 +165,11 @@ The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. It is 
 Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
 
 
-#### Nuget packaging
-You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Compatibility.
+### NuGet packaging
 
-- win32: this is the win32 version of linphone-sdk without any restrictions. The framework is 'win'.
-- uwp : this is a uwp x64 version of linphone--sdk. You will not be able to use OpenH264 and Lime X3DH. The framework is 'uap10.0'.
-- win32 Windows Store : this is the win32 version of linphone-sdk with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
+The Linphone SDK is available as a `.nuget` package for .NET applications (Windows & Xamarin).
 
-In an another build folder (like buildNuget), set these options :
-- (Needed) `-DLINPHONESDK_PACKAGER=Nuget`
-- (Optional) `-DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk) 
-- (Optional) `-DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
-- (Optional) `-DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
-
-Build the Package:
-
-    `cmake ..`
-	`cmake --build . --target ALL_BUILD --config=RelWithDebInfo`
-	
-The nuget package will be in linphone-sdk/packages
-The generated package can keep the same file name between each generations on the same git version. Visual studio keep a cache of the Nuget and you need to delete its internal folder to takke account any newer version for the same name.
-The folder can be found in your system path at <User>/.nuget/packages/linphonesdk
+See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
 ## Upgrading your SDK
 

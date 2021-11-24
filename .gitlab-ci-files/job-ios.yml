@@ -3,9 +3,6 @@
   extends: .job-prepare
   stage: build
   tags: [ "macmini-m1-xcode12" ]
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_IOS == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_IOS == null
 
   before_script:
     - export CCACHE_BASEDIR=${PWD}
@@ -68,6 +65,9 @@ job-ios-makefile:
 
 job-ios-ninja:
 
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
+
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -121,14 +121,21 @@ job-ios-ninja-smallsdk:
 #################################################
 job-ios-xcode:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab-ci-files/job-ios.yml
+        - .gitlab-ci-files/job-packages.yml
+        - cmake/NuGet/Xamarin/**/*
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
+    - if: $DEPLOY_RUN_NUGET
     - if: $ENABLE_IOS_TESTS
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_DOC=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
+    # ENABLE_CSHARP_WRAPPER for the Xamarin package
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_CSHARP_WRAPPER=YES -DENABLE_DOC=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo
     ARCHS_OPTIONS: "arm64,armv7,x86_64"
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK

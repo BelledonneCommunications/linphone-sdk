@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<package>
+	<metadata>
+		<id>LinphoneSDK.Windows</id>
+		<description>
+@LINPHONESDK_DESCRIPTION@
+
+This package holds the UWP, WinRT, and WindowsStore libraries for Windows development.
+		</description>
+		<dependencies>
+			<group targetFramework="uap10.0" /><!--UWP-->
+			<group targetFramework="netcore" /><!--Win32Store-->
+			<group targetFramework="netcore45" /><!--Win32-->
+			<!-- Untested frameworks -->
+			<group targetFramework="net5.0" /><!-- .NET 5 -->
+			<group targetFramework="netstandard" /><!-- .NET Standard -->
+			<group targetFramework="netcoreapp" /><!-- .NET Core -->
+			<group targetFramework="net48" /><!-- .NET Framework -->
+		</dependencies>
+		@SHARED_NUSPEC_METADATA@
+	</metadata>
+	<files>
+		<file src="@NUGET_ICON_PATH@" target="icon.png"/>
+
+		@NUSPEC_WIN32@
+		@NUSPEC_WINDOWSSTORE@
+		@NUSPEC_UWP@
+		@NUSPEC_GENERIC@
+<!-- X86 Win32
+<file src="$OutputSdkDir$\desktop\desktop\bin\*.winmd" target="lib\win\" />
+<file src="$OutputSdkDir$\desktop\desktop\bin\**\*.*" target="lib\win\x86" exclude="**\*.pc;**\cmake\**"/>
+<file src="$OutputSdkDir$\desktop\desktop\lib\**\*.*" target="lib\win\x86" exclude="**\*.pc;**\cmake\**"/>
+-->
+<!-- X86 WindowsStore
+		<file src="$OutputSdkDir$\windowsstore\desktop\bin\*.winmd" target="lib\netcore50\" />
+		<file src="$OutputSdkDir$\windowsstore\desktop\bin\**\*.*" target="lib\netcore50\x86" exclude="**\*.pc;**\cmake\**"/>
+		<file src="$OutputSdkDir$\windowsstore\desktop\lib\**\*.*" target="lib\netcore50\x86" exclude="**\*.pc;**\cmake\**"/>		
+-->
+<!-- ************************************************************************************* -->
+
+<!-- X64 UWP
+		<file src="$OutputSdkDir$\windowsstore\desktop\bin\*.winmd" target="lib\uap10.0\" />
+		<file src="$OutputSdkDir$\uwp-x64\bin\**\*.*" target="lib\uap10.0\x64" exclude="**\*.pc;**\cmake\**"/>
+		<file src="$OutputSdkDir$\uwp-x64\lib\**\*.*" target="lib\uap10.0\x64" exclude="**\*.pc;**\cmake\**"/>
+-->		
+<!-- ************************************************************************************* -->
+
+<!-- Used to indicate to Visual Studio that frameworks are supported where assemblies are somewhere else -->
+		<file src="_._" target="ref\uap10.0" />
+		<file src="_._" target="ref\netcore" />
+		<file src="_._" target="ref\netcore45" />
+		<file src="_._" target="ref\net5.0" />
+		<file src="_._" target="ref\netstandard" />
+		<file src="_._" target="ref\netcoreapp" />
+		<file src="_._" target="ref\net48" />
+		<file src="LinphoneSDK.Windows.targets" target="build\uap10.0" />
+		<file src="LinphoneSDK.Windows.targets" target="build\netcore" />
+		<file src="LinphoneSDK.Windows.targets" target="build\netcore45" />
+		<file src="LinphoneSDK.Windows.targets" target="build\net5.0" />
+		<file src="LinphoneSDK.Windows.targets" target="build\netstandard" />
+		<file src="LinphoneSDK.Windows.targets" target="build\netcoreapp" />
+		<file src="LinphoneSDK.Windows.targets" target="build\net48" />
+	</files>
+</package>

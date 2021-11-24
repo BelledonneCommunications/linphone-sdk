@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31829.152
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LinphoneSDK.Xamarin.Shared", "LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.shproj", "{A24A9803-8F7A-48E5-820C-FAF024C30227}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LinphoneSDK.Xamarin.Standard", "LinphoneSDK.Xamarin.Standard\LinphoneSDK.Xamarin.Standard.csproj", "{B238F349-768F-4CD2-A26D-E39260DE1736}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinphoneSDK.Xamarin.iOS", "LinphoneSDK.Xamarin.iOS\LinphoneSDK.Xamarin.iOS.csproj", "{8746C590-3BAD-42DF-A87F-1C12F29422C2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{68DC2616-2DB9-4065-A5E1-7A0A467014E4}"
+	ProjectSection(SolutionItems) = preProject
+		LinphoneSDK.Xamarin.nuspec = LinphoneSDK.Xamarin.nuspec
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LinphoneSDK.Xamarin.Android", "LinphoneSDK.Xamarin.Android\LinphoneSDK.Xamarin.Android.csproj", "{8A67A2BF-1D10-439E-B6D2-82AAB7C3F62D}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.projitems*{8746c590-3bad-42df-a87f-1c12f29422c2}*SharedItemsImports = 4
+		LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.projitems*{8a67a2bf-1d10-439e-b6d2-82aab7c3f62d}*SharedItemsImports = 4
+		LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.projitems*{a24a9803-8f7a-48e5-820c-faf024c30227}*SharedItemsImports = 13
+		LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.projitems*{b238f349-768f-4cd2-a26d-e39260de1736}*SharedItemsImports = 5
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B238F349-768F-4CD2-A26D-E39260DE1736}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B238F349-768F-4CD2-A26D-E39260DE1736}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B238F349-768F-4CD2-A26D-E39260DE1736}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B238F349-768F-4CD2-A26D-E39260DE1736}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8746C590-3BAD-42DF-A87F-1C12F29422C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8746C590-3BAD-42DF-A87F-1C12F29422C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8746C590-3BAD-42DF-A87F-1C12F29422C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8746C590-3BAD-42DF-A87F-1C12F29422C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A67A2BF-1D10-439E-B6D2-82AAB7C3F62D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A67A2BF-1D10-439E-B6D2-82AAB7C3F62D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A67A2BF-1D10-439E-B6D2-82AAB7C3F62D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A67A2BF-1D10-439E-B6D2-82AAB7C3F62D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {57362096-98DF-4E30-A8AF-970F7FA99D41}
+	EndGlobalSection
+EndGlobal

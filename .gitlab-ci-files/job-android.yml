@@ -8,10 +8,6 @@
 
   extends: .linux-prepare
 
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-
   script:
     - sdkmanager
     - mkdir -p build
@@ -52,6 +48,10 @@
 job-android-makefile-r20:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
+
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule" ) && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
+
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
@@ -63,6 +63,12 @@ job-android-makefile-r20-g729:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
+    - if: $DEPLOY_RUN_NUGET
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab-ci-files/job-android.yml
+        - .gitlab-ci-files/job-packages.yml
+        - cmake/NuGet/Xamarin/**/*
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
   extends: job-android-makefile-r20

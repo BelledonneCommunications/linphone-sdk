@@ -1,0 +1,9 @@
+<version>@LINPHONESDK_VERSION@</version>
+<authors>Belledonne Communications</authors>
+<owners>Belledonne Communications</owners>
+<license type="expression">GPL-3.0-or-later</license>
+<projectUrl>https://linphone.org/technical-corner/liblinphone</projectUrl>
+<icon>icon.png</icon>
+<requireLicenseAcceptance>false</requireLicenseAcceptance>
+<copyright>Copyright 2010-@CURRENT_YEAR@ Belledonne Communications</copyright>
+<tags>SIP;VoIP;Voice;Video;Telephony</tags>

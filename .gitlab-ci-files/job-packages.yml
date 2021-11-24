@@ -10,7 +10,11 @@ job-windows-vs2017-nuget-package:
     - job-windows-vs2017-uwp-scheduled
     - job-windows-vs2017-win32-scheduled
   rules:
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: &dev_build $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .gitlab-ci-files/job-packages.yml
+        - cmake/NuGet/Windows/**/*
+    - if: $DEPLOY_RUN_NUGET
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
   script:
@@ -51,37 +55,41 @@ job-windows-vs2017-nuget-package:
 
 job-xamarin-package:
   stage: package
-  tags: [ "deploy" ]
+  tags: [ "macmini-m1-xcode12" ]
   variables:
-    GIT_STRATEGY: none
+    GIT_STRATEGY: fetch
   needs:
-    - job-ios-ninja
-    - job-android-makefile-r20
-
+    - job-ios-xcode
+    - job-android-makefile-r20-g729
   rules:
-    - if: $UPLOAD_XAMARIN
+    - if: *dev_build
+      changes:
+        - .gitlab-ci-files/job-packages.yml
+        - cmake/NuGet/Xamarin/**/*
+    - if: $DEPLOY_RUN_NUGET
     - if: $NIGHTLY_RELEASE
-  script:
+    - if: $NIGHTLY_MASTER
+      
+  
+  before_script:
     #removing previous results directory to avoid getting incorrect artifacts for current launch
     - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;
-    - if [ -f "$CI_PROJECT_DIR/linphone-sdk-xamarin*" ]; then rm -rf $CI_PROJECT_DIR/linphone-sdk-xamarin*; fi;
-    - VERSION=$(cat ${CI_PROJECT_DIR}/build-ios/linphonesdkversion.txt)
-    - echo $VERSION
-    - cd build/linphone-sdk/bin/distributions/
-    - ls .
-    #- VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
-    - unzip linphone-sdk-android-$VERSION -d linphone-sdk-android
-    - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-$VERSION -d linphone-sdk-ios
-    - zip -r $CI_PROJECT_DIR/linphone-sdk-xamarin-$VERSION.zip linphone-sdk-android linphone-sdk-ios
-    - ls $CI_PROJECT_DIR/linphone-sdk-xamarin*
+    - if [ -d "$CI_PROJECT_DIR/linphone-sdk-xamarin" ]; then rm -rf $CI_PROJECT_DIR/linphone-sdk-xamarin; fi; # unzipped iOS artifacts
+    - if [ -d "$CI_PROJECT_DIR/build-nuget" ]; then rm -rf $CI_PROJECT_DIR/build-nuget; fi; # cmake build dir
 
-  after_script:
-    - mkdir -p $CI_PROJECT_DIR/results/xamarin
-    - cp $CI_PROJECT_DIR/linphone-sdk-xamarin*.zip $CI_PROJECT_DIR/results/xamarin
-    #Cleaning also previous artifacts to avoid conflicts with future jobs
-    - rm -r $CI_PROJECT_DIR/build/linphone-sdk/bin/distributions/*
-    - rm -r $CI_PROJECT_DIR/build-ios/linphone-sdk-ios*
-    - rm $CI_PROJECT_DIR/linphone-sdk-xamarin*
+  script:
+    - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-* -d linphone-sdk-xamarin
+    - mkdir -p build-nuget
+    - cd build-nuget
+    # The C# wrapper is used both by Android and iOS but it's arbitrarily compiled in the iOS build (it has to come from somewhere)
+    - cmake ..
+      -DLINPHONESDK_PACKAGER="Nuget"
+      -DLINPHONESDK_CSHARP_WRAPPER_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/share/linphonecs/LinphoneWrapper.cs"
+      -DLINPHONESDK_IOS_FRAMEWORKS_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/Frameworks"
+      -DLINPHONESDK_ANDROID_AAR_PATH="$CI_PROJECT_DIR/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar"
+      -DCMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/results"
+    - cmake --build .
+
   artifacts:
     paths:
       - results/*

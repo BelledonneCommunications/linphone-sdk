@@ -1,0 +1,6 @@
+﻿<metadata>
+	<!-- The Android Class Parser auto-generates interface definitions,
+	     but they conflict with the LinphoneWrapper.cs, so we exclude them.
+	-->
+	<remove-node path="/api/package[@name='org.linphone.core']" />
+</metadata>

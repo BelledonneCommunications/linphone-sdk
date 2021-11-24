@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectTypeGuids>{8FFB629D-F513-41CE-95D2-7ECE97B6EEEC};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <ProjectGuid>{8746C590-3BAD-42DF-A87F-1C12F29422C2}</ProjectGuid>
+    <TemplateGuid>{b6f3ff35-79b2-4f25-a2fc-60a7cf61013b}</TemplateGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Linphone</RootNamespace>
+    <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
+    <AssemblyName>Linphone</AssemblyName>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="Xamarin.iOS" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ObjcBindingApiDefinition Include="ApiDefinition.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ObjcBindingCoreSource Include="Structs.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Be extra careful to include *all* the indirect dependency frameworks here.
+         Otherwise apps will crash immediately, even before the debugger hooks in,
+         which leaves the developer with nothing to diagnose.
+    -->
+    <NativeReference Include="Frameworks\bctoolbox.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\bctoolbox-ios.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\mediastreamer2.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\msamr.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\mscodec2.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\msopenh264.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\mssilk.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\mswebrtc.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\msx264.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\ortp.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\linphone.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\belcard.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\belle-sip.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\belr.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+    <NativeReference Include="Frameworks\lime.framework">
+      <Kind>Framework</Kind>
+      <SmartLink>False</SmartLink>
+    </NativeReference>
+  </ItemGroup>
+  <Import Project="..\LinphoneSDK.Xamarin.Shared\LinphoneSDK.Xamarin.Shared.projitems" Label="Shared" />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.ObjCBinding.CSharp.targets" />
+</Project>

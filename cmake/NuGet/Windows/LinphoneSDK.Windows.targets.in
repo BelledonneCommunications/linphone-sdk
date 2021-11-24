@@ -13,7 +13,7 @@
 	</PropertyGroup>
 	<Target Name="InjectReference" BeforeTargets="ResolveAssemblyReferences">
 		<ItemGroup>
-			<Reference Include="LinphoneSDK">
+			<Reference Include="LinphoneSDK.Windows">
 				<HintPath>$(LinphoneSDK-LibrariesPath)\CsWrapper.dll</HintPath>
 			</Reference>
 		</ItemGroup>
