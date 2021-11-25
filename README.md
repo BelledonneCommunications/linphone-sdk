@@ -106,14 +106,14 @@ Download the Docker image of the Android build environment:
 
 ```bash
 docker login gitlab.linphone.org:4567
-docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210408_update_cmake_3_20
+docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210914_update_java11
 ```
 
 Load the build environment:
 
 ```bash
 cd <linphone-sdk-source>
-docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210408_update_cmake_3_20 /bin/bash -i
+docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210914_update_java11 /bin/bash -i
 ```
 
 Next command lines must be typed in the docker shell:
