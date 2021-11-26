@@ -249,12 +249,7 @@ MS2_PUBLIC void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
  * @}
  */
 
-#ifndef VIDEO_ENABLED
-typedef struct _MSVideoEndpoint{
-} MSVideoEndpoint;
-typedef struct _MSVideoConference{
-} MSVideoConference;
-#else
+#ifdef VIDEO_ENABLED
 /**
  * @addtogroup mediastreamer2_video_conference
  * @{
