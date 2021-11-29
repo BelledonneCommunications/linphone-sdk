@@ -26,9 +26,18 @@ job-windows-vs2017-nuget-package:
     - Write-Output $CMAKE_ARCHITECTURE
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
 
+    - echo $LastExitCode
+
     #We use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
     - Invoke-Expression "& cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/win32 -DLINPHONESDK_UWP_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/uwp -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=$OUTPUT_SDK_BUILD/linphone-sdk/win32store $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
+
+    - echo $LastExitCode
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Configure failed"}'
+
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
+
+    - echo $LastExitCode
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Build failed"}'
   artifacts:
     paths:
       - build-desktop/linphone-sdk/packages/*
