@@ -60,8 +60,9 @@ static int analysedisplay_compare_color(MSFilter *f, void* data) {
 	ms_filter_lock(f);
 	MSAnalyseDisplayData* d = (MSAnalyseDisplayData*)f->data;
 	ms_message("[MSAnalyseDisplay] compare with source color %d",d->color);
+	if (d->color < 0) return -1;
 	for (int i=1;i<6;i++) {
-		if (c.colors[i] == d->color) {
+		if ((c.colors[i]-1) <= d->color && d->color <= (c.colors[i]+1)) {
 			ms_filter_unlock(f);
 			return 0;
 		}
