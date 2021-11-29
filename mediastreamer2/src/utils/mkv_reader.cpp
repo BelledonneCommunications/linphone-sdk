@@ -509,7 +509,12 @@ void MKVTrackReader::nextBlock(std::unique_ptr<MKVBlock> &block, bool &end_of_tr
 	int upper_levels = 0;
 
 	block = nullptr;
-	end_of_track = false;
+	
+	if(mCurrentCluster == NULL) {
+		end_of_track = true;
+		return;
+	}else
+		end_of_track = false;
 
 	do {
 		do {
