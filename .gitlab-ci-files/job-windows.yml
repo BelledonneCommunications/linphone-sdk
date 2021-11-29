@@ -62,8 +62,15 @@
 
 
     #We are forced to use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
-    #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'", thus making the build fail
+    #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'" thus making the build fail
+
+    - echo $LastExitCode
+
     - Invoke-Expression "& cmake .. -G '$CMAKE_GENERATOR' -DLINPHONESDK_PLATFORM=$LINPHONESDK_PLATFORM -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
+
+    - echo $LastExitCode
+
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Configure failed"}'
 
     - $CLI_OUTPUT_INFO_NINJA
 
@@ -77,7 +84,11 @@
 
     # /!\ By design, we must keep $NINJA_OPTIMIZATION as the last option of the line, because it contains an output redirect
 
-    - Invoke-Expression "cmake --build . --target $BUILD_TARGET --config RelWithDebInfo $PARALLEL_OPTIONS $NINJA_OPTIMIZATION"
+    - echo $LastExitCode
+
+    - Invoke-Expression "cmake --build . --target $BUILD_TARGET --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
+
+    - if ($EXITS_ON_ERROR_MSVC) { Invoke-Expression "$EXITS_ON_ERROR_MSVC" } else { Write-Output "EXITS_ON_ERROR_MSVC is null" }
 
     - if ($DISPLAY_NINJA_LOG) { Invoke-Expression "$DISPLAY_NINJA_LOG" } else { Write-Output "DISPLAY_NINJA_LOG is null" }
 
@@ -89,7 +100,7 @@
 
     - if ($SHOW_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$SHOW_SEARCH_STATUS_SCRIPT" } else { Write-Output "SHOW_SEARCH_STATUS_SCRIPT is null" }
 
-    - if ($LAUNCH_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$LAUNCH_SEARCH_STATUS_SCRIPT" } else { Write-Output "LAUNCH_SEARCH_STATUS_SCRIPT is null" }
+    - if ($LAUNCH_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$LAUNCH_SEARCH_STATUS_SCRIPT" -ErrorAction stop } else { Write-Output "LAUNCH_SEARCH_STATUS_SCRIPT is null" }
 
     - C:\PROGRA~1\Python37\Scripts\cl -s
     - cd linphone-sdk
@@ -125,7 +136,7 @@
     DISPLAY_NINJA_LOG: Get-Content ninja_buildlog.txt
     SEARCH_NINJA_ERROR: 'Write-Output "`$$isFound = (Select-String -Pattern `"build stopped: subcommand failed`" -SimpleMatch -Quiet -Path ninja_buildlog.txt)" > invertSearch.ps1'
     DISPLAY_SEARCH_STATUS: Write-Output 'echo $$isFound' >> invertSearch.ps1
-    SET_EXIT_CODE_BASED_ON_SEARCH_STATUS: Write-Output -NoEnumerate "If (`$$isFound -eq 0) {exit 0} else {exit 1}" >> invertSearch.ps1
+    SET_EXIT_CODE_BASED_ON_SEARCH_STATUS: Write-Output -NoEnumerate "If (`$(echo `$$isFound) -eq `"True`") {throw `"There was an error in the build`"} else {exit 0}" >> invertSearch.ps1
     SHOW_SEARCH_STATUS_SCRIPT: Get-Content invertSearch.ps1
     LAUNCH_SEARCH_STATUS_SCRIPT: .\invertSearch.ps1
 
@@ -139,6 +150,7 @@
     CMAKE_GENERATOR: "Visual Studio 15 2017"
     BUILD_TARGET: ALL_BUILD
     PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
+    EXITS_ON_ERROR_MSVC: 'if (-not ($$LastExitCode -eq 0)) {throw "Error: Build failed"}'
 
 .job-windows-vs2017-scheduled:
   extends: .job-windows-vs2017-msvc
