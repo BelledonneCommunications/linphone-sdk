@@ -44,10 +44,21 @@
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
     #We are forced to use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
     #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'", thus making the build fail
+    - echo $LastExitCode
+
+
     - Invoke-Expression "& cmake .. -G '$CMAKE_GENERATOR' -DLINPHONESDK_PLATFORM=$LINPHONESDK_PLATFORM -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
     # - cmake .. -G  "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM="$LINPHONESDK_PLATFORM" -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo "$DEFAULT_CMAKE_OPTIONS" "$CMAKE_OPTIONS" $CMAKE_ARCHITECTURE "$SCHEDULE_CMAKE_OPTIONS"
     # - Get-Content CMakeCache.txt
+
+    - echo $LastExitCode
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Configure failed"}'
+
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
+
+    - echo $LastExitCode
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Build failed"}'
+
     - C:\PROGRA~1\Python37\Scripts\cl -s
     - cd linphone-sdk
     - mkdir $OUTPUT_ZIP_FOLDER
@@ -114,13 +125,21 @@
     - Write-Output $CMAKE_ARCHITECTURE
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
 
+    - echo $LastExitCode
+
     - cmake .. -G "Ninja" -DLINPHONESDK_PLATFORM=Desktop -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" -DCMAKE_RC_COMPILER="$CMAKE_RC_COMPILER" $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS
     - Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
+
+    - echo $LastExitCode
+    - 'if (-not ($LastExitCode -eq 0)) {throw "Error: Configure failed"}'
+
+
     #Warning : Ninja doesn't return an error code on Linker error.
     #Store outputs in a file log
 
     #Only in powershell 7 (Gitlab 14+)
     # - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | Select-String -NotMatch -Raw -Pattern "inclusion du fichier"
+
 
     - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | find /V "inclusion du fichier" > ninja_buildlog.txt; cmd /c "exit /b 0"
 
@@ -138,7 +157,7 @@
     # It must be an error if the line has been found.
     #We do not use $LastExitCode because it only works for Win32 commands and not cmdlets
     # We do not use $? as it only gives the error code of the cmdlet (it shows if it succeeded, not if the pattern was found)
-    - Write-Output -NoEnumerate "If (`$isFound -eq 0) {exit 0} else {exit 1}" >> invertSearch.ps1
+    - Write-Output -NoEnumerate "If (`$(echo `$$isFound) -eq `"True`") {throw `"There was an error in the build`"} else {exit 0}" >> invertSearch.ps1
     # - echo if ^%%ERRORLEVEL^%% EQU 0 (exit /b 1) else (exit /b 0) >> invertSearch.bat
     - Get-Content invertSearch.ps1
     - .\invertSearch.ps1

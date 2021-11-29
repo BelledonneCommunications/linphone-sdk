@@ -21,6 +21,7 @@ job-windows-vs2017-nuget-package:
     - set /p OUTPUT_SDK_BUILD=<chdir_sdk.temp
     - cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_DESKTOP_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/win32" -DLINPHONESDK_UWP_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/uwp" -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH="%OUTPUT_SDK_BUILD%/linphone-sdk/win32store" %DEFAULT_CMAKE_OPTIONS% %CMAKE_OPTIONS% %CMAKE_ARCHITECTURE% %SCHEDULE_CMAKE_OPTIONS%
     - cmake --build . --target ALL_BUILD --config RelWithDebInfo -- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false
+
   artifacts:
     paths:
       - build-desktop/linphone-sdk/packages/*
