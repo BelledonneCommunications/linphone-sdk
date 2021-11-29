@@ -123,7 +123,10 @@ void ms_android_change_device(JNIEnv *env, MSSndCardDeviceType type) {
 		methodName = "enableSpeaker";
 	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) {
 		methodName = "startBluetooth";
-	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
+	} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE || 
+			type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET || 
+			type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) 
+	{
 		methodName = "enableEarpiece";
 	}
 
