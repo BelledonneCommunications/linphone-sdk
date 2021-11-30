@@ -1,0 +1,156 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_debian12: &docker_image_platform_and_runner_tag
+  tags: [ "docker-test" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  variables:
+    PLATFORM: linux-debian12
+
+#################################################
+# Makefile
+#################################################
+
+
+job-debian12-makefile-gcc:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: gcc
+    CXX: g++
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .job-linux-desktop
+
+
+job-debian12-makefile-clang:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Unix Makefiles
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+  extends: .job-linux-desktop
+
+
+#################################################
+# Ninja
+#################################################
+
+
+job-debian12-ninja-gcc:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+    CMAKE_OPTIONS: -DENABLE_LDAP=NO
+  extends: .job-linux-desktop
+
+
+job-debian12-ninja-gcc-novideo:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+  extends: job-debian12-ninja-gcc
+
+
+job-debian12-ninja-gcc-smallsdk:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
+  extends: job-debian12-ninja-gcc
+
+
+job-debian12-ninja-clang:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    CMAKE_OPTIONS: -DENABLE_LDAP=NO
+  extends: .job-linux-desktop
+
+job-debian12-ninja-clang-sanitizer:
+  variables:
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+  extends: job-debian12-ninja-clang
+
+
+job-debian12-ninja-clang-novideo:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+  extends: job-debian12-ninja-clang
+
+#################################################
+# TESTS
+#################################################
+
+
+
+test-bctoolbox-debian12:
+  extends: .test-bctoolbox
+  needs:
+    - job-debian12-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+test-bellesip-debian12:
+  extends: .test-bellesip
+  needs:
+    - job-debian12-ninja-gcc
+  #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+  tags: [ "docker-sequential" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  variables:
+    PLATFORM: linux-debian12
+
+test-belr-debian12:
+  extends: .test-belr
+  needs:
+    - job-debian12-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+test-belcard-debian12:
+  extends: .test-belcard
+  needs:
+    - job-debian12-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+test-bzrtp-debian12:
+  extends: .test-bzrtp
+  needs:
+    - job-debian12-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+test-liblinphone-debian12:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
+  extends: .test-liblinphone
+  needs:
+    - job-debian12-ninja-gcc
+  variables:
+    PLATFORM: linux-debian12
+
+# test-liblinphone-debian12-mr:
+#   extends: .test-liblinphone-mr
+#   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
+#   needs:
+#     - job-debian12-ninja-gcc
+#   variables:
+#     PLATFORM: linux-debian12

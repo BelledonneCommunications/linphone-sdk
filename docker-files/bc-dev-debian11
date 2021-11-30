@@ -1,0 +1,55 @@
+FROM debian:bullseye
+
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
+
+
+# Configure locale
+RUN apt-get update && \
+    apt-get install -y locales && \
+    apt-get clean && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+ENV SHELL=/bin/bash
+
+# Install common general tools
+RUN apt-get update && \
+    apt-get install -y nano sudo vim && \
+    apt-get clean
+
+# Install development tools
+RUN apt-get update && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch yasm && \
+    apt-get clean
+
+# Install linphone & flexisip dependencies development packages
+RUN apt-get update && \
+    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libmariadb-dev libmbedtls-dev libopus-dev libpq-dev libpulse-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev xsdcxx && \
+    apt-get clean
+
+
+# Configure user bc
+RUN useradd -ms /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd && \
+    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+ENV Qt5_DIR=/opt/com.belledonne-communications/linphone/lib/cmake
+ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
+
+# Switch for 'bc' user
+USER bc
+WORKDIR /home/bc
+
+# Install python3 modules.
+# This must be done as 'bc' user because some python modules are installed into /usr/local/lib when pip is invoked
+# as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
+# modules to be installed into /home/bc/.local/lib.
+RUN sudo apt-get install -y python3-pip && sudo apt-get clean -y && \
+    python3 -m pip install --user six pystache graphviz
+
+ENV PATH=$PATH:/home/bc/.local/bin
+
+COPY --chown=bc rpmmacros /home/bc/.rpmmacros
+
+CMD bash

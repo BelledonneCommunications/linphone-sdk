@@ -48,6 +48,8 @@ include:
   - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
   - '.gitlab-ci-files/job-linux-yocto.yml'
   - '.gitlab-ci-files/job-linux-desktop-debian10.yml'
+  - '.gitlab-ci-files/job-linux-desktop-debian11.yml'
+  - '.gitlab-ci-files/job-linux-desktop-debian12.yml'
   - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/job-macosx.yml'
   - '.gitlab-ci-files/job-windows.yml'
