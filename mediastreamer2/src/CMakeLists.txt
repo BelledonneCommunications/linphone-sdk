@@ -570,15 +570,54 @@ if(ENABLE_SHARED)
 			set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
 		endif()
 	else()
+
+
+		#Workaround for the Debian 11 issue with conflict between libc and libtirpc
+		#/usr/bin/ld: /lib/x86_64-linux-gnu/libtirpc.so.3: warning: common of `rpc_createerr@@GLIBC_2.2.5' overridden by definition from /lib/x86_64-linux-gnu/libc.so.6
+		#libpulse.so.0 =⁣> /usr/lib/x86_64-linux-gnu/libpulse.so.0
+
+			#libpulsecommon-14.2.so =⁣> /usr/lib/x86_64-linux-gnu/pulseaudio
+				#libpulsecommon-14.2.so
+					#libwrap.so.0 =⁣> /usr/lib/x86_64-linux-gnu/libwrap.so.0
+
+						#libnsl.so.2 =⁣> /usr/lib/x86_64-linux-gnu/libnsl.so.2
+							#libtirpc.so.3 =⁣> /lib/x86_64-linux-gnu/libtirpc.so.3
+		if (UNIX AND NOT APPLE)
+			if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+				find_program(GREP grep)
+				find_program(TR tr)
+				execute_process(
+					COMMAND grep -oP "(?<=^PRETTY_NAME=).+" /etc/os-release
+					COMMAND tr -d "\""
+					OUTPUT_VARIABLE LINUX_OS_PRETTY_NAME
+					#Not supported in earlier CMake versions. Commented while we still support centos 7 and Debian 9
+					#COMMAND_ECHO STDOUT
+					#ECHO_OUTPUT_VARIABLE
+					#ECHO_ERROR_VARIABLE
+				)
+				message(STATUS "LINUX_OS_PRETTY_NAME=${LINUX_OS_PRETTY_NAME}")
+				execute_process(COMMAND grep -i debian "/etc/os-release" OUTPUT_VARIABLE LINUX_OS_PRETTY_NAME)
+				if (LINUX_OS_PRETTY_NAME MATCHES ".*Debian.*11.*")
+		 			message("Building for Debian 11, temporarily allow multiple definitions at link time to workaround issue with libtirpc of pulseaudio")
+					#Use target_link_libraries if we need to stick with CMake < 3.13
+					target_link_options(mediastreamer PUBLIC "LINKER:--allow-multiple-definition,-warn-common,--no-fatal-warnings")
+				else()
+					message("NOT Building for Debian 11")
+				endif()
+			endif()
+		endif()
+
+
+
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
-        endif()
-		target_include_directories(mediastreamer INTERFACE
-			$<INSTALL_INTERFACE:include/>
-			$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
-			PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
-		)
-        target_link_libraries(mediastreamer PRIVATE ${LINK_LIBS})
+	endif()
+	target_include_directories(mediastreamer INTERFACE
+		$<INSTALL_INTERFACE:include/>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+		PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
+	)
+	target_link_libraries(mediastreamer PRIVATE ${LINK_LIBS})
 	if(IOS)
 		target_link_libraries(mediastreamer INTERFACE "-framework Foundation" "-framework AVFoundation")
 	endif()
@@ -603,7 +642,7 @@ if(ENABLE_SHARED)
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
-    
+
 endif()
 
 #Qt Plugin
@@ -626,14 +665,14 @@ if(ENABLE_QT_GL)
 		add_dependencies(msqogl mediastreamer)
 		target_link_libraries(msqogl PRIVATE mediastreamer bctoolbox ortp)
 		set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
-		
+
 		target_include_directories(msqogl INTERFACE
 			$<INSTALL_INTERFACE:include/>
 			$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
 			PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS}
 		)
 		target_link_libraries(msqogl PRIVATE ${QT_LINK_LIBS})
-		
+
 		if(APPLE)
 			if(IOS)
 				set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -642,11 +681,11 @@ if(ENABLE_QT_GL)
 								MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msqogl
 								MACOSX_FRAMEWORK_INFO_PLIST msqogl.Info.plist.in
 				)
-	
+
 			else()
 				set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 			endif()
-	
+
 			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 			foreach (package ${QT5_PACKAGES})
 				if(Qt5${package}_FOUND)
@@ -673,7 +712,7 @@ if(ENABLE_QT_GL)
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		)
 	endif()
-	
+
 endif()
 
 
