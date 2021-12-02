@@ -927,6 +927,29 @@ static int request_stream_volume(MSFilter *filter, void* user_data) {
 	return ms_volume_dbm0_to_dbov(db);
 }
 
+void audio_stream_set_audio_route_changed_callback (AudioStream *s, MSAudioRouteChangedCallback cb, void *audio_route_changed_cb_user_data) {
+	s->audio_route_changed_cb=cb;
+	s->audio_route_changed_cb_user_data = audio_route_changed_cb_user_data;
+}
+
+static void on_audio_route_changed_received(void *data, MSFilter *f, unsigned int event_id, void *event_arg) {
+	AudioStream *as=(AudioStream*)data;
+	
+	switch(event_id) {
+		case MS_AUDIO_ROUTE_CHANGED:
+			ms_message("ms2 event : on_audio_route_changed_received");
+			MSAudioRouteChangedEvent* ev = (MSAudioRouteChangedEvent *)event_arg;
+			if (as->audio_route_changed_cb) {
+				((AudioStream*)data)->audio_route_changed_cb(as->audio_route_changed_cb_user_data
+															 , ev->need_update_device_list
+															 , ev->has_new_input ? ev->new_input : NULL
+															 , ev->has_new_output ? ev->new_output : NULL);
+			}
+			break;
+		default: break;
+	}
+}
+
 int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
 
@@ -1008,6 +1031,7 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			stream->captcard = NULL;
 		}
 		stream->captcard = ms_snd_card_ref(card);
+		ms_filter_add_notify_callback(stream->soundread, on_audio_route_changed_received, stream, FALSE);
 	} else if (io->input.type == MSResourceRtp) {
 		stream->rtp_io_session = io->input.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),

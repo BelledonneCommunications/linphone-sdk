@@ -27,7 +27,15 @@
 #import "mediastreamer2/mssndcard.h"
 #import "mediastreamer2/msfilter.h"
 #import "mediastreamer2/msticker.h"
+#import "mediastreamer2/msqueue.h"
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 #include <bctoolbox/param_string.h>
+#ifdef __cplusplus
+}
+#endif
 
 static const int defaultSampleRate = 48000;
 static const int flowControlInterval = 5000; // ms
@@ -92,7 +100,7 @@ static const char * SCM_PARAM_FAST = "FAST";
 static const char * SCM_PARAM_NOVOICEPROC = "NOVOICEPROC";
 static const char * SCM_PARAM_TESTER = "TESTER";
 static const char * SCM_PARAM_RINGER = "RINGER";
-static const char* SPEAKER_CARD_NAME = "Speaker";
+static const char * MS_SND_CARD_SPEAKER_NAME = "Speaker";
 
 static MSFilter *ms_au_read_new(MSSndCard *card);
 static MSFilter *ms_au_write_new(MSSndCard *card);
@@ -126,6 +134,7 @@ typedef enum _MSAudioUnitState{
 @property bool_t callkit_enabled;
 @property bool_t mic_enabled;
 @property bool_t zombified;
+@property bool_t interacted_with_bluetooth_since_last_devices_reload;
 
 +(AudioUnitHolder *)sharedInstance;
 - (id)init;
@@ -140,6 +149,7 @@ typedef enum _MSAudioUnitState{
 
 -(void) check_audio_unit_is_up;
 -(void) configure_audio_session;
+-(void) onAudioRouteChange: (NSNotification *) notif;
 @end
 
 typedef struct au_filter_base {
@@ -218,6 +228,51 @@ static OSStatus au_write_cb (
 							  AudioBufferList             *ioData
 							 );
 
+static int apply_sound_card_to_audio_session(MSSndCard * newCard) {
+	ms_message("apply_sound_card_to_audio_session()");
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
+	NSError *err=nil;
+	if (newCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER)
+	{
+		bool_t currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
+		if (!currentOutputIsSpeaker) {
+			// If we're switching to speaker and the route output isn't the speaker already
+			ms_message("apply_sound_card_to_audio_session(): change AVAudioSession output audio to speaker");
+			[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
+		}
+	}
+	else {
+		// As AudioSession do not allow a way to nicely change the output port except with the override to Speaker,
+		// we assume that input ports also come with a playback port (bluetooth earpiece, headset...) and change the input port.
+		NSString *newPortName = [NSString stringWithUTF8String:newCard->name];
+		NSArray *inputs = [audioSession availableInputs];
+		for (AVAudioSessionPortDescription *input in inputs) {
+			if ([input.portName isEqualToString:newPortName ]) {
+				ms_message("apply_sound_card_to_audio_session(): change AVAudioSession preferred input to %s.", [newPortName UTF8String]);
+				[audioSession setPreferredInput:input error:&err];
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
+static MSSndCardDeviceType deduceDeviceTypeFromAudioPortType(AVAudioSessionPort port)
+{
+	if ([port isEqualToString:(AVAudioSessionPortBuiltInMic)])	{
+		return MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
+	} else if ([port isEqualToString:(AVAudioSessionPortBluetoothHFP)])	{
+		return MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
+	} else if (([port isEqualToString:(AVAudioSessionPortBluetoothA2DP)])) {
+		return MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP;
+	} else if ([port isEqualToString:(AVAudioSessionPortHeadsetMic)])	{
+		return MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
+	}
+	
+	return MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
+}
+
 /**
  * AudioUnit helper functions, to associate the AudioUnit with the MSSndCard object used by mediastreamer2.
  */
@@ -237,15 +292,23 @@ ms_mutex_t mutex;
 
 - (id)init {
 	if (self = [super init]) {
-	 ms_debug("au_init");
-	 _bits=16;
-	 _rate=defaultSampleRate;
-	 _nchannels=1;
-	 _ms_snd_card=NULL;
-	 _will_be_used = FALSE;
-	 ms_mutex_init(&mutex,NULL);
-	 _mic_enabled = TRUE;
-	 _zombified = FALSE;
+		ms_debug("au_init");
+		_bits=16;
+		_rate=defaultSampleRate;
+		_nchannels=1;
+		_ms_snd_card=NULL;
+		_write_filter=NULL;
+		_read_filter=NULL;
+		_will_be_used = FALSE;
+		ms_mutex_init(&mutex,NULL);
+		_mic_enabled = TRUE;
+		_zombified = FALSE;
+		_interacted_with_bluetooth_since_last_devices_reload = FALSE;
+		[NSNotificationCenter.defaultCenter addObserver:self
+											   selector:@selector(onAudioRouteChange:)
+												   name:AVAudioSessionRouteChangeNotification
+												 object:nil];
+		
 	}
 	return self;
 }
@@ -456,7 +519,7 @@ ms_mutex_t mutex;
 		_audio_unit_state = MSAudioUnitCreated;
 	}
 }
-
+ 
 -(void)stop_audio_unit {
 	[self stop_audio_unit_with_param:FALSE];
 }
@@ -473,19 +536,7 @@ ms_mutex_t mutex;
 -(void)destroy_audio_unit: (bool_t) with_snd_card{
 	[self stop_audio_unit];
 	
-	if (_audio_unit) {
-		AudioComponentInstanceDispose (_audio_unit);
-		_audio_unit = NULL;
-		
-		if (!_callkit_enabled && !bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST) ) {
-			NSError *err = nil;;
-			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
-			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
-			err = nil;
-		}
-		ms_message("AudioUnit destroyed");
-		_audio_unit_state = MSAudioUnitNotCreated;
-	}
+	bool isFast = (_ms_snd_card && bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST));
 	if (with_snd_card && _ms_snd_card) {
 		MSSndCard * cardbuffer = _ms_snd_card;
 		[self mutex_lock];
@@ -493,6 +544,20 @@ ms_mutex_t mutex;
 		[self mutex_unlock];
 		ms_snd_card_unref(cardbuffer);
 		ms_message("au_destroy_audio_unit set holder card to NULL");
+	}
+	
+	if (_audio_unit) {
+		AudioComponentInstanceDispose (_audio_unit);
+		_audio_unit = NULL;
+		
+		if (!_callkit_enabled && !isFast)  {
+			NSError *err = nil;
+			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
+			if(err) ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
+			err = nil;
+		}
+		ms_message("AudioUnit destroyed");
+		_audio_unit_state = MSAudioUnitNotCreated;
 	}
 }
 
@@ -527,6 +592,12 @@ ms_mutex_t mutex;
 		err = nil;
 	}
 	[audioSession setActive:TRUE error:&err];
+	
+	if (_ms_snd_card) {
+		// Activating the audio session, by default, will change the audio route to iphone microphone/receiver
+		// To avoid this, we redirect the sound to the current snd card
+		apply_sound_card_to_audio_session(_ms_snd_card);
+	}
 	if(err){
 		ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
 		err = nil;
@@ -648,6 +719,113 @@ ms_mutex_t mutex;
 	if (_audio_unit_state == MSAudioUnitStarted){
 		ms_message("check_audio_unit_is_up(): audio unit is started.");
 	}
+}
+
+
+- (void)onAudioRouteChange: (NSNotification *) notif {
+	ms_message("[IOS Audio Route Change] msiounit audio route change callback");
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	
+	AVAudioSession * audioSession = [AVAudioSession sharedInstance];
+	NSDictionary * userInfo = [notif userInfo];
+	NSInteger changeReason = [[userInfo valueForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
+	AVAudioSessionRouteDescription *previousRoute = [userInfo valueForKey:AVAudioSessionRouteChangePreviousRouteKey];
+	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
+	
+	std::string previousInputPort("No input");
+	std::string currentInputPort("No input");
+	std::string previousOutputPort("No output");
+	std::string currentOutputPort("No output");
+	bool currentOutputIsSpeaker = false, currentOutputIsReceiver = false;
+	
+	if (previousRoute.inputs.count > 0)
+		previousInputPort = std::string([previousRoute.inputs[0].portName UTF8String]);
+	if (previousRoute.outputs.count > 0) {
+		previousOutputPort = std::string([previousRoute.outputs[0].portName UTF8String]);
+		MSSndCardDeviceType portType = deduceDeviceTypeFromAudioPortType(previousRoute.outputs[0].portType);
+		if (portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH || portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP) {
+			[au_holder setInteracted_with_bluetooth_since_last_devices_reload:TRUE];
+		}
+	}
+	if (currentRoute.inputs.count > 0)
+		currentInputPort = std::string([currentRoute.inputs[0].portName UTF8String]);
+	if (currentRoute.outputs.count > 0) {
+		currentOutputPort = std::string([currentRoute.outputs[0].portName UTF8String]);
+		currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
+		currentOutputIsReceiver = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInReceiver.UTF8String) == 0);
+		
+		MSSndCardDeviceType portType = deduceDeviceTypeFromAudioPortType(currentRoute.outputs[0].portType);
+		if (portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH || portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP) {
+			[au_holder setInteracted_with_bluetooth_since_last_devices_reload:TRUE];
+		}
+	}
+	
+	ms_message("[IOS Audio Route Change] Previous audio route: input=%s, output=%s, New audio route: input=%s, output=%s"
+			   , previousInputPort.c_str(), previousOutputPort.c_str()
+			   , currentInputPort.c_str(), currentOutputPort.c_str());
+	
+	
+	if (![au_holder ms_snd_card] || ![au_holder read_filter]) {
+		ms_message("[IOS Audio Route Change]  Audio unit not initialized, ignore route change");
+		return;
+	}
+	
+	MSSndCard * previousCard = [au_holder ms_snd_card];
+	MSAudioRouteChangedEvent ev;
+	memset(&ev, 0, sizeof (ev));
+	ev.need_update_device_list = [au_holder interacted_with_bluetooth_since_last_devices_reload];
+	ev.has_new_input = false;
+	ev.has_new_output = false;
+	
+	if (previousInputPort != currentInputPort && strcmp(previousCard->name, currentInputPort.c_str()) != 0) {
+		ev.has_new_input = true;
+		strncpy(ev.new_input, currentInputPort.c_str(), sizeof(ev.new_input)-1);
+	}
+	
+	std::string newOutput = currentOutputPort;
+	if (previousOutputPort != currentOutputPort) {
+		if (currentOutputIsSpeaker) {
+			newOutput = MS_SND_CARD_SPEAKER_NAME;
+		}
+		else {
+			MSSndCardManager * sndCardManager = ms_factory_get_snd_card_manager(ms_snd_card_get_factory(previousCard));
+			bctbx_list_t *cardIt;
+			for (cardIt=sndCardManager->cards; cardIt!=NULL; cardIt=cardIt->next) {
+				MSSndCard *card = (MSSndCard*)cardIt->data;
+				// Special case : the sndcard matching the IPhoneMicrophone and the IPhoneReceiver is the same.
+				// They are built using the AVAudioSession.availableInputs function, which is why the name will not match
+				if ( currentOutputIsReceiver && card->device_type == MS_SND_CARD_DEVICE_TYPE_MICROPHONE ) {
+					newOutput = card->name;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (strcmp(previousCard->name, newOutput.c_str()) != 0) {
+		ev.has_new_output = true;
+		strncpy(ev.new_output, newOutput.c_str(), sizeof(ev.new_output)-1);
+	}
+	
+	switch (changeReason)
+	{
+		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
+		case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
+		case AVAudioSessionRouteChangeReasonCategoryChange:
+		{
+			// We need to reload for these 3 category, because the list of sound cards available may not be up to date
+			// For example, bluetooth devices would possibly not be detected before a call Start, as the AudioSession may be in a category other than AVAudioSessionCategoryPlayAndRecord
+			ev.need_update_device_list = true;
+		}
+		default: {}
+	}
+	
+	if ( !(ev.has_new_input || ev.has_new_output || ev.need_update_device_list) ) {
+		ms_message("[IOS Audio Route Change] Audio unit already matches the new audio route, skipping");
+		return;
+	}
+	
+	ms_filter_notify([au_holder read_filter], MS_AUDIO_ROUTE_CHANGED, &ev);
 }
 @end
 
@@ -783,6 +961,7 @@ static void au_callkit_enabled(MSSndCard *obj, bool_t enabled) {
 
 static void au_configure(MSSndCard *obj) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	update_audio_unit_holder_ms_snd_card(obj);
 	[au_holder configure_audio_session_by_default];
 }
 
@@ -817,38 +996,40 @@ static MSSndCard *au_card_new(const char* name){
 	return card;
 }
 
-MSSndCardDeviceType deduceDeviceTypeFromInputAudioPortType(AVAudioSessionPort inputPort)
-{
-	if ([inputPort isEqualToString:(AVAudioSessionPortBuiltInMic)])
-	{
-		return MS_SND_CARD_DEVICE_TYPE_MICROPHONE;
-	}
-	else if ([inputPort isEqualToString:(AVAudioSessionPortBluetoothHFP)])
-	{
-		return MS_SND_CARD_DEVICE_TYPE_BLUETOOTH;
-	}
-	else if ([inputPort isEqualToString:(AVAudioSessionPortHeadsetMic)])
-	{
-		return MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
-	}
-	
-	return MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
-}
-
 static void au_detect(MSSndCardManager *m){
 	NSArray *inputs = [[AVAudioSession sharedInstance] availableInputs];
 	
+	AVAudioSessionRouteDescription *currentRoute = [[AVAudioSession sharedInstance] currentRoute];
+	std::string currentInputPort("No input");
+	bool currentOutputIsSpeaker = false;
+	if (currentRoute.inputs.count > 0)
+		currentInputPort = std::string([currentRoute.inputs[0].portName UTF8String]);
+	if (currentRoute.outputs.count > 0) {
+		currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
+	}
+	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
+	
+	int internal_id = 0;
 	for (AVAudioSessionPortDescription *input in inputs) {
 		MSSndCard *card = au_card_new([input.portName UTF8String]);
-		card->device_type = deduceDeviceTypeFromInputAudioPortType(input.portType);
+		card->device_type = deduceDeviceTypeFromAudioPortType(input.portType);
+		ms_snd_card_set_internal_id(card, internal_id++);
 		ms_snd_card_manager_add_card(m, card);
 		ms_debug("au_detect, creating snd card %p", card);
+		if ( !currentOutputIsSpeaker && [au_holder ms_snd_card] && strcmp(card->name, currentInputPort.c_str()) == 0) {
+			update_audio_unit_holder_ms_snd_card(card);
+		}
 	}
 	
-	MSSndCard *speakerCard = au_card_new(SPEAKER_CARD_NAME);
+	MSSndCard *speakerCard = au_card_new(MS_SND_CARD_SPEAKER_NAME);
 	speakerCard->device_type = MS_SND_CARD_DEVICE_TYPE_SPEAKER;
+	ms_snd_card_set_internal_id(speakerCard, internal_id++);
 	ms_snd_card_manager_add_card(m, speakerCard);
 	ms_debug("au_detect -- speaker snd card %p", speakerCard);
+	if (currentOutputIsSpeaker && [au_holder ms_snd_card]) {
+		update_audio_unit_holder_ms_snd_card(speakerCard);
+	}
+	[au_holder setInteracted_with_bluetooth_since_last_devices_reload:FALSE];
 }
 
 static bool_t check_timestamp_discontinuity(const AudioTimeStamp *t1, const AudioTimeStamp *t2, unsigned int usualSampleCount){
@@ -875,7 +1056,7 @@ static OSStatus au_read_cb (
 		[au_holder mutex_unlock];
 		return 0;
 	}
-	au_filter_read_data_t *d = [au_holder read_filter]->data;
+	au_filter_read_data_t *d = (au_filter_read_data_t*)[au_holder read_filter]->data;
 	
 	OSStatus err=0;
 	mblk_t * rm=NULL;
@@ -944,7 +1125,7 @@ static OSStatus au_write_cb (
 		return 0;
 	}
 
-	au_filter_write_data_t *d = [au_holder write_filter]->data;
+	au_filter_write_data_t *d = (au_filter_write_data_t*)[au_holder write_filter]->data;
 	
 	if (d!=NULL){
 		unsigned int size;
@@ -958,7 +1139,7 @@ static OSStatus au_write_cb (
 			ms_flow_controlled_bufferizer_flush(d->bufferizer);
 		}
 		if (ms_flow_controlled_bufferizer_get_avail(d->bufferizer) >= size) {
-			ms_flow_controlled_bufferizer_read(d->bufferizer, ioData->mBuffers[0].mData, size);
+			ms_flow_controlled_bufferizer_read(d->bufferizer, (uint8_t *)ioData->mBuffers[0].mData, size);
 		} else {
 			//writing silence;
 			memset(ioData->mBuffers[0].mData, 0,ioData->mBuffers[0].mDataByteSize);
@@ -1149,43 +1330,14 @@ static int set_muted(MSFilter *f, void *data){
 	return 0;
 }
 
-static int set_audio_unit_sound_card(MSSndCard * newCard) {
-	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	update_audio_unit_holder_ms_snd_card(newCard);
-	
-	// Make sure the apple audio route matches this state
-	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
-	NSError *err=nil;
-	if (newCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) // Only possible if called from audio_playback_set_internal_id
-	{
-		bool_t currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
-		if (!currentOutputIsSpeaker) {
-			// If we're switching to speaker and the route output isn't the speaker already
-			ms_message("set_audio_unit_sound_card(): change AVAudioSession output audio to speaker");
-			[audioSession overrideOutputAudioPort:AVAudioSessionPortOverrideSpeaker error:&err];
-		}
-	}
-	else {
-		// As AudioSession do not allow a way to nicely change the output port except with the override to Speaker,
-		// we assume that input ports also come with a playback port (bluetooth earpiece, headset...) and change the input port.
-		NSString *newPortName = [NSString stringWithUTF8String:newCard->name];
-		NSArray *inputs = [audioSession availableInputs];
-		for (AVAudioSessionPortDescription *input in inputs) {
-			if ([input.portName isEqualToString:newPortName ]) {
-				ms_message("set_audio_unit_sound_card(): change AVAudioSession preferred input to %s.", [newPortName UTF8String]);
-				[audioSession setPreferredInput:input error:&err];
-				break;
-			}
-		}
-	}
-	return 0;
-}
-
 static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
 {
 	MSSndCard *oldCard = [[AudioUnitHolder sharedInstance] ms_snd_card];
 	MSSndCard *newCard = (MSSndCard *)newSndCard;
+	
+	if (strcmp(newCard->name, oldCard->name)==0) {
+		return 0;
+	}
 	
 	if (oldCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 		ms_warning("audio_capture_set_internal_id(): no effect on the audio route when the current output is %s.", oldCard->name);
@@ -1197,11 +1349,9 @@ static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
 	}
 	
 	// Handle the internal linphone part with the MSSndCards
-	if (strcmp(newCard->name, oldCard->name)==0) {
-		return 0;
-	}
 	ms_message("audio_capture_set_internal_id(): Trying to change audio input route from %s to %s", oldCard->name, newCard->name);
-	set_audio_unit_sound_card(newCard);
+	update_audio_unit_holder_ms_snd_card(newCard);
+	apply_sound_card_to_audio_session(newCard);
 	return 0;
 }
 
@@ -1215,7 +1365,8 @@ static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
 		return 0;
 	}
 	ms_message("audio_playback_set_internal_id(): Trying to change audio output route from %s to %s", oldCard->name, newCard->name);
-	set_audio_unit_sound_card(newCard);
+	update_audio_unit_holder_ms_snd_card(newCard);
+	apply_sound_card_to_audio_session(newCard);
 	return 0;
 }
 
@@ -1230,12 +1381,12 @@ static MSFilterMethod au_read_methods[]={
 };
 
 static MSFilterMethod au_write_methods[]={
-	{	MS_FILTER_SET_SAMPLE_RATE	, write_set_rate							},
-	{	MS_FILTER_GET_SAMPLE_RATE	, get_rate									},
-	{	MS_FILTER_SET_NCHANNELS		, set_nchannels								},
-	{	MS_FILTER_GET_NCHANNELS		, get_nchannels								},
-	{	MS_AUDIO_PLAYBACK_MUTE	 	, set_muted									},
-	{	MS_AUDIO_PLAYBACK_SET_INTERNAL_ID	, audio_playback_set_internal_id	},
+	{	MS_FILTER_SET_SAMPLE_RATE			, write_set_rate					},
+	{	MS_FILTER_GET_SAMPLE_RATE			, get_rate							},
+	{	MS_FILTER_SET_NCHANNELS				, set_nchannels						},
+	{	MS_FILTER_GET_NCHANNELS				, get_nchannels						},
+	{	MS_AUDIO_PLAYBACK_MUTE	 			, set_muted							},
+	{	MS_AUDIO_PLAYBACK_SET_INTERNAL_ID 	, audio_playback_set_internal_id	},
 	{	0				, NULL		}
 };
 
