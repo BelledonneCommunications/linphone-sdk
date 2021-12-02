@@ -188,7 +188,7 @@ if(APPLE)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/aac-eld.c)
 endif()
 if(IOS)
-	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.m)
+	list(APPEND VOIP_SOURCE_FILES_OBJC audiofilters/msiounit.mm)
 endif()
 
 if(ENABLE_G726)
