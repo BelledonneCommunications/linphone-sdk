@@ -18,11 +18,5 @@ Pod::Spec.new do |s|
   s.subspec 'all-frameworks' do |sp|
     sp.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/**"
   end
-  
-#Declare frameworks that are safe for app extension use
-  s.subspec 'app-extension' do |sp|
-    sp.vendored_frameworks = "linphone-sdk/@INSTALL_FOLDER@/Frameworks/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
-  end
-
-
+ 
 end
