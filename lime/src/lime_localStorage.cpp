@@ -350,7 +350,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector
 		return;
 	}
 
-	LIME_LOGD << "Set status trusted for peer device "<<peerDeviceId;
+	LIME_LOGI << "Set status trusted for peer device "<<peerDeviceId;
 
 	const uint8_t statusInteger = static_cast<uint8_t>(lime::PeerDeviceStatus::trusted);
 
@@ -393,7 +393,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
 		LIME_LOGE << "Trying to set a status for peer device "<<peerDeviceId<<" without providing a Ik which is not acceptable (differs from unsafe or untrusted)";
 		return;
 	}
-	LIME_LOGD << "Set status "<<((status==lime::PeerDeviceStatus::unsafe)?"unsafe":"untrusted")<<" for peer device "<<peerDeviceId;
+	LIME_LOGI << "Set status "<<((status==lime::PeerDeviceStatus::unsafe)?"unsafe":"untrusted")<<" for peer device "<<peerDeviceId;
 
 	uint8_t statusInteger = static_cast<uint8_t>(status);
 

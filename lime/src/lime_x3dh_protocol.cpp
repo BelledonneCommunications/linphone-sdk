@@ -158,7 +158,7 @@ namespace lime {
 		 * @return	a vector holding the well formed header ready to be expanded to include the message body
 		 */
 		static std::vector<uint8_t> X3DH_makeHeader(const x3dh_message_type message_type, const lime::CurveId curve) noexcept{
-			LIME_LOGD<<hex<<setfill('0')<<"Build outgoing X3DH message:"<<endl
+			LIME_LOGI<<hex<<setfill('0')<<"Build outgoing X3DH message:"<<endl
 				<<"    Protocol Version is 0x"<<setw(2)<<static_cast<unsigned int>(X3DH_protocolVersion)<<endl
 				<<"    Message Type is "<<x3dh_messageTypeString(message_type)<<" (0x"<<setw(2)<<static_cast<unsigned int>(message_type)<<")"<<endl
 				<<"    CurveId is 0x"<<setw(2)<<static_cast<unsigned int>(curve);
@@ -234,7 +234,7 @@ namespace lime {
 				});
 			}
 
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 		}
 
 		/**
@@ -286,7 +286,7 @@ namespace lime {
 				message_trace << setw(2) << i << ", ";
 			});
 			message_trace << endl <<"    SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id);
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 		}
 
 		/**
@@ -336,7 +336,7 @@ namespace lime {
 			}
 
 			//debug trace
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 		}
 
 		/**
@@ -382,7 +382,7 @@ namespace lime {
 			}
 
 			//debug trace
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 		}
 
 		/**
@@ -544,7 +544,7 @@ namespace lime {
 						error_code = x3dh_error_code::unknown_error_code;
 				}
 			}
-			LIME_LOGD<<message_trace.str()<<endl<<"    Valid Incoming X3DH message";
+			LIME_LOGI<<message_trace.str()<<endl<<"    Valid Incoming X3DH message";
 
 			return true;
 		}
@@ -699,7 +699,7 @@ namespace lime {
 					peersBundle.emplace_back(std::move(deviceId), Ik, SPk, SPk_id, SPk_sig);
 				}
 			}
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 			return true;
 		}
 
@@ -747,7 +747,7 @@ namespace lime {
 				selfOPkIds.push_back(OPk_id);
 				message_trace <<"    OPk Id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_id)<<endl;
 			}
-			LIME_LOGD<<message_trace.str();
+			LIME_LOGI<<message_trace.str();
 			return true;
 		}
 
@@ -811,7 +811,7 @@ namespace lime {
 			lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
 
 			// check message validity, extract type and error code(if any)
-			LIME_LOGD<<"Parse incoming X3DH message for user "<< this->m_selfDeviceId;
+			LIME_LOGI<<"Parse incoming X3DH message for user "<< this->m_selfDeviceId;
 			if (!x3dh_protocol::parseMessage_getType<Curve>(responseBody, message_type, error_code, callback)) {
 				cleanUserData(userData);
 				return;
@@ -973,7 +973,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	void Lime<Curve>::postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message) {
-		LIME_LOGD<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
+		LIME_LOGI<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
 
 		// copy capture the shared_ptr to userData
 		m_X3DH_post_data(m_X3DH_Server_URL, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {

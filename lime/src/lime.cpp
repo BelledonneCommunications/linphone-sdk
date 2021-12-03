@@ -277,7 +277,7 @@ namespace lime {
 		std::vector<std::shared_ptr<DR<Curve>>> DRSessions{};
 		// load in DRSessions all the session found in cache for this peer device, except the one with id db_sessionIdInCache(is ignored if 0) as we already tried it
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
-		LIME_LOGD<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId<<" : found "<<DRSessions.size()<<" sessions in DB";
+		LIME_LOGI<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId<<" : found "<<DRSessions.size()<<" sessions in DB";
 		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
 			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession); // store it in cache
@@ -287,6 +287,7 @@ namespace lime {
 		// No luck yet, is this message holds a X3DH header - if no we must give up
 		std::vector<uint8_t> X3DH_initMessage{};
 		if (!double_ratchet_protocol::parseMessage_get_X3DHinit<Curve>(DRmessage, X3DH_initMessage)) {
+			LIME_LOGE<<"Fail to decrypt: No DR session found and no X3DH init message";
 			return lime::PeerDeviceStatus::fail;
 		}
 
@@ -305,6 +306,7 @@ namespace lime {
 			m_DR_sessions_cache[senderDeviceId] = std::move(DRSessions.front());
 			return senderDeviceStatus;
 		}
+		LIME_LOGE<<"Fail to decrypt: Newly created DR session failed to decrypt the message";
 		return lime::PeerDeviceStatus::fail;
 	}
 
