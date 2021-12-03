@@ -74,23 +74,26 @@ foreach(_arch IN LISTS _archs)
 	#We have to remove the defined CMAKE_INSTALL_PREFIX from inherited variables.
 	#Because cache variables take precedence and we redefine it here for multi-arch
 	ExcludeFromList(_cmake_cache_args CMAKE_INSTALL_PREFIX ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_NAME ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_PREFIX_PATH ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_NO_SYSTEM_FROM_IMPORTED ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args LINPHONE_BUILDER_WORK_DIR ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_CROSSCOMPILING ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_VERSION ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_PROCESSOR ${_inherited_cmake_args})
-	ExcludeFromList(_cmake_cache_args CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD ${_inherited_cmake_args})
-	message("${_arch} : ${_cmake_args}, ${SYSTEM_GENERATOR}")
+	ExcludeFromList(_cmake_cache_args CMAKE_PREFIX_PATH ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_SYSTEM_NAME ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_NO_SYSTEM_FROM_IMPORTED ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args LINPHONE_BUILDER_WORK_DIR ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args LINPHONE_BUILDER_EXTERNAL_SOURCE_PATH ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args LINPHONE_BUILDER_CONFIG_FILE ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_CROSSCOMPILING ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_BUILD_TYPE ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_TOOLCHAIN_FILE ${_cmake_cache_args})
+	ExcludeFromList(_cmake_cache_args CMAKE_GENERATOR ${_cmake_cache_args})
+	
+	message(STATUS "${_arch} : ${_cmake_args}, ${SYSTEM_GENERATOR}\n${_cmake_cache_args}")
 	ExternalProject_Add(mac-${_arch}
 		${_ep_depends}
 		SOURCE_DIR "${CMAKE_SOURCE_DIR}/cmake-builder"
 		BINARY_DIR "${CMAKE_BINARY_DIR}/mac-${_arch}"
 		CMAKE_GENERATOR "${SYSTEM_GENERATOR}"
 		CMAKE_ARGS ${_cmake_args}
-		#CMAKE_CACHE_ARGS ${_cmake_cache_args}
+		CMAKE_CACHE_ARGS ${_cmake_cache_args}
 		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
 		LIST_SEPARATOR | # Use the alternate list separator
 	)
