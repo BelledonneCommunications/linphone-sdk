@@ -22,6 +22,12 @@
 
 cmake_minimum_required(VERSION 3.1)
 
+# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
+# version is higer or equal to 3.13.
+if(NOT CMAKE_VERSION VERSION_LESS 3.13)
+    cmake_policy(SET CMP0077 NEW)
+endif()
+
 project(bzrtp VERSION 5.2.0 LANGUAGES C CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
@@ -45,11 +51,16 @@ if(MSVC)
 	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
 endif()
 
+# Hidden non-cache options:
+# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
+
 include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
-find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
+if(NOT DISABLE_BC_PACKAGE_SEARCH)
+	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
+endif()
 
 if(ENABLE_ZIDCACHE)
 	find_package(Sqlite3 REQUIRED)
@@ -123,9 +134,12 @@ write_basic_package_version_file(
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
-)
+
+if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+		FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
+	)
+endif()
 
 configure_package_config_file(cmake/BZRTPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"

@@ -70,7 +70,7 @@ if(ENABLE_SHARED)
 	add_library(bzrtp SHARED ${SOURCE_FILES})
 	target_compile_definitions(bzrtp PRIVATE "-DBZRTP_EXPORTS")
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
-	target_include_directories(bzrtp INTERFACE
+	target_include_directories(bzrtp PUBLIC
 		$<INSTALL_INTERFACE:include>
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 		PRIVATE ${INCLUDE_DIRS}
