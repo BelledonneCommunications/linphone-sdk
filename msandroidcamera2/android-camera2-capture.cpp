@@ -69,8 +69,9 @@ struct AndroidCamera2Context {
 		previewSize.height = 0;
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&imageReaderMutex, NULL);
+		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f");
 
-    	cameraManager = ACameraManager_create();
+		cameraManager = ACameraManager_create();
 		ms_message("[Camera2 Capture] Context ready");
 	};
 
@@ -638,7 +639,7 @@ static void android_camera2_capture_preprocess(MSFilter *f) {
 
 	ms_filter_lock(f);
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_average_fps_init(&d->averageFps, d->fps_context);
 	ms_filter_unlock(f);
 
 	ms_mutex_lock(&d->mutex);
@@ -659,7 +660,7 @@ static void android_camera2_capture_process(MSFilter *f) {
 
 	ms_mutex_lock(&d->mutex);
 	if (d->frame) {
-		ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+		ms_average_fps_update(&d->averageFps, f->ticker->time);
 		mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
 		ms_queue_put(f->outputs[0], d->frame);
 		d->frame = nullptr;
@@ -699,10 +700,11 @@ static void android_camera2_capture_uninit(MSFilter *f) {
 static int android_camera2_capture_set_fps(MSFilter *f, void *arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 	d->fps = *((float*)arg);
-	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
+	
 	ms_filter_lock(f);
+	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_average_fps_init(&d->averageFps, d->fps_context);
 	ms_filter_unlock(f);
 	return 0;
 }
