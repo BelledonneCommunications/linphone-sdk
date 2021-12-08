@@ -22,25 +22,25 @@
 
 if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleRelease"
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleRelease"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assembleDebug"
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 else()
 	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "assemble"
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assemble"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
@@ -50,11 +50,11 @@ if(_gradle_assemble_result)
 endif()
 
 execute_process(
-	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "-b" "upload.gradle" "publish"
+	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publish"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
-	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "-q" "sdkZip"
+	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-q" "sdkZip"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	RESULT_VARIABLE _gradle_sdkzip_result
 )
