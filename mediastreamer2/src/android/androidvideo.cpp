@@ -92,10 +92,12 @@ static AndroidReaderContext *getContext(MSFilter *f);
 /************************ MS2 filter methods           ************************/
 static int video_capture_set_fps(MSFilter *f, void *arg){
 	AndroidReaderContext* d = (AndroidReaderContext*) f->data;
+	ms_mutex_lock(&d->mutex);
 	d->fps=*((float*)arg);
 	snprintf(d->fps_context, sizeof(d->fps_context), "Captured mean fps=%%f, expected=%f", d->fps);
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_average_fps_init(&d->averageFps, d->fps_context);
+	ms_mutex_unlock(&d->mutex);
 	return 0;
 }
 
@@ -294,7 +296,7 @@ void video_capture_preprocess(MSFilter *f){
 	ms_mutex_lock(&d->mutex);
 
 	ms_video_init_framerate_controller(&d->fpsControl, d->fps);
-	ms_video_init_average_fps(&d->averageFps, d->fps_context);
+	ms_average_fps_init(&d->averageFps, d->fps_context);
 
 	JNIEnv *env = ms_get_jni_env();
 
@@ -334,7 +336,7 @@ static void video_capture_process(MSFilter *f){
 		return;
 	}
 
-	ms_video_update_average_fps(&d->averageFps, f->ticker->time);
+	ms_average_fps_update(&d->averageFps, f->ticker->time);
 	mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
 
 	ms_queue_put(f->outputs[0],d->frame);
