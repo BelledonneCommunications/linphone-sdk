@@ -50,11 +50,11 @@ endif()
 
 bc_git_version(ms2 ${PROJECT_VERSION})
 
-add_compile_definitions(
-	_TRUE_TIME
-	MS2_EXPORTS
-	MS2_INTERNAL
-	MS2_FILTERS
+add_definitions(
+	-D_TRUE_TIME
+	-DMS2_EXPORTS
+	-DMS2_INTERNAL
+	-DMS2_FILTERS
 )
 if(DISABLE_SRTP_SEARCH)
 	# Set -DSRTP_INTERNAL in order to include srtp.h instead of srtp2/srtp.h
