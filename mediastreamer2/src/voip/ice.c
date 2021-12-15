@@ -4442,12 +4442,60 @@ static int ice_find_candidate_with_componentID(const IceCandidate *candidate, co
 	else return 1;
 }
 
+/* same as bctbx_list_remove() but without warning if the element is not found */
+static bctbx_list_t * remove_from_list(bctbx_list_t *l, void *data){
+	bctbx_list_t *elem = bctbx_list_find(l, data);
+	return elem ? bctbx_list_erase_link(l, elem) : l;
+}
+
+static void ice_remove_transaction_with_pair(IceCheckList *cl, IceCandidatePair *pair){
+	bctbx_list_t *elem;
+	bctbx_list_t *next_elem;
+	
+	for (elem = cl->transaction_list; elem != NULL; ){
+		IceTransaction *tr = (IceTransaction*) elem->data;
+		next_elem = elem->next;
+		if (tr->pair == pair){
+			ice_free_transaction(tr);
+			cl->transaction_list = bctbx_list_erase_link(cl->transaction_list, elem);
+		}
+		elem = next_elem;
+	}
+}
+
+static void ice_clean_rtcp_candidate_pairs(IceCheckList *cl){
+	bctbx_list_t *elem;
+	bctbx_list_t *next_elem;
+	
+	for (elem = cl->pairs; elem != NULL; ){
+		IceCandidatePair *pair = (IceCandidatePair*) elem->data;
+		next_elem = elem->next;
+		if (pair->local->componentID == ICE_RTCP_COMPONENT_ID){
+			/* remove possible transaction using this pair*/
+			ice_remove_transaction_with_pair(cl, pair);
+			/* remove pair from triggered check queue */
+			cl->triggered_checks_queue = remove_from_list(cl->triggered_checks_queue, pair);
+			/* remove from losing pair */
+			cl->losing_pairs = remove_from_list(cl->losing_pairs, pair);
+			/* 
+			 * ice_free_candidate_pair() will also remove pair from check list and valid list.
+			 */
+			ice_free_candidate_pair(pair, cl);
+			cl->pairs = bctbx_list_erase_link(cl->pairs, elem);
+		}
+		elem = next_elem;
+	}
+}
+
 void ice_check_list_remove_rtcp_candidates(IceCheckList *cl)
 {
 	bctbx_list_t *elem;
 	uint16_t rtcp_componentID = ICE_RTCP_COMPONENT_ID;
 
 	ice_remove_componentID(&cl->local_componentIDs, rtcp_componentID);
+	
+	/* Remove pairs with rtcp component ID*/
+	ice_clean_rtcp_candidate_pairs(cl);
 
 	while ((elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_candidate_with_componentID, &rtcp_componentID)) != NULL) {
 		IceCandidate *candidate = (IceCandidate *)elem->data;
