@@ -71,11 +71,4 @@ foreach(_file ${_binaries})
 	endif()
 endforeach()
 
-#When done, remove architectures folders and keep only desktop
-foreach(_arch ${_archs})
-	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "linphone-sdk/mac-${_arch}/"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-	)
-endforeach()
 
