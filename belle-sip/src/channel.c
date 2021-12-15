@@ -925,7 +925,6 @@ int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen){
 void belle_sip_channel_close(belle_sip_channel_t *obj){
 	if (BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close)
 		BELLE_SIP_OBJECT_VPTR(obj,belle_sip_channel_t)->close(obj); /*udp channel doesn't have close function*/
-	/*removing the source (our base class) will decrement the ref count, this why this code needs to be protected by ref/unref.*/
 	belle_sip_main_loop_remove_source(obj->stack->ml,(belle_sip_source_t*)obj);
 	belle_sip_source_uninit((belle_sip_source_t*)obj);
 }
@@ -1018,7 +1017,8 @@ static void channel_set_current_peer(belle_sip_channel_t *obj, const struct addr
 		const belle_sip_dns_srv_t *srv = belle_sip_resolver_results_get_srv_from_addrinfo(obj->resolver_results, ai);
 		obj->current_peer_cname = srv ? belle_sip_dns_srv_get_target(srv) : NULL;
 		if (obj->current_peer_cname){
-			belle_sip_message("channel[%p]: current peer hostname is [%s].", obj, obj->current_peer_cname);
+			belle_sip_message("channel[%p]: current peer hostname is [%s] on port [%i].", obj, 
+					  obj->current_peer_cname, belle_sip_dns_srv_get_port(srv));
 		}
 	}else{
 		obj->current_peer_cname = NULL;
@@ -1049,15 +1049,16 @@ static void belle_sip_channel_handle_error(belle_sip_channel_t *obj){
 }
 
 int belle_sip_channel_notify_timeout(belle_sip_channel_t *obj){
-	const int too_long=60;
+	const uint64_t too_long = 60;
 
 	if (obj->state != BELLE_SIP_CHANNEL_READY){
 		/*no need to notify the timeout if the channel is already in error or retry state*/
 		return FALSE;
 	}
 
-	if ((int)(belle_sip_time_ms() - obj->last_recv_time) >= (too_long * 1000)){
-		belle_sip_message("A timeout related to this channel occured and no message received during last %i seconds. This channel is suspect, moving to error state",too_long);
+	if ((belle_sip_time_ms() - obj->last_recv_time) >= too_long * 1000){
+		belle_sip_message("A timeout related to this channel occured and no message received during last %i seconds. This channel is suspect, moving to error state", (int)too_long);
+		obj->soft_error = TRUE;
 		channel_set_state(obj,BELLE_SIP_CHANNEL_ERROR);
 		return TRUE;
 	}

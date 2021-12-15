@@ -288,20 +288,20 @@ belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transac
 }
 
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
-	/*report the channel as possibly dead. If an alternate IP can be tryied, the channel will notify us with the RETRY state.
+	/* Report the channel as possibly dead. If an alternate IP can be tryied, the channel will notify us with the RETRY state.
 	 * Otherwise it will report the error.
 	 * We limit this dead channel reporting to REGISTER transactions, who are unlikely to be unresponded.
 	**/
-	belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the timeout listener*/
-	if (strcmp(belle_sip_request_get_method(t->request),"REGISTER")==0){
-		if ( belle_sip_channel_notify_timeout(t->channel)==TRUE){
+	if (strcmp(belle_sip_request_get_method(t->request), "REGISTER") == 0){
+		if (belle_sip_channel_notify_timeout(t->channel)==TRUE){
 			belle_sip_warning("Transaction [%p] has timeout, reported to channel.",t);
-			t->timed_out=TRUE;
+			t->timed_out = TRUE;
+			return;
 		}
-	}else {
-		notify_timeout(t);
-		belle_sip_transaction_terminate(t);
 	}
+	belle_sip_object_ref(t);  /*take a ref in the case where the app calls belle_sip_transaction_terminate() within the timeout listener*/
+	notify_timeout(t);
+	belle_sip_transaction_terminate(t);
 	belle_sip_object_unref(t);
 }
 
