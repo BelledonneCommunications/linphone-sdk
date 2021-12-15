@@ -57,18 +57,11 @@ list(APPEND CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MB
 # check we have a mbedTLS version 2 or above(all functions are prefixed mbedtls_)
 if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
 	check_symbol_exists(mbedtls_ssl_init "mbedtls/ssl.h" MBEDTLS_V2)
-  if(MBEDTLS_V2)
-	  set (MBEDTLS_LIBRARIES
-		  ${MBEDTLS_LIBRARY}
-		  ${MBEDX509_LIBRARY}
-		  ${MBEDCRYPTO_LIBRARY}
-	  )
-  else()
+  if(NOT MBEDTLS_V2)
     message ("MESSAGE: NO MBEDTLS_V2")
     message ("MESSAGE: MBEDTLS_LIBRARY=" ${MBEDTLS_LIBRARY})
     message ("MESSAGE: MBEDX509_LIBRARY=" ${MBEDX509_LIBRARY})
     message ("MESSAGE: MBEDCRYPTO_LIBRARY=" ${MBEDCRYPTO_LIBRARY})
-    
   endif()
 
 endif()
@@ -76,6 +69,25 @@ endif()
 if(MBEDTLS_LIBRARIES)
 	check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.h" DTLS_SRTP_AVAILABLE)
 endif()
+
+# Define the imported target for the three mbedtls libraries
+foreach(targetname "mbedtls" "mbedx509" "mbedcrypto")
+	string(TOUPPER ${targetname} varprefix)
+	add_library(${targetname} SHARED IMPORTED)
+	set_target_properties(${targetname} PROPERTIES
+		INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
+		IMPORTED_LOCATION "${${varprefix}_LIBRARY}"
+	)
+endforeach()
+unset(varprefix)
+
+# MBEDTLS_LIBRARIES only needs to contain the name of the targets
+set (MBEDTLS_LIBRARIES
+	mbedtls
+	mbedx509
+	mbedcrypto
+)
+
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MbedTLS

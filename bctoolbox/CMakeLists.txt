@@ -86,6 +86,11 @@ if(ENABLE_MBEDTLS)
 	if(MBEDTLS_FOUND)
 		message(STATUS "Using mbedTLS")
 		set(HAVE_MBEDTLS 1)
+		set(MBEDTLS_TARGETS
+			mbedtls
+			mbedx509
+			mbedcrypto
+		)
 	endif()
 endif()
 
@@ -115,11 +120,6 @@ else()
 	message(STATUS "DTLS SRTP not available")
 endif()
 
-if(MBEDTLS_FOUND)
-	get_filename_component(mbedtls_library_path "${MBEDTLS_LIBRARIES}" PATH)
-	string(REPLACE ";" " " MBEDTLS_LIBRARIES_STR "${MBEDTLS_LIBRARIES}")
-	set(LIBS_PRIVATE "${LIBS_PRIVATE} ${MBEDTLS_LIBRARIES_STR}")
-endif()
 if(POLARSSL_FOUND)
 	get_filename_component(polarssl_library_path "${POLARSSL_LIBRARIES}" PATH)
 	set(LIBS_PRIVATE "${LIBS_PRIVATE} -L${polarssl_library_path} -lpolarssl")
