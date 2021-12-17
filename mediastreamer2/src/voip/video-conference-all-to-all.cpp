@@ -104,8 +104,10 @@ static void configureEndpoint(VideoEndpoint *ep){
 	conf->connectEndpoint(ep);
 }
 
-static void unconfigureEndpoint(VideoEndpoint *ep, int pin){
-	if (ep->mSource == pin) {
+static void unconfigureEndpoint(VideoEndpoint *ep, int *pin){
+	int source = *pin;
+	if (ep->mSource == source) {
+		ms_message("[all to all] unconfigure endpoint at output pin %d with source %d", ep->mOutPin, ep->mSource);
 		ep->mSource = -1;
 		VideoConferenceAllToAll *conf = (VideoConferenceAllToAll *)ep->mConference;
 		conf->unconfigureOutput(ep->mOutPin);
@@ -188,7 +190,7 @@ void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
 		mMembers=bctbx_list_remove(mMembers,ep);
 		mInputs[ep->mPin] = -1;
 		if (ep->mOutPin > -1) mOutputs[ep->mOutPin] = -1;
-		bctbx_list_for_each2(mEndpoints, (void (*)(void*,void*))unconfigureEndpoint, &ep->mPin);
+		bctbx_list_for_each2(mEndpoints, (void (*)(void*,void*))unconfigureEndpoint, (void*)&ep->mPin);
 	} else if (bctbx_list_find(mEndpoints,ep) != NULL) {
 		ms_message("[all to all] conference %p remove endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
 		mEndpoints=bctbx_list_remove(mEndpoints,ep);
