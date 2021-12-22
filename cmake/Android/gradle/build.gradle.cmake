@@ -136,7 +136,7 @@ android {
     java {
         toolchain {
             // Required for javadoc task...
-            languageVersion.set(JavaLanguageVersion.of(8))
+            languageVersion.set(JavaLanguageVersion.of(9)) // 9 is for using @hidden
         }
     }
 }
