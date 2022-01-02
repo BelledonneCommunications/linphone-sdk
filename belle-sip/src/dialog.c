@@ -651,7 +651,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (code>=200 && code<300){
 					/*handle possible retransmission of 200Ok */
 					if (!as_uas && (is_retransmition=(belle_sip_dialog_handle_200Ok(obj,resp)==0))) {
-						return is_retransmition;
+						ret = 1;
+						goto end;
 					} else {
 						if (as_uas)
 							belle_sip_dialog_init_200Ok_retrans(obj,resp);
