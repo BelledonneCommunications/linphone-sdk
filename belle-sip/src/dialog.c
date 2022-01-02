@@ -541,6 +541,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	int is_invite = strcmp(belle_sip_request_get_method(req),"INVITE")==0;
 	int is_subscribe = strcmp(belle_sip_request_get_method(req),"SUBSCRIBE")==0;
 	int is_notify = strcmp(belle_sip_request_get_method(req),"NOTIFY")==0;
+	belle_sip_transaction_t *previous_transaction = NULL;
 
 	belle_sip_message("Dialog [%p]: now updated by transaction [%p].",obj, transaction);
 
@@ -551,7 +552,9 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 		belle_sip_message("Dialog [%p]: don't update last transaction by transaction [%p].",obj, transaction);
 	} else {
 		belle_sip_object_ref(transaction);
-		if (obj->last_transaction) belle_sip_object_unref(obj->last_transaction);
+		if (obj->last_transaction) {
+			previous_transaction = obj->last_transaction;
+		}
 		obj->last_transaction=transaction;
 	}
 	if (!as_uas){
@@ -677,6 +680,15 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (code>=200 || (code==0 && belle_sip_transaction_get_state(transaction)==BELLE_SIP_TRANSACTION_TERMINATED)){
 					obj->needs_ack=FALSE; /*no longuer need ACK*/
 					if (obj->terminate_on_bye) delete_dialog=TRUE;
+				}else if (!as_uas && code == 0){
+					/* A client BYE transaction is being started */
+					if (previous_transaction && belle_sip_transaction_get_state(previous_transaction) != BELLE_SIP_TRANSACTION_TERMINATED){
+						belle_sip_warning("Forcibly terminating previous transaction as BYE is being sent.");
+						/* Detach the dialog from the transaction, so that the dialog does not get updated for nothing
+						 * by the killed transaction. */
+						belle_sip_transaction_set_dialog(previous_transaction, NULL);
+						belle_sip_transaction_terminate(previous_transaction);
+					}
 				}
 			}else if (is_subscribe){
 				if (belle_sip_dialog_schedule_expiration(obj, (belle_sip_message_t*)req) == BELLE_SIP_STOP
@@ -701,6 +713,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	}
 
 end:
+	if (previous_transaction) belle_sip_object_unref(previous_transaction);
 	if (delete_dialog) belle_sip_dialog_delete(obj);
 	else {
 		belle_sip_dialog_process_queue(obj);

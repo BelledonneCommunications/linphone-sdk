@@ -512,7 +512,6 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	}
 
 	if (t->base.sent_by_dialog_queue){
-
 		/*it can be sent immediately, so update the request with latest cseq and route_set */
 		/*update route and contact just in case they changed*/
 		belle_sip_dialog_update_request(dialog,req);
@@ -538,7 +537,7 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	}
 
 	if (dialog){
-		belle_sip_dialog_update(dialog,(belle_sip_transaction_t*)t,BELLE_SIP_OBJECT_IS_INSTANCE_OF(t,belle_sip_server_transaction_t));
+		belle_sip_dialog_update(dialog, (belle_sip_transaction_t*)t, FALSE);
 	}
 
 	if (!t->next_hop) {
