@@ -1219,8 +1219,10 @@ MS2_PUBLIC float video_stream_get_sent_framerate(const VideoStream *stream);
 MS2_PUBLIC float video_stream_get_received_framerate(const VideoStream *stream);
 
 MS2_PUBLIC void video_stream_enable_self_view(VideoStream *stream, bool_t val);
+MS2_PUBLIC void * video_stream_create_native_window_id(VideoStream *stream);
 MS2_PUBLIC void * video_stream_get_native_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, void *id);
+MS2_PUBLIC void * video_stream_create_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, void *id);
 MS2_PUBLIC void * video_stream_get_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
@@ -1369,6 +1371,7 @@ MS2_PUBLIC VideoPreview * video_preview_new(MSFactory *factory);
 #define video_preview_set_event_callback(p,c,u) video_stream_set_event_callback(p,c,u)
 #define video_preview_set_size(p,s) video_stream_set_sent_video_size(p,s)
 #define video_preview_set_display_filter_name(p,dt) video_stream_set_display_filter_name(p,dt)
+#define video_preview_create_native_window_id(p) video_stream_create_native_preview_window_id(p)
 #define video_preview_set_native_window_id(p,id) video_stream_set_native_preview_window_id(p,id)
 #define video_preview_get_native_window_id(p) video_stream_get_native_preview_window_id(p)
 #define video_preview_set_fps(p,fps) video_stream_set_fps((VideoStream*)p,fps)

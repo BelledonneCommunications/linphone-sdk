@@ -107,6 +107,10 @@ struct _MSVideoDisplayDecodingSupport {
 /**Specify the display mode */
 #define MS_VIDEO_DISPLAY_SET_MODE \
    MS_FILTER_METHOD(MSFilterVideoDisplayInterface,12,MSVideoDisplayMode)
+   
+/**Create a platform dependant window id where the video can be drawn */
+#define MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID \
+	MS_FILTER_METHOD(MSFilterVideoDisplayInterface,13,void*)
 
 /**
   * Interface definitions for players

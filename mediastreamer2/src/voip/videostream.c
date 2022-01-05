@@ -1822,6 +1822,15 @@ void * video_stream_get_native_window_id(VideoStream *stream){
 	return stream->window_id;
 }
 
+void * video_stream_create_native_window_id(VideoStream *stream){
+	void *id;
+	if (stream->output){
+		if (ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID,&id)==0)
+			return id;
+	}
+	return stream->window_id;
+}
+
 void video_stream_set_native_window_id(VideoStream *stream, void *id){
 	stream->window_id=id;
 	if (stream->output){
@@ -1850,6 +1859,20 @@ void * video_stream_get_native_preview_window_id(VideoStream *stream){
 	if (stream->source){
 		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID)
 			&& ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_GET_NATIVE_WINDOW_ID,&id)==0)
+			return id;
+	}
+	return stream->preview_window_id;
+}
+
+void * video_stream_create_native_preview_window_id(VideoStream *stream){
+	void *id=0;
+	if (stream->output2){
+		if (ms_filter_call_method(stream->output2,MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID,&id)==0)
+			return id;
+	}
+	if (stream->source){
+		if (ms_filter_has_method(stream->source,MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID)
+			&& ms_filter_call_method(stream->source,MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID,&id)==0)
 			return id;
 	}
 	return stream->preview_window_id;
