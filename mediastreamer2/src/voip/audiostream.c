@@ -1559,8 +1559,7 @@ void audio_stream_record(AudioStream *st, const char *name){
 	}
 }
 
-
-int audio_stream_mixed_record_open(AudioStream *st, const char* filename){
+int audio_stream_set_mixed_record_file(AudioStream *st, const char* filename){
 	if (!(st->features & AUDIO_STREAM_FEATURE_MIXED_RECORDING)){
 		if (audio_stream_started(st)){
 			ms_error("Too late - you cannot request a mixed recording when the stream is running because it did not have AUDIO_STREAM_FEATURE_MIXED_RECORDING feature.");

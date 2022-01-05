@@ -784,7 +784,7 @@ MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
 
 MS2_PUBLIC MSFilter *audio_stream_get_local_player(AudioStream *stream);
 
-MS2_PUBLIC int audio_stream_mixed_record_open(AudioStream *st, const char*filename);
+MS2_PUBLIC int audio_stream_set_mixed_record_file(AudioStream *st, const char*filename);
 
 MS2_PUBLIC int audio_stream_mixed_record_start(AudioStream *st);
 
