@@ -21,6 +21,7 @@
 #include <inttypes.h>
 #include "bctoolbox_tester.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/vfs.h"
 
 static void bytes_to_from_hexa_strings(void) {
 	const uint8_t a55aBytes[2] = {0xa5, 0x5a};
@@ -175,10 +176,72 @@ static void bctbx_addrinfo_sort_test(void) {
 	
 	bctbx_freeaddrinfo(res);
 }
+
+static void bctbx_directory_utils_test(void) {
+	// Create a directory in the writeable one
+	char *tmpDirPath = bctbx_strdup_printf("%s/tmp_dir/", bc_tester_get_writable_dir_prefix());
+	// Check the directory does not exists
+	bool_t tmpDirExists = bctbx_directory_exists(tmpDirPath);
+	BC_ASSERT_FALSE(tmpDirExists); // This directory must not exists when performing this test, if it does, it means the test failed before, delete it manually
+	if (tmpDirExists) return;
+
+	// Create it
+	BC_ASSERT_EQUAL(bctbx_mkdir(tmpDirPath), 0, int, "%d");
+	// Check it is there
+	BC_ASSERT_TRUE(bctbx_directory_exists(tmpDirPath));
+
+	// Try to create 2 layers of subdirectory, it shall fail
+	char *tmpDirPath2 = bctbx_strdup_printf("%s/a/b/", tmpDirPath);
+	BC_ASSERT_FALSE(bctbx_directory_exists(tmpDirPath2));
+	BC_ASSERT_NOT_EQUAL(bctbx_mkdir(tmpDirPath2), 0, int, "%d");
+	BC_ASSERT_FALSE(bctbx_directory_exists(tmpDirPath2));
+	bctbx_free(tmpDirPath2);
+
+	// Create a subdirectory
+	tmpDirPath2 = bctbx_strdup_printf("%s/a/", tmpDirPath);
+	BC_ASSERT_FALSE(bctbx_directory_exists(tmpDirPath2));
+	BC_ASSERT_EQUAL(bctbx_mkdir(tmpDirPath2), 0, int, "%d");
+	BC_ASSERT_TRUE(bctbx_directory_exists(tmpDirPath2));
+
+	// Create empty files in tmpDirPath and tmpDirPath2
+	char *filename1 = bctbx_strdup_printf("%s/filename1.txt", tmpDirPath);
+	char *filename2 = bctbx_strdup_printf("%s/.filename2.txt", tmpDirPath);
+	char *filename3 = bctbx_strdup_printf("%s/filename3", tmpDirPath2);
+	bctbx_vfs_t* stdVfs = bctbx_vfs_get_standard();
+
+	bctbx_vfs_file_t *fp = bctbx_file_open(stdVfs, filename1, "w");
+	bctbx_file_close(fp);
+	fp = bctbx_file_open(stdVfs, filename2, "w");
+	bctbx_file_close(fp);
+	fp = bctbx_file_open(stdVfs, filename3, "w");
+	bctbx_file_close(fp);
+
+	// Check the files exist
+	BC_ASSERT_EQUAL(bctbx_file_exist(filename1), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_file_exist(filename2), 0, int, "%d");
+	BC_ASSERT_EQUAL(bctbx_file_exist(filename3), 0, int, "%d");
+
+	// Try to delete the directory non recursively, it shall fail
+	BC_ASSERT_NOT_EQUAL(bctbx_rmdir(tmpDirPath, FALSE), 0, int, "%d");
+
+	// Delete using recursivity
+	BC_ASSERT_EQUAL(bctbx_rmdir(tmpDirPath, TRUE), 0, int, "%d");
+	// Check it is not there anymore
+	BC_ASSERT_FALSE(bctbx_directory_exists(tmpDirPath));
+
+	// cleaning
+	bctbx_free(tmpDirPath);
+	bctbx_free(tmpDirPath2);
+	bctbx_free(filename1);
+	bctbx_free(filename2);
+	bctbx_free(filename3);
+}
+
 static test_t utils_tests[] = {
 	TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings),
 	TEST_NO_TAG("Time", time_functions),
-	TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test)
+	TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test),
+	TEST_NO_TAG("Directory utils", bctbx_directory_utils_test)
 };
 
 test_suite_t utils_test_suite = {"Utils", NULL, NULL, NULL, NULL,

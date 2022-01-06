@@ -515,14 +515,58 @@ BCTBX_PUBLIC char *bctbx_dirname(const char *path);
 BCTBX_PUBLIC char *bctbx_basename(const char *path);
 
 /**
- * Tests if a file with given pathname exists. Return 0 if yes, -1 otherwise.
+ * Tests if a file with given path exists.
+ *
+ * @param[in]	path	the file path to test
+ * @return 0 if yes, -1 otherwise.
 **/
 BCTBX_PUBLIC int bctbx_file_exist(const char *pathname);
 
 /**
- * Tests if a directory with given pathname exists. Return 0 if yes, -1 otherwise.
+ * Tests if a directory with given pathname exists.
+ *
+ * @param[in]	pathname	the directory path to test
+ * @return TRUE if yes, FALSE otherwise.
 **/
 BCTBX_PUBLIC bool_t bctbx_directory_exists(const char *pathname);
+
+/* we just need to be able to return a pointer of type bctbx_list_t, the actual structure is defined in list.h */
+struct _bctbx_list;
+
+/**
+ * Parse a directory and return a list of all its files and subdirectories
+ *
+ * @param[in]	path		The directory to parse
+ * @param[in]	file_type	select only files with that extension, can be NULL in that case it returns all files.
+ *
+ * @note	. and .. file descriptors are never returned in the list, even when file_type is set to NULL
+ * 		The returned list includes the given path in each item
+ *
+ * @return	the list of all files in the given directory matching the given file type.
+ * 		The list must be destroyed using bctbx_list_free_with_data(<returned list>, bctbx_free)
+ **/
+BCTBX_PUBLIC struct _bctbx_list *bctbx_parse_directory(const char *path, const char *file_type);
+
+/**
+ * Create a directory
+ * Note: parent directory must exists, this function cannot create a complete path
+ *
+ * @param[in]	path	the directory to create
+ *
+ * @return 0 on success
+ **/
+BCTBX_PUBLIC int bctbx_mkdir(const char *path);
+
+/**
+ * Delete a directory
+ *
+ * @param[in]	path		the directory to delete
+ * @param[in]	recursive	if false, the directory must be empty to be deleted otherwise recursively delete with all content
+ *
+ * @return 0 on success
+ **/
+BCTBX_PUBLIC int bctbx_rmdir(const char *path, bool_t recursive);
+
 
 /**
  * @brief return a timeSpec structure(sec and nsec) containing current time(WARNING: there is no guarantees it is UTC ).

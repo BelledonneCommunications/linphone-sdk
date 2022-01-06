@@ -39,6 +39,12 @@
 #endif
 #endif
 
+#ifndef _WIN32
+#include <dirent.h> /* available on POSIX system only */
+#else
+#include <direct.h>
+#endif
+
 #ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>
 #endif
@@ -148,6 +154,152 @@ bool_t bctbx_directory_exists(const char *pathname) {
 #else
 	return stat(pathname, &sb) == 0 && S_ISDIR(sb.st_mode);
 #endif
+}
+
+bctbx_list_t *bctbx_parse_directory(const char *path, const char *file_type) {
+	bctbx_list_t* file_list = NULL;
+#ifdef _WIN32
+	WIN32_FIND_DATA FileData;
+	HANDLE hSearch;
+	BOOL fFinished = FALSE;
+	char szDirPath[1024];
+#ifdef UNICODE
+	wchar_t wszDirPath[1024];
+#endif
+
+	if (file_type == NULL) {
+		file_type = ".*";
+	}
+	snprintf(szDirPath, sizeof(szDirPath), "%s\\*%s", path, file_type);
+#ifdef UNICODE
+	mbstowcs(wszDirPath, szDirPath, sizeof(wszDirPath));
+	hSearch = FindFirstFileExW(wszDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#else
+	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
+#endif
+	if (hSearch == INVALID_HANDLE_VALUE) {
+		bctbx_message("No file (*%s) found in [%s] [%d].", file_type, szDirPath, (int)GetLastError());
+		return NULL;
+	}
+	snprintf(szDirPath, sizeof(szDirPath), "%s", path);
+	while (!fFinished) {
+		char szFilePath[1024];
+		// ignore . and ..
+		if (!(FileData.cFileName[0] == '.'
+			&& (	(FileData.cFileName[1] == '\0')
+				|| (FileData.cFileName[1] == '.' && FileData.cFileName[2] == '\0')))) {
+#ifdef UNICODE
+			char filename[512];
+			wcstombs(filename, FileData.cFileName, sizeof(filename));
+			snprintf(szFilePath, sizeof(szFilePath), "%s\\%s", szDirPath, filename);
+#else
+			snprintf(szFilePath, sizeof(szFilePath), "%s\\%s", szDirPath, FileData.cFileName);
+#endif
+			file_list = bctbx_list_append(file_list, bctbx_strdup(szFilePath));
+		}
+		if (!FindNextFile(hSearch, &FileData)) {
+			if (GetLastError() == ERROR_NO_MORE_FILES) {
+				fFinished = TRUE;
+			}
+			else {
+				bctbx_error("Couldn't find next (*%s) file.", file_type);
+				fFinished = TRUE;
+			}
+		}
+	}
+	/* Close the search handle. */
+	FindClose(hSearch);
+#else
+	DIR *dir;
+	struct dirent *ent;
+
+	if ((dir = opendir(path)) == NULL) {
+		bctbx_error("Could't open [%s] directory.", path);
+		return NULL;
+	}
+
+	/* loop on all directory files */
+	errno = 0;
+	ent = readdir(dir);
+	while (ent != NULL) {
+		/* filter on file type if given */
+		if (file_type==NULL
+			|| (strncmp(ent->d_name+strlen(ent->d_name)-strlen(file_type), file_type, strlen(file_type))==0) ) {
+			/* ignore . and .. */
+			if (!(ent->d_name[0] == '.'
+				&& ((ent->d_name[1]=='.' && ent->d_name[2]=='\0')
+					|| ent->d_name[1]=='\0'))) {
+				char *name_with_path=bctbx_strdup_printf("%s/%s",path,ent->d_name);
+				file_list = bctbx_list_append(file_list, name_with_path);
+			}
+		}
+		ent = readdir(dir);
+	}
+	if (errno != 0) {
+		bctbx_error("Error while reading the [%s] directory: %s.", path, strerror(errno));
+	}
+	closedir(dir);
+#endif
+	return file_list;
+}
+
+int bctbx_mkdir(const char *path) {
+#ifdef _WIN32
+	return _mkdir(path);
+#else
+	return mkdir(path, 0700);
+#endif
+};
+
+/**
+ * delete empty directory only
+ *
+ * @param[in]	path		the directory to delete
+ *
+ * @return 0 on success
+ */
+static int bctbx_rmemptydir(const char *path) {
+#ifdef _WIN32
+	return _rmdir(path);
+#else
+	return rmdir(path);
+#endif
+};
+
+/**
+ * Callback used to delete files from parsed list in directory
+ * @param[in] v_path	the path of the file or dir to delete, it shall never be . or ..
+ * 			it should be the case as the list was obtained using bctbx_parse_directory
+ *
+ */
+static void bctbx_removeFileFromList(void *v_path) {
+	char *path = (char *)v_path;
+
+	// if path is a directory, recurse in it
+	if (bctbx_directory_exists(path)) {
+		bctbx_rmdir(path, TRUE);
+	} else {
+		remove(path);
+	}
+}
+
+int bctbx_rmdir(const char *path, bool_t recursive) {
+	if (recursive == FALSE) {
+		return bctbx_rmemptydir(path);
+	}
+
+	// check the directory exists
+	if (!bctbx_directory_exists(path)) {
+		return -1;
+	}
+
+	// get all files from directory and delete them
+	bctbx_list_t *fileList = bctbx_parse_directory(path, NULL);
+	bctbx_list_for_each(fileList, bctbx_removeFileFromList);
+	bctbx_list_free_with_data(fileList, bctbx_free);
+
+	// directory is now empty, delete it
+	return bctbx_rmemptydir(path);
 }
 
 #if	!defined(_WIN32) && !defined(_WIN32_WCE)
