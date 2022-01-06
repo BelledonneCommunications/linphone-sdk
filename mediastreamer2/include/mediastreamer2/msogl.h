@@ -23,6 +23,15 @@
 #define MS_OGL_RENDER MS_FILTER_METHOD_NO_ARG(MS_OGL_ID, 0)
 
 /**
+ * Sets the EGL OpenGL context to be requested on init
+ *
+ * Safety:
+ *   The MSEGLContextDescriptor * cannot be NULL.
+ */
+#define MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT \
+	MS_FILTER_METHOD(MS_OGL_ID, 1, const MSEGLContextDescriptor)
+
+/**
  * #MSOglContextInfo is used for the "MSOGL" filter (OpenGL Display) that can be set with #linphone_core_set_video_display_filter.
  * This type is available on Desktop platforms (Linux, MacOS and Windows) but not for UWP where you have to use directly a SwapChainPanel(see #linphone_core_set_native_video_window_id)
  * Use an instance of this structure in #linphone_core_set_native_preview_window_id or #linphone_core_set_native_video_window_id

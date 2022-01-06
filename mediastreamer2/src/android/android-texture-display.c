@@ -24,11 +24,6 @@
 #include "layouts.h"
 #include "opengles_display.h"
 
-#include <dlfcn.h>
-#include <EGL/egl.h>
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-
 #include <android/hardware_buffer.h>
 #include <android/native_activity.h>
 #include <android/native_window.h>

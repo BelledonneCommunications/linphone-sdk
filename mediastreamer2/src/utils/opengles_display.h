@@ -49,7 +49,7 @@ MS2_PUBLIC void ogl_display_free (struct opengles_display *gldisp);
 
 /**
  * Perform initialization of opaque structure that will be auto-managed.
- * Sizes are auto-managed and are retrieved from EGL. If they cannot be retrieved for any reason, the input size will be used.
+ * Dimensions are auto-managed and are retrieved from EGL. If they cannot be retrieved for any reason, the input dimensions will be used.
  *
  * @param f OpenGL functions to use. Can be NULL.
  * @param window The native window where a Surface will be created
@@ -57,6 +57,7 @@ MS2_PUBLIC void ogl_display_free (struct opengles_display *gldisp);
  * @param height Default Height of the display area.
  */
 MS2_PUBLIC void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height);
+
 
 /**
  * Perform initialization of opaque structure.
@@ -76,6 +77,14 @@ MS2_PUBLIC void ogl_display_init (struct opengles_display *gldisp, const OpenGlF
  * @param height Height of the display area.
  */
 MS2_PUBLIC void ogl_display_set_size (struct opengles_display *gldisp, int width, int height);
+
+/**
+ * Describes the EGL context to be created by ogl_display_auto_init
+ *
+ * Safety:
+ *   @param target_context cannot be NULL.
+ */
+MS2_PUBLIC void ogl_display_set_target_context (struct opengles_display *gldisp, const MSEGLContextDescriptor *const target_context);
 
 /**
  * Uninit opaque structure.
@@ -129,8 +138,6 @@ MS2_PUBLIC void ogl_destroy_window(EGLNativeWindowType *window, Platform::Agile<
 MS2_PUBLIC bool_t ogl_create_window(EGLNativeWindowType *window, void ** window_id);
 MS2_PUBLIC void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id);
 #endif
-
-
 
 
 #if defined __cplusplus

@@ -34,16 +34,13 @@ def print_include_hexdump_line(buf):
 def include_hexdump(infilename):
     varname = infilename.replace('.', '_').replace('-', '_')
     infile = open(infilename, 'r')
-    size = 0
-    print("unsigned char {0}[] = {{".format(varname))
+    print("const char {0}[] = {{".format(varname))
     while True:
         buf = infile.read(12)
         if not buf:
             break
         print_include_hexdump_line(buf)
-        size = size + len(buf)
     print(",0x00};")
-    print("unsigned int {0}_len = {1};".format(varname, size))
 
 def print_hexdump_line(counter, buf):
     hexbuf = [('%02x' % ord(i)) for i in buf]

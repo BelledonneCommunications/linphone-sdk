@@ -178,6 +178,12 @@ MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj
  */
 MS2_PUBLIC bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj);
 
+/**
+ * Returns a pointer to the video display filter
+ * @param obj The player
+ */
+MS2_PUBLIC MSFilter *ms_media_player_get_video_sink(const MSMediaPlayer *const obj);
+
 #ifdef __cplusplus
 }
 #endif

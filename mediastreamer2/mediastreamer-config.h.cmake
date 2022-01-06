@@ -74,3 +74,4 @@
 
 #cmakedefine HAVE_SYS_SOUNDCARD_H 1
 
+#cmakedefine ENABLE_OPENGL_PROFILING 1

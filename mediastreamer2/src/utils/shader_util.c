@@ -59,28 +59,24 @@
 #define LogError printf
 
 /* Compile a shader from the provided source(s) */
-GLint glueCompileShader (const OpenGlFunctions *f, GLenum target, GLsizei count, const GLchar *sources, GLuint *shader) {
+GLint glueCompileShader (const OpenGlFunctions *f, const GLchar *sources, GLuint shader) {
   GLint logLength, status;
 
-  *shader = f->glCreateShader(target);
-  f->glShaderSource(*shader, count, &sources, NULL);
-  f->glCompileShader(*shader);
+  f->glShaderSource(shader, 1, &sources, NULL);
+  f->glCompileShader(shader);
 
-  f->glGetShaderiv(*shader, GL_INFO_LOG_LENGTH, &logLength);
-  if (logLength > 0) {
-    GLchar *log = (GLchar *)malloc(logLength);
-    f->glGetShaderInfoLog(*shader, logLength, &logLength, log);
-    LogInfo("Shader compile log:\n%s", log);
-    free(log);
+  f->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+  if (status == 0) {
+    LogError("Failed to compile shader:\n");
+    LogInfo("%s", sources);
   }
 
-  f->glGetShaderiv(*shader, GL_COMPILE_STATUS, &status);
-  if (status == 0) {
-    int i;
-
-    LogError("Failed to compile shader:\n");
-    for (i = 0; i < count; i++)
-      LogInfo("%s", &sources[i]);
+  f->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+  if (logLength > 0) {
+    GLchar *log = (GLchar *)malloc(logLength);
+    f->glGetShaderInfoLog(shader, logLength, &logLength, log);
+    LogInfo("Shader compile log:\n%s", log);
+    free(log);
   }
 
   glError(f);
@@ -135,54 +131,4 @@ GLint glueValidateProgram (const OpenGlFunctions *f, GLuint program) {
 /* Return named uniform location after linking */
 GLint glueGetUniformLocation (const OpenGlFunctions *f, GLuint program, const GLchar *uniformName) {
   return f->glGetUniformLocation(program, uniformName);
-}
-
-/* Convenience wrapper that compiles, links, enumerates uniforms and attribs */
-GLint glueCreateProgram (
-  const OpenGlFunctions *f,
-  const GLchar *vertSource,
-  const GLchar *fragSource,
-  GLsizei attribNameCt,
-  const GLchar **attribNames,
-  const GLint *attribLocations,
-  GLsizei uniformNameCt,
-  const GLchar **uniformNames,
-  GLint *uniformLocations,
-  GLuint *program
-) {
-  GLuint vertShader = 0, fragShader = 0, prog = 0, status = 1;
-  GLint i;
-
-  prog = f->glCreateProgram();
-
-  status *= glueCompileShader(f, GL_VERTEX_SHADER, 1, vertSource, &vertShader);
-  status *= glueCompileShader(f, GL_FRAGMENT_SHADER, 1, fragSource, &fragShader);
-  f->glAttachShader(prog, vertShader);
-  f->glAttachShader(prog, fragShader);
-
-  for (i = 0; i < attribNameCt; i++) {
-    if (strlen(attribNames[i]))
-      f->glBindAttribLocation(prog, attribLocations[i], attribNames[i]);
-  }
-
-  status *= glueLinkProgram(f, prog);
-  status *= glueValidateProgram(f, prog);
-
-  if (status) {
-    for (i = 0; i < uniformNameCt; i++) {
-      if (strlen(uniformNames[i]))
-        uniformLocations[i] = glueGetUniformLocation(f, prog, uniformNames[i]);
-    }
-
-    *program = prog;
-  }
-
-  if (vertShader)
-    f->glDeleteShader(vertShader);
-  if (fragShader)
-    f->glDeleteShader(fragShader);
-
-  glError(f);
-
-  return status;
 }

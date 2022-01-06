@@ -464,6 +464,20 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
 	if(NOT SED_PROGRAM)
 		message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
 	endif()
+	add_custom_target(ms2-fragment-shader-header
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="YCbCr_to_RGB.frag"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/YCbCr_to_RGB.frag.h"
+	)
+	add_custom_target(ms2-vertex-shader-header
+		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
+			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+			-DSOURCE_FILE="screen_transform.vert"
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
+		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/screen_transform.vert.h"
+	)
 	add_custom_target(ms2-yuv2rgb-fs-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
@@ -512,7 +526,7 @@ endif()
 
 set(MS2_DEPENDENCIES ms2-git-version ms2-basedescs-header ms2-voipdescs-header)
 if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
-	list(APPEND MS2_DEPENDENCIES ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
+	list(APPEND MS2_DEPENDENCIES ms2-vertex-shader-header ms2-fragment-shader-header ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
 endif()
 
 

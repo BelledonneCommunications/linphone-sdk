@@ -21,6 +21,11 @@
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mediastream.h"
 
+#ifdef VIDEO_ENABLED
+	#include "mediastreamer2/msogl_functions.h" // MSEGLContextDescriptor, EGLint, EGL_CONTEXT_MAJOR_VERSION, EGL_NONE, EGL_OPENGL_ES_API
+	#include "mediastreamer2/msogl.h" // MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT
+#endif
+
 #ifndef max
 #define max(a, b) ((a) > (b)) ? a : b
 #endif
@@ -28,11 +33,12 @@
 static MSFactory* _factory = NULL;
 
 typedef enum {
-	PLAYER_TEST_NONE = 0,
-	PLAYER_TEST_UNSUPPORTED_FORMAT = 1,
-	PLAYER_TEST_SEEKING = 2,
-	PLAYER_TEST_PLAY_TWICE = 4,
-	PLAYER_TEST_LOOP = 8
+	PLAYER_TEST_NONE                 = 0b00000,
+	PLAYER_TEST_UNSUPPORTED_FORMAT   = 0b00001,
+	PLAYER_TEST_SEEKING              = 0b00010,
+	PLAYER_TEST_PLAY_TWICE           = 0b00100,
+	PLAYER_TEST_LOOP                 = 0b01000,
+	PLAYER_TEST_EGL_CONTEXT_FALLBACK = 0b10000
 } PlayerTestFlags;
 
 static int tester_before_all(void) {
@@ -74,12 +80,11 @@ static void wait_for_neof(Eof *obj, int neof, int refresh_time_ms, int timeout_m
 	ms_mutex_unlock(&obj->mutex);
 }
 
-static void play_file(const char *filepath, PlayerTestFlags flags) {
+static void play_file(const char *filepath, PlayerTestFlags flags, const char *renderer) {
 	bool_t succeed;
 	Eof eof;
 	MSMediaPlayer *file_player = NULL;
 	MSSndCard *snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_card_manager(_factory));
-	const char *display_name = ms_factory_get_default_video_renderer(_factory);
 	int duration, timeout;
 	const int seek_time = 6100;
 	const double timeout_prec = 0.05;
@@ -87,7 +92,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	eof_init(&eof);
 
 	BC_ASSERT_PTR_NOT_NULL(snd_card);
-	file_player = ms_media_player_new(_factory, snd_card, display_name, 0);
+	file_player = ms_media_player_new(_factory, snd_card, renderer, 0);
 	BC_ASSERT_PTR_NOT_NULL(file_player);
 	if(file_player == NULL) return;
 
@@ -122,6 +127,19 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 	}
 	timeout = max( (int)(timeout * (1.0 + timeout_prec)) , 100);
 
+#ifdef VIDEO_ENABLED
+	if(flags & PLAYER_TEST_EGL_CONTEXT_FALLBACK) {
+		static const EGLint impossible_version[] = {
+			EGL_CONTEXT_MAJOR_VERSION, -1,
+			EGL_NONE
+		};
+		static MSEGLContextDescriptor impossible_context = {EGL_OPENGL_ES_API, impossible_version};
+
+		MSFilter *const video_display = ms_media_player_get_video_sink(file_player);
+		ms_filter_call_method(video_display, MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT, &impossible_context);
+	}
+#endif // VIDEO_ENABLED
+
 	succeed = ms_media_player_start(file_player);
 	BC_ASSERT_TRUE(succeed);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying, int, "%d");
@@ -155,7 +173,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags) {
 
 static void play_root_file(const char *filepath, PlayerTestFlags flags){
 	char* file = bc_tester_res(filepath);
-	play_file(file, flags);
+	play_file(file, flags, ms_factory_get_default_video_renderer(_factory));
 	bc_free(file);
 }
 
@@ -212,7 +230,27 @@ static void loop_test(void) {
 	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_LOOP);
 }
 
+#ifdef VIDEO_ENABLED
+static void egl_opengl_contexts(void) {
+	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
+	flags |= PLAYER_TEST_SEEKING;
+	char* const file = bc_tester_res("sounds/sintel_trailer_opus_vp8.mkv");
+
+	// Try playing with default config
+	play_file(file, flags, "MSOGL");
+
+	// Force fallback with impossible target context
+	// (Should print "target EGL context creation failed. Falling back to OpenGL ES 2.0+")
+	play_file(file, flags | PLAYER_TEST_EGL_CONTEXT_FALLBACK, "MSOGL");
+
+	bc_free(file);
+}
+#endif // VIDEO_ENABLED
+
 static test_t tests[] = {
+#ifdef VIDEO_ENABLED
+	TEST_NO_TAG("EGL OpenGL contexts"                 , egl_opengl_contexts                 ),
+#endif
 	TEST_NO_TAG("Play hello8000.wav"                  , play_hello_8000_wav                 ),
 	TEST_NO_TAG("Play hello16000.wav"                 , play_hello_16000_wav                ),
 	TEST_NO_TAG("Play hello_pcmu.mka"                 , play_hello_pcmu_mka                 ),

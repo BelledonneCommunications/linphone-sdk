@@ -129,6 +129,9 @@ add_definitions(
 	-DBCTBX_LOG_DOMAIN="mediastreamer"
 )
 
+# Required for the "EGL OpenGL contexts" test in mediastreamer2_player_tester.c
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../include/OpenGL")
+
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
 	list(APPEND SOURCE_FILES_CXX mediastreamer2_h26x_tools_tester.cpp)

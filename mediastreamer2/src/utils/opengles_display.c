@@ -23,7 +23,9 @@
 #include "mediastreamer2/mscommon.h"
 #include "shader_util.h"
 
-#include "opengl_functions.h"
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h" // ENABLE_OPENGL_PROFILING
+#endif
 
 #ifdef HAVE_GLX
 #include <X11/Xlib.h>
@@ -56,6 +58,13 @@ enum ImageType {
 	#define GL_OPERATION(f, x) (f->x);
 
 	#define GL_OPERATION_RET(f, x, ret) ret = (f->x);
+#endif
+
+#ifdef ENABLE_OPENGL_PROFILING
+	#include <time.h>
+	#include <locale.h>
+
+	static GLuint gl_time_query;
 #endif
 
 enum {
@@ -91,9 +100,14 @@ struct opengles_display {
 
 	/* GL resources */
 	bool_t glResourcesInitialized;
+	bool_t shadersLoaded;
+	GLuint arrayBufferHandle;
+	GLuint vertexArrayObjectHandle;
 	GLuint program, textures[TEXTURE_BUFFER_SIZE][MAX_IMAGE][3];
 	GLint uniforms[NUM_UNIFORMS];
 	MSVideoSize allocatedTexturesSize[MAX_IMAGE];
+	GLint texInternalFormat;
+	GLenum texFormat;
 
 	int texture_index;
 
@@ -117,6 +131,8 @@ struct opengles_display {
 	const OpenGlFunctions *functions;
 
 	EGLDisplay mEglDisplay;
+	// Describes the EGLContext to be requested
+	const MSEGLContextDescriptor *target_context;
 	EGLContext mEglContext;
 	EGLConfig mEglConfig;// No need to be cleaned
 	EGLSurface mRenderSurface;
@@ -217,15 +233,15 @@ static void load_projection_matrix (float left, float right, float bottom, float
 
 // -----------------------------------------------------------------------------
 
-static void print_program_info (const OpenGlFunctions *f, GLuint *program) {
+static void print_program_info (const OpenGlFunctions *f, GLuint program) {
 	GLint logLength;
 	char *msg;
 
-	GL_OPERATION(f, glGetProgramiv(*program, GL_INFO_LOG_LENGTH, &logLength));
+	GL_OPERATION(f, glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength));
 	if (logLength > 0) {
 		msg = ms_new(char, logLength);
 
-		GL_OPERATION(f, glGetProgramInfoLog(*program, logLength, &logLength, msg));
+		GL_OPERATION(f, glGetProgramInfoLog(program, logLength, &logLength, msg));
 		ms_message("[ogl_display] OpenGL program info: %s", msg);
 
 		ms_free(msg);
@@ -233,41 +249,118 @@ static void print_program_info (const OpenGlFunctions *f, GLuint *program) {
 		ms_message("[ogl_display] OpenGL program info: [NO INFORMATION]");
 }
 
-static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *uniforms) {
-	GLuint vertShader, fragShader;
+#define ARRAY_BUFFER_SIZE (16 * sizeof(GL_FLOAT))
 
+static void bind_vertex_shader_input(const OpenGlFunctions *f) {
+	// The first 8 slots are UV (4 * vec2)
+	GL_OPERATION(f, glVertexAttribPointer(ATTRIB_UV, 2, GL_FLOAT, 1, 0, (const void *)0))
+	GL_OPERATION(f, glEnableVertexAttribArray(ATTRIB_UV))
+	// The last 8 are vertex positions (4 * vec2)
+	GL_OPERATION(f, glVertexAttribPointer(ATTRIB_VERTEX, 2, GL_FLOAT, 0, 0, (const void *)(8 * sizeof(GL_FLOAT))))
+	GL_OPERATION(f, glEnableVertexAttribArray(ATTRIB_VERTEX))
+}
+
+static bool_t compile_gl_program(
+	const OpenGlFunctions *f,
+	GLuint program,
+	GLuint vertShader,
+	const char * vertSource,
+	GLuint fragShader,
+	const char * fragSource
+) {
+	if (!glueCompileShader(f, vertSource, vertShader))
+			return FALSE;
+	if (!glueCompileShader(f, fragSource, fragShader))
+			return FALSE;
+	return glueLinkProgram(f, program);
+}
+
+static bool_t load_shaders (struct opengles_display *gldisp) {
+	#include "screen_transform.vert.h"
+	#include "YCbCr_to_RGB.frag.h"
+	// GLSL 1.00 legacy shaders
 	#include "yuv2rgb.vs.h"
 	#include "yuv2rgb.fs.h"
-	(void)yuv2rgb_vs_len;
-	(void)yuv2rgb_fs_len;
 
-	*program = f->glCreateProgram();
-	if (!glueCompileShader(f, GL_VERTEX_SHADER, 1, (const char*)yuv2rgb_vs, &vertShader))
-		return FALSE;
-	if (!glueCompileShader(f, GL_FRAGMENT_SHADER, 1, (const char*)yuv2rgb_fs, &fragShader))
-		return FALSE;
+	const OpenGlFunctions *f = gldisp->functions;
 
-	GL_OPERATION(f, glAttachShader(*program, vertShader))
-	GL_OPERATION(f, glAttachShader(*program, fragShader))
+	/* To support the widest range of OpenGL implementations, we have two
+	   different concerns:
+	   - Using supported API calls (OpenGL version)
+	   - Using supported shaders (GLSL version)
+	*/
 
-	GL_OPERATION(f, glBindAttribLocation(*program, ATTRIB_VERTEX, "position"))
-	GL_OPERATION(f, glBindAttribLocation(*program, ATTRIB_UV, "uv"))
+	/* When running inside an OpenGL Core profile (introduced in OpenGL 3.2),
+	   we need to generate and bind a Vertex Array Object (VAO) to store the
+	   state needed to supply vertex data. This step is not required for
+	   OpenGL 3.0 and 3.1 (and plain impossible in OpenGL 2.1), but for the sake
+	   of simplicity we do it whenever the version permits.
+	*/
 
-	if (!glueLinkProgram(f, *program))
-		return FALSE;
+	// GL_MAJOR_VERSION was introduced in OpenGL 3. If glGetIntegerv fails, that
+	// means we're in version 2.
+	GLint opengl_version_major = 2;
+	f->glGetIntegerv(GL_MAJOR_VERSION, &opengl_version_major);
+	f->glGetError(); // Silence the possible error
+	// Luckily the following functions were also added in OpenGL ES 3.0, so no need
+	// to check for ES
+	if (3 <= opengl_version_major) {
+		GL_OPERATION(f, glGenVertexArrays(1, &gldisp->vertexArrayObjectHandle))
+		GL_OPERATION(f, glBindVertexArray(gldisp->vertexArrayObjectHandle))
+	} else {
+		// These functions can be found on systems (e.g. macOS) that *also* support
+		// higher OpenGL versions but calling them will result in an error, so
+		// let's make sure that won't happen.
+		OpenGlFunctions* errata = (OpenGlFunctions*)f;
+		errata->glGenVertexArrays = NULL;
+		errata->glBindVertexArray = NULL;
 
-	GL_OPERATION_RET(f, glGetUniformLocation(*program, "proj_matrix"), uniforms[UNIFORM_PROJ_MATRIX])
-	GL_OPERATION_RET(f, glGetUniformLocation(*program, "rotation"), uniforms[UNIFORM_ROTATION])
-	GL_OPERATION_RET(f, glGetUniformLocation(*program, "t_texture_y"), uniforms[UNIFORM_TEXTURE_Y])
-	GL_OPERATION_RET(f, glGetUniformLocation(*program, "t_texture_u"), uniforms[UNIFORM_TEXTURE_U])
-	GL_OPERATION_RET(f, glGetUniformLocation(*program, "t_texture_v"), uniforms[UNIFORM_TEXTURE_V])
+		gldisp->texInternalFormat = GL_LUMINANCE;
+		gldisp->texFormat = GL_LUMINANCE;
+	}
+
+	// The Array Buffer will hold input data for the vertex shader
+	GL_OPERATION(f, glGenBuffers(1, &gldisp->arrayBufferHandle))
+	GL_OPERATION(f, glBindBuffer(GL_ARRAY_BUFFER, gldisp->arrayBufferHandle))
+	// Allocate buffer (uninitialized)
+	GL_OPERATION(f, glBufferData(GL_ARRAY_BUFFER, (GLsizei *)ARRAY_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW))
+	bind_vertex_shader_input(f);
+
+	GLuint program = f->glCreateProgram();
+	GLuint vertShader = f->glCreateShader(GL_VERTEX_SHADER);
+	GLuint fragShader = f->glCreateShader(GL_FRAGMENT_SHADER);
+
+	GL_OPERATION(f, glAttachShader(program, vertShader))
+	GL_OPERATION(f, glAttachShader(program, fragShader))
+
+	GL_OPERATION(f, glBindAttribLocation(program, ATTRIB_VERTEX, "position"))
+	GL_OPERATION(f, glBindAttribLocation(program, ATTRIB_UV, "uv"))
+
+	// Try to compile newest shaders first
+	if(!compile_gl_program(f, program, vertShader, screen_transform_vert, fragShader, YCbCr_to_RGB_frag)) {
+		// If that fails...
+		ms_message("[ogl_display] Falling back to legacy shaders.");
+		if(!compile_gl_program(f, program, vertShader, yuv2rgb_vs, fragShader, yuv2rgb_fs)){
+			check_GL_errors(f, "load_shaders");
+			return FALSE;
+		}
+	}
+
+	GLint *uniforms = gldisp->uniforms;
+	GL_OPERATION_RET(f, glGetUniformLocation(program, "proj_matrix"), uniforms[UNIFORM_PROJ_MATRIX])
+	GL_OPERATION_RET(f, glGetUniformLocation(program, "rotation"), uniforms[UNIFORM_ROTATION])
+	GL_OPERATION_RET(f, glGetUniformLocation(program, "t_texture_y"), uniforms[UNIFORM_TEXTURE_Y])
+	GL_OPERATION_RET(f, glGetUniformLocation(program, "t_texture_u"), uniforms[UNIFORM_TEXTURE_U])
+	GL_OPERATION_RET(f, glGetUniformLocation(program, "t_texture_v"), uniforms[UNIFORM_TEXTURE_V])
 
 	GL_OPERATION(f, glDeleteShader(vertShader))
 	GL_OPERATION(f, glDeleteShader(fragShader))
 
-	check_GL_errors(f, "load_shaders");
 	print_program_info(f, program);
 
+	gldisp->program = program;
+
+	check_GL_errors(f, "load_shaders");
 	return TRUE;
 }
 
@@ -275,6 +368,8 @@ static bool_t load_shaders (const OpenGlFunctions *f, GLuint *program, GLint *un
 
 static void allocate_gl_textures (struct opengles_display *gldisp, int w, int h, enum ImageType type) {
 	const OpenGlFunctions *f = gldisp->functions;
+	const GLenum texture_internal_format = gldisp->texInternalFormat;
+	const GLenum texture_format = gldisp->texFormat;
 	int j;
 
 	for(j = 0; j< TEXTURE_BUFFER_SIZE; j++) {
@@ -284,7 +379,7 @@ static void allocate_gl_textures (struct opengles_display *gldisp, int w, int h,
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE))
-		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w, h, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
+		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, texture_internal_format, w, h, 0, texture_format, GL_UNSIGNED_BYTE, 0))
 
 		GL_OPERATION(f, glActiveTexture(GL_TEXTURE1))
 		GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[j][type][U]))
@@ -292,7 +387,7 @@ static void allocate_gl_textures (struct opengles_display *gldisp, int w, int h,
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE))
-		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w >> 1, h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
+		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, texture_internal_format, w >> 1, h >> 1, 0, texture_format, GL_UNSIGNED_BYTE, 0))
 
 		GL_OPERATION(f, glActiveTexture(GL_TEXTURE2))
 		GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[j][type][V]))
@@ -300,7 +395,7 @@ static void allocate_gl_textures (struct opengles_display *gldisp, int w, int h,
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE))
 		GL_OPERATION(f, glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE))
-		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, w >> 1, h >> 1, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, 0))
+		GL_OPERATION(f, glTexImage2D(GL_TEXTURE_2D, 0, texture_internal_format, w >> 1, h >> 1, 0, texture_format, GL_UNSIGNED_BYTE, 0))
 	}
 
 	gldisp->allocatedTexturesSize[type].width = w;
@@ -380,13 +475,15 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 		  ? ((alig_V > alig_Y) ? alig_Y : alig_V)
 			:	((alig_U > alig_Y) ? alig_Y : alig_U);
 	}
+
+	const GLenum texture_format = gldisp->texFormat;
 	/* upload Y plane */
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE0))
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][Y]))
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w, yuvbuf.h,
-			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]))
+			texture_format, GL_UNSIGNED_BYTE, yuvbuf.planes[Y]))
 	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_Y], 0))
 
@@ -396,7 +493,7 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
-			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
+			texture_format, GL_UNSIGNED_BYTE, yuvbuf.planes[U]))
 	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_U], 1))
 
@@ -406,7 +503,7 @@ static bool_t update_textures_with_yuv (struct opengles_display *gldisp, enum Im
 	GL_OPERATION(f, glPixelStorei(GL_UNPACK_ALIGNMENT, alignment))
 	GL_OPERATION(f, glTexSubImage2D(GL_TEXTURE_2D, 0,
 			0, 0, yuvbuf.w >> 1, yuvbuf.h >> 1,
-			GL_LUMINANCE, GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
+			texture_format, GL_UNSIGNED_BYTE, yuvbuf.planes[V]))
 	
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
 	gldisp->yuv_size[type].width = yuvbuf.w;
@@ -428,59 +525,47 @@ static void ogl_display_render_type(
 	int orientation,
 	MSVideoDisplayMode mode
 ) {
-	const OpenGlFunctions *f = gldisp->functions;
-
-	float uLeft, uRight, vTop, vBottom;
-	GLfloat squareUvs[8];
-	GLfloat squareVertices[8];
-	GLfloat screenW, screenH;
-	GLfloat x,y,w,h;
-	GLfloat mat[16];
-	float rad;
-	MSVideoDisplayMode usedMode;
-
 	if (!gldisp) {
 		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
-
 	if (!gldisp->yuv[type] || !gldisp->glResourcesInitialized)
+	{
 		return;
-
-	ms_mutex_lock(&gldisp->yuv_mutex);
-
-	if (gldisp->new_yuv_image[gldisp->texture_index][type]) {
-		update_textures_with_yuv(gldisp, type);
-		gldisp->new_yuv_image[gldisp->texture_index][type] = FALSE;
 	}
 
-	ms_mutex_unlock(&gldisp->yuv_mutex);
+	const OpenGlFunctions *f = gldisp->functions;
 
-	uLeft = vBottom = 0.0f;
-	uRight = gldisp->uvx[type];
-	vTop = gldisp->uvy[type];
-
-	squareUvs[0] = uLeft;
-	squareUvs[1] =  vTop;
-	squareUvs[2] = uRight;
-	squareUvs[3] =  vTop;
-	squareUvs[4] = uLeft;
-	squareUvs[5] =  vBottom;
-	squareUvs[6] = uRight;
-	squareUvs[7] = vBottom;
+	GLint bound_buffer;
+	GL_OPERATION(f, glGetIntegerv(GL_ARRAY_BUFFER_BINDING, &bound_buffer))
+	if ((GLuint)bound_buffer != gldisp->arrayBufferHandle) {
+		GL_OPERATION(f, glBindBuffer(GL_ARRAY_BUFFER, gldisp->arrayBufferHandle))
+		if (f->glBindVertexArray) { // OpenGL 3.0+
+			GL_OPERATION(f, glBindVertexArray(gldisp->vertexArrayObjectHandle))
+		} else { // OpenGL 2.0-2.1
+			bind_vertex_shader_input(f);
+		}
+	}
 
 	if (clear)
 		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT))
 
+	ms_mutex_lock(&gldisp->yuv_mutex);
+	if (gldisp->new_yuv_image[gldisp->texture_index][type]) {
+		update_textures_with_yuv(gldisp, type);
+		gldisp->new_yuv_image[gldisp->texture_index][type] = FALSE;
+	}
+	ms_mutex_unlock(&gldisp->yuv_mutex);
+
 	// drawing surface dimensions
-	screenW = (GLfloat)gldisp->backingWidth;
-	screenH = (GLfloat)gldisp->backingHeight;
+	GLfloat screenW = (GLfloat)gldisp->backingWidth;
+	GLfloat screenH = (GLfloat)gldisp->backingHeight;
 	if (orientation == 90 || orientation == 270) {
 		screenW = screenH;
 		screenH = (GLfloat)gldisp->backingWidth;
 	}
 
-	usedMode = mode;
+	MSVideoDisplayMode usedMode = mode;
 	if (mode == MSVideoDisplayHybrid) {
 		// If the image has the same orientation as the screen then use OccupyAllSpace mode
 		if ((screenW > screenH && gldisp->yuv_size[type].width > gldisp->yuv_size[type].height)
@@ -493,6 +578,7 @@ static void ogl_display_render_type(
 	}
 
 	// Fill the smallest dimension, then compute the other one using the image ratio
+	GLfloat w,h;
 	if (usedMode == MSVideoDisplayBlackBars) {
 		if (screenW <= screenH) {
 			float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
@@ -523,20 +609,34 @@ static void ogl_display_render_type(
 		}
 	}
 
-	x = vpx * screenW;
-	y = vpy * screenH;
+	GLfloat x = vpx * screenW;
+	GLfloat y = vpy * screenH;
 
-	// X and Y coordinates of the rectangle where the image has to be displayed
-	squareVertices[0] = (x - w * 0.5f) / screenW;
-	squareVertices[1] = (y - h * 0.5f) / screenH;
-	squareVertices[2] = (x + w * 0.5f) / screenW;
-	squareVertices[3] = (y - h * 0.5f) / screenH;
-	squareVertices[4] = (x - w * 0.5f) / screenW;
-	squareVertices[5] = (y + h * 0.5f) / screenH;
-	squareVertices[6] = (x + w * 0.5f) / screenW;
-	squareVertices[7] = (y + h * 0.5f) / screenH;
+	GLfloat xLeft = (x - w * 0.5f) / screenW;
+	GLfloat yTop = (y - h * 0.5f) / screenH;
+	GLfloat xRight = (x + w * 0.5f) / screenW;
+	GLfloat yBottom = (y + h * 0.5f) / screenH;
 
-	float pLeft, pRight, pTop, pBottom, pNear, pFar;
+	GLfloat uLeft = 0.0f;
+	GLfloat vBottom = 0.0f;
+	GLfloat uRight = gldisp->uvx[type];
+	GLfloat vTop = gldisp->uvy[type];
+
+	GLfloat arrayBuffer[] = {
+		// Relative coordinates (UV) of the decoded image
+		uLeft, vTop,
+		uRight, vTop,
+		uLeft, vBottom,
+		uRight, vBottom,
+
+		// X and Y coordinates of the rectangle where the image has to be displayed
+		xLeft, yTop,
+		xRight, yTop,
+		xLeft, yBottom,
+		xRight, yBottom,
+	};
+
+	GLfloat pLeft, pRight, pTop, pBottom, pNear, pFar;
 	#define VP_SIZE 1.0f
 	if (type == REMOTE_IMAGE) {
 		float scale_factor = 1.0f / gldisp->zoom_factor;
@@ -552,8 +652,8 @@ static void ogl_display_render_type(
 			a += diff; \
 		}
 
-		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cx, vpDim, squareVertices[0], squareVertices[2])
-		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cy, vpDim, squareVertices[1], squareVertices[7])
+		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cx, vpDim, xLeft, xRight)
+		ENSURE_RANGE_A_INSIDE_RANGE_B(gldisp->zoom_cy, vpDim, yTop, yBottom)
 
 		pLeft   = gldisp->zoom_cx - vpDim;
 		pRight  = gldisp->zoom_cx + vpDim;
@@ -571,12 +671,12 @@ static void ogl_display_render_type(
 	}
 	const bool_t mirror  = gldisp->do_mirroring[type];
 
+	GLfloat mat[16];
 	load_projection_matrix( pLeft, pRight, pBottom, pTop, pNear, pFar, vpx, mirror, mat);
 
 	GL_OPERATION(f, glUniformMatrix4fv(gldisp->uniforms[UNIFORM_PROJ_MATRIX], 1, GL_FALSE, mat))
 
-	rad = (2.0f * 3.14157f * orientation / 360.0f); // Convert orientation to radian
-
+	GLfloat rad = (2.0f * 3.14157f * orientation / 360.0f); // Convert orientation to radian
 	GL_OPERATION(f, glUniform1f(gldisp->uniforms[UNIFORM_ROTATION], rad))
 
 	GL_OPERATION(f, glActiveTexture(GL_TEXTURE0))
@@ -589,10 +689,7 @@ static void ogl_display_render_type(
 	GL_OPERATION(f, glBindTexture(GL_TEXTURE_2D, gldisp->textures[gldisp->texture_index][type][V]))
 	GL_OPERATION(f, glUniform1i(gldisp->uniforms[UNIFORM_TEXTURE_V], 2))
 
-	GL_OPERATION(f, glVertexAttribPointer(ATTRIB_VERTEX, 2, GL_FLOAT, 0, 0, squareVertices))
-	GL_OPERATION(f, glEnableVertexAttribArray(ATTRIB_VERTEX))
-	GL_OPERATION(f, glVertexAttribPointer(ATTRIB_UV, 2, GL_FLOAT, 1, 0, squareUvs))
-	GL_OPERATION(f, glEnableVertexAttribArray(ATTRIB_UV))
+	GL_OPERATION(f, glBufferSubData(GL_ARRAY_BUFFER, (GLint *)0, (GLsizei *)ARRAY_BUFFER_SIZE, arrayBuffer))
 
 	GL_OPERATION(f, glDrawArrays(GL_TRIANGLE_STRIP, 0, 4))
 
@@ -605,7 +702,7 @@ struct opengles_display *ogl_display_new (void) {
 	struct opengles_display *result = (struct opengles_display*)malloc(sizeof(struct opengles_display));
 	if (result == 0) {
 		ms_error("[ogl_display] Could not allocate OpenGL display structure");
-		return 0;
+		return NULL;
 	}
 
 	memset(result, 0, sizeof(struct opengles_display));
@@ -613,10 +710,24 @@ struct opengles_display *ogl_display_new (void) {
 	result->zoom_factor = 1;
 	result->zoom_cx = result->zoom_cy = 0;
 	result->texture_index = 0;
+	result->texInternalFormat = GL_R8;
+	result->texFormat = GL_RED;
 	
+	static const EGLint request_opengl_4_1_core[] = {
+		EGL_CONTEXT_MAJOR_VERSION, 4,
+		EGL_CONTEXT_MINOR_VERSION, 1,
+		EGL_CONTEXT_OPENGL_PROFILE_MASK, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT,
+		EGL_NONE
+	};
+	static const MSEGLContextDescriptor default_context = {EGL_OPENGL_API, request_opengl_4_1_core};
+
 	result->mEglDisplay = EGL_NO_DISPLAY;
+	result->target_context = &default_context;
 	result->mEglContext = EGL_NO_CONTEXT;
 	result->mRenderSurface = EGL_NO_SURFACE;
+	result->shadersLoaded = FALSE;
+	result->arrayBufferHandle = 0;
+	result->vertexArrayObjectHandle = 0;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
 	ms_message("[ogl_display] %s : %p\n", __FUNCTION__, result);
@@ -651,8 +762,6 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 		if( gldisp->functions->eglInitialized){
 			gldisp->functions->eglReleaseThread();// Release all OpenGL resources
 			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglReleaseThread");
-		}
-		if( gldisp->functions->eglInitialized){
 			gldisp->functions->glFinish();// Synchronize the clean
 			check_EGL_errors(gldisp->functions, "ogl_display_clean: glFinish");
 		}
@@ -695,6 +804,10 @@ void ogl_display_set_size (struct opengles_display *gldisp, int width, int heigh
 		GL_OPERATION(f, glViewport(0, 0, width, height))
 		check_GL_errors(f, "ogl_display_set_size");
 	}
+}
+
+void ogl_display_set_target_context (struct opengles_display *gldisp, const MSEGLContextDescriptor *const target_context) {
+	gldisp->target_context = target_context;
 }
 
 #ifdef HAVE_GLX
@@ -962,191 +1075,168 @@ void ogl_destroy_window(EGLNativeWindowType *window, void ** window_id){
 }
 #endif
 
+/* Returns a context compatible with the given attributes.
+   E.g. requesting a 2.0 context may return a 4.6 context in Compatibility profile
+*/
+static EGLContext ogl_create_context(
+	const struct opengles_display *const gldisp,
+	const MSEGLContextDescriptor *const desc
+) {
+	const OpenGlFunctions *const f = gldisp->functions;
+	if (!f->eglBindAPI(desc->api)) {
+		return EGL_NO_CONTEXT;
+	}
+
+	return f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, desc->attrib_list);
+}
+
+static void ogl_create_surface_default(
+	struct opengles_display *gldisp,
+	const OpenGlFunctions *f,
+	EGLNativeWindowType window
+) {
+	if(!f->eglInitialized){
+		return;
+	}
+
 #ifdef _WIN32
-bool_t ogl_create_surface_win(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
-	if(f->eglInitialized){
-		int configAttributes[] ={
-			EGL_RED_SIZE, 8,
-			EGL_GREEN_SIZE, 8,
-			EGL_BLUE_SIZE, 8,
-			EGL_ALPHA_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_STENCIL_SIZE, 8,
-			EGL_NONE
-		};
-		EGLint contextAttributes[] = {
-			EGL_CONTEXT_CLIENT_VERSION, 2,
-			EGL_NONE,
-			EGL_NONE
-		};
-		int defaultDisplayAttributes[] = {
-			// These are the default display attributes, used to request ANGLE's D3D11 renderer.
-			// eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
-			EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-			// EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE is an option that enables ANGLE to automatically call
-			// the IDXGIDevice3.Trim method on behalf of the application when it gets suspended.
-			// Calling IDXGIDevice3.Trim when an application is suspended is a Windows Store application certification requirement.
-			EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
-			EGL_NONE,
-		};
+	// To initialize the display, we make three sets of calls to eglGetPlatformDisplayEXT and eglInitialize, with varying
+	// parameters passed to eglGetPlatformDisplayEXT:
+	// 1) The first calls uses "defaultDisplayAttributes" as a parameter. This corresponds to D3D11 Feature Level 10_0+.
+	// 2) If eglInitialize fails for step 1 (e.g. because 10_0+ isn't supported by the default GPU), then we try again
+	//    using "fl9_3DisplayAttributes". This corresponds to D3D11 Feature Level 9_3.
+	// 3) If eglInitialize fails for step 2 (e.g. because 9_3+ isn't supported by the default GPU), then we try again
+	//    using "warpDisplayAttributes".  This corresponds to D3D11 Feature Level 11_0 on WARP, a D3D11 software rasterizer.
+
+	//ogl_display_clean(gldisp);// Clean the display before creating surface
+
+	int defaultDisplayAttributes[] = {
+		// These are the default display attributes, used to request ANGLE's D3D11 renderer.
+		// eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
+		EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+		// EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE is an option that enables ANGLE to automatically call
+		// the IDXGIDevice3.Trim method on behalf of the application when it gets suspended.
+		// Calling IDXGIDevice3.Trim when an application is suspended is a Windows Store application certification requirement.
+		EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
+		EGL_NONE,
+	};
+	// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
+	gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
+	check_EGL_errors(f, "ogl_create_surface");
+	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
+		ms_error("[ogl_display] Failed to get EGL display (D3D11 10.0+).");
+	}
+
+	int major=0, minor=0;
+	if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
+		// This tries to initialize EGL to D3D11 Feature Level 9_3, if 10_0+ is unavailable (e.g. on some mobile devices).
 		int fl9_3DisplayAttributes[] = {
-			// These can be used to request ANGLE's D3D11 renderer, with D3D11 Feature Level 9_3.
-			// These attributes are used if the call to eglInitialize fails with the default display attributes.
 			EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
 			EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE, 9,
 			EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE, 3,
 			EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
 			EGL_NONE,
 		};
-		int warpDisplayAttributes[] = {
-			// These attributes can be used to request D3D11 WARP.
-			// They are used if eglInitialize fails with both the default display attributes and the 9_3 display attributes.
-			EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-			EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
-			EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
-			EGL_NONE,
-		};
-		//
-		// To initialize the display, we make three sets of calls to eglGetPlatformDisplayEXT and eglInitialize, with varying
-		// parameters passed to eglGetPlatformDisplayEXT:
-		// 1) The first calls uses "defaultDisplayAttributes" as a parameter. This corresponds to D3D11 Feature Level 10_0+.
-		// 2) If eglInitialize fails for step 1 (e.g. because 10_0+ isn't supported by the default GPU), then we try again
-		//    using "fl9_3DisplayAttributes". This corresponds to D3D11 Feature Level 9_3.
-		// 3) If eglInitialize fails for step 2 (e.g. because 9_3+ isn't supported by the default GPU), then we try again
-		//    using "warpDisplayAttributes".  This corresponds to D3D11 Feature Level 11_0 on WARP, a D3D11 software rasterizer.
-		//
-		//ogl_display_clean(gldisp);// Clean the display before creating surface
-		// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
-
-		gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
-		check_EGL_errors(f, "ogl_create_surface");
+		gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, fl9_3DisplayAttributes);
 		if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-			ms_error("[ogl_display] Failed to get EGL display (D3D11 10.0+).");
+			ms_error("[ogl_display] Failed to get EGL display (D3D11 9.3).");
 		}
-
-		int major=0, minor=0;
-		if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
-			// This tries to initialize EGL to D3D11 Feature Level 9_3, if 10_0+ is unavailable (e.g. on some mobile devices).
-			gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, fl9_3DisplayAttributes);
+		if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)
+		{
+			// This initializes EGL to D3D11 Feature Level 11_0 on WARP, if 9_3+ is unavailable on the default GPU.
+			int warpDisplayAttributes[] = {
+				EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
+				EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
+				EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
+				EGL_NONE,
+			};
+			gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, warpDisplayAttributes);
 			if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-				ms_error("[ogl_display] Failed to get EGL display (D3D11 9.3).");
+				ms_error("[ogl_display] Failed to get EGL display (D3D11 11.0 WARP)");
 			}
-			if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)
-			{
-				// This initializes EGL to D3D11 Feature Level 11_0 on WARP, if 9_3+ is unavailable on the default GPU.
-				gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, warpDisplayAttributes);
-				if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-					ms_error("[ogl_display] Failed to get EGL display (D3D11 11.0 WARP)");
-				}
-				if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
-					// If all of the calls to eglInitialize returned EGL_FALSE then an error has occurred.
-					ms_error("[ogl_display] Failed to initialize EGLDisplay");
-				}
-			}
-		}
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
-		check_EGL_errors(f, "ogl_create_surface");
-		if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
-			int numConfigs = 0;
-			if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
-				ms_error("[ogl_display] Failed to choose first EGLConfig");
-				check_EGL_errors(f, "ogl_create_surface");
-			}else{
-				gldisp->mEglContext = f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, contextAttributes);
-				if (gldisp->mEglContext == EGL_NO_CONTEXT) {
-					ms_error("[ogl_display] Failed to create EGL context");
-					check_EGL_errors(f, "ogl_create_surface");
-				}
-				gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
-				if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
-					ms_error("[ogl_display] Failed to create EGL Render Surface");
-					check_EGL_errors(f, "ogl_create_surface");
-				}
+			if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE) {
+				// If all of the calls to eglInitialize returned EGL_FALSE then an error has occurred.
+				ms_error("[ogl_display] Failed to initialize EGLDisplay");
 			}
 		}
 	}
-	return gldisp->mRenderSurface != EGL_NO_SURFACE;
-}
 #else
-bool_t ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
-	if(f->eglInitialized){
-		int configAttributes[] ={
-			EGL_RED_SIZE, 8,
-			EGL_GREEN_SIZE, 8,
-			EGL_BLUE_SIZE, 8,
-			EGL_ALPHA_SIZE, 8,
-			EGL_DEPTH_SIZE, 8,
-			EGL_STENCIL_SIZE, 8,
-			EGL_NONE
-		};
-		EGLint contextAttributes[] = {
+	ogl_display_clean(gldisp);// Clean the display before creating surface
+
+	//gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_KHR, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
+	gldisp->mEglDisplay = f->eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	check_EGL_errors(f, "ogl_create_surface");
+	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
+		ms_error("[ogl_display] Failed to get EGL display.");
+	}
+
+	int major=0, minor=0;
+	if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
+		ms_error("[ogl_display] Failed to initialize EGLDisplay");
+	}
+#endif
+
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
+	check_EGL_errors(f, "ogl_create_surface");
+	ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
+	check_EGL_errors(f, "ogl_create_surface");
+	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
+		return;
+	}
+
+	int numConfigs = 0;
+	EGLint configAttributes[] ={
+		EGL_RED_SIZE, 8,
+		EGL_GREEN_SIZE, 8,
+		EGL_BLUE_SIZE, 8,
+		EGL_ALPHA_SIZE, 8,
+		EGL_DEPTH_SIZE, 8,
+		EGL_STENCIL_SIZE, 8,
+		EGL_NONE
+	};
+	if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
+		ms_error("[ogl_display] Failed to choose first EGLConfig");
+		check_EGL_errors(f, "ogl_create_surface");
+		return;
+	}
+
+	gldisp->mEglContext = ogl_create_context(gldisp, gldisp->target_context);
+	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
+		ms_warning("[ogl_display] target EGL context creation failed. Falling back to OpenGL ES 2.0+ ...");
+		static const EGLint request_opengl_2[] = {
 			EGL_CONTEXT_CLIENT_VERSION, 2,
-			EGL_NONE,
 			EGL_NONE
 		};
-		ogl_display_clean(gldisp);// Clean the display before creating surface
-
-		//gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_KHR, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
-		gldisp->mEglDisplay = f->eglGetDisplay(EGL_DEFAULT_DISPLAY);
-		check_EGL_errors(f, "ogl_create_surface");
-		if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
-			ms_error("[ogl_display] Failed to get EGL display.");
-		}
-
-		int major=0, minor=0;
-		if (f->eglInitialize(gldisp->mEglDisplay, &major, &minor) == EGL_FALSE)	{
-			ms_error("[ogl_display] Failed to initialize EGLDisplay");
-		}
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
-		check_EGL_errors(f, "ogl_create_surface");
-		ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
-		check_EGL_errors(f, "ogl_create_surface");
-		if (gldisp->mEglDisplay != EGL_NO_DISPLAY) {
-			int numConfigs = 0;
-			if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE || numConfigs == 0) {
-				ms_error("[ogl_display] Failed to choose first EGLConfig");
-				check_EGL_errors(f, "ogl_create_surface");
-			}else{
-				gldisp->mEglContext = f->eglCreateContext(gldisp->mEglDisplay, gldisp->mEglConfig, EGL_NO_CONTEXT, contextAttributes);
-				if (gldisp->mEglContext == EGL_NO_CONTEXT) {
-					ms_error("[ogl_display] Failed to create EGL context");
-					check_EGL_errors(f, "ogl_create_surface");
-				}
-				gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
-				if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
-					ms_error("[ogl_display] Failed to create EGL Render Surface");
-					check_EGL_errors(f, "ogl_create_surface");
-				}
-			}
-		}
+		static const MSEGLContextDescriptor fallback = {EGL_OPENGL_ES_API, request_opengl_2};
+		gldisp->mEglContext = ogl_create_context(gldisp, &fallback);
 	}
-	return gldisp->mRenderSurface != EGL_NO_SURFACE;
+	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
+		ms_error("[ogl_display] Failed to create EGL context");
+		check_EGL_errors(f, "ogl_create_surface");
+	}
+	gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
+	if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
+		ms_error("[ogl_display] Failed to create EGL Render Surface");
+		check_EGL_errors(f, "ogl_create_surface");
+	}
 }
-#endif
-void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window){
-	bool_t haveSurface = FALSE;
+
+void ogl_create_surface(
+	struct opengles_display *gldisp,
+	const OpenGlFunctions *f,
+	EGLNativeWindowType window
+) {
 	if( window ){
-#ifdef WIN32
-		haveSurface = ogl_create_surface_win(gldisp, f, window);
-#else
-		haveSurface =ogl_create_surface_default(gldisp, f, window);
-#endif
-		if(!haveSurface)
-			ms_error("[ogl_display] Couldn't create a eglCreateWindowSurface. Try to get one from EGL");
+		ogl_create_surface_default(gldisp, f, window);
 	}
-	if(!haveSurface ){// Use pointers to set surface (we don't create)
+	if(gldisp->mRenderSurface == EGL_NO_SURFACE){// Use pointers to set surface (we don't create)
+		if(window)
+			ms_error("[ogl_display] Couldn't create a eglCreateWindowSurface. Try to get one from EGL");
 		if(f->eglInitialized){
 			if( gldisp->mEglDisplay == EGL_NO_DISPLAY)
 				gldisp->mEglDisplay = f->eglGetCurrentDisplay();
@@ -1162,7 +1252,13 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 	}
 }
 
-void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctions *f, EGLNativeWindowType window, int width, int height) {
+void ogl_display_auto_init (
+	struct opengles_display *gldisp,
+	const OpenGlFunctions *f,
+	EGLNativeWindowType window,
+	int width,
+	int height
+) {
 	if (!gldisp) {
 		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
 		return;
@@ -1180,25 +1276,26 @@ void ogl_display_auto_init (struct opengles_display *gldisp, const OpenGlFunctio
 	else
 		gldisp->functions = gldisp->default_functions;
 
-	if( !gldisp->functions)
+	if(!gldisp->functions) {
 		ms_error("[ogl_display] functions is still NULL!");
-	else{
-		ogl_create_surface(gldisp, gldisp->functions, window);
-		if(gldisp->functions->eglInitialized ){
-			gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );
-			if ( gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
-			{
-				ms_error("[ogl_display] Failed to make EGLSurface current");
-			}else{
-				if( gldisp->mRenderSurface != EGL_NO_SURFACE){
-					gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width);
-					gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height);
-				}// On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
-			}
-		}
-		if( width!=0 && height!=0)
-			ogl_display_init (gldisp, gldisp->functions, width, height);
+		return;
 	}
+
+	ogl_create_surface(gldisp, gldisp->functions, window);
+	if(gldisp->functions->eglInitialized ){
+		gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay,EGL_NO_SURFACE,EGL_NO_SURFACE, EGL_NO_CONTEXT );
+		if ( gldisp->mRenderSurface == EGL_NO_SURFACE || gldisp->mEglContext == EGL_NO_CONTEXT || gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
+		{
+			ms_error("[ogl_display] Failed to make EGLSurface current");
+		}else{
+			if( gldisp->mRenderSurface != EGL_NO_SURFACE){
+				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_WIDTH, &width);
+				gldisp->functions->eglQuerySurface(gldisp->mEglDisplay, gldisp->mRenderSurface, EGL_HEIGHT, &height);
+			}// On failure, eglQuerySurface doesn't change output. It is safe to use it on all cases.
+		}
+	}
+	if( width!=0 && height!=0)
+		ogl_display_init (gldisp, gldisp->functions, width, height);
 }
 
 void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f, int width, int height) {
@@ -1256,12 +1353,25 @@ void ogl_display_init (struct opengles_display *gldisp, const OpenGlFunctions *f
 			}
 		}
 
-		load_shaders(gldisp->functions, &gldisp->program, gldisp->uniforms);
+		check_GL_errors(gldisp->functions, "ogl_display_init");
 
 		gldisp->glResourcesInitialized = TRUE;
+		gldisp->shadersLoaded = load_shaders(gldisp);
 
-		check_GL_errors(gldisp->functions, "ogl_display_init");
+		if (!gldisp->shadersLoaded) {
+			ms_error("[ogl_display] Failed to load shaders. Cleaning up...");
+			ogl_display_uninit(gldisp, TRUE);
+		}
 	}
+
+#ifdef ENABLE_OPENGL_PROFILING
+	// With the French locale, floats are printed with ',' which does not play
+	// nice with csv files.
+	setlocale(LC_NUMERIC, "POSIX");
+
+	gldisp->functions->glGenQueries(1, &gl_time_query);
+#endif
+
 }
 
 void ogl_display_uninit (struct opengles_display *gldisp, bool_t freeGLresources) {
@@ -1317,6 +1427,14 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation, MSVid
 	check_GL_errors(f, "ogl_display_render");
 	clean_GL_errors(f);
 
+#ifdef ENABLE_OPENGL_PROFILING
+	f->glFinish();
+	f->glBeginQuery(GL_TIME_ELAPSED, gl_time_query);
+	clock_t start_time = clock();
+	struct timespec wall_start_time;
+	clock_gettime(CLOCK_MONOTONIC, &wall_start_time);
+#endif
+
 	if(gldisp->functions->eglInitialized){
 		if ( gldisp->mRenderSurface != EGL_NO_SURFACE && gldisp->functions->eglMakeCurrent(gldisp->mEglDisplay, gldisp->mRenderSurface, gldisp->mRenderSurface, gldisp->mEglContext) == EGL_FALSE)
 		{// No need to test other variable as if mRenderSurface is set, then others are too.
@@ -1335,7 +1453,7 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation, MSVid
 			}
 		}
 	}
-	if(render && gldisp->functions->glInitialized){
+	if(render && gldisp->functions->glInitialized && gldisp->shadersLoaded){
 		GL_OPERATION(f, glClearColor(0.f, 0.f, 0.f, 0.f));
 		GL_OPERATION(f, glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 		GL_OPERATION(f, glUseProgram(gldisp->program))
@@ -1347,6 +1465,29 @@ void ogl_display_render (struct opengles_display *gldisp, int orientation, MSVid
 		if(f->eglInitialized && gldisp->mRenderSurface != EGL_NO_SURFACE)
 			f->eglSwapBuffers(gldisp->mEglDisplay, gldisp->mRenderSurface);
 	}
+
+#ifdef ENABLE_OPENGL_PROFILING
+	f->glEndQuery(GL_TIME_ELAPSED);
+	f->glFinish();
+
+	double elapsed_cpu_time = (double)(clock() - start_time) / CLOCKS_PER_SEC * 1000.f;
+
+	GLuint64 elapsed_gpu_time;
+	f->glGetQueryObjectui64v(gl_time_query, GL_QUERY_RESULT, &elapsed_gpu_time);
+
+	struct timespec wall_end_time;
+	clock_gettime(CLOCK_MONOTONIC, &wall_end_time);
+
+	double elapsed_wall_clock_time =
+		  (double)(wall_end_time.tv_nsec - wall_start_time.tv_nsec) / 1000000.f
+		+ (double)(wall_end_time.tv_sec - wall_start_time.tv_sec) * 1000.f;
+
+	ms_message(
+		"<Magic for grep>, CPU (ms), GPU (ms), Wall clock (ms):\n RUgx7N %f %f %f",
+		elapsed_cpu_time,
+		(double)elapsed_gpu_time / 1000000.f,
+		elapsed_wall_clock_time);
+#endif
 }
 
 void ogl_display_zoom (struct opengles_display *gldisp, float *params) {

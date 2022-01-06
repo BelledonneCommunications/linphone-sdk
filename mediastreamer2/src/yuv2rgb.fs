@@ -1,6 +1,9 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
+
+// Legacy shader, see YCbCr_to_RGB.frag
+
 uniform sampler2D t_texture_y;
 uniform sampler2D t_texture_u;
 uniform sampler2D t_texture_v;

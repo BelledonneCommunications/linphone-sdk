@@ -25,39 +25,33 @@
 #endif
 
 
+#include <EGL/egl.h>
 
 #if TARGET_OS_IPHONE
-	#include <EGL/egl.h>
-	#include <OpenGLES/ES2/gl.h>
-	#include <OpenGLES/ES2/glext.h>
+	#include <OpenGLES/ES3/gl.h>
 #elif TARGET_OS_MAC
-	#include <EGL/egl.h>
-	#include <OpenGL/OpenGL.h>
-	#include <OpenGL/gl.h>
+    #define GL_GLEXT_PROTOTYPES
+	#include <GLES3/gl3.h>
 #elif __ANDROID__
-	#include <EGL/egl.h>
-	#include <GLES2/gl2.h>
-	#include <GLES2/gl2ext.h>
+    #define GL_GLEXT_PROTOTYPES
+	#include <GLES3/gl3.h>
 #elif _WIN32
     #define GL_GLEXT_PROTOTYPES
-    #include <EGL/egl.h>
     #include <EGL/eglext.h>
-    #include <GLES2/gl2.h>
-    #include <GLES2/gl2ext.h>
+    #include <GLES3/gl3.h>
 #else
-#ifndef QOPENGLFUNCTIONS_H // glew is already included by QT.
-	#include <GL/glew.h>
-	#include <EGL/egl.h>
-#else
-	#include <EGL/egl.h>
-// Workaround for Qt, we need to undefine these defines. Fix error: expected unqualified-id before numeric constant on CursorShape
-	#undef None
-	#undef CursorShape
+	#ifndef QOPENGLFUNCTIONS_H // glew is already included by QT.
+		#include <GL/glew.h>
+	#else
+	// Workaround for Qt, we need to undefine these defines. Fix error: expected unqualified-id before numeric constant on CursorShape
+		#undef None
+		#undef CursorShape
+	#endif
 #endif
 
-#endif
-#include <GLES2/gl2platform.h>
-#include "bctoolbox/port.h"
+#include <GLES3/gl3platform.h> // GL_APIENTRY
+#include "bctoolbox/port.h" // bool_t
+
 // =============================================================================
 
 typedef void (GL_APIENTRY *resolveGlActiveTexture)(GLenum texture);
@@ -209,6 +203,16 @@ typedef void (GL_APIENTRY *resolveGlVertexAttrib4fv)(GLuint indx, const GLfloat 
 typedef void (GL_APIENTRY *resolveGlVertexAttribPointer)(GLuint indx, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *ptr);
 typedef void (GL_APIENTRY *resolveGlViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
 
+// OpenGL 3.0+
+typedef void (GL_APIENTRY *resolveGlGenVertexArrays)(GLsizei n, GLuint *arrays);
+typedef void (GL_APIENTRY *resolveGlBindVertexArray)(GLuint array);
+
+// Performance profiling
+typedef void (GL_APIENTRY *glGenQueriesSignature)(GLsizei n, GLuint *ids);
+typedef void (GL_APIENTRY *glBeginQuerySignature)(GLenum target, GLuint id);
+typedef void (GL_APIENTRY *glEndQuerySignature)(GLenum target);
+typedef void (GL_APIENTRY *glGetQueryObjectui64vSignature)(GLuint id, GLenum pname, GLuint64 *params);
+
 // -----------------------------------------------------------------------------
 
 typedef void *(GL_APIENTRY *resolveEGLGetProcAddress)(char const * procname);
@@ -244,7 +248,7 @@ struct OpenGlFunctions {
 	resolveGlActiveTexture glActiveTexture;
 	resolveGlAttachShader glAttachShader;
 	resolveGlBindAttribLocation glBindAttribLocation;
-	// resolveGlBindBuffer glBindBuffer;
+	resolveGlBindBuffer glBindBuffer; // OpenGL 2.0+
 	// resolveGlBindFramebuffer glBindFramebuffer;
 	// resolveGlBindRenderbuffer glBindRenderbuffer;
 	resolveGlBindTexture glBindTexture;
@@ -253,8 +257,8 @@ struct OpenGlFunctions {
 	// resolveGlBlendEquationSeparate glBlendEquationSeparate;
 	// resolveGlBlendFunc glBlendFunc;
 	// resolveGlBlendFuncSeparate glBlendFuncSeparate;
-	// resolveGlBufferData glBufferData;
-	// resolveGlBufferSubData glBufferSubData;
+	resolveGlBufferData glBufferData; // OpenGL 2.0+
+	resolveGlBufferSubData glBufferSubData; // OpenGL 2.0+
 	// resolveGlCheckFramebufferStatus glCheckFramebufferStatus;
 	resolveGlClear glClear;
 	resolveGlClearColor glClearColor;
@@ -290,7 +294,7 @@ struct OpenGlFunctions {
 	// resolveGlFramebufferRenderbuffer glFramebufferRenderbuffer;
 	// resolveGlFramebufferTexture2D glFramebufferTexture2D;
 	// resolveGlFrontFace glFrontFace;
-	// resolveGlGenBuffers glGenBuffers;
+	resolveGlGenBuffers glGenBuffers; // OpenGL 2.0+
 	// resolveGlGenFramebuffers glGenFramebuffers;
 	// resolveGlGenRenderbuffers glGenRenderbuffers;
 	resolveGlGenTextures glGenTextures;
@@ -384,6 +388,15 @@ struct OpenGlFunctions {
 	resolveGlVertexAttribPointer glVertexAttribPointer;
 	resolveGlViewport glViewport;
 
+	resolveGlGenVertexArrays glGenVertexArrays; // OpenGL 3.0+
+	resolveGlBindVertexArray glBindVertexArray; // OpenGL 3.0+
+
+	// Performance profiling
+	glGenQueriesSignature glGenQueries;
+	glBeginQuerySignature glBeginQuery;
+	glEndQuerySignature glEndQuery;
+	glGetQueryObjectui64vSignature glGetQueryObjectui64v;
+
 	resolveEGLGetProcAddress eglGetProcAddress;
 	
 	resolveEGLQueryAPI eglQueryAPI;
@@ -413,5 +426,13 @@ struct OpenGlFunctions {
 };
 
 typedef struct OpenGlFunctions OpenGlFunctions;
+
+/**
+ * Describes how an OpenGL context should be created through EGL
+ */
+typedef struct _MSEGLContextDescriptor {
+	const EGLenum api;
+	const EGLint *const attrib_list;
+} MSEGLContextDescriptor;
 
 #endif

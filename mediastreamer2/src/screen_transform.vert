@@ -1,10 +1,12 @@
-// Legacy shader, see screen_transform.vert
+#version 410 core
 
-attribute vec2 position;
-attribute vec2 uv;
+// Scales (and rotates) decoded frame to output surface
+
+in vec2 position;
+in vec2 uv;
 uniform mat4 proj_matrix;
 uniform float rotation;
-varying vec2 uvVarying;
+out vec2 uvVarying;
 
 void main()
 {

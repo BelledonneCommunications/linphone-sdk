@@ -314,7 +314,12 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 			ogl_display_uninit(data->display, FALSE);
 		if(context_info){
 			if( context_info->window )// Window is set : do EGL initialization from it
-				ogl_display_auto_init(data->display, &data->functions, (EGLNativeWindowType)context_info->window, context_info->width, context_info->height);
+				ogl_display_auto_init(
+					data->display,
+					&data->functions,
+					(EGLNativeWindowType)context_info->window,
+					context_info->width,
+					context_info->height);
 			else// Just use input size as it is needed for viewport
 				ogl_display_init(data->display, &data->functions, context_info->width, context_info->height);
 		}
@@ -326,6 +331,13 @@ static int ogl_call_render (MSFilter *f, void *arg) {
 	ms_mutex_unlock(&gLock);
 	if( f != NULL)
 		ms_filter_unlock(f);
+	return 0;
+}
+
+static int ms_ogl_display_set_egl_target_context (MSFilter *f, void *arg) {
+	FilterData *data = (FilterData *)f->data;
+	ogl_display_set_target_context(data->display, (const MSEGLContextDescriptor *const)arg);
+
 	return 0;
 }
 
@@ -355,38 +367,25 @@ static MSFilterMethod methods[] = {
 	{ MS_VIDEO_DISPLAY_ENABLE_MIRRORING, ogl_enable_mirroring },
 	{ MS_VIDEO_DISPLAY_SET_MODE, ogl_set_mode },
 	{ MS_OGL_RENDER, ogl_call_render },
+	{ MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT, ms_ogl_display_set_egl_target_context },
 	{ 0, NULL }
 };
+MSFilterDesc ms_ogl_desc = {
+	MS_OGL_ID, // id
+	"MSOGL", // name
+	N_("OpenGL ES 2 display via EGL."), // text
+	MS_FILTER_OTHER, // category
+	NULL, // enc_fmt
+	2, // ninputs
+	0, // noutputs
+	ogl_init, // init
+	ogl_preprocess, // preprocess
+	ogl_process, // process
+	NULL, // postprocess
+	ogl_uninit, // uninit
+	methods // methods
+};
 #ifdef __cplusplus
-MSFilterDesc ms_ogl_desc = {
-	MS_OGL_ID,
-	"MSOGL",
-	N_("A generic opengl video display"),
-	 MS_FILTER_OTHER,
-	NULL,
-	2,
-	0,
-	ogl_init,
-	ogl_preprocess,
-	ogl_process,
-	NULL,
-	ogl_uninit,
-	methods
-};
 }// extern "C"
-#else
-MSFilterDesc ms_ogl_desc = {
-	.id = MS_OGL_ID,
-	.name = "MSOGL",
-	.text = "A generic opengl video display",
-	.category = MS_FILTER_OTHER,
-	.ninputs = 2,
-	.noutputs = 0,
-	.init = ogl_init,
-	.preprocess= ogl_preprocess,
-	.process = ogl_process,
-	.uninit = ogl_uninit,
-	.methods = methods
-};
 #endif
 MS_FILTER_DESC_EXPORT(ms_ogl_desc)

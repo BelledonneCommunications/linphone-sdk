@@ -56,24 +56,10 @@
 extern "C"{
 #endif
 /* Shader Utilities */
-GLint glueCompileShader (const OpenGlFunctions *f, GLenum target, GLsizei count, const GLchar *sources, GLuint *shader);
+GLint glueCompileShader (const OpenGlFunctions *f, const GLchar *sources, GLuint shader);
 GLint glueLinkProgram (const OpenGlFunctions *f, GLuint program);
 GLint glueValidateProgram (const OpenGlFunctions *f, GLuint program);
 GLint glueGetUniformLocation (const OpenGlFunctions *f, GLuint program, const GLchar *name);
-
-/* Shader Conveniences */
-GLint glueCreateProgram (
-  const OpenGlFunctions *f,
-  const GLchar *vertSource,
-  const GLchar *fragSource,
-  GLsizei attribNameCt,
-  const GLchar **attribNames,
-  const GLint *attribLocations,
-  GLsizei uniformNameCt,
-  const GLchar **uniformNames,
-  GLint *uniformLocations,
-  GLuint *program
-);
 
 #ifdef __cplusplus
 }

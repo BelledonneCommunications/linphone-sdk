@@ -21,8 +21,6 @@
 #include "opengles_display.h"
 
 #include <Cocoa/Cocoa.h>
-#include <OpenGL/OpenGL.h>
-#include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
 
 #import <QuartzCore/CATransaction.h>

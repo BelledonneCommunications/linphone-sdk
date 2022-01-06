@@ -19,6 +19,10 @@
 #include "opengl_functions.h"
 #include "mediastreamer2/mscommon.h"
 
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h" // ENABLE_OPENGL_PROFILING
+#endif
+
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
@@ -123,7 +127,10 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture)) != NULL);
 	f->glInitialized &= ((f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader)) != NULL);
 	f->glInitialized &= ((f->glBindAttribLocation = CAST(resolveGlBindAttribLocation, glBindAttribLocation)) != NULL);
+	f->glInitialized &= ((f->glBindBuffer = CAST(resolveGlBindBuffer, glBindBuffer)) != NULL);
 	f->glInitialized &= ((f->glBindTexture = CAST(resolveGlBindTexture, glBindTexture)) != NULL);
+	f->glInitialized &= ((f->glBufferData = CAST(resolveGlBufferData, glBufferData)) != NULL);
+	f->glInitialized &= ((f->glBufferSubData = CAST(resolveGlBufferSubData, glBufferSubData)) != NULL);
 	f->glInitialized &= ((f->glClear = CAST(resolveGlClear, glClear)) != NULL);
 	f->glInitialized &= ((f->glClearColor = CAST(resolveGlClearColor, glClearColor)) != NULL);
 	f->glInitialized &= ((f->glCompileShader = CAST(resolveGlCompileShader, glCompileShader)) != NULL);
@@ -136,6 +143,7 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glDrawArrays = CAST(resolveGlDrawArrays, glDrawArrays)) != NULL);
 	f->glInitialized &= ((f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
 	f->glInitialized &= ((f->glFinish = CAST(resolveGlFinish, glFinish)) != NULL);
+	f->glInitialized &= ((f->glGenBuffers = CAST(resolveGlGenBuffers, glGenBuffers)) != NULL);
 	f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures)) != NULL);
 	f->glInitialized &= ((f->glGetError = CAST(resolveGlGetError, glGetError)) != NULL);
 	f->glInitialized &= ((f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv)) != NULL);
@@ -158,6 +166,23 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glValidateProgram = CAST(resolveGlValidateProgram, glValidateProgram)) != NULL);
 	f->glInitialized &= ((f->glVertexAttribPointer = CAST(resolveGlVertexAttribPointer, glVertexAttribPointer)) != NULL);
 	f->glInitialized &= ((f->glViewport = CAST(resolveGlViewport, glViewport)) != NULL);
+
+	// Only needed for OpenGL 3.0+
+	f->glGenVertexArrays = CAST(resolveGlGenVertexArrays, glGenVertexArrays);
+	f->glBindVertexArray = CAST(resolveGlBindVertexArray, glBindVertexArray);
+
+#ifdef ENABLE_OPENGL_PROFILING
+	f->glGenQueries = CAST(glGenQueriesSignature, glGenQueries);
+	f->glBeginQuery = CAST(glBeginQuerySignature, glBeginQuery);
+	f->glEndQuery = CAST(glEndQuerySignature, glEndQuery);
+	f->glGetQueryObjectui64v = CAST(glGetQueryObjectui64vSignature, glGetQueryObjectui64v);
+#else
+	f->glGenQueries = NULL;
+	f->glBeginQuery = NULL;
+	f->glEndQuery = NULL;
+	f->glGetQueryObjectui64v = NULL;
+#endif
+
 	//----------------------    EGL
 #if defined(_WIN32)// On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to embedd "libEGL.dll" with the app
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)

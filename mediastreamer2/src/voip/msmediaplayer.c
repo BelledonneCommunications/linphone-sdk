@@ -221,11 +221,20 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
+
+	ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
+	_create_decoders(obj);
+	_create_sinks(obj);
+
 	return TRUE;
 }
 
 bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {
 	return obj->video_sink != NULL;
+}
+
+MSFilter *ms_media_player_get_video_sink(const MSMediaPlayer *const obj) {
+	return obj->video_sink;
 }
 
 void ms_media_player_close(MSMediaPlayer *obj) {
@@ -247,9 +256,6 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		return FALSE;
 	}
 	if (!obj->graph_ready){
-		ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
-		_create_decoders(obj);
-		_create_sinks(obj);
 		if(!_link_all(obj)) {
 			ms_error("Could not build playing graph");
 			_destroy_graph(obj);
