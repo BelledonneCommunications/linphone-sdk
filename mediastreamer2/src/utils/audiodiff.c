@@ -30,32 +30,32 @@ typedef struct {
 	int nchannels;
 	int16_t *buffer;
 	int nsamples;
-	int fd;
+	bctbx_vfs_file_t *fp;
 }FileInfo;
 
 static void file_info_destroy(FileInfo *fi){
-	close(fi->fd);
+	bctbx_file_close(fi->fp);
 	ms_free(fi->buffer);
 	ms_free(fi);
 }
 
 static FileInfo *file_info_new(const char *file){
-	int fd;
+	bctbx_vfs_file_t *fp;
 	FileInfo *fi;
 	wave_header_t header;
 	int hsize;
-	struct stat stbuf;
 	int size;
+	int64_t fsize;
 
-	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
+	if ((fp=bctbx_file_open2(bctbx_vfs_get_default(),file,O_RDONLY|O_BINARY))==NULL){
 		ms_error("Failed to open %s : %s",file,strerror(errno));
 		return NULL;
 	}
-	if (fstat(fd,&stbuf)==-1){
+	if ((fsize = bctbx_file_size(fp))==BCTBX_VFS_ERROR){
 		ms_error("could not fstat.");
 		return NULL;
 	}
-	hsize=ms_read_wav_header_from_fd(&header,fd);
+	hsize=ms_read_wav_header_from_fp(&header,fp);
 	if (hsize<=0){
 		ms_error("%s: not a wav file", file);
 		return NULL;
@@ -66,11 +66,11 @@ static FileInfo *file_info_new(const char *file){
 	}
 	
 	fi=ms_new0(FileInfo,1);
-	size=stbuf.st_size-hsize;
+	size=(int)fsize-hsize;
 	fi->rate=wave_header_get_rate(&header);
 	fi->nchannels=wave_header_get_channel(&header);
 	fi->nsamples=size/(sizeof(int16_t)*fi->nchannels);
-	fi->fd = fd;
+	fi->fp = fp;
 
 	return fi;
 }
@@ -80,13 +80,15 @@ static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_s
 	int size = fi->nsamples * fi->nchannels *2;
 	fi->buffer=ms_new0(int16_t,(fi->nsamples + 2*zero_pad_samples + 2*zero_pad_end_samples) * fi->nchannels);
 	
-	err = read(fi->fd,fi->buffer + (zero_pad_samples * fi->nchannels), size);
-	if (err == -1){
+	err = bctbx_file_read2(fi->fp,fi->buffer + (zero_pad_samples * fi->nchannels), size);
+	if (err == BCTBX_VFS_ERROR){
 		ms_error("Could not read file: %s",strerror(errno));
-	}else if (err<size){
-		ms_error("Partial read of %i bytes",err);
-		err = -1;
-	}else err = 0;
+	}else {
+		if (err<size){
+			ms_error("Partial read of %i bytes",err);
+			err = -1;
+		}else err = 0;
+	}
 	fi->nsamples += zero_pad_end_samples; /*consider that the end-padding zero samples are part of the audio*/
 	return err;
 }

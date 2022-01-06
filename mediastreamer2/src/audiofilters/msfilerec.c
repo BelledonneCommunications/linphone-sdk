@@ -24,15 +24,16 @@
 #include "mediastreamer2/msfilerec.h"
 #include "waveheader.h"
 #include "asyncrw.h"
+#include <bctoolbox/vfs.h>
 
 #include "fd_portab.h" // keep this include at the last of the inclusion sequence!
 
 
 static int rec_close(MSFilter *f, void *arg);
-static void write_wav_header(int fd, int rate, int nchannels, int size);
+static void write_wav_header(bctbx_vfs_file_t *fp, int rate, int nchannels, int size);
 
 typedef struct RecState{
-	int fd;
+	bctbx_vfs_file_t *fp;
 	int rate;
 	int nchannels;
 	int size;
@@ -46,7 +47,6 @@ typedef struct RecState{
 
 static void rec_init(MSFilter *f){
 	RecState *s=ms_new0(RecState,1);
-	s->fd=-1;
 	s->rate=8000;
 	s->nchannels = 1;
 	s->size=0;
@@ -106,9 +106,9 @@ static void rec_process(MSFilter *f){
 
 static int rec_get_length(const char *file, int *length){
 	wave_header_t header;
-	int fd=open(file,O_RDONLY|O_BINARY);
-	int ret=ms_read_wav_header_from_fd(&header,fd);
-	close(fd);
+	bctbx_vfs_file_t *fp = bctbx_file_open2(bctbx_vfs_get_default(), file, O_RDONLY|O_BINARY);
+	int ret=ms_read_wav_header_from_fp(&header,fp);
+	bctbx_file_close(fp);
 	if (ret>0){
 		*length=le_uint32(header.data_chunk.len);
 	}else{
@@ -121,13 +121,14 @@ static int rec_open(MSFilter *f, void *arg){
 	RecState *s=(RecState*)f->data;
 	const char *filename=(const char*)arg;
 	int flags;
+	int64_t fsize;
 	
-	if (s->fd!=-1) rec_close(f,NULL);
+	if (s->fp) rec_close(f,NULL);
 	
 	if (strstr(filename, ".wav") == filename + strlen(filename) - 4){
 		s->is_wav = TRUE;
 	}
-	
+
 	if (access(filename,R_OK|W_OK)==0){
 		flags=O_WRONLY|O_BINARY;
 		if (rec_get_length(filename,&s->size)>0){
@@ -138,22 +139,23 @@ static int rec_open(MSFilter *f, void *arg){
 		flags=O_WRONLY|O_CREAT|O_TRUNC|O_BINARY;
 		s->size=0;
 	}
-	s->fd=open(filename, flags, S_IRUSR|S_IWUSR);
-	if (s->fd==-1){
+
+	s->fp = bctbx_file_open2(bctbx_vfs_get_default(), filename, flags);
+	if (s->fp == NULL) {
 		ms_warning("Cannot open %s: %s",filename,strerror(errno));
 		return -1;
 	}
+
 	if (s->size>0){
-		struct stat statbuf;
-		if (fstat(s->fd,&statbuf)==0){
-			if (lseek(s->fd,statbuf.st_size,SEEK_SET) == -1){
+		if ((fsize=bctbx_file_size(s->fp))!=BCTBX_VFS_ERROR){
+			if (bctbx_file_seek(s->fp,(off_t)fsize,SEEK_SET) == BCTBX_VFS_ERROR){
 				int err = errno;
 				ms_error("Could not lseek to end of file: %s",strerror(err));
 			}
 		}else ms_error("fstat() failed: %s",strerror(errno));
 	}
 	ms_message("MSFileRec: recording into %s",filename);
-	s->writer = ms_async_writer_new(s->fd);
+	s->writer = ms_async_writer_new(s->fp);
 	ms_mutex_lock(&f->lock);
 	s->state=MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
@@ -180,7 +182,7 @@ static int rec_stop(MSFilter *f, void *arg){
 	return 0;
 }
 
-static void write_wav_header(int fd, int rate, int nchannels, int size){
+static void write_wav_header(bctbx_vfs_file_t *fp, int rate, int nchannels, int size){
 	wave_header_t header;
 	memcpy(&header.riff_chunk.riff,"RIFF",4);
 	header.riff_chunk.len=le_uint32(size+32);
@@ -197,22 +199,23 @@ static void write_wav_header(int fd, int rate, int nchannels, int size){
 
 	memcpy(&header.data_chunk.data,"data",4);
 	header.data_chunk.len=le_uint32(size);
-	lseek(fd,0,SEEK_SET);
-	if (write(fd,&header,sizeof(header))!=sizeof(header)){
+	bctbx_file_seek(fp, 0, SEEK_SET);
+	if (bctbx_file_write2(fp, &header, sizeof(header))!=sizeof(header)){
 		ms_warning("Fail to write wav header.");
 	}
 }
 
 static void _rec_close(RecState *s){
 	s->state=MSRecorderClosed;
-	if (s->fd!=-1){
+	if (s->fp){
 		ms_async_writer_destroy(s->writer);
 		s->writer = NULL;
 		if (s->is_wav){
-			write_wav_header(s->fd, s->rate, s->nchannels, s->size);
+			write_wav_header(s->fp, s->rate, s->nchannels, s->size);
 		}
-		close(s->fd);
-		s->fd=-1;
+
+		bctbx_file_close(s->fp);
+		s->fp=NULL;
 	}
 }
 
@@ -260,7 +263,7 @@ static int rec_get_nchannels(MSFilter *f, void *arg){
 
 static void rec_uninit(MSFilter *f){
 	RecState *s=(RecState*)f->data;
-	if (s->fd!=-1) rec_close(f,NULL);
+	if (s->fp) rec_close(f,NULL);
 	ms_free(s);
 }
 

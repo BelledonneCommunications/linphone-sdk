@@ -165,7 +165,7 @@ void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id) {
 
 bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	wave_header_t header;
-	int fd;
+	bctbx_vfs_file_t *fp;
 	char *tmp;
 
 	if(obj->is_open) {
@@ -184,16 +184,16 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	}
 	switch(obj->format) {
 	case MS_FILE_FORMAT_WAVE:
-		fd = open(filepath, O_RDONLY);
-		if(fd == -1) {
+		fp = bctbx_file_open2(bctbx_vfs_get_default(), filepath, O_RDONLY);
+		if(fp == NULL) {
 			ms_error("Cannot open %s", filepath);
 			return FALSE;
 		}
-		if(ms_read_wav_header_from_fd(&header, fd) == -1) {
+		if(ms_read_wav_header_from_fp(&header, fp) == -1) {
 			ms_error("Cannot open %s. Invalid WAV format", filepath);
 			return FALSE;
 		}
-		close(fd);
+		bctbx_file_close(fp);
 		if(wave_header_get_format_type(&header) != WAVE_FORMAT_PCM) {
 			ms_error("Cannot open %s. Codec not supported", filepath);
 			return FALSE;

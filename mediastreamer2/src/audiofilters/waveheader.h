@@ -21,6 +21,8 @@
 #ifndef waveheader_h
 #define waveheader_h
 
+#include <bctoolbox/vfs.h>
+
 #ifdef swap16
 #else
 /* all integer in wav header must be read in least endian order */
@@ -96,6 +98,6 @@ typedef struct _wave_header_t
 #define wave_header_get_bpsmpl(header) \
 	le_uint16((header)->format_chunk.blockalign)
 
-int ms_read_wav_header_from_fd(wave_header_t *header,int fd);
+int ms_read_wav_header_from_fp(wave_header_t *header,bctbx_vfs_file_t *fp);
 
 #endif
