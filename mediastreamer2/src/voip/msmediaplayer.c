@@ -70,6 +70,7 @@ struct _MSMediaPlayer {
 	MSTicker *ticker;
 	MSFileFormat format;
 	bool_t is_open;
+	bool_t graph_ready;
 	int loop_interval;
 	char *filename;
 	MSMediaPlayerEofCallback eof_cb;
@@ -217,21 +218,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		return FALSE;
 	}
 	ms_free(tmp);
-	_create_decoders(obj);
-	_create_sinks(obj);
-	if(!_link_all(obj)) {
-		ms_error("Cannot open %s. Could not build playing graph", filepath);
-		_destroy_graph(obj);
-		return FALSE;
-	}
-	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
-	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
-	if (obj->snd_card) {
-		ms_snd_card_notify_audio_session_activated(obj->snd_card, TRUE);
-	}
-	obj->ticker = ms_ticker_new();
-	ms_ticker_set_name(obj->ticker, "Player");
-	ms_ticker_attach(obj->ticker, obj->player);
+	
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
 	return TRUE;
@@ -243,13 +230,13 @@ bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {
 
 void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		
 		ms_message("MSMediaPlayer: closing file.");
-		ms_ticker_detach(obj->ticker, obj->player);
-		ms_ticker_destroy(obj->ticker);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
-		_unlink_all(obj);
-		_destroy_graph(obj);
 		obj->is_open = FALSE;
+		if (obj->graph_ready){
+			ms_media_player_stop(obj);
+		}
 		ms_free(obj->filename); obj->filename = NULL;
 	}
 }
@@ -259,6 +246,25 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		ms_error("Cannot start playing. No file has been opened");
 		return FALSE;
 	}
+	if (!obj->graph_ready){
+		_create_decoders(obj);
+		_create_sinks(obj);
+		if(!_link_all(obj)) {
+			ms_error("Could not build playing graph");
+			_destroy_graph(obj);
+			return FALSE;
+		}
+		ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
+		ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
+		if (obj->snd_card) {
+			ms_snd_card_notify_audio_session_activated(obj->snd_card, TRUE);
+		}
+		obj->ticker = ms_ticker_new();
+		ms_ticker_set_name(obj->ticker, "Player");
+		ms_ticker_attach(obj->ticker, obj->player);
+		obj->graph_ready = TRUE;
+	}
+	
 	if(ms_filter_call_method_noarg(obj->player, MS_PLAYER_START) == -1) {
 		ms_error("Could not play %s. Playing filter failed to start", obj->filename);
 		return FALSE;
@@ -268,10 +274,18 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 
 void ms_media_player_stop(MSMediaPlayer *obj) {
 	int seek_pos = 0;
-	if(obj->is_open) {
-		ms_message("MSMediaPlayer: sotping playback.");
+	if(obj->is_open && obj->player) {
+		ms_message("MSMediaPlayer: stopping playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 		ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos);
+	}
+	if (obj->graph_ready){
+		ms_ticker_detach(obj->ticker, obj->player);
+		ms_ticker_destroy(obj->ticker);
+		
+		_unlink_all(obj);
+		_destroy_graph(obj);
+		obj->graph_ready = FALSE;
 	}
 }
 
