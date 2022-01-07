@@ -199,7 +199,7 @@ belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse_file(const ch
  */
 int belle_sip_get_certificate_and_pkey_in_dir(const char *path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey, belle_sip_certificate_raw_format_t format) {
 	/* get all *.pem file from given path */
-	belle_sip_list_t *file_list = belle_sip_parse_directory(path, ".pem");
+	belle_sip_list_t *file_list = bctbx_parse_directory(path, ".pem");
 	char *filename = NULL;
 
 	file_list = belle_sip_list_pop_front(file_list, (void **)&filename);
@@ -276,7 +276,7 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 		memcpy(name_with_path+path_length+strlen(subject), ".pem", 5);
 
 		/* check if directory exists and if not, create it */
-		belle_sip_mkdir(path);
+		bctbx_mkdir(path);
 
 		if ( (fd = fopen(name_with_path, "w") ) == NULL) {
 			belle_sip_error("Certificate generation can't open/create file %s", name_with_path);

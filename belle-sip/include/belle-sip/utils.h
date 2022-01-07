@@ -155,14 +155,6 @@ typedef void (*belle_sip_background_task_end_callback_t)(void *);
 BELLESIP_EXPORT unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data);
 BELLESIP_EXPORT void belle_sip_end_background_task(unsigned long id);
 
-/**
- * create a directory if it doesn't already exists
- *
- * @param[in]   path        The directory to be created
- * @return 0 in case of succes, -1 otherwise, note it returns -1 if the directory already exists
- */
-BELLESIP_EXPORT int belle_sip_mkdir(const char *path);
-
 BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff);
 BELLESIP_EXPORT char* belle_sip_username_unescape_unnecessary_characters(const char* buff);
 BELLESIP_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
