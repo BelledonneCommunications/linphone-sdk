@@ -1454,7 +1454,7 @@ MSFilterDesc au_write_desc={
 // This interface gives the impression that there will be 2 different MSSndCard for the Read filter and the Write filter.
 // In reality, we'll always be using a single same card for both.
 static MSFilter *ms_au_read_new(MSSndCard *mscard){
-	ms_message("ms_au_read_new, sound card : %p", mscard);
+	ms_message("ms_au_read_new, sound card : %p (%s)", mscard, ms_snd_card_get_name(mscard));
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	if ([au_holder read_filter] != NULL) {
 		ms_fatal("Trying to create a new au_read filter when there is already one existing");
@@ -1471,7 +1471,7 @@ static MSFilter *ms_au_read_new(MSSndCard *mscard){
 }
 
 static MSFilter *ms_au_write_new(MSSndCard *mscard){
-	ms_message("ms_au_write_new, sound card : %p", mscard);
+	ms_message("ms_au_write_new, sound card : %p (%s)", mscard, ms_snd_card_get_name(mscard));
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	if ([au_holder write_filter] != NULL) {
 		ms_fatal("Trying to create a new au_write filter when there is already one existing");

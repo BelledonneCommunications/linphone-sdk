@@ -247,6 +247,7 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		return FALSE;
 	}
 	if (!obj->graph_ready){
+		ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
 		_create_decoders(obj);
 		_create_sinks(obj);
 		if(!_link_all(obj)) {

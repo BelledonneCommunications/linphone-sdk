@@ -74,7 +74,7 @@ MSMediaRecorder *ms_media_recorder_new(MSFactory* factory, MSSndCard *snd_card, 
 	MSMediaRecorder *obj = (MSMediaRecorder *)ms_new0(MSMediaRecorder, 1);
 	obj->ticker = ms_ticker_new();
 	ms_ticker_set_name(obj->ticker, "Recorder");
-	obj->snd_card = snd_card;
+	obj->snd_card = ms_snd_card_ref(snd_card);
 	obj->web_cam = web_cam;
 	if(video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
@@ -91,6 +91,7 @@ MSMediaRecorder *ms_media_recorder_new(MSFactory* factory, MSSndCard *snd_card, 
 void ms_media_recorder_free(MSMediaRecorder *obj) {
 	ms_media_recorder_close(obj);
 	ms_ticker_destroy(obj->ticker);
+	ms_snd_card_unref(obj->snd_card);
 	ms_free_if_not_null(obj->video_display);
 	ms_free_if_not_null(obj->video_codec);
 	ms_free(obj);
@@ -138,6 +139,7 @@ bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath, int de
 		return FALSE;
 	}
 	ms_free(tmp);
+	ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_VOICE);
 	_create_sources(obj);
 	_set_pin_fmt(obj);
 	_create_encoders(obj, device_orientation);
