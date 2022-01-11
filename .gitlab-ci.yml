@@ -36,6 +36,7 @@ workflow:
 
 include:
   - '.docker-images.yml'
+  - '.set_parallel_level.yml'
   - '.gitlab-ci-files/job-linux-prepare.yml'
   - '.gitlab-ci-files/job-android.yml'
   - '.gitlab-ci-files/job-ios.yml'

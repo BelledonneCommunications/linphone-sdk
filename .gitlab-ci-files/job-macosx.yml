@@ -15,6 +15,7 @@
     LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
 
   script:
+    - !reference [.set-max-jobs-unix, script]
     - echo $MACOS_DEPLOY_URL
     - echo $XCODE_OPTIONS
     - ccache -s
@@ -64,7 +65,8 @@ job-macosx-makefile:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .job-macosx-desktop
 
 job-macosx-m1-makefile:
@@ -73,7 +75,8 @@ job-macosx-m1-makefile:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .job-macosx-m1-desktop
 
 #################################################
