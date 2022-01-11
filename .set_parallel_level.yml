@@ -1,0 +1,16 @@
+######################################################################
+# We set the parallel level, independantly of the build tools used
+######################################################################
+
+.set-max-jobs-unix:
+  script:
+    - |
+      case "$CMAKE_GENERATOR" in
+          'Unix Makefiles')
+            export CMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS ;;
+          'Ninja')
+            export CMAKE_BUILD_PARALLEL_LEVEL=$NINJA_JOBS ;;
+           *)
+            export CMAKE_BUILD_PARALLEL_LEVEL=1 ;;
+        esac
+          echo "CMAKE_BUILD_PARALLEL_LEVEL='$CMAKE_BUILD_PARALLEL_LEVEL'"

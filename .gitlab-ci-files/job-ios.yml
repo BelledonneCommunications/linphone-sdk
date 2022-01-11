@@ -9,6 +9,7 @@
 
 
   script:
+    - !reference [.set-max-jobs-unix, script]
     - echo $IOS_DEPLOY_URL
     - ccache -s
     - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
@@ -53,7 +54,8 @@ job-ios-makefile:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     ARCHS_OPTIONS: $IOS_ARCHS
   extends: .job-ios
 
