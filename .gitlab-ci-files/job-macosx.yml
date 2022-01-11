@@ -10,6 +10,7 @@
       - $SKIP_MACOSX
 
   script:
+    - !reference [.set-max-jobs-unix, script]
     - echo $MACOS_DEPLOY_URL
     - echo $XCODE_OPTIONS
     - ccache -s
@@ -52,7 +53,8 @@ job-macosx-makefile:
       - $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .job-macosx-desktop
 
 

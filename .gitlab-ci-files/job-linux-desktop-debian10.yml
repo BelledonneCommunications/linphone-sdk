@@ -25,7 +25,8 @@ job-debian10-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .job-linux-desktop
 
 
@@ -40,7 +41,8 @@ job-debian10-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .job-linux-desktop
 
 
@@ -97,6 +99,9 @@ job-debian10-ninja-clang:
 job-debian10-ninja-clang-sanitizer:
   variables:
     CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+    #Until we fix belle-sip/belr parser taking at build time as much ram as a AAA game
+    #If we dont limit this, this job is getting killed by kernel oom_killer
+    ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: job-debian10-ninja-clang
 
 

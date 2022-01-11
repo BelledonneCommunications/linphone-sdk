@@ -32,6 +32,11 @@
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
 
+    ##
+    ## Set max number of jobs 
+    ##
+    - !reference [.set-max-jobs-unix, script]
+
     #Configure dev-toolset for centos-7
 
     - CENTOS_VERSION=$(cat /etc/centos-release) || true

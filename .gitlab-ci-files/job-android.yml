@@ -55,7 +55,8 @@ job-android-makefile-r20:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .job-android
 
