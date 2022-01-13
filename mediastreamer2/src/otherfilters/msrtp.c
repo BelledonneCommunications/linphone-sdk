@@ -500,7 +500,7 @@ static void _sender_process(MSFilter * f)
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
 	mblk_t *im;
-	uint32_t timestamp;
+	uint32_t timestamp = 0;
 	rtp_audio_level_t audio_levels[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL] = {{0}};
 
 	if (d->relay_session_id_size>0 && 
