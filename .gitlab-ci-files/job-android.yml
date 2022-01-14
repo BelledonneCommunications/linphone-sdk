@@ -134,7 +134,7 @@ job-android-ninja-r20-allcodecs:
 
 #job-android-ninja-r20-sanitizer:
 #  variables:
-#    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+#    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
 #  extends: job-android-ninja-r20
 
 #################################################
