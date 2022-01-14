@@ -98,7 +98,8 @@ job-debian10-ninja-clang:
 
 job-debian10-ninja-clang-sanitizer:
   variables:
-    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+    #We use debug build type here to workaround an issue where sanitizer in ReleaseDebugInfo is taking more than one hour to complete
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
     #Until we fix belle-sip/belr parser taking at build time as much ram as a AAA game
     #If we dont limit this, this job is getting killed by kernel oom_killer
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
