@@ -654,7 +654,10 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, Ic
 	if (rtp_candidate != NULL) {
 		componentID = 1;
 		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-		if (elem == NULL) return FALSE;
+		if (elem == NULL) {
+			ms_error("There are no selected valid remote candidates for RTP.");
+			return FALSE;
+		}
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtp_candidate = valid_pair->valid->remote;
 	}
@@ -664,7 +667,10 @@ bool_t ice_check_list_selected_valid_remote_candidate(const IceCheckList *cl, Ic
 		} else {
 			componentID = 2;
 			elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-			if (elem == NULL) return FALSE;
+			if (elem == NULL) {
+				ms_error("Rtcp-mux is not used but there are no selected valid remote candidates for RTCP.");
+				return FALSE;
+			}
 			valid_pair = (IceValidCandidatePair *)elem->data;
 			*rtcp_candidate = valid_pair->valid->remote;
 		}
