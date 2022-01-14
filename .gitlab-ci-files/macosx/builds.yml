@@ -96,6 +96,8 @@ macosx-m1-ninja:
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+  rules:
+    - if: $NIGHTLY_MASTER
   extends: .macosx-m1-desktop
 
 macosx-ninja-novideo:

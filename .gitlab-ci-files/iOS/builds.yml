@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macmini-m1-xcode12" ]
+  tags: [ "macosx-min-xcode12.2" ]
 
   before_script:
     - export CCACHE_BASEDIR=${PWD}
