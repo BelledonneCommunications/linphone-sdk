@@ -347,6 +347,9 @@ static void channel_state_changed(belle_sip_channel_listener_t *obj, belle_sip_c
 				* decides to close the connection because of inactivity timeout. Handle this case by re-submitting the pending request(s). */
 				http_channel_context_handle_disconnection(ctx, chan);
 				provider_remove_channel(ctx->provider,chan);
+			} else {
+				/*In case of force close, manage DISCONNECTED as an io error in order to notify potential pending requests*/
+				http_channel_context_handle_io_error(ctx, chan);
 			}
 			break;
 
