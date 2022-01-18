@@ -54,7 +54,6 @@ job-debian9-ninja-gcc:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON
@@ -77,6 +76,9 @@ job-debian9-ninja-gcc-smallsdk:
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   extends: job-debian9-ninja-gcc
 
 

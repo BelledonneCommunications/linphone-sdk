@@ -78,6 +78,8 @@ job-ubuntu-rolling-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
   extends: .job-linux-desktop
 
 
