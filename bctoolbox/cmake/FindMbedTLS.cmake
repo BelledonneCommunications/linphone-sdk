@@ -66,9 +66,7 @@ if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
 
 endif()
 
-if(MBEDTLS_LIBRARIES)
-	check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.h" DTLS_SRTP_AVAILABLE)
-endif()
+check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.h" DTLS_SRTP_AVAILABLE)
 
 # Define the imported target for the three mbedtls libraries
 foreach(targetname "mbedtls" "mbedx509" "mbedcrypto")
