@@ -90,7 +90,8 @@ job-debian11-ninja-clang:
 
 job-debian11-ninja-clang-sanitizer:
   variables:
-    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
+    ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: job-debian11-ninja-clang
 
 
