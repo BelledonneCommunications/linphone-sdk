@@ -598,7 +598,10 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 	if (rtp_candidate != NULL) {
 		componentID = 1;
 		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-		if (elem == NULL) return FALSE;
+		if (elem == NULL) {
+			ms_warning("No selected valid RTP local candidate.");
+			return FALSE;
+		}
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtp_candidate = valid_pair->valid->local;
 	}
@@ -609,7 +612,10 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 			componentID = 2;
 		}
 		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-		if (elem == NULL) return FALSE;
+		if (elem == NULL) {
+			ms_warning("No selected valid RTCP local candidate.");
+			return FALSE;
+		}
 		valid_pair = (IceValidCandidatePair *)elem->data;
 		*rtcp_candidate = valid_pair->valid->local;
 	}
