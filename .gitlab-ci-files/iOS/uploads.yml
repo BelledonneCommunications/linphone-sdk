@@ -1,0 +1,76 @@
+ios-xcode-upload:
+  stage: deploy
+  tags: [ "macosx-xcode11" ]
+
+  rules:
+    - if: $DEPLOY_RUN_IOS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  needs:
+    - ios-xcode
+
+  script:
+
+    #Only get major and minor version (ex: 4.5) for documentation directory
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+
+    # Create the directory if it does not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
+
+    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
+    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/
+    - pod repo remove linphone-sdk || true
+    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git
+    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
+    - pod repo remove linphone-sdk
+
+
+ios-xcode-novideo-upload:
+  stage: deploy
+  tags: [ "macosx-xcode11" ]
+
+  rules:
+    - if: $DEPLOY_RUN_IOS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  needs:
+    - ios-xcode-novideo
+
+  script:
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/novideo/
+    - pod repo remove linphone-sdk-novideo || true
+    - pod repo add linphone-sdk-novideo git@gitlab.linphone.org:BC/public/podspec.git
+    - pod repo push linphone-sdk-novideo build-ios/linphone-sdk-novideo.podspec --skip-import-validation --verbose
+    - pod repo remove linphone-sdk-novideo

@@ -1,0 +1,647 @@
+#################################################
+# Tests reports upload
+#################################################
+
+.test-report-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+  allow_failure: true
+  variables:
+    XML_FILENAME_START_PATTERN: "BCUnit"
+
+  script:
+
+    - ls -la
+    #getting the version number for each submodule and writing it in environment.properties file
+    #this file will be parsed by allure and will help to display additionnal information in the web view
+    #git -C allows to run a git command in the given folder without moving"
+
+    - BCTOOLBOX_VERSION=$(git -C bctoolbox describe)
+    - ORTP_VERSION=$(git -C ortp describe)
+    - BCG729_VERSION=$(git -C bcg729 describe)
+    - BELCARD_VERSION=$(git -C belcard describe)
+    - BELR_VERSION=$(git -C belr describe)
+    - BZRTP_VERSION=$(git -C bzrtp describe)
+    - CMAKE_BUILDER_VERSION=$(git -C cmake-builder describe)
+    - BCUNIT_VERSION=$(git -C bcunit describe)
+    - BELLESIP_VERSION=$(git -C belle-sip describe)
+    - LIME_VERSION=$(git -C lime describe)
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe)
+    - MS2_VERSION=$(git -C mediastreamer2 describe)
+
+    #We get the SDK version from earlier jobs instead of using git describe so the URL generated in the tester job will be the same in the upload job, no matter the platform used and the git version delta
+    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build*/gitdescribe.txt)
+    - echo $SDK_VERSION
+    - git describe
+
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    - PARENT_BRANCH=$(echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}'))
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1)
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}')
+    - echo $(git log --pretty=oneline  --pretty=format:%D -n 1 HEAD~1 | awk -F ", " '{print $1}' | awk -F "origin/" '{print $2}')
+    - echo $PARENT_BRANCH
+    - |
+        if [[ -z $ESCAPED_BRANCH ]];
+        then ESCAPED_BRANCH=master
+        fi
+    - echo $ESCAPED_BRANCH
+    - |
+        if [[ $ESCAPED_BRANCH == master ]];
+        then PARENT_BRANCH=master
+        fi
+    - echo $ESCAPED_BRANCH
+    - echo $PARENT_BRANCH
+    - PARENT_BRANCH=$(echo $PARENT_BRANCH | tr / _)
+    - echo $PARENT_BRANCH
+    - cd results
+
+    - TEST_REPORT_ID=$(cat tests_id)
+    - JOB_URL=$(cat job_url)
+    - echo PIPELINE_TRIGGERED_BY=$GITLAB_USER_NAME | tee -a environment.properties
+    - echo BRANCH=$BRANCH | tee -a environment.properties
+    - echo SDK_VERSION=$SDK_VERSION | tee -a environment.properties
+    - echo TEST_JOB_ID=$TEST_REPORT_ID | tee -a environment.properties
+    - echo TEST_JOB_URL=$JOB_URL | tee -a environment.properties
+    - echo BCTOOLBOX_VERSION=$BCTOOLBOX_VERSION | tee -a environment.properties
+    - echo ORTP_VERSION=$ORTP_VERSION | tee -a environment.properties
+    - echo BCG729_VERSION=$BCG729_VERSION | tee -a environment.properties
+    - echo BELCARD_VERSION=$BELCARD_VERSION | tee -a environment.properties
+    - echo BELR_VERSION=$BELR_VERSION | tee -a environment.properties
+    - echo BZRTP_VERSION=$BZRTP_VERSION | tee -a environment.properties
+    - echo CMAKE_BUILDER_VERSION=$CMAKE_BUILDER_VERSION | tee -a environment.properties
+    - echo BCUNIT_VERSION=$BCUNIT_VERSION | tee -a environment.properties
+    - echo BELLESIP_VERSION=$BELLESIP_VERSION | tee -a environment.properties
+    - echo LIME_VERSION=$LIME_VERSION | tee -a environment.properties
+    - echo LIBLINPHONE_VERSION=$LIBLINPHONE_VERSION | tee -a environment.properties
+    - echo MS2_VERSION=$MS2_VERSION | tee -a environment.properties
+
+    - cat environment.properties
+
+
+    #TODO errors management
+
+
+    #Script generation
+    #This script will be run on the remote server to organize files and generate test reports
+    - echo "#!/bin/bash" | tee -a allure_launch_script
+
+    #we use as a folder the name of the branch with the slashes replaced by underscores (ex feature/random -> feature_random)
+    #creation if it doesn't exists
+    - echo "mkdir -p $ESCAPED_BRANCH || exit 1;" | tee -a allure_launch_script
+
+    #as a subfoldder name, we use the git describe of the sdk (version + commit hash)
+    #we search for a report associated to a commit directory
+    # * is used to search for new name (COMMIT-JOB_ID) and old name (COMMIT)
+    #We enter in the if in case of a retry/commit --amend
+    - echo FIND_DIR="\$(find \$(pwd) -maxdepth 2 -path '*/$ESCAPED_BRANCH/$SDK_VERSION*')" | tee -a allure_launch_script
+    - echo "if [[ -n \$FIND_DIR ]];" | tee -a allure_launch_script
+    - echo "  then CREATED_COMMIT_REF_FOLDER=\"NO\"" | tee -a allure_launch_script
+    - echo "else" | tee -a allure_launch_script
+    - echo "  CREATED_COMMIT_REF_FOLDER=\"YES\"" | tee -a allure_launch_script
+    - echo "fi" | tee -a allure_launch_script
+    - echo "TEST_WORKSPACE_LOCATION=\$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER|| exit 1;" | tee -a allure_launch_script
+    - echo "mkdir -p \$TEST_WORKSPACE_LOCATION || exit 1" | tee -a allure_launch_script
+
+    #Not currently needed
+
+    #The LAST_MODIFIED_PATH variable will help us to save the latest tests history before deletion and move it (for a same given branch)
+    #in the new folder, to be used by the new allure report generation
+
+    #need to copy the history from parent branch if there is no previous test reports in current branch (if there is no LAST_MODIFIED_PATh)
+    #current branch = ESCAPED_BRANCH
+
+    #workaround in case the PARENT_BRANCH check fails (to allow the script to run even if PARENT_BRANCH is empty)
+    - echo "PARENT_BRANCH=\$(echo '$PARENT_BRANCH')" | tee -a allure_launch_script
+    - echo "if [[ \$CREATED_COMMIT_REF_FOLDER = \"YES\" && -n \$PARENT_BRANCH ]];" | tee -a allure_launch_script
+    - echo "then" | tee -a allure_launch_script
+    #LIMITATION : no guarantee that find orders the paths by creation date
+    - echo "  LAST_MODIFIED_PATH=\$(find \$(pwd)/$PARENT_BRANCH -path "*/$PLATFORM/$TESTER/allure-report/history" | tac | head -n 1)" | tee -a allure_launch_script
+    - echo "  cp -r \$LAST_MODIFIED_PATH \$(pwd)/$ESCAPED_BRANCH/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/history;" | tee -a allure_launch_script
+    - echo "else" | tee -a allure_launch_script
+    - echo "  cp -r \$(find \$(pwd) -path '*/$ESCAPED_BRANCH/*/$PLATFORM/$TESTER/allure-report/history' | tac | head -n 1) \$TEST_WORKSPACE_LOCATION/history;" | tee -a allure_launch_script
+    - echo "fi;" | tee -a allure_launch_script
+
+
+    #we move the BCUnit report and environment.properties to the desired folder to prepare allure report generation
+    - echo "mv \$(pwd)/environment.properties \$TEST_WORKSPACE_LOCATION && mv \$(pwd)/$XML_FILENAME_START_PATTERN* \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
+
+    #symlink with username to ease searching
+    - echo "mkdir -p \$(pwd)/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
+    - echo "ln -s \$TEST_WORKSPACE_LOCATION \$(pwd)/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM" | tee -a allure_launch_script
+
+    #we use the uploaded version of allure on parent directory because the allure version in repos is too old (TO DO auto install new version properly)
+    - echo "~/allure-2.10.0/bin/allure generate --clean \$TEST_WORKSPACE_LOCATION -o \$TEST_WORKSPACE_LOCATION/allure-report" | tee -a allure_launch_script
+
+    #we now remove the history directory
+    - echo "pwd" | tee -a allure_launch_script
+    - cat allure_launch_script
+    - echo "ls -lah" | tee -a allure_launch_script
+    - echo "du -h \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
+
+    - echo "rm -r \$TEST_WORKSPACE_LOCATION/history || echo 'deletion of temp history failed. History could not be gathered ?'" | tee -a allure_launch_script
+    - cat allure_launch_script
+
+    #the average size of a report is around 13Mio
+    - echo "du -h \$TEST_WORKSPACE_LOCATION" | tee -a allure_launch_script
+    - cat allure_launch_script
+
+    - chmod u+x allure_launch_script
+
+    #upload of the files
+    - rsync -rlv environment.properties allure_launch_script $XML_FILENAME_START_PATTERN* $DEPLOY_SERVER:$DEPLOY_TESTS_DIRECTORY
+
+    #remote launch of allure_launch_script declared above
+    #DEPLOY_TESTS_DIRECTORY = allure_tests_reports
+    #Double quotes are needed because simple quotes doesn't eveluate the env var before sending the command to the server
+    - ssh $DEPLOY_SERVER "cd $DEPLOY_TESTS_DIRECTORY || exit 1 && bash -x allure_launch_script"
+
+    #TODO think about deletion of oldest reports, or compression
+    #It is done by a CRON job on the target machine
+
+    #categories.json is usefull to define the pattern of the tests states.
+    #ex
+    #[
+    #  {
+    #    "name": "Ignored tests",
+    #    "matchedStatuses": ["skipped"]
+    #  },
+    #  {
+    #    "name": "Infrastructure problems",
+    #    "matchedStatuses": ["broken", "failed"],
+    #    "messageRegex": ".*bye-bye.*"
+    #  },
+    #  {
+    #    "name": "Outdated tests",
+    #    "matchedStatuses": ["broken"],
+    #    "traceRegex": ".*FileNotFoundException.*"
+    #  },
+    #  {
+    #    "name": "Product defects",
+    #    "matchedStatuses": ["failed"]
+    #  },
+    #  {
+    #     "name": "Test defects",
+    #     "matchedStatuses": ["broken"]
+    #  }
+    #]
+    - echo "https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$SDK_VERSION-$TEST_REPORT_ID/$PLATFORM/$TESTER/allure-report" | tee report_url
+    - pwd
+    - ls -lah
+    - ls -lah ${CI_PROJECT_DIR}
+
+  artifacts:
+    paths:
+      - ${CI_PROJECT_DIR}/results/report_url
+    expire_in: 4 week
+
+.test-report-upload-linux-scheduled:
+  extends: .test-report-upload
+  rules:
+    - if: $ENABLE_LINUX_TESTS
+      when: always
+    - if: $SKIP_LINUX
+      when: never
+
+.test-report-upload-windows-scheduled:
+  extends: .test-report-upload
+  rules:
+    - if: $ENABLE_WINDOWS_TESTS
+      when: always
+
+.test-report-upload-macos-scheduled:
+  extends: .test-report-upload
+  rules:
+    - if: $ENABLE_MACOSX_TESTS
+      when: always
+
+.test-report-upload-ios-scheduled:
+  extends: .test-report-upload
+  rules:
+    - if: $ENABLE_IOS_TESTS
+      when: always
+
+.test-report-upload-android-scheduled:
+  extends: .test-report-upload
+  rules:
+    - if: $ENABLE_ANDROID_TESTS
+      when: always
+
+libl-centos7-mr-test-upload:
+  extends: .test-report-upload
+  needs:
+    - liblinphone-centos7-test-mr
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+      when: always
+
+libl-centos7-schedule-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
+
+libl-centos7-forced-test-upload:
+  extends: .test-report-upload
+  needs:
+    - liblinphone-centos7-test-force
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "liblinphone"
+  rules:
+    - if: $ENABLE_TESTS_LIBLINPHONE
+
+libl-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "liblinphone"
+
+#libl-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-liblinphone-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "liblinphone"
+
+libl-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "liblinphone"
+
+libl-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "liblinphone"
+
+#libl-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - liblinphone-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "liblinphone"
+
+libl-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "liblinphone"
+
+libl-ios-test-upload:
+  extends: .test-report-upload-ios-scheduled
+  needs:
+    - liblinphone-iOS-test
+  variables:
+    PLATFORM: "ios"
+    TESTER: "liblinphone"
+    XML_FILENAME_START_PATTERN: "TEST"
+
+libl-macosx-schedule-test-upload:
+  extends: .test-report-upload-macos-scheduled
+  needs:
+    - macosx-liblinphone-test
+  variables:
+    PLATFORM: "macosx"
+    TESTER: "liblinphone"
+
+
+bct-centos7-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bctoolbox-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "bctoolbox"
+
+bct-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bctoolbox-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "bctoolbox"
+
+bct-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bctoolbox-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "bctoolbox"
+
+bct-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bctoolbox-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bctoolbox"
+
+#bct-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bctoolbox-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "bctoolbox"
+
+bct-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bctoolbox-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "bctoolbox"
+
+bellesip-centos7-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bellesip-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "bellesip"
+
+bellesip-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bellesip-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "bellesip"
+
+#bct-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-bellesip-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "bellesip"
+
+bellesip-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bellesip-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "bellesip"
+
+bellesip-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bellesip-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bellesip"
+
+#test-upload-bsip-ubuntu:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bellesip-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "bellesip"
+
+bellesip-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bellesip-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "bellesip"
+
+ms2-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - mediastreamer-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "mediastreamer"
+
+#commented as long as ms2 testers aren't running everywhere
+
+#ms2-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-mediastreamer-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "mediastreamer"
+
+#ms2-debian9-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-mediastreamer-debian9
+#  variables:
+#    PLATFORM: "linux-debian9"
+#    TESTER: "mediastreamer"
+
+#ms2-debian10-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-mediastreamer-debian10
+#  variables:
+#    PLATFORM: "linux-debian10"
+#    TESTER: "mediastreamer"
+
+#ms2-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#   - test-mediastreamer-ubuntu
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "mediastreamer"
+
+#ms2-arch-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-mediastreamer-arch
+#  variables:
+#    PLATFORM: "linux-arch"
+#    TESTER: "mediastreamer"
+
+
+belr-centos7-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belr-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "belr"
+
+belr-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belr-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "belr"
+
+#belr-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-belr-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "belr"
+
+belr-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belr-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "belr"
+
+belr-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belr-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "belr"
+
+#belr-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - belr-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "belr"
+
+belr-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belr-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "belr"
+
+belcard-centos7-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belcard-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "belcard"
+
+belcard-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belcard-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "belcard"
+
+#belcard-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-belcard-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "belcard"
+
+belcard-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belcard-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "belcard"
+
+belcard-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belcard-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "belcard"
+
+#belcard-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - belcard-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "belcard"
+
+belcard-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - belcard-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "belcard"
+
+bzrtp-centos7-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bzrtp-centos7-test
+  variables:
+    PLATFORM: "linux-centos7"
+    TESTER: "bzrtp"
+
+bzrtp-centos8-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bzrtp-centos8-test
+  variables:
+    PLATFORM: "linux-centos8"
+    TESTER: "bzrtp"
+
+#bzrtp-debian8-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - test-bzrtp-debian8
+#  variables:
+#    PLATFORM: "linux-debian8"
+#    TESTER: "bzrtp"
+
+bzrtp-debian9-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bzrtp-debian9-test
+  variables:
+    PLATFORM: "linux-debian9"
+    TESTER: "bzrtp"
+
+bzrtp-debian10-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bzrtp-debian10-test
+  variables:
+    PLATFORM: "linux-debian10"
+    TESTER: "bzrtp"
+
+#bzrtp-ubuntu-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bzrtp-ubuntu-test
+#  variables:
+#    PLATFORM: "linux-ubuntu-rolling"
+#    TESTER: "bzrtp"
+
+bzrtp-arch-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - bzrtp-arch-test
+  variables:
+    PLATFORM: "linux-arch"
+    TESTER: "bzrtp"

@@ -1,0 +1,13 @@
+xamarin-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $UPLOAD_XAMARIN
+    - if: $NIGHTLY_RELEASE
+
+  needs:
+    - xamarin-package
+
+  script:
+    - rsync -rlv results/xamarin/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/xamarin

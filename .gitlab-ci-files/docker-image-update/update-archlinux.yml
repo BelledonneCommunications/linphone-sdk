@@ -1,4 +1,4 @@
-job-docker-rebuild-archlinux-image:
+arch-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
   rules:
@@ -14,13 +14,13 @@ job-docker-rebuild-archlinux-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
 
-job-docker-rebuild-archlinux-ms-test-image:
+arch-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
   needs:
-    - job-docker-rebuild-archlinux-image
+    - arch-image-docker-rebuild
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -32,7 +32,7 @@ job-docker-rebuild-archlinux-ms-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
 
-job-docker-rebuild-archlinux-liblinphone-test-image:
+arch-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
   rules:
@@ -42,7 +42,7 @@ job-docker-rebuild-archlinux-liblinphone-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-archlinux-ms-test-image
+    - arch-image-docker-rebuild-ms-test
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
     - cd docker-files
@@ -50,47 +50,47 @@ job-docker-rebuild-archlinux-liblinphone-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated
 
-job-rebuild-archlinux-newdocker-makefile-gcc:
-  extends: job-archlinux-latest-makefile-gcc
+arch-makefile-gcc-newdocker:
+  extends: arch-latest-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
 
-job-rebuild-archlinux-newdocker-ninja-gcc:
-  extends: job-archlinux-latest-ninja-gcc
+arch-ninja-gcc-newdocker:
+  extends: arch-latest-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
-job-rebuild-archlinux-newdocker-ninja-gcc-novideo:
-  extends: job-archlinux-latest-ninja-gcc-novideo
+arch-ninja-gcc-newdocker-novideo:
+  extends: arch-latest-ninja-gcc-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
-job-rebuild-archlinux-newdocker-makefile-clang:
-  extends: job-archlinux-latest-makefile-clang
+arch-makefile-clang-newdocker:
+  extends: arch-latest-makefile-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
-job-rebuild-archlinux-newdocker-ninja-clang:
-  extends: job-archlinux-latest-ninja-clang
+arch-ninja-clang-newdocker:
+  extends: arch-latest-ninja-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
-job-rebuild-archlinux-newdocker-ninja-clang-novideo:
-  extends: job-archlinux-latest-ninja-clang-novideo
+arch-ninja-clang-newdocker-novideo:
+  extends: arch-latest-ninja-clang-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
 
-test-liblinphone-archlinux-newdocker:
-  extends: test-liblinphone-arch
+liblinphone-arch-testlinux-newdocker:
+  extends: liblinphone-arch-test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated
   rules:
     - if: $DOCKER_UPDATE_ARCHLINUX
   needs:
-    - job-rebuild-archlinux-newdocker-makefile-gcc
+    - arch-makefile-gcc-newdocker

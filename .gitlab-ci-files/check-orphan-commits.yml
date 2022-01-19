@@ -1,4 +1,4 @@
-job-check-orphan-commits:
+check-orphan-commits:
 
   tags: [ "linux-deploy" ]
   stage: check-orphans

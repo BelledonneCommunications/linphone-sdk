@@ -1,4 +1,4 @@
-job-docker-rebuild-ubuntu-rolling-image:
+ubuntu-rolling-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
   rules:
@@ -14,7 +14,7 @@ job-docker-rebuild-ubuntu-rolling-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
 
-job-docker-rebuild-ubuntu-rolling-ms-test-image:
+ubuntu-rolling-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
   rules:
@@ -24,7 +24,7 @@ job-docker-rebuild-ubuntu-rolling-ms-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-ubuntu-rolling-image
+    - ubuntu-rolling-image-docker-rebuild
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
     - cd docker-files
@@ -32,7 +32,7 @@ job-docker-rebuild-ubuntu-rolling-ms-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
 
-job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
+ubuntu-rolling-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
   rules:
@@ -42,7 +42,7 @@ job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-ubuntu-rolling-ms-test-image
+    - ubuntu-rolling-image-docker-rebuild-ms-test
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
     - cd docker-files
@@ -50,46 +50,46 @@ job-docker-rebuild-ubuntu-rolling-liblinphone-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated
 
-job-rebuild-ubuntu-rolling-newdocker-makefile-gcc:
-  extends: job-ubuntu-rolling-makefile-gcc
+ubuntu-rolling-makefile-gcc-newdocker:
+  extends: ubuntu-rolling-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
   rules:
     - if: $DOCKER_UPDATE_UBUNTU
 
-#job-rebuild-ubuntu-rolling-newdocker-ninja-gcc:
-#  extends: job-ubuntu-rolling-ninja-gcc
+#ubuntu-rolling-ninja-gcc-newdocker:
+#  extends: ubuntu-rolling-ninja-gcc
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
 #  rules:
 #    - if: $DOCKER_UPDATE_UBUNTU
 
-#job-rebuild-ubuntu-rolling-newdocker-ninja-gcc-novideo:
-#  extends: job-ubuntu-rolling-ninja-gcc-novideo
+#ubuntu-rolling-ninja-gcc-newdocker-novideo:
+#  extends: ubuntu-rolling-ninja-gcc-novideo
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
 #  rules:
 #   - if: $DOCKER_UPDATE_UBUNTU
 
-#job-rebuild-ubuntu-rolling-newdocker-makefile-clang:
-#  extends: job-ubuntu-rolling-makefile-clang
+#ubuntu-rolling-makefile-clang-newdocker:
+#  extends: ubuntu-rolling-makefile-clang
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
 #  rules:
 #    - if: $DOCKER_UPDATE_UBUNTU
 
-job-rebuild-ubuntu-rolling-newdocker-ninja-clang:
-  extends: job-ubuntu-rolling-ninja-clang
+ubuntu-rolling-ninja-clang-newdocker:
+  extends: ubuntu-rolling-ninja-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
   rules:
     - if: $DOCKER_UPDATE_UBUNTU
 
-#job-rebuild-ubuntu-rolling-newdocker-ninja-clang-novideo:
-#  extends: job-ubuntu-rolling-ninja-clang-novideo
+#ubuntu-rolling-ninja-clang-newdocker-novideo:
+#  extends: ubuntu-rolling-ninja-clang-novideo
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
 #  rules:
 #    - if: $DOCKER_UPDATE_UBUNTU
 
-test-liblinphone-ubuntu-rolling-newdocker:
-  extends: test-liblinphone-ubuntu
+liblinphone-ubuntu-test-rolling-newdocker:
+  extends: liblinphone-ubuntu-test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated
   rules:
     - if: $DOCKER_UPDATE_UBUNTU
   needs:
-    - job-rebuild-ubuntu-rolling-newdocker-makefile-gcc
+    - ubuntu-rolling-makefile-gcc-newdocker

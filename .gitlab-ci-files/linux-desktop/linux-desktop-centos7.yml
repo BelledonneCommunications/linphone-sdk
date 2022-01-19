@@ -7,7 +7,7 @@
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   needs:
-    - job-centos7-ninja-gcc
+    - centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -21,7 +21,7 @@
 #################################################
 
 
-job-centos7-makefile-gcc:
+centos7-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
@@ -33,7 +33,7 @@ job-centos7-makefile-gcc:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
 #################################################
@@ -41,7 +41,7 @@ job-centos7-makefile-gcc:
 #################################################
 
 
-job-centos7-ninja-gcc:
+centos7-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
@@ -52,43 +52,43 @@ job-centos7-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 #################################################
 # TESTS
 #################################################
 
-test-bctoolbox-centos7:
+bctoolbox-centos7-test:
   extends: .test-bctoolbox
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-belr-centos7:
+belr-centos7-test:
   extends: .test-belr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# test-belr-centos7-mr:
+# belr-centos7-test-mr:
 #   extends: .test-belr-mr
 #   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-belcard-centos7:
+belcard-centos7-test:
   extends: .test-belcard
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# test-belcard-centos7-mr:
+# belcard-centos7-test-mr:
 #   extends: .test-belcard-mr
 #   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-test-bzrtp-centos7:
+bzrtp-centos7-test:
   extends: .test-bzrtp
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# test-bzrtp-centos7-mr:
+# bzrtp-centos7-test-mr:
 #   extends: .test-bzrtp-mr
 #   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 .factorize_bs_centos7: &docker_image_needs_tag_platform_devtoolset_bs
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   needs:
-    - job-centos7-ninja-gcc
+    - centos7-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   variables:
@@ -96,49 +96,49 @@ test-bzrtp-centos7:
   before_script:
     - source /opt/rh/devtoolset-8/enable
 
-test-bellesip-centos7:
+bellesip-centos7-test:
   extends: .test-bellesip
   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
-# test-bellesip-centos7-mr:
+# bellesip-centos7-test-mr:
 #   extends: .test-bellesip-mr
 #   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
 .factorize_ms2_centos7: &docker_image_needs_platform_devtoolset_ms
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   needs:
-    - job-centos7-ninja-gcc
+    - centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
     - source /opt/rh/devtoolset-8/enable
 
-test-mediastreamer-centos7:
+mediastreamer-centos7-test:
   extends: .test-mediastreamer
   <<: *docker_image_needs_platform_devtoolset_ms
 
-# test-mediastreamer-centos7-mr:
+# mediastreamer-centos7-test-mr:
 #   extends: .test-mediastreamer-mr
 #   <<: *docker_image_needs_platform_devtoolset_ms
 
 .factorize_liblinphone_centos7: &docker_image_needs_platform_devtoolset_libl
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   needs:
-    - job-centos7-ninja-gcc
+    - centos7-ninja-gcc
   variables:
     PLATFORM: linux-centos7
   before_script:
     - source /opt/rh/devtoolset-8/enable
 
-test-liblinphone-centos7:
+liblinphone-centos7-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
 
-test-liblinphone-centos7-mr:
+liblinphone-centos7-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
 
-test-liblinphone-centos7-force:
+liblinphone-centos7-test-force:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
   rules:

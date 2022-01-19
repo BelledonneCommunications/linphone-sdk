@@ -1,4 +1,4 @@
-.job-windows-vs2017:
+.windows-vs2017:
   extends: .job-prepare
   stage: build
   tags: [ "windows-powershell" ]
@@ -117,8 +117,8 @@
     when: always
     expire_in: 1 week
 
-.job-windows-vs2017-ninja:
-  extends: .job-windows-vs2017
+.windows-vs2017-ninja:
+  extends: .windows-vs2017
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
@@ -140,8 +140,8 @@
     SHOW_SEARCH_STATUS_SCRIPT: Get-Content invertSearch.ps1
     LAUNCH_SEARCH_STATUS_SCRIPT: .\invertSearch.ps1
 
-.job-windows-vs2017-msvc:
-  extends: .job-windows-vs2017
+.windows-vs2017-msvc:
+  extends: .windows-vs2017
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
     LINPHONESDK_PLATFORM: Desktop
@@ -152,8 +152,8 @@
     PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
     EXITS_ON_ERROR_MSVC: 'if (-not ($$LastExitCode -eq 0)) {throw "Error: Build failed"}'
 
-.job-windows-vs2017-scheduled:
-  extends: .job-windows-vs2017-msvc
+.windows-vs2017-scheduled:
+  extends: .windows-vs2017-msvc
 
   rules:
     - if: $NIGHTLY_MASTER
@@ -168,8 +168,8 @@
 # JOBS
 ######################################################
 
-job-windows-vs2017-ninja-win64:
-  extends: .job-windows-vs2017-ninja
+vs2017-ninja-win64-windows:
+  extends: .windows-vs2017-ninja
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -177,8 +177,8 @@ job-windows-vs2017-ninja-win64:
     MINGW_TYPE: mingw64
     OUTPUT_ZIP_FOLDER: win64
 
-job-windows-vs2017-ninja-win32:
-  extends: .job-windows-vs2017-ninja
+vs2017-ninja-win32-windows:
+  extends: .windows-vs2017-ninja
   rules:
     - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA
   variables:
@@ -191,8 +191,8 @@ job-windows-vs2017-ninja-win32:
 ######################################################
 
 ##      ON SCHEDULE     ##
-job-windows-vs2017-uwp-scheduled:
-  extends: .job-windows-vs2017-scheduled
+vs2017-uwp-scheduled-windows:
+  extends: .windows-vs2017-scheduled
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -206,8 +206,8 @@ job-windows-vs2017-uwp-scheduled:
     MINGW_TYPE: mingw64
     CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
 
-job-windows-vs2017-win32-scheduled:
-  extends: .job-windows-vs2017-scheduled
+vs2017-win32-scheduled-windows:
+  extends: .windows-vs2017-scheduled
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -218,8 +218,8 @@ job-windows-vs2017-win32-scheduled:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
     OUTPUT_ZIP_FOLDER: win32
 
-job-windows-vs2017-win32store-scheduled:
-  extends: .job-windows-vs2017-scheduled
+vs2017-win32store-scheduled-windows:
+  extends: .windows-vs2017-scheduled
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -228,8 +228,8 @@ job-windows-vs2017-win32store-scheduled:
     CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
     OUTPUT_ZIP_FOLDER: win32store
 
-job-windows-vs2017-win32-novideo:
-  extends: job-windows-vs2017-win32-scheduled
+win32-vs2017-novideo-windows:
+  extends: vs2017-win32-scheduled-windows
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -237,175 +237,3 @@ job-windows-vs2017-win32-novideo:
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-
-
-#TODO : FACTORIZE TESTERS CODE
-
-.test-linphone-windows:
-  stage: test
-  extends: .job-prepare
-  tags: [ "windows" ]
-  allow_failure: true
-  variables:
-    #no need to fetch repo, all the needed files are in input artifacts
-    GIT_SUBMODULE_STRATEGY: none
-    MINGW_TYPE: mingw32
-
-  script:
-    - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
-    - set PATH=%PATH_TEMP%;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    - IF "%MINGW_TYPE%"=="mingw64" (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat") ELSE (call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat")
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
-
-    #windows doesn't understand the meaning of the slash to launch an executable in basic command prompt
-    - echo %CI_PROJECT_DIR%
-
-    #When the dns host is set in command line, (--dns-hosts %CI_PROJECT_DIR%/linphone/tester/tester_hosts)
-    #we have a weird bellesip error message
-    #2019-04-30 11:28:17:372 belle-sip-error-hosts dns_hosts_loadfile(".../share/liblinphone_tester/C:/Users/Jenkins/linphone-sdk/linphone/tester/tester_hosts"): Unknown error
-
-    #Procdumps generates a coredump if there is a crash
-    # -ma : Write a dump file with all process memory. The default dump format only includes thread and handle information.
-
-    # -e : Write a dump when the process encounters an unhandled exception. Include the 1 to create dump on first chance exceptions.
-    # -x : Launch the specified image with optional arguments. If it is a Store Application or Package, ProcDump will start on the next activation (only).
-
-    - procdump -ma -e -x . bin\liblinphone_tester.exe --parallel --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
-
-  after_script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
-    - echo %CI_PROJECT_DIR%
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
-    # Coredump management
-
-    # The coredumps pattern is liblinphone_tester.exe_*, so we search
-    # all coredumps matching it and we execute the cdb debugger on it.
-    # -c : startup commands
-    # .lines : explicitely tells cdb to load file lines infos for backtrace
-    # !analyze -v : execute the debugger, prints the backtrace and some info('!' needs to be escaped with '^' since this script is considered as a batch file)
-    # k : display backtrace with line numbers
-    # q : quits
-    # -ee c++ : use c++ expression syntax instead of MASM
-    # -i [exe] : path to executable
-    # -y symbols path
-    # -z coredump location
-    # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
-    - echo %cd%
-    - dir
-    - dir /b liblinphone_tester.exe_*
-    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
-    - for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
-
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - results/BCUnitAutomated-win-Results.xml
-    expire_in: 4 week
-
-test-linphone-windows-win32-msbuild:
-  extends: .test-linphone-windows
-  rules:
-    - if: $ENABLE_WINDOWS_TESTS
-  needs:
-    - job-windows-vs2017-win32-scheduled
-
-test-linphone-windows-win32-ninja:
-  extends: .test-linphone-windows
-  rules:
-    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA
-  needs:
-    - job-windows-vs2017-ninja-win32
-
-test-linphone-windows-win64-ninja:
-  extends: .test-linphone-windows
-  rules:
-    - if: $ENABLE_WINDOWS_TESTS_WIN64_NINJA
-    - if: $ENABLE_WINDOWS_TESTS
-  needs:
-    - job-windows-vs2017-ninja-win64
-
-test-linphone-windows-uwp:
-  stage: test
-  extends: .job-prepare
-  tags: [ "windows-tests" ]
-  allow_failure: true
-  needs:
-    - job-windows-vs2017-uwp-scheduled
-  rules:
-    - if: $ENABLE_WINDOWS_UWP_TESTS
-    - if: $ENABLE_WINDOWS_TESTS
-  variables:
-    #no need to fetch repo, all the needed files are in input artifacts
-    GIT_SUBMODULE_STRATEGY: none
-    MINGW_TYPE: mingw64
-
-  before_script:
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-
-  script:
-  # Build VS project
-  #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
-    - set PATH_TEMP=%PATH:C:\MinGW\bin;=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Strawberry\c\bin;=%
-    - set PATH_TEMP=%PATH_TEMP:C:\Program Files\NASM=%
-    - set PATH=%PATH_TEMP%;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\MSBuild\15.0\Bin;C:\Program Files (x86)\Windows Kits\10\bin\10.0.17763.0\x86;C:\msys64;C:\msys64\usr\bin;C:\msys64\%MINGW_TYPE%\bin
-    - cd %CI_PROJECT_DIR%\build-desktop\linphone-sdk\uwp-x64
-    - set LINPHONE_PATH=%cd%
-    - cd %CI_PROJECT_DIR%\tester\Windows\LinphoneTester_uwp
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-    - powershell -command "Remove-Item x64 -Recurse -Force ; exit 0"
-    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
-    - ..\..\..\cmake\Windows\nuget\nuget.exe Restore
-    - msbuild /t:restore
-    - msbuild /p:AppxBundle=Always /p:AppxBundlePlatforms="x64" LinphoneTester_uwp.sln /p:Configuration=Release /p:Platform=x64 /Verbosity:minimal /p:LinphoneSDK-Path=%LINPHONE_PATH%
-    - powershell -command "Remove-Item AppPackages -Recurse -Force ; exit 0"
-    - makeappx unpack /p x64\Release\LinphoneTester_uwp\LinphoneTester_uwp_1.0.0.0_x64.appx /d x64\Release\LinphoneTester_uwp\ /o
-    - powershell -command "Add-AppxPackage -Register .\x64\Release\LinphoneTester_uwp\AppxManifest.xml"
-    - call UpdatePermissions.bat
-    - echo %USERDOMAIN%\%USERNAME%
-    - start "Tester Server" ..\LinphoneTester_server\bin\Release\LinphoneTester_server.exe
-    - start /wait LinphoneTester_uwp.exe --parallel --parallel-max 10
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    #- procdump -ma -e -x . LinphoneTester_uwp.exe --parallel --silent
-
-  after_script:
-    - powershell -command "taskkill /F /IM "LinphoneTester_uwp.exe" /T ; exit 0"
-    - powershell -command "taskkill /F /IM "LinphoneTester_server.exe" /T ; exit 0"
-    - powershell -command "(Get-AppxPackage *LinphoneTester-uwp*).PackageFamilyName" > packageFolder.txt
-    - set /p PACKAGE_FOLDER=<packageFolder.txt
-    - del packageFolder.txt
-    - mkdir "%CI_PROJECT_DIR%/results"
-    - copy /B %LOCALAPPDATA%\Packages\%PACKAGE_FOLDER%\LocalState\LibLinphoneWindows10* "%CI_PROJECT_DIR%/results"
-    - powershell -command "Get-AppxPackage *LinphoneTester-uwp* | Remove-AppPackage"
-
-    #- cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/uwp-x64/bin
-    #- echo %cd%
-    #- dir
-    #- dir /b liblinphone_tester.exe_*
-    #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do echo %%v
-    #- for /F %%v in ('dir /b liblinphone_tester.exe_*') do cdb -c ".lines; ^!analyze -v; k; q" -ee c++ -i liblinphone_tester.exe -y .;C:\WinSymbols -z %%v -netsyms yes
-
-    #- echo %CI_PROJECT_DIR%
-    #- mkdir "%CI_PROJECT_DIR%/results"
-    #- dir
-    #- copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
-    #- copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
-
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - results/LibLinphoneWindows10-Results.xml
-    expire_in: 4 week

@@ -1,0 +1,101 @@
+debian-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $UPLOAD_C_CPP_DOC
+
+  needs:
+    - debian9-ninja-gcc
+
+  script:
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    #getting the version number to push the right version of the doc
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - echo $LIBLINPHONE_VERSION
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - echo $UPLOAD_ROOT_DIRECTORY
+    # Create the directories if they do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
+    # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
+
+#################################################
+# Bzrtp doc upload
+#################################################
+
+bzrtp-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $UPLOAD_BZRTP_DOC
+
+  needs:
+    - debian9-ninja-gcc
+
+  script:
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    #getting the version number to push the right version of the doc
+    - BZRTP_VERSION=$(git -C bzrtp describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - echo $BZRTP_VERSION
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [ "$(git -C bzrtp describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - echo $UPLOAD_ROOT_DIRECTORY
+    # Create the directories if they do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
+    # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/bzrtp-$BZRTP_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
+
+#################################################
+# Lime doc upload
+#################################################
+
+lime-doc-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $UPLOAD_LIME_DOC
+
+  needs:
+    - debian9-ninja-gcc
+
+  script:
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+
+    #getting the version number to push the right version of the doc
+    - LIME_VERSION=$(git -C lime describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - echo $LIME_VERSION
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [ "$(git -C lime describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - echo $UPLOAD_ROOT_DIRECTORY
+    # Create the directories if they do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
+    # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
+    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION

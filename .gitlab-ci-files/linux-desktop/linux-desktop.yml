@@ -2,7 +2,7 @@
 # BUILD
 #################################################
 
-.job-linux-desktop:
+.linux-desktop:
 
   stage: build
   extends: .linux-prepare

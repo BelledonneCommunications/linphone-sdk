@@ -14,7 +14,7 @@
 #################################################
 
 
-job-centos8-makefile-gcc:
+centos8-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
@@ -26,10 +26,10 @@ job-centos8-makefile-gcc:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-centos8-makefile-clang:
+centos8-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
@@ -41,7 +41,7 @@ job-centos8-makefile-clang:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
 #################################################
@@ -49,7 +49,7 @@ job-centos8-makefile-clang:
 #################################################
 
 
-job-centos8-ninja-gcc:
+centos8-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
@@ -57,20 +57,20 @@ job-centos8-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-centos8-ninja-gcc-novideo:
+centos8-ninja-gcc-novideo:
 
   tags: [ "docker" ]
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-centos8-ninja-gcc
+  extends: centos8-ninja-gcc
 
 
-job-centos8-ninja-clang:
+centos8-ninja-clang:
 
   tags: [ "docker" ]
   rules:
@@ -80,16 +80,16 @@ job-centos8-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-centos8-ninja-clang-novideo:
+centos8-ninja-clang-novideo:
 
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-centos8-ninja-clang
+  extends: centos8-ninja-clang
 
 
 #################################################
@@ -97,44 +97,44 @@ job-centos8-ninja-clang-novideo:
 #################################################
 
 
-test-bctoolbox-centos8:
+bctoolbox-centos8-test:
   extends: .test-bctoolbox
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-centos8:
+bellesip-centos8-test:
   extends: .test-bellesip
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos8
 
-test-belr-centos8:
+belr-centos8-test:
   extends: .test-belr
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-centos8:
+belcard-centos8-test:
   extends: .test-belcard
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-centos8:
+bzrtp-centos8-test:
   extends: .test-bzrtp
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
-#test-mediastreamer-centos8:
+#mediastreamer-centos8-test:
 #  tags: [ "docker-test-centos8-liblinphone-nuc" ]
 #  extends: .test
 #  needs:
-#    - job-centos8-ninja-gcc
+#    - centos8-ninja-gcc
 #  variables:
 #    TESTER_BIN: "mediastreamer2_tester"
 #    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
@@ -144,10 +144,10 @@ test-bzrtp-centos8:
 #    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
 #    PLATFORM: linux-centos8
 
-test-liblinphone-centos8:
+liblinphone-centos8-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:$CENTOS_8_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
-    - job-centos8-ninja-gcc
+    - centos8-ninja-gcc
   variables:
     PLATFORM: linux-centos8

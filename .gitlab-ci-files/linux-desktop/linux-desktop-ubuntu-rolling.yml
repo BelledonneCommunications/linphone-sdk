@@ -14,7 +14,7 @@
 #################################################
 
 
-job-ubuntu-rolling-makefile-gcc:
+ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
@@ -27,10 +27,10 @@ job-ubuntu-rolling-makefile-gcc:
     CXX: g++
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-#job-ubuntu-rolling-makefile-clang:
+#ubuntu-rolling-makefile-clang:
 
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
@@ -42,7 +42,7 @@ job-ubuntu-rolling-makefile-gcc:
 #    CXX: clang++
 #    #Only used to overwrite value set by .set_parallel_level.yml
 #    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-#  extends: .job-linux-desktop
+#  extends: .linux-desktop
 
 
 #################################################
@@ -50,7 +50,7 @@ job-ubuntu-rolling-makefile-gcc:
 #################################################
 
 
-#job-ubuntu-rolling-ninja-gcc:
+#ubuntu-rolling-ninja-gcc:
 
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
@@ -60,77 +60,77 @@ job-ubuntu-rolling-makefile-gcc:
 #    CMAKE_GENERATOR: Ninja
 #    CC: gcc
 #    CXX: g++
-#  extends: .job-linux-desktop
+#  extends: .linux-desktop
 
 
-#job-ubuntu-rolling-ninja-gcc-novideo:
+#ubuntu-rolling-ninja-gcc-novideo:
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: job-ubuntu-rolling-ninja-gcc
+#  extends: ubuntu-rolling-ninja-gcc
 
 
-job-ubuntu-rolling-ninja-clang:
+ubuntu-rolling-ninja-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-#job-ubuntu-rolling-ninja-clang-novideo:
+#ubuntu-rolling-ninja-clang-novideo:
 
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-#  extends: job-ubuntu-rolling-ninja-clang
+#  extends: ubuntu-rolling-ninja-clang
 
 #################################################
 # TESTS
 #################################################
 
 
-test-bctoolbox-ubuntu:
+bctoolbox-ubuntu-test:
   extends: .test-bctoolbox
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-ubuntu:
+bellesip-ubuntu-test:
   extends: .test-bellesip
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     PLATFORM: linux-ubuntu-rolling
 
-test-belr-ubuntu:
+belr-ubuntu-test:
   extends: .test-belr
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-ubuntu:
+belcard-ubuntu-test:
   extends: .test-belcard
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-ubuntu:
+bzrtp-ubuntu-test:
   extends: .test-bzrtp
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-ubuntu:
+liblinphone-ubuntu-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
-    - job-ubuntu-rolling-ninja-clang
+    - ubuntu-rolling-ninja-clang
   variables:
     PLATFORM: linux-ubuntu-rolling

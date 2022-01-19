@@ -1,4 +1,4 @@
-job-docker-rebuild-debian10-image:
+debian10-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
   rules:
@@ -14,7 +14,7 @@ job-docker-rebuild-debian10-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
 
-job-docker-rebuild-debian10-ms-test-image:
+debian10-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
   rules:
@@ -24,7 +24,7 @@ job-docker-rebuild-debian10-ms-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-debian10-image
+    - debian10-image-docker-rebuild
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
     - cd docker-files
@@ -32,7 +32,7 @@ job-docker-rebuild-debian10-ms-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
 
-job-docker-rebuild-debian10-liblinphone-test-image:
+debian10-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
   rules:
@@ -42,7 +42,7 @@ job-docker-rebuild-debian10-liblinphone-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-debian10-ms-test-image
+    - debian10-image-docker-rebuild-ms-test
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
     - cd docker-files
@@ -50,47 +50,47 @@ job-docker-rebuild-debian10-liblinphone-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated
 
-job-rebuild-debian10-newdocker-makefile-gcc:
-  extends: job-debian10-makefile-gcc
+debian10-makefile-gcc-newdocker:
+  extends: debian10-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
 
-job-rebuild-debian10-newdocker-ninja-gcc:
-  extends: job-debian10-ninja-gcc
+debian10-ninja-gcc-newdocker:
+  extends: debian10-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
-job-rebuild-debian10-newdocker-ninja-gcc-novideo:
-  extends: job-debian10-ninja-gcc-novideo
+debian10-ninja-gcc-newdocker-novideo:
+  extends: debian10-ninja-gcc-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
-job-rebuild-debian10-newdocker-makefile-clang:
-  extends: job-debian10-makefile-clang
+debian10-makefile-clang-newdocker:
+  extends: debian10-makefile-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
-job-rebuild-debian10-newdocker-ninja-clang:
-  extends: job-debian10-ninja-clang
+debian10-ninja-clang-newdocker:
+  extends: debian10-ninja-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
-job-rebuild-debian10-newdocker-ninja-clang-novideo:
-  extends: job-debian10-ninja-clang-novideo
+debian10-ninja-clang-newdocker-novideo:
+  extends: debian10-ninja-clang-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
 
-test-liblinphone-debian10-newdocker:
-  extends: test-liblinphone-debian10
+liblinphone-debian10-test-newdocker:
+  extends: liblinphone-debian10-test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated
   rules:
     - if: $DOCKER_UPDATE_DEBIAN10
   needs:
-    - job-rebuild-debian10-newdocker-makefile-gcc
+    - debian10-ninja-gcc-newdocker

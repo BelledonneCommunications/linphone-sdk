@@ -1,4 +1,4 @@
-job-debian9-yocto-sumo:
+debian9-yocto-sumo:
   stage: build
   tags: [ "docker-debian9-yocto" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:$DEBIAN_9_METABC_YOCTO_IMAGE_VERSION

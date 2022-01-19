@@ -1,0 +1,81 @@
+macosx-liblinphone-test:
+  stage: test
+  extends: .job-prepare
+  tags: [ "macmini-m1-xcode12" ]
+  allow_failure: true
+  needs:
+    - macosx-ninja
+  rules:
+    - if: $ENABLE_MACOSX_TESTS
+  variables:
+    # no need to fetch repo, all is needed in artifacts
+    GIT_STRATEGY: none
+    LOG_PATTERN: "logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop"
+    ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
+
+  script:
+    #Where am I when the zip is extracted ?
+    - pwd
+    #using -o for overwrite
+    - SDK_ARCHIVE_NAME=$(cat ${CI_PROJECT_DIR}/build-desktop/sdk_archive_name.txt)
+    - echo ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME
+    - ls -la ${CI_PROJECT_DIR}/build-desktop/
+    - unzip -o ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME -d ${CI_PROJECT_DIR}/build-desktop
+    - cd $PATH_TO_TESTER
+    - ls -la
+    - echo ${CI_PROJECT_DIR}
+    - echo ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts
+    # Force core dump generation
+    - ulimit -c unlimited
+    - ./bin/liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+
+  after_script:
+    - pwd
+    - cd $PATH_TO_TESTER
+    # searching for core files and if there are some, launch lldb on all of it
+    # "|| true" is used here to continue the script even if the find fails
+    # for all coredumps found in find output (xargs -L1), lldb will be launched, with the commands 'thread backtrace all' and 'quit'
+    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 lldb --batch -o 'thread backtrace all' -o 'quit' -c ; fi || true
+    - ls -la
+    - pwd
+
+    - BRANCH=$CI_COMMIT_REF_NAME
+    - echo $BRANCH
+    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
+    - echo $ESCAPED_BRANCH
+    - COMMIT=$(git describe)
+    - echo $COMMIT
+    - URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/macosx/liblinphone/allure-report
+
+    - echo "<\!DOCTYPE HTML>" >> index.html
+    - echo "<meta charset=\"UTF-8\">" >> index.html
+    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
+    - echo "<script>" >> index.html
+    - echo "  window.location.href = \"$URL\"" >> index.html
+    - echo "</script>" >> index.html
+    - echo "<title>Page Redirection</title>" >> index.html
+    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
+    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
+    - cat index.html
+
+    - echo "TEST REPORTS URL $URL"
+
+    - echo "alias URL=https://linphone.org/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/macosx/liblinphone/allure-report"
+
+    #Gathering artifacts in one folder to ease their use
+    - if [[ -n $(ls ${CI_PROJECT_DIR} | grep results) ]]; then rm -rf ${CI_PROJECT_DIR}/results/*; else mkdir ${CI_PROJECT_DIR}/results ; fi || true;
+    - echo $LOG_PATTERN
+    - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
+    - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
+    - echo ${CI_PROJECT_DIR}/results
+    - ls $LOG_PATTERN*
+    - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
+    - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+    # cleaning the extracted files
+    - rm -rf ${CI_PROJECT_DIR}/build-desktop/
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    expire_in: 4 week
