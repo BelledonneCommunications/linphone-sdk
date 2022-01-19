@@ -1,4 +1,4 @@
-job-docker-rebuild-centos8-image:
+centos8-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
   rules:
@@ -14,13 +14,13 @@ job-docker-rebuild-centos8-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
 
-job-docker-rebuild-centos8-ms-test-image:
+centos8-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
   needs:
-    - job-docker-rebuild-centos8-image
+    - centos8-image-docker-rebuild
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -32,7 +32,7 @@ job-docker-rebuild-centos8-ms-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
 
-job-docker-rebuild-centos8-liblinphone-test-image:
+centos8-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
   rules:
@@ -42,7 +42,7 @@ job-docker-rebuild-centos8-liblinphone-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-centos8-ms-test-image
+    - centos8-image-docker-rebuild-ms-test
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
     - cd docker-files
@@ -50,47 +50,47 @@ job-docker-rebuild-centos8-liblinphone-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated
 
-job-rebuild-centos8-newdocker-makefile-gcc:
-  extends: job-centos8-makefile-gcc
+centos8-makefile-gcc-newdocker:
+  extends: centos8-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
 
-job-rebuild-centos8-newdocker-ninja-gcc:
-  extends: job-centos8-ninja-gcc
+centos8-ninja-gcc-newdocker:
+  extends: centos8-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
-job-rebuild-centos8-newdocker-ninja-gcc-novideo:
-  extends: job-centos8-ninja-gcc-novideo
+centos8-ninja-gcc-newdocker-novideo:
+  extends: centos8-ninja-gcc-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
-job-rebuild-centos8-newdocker-makefile-clang:
-  extends: job-centos8-makefile-clang
+centos8-makefile-clang-newdocker:
+  extends: centos8-makefile-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
-job-rebuild-centos8-newdocker-ninja-clang:
-  extends: job-centos8-ninja-clang
+centos8-ninja-clang-newdocker:
+  extends: centos8-ninja-clang
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
-job-rebuild-centos8-newdocker-ninja-clang-novideo:
-  extends: job-centos8-ninja-clang-novideo
+centos8-ninja-clang-newdocker-novideo:
+  extends: centos8-ninja-clang-novideo
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
 
-test-liblinphone-centos8-newdocker:
-  extends: test-liblinphone-centos8
+liblinphone-centos8-test-newdocker:
+  extends: liblinphone-centos8-test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS8
   needs:
-    - job-rebuild-centos8-newdocker-makefile-gcc
+    - centos8-makefile-gcc-newdocker

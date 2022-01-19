@@ -24,20 +24,35 @@ variables:
     variables:
       - $FAST_LINUX_TESTS
 
+  retry:
+    max: 2
+    when: runner_system_failure
+
 include:
-  - '.docker-images.yml'
-  - '.set_parallel_level.yml'
-  - '.gitlab-ci-files/job-linux-prepare.yml'
-  - '.gitlab-ci-files/job-android.yml'
-  - '.gitlab-ci-files/job-ios.yml'
-  - '.gitlab-ci-files/job-linux-desktop.yml'
-#  - '.gitlab-ci-files/job-linux-desktop-archlinux-latest.yml'
-  - '.gitlab-ci-files/job-linux-desktop-centos7.yml'
-#  - '.gitlab-ci-files/job-linux-desktop-debian8.yml'
-#  - '.gitlab-ci-files/job-linux-desktop-debian9.yml'
-#  - '.gitlab-ci-files/job-linux-desktop-ubuntu-rolling.yml'
-  - '.gitlab-ci-files/job-macosx.yml'
-  - '.gitlab-ci-files/job-windows.yml'
+  - '.gitlab-ci-files/.docker-images.yml'
+  - '.gitlab-ci-files/.set_parallel_level.yml'
+
+  - '.gitlab-ci-files/linux-prepare.yml'
+
+  - '.gitlab-ci-files/android/builds.yml'
+  - '.gitlab-ci-files/android/tests.yml'
+
+  - '.gitlab-ci-files/iOS/builds.yml'
+  - '.gitlab-ci-files/iOS/tests.yml'
+
+  - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
+#  - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-centos7.yml'
+  #- '.gitlab-ci-files/linux-desktop/linux-desktop-debian8.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian9.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
+
+  - '.gitlab-ci-files/macosx/builds.yml'
+  - '.gitlab-ci-files/macosx/tests.yml'
+
+  - '.gitlab-ci-files/windows/builds.yml'
+  - '.gitlab-ci-files/windows/tests.yml'
 
 stages:
  - build

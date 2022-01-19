@@ -14,7 +14,7 @@
 #################################################
 
 
-job-debian11-makefile-gcc:
+debian11-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
@@ -25,10 +25,10 @@ job-debian11-makefile-gcc:
     CC: gcc
     CXX: g++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-debian11-makefile-clang:
+debian11-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
@@ -39,7 +39,7 @@ job-debian11-makefile-clang:
     CC: clang
     CXX: clang++
     ADDITIONAL_BUILD_OPTIONS: -j$MAKEFILE_JOBS
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
 #################################################
@@ -47,7 +47,7 @@ job-debian11-makefile-clang:
 #################################################
 
 
-job-debian11-ninja-gcc:
+debian11-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
@@ -56,26 +56,26 @@ job-debian11-ninja-gcc:
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_LDAP=NO
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-debian11-ninja-gcc-novideo:
+debian11-ninja-gcc-novideo:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
-  extends: job-debian11-ninja-gcc
+  extends: debian11-ninja-gcc
 
 
-job-debian11-ninja-gcc-smallsdk:
+debian11-ninja-gcc-smallsdk:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
-  extends: job-debian11-ninja-gcc
+  extends: debian11-ninja-gcc
 
 
-job-debian11-ninja-clang:
+debian11-ninja-clang:
 
   rules:
     - if: $NIGHTLY_MASTER
@@ -86,19 +86,19 @@ job-debian11-ninja-clang:
     CC: clang
     CXX: clang++
     CMAKE_OPTIONS: -DENABLE_LDAP=NO
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
-job-debian11-ninja-clang-sanitizer:
+debian11-ninja-clang-sanitizer:
   variables:
     CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
-  extends: job-debian11-ninja-clang
+  extends: debian11-ninja-clang
 
 
-job-debian11-ninja-clang-novideo:
+debian11-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
-  extends: job-debian11-ninja-clang
+  extends: debian11-ninja-clang
 
 #################################################
 # TESTS
@@ -106,52 +106,52 @@ job-debian11-ninja-clang-novideo:
 
 
 
-test-bctoolbox-debian11:
+bctoolbox-debian11-test:
   extends: .test-bctoolbox
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-debian11:
+bellesip-debian11-test:
   extends: .test-bellesip
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian11
 
-test-belr-debian11:
+belr-debian11-test:
   extends: .test-belr
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-debian11:
+belcard-debian11-test:
   extends: .test-belcard
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-debian11:
+bzrtp-debian11-test:
   extends: .test-bzrtp
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-debian11:
+liblinphone-debian11-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
-    - job-debian11-ninja-gcc
+    - debian11-ninja-gcc
   variables:
     PLATFORM: linux-debian11
 
-# test-liblinphone-debian11-mr:
+# liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr
 #   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
 #   needs:
-#     - job-debian11-ninja-gcc
+#     - debian11-ninja-gcc
 #   variables:
 #     PLATFORM: linux-debian11

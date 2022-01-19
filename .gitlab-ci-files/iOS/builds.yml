@@ -1,4 +1,4 @@
-.job-ios:
+.ios:
 
   extends: .job-prepare
   stage: build
@@ -46,7 +46,7 @@
 #################################################
 
 
-job-ios-makefile:
+ios-makefile:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -57,7 +57,7 @@ job-ios-makefile:
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
+  extends: .ios
 
 
 #################################################
@@ -65,7 +65,7 @@ job-ios-makefile:
 #################################################
 
 
-job-ios-ninja:
+ios-ninja:
 
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
@@ -73,9 +73,9 @@ job-ios-ninja:
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
-  extends: .job-ios
+  extends: .ios
 
-job-ios-ninja-allcodecs:
+ios-ninja-allcodecs:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -84,10 +84,10 @@ job-ios-ninja-allcodecs:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
     CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_CODECS=ON
-  extends: .job-ios
+  extends: .ios
 
 
-job-ios-ninja-g729:
+ios-ninja-g729:
 
   rules:
     - if: $NIGHTLY_MASTER
@@ -95,38 +95,40 @@ job-ios-ninja-g729:
 
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
-  extends: job-ios-ninja
+  extends: ios-ninja
 
 
-job-ios-ninja-novideo:
+ios-ninja-novideo:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-ios-ninja
+  extends: ios-ninja
 
 
-job-ios-ninja-smallsdk:
+ios-ninja-smallsdk:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO
-  extends: job-ios-ninja
+  extends: ios-ninja
 
 
 #################################################
 # XCode
 #################################################
-job-ios-xcode:
+ios-xcode:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
-        - .gitlab-ci-files/job-ios.yml
-        - .gitlab-ci-files/job-packages.yml
+        - .gitlab-ci-files/iOS/build.yml
+        - .gitlab-ci-files/iOS/packages.yml
+        # Rules for one job does not trigger jobs in needs, it needs to be done manually
+        - .gitlab-ci-files/xamarin/packages.yml
         - cmake/NuGet/Xamarin/**/*
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -153,9 +155,9 @@ job-ios-xcode:
    - echo $IOS_DEPLOY_URL
    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
 
-  extends: .job-ios
+  extends: .ios
 
-job-ios-xcode-novideo:
+ios-xcode-novideo:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -179,84 +181,4 @@ job-ios-xcode-novideo:
    - IOS_DEPLOY_URL="${IOS_DEPLOY_URL}/novideo/"
    - echo $IOS_DEPLOY_URL
    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
-
-  extends: .job-ios
-
-#################################################
-# Tests
-#################################################
-
-test-liblinphone-ios:
-  tags: [ "macmini-m1-xcode12" ]
-  stage: test
-  allow_failure: true
-  needs:
-    - job-ios-xcode
-
-  rules:
-    - if: $ENABLE_IOS_TESTS
-
-  variables:
-    LOG_PATTERN: "logLiblinphoneIos"
-    XML_PATTERN: "TEST"
-    NUMBER_DEVICES: 4
-
-  script:
-    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
-    - unzip build-ios/linphone-sdk-*.zip -d build-ios/
-    - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
-    - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
-    - pod install
-
-    # Test launching
-    - |
-        xcodebuild -workspace LinphoneTester.xcworkspace \
-        -scheme LinphoneTester -sdk iphonesimulator \
-        -destination name='iPhone 8' \
-        -parallel-testing-enabled YES -parallel-testing-worker-count $NUMBER_DEVICES \
-        -derivedDataPath $WORKSPACE build test 2>&1 | tee $LOG_PATTERN.txt
-
-  after_script:
-    - trainer ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester/build/Logs/Test/*.xcresult -o .
-    - mv *.xml $XML_PATTERN.xml
-
-
-    - BRANCH=$CI_COMMIT_REF_NAME
-    - echo $BRANCH
-    - ESCAPED_BRANCH=$(echo $BRANCH | tr / _)
-    - echo $ESCAPED_BRANCH
-    - COMMIT=$(git describe)
-    - echo $COMMIT
-    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report
-
-    - echo "<\!DOCTYPE HTML>" >> index.html
-    - echo "<meta charset=\"UTF-8\">" >> index.html
-    - echo "<meta http-equiv=\"refresh\" content=\"1; url=$URL\">" >> index.html
-    - echo "<script>" >> index.html
-    - echo "  window.location.href = \"$URL\"" >> index.html
-    - echo "</script>" >> index.html
-    - echo "<title>Page Redirection</title>" >> index.html
-    - echo "<\!-- Don't tell people to \`click\` the link, just tell them that it is a link. -->" >> index.html
-    - echo "If you are not redirected automatically, follow the <a href='$URL'>link to see the test report</a>" >> index.html
-    - cat index.html
-
-    - echo "TEST REPORTS URL $URL"
-
-    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/ios/liblinphone/allure-report"
-
-    #Gathering artifacts in one folder to ease their use
-    - mkdir ${CI_PROJECT_DIR}/results
-    - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
-    - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
-    - cp -r $XML_PATTERN.xml ${CI_PROJECT_DIR}/results
-    - cp -r tester/IOS/LinphoneTester/$LOG_PATTERN.txt ${CI_PROJECT_DIR}/results
-    - cp index.html ${CI_PROJECT_DIR}/results
-
-  artifacts:
-    paths:
-      - results/*
-    when: always
-    reports:
-      junit:
-        - ${CI_PROJECT_DIR}/results/*.xml
-    expire_in: 4 week
+  extends: .ios

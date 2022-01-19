@@ -1,0 +1,24 @@
+macosx-upload:
+  stage: deploy
+  tags: [ "macosx-xcode11" ]
+
+  rules:
+    - if: $DEPLOY_RUN_MACOSX
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  needs:
+    - macosx-xcode
+
+  script:
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
+    - pod repo remove linphone-sdk-macosx || true
+    - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git master
+    - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --local-only --verbose
+    - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
+    - pod repo remove linphone-sdk-macosx

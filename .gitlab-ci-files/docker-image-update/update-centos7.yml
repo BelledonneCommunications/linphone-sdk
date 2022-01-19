@@ -1,4 +1,4 @@
-job-docker-rebuild-centos7-image:
+centos7-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
   rules:
@@ -14,13 +14,13 @@ job-docker-rebuild-centos7-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
 
-job-docker-rebuild-centos7-ms-test-image:
+centos7-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
   tags: [ "linux-deploy" ]
   rules:
     - if: $DOCKER_UPDATE_CENTOS7
   needs:
-    - job-docker-rebuild-centos7-image
+    - centos7-image-docker-rebuild
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: fetch
@@ -32,7 +32,7 @@ job-docker-rebuild-centos7-ms-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-mediastreamer:latestupdated
 
-job-docker-rebuild-centos7-liblinphone-test-image:
+centos7-image-docker-rebuild-liblinphone-test:
   stage: docker-update-build-liblinphone
   tags: [ "linux-deploy" ]
   rules:
@@ -42,7 +42,7 @@ job-docker-rebuild-centos7-liblinphone-test-image:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   needs:
-    - job-docker-rebuild-centos7-ms-test-image
+    - centos7-image-docker-rebuild-ms-test
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-mediastreamer:latestupdated
     - cd docker-files
@@ -50,22 +50,22 @@ job-docker-rebuild-centos7-liblinphone-test-image:
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:latestupdated
 
-job-rebuild-centos7-newdocker-makefile-gcc:
-  extends: job-centos7-makefile-gcc
+centos7-makefile-gcc-newdocker:
+  extends: centos7-makefile-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS7
 
-job-rebuild-centos7-newdocker-ninja-gcc:
-  extends: job-centos7-ninja-gcc
+centos7-ninja-gcc-newdocker:
+  extends: centos7-ninja-gcc
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS7
 
-test-liblinphone-centos7-newdocker:
-  extends: test-liblinphone-centos7
+liblinphone-centos7-test-newdocker:
+  extends: liblinphone-centos7-test
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:latestupdated
   rules:
     - if: $DOCKER_UPDATE_CENTOS7
   needs:
-    - job-rebuild-centos7-newdocker-makefile-gcc
+    - centos7-makefile-gcc-newdocker

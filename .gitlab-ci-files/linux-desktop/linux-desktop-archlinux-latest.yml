@@ -14,7 +14,7 @@
 #################################################
 
 
-job-archlinux-latest-makefile-gcc:
+arch-latest-makefile-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
@@ -24,10 +24,10 @@ job-archlinux-latest-makefile-gcc:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-archlinux-latest-makefile-clang:
+arch-latest-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
@@ -37,7 +37,7 @@ job-archlinux-latest-makefile-clang:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
 #################################################
@@ -45,7 +45,7 @@ job-archlinux-latest-makefile-clang:
 #################################################
 
 
-job-archlinux-latest-ninja-gcc:
+arch-latest-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
@@ -55,20 +55,20 @@ job-archlinux-latest-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-archlinux-latest-ninja-gcc-novideo:
+arch-latest-ninja-gcc-novideo:
 
   tags: [ "docker" ]
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-archlinux-latest-ninja-gcc
+  extends: arch-latest-ninja-gcc
 
 
-job-archlinux-latest-ninja-clang:
+arch-latest-ninja-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
@@ -79,15 +79,15 @@ job-archlinux-latest-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-job-archlinux-latest-ninja-clang-novideo:
+arch-latest-ninja-clang-novideo:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
-  extends: job-archlinux-latest-ninja-clang
+  extends: arch-latest-ninja-clang
 
 
 #################################################
@@ -95,44 +95,44 @@ job-archlinux-latest-ninja-clang-novideo:
 #################################################
 
 
-test-bctoolbox-arch:
+bctoolbox-arch-test:
   extends: .test-bctoolbox
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-arch:
+bellesip-arch-test:
   extends: .test-bellesip
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
   variables:
     PLATFORM: linux-arch
 
-test-belr-arch:
+belr-arch-test:
   extends: .test-belr
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-arch:
+belcard-arch-test:
   extends: .test-belcard
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-arch:
+bzrtp-arch-test:
   extends: .test-bzrtp
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-arch:
+liblinphone-arch-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:$ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
-    - job-archlinux-latest-ninja-clang
+    - arch-latest-ninja-clang
   variables:
     PLATFORM: linux-arch

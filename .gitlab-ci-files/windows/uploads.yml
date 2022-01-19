@@ -1,0 +1,85 @@
+# batch nightmare to set the output of a command in a variable
+# .check_snapshot_or_release_windows: &check_snapshot_or_release_windows |
+#   SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_RELEASES_DIRECTORY%
+#   FOR /F "tokens=*" %%i IN ('git -C liblinphone describe') DO SET describe=%%i
+#   FOR /F "tokens=*" %%i IN ('powershell "'%describe%' -match 'alpha|beta'"') DO SET describe_check=%%i
+#   if %describe_check% == True SET DEPLOY_ROOT_DIRECTORY=%DEPLOY_SNAPSHOTS_ROOT_DIRECTORY%
+#   echo %DEPLOY_ROOT_DIRECTORY%
+
+.check_snapshot_or_release_windows: &check_snapshot_or_release_windows |
+  Set-Variable -Name "PATH_TEMP" -Value $DEPLOY_RELEASES_DIRECTORY
+  echo $PATH_TEMP
+  Set-Variable -Name "describe" -Value $(git -C liblinphone describe)
+  echo $describe
+  Set-Variable -Name "describe_check" -Value $($describe -match 'alpha|beta')
+  echo $describe_check
+  If ($describe_check -eq $true) {Set-Variable -Name "DEPLOY_ROOT_DIRECTORY" -Value $DEPLOY_SNAPSHOTS_ROOT_DIRECTORY}
+  echo $DEPLOY_ROOT_DIRECTORY
+
+
+vs2017-win32-windows-upload:
+  stage: deploy
+  tags: [ "windows-powershell"]
+
+  rules:
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+  variables:
+    DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
+  needs:
+    - vs2017-win32-scheduled-windows
+  script:
+    - *check_snapshot_or_release_windows
+    # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
+    - scp build-desktop/linphone-sdk/linphone-sdk-*.zip ${DEPLOY_SERVER}:${DEPLOY_ROOT_DIRECTORY}/${DEPLOY_DEST_DIR_SDK_WINDOWS}/
+
+vs2017-nuget-windows-upload:
+  stage: deploy
+  tags: [ "windows-powershell"]
+  rules:
+    - if: $DEPLOY_RUN_WINDOWS
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+  variables:
+    DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
+  needs:
+    - vs2017-nuget-windows-package
+  script:
+    - *check_snapshot_or_release_windows
+    # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
+    - scp build-desktop/linphone-sdk/packages/*.nupkg ${DEPLOY_SERVER}:${DEPLOY_ROOT_DIRECTORY}/${DEPLOY_DEST_DIR_SDK_WINDOWS}/
+
+#################################################
+# Windows (C#) doc upload
+#################################################
+
+cs-doc-windows-upload:
+  stage: deploy
+  tags: [ "windows-powershell"]
+
+  rules:
+    - if: $UPLOAD_CS_DOC
+
+  needs:
+    - vs2017-win32-scheduled-windows
+  script:
+    # Getting the version number to push the right version of the doc
+    - echo $CI_PROJECT_DIR
+    # We parse the file build-desktop/linphone-sdk/desktop/share/version.txt to populate variables based on file "key=value" entries
+    # - for /f "delims== tokens=1,2" %%G in (build-desktop/linphone-sdk/desktop/share/version.txt) do set %%G=%%H
+    - |
+        Get-Content build-desktop/linphone-sdk/desktop/share/version.txt | Foreach-Object {
+          $var = $_.Split('=')
+          New-Variable -Name $var[0] -Value $var[1]
+        }
+    - Set-Variable -Name "UPLOAD_ROOT_DIRECTORY" -Value $DEPLOY_RELEASES_DIRECTORY
+    - If ($LINPHONESDK_STATE -eq "snapshots") { Set-Variable -Name "UPLOAD_ROOT_DIRECTORY" -Value $DEPLOY_SNAPSHOTS_ROOT_DIRECTORY }
+    - echo $LINPHONESDK_STATE
+    - echo $LINPHONE_VERSION
+    - echo $STRIPPED_LINPHONE_VERSION
+    - echo $DEPLOY_SERVER
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$STRIPPED_LINPHONE_VERSION/cs
+    # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
+    - scp -pr build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LINPHONE_VERSION/cs/* ${DEPLOY_SERVER}:${UPLOAD_ROOT_DIRECTORY}/docs/liblinphone/${STRIPPED_LINPHONE_VERSION}/cs

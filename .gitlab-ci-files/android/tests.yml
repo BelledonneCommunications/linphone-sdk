@@ -1,0 +1,63 @@
+#################################################
+# Tests Android
+#################################################
+
+liblinphone-android-r20-test:
+  tags: [ "docker-android-test" ]
+  stage: test
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-test-r20:20210416_python3
+  allow_failure: true
+  needs:
+    - android-makefile-r20
+  rules:
+    - if: $ENABLE_ANDROID_TESTS
+  script:
+    - cd ${CI_PROJECT_DIR}/tester/Android
+    # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.
+    - adb uninstall org.linphone.tester.test || true
+    - adb uninstall org.linphone.tester || true
+
+    # build of the testers
+    - ./gradlew assembleDebug
+    - ./gradlew assembleDebugAndroidTest
+
+    # gathering full trace of logcat in case of a coredump
+    - |
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
+        adb -s $x logcat -c
+        adb -s $x logcat -v time > $x.txt &
+        echo $! > $x.pid
+        done
+
+    # Test launching
+    - |
+        java -jar ~/spoon.jar --output spoon --apk app/build/outputs/apk/debug/app-debug.apk \
+        --test-apk app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+        --class-name 'org.linphone.tester.AllTests' \
+        --fail-on-failure --fail-if-no-device-connected --grant-all || ( if [ $? -ne 0 ]
+        then
+        echo "Some tests are failed" && false
+        fi)
+
+  after_script:
+    #putting all the trace in the ndk stack txt file
+    - |
+        for x in `adb devices | sed -n '1!p' | sed '/^$/d' | awk '{print $1;}'`; do
+        cat tester/Android/$x.txt | ndk-stack -sym build/libs-debug/`adb -s $x shell getprop ro.product.cpu.abi | tr -d '\r'` > tester/Android/$x-ndk-stack.txt
+        done
+    #debugging output to see why the tests are failing in runner
+    - cat tester/Android/$x.txt
+    - tar zcvf tester/Android/logs-tests-android.tar.gz tester/Android/spoon/ tester/Android/*.txt
+
+    #Gathering artifacts in one folder to ease their use
+    - sudo mkdir ${CI_PROJECT_DIR}/results
+    - sudo chmod 777 ${CI_PROJECT_DIR}/results
+    - mv tester/Android/logs-tests-android.tar.gz ${CI_PROJECT_DIR}/results
+    - mv tester/Android/spoon/junit-reports/*.xml ${CI_PROJECT_DIR}/results
+
+  artifacts:
+    paths:
+      - results/*
+
+    when: always
+    expire_in: 4 week

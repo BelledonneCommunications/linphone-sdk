@@ -1,0 +1,115 @@
+.android-upload-common:
+  stage: deploy
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
+
+  rules:
+    - if: $DEPLOY_RUN_ANDROID
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  variables:
+    CCACHE_SIZE: 4G
+    GIT_STRATEGY: fetch
+    GRADLE_OPTIONS: -i
+    MAVEN_REPO_PATH: linphone-sdk-android*
+
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$DEPLOY_SERVER_HOST_KEY" >> ~/.ssh/known_hosts
+
+  script:
+    - git config --global user.email "gitlab@belledonne-communications.com"
+    - git config --global user.name "Gitlab"
+    - cd build
+    - mkdir -p maven_repository/org/linphone/
+    - echo $MAVEN_REPO_PATH
+    - rsync -avzP -e ssh --exclude "*.aar" --exclude "*.jar" $MAVEN_REPO_URL/org/linphone/$MAVEN_REPO_PATH maven_repository/org/linphone/
+    - echo $GRADLE_OPTIONS
+    - ../cmake/Android/gradlew -b upload.gradle publish $GRADLE_OPTIONS
+    - rsync -avzP -e ssh ./maven_repository/org/linphone/$MAVEN_REPO_PATH $MAVEN_REPO_URL/org/linphone/
+
+  after_script:
+    - rm -rf ~/.ssh || true
+
+android-doc-upload:
+  stage: deploy
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
+
+  rules:
+    - if: $DEPLOY_RUN_ANDROID
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  variables:
+    CCACHE_SIZE: 4G
+    GIT_STRATEGY: fetch
+
+  needs:
+    - android-makefile-r20
+
+  before_script:
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$DEPLOY_SERVER_HOST_KEY" >> ~/.ssh/known_hosts
+
+  script:
+    - git config --global user.email "gitlab@belledonne-communications.com"
+    - git config --global user.name "Gitlab"
+
+    #Only get major and minor version (ex: 4.4) for documentation directory
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - cd build
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
+    - rsync -rlv -e ssh linphone-sdk/bin/docs/javadoc/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java/
+
+  after_script:
+    - rm -rf ~/.ssh || true
+
+android-upload:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+  needs:
+    - android-makefile-r20
+
+android-upload-no-video:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pno-video -i
+    MAVEN_REPO_PATH: no-video
+  needs:
+    - android-ninja-r20-no-video
+
+android-upload-minimal-size:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
+    GRADLE_OPTIONS: -Pminimal-size -i
+    MAVEN_REPO_PATH: minimal
+  needs:
+    - android-makefile-r20-minimal-size
+
+android-upload-g729:
+  extends: .android-upload-common
+  variables:
+    MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
+  needs:
+    - android-makefile-r20-g729

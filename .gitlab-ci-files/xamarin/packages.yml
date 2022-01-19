@@ -1,0 +1,46 @@
+xamarin-package:
+  stage: package
+  tags: [ "macmini-m1-xcode12" ]
+  variables:
+    GIT_STRATEGY: fetch
+  needs:
+    - ios-xcode
+    - android-makefile-r20-g729
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+       - .gitlab-ci-files/xamarin/packages.yml
+       - cmake/NuGet/Xamarin/**/*
+    - if: $DEPLOY_RUN_NUGET
+    - if: $UPLOAD_XAMARIN
+    - if: $NIGHTLY_RELEASE
+    - if: $NIGHTLY_MASTER
+
+
+  before_script:
+    #removing previous results directory to avoid getting incorrect artifacts for current launch
+    - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;
+    - if [ -d "$CI_PROJECT_DIR/linphone-sdk-xamarin" ]; then rm -rf $CI_PROJECT_DIR/linphone-sdk-xamarin; fi; # unzipped iOS artifacts
+    - if [ -d "$CI_PROJECT_DIR/build-nuget" ]; then rm -rf $CI_PROJECT_DIR/build-nuget; fi; # cmake build dir
+
+
+  script:
+   - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-* -d linphone-sdk-xamarin
+   - mkdir -p build-nuget
+   - cd build-nuget
+   # The C# wrapper is used both by Android and iOS but it's arbitrarily compiled in the iOS build (it has to come from somewhere)
+   - cmake ..
+     -DLINPHONESDK_PACKAGER="Nuget"
+     -DLINPHONESDK_CSHARP_WRAPPER_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/share/linphonecs/LinphoneWrapper.cs"
+     -DLINPHONESDK_IOS_FRAMEWORKS_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/Frameworks"
+     -DLINPHONESDK_ANDROID_AAR_PATH="$CI_PROJECT_DIR/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar"
+     -DCMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/results"
+   - cmake --build .
+
+
+  artifacts:
+    paths:
+      - results/*
+    when: always
+    expire_in: 1 week

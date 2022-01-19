@@ -14,7 +14,7 @@
 #################################################
 
 
-#job-debian9-makefile-gcc:
+#debian9-makefile-gcc:
 #
 #  tags: [ "docker" ]
 #  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
@@ -26,10 +26,10 @@
 #    CXX: g++
 #    #Only used to overwrite value set by .set_parallel_level.yml
 #    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-#  extends: .job-linux-desktop
+#  extends: .linux-desktop
 
 
-job-debian9-makefile-clang:
+debian9-makefile-clang:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
@@ -41,7 +41,7 @@ job-debian9-makefile-clang:
     CXX: clang++
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
 #################################################
@@ -49,7 +49,7 @@ job-debian9-makefile-clang:
 #################################################
 
 
-job-debian9-ninja-gcc:
+debian9-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
@@ -60,26 +60,26 @@ job-debian9-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-  extends: .job-linux-desktop
+  extends: .linux-desktop
 
 
-#job-debian9-ninja-gcc-novideo:
+#debian9-ninja-gcc-novideo:
 #
 #  rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
-#  extends: job-debian9-ninja-gcc
+#  extends: debian9-ninja-gcc
 
 
-job-debian9-ninja-gcc-smallsdk:
+debian9-ninja-gcc-smallsdk:
 
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-  extends: job-debian9-ninja-gcc
+  extends: debian9-ninja-gcc
 
 
 #job-debian9-ninja-clang:
@@ -93,7 +93,7 @@ job-debian9-ninja-gcc-smallsdk:
 #    CMAKE_GENERATOR: Ninja
 #    CC: clang
 #    CXX: clang++
-#  extends: .job-linux-desktop
+#  extends: .linux-desktop
 
 
 #job-debian9-ninja-clang-novideo:
@@ -109,43 +109,43 @@ job-debian9-ninja-gcc-smallsdk:
 
 
 #Commented until fix for ipv6 for debian 8/9
-test-bctoolbox-debian9:
+bctoolbox-debian9-test:
   extends: .test-bctoolbox
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-debian9:
+bellesip-debian9-test:
   extends: .test-bellesip
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   tags: [ "docker-sequential" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian9
 
-test-belr-debian9:
+belr-debian9-test:
   extends: .test-belr
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-debian9:
+belcard-debian9-test:
   extends: .test-belcard
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-debian9:
+bzrtp-debian9-test:
   extends: .test-bzrtp
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-debian9:
+liblinphone-debian9-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone:$DEBIAN_9_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
-    - job-debian9-ninja-gcc
+    - debian9-ninja-gcc
   variables:
     PLATFORM: linux-debian9
