@@ -72,10 +72,17 @@ check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.
 foreach(targetname "mbedtls" "mbedx509" "mbedcrypto")
 	string(TOUPPER ${targetname} varprefix)
 	add_library(${targetname} SHARED IMPORTED)
-	set_target_properties(${targetname} PROPERTIES
-		INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
-		IMPORTED_LOCATION "${${varprefix}_LIBRARY}"
-	)
+	if (WIN32)
+		set_target_properties(${targetname} PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
+			IMPORTED_IMPLIB "${${varprefix}_LIBRARY}"
+		)
+	else()
+		set_target_properties(${targetname} PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${${varprefix}_LIBRARY}"
+		)
+	endif()
 endforeach()
 unset(varprefix)
 
