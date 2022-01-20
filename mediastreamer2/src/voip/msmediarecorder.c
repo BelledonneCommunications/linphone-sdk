@@ -1,8 +1,11 @@
 #include "mediastreamer2/msmediarecorder.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msextdisplay.h"
 #include "../audiofilters/waveheader.h"
+
+#include <math.h>
 
 #ifdef _MSC_VER
 #include <mmsystem.h>
@@ -36,6 +39,7 @@ struct _MSMediaRecorder {
 	MSFilter *audio_source;
 	MSFilter *resampler;
 	MSFilter *audio_encoder;
+	MSFilter * audio_capture_volume;
 	//Video filters
 	MSFilter *video_source;
 	MSFilter *video_encoder;
@@ -139,6 +143,8 @@ bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath, int de
 		return FALSE;
 	}
 	ms_free(tmp);
+	obj->audio_capture_volume = ms_factory_create_filter(obj->factory, MS_VOLUME_ID);
+	
 	ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_VOICE);
 	_create_sources(obj);
 	_set_pin_fmt(obj);
@@ -214,6 +220,14 @@ void ms_media_recorder_remove_file(MSMediaRecorder *obj, const char *filepath) {
 	} else {
 		ms_warning("No existing file at %s, doing nothing.", filepath);
 	}
+}
+
+// Return linear volume
+float ms_media_recorder_get_capture_volume(const MSMediaRecorder *obj){
+	float volume = 0.0;
+	ms_filter_call_method(obj->audio_capture_volume, MS_VOLUME_GET, &volume);
+	volume = (float)pow(10.0, volume / 10.0);	//db to linear
+	return volume;
 }
 
 static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
@@ -358,6 +372,7 @@ static void _destroy_graph(MSMediaRecorder *obj) {
 	ms_filter_destroy_and_reset_if_not_null(obj->audio_source);
 	ms_filter_destroy_and_reset_if_not_null(obj->video_source);
 	ms_filter_destroy_and_reset_if_not_null(obj->resampler);
+	ms_filter_destroy_and_reset_if_not_null(obj->audio_capture_volume);
 	obj->audio_pin_fmt.fmt = NULL;
 	obj->video_pin_fmt.fmt = NULL;
 }
@@ -376,8 +391,10 @@ static bool_t _link_all(MSMediaRecorder *obj) {
 	if(obj->audio_pin_fmt.fmt && obj->audio_source) {
 		ms_connection_helper_start(&helper);
 		ms_connection_helper_link(&helper, obj->audio_source, -1, 0);
+		if(obj->audio_capture_volume) ms_connection_helper_link(&helper, obj->audio_capture_volume, 0, 0);
 		if(obj->resampler) ms_connection_helper_link(&helper, obj->resampler, 0, 0);
 		if(obj->audio_encoder) ms_connection_helper_link(&helper, obj->audio_encoder, 0, 0);
+		
 		ms_connection_helper_link(&helper, obj->recorder, obj->audio_pin_fmt.pin, -1);
 	}
 	if(obj->video_pin_fmt.fmt && obj->video_source) {
@@ -394,6 +411,7 @@ static void _unlink_all(MSMediaRecorder *obj) {
 	if(obj->audio_pin_fmt.fmt && obj->audio_source) {
 		ms_connection_helper_start(&helper);
 		ms_connection_helper_unlink(&helper, obj->audio_source, -1, 0);
+		if(obj->audio_capture_volume) ms_connection_helper_unlink(&helper, obj->audio_capture_volume, 0, 0);
 		if(obj->resampler) ms_connection_helper_unlink(&helper, obj->resampler, 0, 0);
 		if(obj->audio_encoder) ms_connection_helper_unlink(&helper, obj->audio_encoder, 0, 0);
 		ms_connection_helper_unlink(&helper, obj->recorder, obj->audio_pin_fmt.pin, -1);
