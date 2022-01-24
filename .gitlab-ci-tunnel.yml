@@ -5,7 +5,7 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
   MAKEFILE_JOBS: 5
-  CCACHE_SIZE: 2G
+  CCACHE_SIZE: 3G
 
   #Lime X3DH activated by default, if there is a problem, see the default
   #build options in CMakeBuilder

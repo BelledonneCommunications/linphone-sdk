@@ -1,9 +1,19 @@
 .linux-prepare:
 
   cache:
-    key: $CI_JOB_NAME
+    key: $CI_JOB_IMAGE-master
     paths:
       - ccache/
+
+  variables:
+    #Misleading name, means no compression at all
+    CACHE_COMPRESSION_LEVEL: "fastest"
+    CCACHE_DIRECTORY_NAME: "ccache"
+    FF_USE_FASTZIP: 1
+
+    # Will work after the update to Gitlab 14
+    FF_SCRIPT_SECTIONS: 1
+
 
   extends: .job-prepare
 
@@ -12,6 +22,8 @@
       when: never
 
   before_script:
+
+    - echo $CI_JOB_IMAGE
     ##
     ## If a TUNNEL_USER_KEY is defined then start ssh-agent and add the key
     ##
@@ -32,8 +44,12 @@
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
 
+    # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
+    - ccache -z
+    - ccache -s
+
     ##
-    ## Set max number of jobs 
+    ## Set max number of jobs
     ##
     - !reference [.set-max-jobs-unix, script]
 
