@@ -158,7 +158,8 @@ static int next_input_pin(MSFilter *f, int i){
 	int k;
 	for(k=i+1;k<i+1+f->desc->ninputs;k++){
 		int next_pin=k % f->desc->ninputs;
-		if (f->inputs[next_pin]) return next_pin;
+		// pin is reserved
+		if (next_pin!=f->desc->ninputs-2 && f->inputs[next_pin]) return next_pin;
 	}
 	ms_error("next_input_pin: should not happen");
 	return 0;
@@ -192,7 +193,8 @@ static void router_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, Outpu
 
 static void _router_set_focus(MSFilter *f, RouterState *s , int pin){
 	int i;
-	for (i = 0 ; i < f->desc->noutputs ; ++i){
+	ms_message("%s: set focus %d", f->desc->name, pin);
+	for (i = 0 ; i < f->desc->noutputs-1; ++i){ // pin is reserved
 		if (i != pin){
 			s->output_contexts[i].next_source = pin;
 		}
@@ -205,7 +207,7 @@ static void router_preprocess(MSFilter *f){
 	int i;
 	
 	if (s->focus_pin == -1){
-		for(i=0;i<f->desc->noutputs;++i){
+		for(i=0;i<f->desc->noutputs-1;++i){ // pin is reserved
 			MSQueue *q = f->outputs[i];
 			if (q){
 				_router_set_focus(f, s, i);
@@ -258,7 +260,7 @@ static void router_process(MSFilter *f){
 					output_context->next_source = next_input_pin(f, output_context->current_source);
 					output_context->current_source = -1; /* Invalidate the current source until the switch.*/
 				}
-				
+
 				if (output_context->current_source != output_context->next_source){
 					/* This output is waiting a key-frame to start */
 					input_context = &s->input_contexts[output_context->next_source];
