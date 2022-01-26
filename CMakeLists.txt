@@ -47,6 +47,13 @@ if(ENABLE_TUNNEL)
 	)
 	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES tunnel-clone)
 endif()
+if(ENABLE_PQCRYPTO)
+	add_custom_target(postquantumcryptoengine-clone
+		"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-P" "${LINPHONESDK_DIR}/cmake/LinphoneSdkPostquantumcryptoengineClone.cmake"
+	)
+	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES postquantumcryptoengine-clone)
+endif()
+
 
 if(APPLE)
 	if(LINPHONESDK_PLATFORM MATCHES "Desktop")#on Apple, Desktop == Macos
@@ -73,6 +80,7 @@ if(NOT LINPHONESDK_PACKAGER OR LINPHONESDK_PACKAGER STREQUAL "OFF")
 	include(cmake-builder/configs/options-${_lowercase_platform}.cmake)
 	include(cmake-builder/options/common.cmake)
 	include(cmake-builder/options/bctoolbox.cmake)
+	include(cmake-builder/options/bzrtp.cmake)
 	include(cmake-builder/options/bellesip.cmake)
 	include(cmake-builder/options/ms2.cmake)
 	include(cmake-builder/options/linphone.cmake)

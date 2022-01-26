@@ -136,3 +136,6 @@
 [submodule "external/libyuv"]
 	path = external/libyuv
 	url = https://gitlab.linphone.org/BC/public/external/libyuv.git
+[submodule "external/liboqs"]
+	path = external/liboqs
+	url =  https://gitlab.linphone.org/BC/public/external/liboqs.git
