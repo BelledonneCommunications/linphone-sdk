@@ -77,7 +77,10 @@ void BufferRenderer::render () {
 		// Synchronize opengl calls with QML.
 		if (mWindow)
 			mWindow->resetOpenGLState();
-	}
+	}else if(!mParent)
+		qDebug() << QStringLiteral("[MSQOGL] mParent is NULL for rendering");
+	else
+		qDebug() << QStringLiteral("[MSQOGL] mParent->parent is NULL for rendering");
 }
 
 void BufferRenderer::synchronize (QQuickFramebufferObject *item) {
@@ -185,9 +188,15 @@ static int qogl_set_native_window_id (MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	
 	data = (FilterData *)f->data;
-	if( !arg || (arg && !(*(QQuickFramebufferObject::Renderer**)arg) )){
-		qInfo() << QStringLiteral("[MSQOGL] reset renderer");
+	if( !arg || (arg && !(*(BufferRenderer**)arg) )){
+		qInfo() << QStringLiteral("[MSQOGL] Reset renderer");
 		data->renderer = NULL;
+	}else{
+		BufferRenderer * buffer = (*(BufferRenderer**)arg);
+		qInfo() << QStringLiteral("[MSQOGL] Update renderer to ") << buffer;
+		data->renderer = buffer;
+		buffer->mParent = data;
+		data->update_context = TRUE;
 	}
 	ms_filter_unlock(f);
 	return 0;
