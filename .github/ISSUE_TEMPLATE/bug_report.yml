@@ -40,7 +40,7 @@ body:
                   - For which purpose do you use the project ?
                   - With which software/hardware it is integrated ?
                   - Did you use sip.linphone.org or a different SIP service (in this case specify which one and which version) ?
-    placeholder: |
+    value: |
             I use the linphone-sdk in the Linphone-desktop Linux version with sip.linphone.org for my company. I want to do a simple call between an Android phone and a Linux client.
   validations:
     required: true
@@ -48,20 +48,20 @@ body:
 - type: textarea
   attributes:
     label: General information
-     description: |
-                   Complete it multiple time if there are multiple devices involved.
-                   Please note that the issue has more chances to be read if you report a bug seen in the latest version of the SDK.
+    description: |
+                 Complete it multiple time if there are multiple devices involved.
+                 Please note that the issue has more chances to be read if you report a bug seen in the latest version of the SDK.
 
-                   Ex :
-                    - Device: [e.g. ASUS Zenbook Pro UX501]
-                    - OS: [e.g. Manjaro 21.1.6 Pahvo KDE, Windows 10 - 2004, MacOs 10.5]
-                    - Version of the App [e.g. 4.3.2]
-                    - Version of the SDK [e.g 5.0.49]
-     placeholder: |
-             - Device:
-             - OS:
-             - Version of the App:
-             - Version of the SDK:
+                 Ex :
+                  - Device: [e.g. ASUS Zenbook Pro UX501]
+                  - OS: [e.g. Manjaro 21.1.6 Pahvo KDE, Windows 10 - 2004, MacOs 10.5]
+                  - Version of the App [e.g. 4.3.2]
+                  - Version of the SDK [e.g 5.0.49]
+    value: |
+           - Device:
+           - OS:
+           - Version of the App:
+           - Version of the SDK:
 
   validations:
     required: true
@@ -70,7 +70,7 @@ body:
   attributes:
     label: Expected behaviour
     description: "A clear and concise description of what you expected to happen."
-    placeholder: |
+    value: |
             I wanted to do a simple call with the Linux client calling the Android phone. However, the phone doesn't ring when it is asleep.
   validations:
     required: true
@@ -79,7 +79,7 @@ body:
   attributes:
     label: To Reproduce
     description: "Steps to reproduce the behavior:"
-    placeholder: |
+    value: |
             1. Go to '...'
             2. Click on '....'
             3. Scroll down to '....'
@@ -90,7 +90,7 @@ body:
 - type: textarea
   attributes:
     label: 'Additional context'
-    placeholder: Add any other context about the problem here.
+    value: Add any other context about the problem here.
 
 - type: markdown
   attributes:
