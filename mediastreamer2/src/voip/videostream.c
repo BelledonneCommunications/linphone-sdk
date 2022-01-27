@@ -413,6 +413,7 @@ VideoStream *video_stream_new2(MSFactory* factory, const char* ip, int loc_rtp_p
 	sessions.rtp_session=ms_create_duplex_rtp_session(ip,loc_rtp_port,loc_rtcp_port, ms_factory_get_mtu(factory));
 	obj=video_stream_new_with_sessions(factory, &sessions);
 	obj->ms.owns_sessions=TRUE;
+	obj->display_mode=MSVideoDisplayHybrid;
 	return obj;
 }
 
@@ -1260,6 +1261,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if( ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface) ) {
 				assign_value_to_mirroring_flag_to_preview(stream);
 			}
+			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_MODE, &stream->display_mode);
+
 			ms_filter_link(stream->tee,1,stream->output2,0);
 		}
 		if (stream->local_jpegwriter){
@@ -1376,6 +1379,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 				if (stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 					ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 				}
+				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_MODE, &stream->display_mode);
 			}
 		}
 
@@ -1887,6 +1891,10 @@ void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno){
 
 void video_stream_set_device_rotation(VideoStream *stream, int orientation){
 	stream->device_orientation = orientation;
+}
+
+void video_stream_set_display_mode(VideoStream *stream, MSVideoDisplayMode mode){
+	stream->display_mode=mode;
 }
 
 void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno) {
