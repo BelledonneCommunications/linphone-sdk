@@ -22,6 +22,9 @@ changes made to these components.__
 
 
 
+### Changed
+- Link Android build to OpenGLESv3 instead of OpenGLESv2
+
 ## [5.0.0] 2021-07-08
 
 ### Added
