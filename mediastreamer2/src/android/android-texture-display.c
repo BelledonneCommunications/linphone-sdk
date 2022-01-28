@@ -53,26 +53,26 @@ typedef struct AndroidTextureDisplay {
 static void android_texture_display_destroy_opengl(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
 	ms_filter_lock(f);
-	ms_message("[TextureView Display] Destroying context");
+	ms_message("[TextureView Display][Filter=%p] Destroying context for windowId %p", f, ad->nativeWindowId);
 
 	if (ad->ogl) {
 		ogl_display_uninit(ad->ogl, TRUE);
 		ogl_display_free(ad->ogl);
 		ad->ogl = NULL;
-		ms_message("[TextureView Display] OGL display destroyed");
+		ms_message("[TextureView Display][Filter=%p] OGL display destroyed", f);
 	}
 
 	EGLBoolean result;
 	if (ad->gl_display) {
 
 		if (eglMakeCurrent(ad->gl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {         
-			ms_error("[TextureView Display] Unable to eglMakeCurrent in destructor");
+			ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent in destructor", fflush);
 		}
 
 		if (ad->gl_context) {
 			result = eglDestroyContext(ad->gl_display, ad->gl_context);
 			if (result != EGL_TRUE) {
-				ms_error("[TextureView Display] eglDestroyContext failure: %u", result);
+				ms_error("[TextureView Display][Filter=%p] eglDestroyContext failure: %u", f, result);
 			}
 			ad->gl_context = NULL;
 		}
@@ -80,24 +80,24 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 		if (ad->gl_surface) {
 			result = eglDestroySurface(ad->gl_display, ad->gl_surface);
 			if (result != EGL_TRUE) {
-				ms_error("[TextureView Display] eglDestroySurface failure: %u", result);
+				ms_error("[TextureView Display][Filter=%p] eglDestroySurface failure: %u", f, result);
 			}
 			ad->gl_surface = NULL;
 		}
 
 		result = eglTerminate(ad->gl_display);
 		if (result != EGL_TRUE) {
-			ms_error("[TextureView Display] eglTerminate failure: %u", result);
+			ms_error("[TextureView Display][Filter=%p] eglTerminate failure: %u", f, result);
 		}
 		
 		ad->gl_display = NULL;
-		ms_message("[TextureView Display] EGL display destroyed");
+		ms_message("[TextureView Display][Filter=%p] EGL display destroyed for windowId %p", f, ad->nativeWindowId);
 	}
 
 	if (ad->window) {
 		ANativeWindow_release(ad->window);
 		ad->window = NULL;
-		ms_message("[TextureView Display] Window released");
+		ms_message("[TextureView Display][Filter=%p] Window released for windowId %p", f, ad->nativeWindowId);
 	}
 
 	if (ad->surface) {
@@ -105,14 +105,27 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 		jclass surfaceClass = (*env)->FindClass(env, "android/view/Surface");
 		jmethodID release = (*env)->GetMethodID(env, surfaceClass, "release", "()V");
 		(*env)->CallVoidMethod(env, ad->surface, release);
-		ms_message("[TextureView Display] Surface released");
+		ms_message("[TextureView Display][Filter=%p] Surface released for windowId %p", f, ad->nativeWindowId);
 
 		(*env)->DeleteGlobalRef(env, ad->surface);
 		ad->surface = NULL;
-		ms_message("[TextureView Display] Surface destroyed");
+		ms_message("[TextureView Display][Filter=%p] Surface destroyed for windowId %p", f, ad->nativeWindowId);
 	}
 
-	ms_message("[TextureView Display] Context destroyed");
+	ms_message("[TextureView Display][Filter=%p] Context destroyed for windowId %p", f, ad->nativeWindowId);
+	ms_filter_unlock(f);
+}
+
+static void android_texture_display_release_windowId(MSFilter *f) {
+	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
+	ms_filter_lock(f);
+	JNIEnv *env = ms_get_jni_env();
+	ms_message("[TextureView Display][Filter=%p] Releasing global ref on windowId %p", f, ad->nativeWindowId);
+	(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
+	ad->nativeWindowId = NULL;
+
+	flushq(&ad->entry_q, 0);
+	ms_free(ad);
 	ms_filter_unlock(f);
 }
 
@@ -150,13 +163,13 @@ static void android_texture_display_create_surface_from_surface_texture(AndroidT
 		jmethodID getSurfaceTexture = (*env)->GetMethodID(env, textureViewClass, "getSurfaceTexture", "()Landroid/graphics/SurfaceTexture;");
 		windowId = (*env)->CallObjectMethod(env, d->nativeWindowId, getSurfaceTexture);
 		if (windowId == NULL) {
-			ms_error("[TextureView Display] TextureView isn't available !");
+			ms_error("[TextureView Display] TextureView %p isn't available !", windowId);
 			return;
 		}
 	}
 
 	if (windowId == NULL) {
-		ms_error("[TextureView Display] SurfaceTexture is null, can't create a Surface!");
+		ms_error("[TextureView Display] SurfaceTexture is null, can't create a Surface from windowId %p !", windowId);
 		return;
 	}
 
@@ -168,19 +181,26 @@ static void android_texture_display_create_surface_from_surface_texture(AndroidT
 		return;
 	}
 	d->surface = (jobject)(*env)->NewGlobalRef(env, surface);
-	ms_message("[TextureView Display] Surface created: %p", d->surface);
+	ms_message("[TextureView Display] Surface created %p for SurfaceTexture %p", d->surface, windowId);
 }
 
 static void android_texture_display_init_opengl(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
 	ms_filter_lock(f);
    	JNIEnv *jenv = ms_get_jni_env();
-	ms_message("[TextureView Display] Initializing context");
+	ms_message("[TextureView Display][Filter=%p] Initializing context for windowId %p", f, ad->nativeWindowId);
 
 	if (ad->nativeWindowId) {
 		android_texture_display_create_surface_from_surface_texture(ad);
+		if (ad->surface == NULL) {
+			ms_error("[TextureView Display][Filter=%p] Can't init display, no surface created from texture, releasing global ref on windowId %p", f, ad->nativeWindowId);
+			(*jenv)->DeleteGlobalRef(jenv, ad->nativeWindowId);
+			ad->nativeWindowId = NULL;
+			ms_filter_unlock(f);
+			return;
+		}
 	} else {
-		ms_error("[TextureView Display] Can't init display, no surface texture set");
+		ms_error("[TextureView Display][Filter=%p] Can't init display for windowId %p, no surface texture set", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
 		return;
 	}
@@ -206,7 +226,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 
 	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
 
-	ms_message("[TextureView Display] Chosen format is %i", format);
+	ms_message("[TextureView Display][Filter=%p] Chosen format for windowId %p is %i", f, ad->nativeWindowId, format);
 
 	ad->window = ANativeWindow_fromSurface(jenv, ad->surface);
 	ANativeWindow_setBuffersGeometry(ad->window, 0, 0, format);
@@ -215,7 +235,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 
 	eglQuerySurface(display, surface, EGL_WIDTH, &w);
 	eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-	ms_message("[TextureView Display] Surface size is %ix%i", w, h);
+	ms_message("[TextureView Display][Filter=%p] Surface size for windowId %p is %ix%i", f, ad->nativeWindowId, w, h);
 
 	EGLint contextAttrs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 2,
@@ -224,7 +244,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttrs);
 
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {         
-		ms_error("[TextureView Display] Unable to eglMakeCurrent");
+		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
 		return;
 	}
@@ -238,7 +258,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ad->ogl = ogl_display_new();
 	ogl_display_init(ad->ogl, NULL, w, h);
 
-	ms_message("[TextureView Display] Context initialized");
+	ms_message("[TextureView Display][Filter=%p] Context initialized for windowId %p", f, ad->nativeWindowId);
 	ms_filter_unlock(f);
 }
 
@@ -248,13 +268,13 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 	ms_filter_lock(f);
 
 	if ((m = getq(&ad->entry_q)) == NULL) {
-		ms_warning("[TextureView Display] No frame in entry queue");
+		ms_warning("[TextureView Display][Filter=%p] No frame in entry queue for windowId %p", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
 		return;
 	}
 
 	if (!ad->ogl) {
-		ms_warning("[TextureView Display] No OGL display, abort");
+		ms_warning("[TextureView Display][Filter=%p] No OGL display for windowId %p, abort", f, ad->nativeWindowId);
 		freemsg(m);
 		ms_filter_unlock(f);
 		return;
@@ -266,7 +286,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 
 	EGLBoolean result = eglSwapBuffers(ad->gl_display, ad->gl_surface);
 	if (result != EGL_TRUE) {
-		ms_error("[TextureView Display] eglSwapBuffers failure: %u", result);
+		ms_error("[TextureView Display][Filter=%p] eglSwapBuffers failure for windowId %p: %u", f, ad->nativeWindowId, result);
 	}
 
 	ms_filter_unlock(f);
@@ -298,7 +318,7 @@ static void android_texture_display_process(MSFilter *f) {
 		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_WIDTH, &w);
 		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_HEIGHT, &h);
 		if (ad->width != w || ad->height != h) {
-			ms_warning("[TextureView Display] Surface size has changed from %ix%i to %ix%i", ad->width, ad->height, w, h);
+			ms_warning("[TextureView Display][Filter=%p] Surface size for windowId %p has changed from %ix%i to %ix%i", f, ad->nativeWindowId, ad->width, ad->height, w, h);
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
 		}
@@ -314,17 +334,8 @@ static void android_texture_display_process(MSFilter *f) {
 static void android_texture_display_uninit(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
 	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
+	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_release_windowId, (void*)f);
 	ms_worker_thread_destroy(ad->process_thread, TRUE);
-
-	if (ad->nativeWindowId) {
-   		JNIEnv *env = ms_get_jni_env();
-		ms_message("[TextureView Display] Releasing global ref on window %p", ad->nativeWindowId);
-		(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
-		ad->nativeWindowId = NULL;
-	}
-
-	flushq(&ad->entry_q, 0);
-	ms_free(ad);
 }
 
 static int android_texture_display_set_window(MSFilter *f, void *arg) {
@@ -335,7 +346,7 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 
 	ms_filter_lock(f);
 
-	ms_message("[TextureView Display] New window jobject ptr is %p, current one is %p", windowId, ad->nativeWindowId);
+	ms_message("[TextureView Display][Filter=%p] New windowId jobject ptr is %p, current one is %p", f, windowId, ad->nativeWindowId);
 	if (id == 0) {
 		if (ad->nativeWindowId) {
 			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
@@ -350,9 +361,10 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 		}
 
 		ad->nativeWindowId = (*env)->NewGlobalRef(env, windowId);
+		ms_message("[TextureView Display][Filter=%p] Took global ref on %p, windowId is now %p", f, windowId, ad->nativeWindowId);
 		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
 	} else {
-		ms_message("[TextureView Display] New window jobject is the same as the current one, skipping...");
+		ms_message("[TextureView Display][Filter=%p] New windowId jobject %p is the same as the current one, skipping...", f, windowId);
 	}
 	
 	ms_filter_unlock(f);

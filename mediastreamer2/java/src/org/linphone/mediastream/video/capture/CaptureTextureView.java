@@ -76,7 +76,7 @@ public class CaptureTextureView extends TextureView {
         RectF textureViewRect = new RectF(0, 0, width, height);
         matrix.mapRect(textureViewRect);
 
-        Log.i("[Capture TextureView] Rotating preview texture by " + rotation);
+        Log.d("[Capture TextureView] Rotating preview texture by " + rotation);
         if (rotation % 180 == 90) {
             float[] src = new float[] { 0.f, 0.f, width, 0.f, 0.f, height, width, height, };
             float[] dst = new float[] { 0.f, height, 0.f, 0.f, width, height, width, 0.f, };
