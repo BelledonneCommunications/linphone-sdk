@@ -1052,7 +1052,7 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 		}
 		rtptp=NULL;
 		rtp_session_get_transports(cl->rtp_session,NULL,&rtptp);
-		if (rtptp) {
+		if (!rtp_session_rtcp_mux_enabled(cl->rtp_session) && rtptp) {
 			struct sockaddr *sa = (struct sockaddr *)&cl->rtp_session->rtcp.gs.loc_addr;
 			if (cl->session->turn_enabled) {
 				/* Define the RTP endpoint that will perform STUN encapsulation/decapsulation for TURN data */
@@ -1079,7 +1079,7 @@ static bool_t ice_check_list_gather_candidates(IceCheckList *cl, Session_Index *
 			ice_check_list_add_stun_server_request(cl, request);
 			if (cl->session->turn_enabled) ms_turn_context_set_state(cl->rtcp_turn_context, MS_TURN_CONTEXT_STATE_CREATING_ALLOCATION);
 		}else {
-			ms_message("ice: no rtcp socket found for session [%p]",cl->rtp_session);
+			ms_message("ice: no rtcp socket for session [%p]",cl->rtp_session);
 		}
 		si->index++;
 	} else {
