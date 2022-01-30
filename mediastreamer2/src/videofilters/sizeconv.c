@@ -150,14 +150,33 @@ static void size_conv_process(MSFilter *f){
 				inbuf.h==s->target_vsize.height){
 				ms_queue_put(f->outputs[0],im);
 			}else{
-				MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
-				mblk_t *om=size_conv_alloc_mblk(s);
-				if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
-					ms_error("MSSizeConv: error in ms_scaler_process().");
-					freemsg(om);
-				}else{
-					mblk_set_timestamp_info(om, mblk_get_timestamp_info(im));
-					ms_queue_put(f->outputs[0],om);
+				int w = s->target_vsize.width;
+				int h = s->target_vsize.height;
+				// keep the same orientation
+				if(ms_video_size_get_orientation((MSVideoSize){inbuf.w, inbuf.h}) != ms_video_size_get_orientation(s->target_vsize)) {
+					s->target_vsize.width = h;
+					s->target_vsize.height = w;
+				}
+				// If input and output do not have the same ratio, this scaler will stretch the image, keep the same aspect ratio to avoid that
+				if (inbuf.w * s->target_vsize.height/s->target_vsize.width != inbuf.h) {
+					if (inbuf.w > inbuf.h) {
+						s->target_vsize.height = inbuf.h * s->target_vsize.width / inbuf.w;
+					} else {
+						s->target_vsize.width = inbuf.w * s->target_vsize.height / inbuf.h;
+					}
+				}
+				if (s->target_vsize.width != w || s->target_vsize.height !=h) {
+					ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
+				} else {
+					MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
+					mblk_t *om=size_conv_alloc_mblk(s);
+					if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
+						ms_error("MSSizeConv: error in ms_scaler_process().");
+						freemsg(om);
+					}else{
+						mblk_set_timestamp_info(om, mblk_get_timestamp_info(im));
+						ms_queue_put(f->outputs[0],om);
+					}
 				}
 				freemsg(im);
 			}
@@ -194,10 +213,18 @@ static int sizeconv_set_fps(MSFilter *f, void *arg){
 	return 0;
 }
 
+static int sizeconv_get_vsize(MSFilter *f, void *data){
+	SizeConvState *s=(SizeConvState*)f->data;
+	MSVideoSize *vsize = (MSVideoSize *)data;
+	vsize->width =  s->target_vsize.width;
+	vsize->height = s->target_vsize.height;
+	return 0;
+}
 
 static MSFilterMethod methods[]={
 	{	MS_FILTER_SET_FPS	,	sizeconv_set_fps	},
 	{	MS_FILTER_SET_VIDEO_SIZE, sizeconv_set_vsize	},
+	{   MS_FILTER_GET_VIDEO_SIZE, sizeconv_get_vsize	},
 	{	0	,	NULL }
 };
 

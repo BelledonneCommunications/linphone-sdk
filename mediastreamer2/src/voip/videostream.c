@@ -142,9 +142,14 @@ void video_stream_free(VideoStream *stream) {
 
 static void source_event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	VideoStream *st=(VideoStream*)ud;
+	MSVideoSize size;
 	switch (event) {// Allow a source to reinitialize all tree formats
 		case MS_FILTER_OUTPUT_FMT_CHANGED:
-				video_stream_update_video_params(st);
+			if(ms_filter_get_id(f)==MS_SIZE_CONV_ID) {
+				ms_filter_call_method(f, MS_FILTER_GET_VIDEO_SIZE, &size);
+				video_stream_set_sent_video_size(st, size);
+			}
+			video_stream_update_video_params(st);
 			break;
 		default:{}
 	}
@@ -774,6 +779,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		if (stream->ms.is_thumbnail) {
 			stream->sizeconv=ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
 			ms_filter_call_method(stream->sizeconv,MS_FILTER_SET_VIDEO_SIZE,&vconf.vsize);
+			ms_filter_add_notify_callback(stream->sizeconv, source_event_cb, stream, FALSE);
 		} else {
 			if (format==MS_MJPEG){
 				stream->pixconv=ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
