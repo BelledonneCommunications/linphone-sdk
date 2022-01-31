@@ -85,7 +85,7 @@ in the next subsections.
 
 ### iOS
 
-Requirement: 
+Requirement:
  - Xcode >= 10
  - cmake >= 3.18.2
 
@@ -104,8 +104,27 @@ Please note that the Xcode backend is very slow: about one hour of build time, c
 
 Download the Docker image of the Android build environment:
 
+
+---
+**public access, with token**
+
+Use this token to access the Docker registry :
+
+user : gitlab+deploy-token-17
+
+pass : fFVgA_5Mf-qn2WbvsKRL
+
+---
+
+
+**private access**
+
+A simple login with your Gitlab account should work.
+
+---
+
 ```bash
-docker login gitlab.linphone.org:4567
+docker login gitlab.linphone.org:4567/bc/public/linphone-sdk
 docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210408_update_cmake_3_20
 ```
 
@@ -136,7 +155,7 @@ The freshly built SDK is located in `<linphone-sdk>/build`.
 
 ### MacOS
 
-Requirement: 
+Requirement:
  - Xcode >= 12
 
 OpenSSL is not yet build by Linphone and need binaries on wanted architectures (eg. from `Homebrew`)
@@ -152,7 +171,7 @@ CMake use `OPENSSL_ROOT_DIR` to build each architectures. If you want to specify
  - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to cmake (see customization options below).
  - use `Build solution` to build.
 
- 
+
 #### Windows UWP
 You can use linphone-sdk in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
 The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
@@ -170,7 +189,7 @@ You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Co
 
 In an another build folder (like buildNuget), set these options :
 - (Needed) `-DLINPHONESDK_PACKAGER=Nuget`
-- (Optional) `-DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk) 
+- (Optional) `-DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk)
 - (Optional) `-DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries>` (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
 - (Optional) `-DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled>` (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
 
@@ -178,7 +197,7 @@ Build the Package:
 
     `cmake ..`
 	`cmake --build . --target ALL_BUILD --config=RelWithDebInfo`
-	
+
 The nuget package will be in linphone-sdk/packages
 The generated package can keep the same file name between each generations on the same git version. Visual studio keep a cache of the Nuget and you need to delete its internal folder to takke account any newer version for the same name.
 The folder can be found in your system path at <User>/.nuget/packages/linphonesdk
