@@ -1089,10 +1089,11 @@ static void video_stream_with_itcsink(void) {
 
 		MSMediaStreamIO io = MS_MEDIA_STREAM_IO_INITIALIZER;
 		io.input.type = MSResourceItc;
+		io.input.itc = marielle->vs->itcsink;
 		io.output.type = MSResourceDefault;
 		io.output.resource_arg = NULL;
 		rtp_session_set_jitter_compensation(margaux->vs->ms.sessions.rtp_session, 50);
-		video_stream_start_from_io_and_itc_sink(margaux->vs, &rtp_profile, pauline->local_ip, pauline->local_rtp, pauline->local_ip, pauline->local_rtcp, VP8_PAYLOAD_TYPE, &io,marielle->vs->itcsink );
+		video_stream_start_from_io(margaux->vs, &rtp_profile, pauline->local_ip, pauline->local_rtp, pauline->local_ip, pauline->local_rtcp, VP8_PAYLOAD_TYPE, &io);
 
 		BC_ASSERT_EQUAL(video_stream_start(pauline->vs, &rtp_profile, margaux->local_ip, margaux->local_rtp, margaux->local_ip, margaux->local_rtcp, VP8_PAYLOAD_TYPE, 50, pauline->cam), 0,int,"%d");
 

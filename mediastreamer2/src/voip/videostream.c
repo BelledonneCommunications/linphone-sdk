@@ -925,8 +925,9 @@ void video_recorder_handle_event(void *userdata, MSFilter *recorder, unsigned in
 			break;
 	}
 }
-int video_stream_start_from_io_and_itc_sink(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-										const char *rem_rtcp_ip, int rem_rtcp_port, int payload_type, const MSMediaStreamIO *io, MSFilter *itc_sink) {
+
+int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
+										const char *rem_rtcp_ip, int rem_rtcp_port, int payload_type, const MSMediaStreamIO *io) {
 	MSWebCam *cam = NULL;
 	MSFilter *source = NULL;
 	MSFilter *output = NULL;
@@ -968,8 +969,8 @@ int video_stream_start_from_io_and_itc_sink(VideoStream *stream, RtpProfile *pro
 			case MSResourceItc:
 				stream->ms.is_thumbnail = TRUE;
 				stream->source = ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
-				if (itc_sink) {
-					ms_filter_call_method(itc_sink,MS_ITC_SINK_CONNECT,stream->source);
+				if (io->input.itc) {
+					ms_filter_call_method(io->input.itc,MS_ITC_SINK_CONNECT,stream->source);
 				}
 				break;
 			default:
@@ -1008,10 +1009,6 @@ int video_stream_start_from_io_and_itc_sink(VideoStream *stream, RtpProfile *pro
 	}
 
 	return video_stream_start_with_source_and_output(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload_type, -1, cam, source, output);
-}
-int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, const MSMediaStreamIO *io) {
-	return video_stream_start_from_io_and_itc_sink(stream, profile, rem_rtp_ip, rem_rtp_port, rem_rtcp_ip, rem_rtcp_port, payload, io, NULL);
 }
 
 void link_video_stream_with_itc_sink(VideoStream *stream) {

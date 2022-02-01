@@ -351,6 +351,7 @@ MS2_PUBLIC const char *ms_resource_type_to_string(MSResourceType type);
  * type must be set to one the member of the MSResourceType enum, and the correspoding
  * resource argument must be set: the file name (const char*) for MSResourceFile,
  * the RtpSession for MSResourceRtp, an MSWebCam for MSResourceCamera, an MSSndCard for MSResourceSoundcard.
+ * an MSFilter for MSResourceItc
  * @warning due to implementation, if RTP is to be used for input and output, the same RtpSession must be passed for both sides.
  */
 typedef struct _MSMediaResource{
@@ -361,6 +362,7 @@ typedef struct _MSMediaResource{
 		RtpSession *session;
 		MSWebCam *camera;
 		MSSndCard *soundcard;
+		MSFilter *itc;
 	};
 }MSMediaResource;
 
@@ -1055,22 +1057,6 @@ MS2_PUBLIC int video_stream_start_from_io(VideoStream *stream, RtpProfile *profi
  * @param[in] stream VideoStream object previously created with video_stream_new().
  */
 MS2_PUBLIC void link_video_stream_with_itc_sink(VideoStream *stream);
-
-/**
- * Start a video stream according to the specified VideoStreamIO and use Itc source.
- *
- * @param[in] stream VideoStream object previously created with video_stream_new().
- * @param[in] profile RtpProfile object holding the PayloadType that can be used during the video session.
- * @param[in] rem_rtp_ip The remote IP address where to send the encoded video to.
- * @param[in] rem_rtp_port The remote port where to send the encoded video to.
- * @param[in] rem_rtcp_ip The remote IP address for RTCP.
- * @param[in] rem_rtcp_port The remote port for RTCP.
- * @param[in] payload_type The payload type number used to send the video stream. A valid PayloadType must be available at this index in the profile.
- * @param[in] io A VideoStreamIO describing the input/output of the video stream.
- * @param[in] itc_sink A ItcSink filter used to be connected with ItcSource.
- */
-MS2_PUBLIC int video_stream_start_from_io_and_itc_sink(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-	const char *rem_rtcp_ip, int rem_rtcp_port, int payload_type, const MSMediaStreamIO *io, MSFilter *itc_sink);
 
 MS2_PUBLIC void video_stream_prepare_video(VideoStream *stream);
 MS2_PUBLIC void video_stream_unprepare_video(VideoStream *stream);
