@@ -69,9 +69,7 @@ android-makefile-r20-g729-ldap:
     - if: $DEPLOY_RUN_NUGET
     - if: $UPLOAD_XAMARIN
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-       - .gitlab-ci-files/xamarin/packages.yml
-       - cmake/NuGet/Xamarin/**/*
+
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON -DENABLE_LDAP=ON
   extends: android-makefile-r20

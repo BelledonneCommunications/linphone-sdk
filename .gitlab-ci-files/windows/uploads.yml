@@ -27,12 +27,16 @@ vs2017-win32-windows-upload:
     - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
+    GIT_FETCH_EXTRA_FLAGS: --tags --force
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force
   needs:
     - vs2017-win32-scheduled-windows
   script:
     - *check_snapshot_or_release_windows
     # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
     - scp build-desktop/linphone-sdk/linphone-sdk-*.zip ${DEPLOY_SERVER}:${DEPLOY_ROOT_DIRECTORY}/${DEPLOY_DEST_DIR_SDK_WINDOWS}/
+
+
 
 vs2017-nuget-windows-upload:
   stage: deploy
@@ -43,6 +47,8 @@ vs2017-nuget-windows-upload:
     - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
+    GIT_FETCH_EXTRA_FLAGS: --tags --force
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force
   needs:
     - vs2017-nuget-windows-package
   script:

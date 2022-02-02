@@ -37,6 +37,7 @@ workflow:
 include:
   - '.gitlab-ci-files/.docker-images.yml'
   - '.gitlab-ci-files/.set_parallel_level.yml'
+  - '.gitlab-ci-files/.choose_upload_dir.yml'
 
   - '.gitlab-ci-files/linux-prepare.yml'
 

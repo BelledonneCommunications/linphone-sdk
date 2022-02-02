@@ -47,6 +47,7 @@ android-doc-upload:
   variables:
     CCACHE_SIZE: 4G
     GIT_STRATEGY: fetch
+    GIT_FETCH_EXTRA_FLAGS: --tags --force
 
   needs:
     - android-makefile-r20
@@ -69,12 +70,7 @@ android-doc-upload:
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
-    - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
-    - echo $UPLOAD_ROOT_DIRECTORY
+    - !reference [.choose_upload_dir, script]
     - cd build
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java
     - rsync -rlv -e ssh linphone-sdk/bin/docs/javadoc/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/java/

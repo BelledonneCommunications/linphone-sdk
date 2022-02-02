@@ -8,10 +8,6 @@ xamarin-package:
     - android-makefile-r20-g729-ldap
 
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-       - .gitlab-ci-files/xamarin/packages.yml
-       - cmake/NuGet/Xamarin/**/*
     - if: $DEPLOY_RUN_NUGET
     - if: $UPLOAD_XAMARIN
     - if: $NIGHTLY_RELEASE

@@ -11,4 +11,5 @@ xamarin-upload:
     - xamarin-package
 
   script:
-    - rsync -rlv results/xamarin/* $DEPLOY_SERVER:$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY/xamarin
+    - !reference [.choose_upload_dir, script]
+    - rsync -rlv --dry-run results/packages/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/xamarin

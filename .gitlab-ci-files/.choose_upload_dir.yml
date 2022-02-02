@@ -1,0 +1,13 @@
+######################################################################
+# We set the parallel level, independantly of the build tools used
+######################################################################
+
+.choose_upload_dir:
+  script:
+    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+
+    - |
+        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+        fi
+    - echo $UPLOAD_ROOT_DIRECTORY

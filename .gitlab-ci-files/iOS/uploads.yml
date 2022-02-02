@@ -1,17 +1,41 @@
-ios-xcode-upload:
-  stage: deploy
-  tags: [ "macosx-xcode11" ]
+# /!\ Important point to note :
+# If we are using two podspec upload jobs on a same machine on the same time there might be a race condition during podspec repo add of one job and the delete of the other.
+# This is because the location of Cocoapods repository is stored in ~/.cocoapods and is not configurable...
+# So uploads are parallelized only by using multiple machines (having one specific runner for upload installed on each, and a common tag)
 
+.ios-xcode-podspec-upload:
+  stage: deploy
+  variables:
+    PODNAME: "linphone-sdk"
   rules:
     - if: $DEPLOY_RUN_IOS
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
-  needs:
-    - ios-xcode
-
   script:
 
+    - echo $PODSPEC_END_PATH
+    - echo $PODNAME
+
+    - ls -lah build-ios
+
+    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+
+    - echo $UPLOAD_ROOT_DIRECTORY
+    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/$PODSPEC_END_PATH
+    - pod repo remove $PODNAME || true
+    - pod repo add $PODNAME git@gitlab.linphone.org:BC/public/podspec.git
+    - pod repo push $PODNAME build-ios/$PODNAME.podspec --skip-import-validation --verbose
+    - pod repo remove $PODNAME
+
+# The iOS documentation is only uploaded in this job, this is why we redefine before_script in no_video job
+.ios-xcode-upload:
+  needs:
+    - ios-xcode
+  variables:
+    PODNAME: "linphone-sdk"
+    GIT_FETCH_EXTRA_FLAGS: --tags --force
+  before_script:
     #Only get major and minor version (ex: 4.5) for documentation directory
 
     #git -C executes the git command in specified directory
@@ -21,12 +45,7 @@ ios-xcode-upload:
 
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
-
-    - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
+    - !reference [.choose_upload_dir, script]
 
     # Create the directory if it does not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
@@ -34,43 +53,23 @@ ios-xcode-upload:
     #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
 
-    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
+  extends: .ios-xcode-podspec-upload
 
-    - echo $UPLOAD_ROOT_DIRECTORY
-    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/
-    - pod repo remove linphone-sdk || true
-    - pod repo add linphone-sdk git@gitlab.linphone.org:BC/public/podspec.git
-    - pod repo push linphone-sdk build-ios/linphone-sdk.podspec --skip-import-validation --verbose
-    - pod repo remove linphone-sdk
-
-
-ios-xcode-novideo-upload:
-  stage: deploy
-  tags: [ "macosx-xcode11" ]
-
-  rules:
-    - if: $DEPLOY_RUN_IOS
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
+.ios-xcode-novideo-upload:
   needs:
     - ios-xcode-novideo
+  variables:
+    PODSPEC_END_PATH: "novideo/"
+    PODNAME: "linphone-sdk-novideo"
+    GIT_FETCH_EXTRA_FLAGS: --tags --force
+  before_script:
+    - !reference [.choose_upload_dir, script]
+  extends: .ios-xcode-podspec-upload
 
-  script:
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+ios-xcode-upload-xcode12:
+  extends: .ios-xcode-upload
+  tags: [ "macosx-min-xcode12.2-upload" ]
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
-
-    - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
-
-    - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
-
-    - echo $UPLOAD_ROOT_DIRECTORY
-    - scp build-ios/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/ios/novideo/
-    - pod repo remove linphone-sdk-novideo || true
-    - pod repo add linphone-sdk-novideo git@gitlab.linphone.org:BC/public/podspec.git
-    - pod repo push linphone-sdk-novideo build-ios/linphone-sdk-novideo.podspec --skip-import-validation --verbose
-    - pod repo remove linphone-sdk-novideo
+ios-xcode-novideo-upload-xcode12:
+  extends: .ios-xcode-novideo-upload
+  tags: [ "macosx-min-xcode12.2-upload" ]

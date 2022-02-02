@@ -123,13 +123,6 @@ ios-ninja-smallsdk:
 #################################################
 ios-xcode:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - .gitlab-ci-files/iOS/build.yml
-        - .gitlab-ci-files/iOS/packages.yml
-        # Rules for one job does not trigger jobs in needs, it needs to be done manually
-        - .gitlab-ci-files/xamarin/packages.yml
-        - cmake/NuGet/Xamarin/**/*
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
@@ -162,6 +155,7 @@ ios-xcode-novideo:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
+
 
   variables:
     CMAKE_GENERATOR: Xcode
