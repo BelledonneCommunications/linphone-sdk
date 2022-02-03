@@ -6,7 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2022-02-14
 
+### Fixed
+- Multipart boundaries are random and used-once.
+- Avoid using V4MAPPED formatted IP addresses in CONNECT http requests, because
+  http proxies may not be always IPv6-capable.
 
 ## [5.0.0] - 2021-07-08
 
