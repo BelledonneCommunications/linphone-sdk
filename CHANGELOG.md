@@ -11,11 +11,16 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.__
 
-## [5.1.0] Unreleased
+## Unreleased
+
+
+## [5.1.0] 2022-02-14
 
 ### Added
 - Support for Android NDK r23b
 - Android device rotation is now handled by linphone's PlatformHelper, apps no longer need to do it.
+
+
 
 ## [5.0.0] 2021-07-08
 
