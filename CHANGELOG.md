@@ -15,6 +15,7 @@ changes made to these components.__
 
 ### Added
 - Support for Android NDK r23b
+- Android device rotation is now handled by linphone's PlatformHelper, apps no longer need to do it.
 
 ## [5.0.0] 2021-07-08
 
