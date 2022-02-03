@@ -699,9 +699,7 @@ static void android_camera2_capture_uninit(MSFilter *f) {
 	}
 	ms_mutex_unlock(&d->mutex);
 
-	ms_filter_lock(f);
 	delete d;
-	ms_filter_unlock(f);
 }
 
 /* ************************************************************************* */
@@ -901,6 +899,17 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 	return 0; 
 }
 
+static void android_camera2_capture_update_preview_size(AndroidCamera2Context *d) {
+	int orientation = android_camera2_capture_get_orientation(d);
+	if (orientation % 180 == 0) {
+		d->previewSize.width = d->captureSize.width;
+		d->previewSize.height = d->captureSize.height;
+	} else {
+		d->previewSize.width = d->captureSize.height;
+		d->previewSize.height = d->captureSize.width;
+	}
+}
+
 static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 
@@ -916,15 +925,7 @@ static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 
 	android_camera2_capture_stop(d);
 	android_camera2_capture_choose_best_configurations(d);
-
-	int orientation = android_camera2_capture_get_orientation(d);
-	if (orientation % 180 == 0) {
-		d->previewSize.width = d->captureSize.width;
-		d->previewSize.height = d->captureSize.height;
-	} else {
-		d->previewSize.width = d->captureSize.height;
-		d->previewSize.height = d->captureSize.width;
-	}
+	android_camera2_capture_update_preview_size(d);
 
 	if (d->previewSize.width != 0 && d->previewSize.height != 0) {
 		ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
@@ -949,14 +950,7 @@ static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 
 	ms_filter_lock(f);
-	int orientation = android_camera2_capture_get_orientation(d);
-	if (orientation % 180 == 0) {
-		d->previewSize.width = d->captureSize.width;
-		d->previewSize.height = d->captureSize.height;
-	} else {
-		d->previewSize.width = d->captureSize.height;
-		d->previewSize.height = d->captureSize.width;
-	}
+	android_camera2_capture_update_preview_size(d);
 	ms_filter_unlock(f);
 
 	*(MSVideoSize*)arg = d->previewSize;
@@ -967,12 +961,22 @@ static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 
 static int android_camera2_capture_set_device_rotation(MSFilter* f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
+
 	ms_filter_lock(f);
+
 	int rotation = *((int*)arg);
-	d->rotation = rotation;
+	if (rotation != d->rotation) {
+		d->rotation = rotation;
+		android_camera2_capture_update_preview_size(d);
+
+		ms_message("[Camera2 Capture] Device rotation is %i", rotation);
+		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
+			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
+		}
+	}
+
 	ms_filter_unlock(f);
 
-	ms_message("[Camera2 Capture] Device rotation is %i", rotation);
 	return 0;
 }
 
