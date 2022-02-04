@@ -1,9 +1,9 @@
 [![pipeline status](https://gitlab.linphone.org/BC/public/linphone-sdk/badges/master/pipeline.svg)](https://gitlab.linphone.org/BC/public/linphone-sdk/commits/master)
 
-# linphone-sdk
+# Linphone-SDK
 
-Linphone-sdk is a project that bundles liblinphone and its dependencies as git submodules, in the purpose of simplifying
-the compilation and packaging of the whole liblinphone suite, comprising mediastreamer2, belle-sip, ortp and many others.
+Linphone-SDK is a project that bundles Liblinphone and its dependencies as git submodules, in the purpose of simplifying
+the compilation and packaging of the whole Liblinphone suite, comprising Mediastreamer2, Belle-sip, oRTP and many others.
 Its compilation produces a SDK suitable to create applications running on top of these components.
 The submodules that are not developped or maintained by the Linphone team are grouped in the external/ directory.
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
@@ -18,12 +18,14 @@ The software products developed in the context of the Linphone project are dual 
 
  - under a proprietary license, for a fee, to be used in closed source applications. Contact [Belledonne Communications](https://www.linphone.org/contact) for any question about costs and services.
 
+ **For more information about de third-party licences, please see the [Licensing: GPL third parties versus non GPL third parties](#licensing-gpl-third-parties-versus-non-gpl-third-parties) section
+
 ## Build dependencies
 
 ### Common to all target platforms
 
 The following tools must be installed on the build machine:
- - cmake >= 3.11
+ - Cmake >= 3.11
  - python >= 3.6
  - pip (or pip3 if the build machine has both python2 and python3)
  - yasm
@@ -34,7 +36,7 @@ The following tools must be installed on the build machine:
 
 ### Retrieve the dependencies
 
-Linphone-sdk's git repository comprises git submodules. It must be cloned with the `--recursive` option. After updating or switching branches, never forget to checkout and update the submodules with:
+Linphone-SDK's git repository comprises git submodules. It must be cloned with the `--recursive` option. After updating or switching branches, never forget to checkout and update the submodules with:
 
     git submodule update --init --recursive
 
@@ -44,7 +46,7 @@ SDK compilation is supported on `Visual Studio 15 2017` and `MSYS2` https://www.
 
 #### MSYS2
 
-Follow MSYS2 instructions on their "Getting Started" page.
+Follow MSYS2 instructions on their ["Getting Started" page](https://www.msys2.org/).
 
 For MinGW32, install the needed tools in `MSYS2 MSYS` console:
  - `pacman -Sy --needed base-devel mingw-w64-i686-toolchain`
@@ -59,7 +61,7 @@ Visual Studio must also be properly configured with addons. Under "Tools"->"Obta
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
 
-In this order, add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` in your PATH (the last one is needed by cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
+In this order, add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` in your PATH (the last one is needed by Cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
 
 ## Build
 
@@ -87,10 +89,10 @@ in the next subsections.
 
 Requirement:
  - Xcode >= 10
- - cmake >= 3.18.2
+ - Cmake >= 3.18.2
 
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
-Until cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
+Until Cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
 
 `cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS` or `cmake .. -G Ninja -DLINPHONESDK_PLATFORM=IOS`
 
@@ -172,7 +174,7 @@ CMake use `OPENSSL_ROOT_DIR` to build each architectures. If you want to specify
  `cmake --build .` works on Windows as for all platforms.
  However it may be convenient to build from Visual Studio, which you can do:
  - open `linphone-sdk.sln` with Visual Studio
- - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to cmake (see customization options below).
+ - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to Cmake (see customization options below).
  - use `Build solution` to build.
 
 
@@ -216,23 +218,58 @@ These ON/OFF options control the enablement of important features of the SDK, wh
 - `ENABLE_MKV`: enablement of Matroska video file reader/writer.
 - `ENABLE_LDAP`: enablement of OpenLDAP.
 
+<a name="licensing-gpl-third-parties-versus-non-gpl-third-parties"></a>
 ## Licensing: GPL third parties versus non GPL third parties
 
 This SDK can be generated in 2 flavors:
 
-* GPL third parties enabled means that the Linphone SDK includes GPL third parties like FFmpeg. If you choose this flavor, your final application **must comply with GPL in any case**. This is the default mode.
+* GPL third parties enabled means that the Linphone SDK includes GPL third parties like FFmpeg. If you choose this flavor, your final application **must comply with GPL in any case**.
 
-* NO GPL third parties means that the Linphone SDK will only use non GPL code except for the code from Belledonne Communications. If you choose this flavor, your final application is **still subject to the GPL except if you have a [commercial license from Belledonne Communications](http://www.belledonne-communications.com/products.html)**.
+* NO GPL third parties means that the Linphone SDK will only use non GPL code except for the code from Belledonne Communications. If you choose this flavor, your final application is **still subject to the GPL except if you have a [commercial license from Belledonne Communications](http://www.belledonne-communications.com/products.html)**. **This is the default mode.**
 
-To generate the a SDK without GPL third parties, use the `-DENABLE_GPL_THIRD_PARTIES=NO` option when configuring the project.
+To generate the a SDK with GPL third parties, use the `-DENABLE_GPL_THIRD_PARTIES=YES` option when configuring the project (you can set "NO" to disable explicitly).
 
 ## Note regarding third party components subject to license
 
-The Linphone SDK is compiled with third parties code that are subject to patent license, especially: AMR, SILK, G729 and H264 codecs.
-To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_CODECS` option.
+The Linphone SDK can be compiled with third parties code that are subject to patent license, especially: AMR, SILK and H264 codecs.
+To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_CODECS` option (**disabled by default**).
 Before embedding these features in your final application, **make sure to have the right to do so**.
 
+For more information, please visit [our dedicated wiki page](https://wiki.linphone.org/xwiki/wiki/public/view/Linphone/Third%20party%20components%20/)
+
+## Windows UWP
+You can use Linphone-SDK in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
+The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
+The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. It is for x64 builds. You will find all libraries in linphone-sdk/uwp-x64
+
+Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
+
+Build SDK:
+
+    cmake --build . --target ALL_BUILD --config=RelWithDebInfo
+
+### Nuget packaging
+You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Compatibility.
+
+- win32: this is the win32 version of Linphone-SDK without any restrictions. The framework is 'win'.
+- uwp : this is a uwp x64 version of linphone--sdk. You will not be able to use OpenH264 and Lime X3DH. The framework is 'uap10.0'.
+- win32 Windows Store : this is the win32 version of Linphone-SDK with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
+
+In an another build folder (like buildNuget), set these options :
+- (Needed) -DLINPHONESDK_PACKAGER=Nuget
+- (Optional) -DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk)
+- (Optional) -DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
+- (Optional) -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
+
+Build the Package:
+
+	cmake ..
+	cmake --build . --target ALL_BUILD --config=RelWithDebInfo
+
+The nuget package will be in linphone-sdk/packages
+The generated package can keep the same file name between each generations on the same git version. Visual studio keep a cache of the Nuget and you need to delete its internal folder to take account any newer version for the same name.
+The folder can be found in your system path at <User>/.nuget/packages/linphonesdk
 
 ### Demo app
 
-There is a very limited version of an applciation that can use this nuget at `https://gitlab.linphone.org/BC/public/linphone-windows10/tree/feature/uwp`
+There is a very limited version of an application that can use this nuget at `https://gitlab.linphone.org/BC/public/linphone-windows10/tree/feature/uwp`
