@@ -237,6 +237,15 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	eglQuerySurface(display, surface, EGL_HEIGHT, &h);
 	ms_message("[TextureView Display][Filter=%p] Surface size for windowId %p is %ix%i", f, ad->nativeWindowId, w, h);
 
+	if (w == 0 && h == 0) {
+		ms_error("[TextureView Display][Filter=%p] Surface size for windowId %p is invalid, do not go further!", f, ad->nativeWindowId);
+		ad->gl_display = display;
+		ad->gl_surface = surface;
+		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
+		ms_filter_unlock(f);
+		return;
+	}
+
 	EGLint contextAttrs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 2,
 		EGL_NONE
