@@ -156,10 +156,9 @@ static void router_channel_update_input(RouterState *s, int pin, MSQueue *q){
 
 static int next_input_pin(MSFilter *f, int i){
 	int k;
-	for(k=i+1;k<i+1+f->desc->ninputs;k++){
-		int next_pin=k % f->desc->ninputs;
-		// pin is reserved
-		if (next_pin!=f->desc->ninputs-2 && f->inputs[next_pin]) return next_pin;
+	for(k=i+1;k<i+1+f->desc->ninputs-2;k++){
+		int next_pin=k % (f->desc->ninputs-2);
+		if (f->inputs[next_pin]) return next_pin;
 	}
 	ms_error("next_input_pin: should not happen");
 	return 0;
@@ -197,6 +196,8 @@ static void _router_set_focus(MSFilter *f, RouterState *s , int pin){
 	for (i = 0 ; i < f->desc->noutputs-1; ++i){ // pin is reserved
 		if (i != pin){
 			s->output_contexts[i].next_source = pin;
+		} else {
+			ms_message("%s: this pin %d keeps current source %d and next source %d", f->desc->name, i,s->output_contexts[i].current_source, s->output_contexts[i].next_source);
 		}
 	}
 	s->focus_pin=pin;
