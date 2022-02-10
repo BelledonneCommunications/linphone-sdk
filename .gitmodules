@@ -45,10 +45,10 @@
 	url = ../mediastreamer2.git
 [submodule "mswasapi"]
 	path = mswasapi
-	url = https://gitlab.linphone.org/BC/public/mswasapi.git
+	url = ../mswasapi.git
 [submodule "bcmatroska2"]
 	path = bcmatroska2
-	url = https://gitlab.linphone.org/BC/public/bcmatroska2.git
+	url = ../bcmatroska2.git
 [submodule "external/mbedtls"]
 	path = external/mbedtls
 	url = https://gitlab.linphone.org/BC/public/external/mbedtls.git
@@ -117,13 +117,13 @@
 	url = ../lime.git
 [submodule "msaaudio"]
 	path = msaaudio
-	url = https://gitlab.linphone.org/BC/public//msaaudio.git
+	url = ../msaaudio.git
 [submodule "mswinrtvid"]
 	path = mswinrtvid
-	url = https://gitlab.linphone.org/BC/public/mswinrtvid.git
+	url = ../mswinrtvid.git
 [submodule "msandroidcamera2"]
 	path = msandroidcamera2
-	url = https://gitlab.linphone.org/BC/public/msandroidcamera2.git
+	url = ../msandroidcamera2.git
 [submodule "external/openldap"]
 	path = external/openldap
 	url = https://gitlab.linphone.org/BC/public/external/openldap.git
