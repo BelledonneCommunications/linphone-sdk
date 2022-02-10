@@ -58,7 +58,16 @@ struct attribute_name_func_pair {
 };
 static struct attribute_name_func_pair attribute_table[] = {
 	{ "rtcp-fb", (attribute_parse_func)belle_sdp_rtcp_fb_attribute_parse },
-	{ "rtcp-xr", (attribute_parse_func)belle_sdp_rtcp_xr_attribute_parse }
+	{ "rtcp-xr", (attribute_parse_func)belle_sdp_rtcp_xr_attribute_parse },
+	{ "content", (attribute_parse_func)belle_sdp_content_attribute_parse },
+	{ "label", (attribute_parse_func)belle_sdp_label_attribute_parse },
+	{ "creq", (attribute_parse_func)belle_sdp_creq_attribute_parse },
+	{ "csup", (attribute_parse_func)belle_sdp_csup_attribute_parse },
+	{ "tcap", (attribute_parse_func)belle_sdp_tcap_attribute_parse },
+	{ "acap", (attribute_parse_func)belle_sdp_acap_attribute_parse },
+	{ "csup", (attribute_parse_func)belle_sdp_csup_attribute_parse },
+	{ "acfg", (attribute_parse_func)belle_sdp_acfg_attribute_parse },
+	{ "pcfg", (attribute_parse_func)belle_sdp_pcfg_attribute_parse }
 };
 struct _belle_sdp_attribute {
 	belle_sip_object_t base;
@@ -1160,7 +1169,32 @@ void belle_sdp_base_description_set_attribute_value(belle_sdp_base_description_t
 	belle_sdp_raw_attribute_set_value(attribute,value);
 	base_description->attributes = belle_sip_list_append(base_description->attributes,belle_sip_object_ref(attribute));
 }
+
+#define SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute_ptr, attribute_name, attribute_type)\
+	(strcmp((attribute_ptr)->name, attribute_name) == 0 && !BELLE_SIP_IS_INSTANCE_OF(attribute_ptr, attribute_type))
+
+
 void belle_sdp_base_description_add_attribute(belle_sdp_base_description_t* base_description, belle_sdp_attribute_t* attribute) {
+	/* Sanity check to avoid specialized attributes to be parsed as raw attribute as a fallback.
+	 * The application code will be confused not to be able to cast the attribute in its specialized type.
+	 */
+	if (SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "rtcp-fb", belle_sdp_rtcp_fb_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "rtcp-xr", belle_sdp_rtcp_xr_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "content", belle_sdp_content_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "label", belle_sdp_label_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "creq", belle_sdp_creq_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "csup", belle_sdp_csup_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "tcap", belle_sdp_tcap_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "acap", belle_sdp_acap_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "csup", belle_sdp_csup_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "acfg", belle_sdp_acfg_attribute_t)
+		|| SPECIALIZED_ATTRIBUTE_HAS_INCORRECT_TYPE(attribute, "pcfg", belle_sdp_pcfg_attribute_t)
+	){
+		belle_sip_error("Erroneously parsed attribute with name [%s] and value [%s], skipped",
+				belle_sdp_attribute_get_name(attribute), belle_sdp_attribute_get_value(attribute));
+		belle_sip_object_unref(attribute);
+		return;
+	}
 	base_description->attributes = belle_sip_list_append(base_description->attributes,(void*)belle_sip_object_ref(BELLE_SIP_OBJECT(attribute)));
 }
 

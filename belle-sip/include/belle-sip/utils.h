@@ -111,6 +111,7 @@ BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_
 #define belle_sip_set_log_level(level) bctbx_set_log_level(BELLE_SIP_LOG_DOMAIN,level);
 
 BELLESIP_EXPORT char * belle_sip_random_token(char *ret, size_t size);
+BELLESIP_EXPORT char * belle_sip_random_token_with_charset(char *ret, size_t size, const char * charset, size_t charset_length);
 
 BELLESIP_EXPORT unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size);
 

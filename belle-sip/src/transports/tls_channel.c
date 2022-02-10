@@ -557,10 +557,18 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	char *host_ip;
 	char url_ipport[64];
 	int port;
-	bctbx_addrinfo_to_printable_ip_address(channel->current_peer,url_ipport,sizeof(url_ipport));
-	bctbx_addrinfo_to_ip_address(channel->current_peer,ip,sizeof(ip),&port);
+	struct sockaddr_storage connect_addr;
+	socklen_t connect_addr_len = sizeof(connect_addr);
+	
+	/* In case the connection address is a V4MAPPED, transform it as a pure v4 address.
+	 * Indeed, some old http proxy implementations don't support IPv6 targets, so don't attempt
+	 * to use it if it is not strictly necessary. */
+	bctbx_sockaddr_remove_v4_mapping(channel->current_peer->ai_addr, (struct sockaddr*) &connect_addr, &connect_addr_len);
+	
+	bctbx_sockaddr_to_printable_ip_address((struct sockaddr*)&connect_addr, connect_addr_len, url_ipport,sizeof(url_ipport));
+	bctbx_sockaddr_to_ip_address((struct sockaddr*)&connect_addr, connect_addr_len, ip, sizeof(ip), &port);
 
-	if (channel->current_peer->ai_family == AF_INET6) {
+	if (connect_addr.ss_family == AF_INET6) {
 		host_ip = belle_sip_strdup_printf("[%s]",ip);
 	} else {
 		host_ip = belle_sip_strdup_printf("%s",ip); /*just to simplify code*/
