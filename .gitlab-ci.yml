@@ -56,6 +56,8 @@ include:
   #- '.gitlab-ci-files/linux-desktop/linux-desktop-debian8.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian9.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian11.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian12.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
 
   - '.gitlab-ci-files/linux-yocto.yml'
@@ -95,3 +97,4 @@ stages:
  - package
  - deploy
  - email-notif
+
