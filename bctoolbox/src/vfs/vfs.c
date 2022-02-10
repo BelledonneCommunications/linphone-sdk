@@ -75,6 +75,14 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count,
 	return BCTBX_VFS_ERROR;
 }
 
+ssize_t bctbx_file_write2(bctbx_vfs_file_t* pFile, const void *buf, size_t count) {
+	ssize_t ret = bctbx_file_write(pFile, buf, count, pFile->offset);
+	if (ret != BCTBX_VFS_ERROR) {
+		bctbx_file_seek(pFile, ret, SEEK_CUR);
+	}
+	return ret;
+}
+
 static int file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t* pFile, const char *fName, const int oflags) {
 	int ret = BCTBX_VFS_ERROR;
 	if (pVfs && pFile ) {
@@ -146,6 +154,14 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 			bctbx_error("bctbx_file_read: Error read %s", strerror(-(ret)));
 			ret = BCTBX_VFS_ERROR;
 		}
+	}
+	return ret;
+}
+
+ssize_t bctbx_file_read2(bctbx_vfs_file_t *pFile, void *buf, size_t count) {
+	ssize_t ret = bctbx_file_read(pFile, buf, count, pFile->offset);
+	if (ret != BCTBX_VFS_ERROR) {
+		bctbx_file_seek(pFile, ret, SEEK_CUR);
 	}
 	return ret;
 }

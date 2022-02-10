@@ -123,6 +123,17 @@ struct bctbx_vfs_t {
 BCTBX_PUBLIC ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset);
 
 /**
+ * Attempts to read count bytes from the open file given by pFile, at the position starting at its offset
+ * in the file and and puts them in the buffer pointed by buf.
+ * The file offset shall be incremented by the number of bytes actually read.
+ * @param  pFile  bctbx_vfs_file_t File handle pointer.
+ * @param  buf    Buffer holding the read bytes.
+ * @param  count  Number of bytes to read.
+ * @return        Number of bytes read on success, BCTBX_VFS_ERROR otherwise.
+ */
+BCTBX_PUBLIC ssize_t bctbx_file_read2(bctbx_vfs_file_t *pFile, void *buf, size_t count);
+
+/**
  * Close the file from its descriptor pointed by thw bctbx_vfs_file_t handle.
  * @param  pFile File handle pointer.
  * @return      	return value from the pFuncClose VFS Close function on success,
@@ -177,6 +188,17 @@ BCTBX_PUBLIC int bctbx_file_truncate(bctbx_vfs_file_t *pFile, int64_t size);
  * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
  */
 BCTBX_PUBLIC ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset);
+
+/**
+ * Write count bytes contained in buf to a file associated with pFile at the position starting at its
+ * offset. Calls pFuncWrite (set to bc_Write by default).
+ * The file offset shall be incremented by the number of bytes actually written.
+ * @param  pFile 	File handle pointer.
+ * @param  buf    	Buffer hodling the values to write.
+ * @param  count  	Number of bytes to write to the file.
+ * @return        	Number of bytes written on success, BCTBX_VFS_ERROR if an error occurred.
+ */
+BCTBX_PUBLIC ssize_t bctbx_file_write2(bctbx_vfs_file_t *pFile, const void *buf, size_t count);
 
 /**
  * Writes to file.
