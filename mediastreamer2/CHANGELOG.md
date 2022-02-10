@@ -6,17 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
-- Tests on FEC feature for video streams
 
+## [5.1.0] - 2022-02-14
+
+### Added
+- Experimental Forward Error Correction feature for video streams.
+
+### Changed
+- Mkv and Wav file player and recorders file I/O is tunneled through bctbx VFS API.
+
+### Fixed
+- See commits for details.
 
 
 ## [5.0.0] - 2021-07-08
 
-## Added
+### Added
 - API to change media encryption in the fly
 
-## Changed
+### Changed
 - refactoring and simplifications for the MSOgl filter (video OpenGL rendering)
 
 ### Fixed

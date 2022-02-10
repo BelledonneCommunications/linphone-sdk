@@ -70,6 +70,7 @@ struct _MSMediaPlayer {
 	MSTicker *ticker;
 	MSFileFormat format;
 	bool_t is_open;
+	bool_t graph_ready;
 	int loop_interval;
 	char *filename;
 	MSMediaPlayerEofCallback eof_cb;
@@ -164,7 +165,7 @@ void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id) {
 
 bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	wave_header_t header;
-	int fd;
+	bctbx_vfs_file_t *fp;
 	char *tmp;
 
 	if(obj->is_open) {
@@ -183,16 +184,16 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	}
 	switch(obj->format) {
 	case MS_FILE_FORMAT_WAVE:
-		fd = open(filepath, O_RDONLY);
-		if(fd == -1) {
+		fp = bctbx_file_open2(bctbx_vfs_get_default(), filepath, O_RDONLY);
+		if(fp == NULL) {
 			ms_error("Cannot open %s", filepath);
 			return FALSE;
 		}
-		if(ms_read_wav_header_from_fd(&header, fd) == -1) {
+		if(ms_read_wav_header_from_fp(&header, fp) == -1) {
 			ms_error("Cannot open %s. Invalid WAV format", filepath);
 			return FALSE;
 		}
-		close(fd);
+		bctbx_file_close(fp);
 		if(wave_header_get_format_type(&header) != WAVE_FORMAT_PCM) {
 			ms_error("Cannot open %s. Codec not supported", filepath);
 			return FALSE;
@@ -217,21 +218,7 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		return FALSE;
 	}
 	ms_free(tmp);
-	_create_decoders(obj);
-	_create_sinks(obj);
-	if(!_link_all(obj)) {
-		ms_error("Cannot open %s. Could not build playing graph", filepath);
-		_destroy_graph(obj);
-		return FALSE;
-	}
-	ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
-	ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
-	if (obj->snd_card) {
-		ms_snd_card_notify_audio_session_activated(obj->snd_card, TRUE);
-	}
-	obj->ticker = ms_ticker_new();
-	ms_ticker_set_name(obj->ticker, "Player");
-	ms_ticker_attach(obj->ticker, obj->player);
+	
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
 	return TRUE;
@@ -243,13 +230,13 @@ bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {
 
 void ms_media_player_close(MSMediaPlayer *obj) {
 	if(obj->is_open) {
+		
 		ms_message("MSMediaPlayer: closing file.");
-		ms_ticker_detach(obj->ticker, obj->player);
-		ms_ticker_destroy(obj->ticker);
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
-		_unlink_all(obj);
-		_destroy_graph(obj);
 		obj->is_open = FALSE;
+		if (obj->graph_ready){
+			ms_media_player_stop(obj);
+		}
 		ms_free(obj->filename); obj->filename = NULL;
 	}
 }
@@ -259,6 +246,26 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		ms_error("Cannot start playing. No file has been opened");
 		return FALSE;
 	}
+	if (!obj->graph_ready){
+		ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
+		_create_decoders(obj);
+		_create_sinks(obj);
+		if(!_link_all(obj)) {
+			ms_error("Could not build playing graph");
+			_destroy_graph(obj);
+			return FALSE;
+		}
+		ms_filter_add_notify_callback(obj->player, _eof_filter_notify_cb, obj, FALSE);
+		ms_filter_call_method(obj->player, MS_PLAYER_SET_LOOP, &obj->loop_interval);
+		if (obj->snd_card) {
+			ms_snd_card_notify_audio_session_activated(obj->snd_card, TRUE);
+		}
+		obj->ticker = ms_ticker_new();
+		ms_ticker_set_name(obj->ticker, "Player");
+		ms_ticker_attach(obj->ticker, obj->player);
+		obj->graph_ready = TRUE;
+	}
+	
 	if(ms_filter_call_method_noarg(obj->player, MS_PLAYER_START) == -1) {
 		ms_error("Could not play %s. Playing filter failed to start", obj->filename);
 		return FALSE;
@@ -268,10 +275,18 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 
 void ms_media_player_stop(MSMediaPlayer *obj) {
 	int seek_pos = 0;
-	if(obj->is_open) {
-		ms_message("MSMediaPlayer: sotping playback.");
+	if(obj->is_open && obj->player) {
+		ms_message("MSMediaPlayer: stopping playback.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 		ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos);
+	}
+	if (obj->graph_ready){
+		ms_ticker_detach(obj->ticker, obj->player);
+		ms_ticker_destroy(obj->ticker);
+		
+		_unlink_all(obj);
+		_destroy_graph(obj);
+		obj->graph_ready = FALSE;
 	}
 }
 
@@ -357,31 +372,21 @@ MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj) {
 /* Private functions */
 static bool_t _get_format(const char *filepath, MSFileFormat *format) {
 	FourCC four_cc;
-	size_t data_read;
-	FILE *file = fopen(filepath, "rb");
-	if(file == NULL) {
+	bctbx_vfs_file_t *fp = bctbx_file_open(bctbx_vfs_get_default(), filepath, "rb");
+	if(fp == NULL) {
 		ms_error("Could not open %s: %s", filepath, strerror(errno));
 		goto err;
 	}
-	data_read = fread(four_cc, 4, 1, file);
-	if (data_read == 0) {
-		const char *error_msg;
-		if (ferror(file)) {
-			error_msg = strerror(errno);
-		} else if (feof(file)) {
-			error_msg = "end of file reached";
-		} else {
-			error_msg = "unknown error";
-		}
-		ms_error("Could not read the FourCC of %s: %s", filepath, error_msg);
+	if (bctbx_file_read2(fp, four_cc, sizeof(FourCC)) == BCTBX_VFS_ERROR){
+		ms_error("Could not read the FourCC of %s: %s",filepath,strerror(errno));
 		goto err;
 	}
 	*format = four_cc_to_file_format(four_cc);
-	fclose(file);
+	bctbx_file_close(fp);
 	return TRUE;
 
 err:
-	if (file) fclose(file);
+	if (fp) bctbx_file_close(fp);
 	*format = MS_FILE_FORMAT_UNKNOWN;
 	return FALSE;
 }

@@ -24,10 +24,12 @@
 #include <sys/types.h>
 #endif
 
+#include <bctoolbox/vfs.h>
+
 typedef struct _MSAsyncReader MSAsyncReader;
 typedef struct _MSAsyncWriter MSAsyncWriter;
 
-MSAsyncReader *ms_async_reader_new(int fd);
+MSAsyncReader *ms_async_reader_new(bctbx_vfs_file_t *fp);
 
 void ms_async_reader_destroy(MSAsyncReader *obj);
 
@@ -36,7 +38,7 @@ int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size);
 void ms_async_reader_seek(MSAsyncReader *obj, off_t offset);
 
 
-MSAsyncWriter *ms_async_writer_new(int fd);
+MSAsyncWriter *ms_async_writer_new(bctbx_vfs_file_t *fp);
 
 void ms_async_writer_destroy(MSAsyncWriter *obj);
 

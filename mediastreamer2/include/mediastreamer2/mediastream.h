@@ -386,6 +386,7 @@ typedef struct _MSMediaStreamIO {
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 
 typedef void (*AudioStreamIsSpeakingCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_speaking);
+typedef void (*MSAudioRouteChangedCallback)(void* audioStream, bool_t needReloadSoundDevices, char* newInputPort, char* newOutputPort);
 struct _AudioStream
 {
 	MediaStream ms;
@@ -456,6 +457,8 @@ struct _AudioStream
 	AudioStreamIsSpeakingCallback is_speaking_cb;
 	void *user_pointer;
 	bool_t is_speaking;
+	MSAudioRouteChangedCallback audio_route_changed_cb;
+	void * audio_route_changed_cb_user_data;
 };
 
 /**
@@ -1404,6 +1407,13 @@ MS2_PUBLIC RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int l
  */
 MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route);
 
+/**
+ *  Set a callback to be called when an audio route change is notified (IOS only)
+ * @param[in] stream The AudioStream object
+ * @param[in] callback The function to call when receiving the route change event
+ * @param[in] audio_route_changed_cb_user_data Context for the callback
+ */
+MS2_PUBLIC void audio_stream_set_audio_route_changed_callback(AudioStream *stream, MSAudioRouteChangedCallback callback, void *audio_route_changed_cb_user_data);
 /**
  * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
  * @param[in] stream The AudioStream object

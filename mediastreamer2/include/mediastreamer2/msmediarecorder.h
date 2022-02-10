@@ -125,6 +125,13 @@ MS2_PUBLIC MSFileFormat ms_media_recorder_get_file_format(const MSMediaRecorder 
  */
 MS2_PUBLIC void ms_media_recorder_remove_file(MSMediaRecorder *obj, const char *filepath);
 
+/**
+ * Get linear volume when capturing audio.
+ * @param obj Recorder
+ * @return Linear volume.
+ */
+MS2_PUBLIC float ms_media_recorder_get_capture_volume(const MSMediaRecorder *obj);
+
 #ifdef __cplusplus
 }
 #endif

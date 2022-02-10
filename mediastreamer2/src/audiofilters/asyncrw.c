@@ -20,14 +20,13 @@
 #include "mediastreamer2/msasync.h"
 #include "asyncrw.h"
 #include "mediastreamer2/msqueue.h"
-#include <bctoolbox/vfs.h>
 
 
 struct _MSAsyncReader{
 	MSWorkerThread *wth;
 	ms_mutex_t mutex;
 	MSBufferizer buf;
-	int fd;
+	bctbx_vfs_file_t *fp;
 	int ntasks_pending;
 	size_t blocksize;
 	off_t seekoff;
@@ -37,11 +36,11 @@ struct _MSAsyncReader{
 
 static void async_reader_fill(void *data);
 
-MSAsyncReader *ms_async_reader_new(int fd){
+MSAsyncReader *ms_async_reader_new(bctbx_vfs_file_t *fp){
 	MSAsyncReader *obj = ms_new0(MSAsyncReader,1);
 	ms_mutex_init(&obj->mutex, NULL);
 	ms_bufferizer_init(&obj->buf);
-	obj->fd = fd;
+	obj->fp = fp;
 	obj->wth = ms_worker_thread_new();
 #ifndef WIN32
 	obj->blocksize = getpagesize();
@@ -64,8 +63,8 @@ void ms_async_reader_destroy(MSAsyncReader *obj){
 static void async_reader_fill(void *data){
 	MSAsyncReader *obj = (MSAsyncReader*) data;
 	mblk_t *m = allocb(obj->blocksize, 0);
-	
-	int err = (int)bctbx_read(obj->fd, m->b_wptr, obj->blocksize);
+
+	int err = (int)bctbx_file_read2(obj->fp, m->b_wptr, obj->blocksize);
 	ms_mutex_lock(&obj->mutex);
 	if (err >= 0){
 		if (err > 0){
@@ -75,7 +74,7 @@ static void async_reader_fill(void *data){
 		if ((size_t)err < obj->blocksize){
 			obj->eof = TRUE;
 		}
-	}else if (err == -1){
+	}else if (err == BCTBX_VFS_ERROR){
 		ms_error("async_reader_fill(): %s", strerror(errno));
 		obj->eof = TRUE; /*what to do then ?*/
 	}
@@ -114,7 +113,7 @@ end:
 static void async_reader_seek(void *data){
 	MSAsyncReader *obj = (MSAsyncReader*) data;
 	ms_mutex_lock(&obj->mutex);
-	if (lseek(obj->fd, obj->seekoff, SEEK_SET) == -1){
+	if (bctbx_file_seek(obj->fp, obj->seekoff, SEEK_SET) == BCTBX_VFS_ERROR){
 		ms_error("async_reader_seek() seek failed : %s", strerror(errno));
 	}
 	obj->moving--;
@@ -137,15 +136,15 @@ struct _MSAsyncWriter{
 	ms_mutex_t mutex;
 	MSBufferizer buf;
 	uint8_t *wbuf;
-	int fd;
+	bctbx_vfs_file_t *fp;
 	size_t blocksize;
 };
 
-MSAsyncWriter *ms_async_writer_new(int fd){
+MSAsyncWriter *ms_async_writer_new(bctbx_vfs_file_t *fp){
 	MSAsyncWriter *obj = ms_new0(MSAsyncWriter,1);
 	ms_mutex_init(&obj->mutex, NULL);
 	ms_bufferizer_init(&obj->buf);
-	obj->fd = fd;
+	obj->fp = fp;
 	obj->wth = ms_worker_thread_new();
 #ifndef WIN32
 	obj->blocksize = getpagesize();
@@ -170,7 +169,7 @@ static void async_writer_write(void *data){
 	}
 	ms_mutex_unlock(&obj->mutex);
 	if (ok){
-		if (bctbx_write(obj->fd, obj->wbuf, size) == -1){
+		if (bctbx_file_write2(obj->fp, obj->wbuf, size) == BCTBX_VFS_ERROR){
 			ms_error("async_writer_write(): %s", strerror(errno));
 		}
 	}

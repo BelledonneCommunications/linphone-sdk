@@ -97,7 +97,7 @@ typedef struct V4l2State{
 static int msv4l2_open(V4l2State *s){
 	int fd=v4l2_open(s->dev,O_RDWR|O_NONBLOCK);
 	if (fd==-1){
-		ms_error("Could not open %s: %s",s->dev,strerror(errno));
+		ms_error("[MSV4l2] Could not open %s: %s",s->dev,strerror(errno));
 		return -1;
 	}
 	s->fd=fd;
@@ -119,15 +119,15 @@ static bool_t v4lv2_try_format( int fd, struct v4l2_format *fmt, int fmtid){
 	fmt->fmt.pix.field = V4L2_FIELD_ANY;
 
 	if (v4l2_ioctl (fd, VIDIOC_TRY_FMT, fmt)<0){
-		ms_message("VIDIOC_TRY_FMT: %s",strerror(errno));
+		ms_message("[MSV4l2] VIDIOC_TRY_FMT: %s",strerror(errno));
 		return FALSE;
 	}
 	if((int)fmt->fmt.pix.pixelformat != fmtid) {
-		ms_message("VIDIOC_TRY_FMT: got different format");
+		ms_message("[MSV4l2] VIDIOC_TRY_FMT: got different format");
 		return FALSE;
 	}
 	if (v4l2_ioctl (fd, VIDIOC_S_FMT, fmt)<0){
-		ms_message("VIDIOC_S_FMT: %s",strerror(errno));
+		ms_message("[MSV4l2] VIDIOC_S_FMT: %s",strerror(errno));
 		return FALSE;
 	}
 	return TRUE;
@@ -200,7 +200,7 @@ static MSPixFmt v4l2_format_to_ms(int v4l2format) {
 		case V4L2_PIX_FMT_RGB24:
 			return MS_RGB24;
 		default:
-			ms_error("Unknown v4l2 format 0x%08x", v4l2format);
+			ms_error("[MSV4l2] Unknown v4l2 format 0x%08x", v4l2format);
 			return MS_PIX_FMT_UNKNOWN;
 	}
 }
@@ -257,7 +257,7 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 #endif
 					formats[i].compressed = fmt.flags & V4L2_FMT_FLAG_COMPRESSED;
 					formats[i].supported = TRUE;
-					ms_message("format %s : max_fps=%i, native=%i, compressed=%i",
+					ms_message("[MSV4l2] format %s : max_fps=%i, native=%i, compressed=%i",
 						   ms_pix_fmt_to_string(v4l2_format_to_ms(fmt.pixelformat)),
 						   formats[i].max_fps,
 						   formats[i].native,
@@ -302,18 +302,18 @@ MSPixFmt msv4l2_pick_best_format_x86(int fd, const V4L2FormatDescription* format
 				struct v4l2_format fmt = { 0 };
 				fmt.fmt.pix.width       = vsize.width;
 				fmt.fmt.pix.height      = vsize.height;
-				ms_message("Candidate: %i",candidate);
+				ms_message("[MSV4l2] Candidate: %i",candidate);
 
 				if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
 					MSPixFmt selected=v4l2_format_to_ms(format_desc[j].pixel_format);
-					ms_message("V4L2: selected format is %s", ms_pix_fmt_to_string(selected));
+					ms_message("[MSV4l2] selected format is %s", ms_pix_fmt_to_string(selected));
 					return selected;
 				}
 			}
 		}
 	}
 
-	ms_error("No compatible format found");
+	ms_error("[MSV4l2] No compatible format found");
 	return MS_PIX_FMT_UNKNOWN;
 }
 
@@ -333,13 +333,13 @@ MSPixFmt msv4l2_pick_best_format_basic(int fd, const V4L2FormatDescription* form
 
 			if (v4lv2_try_format(fd, &fmt, format_desc[j].pixel_format)) {
 				MSPixFmt selected=v4l2_format_to_ms(format_desc[j].pixel_format);
-				ms_message("V4L2: selected format is %s", ms_pix_fmt_to_string(selected));
+				ms_message("[MSV4l2] selected format is %s", ms_pix_fmt_to_string(selected));
 				return selected;
 			}
 		}
 	}
 
-	ms_error("No compatible format found");
+	ms_error("[MSV4l2] No compatible format found");
 	return MS_PIX_FMT_UNKNOWN;
 }
 
@@ -358,10 +358,10 @@ static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, cons
 
 	queryctrl.id = ctl_id;
 	if (ioctl (s->fd, VIDIOC_QUERYCTRL, &queryctrl)!=0) {
-		ms_warning("%s not supported: %s",feature_name,strerror(errno));
+		ms_warning("[MSV4l2] %s not supported: %s",feature_name,strerror(errno));
 		return -1;
 	} else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
-		ms_warning("%s setting disabled.",feature_name);
+		ms_warning("[MSV4l2] %s setting disabled.",feature_name);
 		return -1;
 	}else {
 #ifdef V4L2_CTRL_CLASS_CAMERA
@@ -373,7 +373,7 @@ static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, cons
 		ctls.ctrl_class=V4L2_CTRL_CLASS_CAMERA;
 
 		if (v4l2_ioctl(s->fd,VIDIOC_S_EXT_CTRLS,&ctls)!=0){
-			ms_warning("Could not enable %s: %s", feature_name, strerror(errno));
+			ms_warning("[MSV4l2] Could not enable %s: %s", feature_name, strerror(errno));
 			return -1;
 		}
 #endif
@@ -383,34 +383,35 @@ static int set_camera_feature(V4l2State *s, unsigned int ctl_id, int value, cons
 
 
 static int msv4l2_configure(V4l2State *s){
+	ms_message("[MSV4l2] configuring");
 	struct v4l2_capability cap;
 	struct v4l2_format fmt;
 	MSVideoSize vsize;
 	const char *focus;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_QUERYCAP, &cap)<0) {
-		ms_message("Not a v4lv2 driver.");
+		ms_message("[MSV4l2] Not a v4lv2 driver.");
 		return -1;
 	}
 
 	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-		ms_error("%s is not a video capture device\n",s->dev);
+		ms_error("[MSV4l2] %s is not a video capture device\n",s->dev);
 		return -1;
 	}
 
 	if (!(cap.capabilities & V4L2_CAP_STREAMING)) {
-		ms_error("%s does not support streaming i/o\n",s->dev);
+		ms_error("[MSV4l2] %s does not support streaming i/o\n",s->dev);
 		return -1;
 	}
 
 
-	ms_message("Driver is %s, version is %i", cap.driver, cap.version);
+	ms_message("[MSV4l2] Driver is %s, version is %i", cap.driver, cap.version);
 
 	memset(&fmt,0,sizeof(fmt));
 
 	fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
-		ms_error("VIDIOC_G_FMT failed: %s",strerror(errno));
+		ms_error("[MSV4l2] VIDIOC_G_FMT failed: %s",strerror(errno));
 	}
 	vsize=s->requested_vsize;
 
@@ -423,9 +424,9 @@ static int msv4l2_configure(V4l2State *s){
 	} while(s->requested_vsize.width!=0 && (s->pix_fmt == MS_PIX_FMT_UNKNOWN));
 
 	if (s->requested_vsize.width==0){
-		ms_message("Could not find any combination of resolution/pixel-format that works !");
+		ms_message("[MSV4l2] Could not find any combination of resolution/pixel-format that works !");
 		s->requested_vsize=vsize;
-		ms_message("Fallback. Trying to force YUV420 format");
+		ms_message("[MSV4l2] Fallback. Trying to force YUV420 format");
 		memset(&fmt, 0, sizeof(fmt));
 		fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUV420;
@@ -433,7 +434,7 @@ static int msv4l2_configure(V4l2State *s){
 		fmt.fmt.pix.height = s->requested_vsize.height;
 		fmt.fmt.pix.field = V4L2_FIELD_ANY;
 		if(v4l2_ioctl(s->fd, VIDIOC_S_FMT, &fmt) != 0) {
-			ms_error("VIDIOC_S_FMT failed: %s. Read-only driver maybe ?", strerror(errno));
+			ms_error("[MSV4l2] VIDIOC_S_FMT failed: %s. Read-only driver maybe ?", strerror(errno));
 		}
 		
 	}
@@ -442,13 +443,13 @@ static int msv4l2_configure(V4l2State *s){
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_G_FMT, &fmt)<0){
-		ms_error("VIDIOC_G_FMT failed: %s. Irrecoverable error, video capture will not work.",strerror(errno));
+		ms_error("[MSV4l2] VIDIOC_G_FMT failed: %s. Irrecoverable error, video capture will not work.",strerror(errno));
 		return -1;
 	}else{
 		s->requested_vsize.width=fmt.fmt.pix.width;
 		s->requested_vsize.height=fmt.fmt.pix.height;
 		s->pix_fmt = v4l2_format_to_ms(fmt.fmt.pix.pixelformat);
-		ms_message("Size of webcam delivered pictures is %ix%i. Format:0x%08x (%s)",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt, ms_pix_fmt_to_string(s->pix_fmt));
+		ms_message("[MSV4l2] Size of webcam delivered pictures is %ix%i. Format:0x%08x (%s)",fmt.fmt.pix.width,fmt.fmt.pix.height, s->pix_fmt, ms_pix_fmt_to_string(s->pix_fmt));
 	}
 	s->picture_size=get_picture_buffer_size(s->pix_fmt,s->requested_vsize.width,s->requested_vsize.height);
 	if (s->used_vsize.width < s->used_vsize.height){
@@ -490,7 +491,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 	req.memory              = V4L2_MEMORY_MMAP;
 
 	if (v4l2_ioctl (s->fd, VIDIOC_REQBUFS, &req)<0) {
-		ms_error("Error requesting info on mmap'd buffers: %s",strerror(errno));
+		ms_error("[MSV4l2] Error requesting info on mmap'd buffers: %s",strerror(errno));
 		return -1;
 	}
 
@@ -505,7 +506,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		buf.index=i;
 
 		if (v4l2_ioctl (s->fd, VIDIOC_QUERYBUF, &buf)<0){
-			ms_error("Could not VIDIOC_QUERYBUF : %s",strerror(errno));
+			ms_error("[MSV4l2] Could not VIDIOC_QUERYBUF : %s",strerror(errno));
 			return -1;
 		}
 
@@ -516,7 +517,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 			s->fd, buf.m.offset);
 
 		if (start==NULL){
-			ms_error("Could not v4l2_mmap: %s",strerror(errno));
+			ms_error("[MSV4l2] Could not v4l2_mmap: %s",strerror(errno));
 		}
 		msg=esballoc(start,buf.length,0,NULL);
 		msg->b_wptr+=buf.length;
@@ -531,7 +532,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 		buf.memory      = V4L2_MEMORY_MMAP;
 		buf.index       = i;
 		if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf)){
-			ms_error("VIDIOC_QBUF failed: %s",strerror(errno));
+			ms_error("[MSV4l2] VIDIOC_QBUF failed: %s",strerror(errno));
 		}else {
 			s->queued++;
 			/* We internaly use here the marker bit to mark buffers that are queued into the V4L2 driver. */
@@ -541,7 +542,7 @@ static int msv4l2_do_mmap(V4l2State *s){
 	/*start capture immediately*/
 	type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (-1 ==v4l2_ioctl (s->fd, VIDIOC_STREAMON, &type)){
-		ms_error("VIDIOC_STREAMON failed: %s",strerror(errno));
+		ms_error("[MSV4l2] VIDIOC_STREAMON failed: %s",strerror(errno));
 		return -1;
 	}
 	return 0;
@@ -564,13 +565,13 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 		if (v4l2_ioctl(s->fd, VIDIOC_DQBUF, &buf)<0) {
 			switch (errno) {
 			case EAGAIN:
-				ms_warning("VIDIOC_DQBUF failed with EAGAIN, this is a driver bug !");
+				ms_warning("[MSV4l2] VIDIOC_DQBUF failed with EAGAIN, this is a driver bug !");
 				usleep(20000);
 			case EIO:
 				/* Could ignore EIO, see spec. */
 				break;
 			default:
-				ms_warning("VIDIOC_DQBUF failed: %s",strerror(errno));
+				ms_warning("[MSV4l2] VIDIOC_DQBUF failed: %s",strerror(errno));
 			}
 		}else{
 			s->queued--;
@@ -579,11 +580,11 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			ret=s->frames[buf.index];
 			
 			if ((int)buf.index >= s->frame_max){
-				ms_error("buf.index>=s->max_frames !");
+				ms_error("[MSV4l2] buf.index>=s->max_frames !");
 				return NULL;
 			}
 			if (buf.bytesused<=30){
-				ms_warning("Ignoring empty buffer...");
+				ms_warning("[MSV4l2] Ignoring empty buffer...");
 				return NULL;
 			}
 			/* Remove marker bit to indicate that the buffer is no longer queued to the V4L2 driver. */
@@ -618,9 +619,9 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 		if (dblk_ref_value(s->frames[k]->b_datap)==1 && mblk_get_marker_info(s->frames[k]) == FALSE ){
 			no_slot_available = FALSE;
 			buf.index=k;
-			if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf))
-				ms_warning("VIDIOC_QBUF %i failed: %s",k,  strerror(errno));
-			else {
+			if (-1==v4l2_ioctl (s->fd, VIDIOC_QBUF, &buf)){
+				ms_warning("[MSV4l2] VIDIOC_QBUF %i failed: %s",k,  strerror(errno));
+			}else {
 				s->queued++;
 				/* We internaly use here the marker bit to mark buffers that are queued into the V4L2 driver. */
 				mblk_set_marker_info(s->frames[k], TRUE);
@@ -638,19 +639,20 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 }
 
 static void msv4l2_do_munmap(V4l2State *s){
+	ms_message("[MSV4l2] do_munmap");
 	int i;
 	enum v4l2_buf_type type;
 	/*stop capture immediately*/
 	type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	if (-1 ==v4l2_ioctl (s->fd, VIDIOC_STREAMOFF, &type)){
-		ms_error("VIDIOC_STREAMOFF failed: %s",strerror(errno));
+		ms_error("[MSV4l2] VIDIOC_STREAMOFF failed: %s",strerror(errno));
 	}
 
 	for(i=0;i<s->frame_max;++i){
 		mblk_t *msg=s->frames[i]->b_cont;
 		int len=dblk_lim(msg->b_datap)-dblk_base(msg->b_datap);
 		if (v4l2_munmap(dblk_base(msg->b_datap),len)<0){
-			ms_warning("MSV4l2: Fail to unmap: %s",strerror(errno));
+			ms_warning("[MSV4l2] Fail to unmap: %s",strerror(errno));
 		}
 		freemsg(s->frames[i]);
 		s->frames[i]=NULL;
@@ -660,6 +662,7 @@ static void msv4l2_do_munmap(V4l2State *s){
 
 
 static void msv4l2_init(MSFilter *f){
+	ms_message("[MSV4l2] init");
 	V4l2State *s=ms_new0(V4l2State,1);
 	char* tmp=NULL;
 	
@@ -682,6 +685,7 @@ static void msv4l2_init(MSFilter *f){
 }
 
 static void msv4l2_uninit(MSFilter *f){
+	ms_message("[MSV4l2] uninit");
 	V4l2State *s=(V4l2State*)f->data;
 	ms_free(s->dev);
 	flushq(&s->rq,0);
@@ -694,26 +698,26 @@ static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
 	uint64_t start;
 
-	ms_message("msv4l2_thread starting");
+	ms_message("[MSV4l2] msv4l2_thread starting");
 	if (s->fd==-1){
 		if( msv4l2_open(s)!=0){
-			ms_warning("msv4l2 could not be openned");
+			ms_warning("[MSV4l2] could not be openned");
 			goto close;
 		}
 	}
 
 	if (!s->configured && msv4l2_configure(s)!=0){
-		ms_warning("msv4l2 could not be configured");
+		ms_warning("[MSV4l2] could not be configured");
 		goto close;
 	}
 
 	if (msv4l2_do_mmap(s)!=0)
 	{
-		ms_warning("msv4l2 do mmap");
+		ms_warning("[MSV4l2] do mmap");
 		goto close;
 	}
 
-	ms_message("V4L2 video capture started.");
+	ms_message("[MSV4l2] video capture started.");
 	while(s->thread_run)
 	{
 		if (s->fd!=-1){
@@ -732,14 +736,14 @@ static void *msv4l2_thread(void *ptr){
 	while(s->queued){
 		v4l2_dequeue_ready_buffer(s,50);
 		if (ortp_get_cur_time_ms()-start > 5000){
-			ms_warning("msv4l2: still [%i] buffers not dequeued at exit !", s->queued);
+			ms_warning("[MSV4l2] still [%i] buffers not dequeued at exit !", s->queued);
 			break;
 		}
 	}
 	msv4l2_do_munmap(s);
 close:
 	msv4l2_close(s);
-	ms_message("msv4l2_thread exited.");
+	ms_message("[MSV4l2] msv4l2_thread exited.");
 	ms_thread_exit(NULL);
 	return NULL;
 }
@@ -769,6 +773,7 @@ static mblk_t *msv4l2_rotate_image(V4l2State *s, mblk_t *frame) {
 }
 
 static void msv4l2_preprocess(MSFilter *f){
+	ms_message("[MSV4l2] preprocessing");
 	V4l2State *s=(V4l2State*)f->data;
 	s->thread_run=TRUE;
 	ms_thread_create(&s->thread,NULL,msv4l2_thread,s);
@@ -776,6 +781,7 @@ static void msv4l2_preprocess(MSFilter *f){
 }
 
 static void msv4l2_process(MSFilter *f){
+	
 	V4l2State *s=(V4l2State*)f->data;
 	uint32_t timestamp;
 
@@ -808,21 +814,23 @@ static void msv4l2_process(MSFilter *f){
 }
 
 static void msv4l2_postprocess(MSFilter *f){
+	ms_message("[MSV4l2] postprocessing");
 	V4l2State *s=(V4l2State*)f->data;
 
 	s->thread_run = FALSE;
 	if(s->thread) {
 		ms_thread_join(s->thread,NULL);
-		ms_message("msv4l2 thread has joined.");
+		ms_message("[MSV4l2] thread has joined.");
 	}
 	else {
-		ms_warning("msv4l2 thread was already stopped");
+		ms_warning("[MSV4l2] thread was already stopped");
 	}
 
 	flushq(&s->rq,0);
 }
 
 static int msv4l2_set_fps(MSFilter *f, void *arg){
+	ms_message("[MSV4l2] setfps");
 	V4l2State *s=(V4l2State*)f->data;
 	s->fps=*(float*)arg;
 	ms_video_init_framerate_controller(&s->framerate_controller, s->fps);
@@ -831,6 +839,7 @@ static int msv4l2_set_fps(MSFilter *f, void *arg){
 }
 
 static int msv4l2_set_vsize(MSFilter *f, void *arg){
+	ms_message("[MSV4l2] setsize");
 	V4l2State *s=(V4l2State*)f->data;
 	s->requested_vsize=*(MSVideoSize*)arg;
 	s->configured=FALSE;
@@ -846,6 +855,7 @@ static int msv4l2_set_vsize(MSFilter *f, void *arg){
 }
 
 static int msv4l2_check_configured(V4l2State *s){
+	ms_message("[MSV4l2] check_configured");
 	if (s->configured) return 0;
 	if (s->fd!=-1){
 		msv4l2_close(s);
@@ -891,7 +901,7 @@ static int ms4vl2_set_device_orientation(MSFilter *f, void *arg) {
 	if (s->use_rotation) {
 		s->rotation = *((int*)arg);
 	} else {
-		ms_warning("msv4l2: set_device_orientation was called while env MS2_USE_ROTATION is not set.");
+		ms_warning("[MSV4l2] set_device_orientation was called while env MS2_USE_ROTATION is not set.");
 	}
 		
 	return 0;
@@ -971,12 +981,12 @@ static void msv4l2_detect(MSWebCamManager *obj){
 					cam->name=ms_strdup(devname);
 					ms_web_cam_manager_add_cam(obj,cam);
 				}else{
-					ms_message("Ignored %s, not a capture device.", devname);
+					ms_message("[MSV4l2] Ignored %s, not a capture device.", devname);
 				}
 			}
 			close(fd);
 		}else if (errno != ENOENT){
-			ms_message("Could not open %s: %s", devname, strerror(errno));
+			ms_message("[MSV4l2] Could not open %s: %s", devname, strerror(errno));
 		}
 	}
 }

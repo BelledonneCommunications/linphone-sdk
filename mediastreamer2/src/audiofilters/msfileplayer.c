@@ -25,6 +25,7 @@
 #include "waveheader.h"
 #include "mediastreamer2/msticker.h"
 #include "asyncrw.h"
+#include <bctoolbox/vfs.h>
 
 #ifdef HAVE_PCAP
 #include <pcap/pcap.h>
@@ -36,7 +37,7 @@
 static int player_close(MSFilter *f, void *arg);
 
 struct _PlayerData{
-	int fd;
+	bctbx_vfs_file_t *fp;
 	MSAsyncReader *reader;
 	MSPlayerState state;
 	int rate;
@@ -68,7 +69,6 @@ typedef struct _PlayerData PlayerData;
 
 static void player_init(MSFilter *f){
 	PlayerData *d=ms_new0(PlayerData,1);
-	d->fd=-1;
 	d->state=MSPlayerClosed;
 	d->swap=FALSE;
 	d->rate=8000;
@@ -94,17 +94,15 @@ static void player_init(MSFilter *f){
 	f->data=d;	
 }
 
-int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
+int ms_read_wav_header_from_fp(wave_header_t *header,bctbx_vfs_file_t *fp) {
 	int count;
 	int skip;
 	int hsize=0;
 	riff_t *riff_chunk=&header->riff_chunk;
 	format_t *format_chunk=&header->format_chunk;
 	data_t *data_chunk=&header->data_chunk;
-	
-	unsigned long len=0;
-	
-	len = read(fd, (char*)riff_chunk, sizeof(riff_t)) ;
+
+	ssize_t len = bctbx_file_read2(fp, (char*)riff_chunk, sizeof(riff_t));
 	if (len != sizeof(riff_t)){
 		goto not_a_wav;
 	}
@@ -112,29 +110,29 @@ int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
 	if (0!=strncmp(riff_chunk->riff, "RIFF", 4) || 0!=strncmp(riff_chunk->wave, "WAVE", 4)){
 		goto not_a_wav;
 	}
-	
-	len = read(fd, (char*)format_chunk, sizeof(format_t)) ;            
+
+	len = bctbx_file_read2(fp, (char*)format_chunk, sizeof(format_t));
 	if (len != sizeof(format_t)){
 		ms_warning("Wrong wav header: cannot read file");
 		goto not_a_wav;
 	}
-	
+
 	if ((skip=le_uint32(format_chunk->len)-0x10)>0)
 	{
-		lseek(fd,skip,SEEK_CUR);
+		bctbx_file_seek(fp, skip, SEEK_CUR);
 	}
 	hsize=sizeof(wave_header_t)-0x10+le_uint32(format_chunk->len);
 	
 	count=0;
 	do{
-		len = read(fd, data_chunk, sizeof(data_t)) ;
+		len = bctbx_file_read2(fp, data_chunk, sizeof(data_t));
 		if (len != sizeof(data_t)){
 			ms_warning("Wrong wav header: cannot read file");
 			goto not_a_wav;
 		}
 		if (strncmp(data_chunk->data, "data", 4)!=0){
 			ms_warning("skipping chunk=%c%c%c%c len=%i", data_chunk->data[0],data_chunk->data[1],data_chunk->data[2],data_chunk->data[3], data_chunk->len);
-			lseek(fd,le_uint32(data_chunk->len),SEEK_CUR);
+			bctbx_file_seek(fp, le_uint32(data_chunk->len), SEEK_CUR);
 			count++;
 			hsize+=len+le_uint32(data_chunk->len);
 		}else{
@@ -146,14 +144,14 @@ int ms_read_wav_header_from_fd(wave_header_t *header,int fd){
 
 	not_a_wav:
 		/*rewind*/
-		lseek(fd,0,SEEK_SET);
+		bctbx_file_seek(fp, 0, SEEK_SET);
 		return -1;
 }
 
 static int read_wav_header(PlayerData *d){
 	wave_header_t header;
 	format_t *format_chunk=&header.format_chunk;
-	int ret=ms_read_wav_header_from_fd(&header,d->fd);
+	int ret=ms_read_wav_header_from_fp(&header,d->fp);
 	
 	if (ret==-1) goto not_a_wav;
 	
@@ -172,7 +170,7 @@ static int read_wav_header(PlayerData *d){
 
 	not_a_wav:
 		/*rewind*/
-		lseek(d->fd,0,SEEK_SET);
+		bctbx_file_seek(d->fp, 0, SEEK_SET);
 		d->hsize=0;
 		d->is_raw=TRUE;
 		return -1;
@@ -180,20 +178,20 @@ static int read_wav_header(PlayerData *d){
 
 static int player_open(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	int fd;
+	bctbx_vfs_file_t *fp;
 	const char *file=(const char*)arg;
-	struct stat statbuf;
+	int64_t fsize;
 	
-	if (d->fd!=-1){
+	if (d->fp){
 		player_close(f,NULL);
 	}
-	if ((fd=open(file,O_RDONLY|O_BINARY))==-1){
+	if ((fp=bctbx_file_open2(bctbx_vfs_get_default(),file,O_RDONLY|O_BINARY))==NULL){
 		ms_warning("MSFilePlayer[%p]: failed to open %s: %s",f,file,strerror(errno));
 		return -1;
 	}
 
 	d->state=MSPlayerPaused;
-	d->fd=fd;
+	d->fp=fp;
 	d->ts=0;
 	d->async_read_too_late = 0;
 #ifdef HAVE_PCAP
@@ -204,8 +202,8 @@ static int player_open(MSFilter *f, void *arg){
 		d->pcap = pcap_open_offline(file, err);
 		if (d->pcap == NULL) {
 			ms_error("MSFilePlayer[%p]: failed to open pcap file: %s",f,err);
-			d->fd=-1;
-			close(fd);
+			d->fp=NULL;
+			bctbx_file_close(fp);
 			return -1;
 		}
 	} else
@@ -213,10 +211,10 @@ static int player_open(MSFilter *f, void *arg){
 	if (read_wav_header(d)!=0 && strstr(file,".wav")){
 		ms_warning("File %s has .wav extension but wav header could be found.",file);
 	}
-	d->reader = ms_async_reader_new(d->fd);
-	
-	if (fstat(fd, &statbuf) == 0){
-		d->duration = (int) (( 1000LL * ((uint64_t)statbuf.st_size - (uint64_t)d->hsize) / ((uint64_t)d->samplesize * (uint64_t)d->nchannels))  / (uint64_t)d->rate);
+	d->reader = ms_async_reader_new(d->fp);
+
+	if ((fsize=bctbx_file_size(fp))!=BCTBX_VFS_ERROR){
+		d->duration = (int) (( 1000LL * ((uint64_t)fsize - (uint64_t)d->hsize) / ((uint64_t)d->samplesize * (uint64_t)d->nchannels))  / (uint64_t)d->rate);
 	}else{
 		ms_error("MSFilePlayer[%p]: fstat() failed: %s", f, strerror(errno));
 	}
@@ -267,8 +265,8 @@ static int player_close(MSFilter *f, void *arg){
 		ms_async_reader_destroy(d->reader);
 		d->reader = NULL;
 	}
-	if (d->fd!=-1)	close(d->fd);
-	d->fd=-1;
+	if (d->fp)	bctbx_file_close(d->fp);
+	d->fp=NULL;
 	d->state=MSPlayerClosed;
 	if (d->async_read_too_late > 0){
 		ms_warning("MSFilePlayer[%p] had %i late read events.", f, d->async_read_too_late);
@@ -284,7 +282,7 @@ static int player_get_state(MSFilter *f, void *arg){
 
 static void player_uninit(MSFilter *f){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->fd!=-1) player_close(f,NULL);
+	if (d->fp) player_close(f,NULL);
 	ms_free(d);
 }
 
@@ -450,7 +448,7 @@ static int player_loop(MSFilter *f, void *arg){
 
 static int player_eof(MSFilter *f, void *arg){
 	PlayerData *d=(PlayerData*)f->data;
-	if (d->fd==-1 && d->state==MSPlayerClosed)
+	if (d->fp==NULL && d->state==MSPlayerClosed)
 		*((int*)arg) = TRUE; /* 1 */
 	else
 		*((int*)arg) = FALSE; /* 0 */

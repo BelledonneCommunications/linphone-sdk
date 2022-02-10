@@ -307,6 +307,16 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterVideoEncoderInterface, 11, MSVideoConfiguration )
 
 /** Interface definitions for audio capture */
+
+typedef struct _MSAudioRouteChangedEvent{
+	bool_t need_update_device_list;
+	bool_t has_new_input;
+	char new_input[256];
+	bool_t has_new_output;
+	char new_output[256];
+	
+} MSAudioRouteChangedEvent;
+
 /* Start numbering from the end for hacks */
 #define MS_AUDIO_CAPTURE_SET_VOLUME_GAIN \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 0, float)
@@ -326,6 +336,10 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 6, bool_t)
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE \
 	MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
+
+
+#define MS_AUDIO_ROUTE_CHANGED \
+	MS_FILTER_EVENT(MSFilterAudioCaptureInterface, 0, MSAudioRouteChangedEvent)
 
 /** Interface definitions for audio playback */
 enum _MSAudioRoute{

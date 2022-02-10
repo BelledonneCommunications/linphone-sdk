@@ -20,10 +20,11 @@
 #include <mediastreamer2/android_utils.h>
 
 jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
+	ms_message("[HAEC] Creating AcousticEchoCanceler");
 	jobject aec = NULL;
 	jclass aecClass = env->FindClass("android/media/audiofx/AcousticEchoCanceler");
 	if (aecClass==NULL){
-		ms_error("Couldn't find android/media/audiofx/AcousticEchoCanceler class !");
+		ms_error("[HAEC] Couldn't find android/media/audiofx/AcousticEchoCanceler class !");
 		env->ExceptionClear(); //very important.
 		return NULL;
 	}
@@ -37,7 +38,7 @@ jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 				aec=env->CallStaticObjectMethod(aecClass,createID,sessionId);
 				if (aec){
 					aec=env->NewGlobalRef(aec);
-					ms_message("AcousticEchoCanceler successfully created.");
+					ms_message("[HAEC] AcousticEchoCanceler successfully created.");
 					jclass effectClass=env->FindClass("android/media/audiofx/AudioEffect");
 					if (effectClass){
 						//effectClass=(jclass)env->NewGlobalRef(effectClass);
@@ -45,36 +46,36 @@ jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 						jmethodID setEnabledID = env->GetMethodID(effectClass,"setEnabled","(Z)I");
 						if (isEnabledID && setEnabledID){
 							jboolean enabled=env->CallBooleanMethod(aec,isEnabledID);
-							ms_message("AcousticEchoCanceler enabled: %i",(int)enabled);
+							ms_message("[HAEC] AcousticEchoCanceler enabled: %i",(int)enabled);
 							if (!enabled){
 								int ret=env->CallIntMethod(aec,setEnabledID,TRUE);
 								if (ret!=0){
-									ms_error("Could not enable AcousticEchoCanceler: %i",ret);
+									ms_error("[HAEC] Could not enable AcousticEchoCanceler: %i",ret);
 								} else {
-									ms_message("AcousticEchoCanceler enabled");
+									ms_message("[HAEC] AcousticEchoCanceler enabled");
 								}
 							} else {
-								ms_warning("AcousticEchoCanceler already enabled");
+								ms_warning("[HAEC] AcousticEchoCanceler already enabled");
 							}
 						} else {
-							ms_error("Couldn't find either getEnabled or setEnabled method in AudioEffect class for AcousticEchoCanceler !");
+							ms_error("[HAEC] Couldn't find either getEnabled or setEnabled method in AudioEffect class for AcousticEchoCanceler !");
 						}
 						env->DeleteLocalRef(effectClass);
 					} else {
-						ms_error("Couldn't find android/media/audiofx/AudioEffect class !");
+						ms_error("[HAEC] Couldn't find android/media/audiofx/AudioEffect class !");
 					}
 				}else{
-					ms_error("Failed to create AcousticEchoCanceler !");
+					ms_error("[HAEC] Failed to create AcousticEchoCanceler !");
 				}
 			}else{
-				ms_error("create() not found in class AcousticEchoCanceler !");
+				ms_error("[HAEC] create() not found in class AcousticEchoCanceler !");
 				env->ExceptionClear(); //very important.
 			}
 		} else {
-			ms_error("AcousticEchoCanceler isn't available !");
+			ms_error("[HAEC] AcousticEchoCanceler isn't available !");
 		}
 	}else{
-		ms_error("isAvailable() not found in class AcousticEchoCanceler !");
+		ms_error("[HAEC] isAvailable() not found in class AcousticEchoCanceler !");
 		env->ExceptionClear(); //very important.
 	}
 	env->DeleteLocalRef(aecClass);
@@ -82,7 +83,19 @@ jobject ms_android_enable_hardware_echo_canceller(JNIEnv *env, int sessionId) {
 }
 
 void ms_android_delete_hardware_echo_canceller(JNIEnv *env, jobject aec) {
+	ms_message("[HAEC] Deleting AcousticEchoCanceler");
+	jclass effectClass = env->FindClass("android/media/audiofx/AudioEffect");
+	if (effectClass) {
+		jmethodID releaseID = env->GetMethodID(effectClass, "release", "()V");
+		if (releaseID) {
+			env->CallVoidMethod(aec, releaseID);
+			ms_message("[HAEC] AcousticEchoCanceler released");
+		} else {
+			ms_error("[HAEC] Couldn't find release() method in AudioEffect class for AcousticEchoCanceler !");
+		}
+		env->DeleteLocalRef(effectClass);
+	} else {
+		ms_error("[HAEC] Couldn't find android/media/audiofx/AudioEffect class !");
+	}
 	env->DeleteGlobalRef(aec);
 }
-
-

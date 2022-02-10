@@ -4019,8 +4019,8 @@ static void ice_conclude_processing(IceCheckList *cl, RtpSession *rtp_session, b
 				ice_dump_valid_list(cl);
 				/* Initialise keepalive time. */
 				cl->keepalive_time = ice_current_time();
-				/*don't stop retransmissions for the controlled side, so that we get a chance to complete the pairs that the remote has selected.*/
-				if (cl->session->role == IR_Controlling) ice_check_list_stop_retransmissions(cl);
+				/* Stop all running transactions (since nomination is finished).*/
+				ice_check_list_stop_retransmissions(cl);
 				result = ice_check_list_selected_valid_remote_candidate(cl, &rtp_remote_candidate, &rtcp_remote_candidate);
 				if (result == TRUE) {
 					/*Switch the destination of the mediastream to the destination selected by ICE*/
