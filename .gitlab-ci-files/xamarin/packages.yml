@@ -1,5 +1,6 @@
 xamarin-package:
   stage: package
+<<<<<<< HEAD
   tags: [ "macmini-m1-xcode12" ]
   variables:
     GIT_STRATEGY: fetch
@@ -39,6 +40,45 @@ xamarin-package:
    - cmake --build .
 
 
+=======
+  tags: [ "deploy" ]
+  variables:
+    GIT_STRATEGY: none
+  needs:
+    - ios-ninja
+    - android-makefile-r20
+
+  rules:
+    - if: $UPLOAD_XAMARIN
+    - if: $NIGHTLY_RELEASE
+  script:
+    #removing previous results directory to avoid getting incorrect artifacts for current launch
+    - if [ -d "$CI_PROJECT_DIR/results" ]; then rm -rf $CI_PROJECT_DIR/results; fi;
+    - if [ -f "$CI_PROJECT_DIR/linphone-sdk-xamarin*" ]; then rm -rf $CI_PROJECT_DIR/linphone-sdk-xamarin*; fi;
+    # We are forced to differenciate version of Android and iOS because the commit hash of the git describe has one more char when executed on mac
+    - VERSION_ANDROID_DESCRIBE=$(cat ${CI_PROJECT_DIR}/build/gitdescribe.txt)
+    - echo $VERSION_ANDROID_DESCRIBE
+    - echo $VERSION_ANDROID_DESCRIBE
+    - VERSION_ANDROID=$(cat ${CI_PROJECT_DIR}/build/linphonesdkversionandroid.txt)
+    - echo $VERSION_ANDROID
+    - VERSION_IOS=$(cat ${CI_PROJECT_DIR}/build-ios/linphonesdkversion.txt)
+    - echo $VERSION_IOS
+    - cd build/linphone-sdk/bin/distributions/
+    - ls .
+    #- VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
+    - unzip linphone-sdk-android-$VERSION_ANDROID -d linphone-sdk-android
+    - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-$VERSION_IOS -d linphone-sdk-ios
+    - zip -r $CI_PROJECT_DIR/linphone-sdk-xamarin-$VERSION.zip linphone-sdk-android linphone-sdk-ios
+    - ls $CI_PROJECT_DIR/linphone-sdk-xamarin*
+
+  after_script:
+    - mkdir -p $CI_PROJECT_DIR/results/xamarin
+    - cp $CI_PROJECT_DIR/linphone-sdk-xamarin*.zip $CI_PROJECT_DIR/results/xamarin
+    #Cleaning also previous artifacts to avoid conflicts with future jobs
+    - rm -r $CI_PROJECT_DIR/build/linphone-sdk/bin/distributions/*
+    - rm -r $CI_PROJECT_DIR/build-ios/linphone-sdk-ios*
+    - rm $CI_PROJECT_DIR/linphone-sdk-xamarin*
+>>>>>>> origin/release/5.1
   artifacts:
     paths:
       - results/*

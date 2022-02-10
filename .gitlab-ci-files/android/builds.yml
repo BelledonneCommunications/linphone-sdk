@@ -8,6 +8,10 @@
 
   extends: .linux-prepare
 
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
+
   script:
     - sdkmanager
     - mkdir -p build
@@ -19,10 +23,12 @@
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     - echo $(git describe) > gitdescribe.txt
+    - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversionandroid.txt
 
   artifacts:
     paths:
       - build/gitdescribe.txt
+      - build/linphonesdkversionandroid.txt
       - build/linphone-sdk/bin/outputs/aar/*.aar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
       - build/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
@@ -48,10 +54,6 @@
 android-makefile-r20:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:$ANDROID_R20_IMAGE_VERSION
-
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule" ) && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     #Only used to overwrite value set by .set_parallel_level.yml
@@ -64,12 +66,6 @@ android-makefile-r20-g729:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
-    - if: $DEPLOY_RUN_NUGET
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes:
-        - .gitlab-ci-files/android/builds.yml
-        - .gitlab-ci-files/android/packages.yml
-        - cmake/NuGet/Xamarin/**/*
   variables:
     CMAKE_OPTIONS: -DENABLE_G729=ON
   extends: android-makefile-r20
@@ -132,8 +128,7 @@ android-ninja-r20-allcodecs:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_G729=YES
-    #CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_OPENH264=YES -DENABLE_EMBEDDED_OPENH264=YES -DENABLE_G729=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_OPENH264=YES -DENABLE_G729=YES
 
   extends: android-ninja-r20
 

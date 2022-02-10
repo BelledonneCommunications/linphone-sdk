@@ -192,6 +192,7 @@ The Linphone SDK is available as a `.nuget` package for .NET applications (Windo
 
 See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
+
 ## Upgrading your SDK
 
 Simply re-invoking `cmake --build .` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
