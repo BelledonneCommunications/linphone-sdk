@@ -90,7 +90,11 @@ debian11-ninja-clang:
 
 debian11-ninja-clang-sanitizer:
   variables:
-    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+    #We use debug build type here to workaround an issue where sanitizer in ReleaseDebugInfo is taking more than one hour to complete
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
+    #Until we fix belle-sip/belr parser taking at build time as much ram as a AAA game
+    #If we dont limit this, this job is getting killed by kernel oom_killer
+    ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: debian11-ninja-clang
 
 
@@ -105,13 +109,13 @@ debian11-ninja-clang-novideo:
 
 
 
-test-bctoolbox-debian11:
+bctoolbox-debian11-test:
   extends: .test-bctoolbox
   needs:
     - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-debian11:
+bellesip-debian11-test:
   extends: .test-bellesip
   needs:
     - debian11-ninja-gcc
@@ -121,25 +125,25 @@ test-bellesip-debian11:
   variables:
     PLATFORM: linux-debian11
 
-test-belr-debian11:
+belr-debian11-test:
   extends: .test-belr
   needs:
     - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-debian11:
+belcard-debian11-test:
   extends: .test-belcard
   needs:
     - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-debian11:
+bzrtp-debian11-test:
   extends: .test-bzrtp
   needs:
     - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-debian11:
+liblinphone-debian11-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
@@ -147,7 +151,7 @@ test-liblinphone-debian11:
   variables:
     PLATFORM: linux-debian11
 
-# test-liblinphone-debian11-mr:
+# liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr
 #   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
 #   needs:

@@ -105,13 +105,13 @@ debian12-ninja-clang-novideo:
 
 
 
-test-bctoolbox-debian12:
+bctoolbox-debian12-test:
   extends: .test-bctoolbox
   needs:
     - debian12-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bellesip-debian12:
+bellesip-debian12-test:
   extends: .test-bellesip
   needs:
     - debian12-ninja-gcc
@@ -121,25 +121,25 @@ test-bellesip-debian12:
   variables:
     PLATFORM: linux-debian12
 
-test-belr-debian12:
+belr-debian12-test:
   extends: .test-belr
   needs:
     - debian12-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-belcard-debian12:
+belcard-debian12-test:
   extends: .test-belcard
   needs:
     - debian12-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-bzrtp-debian12:
+bzrtp-debian12-test:
   extends: .test-bzrtp
   needs:
     - debian12-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
-test-liblinphone-debian12:
+liblinphone-debian12-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
   needs:
@@ -147,7 +147,7 @@ test-liblinphone-debian12:
   variables:
     PLATFORM: linux-debian12
 
-# test-liblinphone-debian12-mr:
+# liblinphone-debian12-test-mr:
 #   extends: .test-liblinphone-mr
 #   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
 #   needs:
