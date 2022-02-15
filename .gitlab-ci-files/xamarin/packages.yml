@@ -5,7 +5,7 @@ xamarin-package:
     GIT_STRATEGY: fetch
   needs:
     - ios-xcode
-    - android-makefile-r20-g729
+    - android-makefile-r20-g729-ldap
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
