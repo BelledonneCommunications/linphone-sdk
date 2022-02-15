@@ -61,13 +61,13 @@ android-makefile-r20:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
   extends: .android
 
-android-makefile-r20-g729:
+android-makefile-r20-g729-ldap:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
   variables:
-    CMAKE_OPTIONS: -DENABLE_G729=ON
+    CMAKE_OPTIONS: -DENABLE_G729=ON -DENABLE_LDAP=ON
   extends: android-makefile-r20
 
 android-makefile-r20-minimal-size:

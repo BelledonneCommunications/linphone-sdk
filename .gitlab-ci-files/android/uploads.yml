@@ -107,9 +107,9 @@ android-upload-minimal-size:
   needs:
     - android-makefile-r20-minimal-size
 
-android-upload-g729:
+android-upload-g729-ldap:
   extends: .android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
-    - android-makefile-r20-g729
+    - android-makefile-r20-g729-ldap
