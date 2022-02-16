@@ -78,7 +78,7 @@ VideoEndpoint *VideoConferenceGeneric::getMemberAtPin(int pin) const {
 		VideoEndpoint *ep=(VideoEndpoint*)it->data;
 		if (ep->mPin==pin) return ep;
 	}
-	if (mVideoPlaceholderMember->mPin == pin) return mVideoPlaceholderMember;
+	if (mVideoPlaceholderMember && (mVideoPlaceholderMember->mPin == pin)) return mVideoPlaceholderMember;
 	return NULL;
 }
 
