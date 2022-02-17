@@ -42,26 +42,31 @@ Linphone-SDK's git repository comprises git submodules. It must be cloned with t
 
 ### Windows
 
-SDK compilation is supported on `Visual Studio 15 2017` and `MSYS2` https://www.msys2.org/.
+SDK compilation is supported on `Visual Studio 15 2017`/`Visual Studio 16 2019` and `MSYS2` https://www.msys2.org/.
+
+Only [CMake](https://cmake.org/), [7Zip](https://www.7-zip.org/download.html) and [MSYS2](https://www.msys2.org/) are needed before the build.
+Add the 7Zip executable in your PATH as it is not automatically done.
+
 
 #### MSYS2
 
 Follow MSYS2 instructions on their ["Getting Started" page](https://www.msys2.org/).
 
-For MinGW32, install the needed tools in `MSYS2 MSYS` console:
- - `pacman -Sy --needed base-devel mingw-w64-i686-toolchain`
-If you are using python from MSYS:
- - `pacman -S python3-pip` in `MSYS2 MSYS` console
- - `python3 -m pip install pystache six` in `cmd`
+Both MinGW32 and MinGW64 are supported.
 
-When building the SDK, it will install automatically from MSYS2 : `perl`, `yasm`, `gawk`, `bzip2`, `nasm, `sed`, `patch`, `pkg-config`, `gettext`, `glib2` and `intltool` (if needed)
+When building the SDK, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2` and `intltool` (if needed)
+
+In this order, add `C:\msys64\mingw<N>\bin`, `C:\msys64\` and `C:\msys64\usr\bin` in your PATH environement variable from Windows advanced settings. Binaries from the msys folder (not from mingw32/64) doesn't fully support Windows Path and thus, they are to be avoided.
+*<N> is the version of MinGW32/64*
+
+#### Visual Studio
 
 Visual Studio must also be properly configured with addons. Under "Tools"->"Obtain tools and features", make sure that the following components are installed:
  - Tasks: Select Windows Universal Platform development, Desktop C++ Development, .NET Development
+ 
+For Visual Studio 2017 :
  - Under "Installation details". Go to "Desktop C++ Development" and add "SDK Windows 8.1 and SDK UCRT"
  - Individual component: Windows 8.1 SDK
-
-In this order, add `C:\msys64\`, `C:\msys64\usr\bin` and `C:\msys64\mingw32\bin` in your PATH (the last one is needed by Cmake to know where gcc is) to the PATH environement variable from windows advanced settings.
 
 ## Build
 
@@ -176,7 +181,6 @@ CMake use `OPENSSL_ROOT_DIR` to build each architectures. If you want to specify
  - open `linphone-sdk.sln` with Visual Studio
  - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to Cmake (see customization options below).
  - use `Build solution` to build.
-
 
 #### Windows UWP
 You can use linphone-sdk in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
