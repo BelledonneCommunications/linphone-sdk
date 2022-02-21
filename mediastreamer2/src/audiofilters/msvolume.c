@@ -265,7 +265,7 @@ static int volume_set_db_gain(MSFilter *f, void *gain){
 	float *fgain=(float*)gain;
 	Volume *v=(Volume*)f->data;
 	v->gain = v->static_gain = (float)pow(10,(*fgain)/10);
-	ms_message("MSVolume set gain to [%f db], [%f] linear",*fgain,v->gain);
+	ms_message("MSVolume[%p]: set gain to [%f db], [%f] linear",f, *fgain, v->gain);
 	return 0;
 }
 
@@ -273,7 +273,7 @@ static int volume_set_gain(MSFilter *f, void *arg){
 	float *farg=(float*)arg;
 	Volume *v=(Volume*)f->data;
 	v->gain = v->target_gain = v->static_gain = *farg;
-	ms_message("MSVolume set gain to [%f] linear", v->gain);
+	ms_message("MSVolume[%p]: set gain to [%f] linear", f, v->gain);
 	return 0;
 }
 

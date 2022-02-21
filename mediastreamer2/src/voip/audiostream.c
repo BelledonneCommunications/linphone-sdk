@@ -1279,7 +1279,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		stream->spk_equalizer=NULL;
 	}
 
-#ifdef __ANDROID__
 	{
 		/*configure equalizer if needed*/
 		MSDevicesInfo *devices = ms_factory_get_devices_info(stream->ms.factory);
@@ -1319,7 +1318,6 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 			}
 		}
 	}
-#endif
 
 	/*configure resamplers if needed*/
 	if (stream->read_resampler) {
