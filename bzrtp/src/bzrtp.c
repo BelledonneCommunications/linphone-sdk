@@ -58,6 +58,10 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->isSecure = 0; /* start unsecure */
 	context->peerSupportMultiChannel = 0; /* peer does not support Multichannel by default */
 	context->isInitialised = 0; /* will be set by bzrtp_initBzrtpContext */
+#ifdef GOCLEAR_ENABLED
+	context->selfAcceptGoClear = 0;
+	context->peerAcceptGoClear = 0;
+#endif /* GOCLEAR_ENABLED */
 
 	/* set to NULL all callbacks pointer */
 	context->zrtpCallbacks.bzrtp_statusMessage = NULL;
@@ -175,17 +179,6 @@ int bzrtp_setZIDCache_lock(bzrtpContext_t *context, void *zidCache, const char *
 #else /* ZIDCACHE_ENABLED */
 	return BZRTP_ERROR_CACHEDISABLED;
 #endif /* ZIDCACHE_ENABLED */
-}
-
-void bzrtp_resetBzrtpContext(bzrtpContext_t *context) {
-	int i;
-	for (i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
-		if (context->channelContext[i]) {
-			void * clientData = context->channelContext[i]->clientData;
-			bzrtp_initChannelContext(context, context->channelContext[i], context->channelContext[i]->selfSSRC, context->channelContext[i]->isMainChannel);
-			context->channelContext[i]->clientData = clientData;
-		}
-	}
 }
 
 /**
@@ -677,7 +670,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 #else /* SUPPORT_EXPORTEDKEY_V010000 */
 		/* We do not support anymore backward compatibility, just do nothing but send an error message*/
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as we explicitely compile with no support for older version */
-				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, "obsolete bzrtp version are not supported anymore");
+			zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, "obsolete bzrtp version are not supported anymore");
 		}
 #endif /* SUPPORT_EXPORTEDKEY_V010000 */
 	} else { /* peer either use version 1.1 of BZRTP or another library, just stick to the RFC to create the export key */
@@ -754,18 +747,18 @@ uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoT
 	}
 
 	switch(algoType) {
-		case ZRTP_HASH_TYPE:
-			return copyCryptoTypes(supportedTypes, zrtpContext->supportedHash, zrtpContext->hc);
-		case ZRTP_CIPHERBLOCK_TYPE:
-			return copyCryptoTypes(supportedTypes, zrtpContext->supportedCipher, zrtpContext->cc);
-		case ZRTP_AUTHTAG_TYPE:
-			return copyCryptoTypes(supportedTypes, zrtpContext->supportedAuthTag, zrtpContext->ac);
-		case ZRTP_KEYAGREEMENT_TYPE:
-			return copyCryptoTypes(supportedTypes, zrtpContext->supportedKeyAgreement, zrtpContext->kc);
-		case ZRTP_SAS_TYPE:
-			return copyCryptoTypes(supportedTypes, zrtpContext->supportedSas, zrtpContext->sc);
-		default:
-			return 0;
+	case ZRTP_HASH_TYPE:
+		return copyCryptoTypes(supportedTypes, zrtpContext->supportedHash, zrtpContext->hc);
+	case ZRTP_CIPHERBLOCK_TYPE:
+		return copyCryptoTypes(supportedTypes, zrtpContext->supportedCipher, zrtpContext->cc);
+	case ZRTP_AUTHTAG_TYPE:
+		return copyCryptoTypes(supportedTypes, zrtpContext->supportedAuthTag, zrtpContext->ac);
+	case ZRTP_KEYAGREEMENT_TYPE:
+		return copyCryptoTypes(supportedTypes, zrtpContext->supportedKeyAgreement, zrtpContext->kc);
+	case ZRTP_SAS_TYPE:
+		return copyCryptoTypes(supportedTypes, zrtpContext->supportedSas, zrtpContext->sc);
+	default:
+		return 0;
 	}
 }
 
@@ -778,43 +771,67 @@ uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoT
  * @param[in]		supportedTypesCount		number of supported crypto types
  */
 int bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount) {
+	if (zrtpContext==NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	/* if the context is already initialised, it's too late to set the supported crypto algos */
 	if (zrtpContext->isInitialised) {
-		return 1;
+		return BZRTP_ERROR_CONTEXTNOTREADY;
 	}
 
 	uint8_t implementedTypes[256];
 	uint8_t implementedTypesCount;
 
-	if (zrtpContext==NULL) {
-		return 2;
-	}
-
 	implementedTypesCount = bzrtpUtils_getAllAvailableCryptoTypes(algoType, implementedTypes);
 
 	switch(algoType) {
-		case ZRTP_HASH_TYPE:
-			zrtpContext->hc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
-			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
-			break;
-		case ZRTP_CIPHERBLOCK_TYPE:
-			zrtpContext->cc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
-			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
-			break;
-		case ZRTP_AUTHTAG_TYPE:
-			zrtpContext->ac = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
-			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
-			break;
-		case ZRTP_KEYAGREEMENT_TYPE:
-			zrtpContext->kc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
-			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
-			break;
-		case ZRTP_SAS_TYPE:
-			zrtpContext->sc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
-			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
-			break;
+	case ZRTP_HASH_TYPE:
+		zrtpContext->hc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
+		bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
+		break;
+	case ZRTP_CIPHERBLOCK_TYPE:
+		zrtpContext->cc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
+		bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
+		break;
+	case ZRTP_AUTHTAG_TYPE:
+		zrtpContext->ac = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
+		bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
+		break;
+	case ZRTP_KEYAGREEMENT_TYPE:
+		zrtpContext->kc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
+		bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
+		break;
+	case ZRTP_SAS_TYPE:
+		zrtpContext->sc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
+		bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
+		break;
 	}
 
 	return 0;
+}
+
+
+int bzrtp_setFlags(bzrtpContext_t *zrtpContext, uint8_t flagId, uint8_t value) {
+#ifdef GOCLEAR_ENABLED
+	if (zrtpContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	switch(flagId){
+		case BZRTP_SELF_ACCEPT_GOCLEAR :
+			if (value == 0) {
+				zrtpContext->selfAcceptGoClear = 0;
+			} else {
+				zrtpContext->selfAcceptGoClear = 1;
+			}
+			return 0;
+		default:
+			return BZRTP_ERROR_INVALIDARGUMENT;
+	}
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
 }
 
 /**
@@ -867,9 +884,9 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 		uint8_t computedPeerHelloHash[32];
 		/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
 		bctbx_sha256(zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
-			zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
-			32,
-			computedPeerHelloHash);
+					 zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
+					 32,
+					 computedPeerHelloHash);
 
 		/* check they are the same */
 		if (memcmp(computedPeerHelloHash, zrtpChannelContext->peerHelloHash, 32)!=0) {
@@ -995,9 +1012,9 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 
 	/* compute hash using implicit hash function: SHA256, skip packet header in the packetString buffer as the hash must be computed on message only */
 	bctbx_sha256(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH,
-			zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
-			32,
-			helloHash);
+				 zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength,
+				 32,
+				 helloHash);
 
 	/* add version header */
 	strcpy((char *)output, ZRTP_VERSION);
@@ -1086,7 +1103,11 @@ int bzrtp_getChannelStatus(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 	if (zrtpChannelContext->isSecure == 1) {
 		return BZRTP_CHANNEL_SECURE;
 	}
-
+#ifdef GOCLEAR_ENABLED
+	if (zrtpChannelContext->isClear == 1) {
+		return BZRTP_CHANNEL_CLEAR;
+	}
+#endif /* GOCLEAR_ENABLED */
 	return BZRTP_CHANNEL_ONGOING;
 }
 
@@ -1151,6 +1172,10 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	/* flags */
 	zrtpChannelContext->isSecure = 0;
 	zrtpChannelContext->isMainChannel = isMain;
+#ifdef GOCLEAR_ENABLED
+	zrtpChannelContext->isClear = 0;
+	zrtpChannelContext->hasReceivedAGoClear = BZRTP_RECEPTION_UNKNOWN;
+#endif /* GOCLEAR_ENABLED */
 
 	/* initialise as initiator, switch to responder later if needed */
 	zrtpChannelContext->role = BZRTP_ROLE_INITIATOR;
@@ -1255,27 +1280,7 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 	/* set timer off */
 	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
-	/* destroy and free the key buffers */
-	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
-
-	free(zrtpChannelContext->s0);
-	free(zrtpChannelContext->KDFContext);
-	free(zrtpChannelContext->mackeyi);
-	free(zrtpChannelContext->mackeyr);
-	free(zrtpChannelContext->zrtpkeyi);
-	free(zrtpChannelContext->zrtpkeyr);
-
-	zrtpChannelContext->s0=NULL;
-	zrtpChannelContext->KDFContext=NULL;
-	zrtpChannelContext->mackeyi=NULL;
-	zrtpChannelContext->mackeyr=NULL;
-	zrtpChannelContext->zrtpkeyi=NULL;
-	zrtpChannelContext->zrtpkeyr=NULL;
+	bzrtp_destroyKeyMaterial(zrtpContext, zrtpChannelContext);
 
 	/* free the allocated buffers */
 	for (i=0; i<PACKET_STORAGE_CAPACITY; i++) {
@@ -1286,23 +1291,6 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 	}
 	free(zrtpChannelContext->peerHelloHash);
 	zrtpChannelContext->peerHelloHash = NULL;
-
-	/* destroy and free the srtp and sas struture */
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
-	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
-
-	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
-	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
-	free(zrtpChannelContext->srtpSecrets.sas);
-
-	/* fragmented packet reassembly */
-	bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
-	bctbx_free(zrtpChannelContext->incomingFragmentedPacket.packetString);
 
 	/* free the channel context */
 	free(zrtpChannelContext);
@@ -1320,52 +1308,52 @@ static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_
 
 const char *bzrtp_algoToString(uint8_t algo){
 	switch(algo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
+	case(ZRTP_UNSET_ALGO): return "unset";
 
-		case(ZRTP_HASH_S256): return "SHA-256";
-		case(ZRTP_HASH_S384): return "SHA-384";
-		case(ZRTP_HASH_S512): return "SHA-512";
-		case(ZRTP_HASH_N256): return "SHA3-256";
-		case(ZRTP_HASH_N384): return "SHA3-384";
+	case(ZRTP_HASH_S256): return "SHA-256";
+	case(ZRTP_HASH_S384): return "SHA-384";
+	case(ZRTP_HASH_S512): return "SHA-512";
+	case(ZRTP_HASH_N256): return "SHA3-256";
+	case(ZRTP_HASH_N384): return "SHA3-384";
 
-		case(ZRTP_CIPHER_AES1): return "AES-128";
-		case(ZRTP_CIPHER_AES2): return "AES-192";
-		case(ZRTP_CIPHER_AES3): return "AES-256";
-		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
-		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
-		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
+	case(ZRTP_CIPHER_AES1): return "AES-128";
+	case(ZRTP_CIPHER_AES2): return "AES-192";
+	case(ZRTP_CIPHER_AES3): return "AES-256";
+	case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
+	case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
+	case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
 
-		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
-		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
-		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
-		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
+	case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
+	case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
+	case(ZRTP_AUTHTAG_SK32): return "Skein-32";
+	case(ZRTP_AUTHTAG_SK64): return "Skein-64";
 
-		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
-		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
-		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
-		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
-		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
-		case(ZRTP_KEYAGREEMENT_X255): return "X25519";
-		case(ZRTP_KEYAGREEMENT_X448): return "X448";
-		case(ZRTP_KEYAGREEMENT_K255): return "K25519";
-		case(ZRTP_KEYAGREEMENT_K448): return "K448";
-		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
-		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
-		case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";
-		case(ZRTP_KEYAGREEMENT_KYB2): return "Kyber-768";
-		case(ZRTP_KEYAGREEMENT_KYB3): return "Kyber-1024";
-		case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
-		case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
-		case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
-		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
-		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
-		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
-		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
+	case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
+	case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
+	case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
+	case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
+	case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+	case(ZRTP_KEYAGREEMENT_X255): return "X25519";
+	case(ZRTP_KEYAGREEMENT_X448): return "X448";
+	case(ZRTP_KEYAGREEMENT_K255): return "K25519";
+	case(ZRTP_KEYAGREEMENT_K448): return "K448";
+	case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
+	case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
+	case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";
+	case(ZRTP_KEYAGREEMENT_KYB2): return "Kyber-768";
+	case(ZRTP_KEYAGREEMENT_KYB3): return "Kyber-1024";
+	case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
+	case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
+	case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
+	case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
+	case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
+	case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
+	case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
 
-		case(ZRTP_SAS_B32): return "Base32";
-		case(ZRTP_SAS_B256): return "PGP-WordList";
+	case(ZRTP_SAS_B32): return "Base32";
+	case(ZRTP_SAS_B256): return "PGP-WordList";
 
-		default: return "Unknown Algo";
+	default: return "Unknown Algo";
 	}
 }
 
@@ -1386,4 +1374,97 @@ size_t bzrtp_get_MTU(bzrtpContext_t *zrtpContext) {
 		return BZRTP_DEFAULT_MTU;
 	}
 	return zrtpContext->mtu;
+}
+
+int bzrtp_sendGoClear(bzrtpContext_t *zrtpContext, uint32_t selfSSRC){
+#ifdef GOCLEAR_ENABLED
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL && zrtpChannelContext->isSecure) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	bzrtpEvent_t goClearEvent;
+
+	/* create a GoClear event */
+	goClearEvent.eventType = BZRTP_EVENT_GOCLEAR;
+	goClearEvent.bzrtpPacketString = NULL;
+	goClearEvent.bzrtpPacketStringLength = 0;
+	goClearEvent.bzrtpPacket = NULL;
+	goClearEvent.zrtpContext = zrtpContext;
+	goClearEvent.zrtpChannelContext = zrtpChannelContext;
+
+	/* send it to the state machine*/
+	if (zrtpChannelContext->stateMachine != NULL) {
+		return zrtpChannelContext->stateMachine(goClearEvent);
+	}
+
+	return 0;
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
+}
+
+int bzrtp_confirmGoClear(bzrtpContext_t *zrtpContext, uint32_t selfSSRC){
+#ifdef GOCLEAR_ENABLED
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	bzrtpEvent_t acceptGoClearEvent;
+
+	zrtpChannelContext->timer.firingCount++;
+
+	/* create a accept GoClear event */
+	acceptGoClearEvent.eventType = BZRTP_EVENT_ACCEPT_GOCLEAR;
+	acceptGoClearEvent.bzrtpPacketString = NULL;
+	acceptGoClearEvent.bzrtpPacketStringLength = 0;
+	acceptGoClearEvent.bzrtpPacket = NULL;
+	acceptGoClearEvent.zrtpContext = zrtpContext;
+	acceptGoClearEvent.zrtpChannelContext = zrtpChannelContext;
+
+	/* send it to the state machine */
+	if (zrtpChannelContext->stateMachine != NULL) {
+		return zrtpChannelContext->stateMachine(acceptGoClearEvent);
+	}
+
+	return 0;
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
+}
+
+int bzrtp_backToSecureMode(bzrtpContext_t *zrtpContext, uint32_t selfSSRC){
+#ifdef GOCLEAR_ENABLED
+	/* get channel context */
+	bzrtpChannelContext_t *zrtpChannelContext = getChannelContext(zrtpContext, selfSSRC);
+	bzrtpEvent_t backToSecureEvent;
+
+	if (zrtpChannelContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+
+	zrtpChannelContext->timer.firingCount++;
+
+	/* create a GoClear event */
+	backToSecureEvent.eventType = BZRTP_EVENT_BACKTOSECURE;
+	backToSecureEvent.bzrtpPacketString = NULL;
+	backToSecureEvent.bzrtpPacketStringLength = 0;
+	backToSecureEvent.bzrtpPacket = NULL;
+	backToSecureEvent.zrtpContext = zrtpContext;
+	backToSecureEvent.zrtpChannelContext = zrtpChannelContext;
+
+	/* send it to the state machine */
+	if (zrtpChannelContext->stateMachine != NULL) {
+		return zrtpChannelContext->stateMachine(backToSecureEvent);
+	}
+
+	return 0;
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
 }

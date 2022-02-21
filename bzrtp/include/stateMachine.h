@@ -23,9 +23,12 @@
 
 /* types definition for event and state function */
 /* the INIT event type is used to run some state for the firt time : create packet and send it */
-#define BZRTP_EVENT_INIT	0
-#define BZRTP_EVENT_MESSAGE	1
-#define BZRTP_EVENT_TIMER	2
+#define BZRTP_EVENT_INIT            0
+#define BZRTP_EVENT_MESSAGE     	1
+#define BZRTP_EVENT_TIMER           2
+#define BZRTP_EVENT_GOCLEAR         3
+#define BZRTP_EVENT_ACCEPT_GOCLEAR  4
+#define BZRTP_EVENT_BACKTOSECURE    5
 
 /* error code definition */
 #define BZRTP_ERROR_UNSUPPORTEDZRTPVERSION		0xe001
@@ -73,7 +76,7 @@ int state_discovery_init(bzrtpEvent_t event);
 /**
  * @brief Arrives in this state coming from init upon reception on Hello ACK, we are now waiting for the Hello packet from peer
  *
- * Arrives from : 
+ * Arrives from :
  *	- state_discovery_init upon HelloACK reception
  * Goes to:
  * 	- state_keyAgreement_sendingCommit upon Hello reception
@@ -85,14 +88,14 @@ int state_discovery_waitingForHello(bzrtpEvent_t event);
 
 
 /**
- * @brief We are now waiting for the HelloACK packet from peer or a Commit packet 
+ * @brief We are now waiting for the HelloACK packet from peer or a Commit packet
  *
  * Arrives from :
  * 	- state_discovery_init upon Hello reception
  * Goes to:
  * 	- state_keyAgreement_sendingCommit upon HelloACK reception
  * 	- state_keyAgreement_responderSendingDHPart1 upon Commit reception in DHM mode
- * 	- state_confirmation_responderSendingConfirm1 upon Commit reception in non DHM mode 
+ * 	- state_confirmation_responderSendingConfirm1 upon Commit reception in non DHM mode
  * Send :
  * 	- Hello until timer's end or transition
  * 	- HelloACK on Hello reception
@@ -104,7 +107,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event);
 /**
  * @brief For any kind of key agreement (DHM, Mult, PreShared), we keep sending commit.
  *
- * Arrives from : 
+ * Arrives from :
  * 	- state_discovery_waitingForHello upon Hello received
  * 	- state_discovery_waitingForHelloAck upon HelloACK received
  * Goes to:
@@ -184,12 +187,41 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event);
  * 	- state_confirmation_responderSendingConfirm1 on Confirm2 reception
  * 	- state_confirmation_initiatorSendingConfirm2 on conf2ACK or first SRTP message
  * Goes to:
- * 	- This is the end(we do not support GoClear message), state machine may be destroyed after going to secure mode
+ * 	- state_sending_GoClear when user pressed a button to indicate that he wants to change the encryption mode
+ * 	- state_clear on GoClear reception
  * Send :
  * 	- Conf2ACK on Confirm2 reception
+ *	- ClearACK on GoClear reception (+ destroy all key materials)
  *
  */
 int state_secure(bzrtpEvent_t event);
+
+/**
+ * @brief GoClear initiator send a GoClear message
+ *
+ * Arrives from:
+ * 	- state_secure when user pressed a button to indicate that he wants to change the encryption mode
+ * Goes to:
+ * 	- state_clear on ClearACK reception
+ * Send :
+ * 	- GoClear message (+ destroy all key materials on ClearACK reception)
+ *
+ */
+int state_sending_GoClear(bzrtpEvent_t event);
+
+/**
+ * @brief We are in clear state
+ *
+ * Arrives from:
+ * 	- state_sending_GoClear on ClearACK reception
+ *	- state_secure on GoClear reception
+ *	- state_clear on manuel confirmation of the responder (of the GoClear)
+ * Goes to:
+ * 	- state_keyAgreement_sendingCommit when user pressed a button to indicate that he wants to back to secure mode
+ * 	- state_confirmation_responderSendingConfirm1 on commit reception
+ *
+ */
+int state_clear(bzrtpEvent_t event);
 
 /**
  * @brief Compute the new rs1 and update the cached secrets according to rfc section 4.6.1

@@ -33,6 +33,8 @@
 typedef struct packetDatas_struct {
 	uint8_t packetString[MAX_PACKET_LENGTH];
 	uint16_t packetLength;
+	uint32_t destSSRC; /**< identify the recipient channel */
+
 } packetDatas_t;
 
 typedef struct clientContext_struct {
@@ -42,8 +44,11 @@ typedef struct clientContext_struct {
 	bzrtpSrtpSecrets_t *secrets;
 	int32_t pvs;
 	uint8_t haveCacheMismatch;
+	uint8_t peerRequestGoClear;
+	uint8_t peerACKGoClear;
 	uint8_t	sendExportedKey[16];
 	uint8_t  recvExportedKey[16];
+	uint32_t peerSSRC; /**< hold the peer SSRC so we can correctly route the packet */
 } clientContext_t;
 
 typedef struct cryptoParams_struct {
@@ -58,7 +63,7 @@ typedef struct cryptoParams_struct {
 	uint8_t authtag[MAX_CRYPTO_ALG] ;
 	uint8_t authtagNb;
 	uint8_t dontValidateSASflag; /**< if set to 1, SAS will not be validated even if matching peer **/
-	                             /**< if set to 2, SAS will be reset even if matching peer **/
+					 /**< if set to 2, SAS will be reset even if matching peer **/
 } cryptoParams_t;
 
 
@@ -168,11 +173,12 @@ static int sendData(void *clientData, const uint8_t *packetString, uint16_t pack
 	if (clientContext->id == ALICE) { /* message sent by Alice, so put it in Bob's queue */
 		fadingLostAlice = MAX(0,fadingLostAlice-loosePacketPercentage/2);
 		memcpy(bobQueue[bobQueueIndex].packetString, packetString, packetLength);
+		bobQueue[bobQueueIndex].destSSRC = clientContext->peerSSRC;
 		bobQueue[bobQueueIndex++].packetLength = packetLength;
 	} else { /* Bob sent the message, put it in Alice's queue */
 		fadingLostBob = MAX(0,fadingLostBob-loosePacketPercentage/2);
-		memcpy(bobQueue[bobQueueIndex].packetString, packetString, packetLength);
 		memcpy(aliceQueue[aliceQueueIndex].packetString, packetString, packetLength);
+		aliceQueue[aliceQueueIndex].destSSRC = clientContext->peerSSRC;
 		aliceQueue[aliceQueueIndex++].packetLength = packetLength;
 	}
 
@@ -197,6 +203,12 @@ int getMessage(void *clientData, const uint8_t level, const uint8_t message, con
 	clientContext_t *clientContext = (clientContext_t *)clientData;
 	if (level == BZRTP_MESSAGE_ERROR && message == BZRTP_MESSAGE_CACHEMISMATCH) {
 		clientContext->haveCacheMismatch = 1;
+	}
+	if (level == BZRTP_MESSAGE_WARNING && message == BZRTP_MESSAGE_PEERREQUESTGOCLEAR) {
+		clientContext->peerRequestGoClear = 1;
+	}
+	if (level == BZRTP_MESSAGE_WARNING && message == BZRTP_MESSAGE_PEERACKGOCLEAR) {
+		clientContext->peerACKGoClear = 1;
 	}
 	return 0;
 }
@@ -224,6 +236,9 @@ static int setUpClientContext(clientContext_t *clientContext, uint8_t clientID, 
 	clientContext->id = clientID;
 	clientContext->pvs=0;
 	clientContext->haveCacheMismatch=0;
+	clientContext->peerRequestGoClear=0;
+	clientContext->peerACKGoClear=0;
+	clientContext->peerSSRC=0;
 
 	/* create zrtp context */
 	clientContext->bzrtpContext = bzrtp_createBzrtpContext();
@@ -401,6 +416,9 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, //
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return retval;
 	}
+	/* set peer's SSRC to correctly route the packets when in multistream */
+	Alice.peerSSRC=bobSSRC;
+	Bob.peerSSRC=aliceSSRC;
 
 	/* When mtu is set, set it and check it worked */
 	if (mtu>0) {
@@ -551,6 +569,9 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, //
 			BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 			return retval;
 		}
+		/* set peer's SSRC to correctly route the packets when in multistream */
+		Alice.peerSSRC=bobSSRC;
+		Bob.peerSSRC=aliceSSRC;
 
 		initialTime = getSimulatedTime();
 		while ((bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC)!= BZRTP_CHANNEL_SECURE || bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC)!= BZRTP_CHANNEL_SECURE) && (getSimulatedTime()-initialTime<timeOutLimit)){
@@ -1057,7 +1078,7 @@ static void test_cache_enabled_exchange_params(cryptoParams_t *aliceCryptoParams
 	bc_free(aliceTesterFile);
 	bc_free(bobTesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1201,7 +1222,7 @@ static void test_cache_mismatch_exchange(void) {
 	bc_free(aliceTesterFile);
 	bc_free(bobTesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1342,7 +1363,7 @@ static void test_cache_sas_not_confirmed(void) {
 	bc_free(aliceTesterFile);
 	bc_free(bobTesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1472,7 +1493,7 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 	// check aux secrets mismatch flag, they must be in sync
 	if (Alice.secrets->auxSecretMismatch != Bob.secrets->auxSecretMismatch) {
 		// if one is unset(AuxSecret is null so flag is at unset) then other can be unset(caught by previous if) or mismatch(this one)
-		if (!( 	(Alice.secrets->auxSecretMismatch == BZRTP_AUXSECRET_UNSET
+		if (!(	(Alice.secrets->auxSecretMismatch == BZRTP_AUXSECRET_UNSET
 				&& aliceAuxSecret == NULL
 				&& Bob.secrets->auxSecretMismatch == BZRTP_AUXSECRET_MISMATCH)
 			|| (Bob.secrets->auxSecretMismatch == BZRTP_AUXSECRET_UNSET
@@ -1629,7 +1650,7 @@ static void test_abort_retry(void) {
 	bc_free(aliceTesterFile);
 	bc_free(bobTesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1751,7 +1772,7 @@ static void test_active_flag(void) {
 	bc_free(claire1TesterFile);
 	bc_free(claire2TesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
@@ -1857,10 +1878,478 @@ static void test_cache_concurrent_access(void) {
 	bc_free(aliceTesterFile);
 	bc_free(bobTesterFile);
 #else /* ZIDCACHE_ENABLED */
-	bzrtp_message("Test skipped as ZID cache is disabled\n");
+	bctbx_warning("Test skipped as ZID cache is disabled\n");
 #endif /* ZIDCACHE_ENABLED */
 }
 
+static int processMessageQueues(bzrtpContext_t *aliceContext, uint32_t aliceSSRC, bzrtpContext_t *bobContext, uint32_t bobSSRC, int alice_channel_status, int bob_channel_status){
+	int retval = 0;
+	uint64_t initialTime = 0;
+	uint64_t lastPacketSentTime=0;
+
+	initialTime = getSimulatedTime();
+	while ((bzrtp_getChannelStatus(aliceContext, aliceSSRC)!= alice_channel_status || bzrtp_getChannelStatus(bobContext, bobSSRC)!= bob_channel_status) && (getSimulatedTime()-initialTime<timeOutLimit)){
+		int i;
+		/* check the message queue */
+		for (i=0; i<aliceQueueIndex; i++) {
+			retval = bzrtp_processMessage(aliceContext, aliceQueue[i].destSSRC, aliceQueue[i].packetString, aliceQueue[i].packetLength);
+			bzrtp_message("%ld Alice processed a %.8s and returns %x\n", (long)msSTC, (aliceQueue[i].packetString)+16, retval);
+			memset(aliceQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		aliceQueueIndex = 0;
+
+		for (i=0; i<bobQueueIndex; i++) {
+			retval = bzrtp_processMessage(bobContext, bobQueue[i].destSSRC, bobQueue[i].packetString, bobQueue[i].packetLength);
+			bzrtp_message("%ld Bob processed a %.8s and returns %x\n", (long)msSTC, (bobQueue[i].packetString)+16, retval);
+			memset(bobQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
+		}
+		bobQueueIndex = 0;
+
+		/* send the actual time to the zrtpContext for each zrtpChannelContext */
+		for(int i = 0 ; i < MAX_NUM_CHANNEL ; i++){
+			if(aliceContext->channelContext[i] != NULL){
+				retval = bzrtp_iterate(aliceContext, aliceContext->channelContext[i]->selfSSRC, getSimulatedTime());
+				//printf("retval = %d\n", retval);
+			}
+			if(bobContext->channelContext[i] != NULL){
+				retval = bzrtp_iterate(bobContext, bobContext->channelContext[i]->selfSSRC, getSimulatedTime());
+				//printf("retval = %d\n", retval);
+			}
+		}
+
+		/* sleep for 10 ms */
+		STC_sleep(10);
+
+		/* check if we shall try to reset re-emission timers */
+		if (getSimulatedTime()-lastPacketSentTime > 1250 ) { /*higher re-emission timeout is 1200ms */
+			retval = bzrtp_resetRetransmissionTimer(aliceContext, aliceSSRC);
+			retval += bzrtp_resetRetransmissionTimer(bobContext, bobSSRC);
+			lastPacketSentTime=getSimulatedTime();
+		}
+	}
+
+	if (getSimulatedTime()-initialTime>=timeOutLimit) {
+		return 1;
+	}
+	return retval;
+}
+
+/**
+ * @brief Init 2 clientContexts, create 1 main channel per clientContext and process the message queue to go on secure mode
+ *
+ * @param Alice		First clientContext to init
+ * @param aliceSSRC	SSRC identifing the channel of Alice
+ * @param Bob		Second clientContext to init
+ * @param bobSSRC	SSRC identifying the channel of Bob
+ * @return
+ */
+static int goToSecureMode(clientContext_t *Alice, uint32_t aliceSSRC, uint8_t aliceAcceptGoClear, clientContext_t *Bob, uint32_t bobSSRC, uint8_t bobAcceptGoClear, uint8_t isMain){
+	int retval = 0;
+
+	if (isMain) {
+		/*** Create the main channel */
+		if ((retval=setUpClientContext(Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
+			bzrtp_message("ERROR: can't init setup client context id %d\n", ALICE);
+			BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+			return retval;
+		}
+
+		bzrtp_setFlags(Alice->bzrtpContext, BZRTP_SELF_ACCEPT_GOCLEAR, aliceAcceptGoClear);
+
+		if ((retval=setUpClientContext(Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
+			bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
+			BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+			return retval;
+		}
+
+		bzrtp_setFlags(Bob->bzrtpContext, BZRTP_SELF_ACCEPT_GOCLEAR, bobAcceptGoClear);
+
+		/* so packets can be correctly routed to the recipient channel */
+		Alice->peerSSRC=bobSSRC;
+		Bob->peerSSRC=aliceSSRC;
+
+		/* start the ZRTP engine(it will send a hello packet )*/
+		if ((retval = bzrtp_startChannelEngine(Alice->bzrtpContext, aliceSSRC))!=0) {
+			bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, ALICE, aliceSSRC);
+			return retval;
+		}
+		if ((retval = bzrtp_startChannelEngine(Bob->bzrtpContext, bobSSRC))!=0) {
+			bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, BOB, bobSSRC);
+			return retval;
+		}
+	} else {
+		/*** Start a new channel */
+		if ((retval=addChannel(Alice, aliceSSRC))!=0) {
+			bzrtp_message("ERROR: can't add a second channel to client context id %d\n", ALICE);
+			BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+			return retval;
+		}
+
+		if ((retval=addChannel(Bob, bobSSRC))!=0) {
+			bzrtp_message("ERROR: can't add a second channel to client context id %d\n", ALICE);
+			BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
+			return retval;
+		}
+	}
+
+	retval = processMessageQueues(Alice->bzrtpContext, aliceSSRC, Bob->bzrtpContext, bobSSRC, BZRTP_CHANNEL_SECURE, BZRTP_CHANNEL_SECURE);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	if ((retval=bzrtp_getChannelStatus(Alice->bzrtpContext, aliceSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Alice on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return retval;
+	}
+	if ((retval=bzrtp_getChannelStatus(Bob->bzrtpContext, bobSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Bob on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return retval;
+	}
+
+    bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_algoToString(Alice->secrets->cipherAlgo), bzrtp_algoToString(Alice->secrets->keyAgreementAlgo), bzrtp_algoToString(Alice->secrets->hashAlgo), bzrtp_algoToString(Alice->secrets->authTagAlgo), bzrtp_algoToString(Alice->secrets->sasAlgo));
+
+	if ((retval=compareSecrets(Alice->secrets, Bob->secrets, isMain))!=0) {
+		BC_ASSERT_EQUAL(retval, 0, int, "%d");
+		return retval;
+	} /* else SAS comparison is Ok */
+	return 0;
+}
+
+static int goclear_singleChannel(void){
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	clientContext_t Alice,Bob;
+	uint32_t aliceSSRC = ALICE_SSRC_BASE;
+	uint32_t bobSSRC = BOB_SSRC_BASE;
+
+	if(goToSecureMode(&Alice, aliceSSRC, 1, &Bob, bobSSRC, 1, 1)){
+		return 1;
+	}
+
+	/* Send a GoClear message */
+	bzrtp_sendGoClear(Alice.bzrtpContext, aliceSSRC);
+
+	retval = processMessageQueues(Alice.bzrtpContext, aliceSSRC, Bob.bzrtpContext, bobSSRC, BZRTP_CHANNEL_CLEAR, BZRTP_CHANNEL_CLEAR);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	BC_ASSERT_EQUAL(Bob.peerRequestGoClear, 1, int, "%0x");
+	BC_ASSERT_EQUAL(Alice.peerACKGoClear, 1, int, "%0x");
+
+	/* Send an accept GoClear message */
+	bzrtp_confirmGoClear(Bob.bzrtpContext, bobSSRC);
+
+	Alice.secrets = NULL;
+	Bob.secrets = NULL;
+
+	if ((retval=bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC))!=BZRTP_CHANNEL_CLEAR) {
+		bzrtp_message("Fail Alice on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_CLEAR, int, "%0x");
+		return 1;
+	}
+	if ((retval=bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC))!=BZRTP_CHANNEL_CLEAR) {
+		bzrtp_message("Fail Bob on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_CLEAR, int, "%0x");
+		return 1;
+	}
+
+	/* Back to secure mode */
+	bzrtp_backToSecureMode(Alice.bzrtpContext, aliceSSRC);
+
+	retval = processMessageQueues(Alice.bzrtpContext, aliceSSRC, Bob.bzrtpContext, bobSSRC, BZRTP_CHANNEL_SECURE, BZRTP_CHANNEL_SECURE);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	if ((retval=bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Alice on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return 1;
+	}
+	if ((retval=bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC))!=BZRTP_CHANNEL_SECURE) {
+		bzrtp_message("Fail Bob on channel1 loss rate is %d", loosePacketPercentage);
+		BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
+		return 1;
+	}
+
+	if ((retval=compareSecrets(Alice.secrets, Bob.secrets, FALSE))!=0) {
+		BC_ASSERT_EQUAL(retval, 0, int, "%d");
+		return 1;
+	} /* else SAS comparison is Ok */
+
+	/*** Destroy Contexts ***/
+	while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
+		aliceSSRC--;
+	}
+	while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
+		bobSSRC--;
+	}
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+
+	return 0;
+}
+
+static int goclear_multiChannel(void){
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	clientContext_t Alice,Bob,Alice2,Bob2;
+	uint32_t aliceSSRC_channel1 = ALICE_SSRC_BASE;
+	uint32_t bobSSRC_channel1 = BOB_SSRC_BASE;
+	uint32_t aliceSSRC_channel2 = ALICE_SSRC_BASE+1;
+	uint32_t bobSSRC_channel2 = BOB_SSRC_BASE+1;
+
+	/*** Create a main channel */
+	if(goToSecureMode(&Alice, aliceSSRC_channel1, 1, &Bob, bobSSRC_channel1, 1, 1)){
+		return 1;
+	}
+
+	/* create new clients context to holds new channels so we can use both a the same time */
+	Alice2.id = Alice.id;
+	Alice2.pvs=0;
+	Alice2.haveCacheMismatch=0;
+	Alice2.peerRequestGoClear=0;
+	Alice2.peerACKGoClear=0;
+	Alice2.bzrtpContext=Alice.bzrtpContext; /* the bzrtpContext is shared between channels */
+	Alice2.peerSSRC=bobSSRC_channel2;
+
+	Bob2.id = Bob.id;
+	Bob2.pvs=0;
+	Bob2.haveCacheMismatch=0;
+	Bob2.peerRequestGoClear=0;
+	Bob2.peerACKGoClear=0;
+	Bob2.bzrtpContext=Bob.bzrtpContext; /* the bzrtpContext is shared between channels */
+	Bob2.peerSSRC=aliceSSRC_channel2;
+
+	/*** Create a new channel */
+	retval = goToSecureMode(&Alice2, aliceSSRC_channel2, 1, &Bob2, bobSSRC_channel2, 1, 0);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	/* Send a GoClear message on channel 1 */
+	bzrtp_sendGoClear(Alice.bzrtpContext, aliceSSRC_channel1);
+	retval = processMessageQueues(Alice.bzrtpContext, aliceSSRC_channel1, Bob.bzrtpContext, bobSSRC_channel1, BZRTP_CHANNEL_CLEAR, BZRTP_CHANNEL_CLEAR);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+	/* at this point Alice channel2 shall also be in CLEAR */
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Alice2.bzrtpContext, aliceSSRC_channel2), BZRTP_CHANNEL_CLEAR, int, "%d");
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Bob2.bzrtpContext, bobSSRC_channel2), BZRTP_CHANNEL_CLEAR, int, "%d");
+
+	BC_ASSERT_EQUAL(Bob.peerRequestGoClear, 1, int, "%0x");
+	BC_ASSERT_EQUAL(Alice.peerACKGoClear, 1, int, "%0x");
+
+	/* Send an accept GoClear message */
+	bzrtp_confirmGoClear(Bob.bzrtpContext, bobSSRC_channel1);
+
+	/* Check all channels are in clear state */
+	for(int i = 0 ; i < MAX_NUM_CHANNEL ; i++){
+		if(Alice.bzrtpContext->channelContext[i] != NULL && Bob.bzrtpContext->channelContext[i] != NULL){
+			if ((retval=bzrtp_getChannelStatus(Alice.bzrtpContext, Alice.bzrtpContext->channelContext[i]->selfSSRC))!=BZRTP_CHANNEL_CLEAR) {
+				BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_CLEAR, int, "%0x");
+				return retval;
+			}
+			if ((retval=bzrtp_getChannelStatus(Bob.bzrtpContext, Bob.bzrtpContext->channelContext[i]->selfSSRC))!=BZRTP_CHANNEL_CLEAR) {
+				BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_CLEAR, int, "%0x");
+				return retval;
+			}
+		}
+	}
+
+	/* Back to secure mode */
+	bzrtp_backToSecureMode(Alice2.bzrtpContext, aliceSSRC_channel2);
+
+	retval = processMessageQueues(Alice2.bzrtpContext, aliceSSRC_channel2, Bob2.bzrtpContext, bobSSRC_channel2, BZRTP_CHANNEL_SECURE, BZRTP_CHANNEL_SECURE);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	retval = processMessageQueues(Alice.bzrtpContext, aliceSSRC_channel1, Bob.bzrtpContext, bobSSRC_channel1, BZRTP_CHANNEL_SECURE, BZRTP_CHANNEL_SECURE);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	/* when channel 2 is back to secure mode, channel 1 shall have done it too */
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC_channel1), BZRTP_CHANNEL_SECURE, int, "%d");
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC_channel1), BZRTP_CHANNEL_SECURE, int, "%d");
+
+	/*** Destroy Contexts ***/
+	bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC_channel2);
+	bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC_channel1);
+	bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC_channel2);
+	bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC_channel1);
+
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+	return 0;
+}
+
+/**
+ * scenario:
+ *  - create a ZRTP secure channel
+ *  - send a GoClear message to comeback to a insecure channel
+ *  - send a Commit message to resume secure mode
+ */
+static void test_goclear_singleChannel(void){
+#ifdef GOCLEAR_ENABLED
+	int retval = goclear_singleChannel();
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
+
+/**
+ * scenario:
+ *  - create a ZRTP secure channel
+ *  - Alice sends a GoClear message but Bob doesn't accept goClear
+ */
+static void test_goclear_singleChannel_BobDoesntAccept(void){
+#ifdef GOCLEAR_ENABLED
+	clientContext_t Alice,Bob;
+	uint32_t aliceSSRC = ALICE_SSRC_BASE;
+	uint32_t bobSSRC = BOB_SSRC_BASE;
+
+	if(goToSecureMode(&Alice, aliceSSRC, 1, &Bob, bobSSRC, 0, 1)){
+		return;
+	}
+
+	/* Send a GoClear message */
+	BC_ASSERT_EQUAL(bzrtp_sendGoClear(Alice.bzrtpContext, aliceSSRC), BZRTP_ERROR_PEERDOESNTACCEPTGOCLEAR, int, "%0x");
+
+	/*** Destroy Contexts ***/
+	while (bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC)>0 && aliceSSRC>=ALICE_SSRC_BASE) {
+		aliceSSRC--;
+	}
+	while (bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC)>0 && bobSSRC>=BOB_SSRC_BASE) {
+		bobSSRC--;
+	}
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
+
+/**
+ * scenario:
+ *  - create two ZRTP secure channels for each participant
+ *  - send a GoClear message to comeback to a insecure channel
+ *  - send a Commit message to resume secure mode
+ */
+static void test_goclear_multiChannel(void){
+#ifdef GOCLEAR_ENABLED
+	int retval = goclear_multiChannel();
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
+
+/**
+ * scenario:
+ *  - create two ZRTP secure channels for each participant
+ *  - Each participant sends a GoClear message to comeback to a insecure channel
+ *  - send a Commit message to resume secure mode
+ */
+static void test_goclear_sendSimultaneously(void){
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	clientContext_t Alice,Bob,Alice2,Bob2;
+	uint32_t aliceSSRC_channel1 = ALICE_SSRC_BASE;
+	uint32_t bobSSRC_channel1 = BOB_SSRC_BASE;
+	uint32_t aliceSSRC_channel2 = ALICE_SSRC_BASE+1;
+	uint32_t bobSSRC_channel2 = BOB_SSRC_BASE+1;
+
+	/*** Create secure main channels */
+	if(goToSecureMode(&Alice, aliceSSRC_channel1, 1, &Bob, bobSSRC_channel1, 1, 1)){
+		return;
+	}
+
+	/* create new clients context to holds new channels so we can use both a the same time */
+	Alice2.id = Alice.id;
+	Alice2.pvs=0;
+	Alice2.haveCacheMismatch=0;
+	Alice2.peerRequestGoClear=0;
+	Alice2.peerACKGoClear=0;
+	Alice2.bzrtpContext=Alice.bzrtpContext; /* the bzrtpContext is shared between channels */
+	Alice2.peerSSRC=bobSSRC_channel2;
+
+	Bob2.id = Bob.id;
+	Bob2.pvs=0;
+	Bob2.haveCacheMismatch=0;
+	Bob2.peerRequestGoClear=0;
+	Bob2.peerACKGoClear=0;
+	Bob2.bzrtpContext=Bob.bzrtpContext; /* the bzrtpContext is shared between channels */
+	Bob2.peerSSRC=aliceSSRC_channel2;
+
+	/*** Start new secure channels */
+	retval = goToSecureMode(&Alice2, aliceSSRC_channel2, 1, &Bob2, bobSSRC_channel2, 1, 0);
+
+	/* Send a GoClear message on channel 1 */
+	bzrtp_sendGoClear(Alice.bzrtpContext, aliceSSRC_channel1);
+	bzrtp_sendGoClear(Bob.bzrtpContext, bobSSRC_channel1);
+
+	retval = processMessageQueues(Alice.bzrtpContext, aliceSSRC_channel1, Bob.bzrtpContext, bobSSRC_channel1, BZRTP_CHANNEL_CLEAR, BZRTP_CHANNEL_CLEAR);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+	/* at this point Alice and Bob channel2 shall also be in CLEAR */
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Alice2.bzrtpContext, aliceSSRC_channel2), BZRTP_CHANNEL_CLEAR, int, "%d");
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Bob2.bzrtpContext, bobSSRC_channel2), BZRTP_CHANNEL_CLEAR, int, "%d");
+
+	/* Back to secure mode */
+	bzrtp_backToSecureMode(Alice2.bzrtpContext, aliceSSRC_channel2);
+
+	retval = processMessageQueues(Alice2.bzrtpContext, aliceSSRC_channel2, Bob2.bzrtpContext, bobSSRC_channel2, BZRTP_CHANNEL_SECURE, BZRTP_CHANNEL_SECURE);
+	BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+
+	/* when channel 2 is back to secure mode, channel 1 shall have done it too */
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Alice.bzrtpContext, aliceSSRC_channel1), BZRTP_CHANNEL_SECURE, int, "%d");
+	BC_ASSERT_EQUAL(bzrtp_getChannelStatus(Bob.bzrtpContext, bobSSRC_channel1), BZRTP_CHANNEL_SECURE, int, "%d");
+
+	/*** Destroy Contexts ***/
+	bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC_channel2);
+	bzrtp_destroyBzrtpContext(Alice.bzrtpContext, aliceSSRC_channel1);
+	bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC_channel2);
+	bzrtp_destroyBzrtpContext(Bob.bzrtpContext, bobSSRC_channel1);
+
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
+
+static void test_loosy_network_goclear(void) {
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	int i,j;
+	resetGlobalParams();
+	srand((unsigned int)time(NULL));
+
+	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
+	for (j=0; j<10; j++) {
+		for (i=1; i<60; i+=1) {
+			resetGlobalParams();
+			timeOutLimit =100000; //outrageous time limit just to be sure to complete, not run in real time anyway
+			loosePacketPercentage=i;
+			retval = goclear_singleChannel();
+			BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+		}
+	}
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
+
+static void test_loosy_network_goclear_multiChannel(void) {
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	int i,j;
+	resetGlobalParams();
+	srand((unsigned int)time(NULL));
+
+	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
+	for (j=0; j<10; j++) {
+		for (i=1; i<60; i+=1) {
+			resetGlobalParams();
+			timeOutLimit =100000; //outrageous time limit just to be sure to complete, not run in real time anyway
+			loosePacketPercentage=i;
+			retval = goclear_multiChannel();
+			BC_ASSERT_EQUAL(retval, 0, int, "%0x");
+		}
+	}
+#else
+	bctbx_warning("WARNING : GoClear feature is disabled");
+#endif /* GOCLEAR_ENABLED */
+}
 
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
@@ -1875,6 +2364,12 @@ static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Abort and retry", test_abort_retry),
 	TEST_NO_TAG("Active flag", test_active_flag),
 	TEST_NO_TAG("Cache concurrent access", test_cache_concurrent_access),
+	TEST_NO_TAG("Go Clear Single channel", test_goclear_singleChannel),
+	TEST_NO_TAG("Go Clear Single channel Bob doesnt accept", test_goclear_singleChannel_BobDoesntAccept),
+	TEST_NO_TAG("Go Clear Multichannel", test_goclear_multiChannel),
+	TEST_NO_TAG("Go Clear Send simultaneously", test_goclear_sendSimultaneously),
+	TEST_NO_TAG("Loosy network GoClear", test_loosy_network_goclear),
+	TEST_NO_TAG("Loosy network GoClear Multichannel", test_loosy_network_goclear_multiChannel),
 };
 
 test_suite_t key_exchange_test_suite = {

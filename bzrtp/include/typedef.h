@@ -24,12 +24,14 @@
 /* aux secret may rarely be used define his maximum length in bytes */
 #define MAX_AUX_SECRET_LENGTH	64
 /* the context will store some of the sent or received packets */
-#define PACKET_STORAGE_CAPACITY 4
+#define PACKET_STORAGE_CAPACITY 5
 
-#define HELLO_MESSAGE_STORE_ID 0
-#define	COMMIT_MESSAGE_STORE_ID 1
-#define DHPART_MESSAGE_STORE_ID 2
-#define CONFIRM_MESSAGE_STORE_ID 3
+/* HELLO_MESSAGE_STORE_ID MUST stay at 0 in case of we are treating a GoClear message and we are deleting all messages except Hello Packets */
+#define HELLO_MESSAGE_STORE_ID      0	/* MUST stay at 0 */
+#define	COMMIT_MESSAGE_STORE_ID     1
+#define DHPART_MESSAGE_STORE_ID     2
+#define CONFIRM_MESSAGE_STORE_ID    3
+#define GOCLEAR_MESSAGE_STORE_ID    4
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -69,6 +71,9 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #define NON_HELLO_BASE_RETRANSMISSION_STEP 	150
 #define NON_HELLO_CAP_RETRANSMISSION_STEP 	1200
 #define NON_HELLO_MAX_RETRANSMISSION_NUMBER	10
+
+#define CLEARACK_BASE_RETRANSMISSION_STEP    5000
+#define CLEARACK_MAX_RETRANSMISSION_NUMBER   20
 
 /* network related defines */
 /* minimal MTU size is 600 bytes to avoid useless fragmentation of small enough packets */
@@ -161,7 +166,11 @@ struct bzrtpChannelContext_struct {
 
 	/* flags */
 	uint8_t isSecure; /**< This flag is set to 1 when the ZRTP negociation ends and SRTP secrets are generated and confirmed for this channel */
-	uint8_t isMainChannel; /**< this flag is set for the firt channel only, allow to distinguish channel to be secured using DHM or multiStream */
+	uint8_t isMainChannel; /**< This flag is set for the firt channel only, allow to distinguish channel to be secured using DHM or multiStream */
+#ifdef GOCLEAR_ENABLED
+	uint8_t isClear; /**< This flag is set to 1 when this channel is in clear state */
+	uint8_t hasReceivedAGoClear; /**< This flag is set to 1 when this channel has received a GoClear message */
+#endif
 
 	/* Hash chains, self is generated at channel context init */
 	uint8_t selfH[4][32]; /**< Store self 256 bits Hash images H0-H3 used to generate messages MAC */
@@ -233,7 +242,10 @@ struct bzrtpContext_struct {
 	uint8_t isInitialised; /**< this flag is set once the context was initialised : self ZID retrieved from cache or generated, used to unlock the creation of addtional channels */
 	uint8_t isSecure; /**< this flag is set to 1 after the first channel have completed the ZRTP protocol exchange(i.e. when the responder have sent the conf2ACK message), must be set in order to start an additional channel */
 	uint8_t peerSupportMultiChannel; /**< this flag is set to 1 when the first valid HELLO packet from peer arrives if it support Multichannel ZRTP */
-
+#ifdef GOCLEAR_ENABLED
+	uint8_t selfAcceptGoClear; /**< Set to 1 if this context support receiving GoClear messages */
+	uint8_t peerAcceptGoClear; /**< Set to 1 if peer context support receiving GoClear messages */
+#endif
 	uint64_t timeReference; /**< in ms. This field will set at each channel State Machine start and updated at each tick after creation of the context, it is used to set the firing time of a channel timer */
 
 	/* callbacks */
@@ -283,6 +295,7 @@ struct bzrtpContext_struct {
 	uint8_t	ZRTPSessLength; /**< length of ZRTP session key depends on agreed hash algorithm */
 	uint8_t *exportedKey; /**< computed as in rfc section 4.5.2 only if needed */
 	uint8_t exportedKeyLength; /**< length of previous buffer, shall be channel[0]->hashLength */
+	uint8_t ZRTPSessContext[24]; /**< computed at the same time as the commit - useful only when a GoClear is sent - described in rfc section 4.7.2.1 -> (ZIDi||ZIDr) */
 
 	/* network */
 	size_t mtu; /**< Maximum size in bytes of a ZRTP packet generated locally, has a low limit of BZRTP_MINIMUM_MTU */

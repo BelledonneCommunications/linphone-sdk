@@ -580,6 +580,14 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 			confirm1Message = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm1Message->H0, 32);
 
+			/* As we are in NON-DHM mode, condition will be always false
+			 * but if one day preShared will be supported, it would become useful */
+			//#ifdef GOCLEAR_ENABLED
+			//if(zrtpChannelContext->isMainChannel){
+			//    zrtpContext->peerAcceptGoClear = confirm1Message->A;
+			//}
+			//#endif /* GOCLEAR_ENABLED */
+
 			/* store the packet to check possible repetitions */
 			zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID] = zrtpPacket;
 
@@ -785,7 +793,7 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 							zrtpContext->cacheMismatchFlag = 1;
 						}
 					} else {
-							zrtpContext->cacheMismatchFlag = 1;
+						zrtpContext->cacheMismatchFlag = 1;
 					}
 				}
 			}
@@ -958,6 +966,11 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 			/* update context with the information found in the packet */
 			confirm1Packet = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm1Packet->H0, 32);
+#ifdef GOCLEAR_ENABLED
+			if(zrtpChannelContext->isMainChannel){
+				zrtpContext->peerAcceptGoClear = confirm1Packet->A;
+			}
+#endif /* GOCLEAR_ENABLED */
 			/* on the first channel, set peerPVS in context */
 			if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
 				zrtpContext->peerPVS=confirm1Packet->V;
@@ -1040,7 +1053,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			if (retval!= 0) {
 				return retval;
 			}
-		} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) { /* when in preShared mode: todo */
+		} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) { /* when in preShared mode:  */
 		} else { /* we are in DHM mode, check that we have the keys needed to build the confirm1 packet */
 			/* we must build the confirm1 packet, check in the channel context if we have the needed keys */
 			if ((zrtpChannelContext->mackeyr == NULL) || (zrtpChannelContext->zrtpkeyr == NULL)) {
@@ -1151,6 +1164,11 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			/* update context with the information found in the packet */
 			confirm2Packet = (bzrtpConfirmMessage_t *)zrtpPacket->messageData;
 			memcpy(zrtpChannelContext->peerH[0], confirm2Packet->H0, 32);
+#ifdef GOCLEAR_ENABLED
+			if(zrtpChannelContext->isMainChannel){
+				zrtpContext->peerAcceptGoClear = confirm2Packet->A;
+			}
+#endif /* GOCLEAR_ENABLED */
 			/* on the first channel, set peerPVS in context */
 			if (zrtpChannelContext->keyAgreementAlgo != ZRTP_KEYAGREEMENT_Mult) {
 				zrtpContext->peerPVS = confirm2Packet->V;
@@ -1390,12 +1408,16 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
  * 	- state_confirmation_responderSendingConfirm1 on Confirm2 reception
  * 	- state_confirmation_initiatorSendingConfirm2 on conf2ACK or first SRTP message
  * Goes to:
- * 	- This is the end(we do not support GoClear message), state machine may be destroyed after going to secure mode
+ * 	- state_sending_GoClear when user pressed a button to indicate that he wants to change the encryption mode
+ *  - state_clear on GoClear reception
  * Send :
  * 	- Conf2ACK on Confirm2 reception
+ *	- ClearACK on GoClear reception (+ destroy all key materials)
  *
  */
 int state_secure(bzrtpEvent_t event) {
+	int retval;
+
 	/* get the contextes from the event */
 	bzrtpContext_t *zrtpContext = event.zrtpContext;
 	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
@@ -1421,51 +1443,179 @@ int state_secure(bzrtpEvent_t event) {
 
 	/*** Manage message event ***/
 	if (event.eventType == BZRTP_EVENT_MESSAGE) {
-		int retval;
-		bzrtpPacket_t *conf2ACKPacket;
 		bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
 
-		/* we expect confirm2 packet */
-		if (zrtpPacket->messageType != MSGTYPE_CONFIRM2) {
+		/* we expect confirm2 or GoClear packet */
+		if (zrtpPacket->messageType == MSGTYPE_CONFIRM2) {
+			/* We have a confirm2 packet, check it is identical to the one we already had and resend the Conf2ACK packet */
+			bzrtpPacket_t *conf2ACKPacket;
+			/* Check the commit packet is the same we already had */
+			if (zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+			if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+			}
+
+			/* incoming packet is valid, set the sequence Number in channel context */
+			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
+
+			/* create and send a conf2ACK packet */
+			conf2ACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CONF2ACK, &retval);
+			if (retval!=0) {
+				return retval;
+			}
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket);
+			if (retval!=0) {
+				bzrtp_freeZrtpPacket(conf2ACKPacket);
+				return retval;
+			}
+
+			retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, conf2ACKPacket);
+			/* free the conf2ACK packet */
+			bzrtp_freeZrtpPacket(conf2ACKPacket);
+
+			return retval;
+#ifdef GOCLEAR_ENABLED
+		} else if (zrtpPacket->messageType == MSGTYPE_GOCLEAR && zrtpContext->selfAcceptGoClear) {
+			/* We have a GoClear packet */
+
+			/*** ClearMAC CHECKING according to RFC section 4.7.2 ***/
+			uint8_t computedClearMAC[8];
+
+			bzrtp_packetParser(zrtpContext, zrtpChannelContext, event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpPacket);
+
+			if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR){
+				/* When sent by the responder:
+				 *      clear_mac = MAC(mackeyr, "GoClear ") */
+				zrtpChannelContext->hmacFunction(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, (uint8_t *)"GoClear ", 8, 8, computedClearMAC);
+			} else {
+				/* When sent by the initiator:
+				 *      clear_mac = MAC(mackeyi, "GoClear ") */
+				zrtpChannelContext->hmacFunction(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, (uint8_t *)"GoClear ", 8, 8, computedClearMAC);
+			}
+
+			bzrtpGoClearMessage_t *goClearMessage = (bzrtpGoClearMessage_t *) zrtpPacket->messageData;
+			int retval = memcmp(goClearMessage->clear_mac, computedClearMAC, 8);
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
+
+			if (retval != 0) {
+				return BZRTP_ERROR_INVALIDCLEARMAC;
+			}
+
+			/* Callback PEERREQUESTGOCLEAR */
+			if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) {
+				retval = zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERREQUESTGOCLEAR, "Encryption change");
+			}
+
+			/* build the ClearACK packet */
+			bzrtpPacket_t *clearAckPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CLEARACK, &retval);
+			if (retval!=0) {
+				return retval;
+			}
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, clearAckPacket);
+			if (retval!=0) {
+				bzrtp_freeZrtpPacket(clearAckPacket);
+				return retval;
+			}
+
+			/* now send the ClearACK message */
+			retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, clearAckPacket);
+
+			/* free the ClearACK packet */
+			bzrtp_freeZrtpPacket(clearAckPacket);
+
+			if (retval != 0) {
+				return retval;
+			}
+
+			/* destroy all key materials */
+			for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+				if (zrtpContext->channelContext[i]!=NULL) {
+					bzrtp_destroyKeyMaterial(zrtpContext, zrtpContext->channelContext[i]);
+					zrtpContext->channelContext[i]->isSecure = 0;
+				}
+			}
+
+			/* compute the new value of ZRTPSess */
+			retval = bzrtp_keyDerivationFunction(zrtpContext->ZRTPSess, zrtpContext->ZRTPSessLength,
+												 (uint8_t *)"New ZRTP Session", 16,
+												 zrtpContext->ZRTPSessContext, 24,
+												 zrtpChannelContext->hashLength,
+												 zrtpChannelContext->hmacFunction,
+												 zrtpContext->ZRTPSess);
+
+			/* it is the first call to this state function, so we must set the timer for retransmissions */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + CLEARACK_BASE_RETRANSMISSION_STEP;
+			zrtpChannelContext->timer.firingCount = 0;
+			zrtpChannelContext->timer.timerStep = CLEARACK_BASE_RETRANSMISSION_STEP;
+
+			/* create the init event for next state */
+			bzrtpEvent_t initEvent;
+			initEvent.eventType = BZRTP_EVENT_INIT;
+			initEvent.bzrtpPacketString = NULL;
+			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
+			initEvent.zrtpContext = zrtpContext;
+			initEvent.zrtpChannelContext = zrtpChannelContext;
+
+			if (zrtpContext==NULL) {
+				return BZRTP_ERROR_INVALIDCONTEXT;
+			}
+
+			/* set the next state to state_clear */
+			for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+				if (zrtpContext->channelContext[i]!=NULL) {
+					zrtpContext->channelContext[i]->stateMachine = state_clear;
+				}
+			}
+
+			/* call it with the init event */
+			return zrtpChannelContext->stateMachine(initEvent);
+
+#endif /* GOCLEAR_ENABLED */
+		} else {
 			bzrtp_freeZrtpPacket(zrtpPacket);
 			return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
 		}
-
-		/* We have a confirm2 packet, check it is identical to the one we already had and resend the Conf2ACK packet */
-		/* Check the commit packet is the same we already had */
-		if (zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
-			bzrtp_freeZrtpPacket(zrtpPacket);
-			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
-		}
-		if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength) != 0) {
-			bzrtp_freeZrtpPacket(zrtpPacket);
-			return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
-		}
-
-		/* incoming packet is valid, set the sequence Number in channel context */
-		zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
-
-		/* free the incoming packet */
-		bzrtp_freeZrtpPacket(zrtpPacket);
-
-		/* create and send a conf2ACK packet */
-		conf2ACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CONF2ACK, &retval);
-		if (retval!=0) {
-			return retval;
-		}
-		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket);
-		if (retval!=0) {
-			bzrtp_freeZrtpPacket(conf2ACKPacket);
-			return retval;
-		}
-
-		retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, conf2ACKPacket);
-		/* free the conf2ACK packet */
-		bzrtp_freeZrtpPacket(conf2ACKPacket);
-
-		return retval;
 	}
+#ifdef GOCLEAR_ENABLED
+	/*** Manage GoClear event ***/
+	if (event.eventType == BZRTP_EVENT_GOCLEAR && zrtpContext->peerAcceptGoClear) {
+		bzrtpEvent_t initEvent;
+		/* create the init event for next state */
+		initEvent.eventType = BZRTP_EVENT_INIT;
+		initEvent.bzrtpPacketString = NULL;
+		initEvent.bzrtpPacketStringLength = 0;
+		initEvent.bzrtpPacket = NULL;
+		initEvent.zrtpContext = zrtpContext;
+		initEvent.zrtpChannelContext = zrtpChannelContext;
 
+		/* set the next state to state_sending_GoClear for each channel */
+		if (zrtpContext==NULL) {
+			return BZRTP_ERROR_INVALIDCONTEXT;
+		}
+
+		for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+			if (zrtpContext->channelContext[i]!=NULL) {
+				zrtpContext->channelContext[i]->stateMachine = state_sending_GoClear;
+			}
+		}
+
+		/* call it with the init event */
+		return zrtpChannelContext->stateMachine(initEvent);
+	} else {
+		return BZRTP_ERROR_PEERDOESNTACCEPTGOCLEAR;
+	}
+#endif /* GOCLEAR_ENABLED */
 
 	/*** Manage timer event ***/
 	/* no timer in this state */
@@ -1473,7 +1623,385 @@ int state_secure(bzrtpEvent_t event) {
 	return 0;
 }
 
+/*
+ * @brief GoClear initiator send a GoClear message
+ *
+ * Arrives from:
+ * 	- state_secure when user pressed a button to indicate that he wants to change the encryption mode
+ * Goes to:
+ * 	- state_clear on ClearACK reception
+ * Send :
+ * 	- GoClear message (+ destroy all key materials on ClearACK reception)
+ *
+ */
+int state_sending_GoClear(bzrtpEvent_t event){
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
+	bzrtpContext_t *zrtpContext = event.zrtpContext;
+	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
+
+	/*** Manage the first call to this function ***/
+	if (event.eventType == BZRTP_EVENT_INIT) {
+		bzrtpPacket_t *goClearPacket;
+
+		/* build the GoClear packet */
+		goClearPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_GOCLEAR, &retval);
+		if (retval!=0) {
+			return retval;
+		}
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, goClearPacket);
+		if (retval!=0) {
+			bzrtp_freeZrtpPacket(goClearPacket);
+			return retval;
+		}
+
+		/* save it so we can send it again if needed */
+		zrtpChannelContext->selfPackets[GOCLEAR_MESSAGE_STORE_ID] = goClearPacket;
+
+		/* now send the GoClear message */
+		retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[GOCLEAR_MESSAGE_STORE_ID]);
+
+		if (retval != 0) {
+			bzrtp_freeZrtpPacket(goClearPacket);
+			return retval;
+		}
+
+		/* it is the first call to this state function, so we must set the timer for retransmissions */
+		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
+		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
+		zrtpChannelContext->timer.firingCount = 0;
+		zrtpChannelContext->timer.timerStep = NON_HELLO_BASE_RETRANSMISSION_STEP;
+	}
+
+	/*** Manage message event ***/
+	if (event.eventType == BZRTP_EVENT_MESSAGE) {
+
+		if(zrtpPacket->messageType == MSGTYPE_CLEARACK){
+
+			/* We have a ClearACK packet, nothing to parse in it, free the packet */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+			bzrtp_freeZrtpPacket(zrtpPacket);
+
+			bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
+
+			if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) {
+				retval = zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERACKGOCLEAR, "Encryption change");
+			}
+
+			if (zrtpContext==NULL) {
+				return BZRTP_ERROR_INVALIDCONTEXT;
+			}
+
+			/* destroy all key materials */
+			for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+				if (zrtpContext->channelContext[i]!=NULL) {
+					bzrtp_destroyKeyMaterial(zrtpContext, zrtpContext->channelContext[i]);
+					zrtpContext->channelContext[i]->isSecure = 0;
+				}
+			}
+
+			/* compute the new value of ZRTPSess */
+			retval = bzrtp_keyDerivationFunction(zrtpContext->ZRTPSess, zrtpContext->ZRTPSessLength,
+												 (uint8_t *)"New ZRTP Session", 16,
+												 zrtpContext->ZRTPSessContext, 24,
+												 zrtpChannelContext->hashLength,
+												 zrtpChannelContext->hmacFunction,
+												 zrtpContext->ZRTPSess);
+
+			bzrtpEvent_t initEvent;
+			/* create the init event for next state */
+			initEvent.eventType = BZRTP_EVENT_INIT;
+			initEvent.bzrtpPacketString = NULL;
+			initEvent.bzrtpPacketStringLength = 0;
+			initEvent.bzrtpPacket = NULL;
+			initEvent.zrtpContext = zrtpContext;
+			initEvent.zrtpChannelContext = zrtpChannelContext;
+
+			if (zrtpContext==NULL) {
+				return BZRTP_ERROR_INVALIDCONTEXT;
+			}
+
+			/* Timer status sets to BZRTP_TIMER_OFF before going to state clear
+			 * because the responder of the goclear message needs again the timer in this state
+			 * but not the initiator */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+
+			/* set the next state to state_clear */
+			for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+				if (zrtpContext->channelContext[i]!=NULL) {
+					zrtpContext->channelContext[i]->stateMachine = state_clear;
+				}
+			}
+
+			/* call it with the init event */
+			return zrtpChannelContext->stateMachine(initEvent);
+
+		} else if (zrtpPacket->messageType == MSGTYPE_GOCLEAR) {
+			/* We have a GoClear packet because the peer sent a GoClear message at the same time as us */
+			/* In this case both users will not receive acceptGoClear callback */
+			bzrtpPacket_t *clearACKPacket;
+
+			if (zrtpChannelContext->peerPackets[GOCLEAR_MESSAGE_STORE_ID] == NULL){
+
+				/*** ClearMAC CHECKING according to RFC section 4.7.2 ***/
+				uint8_t computedClearMAC[8];
+
+				bzrtp_packetParser(zrtpContext, zrtpChannelContext, event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpPacket);
+
+				if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR){
+					/* When sent by the responder:
+					 *      clear_mac = MAC(mackeyr, "GoClear ") */
+					zrtpChannelContext->hmacFunction(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, (uint8_t *)"GoClear ", 8, 8, computedClearMAC);
+				} else {
+					/* When sent by the initiator:
+					 *      clear_mac = MAC(mackeyi, "GoClear ") */
+					zrtpChannelContext->hmacFunction(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, (uint8_t *)"GoClear ", 8, 8, computedClearMAC);
+				}
+
+				bzrtpGoClearMessage_t *goClearMessage = (bzrtpGoClearMessage_t *) zrtpPacket->messageData;
+				retval = memcmp(goClearMessage->clear_mac, computedClearMAC, 8);
+
+				if (retval != 0) {
+					return BZRTP_ERROR_INVALIDCLEARMAC;
+				}
+
+			} else { /* Check it is identical to the one we already had and resend the ClearACK packet */
+
+				if (zrtpChannelContext->peerPackets[GOCLEAR_MESSAGE_STORE_ID]->messageLength != zrtpPacket->messageLength) {
+					bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+				}
+				if (memcmp(event.bzrtpPacketString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[GOCLEAR_MESSAGE_STORE_ID]->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpChannelContext->peerPackets[GOCLEAR_MESSAGE_STORE_ID]->messageLength) != 0) {
+					bzrtp_freeZrtpPacket(zrtpPacket);
+					return BZRTP_ERROR_UNMATCHINGPACKETREPETITION;
+				}
+			}
+
+			/* incoming packet is valid, set the sequence Number in channel context */
+			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			/* free the incoming packet */
+			bzrtp_freeZrtpPacket(zrtpPacket);
+
+			/* create and send a ClearACK packet */
+			clearACKPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CLEARACK, &retval);
+			if (retval!=0) {
+				return retval;
+			}
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, clearACKPacket);
+			if (retval!=0) {
+				bzrtp_freeZrtpPacket(clearACKPacket);
+				return retval;
+			}
+
+			retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, clearACKPacket);
+
+			/* free the ClearACK packet */
+			bzrtp_freeZrtpPacket(clearACKPacket);
+
+			return retval;
+		} else {
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+		}
+	}
+
+	/*** Manage timer event ***/
+	if (event.eventType == BZRTP_EVENT_TIMER) {
+
+		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
+		if (zrtpChannelContext->timer.firingCount<=NON_HELLO_MAX_RETRANSMISSION_NUMBER) {
+			if (2*zrtpChannelContext->timer.timerStep<=NON_HELLO_CAP_RETRANSMISSION_STEP) {
+				zrtpChannelContext->timer.timerStep *= 2;
+			}
+			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
+		} else { /* we have done enough retransmissions, stop it */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+		}
+		retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[GOCLEAR_MESSAGE_STORE_ID]);
+		/* We must resend a GoClear packet */
+		if (retval != 0) {
+			return retval;
+		}
+	}
+
+	return 0;
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
+}
+
+
+/*
+ * @brief We are in clear state
+ *
+ * Arrives from:
+ * 	- state_sending_GoClear on ClearACK reception
+ *	- state_secure on GoClear reception
+ *  - state_clear on manuel confirmation of the responder (of the GoClear)
+ * Goes to:
+ * 	- state_keyAgreement_sendingCommit when user pressed a button to indicate that he wants to back to secure mode
+ *  - state_confirmation_responderSendingConfirm1 on commit reception
+ *
+ */
+int state_clear(bzrtpEvent_t event){
+#ifdef GOCLEAR_ENABLED
+	int retval;
+	bzrtpContext_t *zrtpContext = event.zrtpContext;
+	bzrtpChannelContext_t *zrtpChannelContext = event.zrtpChannelContext;
+	bzrtpPacket_t *zrtpPacket = event.bzrtpPacket;
+
+	/*** Manage init event ***/
+	if(event.eventType == BZRTP_EVENT_INIT){
+		if (zrtpContext==NULL) {
+			return BZRTP_ERROR_INVALIDCONTEXT;
+		}
+		/* Set all channels to clear and roles to initiator */
+		for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+			if (zrtpContext->channelContext[i]!=NULL) {
+				zrtpContext->channelContext[i]->isClear = 1;
+				zrtpContext->channelContext[i]->role = BZRTP_ROLE_INITIATOR;
+			}
+		}
+	}
+
+	/*** Manage message event ***/
+	if(event.eventType == BZRTP_EVENT_MESSAGE){
+		if(zrtpPacket->messageType == MSGTYPE_COMMIT){
+			/* parse the packet wich is a Commit packet */
+			retval = bzrtp_packetParser(zrtpContext, zrtpChannelContext, event.bzrtpPacketString, event.bzrtpPacketStringLength, zrtpPacket);
+			if (retval != 0) {
+				bzrtp_freeZrtpPacket(zrtpPacket);
+				return retval;
+			}
+
+			/* Delete all self and peer packets except Hello packets */
+			if (zrtpChannelContext != NULL) {
+				/* We need to keep Hello packets in case of we're in zrtp mode */
+				for (int i = COMMIT_MESSAGE_STORE_ID ; i < PACKET_STORAGE_CAPACITY ; i++) {
+					if(zrtpChannelContext->selfPackets[i] != NULL){
+						bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[i]);
+						zrtpChannelContext->selfPackets[i] = NULL;
+					}
+					if(zrtpChannelContext->peerPackets[i] != NULL){
+						bzrtp_freeZrtpPacket(zrtpChannelContext->peerPackets[i]);
+						zrtpChannelContext->peerPackets[i] = NULL;
+					}
+				}
+			}
+
+			zrtpChannelContext->isClear = 0;
+
+			/* packet is valid, set the sequence Number in channel context */
+			zrtpChannelContext->peerSequenceNumber = zrtpPacket->sequenceNumber;
+
+			bzrtpCommitMessage_t *peerCommitMessage = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
+			return bzrtp_turnIntoResponder(zrtpContext, zrtpChannelContext, zrtpPacket, peerCommitMessage);
+
+		} else {
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE;
+		}
+
+	}
+
+	/*** Manage accept GoClear event ***/
+	if (event.eventType == BZRTP_EVENT_ACCEPT_GOCLEAR) {
+		zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+	}
+
+	/*** Manage backToSecure event ***/
+	if (event.eventType == BZRTP_EVENT_BACKTOSECURE) {
+		bzrtpEvent_t initEvent;
+
+		/* create the init event for next state */
+		initEvent.eventType = BZRTP_EVENT_INIT;
+		initEvent.bzrtpPacketString = NULL;
+		initEvent.bzrtpPacketStringLength = 0;
+		initEvent.bzrtpPacket = NULL;
+		initEvent.zrtpContext = zrtpContext;
+
+		if (zrtpContext==NULL) {
+			return BZRTP_ERROR_INVALIDCONTEXT;
+		}
+
+		/* Delete all self and peer packets except Hello packets */
+		for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+			if (zrtpContext->channelContext[i]!=NULL) {
+				/* We need to keep Hello packets in case of we're in zrtp mode */
+				for (int j = COMMIT_MESSAGE_STORE_ID ; j < PACKET_STORAGE_CAPACITY ; j++) {
+					if(zrtpContext->channelContext[i]->selfPackets[j] != NULL){
+						bzrtp_freeZrtpPacket(zrtpContext->channelContext[i]->selfPackets[j]);
+						zrtpContext->channelContext[i]->selfPackets[j] = NULL;
+					}
+					if(zrtpContext->channelContext[i]->peerPackets[j] != NULL){
+						bzrtp_freeZrtpPacket(zrtpContext->channelContext[i]->peerPackets[j]);
+						zrtpContext->channelContext[i]->peerPackets[j] = NULL;
+					}
+				}
+			}
+		}
+
+		for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
+			if (zrtpContext->channelContext[i]!=NULL) {
+				zrtpContext->channelContext[i]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
+				initEvent.zrtpChannelContext = zrtpContext->channelContext[i];
+				zrtpContext->channelContext[i]->isClear = 0;
+				/* set the next state to state_keyAgreement_sendingCommit */
+				zrtpContext->channelContext[i]->stateMachine = state_keyAgreement_sendingCommit;
+				/* call it with the init event */
+				retval = zrtpContext->channelContext[i]->stateMachine(initEvent);
+				if (retval != 0) {
+					return retval;
+				}
+			}
+		}
+
+		return retval;
+	}
+
+	/*** Manage timer event ***/
+	if (event.eventType == BZRTP_EVENT_TIMER) {
+
+		/* adjust timer for next time : check we didn't reach the max retransmissions adjust the step(double it until reaching the cap) */
+		if (zrtpChannelContext->timer.firingCount<=CLEARACK_MAX_RETRANSMISSION_NUMBER) {
+			zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + zrtpChannelContext->timer.timerStep;
+		} else { /* we have done enough retransmissions, stop it */
+			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+		}
+
+		/* We must resend a ClearACK packet */
+
+		/* build the ClearACK packet */
+		bzrtpPacket_t *clearAckPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_CLEARACK, &retval);
+		if (retval!=0) {
+			return retval;
+		}
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, clearAckPacket);
+		if (retval!=0) {
+			bzrtp_freeZrtpPacket(clearAckPacket);
+			return retval;
+		}
+
+		if (retval == 0) {
+			retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, clearAckPacket);
+			bzrtp_freeZrtpPacket(clearAckPacket);
+		} else {
+			bzrtp_freeZrtpPacket(clearAckPacket);
+			return retval;
+		}
+
+	}
+
+	return 0;
+#else
+	return BZRTP_ERROR_GOCLEARDISABLED;
+#endif /* GOCLEAR_ENABLED */
+}
+
 /************* Local helpers functions *******************/
+
 /**
  * @brief Turn the current Channel into responder role
  * This happens when receiving a commit message when in state state_discovery_waitingForHelloAck or state_keyAgreement_sendingCommit if commit contention gives us the responder role.
@@ -1486,100 +2014,100 @@ int state_secure(bzrtpEvent_t event) {
  *
  * @return 0 on succes, error code otherwise
  */
+
 static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage) {
-			bzrtpEvent_t initEvent;
+	bzrtpEvent_t initEvent;
 
-			/* kill the ongoing timer */
-			zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
+	/* kill the ongoing timer */
+	zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
-			/* store the commit packet in the channel context as it is needed later to check MAC */
-			zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID] = zrtpPacket;
+	/* store the commit packet in the channel context as it is needed later to check MAC */
+	zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID] = zrtpPacket;
 
-			/* save the peer H2 */
-			memcpy(zrtpChannelContext->peerH[2], commitMessage->H2, 32); /* H2 */
+	/* save the peer H2 */
+	memcpy(zrtpChannelContext->peerH[2], commitMessage->H2, 32); /* H2 */
 
-			/* we are receiver, set it in the context and update our selected algos */
-			zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
-			zrtpChannelContext->hashAlgo = commitMessage->hashAlgo;
-			zrtpChannelContext->cipherAlgo = commitMessage->cipherAlgo;
-			zrtpChannelContext->authTagAlgo = commitMessage->authTagAlgo;
-			zrtpChannelContext->keyAgreementAlgo = commitMessage->keyAgreementAlgo;
-			zrtpChannelContext->sasAlgo = commitMessage->sasAlgo;
-			bzrtp_updateCryptoFunctionPointers(zrtpChannelContext);
+	/* we are receiver, set it in the context and update our selected algos */
+	zrtpChannelContext->role = BZRTP_ROLE_RESPONDER;
+	zrtpChannelContext->hashAlgo = commitMessage->hashAlgo;
+	zrtpChannelContext->cipherAlgo = commitMessage->cipherAlgo;
+	zrtpChannelContext->authTagAlgo = commitMessage->authTagAlgo;
+	zrtpChannelContext->keyAgreementAlgo = commitMessage->keyAgreementAlgo;
+	zrtpChannelContext->sasAlgo = commitMessage->sasAlgo;
+	bzrtp_updateCryptoFunctionPointers(zrtpChannelContext);
 
-			/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
-			/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
-			if (zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] != NULL) {
-				int retval;
+	/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
+	/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
+	if (zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] != NULL) {
+		int retval;
 
-				/* swap initiator and receiver aux secretId */
-				uint8_t tmpBuffer[8];
-				memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
-				memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
-				memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
+		/* swap initiator and receiver aux secretId */
+		uint8_t tmpBuffer[8];
+		memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
+		memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+		memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
 
-				if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
-					/* destroy stored KEMContext, we might have created one when receiving peer's Hello */
-					bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext);
-					zrtpContext->keyAgreementContext = NULL;
+		if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
+			/* destroy stored KEMContext, we might have created one when receiving peer's Hello */
+			bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext);
+			zrtpContext->keyAgreementContext = NULL;
 
-					/* This is a KEM, so we can trash the self DHPART as it was built to be a DHPart2 and we cannot reuse it */
-					bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
-					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = NULL;
-					bzrtpPacket_t *dhPart1Packet = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_DHPART1, &retval);
-					if (retval != 0) {
-						return retval;
-					}
-					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = dhPart1Packet;
-				} else {
-					/* This is a classic (EC)DH mode, we can reuse the DHPart2 and turn it into a DHPart1 */
-					bzrtpDHPartMessage_t *selfDHPart1Packet;
-
-
-					/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
-					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;
-
-					/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
-					selfDHPart1Packet = (bzrtpDHPartMessage_t *)zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
-					memcpy(selfDHPart1Packet->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
-					memcpy(selfDHPart1Packet->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
-					memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
-					memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
-
-					/* free the packet string */
-					free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
-					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
-				}
-				/* (re)build the packet */
-				retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
-				if (retval != 0) {
-					return retval;
-				}
+			/* This is a KEM, so we can trash the self DHPART as it was built to be a DHPart2 and we cannot reuse it */
+			bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
+			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = NULL;
+			bzrtpPacket_t *dhPart1Packet = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_DHPART1, &retval);
+			if (retval != 0) {
+				return retval;
 			}
+			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = dhPart1Packet;
+		} else {
+			/* This is a classic (EC)DH mode, we can reuse the DHPart2 and turn it into a DHPart1 */
+			bzrtpDHPartMessage_t *selfDHPart1Packet;
 
-			/* create the init event for next state */
-			initEvent.eventType = BZRTP_EVENT_INIT;
-			initEvent.bzrtpPacketString = NULL;
-			initEvent.bzrtpPacketStringLength = 0;
-			initEvent.bzrtpPacket = NULL;
-			initEvent.zrtpContext = zrtpContext;
-			initEvent.zrtpChannelContext = zrtpChannelContext;
+			/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
+			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;
 
-			/* if we are in PreShared or Multi mode, go to state_confirmation_responderSendingConfirm1 */
-			if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {
-				/* set next state to state_confirmation_responderSendingConfirm1 */
-				zrtpChannelContext->stateMachine = state_confirmation_responderSendingConfirm1;
+			/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
+			selfDHPart1Packet = (bzrtpDHPartMessage_t *)zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
+			memcpy(selfDHPart1Packet->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
+			memcpy(selfDHPart1Packet->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
+			memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+			memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
 
-				/* call it with the init event */
-				return zrtpChannelContext->stateMachine(initEvent);
+			/* free the packet string */
+			free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
+			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
+		}
+		/* (re)build the packet */
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
+		if (retval != 0) {
+			return retval;
+		}
+	}
 
-			} else {/* if we are in DHM mode, goes to state_keyAgreement_responderSendingDHPart1 */
-				/* set next state to state_keyAgreement_responderSendingDHPart1 */
-				zrtpChannelContext->stateMachine = state_keyAgreement_responderSendingDHPart1;
+	/* create the init event for next state */
+	initEvent.eventType = BZRTP_EVENT_INIT;
+	initEvent.bzrtpPacketString = NULL;
+	initEvent.bzrtpPacketStringLength = 0;
+	initEvent.bzrtpPacket = NULL;
+	initEvent.zrtpContext = zrtpContext;
+	initEvent.zrtpChannelContext = zrtpChannelContext;
 
-				/* call it with the init event */
-				return zrtpChannelContext->stateMachine(initEvent);
-			}
+	/* if we are in PreShared or Multi mode, go to state_confirmation_responderSendingConfirm1 */
+	if ((zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {
+		/* set next state to state_confirmation_responderSendingConfirm1 */
+		zrtpChannelContext->stateMachine = state_confirmation_responderSendingConfirm1;
+
+		/* call it with the init event */
+		return zrtpChannelContext->stateMachine(initEvent);
+
+	} else {/* if we are in DHM mode, goes to state_keyAgreement_responderSendingDHPart1 */
+		/* set next state to state_keyAgreement_responderSendingDHPart1 */
+		zrtpChannelContext->stateMachine = state_keyAgreement_responderSendingDHPart1;
+
+		/* call it with the init event */
+		return zrtpChannelContext->stateMachine(initEvent);
+	}
 }
 
 /**
@@ -1640,14 +2168,14 @@ static int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChanne
 	if ((strncmp(ZRTP_CLIENT_IDENTIFIERv1_0a, (char *)helloMessage->clientIdentifier, 16)==0) || (strncmp(ZRTP_CLIENT_IDENTIFIERv1_0b, (char *)helloMessage->clientIdentifier, 16)==0)){
 		zrtpContext->peerBzrtpVersion=0x010000;
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_WARNING) { /* use warning level as the client may really wants to know this */
-				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
+			zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_WARNING, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, (const char *)helloMessage->clientIdentifier);
 		}
 	} else if (strncmp(ZRTP_CLIENT_IDENTIFIERv1_1, (char *)helloMessage->clientIdentifier, 16)==0) { /* peer has the current version, everything is Ok */
 		zrtpContext->peerBzrtpVersion=0x010100;
 	} else { /* peer uses another lib, we're probably not LIME compliant, log it */
 		zrtpContext->peerBzrtpVersion=0;
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_LOG) {
-				zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_PEERNOTBZRTP, (const char *)helloMessage->clientIdentifier);
+			zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_LOG, BZRTP_MESSAGE_PEERNOTBZRTP, (const char *)helloMessage->clientIdentifier);
 		}
 	}
 
@@ -1779,9 +2307,9 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	 */
 	if (zrtpChannelContext->role == BZRTP_ROLE_RESPONDER) {
 		hashDataLength = zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
+				+ zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
+				+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength
+				+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
 
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
@@ -1800,9 +2328,9 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	} else { /* we are initiator */
 
 		hashDataLength = zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength
-			+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
+				+ zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength
+				+ zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID]->messageLength
+				+ zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength;
 
 		dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 		hashDataIndex = 0;
@@ -1925,11 +2453,20 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	zrtpContext->ZRTPSessLength=zrtpChannelContext->hashLength; /* must be set to the length of negotiated hash */
 	zrtpContext->ZRTPSess = (uint8_t *)malloc(zrtpContext->ZRTPSessLength*sizeof(uint8_t));
 	bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength,
-		(uint8_t *)"ZRTP Session Key", 16,
-		zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
-		zrtpChannelContext->hashLength,
-		zrtpChannelContext->hmacFunction,
-		zrtpContext->ZRTPSess);
+								(uint8_t *)"ZRTP Session Key", 16,
+								zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
+								zrtpChannelContext->hashLength,
+								zrtpChannelContext->hmacFunction,
+								zrtpContext->ZRTPSess);
+
+	/* compute ZID = (ZIDi || ZIDr) */
+	if (zrtpChannelContext->role == BZRTP_ROLE_INITIATOR) {
+		memcpy(zrtpContext->ZRTPSessContext, zrtpContext->selfZID, 12);
+		memcpy(zrtpContext->ZRTPSessContext, zrtpContext->peerZID, 12);
+	} else {
+		memcpy(zrtpContext->ZRTPSessContext, zrtpContext->peerZID, 12);
+		memcpy(zrtpContext->ZRTPSessContext, zrtpContext->selfZID, 12);
+	}
 
 	/* clean the DHM context (secret and key shall be erased by this operation) */
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
@@ -2009,11 +2546,11 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
 	/* compute s0 as in rfc section 4.4.3.2  s0 = KDF(ZRTPSess, "ZRTP MSK", KDF_Context, negotiated hash length) */
 	zrtpChannelContext->s0 = (uint8_t *)malloc(zrtpChannelContext->hashLength*sizeof(uint8_t));
 	retval = bzrtp_keyDerivationFunction(zrtpContext->ZRTPSess, zrtpContext->ZRTPSessLength,
-		(uint8_t *)"ZRTP MSK", 8,
-		zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
-		zrtpChannelContext->hashLength,
-		zrtpChannelContext->hmacFunction,
-		zrtpChannelContext->s0);
+										 (uint8_t *)"ZRTP MSK", 8,
+										 zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
+										 zrtpChannelContext->hashLength,
+										 zrtpChannelContext->hmacFunction,
+										 zrtpChannelContext->s0);
 
 	if (retval != 0) {
 		return retval;
@@ -2128,11 +2665,11 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 		uint32_t sasValue;
 
 		retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength,
-				(uint8_t *)"SAS", 3,
-				zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
-				32,
-				zrtpChannelContext->hmacFunction,
-				sasHash);
+											 (uint8_t *)"SAS", 3,
+											 zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength,
+											 32,
+											 zrtpChannelContext->hmacFunction,
+											 sasHash);
 		if (retval!=0) {
 			return retval;
 		}

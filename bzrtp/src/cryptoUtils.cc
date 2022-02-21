@@ -39,115 +39,115 @@ static uint32_t bzrtp_key_agreement_algo_list(void) {
 uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[256]) {
 
 	switch(algoType) {
-		case ZRTP_HASH_TYPE:
-			availableTypes[0] = ZRTP_HASH_S256;
-			availableTypes[1] = ZRTP_HASH_S384;
-			availableTypes[2] = ZRTP_HASH_S512;
-			return 3;
-		case ZRTP_CIPHERBLOCK_TYPE:
-			availableTypes[0] = ZRTP_CIPHER_AES1;
-			availableTypes[1] = ZRTP_CIPHER_AES3;
-			return 2;
-		case ZRTP_AUTHTAG_TYPE:
-			availableTypes[0] = ZRTP_AUTHTAG_HS32;
-			availableTypes[1] = ZRTP_AUTHTAG_HS80;
-			return 2;
-		case ZRTP_KEYAGREEMENT_TYPE:
-			{
-				/* get availables types from bctoolbox */
-				uint32_t available_key_agreements = bzrtp_key_agreement_algo_list();
+	case ZRTP_HASH_TYPE:
+		availableTypes[0] = ZRTP_HASH_S256;
+		availableTypes[1] = ZRTP_HASH_S384;
+		availableTypes[2] = ZRTP_HASH_S512;
+		return 3;
+	case ZRTP_CIPHERBLOCK_TYPE:
+		availableTypes[0] = ZRTP_CIPHER_AES1;
+		availableTypes[1] = ZRTP_CIPHER_AES3;
+		return 2;
+	case ZRTP_AUTHTAG_TYPE:
+		availableTypes[0] = ZRTP_AUTHTAG_HS32;
+		availableTypes[1] = ZRTP_AUTHTAG_HS80;
+		return 2;
+	case ZRTP_KEYAGREEMENT_TYPE:
+	{
+		/* get availables types from bctoolbox */
+		uint32_t available_key_agreements = bzrtp_key_agreement_algo_list();
 
-				/* Put them in a list in a prefered order, if no configuration is done the first 6 are used */
-				uint8_t index=0;
-				if (available_key_agreements&BCTBX_ECDH_X25519) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_X255;
-					index++;
-				}
+		/* Put them in a list in a prefered order, if no configuration is done the first 6 are used */
+		uint8_t index=0;
+		if (available_key_agreements&BCTBX_ECDH_X25519) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_X255;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_ECDH_X448) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_X448;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_ECDH_X448) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_X448;
+			index++;
+		}
 
-				/* DH3k is mandatory*/
-				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
-				index++;
+		/* DH3k is mandatory*/
+		availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
+		index++;
 
-				if (available_key_agreements&BCTBX_KEM_KYBER512) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB1;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_KYBER512) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_KYB1;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_SIKE434) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK1;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_SIKE434) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_SIK1;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_KYBER768) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB2;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_KYBER768) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_KYB2;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_SIKE610) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK2;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_SIKE610) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_SIK2;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_KYBER1024) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_KYBER1024) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_SIKE751) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK3;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_SIKE751) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_SIK3;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_DHM_2048) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_DHM_2048) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_X25519) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K255;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_X25519) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K255;
+			index++;
+		}
 
-				if (available_key_agreements&BCTBX_KEM_X448) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K448;
-					index++;
-				}
+		if (available_key_agreements&BCTBX_KEM_X448) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K448;
+			index++;
+		}
 
-				if ((available_key_agreements&BCTBX_KEM_X25519) && (available_key_agreements&BCTBX_KEM_KYBER512)) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K255_KYB512;
-					index++;
-				}
+		if ((available_key_agreements&BCTBX_KEM_X25519) && (available_key_agreements&BCTBX_KEM_KYBER512)) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K255_KYB512;
+			index++;
+		}
 
-				if ((available_key_agreements&BCTBX_KEM_X25519) && (available_key_agreements&BCTBX_KEM_SIKE434)) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K255_SIK434;
-					index++;
-				}
+		if ((available_key_agreements&BCTBX_KEM_X25519) && (available_key_agreements&BCTBX_KEM_SIKE434)) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K255_SIK434;
+			index++;
+		}
 
-				if ((available_key_agreements&BCTBX_KEM_X448) && (available_key_agreements&BCTBX_KEM_KYBER1024)) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K448_KYB1024;
-					index++;
-				}
+		if ((available_key_agreements&BCTBX_KEM_X448) && (available_key_agreements&BCTBX_KEM_KYBER1024)) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K448_KYB1024;
+			index++;
+		}
 
-				if ((available_key_agreements&BCTBX_KEM_X448) && (available_key_agreements&BCTBX_KEM_SIKE751)) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_K448_SIK751;
-					index++;
-				}
+		if ((available_key_agreements&BCTBX_KEM_X448) && (available_key_agreements&BCTBX_KEM_SIKE751)) {
+			availableTypes[index] = ZRTP_KEYAGREEMENT_K448_SIK751;
+			index++;
+		}
 
-				/* Mult is not mandatory but we need it to support old buggy implementation */
-				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult;
-				return index+1;
-			}
-		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
-			availableTypes[0] = ZRTP_SAS_B32;
-			availableTypes[1] = ZRTP_SAS_B256;
-			return 2;
-		default:
-			return 0;
+		/* Mult is not mandatory but we need it to support old buggy implementation */
+		availableTypes[index] = ZRTP_KEYAGREEMENT_Mult;
+		return index+1;
+	}
+	case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
+		availableTypes[0] = ZRTP_SAS_B32;
+		availableTypes[1] = ZRTP_SAS_B256;
+		return 2;
+	default:
+		return 0;
 	}
 }
 uint8_t bzrtp_available_key_agreement(uint8_t algos[256]) {
@@ -192,34 +192,34 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 uint8_t bzrtpUtils_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTypes[7]) {
 
 	switch(algoType) {
-		case ZRTP_HASH_TYPE:
-			mandatoryTypes[0] = ZRTP_HASH_S256;
-			return 1;
-		case ZRTP_CIPHERBLOCK_TYPE:
-			mandatoryTypes[0] = ZRTP_CIPHER_AES1;
-			return 1;
-		case ZRTP_AUTHTAG_TYPE:
-			mandatoryTypes[0] = ZRTP_AUTHTAG_HS32;
-			mandatoryTypes[1] = ZRTP_AUTHTAG_HS80;
-			return 2;
-		case ZRTP_KEYAGREEMENT_TYPE:
-			mandatoryTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
-			mandatoryTypes[1] = ZRTP_KEYAGREEMENT_Mult; /* we must add this one if we want to be able to make multistream */
-			return 2;
-		case ZRTP_SAS_TYPE:
-			mandatoryTypes[0] = ZRTP_SAS_B32;
-			return 1;
-		default:
-			return 0;
+	case ZRTP_HASH_TYPE:
+		mandatoryTypes[0] = ZRTP_HASH_S256;
+		return 1;
+	case ZRTP_CIPHERBLOCK_TYPE:
+		mandatoryTypes[0] = ZRTP_CIPHER_AES1;
+		return 1;
+	case ZRTP_AUTHTAG_TYPE:
+		mandatoryTypes[0] = ZRTP_AUTHTAG_HS32;
+		mandatoryTypes[1] = ZRTP_AUTHTAG_HS80;
+		return 2;
+	case ZRTP_KEYAGREEMENT_TYPE:
+		mandatoryTypes[0] = ZRTP_KEYAGREEMENT_DH3k;
+		mandatoryTypes[1] = ZRTP_KEYAGREEMENT_Mult; /* we must add this one if we want to be able to make multistream */
+		return 2;
+	case ZRTP_SAS_TYPE:
+		mandatoryTypes[0] = ZRTP_SAS_B32;
+		return 1;
+	default:
+		return 0;
 	}
 }
 
 int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
-		const uint8_t *label, const size_t labelLength,
-		const uint8_t *context, const size_t contextLength,
-		const uint8_t hmacLength,
-		void (*hmacFunction)(const uint8_t *, size_t, const uint8_t *, size_t, uint8_t, uint8_t *),
-		uint8_t *output) {
+								const uint8_t *label, const size_t labelLength,
+								const uint8_t *context, const size_t contextLength,
+								const uint8_t hmacLength,
+								void (*hmacFunction)(const uint8_t *, size_t, const uint8_t *, size_t, uint8_t, uint8_t *),
+								uint8_t *output) {
 
 	/* get the total length (in bytes) of the data to be hashed */
 	/* need to add 4 bytes for the initial constant 0x00000001, 1 byte for the 0x00 separator and 4 bytes for the hmacLength length */
@@ -282,70 +282,70 @@ void bzrtp_base256(uint32_t sas, char *output, int outputSize) {
 }
 
 uint32_t CRC32LookupTable[256] = {
-0x00000000, 0xf26b8303, 0xe13b70f7, 0x1350f3f4,
-0xc79a971f, 0x35f1141c, 0x26a1e7e8, 0xd4ca64eb,
-0x8ad958cf, 0x78b2dbcc, 0x6be22838, 0x9989ab3b,
-0x4d43cfd0, 0xbf284cd3, 0xac78bf27, 0x5e133c24,
-0x105ec76f, 0xe235446c, 0xf165b798, 0x030e349b,
-0xd7c45070, 0x25afd373, 0x36ff2087, 0xc494a384,
-0x9a879fa0, 0x68ec1ca3, 0x7bbcef57, 0x89d76c54,
-0x5d1d08bf, 0xaf768bbc, 0xbc267848, 0x4e4dfb4b,
-0x20bd8ede, 0xd2d60ddd, 0xc186fe29, 0x33ed7d2a,
-0xe72719c1, 0x154c9ac2, 0x061c6936, 0xf477ea35,
-0xaa64d611, 0x580f5512, 0x4b5fa6e6, 0xb93425e5,
-0x6dfe410e, 0x9f95c20d, 0x8cc531f9, 0x7eaeb2fa,
-0x30e349b1, 0xc288cab2, 0xd1d83946, 0x23b3ba45,
-0xf779deae, 0x05125dad, 0x1642ae59, 0xe4292d5a,
-0xba3a117e, 0x4851927d, 0x5b016189, 0xa96ae28a,
-0x7da08661, 0x8fcb0562, 0x9c9bf696, 0x6ef07595,
-0x417b1dbc, 0xb3109ebf, 0xa0406d4b, 0x522bee48,
-0x86e18aa3, 0x748a09a0, 0x67dafa54, 0x95b17957,
-0xcba24573, 0x39c9c670, 0x2a993584, 0xd8f2b687,
-0x0c38d26c, 0xfe53516f, 0xed03a29b, 0x1f682198,
-0x5125dad3, 0xa34e59d0, 0xb01eaa24, 0x42752927,
-0x96bf4dcc, 0x64d4cecf, 0x77843d3b, 0x85efbe38,
-0xdbfc821c, 0x2997011f, 0x3ac7f2eb, 0xc8ac71e8,
-0x1c661503, 0xee0d9600, 0xfd5d65f4, 0x0f36e6f7,
-0x61c69362, 0x93ad1061, 0x80fde395, 0x72966096,
-0xa65c047d, 0x5437877e, 0x4767748a, 0xb50cf789,
-0xeb1fcbad, 0x197448ae, 0x0a24bb5a, 0xf84f3859,
-0x2c855cb2, 0xdeeedfb1, 0xcdbe2c45, 0x3fd5af46,
-0x7198540d, 0x83f3d70e, 0x90a324fa, 0x62c8a7f9,
-0xb602c312, 0x44694011, 0x5739b3e5, 0xa55230e6,
-0xfb410cc2, 0x092a8fc1, 0x1a7a7c35, 0xe811ff36,
-0x3cdb9bdd, 0xceb018de, 0xdde0eb2a, 0x2f8b6829,
-0x82f63b78, 0x709db87b, 0x63cd4b8f, 0x91a6c88c,
-0x456cac67, 0xb7072f64, 0xa457dc90, 0x563c5f93,
-0x082f63b7, 0xfa44e0b4, 0xe9141340, 0x1b7f9043,
-0xcfb5f4a8, 0x3dde77ab, 0x2e8e845f, 0xdce5075c,
-0x92a8fc17, 0x60c37f14, 0x73938ce0, 0x81f80fe3,
-0x55326b08, 0xa759e80b, 0xb4091bff, 0x466298fc,
-0x1871a4d8, 0xea1a27db, 0xf94ad42f, 0x0b21572c,
-0xdfeb33c7, 0x2d80b0c4, 0x3ed04330, 0xccbbc033,
-0xa24bb5a6, 0x502036a5, 0x4370c551, 0xb11b4652,
-0x65d122b9, 0x97baa1ba, 0x84ea524e, 0x7681d14d,
-0x2892ed69, 0xdaf96e6a, 0xc9a99d9e, 0x3bc21e9d,
-0xef087a76, 0x1d63f975, 0x0e330a81, 0xfc588982,
-0xb21572c9, 0x407ef1ca, 0x532e023e, 0xa145813d,
-0x758fe5d6, 0x87e466d5, 0x94b49521, 0x66df1622,
-0x38cc2a06, 0xcaa7a905, 0xd9f75af1, 0x2b9cd9f2,
-0xff56bd19, 0x0d3d3e1a, 0x1e6dcdee, 0xec064eed,
-0xc38d26c4, 0x31e6a5c7, 0x22b65633, 0xd0ddd530,
-0x0417b1db, 0xf67c32d8, 0xe52cc12c, 0x1747422f,
-0x49547e0b, 0xbb3ffd08, 0xa86f0efc, 0x5a048dff,
-0x8ecee914, 0x7ca56a17, 0x6ff599e3, 0x9d9e1ae0,
-0xd3d3e1ab, 0x21b862a8, 0x32e8915c, 0xc083125f,
-0x144976b4, 0xe622f5b7, 0xf5720643, 0x07198540,
-0x590ab964, 0xab613a67, 0xb831c993, 0x4a5a4a90,
-0x9e902e7b, 0x6cfbad78, 0x7fab5e8c, 0x8dc0dd8f,
-0xe330a81a, 0x115b2b19, 0x020bd8ed, 0xf0605bee,
-0x24aa3f05, 0xd6c1bc06, 0xc5914ff2, 0x37faccf1,
-0x69e9f0d5, 0x9b8273d6, 0x88d28022, 0x7ab90321,
-0xae7367ca, 0x5c18e4c9, 0x4f48173d, 0xbd23943e,
-0xf36e6f75, 0x0105ec76, 0x12551f82, 0xe03e9c81,
-0x34f4f86a, 0xc69f7b69, 0xd5cf889d, 0x27a40b9e,
-0x79b737ba, 0x8bdcb4b9, 0x988c474d, 0x6ae7c44e,
-0xbe2da0a5, 0x4c4623a6, 0x5f16d052, 0xad7d5351
+	0x00000000, 0xf26b8303, 0xe13b70f7, 0x1350f3f4,
+	0xc79a971f, 0x35f1141c, 0x26a1e7e8, 0xd4ca64eb,
+	0x8ad958cf, 0x78b2dbcc, 0x6be22838, 0x9989ab3b,
+	0x4d43cfd0, 0xbf284cd3, 0xac78bf27, 0x5e133c24,
+	0x105ec76f, 0xe235446c, 0xf165b798, 0x030e349b,
+	0xd7c45070, 0x25afd373, 0x36ff2087, 0xc494a384,
+	0x9a879fa0, 0x68ec1ca3, 0x7bbcef57, 0x89d76c54,
+	0x5d1d08bf, 0xaf768bbc, 0xbc267848, 0x4e4dfb4b,
+	0x20bd8ede, 0xd2d60ddd, 0xc186fe29, 0x33ed7d2a,
+	0xe72719c1, 0x154c9ac2, 0x061c6936, 0xf477ea35,
+	0xaa64d611, 0x580f5512, 0x4b5fa6e6, 0xb93425e5,
+	0x6dfe410e, 0x9f95c20d, 0x8cc531f9, 0x7eaeb2fa,
+	0x30e349b1, 0xc288cab2, 0xd1d83946, 0x23b3ba45,
+	0xf779deae, 0x05125dad, 0x1642ae59, 0xe4292d5a,
+	0xba3a117e, 0x4851927d, 0x5b016189, 0xa96ae28a,
+	0x7da08661, 0x8fcb0562, 0x9c9bf696, 0x6ef07595,
+	0x417b1dbc, 0xb3109ebf, 0xa0406d4b, 0x522bee48,
+	0x86e18aa3, 0x748a09a0, 0x67dafa54, 0x95b17957,
+	0xcba24573, 0x39c9c670, 0x2a993584, 0xd8f2b687,
+	0x0c38d26c, 0xfe53516f, 0xed03a29b, 0x1f682198,
+	0x5125dad3, 0xa34e59d0, 0xb01eaa24, 0x42752927,
+	0x96bf4dcc, 0x64d4cecf, 0x77843d3b, 0x85efbe38,
+	0xdbfc821c, 0x2997011f, 0x3ac7f2eb, 0xc8ac71e8,
+	0x1c661503, 0xee0d9600, 0xfd5d65f4, 0x0f36e6f7,
+	0x61c69362, 0x93ad1061, 0x80fde395, 0x72966096,
+	0xa65c047d, 0x5437877e, 0x4767748a, 0xb50cf789,
+	0xeb1fcbad, 0x197448ae, 0x0a24bb5a, 0xf84f3859,
+	0x2c855cb2, 0xdeeedfb1, 0xcdbe2c45, 0x3fd5af46,
+	0x7198540d, 0x83f3d70e, 0x90a324fa, 0x62c8a7f9,
+	0xb602c312, 0x44694011, 0x5739b3e5, 0xa55230e6,
+	0xfb410cc2, 0x092a8fc1, 0x1a7a7c35, 0xe811ff36,
+	0x3cdb9bdd, 0xceb018de, 0xdde0eb2a, 0x2f8b6829,
+	0x82f63b78, 0x709db87b, 0x63cd4b8f, 0x91a6c88c,
+	0x456cac67, 0xb7072f64, 0xa457dc90, 0x563c5f93,
+	0x082f63b7, 0xfa44e0b4, 0xe9141340, 0x1b7f9043,
+	0xcfb5f4a8, 0x3dde77ab, 0x2e8e845f, 0xdce5075c,
+	0x92a8fc17, 0x60c37f14, 0x73938ce0, 0x81f80fe3,
+	0x55326b08, 0xa759e80b, 0xb4091bff, 0x466298fc,
+	0x1871a4d8, 0xea1a27db, 0xf94ad42f, 0x0b21572c,
+	0xdfeb33c7, 0x2d80b0c4, 0x3ed04330, 0xccbbc033,
+	0xa24bb5a6, 0x502036a5, 0x4370c551, 0xb11b4652,
+	0x65d122b9, 0x97baa1ba, 0x84ea524e, 0x7681d14d,
+	0x2892ed69, 0xdaf96e6a, 0xc9a99d9e, 0x3bc21e9d,
+	0xef087a76, 0x1d63f975, 0x0e330a81, 0xfc588982,
+	0xb21572c9, 0x407ef1ca, 0x532e023e, 0xa145813d,
+	0x758fe5d6, 0x87e466d5, 0x94b49521, 0x66df1622,
+	0x38cc2a06, 0xcaa7a905, 0xd9f75af1, 0x2b9cd9f2,
+	0xff56bd19, 0x0d3d3e1a, 0x1e6dcdee, 0xec064eed,
+	0xc38d26c4, 0x31e6a5c7, 0x22b65633, 0xd0ddd530,
+	0x0417b1db, 0xf67c32d8, 0xe52cc12c, 0x1747422f,
+	0x49547e0b, 0xbb3ffd08, 0xa86f0efc, 0x5a048dff,
+	0x8ecee914, 0x7ca56a17, 0x6ff599e3, 0x9d9e1ae0,
+	0xd3d3e1ab, 0x21b862a8, 0x32e8915c, 0xc083125f,
+	0x144976b4, 0xe622f5b7, 0xf5720643, 0x07198540,
+	0x590ab964, 0xab613a67, 0xb831c993, 0x4a5a4a90,
+	0x9e902e7b, 0x6cfbad78, 0x7fab5e8c, 0x8dc0dd8f,
+	0xe330a81a, 0x115b2b19, 0x020bd8ed, 0xf0605bee,
+	0x24aa3f05, 0xd6c1bc06, 0xc5914ff2, 0x37faccf1,
+	0x69e9f0d5, 0x9b8273d6, 0x88d28022, 0x7ab90321,
+	0xae7367ca, 0x5c18e4c9, 0x4f48173d, 0xbd23943e,
+	0xf36e6f75, 0x0105ec76, 0x12551f82, 0xe03e9c81,
+	0x34f4f86a, 0xc69f7b69, 0xd5cf889d, 0x27a40b9e,
+	0x79b737ba, 0x8bdcb4b9, 0x988c474d, 0x6ae7c44e,
+	0xbe2da0a5, 0x4c4623a6, 0x5f16d052, 0xad7d5351
 };
 
 /* CRC32 Polynomial 0x1EDC6F41 in reverse bit order so
@@ -364,7 +364,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 			crcT = (crcT >> 1) ^ ((crcT & 1) * 0x82F63B78);
 		}
 		CRC32LookupTable[i] = crcT;
-  	}
+	}
 
 	for (i=0; i<256; i+=4) {
 			printf("0x%08lx, 0x%08lx, 0x%08lx, 0x%08lx,\n", (long unsigned int)CRC32LookupTable[i], (long unsigned int)CRC32LookupTable[i+1], (long unsigned int)CRC32LookupTable[i+2], (long unsigned int)CRC32LookupTable[i+3]);
@@ -383,19 +383,19 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 
 bool_t bzrtp_isPostQuantum(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_KYB1:
-		case ZRTP_KEYAGREEMENT_KYB2:
-		case ZRTP_KEYAGREEMENT_KYB3:
-		case ZRTP_KEYAGREEMENT_SIK1:
-		case ZRTP_KEYAGREEMENT_SIK2:
-		case ZRTP_KEYAGREEMENT_SIK3:
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return TRUE;
-		default:
-			return false;
+	case ZRTP_KEYAGREEMENT_KYB1:
+	case ZRTP_KEYAGREEMENT_KYB2:
+	case ZRTP_KEYAGREEMENT_KYB3:
+	case ZRTP_KEYAGREEMENT_SIK1:
+	case ZRTP_KEYAGREEMENT_SIK2:
+	case ZRTP_KEYAGREEMENT_SIK3:
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		return TRUE;
+	default:
+		return false;
 	}
 }
 
@@ -580,98 +580,98 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 
 	/* Hash algo */
 	switch (zrtpChannelContext->hashAlgo) {
-		case ZRTP_HASH_S256 :
-			zrtpChannelContext->hashFunction = bctbx_sha256;
-			zrtpChannelContext->hmacFunction = bctbx_hmacSha256;
-			zrtpChannelContext->hashLength = 32;
-			break;
-		case ZRTP_HASH_S384 :
-			zrtpChannelContext->hashFunction = bctbx_sha384;
-			zrtpChannelContext->hmacFunction = bctbx_hmacSha384;
-			zrtpChannelContext->hashLength = 48;
-			break;
-		case ZRTP_HASH_S512 :
-			zrtpChannelContext->hashFunction = bctbx_sha512;
-			zrtpChannelContext->hmacFunction = bctbx_hmacSha512;
-			zrtpChannelContext->hashLength = 64;
-			break;
-		case ZRTP_UNSET_ALGO :
-			zrtpChannelContext->hashFunction = NULL;
-			zrtpChannelContext->hmacFunction = NULL;
-			zrtpChannelContext->hashLength = 0;
-			break;
-		default:
-			return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
-			break;
+	case ZRTP_HASH_S256 :
+		zrtpChannelContext->hashFunction = bctbx_sha256;
+		zrtpChannelContext->hmacFunction = bctbx_hmacSha256;
+		zrtpChannelContext->hashLength = 32;
+		break;
+	case ZRTP_HASH_S384 :
+		zrtpChannelContext->hashFunction = bctbx_sha384;
+		zrtpChannelContext->hmacFunction = bctbx_hmacSha384;
+		zrtpChannelContext->hashLength = 48;
+		break;
+	case ZRTP_HASH_S512 :
+		zrtpChannelContext->hashFunction = bctbx_sha512;
+		zrtpChannelContext->hmacFunction = bctbx_hmacSha512;
+		zrtpChannelContext->hashLength = 64;
+		break;
+	case ZRTP_UNSET_ALGO :
+		zrtpChannelContext->hashFunction = NULL;
+		zrtpChannelContext->hmacFunction = NULL;
+		zrtpChannelContext->hashLength = 0;
+		break;
+	default:
+		return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
+		break;
 	}
 
 	/* CipherBlock algo */
 	switch (zrtpChannelContext->cipherAlgo) {
-		case ZRTP_CIPHER_AES1 :
-			zrtpChannelContext->cipherEncryptionFunction = bctbx_aes128CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bctbx_aes128CfbDecrypt;
-			zrtpChannelContext->cipherKeyLength = 16;
-			break;
-		case ZRTP_CIPHER_AES3 :
-			zrtpChannelContext->cipherEncryptionFunction = bctbx_aes256CfbEncrypt;
-			zrtpChannelContext->cipherDecryptionFunction = bctbx_aes256CfbDecrypt;
-			zrtpChannelContext->cipherKeyLength = 32;
-			break;
-		case ZRTP_UNSET_ALGO :
-			zrtpChannelContext->cipherEncryptionFunction = NULL;
-			zrtpChannelContext->cipherDecryptionFunction = NULL;
-			zrtpChannelContext->cipherKeyLength = 0;
-			break;
-		default:
-			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
-			break;
+	case ZRTP_CIPHER_AES1 :
+		zrtpChannelContext->cipherEncryptionFunction = bctbx_aes128CfbEncrypt;
+		zrtpChannelContext->cipherDecryptionFunction = bctbx_aes128CfbDecrypt;
+		zrtpChannelContext->cipherKeyLength = 16;
+		break;
+	case ZRTP_CIPHER_AES3 :
+		zrtpChannelContext->cipherEncryptionFunction = bctbx_aes256CfbEncrypt;
+		zrtpChannelContext->cipherDecryptionFunction = bctbx_aes256CfbDecrypt;
+		zrtpChannelContext->cipherKeyLength = 32;
+		break;
+	case ZRTP_UNSET_ALGO :
+		zrtpChannelContext->cipherEncryptionFunction = NULL;
+		zrtpChannelContext->cipherDecryptionFunction = NULL;
+		zrtpChannelContext->cipherKeyLength = 0;
+		break;
+	default:
+		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
+		break;
 	}
 
 	/* Key agreement algo : is directly managed in the parse and state machine, nothing to do, just check it is valid */
 	switch (zrtpChannelContext->keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH2k:
-		case ZRTP_KEYAGREEMENT_DH3k:
-		case ZRTP_KEYAGREEMENT_X255:
-		case ZRTP_KEYAGREEMENT_X448:
-		case ZRTP_KEYAGREEMENT_K255:
-		case ZRTP_KEYAGREEMENT_K448:
-		case ZRTP_KEYAGREEMENT_KYB1:
-		case ZRTP_KEYAGREEMENT_KYB2:
-		case ZRTP_KEYAGREEMENT_KYB3:
-		case ZRTP_KEYAGREEMENT_SIK1:
-		case ZRTP_KEYAGREEMENT_SIK2:
-		case ZRTP_KEYAGREEMENT_SIK3:
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-		case ZRTP_KEYAGREEMENT_Mult:
-		case ZRTP_KEYAGREEMENT_Prsh:
-		case ZRTP_UNSET_ALGO :
-			break;
-		default:
-			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
-			break;
+	case ZRTP_KEYAGREEMENT_DH2k:
+	case ZRTP_KEYAGREEMENT_DH3k:
+	case ZRTP_KEYAGREEMENT_X255:
+	case ZRTP_KEYAGREEMENT_X448:
+	case ZRTP_KEYAGREEMENT_K255:
+	case ZRTP_KEYAGREEMENT_K448:
+	case ZRTP_KEYAGREEMENT_KYB1:
+	case ZRTP_KEYAGREEMENT_KYB2:
+	case ZRTP_KEYAGREEMENT_KYB3:
+	case ZRTP_KEYAGREEMENT_SIK1:
+	case ZRTP_KEYAGREEMENT_SIK2:
+	case ZRTP_KEYAGREEMENT_SIK3:
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+	case ZRTP_KEYAGREEMENT_Mult:
+	case ZRTP_KEYAGREEMENT_Prsh:
+	case ZRTP_UNSET_ALGO :
+		break;
+	default:
+		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
+		break;
 	}
 
 	/* SAS rendering algo */
 	switch(zrtpChannelContext->sasAlgo) {
-		case ZRTP_SAS_B32:
-			zrtpChannelContext->sasFunction = bzrtp_base32;
-			// extend 4 byte b32 length to include null terminator
-			zrtpChannelContext->sasLength = 5;
-			break;
-		case ZRTP_SAS_B256:
-			zrtpChannelContext->sasFunction = bzrtp_base256;
-			zrtpChannelContext->sasLength = 32;
-			break;
-		case ZRTP_UNSET_ALGO :
-			zrtpChannelContext->sasFunction = NULL;
-			zrtpChannelContext->sasLength = 0;
-			break;
-		default:
-			return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
-			break;
+	case ZRTP_SAS_B32:
+		zrtpChannelContext->sasFunction = bzrtp_base32;
+		// extend 4 byte b32 length to include null terminator
+		zrtpChannelContext->sasLength = 5;
+		break;
+	case ZRTP_SAS_B256:
+		zrtpChannelContext->sasFunction = bzrtp_base256;
+		zrtpChannelContext->sasLength = 32;
+		break;
+	case ZRTP_UNSET_ALGO :
+		zrtpChannelContext->sasFunction = NULL;
+		zrtpChannelContext->sasLength = 0;
+		break;
+	default:
+		return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
+		break;
 	}
 	return 0;
 }
@@ -786,118 +786,118 @@ void bzrtp_addMandatoryCryptoTypesIfNeeded(uint8_t algoType, uint8_t algoTypes[7
  */
 uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily) {
 	switch (algoFamily) {
-		case ZRTP_HASH_TYPE:
-			{
-				if (memcmp(algoType, "S256", 4) == 0) {
-					return ZRTP_HASH_S256;
-				} else if (memcmp(algoType, "S384", 4) == 0) {
-					return ZRTP_HASH_S384;
-				} else if (memcmp(algoType, "S512", 4) == 0) {
-					return ZRTP_HASH_S512;
-				} else if (memcmp(algoType, "N256", 4) == 0) {
-					return ZRTP_HASH_N256;
-				} else if (memcmp(algoType, "N384", 4) == 0) {
-					return ZRTP_HASH_N384;
-				}
-				return ZRTP_UNSET_ALGO;
-			}
-			break;
+	case ZRTP_HASH_TYPE:
+	{
+		if (memcmp(algoType, "S256", 4) == 0) {
+			return ZRTP_HASH_S256;
+		} else if (memcmp(algoType, "S384", 4) == 0) {
+			return ZRTP_HASH_S384;
+		} else if (memcmp(algoType, "S512", 4) == 0) {
+			return ZRTP_HASH_S512;
+		} else if (memcmp(algoType, "N256", 4) == 0) {
+			return ZRTP_HASH_N256;
+		} else if (memcmp(algoType, "N384", 4) == 0) {
+			return ZRTP_HASH_N384;
+		}
+		return ZRTP_UNSET_ALGO;
+	}
+		break;
 
-		case ZRTP_CIPHERBLOCK_TYPE:
-			{
-				if (memcmp(algoType, "AES1", 4) == 0) {
-					return ZRTP_CIPHER_AES1;
-				} else if (memcmp(algoType, "AES2", 4) == 0) {
-					return ZRTP_CIPHER_AES2;
-				} else if (memcmp(algoType, "AES3", 4) == 0) {
-					return ZRTP_CIPHER_AES3;
-				} else if (memcmp(algoType, "2FS1", 4) == 0) {
-					return ZRTP_CIPHER_2FS1;
-				} else if (memcmp(algoType, "2FS2", 4) == 0) {
-					return ZRTP_CIPHER_2FS2;
-				} else if (memcmp(algoType, "2FS3", 4) == 0) {
-					return ZRTP_CIPHER_2FS3;
-				}
-				return ZRTP_UNSET_ALGO;
-			}
-			break;
+	case ZRTP_CIPHERBLOCK_TYPE:
+	{
+		if (memcmp(algoType, "AES1", 4) == 0) {
+			return ZRTP_CIPHER_AES1;
+		} else if (memcmp(algoType, "AES2", 4) == 0) {
+			return ZRTP_CIPHER_AES2;
+		} else if (memcmp(algoType, "AES3", 4) == 0) {
+			return ZRTP_CIPHER_AES3;
+		} else if (memcmp(algoType, "2FS1", 4) == 0) {
+			return ZRTP_CIPHER_2FS1;
+		} else if (memcmp(algoType, "2FS2", 4) == 0) {
+			return ZRTP_CIPHER_2FS2;
+		} else if (memcmp(algoType, "2FS3", 4) == 0) {
+			return ZRTP_CIPHER_2FS3;
+		}
+		return ZRTP_UNSET_ALGO;
+	}
+		break;
 
-		case ZRTP_AUTHTAG_TYPE:
-			{
-				if (memcmp(algoType, "HS32", 4) == 0) {
-					return ZRTP_AUTHTAG_HS32;
-				} else if (memcmp(algoType, "HS80", 4) == 0) {
-					return ZRTP_AUTHTAG_HS80;
-				} else if (memcmp(algoType, "SK32", 4) == 0) {
-					return ZRTP_AUTHTAG_SK32;
-				} else if (memcmp(algoType, "SK64", 4) == 0) {
-					return ZRTP_AUTHTAG_SK64;
-				}
-				return ZRTP_UNSET_ALGO;
-			}
-			break;
+	case ZRTP_AUTHTAG_TYPE:
+	{
+		if (memcmp(algoType, "HS32", 4) == 0) {
+			return ZRTP_AUTHTAG_HS32;
+		} else if (memcmp(algoType, "HS80", 4) == 0) {
+			return ZRTP_AUTHTAG_HS80;
+		} else if (memcmp(algoType, "SK32", 4) == 0) {
+			return ZRTP_AUTHTAG_SK32;
+		} else if (memcmp(algoType, "SK64", 4) == 0) {
+			return ZRTP_AUTHTAG_SK64;
+		}
+		return ZRTP_UNSET_ALGO;
+	}
+		break;
 
-		case ZRTP_KEYAGREEMENT_TYPE:
-			{
-				if (memcmp(algoType, "DH3k", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_DH3k;
-				} else if (memcmp(algoType, "DH2k", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_DH2k;
-				} else if (memcmp(algoType, "X255", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_X255;
-				} else if (memcmp(algoType, "K255", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K255;
-				} else if (memcmp(algoType, "EC25", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_EC25;
-				} else if (memcmp(algoType, "X448", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_X448;
-				} else if (memcmp(algoType, "K448", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K448;
-				} else if (memcmp(algoType, "EC38", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_EC38;
-				} else if (memcmp(algoType, "EC52", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_EC52;
-				} else if (memcmp(algoType, "KYB1", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_KYB1;
-				} else if (memcmp(algoType, "KYB2", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_KYB2;
-				} else if (memcmp(algoType, "KYB3", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_KYB3;
-				} else if (memcmp(algoType, "SIK1", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_SIK1;
-				} else if (memcmp(algoType, "SIK2", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_SIK2;
-				} else if (memcmp(algoType, "SIK3", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_SIK3;
-				} else if (memcmp(algoType, "X1K1", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K255_KYB512;
-				} else if (memcmp(algoType, "X1S1", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K255_SIK434;
-				} else if (memcmp(algoType, "X3K3", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K448_KYB1024;
-				} else if (memcmp(algoType, "X3S3", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_K448_SIK751;
-				} else if (memcmp(algoType, "Prsh", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_Prsh;
-				} else if (memcmp(algoType, "Mult", 4) == 0) {
-					return ZRTP_KEYAGREEMENT_Mult;
-				}
-				return ZRTP_UNSET_ALGO;
-			}
-			break;
+	case ZRTP_KEYAGREEMENT_TYPE:
+	{
+		if (memcmp(algoType, "DH3k", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_DH3k;
+		} else if (memcmp(algoType, "DH2k", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_DH2k;
+		} else if (memcmp(algoType, "X255", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_X255;
+		} else if (memcmp(algoType, "K255", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K255;
+		} else if (memcmp(algoType, "EC25", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_EC25;
+		} else if (memcmp(algoType, "X448", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_X448;
+		} else if (memcmp(algoType, "K448", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K448;
+		} else if (memcmp(algoType, "EC38", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_EC38;
+		} else if (memcmp(algoType, "EC52", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_EC52;
+		} else if (memcmp(algoType, "KYB1", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_KYB1;
+		} else if (memcmp(algoType, "KYB2", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_KYB2;
+		} else if (memcmp(algoType, "KYB3", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_KYB3;
+		} else if (memcmp(algoType, "SIK1", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_SIK1;
+		} else if (memcmp(algoType, "SIK2", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_SIK2;
+		} else if (memcmp(algoType, "SIK3", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_SIK3;
+		} else if (memcmp(algoType, "X1K1", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K255_KYB512;
+		} else if (memcmp(algoType, "X1S1", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K255_SIK434;
+		} else if (memcmp(algoType, "X3K3", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K448_KYB1024;
+		} else if (memcmp(algoType, "X3S3", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_K448_SIK751;
+		} else if (memcmp(algoType, "Prsh", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_Prsh;
+		} else if (memcmp(algoType, "Mult", 4) == 0) {
+			return ZRTP_KEYAGREEMENT_Mult;
+		}
+		return ZRTP_UNSET_ALGO;
+	}
+		break;
 
-		case ZRTP_SAS_TYPE :
-			{
-				if (memcmp(algoType, "B32 ", 4) == 0) {
-					return ZRTP_SAS_B32;
-				} else if (memcmp(algoType, "B256", 4) == 0) {
-					return ZRTP_SAS_B256;
-				}
-				return ZRTP_UNSET_ALGO;
-			}
-			break;
-		default:
-			return ZRTP_UNSET_ALGO;
+	case ZRTP_SAS_TYPE :
+	{
+		if (memcmp(algoType, "B32 ", 4) == 0) {
+			return ZRTP_SAS_B32;
+		} else if (memcmp(algoType, "B256", 4) == 0) {
+			return ZRTP_SAS_B256;
+		}
+		return ZRTP_UNSET_ALGO;
+	}
+		break;
+	default:
+		return ZRTP_UNSET_ALGO;
 	}
 }
 
@@ -909,123 +909,123 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
  */
 void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString[4]) {
 	switch (algoTypeInt) {
-		case ZRTP_HASH_S256:
-			memcpy(algoTypeString, "S256", 4);
-			break;
-		case ZRTP_HASH_S384:
-			memcpy(algoTypeString, "S384", 4);
-			break;
-		case ZRTP_HASH_S512:
-			memcpy(algoTypeString, "S512", 4);
-			break;
-		case ZRTP_HASH_N256:
-			memcpy(algoTypeString, "N256", 4);
-			break;
-		case ZRTP_HASH_N384:
-			memcpy(algoTypeString, "N384", 4);
-			break;
-		case ZRTP_CIPHER_AES1:
-			memcpy(algoTypeString, "AES1", 4);
-			break;
-		case ZRTP_CIPHER_AES2:
-			memcpy(algoTypeString, "AES2", 4);
-			break;
-		case ZRTP_CIPHER_AES3:
-			memcpy(algoTypeString, "AES3", 4);
-			break;
-		case ZRTP_CIPHER_2FS1:
-			memcpy(algoTypeString, "2FS1", 4);
-			break;
-		case ZRTP_CIPHER_2FS2:
-			memcpy(algoTypeString, "2FS2", 4);
-			break;
-		case ZRTP_CIPHER_2FS3:
-			memcpy(algoTypeString, "2FS3", 4);
-			break;
-		case ZRTP_AUTHTAG_HS32:
-			memcpy(algoTypeString, "HS32", 4);
-			break;
-		case ZRTP_AUTHTAG_HS80:
-			memcpy(algoTypeString, "HS80", 4);
-			break;
-		case ZRTP_AUTHTAG_SK32:
-			memcpy(algoTypeString, "SK32", 4);
-			break;
-		case ZRTP_AUTHTAG_SK64:
-			memcpy(algoTypeString, "SK64", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_DH2k:
-			memcpy(algoTypeString, "DH2k", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_X255:
-			memcpy(algoTypeString, "X255", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K255:
-			memcpy(algoTypeString, "K255", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_EC25:
-			memcpy(algoTypeString, "EC25", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_X448:
-			memcpy(algoTypeString, "X448", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K448:
-			memcpy(algoTypeString, "K448", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_DH3k:
-			memcpy(algoTypeString, "DH3k", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_EC38:
-			memcpy(algoTypeString, "EC38", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_EC52:
-			memcpy(algoTypeString, "EC52", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_KYB1:
-			memcpy(algoTypeString, "KYB1", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_KYB2:
-			memcpy(algoTypeString, "KYB2", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_KYB3:
-			memcpy(algoTypeString, "KYB3", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_SIK1:
-			memcpy(algoTypeString, "SIK1", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_SIK2:
-			memcpy(algoTypeString, "SIK2", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_SIK3:
-			memcpy(algoTypeString, "SIK3", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			memcpy(algoTypeString, "X1K1", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			memcpy(algoTypeString, "X1S1", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			memcpy(algoTypeString, "X3K3", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			memcpy(algoTypeString, "X3S3", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_Prsh:
-			memcpy(algoTypeString, "Prsh", 4);
-			break;
-		case ZRTP_KEYAGREEMENT_Mult:
-			memcpy(algoTypeString, "Mult", 4);
-			break;
-		case ZRTP_SAS_B32:
-			memcpy(algoTypeString, "B32 ", 4);
-			break;
-		case ZRTP_SAS_B256:
-			memcpy(algoTypeString, "B256", 4);
-			break;
-		default :
-			memcpy(algoTypeString, "NSET", 4);
-			break;
+	case ZRTP_HASH_S256:
+		memcpy(algoTypeString, "S256", 4);
+		break;
+	case ZRTP_HASH_S384:
+		memcpy(algoTypeString, "S384", 4);
+		break;
+	case ZRTP_HASH_S512:
+		memcpy(algoTypeString, "S512", 4);
+		break;
+	case ZRTP_HASH_N256:
+		memcpy(algoTypeString, "N256", 4);
+		break;
+	case ZRTP_HASH_N384:
+		memcpy(algoTypeString, "N384", 4);
+		break;
+	case ZRTP_CIPHER_AES1:
+		memcpy(algoTypeString, "AES1", 4);
+		break;
+	case ZRTP_CIPHER_AES2:
+		memcpy(algoTypeString, "AES2", 4);
+		break;
+	case ZRTP_CIPHER_AES3:
+		memcpy(algoTypeString, "AES3", 4);
+		break;
+	case ZRTP_CIPHER_2FS1:
+		memcpy(algoTypeString, "2FS1", 4);
+		break;
+	case ZRTP_CIPHER_2FS2:
+		memcpy(algoTypeString, "2FS2", 4);
+		break;
+	case ZRTP_CIPHER_2FS3:
+		memcpy(algoTypeString, "2FS3", 4);
+		break;
+	case ZRTP_AUTHTAG_HS32:
+		memcpy(algoTypeString, "HS32", 4);
+		break;
+	case ZRTP_AUTHTAG_HS80:
+		memcpy(algoTypeString, "HS80", 4);
+		break;
+	case ZRTP_AUTHTAG_SK32:
+		memcpy(algoTypeString, "SK32", 4);
+		break;
+	case ZRTP_AUTHTAG_SK64:
+		memcpy(algoTypeString, "SK64", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_DH2k:
+		memcpy(algoTypeString, "DH2k", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_X255:
+		memcpy(algoTypeString, "X255", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K255:
+		memcpy(algoTypeString, "K255", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_EC25:
+		memcpy(algoTypeString, "EC25", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_X448:
+		memcpy(algoTypeString, "X448", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K448:
+		memcpy(algoTypeString, "K448", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_DH3k:
+		memcpy(algoTypeString, "DH3k", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_EC38:
+		memcpy(algoTypeString, "EC38", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_EC52:
+		memcpy(algoTypeString, "EC52", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_KYB1:
+		memcpy(algoTypeString, "KYB1", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_KYB2:
+		memcpy(algoTypeString, "KYB2", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_KYB3:
+		memcpy(algoTypeString, "KYB3", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_SIK1:
+		memcpy(algoTypeString, "SIK1", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_SIK2:
+		memcpy(algoTypeString, "SIK2", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_SIK3:
+		memcpy(algoTypeString, "SIK3", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+		memcpy(algoTypeString, "X1K1", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+		memcpy(algoTypeString, "X1S1", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+		memcpy(algoTypeString, "X3K3", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		memcpy(algoTypeString, "X3S3", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_Prsh:
+		memcpy(algoTypeString, "Prsh", 4);
+		break;
+	case ZRTP_KEYAGREEMENT_Mult:
+		memcpy(algoTypeString, "Mult", 4);
+		break;
+	case ZRTP_SAS_B32:
+		memcpy(algoTypeString, "B32 ", 4);
+		break;
+	case ZRTP_SAS_B256:
+		memcpy(algoTypeString, "B256", 4);
+		break;
+	default :
+		memcpy(algoTypeString, "NSET", 4);
+		break;
 	}
 }
 
@@ -1043,6 +1043,49 @@ void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext) {
 	}
 }
 
+void bzrtp_destroyKeyMaterial(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext){
+	/* destroy and free the key buffers */
+	bzrtp_DestroyKey(zrtpChannelContext->s0, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->mackeyi, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->mackeyr, zrtpChannelContext->hashLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyi, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->zrtpkeyr, zrtpChannelContext->cipherKeyLength, zrtpContext->RNGContext);
+
+	free(zrtpChannelContext->s0);
+	free(zrtpChannelContext->KDFContext);
+	free(zrtpChannelContext->mackeyi);
+	free(zrtpChannelContext->mackeyr);
+	free(zrtpChannelContext->zrtpkeyi);
+	free(zrtpChannelContext->zrtpkeyr);
+
+	zrtpChannelContext->s0=NULL;
+	zrtpChannelContext->KDFContext=NULL;
+	zrtpChannelContext->mackeyi=NULL;
+	zrtpChannelContext->mackeyr=NULL;
+	zrtpChannelContext->zrtpkeyi=NULL;
+	zrtpChannelContext->zrtpkeyr=NULL;
+
+	/* destroy and free the srtp and sas struture */
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpKey, zrtpChannelContext->srtpSecrets.selfSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.selfSrtpSalt, zrtpChannelContext->srtpSecrets.selfSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpKey, zrtpChannelContext->srtpSecrets.peerSrtpKeyLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
+	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
+
+	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
+	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
+	free(zrtpChannelContext->srtpSecrets.sas);
+
+	zrtpChannelContext->srtpSecrets.selfSrtpKey=NULL;
+	zrtpChannelContext->srtpSecrets.selfSrtpSalt=NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpKey=NULL;
+	zrtpChannelContext->srtpSecrets.peerSrtpSalt=NULL;
+	zrtpChannelContext->srtpSecrets.sas=NULL;
+}
+
 /**
  * Returns public key size in bytes for any supported KEM algo
  * @param[in] keyAgreementAlgo
@@ -1052,32 +1095,32 @@ void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext) {
 static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 #ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::pkSize;
-		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::pkSize;
-		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::pkSize;
-		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::pkSize;
-		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::pkSize;
-		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::pkSize;
-		case ZRTP_KEYAGREEMENT_K255:
-			return bctoolbox::K25519::pkSize;
-		case ZRTP_KEYAGREEMENT_K448:
-			return bctoolbox::K448::pkSize;
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			return bctoolbox::K25519::pkSize + bctoolbox::KYBER512::pkSize;
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			return bctoolbox::K25519::pkSize + bctoolbox::SIKE434::pkSize;
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			return bctoolbox::K448::pkSize + bctoolbox::KYBER1024::pkSize;
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return bctoolbox::K448::pkSize + bctoolbox::SIKE751::pkSize;
-		default:
-			return 0;
+	case ZRTP_KEYAGREEMENT_KYB1:
+		return bctoolbox::KYBER512::pkSize;
+	case ZRTP_KEYAGREEMENT_KYB2:
+		return bctoolbox::KYBER768::pkSize;
+	case ZRTP_KEYAGREEMENT_KYB3:
+		return bctoolbox::KYBER1024::pkSize;
+	case ZRTP_KEYAGREEMENT_SIK1:
+		return bctoolbox::SIKE434::pkSize;
+	case ZRTP_KEYAGREEMENT_SIK2:
+		return bctoolbox::SIKE610::pkSize;
+	case ZRTP_KEYAGREEMENT_SIK3:
+		return bctoolbox::SIKE751::pkSize;
+	case ZRTP_KEYAGREEMENT_K255:
+		return bctoolbox::K25519::pkSize;
+	case ZRTP_KEYAGREEMENT_K448:
+		return bctoolbox::K448::pkSize;
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+		return bctoolbox::K25519::pkSize + bctoolbox::KYBER512::pkSize;
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+		return bctoolbox::K25519::pkSize + bctoolbox::SIKE434::pkSize;
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+		return bctoolbox::K448::pkSize + bctoolbox::KYBER1024::pkSize;
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		return bctoolbox::K448::pkSize + bctoolbox::SIKE751::pkSize;
+	default:
+		return 0;
 	}
 #else /* HAVE_BCTBXPQ */
 	return 0;
@@ -1093,32 +1136,32 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 #ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::ctSize;
-		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::ctSize;
-		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::ctSize;
-		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::ctSize;
-		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::ctSize;
-		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::ctSize;
-		case ZRTP_KEYAGREEMENT_K255:
-			return bctoolbox::K25519::ctSize;
-		case ZRTP_KEYAGREEMENT_K448:
-			return bctoolbox::K448::ctSize;
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			return bctoolbox::K25519::ctSize + bctoolbox::KYBER512::ctSize;
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			return bctoolbox::K25519::ctSize + bctoolbox::SIKE434::ctSize;
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			return bctoolbox::K448::ctSize + bctoolbox::KYBER1024::ctSize;
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return bctoolbox::K448::ctSize + bctoolbox::SIKE751::ctSize;
-		default:
-			return 0;
+	case ZRTP_KEYAGREEMENT_KYB1:
+		return bctoolbox::KYBER512::ctSize;
+	case ZRTP_KEYAGREEMENT_KYB2:
+		return bctoolbox::KYBER768::ctSize;
+	case ZRTP_KEYAGREEMENT_KYB3:
+		return bctoolbox::KYBER1024::ctSize;
+	case ZRTP_KEYAGREEMENT_SIK1:
+		return bctoolbox::SIKE434::ctSize;
+	case ZRTP_KEYAGREEMENT_SIK2:
+		return bctoolbox::SIKE610::ctSize;
+	case ZRTP_KEYAGREEMENT_SIK3:
+		return bctoolbox::SIKE751::ctSize;
+	case ZRTP_KEYAGREEMENT_K255:
+		return bctoolbox::K25519::ctSize;
+	case ZRTP_KEYAGREEMENT_K448:
+		return bctoolbox::K448::ctSize;
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+		return bctoolbox::K25519::ctSize + bctoolbox::KYBER512::ctSize;
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+		return bctoolbox::K25519::ctSize + bctoolbox::SIKE434::ctSize;
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+		return bctoolbox::K448::ctSize + bctoolbox::KYBER1024::ctSize;
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		return bctoolbox::K448::ctSize + bctoolbox::SIKE751::ctSize;
+	default:
+		return 0;
 	}
 #else /* HAVE_BCTBXPQ */
 	return 0;
@@ -1126,105 +1169,105 @@ static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 }
 
 uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageType) {
-		switch (keyAgreementAlgo) {
-			case ZRTP_KEYAGREEMENT_DH3k	:
-				return 384;
-			case ZRTP_KEYAGREEMENT_DH2k :
-				return 256;
-			case ZRTP_KEYAGREEMENT_X255	:
-				return 32;
-			case ZRTP_KEYAGREEMENT_X448	:
-				return 56;
-			case ZRTP_KEYAGREEMENT_EC25	:
-				return 64;
-			case ZRTP_KEYAGREEMENT_EC38	:
-				return 96;
-			case ZRTP_KEYAGREEMENT_EC52 :
-				return 132;
-			default :
-				// manage all the KEM algo
-				switch (messageType) {
-					case MSGTYPE_COMMIT: // Commit packet includes the public key
-					{
-						auto ret = bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
-						ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
-						return ret;
-					}
-					case MSGTYPE_DHPART1: // DHPart1 packet holds the cipher text
-					{
-						auto ret = bzrt_getKEMCipherTextLength(keyAgreementAlgo);
-						ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
-						return ret;
-					}
-					case MSGTYPE_DHPART2: // DHPart2 holds a nonce - invalid algo would pass if giving this message type
-						return ZRTP_KEMPART2_NONCE_SIZE;
-					default:
-						return 0;
-				}
+	switch (keyAgreementAlgo) {
+	case ZRTP_KEYAGREEMENT_DH3k	:
+		return 384;
+	case ZRTP_KEYAGREEMENT_DH2k :
+		return 256;
+	case ZRTP_KEYAGREEMENT_X255	:
+		return 32;
+	case ZRTP_KEYAGREEMENT_X448	:
+		return 56;
+	case ZRTP_KEYAGREEMENT_EC25	:
+		return 64;
+	case ZRTP_KEYAGREEMENT_EC38	:
+		return 96;
+	case ZRTP_KEYAGREEMENT_EC52 :
+		return 132;
+	default :
+		// manage all the KEM algo
+		switch (messageType) {
+		case MSGTYPE_COMMIT: // Commit packet includes the public key
+		{
+			auto ret = bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+			ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
+			return ret;
 		}
+		case MSGTYPE_DHPART1: // DHPart1 packet holds the cipher text
+		{
+			auto ret = bzrt_getKEMCipherTextLength(keyAgreementAlgo);
+			ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
+			return ret;
+		}
+		case MSGTYPE_DHPART2: // DHPart2 holds a nonce - invalid algo would pass if giving this message type
+			return ZRTP_KEMPART2_NONCE_SIZE;
+		default:
+			return 0;
+		}
+	}
 }
 
 uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, uint8_t hashLength) {
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH3k	:
-			return 384;
-		case ZRTP_KEYAGREEMENT_DH2k :
-			return 256;
-		case ZRTP_KEYAGREEMENT_X255	:
-			return 32;
-		case ZRTP_KEYAGREEMENT_X448	:
-			return 56;
-		case ZRTP_KEYAGREEMENT_EC25	:
-			return 64;
-		case ZRTP_KEYAGREEMENT_EC38	:
-			return 96;
-		case ZRTP_KEYAGREEMENT_EC52 :
-			return 132;
+	case ZRTP_KEYAGREEMENT_DH3k	:
+		return 384;
+	case ZRTP_KEYAGREEMENT_DH2k :
+		return 256;
+	case ZRTP_KEYAGREEMENT_X255	:
+		return 32;
+	case ZRTP_KEYAGREEMENT_X448	:
+		return 56;
+	case ZRTP_KEYAGREEMENT_EC25	:
+		return 64;
+	case ZRTP_KEYAGREEMENT_EC38	:
+		return 96;
+	case ZRTP_KEYAGREEMENT_EC52 :
+		return 132;
 #ifdef HAVE_BCTBXPQ
-		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::ssSize;
-		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::ssSize;
-		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::ssSize;
-		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::ssSize;
-		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::ssSize;
-		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::ssSize;
-		case ZRTP_KEYAGREEMENT_K255:
-			return bctoolbox::K25519::ssSize;
-		case ZRTP_KEYAGREEMENT_K448:
-			return bctoolbox::K448::ssSize;
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return (uint16_t) hashLength;
+	case ZRTP_KEYAGREEMENT_KYB1:
+		return bctoolbox::KYBER512::ssSize;
+	case ZRTP_KEYAGREEMENT_KYB2:
+		return bctoolbox::KYBER768::ssSize;
+	case ZRTP_KEYAGREEMENT_KYB3:
+		return bctoolbox::KYBER1024::ssSize;
+	case ZRTP_KEYAGREEMENT_SIK1:
+		return bctoolbox::SIKE434::ssSize;
+	case ZRTP_KEYAGREEMENT_SIK2:
+		return bctoolbox::SIKE610::ssSize;
+	case ZRTP_KEYAGREEMENT_SIK3:
+		return bctoolbox::SIKE751::ssSize;
+	case ZRTP_KEYAGREEMENT_K255:
+		return bctoolbox::K25519::ssSize;
+	case ZRTP_KEYAGREEMENT_K448:
+		return bctoolbox::K448::ssSize;
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		return (uint16_t) hashLength;
 #endif /* HAVE_BCTBXPQ */
-		default:
-			return 0;
+	default:
+		return 0;
 	}
 }
 
 bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_KYB1:
-		case ZRTP_KEYAGREEMENT_KYB2:
-		case ZRTP_KEYAGREEMENT_KYB3:
-		case ZRTP_KEYAGREEMENT_SIK1:
-		case ZRTP_KEYAGREEMENT_SIK2:
-		case ZRTP_KEYAGREEMENT_SIK3:
-		case ZRTP_KEYAGREEMENT_K255:
-		case ZRTP_KEYAGREEMENT_K448:
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return TRUE;
-		default:
-			return false;
+	case ZRTP_KEYAGREEMENT_KYB1:
+	case ZRTP_KEYAGREEMENT_KYB2:
+	case ZRTP_KEYAGREEMENT_KYB3:
+	case ZRTP_KEYAGREEMENT_SIK1:
+	case ZRTP_KEYAGREEMENT_SIK2:
+	case ZRTP_KEYAGREEMENT_SIK3:
+	case ZRTP_KEYAGREEMENT_K255:
+	case ZRTP_KEYAGREEMENT_K448:
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		return TRUE;
+	default:
+		return false;
 	}
 }
 
@@ -1235,19 +1278,19 @@ bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
  */
 static int bzrtp_getHashAlgoId(uint8_t hashAlgo){
 	switch(hashAlgo){
-		case ZRTP_HASH_S256: return BCTBX_MD_SHA256;
-		case ZRTP_HASH_S384: return BCTBX_MD_SHA384;
-		case ZRTP_HASH_S512: return BCTBX_MD_SHA512;
-		default: return BCTBX_MD_UNDEFINED;
+	case ZRTP_HASH_S256: return BCTBX_MD_SHA256;
+	case ZRTP_HASH_S384: return BCTBX_MD_SHA384;
+	case ZRTP_HASH_S512: return BCTBX_MD_SHA512;
+	default: return BCTBX_MD_UNDEFINED;
 	}
 }
 
 #ifdef HAVE_BCTBXPQ
 typedef struct bzrtp_KEMContext_struct {
-		std::shared_ptr<bctoolbox::KEM> ctx;
-		std::vector<uint8_t> publicKey;
-		std::vector<uint8_t> secretKey;
-		std::vector<uint8_t> sharedSecret;
+	std::shared_ptr<bctoolbox::KEM> ctx;
+	std::vector<uint8_t> publicKey;
+	std::vector<uint8_t> secretKey;
+	std::vector<uint8_t> sharedSecret;
 } bzrtp_KEMContext_t;
 
 /**
@@ -1269,44 +1312,44 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, uint8_t has
 	int hashId = bzrtp_getHashAlgoId(hashAlgo);
 
 	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_KYB1:
-			context->ctx = std::make_shared<bctoolbox::KYBER512>();
-			break;
-		case ZRTP_KEYAGREEMENT_KYB2:
-			context->ctx = std::make_shared<bctoolbox::KYBER768>();
-			break;
-		case ZRTP_KEYAGREEMENT_KYB3:
-			context->ctx = std::make_shared<bctoolbox::KYBER1024>();
-			break;
-		case ZRTP_KEYAGREEMENT_SIK1:
-			context->ctx = std::make_shared<bctoolbox::SIKE434>();
-			break;
-		case ZRTP_KEYAGREEMENT_SIK2:
-			context->ctx = std::make_shared<bctoolbox::SIKE610>();
-			break;
-		case ZRTP_KEYAGREEMENT_SIK3:
-			context->ctx = std::make_shared<bctoolbox::SIKE751>();
-			break;
-		case ZRTP_KEYAGREEMENT_K255:
-			context->ctx = std::make_shared<bctoolbox::K25519>(hashId);
-			break;
-		case ZRTP_KEYAGREEMENT_K448:
-			context->ctx = std::make_shared<bctoolbox::K448>(hashId);
-			break;
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashId), std::make_shared<bctoolbox::KYBER512>()}), hashId);
-			break;
-		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashId), std::make_shared<bctoolbox::SIKE434>()}), hashId);
-			break;
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashId), std::make_shared<bctoolbox::KYBER1024>()}), hashId);
-			break;
-		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashId), std::make_shared<bctoolbox::SIKE751>()}), hashId);
-			break;
-		default:
-			return NULL;
+	case ZRTP_KEYAGREEMENT_KYB1:
+		context->ctx = std::make_shared<bctoolbox::KYBER512>();
+		break;
+	case ZRTP_KEYAGREEMENT_KYB2:
+		context->ctx = std::make_shared<bctoolbox::KYBER768>();
+		break;
+	case ZRTP_KEYAGREEMENT_KYB3:
+		context->ctx = std::make_shared<bctoolbox::KYBER1024>();
+		break;
+	case ZRTP_KEYAGREEMENT_SIK1:
+		context->ctx = std::make_shared<bctoolbox::SIKE434>();
+		break;
+	case ZRTP_KEYAGREEMENT_SIK2:
+		context->ctx = std::make_shared<bctoolbox::SIKE610>();
+		break;
+	case ZRTP_KEYAGREEMENT_SIK3:
+		context->ctx = std::make_shared<bctoolbox::SIKE751>();
+		break;
+	case ZRTP_KEYAGREEMENT_K255:
+		context->ctx = std::make_shared<bctoolbox::K25519>(hashId);
+		break;
+	case ZRTP_KEYAGREEMENT_K448:
+		context->ctx = std::make_shared<bctoolbox::K448>(hashId);
+		break;
+	case ZRTP_KEYAGREEMENT_K255_KYB512:
+		context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashId), std::make_shared<bctoolbox::KYBER512>()}), hashId);
+		break;
+	case ZRTP_KEYAGREEMENT_K255_SIK434:
+		context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashId), std::make_shared<bctoolbox::SIKE434>()}), hashId);
+		break;
+	case ZRTP_KEYAGREEMENT_K448_KYB1024:
+		context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashId), std::make_shared<bctoolbox::KYBER1024>()}), hashId);
+		break;
+	case ZRTP_KEYAGREEMENT_K448_SIK751:
+		context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashId), std::make_shared<bctoolbox::SIKE751>()}), hashId);
+		break;
+	default:
+		return NULL;
 	}
 	return context;
 }

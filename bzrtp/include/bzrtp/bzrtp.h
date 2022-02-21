@@ -135,7 +135,15 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t sasAlgo; /**< The SAS rendering algo selected during ZRTP negotiation */
 	uint8_t cacheMismatch; /**< Flag set to 1 in case of ZRTP cache mismatch, may occurs only on first channel(the one computing SAS) */
 	uint8_t auxSecretMismatch; /**< Flag set to BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MISMATCH or BZRTP_AUXSECRET_UNSET, may occurs only on first channel(the one computing SAS), in case of mismatch it may be ignored and we can still validate the SAS */
+	uint8_t peerAcceptGoClear; /**< Flag set to 1 in case of peer accept receiving GoClear */
 } bzrtpSrtpSecrets_t;
+
+/* define flag IDs */
+#define BZRTP_IS_INITIALISED            0x00
+#define BZRTP_IS_SECURE                 0x01
+#define BZRTP_PEER_SUPPORT_MULTICHANNEL 0x02
+#define BZRTP_SELF_ACCEPT_GOCLEAR       0x03
+#define BZRTP_PEER_ACCEPT_GOCLEAR       0x04
 
 /* define auxSecretMismatch flag codes */
 #define BZRTP_AUXSECRET_MATCH		0x00
@@ -143,15 +151,17 @@ typedef struct bzrtpSrtpSecrets_struct  {
 #define BZRTP_AUXSECRET_UNSET		0x02
 
 /* define message levels */
-#define BZRTP_MESSAGE_ERROR	0x00
+#define BZRTP_MESSAGE_ERROR     0x00
 #define BZRTP_MESSAGE_WARNING	0x01
-#define BZRTP_MESSAGE_LOG	0x02
-#define BZRTP_MESSAGE_DEBUG	0x03
+#define BZRTP_MESSAGE_LOG       0x02
+#define BZRTP_MESSAGE_DEBUG     0x03
 
 /* define message codes */
 #define BZRTP_MESSAGE_CACHEMISMATCH 		0x01
 #define BZRTP_MESSAGE_PEERVERSIONOBSOLETE	0x02
-#define BZRTP_MESSAGE_PEERNOTBZRTP		0x03
+#define BZRTP_MESSAGE_PEERNOTBZRTP          0x03
+#define BZRTP_MESSAGE_PEERREQUESTGOCLEAR    0x04
+#define BZRTP_MESSAGE_PEERACKGOCLEAR		0x05
 
 /**
  * Function pointer used by bzrtp to free memory allocated by callbacks.
@@ -192,17 +202,27 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_CACHEDISABLED					0x0200
 #define BZRTP_ERROR_CACHEMIGRATIONFAILED			0x0400
 #define BZRTP_ERROR_CACHE_PEERNOTFOUND				0x0800
+#define BZRTP_ERROR_INVALIDCLEARMAC                 0x1000
+#define BZRTP_ERROR_PEERDOESNTACCEPTGOCLEAR         0x2000
+#define BZRTP_ERROR_GOCLEARDISABLED					0x4000
+#define BZRTP_ERROR_INVALIDARGUMENT					0x8000
 
 /* channel status definition */
 #define BZRTP_CHANNEL_NOTFOUND						0x1000
 #define BZRTP_CHANNEL_INITIALISED					0x1001
 #define BZRTP_CHANNEL_ONGOING						0x1002
 #define BZRTP_CHANNEL_SECURE						0x1004
-#define BZRTP_CHANNEL_ERROR						0x1008
+#define BZRTP_CHANNEL_CLEAR                         0x1010
+#define BZRTP_CHANNEL_ERROR                         0x1008
 
 /* role mapping */
 #define BZRTP_ROLE_INITIATOR	0
 #define	BZRTP_ROLE_RESPONDER	1
+
+/* channel receiving GoClear message */
+#define BZRTP_RECEPTION_UNKNOWN 0
+#define BZRTP_RECEPTION_YES     1
+#define BZRTP_RECEPTION_NO      2
 
 /* cache related value */
 #define BZRTP_CACHE_SETUP		0x2000
@@ -249,8 +269,6 @@ BZRTP_EXPORT bzrtpContext_t *bzrtp_createBzrtpContext(void);
  *   @return 0 on success
  */
 BZRTP_EXPORT int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC);
-
-BZRTP_EXPORT void bzrtp_resetBzrtpContext(bzrtpContext_t *context);
 
 /**
  * Free memory of context structure to a channel, if all channels are freed, free the global zrtp context
@@ -377,7 +395,7 @@ BZRTP_EXPORT void bzrtp_resetSASVerified(bzrtpContext_t *zrtpContext);
  * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		selfSSRC				The SSRC identifying the channel to reset
  *
- * return 0 on success, error code otherwise
+ * @return 0 on success, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
 
@@ -393,14 +411,25 @@ BZRTP_EXPORT int bzrtp_resetRetransmissionTimer(bzrtpContext_t *zrtpContext, uin
 BZRTP_EXPORT uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7]);
 
 /**
- * @brief set the supported crypto types
+ * @brief set the supported crypto types. This function must be called before the context is initialised, just after creation.
  *
  * @param[in,out]	zrtpContext				The ZRTP context we're dealing with
  * @param[in]		algoType				mapped to defines, must be in [ZRTP_HASH_TYPE, ZRTP_CIPHERBLOCK_TYPE, ZRTP_AUTHTAG_TYPE, ZRTP_KEYAGREEMENT_TYPE or ZRTP_SAS_TYPE]
  * @param[in]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in]		supportedTypesCount		number of supported crypto types
+ *
+ * @return 0 on success, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount);
+
+/**
+ * @brief Set the selfAcceptGoClear flag
+ *
+ * @param[in,out]   zrtpContext The ZRTP context we're dealing with
+ * @param[in]       flagId      mapped to defines, must be BZRTP_SELF_ACCEPT_GOCLEAR
+ * @param[in]       value       Flag value
+ */
+BZRTP_EXPORT int bzrtp_setFlags(bzrtpContext_t *zrtpContext, uint8_t flagId, uint8_t value);
 
 /**
  * @brief Set the peer hello hash given by signaling to a ZRTP channel
@@ -701,6 +730,52 @@ BZRTP_EXPORT uint8_t bzrtp_available_key_agreement(uint8_t availableTypes[256]);
  * @return TRUE when PQ key exchange algorithms are available, FALSE otherwise
  */
 BZRTP_EXPORT bool_t bzrtp_is_PQ_available(void);
+
+/**
+ * @brief Create a GoClear event and send it to the state machine
+ * The user is in secure state.
+ * He decided to change his encryption mode by clicking on a button for example.
+ * The end point continues to send SRTP packets.
+ * On ClearACK reception the end point deletes all key materials.
+ *
+ * @param[in] context	The ZRTP context we're dealing with
+ * @param[in] selfSSRC	The SSRC identifying the channel
+ *
+ * @return one of :
+ *  - BZRTP_ERROR_INVALIDCONTEXT : The context is invalid or the channel is not in secure state
+ *  - Return value of the state machine
+ */
+BZRTP_EXPORT int bzrtp_sendGoClear(bzrtpContext_t *context, uint32_t selfSSRC);
+
+/**
+ * @brief Create a acceptGoClear event and send it to the state machine
+ * The user received a valid GoClear packet and sent a ClearACK message (so the end point stops to send SRTP packets).
+ * He agrees to change the encryption mode by clicking on a button for example.
+ * The the sending of RTP packets may begin.
+ *
+ * @param[in] context	The ZRTP context we're dealing with
+ * @param[in] selfSSRC	The SSRC identifying the channel
+ *
+ * @return one of :
+ *  - BZRTP_ERROR_INVALIDCONTEXT : The context is invalid
+ *  - Return value of the state machine
+ */
+BZRTP_EXPORT int bzrtp_confirmGoClear(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+
+/**
+ * @brief Create a BackToSecure event and send it to the state machine
+ * The user has a clear channel.
+ * He decided to resume the secure mode by clicking on a button for example.
+ *
+ * @param zrtpContext	The ZRTP context we're dealing with
+ * @param selfSSRC		The SSRC identifying the channel
+ *
+ * @return
+ *	- BZRTP_ERROR_INVALIDCONTEXT : The context is invalid
+ *	- Return value of the state machine
+ */
+BZRTP_EXPORT int bzrtp_backToSecureMode(bzrtpContext_t *zrtpContext, uint32_t selfSSRC);
+
 #ifdef __cplusplus
 }
 #endif
