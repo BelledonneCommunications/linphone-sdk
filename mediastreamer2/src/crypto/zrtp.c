@@ -117,6 +117,16 @@ static int ms_zrtp_statusMessage(void *clientData, const uint8_t messageLevel, c
 			/* Do not forward this message upward, just log it, shall we use this to prevent LIME keys creation as it is unlikely peer implement LIME? */
 			ms_warning("Peer ZRTP engine version is not BZRTP and would not allow LIME to work correctly, peer ZRTP engine identifies itself as %.16s", messageString==NULL?"NULL":messageString);
 			break;
+		case BZRTP_MESSAGE_PEERREQUESTGOCLEAR:
+			ev=ortp_event_new(ORTP_EVENT_ZRTP_PEER_REQUEST_GOCLEAR);
+			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
+			ms_message("Zrtp Event dispatched : Send ZRTP GoClear");
+			break;
+		case BZRTP_MESSAGE_PEERACKGOCLEAR:
+			ev=ortp_event_new(ORTP_EVENT_ZRTP_PEER_ACK_GOCLEAR);
+			rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
+			ms_message("Zrtp Event dispatched : Acknowledge ZRTP GoClear");
+			break;
 		default:
 			/* unexepected message, do nothing, just log it as a warning */
 			ms_warning("Zrtp Message Unknown : Level %d Id %d message %s", messageLevel, messageId, messageString==NULL?"NULL":messageString);
@@ -637,10 +647,6 @@ void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessi
 /* header declared in include/mediastreamer2/zrtp.h */
 bool_t ms_zrtp_available(){return TRUE;}
 
-void ms_zrtp_context_reset(MSZrtpContext* context) {
-	bzrtp_resetBzrtpContext(context->zrtpContext);
-}
-
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	MSZrtpContext *userData;
 	bzrtpContext_t *context;
@@ -648,6 +654,11 @@ MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 
 	ms_message("Creating ZRTP engine on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
 	context = bzrtp_createBzrtpContext();
+#ifdef HAVE_GOCLEAR
+	bzrtp_setFlags(context, BZRTP_SELF_ACCEPT_GOCLEAR, params->acceptGoClear);
+#else
+	bzrtp_setFlags(context, BZRTP_SELF_ACCEPT_GOCLEAR, FALSE);
+#endif // HAVE_GOCLEAR
 
 	if (params->zidCacheDB != NULL && params->selfUri != NULL && params->peerUri) { /* to enable cache we need a self and peer uri and a pointer to the sqlite cache DB */
 		/*enabling cache*/
@@ -706,6 +717,10 @@ MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 	bzrtp_setClientData(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc, (void *)userData);
 
 	return ms_zrtp_configure_context(userData, sessions->rtp_session);
+}
+
+void ms_zrtp_enable_go_clear(MSZrtpContext *ctx, bool_t enable) {
+	bzrtp_setFlags(ctx->zrtpContext, BZRTP_SELF_ACCEPT_GOCLEAR, enable);
 }
 
 int ms_zrtp_channel_start(MSZrtpContext *ctx) {
@@ -861,11 +876,21 @@ bool_t ms_zrtp_is_PQ_available(void) {
 	return bzrtp_is_PQ_available();
 }
 
-#else /* HAVE_ZRTP */
-
-void ms_zrtp_context_reset(MSZrtpContext* context) {
-	ms_message("ZRTP is disabled");
+//#ifdef HAVE_GOCLEAR
+int ms_zrtp_send_go_clear(MSZrtpContext *ctx){
+    return bzrtp_sendGoClear(ctx->zrtpContext, ctx->self_ssrc);
 }
+
+int ms_zrtp_confirm_go_clear(MSZrtpContext *ctx){
+	return bzrtp_confirmGoClear(ctx->zrtpContext, ctx->self_ssrc);
+}
+
+int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx){
+    return bzrtp_backToSecureMode(ctx->zrtpContext, ctx->self_ssrc);
+}
+//#endif /* HAVE_GOCLEAR */
+
+#else /* HAVE_ZRTP */
 
 MSZrtpContext* ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params){
 	ms_message("ZRTP is disabled");
@@ -877,6 +902,7 @@ MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 	return NULL;
 }
 
+void ms_zrtp_enable_go_clear(MSZrtpContext *ctx, bool_t enable) {};
 int ms_zrtp_channel_start(MSZrtpContext *ctx) { return 0;}
 bool_t ms_zrtp_available(){return FALSE;}
 void ms_zrtp_sas_verified(MSZrtpContext* ctx){}
@@ -895,6 +921,9 @@ int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex){return 0;}
 int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {return 0;}
 uint8_t ms_zrtp_available_key_agreement(MSZrtpKeyAgreement algos[256]) { return 0;}
 bool_t ms_zrtp_is_PQ_available(void) { return FALSE;}
+int ms_zrtp_send_go_clear(MSZrtpContext *ctx){return 0;}
+int ms_zrtp_confirm_go_clear(MSZrtpContext *ctx){return 0;}
+int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx){return 0;}
 #endif /* HAVE_ZRTP */
 
 #define STRING_COMPARE_RETURN(string, value)\

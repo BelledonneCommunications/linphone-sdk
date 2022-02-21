@@ -304,8 +304,6 @@ MS2_PUBLIC void media_stream_iterate(MediaStream * stream);
 
 MS2_PUBLIC void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir);
 
-MS2_PUBLIC void media_stream_reset_zrtp_context(MediaStream *stream);
-
 MS2_PUBLIC MediaStreamDir media_stream_get_direction(const MediaStream *stream);
 
 /**

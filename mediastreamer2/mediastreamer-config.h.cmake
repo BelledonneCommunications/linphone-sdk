@@ -37,6 +37,7 @@
 #cmakedefine HAVE_SRTP
 #cmakedefine SRTP_VERSION ${SRTP_VERSION}
 #cmakedefine HAVE_ZRTP
+#cmakedefine HAVE_GOCLEAR
 #cmakedefine HAVE_DTLS
 #cmakedefine MS2_USE_OLD_OPENGL_PROTOTYPE
 

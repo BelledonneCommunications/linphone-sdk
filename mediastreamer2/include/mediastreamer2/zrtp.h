@@ -117,6 +117,7 @@ typedef struct MSZrtpParams {
 	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
 	bool_t autoStart; /*allow zrtp to start on first hello packet received*/
+	bool_t acceptGoClear;
 
 	/* activated crypto types */
 	MSZrtpHash             hashes[MS_MAX_ZRTP_CRYPTO_TYPES];
@@ -147,8 +148,6 @@ MS2_PUBLIC bool_t ms_zrtp_available(void);
  */
 MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpParams *params);
 
-MS2_PUBLIC void ms_zrtp_context_reset(MSZrtpContext* context);
-
 /**
  * Create an initialise a ZRTP context on a channel when a ZRTP exchange was already performed on an other one
  * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready
@@ -156,6 +155,13 @@ MS2_PUBLIC void ms_zrtp_context_reset(MSZrtpContext* context);
  * @return	a pointer to the opaque context structure needed by MSZRTP
  */
 MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpContext* activeContext);
+
+/**
+ * Enables or disables capability of starting the goClear procedure to change call encryption
+ * @param[in]	ctx		Context previously created using ms_zrtp_context_new or ms_zrtp_multistream_new
+ * @param[in]	enable		if TRUE, it enables goClear, disabling it otherwise
+ */
+MS2_PUBLIC void ms_zrtp_enable_go_clear(MSZrtpContext *ctx, bool_t enable);
 
 /**
  * Start a previously created ZRTP channel, ZRTP engine will start sending Hello packets
@@ -288,6 +294,32 @@ MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
  * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
  */
 MS2_PUBLIC int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
+
+/**
+ * @brief Send a GoClear message when the participant decides to change encryption mode
+ *		The endpoint of the initiator (of the GoClear) stops sending SRTP packets and begin to send RTP packets on ClearACK reception
+ *		The endpoint of the responder (of the GoClear) stops sending SRTP packets on GoClear reception
+ * @param[in]   ctx     The zrtp context
+ * @return 0 on success
+ */
+MS2_PUBLIC int ms_zrtp_send_go_clear(MSZrtpContext *ctx);
+
+/**
+ * @brief Participant accepts manually the changement of encryption mode
+ *		The endpoint of the responder (of the GoClear) starts sending RTP packets
+ * @param[in]   ctx     The zrtp context
+ * @return 0 on success
+ */
+MS2_PUBLIC int ms_zrtp_confirm_go_clear(MSZrtpContext *ctx);
+
+MS2_PUBLIC int ms_zrtp_peer_accepted_go_clear(MSZrtpContext *ctx);
+
+/**
+ * @brief Back to (ZRTP) secure mode
+ * @param[in]   ctx     The zrtp context
+ * @return 0 on success
+ */
+MS2_PUBLIC int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx);
 
 #ifdef __cplusplus
 }

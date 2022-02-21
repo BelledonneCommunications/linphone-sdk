@@ -196,13 +196,6 @@ const char * media_stream_type_str(MediaStream *stream) {
 	return ms_format_type_to_string(stream->type);
 }
 
-void media_stream_reset_zrtp_context(MediaStream *stream){
-	MSMediaStreamSessions *sessions = &(stream->sessions);
-	if (sessions && sessions->zrtp_context!=NULL) {
-		ms_zrtp_context_reset(sessions->zrtp_context);
-	}
-}
-
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions){
 	if (sessions->srtp_context) {
 		ms_srtp_context_delete(sessions->srtp_context);
