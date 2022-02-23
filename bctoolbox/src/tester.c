@@ -380,6 +380,7 @@ void merge_and_print_results_files(void) {
 				bc_tester_printf(bc_printf_verbosity_error, "Empty suite results file '%s'", file_name);
 			}
 			remove(file_name);
+			bctbx_file_close(bctbx_file);
 		} else {
 			bc_tester_printf(bc_printf_verbosity_error, "Failed to open suite results file '%s'", file_name);
 			//Assume suite crash and report it.
