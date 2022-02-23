@@ -421,6 +421,11 @@ static void _create_decoders(MSMediaPlayer *obj) {
 				nchannels = obj->audio_pin_fmt.fmt->nchannels;
 				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 				ms_filter_call_method(obj->audio_decoder, MS_FILTER_SET_NCHANNELS, &nchannels);
+				if (strcmp(obj->audio_pin_fmt.fmt->encoding, "opus") == 0) {
+					// Disable PLC in Opus decoder to prevent white noise when pausing media player
+					const char *fmtp = "plc=0";
+					ms_filter_call_method(obj->audio_decoder, MS_FILTER_ADD_FMTP, (void *)fmtp);
+				}
 			}
 		}
 		if(obj->video_pin_fmt.fmt) {

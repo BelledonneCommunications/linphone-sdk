@@ -751,6 +751,7 @@ static void ms_opus_dec_init(MSFilter *f) {
 	d->lastPacketLength = 20;
 	d->statsfec = 0;
 	d->statsplc = 0;
+	d->plc = 1;
 	f->data = d;
 }
 
@@ -795,7 +796,7 @@ static void ms_opus_dec_process(MSFilter *f) {
 	}
 
 	/* Concealment if needed */
-	if (ms_concealer_context_is_concealement_required(d->concealer, f->ticker->time)) {
+	if (d->plc == 1 && ms_concealer_context_is_concealement_required(d->concealer, f->ticker->time)) {
 		int imLength = 0;
 		uint8_t *payload = NULL;
 		im = NULL;
