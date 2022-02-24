@@ -298,7 +298,11 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
 		// W/NdkImageReader: Unable to acquire a lockedBuffer, very likely client tries to lock more than maxImages buffers
 		status = AImageReader_acquireNextImage(d->imageReader, &image);
 		if (status == AMEDIA_OK && image != nullptr) {
-			if (ms_video_capture_new_frame(&d->fpsControl, d->filter->ticker->time)) {
+			MSTicker* ticker = d->filter->ticker;
+			uint64_t tickerTime = 0;
+			// We need to check if ticker is still available here, as no mutex lock can prevent it to be detached (and attached back later) in case of resizing
+			if (ticker != nullptr) tickerTime = ticker->time;
+			if (tickerTime != 0 && ms_video_capture_new_frame(&d->fpsControl, tickerTime)) {
 				mblk_t *m = android_camera2_capture_image_to_mblkt(d, image);
 				if (m) {
 					ms_mutex_lock(&d->mutex);
@@ -912,9 +916,11 @@ static void android_camera2_capture_update_preview_size(AndroidCamera2Context *d
 
 static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-
 	MSVideoSize requestedSize = *(MSVideoSize*)arg;
+	ms_message("[Camera2 Capture] New requested size is %ix%i", requestedSize.width, requestedSize.height);
+
 	if (d->captureSize.width == requestedSize.width && d->captureSize.height == requestedSize.height) {
+		ms_warning("[Camera2 Capture] Newly requested size is the same as current one, skipping");
 		return -1;
 	}
 	
