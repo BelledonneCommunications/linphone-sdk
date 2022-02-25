@@ -342,7 +342,18 @@ static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog){
 	belle_sip_request_t *bye;
 	belle_sip_client_transaction_t *trn;
 	belle_sip_dialog_stop_200Ok_retrans(dialog);
-	belle_sip_error("Dialog [%p] was not ACK'd within T1*64 seconds, it is going to be terminated.",dialog);
+	
+	belle_sip_error("Dialog [%p] was not ACK'd within T1*64 seconds.", dialog);
+	
+	if (dialog->last_transaction){
+		/* Check if a BYE is not already in progress, no need to send a second one.*/
+		const char * request = belle_sip_request_get_method(belle_sip_transaction_get_request(dialog->last_transaction));
+		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(dialog->last_transaction,belle_sip_client_transaction_t) && strcmp(request, "BYE") == 0){
+			return BELLE_SIP_STOP;
+		}
+	}
+	
+	belle_sip_error("Dialog [%p] it is going to be terminated automatically.",dialog);
 	dialog->state=BELLE_SIP_DIALOG_CONFIRMED;
 	bye=belle_sip_dialog_create_request(dialog,"BYE");
 	trn=belle_sip_provider_create_client_transaction(dialog->provider,bye);
