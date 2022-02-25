@@ -41,6 +41,8 @@ typedef struct {
 	const char *tags[2];
 } test_t;
 
+#define TEST_NO_TAG_AUTO_NAMED(func) \
+	{ #func, func, { NULL, NULL } }
 #define TEST_NO_TAG(name, func) \
 	{ name, func, { NULL, NULL } }
 #define TEST_ONE_TAG(name, func, tag) \
