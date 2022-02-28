@@ -304,7 +304,7 @@ if(ENABLE_GL)
 	endif()
 endif()
 
-if(ENABLE_VIDEO AND APPLE AND IOS)
+if(ENABLE_VIDEO AND APPLE)
 	include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include/OpenGL")
 endif()
 if(ENABLE_GLX)
