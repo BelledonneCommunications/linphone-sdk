@@ -599,13 +599,33 @@ static void ogl_display_render_type(
 		}
 	} else {
 		if (screenW > screenH) {
-			float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
-			w = screenW * vpw;
-			h = w * ratio;
+			if (gldisp->yuv_size[type].width > gldisp->yuv_size[type].height) {
+				float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
+				if ((screenW / screenH) > ratio) {
+					w = screenW * vpw;
+					h = w * (gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width));
+				} else {
+					h = screenH * vph;
+					w = h * ratio;
+				}
+			} else {
+				w = screenW * vpw;
+				h = w * (gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width));
+			}
 		} else {
-			float ratio = gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height);
-			h = screenH * vph;
-			w = h * ratio;
+			if (gldisp->yuv_size[type].height > gldisp->yuv_size[type].width) {
+				float ratio = gldisp->yuv_size[type].height / (float)(gldisp->yuv_size[type].width);
+				if ((screenH / screenW) > ratio) {
+					h = screenH * vph;
+					w = h * (gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height));
+				} else {
+					w = screenW * vpw;
+					h = w * ratio;
+				}
+			} else {
+				h = screenH * vph;
+				w = h * (gldisp->yuv_size[type].width / (float)(gldisp->yuv_size[type].height));
+			}
 		}
 	}
 
