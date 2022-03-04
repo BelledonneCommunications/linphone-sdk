@@ -75,3 +75,12 @@ string bctoolbox::Utils::unfold (const string &str) {
 
 	return output;
 }
+
+void bctoolbox::Utils::replace(string& source, const string& from, const string& to, const bool& recursive){
+	size_t start_pos = 0;
+	while((start_pos = source.find(from, start_pos)) != string::npos) {
+		source.replace(start_pos, from.length(), to);
+		if(recursive)
+			start_pos += to.length();
+	}
+}

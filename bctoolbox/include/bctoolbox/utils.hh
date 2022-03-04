@@ -42,6 +42,10 @@ namespace bctoolbox {
 
 		BCTBX_PUBLIC std::string fold (const std::string &str);
 		BCTBX_PUBLIC std::string unfold (const std::string &str);
+		
+		// Replace all "from" by "to" in source. Use 'recursive' to avoid replacing what has been replaced.
+		BCTBX_PUBLIC void replace(std::string& source, const std::string& from, const std::string& to, const bool& recursive = true);
+		
 	}
 
 }
