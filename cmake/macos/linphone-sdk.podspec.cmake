@@ -17,4 +17,5 @@ Pod::Spec.new do |s|
   s.source_files = "@LINPHONESDK_NAME@/@INSTALL_FOLDER@/share/linphonesw/*.swift"
   s.module_name   = 'linphonesw' # name of the swift package
   s.swift_version = '4.0'
+  s.frameworks = 'linphone', 'belle-sip', 'bctoolbox'
 end
