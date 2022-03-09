@@ -99,6 +99,16 @@ MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMedia
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
 
+/**
+ * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
+ * @param[in]		stream_sessions	Pointer to the stream session structure
+ * @param[in]		dir	stream direction (send, recv or both)
+ * @return the srtp key source if stream is secured and sources consistent:
+ * 			all RTP (and RTCP if enabled) channels have the same source
+ * 			MSSrtpKeySourceUnavailable otherwise
+ */
+MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir);
+
 /* The handler of tmmbr for MediaStream objects.*/
 void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer);
 void media_stream_process_tmmbr(MediaStream *ms, int tmmbr_mxtbr);

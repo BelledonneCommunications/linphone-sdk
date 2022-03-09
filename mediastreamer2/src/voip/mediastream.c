@@ -331,8 +331,10 @@ bool_t media_stream_dtls_supported(void){
 }
 
 /*deprecated*/
+/* This function is called only when using SDES to exchange SRTP keys */
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return ms_media_stream_sessions_set_srtp_recv_key_b64(&stream->sessions,suite,rcv_key)==0 && ms_media_stream_sessions_set_srtp_send_key_b64(&stream->sessions,suite,snd_key)==0;
+	return ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&stream->sessions,suite,rcv_key,MSSrtpKeySourceSDES)==0
+	&& ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&stream->sessions,suite,snd_key,MSSrtpKeySourceSDES)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){
@@ -550,6 +552,26 @@ bool_t media_stream_secured (const MediaStream *stream) {
 	}
 	return FALSE;
 }
+
+MSSrtpKeySource media_stream_get_srtp_key_source (const MediaStream *stream) {
+	if (stream->state != MSStreamStarted)
+		return MSSrtpKeySourceUnavailable;
+
+	switch (stream->type) {
+		case MSAudio:
+		case MSText:
+			/*fixme need also audio stream direction to be more precise*/
+			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, MediaStreamSendRecv);
+		case MSVideo:{
+			VideoStream *vs = (VideoStream*)stream;
+			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, vs->dir);
+		}
+		case MSUnknownMedia:
+			break;
+	}
+	return FALSE;
+}
+
 
 bool_t media_stream_avpf_enabled(const MediaStream *stream) {
 	return rtp_session_avpf_enabled(stream->sessions.rtp_session);

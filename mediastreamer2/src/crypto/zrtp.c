@@ -204,15 +204,39 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 
 		if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS32){
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
-				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions, MS_AES_256_SHA1_32, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_recv_key(userData->stream_sessions,
+																	MS_AES_256_SHA1_32,
+																	(const char *)key,
+																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}else{
-				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions, MS_AES_128_SHA1_32, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_recv_key(userData->stream_sessions,
+																	MS_AES_128_SHA1_32,
+																	(const char *)key,
+																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}
 		}else if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS80){
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
-				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions, MS_AES_256_SHA1_80, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_recv_key(userData->stream_sessions,
+																	MS_AES_256_SHA1_80,
+																	(const char *)key,
+																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																  );
 			}else{
-				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, (secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_recv_key(userData->stream_sessions,
+																	MS_AES_128_SHA1_80,
+																	(const char *)key,
+																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																  );
 			}
 		}else{
 			ms_fatal("unsupported auth tag");
@@ -227,15 +251,39 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 
 		if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS32){
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
-				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions, MS_AES_256_SHA1_32, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_send_key(userData->stream_sessions,
+																	MS_AES_256_SHA1_32,
+																	(const char *)key,
+																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}else{
-				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions, MS_AES_128_SHA1_32, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_send_key(userData->stream_sessions,
+																	MS_AES_128_SHA1_32,
+																	(const char *)key,
+																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}
 		}else if (secrets->authTagAlgo == ZRTP_AUTHTAG_HS80){
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
-				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions, MS_AES_256_SHA1_80, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_send_key(userData->stream_sessions,
+																	MS_AES_256_SHA1_80,
+																	(const char *)key,
+																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}else{
-				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions, MS_AES_128_SHA1_80, (const char *)key, (secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength), MSSRTP_ALL_STREAMS);
+				ms_media_stream_sessions_set_sourced_srtp_send_key(userData->stream_sessions,
+																	MS_AES_128_SHA1_80,
+																	(const char *)key,
+																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
+																	MSSRTP_ALL_STREAMS,
+																	MSSrtpKeySourceZRTP
+																);
 			}
 		}else{
 			ms_fatal("unsupported auth tag");

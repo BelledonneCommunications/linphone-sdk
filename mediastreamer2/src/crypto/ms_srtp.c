@@ -47,6 +47,7 @@ typedef struct _MSSrtpStreamContext {
 	bool_t is_rtp;
 	/*fixed: for rtcp-mux*/
 	struct _MSSrtpStreamContext *other_rtp;
+	MSSrtpKeySource source;
 } MSSrtpStreamContext;
 
 struct _MSSrtpCtx {
@@ -61,10 +62,14 @@ MSSrtpCtx* ms_srtp_context_new(void) {
 	ctx->send_rtp_context.is_rtp=TRUE;
 	ms_mutex_init(&ctx->send_rtp_context.mutex, NULL);
 	ms_mutex_init(&ctx->send_rtcp_context.mutex, NULL);
+	ctx->send_rtp_context.source = MSSrtpKeySourceUnknown;
+	ctx->send_rtcp_context.source = MSSrtpKeySourceUnknown;
 
 	ctx->recv_rtp_context.is_rtp=TRUE;
 	ms_mutex_init(&ctx->recv_rtp_context.mutex, NULL);
 	ms_mutex_init(&ctx->recv_rtcp_context.mutex, NULL);
+	ctx->recv_rtp_context.source = MSSrtpKeySourceUnknown;
+	ctx->recv_rtcp_context.source = MSSrtpKeySourceUnknown;
 
 	/*fixed: for rtcp-mux*/
 	ctx->send_rtp_context.other_rtp = &ctx->send_rtcp_context;
@@ -473,7 +478,7 @@ void ms_srtp_shutdown(void){
 	}
 }
 
-static int ms_media_stream_sessions_set_srtp_key_base(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, size_t cipher_key_length, bool_t is_send, bool_t is_rtp){
+static int ms_media_stream_sessions_set_srtp_key_base(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, size_t cipher_key_length, bool_t is_send, bool_t is_rtp, MSSrtpKeySource source){
 	MSSrtpStreamContext* stream_ctx;
 	uint32_t ssrc;
 	int error = -1;
@@ -498,10 +503,11 @@ static int ms_media_stream_sessions_set_srtp_key_base(MSMediaStreamSessions *ses
 	}
 
 	stream_ctx->secured=(cipher_key_length!=0);
+	stream_ctx->source = source;
 	return 0;
 }
 
-static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, MSSrtpStreamType stream_type){
+static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, MSSrtpStreamType stream_type, MSSrtpKeySource source){
 	int error = 0;
 
 	// RTP stream
@@ -514,7 +520,7 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 			// SRTP is unencrypted therefore cipher key length is the value provided as argument
 			cipher_key_length = key_length;
 		}
-		error=ms_media_stream_sessions_set_srtp_key_base(sessions,suite,key,key_length,cipher_key_length,is_send,TRUE);
+		error=ms_media_stream_sessions_set_srtp_key_base(sessions,suite,key,key_length,cipher_key_length,is_send,TRUE, source);
 	}
 
 	// RTCP stream
@@ -527,7 +533,7 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 			// SRTCP is unencrypted therefore cipher key length is the value provided as argument
 			cipher_key_length = key_length;
 		}
-		error=ms_media_stream_sessions_set_srtp_key_base(sessions,suite,key,key_length,cipher_key_length,is_send,FALSE);
+		error=ms_media_stream_sessions_set_srtp_key_base(sessions,suite,key,key_length,cipher_key_length,is_send,FALSE, source);
 	}
 	return error;
 }
@@ -541,6 +547,10 @@ bool_t ms_srtp_supported(void){
 
 
 int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
+	return ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(sessions, suite, b64_key, MSSrtpKeySourceUnknown);
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
 	int retval;
 
 	size_t key_length = 0;
@@ -559,7 +569,7 @@ int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessio
 	}
 
 	/* pass decoded key to set_recv_key function */
-	retval = ms_media_stream_sessions_set_srtp_recv_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS);
+	retval = ms_media_stream_sessions_set_sourced_srtp_recv_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS, source);
 
 	ms_free(key);
 
@@ -580,12 +590,54 @@ bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,Me
 	return FALSE;
 }
 
+MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+	MSSrtpKeySource ret = MSSrtpKeySourceUnavailable;
+
+	// stream must be secured or we just return unavailable
+	if (!ms_media_stream_sessions_secured(sessions, dir)) {
+		return MSSrtpKeySourceUnavailable;
+	}
+	
+	switch (dir) {
+		case MediaStreamSendRecv:
+			// Check sender and receiver keys have the same source
+			if (sessions->srtp_context->send_rtp_context.source == sessions->srtp_context->recv_rtp_context.source) {
+				ret = sessions->srtp_context->send_rtp_context.source;
+				// Also check rtcp contexts if needed, when present they shall be the same and equal to the rtp one
+				if (sessions->srtp_context->send_rtcp_context.secured && sessions->srtp_context->recv_rtcp_context.secured
+					&& (!(sessions->srtp_context->send_rtcp_context.source == ret && sessions->srtp_context->recv_rtcp_context.source == ret))) {
+					ret = MSSrtpKeySourceUnavailable;
+				}
+			}
+			break;
+		case MediaStreamSendOnly:
+			if (!sessions->srtp_context->send_rtcp_context.secured // if no rtcp context is secured, just return the rtp source
+				|| (sessions->srtp_context->send_rtcp_context.source == sessions->srtp_context->send_rtp_context.source)) { // otherwise check rtp and rtcp have the same source
+					ret = sessions->srtp_context->send_rtp_context.source;
+			}
+			break;
+		case MediaStreamRecvOnly:
+			if (!sessions->srtp_context->recv_rtcp_context.secured // if no rtcp context is secured, just return the rtp source
+				|| (sessions->srtp_context->recv_rtcp_context.source == sessions->srtp_context->recv_rtp_context.source)) { // otherwise check rtp and rtcp have the same source
+					ret = sessions->srtp_context->recv_rtp_context.source;
+			}
+	}
+	return ret;
+}
+
 
 int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type) {
-	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,FALSE,stream_type);
+	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,FALSE,stream_type, MSSrtpKeySourceUnknown);
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource source) {
+	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,FALSE,stream_type, source);
 }
 
 int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key){
+	return ms_media_stream_sessions_set_sourced_srtp_send_key_b64(sessions, suite, b64_key, MSSrtpKeySourceUnknown);
+}
+int ms_media_stream_sessions_set_sourced_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
 	int retval;
 
 	size_t key_length = 0;
@@ -604,7 +656,7 @@ int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessio
 	}
 
 	/* pass decoded key to set_send_key function */
-	retval = ms_media_stream_sessions_set_srtp_send_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS);
+	retval = ms_media_stream_sessions_set_sourced_srtp_send_key(sessions, suite, key, key_length, MSSRTP_ALL_STREAMS, source);
 
 	ms_free(key);
 
@@ -612,7 +664,11 @@ int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessio
 }
 
 int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type){
-	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,TRUE,stream_type);
+	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,TRUE,stream_type, MSSrtpKeySourceUnknown);
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource source){
+	return ms_media_stream_sessions_set_srtp_key(sessions,suite,key,key_length,TRUE,stream_type, source);
 }
 
 int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
@@ -678,6 +734,26 @@ int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, 
 	return -1;
 }
 
+int ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
+	ms_error("Unable to set srtp recv key b64: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource sourc){
+	ms_error("Unable to set srtp recv key: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource sourc){
+	ms_error("Unable to set srtp send key b64: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
+int ms_media_stream_sessions_set_sourced_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource sourc){
+	ms_error("Unable to set srtp send key: srtp support disabled in mediastreamer2");
+	return -1;
+}
+
 int ms_media_stream_session_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	ms_error("Unable to set srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
@@ -690,6 +766,10 @@ bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSess
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir) {
 	return FALSE;
+}
+ 
+MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+	return MSSrtpKeySourceUnavailable;
 }
 
 void ms_srtp_context_delete(MSSrtpCtx* session) {

@@ -338,22 +338,22 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		}
 
 		if (send_key_first) {
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key, MSSrtpKeySourceSDES) == 0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ms.sessions), suite, recv_key) == 0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(margaux->ms.sessions), suite, recv_key, MSSrtpKeySourceSDES) == 0);
 
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key) ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key, MSSrtpKeySourceSDES) ==0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ms.sessions), suite, recv_key) ==0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(marielle->ms.sessions), suite, recv_key, MSSrtpKeySourceSDES) ==0);
 
 		} else {
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key) ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key, MSSrtpKeySourceSDES) ==0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ms.sessions), suite, recv_key) ==0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(marielle->ms.sessions), suite, recv_key, MSSrtpKeySourceSDES) ==0);
 
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key, MSSrtpKeySourceSDES) == 0);
 			if (set_both_send_recv_key)
-				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ms.sessions), suite, recv_key) == 0);
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(margaux->ms.sessions), suite, recv_key, MSSrtpKeySourceSDES) == 0);
 
 		}
 
@@ -361,6 +361,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,1000);
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream*)marielle));
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream*)margaux));
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)marielle)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)margaux)==MSSrtpKeySourceSDES);
 		} else {
 			/*so far, not possible to know audio stream direction*/
 			BC_ASSERT_FALSE(media_stream_secured((MediaStream*)marielle));
@@ -370,8 +372,8 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 		ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 		if (change_send_key_in_the_middle) {
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,2000);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key_2) == 0);
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key_2) ==0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key_2, MSSrtpKeySourceSDES) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key_2, MSSrtpKeySourceSDES) ==0);
 		}
 		BC_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
 		audio_stream_play(marielle, NULL);
@@ -406,7 +408,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 													, NULL
 													, 0)
 			,0, int, "%d");
-			BC_ASSERT(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key) == 0);
+			BC_ASSERT(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(marielle->ms.sessions), suite, send_key, MSSrtpKeySourceSDES) == 0);
 
 			ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 

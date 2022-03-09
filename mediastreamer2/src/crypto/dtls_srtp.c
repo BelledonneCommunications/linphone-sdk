@@ -474,20 +474,20 @@ static void ms_dtls_srtp_set_srtp_key_material(MSDtlsSrtpContext *ctx, MSSrtpStr
 		/* reception(client write) key and salt +16bits padding */
 		memcpy(key, key_material, DTLS_SRTP_KEY_LEN);
 		memcpy(key + DTLS_SRTP_KEY_LEN, key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-		ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type);
+		ms_media_stream_sessions_set_sourced_srtp_recv_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type, MSSrtpKeySourceDTLS);
 		/* emission(server write) key and salt +16bits padding */
 		memcpy(key, key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 		memcpy(key + DTLS_SRTP_KEY_LEN, key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-		ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type);
+		ms_media_stream_sessions_set_sourced_srtp_send_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type, MSSrtpKeySourceDTLS);
 	} else if (ctx->role == MSDtlsSrtpRoleIsClient){ /* this enpoint act as DTLS client */
 		/* emission(client write) key and salt +16bits padding */
 		memcpy(key, key_material, DTLS_SRTP_KEY_LEN);
 		memcpy(key + DTLS_SRTP_KEY_LEN, key_material+2*DTLS_SRTP_KEY_LEN, DTLS_SRTP_SALT_LEN);
-		ms_media_stream_sessions_set_srtp_send_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type);
+		ms_media_stream_sessions_set_sourced_srtp_send_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type, MSSrtpKeySourceDTLS);
 		/* reception(server write) key and salt +16bits padding */
 		memcpy(key, key_material+DTLS_SRTP_KEY_LEN, DTLS_SRTP_KEY_LEN);
 		memcpy(key + DTLS_SRTP_KEY_LEN, key_material+2*DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, DTLS_SRTP_SALT_LEN);
-		ms_media_stream_sessions_set_srtp_recv_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type);
+		ms_media_stream_sessions_set_sourced_srtp_recv_key(ctx->stream_sessions, srtp_protection_profile, (const char *)key, DTLS_SRTP_KEY_LEN+DTLS_SRTP_SALT_LEN, stream_type, MSSrtpKeySourceDTLS);
 	}
 }
 /********************************************/

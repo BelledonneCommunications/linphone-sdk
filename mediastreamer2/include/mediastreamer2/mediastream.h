@@ -207,6 +207,16 @@ MS2_PUBLIC bool_t media_stream_secured(const MediaStream *stream);
 #define media_stream_is_secured media_stream_secured
 
 /**
+ * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
+ *
+ * @param[in] stream MediaStream object
+ * @return the srtp key source if stream is secured and sources consistent:
+ * 			all RTP (and RTCP if enabled) channels have the same source.
+ * 			MSSrtpKeySourceUnavailable otherwise
+ * */
+MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream);
+
+/**
  * Tells whether AVPF is enabled or not.
  * @param[in] stream #MediaStream object.
  * @return True if AVPF is enabled, false otherwise.
