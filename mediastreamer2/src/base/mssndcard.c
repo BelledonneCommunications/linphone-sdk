@@ -87,7 +87,7 @@ MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id) {
 		}
 		ms_free(legacy_id);
 // Regex search on card id that will contains at least "Filter : Model"
-		if( bctbx_is_matching_regex(card_id, id)){
+		if( bctbx_is_matching_regex_log(card_id, id, FALSE)){
 			return card;
 		}
 	}
@@ -114,7 +114,7 @@ MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, 
 		}
 		ms_free(legacy_id);
 // Regex search on card id that will contains at least "Filter : Model"
-		if( bctbx_is_matching_regex(card_id, id)){
+		if( bctbx_is_matching_regex_log(card_id, id, FALSE)){
 			return card;
 		}
 	}
