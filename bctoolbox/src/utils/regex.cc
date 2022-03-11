@@ -43,7 +43,7 @@
 #include <regex.h>
 #endif
 
-extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) {
+extern "C" bool_t bctbx_is_matching_regex_log(const char *entry, const char* regex, bool_t show_log){
 #if HAVE_WORKING_REGEX
 	try {
 		std::regex entry_regex(regex, std::regex_constants::extended | std::regex_constants::nosubs);
@@ -51,7 +51,8 @@ extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) 
 		return std::regex_match(entry, m, entry_regex);
 	}
 	catch (const std::regex_error& e) {
-		bctbx_error("Could not compile regex '%s': %s", regex, e.what());
+		if(show_log)
+			bctbx_error("Could not compile regex '%s': %s", regex, e.what());
 		return FALSE;
 	}
 #else
@@ -60,12 +61,18 @@ extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) 
 	int res;
 	res = regcomp(&regex_pattern, regex, REG_EXTENDED | REG_NOSUB);
 	if(res != 0) {
-		regerror(res, &regex_pattern, err_msg, sizeof(err_msg));
-		bctbx_error("Could not compile regex '%s': %s", regex, err_msg);
+		if(show_log) {
+			regerror(res, &regex_pattern, err_msg, sizeof(err_msg));
+			bctbx_error("Could not compile regex '%s': %s", regex, err_msg);
+		}
 		return FALSE;
 	}
 	res = regexec(&regex_pattern, entry, 0, NULL, 0);
 	regfree(&regex_pattern);
 	return (res != REG_NOMATCH);
 #endif
+}
+
+extern "C" bool_t bctbx_is_matching_regex(const char *entry, const char* regex) {
+	return bctbx_is_matching_regex_log(entry, regex, TRUE);
 }
