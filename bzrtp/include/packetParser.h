@@ -68,6 +68,10 @@
 #define		MSGTYPE_PING		0x16
 #define		MSGTYPE_PINGACK		0x17
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /**
  * @brief Store all zrtpPacket informations
  * according to type a specific structure type is mapped to the void * data pointer
@@ -336,4 +340,9 @@ BZRTP_EXPORT void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket);
  * return		0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* PACKETPARSER_H */

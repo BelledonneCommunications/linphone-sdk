@@ -22,7 +22,7 @@
 #include <string.h>
 
 #include "cryptoUtils.h"
-#include "bctoolbox/crypto.h"
+#include "bctoolbox/crypto.hh"
 
 /** Return available crypto functions. For now we have
  *
@@ -66,7 +66,7 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
 				index++;
 
-				if (available_key_agreements|BCTBX_DHM_2048) {
+				if (available_key_agreements&BCTBX_DHM_2048) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
 					index++;
 				}
@@ -501,10 +501,10 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 			zrtpChannelContext->keyAgreementLength = 384;
 			break;
 		case ZRTP_KEYAGREEMENT_X255 :
-			zrtpChannelContext->keyAgreementLength = 32;
+			zrtpChannelContext->keyAgreementLength = BCTBX_ECDH_X25519_PUBLIC_SIZE;
 			break;
 		case ZRTP_KEYAGREEMENT_X448 :
-			zrtpChannelContext->keyAgreementLength = 56;
+			zrtpChannelContext->keyAgreementLength = BCTBX_ECDH_X448_PUBLIC_SIZE;
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -831,7 +831,7 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
  */
 void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 	if (key != NULL) {
-		bctbx_rng_get(rngContext, key, keyLength);
+		bctbx_rng_get(static_cast<bctbx_rng_context_t *>(rngContext), key, keyLength);
 	}
 }
 

@@ -82,6 +82,10 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 
 #define ZRTP_CLIENT_IDENTIFIER ZRTP_CLIENT_IDENTIFIERv1_1
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /* pgp word list for use with SAS */
 extern const char * pgpWordsEven[];
 extern const char * pgpWordsOdd[];
@@ -262,7 +266,8 @@ struct bzrtpContext_struct {
 
 };
 
-
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef TYPEDEF_H */

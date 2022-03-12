@@ -22,6 +22,10 @@
 #include "typedef.h"
 #include "packetParser.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /** Return available crypto functions. For now we have
  *
  * - Hash: HMAC-SHA256(Mandatory)
@@ -229,5 +233,9 @@ uint8_t bzrtp_charToByte(uint8_t inputChar);
  * @return		the hexa char [0-9a-f] corresponding to the input
  */
 uint8_t bzrtp_byteToChar(uint8_t inputByte);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CRYPTOUTILS_H */

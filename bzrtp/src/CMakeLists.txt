@@ -20,27 +20,26 @@
 #
 ############################################################################
 
-set(SOURCE_FILES
+set(BZRTP_C_SOURCE_FILES
 	bzrtp.c
-	cryptoUtils.c
 	packetParser.c
 	pgpwords.c
 	stateMachine.c
 	zidCache.c
+)
+set(BZRTP_CXX_SOURCE_FILES
+	cryptoUtils.cc
 )
 
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="bzrtp"
 )
 
-if(POLARSSL_FOUND)
-	list(APPEND SOURCE_FILES cryptoPolarssl.c)
-elseif(MBEDTLS_FOUND)
-	list(APPEND SOURCE_FILES cryptoMbedtls.c)
-endif()
 
-bc_apply_compile_flags(SOURCE_FILES STRICT_OPTIONS_CPP)
+bc_apply_compile_flags(BZRTP_C_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(BZRTP_CPP_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
+set(BZRTP_SOURCE_FILES ${BZRTP_C_SOURCE_FILES} ${BZRTP_CXX_SOURCE_FILES})
 set(INCLUDE_DIRS )
 set(LIBS )
 
@@ -55,7 +54,7 @@ if(XML2_FOUND)
 endif()
 
 if(ENABLE_STATIC)
-	add_library(bzrtp STATIC ${SOURCE_FILES})
+	add_library(bzrtp STATIC ${BZRTP_SOURCE_FILES})
 	set_target_properties(bzrtp PROPERTIES OUTPUT_NAME bzrtp)
 	target_include_directories(bzrtp INTERFACE
 		$<INSTALL_INTERFACE:include>
@@ -67,7 +66,7 @@ if(ENABLE_STATIC)
 	)
 endif()
 if(ENABLE_SHARED)
-	add_library(bzrtp SHARED ${SOURCE_FILES})
+	add_library(bzrtp SHARED ${BZRTP_SOURCE_FILES})
 	target_compile_definitions(bzrtp PRIVATE "-DBZRTP_EXPORTS")
 	set_target_properties(bzrtp PROPERTIES VERSION 0)
 	target_include_directories(bzrtp PUBLIC

@@ -21,6 +21,9 @@
 
 #include "typedef.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 /**
  * @brief Parse the cache to find secrets associated to the given ZID, set them and their length in the context if they are found 
@@ -74,5 +77,9 @@ BZRTP_EXPORT int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const
  * @return 0 on succes, error code otherwise
  */
 BZRTP_EXPORT int bzrtp_cache_write_active(bzrtpContext_t *context, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ZIDCACHE_H */

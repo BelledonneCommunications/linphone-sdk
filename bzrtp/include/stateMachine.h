@@ -31,6 +31,11 @@
 #define BZRTP_ERROR_UNSUPPORTEDZRTPVERSION		0xe001
 #define BZRTP_ERROR_UNMATCHINGPACKETREPETITION	0xe002
 #define BZRTP_ERROR_CACHEMISMATCH				0xe004
+
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /**
  * @brief The event type, used as a parameter for the state function
  */
@@ -195,5 +200,9 @@ int state_secure(bzrtpEvent_t event);
  * return 0 on success, error code otherwise
  */
 int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* STATEMACHINE_H */
