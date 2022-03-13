@@ -699,18 +699,18 @@ static void test_parserComplete() {
 		}
 	}
 
-	/* Now Alice shall check that the PV from bob is not 1 or Prime-1 TODO*/
 	/* Compute the shared DH secret */
+	uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(contextAlice->keyAgreementAlgo, MSGTYPE_DHPART1);
 	if (contextAlice->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || contextAlice->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(contextAlice->keyAgreementContext);
-		DHMContext->peer = (uint8_t *)malloc(contextAlice->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
-		memcpy (DHMContext->peer, alice_DHPart1FromBob_message->pv, contextAlice->channelContext[0]->keyAgreementLength);
+		DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+		memcpy (DHMContext->peer, alice_DHPart1FromBob_message->pv, pvLength);
 		bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)contextAlice->RNGContext);
 	}
 	if (contextAlice->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || contextAlice->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 		bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(contextAlice->keyAgreementContext);
-		ECDHContext->peerPublic = (uint8_t *)malloc(contextAlice->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
-		memcpy (ECDHContext->peerPublic, alice_DHPart1FromBob_message->pv, contextAlice->channelContext[0]->keyAgreementLength);
+		ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+		memcpy (ECDHContext->peerPublic, alice_DHPart1FromBob_message->pv, pvLength);
 		bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)contextAlice->RNGContext);
 	}
 
@@ -763,18 +763,18 @@ static void test_parserComplete() {
 		}
 	}
 
-	/* Now Bob shall check that the PV from Alice is not 1 or Prime-1 TODO*/
 	/* Compute the shared DH secret */
+	pvLength = bzrtp_computeKeyAgreementPublicValueLength(contextBob->keyAgreementAlgo, MSGTYPE_DHPART2);
 	if (contextBob->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || contextBob->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(contextBob->keyAgreementContext);
-		DHMContext->peer = (uint8_t *)malloc(contextBob->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
-		memcpy (DHMContext->peer, bob_DHPart2FromAlice_message->pv, contextBob->channelContext[0]->keyAgreementLength);
+		DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+		memcpy (DHMContext->peer, bob_DHPart2FromAlice_message->pv, pvLength);
 		bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)contextAlice->RNGContext);
 	}
 	if (contextBob->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || contextBob->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 		bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(contextBob->keyAgreementContext);
-		ECDHContext->peerPublic = (uint8_t *)malloc(contextBob->channelContext[0]->keyAgreementLength*sizeof(uint8_t));
-		memcpy (ECDHContext->peerPublic, bob_DHPart2FromAlice_message->pv, contextBob->channelContext[0]->keyAgreementLength);
+		ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+		memcpy (ECDHContext->peerPublic, bob_DHPart2FromAlice_message->pv, pvLength);
 		bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)contextAlice->RNGContext);
 	}
 
@@ -1282,7 +1282,6 @@ static void test_parserComplete() {
 			contextAlice->channelContext[1]->authTagAlgo = contextAlice->channelContext[0]->authTagAlgo;
 			contextAlice->channelContext[1]->sasAlgo = contextAlice->channelContext[0]->sasAlgo;
 			contextAlice->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
-			contextAlice->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
 
 			bzrtp_updateCryptoFunctionPointers(contextAlice->channelContext[1]);
 		} else {
@@ -1322,7 +1321,6 @@ static void test_parserComplete() {
 			contextBob->channelContext[1]->authTagAlgo = contextBob->channelContext[0]->authTagAlgo;
 			contextBob->channelContext[1]->sasAlgo = contextBob->channelContext[0]->sasAlgo;
 			contextBob->channelContext[1]->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
-			contextBob->channelContext[1]->keyAgreementLength = 0; /* no public values exchanged in Multi channel mode */
 
 			bzrtp_updateCryptoFunctionPointers(contextBob->channelContext[1]);
 		} else {

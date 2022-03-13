@@ -71,6 +71,31 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 					index++;
 				}
 
+				if (available_key_agreements&BCTBX_KEM_KYBER512) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB1;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_KEM_KYBER768) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB2;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_KEM_KYBER1024) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_KEM_SIKE503) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK1;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_KEM_SIKE751) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK3;
+					index++;
+				}
+
 				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
 				return index+1;
 			}
@@ -492,19 +517,20 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 			break;
 	}
 
-	/* Key agreement algo : there is an unique function for this one in the wrapper, just set the keyAgreementLength */
+	/* Key agreement algo : is directly managed in the parse and state machine, nothing to do, just check it is valid */
 	switch (zrtpChannelContext->keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_DH2k :
-			zrtpChannelContext->keyAgreementLength = 256;
-			break;
 		case ZRTP_KEYAGREEMENT_DH3k :
-			zrtpChannelContext->keyAgreementLength = 384;
-			break;
 		case ZRTP_KEYAGREEMENT_X255 :
-			zrtpChannelContext->keyAgreementLength = BCTBX_ECDH_X25519_PUBLIC_SIZE;
-			break;
 		case ZRTP_KEYAGREEMENT_X448 :
-			zrtpChannelContext->keyAgreementLength = BCTBX_ECDH_X448_PUBLIC_SIZE;
+		case ZRTP_KEYAGREEMENT_KYB1 :
+		case ZRTP_KEYAGREEMENT_KYB2:
+		case ZRTP_KEYAGREEMENT_KYB3:
+		case ZRTP_KEYAGREEMENT_SIK1:
+		case ZRTP_KEYAGREEMENT_SIK2:
+		case ZRTP_KEYAGREEMENT_SIK3:
+		case ZRTP_KEYAGREEMENT_Mult:
+		case ZRTP_KEYAGREEMENT_Prsh:
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -908,4 +934,117 @@ uint8_t bzrtp_byteToChar(uint8_t inputByte) {
 	}
 	/* a-f */
 	return inputByte + 0x57;
+}
+
+//TODO: all these size shall use bctoolbox defined constants
+/**
+ * Returns public key size in bytes for any supported KEM algo
+ * @param[in] keyAgreementAlgo
+ *
+ * @return The public key size in bytes
+ */
+static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_KYB1:
+			return 800;
+		case ZRTP_KEYAGREEMENT_KYB2:
+			return 1184;
+		case ZRTP_KEYAGREEMENT_KYB3:
+			return 1568;
+		case ZRTP_KEYAGREEMENT_SIK1:
+			return 378;
+		case ZRTP_KEYAGREEMENT_SIK2:
+			return 0; // TODO: not available for now
+		case ZRTP_KEYAGREEMENT_SIK3:
+			return 564;
+		default:
+			return 0;
+	}
+}
+
+/**
+ * Returns cipher text size in bytes for any supported KEM algo
+ * @param[in] keyAgreementAlgo
+ *
+ * @return The cipher text size in bytes
+ */
+static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_KYB1:
+			return 768;
+		case ZRTP_KEYAGREEMENT_KYB2:
+			return 1088;
+		case ZRTP_KEYAGREEMENT_KYB3:
+			return 1568;
+		case ZRTP_KEYAGREEMENT_SIK1:
+			return 402;
+		case ZRTP_KEYAGREEMENT_SIK2:
+			return 0; // TODO: not available for now
+		case ZRTP_KEYAGREEMENT_SIK3:
+			return 596;
+		default:
+			return 0;
+	}
+}
+
+uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageType) {
+		switch (keyAgreementAlgo) {
+			case ZRTP_KEYAGREEMENT_DH3k	:
+				return 384;
+			case ZRTP_KEYAGREEMENT_DH2k :
+				return 256;
+			case ZRTP_KEYAGREEMENT_X255	:
+				return 32;
+			case ZRTP_KEYAGREEMENT_X448	:
+				return 56;
+			case ZRTP_KEYAGREEMENT_EC25	:
+				return 64;
+			case ZRTP_KEYAGREEMENT_EC38	:
+				return 96;
+			case ZRTP_KEYAGREEMENT_EC52 :
+				return 132;
+			default :
+				// manage all the KEM algo
+				switch (messageType) {
+					case MSGTYPE_COMMIT: // Commit packet includes the public key
+						return bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+					case MSGTYPE_DHPART1: // DHPart1 packet holds the cipher text
+						return bzrt_getKEMCipherTextLength(keyAgreementAlgo);
+					case MSGTYPE_DHPART2: // DHPart2 holds a nonce - invalid algo would pass if giving this message type
+						return ZRTP_KEMPART2_NONCE_SIZE;
+					default:
+						return 0;
+				}
+		}
+}
+
+uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_DH3k	:
+			return 384;
+		case ZRTP_KEYAGREEMENT_DH2k :
+			return 256;
+		case ZRTP_KEYAGREEMENT_X255	:
+			return 32;
+		case ZRTP_KEYAGREEMENT_X448	:
+			return 56;
+		case ZRTP_KEYAGREEMENT_EC25	:
+			return 64;
+		case ZRTP_KEYAGREEMENT_EC38	:
+			return 96;
+		case ZRTP_KEYAGREEMENT_EC52 :
+			return 132;
+		case ZRTP_KEYAGREEMENT_KYB1:
+		case ZRTP_KEYAGREEMENT_KYB2:
+		case ZRTP_KEYAGREEMENT_KYB3:
+			return 32;
+		case ZRTP_KEYAGREEMENT_SIK1:
+			return 24;
+		case ZRTP_KEYAGREEMENT_SIK2:
+			return 0; // TODO: not available for now
+		case ZRTP_KEYAGREEMENT_SIK3:
+			return 32;
+		default:
+			return 0;
+	}
 }

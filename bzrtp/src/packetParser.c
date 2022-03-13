@@ -53,17 +53,6 @@
 #define ZRTP_PINGACKMESSAGE_FIXED_LENGTH 		36
 
 /*** local functions prototypes ***/
-
-/**
- * Return the variable private value length in bytes according to given key agreement algorythm
- *
- * @param[in]	keyAgreementAlgo	The key agreement algo mapped to an integer as defined in cryptoWrapper.h
- *
- * @return		the private value length in bytes
- *
- */
-uint16_t computeKeyAgreementPrivateValueLength(uint8_t keyAgreementAlgo);
-
 /**
  * @brief Retrieve the 8 char string value message type from the int32_t code
  *
@@ -407,7 +396,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				bzrtpDHPartMessage_t *messageData;
 
 				/*check message length, depends on the selected key agreement algo set in zrtpContext */
-				uint16_t pvLength = computeKeyAgreementPrivateValueLength(zrtpChannelContext->keyAgreementAlgo);
+				uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpChannelContext->keyAgreementAlgo, zrtpPacket->messageType);
 				if (pvLength == 0) {
 					return BZRTP_PARSER_ERROR_INVALIDCONTEXT;
 				}
@@ -921,7 +910,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				messageData = (bzrtpDHPartMessage_t *)zrtpPacket->messageData;
 
 				/* compute message length */
-				pvLength = computeKeyAgreementPrivateValueLength(zrtpChannelContext->keyAgreementAlgo);
+				pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpChannelContext->keyAgreementAlgo, zrtpPacket->messageType);
 				if (pvLength==0) {
 					return BZRTP_BUILDER_ERROR_INVALIDCONTEXT;
 				}
@@ -1261,6 +1250,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 						break;
 				}
 
+				uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpChannelContext->keyAgreementAlgo, messageType);
 				switch (zrtpChannelContext->keyAgreementAlgo) {
 					case ZRTP_KEYAGREEMENT_DH2k:
 					case ZRTP_KEYAGREEMENT_DH3k:
@@ -1282,8 +1272,8 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 
 							/* create private key and compute the public value */
 							bctbx_DHMCreatePublic(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
-							zrtpDHPartMessage->pv = (uint8_t *)malloc((zrtpChannelContext->keyAgreementLength)*sizeof(uint8_t));
-							memcpy(zrtpDHPartMessage->pv, DHMContext->self, zrtpChannelContext->keyAgreementLength);
+							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+							memcpy(zrtpDHPartMessage->pv, DHMContext->self, pvLength);
 							zrtpContext->keyAgreementContext = (void *)DHMContext; /* save DHM context in zrtp Context */
 							zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
 						}
@@ -1296,7 +1286,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 							if (zrtpChannelContext->keyAgreementAlgo==ZRTP_KEYAGREEMENT_X255) {
 								bctbx_keyAgreementAlgo = BCTBX_ECDH_X25519;
 							} else {
-							bctbx_keyAgreementAlgo = BCTBX_ECDH_X448;
+								bctbx_keyAgreementAlgo = BCTBX_ECDH_X448;
 							}
 
 							/* Create the ECDH context */
@@ -1309,10 +1299,23 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 							}
 							/* create private key and compute the public value */
 							bctbx_ECDHCreateKeyPair(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
-							zrtpDHPartMessage->pv = (uint8_t *)malloc((zrtpChannelContext->keyAgreementLength)*sizeof(uint8_t));
-							memcpy(zrtpDHPartMessage->pv, ECDHContext->selfPublic, zrtpChannelContext->keyAgreementLength);
+							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+							memcpy(zrtpDHPartMessage->pv, ECDHContext->selfPublic, pvLength);
 							zrtpContext->keyAgreementContext = (void *)ECDHContext; /* save ECDH context in zrtp Context */
 							zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
+						}
+						break;
+						/* Key agreement of KEM type, DHPart2 holds a nonce, DHPart1 holds the crypto bytes that we cannot compute before commit reception */
+						/* This packet is built to compute commit when we're suppposed to be initiator, generate the DHPart2 nonce */
+					case ZRTP_KEYAGREEMENT_KYB1:
+					case ZRTP_KEYAGREEMENT_KYB2:
+					case ZRTP_KEYAGREEMENT_KYB3:
+					case ZRTP_KEYAGREEMENT_SIK1:
+					case ZRTP_KEYAGREEMENT_SIK2:
+					case ZRTP_KEYAGREEMENT_SIK3:
+						{
+							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+							bctbx_rng_get(zrtpContext->RNGContext, zrtpDHPartMessage->pv, pvLength);
 						}
 						break;
 
@@ -1597,45 +1600,4 @@ void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t
 
 	/* the message type */
 	memcpy(outputBuffer+4, messageType, 8);
-}
-
-/*
- * Return the variable private value length in bytes according to given key agreement algorythm
- *
- * @param[in]	keyAgreementAlgo	The key agreement algo mapped to an integer as defined in cryptoWrapper.h
- *
- * @return		the private value length in bytes
- *
- */
-uint16_t computeKeyAgreementPrivateValueLength(uint8_t keyAgreementAlgo) {
-
-	uint16_t pvLength = 0;
-	switch (keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH3k	:
-			pvLength = 384;
-			break;
-		case ZRTP_KEYAGREEMENT_DH2k :
-			pvLength = 256;
-			break;
-		case ZRTP_KEYAGREEMENT_X255	:
-			pvLength = 32;
-			break;
-		case ZRTP_KEYAGREEMENT_X448	:
-			pvLength = 56;
-			break;
-		case ZRTP_KEYAGREEMENT_EC25	:
-			pvLength = 64;
-			break;
-		case ZRTP_KEYAGREEMENT_EC38	:
-			pvLength = 96;
-			break;
-		case ZRTP_KEYAGREEMENT_EC52 :
-			pvLength = 132;
-			break;
-		default :
-			pvLength = 0;
-			break;
-	}
-
-	return pvLength;
 }

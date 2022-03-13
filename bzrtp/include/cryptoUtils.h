@@ -234,6 +234,31 @@ uint8_t bzrtp_charToByte(uint8_t inputChar);
  */
 uint8_t bzrtp_byteToChar(uint8_t inputByte);
 
+/**
+ * Return the public value(public key or ciphertext) length in bytes according to given key agreement algorithm and packet type
+ * packet type is used to determine public value type when in KEM mode:
+ *     - commit holds a public key
+ *     - DHPart1 holds a ciphertext
+ *     - DHPart2 holds a nonce
+ *
+ * @param[in]	keyAgreementAlgo	The key agreement algo mapped to an integer as defined in cryptoUtils.h
+ * @param[in]	messageType			MSGTYPE_COMMIT, MSGTYPE_DHPART1i or MSGTYPE_DHPART2: needed for KEM mode
+ *
+ * @return		the public value length in bytes
+ *
+ */
+uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageTyoe);
+
+/**
+ * Return the shared secret size in bytes according to given key agreement algorithm
+ *
+ * @param[in]	keyAgreementAlgo	The key agreement algo mapped to an integer as defined in cryptoUtils.h
+ *
+ * @return		the shared secrert length in bytes
+ *
+ */
+uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo);
+
 #ifdef __cplusplus
 }
 #endif

@@ -559,24 +559,22 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				}
 			}
 
-			/* Check that the received PV is not 1 or Prime-1 TODO*/
-
-
 			/* update context with the information found in the packet */
 			memcpy(zrtpChannelContext->peerH[1], dhPart1Message->H1, 32);
 			zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID] = zrtpPacket;
 
 			/* Compute the shared DH secret */
+			uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpContext->keyAgreementAlgo, MSGTYPE_DHPART1);
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 				bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(zrtpContext->keyAgreementContext);
-				DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
-				memcpy (DHMContext->peer, dhPart1Message->pv, zrtpChannelContext->keyAgreementLength);
+				DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				memcpy (DHMContext->peer, dhPart1Message->pv, pvLength);
 				bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 				bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext);
-				ECDHContext->peerPublic = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
-				memcpy (ECDHContext->peerPublic, dhPart1Message->pv, zrtpChannelContext->keyAgreementLength);
+				ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				memcpy (ECDHContext->peerPublic, dhPart1Message->pv, pvLength);
 				bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
 
@@ -875,16 +873,17 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			zrtpChannelContext->peerPackets[DHPART_MESSAGE_STORE_ID] = zrtpPacket;
 
 			/* Compute the shared DH secret */
+			uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpContext->keyAgreementAlgo, MSGTYPE_DHPART2);
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 				bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)(zrtpContext->keyAgreementContext);
-				DHMContext->peer = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
-				memcpy (DHMContext->peer, dhPart2Message->pv, zrtpChannelContext->keyAgreementLength);
+				DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				memcpy (DHMContext->peer, dhPart2Message->pv, pvLength);
 				bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
 			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 				bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext);
-				ECDHContext->peerPublic = (uint8_t *)malloc(zrtpChannelContext->keyAgreementLength*sizeof(uint8_t));
-				memcpy (ECDHContext->peerPublic, dhPart2Message->pv, zrtpChannelContext->keyAgreementLength);
+				ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+				memcpy (ECDHContext->peerPublic, dhPart2Message->pv, pvLength);
 				bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
 			}
 
@@ -1710,7 +1709,6 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	/* now select mode according to context */
 	if ((zrtpContext->peerSupportMultiChannel) == 1 && (zrtpContext->ZRTPSess != NULL)) { /* if we support multichannel and already have a ZRTPSess key, switch to multichannel mode */
 		zrtpChannelContext->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
-		zrtpChannelContext->keyAgreementLength = 0;
 	} else { /* we are not in multiStream mode, so we shall compute the hash of shared secrets */
 		/* get from cache, if relevant, the retained secrets associated to the peer ZID */
 		if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */
@@ -1764,7 +1762,6 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) {
 		/*TODO*/
 	} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) { /* when in Multistream mode, do nothing, will derive s0 from ZRTPSess when we know who is initiator */
-
 
 	} else { /* when in DHM mode : Create the DHPart2 packet (that we then may change to DHPart1 if we ended to be the responder)*/
 		bzrtpPacket_t *selfDHPartPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_DHPART2, &retval);
@@ -1906,7 +1903,8 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	s3 = zrtpContext->cachedSecret.pbxsecret; /* this may be null if no match or no pbx secret where found */
 	s3Length = zrtpContext->cachedSecret.pbxsecretLength; /* this may be 0 if no match or no pbx secret where found */
 
-	hashDataLength = 4/*counter*/ + zrtpChannelContext->keyAgreementLength/*DHResult*/+13/*ZRTP-HMAC-KDF string*/ + 12/*ZIDi*/ + 12/*ZIDr*/ + zrtpChannelContext->hashLength/*total_hash*/ + 4/*len(s1)*/ +s1Length/*s1*/ + 4/*len(s2)*/ +s2Length/*s2*/ + 4/*len(s3)*/ + s3Length/*s3*/;
+	uint16_t sharedSecretLength = bzrtp_computeKeyAgreementSharedSecretLength(zrtpChannelContext->keyAgreementAlgo);
+	hashDataLength = 4/*counter*/ + sharedSecretLength/*DHResult*/+13/*ZRTP-HMAC-KDF string*/ + 12/*ZIDi*/ + 12/*ZIDr*/ + zrtpChannelContext->hashLength/*total_hash*/ + 4/*len(s1)*/ +s1Length/*s1*/ + 4/*len(s2)*/ +s2Length/*s2*/ + 4/*len(s3)*/ + s3Length/*s3*/;
 
 	dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
 	/* counter */
@@ -1918,14 +1916,14 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)zrtpContext->keyAgreementContext;
-		memcpy(dataToHash+hashDataIndex, DHMContext->key, zrtpChannelContext->keyAgreementLength);
+		memcpy(dataToHash+hashDataIndex, DHMContext->key, sharedSecretLength);
 	}
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 		bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)zrtpContext->keyAgreementContext;
-		memcpy(dataToHash+hashDataIndex, ECDHContext->sharedSecret, zrtpChannelContext->keyAgreementLength);
+		memcpy(dataToHash+hashDataIndex, ECDHContext->sharedSecret, sharedSecretLength);
 	}
 
-	hashDataIndex += zrtpChannelContext->keyAgreementLength;
+	hashDataIndex += sharedSecretLength;
 	memcpy(dataToHash+hashDataIndex, "ZRTP-HMAC-KDF", 13);
 	hashDataIndex += 13;
 	/* KDF Context is already ZIDi || ZIDr || total_hash use it directly */
