@@ -1642,7 +1642,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
  * - Find agreement on algo to use
  * - Check if we have retained secrets in cache matching the peer ZID
  * - if agreed on a DHM mode : compute the public value and prepare a DHPart2 packet(assume we are initiator, change later if needed)
- * - if agreed on a non-DHM mode : compute s0 and derive keys from it TODO
+ * - if agreed on a non-DHM mode : PreShared not supported, Multistream nothing to do at this point
  *
  * @param[in]		zrtpContext				The current zrtp Context
  * @param[in,out]	zrtpChannelContext		The channel we are operating
@@ -1676,7 +1676,6 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 			peerSupportMultiChannel = 1;
 		}
 	}
-	zrtpContext->peerSupportMultiChannel = peerSupportMultiChannel;
 
 	/* copy into the channel context the relevant informations */
 	memcpy(zrtpContext->peerZID, helloMessage->ZID, 12); /* peer ZID */
@@ -1707,8 +1706,14 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	}
 
 	/* now select mode according to context */
-	if ((zrtpContext->peerSupportMultiChannel) == 1 && (zrtpContext->ZRTPSess != NULL)) { /* if we support multichannel and already have a ZRTPSess key, switch to multichannel mode */
-		zrtpChannelContext->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
+	if (zrtpChannelContext->isMainChannel==0 && zrtpContext->ZRTPSess != NULL) { /* we already have a ZRTPSess key, switch to multichannel mode */
+		if (peerSupportMultiChannel == 1) { /* Check peers allows it */
+			zrtpChannelContext->keyAgreementAlgo = ZRTP_KEYAGREEMENT_Mult;
+		} else {
+			/* something is wrong, this is a secondary channel but peers does not support multistream mode */
+			bzrtp_freeZrtpPacket(zrtpPacket);
+			return BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER;
+		}
 	} else { /* we are not in multiStream mode, so we shall compute the hash of shared secrets */
 		/* get from cache, if relevant, the retained secrets associated to the peer ZID */
 		if (zrtpContext->cachedSecret.rs1 == NULL) { /* if we do not have already secret hashes in this session context. Note, they may be updated in cache file but they also will be in the context at the same time, so no need to parse the cache again */

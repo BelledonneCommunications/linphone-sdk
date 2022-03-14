@@ -112,7 +112,7 @@ static int totalPacketLost=0; /* set a limit to the total number of packet we ca
 
 /* when timeout is set to this specific value, negotiation is aborted but silently fails */
 #define ABORT_NEGOTIATION_TIMEOUT 24
-static void resetGlobalParams() {
+static void resetGlobalParams(void) {
 	msSTC=0;
 	totalPacketLost =0;
 	loosePacketPercentage=0;
@@ -122,7 +122,7 @@ static void resetGlobalParams() {
 }
 
 /* time functions, we do not run a real time scenario, go for fast test instead */
-static uint64_t getSimulatedTime() {
+static uint64_t getSimulatedTime(void) {
 	return msSTC;
 }
 static void STC_sleep(int ms){
@@ -1275,7 +1275,7 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 	return 0;
 }
 
-static void test_auxiliary_secret() {
+static void test_auxiliary_secret(void) {
 	uint8_t secret1[] = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9a, 0x00, 0xff};
 	uint8_t secret2[] = {0xfe, 0xed, 0xdc, 0xcb, 0xba, 0xa9, 0x98, 0x87, 0x76, 0x65, 0x54, 0x43};
 

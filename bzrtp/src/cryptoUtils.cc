@@ -24,15 +24,7 @@
 #include "cryptoUtils.h"
 #include "bctoolbox/crypto.hh"
 
-/** Return available crypto functions. For now we have
- *
- * - Hash: HMAC-SHA256(Mandatory)
- * - CipherBlock: AES128(Mandatory), AES256(optional)
- * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
- * - Key Agreement: ECDH25519(not mentionned in RFC), ECDH448(not mentionned in RFC), DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
- * - Sas: base32(Mandatory), b256(pgp words, optional)
- */
-uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
+uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[256]) {
 
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
@@ -51,6 +43,7 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 			{
 				/* get availables types from bctoolbox */
 				uint32_t available_key_agreements = bctbx_key_agreement_algo_list();
+				/* Put them in a list in a prefered order, if no configuration is done the first 6 are used */
 				uint8_t index=0;
 				if (available_key_agreements&BCTBX_ECDH_X25519) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_X255;
@@ -62,27 +55,8 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 					index++;
 				}
 
-				/* DH3k is mandatory*/
-				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
-				index++;
-
-				if (available_key_agreements&BCTBX_DHM_2048) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
-					index++;
-				}
-
 				if (available_key_agreements&BCTBX_KEM_KYBER512) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB1;
-					index++;
-				}
-
-				if (available_key_agreements&BCTBX_KEM_KYBER768) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB2;
-					index++;
-				}
-
-				if (available_key_agreements&BCTBX_KEM_KYBER1024) {
-					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
 					index++;
 				}
 
@@ -91,12 +65,32 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 					index++;
 				}
 
+				if (available_key_agreements&BCTBX_KEM_KYBER768) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB2;
+					index++;
+				}
+
+				/* DH3k is mandatory*/
+				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
+				index++;
+
+				if (available_key_agreements&BCTBX_KEM_KYBER1024) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
+					index++;
+				}
+
 				if (available_key_agreements&BCTBX_KEM_SIKE751) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK3;
 					index++;
 				}
 
-				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult; /* This one shall always be at the end of the list, it is just to inform the peer ZRTP endpoint that we support the Multichannel ZRTP */
+				if (available_key_agreements&BCTBX_DHM_2048) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_DH2k;
+					index++;
+				}
+
+				/* Mult is not mandatory but we need it to support old buggy implementation */
+				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult;
 				return index+1;
 			}
 		case ZRTP_SAS_TYPE: /* the SAS function is implemented in cryptoUtils.c and then is not directly linked to the polarSSL crypto wrapper */
@@ -105,6 +99,24 @@ uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTy
 			return 2;
 		default:
 			return 0;
+	}
+}
+
+uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
+	uint8_t allTypes[256];
+	uint8_t ret = bzrtpUtils_getAllAvailableCryptoTypes(algoType, allTypes);
+	memcpy(availableTypes, allTypes, 7);
+	if (algoType != ZRTP_KEYAGREEMENT_TYPE) {
+		return ret;
+	} else {
+		memcpy(availableTypes, allTypes, 7);
+		if (ret<7) {
+			return ret;
+		} else {
+			/* buggy behavior, we need this one for retrocompatibility, enfore its prensence at the end of the list */
+			availableTypes[6] = ZRTP_KEYAGREEMENT_Mult;
+			return 7;
+		}
 	}
 }
 
@@ -531,6 +543,7 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 		case ZRTP_KEYAGREEMENT_SIK3:
 		case ZRTP_KEYAGREEMENT_Mult:
 		case ZRTP_KEYAGREEMENT_Prsh:
+		case ZRTP_UNSET_ALGO :
 			break;
 		default:
 			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -579,7 +592,7 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
  *
  * @return		the number of common algorithms found
  */
-uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]) {
+uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t *slaveArray, uint8_t slaveArrayLength, uint8_t commonArray[7]) {
 	int i;
 	uint8_t commonLength = 0;
 	int algosBitmap[BITMASK_256_SIZE];
@@ -734,6 +747,18 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_EC38;
 				} else if (memcmp(algoType, "EC52", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC52;
+				} else if (memcmp(algoType, "KYB1", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_KYB1;
+				} else if (memcmp(algoType, "KYB2", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_KYB2;
+				} else if (memcmp(algoType, "KYB3", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_KYB3;
+				} else if (memcmp(algoType, "SIK1", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_SIK1;
+				} else if (memcmp(algoType, "SIK2", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_SIK2;
+				} else if (memcmp(algoType, "SIK3", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_SIK3;
 				} else if (memcmp(algoType, "Prsh", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_Prsh;
 				} else if (memcmp(algoType, "Mult", 4) == 0) {
@@ -828,6 +853,24 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 			break;
 		case ZRTP_KEYAGREEMENT_EC52:
 			memcpy(algoTypeString, "EC52", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_KYB1:
+			memcpy(algoTypeString, "KYB1", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_KYB2:
+			memcpy(algoTypeString, "KYB2", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_KYB3:
+			memcpy(algoTypeString, "KYB3", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_SIK1:
+			memcpy(algoTypeString, "SIK1", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_SIK2:
+			memcpy(algoTypeString, "SIK2", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_SIK3:
+			memcpy(algoTypeString, "SIK3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_Prsh:
 			memcpy(algoTypeString, "Prsh", 4);

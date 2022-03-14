@@ -26,15 +26,22 @@
 extern "C"{
 #endif
 
-/** Return available crypto functions. For now we have
+/** Return available crypto functions.
+ * If more than 7 are available, returns the 7 first
  *
- * - Hash: HMAC-SHA256(Mandatory)
- * - CipherBlock: AES128(Mandatory)
+ * - Hash: HMAC-SHA256(Mandatory), HMAC-SHA384
+ * - CipherBlock: AES128(Mandatory), AES256
  * - Auth Tag: HMAC-SHA132 and HMAC-SHA180 (These are mandatory for SRTP and depends on the SRTP implementation thus we can just suppose they are both available)
- * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices)
+ * - Key Agreement: DHM3k(Mandatory), DHM2k(optional and shall not be used except on low power devices), X25519, X448
  * - Sas: base32(Mandatory), b256(pgp words)
  */
 uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]);
+
+/** Return available crypto functions.
+ * WARNING: this function can return more than 7 items, do not use it for something else than checking the
+ * values forced by bzrtp_setSupportedCryptoTypes
+ */
+uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[256]);
 
 /**
  *
@@ -152,7 +159,7 @@ BZRTP_EXPORT int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpC
  *
  * @return		the number of common algorithms found
  */
-uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t slaveArray[7], uint8_t slaveArrayLength, uint8_t commonArray[7]);
+uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t *slaveArray, uint8_t slaveArrayLength, uint8_t commonArray[7]);
 
 /**
  * @brief add mandatory crypto functions if they are not already included

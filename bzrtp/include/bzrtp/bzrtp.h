@@ -20,8 +20,8 @@
 #define BZRTP_H
 
 #include <stdint.h>
-#include "bctoolbox/crypto.h"
-#include "bctoolbox/port.h"
+#include "bctoolbox/crypto.h" // for bctbx_rng_context_t
+#include "bctoolbox/port.h" // for bctbx_mutex_t
 
 #ifdef _MSC_VER
 	#ifdef BZRTP_STATIC

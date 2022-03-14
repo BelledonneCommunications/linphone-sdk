@@ -283,7 +283,7 @@ typedef struct my_Context_struct {
 	bzrtpChannelContext_t *peerChannelContext;
 } my_Context_t;
 
-static void test_parserComplete() {
+static void test_parserComplete(void) {
 
 	int retval;
 	/* alice's maintained packet */
@@ -1609,7 +1609,7 @@ int bzrtp_sendData(void *clientData, const uint8_t *packetString, uint16_t packe
 }
 
 uint64_t myCurrentTime = 0; /* we do not need a real time, start at 0 and increment it at each sleep */
-uint64_t getCurrentTimeInMs() {
+uint64_t getCurrentTimeInMs(void) {
 	return myCurrentTime;
 }
 
@@ -1628,7 +1628,7 @@ static void sleepMs(int ms){
 /* Ping message length is 24 bytes (already define in packetParser.c out of this scope) */
 #define ZRTP_PINGMESSAGE_FIXED_LENGTH 24
 
-static void test_stateMachine() {
+static void test_stateMachine(void) {
 	int retval;
 	my_Context_t aliceClientData, bobClientData;
 	uint64_t initialTime;

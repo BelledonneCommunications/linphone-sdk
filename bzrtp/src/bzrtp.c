@@ -407,11 +407,6 @@ int bzrtp_startChannelEngine(bzrtpContext_t *zrtpContext, uint32_t selfSSRC) {
 		if (zrtpContext->isSecure == 0) {
 			return BZRTP_ERROR_CONTEXTNOTREADY;
 		}
-
-		/* check the peer support Multichannel(shall be set in the first Hello message received) */
-		if (zrtpContext->peerSupportMultiChannel == 0) {
-			return BZRTP_ERROR_MULTICHANNELNOTSUPPORTEDBYPEER;
-		}
 	}
 
 	/* set the timer reference to 0 to force a message to be sent at first timer tick */
@@ -742,14 +737,14 @@ uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoT
  */
 void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount)
 {
-	uint8_t implementedTypes[7];
+	uint8_t implementedTypes[256];
 	uint8_t implementedTypesCount;
 
 	if (zrtpContext==NULL) {
 		return;
 	}
 
-	implementedTypesCount = bzrtpUtils_getAvailableCryptoTypes(algoType, implementedTypes);
+	implementedTypesCount = bzrtpUtils_getAllAvailableCryptoTypes(algoType, implementedTypes);
 
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:

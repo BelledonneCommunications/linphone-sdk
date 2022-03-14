@@ -20,22 +20,25 @@
 #
 ############################################################################
 
-set(TEST_SOURCES
-	bzrtpCryptoTest.c
+set(BZRTP_TEST_C_SOURCES
 	bzrtpParserTest.c
 	bzrtpConfigsTest.c
 	bzrtpZidCacheTest.c
 	bzrtpTest.c
 	testUtils.c
 )
+set(BZRTP_TEST_CXX_SOURCES
+	bzrtpCryptoTest.cc
+)
 
 add_definitions(
 	-DBCTBX_LOG_DOMAIN="bzrtp"
 )
 
-bc_apply_compile_flags(TEST_SOURCES STRICT_OPTIONS_CPP)
+bc_apply_compile_flags(BZRTP_TEST_C_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(BZRTP_TEST_CXX_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_executable(bzrtpTest ${TEST_SOURCES})
+add_executable(bzrtpTest ${BZRTP_TEST_C_SOURCES} ${BZRTP_TEST_CXX_SOURCES})
 set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
 

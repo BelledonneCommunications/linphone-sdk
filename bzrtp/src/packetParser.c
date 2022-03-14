@@ -1138,7 +1138,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				zrtpHelloMessage->hc = zrtpContext->hc;
 				zrtpHelloMessage->cc = zrtpContext->cc;
 				zrtpHelloMessage->ac = zrtpContext->ac;
-				zrtpHelloMessage->kc = zrtpContext->kc;
+				zrtpHelloMessage->kc = zrtpContext->kc; // TODO: for multichannel, just set ZRTP_KEYAGREEMENT_Mult
 				zrtpHelloMessage->sc = zrtpContext->sc;
 
 				for (i=0; i<zrtpContext->hc; i++) {
