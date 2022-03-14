@@ -57,6 +57,12 @@ static const FormatDesc _format_desc_list[] = {
 static bool_t four_cc_compare(const FourCC arg1, const FourCC arg2);
 static MSFileFormat four_cc_to_file_format(const FourCC four_cc);
 
+enum GraphState {
+	Uninit = 0,
+	ResourcesAcquired,
+	GraphReady
+};
+
 struct _MSMediaPlayer {
 	MSFactory *factory;
 	MSFilter *player;
@@ -70,7 +76,7 @@ struct _MSMediaPlayer {
 	MSTicker *ticker;
 	MSFileFormat format;
 	bool_t is_open;
-	bool_t graph_ready;
+	enum GraphState graph_state;
 	int loop_interval;
 	char *filename;
 	MSMediaPlayerEofCallback eof_cb;
@@ -222,10 +228,6 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	obj->is_open = TRUE;
 	obj->filename = ms_strdup(filepath);
 
-	ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
-	_create_decoders(obj);
-	_create_sinks(obj);
-
 	return TRUE;
 }
 
@@ -243,10 +245,19 @@ void ms_media_player_close(MSMediaPlayer *obj) {
 		ms_message("MSMediaPlayer: closing file.");
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_CLOSE);
 		obj->is_open = FALSE;
-		if (obj->graph_ready){
+		if (obj->graph_state == GraphReady){
 			ms_media_player_stop(obj);
 		}
 		ms_free(obj->filename); obj->filename = NULL;
+	}
+}
+
+void ms_media_player_prepare(MSMediaPlayer *obj) {
+	if (obj->graph_state < ResourcesAcquired) {
+		ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_MEDIA);
+		_create_decoders(obj);
+		_create_sinks(obj);
+		obj->graph_state = ResourcesAcquired;
 	}
 }
 
@@ -255,7 +266,8 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		ms_error("Cannot start playing. No file has been opened");
 		return FALSE;
 	}
-	if (!obj->graph_ready){
+	if (obj->graph_state < GraphReady){
+		ms_media_player_prepare(obj);
 		if(!_link_all(obj)) {
 			ms_error("Could not build playing graph");
 			_destroy_graph(obj);
@@ -269,7 +281,7 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		obj->ticker = ms_ticker_new();
 		ms_ticker_set_name(obj->ticker, "Player");
 		ms_ticker_attach(obj->ticker, obj->player);
-		obj->graph_ready = TRUE;
+		obj->graph_state = GraphReady;
 	}
 	
 	if(ms_filter_call_method_noarg(obj->player, MS_PLAYER_START) == -1) {
@@ -286,13 +298,13 @@ void ms_media_player_stop(MSMediaPlayer *obj) {
 		ms_filter_call_method_noarg(obj->player, MS_PLAYER_PAUSE);
 		ms_filter_call_method(obj->player, MS_PLAYER_SEEK_MS, &seek_pos);
 	}
-	if (obj->graph_ready){
+	if (obj->graph_state == GraphReady){
 		ms_ticker_detach(obj->ticker, obj->player);
 		ms_ticker_destroy(obj->ticker);
 		
 		_unlink_all(obj);
 		_destroy_graph(obj);
-		obj->graph_ready = FALSE;
+		obj->graph_state = Uninit;
 	}
 }
 

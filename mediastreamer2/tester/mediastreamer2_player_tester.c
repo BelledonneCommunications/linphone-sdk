@@ -135,6 +135,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 		};
 		static MSEGLContextDescriptor impossible_context = {EGL_OPENGL_ES_API, impossible_version};
 
+		ms_media_player_prepare(file_player);
 		MSFilter *const video_display = ms_media_player_get_video_sink(file_player);
 		ms_filter_call_method(video_display, MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT, &impossible_context);
 	}

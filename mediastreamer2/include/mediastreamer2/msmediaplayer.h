@@ -108,6 +108,12 @@ MS2_PUBLIC bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath)
 MS2_PUBLIC void ms_media_player_close(MSMediaPlayer *obj);
 
 /**
+ * Initialize filters and acquire resources, but don't start playing yet
+ * @param obj The player
+ */
+MS2_PUBLIC void ms_media_player_prepare(MSMediaPlayer *obj);
+
+/**
  * Start playback
  * @param obj The player
  * @return TRUE if playback has been successfuly started
