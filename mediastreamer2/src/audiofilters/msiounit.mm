@@ -593,7 +593,7 @@ ms_mutex_t mutex;
 	}
 	[audioSession setActive:TRUE error:&err];
 	
-	if (_ms_snd_card) {
+	if (_ms_snd_card && _ms_snd_card->device_type != MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
 		// Activating the audio session, by default, will change the audio route to iphone microphone/receiver
 		// To avoid this, we redirect the sound to the current snd card
 		apply_sound_card_to_audio_session(_ms_snd_card);
