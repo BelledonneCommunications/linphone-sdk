@@ -537,7 +537,6 @@ char *get_junit_xml_file_name(const char *suite_name, const char *suffix) {
 //Merge partial JUnit suites reports into the final XML file
 void merge_junit_xml_files(const char *dst_file_name) {
 	char **suite_junit_xml_results;
-	ssize_t	total_size = 0;
 	char *file_name;
 	bctbx_vfs_file_t* bctbx_file;
 	ssize_t read_bytes = 0, file_size = 0, offset = 0;
@@ -552,7 +551,6 @@ void merge_junit_xml_files(const char *dst_file_name) {
 			suite_junit_xml_results[i] = malloc(file_size + 1);
 			read_bytes = bctbx_file_read(bctbx_file, (void *)suite_junit_xml_results[i], file_size, 0);
 			if (read_bytes == file_size) {
-				total_size += file_size;
 				suite_junit_xml_results[i][file_size] = '\0';
 				//Also remove the file
 				bctbx_file_close(bctbx_file);
