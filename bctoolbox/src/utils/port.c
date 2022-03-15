@@ -1601,11 +1601,12 @@ void bctbx_sockaddr_remove_nat64_mapping(const struct sockaddr *v6, struct socka
 			in->sin_addr.s_addr = IN6_GET_ADDR_V4MAPPED(&in6->sin6_addr);
 			in->sin_port = in6->sin6_port;
 			*result_len = sizeof(struct sockaddr_in);
+			return;
 		}
-	} else {
-		*result_len = sizeof(struct sockaddr_in);
-		if (v6 != result) memcpy(result, v6, sizeof(struct sockaddr_in));
 	}
+	/* it was not a NAT64 address: just copy the source address as is, whatever it is.*/
+	*result_len = v6->sa_family == AF_INET6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+	if (v6 != result) memcpy(result, v6, *result_len);
 }
 
 void bctbx_sockaddr_ipv6_to_ipv4(const struct sockaddr *v6, struct sockaddr *result, socklen_t *result_len) {
