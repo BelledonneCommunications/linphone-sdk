@@ -24,7 +24,7 @@ xamarin-package:
     - echo $VERSION_IOS
     - cd build/linphone-sdk/bin/distributions/
     - ls .
-    #- VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
+    - VERSION=$(ls linphone-sdk-android* | sed -e 's/linphone-sdk-android-//g')
     - unzip linphone-sdk-android-$VERSION_ANDROID -d linphone-sdk-android
     - unzip $CI_PROJECT_DIR/build-ios/linphone-sdk-ios-$VERSION_IOS -d linphone-sdk-ios
     - zip -r $CI_PROJECT_DIR/linphone-sdk-xamarin-$VERSION.zip linphone-sdk-android linphone-sdk-ios

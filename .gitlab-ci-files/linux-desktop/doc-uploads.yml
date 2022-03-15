@@ -19,8 +19,12 @@ debian-doc-upload:
     - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $LIBLINPHONE_VERSION
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - LIBLINPHONE_DESCRIBE=$(git -C liblinphone describe)
+    - echo $LIBLINPHONE_DESCRIBE
+    - echo $LIBLINPHONE_DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
+
     - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
+        if [ $IS_ALPHA_BETA -eq 0 ];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     - echo $UPLOAD_ROOT_DIRECTORY
@@ -56,8 +60,12 @@ bzrtp-doc-upload:
     - BZRTP_VERSION=$(git -C bzrtp describe | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $BZRTP_VERSION
     - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - LIBLINPHONE_DESCRIBE=$(git -C liblinphone describe)
+    - echo $LIBLINPHONE_DESCRIBE
+    - echo $LIBLINPHONE_DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
+
     - |
-        if [ "$(git -C bzrtp describe) =~ .*(alpha|beta).*" ];
+        if [ $IS_ALPHA_BETA -eq 0 ];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     - echo $UPLOAD_ROOT_DIRECTORY
@@ -89,9 +97,12 @@ lime-doc-upload:
     #getting the version number to push the right version of the doc
     - LIME_VERSION=$(git -C lime describe | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $LIME_VERSION
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - LIBLINPHONE_DESCRIBE=$(git -C liblinphone describe)
+    - echo $LIBLINPHONE_DESCRIBE
+    - echo $LIBLINPHONE_DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
+
     - |
-        if [ "$(git -C lime describe) =~ .*(alpha|beta).*" ];
+        if [ $IS_ALPHA_BETA -eq 0 ];
         then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
         fi
     - echo $UPLOAD_ROOT_DIRECTORY
