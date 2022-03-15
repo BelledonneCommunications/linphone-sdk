@@ -113,7 +113,7 @@ macosx-ninja-novideo:
 
 
 macosx-xcode:
-  extends: .macosx-desktop
+  extends: .macosx-m1-desktop
   variables:
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
