@@ -748,23 +748,23 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 
 	switch(algoType) {
 		case ZRTP_HASH_TYPE:
-			zrtpContext->hc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
+			zrtpContext->hc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedHash);
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedHash, &zrtpContext->hc);
 			break;
 		case ZRTP_CIPHERBLOCK_TYPE:
-			zrtpContext->cc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
+			zrtpContext->cc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedCipher);
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedCipher, &zrtpContext->cc);
 			break;
 		case ZRTP_AUTHTAG_TYPE:
-			zrtpContext->ac = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
+			zrtpContext->ac = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedAuthTag);
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedAuthTag, &zrtpContext->ac);
 			break;
 		case ZRTP_KEYAGREEMENT_TYPE:
-			zrtpContext->kc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
+			zrtpContext->kc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedKeyAgreement);
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedKeyAgreement, &zrtpContext->kc);
 			break;
 		case ZRTP_SAS_TYPE:
-			zrtpContext->sc = selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
+			zrtpContext->sc = bzrtp_selectCommonAlgo(supportedTypes, supportedTypesCount, implementedTypes, implementedTypesCount, zrtpContext->supportedSas);
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
 			break;
 	}
@@ -813,7 +813,7 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	zrtpChannelContext->peerHelloHash = (uint8_t *)malloc(hexHashStringLength/2*sizeof(uint8_t));
 
 	/* convert to uint8 the hex string */
-	bzrtp_strToUint8(zrtpChannelContext->peerHelloHash, hexHashString, hexHashStringLength);
+	bctbx_str_to_uint8(zrtpChannelContext->peerHelloHash, hexHashString, hexHashStringLength);
 
 	/* Do we already have the peer Hello packet, if yes, check it match the hash */
 	if (zrtpChannelContext->peerPackets[HELLO_MESSAGE_STORE_ID] != NULL) {
@@ -957,7 +957,7 @@ int bzrtp_getSelfHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 	output[strlen(ZRTP_VERSION)]=' ';
 
 	/* convert hash to hex string and set it in the output buffer */
-	bzrtp_int8ToStr(output+strlen(ZRTP_VERSION)+1, helloHash, 32);
+	bctbx_int8_to_str(output+strlen(ZRTP_VERSION)+1, helloHash, 32);
 
 	/* add NULL termination */
 	output[strlen(ZRTP_VERSION)+1+64]='\0';

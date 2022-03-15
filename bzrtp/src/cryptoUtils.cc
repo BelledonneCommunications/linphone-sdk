@@ -365,7 +365,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/* now check what is in common in self and peer order */
 	/* self ordering: get the common list in the self order of preference */
-	commonKeyAgreementTypeNumber = selectCommonAlgo(zrtpContext->supportedKeyAgreement, zrtpContext->kc, peerHelloMessage->supportedKeyAgreement, peerHelloMessage->kc,  selfCommonKeyAgreementType);
+	commonKeyAgreementTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedKeyAgreement, zrtpContext->kc, peerHelloMessage->supportedKeyAgreement, peerHelloMessage->kc,  selfCommonKeyAgreementType);
 
 	/* check we have something in common */
 	if (commonKeyAgreementTypeNumber == 0) { /* this shall never bee true as all ZRTP endpoint MUST support at least DH3k */
@@ -373,7 +373,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 
 	/* peer ordering: get the common list in the peer order of preference */
-	selectCommonAlgo(peerHelloMessage->supportedKeyAgreement, peerHelloMessage->kc, zrtpContext->supportedKeyAgreement, zrtpContext->kc, peerCommonKeyAgreementType);
+	bzrtp_selectCommonAlgo(peerHelloMessage->supportedKeyAgreement, peerHelloMessage->kc, zrtpContext->supportedKeyAgreement, zrtpContext->kc, peerCommonKeyAgreementType);
 
 	/* if the first choices are the same for both, select it */
 	if (selfCommonKeyAgreementType[0] == peerCommonKeyAgreementType[0]) {
@@ -392,7 +392,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/*** Cipher block algorithm ***/
 	/* get the self cipher types availables */
-	commonCipherTypeNumber = selectCommonAlgo(zrtpContext->supportedCipher, zrtpContext->cc, peerHelloMessage->supportedCipher, peerHelloMessage->cc,  commonCipherType);
+	commonCipherTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedCipher, zrtpContext->cc, peerHelloMessage->supportedCipher, peerHelloMessage->cc,  commonCipherType);
 
 	if (commonCipherTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
@@ -428,7 +428,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	
 	/*** Hash algorithm ***/
 	/* get the self hash types availables */
-	commonHashTypeNumber = selectCommonAlgo(zrtpContext->supportedHash, zrtpContext->hc, peerHelloMessage->supportedHash, peerHelloMessage->hc, commonHashType);
+	commonHashTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedHash, zrtpContext->hc, peerHelloMessage->supportedHash, peerHelloMessage->hc, commonHashType);
 	if (commonHashTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
 	}
@@ -454,7 +454,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/*** Authentication Tag algorithm ***/
 	/* get the self authentication tag types availables */
-	commonAuthTagTypeNumber = selectCommonAlgo(zrtpContext->supportedAuthTag, zrtpContext->ac, peerHelloMessage->supportedAuthTag, peerHelloMessage->ac, commonAuthTagType);
+	commonAuthTagTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedAuthTag, zrtpContext->ac, peerHelloMessage->supportedAuthTag, peerHelloMessage->ac, commonAuthTagType);
 	if (commonAuthTagTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDAUTHTAG;
 	}
@@ -462,7 +462,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 
 	/*** Sas algorithm ***/
 	/* get the self Sas rendering types availables */
-	commonSasTypeNumber = selectCommonAlgo(zrtpContext->supportedSas, zrtpContext->sc, peerHelloMessage->supportedSas, peerHelloMessage->sc, commonSasType);
+	commonSasTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedSas, zrtpContext->sc, peerHelloMessage->supportedSas, peerHelloMessage->sc, commonSasType);
 	if (commonSasTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDSAS;
 	}
@@ -592,7 +592,7 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
  *
  * @return		the number of common algorithms found
  */
-uint8_t selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t *slaveArray, uint8_t slaveArrayLength, uint8_t commonArray[7]) {
+uint8_t bzrtp_selectCommonAlgo(uint8_t masterArray[7], uint8_t masterArrayLength, uint8_t *slaveArray, uint8_t slaveArrayLength, uint8_t commonArray[7]) {
 	int i;
 	uint8_t commonLength = 0;
 	int algosBitmap[BITMASK_256_SIZE];
@@ -902,81 +902,6 @@ void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 	if (key != NULL) {
 		bctbx_rng_get(static_cast<bctbx_rng_context_t *>(rngContext), key, keyLength);
 	}
-}
-
-/**
- * @brief Convert an hexadecimal string into the corresponding byte buffer
- *
- * @param[out]	outputBytes			The output bytes buffer, must have a length of half the input string buffer
- * @param[in]	inputString			The input string buffer, must be hexadecimal(it is not checked by function, any non hexa char is converted to 0)
- * @param[in]	inputStringLength	The length in chars of the string buffer, output is half this length
- */
-void bzrtp_strToUint8(uint8_t *outputBytes, uint8_t *inputString, uint16_t inputStringLength) {
-	int i;
-	for (i=0; i<inputStringLength/2; i++) {
-		outputBytes[i] = (bzrtp_charToByte(inputString[2*i]))<<4 | bzrtp_charToByte(inputString[2*i+1]);
-	}
-}
-
-/**
- * @brief Convert a byte buffer into the corresponding hexadecimal string
- *
- * @param[out]	outputString		The output string buffer, must have a length of twice the input bytes buffer
- * @param[in]	inputBytes			The input bytes buffer
- * @param[in]	inputBytesLength	The length in bytes buffer, output is twice this length
- */
-void bzrtp_int8ToStr(uint8_t *outputString, uint8_t *inputBytes, uint16_t inputBytesLength) {
-	int i;
-	for (i=0; i<inputBytesLength; i++) {
-		outputString[2*i] = bzrtp_byteToChar((inputBytes[i]>>4)&0x0F);
-		outputString[2*i+1] = bzrtp_byteToChar(inputBytes[i]&0x0F);
-	}
-}
-
-/**
- * @brief	convert an hexa char [0-9a-fA-F] into the corresponding unsigned integer value
- * Any invalid char will be converted to zero without any warning
- *
- * @param[in]	inputChar	a char which shall be in range [0-9a-fA-F]
- *
- * @return		the unsigned integer value in range [0-15]
- */
-uint8_t bzrtp_charToByte(uint8_t inputChar) {
-	/* 0-9 */
-	if (inputChar>0x29 && inputChar<0x3A) {
-		return inputChar - 0x30;
-	}
-
-	/* a-f */
-	if (inputChar>0x60 && inputChar<0x67) {
-		return inputChar - 0x57; /* 0x57 = 0x61(a) + 0x0A*/
-	}
-
-	/* A-F */
-	if (inputChar>0x40 && inputChar<0x47) {
-		return inputChar - 0x37; /* 0x37 = 0x41(a) + 0x0A*/
-	}
-
-	/* shall never arrive here, string is not Hex*/
-	return 0;
-
-}
-
-/**
- * @brief	convert a byte which value is in range [0-15] into an hexa char [0-9a-fA-F]
- *
- * @param[in]	inputByte	an integer which shall be in range [0-15]
- *
- * @return		the hexa char [0-9a-f] corresponding to the input
- */
-uint8_t bzrtp_byteToChar(uint8_t inputByte) {
-	inputByte &=0x0F; /* restrict the input value to range [0-15] */
-	/* 0-9 */
-	if(inputByte<0x0A) {
-		return inputByte+0x30;
-	}
-	/* a-f */
-	return inputByte + 0x57;
 }
 
 //TODO: all these size shall use bctoolbox defined constants
