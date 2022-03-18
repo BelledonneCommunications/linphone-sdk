@@ -211,6 +211,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 				/* allocate a Hello message structure */
 				messageData = (bzrtpHelloMessage_t *)malloc(sizeof(bzrtpHelloMessage_t));
+				memset(messageData, 0, sizeof(bzrtpHelloMessage_t));
 
 				/* fill it */
 				memcpy(messageData->version, messageContent, 4);
@@ -301,6 +302,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				/* allocate a commit message structure */
 				bzrtpCommitMessage_t *messageData;
 				messageData = (bzrtpCommitMessage_t *)malloc(sizeof(bzrtpCommitMessage_t));
+				memset(messageData, 0, sizeof(bzrtpCommitMessage_t));
 
 				/* fill the structure */
 				memcpy(messageData->H2, messageContent, 32);
@@ -348,6 +350,15 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 					case ZRTP_KEYAGREEMENT_EC52 :
 						variableLength = 32; /* hvi is 32 bytes length in DH Commit message format */
 						break;
+					case ZRTP_KEYAGREEMENT_KYB1:
+					case ZRTP_KEYAGREEMENT_KYB2:
+					case ZRTP_KEYAGREEMENT_KYB3:
+					case ZRTP_KEYAGREEMENT_SIK1:
+					case ZRTP_KEYAGREEMENT_SIK2:
+					case ZRTP_KEYAGREEMENT_SIK3:
+						/* for KEM exchange, public key is in the commit packet, add its length to the hvi */
+						variableLength = 32 + bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
+						break;
 					case ZRTP_KEYAGREEMENT_Prsh :
 						variableLength = 24; /* nonce (16 bytes) and keyID(8 bytes) are 24 bytes length in preshared Commit message format */
 						break;
@@ -379,6 +390,13 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				} else { /* it's a DH commit message, get the hvi */
 					memcpy(messageData->hvi, messageContent, 32);
 					messageContent +=32;
+					/* if the key exchange algo is of type KEM, there is also the public key */
+					if (bzrtp_isKem(messageData->keyAgreementAlgo)) {
+						uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
+						messageData->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+						memcpy(messageData->pv, messageContent, pvLength);
+						messageContent += pvLength;
+					}
 				}
 
 				/* get the MAC and attach the message data to the packet structure */
@@ -407,6 +425,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 
 				/* allocate a DHPart message structure and pv */
 				messageData = (bzrtpDHPartMessage_t *)malloc(sizeof(bzrtpDHPartMessage_t));
+				memset(messageData, 0, sizeof(bzrtpDHPartMessage_t));
 
 				/* fill the structure */
 				memcpy(messageData->H1, messageContent, 32);
@@ -545,6 +564,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				
 				/* allocate a confirm message structure */
 				messageData = (bzrtpConfirmMessage_t *)malloc(sizeof(bzrtpConfirmMessage_t));
+				memset(messageData, 0, sizeof(bzrtpConfirmMessage_t));
 
 				/* get the mac and the IV */
 				memcpy(messageData->confirm_mac, messageContent, 8);
@@ -704,6 +724,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 				/* allocate a ping message structure */
 				bzrtpPingMessage_t *messageData;
 				messageData = (bzrtpPingMessage_t *)malloc(sizeof(bzrtpPingMessage_t));
+				memset(messageData, 0, sizeof(bzrtpPingMessage_t));
 
 				/* fill the structure */
 				memcpy(messageData->version, messageContent, 4);
@@ -842,6 +863,15 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 					case ZRTP_KEYAGREEMENT_EC52 :
 						variableLength = 32; /* hvi is 32 bytes length in DH Commit message format */
 						break;
+					case ZRTP_KEYAGREEMENT_KYB1:
+					case ZRTP_KEYAGREEMENT_KYB2:
+					case ZRTP_KEYAGREEMENT_KYB3:
+					case ZRTP_KEYAGREEMENT_SIK1:
+					case ZRTP_KEYAGREEMENT_SIK2:
+					case ZRTP_KEYAGREEMENT_SIK3:
+						/* for KEM exchange, public key is in the commit packet, add its length to the 32 bytes hvi */
+						variableLength = 32 + bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
+						break;
 					case ZRTP_KEYAGREEMENT_Prsh :
 						variableLength = 24; /* nonce (16 bytes) and keyID(8 bytes) are 24 bytes length in preshared Commit message format */
 						break;
@@ -888,11 +918,16 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				} else { /* it's a DH commit message, set the hvi */
 					memcpy(messageString, messageData->hvi, 32);
 					messageString +=32;
+					/* for KEM type, insert the public key after the hvi */
+					if (bzrtp_isKem(messageData->keyAgreementAlgo)) {
+						memcpy(messageString, messageData->pv, bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT));
+						messageString += bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
+					}
 				}
 			
 				/* there is a MAC to compute, set the pointers to the key and MAC output buffer */
 				MACbuffer = messageString;
-				MACkey = zrtpChannelContext->selfH[1]; /* HMAC of Hello packet is keyed by H1 which have been set at context initialising */
+				MACkey = zrtpChannelContext->selfH[1]; /* HMAC of Commit packet is keyed by H1 which have been set at context initialising */
 			}
 			break; /*MSGTYPE_COMMIT */
 
@@ -1207,6 +1242,17 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 
 					zrtpChannelContext->hashFunction(DHPartHelloMessageString, DHPartHelloMessageStringLength, 32, zrtpCommitMessage->hvi);
 
+					/* if the DH is of type KEM, generate now the key pair, store the KEM context in the  */
+					if (bzrtp_isKem(zrtpCommitMessage->keyAgreementAlgo)) {
+						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpCommitMessage->keyAgreementAlgo);
+						if (KEMContext != NULL) {
+							bzrtp_KEM_generateKeyPair(KEMContext);
+							zrtpCommitMessage->pv = (uint8_t *)malloc(bzrtp_computeKeyAgreementPublicValueLength(zrtpCommitMessage->keyAgreementAlgo, MSGTYPE_COMMIT)*sizeof(uint8_t));
+							bzrtp_KEM_getPublicKey(KEMContext, zrtpCommitMessage->pv);
+							zrtpContext->keyAgreementContext = (void *)KEMContext; // Store the KEM context in main channel so we can decaps the answer and we can destroy it
+							zrtpContext->keyAgreementAlgo = zrtpCommitMessage->keyAgreementAlgo;
+						}
+					}
 					free(DHPartHelloMessageString);
 				}
 
@@ -1225,12 +1271,19 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				memset(zrtpDHPartMessage, 0, sizeof(bzrtpDHPartMessage_t));
 				/* initialise some fields using zrtp context data */
 				memcpy(zrtpDHPartMessage->H1, zrtpChannelContext->selfH[1], 32);
-				/* get the retained secret from context, we anyway create a DHPart2 packet that we may turn into a DHPart1 packet if we end to 
-				 * be the responder and not the initiator, use the initiator retained secret hashes */
-				memcpy(zrtpDHPartMessage->rs1ID, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
-				memcpy(zrtpDHPartMessage->rs2ID, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
-				memcpy(zrtpDHPartMessage->auxsecretID, zrtpChannelContext->initiatorAuxsecretID, 8);
-				memcpy(zrtpDHPartMessage->pbxsecretID, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
+				if (messageType == MSGTYPE_DHPART2) { /* initiator creates the DHPart2 */
+					/* for DH and ECDH we create only a DHPart2 that is then turned into a DHPart1 if needed */
+					memcpy(zrtpDHPartMessage->rs1ID, zrtpContext->initiatorCachedSecretHash.rs1ID, 8);
+					memcpy(zrtpDHPartMessage->rs2ID, zrtpContext->initiatorCachedSecretHash.rs2ID, 8);
+					memcpy(zrtpDHPartMessage->auxsecretID, zrtpChannelContext->initiatorAuxsecretID, 8);
+					memcpy(zrtpDHPartMessage->pbxsecretID, zrtpContext->initiatorCachedSecretHash.pbxsecretID, 8);
+				} else { /* responder creates the DHPart1 */
+					/* KEM mode cannot reuse context created for DHPart2, so it creates a DHPart1 if needed */
+					memcpy(zrtpDHPartMessage->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
+					memcpy(zrtpDHPartMessage->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
+					memcpy(zrtpDHPartMessage->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+					memcpy(zrtpDHPartMessage->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+				}
 				
 				/* compute the public value and insert it in the message, will then be used whatever role - initiator or responder - we assume */
 				/* initialise the dhm context, secret length shall be twice the size of cipher block key length - rfc section 5.1.5 */
@@ -1251,82 +1304,82 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				}
 
 				uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpChannelContext->keyAgreementAlgo, messageType);
-				switch (zrtpChannelContext->keyAgreementAlgo) {
-					case ZRTP_KEYAGREEMENT_DH2k:
-					case ZRTP_KEYAGREEMENT_DH3k:
-						{
-							bctbx_DHMContext_t *DHMContext = NULL;
-							if (zrtpChannelContext->keyAgreementAlgo==ZRTP_KEYAGREEMENT_DH2k) {
-								bctbx_keyAgreementAlgo = BCTBX_DHM_2048;
-							} else {
-								bctbx_keyAgreementAlgo = BCTBX_DHM_3072;
-							}
-							/* create DHM context */
-							DHMContext = (void *)bctbx_CreateDHMContext(bctbx_keyAgreementAlgo, secretLength);
-							if (DHMContext == NULL) {
-								free(zrtpPacket);
-								free(zrtpDHPartMessage);
-								*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
-								return NULL;
-							}
-
-							/* create private key and compute the public value */
-							bctbx_DHMCreatePublic(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
-							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
-							memcpy(zrtpDHPartMessage->pv, DHMContext->self, pvLength);
-							zrtpContext->keyAgreementContext = (void *)DHMContext; /* save DHM context in zrtp Context */
-							zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
-						}
-						break;
-
-					case ZRTP_KEYAGREEMENT_X255:
-					case ZRTP_KEYAGREEMENT_X448:
-						{
-							bctbx_ECDHContext_t *ECDHContext = NULL;
-							if (zrtpChannelContext->keyAgreementAlgo==ZRTP_KEYAGREEMENT_X255) {
-								bctbx_keyAgreementAlgo = BCTBX_ECDH_X25519;
-							} else {
-								bctbx_keyAgreementAlgo = BCTBX_ECDH_X448;
-							}
-
-							/* Create the ECDH context */
-							ECDHContext = (void *)bctbx_CreateECDHContext(bctbx_keyAgreementAlgo);
-							if (ECDHContext == NULL) {
-								free(zrtpPacket);
-								free(zrtpDHPartMessage);
-								*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
-								return NULL;
-							}
-							/* create private key and compute the public value */
-							bctbx_ECDHCreateKeyPair(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
-							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
-							memcpy(zrtpDHPartMessage->pv, ECDHContext->selfPublic, pvLength);
-							zrtpContext->keyAgreementContext = (void *)ECDHContext; /* save ECDH context in zrtp Context */
-							zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
-						}
-						break;
-						/* Key agreement of KEM type, DHPart2 holds a nonce, DHPart1 holds the crypto bytes that we cannot compute before commit reception */
-						/* This packet is built to compute commit when we're suppposed to be initiator, generate the DHPart2 nonce */
-					case ZRTP_KEYAGREEMENT_KYB1:
-					case ZRTP_KEYAGREEMENT_KYB2:
-					case ZRTP_KEYAGREEMENT_KYB3:
-					case ZRTP_KEYAGREEMENT_SIK1:
-					case ZRTP_KEYAGREEMENT_SIK2:
-					case ZRTP_KEYAGREEMENT_SIK3:
-						{
-							zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
-							bctbx_rng_get(zrtpContext->RNGContext, zrtpDHPartMessage->pv, pvLength);
-						}
-						break;
-
-					default:
+				/* DHM key exchange */
+				if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
+					bctbx_DHMContext_t *DHMContext = NULL;
+					if (zrtpChannelContext->keyAgreementAlgo==ZRTP_KEYAGREEMENT_DH2k) {
+						bctbx_keyAgreementAlgo = BCTBX_DHM_2048;
+					} else {
+						bctbx_keyAgreementAlgo = BCTBX_DHM_3072;
+					}
+					/* create DHM context */
+					DHMContext = bctbx_CreateDHMContext(bctbx_keyAgreementAlgo, secretLength);
+					if (DHMContext == NULL) {
 						free(zrtpPacket);
 						free(zrtpDHPartMessage);
 						*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
 						return NULL;
-						break;
+					}
+
+					/* create private key and compute the public value */
+					bctbx_DHMCreatePublic(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
+					zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+					memcpy(zrtpDHPartMessage->pv, DHMContext->self, pvLength);
+					zrtpContext->keyAgreementContext = (void *)DHMContext; /* save DHM context in zrtp Context */
+					zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
+
+				/* ECDH key exchange */
+				} else if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+					bctbx_ECDHContext_t *ECDHContext = NULL;
+					if (zrtpChannelContext->keyAgreementAlgo==ZRTP_KEYAGREEMENT_X255) {
+						bctbx_keyAgreementAlgo = BCTBX_ECDH_X25519;
+					} else {
+						bctbx_keyAgreementAlgo = BCTBX_ECDH_X448;
+					}
+
+					/* Create the ECDH context */
+					ECDHContext = bctbx_CreateECDHContext(bctbx_keyAgreementAlgo);
+					if (ECDHContext == NULL) {
+						free(zrtpPacket);
+						free(zrtpDHPartMessage);
+						*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
+						return NULL;
+					}
+					/* create private key and compute the public value */
+					bctbx_ECDHCreateKeyPair(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, zrtpContext->RNGContext);
+					zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+					memcpy(zrtpDHPartMessage->pv, ECDHContext->selfPublic, pvLength);
+					/* we might already have a keyAgreement context in the zrtpContext (if we are building a DHPart1 after having built a DHPart2) */
+					zrtpContext->keyAgreementContext = (void *)ECDHContext; /* save ECDH context in zrtp Context */
+					zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
+
+				/* KEM key exchange*/
+				} else if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
+					/* Key agreement of KEM type, DHPart2 holds a nonce, DHPart1 holds the crypto */
+					if (messageType == MSGTYPE_DHPART1) { /* DHPart1: generate a secret and encapsulate it. Peer's public key is in the commit packet */
+						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpChannelContext->keyAgreementAlgo);
+						if (KEMContext == NULL) {
+							free(zrtpPacket);
+							free(zrtpDHPartMessage);
+							*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
+							return NULL;
+						}
+						zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+						bzrtpCommitMessage_t *peerCommitMessageData = (bzrtpCommitMessage_t *)zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageData;
+						bzrtp_KEM_encaps(KEMContext, peerCommitMessageData->pv, zrtpDHPartMessage->pv);
+						zrtpContext->keyAgreementContext = (void *)KEMContext; // Store the KEM context in main channel so we can get the shared secret when needed and we can destroy it
+						zrtpContext->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo; /* store algo in global context to be able to destroy it correctly*/
+					} else { /* this is a DHPArt2, generate a nonce */
+						zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+						bctbx_rng_get(zrtpContext->RNGContext, zrtpDHPartMessage->pv, pvLength);
+					}
+				} else {
+					free(zrtpPacket);
+					free(zrtpDHPartMessage);
+					*exitCode = BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT;
+					return NULL;
 				}
-								/* attach the message data to the packet */
+				/* attach the message data to the packet */
 				zrtpPacket->messageData = zrtpDHPartMessage;
 			}
 			break; /* MSGTYPE_DHPART1 and MSGTYPE_DHPART2 */
@@ -1409,6 +1462,14 @@ void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket) {
 		/* some messages have fields to be freed */
 		if (zrtpPacket->messageData != NULL) {
 			switch(zrtpPacket->messageType) {
+				case MSGTYPE_COMMIT :
+					{
+						bzrtpCommitMessage_t *typedMessageData = (bzrtpCommitMessage_t *)(zrtpPacket->messageData);
+						if (typedMessageData != NULL) {
+							free(typedMessageData->pv);
+						}
+					}
+					break;
 				case MSGTYPE_DHPART1 :
 				case MSGTYPE_DHPART2 :
 					{

@@ -287,7 +287,7 @@ uint32_t CRC32LookupTable[256] = {
 0xbe2da0a5, 0x4c4623a6, 0x5f16d052, 0xad7d5351
 };
 
-/* CRC32 Polynomial 0x1EDC6F41 in reverse bit order so 
+/* CRC32 Polynomial 0x1EDC6F41 in reverse bit order so
  * used the reversed one 0x82F63B78 to compute the table */
 uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 
@@ -386,8 +386,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		}
 	}
 
-	/* now we shall select others algos among the availables and set them into the context, these choices may be 
-	 * bypassed if we assume the receptor role as the initiator's commit will have the final word on the algo 
+	/* now we shall select others algos among the availables and set them into the context, these choices may be
+	 * bypassed if we assume the receptor role as the initiator's commit will have the final word on the algo
 	 * selection */
 
 	/*** Cipher block algorithm ***/
@@ -425,14 +425,14 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	} else { /* no restrictions, pick the first one */
 		zrtpChannelContext->cipherAlgo = commonCipherType[0];
 	}
-	
+
 	/*** Hash algorithm ***/
 	/* get the self hash types availables */
 	commonHashTypeNumber = bzrtp_selectCommonAlgo(zrtpContext->supportedHash, zrtpContext->hc, peerHelloMessage->supportedHash, peerHelloMessage->hc, commonHashType);
 	if (commonHashTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
 	}
-	
+
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use SHA384 */
 	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
 		int i=0;
@@ -581,7 +581,7 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 
 /**
  * @brief Select common algorithm from the given array where algo are represented by their 4 chars string defined in rfc section 5.1.2 to 5.1.6
- * Master array is the one given the preference order 
+ * Master array is the one given the preference order
  * All algo are designed by their uint8_t mapped values
  *
  * @param[in]	masterArray	 		The ordered available algo, result will follow this ordering
@@ -1015,4 +1015,153 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 		default:
 			return 0;
 	}
+}
+
+bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_KYB1:
+		case ZRTP_KEYAGREEMENT_KYB2:
+		case ZRTP_KEYAGREEMENT_KYB3:
+		case ZRTP_KEYAGREEMENT_SIK1:
+		case ZRTP_KEYAGREEMENT_SIK2:
+		case ZRTP_KEYAGREEMENT_SIK3:
+			return TRUE;
+		default:
+			return false;
+	}
+}
+
+typedef struct bzrtp_KEMContext_struct {
+		std::shared_ptr<bctoolbox::KEM> ctx;
+		std::vector<uint8_t> publicKey;
+		std::vector<uint8_t> secretKey;
+		std::vector<uint8_t> sharedSecret;
+} bzrtp_KEMContext_t;
+
+/**
+ * Create the KEM context
+ *
+ * @param[in]	keyAgreementAlgo one of ZRTP_KEYAGREEMENT_KYB1, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB3,
+ * 									ZRTP_KEYAGREEMENT_SIK1, ZRTP_KEYAGREEMENT_SIK2, ZRTP_KEYAGREEMENT_SIK3
+ *
+ * @return a pointer to the created context, NULL in case of failure
+ */
+bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
+	if (!bzrtp_isKem(keyAgreementAlgo)) {
+		return NULL;
+	}
+	bzrtp_KEMContext_t *context = new bzrtp_KEMContext_t;
+
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_KYB1:
+			context->ctx = std::make_shared<bctoolbox::KYBER512>();
+			break;
+		case ZRTP_KEYAGREEMENT_KYB2:
+			context->ctx = std::make_shared<bctoolbox::KYBER768>();
+			break;
+		case ZRTP_KEYAGREEMENT_KYB3:
+			context->ctx = std::make_shared<bctoolbox::KYBER1024>();
+			break;
+		case ZRTP_KEYAGREEMENT_SIK1:
+			break;
+		case ZRTP_KEYAGREEMENT_SIK2:
+			break;
+		case ZRTP_KEYAGREEMENT_SIK3:
+			break;
+		default:
+			return NULL;
+	}
+	return context;
+}
+
+/**
+ * Generate a key pair and store it in the context
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_generateKeyPair(bzrtp_KEMContext_t *ctx) {
+	if (ctx == NULL || ctx->ctx == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	return ctx->ctx->crypto_kem_keypair(ctx->publicKey, ctx->secretKey);
+}
+
+/**
+ * Extract the public key from context
+ * @param[in]	ctx			a valid KEM context
+ * @param[out]	publicKey	the key in this context.
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_getPublicKey(bzrtp_KEMContext_t *ctx, uint8_t *publicKey) {
+	if (ctx == NULL || ctx->ctx == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	if (ctx->publicKey.size() > 0) {
+		memcpy(publicKey,ctx->publicKey.data(), ctx->publicKey.size());
+		return 0;
+	}
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_getSharedSecret(bzrtp_KEMContext_t *ctx, uint8_t *sharedSecret) {
+	if (ctx == NULL || ctx->ctx == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	if (ctx->sharedSecret.size() > 0) {
+		memcpy(sharedSecret,ctx->sharedSecret.data(), ctx->sharedSecret.size());
+		return 0;
+	}
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_encaps(bzrtp_KEMContext_t *ctx, uint8_t *publicKey, uint8_t *cipherText) {
+	if (ctx == NULL || ctx->ctx == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	std::vector<uint8_t> ct;
+	std::vector<uint8_t> pk(ctx->ctx->pkSize);
+	memcpy(pk.data(), publicKey, pk.size());
+
+	if (ctx->ctx->crypto_kem_enc(ct, ctx->sharedSecret, pk) == 0) {
+		memcpy(cipherText, ct.data(), ct.size());
+		return 0;
+	}
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_decaps(bzrtp_KEMContext_t *ctx, uint8_t *cipherText) {
+	if (ctx == NULL || ctx->ctx == NULL || ctx->secretKey.size()==0) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+	std::vector<uint8_t> ct(ctx->ctx->ctSize);
+	memcpy(ct.data(), cipherText, ct.size());
+	if (ctx->ctx->crypto_kem_dec(ctx->sharedSecret, ct, ctx->secretKey) == 0) {
+		return 0;
+	}
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+/**
+ * Destroy a KEM context. Safely clean any secrets it may holding
+ * @param[in]	ctx				a valid KEM context
+ *
+ * @return 0 on success
+ */
+int bzrtp_destroyKEMContext(bzrtp_KEMContext_t *ctx) {
+	if (ctx == NULL || ctx->ctx == NULL) {
+		return BZRTP_ERROR_CONTEXTNOTREADY;
+	}
+
+	ctx->ctx=nullptr;
+
+	bctbx_clean(ctx->secretKey.data(), ctx->secretKey.size());;
+	bctbx_clean(ctx->sharedSecret.data(), ctx->sharedSecret.size());;
+
+	delete ctx;
+	return 0;
 }

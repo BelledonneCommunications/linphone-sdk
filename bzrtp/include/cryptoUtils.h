@@ -46,10 +46,10 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 /**
  *
  * @brief ZRTP Key Derivation Function as in rfc 4.5.1
- * 
+ *
  * KDF(KI, Label, Context, L) = HMAC(KI, i || Label ||
  *								0x00 || Context || L)
- * where 
+ * where
  * - i is a 32-bits integer fixed to 0x00000001
  * - L is a 32-bit big-endian positive
  *  integer, not to exceed the length in bits of the output of the HMAC.
@@ -101,7 +101,7 @@ void bzrtp_base256(uint32_t sas, char *output, int outputSize);
  * @brief CRC32 as defined in RFC4960 Appendix B - Polynomial is 0x1EDC6F41
  *
  * CRC is computed in reverse bit mode (least significant bit first within each byte)
- * reversed value of polynom (0x82F63B78) was used to compute the lookup table (source 
+ * reversed value of polynom (0x82F63B78) was used to compute the lookup table (source
  * http://en.wikipedia.org/wiki/Cyclic_redundancy_check#Commonly_used_and_standardized_CRCs)
  *
  * @param[in]	input	input data
@@ -110,7 +110,7 @@ void bzrtp_base256(uint32_t sas, char *output, int outputSize);
  * @return		the 32 bits CRC value
  *
  */
-BZRTP_EXPORT uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length); 
+BZRTP_EXPORT uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length);
 
 /* error code for the cryptoAlgoAgreement and function pointer update functions */
 #define	ZRTP_CRYPTOAGREEMENT_INVALIDCONTEXT		0x1001
@@ -229,6 +229,81 @@ uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, ui
  */
 uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo);
 
+/**
+ * Check a given key agrement algorithm is a KEM or not
+ * @param[in]	keyAgreementAlgo a key agreement algo mapped on a uint8_t
+ *
+ * @return TRUE if the algorithm is of type KEM, FALSE otherwise
+ */
+bool_t bzrtp_isKem(uint8_t keyAgreementAlgo);
+
+/* have a C interface to the KEM defined in c++ in bctoolbox
+ TODO: build bzrtp in c++ and directly use the bctoolbox interface */
+/* Forward declaration of KEM context */
+typedef struct bzrtp_KEMContext_struct bzrtp_KEMContext_t;
+
+/**
+ * Create the KEM context
+ *
+ * @param[in]	keyAgreementAlgo one of ZRTP_KEYAGREEMENT_KYB1, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB3,
+ * 									ZRTP_KEYAGREEMENT_SIK1, ZRTP_KEYAGREEMENT_SIK2, ZRTP_KEYAGREEMENT_SIK3
+ *
+ * @return a pointer to the created context, NULL in case of failure
+ */
+bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo);
+
+/**
+ * Generate a key pair and store it in the context
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_generateKeyPair(bzrtp_KEMContext_t *ctx);
+
+/**
+ * Extract the public key from context
+ * @param[in]	ctx			a valid KEM context
+ * @param[out]	publicKey	the key in this context. Data is copied in this buffer, caller must ensure it is the correct size
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_getPublicKey(bzrtp_KEMContext_t *ctx, uint8_t *publicKey);
+
+/**
+ * Extract the shared secret from context
+ * @param[in]	ctx				a valid KEM context
+ * @param[out]	sharedSecret	the shared secret in this context. Data is copied in this buffer, caller must ensure it is the correct size
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_getSharedSecret(bzrtp_KEMContext_t *ctx, uint8_t *sharedSecret);
+
+/**
+ * Generate and encapsulate a secret given a public key, shared secret is stored in the context
+ * @param[in]	ctx				a valid KEM context
+ * @param[in]	publicKey		the public key we want to encapsulate to
+ * @param[out]	cipherText		the encapsulated secret
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_encaps(bzrtp_KEMContext_t *ctx, uint8_t *publicKey, uint8_t *cipherText);
+
+/**
+ * Decapsulate a key, shared secret is stored in the context
+ *
+ * @param[in]	ctx				a valid KEM context holding the secret Key needed to decapsulate
+ * @param[in]	cipherText		the encapsulated secret
+ *
+ * @return 0 on success
+ */
+int bzrtp_KEM_decaps(bzrtp_KEMContext_t *ctx, uint8_t *cipherText);
+
+/**
+ * Destroy a KEM context. Safely clean any secrets it may holding
+ * @param[in]	ctx				a valid KEM context
+ *
+ * @return 0 on success
+ */
+int bzrtp_destroyKEMContext(bzrtp_KEMContext_t *ctx);
 #ifdef __cplusplus
 }
 #endif

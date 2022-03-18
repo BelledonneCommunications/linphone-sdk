@@ -156,7 +156,7 @@ typedef struct bzrtpDHPartMessage_struct {
 	uint8_t rs2ID[8]; /**< hash of the retained secret 2 (64 bits) */
 	uint8_t auxsecretID[8]; /**< hash of the auxiliary shared secret (64 bits) */
 	uint8_t pbxsecretID[8]; /**< hash of the trusted MiTM PBX shared secret pbxsecret, defined in section 7.3.1 (64 bits) */
-	uint8_t *pv; /**< Key exchange public value (length depends on key agreement type). In KEM mode, this might hold a nonce in DHPart2 or the cryptobytes in DHPart1 */
+	uint8_t *pv; /**< Key exchange public value (length depends on key agreement type). In KEM mode, this might hold a nonce in DHPart2 or the ciphertext in DHPart1 */
 	uint8_t MAC[8]; /**< HMAC over the whole message, keyed by the hash image H1 (64 bits)*/
 } bzrtpDHPartMessage_t;
 

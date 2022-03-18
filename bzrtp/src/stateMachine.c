@@ -570,12 +570,14 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 				DHMContext->peer = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
 				memcpy (DHMContext->peer, dhPart1Message->pv, pvLength);
 				bctbx_DHMComputeSecret(DHMContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
-			}
-			if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+			} else if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 				bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext);
 				ECDHContext->peerPublic = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
 				memcpy (ECDHContext->peerPublic, dhPart1Message->pv, pvLength);
 				bctbx_ECDHComputeSecret(ECDHContext, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, (void *)zrtpContext->RNGContext);
+			} else if (bzrtp_isKem(zrtpContext->keyAgreementAlgo)) {
+				bzrtp_KEMContext_t *KEMContext = (bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext;
+				bzrtp_KEM_decaps(KEMContext, dhPart1Message->pv);
 			}
 
 			/* Derive the s0 key */
@@ -1582,27 +1584,44 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 			/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
 			/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
 			if (zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] != NULL) {
-				uint8_t tmpBuffer[8];
-				bzrtpDHPartMessage_t *selfDHPart1Packet;
-				int retval;
+			int retval;
+				if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
+					/* destroy stored KEMContext, we might have created one when receiving peer's Hello */
+					bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext);
+					zrtpContext->keyAgreementContext = NULL;
 
-				memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
-				memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
-				memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
+					/* This is a KEM, so we can trash the self DHPART as it was built to be a DHPart2 and we cannot reuse it */
+					bzrtp_freeZrtpPacket(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
+					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = NULL;
+					bzrtpPacket_t *dhPart1Packet = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_DHPART1, &retval);
+					if (retval != 0) {
+						return retval;
+					}
+					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = dhPart1Packet;
+				} else {
+					/* This is a classic (EC)DH mode, we can reuse the DHPart2 and turn it into a DHPart1 */
+					uint8_t tmpBuffer[8];
+					bzrtpDHPartMessage_t *selfDHPart1Packet;
 
-				/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
-				zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;
+					memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
+					memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+					memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
 
-				/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
-				selfDHPart1Packet = (bzrtpDHPartMessage_t *)zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
-				memcpy(selfDHPart1Packet->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
-				memcpy(selfDHPart1Packet->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
-				memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
-				memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+					/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
+					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;
 
-				/* free the packet string and rebuild the packet */
-				free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
-				zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
+					/* change the shared secret ID to the responder one (we set them by default to the initiator's one) */
+					selfDHPart1Packet = (bzrtpDHPartMessage_t *)zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageData;
+					memcpy(selfDHPart1Packet->rs1ID, zrtpContext->responderCachedSecretHash.rs1ID, 8);
+					memcpy(selfDHPart1Packet->rs2ID, zrtpContext->responderCachedSecretHash.rs2ID, 8);
+					memcpy(selfDHPart1Packet->auxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+					memcpy(selfDHPart1Packet->pbxsecretID, zrtpContext->responderCachedSecretHash.pbxsecretID, 8);
+
+					/* free the packet string */
+					free(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString);
+					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
+				}
+				/* (re)build the packet */
 				retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
 				if (retval == 0) {
 					zrtpChannelContext->selfSequenceNumber++;
@@ -1922,10 +1941,12 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DHMContext_t *DHMContext = (bctbx_DHMContext_t *)zrtpContext->keyAgreementContext;
 		memcpy(dataToHash+hashDataIndex, DHMContext->key, sharedSecretLength);
-	}
-	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+	} else if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 		bctbx_ECDHContext_t *ECDHContext = (bctbx_ECDHContext_t *)zrtpContext->keyAgreementContext;
 		memcpy(dataToHash+hashDataIndex, ECDHContext->sharedSecret, sharedSecretLength);
+	} else if (bzrtp_isKem(zrtpContext->keyAgreementAlgo)) {
+		bzrtp_KEMContext_t *KEMContext = (bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext;
+		bzrtp_KEM_getSharedSecret(KEMContext, dataToHash+hashDataIndex);
 	}
 
 	hashDataIndex += sharedSecretLength;
@@ -1986,9 +2007,10 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	/* clean the DHM context (secret and key shall be erased by this operation) */
 	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 		bctbx_DestroyDHMContext((bctbx_DHMContext_t *)(zrtpContext->keyAgreementContext));
-	}
-	if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+	} else if (zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || zrtpContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 		bctbx_DestroyECDHContext((bctbx_ECDHContext_t *)(zrtpContext->keyAgreementContext));
+	} else if (bzrtp_isKem(zrtpContext->keyAgreementAlgo)) {
+		bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)(zrtpContext->keyAgreementContext));
 	}
 	zrtpContext->keyAgreementContext = NULL;
 	zrtpContext->keyAgreementAlgo = ZRTP_UNSET_ALGO;

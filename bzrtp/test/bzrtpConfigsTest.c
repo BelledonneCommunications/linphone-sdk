@@ -25,7 +25,7 @@
 #include "bzrtpTest.h"
 #include "testUtils.h"
 
-#define MAX_PACKET_LENGTH 1000
+#define MAX_PACKET_LENGTH 3000
 #define MAX_QUEUE_SIZE 10
 #define MAX_CRYPTO_ALG 10
 #define MAX_NUM_CHANNEL ZRTP_MAX_CHANNEL_NUMBER
@@ -527,7 +527,7 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 			/* check the message queue */
 			for (i=0; i<aliceQueueIndex; i++) {
 				retval = bzrtp_processMessage(Alice.bzrtpContext, aliceSSRC, aliceQueue[i].packetString, aliceQueue[i].packetLength);
-				//bzrtp_message("%d Alice processed a %.8s and returns %x\n",msSTC, aliceQueue[i].packetString+16, retval);
+				//bzrtp_message("%ld Alice processed a %.8s and returns %x\n",msSTC, aliceQueue[i].packetString+16, retval);
 				memset(aliceQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
 				lastPacketSentTime=getSimulatedTime();
 			}
@@ -535,7 +535,7 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 
 			for (i=0; i<bobQueueIndex; i++) {
 				retval = bzrtp_processMessage(Bob.bzrtpContext, bobSSRC, bobQueue[i].packetString, bobQueue[i].packetLength);
-				//bzrtp_message("%d Bob processed a %.8s and returns %x\n",msSTC, bobQueue[i].packetString+16, retval);
+				//bzrtp_message("%ld Bob processed a %.8s and returns %x\n",msSTC, bobQueue[i].packetString+16, retval);
 				memset(bobQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
 				lastPacketSentTime=getSimulatedTime();
 			}
@@ -706,9 +706,16 @@ static void test_cacheless_exchange(void) {
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
+	/* serie tested only if KEM is available */
+	cryptoParams_t kem_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
 
 	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
-
 	while (pattern->cipherNb!=0) {
 		BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 		pattern++; /* point to next row in the array of patterns */
@@ -717,6 +724,15 @@ static void test_cacheless_exchange(void) {
 	/* with ECDH agreement types if available */
 	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
 		pattern = &ecdh_patterns[0]; /* pattern is a pointer to current pattern */
+		while (pattern->cipherNb!=0) {
+			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+			pattern++; /* point to next row in the array of patterns */
+		}
+	}
+
+	/* with KEM agreement types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
+		pattern = &kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
@@ -1546,6 +1562,7 @@ static void *test_cache_concurrent_access_getPeerStatus(void *arg) {
 
 	while (getSimulatedTime()<param->timeout) {
 		BC_ASSERT_EQUAL(bzrtp_cache_getPeerStatus_lock(param->db, param->peerUri, param->dbMutex), param->expectedStatus, int, "%x");
+		bctbx_sleep_ms(10);
 	}
 	return NULL;
 }

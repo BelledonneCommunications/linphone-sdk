@@ -45,7 +45,7 @@ static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_
 bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	int i;
 	/*** create and intialise the context structure ***/
-	bzrtpContext_t *context = malloc(sizeof(bzrtpContext_t));
+	bzrtpContext_t *context = (bzrtpContext_t *)malloc(sizeof(bzrtpContext_t));
 	memset(context, 0, sizeof(bzrtpContext_t));
 
 	/* start the random number generator */
@@ -249,10 +249,13 @@ int bzrtp_destroyBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	/* We have no more channel, destroy the zrtp context */
 	/* key agreement context shall already been destroyed after s0 computation, but just in case */
 	if (context->keyAgreementContext != NULL) {
-		if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
+		if (bzrtp_isKem(context->keyAgreementAlgo)) {
+			bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)context->keyAgreementContext);
+		}
+		else if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X255 || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448) {
 			bctbx_DestroyECDHContext((bctbx_ECDHContext_t *)context->keyAgreementContext);
 		}
-		if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
+		else if (context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH2k || context->keyAgreementAlgo == ZRTP_KEYAGREEMENT_DH3k) {
 			bctbx_DestroyDHMContext((bctbx_DHMContext_t *)context->keyAgreementContext);
 		}
 		context->keyAgreementContext = NULL;
