@@ -1247,7 +1247,9 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpCommitMessage->keyAgreementAlgo);
 						if (KEMContext != NULL) {
 							bzrtp_KEM_generateKeyPair(KEMContext);
-							zrtpCommitMessage->pv = (uint8_t *)malloc(bzrtp_computeKeyAgreementPublicValueLength(zrtpCommitMessage->keyAgreementAlgo, MSGTYPE_COMMIT)*sizeof(uint8_t));
+							uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpCommitMessage->keyAgreementAlgo, MSGTYPE_COMMIT);
+							zrtpCommitMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+							memset(zrtpCommitMessage->pv, 0, pvLength); // Set the memory to zero as the buffer is expanded to have a size multiple of 0, so there might be padding at the end.
 							bzrtp_KEM_getPublicKey(KEMContext, zrtpCommitMessage->pv);
 							zrtpContext->keyAgreementContext = (void *)KEMContext; // Store the KEM context in main channel so we can decaps the answer and we can destroy it
 							zrtpContext->keyAgreementAlgo = zrtpCommitMessage->keyAgreementAlgo;
@@ -1365,6 +1367,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 							return NULL;
 						}
 						zrtpDHPartMessage->pv = (uint8_t *)malloc(pvLength*sizeof(uint8_t));
+						memset(zrtpDHPartMessage->pv, 0, pvLength); // Set the buffer to 0 as its size might be expanded to be multiple of 4, so the ciphertext may not fill it all, pad with 0
 						bzrtpCommitMessage_t *peerCommitMessageData = (bzrtpCommitMessage_t *)zrtpChannelContext->peerPackets[COMMIT_MESSAGE_STORE_ID]->messageData;
 						bzrtp_KEM_encaps(KEMContext, peerCommitMessageData->pv, zrtpDHPartMessage->pv);
 						zrtpContext->keyAgreementContext = (void *)KEMContext; // Store the KEM context in main channel so we can get the shared secret when needed and we can destroy it

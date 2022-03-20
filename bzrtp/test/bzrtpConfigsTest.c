@@ -706,11 +706,15 @@ static void test_cacheless_exchange(void) {
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
+
 	/* serie tested only if KEM is available */
 	cryptoParams_t kem_patterns[] = {
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};

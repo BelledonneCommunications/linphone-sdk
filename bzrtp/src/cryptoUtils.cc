@@ -55,12 +55,16 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 					index++;
 				}
 
+				/* DH3k is mandatory*/
+				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
+				index++;
+
 				if (available_key_agreements&BCTBX_KEM_KYBER512) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB1;
 					index++;
 				}
 
-				if (available_key_agreements&BCTBX_KEM_SIKE503) {
+				if (available_key_agreements&BCTBX_KEM_SIKE434) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK1;
 					index++;
 				}
@@ -70,9 +74,10 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 					index++;
 				}
 
-				/* DH3k is mandatory*/
-				availableTypes[index] = ZRTP_KEYAGREEMENT_DH3k;
-				index++;
+				if (available_key_agreements&BCTBX_KEM_SIKE610) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_SIK2;
+					index++;
+				}
 
 				if (available_key_agreements&BCTBX_KEM_KYBER1024) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_KYB3;
@@ -914,17 +919,17 @@ void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
-			return 800;
+			return bctoolbox::KYBER512::pkSize();
 		case ZRTP_KEYAGREEMENT_KYB2:
-			return 1184;
+			return bctoolbox::KYBER768::pkSize();
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return 1568;
+			return bctoolbox::KYBER1024::pkSize();
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return 378;
+			return bctoolbox::SIKE434::pkSize();
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return 0; // TODO: not available for now
+			return bctoolbox::SIKE610::pkSize();
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return 564;
+			return bctoolbox::SIKE751::pkSize();
 		default:
 			return 0;
 	}
@@ -939,17 +944,17 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
-			return 768;
+			return bctoolbox::KYBER512::ctSize();
 		case ZRTP_KEYAGREEMENT_KYB2:
-			return 1088;
+			return bctoolbox::KYBER768::ctSize();
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return 1568;
+			return bctoolbox::KYBER1024::ctSize();
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return 402;
+			return bctoolbox::SIKE434::ctSize();
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return 0; // TODO: not available for now
+			return bctoolbox::SIKE610::ctSize();
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return 596;
+			return bctoolbox::SIKE751::ctSize();
 		default:
 			return 0;
 	}
@@ -975,9 +980,17 @@ uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, ui
 				// manage all the KEM algo
 				switch (messageType) {
 					case MSGTYPE_COMMIT: // Commit packet includes the public key
-						return bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+					{
+						auto ret = bzrt_getKEMPublicKeyLength(keyAgreementAlgo);
+						ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
+						return ret;
+					}
 					case MSGTYPE_DHPART1: // DHPart1 packet holds the cipher text
-						return bzrt_getKEMCipherTextLength(keyAgreementAlgo);
+					{
+						auto ret = bzrt_getKEMCipherTextLength(keyAgreementAlgo);
+						ret += ret%4; // The size MUST be a multiple of 4 as ZRTP nessage size is given in 4 bytes words not in bytes, it will just be padded at the end with 0 if needed
+						return ret;
+					}
 					case MSGTYPE_DHPART2: // DHPart2 holds a nonce - invalid algo would pass if giving this message type
 						return ZRTP_KEMPART2_NONCE_SIZE;
 					default:
@@ -1003,15 +1016,17 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_EC52 :
 			return 132;
 		case ZRTP_KEYAGREEMENT_KYB1:
+			return bctoolbox::KYBER512::ssSize();
 		case ZRTP_KEYAGREEMENT_KYB2:
+			return bctoolbox::KYBER768::ssSize();
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return 32;
+			return bctoolbox::KYBER1024::ssSize();
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return 24;
+			return bctoolbox::SIKE434::ssSize();
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return 0; // TODO: not available for now
+			return bctoolbox::SIKE610::ssSize();
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return 32;
+			return bctoolbox::SIKE751::ssSize();
 		default:
 			return 0;
 	}
@@ -1063,10 +1078,13 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
 			context->ctx = std::make_shared<bctoolbox::KYBER1024>();
 			break;
 		case ZRTP_KEYAGREEMENT_SIK1:
+			context->ctx = std::make_shared<bctoolbox::SIKE434>();
 			break;
 		case ZRTP_KEYAGREEMENT_SIK2:
+			context->ctx = std::make_shared<bctoolbox::SIKE610>();
 			break;
 		case ZRTP_KEYAGREEMENT_SIK3:
+			context->ctx = std::make_shared<bctoolbox::SIKE751>();
 			break;
 		default:
 			return NULL;
@@ -1124,7 +1142,7 @@ int bzrtp_KEM_encaps(bzrtp_KEMContext_t *ctx, uint8_t *publicKey, uint8_t *ciphe
 	}
 
 	std::vector<uint8_t> ct;
-	std::vector<uint8_t> pk(ctx->ctx->pkSize);
+	std::vector<uint8_t> pk(ctx->ctx->get_pkSize());
 	memcpy(pk.data(), publicKey, pk.size());
 
 	if (ctx->ctx->crypto_kem_enc(ct, ctx->sharedSecret, pk) == 0) {
@@ -1138,7 +1156,7 @@ int bzrtp_KEM_decaps(bzrtp_KEMContext_t *ctx, uint8_t *cipherText) {
 	if (ctx == NULL || ctx->ctx == NULL || ctx->secretKey.size()==0) {
 		return BZRTP_ERROR_CONTEXTNOTREADY;
 	}
-	std::vector<uint8_t> ct(ctx->ctx->ctSize);
+	std::vector<uint8_t> ct(ctx->ctx->get_ctSize());
 	memcpy(ct.data(), cipherText, ct.size());
 	if (ctx->ctx->crypto_kem_dec(ctx->sharedSecret, ct, ctx->secretKey) == 0) {
 		return 0;
