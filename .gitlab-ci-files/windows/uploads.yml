@@ -14,6 +14,7 @@
   Set-Variable -Name "describe_check" -Value $($describe -match 'alpha|beta')
   echo $describe_check
   If ($describe_check -eq $true) {Set-Variable -Name "DEPLOY_ROOT_DIRECTORY" -Value $DEPLOY_SNAPSHOTS_ROOT_DIRECTORY}
+  Else {Set-Variable -Name "DEPLOY_ROOT_DIRECTORY" -Value $DEPLOY_RELEASES_DIRECTORY}
   echo $DEPLOY_ROOT_DIRECTORY
 
 
