@@ -291,6 +291,16 @@ bool_t ms_snd_card_equals(const MSSndCard *c1, const MSSndCard *c2){
 	return FALSE;
 }
 
+bool_t ms_snd_card_manager_reload_requested(MSSndCardManager *m){
+	bctbx_list_t *elem;
+	for (elem = m->descs; elem != NULL; elem = elem->next) {
+		MSSndCardDesc *desc = (MSSndCardDesc*)elem->data;
+		if (desc->reload_requested!=NULL && desc->reload_requested(m))
+			return TRUE;
+	}
+	return FALSE;
+}
+
 void ms_snd_card_manager_reload(MSSndCardManager *m){
 	bctbx_list_t *elem;
 	bctbx_list_t *cardsToKeep = NULL;

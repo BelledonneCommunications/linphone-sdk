@@ -87,6 +87,7 @@ typedef enum _MSSndCardControlElem MSSndCardControlElem;
 struct _MSSndCard;
 
 typedef void (*MSSndCardDetectFunc)(MSSndCardManager *obj);
+typedef bool_t (*MSSndCardReloadRequestedFunc)(MSSndCardManager *obj);
 typedef void (*MSSndCardInitFunc)(struct _MSSndCard *obj);
 typedef void (*MSSndCardUninitFunc)(struct _MSSndCard *obj);
 typedef void (*MSSndCardSetLevelFunc)(struct _MSSndCard *obj, MSSndCardMixerElem e, int percent);
@@ -124,6 +125,7 @@ struct _MSSndCardDesc{
 	MSSndCardCallKitFunc callkit_enabled;
 	MSSndCardAudioRouteFunc audio_route_changed;
 	MSSndCardConfigureFunc configure;
+	MSSndCardReloadRequestedFunc reload_requested;
 };
 
 /**
@@ -398,6 +400,14 @@ MS2_PUBLIC void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCa
  * @param m The sound card manager.
 **/
 MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
+
+/**
+ Check if the manager  reload is requested.
+ Specific for iOS: sometimes auido routes add/remove devices when there are no calls. In this case, the manager reload is requested to update  devices.
+ * @param m   Card Manager
+ * Returns: true if the manager reload is requested.
+ */
+MS2_PUBLIC bool_t ms_snd_card_manager_reload_requested(MSSndCardManager *m);
 
 /**
  * Check if there is another card in the manager having same driver_type, name and device_type

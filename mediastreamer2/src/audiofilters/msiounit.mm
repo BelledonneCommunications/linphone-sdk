@@ -134,7 +134,9 @@ typedef enum _MSAudioUnitState{
 @property bool_t callkit_enabled;
 @property bool_t mic_enabled;
 @property bool_t zombified;
+@property bool_t devices_changed_since_last_reload;
 @property bool_t interacted_with_bluetooth_since_last_devices_reload;
+@property std::string removedDevice;
 
 +(AudioUnitHolder *)sharedInstance;
 - (id)init;
@@ -304,6 +306,7 @@ ms_mutex_t mutex;
 		_mic_enabled = TRUE;
 		_zombified = FALSE;
 		_interacted_with_bluetooth_since_last_devices_reload = FALSE;
+		_devices_changed_since_last_reload=FALSE;
 		[NSNotificationCenter.defaultCenter addObserver:self
 											   selector:@selector(onAudioRouteChange:)
 												   name:AVAudioSessionRouteChangeNotification
@@ -771,6 +774,20 @@ ms_mutex_t mutex;
 			   , currentInputPort.c_str(), currentOutputPort.c_str());
 	
 	
+	switch (changeReason)
+	{
+		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
+			ms_message("[IOS Audio Route Change] new device %s available", currentOutputPort.c_str());
+			[au_holder setRemovedDevice:""];
+			[au_holder setDevices_changed_since_last_reload:TRUE];
+			break;
+		case AVAudioSessionRouteChangeReasonOldDeviceUnavailable:
+			ms_message("[IOS Audio Route Change] old device %s unavailable", previousOutputPort.c_str());
+			[au_holder setRemovedDevice:previousOutputPort];
+			[au_holder setDevices_changed_since_last_reload:TRUE];
+			break;
+		default: {}
+	}
 	if (![au_holder ms_snd_card] || ![au_holder read_filter]) {
 		ms_message("[IOS Audio Route Change]  Audio unit not initialized, ignore route change");
 		return;
@@ -870,6 +887,7 @@ static void au_usage_hint(MSSndCard *card, bool_t used){
 
 static void au_detect(MSSndCardManager *m);
 static MSSndCard *au_duplicate(MSSndCard *obj);
+static bool_t au_reload_requested(MSSndCardManager *m);
 
 static void handle_sample_rate_change(int force){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
@@ -988,7 +1006,8 @@ MSSndCardDesc au_card_desc={
 .audio_session_activated=au_audio_session_activated,
 .callkit_enabled=au_callkit_enabled,
 .audio_route_changed=au_audio_route_changed,
-.configure=au_configure
+.configure=au_configure,
+.reload_requested=au_reload_requested
 };
 
 static MSSndCard *au_duplicate(MSSndCard *obj){
@@ -1000,6 +1019,10 @@ static MSSndCard *au_duplicate(MSSndCard *obj){
 static MSSndCard *au_card_new(const char* name){
 	MSSndCard *card=ms_snd_card_new_with_name(&au_card_desc,name);
 	return card;
+}
+
+static bool_t au_reload_requested(MSSndCardManager *m){
+	return [[AudioUnitHolder sharedInstance] devices_changed_since_last_reload];
 }
 
 static void au_detect(MSSndCardManager *m){
@@ -1017,6 +1040,10 @@ static void au_detect(MSSndCardManager *m){
 	
 	int internal_id = 0;
 	for (AVAudioSessionPortDescription *input in inputs) {
+		//AvailableInputs includes devices that were disconnected within a few seconds
+		if ([au_holder removedDevice].compare(std::string([input.portName UTF8String]))==0) {
+			continue;
+		}
 		MSSndCard *card = au_card_new([input.portName UTF8String]);
 		card->device_type = deduceDeviceTypeFromAudioPortType(input.portType);
 		ms_snd_card_set_internal_id(card, internal_id++);
