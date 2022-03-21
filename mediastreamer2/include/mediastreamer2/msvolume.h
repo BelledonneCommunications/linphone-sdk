@@ -81,8 +81,13 @@
 
 #define MS_VOLUME_DB_LOWEST		(-120)	/*arbitrary value returned when linear volume is 0*/
 
+#define MS_VOLUME_DB_MUTED (-130) /*-130 because in dBov -127 is digital silence*/
+
 extern MSFilterDesc ms_volume_desc;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Utils functions to convert volumes
 MS2_PUBLIC float ms_volume_linear_to_dbm0(float linear);
@@ -93,5 +98,9 @@ MS2_PUBLIC int ms_volume_dbm0_to_dbov(float dbm0);
 
 MS2_PUBLIC float ms_volume_dbov_to_linear(int dbov);
 MS2_PUBLIC float ms_volume_dbov_to_dbm0(int dbov);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -60,13 +60,25 @@ extern "C" int audio_stream_volumes_find(AudioStreamVolumes *volumes, uint32_t s
 	return AUDIOSTREAMVOLUMES_NOT_FOUND;
 }
 
+extern "C" int audio_stream_volumes_append(AudioStreamVolumes *volumes, AudioStreamVolumes *append) {
+	auto volumesMap = (VolumeMap *) volumes;
+	auto appendMap = (VolumeMap *) append;
+
+	for (auto &values : *appendMap) {
+		(*volumesMap)[values.first] = values.second;
+	}
+
+	return (int)appendMap->size();
+}
+
 extern "C" void audio_stream_volumes_reset_values(AudioStreamVolumes *volumes) {
 	for (auto &values : *((VolumeMap *) volumes)) {
-		values.second = MS_VOLUME_DB_LOWEST;
+		if (values.second != MS_VOLUME_DB_MUTED)
+			values.second = MS_VOLUME_DB_LOWEST;
 	}
 }
 
-uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
+extern "C" uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 	int max_db_over_member = MS_VOLUME_DB_LOWEST;
 	auto map = (VolumeMap *) volumes;
 	uint32_t best=0;
@@ -81,13 +93,21 @@ uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 	return best;
 }
 
-bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes) {
+extern "C" bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes) {
 	auto map = (VolumeMap *) volumes;
-	for (auto &values : *(map)) {
+	for (auto &values : *map) {
 		if (values.second > audio_threshold_min_db) {
 			return true;
 		}
 	}
 	return false;
+}
+
+extern "C" void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *volumes, rtp_audio_level_t *audio_levels) {
+	int i = 0;
+	for (auto &values : *((VolumeMap *) volumes)) {
+		audio_levels[i].csrc = values.first;
+		audio_levels[i++].dbov = ms_volume_dbm0_to_dbov((float)values.second);
+	}
 }
 

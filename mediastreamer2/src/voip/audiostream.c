@@ -877,18 +877,36 @@ void audio_stream_set_is_speaking_callback (AudioStream *s, AudioStreamIsSpeakin
 	s->user_pointer=user_pointer;
 }
 
+void audio_stream_set_is_muted_callback (AudioStream *s, AudioStreamIsMutedCallback cb, void *user_pointer){
+	s->is_muted_cb=cb;
+	s->user_pointer=user_pointer;
+}
+
 static void on_volumes_received(void *data, MSFilter *f, unsigned int event_id, void *event_arg) {
 	AudioStream *as=(AudioStream*)data;
-	rtp_audio_level_t *mtc_volumes;
-	int i;
+	rtp_audio_level_t *volumes = (rtp_audio_level_t *)event_arg;
+	int new_volume;
 
 	switch(event_id) {
 		case MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED:
-			mtc_volumes = (rtp_audio_level_t *) event_arg;
-			audio_stream_volumes_reset_values(as->participants_volumes);
-			for(i = 0; i < RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL && mtc_volumes[i].csrc != 0; i++) {
-				audio_stream_volumes_insert(as->participants_volumes, mtc_volumes[i].csrc, (int)ms_volume_dbov_to_dbm0(mtc_volumes[i].dbov));
+			for(int i = 0; i < RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL && volumes[i].csrc != 0; i++) {
+				new_volume = (int)ms_volume_dbov_to_dbm0(volumes[i].dbov);
+
+				if (as->is_muted_cb) {
+					int volume = audio_stream_volumes_find(as->participants_volumes, volumes[i].csrc);
+					if (volume == AUDIOSTREAMVOLUMES_NOT_FOUND && new_volume == MS_VOLUME_DB_MUTED) {
+						// Notify if the first volume we receive is a mute
+						as->is_muted_cb(as->user_pointer, volumes[i].csrc, TRUE);
+					} else if ((volume == MS_VOLUME_DB_MUTED && new_volume != MS_VOLUME_DB_MUTED)
+						|| (volume != MS_VOLUME_DB_MUTED && new_volume == MS_VOLUME_DB_MUTED)) {
+						// Otherwise notify if the participant mutes or unmutes himself
+						as->is_muted_cb(as->user_pointer, volumes[i].csrc, new_volume == MS_VOLUME_DB_MUTED);
+					}
+				}
+
+				audio_stream_volumes_insert(as->participants_volumes, volumes[i].csrc, new_volume);
 			}
+
 			if (!as->is_speaking_cb)
 				break;
 
@@ -912,7 +930,21 @@ static void on_volumes_received(void *data, MSFilter *f, unsigned int event_id, 
 
 			break;
 		case MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED:
-			// Do nothing for now
+			new_volume = (int)ms_volume_dbov_to_dbm0(volumes->dbov);
+
+			if (as->is_muted_cb) {
+				int volume = audio_stream_volumes_find(as->participants_volumes, volumes->csrc);
+				if (volume == AUDIOSTREAMVOLUMES_NOT_FOUND && new_volume == MS_VOLUME_DB_MUTED) {
+					// Notify if the first volume we receive is a mute
+					as->is_muted_cb(as->user_pointer, volumes->csrc, TRUE);
+				} else if ((volume == MS_VOLUME_DB_MUTED && new_volume != MS_VOLUME_DB_MUTED)
+					|| (volume != MS_VOLUME_DB_MUTED && new_volume == MS_VOLUME_DB_MUTED)) {
+					// Otherwise notify if the participant mutes or unmutes himself
+					as->is_muted_cb(as->user_pointer, volumes->csrc, new_volume == MS_VOLUME_DB_MUTED);
+				}
+			}
+
+			audio_stream_volumes_insert(as->participants_volumes, volumes->csrc, new_volume);
 			break;
 	}
 }
@@ -920,11 +952,14 @@ static void on_volumes_received(void *data, MSFilter *f, unsigned int event_id, 
 static int request_stream_volume(MSFilter *filter, void* user_data) {
 	AudioStream *as = (AudioStream *)user_data;
 	MSFilter *volume_filter = as->volsend;
-	float db = MS_VOLUME_DB_LOWEST;
-	
-	ms_filter_call_method(volume_filter, MS_VOLUME_GET, &db);
+	float ret;
 
-	return ms_volume_dbm0_to_dbov(db);
+	ms_filter_call_method(volume_filter, MS_VOLUME_GET_GAIN, &ret);
+	if (ret == 0)
+		return -127;
+
+	ms_filter_call_method(volume_filter, MS_VOLUME_GET, &ret);
+	return ms_volume_dbm0_to_dbov(ret);
 }
 
 void audio_stream_set_audio_route_changed_callback (AudioStream *s, MSAudioRouteChangedCallback cb, void *audio_route_changed_cb_user_data) {
@@ -1201,7 +1236,11 @@ int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const c
 		ms_filter_call_method(stream->dtmfgen_rtp,MS_FILTER_SET_NCHANNELS,&nchannels);
 	}
 
-	ms_filter_call_method(stream->soundread, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	// Do not set sample rate if the input is a file
+	if (io->input.file == NULL) {
+		ms_filter_call_method(stream->soundread, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
+	}
+
 	ms_filter_call_method(stream->soundread, MS_FILTER_SET_NCHANNELS, &nchannels);
 	if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
 		bool_t aec_enabled = TRUE;

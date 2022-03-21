@@ -41,7 +41,6 @@ typedef void (*MSAudioConferenceNotifyActiveTalker)(struct _MSAudioConference *,
 **/
 struct _MSAudioConferenceParams{
 	int samplerate; /**< Conference audio sampling rate in Hz: 8000, 16000 ...*/
-	int max_volumes; /** Max number of volumes sent with the mixer to client header extension */
 	MSAudioConferenceNotifyActiveTalker active_talker_callback;
 	void *user_data;
 };

@@ -660,16 +660,23 @@ static void symetric_rtp_with_wrong_rtcp_port(void)  {
 							  ,5);
 }
 
-static int request_volumes(MSFilter *filter, rtp_audio_level_t *audio_levels, void *user_data) {
+static int request_volumes(MSFilter *filter, rtp_audio_level_t **audio_levels, void *user_data) {
 	// Adding some test values
-	audio_levels[0].csrc = 1;
-	audio_levels[0].dbov = -5;
-	audio_levels[1].csrc = 2;
-	audio_levels[1].dbov = -15;
-	audio_levels[2].csrc = 3;
-	audio_levels[2].dbov = -127;
+	*audio_levels = (rtp_audio_level_t *) ms_malloc0(20 * sizeof(rtp_audio_level_t));
 
-	return 3;
+	(*audio_levels)[0].csrc = 1;
+	(*audio_levels)[0].dbov = -5;
+	(*audio_levels)[1].csrc = 2;
+	(*audio_levels)[1].dbov = -15;
+	(*audio_levels)[2].csrc = 3;
+	(*audio_levels)[2].dbov = -127;
+
+	for(int i = 3; i < 20; i++) {
+		(*audio_levels)[i].csrc = i+1;
+		(*audio_levels)[i].dbov = -5;
+	}
+
+	return 20;
 }
 
 static void participants_volumes_in_audio_stream(void) {
@@ -715,7 +722,9 @@ static void participants_volumes_in_audio_stream(void) {
 	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 1), (int)ms_volume_dbov_to_dbm0(-5), int, "%d");
 	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 2), (int)ms_volume_dbov_to_dbm0(-15), int, "%d");
 	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 3), (int)ms_volume_dbov_to_dbm0(-127), int, "%d");
-	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 5), AUDIOSTREAMVOLUMES_NOT_FOUND, int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 50), AUDIOSTREAMVOLUMES_NOT_FOUND, int, "%d");
+
+	BC_ASSERT_EQUAL(audio_stream_volumes_size(margaux->participants_volumes), 20, int, "%d");
 
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);

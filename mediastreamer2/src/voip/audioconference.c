@@ -183,50 +183,45 @@ static void plumb_to_conf(MSAudioEndpoint *ep){
 	
 }
 
-static int request_volumes(MSFilter *filter, rtp_audio_level_t *audio_levels, void *user_data) {
+static int request_volumes(MSFilter *filter, rtp_audio_level_t **audio_levels, void *user_data) {
 	MSAudioEndpoint *ep = (MSAudioEndpoint *) user_data;
 	bctbx_list_t *it;
-	int count = 0;
+
+	AudioStreamVolumes *volumes = audio_stream_volumes_new();
+	int volumes_size = 0;
 
 	for (it = ep->conference->members; it != NULL; it = it->next) {
 		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
 		if (data != ep && data->st) {
 			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
-			MSFilter *volume_filter = is_remote ? data->st->volrecv : data->st->volsend;
-			uint32_t ssrc = is_remote ? rtp_session_get_recv_ssrc(data->st->ms.sessions.rtp_session) : rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session);
 
-			if (data->muted) continue;
-			if (volume_filter) {
-				float db = MS_VOLUME_DB_LOWEST;
-				if (ms_filter_call_method(volume_filter, MS_VOLUME_GET, &db) == 0) {
-					int max = ep->conference->params.max_volumes;
-					int i, j;
-					// Only keep the "max" biggest volumes
-					for (i = 0; i < max; i++) {
-						if (audio_levels[i].csrc == 0) {
-							audio_levels[i].csrc = ssrc;
-							audio_levels[i].dbov = ms_volume_dbm0_to_dbov(db);
-							count++;
-							break;
-						} else if (audio_levels[i].dbov < ms_volume_dbm0_to_dbov(db)) {
-							for (j = max - 1; j > i; j--) {
-								if (audio_levels[j-1].csrc != 0) {
-									audio_levels[j].csrc = audio_levels[j-1].csrc;
-									audio_levels[j].dbov = audio_levels[j-1].dbov;
-								}
-							}
-							audio_levels[i].csrc = ssrc;
-							audio_levels[i].dbov = ms_volume_dbm0_to_dbov(db);
-							if (count < max) count++;
-							break;
-						}
-					}
+			if (is_remote) {
+				volumes_size += audio_stream_volumes_append(volumes, data->st->participants_volumes);
+			} else {
+				if (data->st->volsend) {
+					float db = MS_VOLUME_DB_LOWEST;
+
+					ms_filter_call_method(data->st->volsend, MS_VOLUME_GET_GAIN, &db);
+					if (db != 0)
+						ms_filter_call_method(data->st->volsend, MS_VOLUME_GET, &db);
+					else
+						db = MS_VOLUME_DB_MUTED;
+
+					audio_stream_volumes_insert(volumes, rtp_session_get_send_ssrc(data->st->ms.sessions.rtp_session), (int)db);
+					volumes_size++;
 				}
 			}
 		}
 	}
 
-	return count;
+	if (volumes_size > 0) {
+		*audio_levels = (rtp_audio_level_t *) ms_malloc0(volumes_size * sizeof(rtp_audio_level_t));
+		audio_stream_volumes_populate_audio_levels(volumes, *audio_levels);
+	}
+
+	audio_stream_volumes_delete(volumes);
+
+	return volumes_size;
 }
 
 void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep){

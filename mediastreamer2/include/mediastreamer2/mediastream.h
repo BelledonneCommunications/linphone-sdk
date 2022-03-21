@@ -386,6 +386,7 @@ typedef struct _MSMediaStreamIO {
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 
 typedef void (*AudioStreamIsSpeakingCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_speaking);
+typedef void (*AudioStreamIsMutedCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_muted);
 typedef void (*MSAudioRouteChangedCallback)(void* audioStream, bool_t needReloadSoundDevices, char* newInputPort, char* newOutputPort);
 struct _AudioStream
 {
@@ -455,6 +456,7 @@ struct _AudioStream
 	int client_to_mixer_extension_id;
 	uint32_t speaking_ssrc;
 	AudioStreamIsSpeakingCallback is_speaking_cb;
+	AudioStreamIsMutedCallback is_muted_cb;
 	void *user_pointer;
 	bool_t is_speaking;
 	MSAudioRouteChangedCallback audio_route_changed_cb;
@@ -868,6 +870,7 @@ MS2_PUBLIC void audio_stream_set_mixer_to_client_extension_id(AudioStream *strea
 MS2_PUBLIC void audio_stream_set_client_to_mixer_extension_id(AudioStream *stream, int extension_id);
 
 MS2_PUBLIC void audio_stream_set_is_speaking_callback(AudioStream *s, AudioStreamIsSpeakingCallback cb, void *user_pointer);
+MS2_PUBLIC void audio_stream_set_is_muted_callback(AudioStream *s, AudioStreamIsMutedCallback cb, void *user_pointer);
 
 /**
  * Retrieve the volume of the given participant.
@@ -909,11 +912,14 @@ MS2_PUBLIC void audio_stream_volumes_clear(AudioStreamVolumes *volumes);
 
 MS2_PUBLIC int audio_stream_volumes_size(AudioStreamVolumes *volumes);
 MS2_PUBLIC int audio_stream_volumes_find(AudioStreamVolumes *volumes, uint32_t ssrc);
+MS2_PUBLIC int audio_stream_volumes_append(AudioStreamVolumes *volumes, AudioStreamVolumes *append);
 
 MS2_PUBLIC void audio_stream_volumes_reset_values(AudioStreamVolumes *volumes);
 
-bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes);
-uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes);
+MS2_PUBLIC void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *volumes, rtp_audio_level_t *audio_levels);
+
+MS2_PUBLIC bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes);
+MS2_PUBLIC uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes);
 /**
  * @}
 **/

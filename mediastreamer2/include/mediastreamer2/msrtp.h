@@ -25,7 +25,7 @@
 #include <mediastreamer2/msvaddtx.h>
 #include <ortp/ortp.h>
 
-typedef int (*MSRtpSendRequestMixerToClientDataCb)(MSFilter *filter, rtp_audio_level_t *audio_levels, void *user_data);
+typedef int (*MSRtpSendRequestMixerToClientDataCb)(MSFilter *filter, rtp_audio_level_t **audio_levels, void *user_data);
 
 struct _MSFilterRequestMixerToClientDataCb {
 	MSRtpSendRequestMixerToClientDataCb cb;
@@ -56,7 +56,7 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 
 #define MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,1, rtp_audio_level_t[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL])
 
-#define MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,2, rtp_audio_level_t[RTP_MAX_CLIENT_TO_MIXER_AUDIO_LEVEL])
+#define MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,2, rtp_audio_level_t)
 
 
 #define MS_RTP_SEND_SET_SESSION			MS_FILTER_METHOD(MS_RTP_SEND_ID,0,RtpSession*)
