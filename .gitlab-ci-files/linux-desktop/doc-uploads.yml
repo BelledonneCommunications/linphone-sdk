@@ -15,9 +15,12 @@ debian-doc-upload:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
 
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
     #getting the version number to push the right version of the doc
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $LIBLINPHONE_VERSION
+
     - !reference [.choose_upload_dir, script]
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
@@ -47,9 +50,13 @@ bzrtp-doc-upload:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
 
+    - DESCRIBE=$(git -C bzrtp describe)
+    - echo $DESCRIBE
+
     #getting the version number to push the right version of the doc
-    - BZRTP_VERSION=$(git -C bzrtp describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - BZRTP_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $BZRTP_VERSION
+
     - !reference [.choose_upload_dir, script]
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
@@ -75,9 +82,11 @@ lime-doc-upload:
     #grep options:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - DESCRIBE=$(git -C lime describe)
+    - echo $DESCRIBE
 
     #getting the version number to push the right version of the doc
-    - LIME_VERSION=$(git -C lime describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - LIME_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
     - echo $LIME_VERSION
     - !reference [.choose_upload_dir, script]
     # Create the directories if they do not exist

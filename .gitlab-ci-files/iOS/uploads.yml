@@ -42,8 +42,11 @@
     #grep options:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
 
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
 
     - !reference [.choose_upload_dir, script]
 
@@ -63,6 +66,8 @@
     PODNAME: "linphone-sdk-novideo"
     GIT_FETCH_EXTRA_FLAGS: --tags --force
   before_script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
     - !reference [.choose_upload_dir, script]
   extends: .ios-xcode-podspec-upload
 

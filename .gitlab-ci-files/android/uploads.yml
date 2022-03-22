@@ -68,7 +68,10 @@ android-doc-upload:
     #grep options:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
 
     - !reference [.choose_upload_dir, script]
     - cd build
