@@ -66,6 +66,8 @@ const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
 		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
 		case(ZRTP_KEYAGREEMENT_X255): return "X25519";
 		case(ZRTP_KEYAGREEMENT_X448): return "X448";
+		case(ZRTP_KEYAGREEMENT_K255): return "K25519";
+		case(ZRTP_KEYAGREEMENT_K448): return "K448";
 		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
 		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
 		case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";

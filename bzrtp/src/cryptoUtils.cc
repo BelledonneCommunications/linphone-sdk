@@ -94,6 +94,15 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 					index++;
 				}
 
+				if (available_key_agreements&BCTBX_KEM_X25519) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_K255;
+					index++;
+				}
+
+				if (available_key_agreements&BCTBX_KEM_X448) {
+					availableTypes[index] = ZRTP_KEYAGREEMENT_K448;
+					index++;
+				}
 				/* Mult is not mandatory but we need it to support old buggy implementation */
 				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult;
 				return index+1;
@@ -540,6 +549,8 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 		case ZRTP_KEYAGREEMENT_DH3k :
 		case ZRTP_KEYAGREEMENT_X255 :
 		case ZRTP_KEYAGREEMENT_X448 :
+		case ZRTP_KEYAGREEMENT_K255 :
+		case ZRTP_KEYAGREEMENT_K448 :
 		case ZRTP_KEYAGREEMENT_KYB1 :
 		case ZRTP_KEYAGREEMENT_KYB2:
 		case ZRTP_KEYAGREEMENT_KYB3:
@@ -744,10 +755,14 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_DH2k;
 				} else if (memcmp(algoType, "X255", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_X255;
+				} else if (memcmp(algoType, "K255", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_K255;
 				} else if (memcmp(algoType, "EC25", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC25;
 				} else if (memcmp(algoType, "X448", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_X448;
+				} else if (memcmp(algoType, "K448", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_K448;
 				} else if (memcmp(algoType, "EC38", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_EC38;
 				} else if (memcmp(algoType, "EC52", 4) == 0) {
@@ -844,11 +859,17 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 		case ZRTP_KEYAGREEMENT_X255:
 			memcpy(algoTypeString, "X255", 4);
 			break;
+		case ZRTP_KEYAGREEMENT_K255:
+			memcpy(algoTypeString, "K255", 4);
+			break;
 		case ZRTP_KEYAGREEMENT_EC25:
 			memcpy(algoTypeString, "EC25", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_X448:
 			memcpy(algoTypeString, "X448", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_K448:
+			memcpy(algoTypeString, "K448", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_DH3k:
 			memcpy(algoTypeString, "DH3k", 4);
@@ -919,17 +940,21 @@ void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
 static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::pkSize();
+			return bctoolbox::KYBER512::pkSize;
 		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::pkSize();
+			return bctoolbox::KYBER768::pkSize;
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::pkSize();
+			return bctoolbox::KYBER1024::pkSize;
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::pkSize();
+			return bctoolbox::SIKE434::pkSize;
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::pkSize();
+			return bctoolbox::SIKE610::pkSize;
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::pkSize();
+			return bctoolbox::SIKE751::pkSize;
+		case ZRTP_KEYAGREEMENT_K255:
+			return bctoolbox::K25519::pkSize;
+		case ZRTP_KEYAGREEMENT_K448:
+			return bctoolbox::K448::pkSize;
 		default:
 			return 0;
 	}
@@ -944,17 +969,21 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::ctSize();
+			return bctoolbox::KYBER512::ctSize;
 		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::ctSize();
+			return bctoolbox::KYBER768::ctSize;
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::ctSize();
+			return bctoolbox::KYBER1024::ctSize;
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::ctSize();
+			return bctoolbox::SIKE434::ctSize;
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::ctSize();
+			return bctoolbox::SIKE610::ctSize;
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::ctSize();
+			return bctoolbox::SIKE751::ctSize;
+		case ZRTP_KEYAGREEMENT_K255:
+			return bctoolbox::K25519::ctSize;
+		case ZRTP_KEYAGREEMENT_K448:
+			return bctoolbox::K448::ctSize;
 		default:
 			return 0;
 	}
@@ -1016,17 +1045,21 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_EC52 :
 			return 132;
 		case ZRTP_KEYAGREEMENT_KYB1:
-			return bctoolbox::KYBER512::ssSize();
+			return bctoolbox::KYBER512::ssSize;
 		case ZRTP_KEYAGREEMENT_KYB2:
-			return bctoolbox::KYBER768::ssSize();
+			return bctoolbox::KYBER768::ssSize;
 		case ZRTP_KEYAGREEMENT_KYB3:
-			return bctoolbox::KYBER1024::ssSize();
+			return bctoolbox::KYBER1024::ssSize;
 		case ZRTP_KEYAGREEMENT_SIK1:
-			return bctoolbox::SIKE434::ssSize();
+			return bctoolbox::SIKE434::ssSize;
 		case ZRTP_KEYAGREEMENT_SIK2:
-			return bctoolbox::SIKE610::ssSize();
+			return bctoolbox::SIKE610::ssSize;
 		case ZRTP_KEYAGREEMENT_SIK3:
-			return bctoolbox::SIKE751::ssSize();
+			return bctoolbox::SIKE751::ssSize;
+		case ZRTP_KEYAGREEMENT_K255:
+			return bctoolbox::K25519::ssSize;
+		case ZRTP_KEYAGREEMENT_K448:
+			return bctoolbox::K448::ssSize;
 		default:
 			return 0;
 	}
@@ -1040,6 +1073,8 @@ bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_SIK1:
 		case ZRTP_KEYAGREEMENT_SIK2:
 		case ZRTP_KEYAGREEMENT_SIK3:
+		case ZRTP_KEYAGREEMENT_K255:
+		case ZRTP_KEYAGREEMENT_K448:
 			return TRUE;
 		default:
 			return false;
@@ -1085,6 +1120,12 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
 			break;
 		case ZRTP_KEYAGREEMENT_SIK3:
 			context->ctx = std::make_shared<bctoolbox::SIKE751>();
+			break;
+		case ZRTP_KEYAGREEMENT_K255:
+			context->ctx = std::make_shared<bctoolbox::K25519>();
+			break;
+		case ZRTP_KEYAGREEMENT_K448:
+			context->ctx = std::make_shared<bctoolbox::K448>();
 			break;
 		default:
 			return NULL;
