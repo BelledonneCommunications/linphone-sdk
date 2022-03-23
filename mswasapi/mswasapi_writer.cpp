@@ -218,8 +218,8 @@ int MSWASAPIWriter::activate()
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio output interface [%x]", result);
 	mIsActivated = true;
 
-	ms_message("Wasapi playback output initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, frames are on %i bits", (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), devicePeriodMs, mNBlockAlign*8);
+	ms_message("Wasapi playback output initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, %i-bit frames are on %i bits", (int)mRate, (int)mNChannels,
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), devicePeriodMs, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
 

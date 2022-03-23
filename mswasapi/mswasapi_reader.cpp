@@ -219,8 +219,8 @@ int MSWASAPIReader::activate()
 	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeControler);
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
-	ms_message("Wasapi capture initialized at %i Hz, %i channels, with buffer size %i (%i ms), frames are on %i bits", (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), mNBlockAlign*8);
+	ms_message("Wasapi capture initialized at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit frames are on %i bits", (int)mRate, (int)mNChannels,
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
 

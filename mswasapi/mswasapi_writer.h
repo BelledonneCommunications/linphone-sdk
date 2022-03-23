@@ -78,7 +78,7 @@ private:
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
-	int mMinFrameCount; /* The minimum samples queued into the wasapi during a 5 second period*/
+	int mMinFrameCount=-1; /* The minimum samples queued into the wasapi during a 5 second period*/
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;

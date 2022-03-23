@@ -78,11 +78,6 @@ static void ms_wasapi_read_uninit(MSFilter *f) {
  * Methods to configure the WASAPI sound capture filter                       *
  *****************************************************************************/
 
-static int ms_wasapi_read_set_sample_rate(MSFilter *f, void *arg) {
-	/* This is not supported: the Audio Client requires to use the native sample rate. */
-	MS_UNUSED(f), MS_UNUSED(arg);
-	return -1;
-}
 
 static int ms_wasapi_read_get_sample_rate(MSFilter *f, void *arg) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
@@ -90,16 +85,32 @@ static int ms_wasapi_read_get_sample_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_wasapi_read_set_nchannels(MSFilter *f, void *arg) {
-	/* This is not supported: the Audio Client requires to use 1 channel. */
+static int ms_wasapi_read_set_sample_rate(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use the native sample rate. */
 	MS_UNUSED(f), MS_UNUSED(arg);
-	return -1;
+	int sampleRate = 0;
+	ms_wasapi_read_get_sample_rate(f, &sampleRate);
+	if(sampleRate == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
+		return 0;
+	else
+		return -1;
 }
 
 static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
 	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	*((int *)arg) = r->getNChannels();
 	return 0;
+}
+
+static int ms_wasapi_read_set_nchannels(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use 2 channels. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	int channelCount = 2;
+	ms_wasapi_read_get_nchannels(f, &channelCount);
+	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
+		return 0;
+	else
+		return -1;
 }
 
 static int ms_wasapi_read_set_volume_gain(MSFilter *f, void *arg) {
@@ -219,28 +230,38 @@ static void ms_wasapi_write_uninit(MSFilter *f) {
  * Methods to configure the WASAPI sound output filter                        *
  *****************************************************************************/
 
-static int ms_wasapi_write_set_sample_rate(MSFilter *f, void *arg) {
-	/* This is not supported: the Audio Client requires to use the native sample rate. */
-	MS_UNUSED(f), MS_UNUSED(arg);
-	return -1;
-}
-
 static int ms_wasapi_write_get_sample_rate(MSFilter *f, void *arg) {
 	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	*((int *)arg) = w->getRate();
 	return 0;
 }
 
-static int ms_wasapi_write_set_nchannels(MSFilter *f, void *arg) {
-	/* This is not supported: the Audio Client requires to use 2 channels. */
+static int ms_wasapi_write_set_sample_rate(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use the native sample rate. */
 	MS_UNUSED(f), MS_UNUSED(arg);
-	return -1;
+	int sampleRate = 0;
+	ms_wasapi_write_get_sample_rate(f, &sampleRate);
+	if(sampleRate == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
+		return 0;
+	else
+		return -1;
 }
 
 static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
 	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	*((int *)arg) = w->getNChannels();
 	return 0;
+}
+
+static int ms_wasapi_write_set_nchannels(MSFilter *f, void *arg) {
+	/* This is not supported: the Audio Client requires to use 2 channels. */
+	MS_UNUSED(f), MS_UNUSED(arg);
+	int channelCount = 2;
+	ms_wasapi_write_get_nchannels(f, &channelCount);
+	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
+		return 0;
+	else
+		return -1;
 }
 
 static int ms_wasapi_write_set_volume_gain(MSFilter *f, void *arg) {
