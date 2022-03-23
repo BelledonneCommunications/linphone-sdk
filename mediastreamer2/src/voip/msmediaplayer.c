@@ -235,6 +235,20 @@ bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {
 	return obj->video_sink != NULL;
 }
 
+void ms_media_player_set_volume_gain(MSMediaPlayer *player, float gain) {
+	if (player->audio_sink) {
+		ms_filter_call_method(player->audio_sink, MS_AUDIO_PLAYBACK_SET_VOLUME_GAIN, &gain);
+	}
+}
+
+float ms_media_player_get_volume_gain(const MSMediaPlayer *player) {
+	float gain = 0.0f;
+	if (player->audio_sink) {
+		ms_filter_call_method(player->audio_sink, MS_AUDIO_PLAYBACK_GET_VOLUME_GAIN, &gain);
+	}
+	return gain;
+}
+
 MSFilter *ms_media_player_get_video_sink(const MSMediaPlayer *const obj) {
 	return obj->video_sink;
 }

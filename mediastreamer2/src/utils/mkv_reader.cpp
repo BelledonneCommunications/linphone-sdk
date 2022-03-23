@@ -542,7 +542,7 @@ void MKVTrackReader::nextBlock(std::unique_ptr<MKVBlock> &block, bool &end_of_tr
 			return;
 		}
 		block_elt = frameToBlock(mCurrentFrameElt);
-	} while(block_elt->TrackNumber != mTrackNum);
+	} while(MATROSKA_BlockTrackNum(block_elt) != mTrackNum);
 
 	MATROSKA_LinkBlockReadSegmentInfo(block_elt, (ebml_master *)mRoot->mInfoElt.get(), TRUE);
 	MATROSKA_LinkBlockReadTrack(block_elt, (ebml_master *)mTrackElt, TRUE);

@@ -185,6 +185,20 @@ MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj
 MS2_PUBLIC bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj);
 
 /**
+ * Set the volume gain of the player.
+ * @param player #LinphonePlayer object @notnil
+ * @param gain Percentage of the gain. Valid values are in [ 0.0 : 1.0 ].
+ */
+MS2_PUBLIC void ms_media_player_set_volume_gain(MSMediaPlayer *player, float volume);
+
+/**
+ * Get the volume gain of the player.
+ * @param player #LinphonePlayer object @notnil
+ * @return Percentage of the gain. Valid values are in [ 0.0 : 1.0 ].
+ */
+MS2_PUBLIC float ms_media_player_get_volume_gain(const MSMediaPlayer *player);
+
+/**
  * Returns a pointer to the video display filter
  * @param obj The player
  */
