@@ -1261,6 +1261,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			if( ms_filter_implements_interface(stream->output2, MSFilterVideoDisplayInterface) ) {
 				assign_value_to_mirroring_flag_to_preview(stream);
 			}
+			ms_message("Video stream[%p] thumbnail[%d] direction[%d]: set display mode %d to filter %s", stream, stream->ms.is_thumbnail, media_stream_get_direction(&stream->ms), stream->display_mode, ms_filter_get_name(stream->output2));
 			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_MODE, &stream->display_mode);
 
 			ms_filter_link(stream->tee,1,stream->output2,0);
@@ -1379,6 +1380,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 				if (stream->display_filter_auto_rotate_enabled && ms_filter_has_method(stream->output, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 					ms_filter_call_method(stream->output,MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION,&stream->device_orientation);
 				}
+				ms_message("Video stream[%p] thumbnail[%d] direction[%d]: set display mode %d to filter %s", stream, stream->ms.is_thumbnail, media_stream_get_direction(&stream->ms), stream->display_mode, ms_filter_get_name(stream->output));
 				ms_filter_call_method(stream->output, MS_VIDEO_DISPLAY_SET_MODE, &stream->display_mode);
 			}
 		}
