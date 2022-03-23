@@ -9,9 +9,10 @@ ios-xcode-upload:
 
   needs:
     - ios-xcode
-
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   script:
-
     #Only get major and minor version (ex: 4.5) for documentation directory
 
     #git -C executes the git command in specified directory
@@ -54,9 +55,11 @@ ios-xcode-novideo-upload:
 
   needs:
     - ios-xcode-novideo
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   script:
-
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
 

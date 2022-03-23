@@ -4,6 +4,7 @@
 
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --recursive
   MAKEFILE_JOBS: 10
   CCACHE_SIZE: 3G
 

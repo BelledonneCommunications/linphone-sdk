@@ -6,7 +6,9 @@ macosx-upload:
     - if: $DEPLOY_RUN_MACOSX
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
-
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   needs:
     - macosx-xcode
 
