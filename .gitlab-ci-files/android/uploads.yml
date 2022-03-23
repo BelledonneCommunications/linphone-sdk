@@ -47,7 +47,8 @@ android-doc-upload:
   variables:
     CCACHE_SIZE: 4G
     GIT_STRATEGY: fetch
-    GIT_FETCH_EXTRA_FLAGS: --tags --force
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
     - android-makefile-r20

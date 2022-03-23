@@ -27,8 +27,8 @@ vs2017-win32-windows-upload:
     - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
-    GIT_FETCH_EXTRA_FLAGS: --tags --force
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   needs:
     - vs2017-win32-scheduled-windows
   script:
@@ -47,8 +47,8 @@ vs2017-nuget-windows-upload:
     - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
-    GIT_FETCH_EXTRA_FLAGS: --tags --force
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   needs:
     - vs2017-nuget-windows-package
   script:

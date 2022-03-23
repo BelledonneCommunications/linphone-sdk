@@ -34,7 +34,8 @@
     - ios-xcode
   variables:
     PODNAME: "linphone-sdk"
-    GIT_FETCH_EXTRA_FLAGS: --tags --force
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   before_script:
     #Only get major and minor version (ex: 4.5) for documentation directory
 
@@ -64,7 +65,9 @@
   variables:
     PODSPEC_END_PATH: "novideo/"
     PODNAME: "linphone-sdk-novideo"
-    GIT_FETCH_EXTRA_FLAGS: --tags --force
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+
   before_script:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE

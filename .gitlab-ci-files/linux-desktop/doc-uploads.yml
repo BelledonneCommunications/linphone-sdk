@@ -5,6 +5,10 @@ debian-doc-upload:
   rules:
     - if: $UPLOAD_C_CPP_DOC
 
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+
   needs:
     - debian9-ninja-gcc
 
@@ -40,6 +44,10 @@ bzrtp-doc-upload:
   rules:
     - if: $UPLOAD_BZRTP_DOC
 
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+
   needs:
     - debian9-ninja-gcc
 
@@ -73,6 +81,10 @@ lime-doc-upload:
 
   rules:
     - if: $UPLOAD_LIME_DOC
+
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
     - debian9-ninja-gcc
