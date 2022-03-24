@@ -39,6 +39,9 @@ option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS NO)
+
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
