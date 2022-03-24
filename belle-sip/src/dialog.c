@@ -930,15 +930,21 @@ static int dialog_can_create_request(belle_sip_dialog_t *obj, const char *method
 	return TRUE;
 }
 
+bool_t belle_sip_dialog_can_create_asynchronous_request(belle_sip_dialog_t *obj, const char *method){
+	if (!dialog_can_create_request(obj, method)) return FALSE;
+	if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){
+		/*we don't allow requests that can update the dialog's state to be sent asynchronously*/
+		belle_sip_error("%s([%p]): [%s] requests are forbidden using this method.",__func__,obj,method);
+		return FALSE;
+	}
+	return TRUE;
+}
+
 belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method){
 	belle_sip_request_t *req;
 
-	if (!dialog_can_create_request(obj, method)) return NULL;
-	if (strcmp(method,"INVITE")==0 || strcmp(method,"SUBSCRIBE")==0){
-		/*we don't allow requests that can update the dialog's state to be sent asynchronously*/
-		belle_sip_error("belle_sip_dialog_create_queued_request([%p]): [%s] requests are forbidden using this method.",obj,method);
-		return NULL;
-	}
+	if (!belle_sip_dialog_can_create_asynchronous_request(obj, method)) return NULL;
+
 	req=create_request(obj,method,FALSE);
 	if (req){
 		req->dialog_queued=TRUE;
@@ -946,10 +952,8 @@ belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t 
 	return req;
 }
 
-belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
-	belle_sip_request_t *req;
-
-	if (!dialog_can_create_request(obj, method)) return NULL;
+bool_t belle_sip_dialog_can_create_synchronous_request(belle_sip_dialog_t *obj, const char *method){
+	if (!dialog_can_create_request(obj, method)) return FALSE;
 	/*don't prevent to send a BYE in any case */
 	if (	obj->pending_trans_checking_enabled
 			&& strcmp(method,"BYE")!=0
@@ -957,10 +961,18 @@ belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, co
 			&& belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
 
 		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0 && strcmp(method,"NOTIFY")!=0) {
-			belle_sip_error("belle_sip_dialog_create_request(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
-			return NULL;
+			belle_sip_error("%s(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",__func__,method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
+			return FALSE;
 		} /*else UPDATE transaction can be send in // */
 	}
+	return TRUE;
+}
+
+belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *obj, const char *method){
+	belle_sip_request_t *req;
+
+	if (!belle_sip_dialog_can_create_synchronous_request(obj, method)) return NULL;
+
 	belle_sip_dialog_update_local_cseq(obj,method);
 
 	req=create_request(obj,method,TRUE);

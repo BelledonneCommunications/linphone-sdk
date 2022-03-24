@@ -35,10 +35,17 @@ BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dia
 
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_ack(belle_sip_dialog_t *dialog, unsigned int cseq);
 
+BELLESIP_EXPORT bool_t belle_sip_dialog_can_create_asynchronous_request(belle_sip_dialog_t *obj, const char *method);
+
+BELLESIP_EXPORT bool_t belle_sip_dialog_can_create_synchronous_request(belle_sip_dialog_t *obj, const char *method);
+
 /**
  * Create a request part of this dialog.
+ * @param dialog dialog associated to the request
+ * @param method method of the request
 **/
 BELLESIP_EXPORT belle_sip_request_t *belle_sip_dialog_create_request(belle_sip_dialog_t *dialog, const char *method);
+
 /**
  * Create a request within a dialog keeping non system header from an initial request. This function is very useful to resend request after expiration or chalenge.
  * @param obj dialog associated to the request
@@ -50,6 +57,8 @@ BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_request_from(belle
 /**
  * Create a new request part of this dialog. If dialog is busy (pending transaction), the request can be created anyway and will be sent by the transaction
  * when the dialog becomes available.
+ * @param obj dialog associated to the request
+ * @param method method of the request
 **/
 BELLESIP_EXPORT belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t *obj, const char *method);
 
