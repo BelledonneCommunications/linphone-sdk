@@ -195,10 +195,10 @@ int computeExportedKeys(void *clientData, int zuid, uint8_t role) {
 
 	/* compute 2 exported keys with label initiator and responder */
 	BC_ASSERT_EQUAL(bzrtp_exportKey(clientContext->bzrtpContext,  ((role==BZRTP_ROLE_RESPONDER)?"ResponderKey":"InitiatorKey"), 12, clientContext->sendExportedKey, &keyLength), 0, int, "%x");
-	BC_ASSERT_EQUAL(keyLength, 16, int, "%d"); /* any hash available in the config shall be able to produce a 16 bytes key */
+	BC_ASSERT_EQUAL(keyLength, 16, size_t, "%zu"); /* any hash available in the config shall be able to produce a 16 bytes key */
 	keyLength = 16;
 	BC_ASSERT_EQUAL(bzrtp_exportKey(clientContext->bzrtpContext,  ((role==BZRTP_ROLE_INITIATOR)?"ResponderKey":"InitiatorKey"), 12, clientContext->recvExportedKey, &keyLength), 0, int, "%x");
-	BC_ASSERT_EQUAL(keyLength, 16, int, "%d"); /* any hash available in the config shall be able to produce a 16 bytes key */
+	BC_ASSERT_EQUAL(keyLength, 16, size_t, "%zu"); /* any hash available in the config shall be able to produce a 16 bytes key */
 
 	return 0;
 }
@@ -803,17 +803,17 @@ static void test_cache_enabled_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	/* rs2 is unset(NULL) */
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0,  size_t, "%zu");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
 	/* pvs is equal to 1 */
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1,  size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1,  size_t, "%zu");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
@@ -828,9 +828,9 @@ static void test_cache_enabled_exchange(void) {
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
 
 	/* free buffers */
@@ -840,9 +840,9 @@ static void test_cache_enabled_exchange(void) {
 	}
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[1], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
@@ -906,17 +906,17 @@ static void test_cache_mismatch_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	/* rs2 is unset(NULL) */
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
 	/* pvs is equal to 1 */
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
@@ -940,12 +940,12 @@ static void test_cache_mismatch_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
@@ -974,13 +974,13 @@ static void test_cache_mismatch_exchange(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
@@ -1048,17 +1048,17 @@ static void test_cache_sas_not_confirmed(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	/* rs2 is unset(NULL) */
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
 	/* pvs is equal to 0 for Alice(actually NULL, so length is 0 and has no value which is considered 0 by the getPeerSecrets function) and 1 for Bob */
-	BC_ASSERT_EQUAL(colLengthAlice[2], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 
 	/* free buffers */
@@ -1073,9 +1073,9 @@ static void test_cache_sas_not_confirmed(void) {
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
 
 	/* free buffers */
@@ -1086,9 +1086,9 @@ static void test_cache_sas_not_confirmed(void) {
 
 	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[1], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
@@ -1105,9 +1105,9 @@ static void test_cache_sas_not_confirmed(void) {
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[0], 32), 0, int, "%d"); /* colValuesBob, still old values from before the second exchange */
 
 	/* free buffers */
@@ -1118,9 +1118,9 @@ static void test_cache_sas_not_confirmed(void) {
 	/* so read bob updated values and compare rs1, rs2 and check pvs is at 1 */
 	/* so read bob updated values and compare rs1, rs2 and check pvs is still at 1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[1], colValuesBob[1], 32), 0, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
@@ -1386,17 +1386,17 @@ static void test_abort_retry(void) {
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)bobDB, zuidBob, "zrtp", colNames, colValuesBob, colLengthBob, 3, NULL), 0, int, "%x");
 	/* and compare to expected */
 	/* rs1 is set and they are both the same */
-	BC_ASSERT_EQUAL(colLengthAlice[0], 32, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[0], 32, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[0], 32, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[0], 32, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(colValuesAlice[0], colValuesBob[0], 32), 0, int, "%d");
 	/* rs2 is unset(NULL) */
-	BC_ASSERT_EQUAL(colLengthAlice[1], 0, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[1], 0, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[1], 0, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[1], 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(colValuesAlice[1]);
 	BC_ASSERT_PTR_NULL(colValuesBob[1]);
 	/* pvs is equal to 1 */
-	BC_ASSERT_EQUAL(colLengthAlice[2], 1, int, "%d");
-	BC_ASSERT_EQUAL(colLengthBob[2], 1, int, "%d");
+	BC_ASSERT_EQUAL(colLengthAlice[2], 1, size_t, "%zu");
+	BC_ASSERT_EQUAL(colLengthBob[2], 1, size_t, "%zu");
 	BC_ASSERT_EQUAL(*colValuesAlice[2], 1, int, "%d");
 	BC_ASSERT_EQUAL(*colValuesBob[2], 1, int, "%d");
 

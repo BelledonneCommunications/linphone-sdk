@@ -70,7 +70,7 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 BZRTP_EXPORT int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 		const uint8_t *label, const size_t labelLength,
 		const uint8_t *context, const size_t contextLength,
-		const uint16_t hmacLength,
+		const uint8_t hmacLength,
 		void (*hmacFunction)(const uint8_t *, size_t, const uint8_t *, size_t, uint8_t, uint8_t *),
 		uint8_t *output);
 
@@ -202,7 +202,7 @@ BZRTP_EXPORT void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t a
  * @param[in]		keyLength	The keyLength in bytes
  * @param[in]		rngContext	The context for RNG
  */
-BZRTP_EXPORT void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext);
+BZRTP_EXPORT void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext);
 
 /**
  * Return the public value(public key or ciphertext) length in bytes according to given key agreement algorithm and packet type
@@ -217,7 +217,7 @@ BZRTP_EXPORT void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngCon
  * @return		the public value length in bytes
  *
  */
-uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageTyoe);
+BZRTP_EXPORT uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageTyoe);
 
 /**
  * Return the shared secret size in bytes according to given key agreement algorithm

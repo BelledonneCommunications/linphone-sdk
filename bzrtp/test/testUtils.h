@@ -20,6 +20,10 @@
 #include "typedef.h"
 #include "packetParser.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 extern int verbose;
 
 void printHex(char *title, uint8_t *data, uint32_t length); 
@@ -34,3 +38,7 @@ const char *bzrtp_sas_toString(uint8_t sasAlgo);
 #ifdef ZIDCACHE_ENABLED
 int bzrtptester_sqlite3_open(const char *db_file, sqlite3 **db);
 #endif /* ZIDCACHE_ENABLED */
+
+#ifdef __cplusplus
+};
+#endif

@@ -1831,8 +1831,8 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 
 	uint8_t *dataToHash; /* a buffer used to store concatened data to be hashed */
-	uint16_t hashDataLength; /* Length of the buffer */
-	uint16_t hashDataIndex; /* an index used while filling the buffer */
+	size_t hashDataLength; /* Length of the buffer */
+	size_t hashDataIndex; /* an index used while filling the buffer */
 
 	uint8_t *ZIDi; /* a pointer to the 12 bytes string initiator's ZID */
 	uint8_t *ZIDr; /* a pointer to the 12 bytes string responder's ZID */
@@ -1842,9 +1842,9 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
 	uint8_t *s1=NULL; /* s1 is rs1 if we have it, rs2 otherwise, or null if we do not have rs2 too */
 	uint32_t s1Length=0;
 	uint8_t *s2=NULL; /* s2 is aux secret if we have it, null otherwise */
-	uint32_t s2Length=0;
+	size_t s2Length=0;
 	uint8_t *s3=NULL; /* s3 is pbx secret if we have it, null otherwise */
-	uint32_t s3Length=0;
+	size_t s3Length=0;
 
 	/* first compute the total_hash as in rfc section 4.4.1.4
 	 * total_hash = hash(Hello of responder || Commit || DHPart1 || DHPart2)

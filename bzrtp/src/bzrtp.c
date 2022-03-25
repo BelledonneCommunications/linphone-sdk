@@ -634,7 +634,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 			*derivedKeyLength = zrtpChannelContext->hashLength;
 		}
 
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, zrtpChannelContext->hmacFunction, derivedKey);
+		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, (uint_t)(*derivedKeyLength), zrtpChannelContext->hmacFunction, derivedKey);
 #else /* SUPPORT_EXPORTEDKEY_V010000 */
 		/* We do not support anymore backward compatibility, just do nothing but send an error message*/
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as we explicitely compile with no support for older version */
@@ -658,7 +658,7 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 			*derivedKeyLength = zrtpChannelContext->hashLength;
 		}
 
-		bzrtp_keyDerivationFunction(zrtpContext->exportedKey, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, *derivedKeyLength, zrtpChannelContext->hmacFunction, derivedKey);
+		bzrtp_keyDerivationFunction(zrtpContext->exportedKey, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, (uint8_t)(*derivedKeyLength), zrtpChannelContext->hmacFunction, derivedKey);
 
 	}
 	return 0;

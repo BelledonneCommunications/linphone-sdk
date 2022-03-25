@@ -104,12 +104,12 @@ static void test_cache_getSelfZID(void) {
 	/* Now read the data and check they're the same */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidalicebob, "zrtp", patternColNames, readValues, readLength, patternLength+1, NULL), 0, int, "%x");
 	for (i=0; i<patternLength; i++) {
-		BC_ASSERT_EQUAL(readLength[i], patternColValuesLength[i], int, "%d");
+		BC_ASSERT_EQUAL(readLength[i], patternColValuesLength[i], size_t, "%zu");
 		BC_ASSERT_EQUAL(memcmp(readValues[i], patternColValues[i], patternColValuesLength[i]), 0, int, "%d");
 	}
 	/* we also read aux columns wich shall be NULL */
 	BC_ASSERT_PTR_NULL(readValues[patternLength]);
-	BC_ASSERT_EQUAL(readLength[patternLength], 0, int, "%d");
+	BC_ASSERT_EQUAL(readLength[patternLength], 0, size_t, "%zu");
 
 	sqlite3_close(aliceDB);
 
@@ -179,9 +179,9 @@ static void test_cache_zrtpSecrets(void) {
 	BC_ASSERT_EQUAL(memcmp(aliceContext->cachedSecret.rs1,patternRs1, 16), 0, int, "%d");
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.rs2Length, 32, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(aliceContext->cachedSecret.rs2,patternRs2, 32), 0, int, "%d");
-	BC_ASSERT_EQUAL(aliceContext->cachedSecret.auxsecretLength, 27, int, "%d");
+	BC_ASSERT_EQUAL(aliceContext->cachedSecret.auxsecretLength, 27, size_t, "%zu");
 	BC_ASSERT_EQUAL(memcmp(aliceContext->cachedSecret.auxsecret,patternAux, 27), 0, int, "%d");
-	BC_ASSERT_EQUAL(aliceContext->cachedSecret.pbxsecretLength, 0, int, "%d");
+	BC_ASSERT_EQUAL(aliceContext->cachedSecret.pbxsecretLength, 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.pbxsecret);
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.previouslyVerifiedSas, 1, int, "%d");
 
@@ -192,9 +192,9 @@ static void test_cache_zrtpSecrets(void) {
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.rs1);
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.rs2Length, 0, int, "%d");
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.rs2);
-	BC_ASSERT_EQUAL(aliceContext->cachedSecret.auxsecretLength, 0, int, "%d");
+	BC_ASSERT_EQUAL(aliceContext->cachedSecret.auxsecretLength, 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.auxsecret);
-	BC_ASSERT_EQUAL(aliceContext->cachedSecret.pbxsecretLength, 0, int, "%d");
+	BC_ASSERT_EQUAL(aliceContext->cachedSecret.pbxsecretLength, 0, size_t, "%zu");
 	BC_ASSERT_PTR_NULL(aliceContext->cachedSecret.pbxsecret);
 	BC_ASSERT_EQUAL(aliceContext->cachedSecret.previouslyVerifiedSas, 0, int, "%d");
 

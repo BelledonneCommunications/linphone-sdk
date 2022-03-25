@@ -27,10 +27,19 @@
 
 #include <bctoolbox/tester.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 extern test_suite_t crypto_utils_test_suite;
 extern test_suite_t packet_parser_test_suite;
 extern test_suite_t zidcache_test_suite;
 extern test_suite_t key_exchange_test_suite;
 
 extern int verbose;
+
+#ifdef __cplusplus
+};
+#endif
+
 #endif // bzrtpTester_h

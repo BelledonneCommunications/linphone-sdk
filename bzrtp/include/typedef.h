@@ -112,9 +112,9 @@ typedef struct cachedSecrets_struct {
 	uint8_t *rs2; /**< retained secret 2 */
 	uint8_t rs2Length; /**< retained secret 2 length in bytes */
 	uint8_t *auxsecret; /**< auxiliary secret */
-	uint8_t auxsecretLength; /**< auxiliary secret length in bytes */
+	size_t auxsecretLength; /**< auxiliary secret length in bytes */
 	uint8_t *pbxsecret; /**< PBX secret */
-	uint8_t pbxsecretLength; /**< PBX secret length in bytes */
+	size_t pbxsecretLength; /**< PBX secret length in bytes */
 	uint8_t previouslyVerifiedSas; /* boolean, is a SAS has been previously verified with this user */
 } cachedSecrets_t;
 

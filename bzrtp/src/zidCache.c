@@ -619,11 +619,12 @@ int bzrtp_cache_getZuid(void *dbPointer, const char *selfURI, const char *peerUR
  */
 static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount) {
 	char *stmt=NULL;
-	int ret,i,j;
+	int ret,i;
+	size_t j;
 	sqlite3_stmt *sqlStmt = NULL;
 	sqlite3 *db = (sqlite3 *)dbPointer;
 	char *insertColumnsString=NULL;
-	int insertColumnsStringLength=0;
+	size_t insertColumnsStringLength=0;
 
 	if (dbPointer == NULL) { /* we are running cacheless */
 		return BZRTP_ZIDCACHE_RUNTIME_CACHELESS;
@@ -642,10 +643,10 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 		insertColumnsStringLength += strlen(columns[i])+5; /* +5 for =?, */
 	}
 	insertColumnsString = (char *)malloc(++insertColumnsStringLength); /*+1 to add NULL termination */
-	sqlite3_snprintf(insertColumnsStringLength,insertColumnsString,"%w=?",columns[0]);
+	sqlite3_snprintf((int)insertColumnsStringLength,insertColumnsString,"%w=?",columns[0]);
 	j=strlen(insertColumnsString);
 	for (i=1; i<columnsCount; i++) {
-		sqlite3_snprintf(insertColumnsStringLength-j,insertColumnsString+j,", %w=?",columns[i]);
+		sqlite3_snprintf((int)(insertColumnsStringLength-j),insertColumnsString+j,", %w=?",columns[i]);
 		j=strlen(insertColumnsString);
 	}
 
@@ -659,7 +660,7 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 
 	/* bind given values */
 	for (i=0; i<columnsCount; i++) {
-		sqlite3_bind_blob(sqlStmt, i+1, values[i], lengths[i], SQLITE_TRANSIENT);/* i+1 because index of sql bind is 1 based */
+		sqlite3_bind_blob(sqlStmt, i+1, values[i], (int)(lengths[i]), SQLITE_TRANSIENT);/* i+1 because index of sql bind is 1 based */
 	}
 
 	ret = sqlite3_step(sqlStmt);
@@ -674,12 +675,12 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 		char *valuesBindingString = alloca(2*columnsCount+3);
 		insertColumnsStringLength+=6; /* +6 to add the initial 'zuid, ' to column list */
 		insertColumnsString = (char *)malloc(insertColumnsStringLength+6);
-		sqlite3_snprintf(insertColumnsStringLength,insertColumnsString,"%w","zuid");
+		sqlite3_snprintf((int)insertColumnsStringLength,insertColumnsString,"%w","zuid");
 		sprintf(valuesBindingString,"?");
 
 		j=strlen(insertColumnsString);
 		for (i=0; i<columnsCount; i++) {
-			sqlite3_snprintf(insertColumnsStringLength-j,insertColumnsString+j,", %w",columns[i]);
+			sqlite3_snprintf((int)(insertColumnsStringLength-j),insertColumnsString+j,", %w",columns[i]);
 			j=strlen(insertColumnsString);
 			sprintf(valuesBindingString+2*i+1,",?"); /*2 char (,?) for each column plus the initial ? for the zuid column */
 		}
@@ -694,7 +695,7 @@ static int bzrtp_cache_write_impl(void *dbPointer, int zuid, const char *tableNa
 		/* bind given values */
 		sqlite3_bind_int(sqlStmt, 1, zuid);
 		for (i=0; i<columnsCount; i++) { /* index of sql bind is 1 based */
-			sqlite3_bind_blob(sqlStmt, i+2, values[i], lengths[i], SQLITE_TRANSIENT); /* i+2 because of zuid which is first and 1 based index in binding */
+			sqlite3_bind_blob(sqlStmt, i+2, values[i], (int)(lengths[i]), SQLITE_TRANSIENT); /* i+2 because of zuid which is first and 1 based index in binding */
 		}
 
 		ret = sqlite3_step(sqlStmt);
@@ -895,14 +896,14 @@ static int bzrtp_cache_read_impl(void *dbPointer, int zuid, const char *tableNam
 	/* do not perform any check on table name or columns name, the sql statement will just fail when they are wrong */
 	/* prepare the columns list string, use the %w formatting option as it shall protect us from anything in the column name  */
 	for (i=0; i<columnsCount; i++) {
-		readColumnsStringLength += strlen(columns[i])+5; /* +2 for ', '*/
+		readColumnsStringLength += (int)(strlen(columns[i])+5); /* +2 for ', '*/
 	}
 	readColumnsString = (char *)malloc(++readColumnsStringLength); /*+1 to add NULL termination */
 	sqlite3_snprintf(readColumnsStringLength,readColumnsString,"%w",columns[0]);
-	j=strlen(readColumnsString);
+	j=(int)(strlen(readColumnsString));
 	for (i=1; i<columnsCount; i++) {
 		sqlite3_snprintf(readColumnsStringLength-j,readColumnsString+j,", %w",columns[i]);
-		j=strlen(readColumnsString);
+		j=(int)(strlen(readColumnsString));
 	}
 
 	stmt = sqlite3_mprintf("SELECT %s FROM %w WHERE zuid=%d LIMIT 1;", readColumnsString, tableName, zuid);

@@ -170,19 +170,19 @@ uint8_t bzrtpUtils_getMandatoryCryptoTypes(uint8_t algoType, uint8_t mandatoryTy
 int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 		const uint8_t *label, const size_t labelLength,
 		const uint8_t *context, const size_t contextLength,
-		const uint16_t hmacLength,
+		const uint8_t hmacLength,
 		void (*hmacFunction)(const uint8_t *, size_t, const uint8_t *, size_t, uint8_t, uint8_t *),
 		uint8_t *output) {
 
 	/* get the total length (in bytes) of the data to be hashed */
 	/* need to add 4 bytes for the initial constant 0x00000001, 1 byte for the 0x00 separator and 4 bytes for the hmacLength length */
-	uint32_t inputLength = 4 + labelLength + 1 + contextLength + 4;
+	size_t inputLength = 4 + labelLength + 1 + contextLength + 4;
 
 	/* create the hmac function input */
 	uint8_t *input = (uint8_t *)malloc(inputLength*sizeof(uint8_t));
 
 	/* fill the input starting by the 32-bits big-endian interger set to 0x00000001 */
-	uint32_t index = 0;
+	size_t index = 0;
 	input[index++] = 0x00;
 	input[index++] = 0x00;
 	input[index++] = 0x00;
@@ -199,9 +199,9 @@ int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 	memcpy(input+index, context, contextLength);
 	index += contextLength;
 
-	/* end by L(hmacLength) in big-endian. hamcLength is in bytes and must be converted to bits before insertion in the text to hash */
-	input[index++] = (uint8_t)((hmacLength>>21)&0xFF);
-	input[index++] = (uint8_t)((hmacLength>>13)&0xFF);
+	/* end by L(hmacLength) in big-endian. hmacLength is in bytes and must be converted to bits before insertion in the text to hash */
+	input[index++] = 0; //(uint8_t)((hmacLength>>21)&0xFF); - hmacLength in bit cannot bit more than 2^11 so the first 2 bytes are always 0
+	input[index++] = 0; //(uint8_t)((hmacLength>>13)&0xFF);
 	input[index++] = (uint8_t)((hmacLength>>5)&0xFF);
 	input[index++] = (uint8_t)((hmacLength<<3)&0xFF);
 
@@ -924,7 +924,7 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
  * @param[in]		keyLength	The keyLength in bytes
  * @param[in]		rngContext	The context for RNG
  */
-void bzrtp_DestroyKey(uint8_t *key, uint8_t keyLength, void *rngContext) {
+void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext) {
 	if (key != NULL) {
 		bctbx_rng_get(static_cast<bctbx_rng_context_t *>(rngContext), key, keyLength);
 	}

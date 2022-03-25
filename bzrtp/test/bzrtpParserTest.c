@@ -309,17 +309,17 @@ static void test_parserComplete(void) {
 	bzrtpPacket_t *bob_DHPart2FromAlice;
 	bzrtpDHPartMessage_t *bob_DHPart2FromAlice_message=NULL;
 	uint16_t secretLength;
-	uint16_t totalHashDataLength;
+	size_t totalHashDataLength;
 	uint8_t *dataToHash;
-	uint16_t hashDataIndex = 0;
+	size_t hashDataIndex = 0;
 	uint8_t alice_totalHash[32]; /* Note : actual length of hash depends on the choosen algo */
 	uint8_t bob_totalHash[32]; /* Note : actual length of hash depends on the choosen algo */
 	uint8_t *s1=NULL;
-	uint32_t s1Length=0;
+	size_t s1Length=0;
 	uint8_t *s2=NULL;
-	uint32_t s2Length=0;
+	size_t s2Length=0;
 	uint8_t *s3=NULL;
-	uint32_t s3Length=0;
+	size_t s3Length=0;
 	uint8_t alice_sasHash[32];
 	uint8_t bob_sasHash[32];
 	uint32_t sasValue;

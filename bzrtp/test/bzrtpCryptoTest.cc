@@ -37,7 +37,7 @@ static uint8_t patternKDFLabel[KDF_TEST_NUMBER][28] = {
 
 static uint16_t patternKDFContextLength[KDF_TEST_NUMBER] = {56, 56, 56 , 56, 56, 56, 56, 56, 56};
 
-static uint16_t patternKDFHmacLength[KDF_TEST_NUMBER] = {16, 14, 32, 32, 32, 16, 16, 32, 32};
+static uint8_t patternKDFHmacLength[KDF_TEST_NUMBER] = {16, 14, 32, 32, 32, 16, 16, 32, 32};
 
 static uint8_t patternKDFOutput[KDF_TEST_NUMBER][32] = {
 	{0xf2, 0xcf, 0xc5, 0x72, 0x4a, 0xcf, 0xd7, 0xb5, 0x0e, 0x89, 0xbe, 0xd8, 0xa5, 0xc9, 0xf2, 0xcd},
