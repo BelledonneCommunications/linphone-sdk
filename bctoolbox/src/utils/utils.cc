@@ -18,8 +18,14 @@
  */
 
 #include "bctoolbox/utils.hh"
+#include<sstream> 
 
 using namespace std;
+
+#ifdef BCTBX_WINDOWS_UWP
+using namespace Windows::System;
+using namespace Windows::Foundation;
+#endif
 
 vector<string> bctoolbox::Utils::split (const string &str, const string &delimiter) {
 	vector<string> out;
@@ -83,4 +89,31 @@ void bctoolbox::Utils::replace(string& source, const string& from, const string&
 		if(recursive)
 			start_pos += to.length();
 	}
+}
+
+std::string bctoolbox::Utils::getMemoryReportAsString() {
+	std::ostringstream ossReport;
+#ifdef WIN32
+	// Use to convert bytes to MB
+	const int division = 1048576;
+	MEMORYSTATUSEX memoryStatus;
+	memoryStatus.dwLength = sizeof (memoryStatus);
+	GlobalMemoryStatusEx (&memoryStatus);
+	ossReport << "Memory stats (MB): Usage=" << memoryStatus.dwMemoryLoad
+				<< ", Total physical=" << memoryStatus.ullTotalPhys/division
+				<< ", Free physical=" << memoryStatus.ullAvailPhys/division
+				<< ", Total paging file=" << memoryStatus.ullTotalPageFile/division
+				<< ", Free paging file=" << memoryStatus.ullAvailPageFile/division
+				<< ", Total virtual=" << memoryStatus.ullTotalVirtual/division
+				<< ", Free virtual=" << memoryStatus.ullAvailVirtual/division
+				<< ", Free extended=" << memoryStatus.ullAvailExtendedVirtual/division;
+#ifdef BCTBX_WINDOWS_UWP
+	ossReport << " | UWP App Memory (MB): Usage=" << MemoryManager::AppMemoryUsage/division
+				<< ", Usage limit=" << MemoryManager::AppMemoryUsageLimit/division
+				<< ", Usage level=" << (int)MemoryManager::AppMemoryUsageLevel
+				<< ", Expected usage limit=" << MemoryManager::ExpectedAppMemoryUsageLimit/division
+				<< ", Free=" << (long)( MemoryManager::AppMemoryUsageLimit - MemoryManager::AppMemoryUsage )/division;
+#endif
+#endif
+	return ossReport.str();
 }
