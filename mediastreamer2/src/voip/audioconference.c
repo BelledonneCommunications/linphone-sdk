@@ -187,12 +187,14 @@ static int request_volumes(MSFilter *filter, rtp_audio_level_t **audio_levels, v
 	MSAudioEndpoint *ep = (MSAudioEndpoint *) user_data;
 	bctbx_list_t *it;
 
+	if (ep == NULL || ep->conference == NULL) return 0;
+
 	AudioStreamVolumes *volumes = audio_stream_volumes_new();
 	int volumes_size = 0;
 
 	for (it = ep->conference->members; it != NULL; it = it->next) {
 		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
-		if (data != ep && data->st) {
+		if (data != NULL && data != ep && data->st) {
 			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
 
 			if (is_remote) {
@@ -365,6 +367,14 @@ MSAudioEndpoint * ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_r
 }
 
 void ms_audio_endpoint_release_from_stream(MSAudioEndpoint *obj){
+	// Remove volumes callback if any before destroying the endpoint
+	if (obj->st && obj->st->mixer_to_client_extension_id > 0) {
+		MSFilterRequestMixerToClientDataCb callback;
+		callback.cb = NULL;
+		callback.user_data = NULL;
+		ms_filter_call_method(obj->st->ms.rtpsend, MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, &callback);
+	}
+
 	redo_audio_stream_graph(obj);
 	ms_audio_endpoint_destroy(obj);
 }
