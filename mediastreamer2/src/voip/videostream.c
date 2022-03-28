@@ -216,7 +216,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 					/* TODO: manage seq_nr and ignore FIR repeats to avoid flooding the encoder */
 					stream->encoder_control_cb(stream,  MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr, stream->encoder_control_cb_user_data);
 					stream->ms_video_stat.counter_rcvd_fir++;
-					ms_message("Got RTCP FIR on video stream [%p] SSRC [%x] count %d, seq %u", 
+					ms_message("Got RTCP FIR on video stream [%p] SSRC [%x] count %d, seq %u",
 						stream, rtcp_fb_fir_fci_get_ssrc(fci), stream->ms_video_stat.counter_rcvd_fir, seq_nr);
 
 					break;
@@ -229,14 +229,14 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			}
 			return;
 		}
-		
+
 		if (rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
 			switch (rtcp_PSFB_get_type(m)) {
 				case RTCP_PSFB_PLI:
 
 					stream->ms_video_stat.counter_rcvd_pli++;
 					stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_PLI, NULL, stream->encoder_control_cb_user_data);
-					ms_message("Got RTCP PLI on video stream [%p] SSRC [%x] count %d", 
+					ms_message("Got RTCP PLI on video stream [%p] SSRC [%x] count %d",
 						stream, rtcp_PSFB_get_media_source_ssrc(m), stream->ms_video_stat.counter_rcvd_pli);
 					break;
 				case RTCP_PSFB_SLI:
@@ -270,9 +270,9 @@ static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m){
 			}
 		}
 		else {
-			ms_message("RTCP payload specific feedback of type %d for unknown SSRC %x was ignored. Our SSRC is %x", 
+			ms_message("RTCP payload specific feedback of type %d for unknown SSRC %x was ignored. Our SSRC is %x",
 			rtcp_PSFB_get_type(m),
-			rtcp_PSFB_get_media_source_ssrc(m), 
+			rtcp_PSFB_get_media_source_ssrc(m),
 			rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session));
 		}
 	}
@@ -296,7 +296,7 @@ static void stop_preload_graph(VideoStream *stream){
 }
 
 static void video_stream_track_fps_changes(VideoStream *stream){
-	uint64_t curtime=ortp_get_cur_time_ms();
+	uint64_t curtime=bctbx_get_cur_time_ms();
 	if (stream->last_fps_check==(uint64_t)-1){
 		stream->last_fps_check=curtime;
 		return;
@@ -333,7 +333,7 @@ static void video_stream_track_fps_changes(VideoStream *stream){
 
 static void video_stream_check_camera(VideoStream *stream) {
 #if !defined(__ANDROID__) && !TARGET_OS_IPHONE
-	uint64_t curtime = ortp_get_cur_time_ms();
+	uint64_t curtime = bctbx_get_cur_time_ms();
 	if (stream->last_camera_check == (uint64_t)-1){
 		stream->last_camera_check = curtime;
 		return;
@@ -1084,7 +1084,7 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 		ms_message("Max target bitrate not set for stream [%p], but using payload type's bitrate [%i]",stream,stream->ms.max_target_bitrate);
 		target_upload_bandwidth = stream->ms.max_target_bitrate = pt->normal_bitrate;
 	}else{
-		ms_message("Using max target bitrate [%i] bit/s", stream->ms.max_target_bitrate); 
+		ms_message("Using max target bitrate [%i] bit/s", stream->ms.max_target_bitrate);
 		target_upload_bandwidth = stream->ms.max_target_bitrate;
 	}
 
@@ -1128,7 +1128,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	MSPixFmt format;
 	MSVideoSize disp_size;
 	JBParameters jbp;
-	
+
 	bool_t avpf_enabled = FALSE;
 	bool_t rtp_source = FALSE;
 	bool_t rtp_output = FALSE;
@@ -1275,7 +1275,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	if (output != NULL) {
 		rtp_output = (ms_filter_get_id(output) == MS_RTP_SEND_ID) ? TRUE : FALSE;
 	}
-	
+
 	if (media_stream_get_direction(&stream->ms) == MediaStreamSendRecv || media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
 		MSConnectionHelper ch;
 
@@ -1945,7 +1945,7 @@ static void configure_video_preview_source(VideoPreview *stream) {
 	if (ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	}
-	
+
 	ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
 	/* It is important that the internal_event_cb is called synchronously! */
 	ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
@@ -1962,7 +1962,7 @@ static void configure_video_preview_source(VideoPreview *stream) {
 		vconf.vsize = vsize;
 		vconf.fps = fps;
 		ms_filter_call_method(stream->source, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
-	}    
+	}
     ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
 	if (format == MS_MJPEG) {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);

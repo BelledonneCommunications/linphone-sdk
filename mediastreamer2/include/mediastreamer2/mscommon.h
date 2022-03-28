@@ -56,7 +56,7 @@
 #define ms_new0		ortp_new0
 #define ms_free		ortp_free
 #define ms_strdup	ortp_strdup
-#define ms_strndup	ortp_strndup
+#define ms_strndup	bctbx_strndup
 #define ms_strdup_printf	ortp_strdup_printf
 #define ms_strcat_printf	ortp_strcat_printf
 
@@ -150,7 +150,7 @@ static MS2_INLINE void ms_debug(const char *fmt,...)
 typedef ortpTimeSpec MSTimeSpec;
 
 #define ms_get_cur_time ortp_get_cur_time
-#define ms_get_cur_time_ms ortp_get_cur_time_ms
+#define ms_get_cur_time_ms bctbx_get_cur_time_ms
 
 typedef bctbx_compare_func MSCompareFunc;
 typedef void (*MSIterateFunc)(void *a);
@@ -261,7 +261,7 @@ MS2_PUBLIC MS2_DEPRECATED void ms_list_for_each(const MSList *list, MSIterateFun
  * @deprecated Use bctbx_list_for_each2() instead
 **/
 MS2_PUBLIC MS2_DEPRECATED void ms_list_for_each2(const MSList *list, MSIterate2Func iterate_func, void *user_data);
-	
+
 MS2_PUBLIC MS2_DEPRECATED void ms_list_for_each3(const MSList *list, MSIterate3Func iterate_func, void *user_data, void *factory);
 
 /** Finds and remove given element in list.
@@ -593,4 +593,3 @@ MS2_PUBLIC char *ms_load_path_content(const char *path, size_t *nbytes);
 #include "mediastreamer2/msjava.h"
 #endif
 #endif
-

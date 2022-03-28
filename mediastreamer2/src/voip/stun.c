@@ -1014,7 +1014,7 @@ void ms_stun_message_set_random_tr_id(MSStunMessage *msg) {
 	int i;
 
 	for (i = 0; i < 12; i += 4) {
-		unsigned int r = ortp_random();
+		unsigned int r = bctbx_random();
 		tr_id.octet[i + 0] = r >> 0;
 		tr_id.octet[i + 1] = r >> 8;
 		tr_id.octet[i + 2] = r >> 16;
@@ -1579,11 +1579,11 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_relay(MSTurnContext *context, c
 	struct sockaddr_storage relay_ss;
 	struct sockaddr *relay_sa = (struct sockaddr *)&relay_ss;
 	socklen_t relay_sa_len = sizeof(relay_ss);
-	
+
 	if (from->sa_family == AF_UNSPEC || fromlen == 0) return context->force_rtp_sending_via_relay;
 	memset(relay_sa, 0, relay_sa_len);
 	ms_stun_address_to_sockaddr(&context->relay_addr, relay_sa, &relay_sa_len);
-	
+
 	if (relay_sa->sa_family == AF_INET) {
 		struct sockaddr_in *relay_sa_in = (struct sockaddr_in *)relay_sa;
 		struct sockaddr_storage removed_v4mapping;
@@ -1609,7 +1609,7 @@ static bool_t ms_turn_rtp_endpoint_send_via_turn_relay(MSTurnContext *context, c
 		struct sockaddr_in6 *from_in6 = (struct sockaddr_in6 *)from;
 		return memcmp(&relay_sa_in6->sin6_addr, &from_in6->sin6_addr, sizeof(from_in6->sin6_addr)) == 0
 			|| (context->force_rtp_sending_via_relay && memcmp(&from_in6->sin6_addr, &in6addr_any, sizeof(from_in6->sin6_addr)) == 0);
-		
+
 	}
 	return FALSE;
 }
@@ -1665,17 +1665,17 @@ static int ms_turn_rtp_endpoint_sendto(RtpTransport *rtptp, mblk_t *msg, int fla
 				char *buf = NULL;
 				size_t len;
 				uint16_t datalen;
-				
+
 				msgpullup(msg, -1);
 				datalen = (uint16_t)(msg->b_wptr - msg->b_rptr);
 				bctbx_sockaddr_ipv6_to_ipv4(to, (struct sockaddr *)&realto, &realtolen);
 				ms_sockaddr_to_stun_address((struct sockaddr *)&realto, &stun_addr);
 				stun_msg = ms_turn_send_indication_create(stun_addr);
-				
+
 				/* the data is actually within our 'msg', we don't want ms_stun_message_destroy() to free it.*/
 				ms_stun_message_set_data_2(stun_msg, msg->b_rptr, datalen, FALSE);
 				len = ms_stun_message_encode(stun_msg, &buf);
-				
+
 				ms_stun_message_destroy(stun_msg);
 				/* Allocate a new mblk_t englobing the STUN encoded message. */
 				new_msg = msg = esballoc((uint8_t*)buf, len, 0, ms_free);

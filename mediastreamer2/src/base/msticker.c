@@ -195,7 +195,7 @@ int ms_ticker_detach(MSTicker *ticker, MSFilter *f){
 		ms_message("Filter %s is not scheduled; nothing to do.",f->desc->name);
 		return 0;
 	}
-	
+
 	if (f->ticker != ticker){
 		ms_fatal("ms_ticker_detach(): filter %s:%p is currently scheduled by MSTicker %p, but requested to detach from MSTicker %p. This is a programming mistake.",
 			 f->desc->name, f, f->ticker, ticker);
@@ -415,11 +415,11 @@ static int wait_next_tick(void *data, uint64_t virt_ticker_time){
 		ms_mutex_lock(&s->cur_time_lock);
 		realtime=s->get_cur_time_ptr(s->get_cur_time_data)-s->orig;
 		ms_mutex_unlock(&s->cur_time_lock);
-		
+
 		diff=s->time-realtime;
 		if (diff>0){
 			/* sleep until next tick */
-            ortp_sleep_ms((int)diff < 10 ? (int)diff : 10);
+            bctbx_sleep_ms((int)diff < 10 ? (int)diff : 10);
 		}else{
 			late=(int)-diff;
 			break; /*exit the while loop */
@@ -502,7 +502,7 @@ void * ms_ticker_run(void *arg)
 
 void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func, void *user_data){
 	if (func==NULL) func=get_cur_time_ms;
-	
+
 	ms_mutex_lock(&ticker->cur_time_lock);
 	ticker->get_cur_time_ptr=func;
 	ticker->get_cur_time_data=user_data;
@@ -637,7 +637,7 @@ double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer* ts, const 
 	sound_time = ts->offset + ms;
 	diff = wc - sound_time;
 	ts->av_skew = (ts->av_skew * (1.0 - clock_coef)) + ((double) diff * clock_coef);
-	
+
 	if (ts->last_log_time == 0) ts->last_log_time = wc;
 	else if (wc - ts->last_log_time >= 5000 ) {
 		ts->last_log_time = wc;

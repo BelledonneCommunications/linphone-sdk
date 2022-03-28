@@ -139,7 +139,7 @@ void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_rece
 RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
 	RtpSession *rtpr;
 	const int socket_buf_size=2000000;
-	
+
 	rtpr = rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_recv_buf_size(rtpr, MAX(mtu , MS_MINIMAL_MTU));
 	rtp_session_set_scheduling_mode(rtpr, 0);
@@ -165,7 +165,7 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 	rtp_session_set_send_ts_offset(rtpr, (uint32_t)bctbx_random());
 	rtp_session_enable_avpf_feature(rtpr, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
-	
+
 	/* Enlarge kernel socket buffers, which is necessary for video streams because large amounts of data can arrive between
 	 * two ticks of mediastreamer2 processing.
 	 * Previously, this was done only for VideoStreams, but since the sockets in the audio RtpSession may be used for video too
@@ -304,7 +304,7 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream){
 		if (stream->sessions.dtls_context) {
 			/* In case STUN packets are necessary, and DTLS is used and encryption mandatory is set to TRUE,
 			 * no packets will be emitted at all. We must configure the rtpsend filter to regularly send dummy stun packets
-			 * to ensure that firewall gets open to the remote endpoint. 
+			 * to ensure that firewall gets open to the remote endpoint.
 			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
 			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
 			 */
@@ -319,7 +319,7 @@ void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *param
 		MSDtlsSrtpParams params_copy = *params;
 		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
 		if (params_copy.mtu == 0) params_copy.mtu = ms_factory_get_mtu(stream->factory);
-		
+
 		stream->sessions.dtls_context=ms_dtls_srtp_context_new(&(stream->sessions), &params_copy);
 		media_stream_configure_stun_packet_sending(stream);
 	}
@@ -366,7 +366,7 @@ bool_t ms_is_ipv6(const char *remote) {
 }
 
 bool_t ms_is_multicast_addr(const struct sockaddr *addr) {
-	return ortp_is_multicast_addr(addr);
+	return bctbx_is_multicast_addr(addr);
 }
 
 bool_t ms_is_multicast(const char *address) {
@@ -424,7 +424,7 @@ void media_stream_iterate(MediaStream *stream){
 			if (stream->direction != MediaStreamSendOnly) { // Local quality indicator in send only will be wrong
 				ms_quality_indicator_update_local(stream->qi);
 			}
-		} 
+		}
 	}
 	stream->last_iterate_time=curtime;
 
@@ -841,4 +841,3 @@ void media_stream_print_summary(MediaStream *ms){
 	rtp_stats_display(rtp_session_get_stats(ms->sessions.rtp_session),
 		"                     RTP STATISTICS                          ");
 }
-

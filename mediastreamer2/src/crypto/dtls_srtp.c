@@ -124,7 +124,7 @@ void ms_dtls_srtp_bctbx_context_free(DtlsBcToolBoxContext *ctx) {
 /**** Helper functions ****/
 static ORTP_INLINE uint64_t get_timeval_in_millis(void) {
 	struct timeval t;
-	ortp_gettimeofday(&t,NULL);
+	bctbx_gettimeofday(&t,NULL);
 	return (1000LL*t.tv_sec)+(t.tv_usec/1000LL);
 }
 
@@ -396,7 +396,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 				last_packet->next = incoming_dtls_packet;
 			}
 		}
-		
+
 		/* while DTLS handshake is on going route DTLS packets to bctoolbox engine through ssl_handshake() */
 		if (channel_status < DTLS_STATUS_HANDSHAKE_OVER) {
 			/* role is unset but we receive a packet: we are caller and shall initialise as server and then process the incoming packet */
@@ -742,7 +742,7 @@ static int ms_dtls_srtp_rtcp_process_on_receive(struct _RtpTransportModifier *t,
 		}
 
 		return 0;
-	} 
+	}
 	return (int)msgdsize(msg);
 }
 
@@ -798,13 +798,13 @@ static void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *userData, RtpSession *
 static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtlsContext, MSDtlsSrtpParams *params, RtpSession *s){
 	int ret;
 	bctbx_dtls_srtp_profile_t dtls_srtp_protection_profiles[2] = {BCTBX_SRTP_AES128_CM_HMAC_SHA1_80, BCTBX_SRTP_AES128_CM_HMAC_SHA1_32};
-	
+
 	/* initialise certificate */
 	ret = bctbx_x509_certificate_parse( dtlsContext->crt, (const char *) params->pem_certificate, strlen( params->pem_certificate )+1 );
 	if( ret < 0 ) {
 		return ret;
 	}
-	
+
 	ret =  bctbx_signing_key_parse( dtlsContext->pkey, (const char *) params->pem_pkey, strlen( params->pem_pkey )+1, NULL, 0 );
 	if( ret != 0 ) {
 		return ret;
@@ -1017,7 +1017,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 		bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_CLIENT);
 		/* complete ssl setup*/
 		bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
-		bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);		
+		bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);
 		/* and start the handshake */
 		bctbx_ssl_handshake(context->rtp_dtls_context->ssl);
 		context->rtp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
@@ -1029,7 +1029,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 			bctbx_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTBX_SSL_IS_CLIENT);
 			/* complete ssl setup*/
 			bctbx_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
-			bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);		
+			bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);
 			/* and start the handshake */
 			bctbx_ssl_handshake(context->rtcp_dtls_context->ssl);
 			context->rtcp_time_reference = get_timeval_in_millis(); /* arm the timer for retransmission */
@@ -1045,7 +1045,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 			bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_SERVER);
 			/* complete ssl setup*/
 			bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
-			bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);		
+			bctbx_ssl_set_mtu(context->rtp_dtls_context->ssl, context->mtu);
 			context->rtp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 			ms_mutex_unlock(&context->rtp_dtls_context->ssl_context_mutex);
 
@@ -1055,7 +1055,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext* context) {
 				bctbx_ssl_config_set_endpoint(context->rtcp_dtls_context->ssl_config, BCTBX_SSL_IS_SERVER);
 				/* complete ssl setup*/
 				bctbx_ssl_context_setup(context->rtcp_dtls_context->ssl, context->rtcp_dtls_context->ssl_config);
-				bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);		
+				bctbx_ssl_set_mtu(context->rtcp_dtls_context->ssl, context->mtu);
 				context->rtcp_channel_status = DTLS_STATUS_HANDSHAKE_ONGOING;
 				ms_mutex_unlock(&context->rtcp_dtls_context->ssl_context_mutex);
 			}

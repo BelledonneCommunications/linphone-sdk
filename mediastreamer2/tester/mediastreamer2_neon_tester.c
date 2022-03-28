@@ -218,8 +218,8 @@ static void inner_product_test(void) {
 
 	// put some values to process
 	for( i = 0; i<SAMPLE_SIZE; i++) {
-		test_sample[i] = ortp_random() % 16384;
-		test_sample2[i] = ortp_random() % 16384;
+		test_sample[i] = bctbx_random() % 16384;
+		test_sample2[i] = bctbx_random() % 16384;
 	}
 
 	// ARM_NEON is enabled, we can force libspeex to use it

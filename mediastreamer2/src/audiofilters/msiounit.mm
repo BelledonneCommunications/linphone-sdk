@@ -180,7 +180,7 @@ struct au_filter_write_data{
 static void update_audio_unit_holder_ms_snd_card(MSSndCard * newcard) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	MSSndCard * oldCard = [au_holder ms_snd_card];
-	
+
 	ms_snd_card_ref(newcard);
 	[au_holder mutex_lock];
 	[au_holder setMs_snd_card:newcard];
@@ -211,7 +211,7 @@ static OSStatus au_render_cb (
 							  UInt32                      inNumberFrames,
 							  AudioBufferList             *ioData
 							  );
-	
+
 static OSStatus au_read_cb (
 							  void                        *inRefCon,
 							  AudioUnitRenderActionFlags  *ioActionFlags,
@@ -271,7 +271,7 @@ static MSSndCardDeviceType deduceDeviceTypeFromAudioPortType(AVAudioSessionPort 
 	} else if ([port isEqualToString:(AVAudioSessionPortHeadsetMic)])	{
 		return MS_SND_CARD_DEVICE_TYPE_HEADPHONES;
 	}
-	
+
 	return MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 }
 
@@ -311,7 +311,7 @@ ms_mutex_t mutex;
 											   selector:@selector(onAudioRouteChange:)
 												   name:AVAudioSessionRouteChangeNotification
 												 object:nil];
-		
+
 	}
 	return self;
 }
@@ -361,16 +361,16 @@ ms_mutex_t mutex;
 
 -(void)configure_audio_unit {
 	OSStatus auresult;
-	
+
 	if (_audio_unit_state != MSAudioUnitCreated){
 		ms_error("configure_audio_unit(): not created, in state %i", _audio_unit_state);
 		return;
 	}
 	uint64_t time_start, time_end;
-	
-	time_start = ortp_get_cur_time_ms();
+
+	time_start = bctbx_get_cur_time_ms();
 	ms_message("configure_audio_unit() now called.");
-	
+
 	AudioStreamBasicDescription audioFormat;
 	/*card sampling rate is fixed at that time*/
 	audioFormat.mSampleRate			= _rate;
@@ -405,7 +405,7 @@ ms_mutex_t mutex;
 								   _mic_enabled ? &doSetProperty : &doNotSetProperty,
 								   sizeof (_mic_enabled ? doSetProperty : doNotSetProperty)
 								   );
-	
+
 	check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
 	auresult=AudioUnitSetProperty (
 								   _audio_unit,
@@ -417,7 +417,7 @@ ms_mutex_t mutex;
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_StreamFormat,kAudioUnitScope_Output");
 	/*end of: enable mic for scheduling render call back, why ?*/
-	
+
 	//setup stream format
 	auresult=AudioUnitSetProperty (
 								   _audio_unit,
@@ -452,22 +452,22 @@ ms_mutex_t mutex;
 								   sizeof (renderCallbackStruct)
 								   );
 	check_au_unit_result(auresult,"kAudioUnitProperty_SetRenderCallback,kAudioUnitScope_Input");
-	time_end = ortp_get_cur_time_ms();
+	time_end = bctbx_get_cur_time_ms();
 	ms_message("configure_audio_unit() took %i ms.", (int)(time_end - time_start));
 	_audio_unit_state=MSAudioUnitConfigured;
 }
 
 -(bool_t)start_audio_unit: (uint64_t) time {
-	
+
 	if (_audio_unit_state != MSAudioUnitConfigured){
 		ms_error("start_audio_unit(): state is %i", _audio_unit_state);
 		return FALSE;
 	}
 	uint64_t time_start, time_end;
-	time_start = ortp_get_cur_time_ms();
+	time_start = bctbx_get_cur_time_ms();
 	ms_message("start_audio_unit(): about to start audio unit.");
 	check_audiounit_call(AudioUnitInitialize(_audio_unit));
-	
+
 	Float64 delay;
 	UInt32 delaySize = sizeof(delay);
 	check_audiounit_call(AudioUnitGetProperty(_audio_unit
@@ -507,9 +507,9 @@ ms_mutex_t mutex;
 		ms_message("AudioUnit started, current hw output latency [%f] input [%f] iobuf[%f] hw sample rate [%f]",hwoutputlatency,hwinputlatency,hwiobuf,hwsamplerate);
 		_last_failed_iounit_start_time = 0;
 	}
-	time_end = ortp_get_cur_time_ms();
+	time_end = bctbx_get_cur_time_ms();
 	ms_message("start_audio_unit() took %i ms.", (int)(time_end - time_start));
-	
+
 	return (_audio_unit_state == MSAudioUnitStarted);
 }
 
@@ -522,7 +522,7 @@ ms_mutex_t mutex;
 		_audio_unit_state = MSAudioUnitCreated;
 	}
 }
- 
+
 -(void)stop_audio_unit {
 	[self stop_audio_unit_with_param:FALSE];
 }
@@ -538,7 +538,7 @@ ms_mutex_t mutex;
 
 -(void)destroy_audio_unit: (bool_t) with_snd_card{
 	[self stop_audio_unit];
-	
+
 	bool isFast = (_ms_snd_card && bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_FAST));
 	if (with_snd_card && _ms_snd_card) {
 		MSSndCard * cardbuffer = _ms_snd_card;
@@ -548,11 +548,11 @@ ms_mutex_t mutex;
 		ms_snd_card_unref(cardbuffer);
 		ms_message("au_destroy_audio_unit set holder card to NULL");
 	}
-	
+
 	if (_audio_unit) {
 		AudioComponentInstanceDispose (_audio_unit);
 		_audio_unit = NULL;
-		
+
 		if (!_callkit_enabled && !isFast)  {
 			NSError *err = nil;
 			[[AVAudioSession sharedInstance] setActive:FALSE withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:&err];
@@ -595,7 +595,7 @@ ms_mutex_t mutex;
 		err = nil;
 	}
 	[audioSession setActive:TRUE error:&err];
-	
+
 	if (_ms_snd_card && _ms_snd_card->device_type != MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
 		// Activating the audio session, by default, will change the audio route to iphone microphone/receiver
 		// To avoid this, we redirect the sound to the current snd card
@@ -621,7 +621,7 @@ ms_mutex_t mutex;
 		/*check that category wasn't changed*/
 		NSString *currentCategory = audioSession.category;
 		NSString *newCategory = AVAudioSessionCategoryPlayAndRecord;
-		
+
 		if (_ms_snd_card->streamType == MS_SND_CARD_STREAM_MEDIA){
 			newCategory = AVAudioSessionCategoryPlayback;
 		}else if (bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_RINGER) ){
@@ -635,14 +635,14 @@ ms_mutex_t mutex;
 		if (!_audio_session_configured) {
 			uint64_t time_start, time_end;
 			bool_t reactivate_audio_session = FALSE;
-			
-			time_start = ortp_get_cur_time_ms();
+
+			time_start = bctbx_get_cur_time_ms();
 			if (_audio_session_activated && _callkit_enabled){
 				/* AudioSession is not yet configured, but has already been activated by callkit. */
 				[audioSession setActive:FALSE error:&err];
 				reactivate_audio_session = TRUE;
 			}
-			
+
 			if (newCategory != AVAudioSessionCategoryPlayAndRecord) {
 				ms_message("Configuring audio session for playback");
 				[audioSession setCategory:newCategory
@@ -658,7 +658,7 @@ ms_mutex_t mutex;
 				}
 			} else {
 				ms_message("Configuring audio session for playback/record");
-		
+
 				[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
 						withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
 							  error:&err];
@@ -693,13 +693,13 @@ ms_mutex_t mutex;
 				}
 			}else ms_message("Not activating the AVAudioSession because it is CallKit's job.");
 
-			time_end = ortp_get_cur_time_ms();
+			time_end = bctbx_get_cur_time_ms();
 			ms_message("MSAURead/MSAUWrite: configureAudioSession() took %i ms.", (int)(time_end - time_start));
 			_audio_session_configured = TRUE;
 		} else {
 			ms_message("Audio session already correctly configured.");
 		}
-		
+
 	} else {
 		ms_message("Fast iounit mode, audio session configuration must be done at application level.");
 	}
@@ -734,19 +734,19 @@ ms_mutex_t mutex;
 - (void)onAudioRouteChange: (NSNotification *) notif {
 	ms_message("[IOS Audio Route Change] msiounit audio route change callback");
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	
+
 	AVAudioSession * audioSession = [AVAudioSession sharedInstance];
 	NSDictionary * userInfo = [notif userInfo];
 	NSInteger changeReason = [[userInfo valueForKey:AVAudioSessionRouteChangeReasonKey] integerValue];
 	AVAudioSessionRouteDescription *previousRoute = [userInfo valueForKey:AVAudioSessionRouteChangePreviousRouteKey];
 	AVAudioSessionRouteDescription *currentRoute = [audioSession currentRoute];
-	
+
 	std::string previousInputPort("No input");
 	std::string currentInputPort("No input");
 	std::string previousOutputPort("No output");
 	std::string currentOutputPort("No output");
 	bool currentOutputIsSpeaker = false, currentOutputIsReceiver = false;
-	
+
 	if (previousRoute.inputs.count > 0)
 		previousInputPort = std::string([previousRoute.inputs[0].portName UTF8String]);
 	if (previousRoute.outputs.count > 0) {
@@ -762,18 +762,18 @@ ms_mutex_t mutex;
 		currentOutputPort = std::string([currentRoute.outputs[0].portName UTF8String]);
 		currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
 		currentOutputIsReceiver = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInReceiver.UTF8String) == 0);
-		
+
 		MSSndCardDeviceType portType = deduceDeviceTypeFromAudioPortType(currentRoute.outputs[0].portType);
 		if (portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH || portType == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP) {
 			[au_holder setInteracted_with_bluetooth_since_last_devices_reload:TRUE];
 		}
 	}
-	
+
 	ms_message("[IOS Audio Route Change] Previous audio route: input=%s, output=%s, New audio route: input=%s, output=%s"
 			   , previousInputPort.c_str(), previousOutputPort.c_str()
 			   , currentInputPort.c_str(), currentOutputPort.c_str());
-	
-	
+
+
 	switch (changeReason)
 	{
 		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
@@ -792,19 +792,19 @@ ms_mutex_t mutex;
 		ms_message("[IOS Audio Route Change]  Audio unit not initialized, ignore route change");
 		return;
 	}
-	
+
 	MSSndCard * previousCard = [au_holder ms_snd_card];
 	MSAudioRouteChangedEvent ev;
 	memset(&ev, 0, sizeof (ev));
 	ev.need_update_device_list = [au_holder interacted_with_bluetooth_since_last_devices_reload];
 	ev.has_new_input = false;
 	ev.has_new_output = false;
-	
+
 	if (previousInputPort != currentInputPort && strcmp(previousCard->name, currentInputPort.c_str()) != 0) {
 		ev.has_new_input = true;
 		strncpy(ev.new_input, currentInputPort.c_str(), sizeof(ev.new_input)-1);
 	}
-	
+
 	std::string newOutput = currentOutputPort;
 	if (previousOutputPort != currentOutputPort) {
 		if (currentOutputIsSpeaker) {
@@ -824,12 +824,12 @@ ms_mutex_t mutex;
 			}
 		}
 	}
-	
+
 	if (strcmp(previousCard->name, newOutput.c_str()) != 0) {
 		ev.has_new_output = true;
 		strncpy(ev.new_output, newOutput.c_str(), sizeof(ev.new_output)-1);
 	}
-	
+
 	switch (changeReason)
 	{
 		case AVAudioSessionRouteChangeReasonNewDeviceAvailable:
@@ -842,12 +842,12 @@ ms_mutex_t mutex;
 		}
 		default: {}
 	}
-	
+
 	if ( !(ev.has_new_input || ev.has_new_output || ev.need_update_device_list) ) {
 		ms_message("[IOS Audio Route Change] Audio unit already matches the new audio route, skipping");
 		return;
 	}
-	
+
 	ms_filter_notify([au_holder read_filter], MS_AUDIO_ROUTE_CHANGED, &ev);
 }
 @end
@@ -873,7 +873,7 @@ static void destroy_audio_unit_if_not_needed_anymore(){
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	if ([au_holder audio_unit_state] == MSAudioUnitNotCreated || [au_holder read_filter] || [au_holder write_filter])
 		return;
-	
+
 	if ( ([au_holder ms_snd_card] != NULL && bctbx_param_string_get_bool_value([au_holder ms_snd_card]->sndcardmanager->paramString, SCM_PARAM_TESTER)) || ![au_holder will_be_used] ) {
 		[au_holder destroy_audio_unit: TRUE];
 	}
@@ -898,7 +898,7 @@ static void handle_sample_rate_change(int force){
 	if (!force) ms_message("MSAURead/MSAUWrite: AVAudioSession's sample rate has changed from %i to %i.", [au_holder rate], rate);
 	else ms_message("Updating sample rate since audio graph may be running.");
 	[au_holder setRate:rate];
-	
+
 	if ([au_holder audio_unit_state] == MSAudioUnitConfigured || [au_holder audio_unit_state] == MSAudioUnitStarted){
 		[au_holder recreate_audio_unit];
 		[au_holder configure_audio_unit];
@@ -913,7 +913,7 @@ static void handle_sample_rate_change(int force){
 	if ([au_holder read_filter]) {
 		ms_filter_notify_no_arg([au_holder read_filter], MS_FILTER_OUTPUT_FMT_CHANGED);
 	}
-	
+
 }
 
 static void au_audio_route_changed(MSSndCard *obj) {
@@ -924,7 +924,7 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	bool_t need_audio_session_reconfiguration = FALSE;
 	ms_message("AVAudioSession activated: %i", (int)activated);
-	
+
 	if (au_holder.audio_session_activated && activated && [au_holder audio_unit_state] != MSAudioUnitNotCreated){
 		ms_warning("Callkit notifies that AVAudioSession is activated while it was supposed to be already activated. It means that a device disconnection happened.");
 		/* The audio unit has to be re-created. Not documented anywhere but shown by direct experience. */
@@ -938,16 +938,16 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 		need_audio_session_reconfiguration = TRUE;
 	}
 	[au_holder setAudio_session_activated:activated];
-	
+
 	if (activated){
 		if (need_audio_session_reconfiguration) {
 			[au_holder configure_audio_session];
 			[au_holder create_audio_unit];
 		}
-		
+
 		if ([au_holder audio_unit_state] == MSAudioUnitCreated){
-			/* 
-			The sample rate is known only after that the AudioSession is activated. 
+			/*
+			The sample rate is known only after that the AudioSession is activated.
 			It may have changed compared to the original value we requested while plumbing the graph.
 			*/
 			handle_sample_rate_change(need_audio_session_reconfiguration);
@@ -962,12 +962,12 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 			[au_holder stop_audio_unit_with_param:TRUE];
 		}
 		if ([au_holder audio_unit_state] != MSAudioUnitNotCreated) {
-			/*Mark the AudioUnit as zombified. It is unlikely to work in the future and should be recreated 
+			/*Mark the AudioUnit as zombified. It is unlikely to work in the future and should be recreated
 			when the AudioSession will be reactivated. */
 			au_holder.zombified = TRUE;
 			ms_message("AudioSession is deactivated while AudioUnit was created. Mark AudioUnit as zombified.");
 		}
-		
+
 	}
 }
 
@@ -1027,7 +1027,7 @@ static bool_t au_reload_requested(MSSndCardManager *m){
 
 static void au_detect(MSSndCardManager *m){
 	NSArray *inputs = [[AVAudioSession sharedInstance] availableInputs];
-	
+
 	AVAudioSessionRouteDescription *currentRoute = [[AVAudioSession sharedInstance] currentRoute];
 	std::string currentInputPort("No input");
 	bool currentOutputIsSpeaker = false;
@@ -1037,7 +1037,7 @@ static void au_detect(MSSndCardManager *m){
 		currentOutputIsSpeaker = (strcmp(currentRoute.outputs[0].portType.UTF8String, AVAudioSessionPortBuiltInSpeaker.UTF8String) == 0);
 	}
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	
+
 	int internal_id = 0;
 	for (AVAudioSessionPortDescription *input in inputs) {
 		//AvailableInputs includes devices that were disconnected within a few seconds
@@ -1053,7 +1053,7 @@ static void au_detect(MSSndCardManager *m){
 			update_audio_unit_holder_ms_snd_card(card);
 		}
 	}
-	
+
 	MSSndCard *speakerCard = au_card_new(MS_SND_CARD_SPEAKER_NAME);
 	speakerCard->device_type = MS_SND_CARD_DEVICE_TYPE_SPEAKER;
 	ms_snd_card_set_internal_id(speakerCard, internal_id++);
@@ -1090,7 +1090,7 @@ static OSStatus au_read_cb (
 		return 0;
 	}
 	au_filter_read_data_t *d = (au_filter_read_data_t*)[au_holder read_filter]->data;
-	
+
 	OSStatus err=0;
 	mblk_t * rm=NULL;
 	AudioBufferList readAudioBufferList;
@@ -1116,7 +1116,7 @@ static OSStatus au_read_cb (
 			freeb(rm);
 		}
 	}else ms_warning("Read NOT started");
-	
+
 	if (ioData && ioData->mNumberBuffers > 1) ms_warning("ioData->mNumberBuffers=%u", (unsigned)ioData->mNumberBuffers);
 	if (d->readTimeStamp.mSampleTime < 0){
 		d->readTimeStamp = *inTimeStamp;
@@ -1147,10 +1147,10 @@ static OSStatus au_write_cb (
 							 ) {
 	ms_debug("render cb");
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	
+
 	ioData->mBuffers[0].mDataByteSize=inNumberFrames*[au_holder bits]/8;
 	ioData->mNumberBuffers=1;
-	
+
 	[au_holder mutex_lock];
 	if(![au_holder write_filter]){
 		[au_holder mutex_unlock];
@@ -1159,10 +1159,10 @@ static OSStatus au_write_cb (
 	}
 
 	au_filter_write_data_t *d = (au_filter_write_data_t*)[au_holder write_filter]->data;
-	
+
 	if (d!=NULL){
 		unsigned int size;
-		
+
 		ms_mutex_lock(&d->mutex);
 		size = inNumberFrames*[au_holder bits]/8;
 		//ms_message("AudioUnit playback inNumberFrames=%u timeStamp=%u", (unsigned)inNumberFrames, (unsigned)inTimeStamp->mSampleTime);
@@ -1210,7 +1210,7 @@ static void au_read_process(MSFilter *f){
 	If audio unit is not started, it means audio session is not yet activated. Do not ms_ticker_synchronizer_update.
 	*/
 	if ([au_holder audio_unit_state] != MSAudioUnitStarted) return;
-	
+
 	ms_mutex_lock(&d->mutex);
 	while((m = getq(&d->rq)) != NULL){
 		ms_queue_put(f->outputs[0],m);
@@ -1250,10 +1250,10 @@ static void au_read_postprocess(MSFilter *f){
 
 static void au_write_preprocess(MSFilter *f){
 	ms_debug("au_write_preprocess");
-	
+
 	au_filter_write_data_t *d= (au_filter_write_data_t*)f->data;
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-	
+
 	[au_holder check_audio_unit_is_up];
 	/*configure our flow-control buffer*/
 	ms_flow_controlled_bufferizer_set_samplerate(d->bufferizer, [au_holder rate]);
@@ -1332,13 +1332,13 @@ static int get_nchannels(MSFilter *f, void *data) {
 static int mute_mic(MSFilter *f, void *data){
     UInt32 enableMic = *((bool *)data) ? 0 : 1;
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
-    
+
     if (enableMic == [au_holder mic_enabled])
         return 0;
-    
+
 	[au_holder setMic_enabled:enableMic];
     OSStatus auresult;
-    
+
     if ([au_holder audio_unit_state] != MSAudioUnitStarted) {
         auresult=AudioUnitSetProperty ([au_holder audio_unit],
                                        kAudioOutputUnitProperty_EnableIO,
@@ -1353,7 +1353,7 @@ static int mute_mic(MSFilter *f, void *data){
         [au_holder configure_audio_unit];
 		[au_holder start_audio_unit:0];
     }
-    
+
     return 0;
 }
 
@@ -1367,11 +1367,11 @@ static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
 {
 	MSSndCard *oldCard = [[AudioUnitHolder sharedInstance] ms_snd_card];
 	MSSndCard *newCard = (MSSndCard *)newSndCard;
-	
+
 	if (strcmp(newCard->name, oldCard->name)==0) {
 		return 0;
 	}
-	
+
 	if (oldCard->device_type == MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 		ms_warning("audio_capture_set_internal_id(): no effect on the audio route when the current output is %s.", oldCard->name);
 		return -1;
@@ -1380,7 +1380,7 @@ static int audio_capture_set_internal_id(MSFilter *f, void * newSndCard)
 		ms_error("audio_capture_set_internal_id(): %s is not a valid input device.", newCard->name);
 		return -1;
 	}
-	
+
 	// Handle the internal linphone part with the MSSndCards
 	ms_message("audio_capture_set_internal_id(): Trying to change audio input route from %s to %s", oldCard->name, newCard->name);
 	update_audio_unit_holder_ms_snd_card(newCard);
@@ -1392,7 +1392,7 @@ static int audio_playback_set_internal_id(MSFilter *f, void * newSndCard)
 {
 	MSSndCard *oldCard = [[AudioUnitHolder sharedInstance] ms_snd_card];
 	MSSndCard *newCard = (MSSndCard *)newSndCard;
-	
+
 	// Handle the internal linphone part with the MSSndCards
 	if (strcmp(newCard->name, oldCard->name)==0) {
 		return 0;

@@ -215,7 +215,7 @@ static const V4L2FormatDescription* query_format_description_for_size(int fd, MS
 	formats[i].pixel_format = V4L2_PIX_FMT_YUV420;
 	formats[i].max_fps = -1;
 	i++;
-	
+
 	/* We force the use of YUV420P when rotation is enabled */
 	if (!use_rotation) {
 		/* we must avoid YUYV (and actually any YUV format different than YUV420P) because the pixel converter/scaler implementation
@@ -436,7 +436,7 @@ static int msv4l2_configure(V4l2State *s){
 		if(v4l2_ioctl(s->fd, VIDIOC_S_FMT, &fmt) != 0) {
 			ms_error("[MSV4l2] VIDIOC_S_FMT failed: %s. Read-only driver maybe ?", strerror(errno));
 		}
-		
+
 	}
 
 	memset(&fmt,0,sizeof(fmt));
@@ -578,7 +578,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			ms_debug("v4l2: de-queue buf %i",buf.index);
 			/*decrement ref count of dequeued buffer */
 			ret=s->frames[buf.index];
-			
+
 			if ((int)buf.index >= s->frame_max){
 				ms_error("[MSV4l2] buf.index>=s->max_frames !");
 				return NULL;
@@ -589,7 +589,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			}
 			/* Remove marker bit to indicate that the buffer is no longer queued to the V4L2 driver. */
 			mblk_set_marker_info(ret, FALSE);
-			
+
 			/*normally buf.bytesused should contain the right buffer size; however we have found a buggy
 			driver that puts a random value inside */
 			if (s->picture_size!=0)
@@ -626,7 +626,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 				/* We internaly use here the marker bit to mark buffers that are queued into the V4L2 driver. */
 				mblk_set_marker_info(s->frames[k], TRUE);
 			}
-			
+
 		}
 	}
 
@@ -665,7 +665,7 @@ static void msv4l2_init(MSFilter *f){
 	ms_message("[MSV4l2] init");
 	V4l2State *s=ms_new0(V4l2State,1);
 	char* tmp=NULL;
-	
+
 	s->dev=ms_strdup("/dev/video0");
 	s->fd=-1;
 	s->requested_vsize=MS_VIDEO_SIZE_CIF;
@@ -673,7 +673,7 @@ static void msv4l2_init(MSFilter *f){
 	s->configured=FALSE;
 	f->data=s;
 	qinit(&s->rq);
-	
+
 	tmp=getenv("MS2_V4L2_USE_ROTATION");
 	if (tmp != NULL && (strcmp("1", tmp) == 0)) {
 		s->use_rotation=TRUE;
@@ -732,10 +732,10 @@ static void *msv4l2_thread(void *ptr){
 		}
 	}
 	/*dequeue pending buffers so that we can properly unref them (avoids memleak ), and even worse crashes (vmware)*/
-	start=ortp_get_cur_time_ms();
+	start=bctbx_get_cur_time_ms();
 	while(s->queued){
 		v4l2_dequeue_ready_buffer(s,50);
-		if (ortp_get_cur_time_ms()-start > 5000){
+		if (bctbx_get_cur_time_ms()-start > 5000){
 			ms_warning("[MSV4l2] still [%i] buffers not dequeued at exit !", s->queued);
 			break;
 		}
@@ -751,9 +751,9 @@ close:
 static mblk_t *msv4l2_rotate_image(V4l2State *s, mblk_t *frame) {
 	mblk_t *rotated_frame;
 	YuvBuf buf;
-	
+
 	ms_yuv_buf_init_from_mblk(&buf, frame);
-		
+
 	rotated_frame = copy_yuv_with_rotation(s->buf_allocator
 										   , buf.planes[0]
 										   , buf.planes[1]
@@ -764,7 +764,7 @@ static mblk_t *msv4l2_rotate_image(V4l2State *s, mblk_t *frame) {
 										   , buf.strides[0]
 										   , buf.strides[1]
 										   , buf.strides[2]);
-	
+
 	if (rotated_frame) {
 		freemsg(frame);
 		return rotated_frame;
@@ -781,7 +781,7 @@ static void msv4l2_preprocess(MSFilter *f){
 }
 
 static void msv4l2_process(MSFilter *f){
-	
+
 	V4l2State *s=(V4l2State*)f->data;
 	uint32_t timestamp;
 
@@ -803,7 +803,7 @@ static void msv4l2_process(MSFilter *f){
 			}
 			timestamp=f->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
 			mblk_set_timestamp_info(om,timestamp);
-			/* When pushing the buffer outside, the marker bit must have its common meaning, ie for encoded formats 
+			/* When pushing the buffer outside, the marker bit must have its common meaning, ie for encoded formats
 			 * (such as MJPEG) signal the buffer that has the end of a frame.
 			 */
 			mblk_set_marker_info(om, (s->pix_fmt==MS_MJPEG));
@@ -843,14 +843,14 @@ static int msv4l2_set_vsize(MSFilter *f, void *arg){
 	V4l2State *s=(V4l2State*)f->data;
 	s->requested_vsize=*(MSVideoSize*)arg;
 	s->configured=FALSE;
-	
+
 	if (s->use_rotation && (s->rotation == 90 || s->rotation == 270)) {
 		s->used_vsize.width = s->requested_vsize.height;
 		s->used_vsize.height = s->requested_vsize.width;
 	} else {
 		s->used_vsize = s->requested_vsize;
 	}
-		
+
 	return 0;
 }
 
@@ -897,13 +897,13 @@ static int msv4l2_get_fps(MSFilter *f, void *arg){
 
 static int ms4vl2_set_device_orientation(MSFilter *f, void *arg) {
 	V4l2State *s=(V4l2State*)f->data;
-	
+
 	if (s->use_rotation) {
 		s->rotation = *((int*)arg);
 	} else {
 		ms_warning("[MSV4l2] set_device_orientation was called while env MS2_USE_ROTATION is not set.");
 	}
-		
+
 	return 0;
 }
 

@@ -129,9 +129,9 @@ static void enc_init(MSFilter *f) {
 	s->frame_count = 0;
 	s->last_fir_seq_nr = -1;
 #ifdef PICTURE_ID_ON_16_BITS
-	s->picture_id = (ortp_random() & 0x7FFF) | 0x8000;
+	s->picture_id = (bctbx_random() & 0x7FFF) | 0x8000;
 #else
-	s->picture_id = ortp_random() & 0x007F;
+	s->picture_id = bctbx_random() & 0x007F;
 #endif
 	s->avpf_enabled = FALSE;
 	enc_reset_frames_state(s);
@@ -233,7 +233,7 @@ static void enc_init_impl(MSFilter *f){
 
 static void enc_preprocess(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
-	
+
 	enc_init_impl(f);
 	s->invalid_frame_reported = FALSE;
 	vp8rtpfmt_packer_init(&s->packer);
@@ -475,7 +475,7 @@ static void enc_process_frame_task(void *obj) {
 	if (!im) {
 		im = prev_im;
 	}
-	
+
 	ms_filter_unlock(f);
 
 	if (skipped_count > 0){
@@ -519,7 +519,7 @@ static void enc_process_frame_task(void *obj) {
 		const vpx_codec_cx_pkt_t *pkt;
 		bctbx_list_t *list = NULL;
 		int current_partition_id = -1;
-		
+
 		/* Update the frames state. */
 		is_ref_frame=FALSE;
 		if (flags & VPX_EFLAG_FORCE_KF) {
@@ -990,7 +990,7 @@ static void dec_preprocess(MSFilter* f) {
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;
 	}
-	
+
 	s->thread_running = TRUE;
 	s->waiting = FALSE;
 	ms_thread_create(&s->thread, NULL, dec_processing_thread, f);
@@ -1024,17 +1024,17 @@ static void *dec_processing_thread(void *obj) {
 			s->waiting = FALSE;
 			continue;
 		}
-		
+
 		/* Unpack RTP payload format for VP8. */
 		vp8rtpfmt_unpacker_feed(&s->unpacker, &s->entry_q);
 		ms_filter_unlock(f);
-	
+
 		/* Decode unpacked VP8 frames. */
 		while (vp8rtpfmt_unpacker_get_frame(&s->unpacker, &frame, &frame_info) == 0) {
 			vpx_codec_err_t err;
 			vpx_image_t *img;
 			vpx_codec_iter_t iter = NULL;
-			
+
 			while ((im = ms_queue_get(&frame)) != NULL) {
 				err = vpx_codec_decode(&s->codec, im->b_rptr, (unsigned int)(im->b_wptr - im->b_rptr), NULL, 0);
 				if ((s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) && mblk_get_marker_info(im)) {
@@ -1046,34 +1046,34 @@ static void *dec_processing_thread(void *obj) {
 				s->last_timestamp = mblk_get_timestamp_info(im);
 				freemsg(im);
 			}
-	
+
 			/* Get decoded frame */
 			while ((img = vpx_codec_get_frame(&s->codec, &iter))) {
 				int i, j;
 				int reference_updates = 0;
 				mblk_t *yuv_msg;
-	
+
 				if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
 					if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
 						vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
 					}
 				}
-	
+
 				if (s->yuv_width != img->d_w || s->yuv_height != img->d_h) {
 					ms_message("MSVp8Dec: video is %ix%i", img->d_w, img->d_h);
 					s->yuv_width = img->d_w;
 					s->yuv_height = img->d_h;
 					ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
 				}
-	
+
 				yuv_msg = ms_yuv_buf_allocator_get(s->allocator, &s->outbuf, img->d_w, img->d_h);
-				
+
 				ms_average_fps_update(&s->fps, (uint32_t)f->ticker->time);
 				if (!s->first_image_decoded) {
 					s->first_image_decoded = TRUE;
 					ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 				}
-				
+
 				if (yuv_msg == NULL) {
 					ms_warning("MSVp8Dec: no more output buffers, frame is discarded.");
 				}else{
@@ -1082,7 +1082,7 @@ static void *dec_processing_thread(void *obj) {
 						uint8_t *dest = s->outbuf.planes[i];
 						uint8_t *src = img->planes[i];
 						int h = img->d_h >> ((i > 0) ? 1 : 0);
-		
+
 						for (j = 0; j < h; j++) {
 							memcpy(dest, src, s->outbuf.strides[i]);
 							dest += s->outbuf.strides[i];
@@ -1119,7 +1119,7 @@ static void dec_process(MSFilter *f) {
 		ms_filter_unlock(f);
 		return;
 	}
-	
+
 	if (f->ticker->time % 1000 == 0){
 		ms_message("VP8 dec: entry queue size: %i packets.", (int)s->entry_q.q.q_mcount);
 	}

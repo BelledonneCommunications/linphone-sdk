@@ -655,14 +655,14 @@ static void stateful_analyzer_update(MSQosAnalyzer *objbase){
 		switch (obj->burst_state){
 		case MSStatefulQosAnalyzerBurstEnable:{
 			obj->burst_state=MSStatefulQosAnalyzerBurstInProgress;
-			ortp_gettimeofday(&obj->start_time, NULL);
+			bctbx_gettimeofday(&obj->start_time, NULL);
 			rtp_session_set_duplication_ratio(obj->session, (float)obj->burst_ratio);
 			BCTBX_NO_BREAK; /*intentionally no break*/
 		} case MSStatefulQosAnalyzerBurstInProgress: {
 			struct timeval now;
 			float elapsed;
 
-			ortp_gettimeofday(&now,NULL);
+			bctbx_gettimeofday(&now,NULL);
 			elapsed=((now.tv_sec-obj->start_time.tv_sec)*1000.0f) +  ((now.tv_usec-obj->start_time.tv_usec)/1000.0f);
 
 			if (elapsed > obj->burst_duration_ms){
