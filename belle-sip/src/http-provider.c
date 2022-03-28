@@ -119,7 +119,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			ev=belle_sip_auth_event_create((belle_sip_object_t*)ctx->provider,realm,from_uri);
 			belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
 			BELLE_HTTP_REQUEST_INVOKE_LISTENER(req,process_auth_requested,ev);
-			username=ev->username;
+			username= ev->userid ? ev->userid : ev->username;
 			passwd=ev->passwd;
 			ha1=ev->ha1;
 			algorithm=ev->algorithm;
