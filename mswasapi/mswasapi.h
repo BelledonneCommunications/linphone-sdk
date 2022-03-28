@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/mssndcard.h>
+#include <bctoolbox/utils.hh>
 
 #include <vector>
 #include <objbase.h>
@@ -49,10 +50,11 @@ using namespace Windows::Devices::Enumeration;
 using namespace Windows::Media::Devices;
 #endif
 
-
 #define REPORT_ERROR(msg, result) \
 	if (result != S_OK) { \
 		ms_error(msg, result); \
+		if( result == E_OUTOFMEMORY) \
+			ms_error(("mswasapi: " + bctoolbox::Utils::getMemoryReportAsString()).c_str()); \
 		goto error; \
 		}
 #define SAFE_RELEASE(obj) \

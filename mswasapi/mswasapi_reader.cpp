@@ -28,11 +28,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #define REFTIME_250MS 2500000
 
-#define REPORT_ERROR(msg, result) \
-	if (result != S_OK) { \
-		ms_error(msg, result); \
-		goto error; \
-	}
 #define RELEASE_CLIENT(client) \
 	if (client != NULL) { \
 		client->Release(); \
@@ -199,6 +194,7 @@ int MSWASAPIReader::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%x]", result);
 	}
+	
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		mAudioClient->Reset();

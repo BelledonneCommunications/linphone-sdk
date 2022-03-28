@@ -27,11 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mswasapi_writer.h"
 
 
-#define REPORT_ERROR(msg, result) \
-	if (result != S_OK) { \
-		ms_error(msg, result); \
-		goto error; \
-	}
 #define RELEASE_CLIENT(client) \
 	if (client != NULL) { \
 		client->Release(); \
