@@ -468,6 +468,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 
 	stream->staticimage_webcam_fps_optimization = TRUE;
 	stream->vconf_list = NULL;
+	stream->frame_marking_extension_id = 0;
 
 	ortp_ev_dispatcher_connect(stream->ms.evd
 								, ORTP_EVENT_JITTER_UPDATE_FOR_NACK
@@ -1185,6 +1186,10 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
+
+	if (stream->frame_marking_extension_id > 0) {
+		ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, &stream->frame_marking_extension_id);
+	}
 
 	if (media_stream_get_direction(&stream->ms) == MediaStreamRecvOnly) {
 		/* Create a dummy sending stream to send the STUN packets to open firewall ports. */
@@ -2360,4 +2365,8 @@ void video_stream_enable_fec(VideoStream *stream, char* local_ip, int local_port
     const FecParameters *fec_params = fec_params_new(L, D, jitter_params.nom_size);
     FecStream *fec_stream = fec_stream_new(stream->ms.sessions.rtp_session, fec_session, fec_params);
     stream->ms.sessions.rtp_session->fec_stream = fec_stream;
+}
+
+void video_stream_set_frame_marking_extension_id(VideoStream *stream, int extension_id) {
+	stream->frame_marking_extension_id = extension_id;
 }

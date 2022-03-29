@@ -519,7 +519,8 @@ static void enc_process_frame_task(void *obj) {
 		const vpx_codec_cx_pkt_t *pkt;
 		bctbx_list_t *list = NULL;
 		int current_partition_id = -1;
-
+		bool_t is_independent_frame = FALSE;
+		
 		/* Update the frames state. */
 		is_ref_frame=FALSE;
 		if (flags & VPX_EFLAG_FORCE_KF) {
@@ -542,6 +543,7 @@ static void enc_process_frame_task(void *obj) {
 		}
 		if (is_frame_independent(flags)){
 			s->frames_state.last_independent_frame=s->frame_count;
+			is_independent_frame = TRUE;
 		}
 
 		/* Pack the encoded frame. */
@@ -553,6 +555,7 @@ static void enc_process_frame_task(void *obj) {
 				memcpy(packet->m->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 				packet->m->b_wptr += pkt->data.frame.sz;
 				mblk_set_timestamp_info(packet->m, mblk_get_timestamp_info(im));
+				mblk_set_independent_flag(packet->m, is_independent_frame);
 				packet->pd = ms_new0(Vp8RtpFmtPayloadDescriptor, 1);
 				packet->pd->non_reference_frame = s->avpf_enabled && !is_ref_frame;
 				if (s->avpf_enabled == TRUE) {

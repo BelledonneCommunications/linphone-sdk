@@ -1004,6 +1004,7 @@ struct _VideoStream
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	char *label;
 	MSVideoDisplayMode display_mode;
+	int frame_marking_extension_id;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1335,6 +1336,15 @@ MS2_PUBLIC void video_stream_use_video_preset(VideoStream *stream, const char *p
  * @param[in] stream VideoStream object
  */
 MS2_PUBLIC const char* video_stream_get_video_preset(VideoStream *stream);
+
+/**
+ * Sets the header extension id for frame marking.
+ * This has to be called before starting the video stream.
+ *
+ * @param stream the video stream
+ * @param extension_id the extension id
+ */
+MS2_PUBLIC void video_stream_set_frame_marking_extension_id(VideoStream *stream, int extension_id);
 
 
 /**

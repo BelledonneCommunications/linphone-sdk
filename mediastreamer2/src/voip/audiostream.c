@@ -1751,6 +1751,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 
 	stream->participants_volumes = audio_stream_volumes_new();
 	stream->mixer_to_client_extension_id = 0;
+	stream->client_to_mixer_extension_id = 0;
 
 	return stream;
 }

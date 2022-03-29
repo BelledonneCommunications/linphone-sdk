@@ -69,6 +69,9 @@ struct SenderData {
 	int client_to_mixer_extension_id;
 	MSRtpSendRequestClientToMixerDataCb ctm_request_data_cb;
 	void *ctm_request_data_user_data;
+	int frame_marking_extension_id;
+	bool_t frame_start;
+	bool_t rtp_transfer_mode;
 };
 
 typedef struct SenderData SenderData;
@@ -150,6 +153,9 @@ static void sender_init(MSFilter * f)
 	d->client_to_mixer_extension_id = 0;
 	d->ctm_request_data_cb = NULL;
 	d->ctm_request_data_user_data = NULL;
+	d->frame_marking_extension_id = 0;
+	d->frame_start = TRUE;
+	d->rtp_transfer_mode = FALSE;
 	f->data = d;
 }
 
@@ -264,6 +270,13 @@ static int sender_set_client_to_mixer_data_request_cb(MSFilter *f, void *arg) {
 	MSFilterRequestClientToMixerDataCb *cb = (MSFilterRequestClientToMixerDataCb *)arg;
 	d->ctm_request_data_cb = cb->cb;
 	d->ctm_request_data_user_data = cb->user_data;
+	return 0;
+}
+
+static int sender_set_frame_marking_extension_id(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *) f->data;
+	int *id = (int *)arg;
+	d->frame_marking_extension_id = *id;
 	return 0;
 }
 
@@ -550,6 +563,25 @@ static void print_processing_delay_stats(SenderData *d) {
 	}
 }
 
+static void add_frame_marking_extension(SenderData *d, mblk_t *header, mblk_t *im) {
+	uint8_t marker = 0;
+
+	if (d->frame_start) {
+		marker |= RTP_FRAME_MARKER_START;
+		d->frame_start = FALSE;
+	}
+
+	if (mblk_get_marker_info(im)) {
+		marker |= RTP_FRAME_MARKER_END;
+		d->frame_start = TRUE;
+	}
+
+	if (mblk_get_independent_flag(im)) marker |= RTP_FRAME_MARKER_INDEPENDENT;
+	if (mblk_get_discardable_flag(im)) marker |= RTP_FRAME_MARKER_DISCARDABLE;
+
+	rtp_add_frame_marker(header, d->frame_marking_extension_id, marker);
+}
+
 static void _sender_process(MSFilter * f)
 {
 	SenderData *d = (SenderData *) f->data;
@@ -587,9 +619,16 @@ static void _sender_process(MSFilter * f)
 		}
 		if (im && f->ticker){
 			compute_processing_delay_stats(f, im);
+
+			if (d->rtp_transfer_mode) {
+				rtp_session_sendm_with_ts(s, im, timestamp);
+				continue;
+			}
+
 			if (d->skip == FALSE && d->mute==FALSE){
 				header = create_packet_with_volume_data_at_intervals(f, 12, NULL, 0);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
+				if (d->frame_marking_extension_id > 0) add_frame_marking_extension(d, header, im);
 				header->b_cont = im;
 				mblk_meta_copy(im, header);
 				rtp_session_sendm_with_ts(s, header, timestamp);
@@ -667,6 +706,12 @@ static int enable_ts_adjustment(MSFilter *f, void *data){
 	return 0;
 }
 
+static int sender_enable_rtp_transfer_mode(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *) f->data;
+	d->rtp_transfer_mode = *(bool_t*)data;
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_MUTE, sender_mute},
 	{MS_RTP_SEND_UNMUTE, sender_unmute},
@@ -678,6 +723,7 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, sender_set_mixer_to_client_data_request_cb},
 	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id},
 	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb},
+	{MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id},
 	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
 	{MS_FILTER_GET_NCHANNELS, sender_get_ch },
 	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
@@ -686,6 +732,7 @@ static MSFilterMethod sender_methods[] = {
 	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
 	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
 	{ MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced },
+	{ MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode },
 	{0, NULL}
 };
 
@@ -734,6 +781,7 @@ struct ReceiverData {
 	bool_t reset_jb;
 	int mixer_to_client_extension_id;
 	int client_to_mixer_extension_id;
+	bool_t rtp_transfer_mode;
 };
 
 typedef struct ReceiverData ReceiverData;
@@ -744,6 +792,8 @@ static void receiver_init(MSFilter * f)
 	d->session = NULL;
 	d->rate = 8000;
 	d->mixer_to_client_extension_id = 0;
+	d->client_to_mixer_extension_id = 0;
+	d->rtp_transfer_mode = FALSE;
 	f->data = d;
 }
 
@@ -915,6 +965,11 @@ static void receiver_process(MSFilter * f)
 
 	timestamp = (uint32_t) (f->ticker->time * (d->rate/1000));
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
+		if (d->rtp_transfer_mode) {
+			ms_queue_put(f->outputs[0], m);
+			continue;
+		}
+
 		if (receiver_check_payload_type(f, d, m)){
 			mblk_set_timestamp_info(m, rtp_get_timestamp(m));
 			mblk_set_marker_info(m, rtp_get_markbit(m));
@@ -939,11 +994,18 @@ static int get_receiver_output_fmt(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int receiver_enable_rtp_transfer_mode(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	d->rtp_transfer_mode = * (bool_t *) arg;
+	return 0;
+}
+
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
 	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID, receiver_set_mixer_to_client_extension_id },
 	{	MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID, receiver_set_client_to_mixer_extension_id },
+	{	MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
 	{ 	MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt },

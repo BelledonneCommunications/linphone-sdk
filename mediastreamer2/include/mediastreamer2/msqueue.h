@@ -114,6 +114,12 @@ MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 #define mblk_set_cng_flag(m,bit)    __mblk_set_flag(m,3,bit)  /*use to mark a cng generated block*/
 #define mblk_get_cng_flag(m)    (((m)->reserved2)>>3 & 0x1) /*bit 4*/
 
+#define mblk_set_independent_flag(m,bit)    __mblk_set_flag(m,4,bit)  /*use to mark an independent frame*/
+#define mblk_get_independent_flag(m)    (((m)->reserved2)>>4 & 0x1) /*bit 5*/
+
+#define mblk_set_discardable_flag(m,bit)    __mblk_set_flag(m,5,bit)  /*use to mark a discardable frame*/
+#define mblk_get_discardable_flag(m)    (((m)->reserved2)>>5 & 0x1) /*bit 6*/
+
 #define mblk_set_user_flag(m,bit)    __mblk_set_flag(m,7,bit)  /* to be used by extensions to mediastreamer2*/
 #define mblk_get_user_flag(m)    (((m)->reserved2)>>7 & 0x1) /*bit 8*/
 

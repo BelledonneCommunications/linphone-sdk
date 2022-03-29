@@ -25,6 +25,7 @@
 #include <math.h>
 #include <ortp/port.h>
 #include "mediastreamer2/msitc.h"
+#include "filters/framemarking_tester.h"
 
 #ifdef _MSC_VER
 #define unlink _unlink
@@ -183,6 +184,9 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_jitter_update_nack;
 
     int number_of_packet_reconstructed;
+
+	int number_of_framemarking_start;
+	int number_of_framemarking_end;
 } video_stream_tester_stats_t;
 
 typedef struct _video_stream_tester_t {
@@ -1408,6 +1412,71 @@ static void fec_video_stream_h264(void) {
 
 }
 
+static void frame_marker_received(MSFilter *f, uint8_t marker, void* user_data) {
+	video_stream_tester_stats_t *stats = (video_stream_tester_stats_t *) user_data;
+	if (marker & RTP_FRAME_MARKER_START) {
+		stats->number_of_framemarking_start++;
+	}
+	if (marker & RTP_FRAME_MARKER_END) {
+		stats->number_of_framemarking_end++;
+	}
+}
+
+static void basic_vp8_stream_with_frame_marking(void) {
+	video_stream_tester_t* marielle = video_stream_tester_new();
+	MSConnectionHelper ch;
+	bool_t activate = TRUE;
+
+	ms_factory_register_filter(_factory, &ms_framemarking_tester_desc);
+
+	create_video_stream(marielle, VP8_PAYLOAD_TYPE);
+	video_stream_set_frame_marking_extension_id(marielle->vs, RTP_EXTENSION_FRAME_MARKING);
+
+	RtpSession *session = ms_create_duplex_rtp_session("127.0.0.1", -1, -1, ms_factory_get_mtu(_factory));
+	int local_rtp = rtp_session_get_local_port(session);
+	int local_rtcp = rtp_session_get_local_rtcp_port(session);
+
+	MSFilter *rtp_receive = NULL;
+	ms_tester_create_filter(&rtp_receive, MS_RTP_RECV_ID, _factory);
+	ms_filter_call_method(rtp_receive, MS_RTP_RECV_SET_SESSION, session);
+	ms_filter_call_method(rtp_receive, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &activate);
+
+	MSFilter *framemarking = NULL;
+	ms_tester_create_filter(&framemarking, MS_FRAMEMARKING_TESTER_ID, _factory);
+	if (framemarking == NULL) goto end; 
+	MSFrameMarkingTesterCbData cb_data;
+	cb_data.cb = frame_marker_received;
+	cb_data.user_data = &marielle->stats;
+	ms_filter_call_method(framemarking, MS_FRAMEMARKING_TESTER_SET_CALLBACK, &cb_data);
+
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_link(&ch, rtp_receive, -1, 0);
+	ms_connection_helper_link(&ch, framemarking, 0, -1);
+
+	ms_tester_create_ticker();
+	ms_ticker_attach(ms_tester_ticker, rtp_receive);
+
+	BC_ASSERT_EQUAL(video_stream_start(marielle->vs, &rtp_profile, "127.0.0.1", local_rtp, "127.0.0.1", local_rtcp, VP8_PAYLOAD_TYPE, 50, marielle->cam), 0, int, "%d");
+
+	BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, NULL, &marielle->stats.number_of_framemarking_start, 3, 5000));
+	BC_ASSERT_GREATER(marielle->stats.number_of_framemarking_end, 2, int, "%d");
+
+	ms_ticker_detach(ms_tester_ticker, rtp_receive);
+	ms_tester_destroy_ticker();
+
+	ms_connection_helper_start(&ch);
+	ms_connection_helper_unlink(&ch, rtp_receive, -1, 0);
+	ms_connection_helper_unlink(&ch, framemarking, 0, -1);
+
+	ms_filter_destroy(framemarking);
+end:
+	ms_filter_destroy(rtp_receive);
+	rtp_session_destroy(session);
+
+    destroy_video_stream(marielle);
+	video_stream_tester_destroy(marielle);
+}
+
 static test_t tests[] = {
 	TEST_NO_TAG("Basic video stream VP8"                     , basic_video_stream_vp8),
 	TEST_NO_TAG("Basic video stream H264"                    , basic_video_stream_all_h264_codec_combinations),
@@ -1433,7 +1502,8 @@ static test_t tests[] = {
 	TEST_NO_TAG("Lost repair packet"                         , fec_stream_test_lost_repair_packet),
 	TEST_NO_TAG("Lost 2 source packets"                      , fec_stream_test_lost_2_source_packets),
 	TEST_NO_TAG("FEC video stream VP8"                       , fec_video_stream_vp8),
-	TEST_NO_TAG("FEC video stream H264"                      , fec_video_stream_h264)
+	TEST_NO_TAG("FEC video stream H264"                      , fec_video_stream_h264),
+	TEST_NO_TAG("Basic VP8 stream with frame marking"        , basic_vp8_stream_with_frame_marking)
 };
 
 test_suite_t video_stream_test_suite = {

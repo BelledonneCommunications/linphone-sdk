@@ -52,6 +52,9 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 
 #define MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID	MS_FILTER_METHOD(MS_RTP_RECV_ID, 3, int)
 
+// The RTP_TRANSFER_MODE will bypass the extraction of the data and pass the packet in it's output as it is
+#define MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE	MS_FILTER_METHOD(MS_RTP_RECV_ID, 4, bool_t)
+
 #define MS_RTP_RECV_GENERIC_CN_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,0, MSCngData)
 
 #define MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,1, rtp_audio_level_t[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL])
@@ -88,6 +91,12 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 #define MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID	MS_FILTER_METHOD(MS_RTP_SEND_ID, 13, int)
 
 #define MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB	MS_FILTER_METHOD(MS_RTP_SEND_ID, 14, MSFilterRequestClientToMixerDataCb)
+
+#define MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID	MS_FILTER_METHOD(MS_RTP_SEND_ID, 15, int)
+
+// The RTP_TRANSFER_MODE will bypass the creation of the packet's header and send it as it is
+// This is usefull to transfer packets that are already fully constructed
+#define MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE	MS_FILTER_METHOD(MS_RTP_SEND_ID, 16, bool_t)
 
 
 extern MSFilterDesc ms_rtp_send_desc;

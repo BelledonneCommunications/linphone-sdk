@@ -1082,6 +1082,8 @@ static void packer_process_frame_part(void *p, void *c) {
 		mblk_set_timestamp_info(pdm, mblk_get_timestamp_info(packet->m));
 		mblk_set_marker_info(pdm, FALSE);
         mblk_set_cseq(pdm, ctx->_refCSeq++);
+		mblk_set_independent_flag(pdm, mblk_get_independent_flag(packet->m));
+		mblk_set_discardable_flag(pdm, packet->pd->non_reference_frame);
 		/* Fill the mandatory octet of the payload descriptor. */
 		if (packet->pd->extended_control_bits_present == TRUE) *pdm->b_wptr |= (1 << 7);
 		if (packet->pd->non_reference_frame == TRUE) *pdm->b_wptr |= (1 << 5);

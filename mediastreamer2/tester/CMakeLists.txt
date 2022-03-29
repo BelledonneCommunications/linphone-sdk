@@ -134,6 +134,7 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../include/OpenGL")
 
 if(ENABLE_VIDEO)
 	list(APPEND SOURCE_FILES_C mediastreamer2_video_stream_tester.c)
+	list(APPEND SOURCE_FILES_C filters/framemarking_tester.c)
 	list(APPEND SOURCE_FILES_CXX mediastreamer2_h26x_tools_tester.cpp)
 	if(ENABLE_QRCODE)
 		list(APPEND SOURCE_FILES_C mediastreamer2_qrcode_tester.c)
