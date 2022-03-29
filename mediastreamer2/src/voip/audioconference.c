@@ -194,7 +194,7 @@ static int request_volumes(MSFilter *filter, rtp_audio_level_t **audio_levels, v
 
 	for (it = ep->conference->members; it != NULL; it = it->next) {
 		MSAudioEndpoint *data = (MSAudioEndpoint *) it->data;
-		if (data != NULL && data != ep && data->st) {
+		if (data != NULL && data->st != NULL) {
 			int is_remote = (data->in_cut_point_prev.filter == data->st->volrecv);
 
 			if (is_remote) {
