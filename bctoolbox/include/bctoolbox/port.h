@@ -649,7 +649,7 @@ BCTBX_PUBLIC int bctbx_sockaddr_to_printable_ip_address(struct sockaddr *sa, soc
  -V4.
 **/
 BCTBX_PUBLIC struct addrinfo *bctbx_addrinfo_sort(struct addrinfo *ai);
-	
+
 
 /**
  * Convert a numeric ip address and port into an addrinfo, whose family will be as specified in the first argument.
@@ -719,6 +719,7 @@ typedef int bctbx_pipe_t;
 #define BCTBX_PIPE_INVALID (-1)
 #endif
 
+BCTBX_PUBLIC bctbx_pipe_t bctbx_server_pipe_create_by_path(const char *path);
 BCTBX_PUBLIC bctbx_pipe_t bctbx_server_pipe_create(const char *name);
 /*
  * warning: on win32 bctbx_server_pipe_accept_client() might return INVALID_HANDLE_VALUE without

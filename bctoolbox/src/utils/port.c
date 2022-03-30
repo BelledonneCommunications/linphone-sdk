@@ -556,9 +556,10 @@ static char *make_pipe_name(const char *name){
 }
 
 /* portable named pipes */
-bctbx_socket_t bctbx_server_pipe_create(const char *name){
+
+bctbx_socket_t bctbx_server_pipe_create_by_path(const char *path){
 	struct sockaddr_un sa;
-	char *pipename=make_pipe_name(name);
+	char *pipename=bctbx_strdup(path);
 	bctbx_socket_t sock;
 	sock=socket(AF_UNIX,SOCK_STREAM,0);
 	sa.sun_family=AF_UNIX;
@@ -572,6 +573,10 @@ bctbx_socket_t bctbx_server_pipe_create(const char *name){
 	}
 	listen(sock,1);
 	return sock;
+}
+
+bctbx_socket_t bctbx_server_pipe_create(const char *name){
+	return bctbx_server_pipe_create_by_path(make_pipe_name(name));
 }
 
 bctbx_socket_t bctbx_server_pipe_accept_client(bctbx_socket_t server){
@@ -666,11 +671,10 @@ static char *make_pipe_name(const char *name){
 
 static HANDLE event=NULL;
 
-
-bctbx_pipe_t bctbx_server_pipe_create(const char *name){
+bctbx_pipe_t bctbx_server_pipe_create_by_path(const char *path){
 #ifdef BCTBX_WINDOWS_DESKTOP
 	bctbx_pipe_t h;
-	char *pipename=make_pipe_name(name);
+	char *pipename=bctbx_strdup(path);
 #ifdef BCTBX_WINDOWS_UWP
 	wchar_t * wPipename = bctbx_string_to_wide_string(pipename);
 	h=CreateNamedPipe(wPipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
@@ -679,7 +683,7 @@ bctbx_pipe_t bctbx_server_pipe_create(const char *name){
 #else
 	h=CreateNamedPipe(pipename,PIPE_ACCESS_DUPLEX|FILE_FLAG_OVERLAPPED,PIPE_TYPE_MESSAGE|PIPE_WAIT,1,
 						32768,32768,0,NULL);
-#endif	
+#endif
 	bctbx_free(pipename);
 	if (h==INVALID_HANDLE_VALUE){
 		bctbx_error("Fail to create named pipe %s",pipename);
@@ -692,6 +696,9 @@ bctbx_pipe_t bctbx_server_pipe_create(const char *name){
 #endif
 }
 
+bctbx_pipe_t bctbx_server_pipe_create(const char *name){
+	return bctbx_server_pipe_create_by_path(make_pipe_name(name));
+}
 
 /*this function is a bit complex because we need to wakeup someday
 even if nobody connects to the pipe.
@@ -791,7 +798,7 @@ static bctbx_list_t *maplist=NULL;
 
 void *bctbx_shm_open(unsigned int keyid, int size, int create){
 #ifdef BCTBX_WINDOWS_DESKTOP
-	HANDLE h;	
+	HANDLE h;
 	void *buf;
 #ifdef BCTBX_WINDOWS_UWP
 	char nameBuf[64];
@@ -1104,7 +1111,7 @@ char* strtok_r(char *str, const char *delim, char **nextp){
 static int bctbx_wincrypto_random(unsigned int *rand_number){
 	static HCRYPTPROV hProv=(HCRYPTPROV)-1;
 	static int initd=0;
-	
+
 	if (!initd){
 		if (!CryptAcquireContext(&hProv,NULL,NULL,PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)){
 			bctbx_error("bctbx_wincrypto_random(): Could not acquire a windows crypto context");
@@ -1114,7 +1121,7 @@ static int bctbx_wincrypto_random(unsigned int *rand_number){
 	}
 	if (hProv==(HCRYPTPROV)-1)
 		return -1;
-	
+
 	if (!CryptGenRandom(hProv,4,(BYTE*)rand_number)){
 		bctbx_error("bctbx_wincrypto_random(): CryptGenRandom() failed.");
 		return -1;
@@ -1143,7 +1150,7 @@ unsigned int bctbx_random(void){
 	unsigned int ret;
 #ifdef _MSC_VER
 	/*rand_s() is pretty nice and simple function but is not wrapped by mingw.*/
-	
+
 	if (rand_s(&ret)==0){
 		return ret;
 	}
@@ -1169,7 +1176,7 @@ unsigned int bctbx_random(void){
 }
 
 bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
-	
+
 	switch (addr->sa_family) {
 		case AF_INET:
 			return IN_MULTICAST(ntohl(((struct sockaddr_in *) addr)->sin_addr.s_addr));
@@ -1178,7 +1185,7 @@ bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 		default:
 			return FALSE;
 	}
-	
+
 }
 
 #ifdef _WIN32
@@ -1254,7 +1261,7 @@ static struct addrinfo *convert_to_v4mapped(const struct addrinfo *ai){
 	const struct addrinfo *it;
 	struct addrinfo *v4m=NULL;
 	struct addrinfo *last=NULL;
-	
+
 	for (it=ai;it!=NULL;it=it->ai_next){
 		struct sockaddr_in6 *sin6;
 		struct sockaddr_in *sin;
@@ -1309,9 +1316,9 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 		struct addrinfo *res4=NULL;
 		struct addrinfo lhints={0};
 		int err;
-		
+
 		if (hints) memcpy(&lhints,hints,sizeof(lhints));
-		
+
 		lhints.ai_flags &= ~(AI_ALL | AI_V4MAPPED); /*remove the unsupported flags*/
 		lhints.ai_family = AF_INET6;
 		err = getaddrinfo(node, service, &lhints, &res6);
@@ -1346,9 +1353,9 @@ int bctbx_getaddrinfo(const char *node, const char *service, const struct addrin
 				bctbx_message("Apple nat64 getaddrinfo bug, fixing port to [%i]",possible_port);
 				sockaddr->sin6_port = htons(possible_port);
 			}
-			
+
 		}
-		
+
 	}
 #endif
 	return result;
@@ -1388,7 +1395,7 @@ struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
 	struct addrinfo* res0 = NULL;
 	struct addrinfo* res = NULL;
 	struct addrinfo* ai = NULL;
-	
+
 	//sort by type
 	for (ai = ais; ai != NULL;  ) {
 		struct addrinfo* next = ai->ai_next;
@@ -1402,13 +1409,13 @@ struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
 		} else {
 				v4 = bctbx_list_prepend(v4, ai);
 		}
-		
+
 		ai->ai_next = NULL ;
 		ai = next;
 	}
 	v6 = bctbx_list_concat(v6, v4_mapped);
 	v6 = bctbx_list_concat(v6, v4);
-	
+
 	for (it = v6; it != NULL; it = it->next) {
 		if (res0 == NULL) {
 			res0 = res = (struct addrinfo*)it->data;
@@ -1419,9 +1426,9 @@ struct addrinfo* bctbx_addrinfo_sort(struct addrinfo *ais) {
 	}
 	if (res)
 		res->ai_next = NULL;
-	
+
 	bctbx_list_free(v6);
-	
+
 	return res0;
 }
 int bctbx_addrinfo_to_ip_address(const struct addrinfo *ai, char *ip, size_t ip_size, int *port){
@@ -1475,7 +1482,7 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 	hints.ai_family=family;
 	if (numeric_only) hints.ai_flags=AI_NUMERICSERV|AI_NUMERICHOST;
 	hints.ai_socktype=socktype;
-	
+
 	if (family == AF_INET6) {
 		hints.ai_flags |= AI_V4MAPPED;
 		hints.ai_flags |= AI_ALL;
@@ -1490,7 +1497,7 @@ static struct addrinfo * _bctbx_name_to_addrinfo(int family, int socktype, const
 	//sort result
 	if (res)
 		res = bctbx_addrinfo_sort(res);
-	
+
 	return res;
 }
 
@@ -1644,19 +1651,19 @@ char * bctbx_concat(const char *str, ...) {
 	va_list ap;
 	size_t allocated = 100;
 	char *result = (char *) malloc (allocated);
-	
+
 	if (result != NULL)
 	{
 		char *newp;
 		char *wp;
 		const char* s;
-		
+
 		va_start (ap, str);
-		
+
 		wp = result;
 		for (s = str; s != NULL; s = va_arg (ap, const char *)) {
 			size_t len = strlen (s);
-			
+
 			/* Resize the allocated memory if necessary.  */
 			if (wp + len + 1 > result + allocated)
 			{
@@ -1673,26 +1680,26 @@ char * bctbx_concat(const char *str, ...) {
 			memcpy (wp, s, len);
 			wp +=len;
 		}
-		
+
 		/* Terminate the result string.  */
 		*wp++ = '\0';
-		
+
 		/* Resize memory to the optimal size.  */
 		newp = realloc (result, wp - result);
 		if (newp != NULL)
 			result = newp;
-		
+
 		va_end (ap);
 	}
-	
+
 	return result;
 }
 
 bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr * sb) {
-	
+
 	if (sa->sa_family != sb->sa_family)
 		return FALSE;
-	
+
 	if (sa->sa_family == AF_INET) {
 		if ((((struct sockaddr_in*)sa)->sin_addr.s_addr != ((struct sockaddr_in*)sb)->sin_addr.s_addr
 			 || ((struct sockaddr_in*)sa)->sin_port != ((struct sockaddr_in*)sb)->sin_port))
@@ -1708,7 +1715,7 @@ bool_t bctbx_sockaddr_equals(const struct sockaddr * sa, const struct sockaddr *
 		return FALSE;
 	}
 	return TRUE;
-	
+
 }
 
 static const char *ai_family_to_string(int af) {
@@ -1954,7 +1961,7 @@ int mblen(const char* s, size_t n) {
   mbstate_t state = {};
   return (int)mbrlen(s, n, &state);
 }
-int wctomb(char *s, wchar_t wc) { 
-  return wcrtomb(s,wc,NULL); 
+int wctomb(char *s, wchar_t wc) {
+  return wcrtomb(s,wc,NULL);
 }
 #endif
