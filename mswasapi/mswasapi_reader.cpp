@@ -20,11 +20,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msticker.h"
 #include "mswasapi_reader.h"
-
 
 #define REFTIME_250MS 2500000
 
@@ -43,8 +41,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 bool MSWASAPIReader::smInstantiated = false;
 
 
+
+
 MSWASAPIReader::MSWASAPIReader(MSFilter *filter)
-	: mAudioClient(NULL), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mFilter(filter)
+	: MSWasapi("input"), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mFilter(filter)
 {
 	mTickerSynchronizer = ms_ticker_synchronizer_new();
 #ifdef MS2_WINDOWS_UNIVERSAL
@@ -75,6 +75,7 @@ MSWASAPIReader::~MSWASAPIReader()
 
 void MSWASAPIReader::init(LPCWSTR id)
 {
+	bool useBestFormat = false;
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
@@ -127,6 +128,7 @@ void MSWASAPIReader::init(LPCWSTR id)
 	result = pEnumerator->GetDevice(mCaptureId, &pDevice);
 	SAFE_RELEASE(pEnumerator);
 	REPORT_ERROR("mswasapi: Could not get the capture device", result);
+	changePolicies(pDevice);
 	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
 	REPORT_ERROR("mswasapi: Could not activate the capture device", result);
@@ -138,22 +140,13 @@ void MSWASAPIReader::init(LPCWSTR id)
 	result = mAudioClient->SetClientProperties(&properties);
 	REPORT_ERROR("Could not set properties of the MSWASAPI audio input interface [%x]", result);
 #endif
-	result = mAudioClient->GetMixFormat(&pWfx);
-	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio input interface [%x]", result);
-	mRate = pWfx->nSamplesPerSec;
-	mNChannels = pWfx->nChannels;
-	mNBlockAlign = pWfx->nBlockAlign;
-	FREE_PTR(pWfx);
+	useBestFormat = true;
+error:
+	updateFormat(useBestFormat);
+	
 	mIsInitialized = true;
 	smInstantiated = true;
 	activate();
-	return;
-
-error:
-	// Initialize the frame rate and the number of channels to be able to generate silence.
-	mRate = 8000;
-	mNChannels = 1;
-	mNBlockAlign = 16 * 1 / 8;
 	return;
 }
 
@@ -170,22 +163,12 @@ int MSWASAPIReader::activate()
 
 #if defined( MS2_WINDOWS_PHONE )
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
+#else
+	flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |  AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
 #endif
 
-	proposedWfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-	proposedWfx.Format.nChannels = (WORD)mNChannels;
-	proposedWfx.Format.nSamplesPerSec = mRate;
-	proposedWfx.Format.wBitsPerSample = 16;
-	proposedWfx.Format.nAvgBytesPerSec = mRate * mNChannels * proposedWfx.Format.wBitsPerSample / 8;
-	proposedWfx.Format.nBlockAlign = (WORD)(proposedWfx.Format.wBitsPerSample * mNChannels / 8);
-	proposedWfx.Format.cbSize = 22;
-	proposedWfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-	proposedWfx.Samples.wValidBitsPerSample = proposedWfx.Format.wBitsPerSample;
-	if (mNChannels == 1) {
-		proposedWfx.dwChannelMask = SPEAKER_FRONT_CENTER;
-	} else {
-		proposedWfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-	}
+	proposedWfx = buildFormat();
+	
 	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&proposedWfx, &pSupportedWfx);
 	if (result == S_OK) {
 		pUsedWfx = (WAVEFORMATEX *)&proposedWfx;
@@ -197,16 +180,11 @@ int MSWASAPIReader::activate()
 	
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-		mAudioClient->Reset();
-		result = mAudioClient->GetMixFormat(&pSupportedWfx);
-		pUsedWfx = pSupportedWfx;
-		result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
-		if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-			mAudioClient->Reset();
-			REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
-		}
+		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
 	}
 	mNBlockAlign = pUsedWfx->nBlockAlign;
+	mRate = pUsedWfx->nSamplesPerSec;
+	mNChannels = pUsedWfx->nChannels;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
 	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
@@ -216,12 +194,13 @@ int MSWASAPIReader::activate()
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
 	ms_message("Wasapi capture initialized at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit frames are on %i bits", (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/ mRate, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
 
 error:
 	FREE_PTR(pSupportedWfx);
+	if(mAudioClient) mAudioClient->Reset();
 	return -1;
 }
 

@@ -47,7 +47,7 @@ bool MSWASAPIWriter::smInstantiated = false;
 
 
 MSWASAPIWriter::MSWASAPIWriter()
-	:  mAudioClient(NULL), mAudioRenderClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
+	:  MSWasapi("output"), mAudioRenderClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false)
 {
 #ifdef MS2_WINDOWS_UNIVERSAL
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
@@ -75,6 +75,7 @@ MSWASAPIWriter::~MSWASAPIWriter()
 
 
 void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
+	bool useBestFormat = false;
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
@@ -127,6 +128,7 @@ void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
 	result = pEnumerator->GetDevice(mRenderId, &pDevice);
 	SAFE_RELEASE(pEnumerator);
 	REPORT_ERROR("mswasapi: Could not get the rendering device", result);
+	changePolicies(pDevice);
 	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
 	REPORT_ERROR("mswasapi: Could not activate the rendering device", result);
@@ -138,22 +140,14 @@ void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
 	result = mAudioClient->SetClientProperties(&properties);
 	REPORT_ERROR("Could not set properties of the MSWASAPI audio output interface [%x]", result);
 #endif
-	result = mAudioClient->GetMixFormat(&pWfx);
-	REPORT_ERROR("Could not get the mix format of the MSWASAPI audio output interface [%x]", result);
-	mRate = pWfx->nSamplesPerSec;
-	mNChannels = pWfx->nChannels;
-	mNBlockAlign = pWfx->nBlockAlign;	// Get the selected bock size
-	FREE_PTR(pWfx);
+	
+	useBestFormat = true;
+error:
+	updateFormat(useBestFormat);
+	
 	mIsInitialized = true;
 	smInstantiated = true;
 	activate();
-	return;
-
-error:
-	// Initialize the frame rate and the number of channels to prevent configure a resampler with crappy parameters.
-	mRate = 8000;
-	mNChannels = 1;
-	mNBlockAlign = 16 * 1 / 8;
 	return;
 }
 
@@ -171,27 +165,15 @@ int MSWASAPIWriter::activate()
 
 	result = mAudioClient->GetDevicePeriod(&devicePeriod, NULL);
 	if (result != S_OK) {
-		ms_error("MSWASAPIWriter: GetDevicePeriod() failed.");
+		ms_warning("MSWASAPIWriter: GetDevicePeriod() failed.");
 	}
 	devicePeriodMs = (int)(devicePeriod / 10000);
 	
 	/*Compute our requested buffer duration.*/
-	requestedBufferDuration = minBufferDurationMs * 1000LL * 100LL;
+	requestedBufferDuration = minBufferDurationMs * 10000LL; // requestedBufferDuration is expressed in 100-nanoseconds units
 	
-	proposedWfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-	proposedWfx.Format.nChannels = (WORD)mNChannels;
-	proposedWfx.Format.nSamplesPerSec = mRate;
-	proposedWfx.Format.wBitsPerSample = 16;
-	proposedWfx.Format.nAvgBytesPerSec = mRate * mNChannels * proposedWfx.Format.wBitsPerSample / 8;
-	proposedWfx.Format.nBlockAlign = (WORD)(proposedWfx.Format.wBitsPerSample * mNChannels / 8);
-	proposedWfx.Format.cbSize = 22;
-	proposedWfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-	proposedWfx.Samples.wValidBitsPerSample = proposedWfx.Format.wBitsPerSample;
-	if (mNChannels == 1) {
-		proposedWfx.dwChannelMask = SPEAKER_FRONT_CENTER;
-	} else {
-		proposedWfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-	}
+	proposedWfx = buildFormat();
+	
 	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&proposedWfx, &pSupportedWfx);
 	if (result == S_OK) {
 		pUsedWfx = (WAVEFORMATEX *)&proposedWfx;
@@ -200,11 +182,14 @@ int MSWASAPIWriter::activate()
 	} else {
 		REPORT_ERROR("Audio format not supported by the MSWASAPI audio output interface [%x]", result);
 	}
-	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, requestedBufferDuration, 0, pUsedWfx, NULL);
+	// Use best quality intended to be heard by humans.
+	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |  AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY , requestedBufferDuration, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
 		REPORT_ERROR("Could not initialize the MSWASAPI audio output interface [%x]", result);
 	}
 	mNBlockAlign = pUsedWfx->nBlockAlign;
+	mRate = pUsedWfx->nSamplesPerSec;
+	mNChannels = pUsedWfx->nChannels;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
 	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
@@ -214,12 +199,13 @@ int MSWASAPIWriter::activate()
 	mIsActivated = true;
 
 	ms_message("Wasapi playback output initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, %i-bit frames are on %i bits", (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/(mNChannels*2* mRate), devicePeriodMs, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
+		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/ mRate, devicePeriodMs, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
 
 error:
 	FREE_PTR(pSupportedWfx);
+	if(mAudioClient) mAudioClient->Reset();
 	return -1;
 }
 
@@ -279,7 +265,8 @@ int MSWASAPIWriter::feed(MSFilter *f){
 		msgpullup(im, -1);
 		if (inputFrames > (int)numFramesWritable) {
 			/*This case should not happen because of upstream flow control, except in rare disaster cases.*/
-			ms_error("MSWASAPIWriter: cannot write output buffer of %i samples, not enough space.", inputFrames);
+			if(mMinFrameCount != -1)
+				ms_error("MSWASAPIWriter: cannot write output buffer of %i samples, not enough space [%i=%i-%i].", inputFrames, numFramesWritable,mBufferFrameCount,numFramesPadding);
 		}else {
 			BYTE *buffer;
 			result = mAudioRenderClient->GetBuffer(inputFrames, &buffer);

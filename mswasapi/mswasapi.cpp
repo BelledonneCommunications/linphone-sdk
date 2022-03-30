@@ -20,6 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <initguid.h>	// Put it at first or there will be a mess with MMDeviceAPI and PKEY_AudioEndpoint* symbols
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
@@ -31,6 +32,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <string>
 #include <locale>
 
+#define FREE_PTR(ptr) \
+	if (ptr != NULL) { \
+		CoTaskMemFree((LPVOID)ptr); \
+		ptr = NULL; \
+	}
+
 const IID IID_IAudioCaptureClient = __uuidof(IAudioCaptureClient);
 const IID IID_IAudioRenderClient = __uuidof(IAudioRenderClient);
 const IID IID_ISimpleAudioVolume = __uuidof(ISimpleAudioVolume);
@@ -41,6 +48,100 @@ const IID IID_IAudioClient = __uuidof(IAudioClient);
 const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
 const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 #endif
+
+// Workaround for issues on audio enhancements mode. Check void MSWASAPIReader::init(LPCWSTR id)
+
+#include <MMDeviceAPI.h>
+DEFINE_GUID(CLSID_PolicyConfig, 0x870af99c, 0x171d, 0x4f9e, 0xaf, 0x0d, 0xe6, 0x3d, 0xf4, 0x0c, 0x2b, 0xc9);
+MIDL_INTERFACE("f8679f50-850a-41cf-9c72-430f290290c8")
+IPolicyConfig : public IUnknown
+{
+public:
+ virtual HRESULT STDMETHODCALLTYPE GetMixFormat(PCWSTR pszDeviceName, WAVEFORMATEX** ppFormat) = 0;
+ virtual HRESULT STDMETHODCALLTYPE GetDeviceFormat(PCWSTR pszDeviceName, bool bDefault, WAVEFORMATEX** ppFormat) = 0;
+ virtual HRESULT STDMETHODCALLTYPE ResetDeviceFormat(PCWSTR pszDeviceName) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetDeviceFormat(PCWSTR pszDeviceName, WAVEFORMATEX* ppEndpointFormatFormat, WAVEFORMATEX* pMixFormat) = 0;
+ virtual HRESULT STDMETHODCALLTYPE GetProcessingPeriod(PCWSTR pszDeviceName, bool bDefault, PINT64 pmftDefaultPeriod, PINT64 pmftMinimumPeriod) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetProcessingPeriod(PCWSTR pszDeviceName, PINT64 pmftPeriod) = 0;
+ virtual HRESULT STDMETHODCALLTYPE GetShareMode(PCWSTR pszDeviceName, struct DeviceShareMode* pMode) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetShareMode(PCWSTR pszDeviceName, struct DeviceShareMode* pMode) = 0;
+ virtual HRESULT STDMETHODCALLTYPE GetPropertyValue(PCWSTR pszDeviceName, BOOL bFxStore, const PROPERTYKEY& pKey, PROPVARIANT* pv) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetPropertyValue(PCWSTR pszDeviceName, BOOL bFxStore, const PROPERTYKEY& pKey, PROPVARIANT* pv) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetDefaultEndpoint(PCWSTR pszDeviceName, int eRole) = 0;
+ virtual HRESULT STDMETHODCALLTYPE SetEndpointVisibility(PCWSTR pszDeviceName, bool bVisible) = 0;
+};
+
+MSWasapi::MSWasapi(const std::string& mediaDirectionStr) : mAudioClient(NULL){
+	mMediaDirectionStr = mediaDirectionStr;
+	mRate = 8000;
+	mNChannels = 1;
+	mWBitsPerSample = 16; // The SDK limit to 16 bits
+	mNBlockAlign = mWBitsPerSample * mNChannels / 8;
+	mDisableSysFx = false;
+}
+
+void MSWasapi::changePolicies(IMMDevice *device){
+	HRESULT result;
+	if( mDisableSysFx) { // Workaround: Remove enhancements mode as it can lead to break inputs on some systems
+		LPWSTR endpointId = NULL;
+		result = device->GetId(&endpointId);
+		  
+		IPolicyConfig* policyConfig;
+		result = CoCreateInstance(CLSID_PolicyConfig, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&policyConfig));
+		REPORT_ERROR(("mswasapi: Disabling audio enhancements requested but could not get policy config for audio " + mMediaDirectionStr).c_str(), result);
+		PROPVARIANT var;
+		PropVariantInit(&var);
+		result = policyConfig->GetPropertyValue(endpointId, TRUE, PKEY_AudioEndpoint_Disable_SysFx, &var);
+		var.uiVal = (USHORT)1;
+		result = policyConfig->SetPropertyValue(endpointId, TRUE, PKEY_AudioEndpoint_Disable_SysFx, &var);
+		policyConfig->Release();
+	}
+error:
+	return;
+}
+
+void MSWasapi::updateFormat(bool useBestFormat){
+	if(useBestFormat ) {
+		useBestFormat = false;
+		WAVEFORMATEX *pWfx = NULL;
+		HRESULT result = mAudioClient->GetMixFormat(&pWfx);	// Get best format for shared mode.
+		REPORT_ERROR(("Could not get the mix format of the MSWASAPI audio "+mMediaDirectionStr+" interface [%x]").c_str(), result);
+		mRate = pWfx->nSamplesPerSec;
+		mNChannels = pWfx->nChannels;
+		FREE_PTR(pWfx);
+		useBestFormat = true;
+	}
+error:
+	mWBitsPerSample = 16;	// The SDK limit to 16 bits
+	if(!useBestFormat){
+		// Initialize the frame rate and the number of channels to be able to generate silence.
+		mRate = 8000;
+		mNChannels = 1;
+	}
+	mNBlockAlign = mWBitsPerSample * mNChannels / 8;
+}
+
+WAVEFORMATPCMEX MSWasapi::buildFormat() const{
+	WAVEFORMATPCMEX wfx;
+	wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+	wfx.Format.nChannels = (WORD)mNChannels;
+	wfx.Format.nSamplesPerSec = mRate;
+	wfx.Format.wBitsPerSample = (WORD)mWBitsPerSample;
+	wfx.Format.nAvgBytesPerSec = (DWORD)mRate * mNChannels * mWBitsPerSample / 8;
+	wfx.Format.nBlockAlign = (WORD)mNBlockAlign;
+	wfx.Format.cbSize = sizeof (WAVEFORMATEXTENSIBLE) - sizeof (WAVEFORMATEX);
+	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
+	wfx.Samples.wValidBitsPerSample = mWBitsPerSample;
+	switch(mNChannels){
+	   case 1:  wfx.dwChannelMask = SPEAKER_FRONT_CENTER; break;
+	   case 2:  wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT; break;
+	   case 4:  wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT; break;
+	   case 6:  wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT; break;
+	   case 8:  wfx.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_BACK_LEFT | SPEAKER_BACK_RIGHT | SPEAKER_FRONT_LEFT_OF_CENTER | SPEAKER_FRONT_RIGHT_OF_CENTER; break;
+	   default: wfx.dwChannelMask = 0; break;
+	}
+	return wfx;
+}
 
 /******************************************************************************
  * Methods to (de)initialize and run the WASAPI sound capture filter          *

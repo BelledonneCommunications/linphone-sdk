@@ -69,6 +69,26 @@ typedef struct WasapiSndCard {
 	LPWSTR id;
 } WasapiSndCard;
 
+class MSWasapi{
+public:
+#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
+	IAudioClient2 *mAudioClient;
+#else
+	IAudioClient *mAudioClient;
+#endif
+	int mRate;
+	int mNChannels;
+	int mNBlockAlign;
+	int mWBitsPerSample;
+	std::string mMediaDirectionStr;
+	bool mDisableSysFx; // Option to remove audio enhancements mode. This mode can break inputs on some systems.
+	
+	MSWasapi(const std::string& mediaDirectionStr);
+	
+	void changePolicies(IMMDevice *device);
+	void updateFormat(bool useBestFormat);
+	WAVEFORMATPCMEX buildFormat() const;
+};
 
 extern const IID IID_IAudioClient2;
 extern const IID IID_IAudioCaptureClient;

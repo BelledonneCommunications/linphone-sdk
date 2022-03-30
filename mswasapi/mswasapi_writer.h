@@ -32,7 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 class MSWASAPIWriter
 #ifdef MS2_WINDOWS_UNIVERSAL
-	: public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+	: public MSWasapi, RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+#else
+	: public MSWasapi
 #endif
 {
 public:
@@ -70,11 +72,6 @@ private:
 #else
 	LPCWSTR mRenderId;
 #endif
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
-	IAudioClient2 *mAudioClient;
-#else
-	IAudioClient *mAudioClient;
-#endif
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
@@ -82,9 +79,6 @@ private:
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
-	int mRate;
-	int mNChannels;
-	int mNBlockAlign;
 };
 
 
