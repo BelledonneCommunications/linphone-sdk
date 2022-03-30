@@ -873,6 +873,9 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 					case ZRTP_KEYAGREEMENT_SIK3:
 					case ZRTP_KEYAGREEMENT_K255:
 					case ZRTP_KEYAGREEMENT_K448:
+                    case ZRTP_KEYAGREEMENT_HYB1:
+                    case ZRTP_KEYAGREEMENT_HYB2:
+                    case ZRTP_KEYAGREEMENT_HYB3:
 						/* for KEM exchange, public key is in the commit packet, add its length to the 32 bytes hvi */
 						variableLength = 32 + bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
 						break;

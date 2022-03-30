@@ -545,18 +545,21 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 
 	/* Key agreement algo : is directly managed in the parse and state machine, nothing to do, just check it is valid */
 	switch (zrtpChannelContext->keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH2k :
-		case ZRTP_KEYAGREEMENT_DH3k :
-		case ZRTP_KEYAGREEMENT_X255 :
-		case ZRTP_KEYAGREEMENT_X448 :
-		case ZRTP_KEYAGREEMENT_K255 :
-		case ZRTP_KEYAGREEMENT_K448 :
-		case ZRTP_KEYAGREEMENT_KYB1 :
+		case ZRTP_KEYAGREEMENT_DH2k:
+		case ZRTP_KEYAGREEMENT_DH3k:
+		case ZRTP_KEYAGREEMENT_X255:
+		case ZRTP_KEYAGREEMENT_X448:
+		case ZRTP_KEYAGREEMENT_K255:
+		case ZRTP_KEYAGREEMENT_K448:
+		case ZRTP_KEYAGREEMENT_KYB1:
 		case ZRTP_KEYAGREEMENT_KYB2:
 		case ZRTP_KEYAGREEMENT_KYB3:
 		case ZRTP_KEYAGREEMENT_SIK1:
 		case ZRTP_KEYAGREEMENT_SIK2:
 		case ZRTP_KEYAGREEMENT_SIK3:
+		case ZRTP_KEYAGREEMENT_HYB1:
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
 		case ZRTP_KEYAGREEMENT_Mult:
 		case ZRTP_KEYAGREEMENT_Prsh:
 		case ZRTP_UNSET_ALGO :
@@ -779,6 +782,12 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_SIK2;
 				} else if (memcmp(algoType, "SIK3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_SIK3;
+				} else if (memcmp(algoType, "HYB1", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_HYB1;
+				} else if (memcmp(algoType, "HYB2", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_HYB2;
+				} else if (memcmp(algoType, "HYB3", 4) == 0) {
+					return ZRTP_KEYAGREEMENT_HYB3;
 				} else if (memcmp(algoType, "Prsh", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_Prsh;
 				} else if (memcmp(algoType, "Mult", 4) == 0) {
@@ -898,6 +907,15 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 		case ZRTP_KEYAGREEMENT_SIK3:
 			memcpy(algoTypeString, "SIK3", 4);
 			break;
+		case ZRTP_KEYAGREEMENT_HYB1:
+			memcpy(algoTypeString, "HYB1", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_HYB2:
+			memcpy(algoTypeString, "HYB2", 4);
+			break;
+		case ZRTP_KEYAGREEMENT_HYB3:
+			memcpy(algoTypeString, "HYB3", 4);
+			break;
 		case ZRTP_KEYAGREEMENT_Prsh:
 			memcpy(algoTypeString, "Prsh", 4);
 			break;
@@ -955,6 +973,11 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 			return bctoolbox::K25519::pkSize;
 		case ZRTP_KEYAGREEMENT_K448:
 			return bctoolbox::K448::pkSize;
+		case ZRTP_KEYAGREEMENT_HYB1:
+			return bctoolbox::K25519::pkSize + bctoolbox::KYBER512::pkSize;
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
+			return bctoolbox::K448::pkSize + bctoolbox::KYBER1024::pkSize;
 		default:
 			return 0;
 	}
@@ -984,6 +1007,11 @@ static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 			return bctoolbox::K25519::ctSize;
 		case ZRTP_KEYAGREEMENT_K448:
 			return bctoolbox::K448::ctSize;
+		case ZRTP_KEYAGREEMENT_HYB1:
+			return bctoolbox::K25519::ctSize + bctoolbox::KYBER512::ctSize;
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
+			return bctoolbox::K448::ctSize + bctoolbox::KYBER1024::ctSize;
 		default:
 			return 0;
 	}
@@ -1060,6 +1088,11 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 			return bctoolbox::K25519::ssSize;
 		case ZRTP_KEYAGREEMENT_K448:
 			return bctoolbox::K448::ssSize;
+		case ZRTP_KEYAGREEMENT_HYB1:
+			return bctoolbox::K25519::ssSize + bctoolbox::KYBER512::ssSize;
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
+			return bctoolbox::K448::ssSize + bctoolbox::KYBER1024::ssSize;
 		default:
 			return 0;
 	}
@@ -1075,6 +1108,9 @@ bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_SIK3:
 		case ZRTP_KEYAGREEMENT_K255:
 		case ZRTP_KEYAGREEMENT_K448:
+		case ZRTP_KEYAGREEMENT_HYB1:
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
 			return TRUE;
 		default:
 			return false;
@@ -1127,6 +1163,13 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_K448:
 			context->ctx = std::make_shared<bctoolbox::K448>();
 			break;
+		case ZRTP_KEYAGREEMENT_HYB1:
+			//context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::KYBER512>()});
+			//break;
+		case ZRTP_KEYAGREEMENT_HYB2:
+		case ZRTP_KEYAGREEMENT_HYB3:
+			//context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::KYBER1024>()});
+			//break;
 		default:
 			return NULL;
 	}
