@@ -1597,6 +1597,8 @@ void audio_stream_play(AudioStream *st, const char *name){
 			if (st->read_resampler){
 				audio_stream_configure_resampler(st, st->read_resampler,st->soundread,st->ms.encoder);
 			}
+			int pause_time = 500;
+			ms_filter_call_method(st->soundread,MS_PLAYER_SET_LOOP,&pause_time);
 			ms_filter_call_method_noarg(st->soundread,MS_FILE_PLAYER_START);
 		}
 	}else{
