@@ -177,7 +177,7 @@ bool_t MSMFoundationCap::isTimeToSend(uint64_t tickerTime){
 }
 
 //Only support NV12 and MJPG
-bool_t MSMFoundationCap::isSupportedFormat(const GUID &videoFormat)const{
+bool_t MSMFoundationCap::isSupportedFormat(const GUID &videoFormat){
 	return videoFormat == MFVideoFormat_NV12 || videoFormat == MFVideoFormat_MJPG;
 }
 
@@ -520,7 +520,9 @@ public:
 				float framerate = format->FrameRate ? static_cast<float>(format->FrameRate->Numerator / format->FrameRate->Denominator) : 0.0f;
 			
 				std::wstring wsstr(format->Subtype->Data());
-				mSortedList[width][height][framerate][MSMFoundationCap::pixStringToGuid(make_string(wsstr))] = format;
+				const GUID& videoType = MSMFoundationCap::pixStringToGuid(make_string(wsstr));
+				if(MSMFoundationCap::isSupportedFormat(videoType))
+					mSortedList[width][height][framerate][videoType] = format;
 			}
 		}
 	}
@@ -994,8 +996,10 @@ public:
 		for(DWORD i = 0 ; source->GetNativeMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, i, &mediaType) != MF_E_NO_MORE_TYPES ; ++i ) {
 			if(mediaType) {
 				hr = mediaType->GetGUID(MF_MT_SUBTYPE, &videoType);
-				if(SUCCEEDED(hr))// Get frame size from media type
+				if(SUCCEEDED(hr) && MSMFoundationCap::isSupportedFormat(videoType))// Get frame size from media type
 					hr = MFGetAttributeSize(mediaType, MF_MT_FRAME_SIZE, &width, &height);
+				else
+					hr = -1;
 				if (SUCCEEDED(hr))
 					hr = MFGetAttributeRatio(mediaType, MF_MT_FRAME_RATE , &fpsNumerator, &fpsDenominator);
 				if (SUCCEEDED(hr)) {
@@ -1181,7 +1185,7 @@ HRESULT MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32
 		else
 			ms_message("[MSMFoundationCap] Change the video format without Reader : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
 	}else
-		ms_error("[MSMFoundationCap] Cannot change the video format : %dx%d : %s, %f fps", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps);
+		ms_error("[MSMFoundationCap] Cannot change the video format : %dx%d : %s, %f fps. [%x]", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps, hr);
 	LeaveCriticalSection(&mCriticalSection);
 	configs.clean();
 	return hr;

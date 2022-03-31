@@ -70,7 +70,7 @@ public:
 	virtual HRESULT setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float FPS);// Set internal data and do updates
 	virtual HRESULT restartWithNewConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
 	bool_t isTimeToSend(uint64_t tickerTime);// Wheck if we have to put the frame in ms queue
-	bool_t isSupportedFormat(const GUID &videoFormat)const;
+	static bool_t isSupportedFormat(const GUID &videoFormat);
 	void processFrame(byte* inputBytes, DWORD inputCapacity, int inputStride );// Read inputs and store data into frameData
 	
 //----------------------------------------  Variables
