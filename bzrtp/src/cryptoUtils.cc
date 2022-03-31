@@ -105,15 +105,16 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 					index++;
 				}
 
-				if ((available_key_agreements&BCTBX_KEM_X25519)&(available_key_agreements&BCTBX_KEM_KYBER512)) {
+				if ((available_key_agreements&BCTBX_KEM_X25519) && (available_key_agreements&BCTBX_KEM_KYBER512)) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_K255_KYB512;
 					index++;
 				}
 
-				if ((available_key_agreements&BCTBX_KEM_X448)&(available_key_agreements&BCTBX_KEM_KYBER1024)) {
+				if ((available_key_agreements&BCTBX_KEM_X448) && (available_key_agreements&BCTBX_KEM_KYBER1024)) {
 					availableTypes[index] = ZRTP_KEYAGREEMENT_K448_KYB1024;
 					index++;
 				}
+
 				/* Mult is not mandatory but we need it to support old buggy implementation */
 				availableTypes[index] = ZRTP_KEYAGREEMENT_Mult;
 				return index+1;
