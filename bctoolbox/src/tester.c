@@ -117,7 +117,7 @@ static int (*verbose_arg_func)(const char *arg) = NULL;
 static int (*silent_arg_func)(const char *arg) = NULL;
 static int (*logfile_arg_func)(const char *arg) = NULL;
 
-//Processing custom native events for processing events (like PeekMessage for Windows) that is not implemented by Linphone 
+//Processing custom native events for processing events (like PeekMessage for Windows) that is not implemented by Linphone
 static void (*process_events)(void) = NULL;
 
 void bc_tester_set_silent_func(int (*func)(const char*)) {
@@ -485,7 +485,17 @@ static void test_complete_message_handler(const CU_pTest pTest, const CU_pSuite 
 	 * mallinfo() itself is the less worse solution. Allocated bytes are returned as 'int' so limited to 2GB
 	 */
 	if (max_vm_kb) {
-		struct mallinfo minfo = mallinfo();
+		// Needed to avoid warning: 'mallinfo' is deprecated
+		#if defined(__GLIBC_PREREQ)
+			#if __GLIBC_PREREQ(2,33)
+			 	struct mallinfo2 minfo = mallinfo2();
+			#else
+				struct mallinfo minfo = mallinfo();
+			#endif
+		#else
+			struct mallinfo minfo = mallinfo();
+		#endif
+
 		if ((size_t)minfo.uordblks > max_vm_kb * 1024) {
 			bc_tester_printf(
 					 bc_printf_verbosity_error,
@@ -602,7 +612,7 @@ void merge_log_files(const char *base_logfile_name) {
 	for (i = 0; i < nb_test_suites; ++i) {
 		char *suite_logfile_name = get_logfile_name(log_file_name, test_suite[i]->name);
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), suite_logfile_name, O_RDONLY);
-		
+
 		if (!bctbx_file) {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not open log file '%s' to merge into '%s'", suite_logfile_name, base_logfile_name);
 			continue;
@@ -704,7 +714,7 @@ int start_sub_process(const char *suite_name, PROCESS_INFORMATION * pi) {
 		commandLine = bc_sprintf("%s --log-file \"%s\"", commandLineTemp, get_logfile_name(log_file_name, suite_name) );
 		bctbx_free(commandLineTemp);
 	}
-	
+
 	// Start the child process.
 	STARTUPINFOA si;
 
@@ -872,7 +882,7 @@ int bc_tester_run_parallel(void) {
 			CloseHandle( suitesPids[i].hThread );
 		}
 		bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
-		
+
 		if (ret != -1){
 			int seconds = (int)(elapsed - time_start)/1000;
 			all_complete_message_handler(NULL);
@@ -889,7 +899,7 @@ int bc_tester_run_parallel(void) {
 	int suitesPids[nb_test_suites];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
 	uint64_t timeout = 0;
-	
+
 	if (globalTimeout <= 0) {
 			globalTimeout = 60 * 60;
 	}
@@ -959,7 +969,7 @@ int bc_tester_run_parallel(void) {
 		ret = -1;
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
-	
+
 	if (ret != -1){
 		int seconds = (int)(elapsed - time_start)/1000;
 		all_complete_message_handler(NULL);
@@ -1074,8 +1084,15 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 		}
 end:
 #ifdef __linux__
-	bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.",
-			 mallinfo().uordblks / 1024);
+	#if defined(__GLIBC_PREREQ)
+		#if __GLIBC_PREREQ(2,33)
+			bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.", mallinfo2().uordblks / 1024);
+		#else
+			bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.", mallinfo().uordblks / 1024);
+		#endif
+	#else		
+		bc_tester_printf(bc_printf_verbosity_info, "Still %i kilobytes allocated when all tests are finished.", mallinfo().uordblks / 1024);
+	#endif
 #endif
 	if (run_in_parallel){
 		// We are a child process, return the number of test failed.
