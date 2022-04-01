@@ -8,13 +8,14 @@
 
 .check_snapshot_or_release_windows: &check_snapshot_or_release_windows |
   Set-Variable -Name "PATH_TEMP" -Value $DEPLOY_RELEASES_DIRECTORY
-  echo $PATH_TEMP
+  echo "Temp_path_before_check=$PATH_TEMP"
   Set-Variable -Name "describe" -Value $(git -C liblinphone describe)
-  echo $describe
+  echo "Liblinphone_version=$describe"
   Set-Variable -Name "describe_check" -Value $($describe -match 'alpha|beta')
-  echo $describe_check
+  echo "does_describe_match_alpha_beta=$describe_check"
   If ($describe_check -eq $true) {Set-Variable -Name "DEPLOY_ROOT_DIRECTORY" -Value $DEPLOY_SNAPSHOTS_ROOT_DIRECTORY}
-  echo $DEPLOY_ROOT_DIRECTORY
+  Else {Set-Variable -Name "DEPLOY_ROOT_DIRECTORY" -Value $DEPLOY_RELEASES_DIRECTORY}
+  echo "upload_directory=$DEPLOY_ROOT_DIRECTORY"
 
 
 vs2017-win32-windows-upload:
