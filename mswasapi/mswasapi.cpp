@@ -20,7 +20,10 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <mediastreamer2/mscommon.h>
+#if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
 #include <initguid.h>	// Put it at first or there will be a mess with MMDeviceAPI and PKEY_AudioEndpoint* symbols
+#endif
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
@@ -50,7 +53,7 @@ const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
 #endif
 
 // Workaround for issues on audio enhancements mode. Check void MSWASAPIReader::init(LPCWSTR id)
-
+#if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)
 #include <MMDeviceAPI.h>
 DEFINE_GUID(CLSID_PolicyConfig, 0x870af99c, 0x171d, 0x4f9e, 0xaf, 0x0d, 0xe6, 0x3d, 0xf4, 0x0c, 0x2b, 0xc9);
 MIDL_INTERFACE("f8679f50-850a-41cf-9c72-430f290290c8")
@@ -70,16 +73,6 @@ public:
  virtual HRESULT STDMETHODCALLTYPE SetDefaultEndpoint(PCWSTR pszDeviceName, int eRole) = 0;
  virtual HRESULT STDMETHODCALLTYPE SetEndpointVisibility(PCWSTR pszDeviceName, bool bVisible) = 0;
 };
-
-MSWasapi::MSWasapi(const std::string& mediaDirectionStr) : mAudioClient(NULL){
-	mMediaDirectionStr = mediaDirectionStr;
-	mRate = 8000;
-	mNChannels = 1;
-	mWBitsPerSample = 16; // The SDK limit to 16 bits
-	mNBlockAlign = mWBitsPerSample * mNChannels / 8;
-	mDisableSysFx = false;
-}
-
 void MSWasapi::changePolicies(IMMDevice *device){
 	HRESULT result;
 	if( mDisableSysFx) { // Workaround: Remove enhancements mode as it can lead to break inputs on some systems
@@ -99,6 +92,17 @@ void MSWasapi::changePolicies(IMMDevice *device){
 error:
 	return;
 }
+#endif
+
+MSWasapi::MSWasapi(const std::string& mediaDirectionStr) : mAudioClient(NULL){
+	mMediaDirectionStr = mediaDirectionStr;
+	mRate = 8000;
+	mNChannels = 1;
+	mWBitsPerSample = 16; // The SDK limit to 16 bits
+	mNBlockAlign = mWBitsPerSample * mNChannels / 8;
+	mDisableSysFx = false;
+}
+
 
 void MSWasapi::updateFormat(bool useBestFormat){
 	if(useBestFormat ) {

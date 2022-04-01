@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 class MSWASAPIReader
 #ifdef MS2_WINDOWS_UNIVERSAL
-	: public MSWasapi, RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
 #else
 	: public MSWasapi
 #endif

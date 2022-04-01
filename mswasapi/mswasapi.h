@@ -84,8 +84,9 @@ public:
 	bool mDisableSysFx; // Option to remove audio enhancements mode. This mode can break inputs on some systems.
 	
 	MSWasapi(const std::string& mediaDirectionStr);
-	
+#if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
 	void changePolicies(IMMDevice *device);
+#endif
 	void updateFormat(bool useBestFormat);
 	WAVEFORMATPCMEX buildFormat() const;
 };
