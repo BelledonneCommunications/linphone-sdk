@@ -7,12 +7,37 @@
   stage: deploy
   variables:
     PODNAME: "linphone-sdk"
+    PODSPEC_END_PATH: ""
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   rules:
     - if: $DEPLOY_RUN_IOS
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
+  needs:
+    - ios-xcode
 
   script:
+
+    #Only get major and minor version (ex: 4.5) for documentation directory
+
+    #git -C executes the git command in specified directory
+    #grep options:
+    #-o means print only matched pattern instead of whole line
+    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - !reference [.choose_upload_dir, script]
+
+    # Doc upload, we only do it for ios-xcode job, as ios-xcode-no-video one doesn't have doc enabled, we then differenciate between the two with the podname
+    # Create the directory if it does not exist
+    - if [ $PODNAME = "linphone-sdk"]; then ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift; fi
+
+    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
+    - if [ $PODNAME = "linphone-sdk"]; then rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift; fi
 
     - echo $PODSPEC_END_PATH
     - echo $PODNAME
@@ -28,37 +53,6 @@
     - pod repo push $PODNAME build-ios/$PODNAME.podspec --skip-import-validation --verbose
     - pod repo remove $PODNAME
 
-# The iOS documentation is only uploaded in this job, this is why we redefine before_script in no_video job
-.ios-xcode-upload:
-  needs:
-    - ios-xcode
-  variables:
-    PODNAME: "linphone-sdk"
-    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
-  before_script:
-    #Only get major and minor version (ex: 4.5) for documentation directory
-
-    #git -C executes the git command in specified directory
-    #grep options:
-    #-o means print only matched pattern instead of whole line
-    #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
-    - DESCRIBE=$(git -C liblinphone describe)
-    - echo $DESCRIBE
-
-
-    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
-
-    - !reference [.choose_upload_dir, script]
-
-    # Create the directory if it does not exist
-    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
-
-    #using rsync with following options(verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-ios/docs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
-
-  extends: .ios-xcode-podspec-upload
-
 .ios-xcode-novideo-upload:
   needs:
     - ios-xcode-novideo
@@ -68,14 +62,10 @@
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
-  before_script:
-    - DESCRIBE=$(git -C liblinphone describe)
-    - echo $DESCRIBE
-    - !reference [.choose_upload_dir, script]
   extends: .ios-xcode-podspec-upload
 
 ios-xcode-upload-xcode12:
-  extends: .ios-xcode-upload
+  extends: .ios-xcode-podspec-upload
   tags: [ "macosx-min-xcode12.2-upload" ]
 
 ios-xcode-novideo-upload-xcode12:

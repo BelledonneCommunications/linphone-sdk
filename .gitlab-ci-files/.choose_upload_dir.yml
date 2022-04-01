@@ -1,12 +1,111 @@
-.choose_upload_dir:
-  script:
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+######################################################################
+# We set the upload dir for UNIX builds and uploads
+######################################################################
 
-    - echo $DESCRIBE
-    - IS_ALPHA_BETA=0
-    - echo $DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
+# We expect a variable named DESCRIBE to contain the tag that we want to test, because we have no way to give it to the job like a function
+
+
+.choose_variable_from_git_tag:
+  stage: deploy
+  rules:
+    - if: $DEPLOY_RUN_TEST
+  tags: [ "macosx-xcode11" ]
+  script:
+
+    # getSnapshotOrReleaseDirFromGitTag($DESCRIBE, $DEFAULT_SNAPSHOT_LOCATION, $DEFAULT_RELEASE_LOCATION)
+    # args are evaluated to $1, $2....
     - |
-        if [ "$IS_ALPHA_BETA" -eq 0 ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
-    - echo $UPLOAD_ROOT_DIRECTORY
+      cat << EOF > getSnapshotOrReleaseDirFromGitTag.sh
+      #!/bin/sh
+      IS_ALPHA_BETA=0
+      echo \$1 | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=\$?
+      if [ \$IS_ALPHA_BETA -eq 0 ];
+        then
+          RESULT="\$2"
+        else
+          RESULT="\$3"
+      fi
+      if [ -z "\$RESULT" ] || [ -z "\$1" ] || [ -z "\$2" ] || [ -z "\$3" ];
+        then
+          exit 1
+        else
+          echo "\$RESULT"
+      fi
+      EOF
+      chmod +x getSnapshotOrReleaseDirFromGitTag.sh
+
+    - cat getSnapshotOrReleaseDirFromGitTag.sh
+
+    - echo $DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+
+    - echo $DEPLOY_RELEASES_DIRECTORY
+
+    - echo $SNAPSHOTS_LOCATION
+
+    - echo $RELEASES_LOCATION
+
+    - EXIT_CODE=0
+
+    - FINAL_LOCATION=$(sh -x getSnapshotOrReleaseDirFromGitTag.sh "$DESCRIBE" "$SNAPSHOTS_LOCATION" "$RELEASES_LOCATION") || EXIT_CODE=$?
+
+    - echo $EXIT_CODE
+
+    - echo $IS_ALPHA_BETA
+
+    - echo $RESULT
+
+    - echo $FINAL_LOCATION
+
+.choose_upload_dir:
+  stage: deploy
+  rules:
+    - if: $DEPLOY_RUN_TEST
+  tags: [ "macosx-xcode11" ]
+  script:
+    - SNAPSHOTS_LOCATION=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
+    - RELEASES_LOCATION=$DEPLOY_RELEASES_DIRECTORY
+    - !reference [.choose_variable_from_git_tag, script]
+    - UPLOAD_ROOT_DIRECTORY=$FINAL_LOCATION
+    - echo "UPLOAD_ROOT_DIRECTORY=$FINAL_LOCATION"
+    - echo $EXIT_CODE
+    - |
+      if [ $EXIT_CODE -ne 0 ];
+        then
+          exit $EXIT_CODE
+      fi
+
+.choose_url_macos:
+  stage: deploy
+  rules:
+    - if: $DEPLOY_RUN_TEST
+  tags: [ "macosx-xcode11" ]
+  script:
+    - SNAPSHOTS_LOCATION=$MACOS_SNAPSHOTS_URL
+    - RELEASES_LOCATION=$MACOS_RELEASES_URL
+    - !reference [.choose_variable_from_git_tag, script]
+    - MACOS_URL=$FINAL_LOCATION
+    - echo "MACOS_URL=$FINAL_LOCATION"
+    - echo $EXIT_CODE
+    - |
+      if [ $EXIT_CODE -ne 0 ];
+        then
+          exit $EXIT_CODE
+      fi
+
+.choose_url_ios:
+  stage: deploy
+  rules:
+    - if: $DEPLOY_RUN_TEST
+  tags: [ "macosx-xcode11" ]
+  script:
+    - SNAPSHOTS_LOCATION=$IOS_SNAPSHOTS_URL
+    - RELEASES_LOCATION=$IOS_RELEASES_URL
+    - !reference [.choose_variable_from_git_tag, script]
+    - IOS_URL=$FINAL_LOCATION
+    - echo "IOS_URL=$FINAL_LOCATION"
+    - echo $EXIT_CODE
+    - |
+      if [ $EXIT_CODE -ne 0 ];
+        then
+          exit $EXIT_CODE
+      fi

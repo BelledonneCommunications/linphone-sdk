@@ -14,6 +14,7 @@ macosx-upload:
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
     - !reference [.choose_upload_dir, script]
     - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
     - pod repo remove linphone-sdk-macosx || true

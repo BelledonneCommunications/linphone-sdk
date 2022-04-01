@@ -124,11 +124,13 @@ macosx-xcode:
     - if: $DEPLOY_RUN_MACOSX
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
-  before_script:
-    - MACOS_DEPLOY_URL=$MACOS_RELEASES_URL
-    - |
-        if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-        then MACOS_DEPLOY_URL=$MACOS_SNAPSHOTS_URL
-        fi
-    - echo $MACOS_DEPLOY_URL
-    - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_DEPLOY_URL"
+  script:
+
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - !reference [.choose_url_macos, script]
+
+    - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
+
+    - !reference [.macosx-m1-desktop, script]

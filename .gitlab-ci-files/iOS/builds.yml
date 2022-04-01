@@ -139,14 +139,12 @@ ios-xcode:
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
-  before_script:
-   - IOS_DEPLOY_URL=$IOS_RELEASES_URL
-   - |
-       if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-       then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
-       fi
-   - echo $IOS_DEPLOY_URL
-   - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
+  script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+    - !reference [.choose_url_ios, script]
+    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
+    - !reference [.ios, script]
 
   extends: .ios
 
@@ -166,13 +164,11 @@ ios-xcode-novideo:
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
-  before_script:
-   - IOS_DEPLOY_URL=$IOS_RELEASES_URL
-   - |
-       if [ "$(git -C liblinphone describe) =~ .*(alpha|beta).*" ];
-       then IOS_DEPLOY_URL=$IOS_SNAPSHOTS_URL
-       fi
-   - IOS_DEPLOY_URL="${IOS_DEPLOY_URL}/novideo/"
-   - echo $IOS_DEPLOY_URL
-   - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_DEPLOY_URL"
+  script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - !reference [.choose_url_ios, script]
+    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/novideo/"
+    - !reference [.ios, script]
   extends: .ios

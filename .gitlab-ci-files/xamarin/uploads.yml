@@ -16,5 +16,6 @@ xamarin-upload:
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
     - !reference [.choose_upload_dir, script]
     - rsync -rlv --dry-run results/packages/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/xamarin
