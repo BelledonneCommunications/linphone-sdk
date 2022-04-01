@@ -1093,9 +1093,8 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_K448:
 			return bctoolbox::K448::ssSize;
 		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			return bctoolbox::K25519::ssSize + bctoolbox::KYBER512::ssSize;
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			return bctoolbox::K448::ssSize + bctoolbox::KYBER1024::ssSize;
+			return 32;
 		default:
 			return 0;
 	}
