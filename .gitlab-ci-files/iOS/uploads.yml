@@ -19,18 +19,13 @@ ios-xcode-upload:
     #-o means print only matched pattern instead of whole line
     #-E means extended regexp, see https://en.wikibooks.org/wiki/Regular_Expressions/POSIX-Extended_Regular_Expressions
 
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
 
-    - LIBLINPHONE_DESCRIBE=$(git -C liblinphone describe)
-    - echo $LIBLINPHONE_DESCRIBE
-    - echo $LIBLINPHONE_DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - |
-        if [ $IS_ALPHA_BETA -eq 0 ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
+    - !reference [.choose_upload_dir, script]
 
     # Create the directory if it does not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift
@@ -61,18 +56,14 @@ ios-xcode-novideo-upload:
     - ios-xcode-novideo
 
   script:
-    - LIBLINPHONE_VERSION=$(git -C liblinphone describe | grep -o -E '^[0-9]+\.[0-9]+')
 
-    - UPLOAD_ROOT_DIRECTORY=$DEPLOY_RELEASES_DIRECTORY
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
 
-    - LIBLINPHONE_DESCRIBE=$(git -C liblinphone describe)
-    - echo $LIBLINPHONE_DESCRIBE
-    - echo $LIBLINPHONE_DESCRIBE | grep -Eq ".*(alpha|beta).*" || IS_ALPHA_BETA=$?
 
-    - |
-        if [ $IS_ALPHA_BETA -eq 0 ];
-        then UPLOAD_ROOT_DIRECTORY=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
-        fi
+    - LIBLINPHONE_VERSION=$(echo $DESCRIBE | grep -o -E '^[0-9]+\.[0-9]+')
+
+    - !reference [.choose_upload_dir, script]
 
     - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
 
