@@ -1443,7 +1443,8 @@ void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mb
 void ogl_display_render (struct opengles_display *gldisp, int orientation, MSVideoDisplayMode mode) {
 	const OpenGlFunctions *f = gldisp->functions;
 	bool_t render = TRUE;
-
+	if(!f)// Do no try to render if functions are not defined.
+		return;
 	check_GL_errors(f, "ogl_display_render");
 	clean_GL_errors(f);
 

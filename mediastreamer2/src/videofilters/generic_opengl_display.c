@@ -86,7 +86,7 @@ static void ogl_init (MSFilter *f) {
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.glInitialized = FALSE;
 	data->functions.eglInitialized = FALSE;
-	data->video_mode = MS_FILTER_VIDEO_AUTO;
+	data->video_mode = MS_FILTER_VIDEO_NONE;
 	data->context_info.width=MS_VIDEO_SIZE_CIF_W;
 	data->context_info.height=MS_VIDEO_SIZE_CIF_H;
 	data->context_info.window = NULL;
