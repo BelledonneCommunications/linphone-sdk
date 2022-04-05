@@ -76,8 +76,10 @@ const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
 		case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
 		case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
 		case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
-		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519Kyber512";
-		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448Kyber1024";
+		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
+		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
+		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
+		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
 		default: return "Unknown Algo";
 	}
 }
