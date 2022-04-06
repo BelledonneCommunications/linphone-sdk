@@ -50,19 +50,23 @@ find_library(OPENH264_LIBRARIES
 )
 
 if(OPENH264_LIBRARIES)
-	if( NOT WIN32 )
+	if( WIN32 )#issue with check_cxx_symbol_exists on Windows (TODO: missing libraries in OPENH264_LIBRARIES?). If OPENH264_INCLUDE_DIRS, then decoder exists.
+		set(OPENH264_FOUND TRUE)
+		set(HAVE_WELS_CREATE_DECODER TRUE)
+	else()
+		# need pthread lib for check_cxx_symbol_exists
 		find_library(PTHREAD_LIBRARY
 			NAMES pthread
 		)
 		list(APPEND OPENH264_LIBRARIES ${PTHREAD_LIBRARY})
-	endif()
-	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
-	check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
-	cmake_pop_check_state()
-	if(HAVE_WELS_CREATE_DECODER)
-		set(OPENH264_FOUND TRUE)
+		cmake_push_check_state(RESET)
+		list(APPEND CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIRS})
+		list(APPEND CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
+		check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
+		cmake_pop_check_state()
+		if(HAVE_WELS_CREATE_DECODER)
+			set(OPENH264_FOUND TRUE)
+		endif()
 	endif()
 endif()
 

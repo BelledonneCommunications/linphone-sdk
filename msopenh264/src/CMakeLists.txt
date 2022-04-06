@@ -77,6 +77,10 @@ if(ENABLE_SHARED)
 			)
 		endif()
 		set_target_properties(msopenh264 PROPERTIES PREFIX "lib")
+		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+			set_target_properties(msopenh264 PROPERTIES VS_WINRT_COMPONENT TRUE)
+		endif()
+	
 	endif()
 	install(TARGETS msopenh264
 		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
