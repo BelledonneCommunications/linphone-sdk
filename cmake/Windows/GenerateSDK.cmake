@@ -25,8 +25,13 @@ list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 find_program(7Z_PROGRAM 7z.exe)
 if(7Z_PROGRAM)
+	if(NOT ENABLE_EMBEDDED_OPENH264)
+		set(7Z_MORE_CONFIG "-xr!openh264.dll")
+	else()
+		set(7Z_MORE_CONFIG "")
+	endif()
 	execute_process(
-		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATFORM}-${LINPHONESDK_VERSION}.zip" ${CMAKE_INSTALL_PREFIX}
+		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATFORM}-${LINPHONESDK_VERSION}.zip" ${CMAKE_INSTALL_PREFIX} ${7Z_MORE_CONFIG}
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 else()

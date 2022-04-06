@@ -285,3 +285,10 @@ The folder can be found in your system path at <User>/.nuget/packages/linphonesd
 ### Demo app
 
 There is a very limited version of an application that can use this nuget at `https://gitlab.linphone.org/BC/public/linphone-windows10/tree/feature/uwp`
+
+## Known issues
+
+### Windows
+
+OpenH264 has been removed from the Windows Store because of the unsupported API.
+
