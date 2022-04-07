@@ -72,6 +72,18 @@ static const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
 		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
 		case(ZRTP_KEYAGREEMENT_X255): return "ECDH-255";
 		case(ZRTP_KEYAGREEMENT_X448): return "ECDH-448";
+		case(ZRTP_KEYAGREEMENT_K255): return "KEM-ECDH-255";
+		case(ZRTP_KEYAGREEMENT_K448): return "KEM-ECDH-448";
+		case(ZRTP_KEYAGREEMENT_KYB1): return "KYBER-512";
+		case(ZRTP_KEYAGREEMENT_KYB2): return "KYBER-768";
+		case(ZRTP_KEYAGREEMENT_KYB3): return "KYBER-1024";
+		case(ZRTP_KEYAGREEMENT_SIK1): return "SIKE-434";
+		case(ZRTP_KEYAGREEMENT_SIK2): return "SIKE-610";
+		case(ZRTP_KEYAGREEMENT_SIK3): return "SIKE-751";
+		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K255-KYB512";
+		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K255-SIKE434";
+		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-KYB1024";
+		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-SIKE751";
 		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
 		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
 		default: return "Unknown Algo";
