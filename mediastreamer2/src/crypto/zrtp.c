@@ -306,6 +306,11 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 		snprintf(eventData->info.zrtp_info.sas, sizeof(eventData->info.zrtp_info.sas), "%s", secrets->sas);
 		eventData->info.zrtp_info.verified=(verified != 0) ? TRUE : FALSE;
 		eventData->info.zrtp_info.cache_mismatch=( secrets->cacheMismatch != 0) ? TRUE : FALSE;
+		eventData->info.zrtp_info.cipherAlgo=secrets->cipherAlgo;
+		eventData->info.zrtp_info.keyAgreementAlgo=secrets->keyAgreementAlgo;
+		eventData->info.zrtp_info.hashAlgo=secrets->hashAlgo;
+		eventData->info.zrtp_info.authTagAlgo=secrets->authTagAlgo;
+		eventData->info.zrtp_info.sasAlgo=secrets->sasAlgo;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
 		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
