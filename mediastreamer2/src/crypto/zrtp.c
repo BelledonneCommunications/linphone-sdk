@@ -47,81 +47,6 @@ struct _MSZrtpContext{
 /***** LOCAL FUNCTIONS                     *****/
 /***********************************************/
 
-/********************/
-/* Helper functions */
-
-/* trace functions: bzrtp algo code to string */
-static const char *bzrtp_hash_toString(uint8_t hashAlgo) {
-	switch(hashAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_HASH_S256): return "SHA-256";
-		case(ZRTP_HASH_S384): return "SHA-384";
-		case(ZRTP_HASH_N256): return "SHA3-256";
-		case(ZRTP_HASH_N384): return "SHA3-384";
-		default: return "Unknown Algo";
-	}
-}
-
-static const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
-	switch(keyAgreementAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
-		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
-		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
-		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
-		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
-		case(ZRTP_KEYAGREEMENT_X255): return "ECDH-255";
-		case(ZRTP_KEYAGREEMENT_X448): return "ECDH-448";
-		case(ZRTP_KEYAGREEMENT_K255): return "KEM-ECDH-255";
-		case(ZRTP_KEYAGREEMENT_K448): return "KEM-ECDH-448";
-		case(ZRTP_KEYAGREEMENT_KYB1): return "KYBER-512";
-		case(ZRTP_KEYAGREEMENT_KYB2): return "KYBER-768";
-		case(ZRTP_KEYAGREEMENT_KYB3): return "KYBER-1024";
-		case(ZRTP_KEYAGREEMENT_SIK1): return "SIKE-434";
-		case(ZRTP_KEYAGREEMENT_SIK2): return "SIKE-610";
-		case(ZRTP_KEYAGREEMENT_SIK3): return "SIKE-751";
-		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K255-KYB512";
-		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K255-SIKE434";
-		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-KYB1024";
-		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-SIKE751";
-		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
-		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
-		default: return "Unknown Algo";
-	}
-}
-
-static const char *bzrtp_cipher_toString(uint8_t cipherAlgo) {
-	switch(cipherAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_CIPHER_AES1): return "AES-128";
-		case(ZRTP_CIPHER_AES2): return "AES-192";
-		case(ZRTP_CIPHER_AES3): return "AES-256";
-		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
-		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
-		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
-		default: return "Unknown Algo";
-	}
-}
-
-static const char *bzrtp_authtag_toString(uint8_t authtagAlgo) {
-	switch(authtagAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
-		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
-		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
-		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
-		default: return "Unknown Algo";
-	}
-}
-
-static const char *bzrtp_sas_toString(uint8_t sasAlgo) {
-	switch(sasAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_SAS_B32): return "Base32";
-		case(ZRTP_SAS_B256): return "PGP-WordList";
-		default: return "Unknown Algo";
-	}
-}
 /*****************************************/
 /* ZRTP library Callbacks implementation */
 
@@ -223,7 +148,7 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 		ms_fatal("unsupported cipher algorithm by srtp");
 	}
 
-	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_cipher_toString(secrets->cipherAlgo));
+	ms_message("ZRTP secrets are ready for %s; auth tag algo is %s and cipher algo is %s", (part==ZRTP_SRTP_SECRETS_FOR_SENDER)?"sender":"receiver", bzrtp_algoToString(secrets->authTagAlgo), bzrtp_algoToString(secrets->cipherAlgo));
 
 
 	if (part==ZRTP_SRTP_SECRETS_FOR_RECEIVER) {
@@ -313,7 +238,7 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 		eventData->info.zrtp_info.sasAlgo=secrets->sasAlgo;
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
-		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_cipher_toString(secrets->cipherAlgo), bzrtp_keyAgreement_toString(secrets->keyAgreementAlgo), bzrtp_hash_toString(secrets->hashAlgo), bzrtp_authtag_toString(secrets->authTagAlgo), bzrtp_sas_toString(secrets->sasAlgo));
+		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_algoToString(secrets->cipherAlgo), bzrtp_algoToString(secrets->keyAgreementAlgo), bzrtp_algoToString(secrets->hashAlgo), bzrtp_algoToString(secrets->authTagAlgo), bzrtp_algoToString(secrets->sasAlgo));
 	}
 
 	ev=ortp_event_new(ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED);
