@@ -30,11 +30,11 @@ void printHex(char *title, uint8_t *data, uint32_t length);
 void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage);
 void dumpContext(char *title, bzrtpContext_t *zrtpContext);
 
-const char *bzrtp_hash_toString(uint8_t hashAlgo);
-const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo);
-const char *bzrtp_cipher_toString(uint8_t cipherAlgo);
-const char *bzrtp_authtag_toString(uint8_t authtagAlgo);
-const char *bzrtp_sas_toString(uint8_t sasAlgo);
+//const char *bzrtp_hash_toString(uint8_t hashAlgo);
+//const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo);
+//const char *bzrtp_cipher_toString(uint8_t cipherAlgo);
+//const char *bzrtp_authtag_toString(uint8_t authtagAlgo);
+//const char *bzrtp_sas_toString(uint8_t sasAlgo);
 #ifdef ZIDCACHE_ENABLED
 int bzrtptester_sqlite3_open(const char *db_file, sqlite3 **db);
 #endif /* ZIDCACHE_ENABLED */

@@ -460,7 +460,7 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 		return retval;
 	}
 
-	bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_cipher_toString(Alice.secrets->cipherAlgo), bzrtp_keyAgreement_toString(Alice.secrets->keyAgreementAlgo), bzrtp_hash_toString(Alice.secrets->hashAlgo), bzrtp_authtag_toString(Alice.secrets->authTagAlgo), bzrtp_sas_toString(Alice.secrets->sasAlgo));
+	bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_algoToString(Alice.secrets->cipherAlgo), bzrtp_algoToString(Alice.secrets->keyAgreementAlgo), bzrtp_algoToString(Alice.secrets->hashAlgo), bzrtp_algoToString(Alice.secrets->authTagAlgo), bzrtp_algoToString(Alice.secrets->sasAlgo));
 
 	if ((retval=compareSecrets(Alice.secrets, Bob.secrets, TRUE))!=0) {
 		BC_ASSERT_EQUAL(retval, 0, int, "%d");
@@ -565,7 +565,7 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 			BC_ASSERT_EQUAL(retval, BZRTP_CHANNEL_SECURE, int, "%0x");
 			return retval;
 		}
-		bzrtp_message("Channel %d :ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", channelNumber, bzrtp_cipher_toString(Alice.secrets->cipherAlgo), bzrtp_keyAgreement_toString(Alice.secrets->keyAgreementAlgo), bzrtp_hash_toString(Alice.secrets->hashAlgo), bzrtp_authtag_toString(Alice.secrets->authTagAlgo), bzrtp_sas_toString(Alice.secrets->sasAlgo));
+		bzrtp_message("Channel %d :ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", channelNumber, bzrtp_algoToString(Alice.secrets->cipherAlgo), bzrtp_algoToString(Alice.secrets->keyAgreementAlgo), bzrtp_algoToString(Alice.secrets->hashAlgo), bzrtp_algoToString(Alice.secrets->authTagAlgo), bzrtp_algoToString(Alice.secrets->sasAlgo));
 		if ((retval=compareSecrets(Alice.secrets, Bob.secrets, FALSE))!=0) {
 			BC_ASSERT_EQUAL(retval, 0, int, "%d");
 		}
@@ -1264,7 +1264,7 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 		return -1;
 	}
 
-	bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_cipher_toString(Alice.secrets->cipherAlgo), bzrtp_keyAgreement_toString(Alice.secrets->keyAgreementAlgo), bzrtp_hash_toString(Alice.secrets->hashAlgo), bzrtp_authtag_toString(Alice.secrets->authTagAlgo), bzrtp_sas_toString(Alice.secrets->sasAlgo));
+	bzrtp_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s\n", bzrtp_algoToString(Alice.secrets->cipherAlgo), bzrtp_algoToString(Alice.secrets->keyAgreementAlgo), bzrtp_algoToString(Alice.secrets->hashAlgo), bzrtp_algoToString(Alice.secrets->authTagAlgo), bzrtp_algoToString(Alice.secrets->sasAlgo));
 
 	if ((retval=compareSecrets(Alice.secrets, Bob.secrets, TRUE))!=0) {
 		BC_ASSERT_EQUAL(retval, 0, int, "%d");

@@ -655,11 +655,13 @@ BZRTP_EXPORT int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_
 BZRTP_EXPORT int bzrtp_cache_getPeerStatus_lock(void *dbPointer, const char *peerURI, bctbx_mutex_t *zidCacheMutex);
 
 /**
- * @brief Retrieve the name of the algo in string
- * @param algo
- * @return
+ * @brief	Retrieve the name of the algo in string
+ *
+ * @param[in]	algo	Id of the algo
+ *
+ * @return	The of the algo in string
  */
-BZRTP_EXPORT static const char *bzrtp_algoToString(uint8_t algo);
+BZRTP_EXPORT const char *bzrtp_algoToString(uint8_t algo);
 
 #ifdef __cplusplus
 }

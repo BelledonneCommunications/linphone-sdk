@@ -44,78 +44,78 @@
 
 int verbose = 0;
 
-/* trace functions: bzrtp algo code to string */
-const char *bzrtp_hash_toString(uint8_t hashAlgo) {
-	switch(hashAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_HASH_S256): return "SHA-256";
-		case(ZRTP_HASH_S384): return "SHA-384";
-		case(ZRTP_HASH_N256): return "SHA3-256";
-		case(ZRTP_HASH_N384): return "SHA3-384";
-		default: return "Unknown Algo";
-	}
-}
+///* trace functions: bzrtp algo code to string */
+//const char *bzrtp_hash_toString(uint8_t hashAlgo) {
+//	switch(hashAlgo) {
+//		case(ZRTP_UNSET_ALGO): return "unset";
+//		case(ZRTP_HASH_S256): return "SHA-256";
+//		case(ZRTP_HASH_S384): return "SHA-384";
+//		case(ZRTP_HASH_N256): return "SHA3-256";
+//		case(ZRTP_HASH_N384): return "SHA3-384";
+//		default: return "Unknown Algo";
+//	}
+//}
 
-const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
-	switch(keyAgreementAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
-		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
-		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
-		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
-		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
-		case(ZRTP_KEYAGREEMENT_X255): return "X25519";
-		case(ZRTP_KEYAGREEMENT_X448): return "X448";
-		case(ZRTP_KEYAGREEMENT_K255): return "K25519";
-		case(ZRTP_KEYAGREEMENT_K448): return "K448";
-		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
-		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
-		case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";
-		case(ZRTP_KEYAGREEMENT_KYB2): return "Kyber-768";
-		case(ZRTP_KEYAGREEMENT_KYB3): return "Kyber-1024";
-		case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
-		case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
-		case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
-		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
-		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
-		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
-		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
-		default: return "Unknown Algo";
-	}
-}
+//const char *bzrtp_keyAgreement_toString(uint8_t keyAgreementAlgo) {
+//	switch(keyAgreementAlgo) {
+//		case(ZRTP_UNSET_ALGO): return "unset";
+//		case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
+//		case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";
+//		case(ZRTP_KEYAGREEMENT_DH3k): return "DHM-3072";
+//		case(ZRTP_KEYAGREEMENT_EC38): return "ECDH-384";
+//		case(ZRTP_KEYAGREEMENT_EC52): return "ECDH-521";
+//		case(ZRTP_KEYAGREEMENT_X255): return "X25519";
+//		case(ZRTP_KEYAGREEMENT_X448): return "X448";
+//		case(ZRTP_KEYAGREEMENT_K255): return "K25519";
+//		case(ZRTP_KEYAGREEMENT_K448): return "K448";
+//		case(ZRTP_KEYAGREEMENT_Prsh): return "PreShared";
+//		case(ZRTP_KEYAGREEMENT_Mult): return "MultiStream";
+//		case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";
+//		case(ZRTP_KEYAGREEMENT_KYB2): return "Kyber-768";
+//		case(ZRTP_KEYAGREEMENT_KYB3): return "Kyber-1024";
+//		case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
+//		case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
+//		case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
+//		case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
+//		case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
+//		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
+//		case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
+//		default: return "Unknown Algo";
+//	}
+//}
 
-const char *bzrtp_cipher_toString(uint8_t cipherAlgo) {
-	switch(cipherAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_CIPHER_AES1): return "AES-128";
-		case(ZRTP_CIPHER_AES2): return "AES-192";
-		case(ZRTP_CIPHER_AES3): return "AES-256";
-		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
-		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
-		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
-		default: return "Unknown Algo";
-	}
-}
+//const char *bzrtp_cipher_toString(uint8_t cipherAlgo) {
+//	switch(cipherAlgo) {
+//		case(ZRTP_UNSET_ALGO): return "unset";
+//		case(ZRTP_CIPHER_AES1): return "AES-128";
+//		case(ZRTP_CIPHER_AES2): return "AES-192";
+//		case(ZRTP_CIPHER_AES3): return "AES-256";
+//		case(ZRTP_CIPHER_2FS1): return "TwoFish-128";
+//		case(ZRTP_CIPHER_2FS2): return "TwoFish-192";
+//		case(ZRTP_CIPHER_2FS3): return "TwoFish-256";
+//		default: return "Unknown Algo";
+//	}
+//}
 
-const char *bzrtp_authtag_toString(uint8_t authtagAlgo) {
-	switch(authtagAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
-		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
-		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
-		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
-		default: return "Unknown Algo";
-	}
-}
+//const char *bzrtp_authtag_toString(uint8_t authtagAlgo) {
+//	switch(authtagAlgo) {
+//		case(ZRTP_UNSET_ALGO): return "unset";
+//		case(ZRTP_AUTHTAG_HS32): return "HMAC-SHA1-32";
+//		case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
+//		case(ZRTP_AUTHTAG_SK32): return "Skein-32";
+//		case(ZRTP_AUTHTAG_SK64): return "Skein-64";
+//		default: return "Unknown Algo";
+//	}
+//}
 
-const char *bzrtp_sas_toString(uint8_t sasAlgo) {
-	switch(sasAlgo) {
-		case(ZRTP_UNSET_ALGO): return "unset";
-		case(ZRTP_SAS_B32): return "Base32";
-		case(ZRTP_SAS_B256): return "PGP-WordList";
-		default: return "Unknown Algo";
-		}
-}
+//const char *bzrtp_sas_toString(uint8_t sasAlgo) {
+//	switch(sasAlgo) {
+//		case(ZRTP_UNSET_ALGO): return "unset";
+//		case(ZRTP_SAS_B32): return "Base32";
+//		case(ZRTP_SAS_B256): return "PGP-WordList";
+//		default: return "Unknown Algo";
+//		}
+//}
 
 void printHex(char *title, uint8_t *data, uint32_t length) {
 	if (verbose) {
