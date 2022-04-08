@@ -157,13 +157,12 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	if (!obj->congestion_detected) {
 		float estimated_bitrate = evd->info.video_bandwidth_available;
 		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated * NO_INCREASE_THRESHOLD) {
-			ms_message("MSBandwidthController: not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)", estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
+			ms_message("MSBandwidthController: %p not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than the previous one (%f kbit/s)", ms, estimated_bitrate/1000, obj->remote_video_bandwidth_available_estimated/1000);
 			return;
 		}
 		
 		if (obj->stats.estimated_download_bandwidth != 0 && estimated_bitrate <= (NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth)){
-			ms_message("MSBandwidthController: not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
-				estimated_bitrate/1000, obj->stats.estimated_download_bandwidth/1000);
+			ms_message("MSBandwidthController: %p not using new total video bandwidth estimation (%f kbit/s) because it's not enough greater than bandwidth measured under congestion (%f kbit/s)", ms, estimated_bitrate/1000, obj->stats.estimated_download_bandwidth/1000);
 			return;
 		}
 			
@@ -188,13 +187,18 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 	for (elem = obj->streams; elem != NULL; elem = elem->next){
 		MediaStream *ms = (MediaStream*) elem->data;
 		if (ms->type == MSVideo) {
-			ms_message("MSBandwidthController: video stream %p is thumbnail %d direction %d", ms, ms->is_thumbnail,media_stream_get_direction(ms));
-			ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,on_video_bandwidth_estimation_available, ms);
-			params.enabled = TRUE;
-			rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
 			if (!ms->is_thumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
+				if (!ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
+					ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,on_video_bandwidth_estimation_available, ms);
+					params.enabled = TRUE;
+					rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
+				}
 				obj->controlled_streams = bctbx_list_append(obj->controlled_streams, ms);
-				ms_message("MSBandwidthController: video stream %p add to controlled streams", ms);
+			} else if (ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
+				ortp_ev_dispatcher_disconnect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,
+					on_video_bandwidth_estimation_available);
+				params.enabled = FALSE;
+				rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &params);
 			}
 		} else {
 			as = ms;
