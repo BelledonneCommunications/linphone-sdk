@@ -12,22 +12,23 @@ Pod::Spec.new do |s|
   s.author       = { 'Belledonne Communications SARL' => 'linphone-iphone@belledonne-communications.com' }
   s.platform     = :ios, "9.0"
   s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
-  s.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/Frameworks/**"
+  s.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
+  s.user_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.module_name   = 'linphonesw' # name of the swift package
   s.swift_version = '4.0'
 
   s.subspec 'all-frameworks' do |sp|
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/Frameworks/**"
+    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/**"
   end
 
   s.subspec 'basic-frameworks' do |sp|
     sp.dependency '@LINPHONESDK_NAME@/app-extension'
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/Frameworks/{@LINPHONE_OTHER_FRAMEWORKS@}"
+    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/{@LINPHONE_OTHER_FRAMEWORKS@}"
   end
 
   s.subspec 'app-extension' do |sp|
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/Frameworks/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
+    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
   end
 
   s.subspec 'app-extension-swift' do |sp|

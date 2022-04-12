@@ -42,9 +42,21 @@ execute_process(# Do not use copy_directory because of symlinks
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
+if(NOT ENABLE_FAT_BINARY)
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}/Frameworks"
+	)
+endif()
+
 #####		MIX
 #Get all files in output
 file(GLOB_RECURSE _binaries RELATIVE "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/" "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/*")
+
+if(NOT ENABLE_FAT_BINARY)
+	# Remove all .framework inputs from the result
+	list(FILTER _binaries EXCLUDE REGEX ".*\.framework.*")
+endif()
+
 foreach(_file ${_binaries})
 	get_filename_component( ABSOLUTE_FILE "linphone-sdk/mac-${_first_arch}/${_file}" ABSOLUTE)
 	if(NOT IS_SYMLINK ${ABSOLUTE_FILE})
@@ -71,4 +83,21 @@ foreach(_file ${_binaries})
 	endif()
 endforeach()
 
-
+if(NOT ENABLE_FAT_BINARY)
+	# Generate XCFrameworks
+	file(GLOB _frameworks "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/Frameworks/*.framework")
+	foreach(_framework ${_frameworks})
+		get_filename_component(_framework_name "${_framework}" NAME_WE)
+		set(_all_arch_frameworks)
+		foreach(_arch ${_archs})
+			list(APPEND _all_arch_frameworks "-framework")
+			list(APPEND _all_arch_frameworks "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-${_first_arch}/Frameworks/${_framework_name}.framework")
+		endforeach()
+		string(REPLACE ";" " " _arch_string "${_archs}")
+		message (STATUS "Creating XCFramework for ${_framework_name} for archs [${_arch_string}]")
+		execute_process(
+				COMMAND "xcodebuild" "-create-xcframework" "-output" "${CMAKE_INSTALL_PREFIX}/XCFrameworks/${_framework_name}.xcframework" ${_all_arch_frameworks}
+				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		)
+	endforeach()
+endif()

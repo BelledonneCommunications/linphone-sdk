@@ -29,7 +29,7 @@ xamarin-package:
    - cmake ..
      -DLINPHONESDK_PACKAGER="Nuget"
      -DLINPHONESDK_CSHARP_WRAPPER_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/share/linphonecs/LinphoneWrapper.cs"
-     -DLINPHONESDK_IOS_FRAMEWORKS_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/Frameworks"
+     -DLINPHONESDK_IOS_XCFRAMEWORKS_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/XCFrameworks"
      -DLINPHONESDK_ANDROID_AAR_PATH="$CI_PROJECT_DIR/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar"
      -DCMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/results"
    - cmake --build .

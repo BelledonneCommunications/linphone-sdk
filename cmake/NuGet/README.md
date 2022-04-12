@@ -11,7 +11,7 @@ To build a NuGet package for Android & iOS development with Xamarin, you will fi
 ```sh
 mkdir build-nuget
 cd build-nuget
-cmake .. -DLINPHONESDK_CSHARP_WRAPPER_PATH="..." -DLINPHONESDK_ANDROID_AAR_PATH="..." -DLINPHONESDK_IOS_FRAMEWORKS_PATH="..." -DLINPHONESDK_VERSION="..."
+cmake .. -DLINPHONESDK_CSHARP_WRAPPER_PATH="..." -DLINPHONESDK_ANDROID_AAR_PATH="..." -DLINPHONESDK_IOS_XCFRAMEWORKS_PATH="..." -DLINPHONESDK_VERSION="..."
 cmake --build .
 ```
 

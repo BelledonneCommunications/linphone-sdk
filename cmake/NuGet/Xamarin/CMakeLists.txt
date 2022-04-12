@@ -26,8 +26,8 @@ endif()
 if(NOT LINPHONESDK_ANDROID_AAR_PATH)
 	message(FATAL_ERROR "Please specify LINPHONESDK_ANDROID_AAR_PATH. This should be the path to the Android `.aar` archive (e.g. `linphone-sdk-android-release.aar`).")
 endif()
-if(NOT LINPHONESDK_IOS_FRAMEWORKS_PATH)
-	message(FATAL_ERROR "Please specify LINPHONESDK_IOS_FRAMEWORKS_PATH. This should be the path to the `Frameworks/` folder containing Apple `.framework` folders.")
+if(NOT LINPHONESDK_IOS_XCFRAMEWORKS_PATH)
+	message(FATAL_ERROR "Please specify LINPHONESDK_IOS_XCFRAMEWORKS_PATH. This should be the path to the `XCFrameworks/` folder containing Apple `.xcframework` folders.")
 endif()
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.Xamarin DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
@@ -42,14 +42,14 @@ add_custom_command(
 	OUTPUT
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Shared/LinphoneWrapper.cs
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Android/Jars/liblinphone-sdk.aar
-		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/Frameworks/linphone.framework/linphone
+		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/XCFrameworks/linphone.xcframework
 	DEPENDS
 		${LINPHONESDK_CSHARP_WRAPPER_PATH}
 		${LINPHONESDK_ANDROID_AAR_PATH}
-		${LINPHONESDK_IOS_FRAMEWORKS_PATH}/linphone.framework/linphone
+		${LINPHONESDK_IOS_XCFRAMEWORKS_PATH}/linphone.xcframework
 	COMMAND ${CMAKE_COMMAND} -E copy ${LINPHONESDK_CSHARP_WRAPPER_PATH} ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Shared/LinphoneWrapper.cs
 	COMMAND ${CMAKE_COMMAND} -E copy ${LINPHONESDK_ANDROID_AAR_PATH} ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Android/Jars/liblinphone-sdk.aar
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${LINPHONESDK_IOS_FRAMEWORKS_PATH} ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/Frameworks/
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${LINPHONESDK_IOS_XCFRAMEWORKS_PATH} ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/XCFrameworks/
 )
 
 add_custom_command(
@@ -61,7 +61,7 @@ add_custom_command(
 	DEPENDS 
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Shared/LinphoneWrapper.cs
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Android/Jars/liblinphone-sdk.aar
-		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/Frameworks/linphone.framework/linphone
+		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/XCFrameworks/linphone.xcframework
 	COMMAND ${NUGET} "restore"
 	COMMAND ${MSBUILD} "-maxCpuCount" "-p:Configuration=Release"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin

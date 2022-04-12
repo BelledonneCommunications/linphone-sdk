@@ -34,4 +34,10 @@ file(READ "${LINPHONESDK_DIR}/LICENSE.txt" LINPHONESDK_LICENSE)
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" VALID_ARCHS)
 string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
+
+set(LINPHONESDK_FRAMEWORK_FOLDER "XCFrameworks")
+if(ENABLE_FAT_BINARY)
+	set(LINPHONESDK_FRAMEWORK_FOLDER "Frameworks")
+endif()
+
 configure_file("${LINPHONESDK_DIR}/cmake/macos/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/linphone-sdk.podspec" @ONLY)

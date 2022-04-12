@@ -47,67 +47,67 @@
     <ObjcBindingCoreSource Include="Structs.cs" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Be extra careful to include *all* the indirect dependency frameworks here.
+    <!-- Be extra careful to include *all* the indirect dependency xcframeworks here.
          Otherwise apps will crash immediately, even before the debugger hooks in,
          which leaves the developer with nothing to diagnose.
     -->
-    <NativeReference Include="Frameworks\bctoolbox.framework">
+    <NativeReference Include="XCFrameworks\bctoolbox.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\bctoolbox-ios.framework">
+    <NativeReference Include="XCFrameworks\bctoolbox-ios.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\mediastreamer2.framework">
+    <NativeReference Include="XCFrameworks\mediastreamer2.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\msamr.framework">
+    <NativeReference Include="XCFrameworks\msamr.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\mscodec2.framework">
+    <NativeReference Include="XCFrameworks\mscodec2.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\msopenh264.framework">
+    <NativeReference Include="XCFrameworks\msopenh264.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\mssilk.framework">
+    <NativeReference Include="XCFrameworks\mssilk.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\mswebrtc.framework">
+    <NativeReference Include="XCFrameworks\mswebrtc.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\msx264.framework">
+    <NativeReference Include="XCFrameworks\msx264.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\ortp.framework">
+    <NativeReference Include="XCFrameworks\ortp.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\linphone.framework">
+    <NativeReference Include="XCFrameworks\linphone.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\belcard.framework">
+    <NativeReference Include="XCFrameworks\belcard.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\belle-sip.framework">
+    <NativeReference Include="XCFrameworks\belle-sip.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\belr.framework">
+    <NativeReference Include="XCFrameworks\belr.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
-    <NativeReference Include="Frameworks\lime.framework">
+    <NativeReference Include="XCFrameworks\lime.xcframework">
       <Kind>Framework</Kind>
       <SmartLink>False</SmartLink>
     </NativeReference>
