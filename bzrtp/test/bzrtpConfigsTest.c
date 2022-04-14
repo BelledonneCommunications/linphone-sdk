@@ -108,17 +108,21 @@ static int loosePacketPercentage=0; /* simulate bd network condition: loose pack
 static uint64_t timeOutLimit=1000; /* in ms, time span given to perform the ZRTP exchange */
 static float fadingLostAlice=0.0; /* try not to throw away too many packet in a row */
 static float fadingLostBob=0.0; /* try not to throw away too many packet in a row */
-static int totalPacketLost=0; /* set a limit to the total number of packet we can loose to enforce completion of the exchange */
+static int continuousPacketLost=0; /* Enforce not loosing more than 10 consecutive packets so we're sure to complete the exchange */
+static int totalPacketLost=0; /* for statistics */
+static int totalPacketSent=0; /* for statistics */
 
 /* when timeout is set to this specific value, negotiation is aborted but silently fails */
 #define ABORT_NEGOTIATION_TIMEOUT 24
 static void resetGlobalParams(void) {
 	msSTC=0;
-	totalPacketLost =0;
-	loosePacketPercentage=0;
+	continuousPacketLost = 0;
+	totalPacketLost = 0;
+	totalPacketSent = 0;
+	loosePacketPercentage = 0;
 	timeOutLimit = 1000;
-	fadingLostBob=0;
-	fadingLostAlice=0;
+	fadingLostBob = 0;
+	fadingLostAlice = 0;
 }
 
 /* time functions, we do not run a real time scenario, go for fast test instead */
@@ -136,8 +140,9 @@ static int sendData(void *clientData, const uint8_t *packetString, uint16_t pack
 
 	/* manage loosy network simulation */
 	if (loosePacketPercentage > 0) {
+		totalPacketSent++; // Stats on packets sent only when we can loose packets
 		/* make sure we cannot loose 10 packets in a row from the same sender */
-		if ((totalPacketLost<10) && ((float)((rand()%100 )) < loosePacketPercentage-((clientContext->id == ALICE)?fadingLostAlice:fadingLostBob))) { /* randomly discard packets */
+		if ((continuousPacketLost<10) && ((float)((rand()%100 )) < loosePacketPercentage-((clientContext->id == ALICE)?fadingLostAlice:fadingLostBob))) { /* randomly discard packets */
 			//bzrtp_message("%d Loose %.8s from %s - LC %d\n", msSTC, packetString+16, (clientContext->id==ALICE?"Alice":"Bob"), totalPacketLost);
 
 			if (clientContext->id == ALICE) {
@@ -145,7 +150,15 @@ static int sendData(void *clientData, const uint8_t *packetString, uint16_t pack
 			} else {
 				fadingLostBob +=loosePacketPercentage/8;
 			}
+			continuousPacketLost++;
+			totalPacketLost++;
 			return 0;
+		}
+		continuousPacketLost = 0;
+		if (clientContext->id == ALICE) {
+			fadingLostAlice = 0;
+		} else {
+			fadingLostBob = 0;
 		}
 		//bzrtp_message("%d Keep %.8s from %s - LC %d\n", msSTC, packetString+16, (clientContext->id==ALICE?"Alice":"Bob"), totalPacketLost);
 	}
@@ -359,7 +372,14 @@ static int compareAlgoList(bzrtpSrtpSecrets_t *secrets, cryptoParams_t *cryptoPa
  * Never call directly this function in tests, its purpose is to have a flexible API according to future needs
  * use a variant or create a new one, see after this function
  */
-uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
+uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, // Alice parameter, can be NULL
+										   cryptoParams_t *bobCryptoParams, // Bob parameters, can be NULL
+										   cryptoParams_t *expectedCryptoParams, // Expected crypto algo used, checked only when not null
+										   void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, // Alice cache related informations, if NULL, run cacheless
+										   void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI, // Bob cache related informations, if NULL, run cacheless
+										   uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS, // When checkPVS is TRUE, check that Alice and Bob PVS are as expected
+										   size_t mtu) // if mtu is not 0, enforce mtu and check that packet size are never bigger than expected
+{
 
 	int retval,channelNumber;
 	clientContext_t Alice,Bob;
@@ -382,6 +402,14 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 		return retval;
 	}
 
+	/* When mtu is set, set it and check it worked */
+	if (mtu>0) {
+		BC_ASSERT_EQUAL(bzrtp_set_MTU(Alice.bzrtpContext, mtu), 0, int, "%d");
+		BC_ASSERT_EQUAL(bzrtp_get_MTU(Alice.bzrtpContext), mtu, size_t, "%zu");
+		BC_ASSERT_EQUAL(bzrtp_set_MTU(Bob.bzrtpContext, mtu), 0, int, "%d");
+		BC_ASSERT_EQUAL(bzrtp_get_MTU(Bob.bzrtpContext), mtu, size_t, "%zu");
+	}
+
 	/* start the ZRTP engine(it will send a hello packet )*/
 	if ((retval = bzrtp_startChannelEngine(Alice.bzrtpContext, aliceSSRC))!=0) {
 		bzrtp_message("ERROR: bzrtp_startChannelEngine returned %0x, client id is %d SSRC is %d\n", retval, ALICE, aliceSSRC);
@@ -397,6 +425,9 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 		int i;
 		/* check the message queue */
 		for (i=0; i<aliceQueueIndex; i++) {
+			if (mtu > 0) { // Check the packet size we received
+				BC_ASSERT_LOWER(aliceQueue[i].packetLength, mtu, size_t, "%zu");
+			}
 			retval = bzrtp_processMessage(Alice.bzrtpContext, aliceSSRC, aliceQueue[i].packetString, aliceQueue[i].packetLength);
 			//bzrtp_message("%ld Alice processed a %.8s and returns %x\n", msSTC, (aliceQueue[i].packetString)+16, retval);
 			memset(aliceQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
@@ -405,14 +436,15 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 		aliceQueueIndex = 0;
 
 		for (i=0; i<bobQueueIndex; i++) {
-
+			if (mtu > 0) { // Check the packet size we received
+				BC_ASSERT_LOWER(bobQueue[i].packetLength, mtu, size_t, "%zu");
+			}
 			retval = bzrtp_processMessage(Bob.bzrtpContext, bobSSRC, bobQueue[i].packetString, bobQueue[i].packetLength);
 			//bzrtp_message("%ld Bob processed a %.8s and returns %x\n",msSTC, (bobQueue[i].packetString)+16, retval);
 			memset(bobQueue[i].packetString, 0, MAX_PACKET_LENGTH); /* destroy the packet after sending it to the ZRTP engine */
 			lastPacketSentTime=getSimulatedTime();
 		}
 		bobQueueIndex = 0;
-
 
 		/* send the actual time to the zrtpContext */
 		retval = bzrtp_iterate(Alice.bzrtpContext, aliceSSRC, getSimulatedTime());
@@ -426,7 +458,6 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 			retval = bzrtp_resetRetransmissionTimer(Alice.bzrtpContext, aliceSSRC);
 			retval +=bzrtp_resetRetransmissionTimer(Bob.bzrtpContext, bobSSRC);
 			lastPacketSentTime=getSimulatedTime();
-
 		}
 	}
 
@@ -598,15 +629,19 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, cr
 
 /* Variants of the exchange function with less parameter : never call directly the full params one but use one of these */
 uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, checkPVS, expectedAlicePVS, expectedBobPVS);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, checkPVS, expectedAlicePVS, expectedBobPVS, 0);
 }
 
 uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0, 0);
+}
+
+uint32_t multichannel_exchange_mtu(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, size_t mtu) {
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, 0, 0, mtu);
 }
 
 uint32_t multichannel_exchange_mutex(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceCacheMutex, aliceURI, bobCache, bobCacheMutex, bobURI, FALSE, 0, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceCacheMutex, aliceURI, bobCache, bobCacheMutex, bobURI, FALSE, 0, 0, 0);
 }
 
 
@@ -707,7 +742,7 @@ static void test_cacheless_exchange(void) {
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
 
-	/* serie tested only if KEM is available */
+	/* serie tested only if OQS PQC KEM are available */
 	cryptoParams_t kem_patterns[] = {
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
@@ -715,7 +750,13 @@ static void test_cacheless_exchange(void) {
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	/* serie tested only when both ECDH and OQS PQC KEM available */
+	cryptoParams_t hybrid_kem_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0}, /* K255 and K448 are available only if OQS is available */
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
@@ -740,7 +781,7 @@ static void test_cacheless_exchange(void) {
 		}
 	}
 
-	/* with KEM agreement types if available */
+	/* with OQS PQC KEM agreement types if available */
 	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
 		pattern = &kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
@@ -749,6 +790,14 @@ static void test_cacheless_exchange(void) {
 		}
 	}
 
+	/* with OQS PQC KEM agreement and ECDH types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
+		while (pattern->cipherNb!=0) {
+			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+			pattern++; /* point to next row in the array of patterns */
+		}
+	}
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
 }
 
@@ -764,6 +813,86 @@ static void test_loosy_network(void) {
 			timeOutLimit =100000; //outrageous time limit just to be sure to complete, not run in real time anyway
 			loosePacketPercentage=i;
 			BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
+			bzrtp_message("Lost packets: %f pc", (100.0*totalPacketLost)/totalPacketSent);
+		}
+	}
+}
+
+static void test_mtu(void) {
+	cryptoParams_t *pattern;
+
+	/* Reset Global Static settings */
+	resetGlobalParams();
+
+	cryptoParams_t patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	/* serie tested only if ECDH is available */
+	cryptoParams_t ecdh_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	/* serie tested only if OQS PQC KEM and ECDH are available */
+	cryptoParams_t hybrid_kem_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
+	while (pattern->cipherNb!=0) {
+		BC_ASSERT_EQUAL(multichannel_exchange_mtu(pattern, pattern, pattern, 800), 0, int, "%x");
+		pattern++; /* point to next row in the array of patterns */
+	}
+
+	/* with ECDH agreement types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		pattern = &ecdh_patterns[0]; /* pattern is a pointer to current pattern */
+		while (pattern->cipherNb!=0) {
+			BC_ASSERT_EQUAL(multichannel_exchange_mtu(pattern, pattern, pattern, 800), 0, int, "%x");
+			pattern++; /* point to next row in the array of patterns */
+		}
+	}
+
+	/* with OQS PQC KEM agreement and ECDH types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
+		while (pattern->cipherNb!=0) {
+			BC_ASSERT_EQUAL(multichannel_exchange_mtu(pattern, pattern, pattern, 800), 0, int, "%x");
+			pattern++; /* point to next row in the array of patterns */
+		}
+	}
+}
+
+static void test_loosy_network_mtu(void) {
+	if (!(bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519)) {
+		bctbx_warning("mtu test on loosy network skipped as we do not support key exchange requesting fragmentation");
+		return;
+	}
+
+	int i,j;
+	resetGlobalParams();
+	srand((unsigned int)time(NULL));
+	cryptoParams_t pattern = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0};
+
+	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
+	for (j=0; j<10; j++) {
+		for (i=1; i<60; i+=1) {
+			resetGlobalParams();
+			timeOutLimit =100000; //outrageous time limit just to be sure to complete, not run in real time anyway
+			loosePacketPercentage=i;
+			BC_ASSERT_EQUAL(multichannel_exchange_mtu(&pattern, &pattern, &pattern, 800), 0, int, "%x");
+			bzrtp_message("Lost packets: %f pc", (100.0*totalPacketLost)/totalPacketSent);
 		}
 	}
 }
@@ -1659,6 +1788,8 @@ static void test_cache_concurrent_access(void) {
 
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
+	TEST_NO_TAG("Packet Fragmentation", test_mtu),
+	TEST_NO_TAG("Packet Fragmentation over loosy network", test_loosy_network_mtu),
 	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),
 	TEST_NO_TAG("Cached mismatch", test_cache_mismatch_exchange),
 	TEST_NO_TAG("Loosy network", test_loosy_network),

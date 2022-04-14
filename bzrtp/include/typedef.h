@@ -70,6 +70,12 @@ typedef struct bzrtpChannelContext_struct bzrtpChannelContext_t;
 #define NON_HELLO_CAP_RETRANSMISSION_STEP 	1200
 #define NON_HELLO_MAX_RETRANSMISSION_NUMBER	10
 
+/* network related defines */
+/* minimal MTU size is 600 bytes to avoid useless fragmentation of small enough packets */
+#define BZRTP_MINIMUM_MTU 600
+/* default MTU is 1452 to aim at 1500 bytes with IPv6(40 bytes) + UDP(8 bytes) overhead */
+#define BZRTP_DEFAULT_MTU 1452
+
 /* Client identifier can contain up to 16 characters, it identify the BZRTP library version */
 /* Use it to pass bzrtp version number to peer, is it part of Hello message */
 /* custom Linphone Instant Messaging Encryption depends on bzrtp version */
@@ -128,7 +134,17 @@ typedef struct cachedSecretsHash_struct {
 	uint8_t pbxsecretID[8]; /**< pbx secret Hash */
 } cachedSecretsHash_t;
 
+typedef struct fragmentInfo_struct {
+	uint16_t offset;
+	uint16_t length;
+} fragmentInfo_t;
 
+typedef struct fragmentReassembly_struct {
+	uint16_t messageId; /**< message ID of the current message */
+	uint16_t messageLength; /**< total length (in 32 bits words) of the current message */
+	uint8_t *packetString; /**< Storage for the packet - it includes the not used packet header */
+	bctbx_list_t *fragments; /**< list of fragmentInfo_t on all what we already have */
+} fragmentReassembly_t;
 /**
  * @brief The zrtp context of a channel
  *
@@ -160,6 +176,7 @@ struct bzrtpChannelContext_struct {
 
 	/* sequence number: self and peer */
 	uint16_t selfSequenceNumber; /**< Sequence number of the next packet to be sent */
+	uint16_t selfMessageSequenceNumber; /**< is used as messageId for fragmented packets, is incremented on new message creation, not packet sending */
 	uint16_t peerSequenceNumber; /**< Sequence number of the last valid received packet */
 
 	/* algorithm agreed after Hello message exchange(use mapping define in cryptoUtils.h) and the function pointer to use them */
@@ -192,6 +209,10 @@ struct bzrtpChannelContext_struct {
 	/* shared secret hash : unlike pbx, rs1 and rs2 secret hash, the auxsecret hash use a channel dependent data (H3) and is then stored in the channel context */
 	uint8_t initiatorAuxsecretID[8]; /**< initiator auxiliary secret Hash */
 	uint8_t responderAuxsecretID[8]; /**< responder auxiliary secret Hash */
+
+	/* packet fragmentation management */
+	/* We do not need to store more than one as there on no scenarii in wich we expect peer to send 2 messages in a parallel */
+	fragmentReassembly_t incomingFragmentedPacket;
 
 	/* temporary buffer stored in the channel context */
 	bzrtpPacket_t *pingPacket; /**< Temporary stores a ping packet when received to be used to create the pingACK response */
@@ -262,6 +283,9 @@ struct bzrtpContext_struct {
 	uint8_t	ZRTPSessLength; /**< length of ZRTP session key depends on agreed hash algorithm */
 	uint8_t *exportedKey; /**< computed as in rfc section 4.5.2 only if needed */
 	uint8_t exportedKeyLength; /**< length of previous buffer, shall be channel[0]->hashLength */
+
+	/* network */
+	size_t mtu; /**< Maximum size in bytes of a ZRTP packet generated locally, has a low limit of BZRTP_MINIMUM_MTU */
 
 };
 

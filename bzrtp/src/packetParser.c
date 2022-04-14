@@ -18,14 +18,12 @@
  */
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include "typedef.h"
 #include "packetParser.h"
 #include <bctoolbox/crypto.h>
 #include "cryptoUtils.h"
-
-/* DEBUG */
-#include <stdio.h>
 
 /* minimum length of a ZRTP packet: 12 bytes header + 12 bytes message(shortest are ACK messages) + 4 bytes CRC */
 #define ZRTP_MIN_PACKET_LENGTH 28
@@ -60,7 +58,7 @@
  *
  * @return	an 9 char string : 8 chars message type as specified in rfc section 5.1.1 + string terminating char
  */
-uint8_t *messageTypeInttoString(uint32_t messageType);
+static uint8_t *messageTypeInttoString(uint32_t messageType);
 
 /**
  * @brief Map the 8 char string value message type to an int32_t
@@ -69,7 +67,7 @@ uint8_t *messageTypeInttoString(uint32_t messageType);
  *
  * @return	a 32-bits unsigned integer mapping the message type
  */
-int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]);
+static int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]);
 
 /**
  * @brief Write the message header(preambule, length, message type) into the given output buffer
@@ -79,24 +77,36 @@ int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]);
  * @param[in]	messageType			An 8 chars string for the message type (validity is not checked by this function)
  *
  */
-void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t messageType[8]);
+static void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t messageType[9]);
 
-
+/**
+ * @brief Write the packet header(preambule, MagicCookie, SSRC)
+ *        in the zrtpPacket string
+ *
+ * @param[in/out] 	zrtpPacket		the zrtp packet holding the stringBuffer
+ */
+static void zrtpPacketSetHeader(bzrtpPacket_t *zrtpPacket);
 
 
 /*** Public functions implementation ***/
 
 /* First call this function to check packet validity and create the packet structure */
-bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, uint16_t lastValidSequenceNumber, int *exitCode) {
+bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrtpChannelContext_t *zrtpChannelContext, int *exitCode) {
 	bzrtpPacket_t *zrtpPacket;
 	uint16_t sequenceNumber;
 	uint32_t packetCRC;
 	uint16_t messageLength;
 	uint32_t messageType;
+	uint8_t *input = *inputPtr;
+
+	if (zrtpChannelContext == NULL) {
+		*exitCode = BZRTP_ERROR_INVALIDCONTEXT;
+		return NULL;
+	}
 
 	/* first check that the packet is a ZRTP one */
 	/* is the length compatible with a ZRTP packet */ 
-	if ((inputLength<ZRTP_MIN_PACKET_LENGTH) || (inputLength>ZRTP_MAX_PACKET_LENGTH)) {
+	if ((*inputLength<ZRTP_MIN_PACKET_LENGTH) || (*inputLength>ZRTP_MAX_PACKET_LENGTH)) {
 		 *exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
 		 return NULL;
 	}
@@ -117,25 +127,126 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
    |                                                               |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                          CRC (1 word)                         |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-	if ((input[0]>>4 != 0x01) || (input[4]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF)) || (input[5]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF)) || (input[6]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF)) || (input[7]!= (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF))) {
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   If the packet is fragmented, the format is :
+   0                   1                   2                   3
+   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |0 0 1 1|Not Used (set to zero) |         Sequence Number       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                 Magic Cookie 'ZRTP' (0x5a525450)              |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Source Identifier                      |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |            message Id         |    message total length       |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |            offset             |    fragment length            |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   |           ZRTP Message fragment(length as indicated)          |
+   |                            . . .                              |
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          CRC (1 word)                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   */
+	if (((input[0] != 0x10) && (input[0] != 0x30)) || (input[1] != 0)|| (input[4]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF)) || (input[5]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF)) || (input[6]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF)) || (input[7]!= (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF))) {
 		*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
 		return NULL;
 	}
 
+	/* Fragmented packet detection */
+	bool_t isFragmented = input[0] == 0x30?TRUE:FALSE;
+
 	/* Check the sequence number : it must be > to the last valid one (given in parameter) to discard out of order packets
+	 * Perform this check only on non fragmented packets to avoid discarding fragments incoming unordered
 	 * TODO: what if we got a Sequence Number overflowing the 16 bits ? */
 	sequenceNumber = (((uint16_t)input[2])<<8) | ((uint16_t)input[3]);
-	if (sequenceNumber <= lastValidSequenceNumber) {
+
+	if (!isFragmented && sequenceNumber <= zrtpChannelContext->peerSequenceNumber) {
 		*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
 		return NULL;
 	}
 
 	/* Check the CRC : The CRC is calculated across the entire ZRTP packet, including the ZRTP header and the ZRTP message, but not including the CRC field.*/
-	packetCRC = ((((uint32_t)input[inputLength-4])<<24)&0xFF000000) | ((((uint32_t)input[inputLength-3])<<16)&0x00FF0000) | ((((uint32_t)input[inputLength-2])<<8)&0x0000FF00) | (((uint32_t)input[inputLength-1])&0x000000FF);
-	if (bzrtp_CRC32((uint8_t *)input, inputLength - 4) != packetCRC) {
+	packetCRC = ((((uint32_t)input[*inputLength-4])<<24)&0xFF000000) | ((((uint32_t)input[*inputLength-3])<<16)&0x00FF0000) | ((((uint32_t)input[*inputLength-2])<<8)&0x0000FF00) | (((uint32_t)input[*inputLength-1])&0x000000FF);
+	if (bzrtp_CRC32((uint8_t *)input, *inputLength - 4) != packetCRC) {
 		*exitCode = BZRTP_PARSER_ERROR_INVALIDCRC;
 		return NULL;
+	}
+
+	if (isFragmented == TRUE) {
+		/* parse the rest of the packet header */
+		uint16_t messageId = ((uint16_t)input[12])<<8 | input[13];
+		uint16_t messageTotalLength = ((uint16_t)input[14])<<8 | input[15];
+		uint16_t offset = ((uint16_t)input[16])<<8 | input[17];
+		uint16_t fragmentLength = ((uint16_t)input[18])<<8 | input[19];
+
+		uint16_t storedMessageId = zrtpChannelContext->incomingFragmentedPacket.messageId;
+		if (storedMessageId > messageId) { /* incoming message is a fragment of an old one, discard */
+			*exitCode = BZRTP_PARSER_ERROR_OUTOFORDER;
+			return NULL;
+		}
+		if (storedMessageId < messageId) { /* We had old fragments but this is a new message.
+			Discard the old one and start collecting new */
+			bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
+			zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
+			bctbx_free(zrtpChannelContext->incomingFragmentedPacket.packetString);
+			// allocate the packet string: packetHeader + messageLength (convert in bytes) + CRC
+			zrtpChannelContext->incomingFragmentedPacket.packetString = (uint8_t *)bctbx_malloc(ZRTP_PACKET_OVERHEAD + messageTotalLength*4);
+			storedMessageId = messageId; // This will trigger the insertion of this fragment in current packet
+			zrtpChannelContext->incomingFragmentedPacket.messageId = messageId;
+			zrtpChannelContext->incomingFragmentedPacket.messageLength = messageTotalLength;
+		}
+
+		bool_t fragmentInserted = FALSE;
+		if (storedMessageId == messageId) { /* This is a fragment of the message we are re-assembling */
+			bctbx_list_t *fragment = zrtpChannelContext->incomingFragmentedPacket.fragments;
+			while (fragment != NULL && fragmentInserted == FALSE) {
+				fragmentInfo_t *fragInfo = (fragmentInfo_t *)bctbx_list_get_data(fragment);
+				if (offset < fragInfo->offset) { /* received fragment is before one we already have */
+					fragmentInfo_t *newFragInfo = (fragmentInfo_t *)bctbx_malloc(sizeof(fragmentInfo_t));
+					newFragInfo->offset = offset;
+					newFragInfo->length = fragmentLength;
+					zrtpChannelContext->incomingFragmentedPacket.fragments = bctbx_list_insert(zrtpChannelContext->incomingFragmentedPacket.fragments, fragment, newFragInfo);
+					/* copy the fragment in the correct place: classic packet header+offset */
+					memcpy(zrtpChannelContext->incomingFragmentedPacket.packetString+ZRTP_PACKET_HEADER_LENGTH+4*offset, input+ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH,*inputLength-ZRTP_FRAGMENTEDPACKET_OVERHEAD);
+					fragmentInserted = TRUE;
+				}
+				if (offset == fragInfo->offset) { /* we already have that fragment, do nothing */
+					fragmentInserted = TRUE;
+				}
+				fragment = fragment->next;
+			}
+			if (fragmentInserted == FALSE) { /* the fragment is after all the one we already have */
+				fragmentInfo_t *newFragInfo = (fragmentInfo_t *)malloc(sizeof(fragmentInfo_t));
+				newFragInfo->offset = offset;
+				newFragInfo->length = fragmentLength;
+				zrtpChannelContext->incomingFragmentedPacket.fragments = bctbx_list_append(zrtpChannelContext->incomingFragmentedPacket.fragments, newFragInfo);
+				memcpy(zrtpChannelContext->incomingFragmentedPacket.packetString+ZRTP_PACKET_HEADER_LENGTH+4*offset, input+ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH, *inputLength-ZRTP_FRAGMENTEDPACKET_OVERHEAD);
+			}
+		}
+
+		/* Do we have a complete packet now? Compute the total length already received */
+		bctbx_list_t *fragment = zrtpChannelContext->incomingFragmentedPacket.fragments;
+		uint16_t receivedLength = 0;
+		while (fragment != NULL) {
+			fragmentInfo_t *fragInfo = (fragmentInfo_t *)bctbx_list_get_data(fragment);
+			receivedLength += fragInfo->length;
+			fragment=fragment->next;
+		}
+		if (receivedLength == messageTotalLength) {
+			*inputPtr = zrtpChannelContext->incomingFragmentedPacket.packetString;
+			input = *inputPtr;
+			*inputLength = ZRTP_PACKET_OVERHEAD + messageTotalLength*4;
+			bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
+			zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
+			zrtpChannelContext->incomingFragmentedPacket.messageId = 0;
+		} else {
+			*exitCode = BZRTP_PARSER_INFO_PACKETFRAGMENT;
+			return NULL;
+		}
 	}
 
 	/* check message header : 
@@ -171,6 +282,7 @@ bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, ui
 	zrtpPacket->messageType = messageType;
 	zrtpPacket->messageData = NULL;
 	zrtpPacket->packetString = NULL;
+	zrtpPacket->fragments = NULL;
 
 	/* get the SSRC */
 	zrtpPacket->sourceIdentifier = ((((uint32_t)input[8])<<24)&0xFF000000) | ((((uint32_t)input[9])<<16)&0x00FF0000) | ((((uint32_t)input[10])<<8)&0x0000FF00) | (((uint32_t)input[11])&0x000000FF);
@@ -748,7 +860,7 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 }
 
 /* Create the packet string from the messageData contained into the zrtp Packet structure */
-int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber) {
+int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket) {
 	
 	int i;
 	uint8_t *messageTypeString;
@@ -1109,9 +1221,6 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 
 	/* write headers only if we have a packet string */
 	if (zrtpPacket->packetString != NULL) {
-		uint32_t CRC;
-		uint8_t *CRCbuffer;
-
 		zrtpMessageSetHeader(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpPacket->messageLength, messageTypeString);
 
 		/* Do we have a MAC to compute on the message ? */
@@ -1120,35 +1229,91 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 			/* HMAC is computed on the whole message except the MAC itself so a length of zrtpPacket->messageLength-8 */
 			bctbx_hmacSha256(MACkey, 32, zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpPacket->messageLength-8, 8, MACbuffer);
 		}
-	
-		/* set packet header and CRC */
-		/* preambule */
-		zrtpPacket->packetString[0] = 0x10;
-		zrtpPacket->packetString[1] = 0x00;
-		/* Sequence number */
-		zrtpPacket->packetString[2] = (uint8_t)((sequenceNumber>>8)&0x00FF);
-		zrtpPacket->packetString[3] = (uint8_t)(sequenceNumber&0x00FF);
-		/* ZRTP magic cookie */
-		zrtpPacket->packetString[4] = (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF);
-		zrtpPacket->packetString[5] = (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF);
-		zrtpPacket->packetString[6] = (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF);
-		zrtpPacket->packetString[7] = (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF);
-		/* Source Identifier */
-		zrtpPacket->packetString[8] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>24)&0xFF);
-		zrtpPacket->packetString[9] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>16)&0xFF);
-		zrtpPacket->packetString[10] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>8)&0xFF);
-		zrtpPacket->packetString[11] = (uint8_t)((zrtpPacket->sourceIdentifier)&0xFF);
-		/* CRC */
-		CRC = bzrtp_CRC32(zrtpPacket->packetString, zrtpPacket->messageLength+ZRTP_PACKET_HEADER_LENGTH);
-		CRCbuffer = (zrtpPacket->packetString)+(zrtpPacket->messageLength)+ZRTP_PACKET_HEADER_LENGTH;
-		*CRCbuffer = (uint8_t)((CRC>>24)&0xFF);
-		CRCbuffer++;
-		*CRCbuffer = (uint8_t)((CRC>>16)&0xFF);
-		CRCbuffer++;
-		*CRCbuffer = (uint8_t)((CRC>>8)&0xFF);
-		CRCbuffer++;
-		*CRCbuffer = (uint8_t)(CRC&0xFF);
-	
+
+		/* we need to fragment this message */
+		if (zrtpContext->mtu < (uint16_t)(zrtpPacket->messageLength+(uint16_t)ZRTP_PACKET_OVERHEAD)) {
+			uint16_t offset = 0;
+			// Compute messageId = SHA256(message)
+			uint8_t messageId[2];
+			bctbx_sha256(zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH, zrtpPacket->messageLength, 2, messageId);
+
+			while (offset<zrtpPacket->messageLength) {
+				int retval = 0;
+				bzrtpPacket_t *fragmentPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_FRAGMENT, &retval);
+				if (retval != 0) {
+					return BZRTP_BUILDER_ERROR_UNABLETOFRAGMENT;
+				}
+
+				uint16_t fragmentSize=0;
+				/* size of the fragment is min of (remaining part , mtu - fragmentedPacketFragmentOverhead) */
+				if ((uint16_t)(zrtpPacket->messageLength - offset) < zrtpContext->mtu - ZRTP_FRAGMENTEDPACKET_OVERHEAD) {
+					// All left data fit into a fragment
+					fragmentSize = zrtpPacket->messageLength - offset;
+				} else {
+					// use the maximum fragment size
+					fragmentSize = zrtpContext->mtu - ZRTP_FRAGMENTEDPACKET_OVERHEAD;
+				}
+
+				fragmentPacket->messageLength = fragmentSize; // needed by bzrtp_packetSetSequenceNumber
+
+				// Allocate the fragment packetString buffer: Packet header + fragment + CRC
+				fragmentPacket->packetString = (uint8_t *)malloc((ZRTP_FRAGMENTEDPACKET_OVERHEAD + fragmentSize)*sizeof(uint8_t));
+				// Copy the fragment
+				memcpy(fragmentPacket->packetString + ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH, zrtpPacket->packetString+ZRTP_PACKET_HEADER_LENGTH+offset, fragmentSize);
+
+				// Set the packetHeader: this only set the regular parts of the zrtp packet header
+				zrtpPacketSetHeader(fragmentPacket);
+
+				// Add the fragmented packet header parts: messageId, message total length, offset, fragment length
+				// They are after the regular packet header
+				/* 0                   1                   2                   3
+				 * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+				 * |0 0 1 1|Not Used (set to zero) |         Sequence Number       |  in fragmented packet, first byte is 0x30 while it is 0x10 in regular packet
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+				 * |                 Magic Cookie 'ZRTP' (0x5a525450)              |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                This part is always present
+				 * |                        Source Identifier                      |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+				 * |            message Id         |    message total length       |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                This part is only there for the fragmented packet
+				 * |            offset             |    fragment length            |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+				 * |                                                               |
+				 * |           ZRTP Message fragment(length as indicated)          |
+				 * |                            . . .                              |
+				 * |                                                               |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+				 * |                          CRC (1 word)                         |
+				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+				 */
+				messageString = fragmentPacket->packetString+ZRTP_PACKET_HEADER_LENGTH;
+				// set message sequence number as message Id
+				*messageString++ = (uint8_t)((zrtpChannelContext->selfMessageSequenceNumber>>8)&0xFF);
+				*messageString++ = (uint8_t)((zrtpChannelContext->selfMessageSequenceNumber)&0xFF);
+
+				// message total length (in 32 bytes words, we have it in bytes)
+				*messageString++ = (uint8_t)((zrtpPacket->messageLength>>10)&0xFF);
+				*messageString++ = (uint8_t)((zrtpPacket->messageLength>>2)&0xFF);
+
+				// add offset (offset is in 4 bytes word while we have in bytes)
+				*messageString++ = (uint8_t)((offset>>10)&0xFF);
+				*messageString++ = (uint8_t)((offset>>2)&0xFF);
+
+				// add fragment length (in 4 bytes words)
+				*messageString++ = (uint8_t)((fragmentSize>>10)&0xFF);
+				*messageString++ = (uint8_t)((fragmentSize>>2)&0xFF);
+
+				offset += fragmentSize;
+
+				// Attach the packet in the fragment list
+				zrtpPacket->fragments = bctbx_list_append(zrtpPacket->fragments, fragmentPacket);
+			}
+			zrtpChannelContext->selfMessageSequenceNumber++; // make sure we do not re-use this messageId
+		} else { // No fragmentation needed, just add the packet header
+			zrtpPacketSetHeader(zrtpPacket);
+		}
+
 		return 0;
 	} else { /* no packetString allocated something wen't wrong but we shall never arrive here */
 		return BZRTP_BUILDER_ERROR_UNKNOWN;
@@ -1162,6 +1327,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 	memset(zrtpPacket, 0, sizeof(bzrtpPacket_t));
 	zrtpPacket->messageData = NULL;
 	zrtpPacket->packetString = NULL;
+	zrtpPacket->fragments = NULL;
 
 	/* initialise it */
 	switch(messageType) {
@@ -1453,7 +1619,11 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				zrtpPacket->messageData = zrtpPingAckMessage;
 			} /* MSGTYPE_PINGACK */
 			break;
-
+		case MSGTYPE_FRAGMENT :
+			{
+				/* nothing to do, it uses the common fields only */
+			}
+			break;
 		default:
 			free(zrtpPacket);
 			*exitCode = BZRTP_CREATE_ERROR_INVALIDMESSAGETYPE;
@@ -1461,12 +1631,11 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 			break;
 	}
 
-	zrtpPacket->sequenceNumber = 0; /* this field is not used buy the packet creator, sequence number is given as a parameter when converting
-	the message to a packet string(packet build). Used only when parsing a string into a packet struct */
+	zrtpPacket->sequenceNumber = 0; /* this field is not used buy the packet creator, sequence number is set when the packet is sent
+									Used only when parsing a string into a packet struct */
 	zrtpPacket->messageType = messageType;
 	zrtpPacket->sourceIdentifier = zrtpChannelContext->selfSSRC;
 	zrtpPacket->messageLength = 0; /* length will be computed at packet build */
-	zrtpPacket->packetString = NULL;
 
 	*exitCode=0;
 	return zrtpPacket;
@@ -1506,6 +1675,8 @@ void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket) {
 			}
 		}
 		free(zrtpPacket->messageData);
+		/* if we have fragments, free them too */
+		bctbx_list_free_with_data(zrtpPacket->fragments, (bctbx_list_free_func)bzrtp_freeZrtpPacket);
 		free(zrtpPacket->packetString);
 		free(zrtpPacket);
 	}
@@ -1513,15 +1684,15 @@ void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket) {
 
 /**
  * @brief Modify the current sequence number of the packet in the packetString and sequenceNumber fields
- * The CRC at the end of packetString is also updated
+ * The CRC at the end of packetString is also computed
  * 
  * param[in,out]	zrtpPacket		The zrtpPacket to modify, the packetString must have been generated by
  * 									a call to bzrtp_packetBuild on this packet
- * param[in]		sequenceNumber	The new sequence number to insert in the packetString
+ * param[in]		sequenceNumber	The sequence number to insert in the packetString
  * 
  * return		0 on succes, error code otherwise
  */
-int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber) {
+int bzrtp_packetSetSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber) {
 	uint32_t CRC;
 	uint8_t *CRCbuffer;
 
@@ -1532,23 +1703,20 @@ int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenc
 	if (zrtpPacket->packetString == NULL) {
 		return BZRTP_BUILDER_ERROR_INVALIDPACKET;
 	}
-	/* update the sequence number field (even if it is probably useless as this function is called just before sending the DHPart2 packet only)*/
+	/* update the sequence number field */
 	zrtpPacket->sequenceNumber = sequenceNumber;
 
-	/* update hte sequence number in the packetString */
+	/* update the sequence number in the packetString */
 	*(zrtpPacket->packetString+2)= (uint8_t)((sequenceNumber>>8)&0x00FF);
 	*(zrtpPacket->packetString+3)= (uint8_t)(sequenceNumber&0x00FF);
 
-
-	/* update the CRC */
-	CRC = bzrtp_CRC32(zrtpPacket->packetString, zrtpPacket->messageLength+ZRTP_PACKET_HEADER_LENGTH);
-	CRCbuffer = (zrtpPacket->packetString)+(zrtpPacket->messageLength)+ZRTP_PACKET_HEADER_LENGTH;
-	*CRCbuffer = (uint8_t)((CRC>>24)&0xFF);
-	CRCbuffer++;
-	*CRCbuffer = (uint8_t)((CRC>>16)&0xFF);
-	CRCbuffer++;
-	*CRCbuffer = (uint8_t)((CRC>>8)&0xFF);
-	CRCbuffer++;
+	/* compute the CRC */
+	uint16_t packetHeaderLength = (zrtpPacket->messageType==MSGTYPE_FRAGMENT)?ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH:ZRTP_PACKET_HEADER_LENGTH;
+	CRC = bzrtp_CRC32(zrtpPacket->packetString, zrtpPacket->messageLength + packetHeaderLength);
+	CRCbuffer = (zrtpPacket->packetString)+(zrtpPacket->messageLength) + packetHeaderLength;
+	*CRCbuffer++ = (uint8_t)((CRC>>24)&0xFF);
+	*CRCbuffer++ = (uint8_t)((CRC>>16)&0xFF);
+	*CRCbuffer++ = (uint8_t)((CRC>>8)&0xFF);
 	*CRCbuffer = (uint8_t)(CRC&0xFF);
 
 	return 0;
@@ -1557,7 +1725,7 @@ int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenc
 
 /*** Local functions implementation ***/
 
-uint8_t *messageTypeInttoString(uint32_t messageType) {
+static uint8_t *messageTypeInttoString(uint32_t messageType) {
 
 	switch(messageType) {
 		case MSGTYPE_HELLO : 
@@ -1619,7 +1787,7 @@ uint8_t *messageTypeInttoString(uint32_t messageType) {
  *
  * @return	a 32-bits unsigned integer mapping the message type
  */
-int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]) {
+static int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]) {
 	if (memcmp(messageTypeString, "Hello   ", 8) == 0) {
 		return MSGTYPE_HELLO;
 	} else if (memcmp(messageTypeString, "HelloACK", 8) == 0) {
@@ -1662,10 +1830,10 @@ int32_t messageTypeStringtoInt(uint8_t messageTypeString[8]) {
  *
  * @param[out]	outputBuffer		Message starts at the begining of this buffer
  * @param[in]	messageLength		Message length in bytes! To be converted into 32bits words before being inserted in the message header
- * @param[in]	messageType			An 8 chars string for the message type (validity is not checked by this function)
+ * @param[in]	messageType			An 9 chars string (8 chars + NULL term) for the message type (validity is not checked by this function)
  *
  */
-void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t messageType[8]) {
+static void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t messageType[9]) {
 	/* insert the preambule */
 	outputBuffer[0] = 0x50;
 	outputBuffer[1] = 0x5a;
@@ -1676,4 +1844,27 @@ void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, uint8_t
 
 	/* the message type */
 	memcpy(outputBuffer+4, messageType, 8);
+}
+
+/**
+ * @brief Write the packet header(preambule, MagicCookie, SSRC)
+ *        in the zrtpPacket string
+ *
+ * @param[in/out] 	zrtpPacket		the zrtp packet holding the stringBuffer
+ */
+static void zrtpPacketSetHeader(bzrtpPacket_t *zrtpPacket) {
+	/* preambule */
+	zrtpPacket->packetString[0] = (zrtpPacket->messageType == MSGTYPE_FRAGMENT)?0x30:0x10;
+	zrtpPacket->packetString[1] = 0x00;
+
+	/* ZRTP magic cookie */
+	zrtpPacket->packetString[4] = (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF);
+	zrtpPacket->packetString[5] = (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF);
+	zrtpPacket->packetString[6] = (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF);
+	zrtpPacket->packetString[7] = (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF);
+	/* Source Identifier */
+	zrtpPacket->packetString[8] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>24)&0xFF);
+	zrtpPacket->packetString[9] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>16)&0xFF);
+	zrtpPacket->packetString[10] = (uint8_t)(((zrtpPacket->sourceIdentifier)>>8)&0xFF);
+	zrtpPacket->packetString[11] = (uint8_t)((zrtpPacket->sourceIdentifier)&0xFF);
 }

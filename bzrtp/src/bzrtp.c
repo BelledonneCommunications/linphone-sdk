@@ -107,6 +107,9 @@ bzrtpContext_t *bzrtp_createBzrtpContext(void) {
 	context->exportedKey = NULL;
 	context->exportedKeyLength = 0;
 
+	/* initialise MTU to default value */
+	context->mtu = BZRTP_DEFAULT_MTU;
+
 	return context;
 }
 
@@ -523,25 +526,32 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 	}
 
 	/* first check the packet */
-	zrtpPacket = bzrtp_packetCheck(zrtpPacketString, zrtpPacketStringLength, zrtpChannelContext->peerSequenceNumber, &retval);
+	uint8_t *incomingPacket = zrtpPacketString;
+	uint16_t incomingPacketLength = zrtpPacketStringLength;
+	zrtpPacket = bzrtp_packetCheck(&incomingPacket, &incomingPacketLength, zrtpChannelContext, &retval);
 	if (retval != 0) {
+		if (retval == BZRTP_PARSER_INFO_PACKETFRAGMENT) {
+			/* fragment of incomplete packet incoming, just wait for the rest of it to arrive*/
+			return 0;
+		}
 		/*TODO: check the returned error code and do something or silent drop? */
 		return retval;
 	}
 
-	/* TODO: Intercept error and ping zrtp packets */
+	/* Intercept error(Not managed yet) and ping zrtp packets */
 	/* if we have a ping packet, just answer with a ping ACK and do not forward to the state machine */
 	if (zrtpPacket->messageType == MSGTYPE_PING) {
 		bzrtpPacket_t *pingAckPacket = NULL;
 
-		bzrtp_packetParser(zrtpContext, zrtpChannelContext, zrtpPacketString, zrtpPacketStringLength, zrtpPacket);
+		bzrtp_packetParser(zrtpContext, zrtpChannelContext, incomingPacket, incomingPacketLength, zrtpPacket);
 		/* store ping packet in the channel context as packet creator will need it to create the pingACK */
 		zrtpChannelContext->pingPacket = zrtpPacket;
 		/* create the pingAck packet */
 		pingAckPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_PINGACK, &retval);
 		if (retval == 0) {
-			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, pingAckPacket, zrtpChannelContext->selfSequenceNumber);
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, pingAckPacket);
 			if (retval==0 && zrtpContext->zrtpCallbacks.bzrtp_sendData!=NULL) { /* send the packet */
+				bzrtp_packetSetSequenceNumber(pingAckPacket, zrtpChannelContext->selfSequenceNumber);
 				zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, pingAckPacket->packetString, pingAckPacket->messageLength+ZRTP_PACKET_OVERHEAD);
 				zrtpChannelContext->selfSequenceNumber++;
 			}
@@ -557,8 +567,8 @@ int bzrtp_processMessage(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8_t
 
 	/* build a packet event of it and send it to the state machine */
 	event.eventType = BZRTP_EVENT_MESSAGE;
-	event.bzrtpPacketString = zrtpPacketString;
-	event.bzrtpPacketStringLength = zrtpPacketStringLength;
+	event.bzrtpPacketString = incomingPacket;
+	event.bzrtpPacketStringLength = incomingPacketLength;
 	event.bzrtpPacket = zrtpPacket;
 	event.zrtpContext = zrtpContext;
 	event.zrtpChannelContext = zrtpChannelContext;
@@ -1124,10 +1134,16 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	}
 	zrtpChannelContext->peerHelloHash = NULL;
 
+	/* initialisation of fragmented packet reception */
+	zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
+	zrtpChannelContext->incomingFragmentedPacket.messageId = 0;
+	zrtpChannelContext->incomingFragmentedPacket.packetString = NULL;
+
 	/* initialise the self Sequence number to a random and peer to 0 */
 	bctbx_rng_get(zrtpContext->RNGContext, (uint8_t *)&(zrtpChannelContext->selfSequenceNumber), 2);
 	zrtpChannelContext->selfSequenceNumber &= 0x0FFF; /* first 4 bits to zero in order to avoid reaching FFFF and turning back to 0 */
 	zrtpChannelContext->selfSequenceNumber++; /* be sure it is not initialised to 0 */
+	zrtpChannelContext->selfMessageSequenceNumber = zrtpChannelContext->selfSequenceNumber; /* message sequence number gets the same initial value */
 	zrtpChannelContext->peerSequenceNumber = 0;
 
 	/* reset choosen algo and their functions */
@@ -1174,7 +1190,7 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 		return retval;
 	}
 	/* build the packet string and store the packet */
-	if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
+	if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket) ==0) {
 		zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] = helloPacket;
 	} else {
 		bzrtp_freeZrtpPacket(helloPacket);
@@ -1250,6 +1266,10 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
 	free(zrtpChannelContext->srtpSecrets.sas);
 
+	/* fragmented packet reassembly */
+	bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
+	bctbx_free(zrtpChannelContext->incomingFragmentedPacket.packetString);
+
 	/* free the channel context */
 	free(zrtpChannelContext);
 }
@@ -1312,4 +1332,23 @@ const char *bzrtp_algoToString(uint8_t algo){
 
 		default: return "Unknown Algo";
 	}
+}
+
+int bzrtp_set_MTU(bzrtpContext_t *zrtpContext, size_t mtu) {
+	if (zrtpContext == NULL) {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+	if (mtu > BZRTP_MINIMUM_MTU) {
+		zrtpContext->mtu = mtu;
+	} else {
+		zrtpContext->mtu = BZRTP_MINIMUM_MTU;
+	}
+	return 0;
+}
+
+size_t bzrtp_get_MTU(bzrtpContext_t *zrtpContext) {
+	if (zrtpContext == NULL) {
+		return BZRTP_DEFAULT_MTU;
+	}
+	return zrtpContext->mtu;
 }

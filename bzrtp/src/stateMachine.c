@@ -28,13 +28,13 @@
 
 
 /* Local functions prototypes */
-int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage);
-int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket);
-int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
-int bzrtp_updateCachedSecrets(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage);
+static int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket);
+static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext);
+static int bzrtp_sendPacket ( const bzrtpContext_t* zrtpContext, bzrtpChannelContext_t* zrtpChannelContext, bzrtpPacket_t* zrtpPacket);
 
 /*
  * @brief This is the initial state
@@ -67,7 +67,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 			}
 
 			/* build the packet string */
-			if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
+			if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloPacket) ==0) {
 				zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] = helloPacket;
 			} else {
 				bzrtp_freeZrtpPacket(helloPacket);
@@ -153,18 +153,8 @@ int state_discovery_init(bzrtpEvent_t event) {
 		}
 
 		/* We must resend a Hello packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-			if (zrtpContext->zrtpCallbacks.bzrtp_sendData!=NULL) {
-				zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-				zrtpChannelContext->selfSequenceNumber++;
-			}
-		} else {
-			return retval;
-		}
-
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]);
 	}
-
 	return 0;
 }
 
@@ -290,19 +280,17 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 			if (retval != 0) {
 				return retval; /* no need to free the Hello message as it is attached to the context, it will be freed when destroying it */
 			}
-			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloACKPacket, zrtpChannelContext->selfSequenceNumber);
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloACKPacket);
 			if (retval != 0) {
 				bzrtp_freeZrtpPacket(helloACKPacket);
 				return retval;
 			} else {
 				/* send the message */
-				zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, helloACKPacket->packetString, helloACKPacket->messageLength+ZRTP_PACKET_OVERHEAD);
-				zrtpChannelContext->selfSequenceNumber++;
+				retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, helloACKPacket);
 				/* sent HelloACK is not stored, free it */
 				bzrtp_freeZrtpPacket(helloACKPacket);
 			}
-
-			return 0;
+			return retval;
 		}
 
 		/* parse the packet wich is either HelloACK or Commit */
@@ -365,14 +353,7 @@ int state_discovery_waitingForHelloAck(bzrtpEvent_t event) {
 		}
 
 		/* We must resend a Hello packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		zrtpChannelContext->selfSequenceNumber++;
-		} else {
-			return retval;
-		}
-
+		return	bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID]);
 	}
 
 	return 0;
@@ -412,7 +393,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 		}
 
 		/* build the packet string */
-		if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, commitPacket, zrtpChannelContext->selfSequenceNumber) ==0) {
+		if (bzrtp_packetBuild(zrtpContext, zrtpChannelContext, commitPacket) ==0) {
 			zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID] = commitPacket;
 		} else {
 			bzrtp_freeZrtpPacket(commitPacket);
@@ -426,9 +407,7 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 		zrtpChannelContext->timer.timerStep = NON_HELLO_BASE_RETRANSMISSION_STEP;
 
 		/* now send the first Commit message */
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		zrtpChannelContext->selfSequenceNumber++;
-		return 0;
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]);
 	}
 
 	/*** Manage message event ***/
@@ -678,16 +657,8 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 		}
 
 		/* We must resend a Commit packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		zrtpChannelContext->selfSequenceNumber++;
-		} else {
-			return retval;
-		}
-
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID]);
 	}
-
 	return 0;
 }
 
@@ -721,9 +692,8 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 		/* There is no timer in this state, make sure it is off */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
-		/* now send the first DHPart1 message, note the sequence number has already been incremented when turning the DHPart2 message in DHPart1 */
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		return 0;
+		/* now send the first DHPart1 message */
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
 	}
 
 	/*** Manage message event ***/
@@ -754,16 +724,8 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 			/* free the incoming packet */
 			bzrtp_freeZrtpPacket(zrtpPacket);
 
-			/* update and send the DHPart1 packet */
-			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-			if (retval != 0) {
-				return retval;
-			}
-
-			zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-			zrtpChannelContext->selfSequenceNumber++;
-
-			return 0;
+			/* send the DHPart1 packet */
+			return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
 		}
 
 		/* we have a DHPart2 go to state_confirmation_responderSendingConfirm1 */
@@ -935,22 +897,14 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 	/*** Manage the first call to this function ***/
 	/* We have to send a DHPart2 packet, it is already present in the context */
 	if (event.eventType == BZRTP_EVENT_INIT) {
-		/* adjust the sequence number and sennd the packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-			zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-			zrtpChannelContext->selfSequenceNumber++;
-		} else {
-			return retval;
-		}
-
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
 		zrtpChannelContext->timer.firingCount = 0;
 		zrtpChannelContext->timer.timerStep = NON_HELLO_BASE_RETRANSMISSION_STEP;
 
-		return 0;
+		/* adjust the sequence number and send the packet */
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
 	}
 
 	/*** Manage message event ***/
@@ -1046,16 +1000,8 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 		}
 
 		/* We must resend a DHPart1 packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-			zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-			zrtpChannelContext->selfSequenceNumber++;
-		} else {
-			return retval;
-		}
-
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
 	}
-
 	return 0;
 }
 
@@ -1110,19 +1056,17 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 		if (retval!=0) {
 			return retval;
 		}
-		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, confirm1Packet, zrtpChannelContext->selfSequenceNumber);
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, confirm1Packet);
 		if (retval!=0) {
 			bzrtp_freeZrtpPacket(confirm1Packet);
 			return retval;
 		}
-		zrtpChannelContext->selfSequenceNumber++;
 
 		/* save it so we can send it again if needed */
 		zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID] = confirm1Packet;
 
 		/* now send the confirm1 message */
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-		return 0;
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]);
 	}
 
 	/*** Manage message event ***/
@@ -1159,13 +1103,8 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			/* free the incoming packet */
 			bzrtp_freeZrtpPacket(zrtpPacket);
 
-			/* update sequence number and resend confirm1 packet */
-			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-			if (retval!=0) {
-				return retval;
-			}
-			zrtpChannelContext->selfSequenceNumber++;
-			return zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
+			/* resend confirm1 packet */
+			return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]);
 		}
 
 		/* We have a DHPart2 packet, check we are in DHM mode, that the DHPart2 is identical to the one we already had and resend the Confirm1 packet */
@@ -1192,13 +1131,8 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			/* free the incoming packet */
 			bzrtp_freeZrtpPacket(zrtpPacket);
 
-			/* update sequence number and resend confirm1 packet */
-			retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-			if (retval!=0) {
-				return retval;
-			}
-			zrtpChannelContext->selfSequenceNumber++;
-			return zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
+			/* resend confirm1 packet */
+			return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]);
 		}
 
 		/* We have a Confirm2 packet, check it, send a conf2ACK and go to secure state */
@@ -1248,14 +1182,13 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 			if (retval!=0) {
 				return retval;
 			}
-			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket, zrtpChannelContext->selfSequenceNumber);
+			retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket);
 			if (retval!=0) {
 				bzrtp_freeZrtpPacket(conf2ACKPacket);
 				return retval;
 			}
-			zrtpChannelContext->selfSequenceNumber++;
 
-			retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, conf2ACKPacket->packetString, conf2ACKPacket->messageLength+ZRTP_PACKET_OVERHEAD);
+			retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, conf2ACKPacket);
 			bzrtp_freeZrtpPacket(conf2ACKPacket);
 			if (retval!=0) {
 				return retval;
@@ -1322,7 +1255,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		if (retval!=0) {
 			return retval;
 		}
-		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, confirm2Packet, zrtpChannelContext->selfSequenceNumber);
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, confirm2Packet);
 		if (retval!=0) {
 			bzrtp_freeZrtpPacket(confirm2Packet);
 			return retval;
@@ -1344,7 +1277,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		}
 
 		/* now send the confirm2 message */
-		retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
+		retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]);
 		if (retval != 0) {
 			return retval;
 		}
@@ -1444,14 +1377,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 		}
 
 		/* We must resend a Confirm2 packet */
-		retval = bzrtp_packetUpdateSequenceNumber(zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-		if (retval == 0) {
-			zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->packetString, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]->messageLength+ZRTP_PACKET_OVERHEAD);
-			zrtpChannelContext->selfSequenceNumber++;
-		} else {
-			return retval;
-		}
-
+		return bzrtp_sendPacket(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[CONFIRM_MESSAGE_STORE_ID]);
 	}
 
 	return 0;
@@ -1527,14 +1453,13 @@ int state_secure(bzrtpEvent_t event) {
 		if (retval!=0) {
 			return retval;
 		}
-		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket, zrtpChannelContext->selfSequenceNumber);
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, conf2ACKPacket);
 		if (retval!=0) {
 			bzrtp_freeZrtpPacket(conf2ACKPacket);
 			return retval;
 		}
-		zrtpChannelContext->selfSequenceNumber++;
 
-		retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, conf2ACKPacket->packetString, conf2ACKPacket->messageLength+ZRTP_PACKET_OVERHEAD);
+		retval = bzrtp_sendPacket(zrtpContext, zrtpChannelContext, conf2ACKPacket);
 		/* free the conf2ACK packet */
 		bzrtp_freeZrtpPacket(conf2ACKPacket);
 
@@ -1548,6 +1473,7 @@ int state_secure(bzrtpEvent_t event) {
 	return 0;
 }
 
+/************* Local helpers functions *******************/
 /**
  * @brief Turn the current Channel into responder role
  * This happens when receiving a commit message when in state state_discovery_waitingForHelloAck or state_keyAgreement_sendingCommit if commit contention gives us the responder role.
@@ -1560,7 +1486,7 @@ int state_secure(bzrtpEvent_t event) {
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage) {
+static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, bzrtpCommitMessage_t *commitMessage) {
 			bzrtpEvent_t initEvent;
 
 			/* kill the ongoing timer */
@@ -1622,10 +1548,8 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
 					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->packetString = NULL;
 				}
 				/* (re)build the packet */
-				retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID], zrtpChannelContext->selfSequenceNumber);
-				if (retval == 0) {
-					zrtpChannelContext->selfSequenceNumber++;
-				} else {
+				retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]);
+				if (retval != 0) {
 					return retval;
 				}
 			}
@@ -1669,7 +1593,7 @@ int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *
  *
  * @return 0 on succes, error code otherwise
  */
-int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket) {
+static int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket) {
 	int retval;
 	int i;
 	uint8_t peerSupportMultiChannel = 0;
@@ -1793,7 +1717,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 			return retval; /* no need to free the Hello message as it is attached to the context, it will be freed when destroying it */
 		}
 
-		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, selfDHPartPacket, 0); /* we don't care now about sequence number as we just need to build the message to be able to insert a hash of it into the commit packet */
+		retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, selfDHPartPacket);
 		if (retval == 0) { /* ok, insert it in context as we need it to build the commit packet */
 			zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = selfDHPartPacket;
 		} else {
@@ -1806,15 +1730,15 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
 	if (retval != 0) {
 		return retval; /* no need to free the Hello message as it is attached to the context, it will be freed when destroying it */
 	}
-	retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloACKPacket, zrtpChannelContext->selfSequenceNumber);
+	retval = bzrtp_packetBuild(zrtpContext, zrtpChannelContext, helloACKPacket);
 	if (retval != 0) {
 		bzrtp_freeZrtpPacket(helloACKPacket);
 		return retval;
 	} else {
 		/* send the message */
-		zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, helloACKPacket->packetString, helloACKPacket->messageLength+ZRTP_PACKET_OVERHEAD);
-		zrtpChannelContext->selfSequenceNumber++;
+		retval = bzrtp_sendPacket ( zrtpContext, zrtpChannelContext, helloACKPacket);
 		bzrtp_freeZrtpPacket(helloACKPacket);
+		return retval;
 	}
 	return 0;
 }
@@ -1828,7 +1752,7 @@ int bzrtp_responseToHelloMessage(bzrtpContext_t *zrtpContext, bzrtpChannelContex
  *
  * return 0 on success, error code otherwise
  */
-int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 
 	uint8_t *dataToHash; /* a buffer used to store concatened data to be hashed */
 	size_t hashDataLength; /* Length of the buffer */
@@ -2028,7 +1952,7 @@ int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
  *
  * return 0 on success, error code otherwise
  */
-int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	uint8_t *dataToHash; /* a buffer used to store concatened data to be hashed */
 	uint16_t hashDataLength; /* Length of the buffer */
 	uint16_t hashDataIndex; /* an index used while filling the buffer */
@@ -2107,7 +2031,7 @@ int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChannelCont
  * return 0 on success, error code otherwise
  *
  */
-int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+static int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	int retval = 0;
 	/* allocate memory for mackeyi, mackeyr, zrtpkeyi, zrtpkeyr */
 	zrtpChannelContext->mackeyi = (uint8_t *)malloc(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
@@ -2139,7 +2063,7 @@ int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *z
  * return 0 on success, error code otherwise
  *
  */
-int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
 	int retval = 0;
 	/* allocate memory */
 	uint8_t *srtpkeyi = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
@@ -2224,6 +2148,43 @@ int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_
 	}
 
 	return 0;
+}
+
+/**
+ * @brief Send the given packet, if the packets holds fragments, send them all
+ * Insert the packet sequence number and compute the CRC before sending
+ *
+ * @param[in]	zrtpContext			zrtp context to get the sendData callback
+ * @param[in]	zrtpChannelContext	the channel context to get the sendData user callback, and update sequenceNumber
+ * @param[in]	zrtpPacket			the packet to be send, it must be ready for sending (bzrtp_packetBuild called). If the packet holds fragments packets, they will be sent.
+ *
+ * @return 0 on success
+ */
+static int bzrtp_sendPacket ( const bzrtpContext_t* zrtpContext, bzrtpChannelContext_t* zrtpChannelContext, bzrtpPacket_t* zrtpPacket) {
+	int retval = 0;
+	if (zrtpContext->zrtpCallbacks.bzrtp_sendData!=NULL) {
+		if (zrtpPacket->fragments == NULL) {
+			/* packet is not fragmented, just send it */
+			bzrtp_packetSetSequenceNumber(zrtpPacket, zrtpChannelContext->selfSequenceNumber);
+			retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, zrtpPacket->packetString, zrtpPacket->messageLength+ZRTP_PACKET_OVERHEAD);
+			zrtpChannelContext->selfSequenceNumber++;
+		} else {
+			/* packet is fragmented, send fragments */
+			bctbx_list_t *fragment = zrtpPacket->fragments;
+			for(; fragment!=NULL; fragment = fragment->next) {
+				bzrtpPacket_t *fragmentPacket = (bzrtpPacket_t *)fragment->data;
+				bzrtp_packetSetSequenceNumber(fragmentPacket, zrtpChannelContext->selfSequenceNumber);
+				retval = zrtpContext->zrtpCallbacks.bzrtp_sendData(zrtpChannelContext->clientData, fragmentPacket->packetString, fragmentPacket->messageLength+ZRTP_FRAGMENTEDPACKET_OVERHEAD);
+				if (retval != 0) {
+					return retval;
+				}
+				zrtpChannelContext->selfSequenceNumber++;
+			}
+		}
+	} else {
+		return BZRTP_ERROR_INVALIDCONTEXT;
+	}
+	return retval;
 }
 
 /*

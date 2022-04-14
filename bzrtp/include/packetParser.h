@@ -19,13 +19,65 @@
 #ifndef PACKETPARSER_H
 #define PACKETPARSER_H
 
-#include <stdint.h>
+
+#include "bctoolbox/list.h"
+
 #include "bzrtp/bzrtp.h"
 
-/* header of ZRTP packet is 12 bytes : Preambule/Sequence Number + ZRTP Magic Cookie +  SSRC */
+#include <stdint.h>
+
+/* header of ZRTP packet is 12 bytes : Preambule/Sequence Number + ZRTP Magic Cookie +  SSRC :
+ * 0                   1                   2                   3
+ * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |0 0 0 1|Not Used (set to zero) |         Sequence Number       |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                 Magic Cookie 'ZRTP' (0x5a525450)              |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                        Source Identifier                      |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                                                               |
+ * |           ZRTP Message (length depends on Message Type)       |
+ * |                            . . .                              |
+ * |                                                               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          CRC (1 word)                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+*/
 #define ZRTP_PACKET_HEADER_LENGTH	12
+
+/* when packet is fragmented, header is 20 bytes:
+ * 0                   1                   2                   3
+ * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |0 0 1 1|Not Used (set to zero) |         Sequence Number       |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                 Magic Cookie 'ZRTP' (0x5a525450)              |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                        Source Identifier                      |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |            message Id         |    message total length       |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |            offset             |    fragment length            |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                                                               |
+ * |           ZRTP Message fragment(length as indicated)          |
+ * |                            . . .                              |
+ * |                                                               |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                          CRC (1 word)                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * 
+ * with:
+ * - message Id: a unique Id for this message
+ * - message total length: size in 32bits words of the total message
+ * - offset : offset of this fragment (in 32 bits words)
+ * - fragment length: size of this fragment (in 32 bits words)
+ */
+#define ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH	20
 #define ZRTP_PACKET_CRC_LENGTH		4
-#define ZRTP_PACKET_OVERHEAD		16
+#define ZRTP_PACKET_OVERHEAD		(ZRTP_PACKET_HEADER_LENGTH + ZRTP_PACKET_CRC_LENGTH)
+#define ZRTP_FRAGMENTEDPACKET_OVERHEAD		(ZRTP_FRAGMENTEDPACKET_HEADER_LENGTH + ZRTP_PACKET_CRC_LENGTH)
 
 #define		BZRTP_PARSER_ERROR_INVALIDCRC  			0xa001
 #define		BZRTP_PARSER_ERROR_INVALIDPACKET		0xa002
@@ -38,12 +90,14 @@
 #define		BZRTP_PARSER_ERROR_UNMATCHINGMAC		0xa100
 #define		BZRTP_PARSER_ERROR_UNEXPECTEDMESSAGE		0xa200
 #define		BZRTP_PARSER_ERROR_UNMATCHINGHVI		0xa400
+#define 	BZRTP_PARSER_INFO_PACKETFRAGMENT		0xa800
 
 #define		BZRTP_BUILDER_ERROR_INVALIDPACKET		0x5001
 #define		BZRTP_BUILDER_ERROR_INVALIDMESSAGE		0x5002
 #define		BZRTP_BUILDER_ERROR_INVALIDMESSAGETYPE		0x5004
 #define		BZRTP_BUILDER_ERROR_UNKNOWN			0x5008
 #define		BZRTP_BUILDER_ERROR_INVALIDCONTEXT		0x5010
+#define		BZRTP_BUILDER_ERROR_UNABLETOFRAGMENT	0x5020
 
 #define		BZRTP_CREATE_ERROR_INVALIDMESSAGETYPE		0x0a01
 #define		BZRTP_CREATE_ERROR_UNABLETOCREATECRYPTOCONTEXT	0x0a02
@@ -67,6 +121,7 @@
 #define		MSGTYPE_RELAYACK	0x15
 #define		MSGTYPE_PING		0x16
 #define		MSGTYPE_PINGACK		0x17
+#define		MSGTYPE_FRAGMENT    0xff
 
 #ifdef __cplusplus
 extern "C"{
@@ -83,6 +138,7 @@ typedef struct bzrtpPacket_struct {
 	uint16_t messageLength; /**< the ZRTP message length in bytes - the message length indicated in the message itself is in 32 bits words. Is not the packet length(do not include packet header and CRC) */
 	void *messageData; /**< a pointer to the structure containing all the message field according to message type */
 	uint8_t *packetString; /**< used to stored the string version of the packet build from the message data or keep a string copy of received packets */
+	bctbx_list_t *fragments; /**< This is a list of bzrtpPacket_t. If the packet is fragmented all fragments a are stored in this list, each one in a dedicated packet */
 } bzrtpPacket_t;
 
 /**
@@ -271,15 +327,14 @@ typedef struct bzrtpPingAckMessage_struct {
  * The packet check and actual message parsing are split in two functions to avoid useless parsing when message is
  * to be discarded as the check will give message type (in case of message repetition for example)
  *
- * @param[in]	input						The string buffer storing the complete ZRTP packet
- * @param[in]	inputLength					Input length in bytes
- * @param[in]	lastValidSequenceNumber		If the sequence number of this packet is smaller than this param, packet will be discarded
- *											and an error code returned
- * @param[out]	exitCode					0 on success, error code otherwise
+ * @param[in/out]		inputPtr				The string buffer storing the complete ZRTP packet. Modified if we complete a fragmented packet
+ * @param[in/out]		inputLength			Input length in bytes. Modified if we complete a fragmented packet
+ * @param[in/out]	zrtpChannelContext		The channel context this packet is intended to(channel context and packet must match peer SSRC).
+ * @param[out]		exitCode				0 on success, BZRTP_PARSER_INFO_PACKETFRAGMENT when a fragment of incomplete packet is received, error code otherwise
  *
  * @return		The create bzrtpPacket structure(to be freed using bzrtp_freeZrtpPacket). NULL on error
  */
-BZRTP_EXPORT bzrtpPacket_t *bzrtp_packetCheck(const uint8_t * input, uint16_t inputLength, uint16_t lastValidSequenceNumber, int *exitCode);
+BZRTP_EXPORT bzrtpPacket_t *bzrtp_packetCheck(uint8_t ** inputPtr, uint16_t *inputLength, bzrtpChannelContext_t *zrtpChannelContext, int *exitCode);
 
 
 /**
@@ -312,16 +367,16 @@ BZRTP_EXPORT bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, 
 /**
  * @brief Create a ZRTP packet string from the ZRTP packet values present in the structure
  * messageType, messageData and sourceIdentifier in zrtpPacket must have been correctly set before calling this function
+ * The packet is not ready to be sent at that stage, sequenceNumber and CRC must be set using bzrtp_packetSetSequenceNumber
  *
  * @param[in]		zrtpContext				A zrtp context where to find H0-H3 to compute MAC requested by some paquets or encryption's key for commit/SASRelay packet
  * @param[in]		zrtpChannelContext		The channel context this packet is intended to
  * @param[in,out]	zrtpPacket				The zrtpPacket structure containing the message Data structure, output is stored in ->packetString
- * @param[in]		sequenceNumber			Sequence number of this packet
  *
  * @return			0 on success, error code otherwise
  *
  */
-BZRTP_EXPORT int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+BZRTP_EXPORT int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelContext_t *zrtpChannelContext, bzrtpPacket_t *zrtpPacket);
 
 
 /**
@@ -333,16 +388,16 @@ BZRTP_EXPORT int bzrtp_packetBuild(bzrtpContext_t *zrtpContext,  bzrtpChannelCon
 BZRTP_EXPORT void bzrtp_freeZrtpPacket(bzrtpPacket_t *zrtpPacket);
 
 /**
- * @brief Modify the current sequence number of the packet in the packetString and sequenceNumber fields
- * The CRC at the end of packetString is also updated
+ * @brief Set the current sequence number of the packet in the packetString and sequenceNumber fields
+ * The CRC at the end of packetString is also computed
  * 
- * param[in,out]	zrtpPacket		The zrtpPacket to modify, the packetString must have been generated by
+ * param[in,out]	zrtpPacket		The zrtpPacket, the packetString must have been generated by
  * 									a call to bzrtp_packetBuild on this packet
- * param[in]		sequenceNumber	The new sequence number to insert in the packetString
+ * param[in]		sequenceNumber	The sequence number to insert in the packetString
  * 
  * return		0 on succes, error code otherwise
  */
-BZRTP_EXPORT int bzrtp_packetUpdateSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
+BZRTP_EXPORT int bzrtp_packetSetSequenceNumber(bzrtpPacket_t *zrtpPacket, uint16_t sequenceNumber);
 
 #ifdef __cplusplus
 }

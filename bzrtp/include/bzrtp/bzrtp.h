@@ -188,7 +188,7 @@ typedef struct bzrtpCallbacks_struct {
 #define BZRTP_ERROR_OUTPUTBUFFER_LENGTH				0x0040
 #define BZRTP_ERROR_HELLOHASH_MISMATCH				0x0080
 #define BZRTP_ERROR_CHANNELALREADYSTARTED			0x0100
-#define BZRTP_ERROR_CACHEDISABLED				0x0200
+#define BZRTP_ERROR_CACHEDISABLED					0x0200
 #define BZRTP_ERROR_CACHEMIGRATIONFAILED			0x0400
 #define BZRTP_ERROR_CACHE_PEERNOTFOUND				0x0800
 
@@ -662,6 +662,27 @@ BZRTP_EXPORT int bzrtp_cache_getPeerStatus_lock(void *dbPointer, const char *pee
  * @return	The of the algo in string
  */
 BZRTP_EXPORT const char *bzrtp_algoToString(uint8_t algo);
+
+/**
+ * @brief set the maximum size of a ZRTP packet generated locally
+ * MTU must be at least 600 bytes to avoid useless fragmentation of small packets
+ *
+ * @param[in]		zrtpContext		The ZRTP context we're dealing with
+ * @param[in]		mtu 			The size in bytes of the maximum allowed for a ZRTP packet. If this parameter is less than 600, the actual MTU is set to 600
+ *
+ * @return 0 on succes, error code otherwise
+ */
+BZRTP_EXPORT int bzrtp_set_MTU(bzrtpContext_t *zrtpContext, size_t mtu);
+
+/**
+ * @brief get the maximum size of a ZRTP packet generated locally
+ *
+ * @param[in]		zrtpContext		The ZRTP context we're dealing with
+ *
+ * @return the maximum size in bytes of a ZRTP packet generated locally
+ */
+BZRTP_EXPORT size_t bzrtp_get_MTU(bzrtpContext_t *zrtpContext);
+
 
 #ifdef __cplusplus
 }
