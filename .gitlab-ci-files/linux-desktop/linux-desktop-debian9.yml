@@ -53,6 +53,9 @@ debian9-ninja-gcc:
 
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9:$DEBIAN_9_IMAGE_VERSION
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:

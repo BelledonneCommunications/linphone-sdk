@@ -201,7 +201,7 @@ vs2017-uwp-scheduled-windows:
       if: $DEPLOY_RUN_NUGET
     - if: $ENABLE_WINDOWS_UWP_TESTS
     - if: $ENABLE_WINDOWS_TESTS
-    - &nuget_dev_rule 
+    - &nuget_dev_rule
       if:  $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab-ci-files/job-windows.yml
@@ -227,6 +227,8 @@ vs2017-win32-scheduled-windows:
     CMAKE_ARCHITECTURE : -A Win32
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
     OUTPUT_ZIP_FOLDER: win32
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
 vs2017-win32store-scheduled-windows:
   extends: .windows-vs2017-scheduled

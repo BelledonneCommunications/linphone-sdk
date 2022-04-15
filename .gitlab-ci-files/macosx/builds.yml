@@ -117,6 +117,8 @@ macosx-xcode:
   variables:
     CMAKE_GENERATOR: Xcode
     ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   rules:
     - if: $NIGHTLY_MASTER
