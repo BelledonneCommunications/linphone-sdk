@@ -204,7 +204,7 @@ function(bc_compute_snapshots_or_releases_state OUTPUT_VERSION)
 		# Check git describe to see if we are on a release or not
 		set(snapshots_or_releases_state "snapshots")
 		if(NOT GIT_DESCRIBE_VERSION MATCHES ".*(alpha|beta).*")
-			set(snapshots_or_release_state "releases")
+			set(snapshots_or_releases_state "releases")
 		endif()
 
 		set(${OUTPUT_VERSION} "${snapshots_or_releases_state}" PARENT_SCOPE)
