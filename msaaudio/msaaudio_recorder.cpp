@@ -71,7 +71,12 @@ static AAudioInputContext* aaudio_input_context_init() {
 
 static void android_snd_read_init(MSFilter *obj) {
 	AAudioInputContext *ictx = aaudio_input_context_init();
-	obj->data = ictx;	
+	obj->data = ictx;
+
+	bool permissionGranted = ms_android_is_record_audio_permission_granted();
+	if (!permissionGranted) {
+		ms_error("[AAudio] RECORD_AUDIO permission hasn't been granted!");
+	}
 }
 
 static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stream, void *userData, void *audioData, int32_t numFrames) {
@@ -101,6 +106,7 @@ static void aaudio_recorder_callback_error(AAudioStream *stream, void *userData,
 
 static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	AAudioStreamBuilder *builder;
+
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
 		ms_error("[AAudio] Couldn't create stream builder for recorder: %i / %s", result, AAudio_convertResultToText(result));
