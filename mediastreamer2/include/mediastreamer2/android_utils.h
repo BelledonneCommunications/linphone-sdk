@@ -25,6 +25,11 @@
 #include <jni.h>
 
 /**
+ * Retrieve whether or not RECORD_AUDIO permission has been granted.
+**/
+MS2_PUBLIC bool ms_android_is_record_audio_permission_granted();
+
+/**
  * Retrieve preferred buffer size from Mediastreamer Android Context.
 **/
 MS2_PUBLIC int ms_android_get_preferred_buffer_size();

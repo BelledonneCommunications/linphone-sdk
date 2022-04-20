@@ -21,7 +21,9 @@ package org.linphone.mediastream;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.Manifest;
 import java.io.File;
+import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
 import android.os.Build;
@@ -208,6 +210,14 @@ public class MediastreamerAndroidContext {
 		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, AudioManager.STREAM_VOICE_CALL, 0);
 		//try { Thread.sleep(100); } catch (Exception e) { }
 		audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, AudioManager.STREAM_VOICE_CALL, 0);
+	}
+
+	public synchronized static boolean isRecordAudioPermissionGranted() {
+		boolean granted = mContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+		if (!granted) {
+			Log.w("[Audio Manager] RECORD_AUDIO permission is not granted!");
+		}
+		return granted;
 	}
 
 	private static String getHumanReadableAudioDeviceType(int type) {

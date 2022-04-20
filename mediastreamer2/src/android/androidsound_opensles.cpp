@@ -552,6 +552,11 @@ static OpenSLESInputContext* opensles_input_context_init() {
 static void android_snd_read_init(MSFilter *obj) {
 	OpenSLESInputContext *ictx = opensles_input_context_init();
 	obj->data = ictx;
+
+	bool permissionGranted = ms_android_is_record_audio_permission_granted();
+	if (!permissionGranted) {
+		ms_error("[OpenSLES] RECORD_AUDIO permission hasn't been granted!");
+	}
 }
 
 static void android_snd_read_preprocess(MSFilter *obj) {

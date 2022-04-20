@@ -19,6 +19,23 @@
 
 #include <mediastreamer2/android_utils.h>
 
+bool ms_android_is_record_audio_permission_granted() {
+	JNIEnv *env = ms_get_jni_env();
+	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID isPermissionGranted = env->GetStaticMethodID(mediastreamerAndroidContextClass, "isRecordAudioPermissionGranted", "()Z");
+		if (isPermissionGranted != NULL) {
+			jboolean ret = env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, isPermissionGranted);
+			ms_message("[Android Audio Utils] is RECORD_AUDIO permission granted? %i", ret);
+			env->DeleteLocalRef(mediastreamerAndroidContextClass);
+			return (bool) ret;
+		}
+		env->DeleteLocalRef(mediastreamerAndroidContextClass);
+	}
+	ms_error("[Android Audio Utils] Failed to retrive RECORD_AUDIO permission state from MediastreamerAndroidContext!");
+	return true;
+}
+
 int ms_android_get_preferred_buffer_size() {
 	int DevicePreferredBufferSize = -1;
 	JNIEnv *env = ms_get_jni_env();
