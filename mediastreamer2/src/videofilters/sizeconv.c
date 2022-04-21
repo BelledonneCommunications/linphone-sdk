@@ -30,12 +30,13 @@ typedef struct SizeConvState{
 	MSVideoSize target_vsize;
 	MSVideoSize in_vsize;
 	YuvBuf outbuf;
+	MSYuvBufAllocator *allocator;
 	MSScalerContext *sws_ctx;
-	mblk_t *om;
 	float fps;
 	float start_time;
 	int frame_count;
 	queue_t rq;
+	bool_t needRefresh;
 } SizeConvState;
 
 
@@ -49,9 +50,10 @@ static void size_conv_init(MSFilter *f){
 	s->in_vsize.width=0;
 	s->in_vsize.height=0;
 	s->sws_ctx=NULL;
-	s->om=NULL;
+	s->allocator = ms_yuv_buf_allocator_new();
 	s->start_time=0;
 	s->frame_count=-1;
+	s->needRefresh=FALSE;
 	s->fps=-1; /* default to process ALL frames */
 	qinit(&s->rq);
 	f->data=s;
@@ -59,6 +61,7 @@ static void size_conv_init(MSFilter *f){
 
 static void size_conv_uninit(MSFilter *f){
 	SizeConvState *s=(SizeConvState*)f->data;
+	ms_yuv_buf_allocator_free(s->allocator);
 	ms_free(s);
 }
 
@@ -68,28 +71,12 @@ static void size_conv_postprocess(MSFilter *f){
 		ms_scaler_context_free(s->sws_ctx);
 		s->sws_ctx=NULL;
 	}
-	if (s->om!=NULL){
-		freemsg(s->om);
-		s->om=NULL;
-	}
 	flushq(&s->rq,0);
 	s->frame_count=-1;
 }
 
-static mblk_t *size_conv_alloc_mblk(SizeConvState *s){
-	if (s->om!=NULL){
-		int ref=dblk_ref_value(s->om->b_datap);
-		if (ref==1){
-			return dupmsg(s->om);
-		}else{
-			/*the last msg is still referenced by somebody else*/
-			ms_message("size_conv_alloc_mblk: Somebody still retaining yuv buffer %p (ref=%i)",s->om->b_datap,ref);
-			freemsg(s->om);
-			s->om=NULL;
-		}
-	}
-	s->om=ms_yuv_buf_alloc(&s->outbuf,s->target_vsize.width,s->target_vsize.height);
-	return dupmsg(s->om);
+static mblk_t * sizeconv_alloc_mblk(SizeConvState *s){
+	return ms_yuv_buf_allocator_get(s->allocator, &s->outbuf, s->target_vsize.width,s->target_vsize.height);
 }
 
 static MSScalerContext * get_resampler(SizeConvState *s, int w, int h){
@@ -104,6 +91,7 @@ static MSScalerContext * get_resampler(SizeConvState *s, int w, int h){
 			MS_SCALER_METHOD_BILINEAR);
 		s->in_vsize.width=w;
 		s->in_vsize.height=h;
+		ms_message("MSSizeConv: create new scaler context with w %d, h %d", w,h);
 	}
 	return s->sws_ctx;
 }
@@ -166,17 +154,22 @@ static void size_conv_process(MSFilter *f){
 					}
 				}
 				if (s->target_vsize.width != w || s->target_vsize.height !=h) {
+					s->needRefresh = TRUE;
 					ms_filter_notify_no_arg(f, MS_FILTER_OUTPUT_FMT_CHANGED);
-				} else {
+				} else if (!s->needRefresh) {
 					MSScalerContext *sws_ctx=get_resampler(s,inbuf.w,inbuf.h);
-					mblk_t *om=size_conv_alloc_mblk(s);
-					if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
-						ms_error("MSSizeConv: error in ms_scaler_process().");
-						freemsg(om);
-					}else{
-						mblk_set_timestamp_info(om, mblk_get_timestamp_info(im));
-						ms_queue_put(f->outputs[0],om);
+					mblk_t *om= sizeconv_alloc_mblk(s);
+					if (om != NULL) {
+						if (ms_scaler_process(sws_ctx,inbuf.planes,inbuf.strides,s->outbuf.planes, s->outbuf.strides)<0){
+							ms_error("MSSizeConv: error in ms_scaler_process().");
+							freemsg(om);
+						}else {
+							mblk_set_timestamp_info(om, mblk_get_timestamp_info(im));
+							ms_queue_put(f->outputs[0],om);
+						}
 					}
+				} else {
+					ms_warning("MSSizeConv: output fmt changed, waiting.");
 				}
 				freemsg(im);
 			}
@@ -196,8 +189,6 @@ static int sizeconv_set_vsize(MSFilter *f, void*arg){
 	ms_filter_lock(f);
 	s->target_vsize=*(MSVideoSize*)arg;
 	ms_message("sizeconv_set_vsize(): set target size w %d, h %d", s->target_vsize.width, s->target_vsize.height);
-	freemsg(s->om);
-	s->om=NULL;
 	if (s->sws_ctx!=NULL) {
 		ms_scaler_context_free(s->sws_ctx);
 		s->sws_ctx=NULL;

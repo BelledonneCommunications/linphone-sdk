@@ -624,6 +624,7 @@ static void enc_process(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	mblk_t *entry_f;
 	mblk_t *exit_f;
+	MSPicture yuv;
 
 	ms_filter_lock(f);
 
@@ -639,6 +640,10 @@ static void enc_process(MSFilter *f) {
 
 	/* If we have a frame then we put it in the entry queue and we call the task enc_process_frame_task in async */
 	if ((entry_f = ms_queue_peek_last(f->inputs[0])) != NULL) {
+		ms_yuv_buf_init_from_mblk(&yuv, entry_f);
+		if (yuv.w != s->vconf.vsize.width || yuv.h != s->vconf.vsize.height)
+			ms_error("enc_process: get yuv w %d, h %d and vconf w %d, h %d", yuv.w, yuv.h, s->vconf.vsize.width, s->vconf.vsize.height);
+		
 		ms_queue_remove(f->inputs[0], entry_f);
 		putq(&s->entry_q, entry_f);
 		ms_mutex_lock(&s->vp8_mutex);

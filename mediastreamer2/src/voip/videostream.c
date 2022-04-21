@@ -1556,7 +1556,10 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 
 		if (!encoder_has_builtin_converter && (stream->source_performs_encoding == FALSE)) {
 			if (stream->pixconv) ms_filter_destroy(stream->pixconv);
-			if (stream->sizeconv) ms_filter_destroy(stream->sizeconv);
+			if (stream->sizeconv) {
+				ms_filter_destroy(stream->sizeconv);
+				stream->sizeconv = NULL;
+			}
 		}
 
 		/*re create new ones and configure them*/

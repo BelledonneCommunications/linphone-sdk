@@ -39,13 +39,11 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 	PayloadType *local_h264_with_packetization_mode_1_pt = NULL;
 	bctbx_list_t *local_h264_list = NULL;
 	PayloadType *remote_h264_with_packetization_mode_1_pt = NULL;
-	bctbx_list_t *remote_h264_list = NULL;
 	
 	//extract h264 from remote list and get first one with packetization-mode=1 if any
 	for (it=remote_payloads;it!=NULL;it=it->next){
 		pt=(PayloadType*)it->data;
 		if (strcasecmp(pt->mime_type, "h264")==0) {
-			remote_h264_list = bctbx_list_append(remote_h264_list, pt);
 			if (remote_h264_with_packetization_mode_1_pt == NULL && get_packetization_mode(pt->send_fmtp) == 1)
 				remote_h264_with_packetization_mode_1_pt = pt;
 		}
@@ -61,15 +59,11 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 	}
 	
 	if (bctbx_list_size(local_h264_list) < 1) {
-		ms_message("No H264 payload configured localy");
+		ms_message("No H264 payload configured locally");
 		return NULL;
 	}
 	//taking first one by default
 	PayloadType *maching_pt = bctbx_list_get_data(local_h264_list);
-
-	if (remote_h264_list) {
-		bctbx_list_free(remote_h264_list);
-	}
 
 	if (remote_h264_with_packetization_mode_1_pt != NULL ) {
 		//proceeding with packetization-mode=1
