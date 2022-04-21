@@ -272,6 +272,8 @@ MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
  */
 MS2_PUBLIC int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
 
+MS2_PUBLIC int set_algo_id(int *algo, int algoId);
+
 #ifdef __cplusplus
 }
 #endif
