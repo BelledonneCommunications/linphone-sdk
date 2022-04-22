@@ -1422,7 +1422,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 
 					/* if the DH is of type KEM, generate now the key pair, store the KEM context in the  */
 					if (bzrtp_isKem(zrtpCommitMessage->keyAgreementAlgo)) {
-						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpCommitMessage->keyAgreementAlgo);
+						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpCommitMessage->keyAgreementAlgo, bzrtp_getHashAlgoId(zrtpChannelContext->hashAlgo));
 						if (KEMContext != NULL) {
 							bzrtp_KEM_generateKeyPair(KEMContext);
 							uint16_t pvLength = bzrtp_computeKeyAgreementPublicValueLength(zrtpCommitMessage->keyAgreementAlgo, MSGTYPE_COMMIT);
@@ -1537,7 +1537,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 				} else if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
 					/* Key agreement of KEM type, DHPart2 holds a nonce, DHPart1 holds the crypto */
 					if (messageType == MSGTYPE_DHPART1) { /* DHPart1: generate a secret and encapsulate it. Peer's public key is in the commit packet */
-						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpChannelContext->keyAgreementAlgo);
+						bzrtp_KEMContext_t *KEMContext = bzrtp_createKEMContext(zrtpChannelContext->keyAgreementAlgo, bzrtp_getHashAlgoId(zrtpChannelContext->hashAlgo));
 						if (KEMContext == NULL) {
 							free(zrtpPacket);
 							free(zrtpDHPartMessage);

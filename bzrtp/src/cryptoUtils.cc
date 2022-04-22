@@ -1152,6 +1152,14 @@ bool_t bzrtp_isKem(uint8_t keyAgreementAlgo) {
 	}
 }
 
+int bzrtp_getHashAlgoId(uint8_t hashAlgo){
+	switch(hashAlgo){
+		case ZRTP_HASH_S256: return BCTBX_MD_SHA256;
+		case ZRTP_HASH_S384: return BCTBX_MD_SHA384;
+		default: return BCTBX_MD_UNDEFINED;
+	}
+}
+
 typedef struct bzrtp_KEMContext_struct {
 		std::shared_ptr<bctoolbox::KEM> ctx;
 		std::vector<uint8_t> publicKey;
@@ -1167,7 +1175,7 @@ typedef struct bzrtp_KEMContext_struct {
  *
  * @return a pointer to the created context, NULL in case of failure
  */
-bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
+bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, int hashAlgo) {
 	if (!bzrtp_isKem(keyAgreementAlgo)) {
 		return NULL;
 	}
@@ -1199,16 +1207,16 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo) {
 			context->ctx = std::make_shared<bctoolbox::K448>();
 			break;
 		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::KYBER512>()}), BCTBX_MD_SHA256);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::KYBER512>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::SIKE434>()}), BCTBX_MD_SHA256);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::SIKE434>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::KYBER1024>()}), BCTBX_MD_SHA256);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::KYBER1024>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::SIKE751>()}), BCTBX_MD_SHA256);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::SIKE751>()}), hashAlgo);
 			break;
 		default:
 			return NULL;
