@@ -1201,22 +1201,22 @@ bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, int hashAlg
 			context->ctx = std::make_shared<bctoolbox::SIKE751>();
 			break;
 		case ZRTP_KEYAGREEMENT_K255:
-			context->ctx = std::make_shared<bctoolbox::K25519>();
+			context->ctx = std::make_shared<bctoolbox::K25519>(hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K448:
-			context->ctx = std::make_shared<bctoolbox::K448>();
+			context->ctx = std::make_shared<bctoolbox::K448>(hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::KYBER512>()}), hashAlgo);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashAlgo), std::make_shared<bctoolbox::KYBER512>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(), std::make_shared<bctoolbox::SIKE434>()}), hashAlgo);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K25519>(hashAlgo), std::make_shared<bctoolbox::SIKE434>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::KYBER1024>()}), hashAlgo);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashAlgo), std::make_shared<bctoolbox::KYBER1024>()}), hashAlgo);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(), std::make_shared<bctoolbox::SIKE751>()}), hashAlgo);
+			context->ctx = std::make_shared<bctoolbox::HYBRID_KEM>(std::list<std::shared_ptr<bctoolbox::KEM>>({std::make_shared<bctoolbox::K448>(hashAlgo), std::make_shared<bctoolbox::SIKE751>()}), hashAlgo);
 			break;
 		default:
 			return NULL;
