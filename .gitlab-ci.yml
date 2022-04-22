@@ -51,6 +51,7 @@ include:
   - '.gitlab-ci-files/iOS/uploads.yml'
 
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
+  - '.gitlab-ci-files/linux-desktop/doc-uploads.yml'
   #- '.gitlab-ci-files/raspbian.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-centos7.yml'
