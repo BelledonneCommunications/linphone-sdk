@@ -200,6 +200,53 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 	return 0;
 }
 
+static int ms_zrtp_getAlgoId(int algo) {
+	switch(algo) {
+
+		case(ZRTP_HASH_S256): return MS_ZRTP_HASH_S256;
+		case(ZRTP_HASH_S384): return MS_ZRTP_HASH_S384;
+		case(ZRTP_HASH_N256): return MS_ZRTP_HASH_N256;
+		case(ZRTP_HASH_N384): return MS_ZRTP_HASH_N384;
+
+		case(ZRTP_CIPHER_AES1): return MS_ZRTP_CIPHER_AES1;
+		case(ZRTP_CIPHER_AES2): return MS_ZRTP_CIPHER_AES2;
+		case(ZRTP_CIPHER_AES3): return MS_ZRTP_CIPHER_AES3;
+		case(ZRTP_CIPHER_2FS1): return MS_ZRTP_CIPHER_2FS1;
+		case(ZRTP_CIPHER_2FS2): return MS_ZRTP_CIPHER_2FS2;
+		case(ZRTP_CIPHER_2FS3): return MS_ZRTP_CIPHER_2FS3;
+
+		case(ZRTP_AUTHTAG_HS32): return MS_ZRTP_AUTHTAG_HS32;
+		case(ZRTP_AUTHTAG_HS80): return MS_ZRTP_AUTHTAG_HS80;
+		case(ZRTP_AUTHTAG_SK32): return MS_ZRTP_AUTHTAG_SK32;
+		case(ZRTP_AUTHTAG_SK64): return MS_ZRTP_AUTHTAG_SK64;
+
+		case(ZRTP_KEYAGREEMENT_DH2k): return MS_ZRTP_KEY_AGREEMENT_DH2K;
+		case(ZRTP_KEYAGREEMENT_EC25): return MS_ZRTP_KEY_AGREEMENT_EC25;
+		case(ZRTP_KEYAGREEMENT_DH3k): return MS_ZRTP_KEY_AGREEMENT_DH3K;
+		case(ZRTP_KEYAGREEMENT_EC38): return MS_ZRTP_KEY_AGREEMENT_EC38;
+		case(ZRTP_KEYAGREEMENT_EC52): return MS_ZRTP_KEY_AGREEMENT_EC52;
+		case(ZRTP_KEYAGREEMENT_X255): return MS_ZRTP_KEY_AGREEMENT_X255;
+		case(ZRTP_KEYAGREEMENT_X448): return MS_ZRTP_KEY_AGREEMENT_X448;
+		case(ZRTP_KEYAGREEMENT_K255): return MS_ZRTP_KEY_AGREEMENT_K255;
+		case(ZRTP_KEYAGREEMENT_K448): return MS_ZRTP_KEY_AGREEMENT_K448;
+		case(ZRTP_KEYAGREEMENT_KYB1): return MS_ZRTP_KEY_AGREEMENT_KYB1;
+		case(ZRTP_KEYAGREEMENT_KYB2): return MS_ZRTP_KEY_AGREEMENT_KYB2;
+		case(ZRTP_KEYAGREEMENT_KYB3): return MS_ZRTP_KEY_AGREEMENT_KYB3;
+		case(ZRTP_KEYAGREEMENT_SIK1): return MS_ZRTP_KEY_AGREEMENT_SIK1;
+		case(ZRTP_KEYAGREEMENT_SIK2): return MS_ZRTP_KEY_AGREEMENT_SIK2;
+		case(ZRTP_KEYAGREEMENT_SIK3): return MS_ZRTP_KEY_AGREEMENT_SIK3;
+		case(ZRTP_KEYAGREEMENT_K255_KYB512): return MS_ZRTP_KEY_AGREEMENT_K255_KYB512;
+		case(ZRTP_KEYAGREEMENT_K255_SIK434): return MS_ZRTP_KEY_AGREEMENT_K255_SIK434;
+		case(ZRTP_KEYAGREEMENT_K448_KYB1024): return MS_ZRTP_KEY_AGREEMENT_K448_KYB1024;
+		case(ZRTP_KEYAGREEMENT_K448_SIK751): return MS_ZRTP_KEY_AGREEMENT_K448_SIK751;
+
+		case(ZRTP_SAS_B32): return MS_ZRTP_SAS_B32;
+		case(ZRTP_SAS_B256): return MS_ZRTP_SAS_B256;
+
+		default: return 0;
+	}
+}
+
 /**
  * @brief Switch on the security.
  *
@@ -229,13 +276,13 @@ static int ms_zrtp_startSrtpSession(void *clientData,  const bzrtpSrtpSecrets_t 
 		eventData=ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
 		snprintf(eventData->info.zrtp_info.sas, sizeof(eventData->info.zrtp_info.sas), "%s", secrets->sas);
-		eventData->info.zrtp_info.verified=(verified != 0) ? TRUE : FALSE;
-		eventData->info.zrtp_info.cache_mismatch=( secrets->cacheMismatch != 0) ? TRUE : FALSE;
-		eventData->info.zrtp_info.cipherAlgo=secrets->cipherAlgo;
-		eventData->info.zrtp_info.keyAgreementAlgo=secrets->keyAgreementAlgo;
-		eventData->info.zrtp_info.hashAlgo=secrets->hashAlgo;
-		eventData->info.zrtp_info.authTagAlgo=secrets->authTagAlgo;
-		eventData->info.zrtp_info.sasAlgo=secrets->sasAlgo;
+		eventData->info.zrtp_info.verified = (verified != 0) ? TRUE : FALSE;
+		eventData->info.zrtp_info.cache_mismatch = ( secrets->cacheMismatch != 0) ? TRUE : FALSE;
+		eventData->info.zrtp_info.cipherAlgo = ms_zrtp_getAlgoId(secrets->cipherAlgo);
+		eventData->info.zrtp_info.keyAgreementAlgo = ms_zrtp_getAlgoId(secrets->keyAgreementAlgo);
+		eventData->info.zrtp_info.hashAlgo = ms_zrtp_getAlgoId(secrets->hashAlgo);
+		eventData->info.zrtp_info.authTagAlgo = ms_zrtp_getAlgoId(secrets->authTagAlgo);
+		eventData->info.zrtp_info.sasAlgo = ms_zrtp_getAlgoId(secrets->sasAlgo);
 		rtp_session_dispatch_event(userData->stream_sessions->rtp_session, ev);
 		ms_message("ZRTP secrets on: SAS is %.32s previously verified %s on session [%p]", secrets->sas, verified == 0 ? "no" : "yes", userData->stream_sessions);
 		ms_message("ZRTP algo used during negotiation: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", bzrtp_algoToString(secrets->cipherAlgo), bzrtp_algoToString(secrets->keyAgreementAlgo), bzrtp_algoToString(secrets->hashAlgo), bzrtp_algoToString(secrets->authTagAlgo), bzrtp_algoToString(secrets->sasAlgo));
@@ -727,54 +774,6 @@ int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *se
 			ms_warning("bzrtp_cache_migration function returned a non zero code %x, something went probably wrong", ret);
 			return MSZRTP_CACHE_ERROR;
 	}
-}
-
-int set_algo_id(int *algo, int algoId) {
-	switch(algoId) {
-
-		case(ZRTP_HASH_S256): *algo = MS_ZRTP_HASH_S256; break;
-		case(ZRTP_HASH_S384): *algo = MS_ZRTP_HASH_S384; break;
-		case(ZRTP_HASH_N256): *algo = MS_ZRTP_HASH_N256; break;
-		case(ZRTP_HASH_N384): *algo = MS_ZRTP_HASH_N384; break;
-
-		case(ZRTP_CIPHER_AES1): *algo = MS_ZRTP_CIPHER_AES1; break;
-		case(ZRTP_CIPHER_AES2): *algo = MS_ZRTP_CIPHER_AES2; break;
-		case(ZRTP_CIPHER_AES3): *algo = MS_ZRTP_CIPHER_AES3; break;
-		case(ZRTP_CIPHER_2FS1): *algo = MS_ZRTP_CIPHER_2FS1; break;
-		case(ZRTP_CIPHER_2FS2): *algo = MS_ZRTP_CIPHER_2FS2; break;
-		case(ZRTP_CIPHER_2FS3): *algo = MS_ZRTP_CIPHER_2FS3; break;
-
-		case(ZRTP_AUTHTAG_HS32): *algo = MS_ZRTP_AUTHTAG_HS32; break;
-		case(ZRTP_AUTHTAG_HS80): *algo = MS_ZRTP_AUTHTAG_HS80; break;
-		case(ZRTP_AUTHTAG_SK32): *algo = MS_ZRTP_AUTHTAG_SK32; break;
-		case(ZRTP_AUTHTAG_SK64): *algo = MS_ZRTP_AUTHTAG_SK64; break;
-
-		case(ZRTP_KEYAGREEMENT_DH2k): *algo = MS_ZRTP_KEY_AGREEMENT_DH2K; break;
-		case(ZRTP_KEYAGREEMENT_EC25): *algo = MS_ZRTP_KEY_AGREEMENT_EC25; break;
-		case(ZRTP_KEYAGREEMENT_DH3k): *algo = MS_ZRTP_KEY_AGREEMENT_DH3K; break;
-		case(ZRTP_KEYAGREEMENT_EC38): *algo = MS_ZRTP_KEY_AGREEMENT_EC38; break;
-		case(ZRTP_KEYAGREEMENT_EC52): *algo = MS_ZRTP_KEY_AGREEMENT_EC52; break;
-		case(ZRTP_KEYAGREEMENT_X255): *algo = MS_ZRTP_KEY_AGREEMENT_X255; break;
-		case(ZRTP_KEYAGREEMENT_X448): *algo = MS_ZRTP_KEY_AGREEMENT_X448; break;
-		case(ZRTP_KEYAGREEMENT_K255): *algo = MS_ZRTP_KEY_AGREEMENT_K255; break;
-		case(ZRTP_KEYAGREEMENT_K448): *algo = MS_ZRTP_KEY_AGREEMENT_K448; break;
-		case(ZRTP_KEYAGREEMENT_KYB1): *algo = MS_ZRTP_KEY_AGREEMENT_KYB1; break;
-		case(ZRTP_KEYAGREEMENT_KYB2): *algo = MS_ZRTP_KEY_AGREEMENT_KYB2; break;
-		case(ZRTP_KEYAGREEMENT_KYB3): *algo = MS_ZRTP_KEY_AGREEMENT_KYB3; break;
-		case(ZRTP_KEYAGREEMENT_SIK1): *algo = MS_ZRTP_KEY_AGREEMENT_SIK1; break;
-		case(ZRTP_KEYAGREEMENT_SIK2): *algo = MS_ZRTP_KEY_AGREEMENT_SIK2; break;
-		case(ZRTP_KEYAGREEMENT_SIK3): *algo = MS_ZRTP_KEY_AGREEMENT_SIK3; break;
-		case(ZRTP_KEYAGREEMENT_K255_KYB512): *algo = MS_ZRTP_KEY_AGREEMENT_K255_KYB512; break;
-		case(ZRTP_KEYAGREEMENT_K255_SIK434): *algo = MS_ZRTP_KEY_AGREEMENT_K255_SIK434; break;
-		case(ZRTP_KEYAGREEMENT_K448_KYB1024): *algo = MS_ZRTP_KEY_AGREEMENT_K448_KYB1024; break;
-		case(ZRTP_KEYAGREEMENT_K448_SIK751): *algo = MS_ZRTP_KEY_AGREEMENT_K448_SIK751; break;
-
-		case(ZRTP_SAS_B32): *algo = MS_ZRTP_SAS_B32; break;
-		case(ZRTP_SAS_B256): *algo = MS_ZRTP_SAS_B256; break;
-
-		default: return 1;
-	}
-	return 0;
 }
 
 #else /* HAVE_ZRTP */
