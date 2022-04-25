@@ -1251,7 +1251,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 					fragmentSize = zrtpPacket->messageLength - offset;
 				} else {
 					// use the maximum fragment size
-					fragmentSize = zrtpContext->mtu - ZRTP_FRAGMENTEDPACKET_OVERHEAD;
+					fragmentSize = (uint16_t)(zrtpContext->mtu - ZRTP_FRAGMENTEDPACKET_OVERHEAD);
 				}
 
 				fragmentPacket->messageLength = fragmentSize; // needed by bzrtp_packetSetSequenceNumber
