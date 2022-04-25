@@ -237,13 +237,6 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo);
  */
 bool_t bzrtp_isKem(uint8_t keyAgreementAlgo);
 
-/**
- * @brief Convert the bzrtp hash id to its bctoolbox hash id
- * @param[in]	hashAlgo	bzrtp hash id
- * @return	The bctoolbox hash id
- */
-int bzrtp_getHashAlgoId(uint8_t hashAlgo);
-
 /* have a C interface to the KEM defined in c++ in bctoolbox
  TODO: build bzrtp in c++ and directly use the bctoolbox interface */
 /* Forward declaration of KEM context */
@@ -259,7 +252,7 @@ typedef struct bzrtp_KEMContext_struct bzrtp_KEMContext_t;
  *
  * @return a pointer to the created context, NULL in case of failure
  */
-bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, int hashAlgo);
+bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, uint8_t hashAlgo);
 
 /**
  * Generate a key pair and store it in the context
