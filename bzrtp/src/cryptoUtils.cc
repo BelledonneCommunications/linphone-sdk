@@ -1090,7 +1090,7 @@ uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, ui
 		}
 }
 
-uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
+uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, uint8_t hashLength) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_DH3k	:
 			return 384;
@@ -1126,7 +1126,7 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_K255_SIK434:
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			return 32;
+			return (uint16_t) hashLength;
 		default:
 			return 0;
 	}

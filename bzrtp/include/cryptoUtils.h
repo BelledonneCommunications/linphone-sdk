@@ -227,7 +227,7 @@ BZRTP_EXPORT uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgre
  * @return		the shared secrert length in bytes
  *
  */
-uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo);
+uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, uint8_t hashLength);
 
 /**
  * Check a given key agrement algorithm is a KEM or not

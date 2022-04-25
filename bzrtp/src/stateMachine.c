@@ -1851,7 +1851,7 @@ static int bzrtp_computeS0DHMMode(bzrtpContext_t *zrtpContext, bzrtpChannelConte
 	s3 = zrtpContext->cachedSecret.pbxsecret; /* this may be null if no match or no pbx secret where found */
 	s3Length = zrtpContext->cachedSecret.pbxsecretLength; /* this may be 0 if no match or no pbx secret where found */
 
-	uint16_t sharedSecretLength = bzrtp_computeKeyAgreementSharedSecretLength(zrtpChannelContext->keyAgreementAlgo);
+	uint16_t sharedSecretLength = bzrtp_computeKeyAgreementSharedSecretLength(zrtpChannelContext->keyAgreementAlgo, zrtpChannelContext->hashLength);
 	hashDataLength = 4/*counter*/ + sharedSecretLength/*DHResult*/+13/*ZRTP-HMAC-KDF string*/ + 12/*ZIDi*/ + 12/*ZIDr*/ + zrtpChannelContext->hashLength/*total_hash*/ + 4/*len(s1)*/ +s1Length/*s1*/ + 4/*len(s2)*/ +s2Length/*s2*/ + 4/*len(s3)*/ + s3Length/*s3*/;
 
 	dataToHash = (uint8_t *)malloc(hashDataLength*sizeof(uint8_t));
