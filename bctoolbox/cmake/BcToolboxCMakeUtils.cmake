@@ -130,6 +130,7 @@ macro(bc_generate_rpm_specfile SOURCE DEST)
 	endif()
 endmacro()
 
+# Rules are following https://semver.org/
 function(bc_compute_full_version OUTPUT_VERSION)
 	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
 	if(GIT_EXECUTABLE)
@@ -312,3 +313,24 @@ function(bc_make_package_source_target)
 	    DEPENDS ${specfile_target}
 	)
 endfunction()
+
+#Make a RELEASE file to work along liblinphone check_versions. It will be inside CMAKE_INSTALL_PREFIX but it will not be part of installation to avoid unwanted deployment.
+#OUTPUT_FOLDER is an out var and will be set as the folder in which the RELEASE file should be for check_version working.
+function(bc_get_release_file_folder OUTPUT_FOLDER)
+	if(WIN32)
+		set(${OUTPUT_FOLDER} "windows" PARENT_SCOPE)
+	elseif(IOS)
+		set(${OUTPUT_FOLDER} "ios" PARENT_SCOPE)
+	elseif(ANDROID)
+		set(${OUTPUT_FOLDER} "android" PARENT_SCOPE)
+	elseif(APPLE)
+		set(${OUTPUT_FOLDER} "macos" PARENT_SCOPE)
+	else()
+		set(${OUTPUT_FOLDER} "linux" PARENT_SCOPE)
+	endif()
+endfunction()
+function(bc_make_release_file full_version file_url)
+	bc_parse_full_version(${full_version} LINPHONE_MAJOR_VERSION LINPHONE_MINOR_VERSION LINPHONE_MICRO_VERSION LINPHONE_BRANCH_VERSION)
+	file(WRITE "${CMAKE_INSTALL_PREFIX}/RELEASE" "${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}${LINPHONE_BRANCH_VERSION}\t${file_url}")
+endfunction()
+##############################################################
