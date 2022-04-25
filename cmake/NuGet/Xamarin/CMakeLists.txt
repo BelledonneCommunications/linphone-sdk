@@ -69,7 +69,7 @@ add_custom_command(
 
 add_custom_command(
 	COMMENT "Packaging Xamarin NuGet"
-	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.Xamarin.${LINPHONESDK_VERSION}.nupkg"
+	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.Xamarin.${NUPKG_VERSION}.nupkg"
 	DEPENDS
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.Android/bin/Release/Linphone.dll
 		${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Xamarin/LinphoneSDK.Xamarin.iOS/bin/Release/Linphone.dll
@@ -80,7 +80,7 @@ add_custom_command(
 
 add_custom_target(${PROJECT_NAME}
 	ALL
-	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.Xamarin.${LINPHONESDK_VERSION}.nupkg"
+	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.Xamarin.${NUPKG_VERSION}.nupkg"
 )
 
 install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/packages"

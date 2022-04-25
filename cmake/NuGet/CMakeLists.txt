@@ -22,8 +22,12 @@ cmake_minimum_required(VERSION 3.2)
 project(linphonesdk-nuget NONE)
 
 if(NOT LINPHONESDK_VERSION)
-	message(FATAL_ERROR "Please specify LINPHONESDK_VERSION. This will be the version of the `.nupkg`.")
+	message(FATAL_ERROR "Please specify LINPHONESDK_VERSION. This will be used to derive the version of the `.nupkg`.")
 endif()
+
+# Workaround Gitlab's NuGet registry lookup by version being incompatible with NuGet clients
+# https://gitlab.com/gitlab-org/gitlab/-/issues/270976
+string(REGEX REPLACE "\\+[0-9a-f]+" "" NUPKG_VERSION ${LINPHONESDK_VERSION})
 
 string(TIMESTAMP CURRENT_YEAR "%Y")
 configure_file(

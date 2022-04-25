@@ -127,6 +127,7 @@ ios-xcode:
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
     - if: $DEPLOY_RUN_NUGET
+    - if: $UPLOAD_XAMARIN
     - if: $ENABLE_IOS_TESTS
 
   variables:

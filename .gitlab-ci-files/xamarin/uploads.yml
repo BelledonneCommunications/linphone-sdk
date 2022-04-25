@@ -1,21 +1,24 @@
-xamarin-upload:
+nuget-upload-xamarin:
   stage: deploy
-  tags: [ "deploy" ]
-
-  variables:
-    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
-    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+  tags: [ "macmini-m1-xcode12" ]
 
   rules:
     - if: $DEPLOY_RUN_NUGET
     - if: $UPLOAD_XAMARIN
     - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+
+  variables:
+    GIT_STRATEGY: none # We don't need sources for this job.
 
   needs:
-    - xamarin-package
+    - job: xamarin-package
+  
+  before_script:
+    - nuget sources Add -Name gitlab -Source "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json" -UserName gitlab-ci-token -Password $CI_JOB_TOKEN -StorePasswordInClearText
 
   script:
-    - DESCRIBE=$(git -C liblinphone describe)
-    - echo $DESCRIBE
-    - !reference [.choose_upload_dir, script]
-    - rsync -rlv --dry-run results/packages/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/xamarin
+    - nuget push "results/packages/*.nupkg" -Source gitlab
+
+  after_script:
+    - nuget sources Remove -Name gitlab
