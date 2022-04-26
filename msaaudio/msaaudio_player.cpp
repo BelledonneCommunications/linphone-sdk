@@ -339,10 +339,20 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		}
 
 		aaudio_player_init(octx);
+		aaudio_stream_state_t inputState = AAUDIO_STREAM_STATE_STARTING;
+		aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
+		int64_t timeoutNanos = 100 * 1000000L;
+		aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, timeoutNanos);
+		if (result != AAUDIO_OK) {
+			ms_error("[AAudio] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
+		}
+		ms_message("[AAudio] Waited for state change, current state is %i", nextState);
+
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 
 		if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
+			ms_message("[AAudio] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
 			ms_android_hack_volume(env);
 		}
 		ms_mutex_unlock(&octx->stream_mutex);
