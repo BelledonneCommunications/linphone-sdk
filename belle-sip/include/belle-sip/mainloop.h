@@ -118,7 +118,7 @@ BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_create_timeout_with_remo
  * Schedule an arbitrary task at next main loop iteration.
  * @note thread-safe
 **/
-BELLESIP_EXPORT void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data);
 
 /**
  * Same as #belle_sip_main_loop_do_later() but allow to give a name to the task.
@@ -126,7 +126,7 @@ BELLESIP_EXPORT void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, bel
  * #belle_sip_main_loop_do_later() was called.
  * @note thread-safe
 **/
-BELLESIP_EXPORT void belle_sip_main_loop_do_later_with_name(
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_do_later_with_name(
 	belle_sip_main_loop_t *ml,
 	belle_sip_callback_t func,
 	void *data,
@@ -283,13 +283,13 @@ BELLESIP_EXPORT BelleSipSourcePtr belle_sip_main_loop_create_cpp_timeout(belle_s
  * C++ wrapper for #belle_sip_main_loop_do_later().
  * @note thread-safe
  */
-BELLESIP_EXPORT void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const BelleSipDoLaterFunc &func);
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const BelleSipDoLaterFunc &func);
 
 /**
  * Overload of the previous function that allow to give a name to the task.
  * @note thread-safe
  */
-BELLESIP_EXPORT void belle_sip_main_loop_cpp_do_later(
+BELLESIP_EXPORT belle_sip_source_t* belle_sip_main_loop_cpp_do_later(
 	belle_sip_main_loop_t *ml,
 	const BelleSipDoLaterFunc &func,
 	const char *task_name

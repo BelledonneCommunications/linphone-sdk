@@ -81,8 +81,8 @@ BelleSipSourcePtr belle_sip_main_loop_create_cpp_timeout(
 	return BelleSipSourcePtr{source};
 }
 
-void belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const BelleSipDoLaterFunc &func){
-	belle_sip_main_loop_cpp_do_later(ml, func, nullptr);
+ belle_sip_source_t* belle_sip_main_loop_cpp_do_later(belle_sip_main_loop_t *ml, const BelleSipDoLaterFunc &func){
+	return belle_sip_main_loop_cpp_do_later(ml, func, nullptr);
 }
 
 static void cpp_timer_delete(belle_sip_source_t* source){
@@ -110,12 +110,12 @@ belle_sip_source_t * belle_sip_main_loop_create_cpp_timeout_2(belle_sip_main_loo
 	return source;	
 }
 
-void belle_sip_main_loop_cpp_do_later(
+belle_sip_source_t* belle_sip_main_loop_cpp_do_later(
 	belle_sip_main_loop_t *ml,
 	const BelleSipDoLaterFunc &func,
 	const char *task_name
 ) {
-	belle_sip_main_loop_do_later_with_name(
+	return belle_sip_main_loop_do_later_with_name(
 		ml,
 		[](void *ud){
 			auto func = static_cast<BelleSipDoLaterFunc *>(ud);
