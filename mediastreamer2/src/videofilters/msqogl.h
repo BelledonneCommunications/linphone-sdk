@@ -28,6 +28,8 @@
 
 #include "opengles_display.h"
 
+#include <mutex>
+
 
 class BufferRenderer;
 class QQuickWindow;
@@ -50,6 +52,7 @@ struct _FilterData {
 	
 	mblk_t * prev_inm;
 	MSFilter *parent;// Used to call render with the Filter in order to use lock mecanisms
+	std::mutex * free_lock;// Avoid to use MSFilter lock when freeing data
 };
 typedef struct _FilterData FilterData;
 

@@ -36,23 +36,35 @@ BufferRenderer::BufferRenderer () {
 	qInfo() << QStringLiteral("[MSQOGL] Create new Renderer: ") << this;
 	mParent = nullptr;
 }
+void freeFilter(FilterData * data, BufferRenderer * buffer, bool_t isQt){
+	QString callerName = (isQt ? "Qt" : "SDK");
+	qInfo() << "[MSQOGL] " << callerName << " free filter : " << data << ", " << buffer;
+	if(data){
+		data->free_lock->lock();
+		data->renderer = NULL;
+		if( isQt){
+			data->is_qt_linked = FALSE;
+			buffer->mParent = NULL;
+		}else {
+			ms_filter_lock(data->parent);
+			ogl_display_free(data->display);
+			ms_filter_unlock(data->parent);
+			data->is_sdk_linked = FALSE;
+		}
+		if( (isQt && !data->is_sdk_linked) || (!isQt && !data->is_qt_linked) ) {	// data is not linked to SDK (so it should have been wait on mutex or other resources). It is safe to delete it.
+			data->free_lock->unlock();	// Alow test to be protected
+			qInfo() << "[MSQOGL] " << callerName << " is freing data";
+			delete data->free_lock;
+			data->free_lock = NULL;
+			ms_free(data);
+		}else
+			data->free_lock->unlock();
+	}else
+		qWarning() << "[MSQOGL] " << callerName << " have no filter data to be freed : " << data << ", " << buffer;
+}
 
 BufferRenderer::~BufferRenderer () {
-	qInfo() << QStringLiteral("[MSQOGL] Delete Renderer: ") << this;
-	if(mParent && mParent->is_qt_linked){
-		ms_filter_lock(mParent->parent);
-		if( mParent->renderer == this){// Check if it is the same object. This deletion could be delayed for any reasons (Managed by Qt). We don't want to remove a new created object.
-			mParent->renderer = NULL;
-		}
-		mParent->is_qt_linked = FALSE;
-		if( !mParent->is_sdk_linked) {
-			ms_filter_unlock(mParent->parent);
-			qInfo() << QStringLiteral("[MSQOGL] Qt is freing data");
-			ms_free(mParent);
-		}else{
-			ms_filter_unlock(mParent->parent);
-		}
-	}
+	freeFilter(mParent, this, TRUE);
 }
 
 QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject (const QSize &size) {
@@ -72,7 +84,7 @@ QOpenGLFramebufferObject *BufferRenderer::createFramebufferObject (const QSize &
 static int qogl_call_render (MSFilter *f, void *arg);
 void BufferRenderer::render () {
 	// Draw with ms filter.
-	if(mParent && mParent->parent){
+	if(mParent && mParent->is_sdk_linked && mParent->parent){
 		qogl_call_render(mParent->parent, NULL);
 		// Synchronize opengl calls with QML.
 		if (mWindow)
@@ -114,6 +126,7 @@ static void qogl_init (MSFilter *f) {
 	data->is_qt_linked = FALSE;
 	data->is_sdk_linked = TRUE;
 	data->mode = MSVideoDisplayBlackBars;
+	data->free_lock = new std::mutex();
 	memset(&data->functions, 0, sizeof(data->functions));
 	data->functions.getProcAddress = getProcAddress;
 	
@@ -122,21 +135,7 @@ static void qogl_init (MSFilter *f) {
 
 static void qogl_uninit (MSFilter *f) {
 	FilterData *data = (FilterData *)f->data;
-	qInfo() << "[MSQOGL] uninit : " << data;
-	if( data->parent) ms_filter_lock(data->parent);
-	ogl_display_free(data->display);
-	if( data->renderer) {
-		qInfo() << "[MSQOGL] unsetting renderer " << data->renderer;
-		data->renderer->mParent = NULL;
-	}
-	if(!data->is_qt_linked && data->is_sdk_linked){
-		if( data->parent) ms_filter_unlock(data->parent);
-		qInfo() << QStringLiteral("[MSQOGL] qogl is freing data");
-		ms_free(data);
-	}else{
-		data->is_sdk_linked = FALSE;
-		if( data->parent) ms_filter_unlock(data->parent);
-	}
+	freeFilter(data, data->renderer, FALSE);
 }
 
 static void qogl_process (MSFilter *f) {
@@ -206,15 +205,25 @@ static int qogl_set_native_window_id (MSFilter *f, void *arg) {
 	
 	data = (FilterData *)f->data;
 	if( !arg || (arg && !(*(QQuickFramebufferObject::Renderer**)arg) )){
-		qInfo() << QStringLiteral("[MSQOGL] reset renderer");
+		qInfo() << "[MSQOGL] reset renderer for " << data;
+		if(data->renderer) {
+			data->renderer->mParent = NULL;
+			data->is_qt_linked = FALSE;
+		}
 		data->renderer = NULL;
-	}else if(!data->renderer) {
-		data->renderer = (*(BufferRenderer**)arg);
-		qInfo() << "[MSQOGL] setting renderer " << data->renderer << " to " << data;
+	}else{
+		auto newRenderer = (*(BufferRenderer**)arg);
+		if(data->renderer)
+			data->renderer->mParent = NULL;
+		if( data->renderer != newRenderer)
+			qInfo() << "[MSQOGL] replacing renderer " << data->renderer << " into " << newRenderer << " for " << data;
+		else
+			qInfo() << "[MSQOGL] setting renderer " << newRenderer << " for " << data;
+		data->renderer = newRenderer;	
+		data->is_qt_linked = TRUE;
 		data->renderer->mParent = data;
 		data->update_context = TRUE;
-	}else if( data->renderer != (*(BufferRenderer**)arg))
-		qWarning() << "[MSQOGL] Trying to set another renderer that is different from old.";
+	}
 	ms_filter_unlock(f);
 	return 0;
 }
