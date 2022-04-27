@@ -356,6 +356,29 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 	return ((crc&0xFF000000)>>24)|((crc&0x00FF0000)>>8)|((crc&0x0000FF00)<<8)|((crc&0x000000FF)<<24);
 }
 
+/**
+ * @brief Check if the keyAgreementAlgo is a post quantum algorithm
+ * @param[in]	keyAgreementAlgo	The key agreement algorithm
+ * @return	TRUE if the keyAgreementAlgo is a post quantum algorithm
+ */
+static bool_t bzrtp_isPostQuantum(uint8_t keyAgreementAlgo) {
+	switch (keyAgreementAlgo) {
+		case ZRTP_KEYAGREEMENT_KYB1:
+		case ZRTP_KEYAGREEMENT_KYB2:
+		case ZRTP_KEYAGREEMENT_KYB3:
+		case ZRTP_KEYAGREEMENT_SIK1:
+		case ZRTP_KEYAGREEMENT_SIK2:
+		case ZRTP_KEYAGREEMENT_SIK3:
+		case ZRTP_KEYAGREEMENT_K255_KYB512:
+		case ZRTP_KEYAGREEMENT_K255_SIK434:
+		case ZRTP_KEYAGREEMENT_K448_KYB1024:
+		case ZRTP_KEYAGREEMENT_K448_SIK751:
+			return TRUE;
+		default:
+			return false;
+	}
+}
+
 /*
  * @brief select a key agreement algorithm from the one available in context and the one provided by
  * peer in Hello Message as described in rfc section 4.1.2
@@ -434,7 +457,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 	}
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
-	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448
+			|| zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)) {
 		int i=0;
 
 		zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
@@ -446,7 +470,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 			i++;
 		}
 		/* is AES2 available */
-		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO && zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
 			i=0;
 			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 				if (commonCipherType[i] == ZRTP_CIPHER_AES2) {
