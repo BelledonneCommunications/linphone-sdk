@@ -457,8 +457,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 	}
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
-	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448
-			|| zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)) {
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)) {
 		int i=0;
 
 		zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
