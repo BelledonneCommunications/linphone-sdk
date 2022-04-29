@@ -159,7 +159,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 		ms_flow_controlled_bufferizer_read(&octx->buffer, (uint8_t *)audioData, bytes);
 	}
 	if (avail < ask) {
-		memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
+		memset(static_cast<uint8_t *>(audioData) + avail, 0, ask - avail);
 	}
 	ms_mutex_unlock(&octx->mutex);
 
