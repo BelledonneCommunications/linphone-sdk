@@ -127,7 +127,7 @@ if(NOT ENABLE_FAT_BINARY)
 		foreach(_framework ${_frameworks})
 			get_filename_component(_framework_name "${_framework}" NAME_WE)
 			execute_process(
-				COMMAND "lipo" "-create" "-output" "${LINPHONESDK_NAME}/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "${LINPHONESDK_NAME}/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "${LINPHONESDK_NAME}/arm64-simulator-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}"
+				COMMAND "lipo" "-create" "-output" "linphone-sdk/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "linphone-sdk/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "linphone-sdk/arm64-simulator-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}"
 				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 			)
 		endforeach()

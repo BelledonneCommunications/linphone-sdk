@@ -54,7 +54,7 @@ file(GLOB_RECURSE _binaries RELATIVE "${LINPHONESDK_BUILD_DIR}/linphone-sdk/mac-
 
 if(NOT ENABLE_FAT_BINARY)
 	# Remove all .framework inputs from the result
-	list(FILTER _binaries EXCLUDE REGEX ".*\.framework.*")
+	list(FILTER _binaries EXCLUDE REGEX ".*\\.framework.*")
 endif()
 
 foreach(_file ${_binaries})
