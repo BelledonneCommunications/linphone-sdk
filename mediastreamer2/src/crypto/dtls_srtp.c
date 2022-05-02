@@ -57,7 +57,7 @@ typedef struct _DtlsRawPacket {
 #define DTLS_STATUS_HANDSHAKE_OVER 3
 #define DTLS_STATUS_FINGERPRINT_VERIFIED 4
 
-#define READ_TIMEOUT_MS 1000
+#define DTLS_REPETITION_TIMER_POLL 100
 
 struct _MSDtlsSrtpContext{
 	MSMediaStreamSessions *stream_sessions;
@@ -206,35 +206,30 @@ static MSCryptoSuite ms_dtls_srtp_bctbx_protection_profile_to_ms_crypto_suite(bc
 
 static void schedule_rtp(struct _RtpTransportModifier *t) {
 	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
-	/* it is not a dtls packet, but manage anyway the retransmission timer */
-	if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
-		uint64_t current_time = get_timeval_in_millis();
-		if (ctx->rtp_time_reference>0) { /* only when retransmission timer is armed */
-			if (current_time - ctx->rtp_time_reference > READ_TIMEOUT_MS) {
-				ms_message("DTLS repeating rtp ssl_handshake for context [%p]",ctx);
-				ms_mutex_lock(&ctx->rtp_dtls_context->ssl_context_mutex);
-				bctbx_ssl_handshake(ctx->rtp_dtls_context->ssl);
-				ms_mutex_unlock(&ctx->rtp_dtls_context->ssl_context_mutex);
-				ctx->rtp_time_reference = get_timeval_in_millis();
-			}
+	/* the retransmission timer increasing value is managed by the crypto lib
+	 * just poke it each 100ms */
+	uint64_t current_time = get_timeval_in_millis();
+	if (ctx->rtp_time_reference>0) { /* only when retransmission timer is armed */
+		if (current_time - ctx->rtp_time_reference > DTLS_REPETITION_TIMER_POLL) {
+			ms_mutex_lock(&ctx->rtp_dtls_context->ssl_context_mutex);
+			bctbx_ssl_handshake(ctx->rtp_dtls_context->ssl);
+			ms_mutex_unlock(&ctx->rtp_dtls_context->ssl_context_mutex);
+			ctx->rtp_time_reference = get_timeval_in_millis();
 		}
 	}
-
 }
 static void schedule_rtcp(struct _RtpTransportModifier *t) {
 	MSDtlsSrtpContext *ctx = (MSDtlsSrtpContext *)t->data;
-	if (ctx->role == MSDtlsSrtpRoleIsClient) { /* only if we are client */
-		uint64_t current_time = get_timeval_in_millis();
-		if (ctx->rtcp_time_reference>0) { /* only when retransmission timer is armed */
-			if (current_time - ctx->rtcp_time_reference > READ_TIMEOUT_MS) {
-				ms_message("DTLS repeating rtcp ssl_handshake for context [%p]",ctx);
-				ms_mutex_lock(&ctx->rtcp_dtls_context->ssl_context_mutex);
-				bctbx_ssl_handshake(ctx->rtcp_dtls_context->ssl);
-				ms_mutex_unlock(&ctx->rtcp_dtls_context->ssl_context_mutex);
-				ctx->rtcp_time_reference = get_timeval_in_millis();
-			}
+	/* the retransmission timer increasing value is managed by the crypto lib
+	 * just poke it each 100ms */
+	uint64_t current_time = get_timeval_in_millis();
+	if (ctx->rtcp_time_reference>0) { /* only when retransmission timer is armed */
+		if (current_time - ctx->rtcp_time_reference > DTLS_REPETITION_TIMER_POLL) {
+			ms_mutex_lock(&ctx->rtcp_dtls_context->ssl_context_mutex);
+			bctbx_ssl_handshake(ctx->rtcp_dtls_context->ssl);
+			ms_mutex_unlock(&ctx->rtcp_dtls_context->ssl_context_mutex);
+			ctx->rtcp_time_reference = get_timeval_in_millis();
 		}
-
 	}
 }
 /**
