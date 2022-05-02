@@ -1169,6 +1169,11 @@ int32_t bctbx_ssl_config_defaults(bctbx_ssl_config_t *ssl_config, int endpoint, 
 	if (ret <0) {
 		return ret;
 	}
+	if (transport == BCTBX_SSL_TRANSPORT_DATAGRAM) {
+		// Set agressive repetition timer for DTLS handshake
+		mbedtls_ssl_conf_handshake_timeout(ssl_config->ssl_config, 400, 15000);
+	}
+
 
 	/* Set the default x509 security profile used for verification of all certificate in chain */
 	mbedtls_ssl_conf_cert_profile(ssl_config->ssl_config, &bctbx_x509_crt_profile_default);
