@@ -26,13 +26,12 @@
 
 #include <msaaudio/msaaudio.h>
 
-static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m);
+static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
 
 // this global variable is shared among all msaaudio files
 int DeviceFavoriteSampleRate = 44100;
 
 static void android_snd_card_detect(MSSndCardManager *m) {
-
 	JNIEnv *env = ms_get_jni_env();
 
 	// Get all devices
@@ -41,12 +40,14 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 	// extract required information from every device
 	jobjectArray deviceArray = (jobjectArray) devices;
 	jsize deviceNumber = (int) env->GetArrayLength(deviceArray);
-
 	ms_message("[AAudio] Create soundcards for %0d devices", deviceNumber);
+
+	MSDevicesInfo *devicesInfo = ms_factory_get_devices_info(m->factory);
+	SoundDeviceDescription *deviceDescription = ms_devices_info_get_sound_device_description(devicesInfo);
 
 	for (int idx=0; idx < deviceNumber; idx++) {
 		jobject deviceInfo = env->GetObjectArrayElement(deviceArray, idx);
-		android_snd_card_device_create(env, deviceInfo, m);
+		android_snd_card_device_create(env, deviceInfo, deviceDescription, m);
 	}
 }
 
@@ -57,7 +58,7 @@ static void android_native_snd_card_init(MSSndCard *card) {
 
 static void android_native_snd_card_uninit(MSSndCard *card) {
 	AAudioContext *ctx = (AAudioContext*)card->data;
-	ms_warning("[AAudio] Deletion of AAudio context [%p]", ctx);
+	ms_message("[AAudio] Deletion of AAudio context [%p]", ctx);
 	delete ctx;
 }
 
@@ -75,8 +76,7 @@ MSSndCardDesc android_native_snd_aaudio_card_desc = {
 	android_native_snd_card_uninit
 };
 
-static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSndCardManager *m) {
-
+static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m) {
 	MSSndCardDeviceType type = ms_android_get_device_type(env, deviceInfo);
 	if (
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
@@ -88,6 +88,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)
 	) {
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_aaudio_card_desc);
+		card = ms_snd_card_ref(card);
 
 		card->name = ms_android_get_device_product_name(env, deviceInfo);
 		card->internal_id = ms_android_get_device_id(env, deviceInfo);
@@ -98,36 +99,36 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, MSSn
 		// Card capabilities
 		// Assign the value because the default value is MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK
 		card->capabilities = ms_android_get_device_capabilities(env, deviceInfo);
-		MSDevicesInfo *devices = ms_factory_get_devices_info(m->factory);
-		SoundDeviceDescription *d = ms_devices_info_get_sound_device_description(devices);
-
-		if (d->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
+		if (deviceDescription->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
 			ms_warning("[AAudio] Device has been dynamically blacklisted using DEVICE_HAS_CRAPPY_AAUDIO flag");
-			free(card);
+			ms_snd_card_unref(card);
 			return;
 		}
 
-		if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
-			card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
-			card_data->builtin_aec = true;
+		if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
+			if (deviceDescription->flags & DEVICE_HAS_BUILTIN_AEC) {
+				card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
+				card_data->builtin_aec = true;
+			}
 		}
 
-		card->latency = d->delay;
-		if (d->recommended_rate){
-			card_data->samplerate = d->recommended_rate;
+		card->latency = deviceDescription->delay;
+		if (deviceDescription->recommended_rate){
+			card_data->samplerate = deviceDescription->recommended_rate;
 		}
 
 		// Take capabilities into account as the same device type may have different components with different capabilities and IDs
-		if(!ms_snd_card_is_card_duplicate(m, card, TRUE)) {
-			card=ms_snd_card_ref(card);
+		if (!ms_snd_card_is_card_duplicate(m, card, TRUE)) {
 			ms_snd_card_manager_prepend_card(m, card);
-
 			ms_message("[AAudio] Added card with ID: [%s], name: [%s], device ID: [%0d], type: [%s] and capabilities: [%0d]", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 		} else {
-			free(card);
+			ms_message("[AAudio] Card with ID: [%s], name: [%s], device ID: [%0d], type: [%s] and capabilities: [%0d] not added, considered as duplicate", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 		}
-	}
 
+		ms_snd_card_unref(card);
+	} else {
+		ms_message("[AAudio] SKipped device with type [%s]", ms_snd_card_device_type_to_string(type));
+	}
 }
 
 static bool loadLib() {
