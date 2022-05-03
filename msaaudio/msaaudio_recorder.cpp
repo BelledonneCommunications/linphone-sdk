@@ -243,6 +243,12 @@ static void android_snd_read_process(MSFilter *obj) {
 			AAudioStream_close(ictx->stream);
 			ictx->stream = NULL;
 		}
+		ms_mutex_lock(&ictx->mutex);
+		if (ictx->mTickerSynchronizer){
+			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
+			ms_message("[AAudio] resync ticket synchronizer to avoid audio delay");
+		}
+		ms_mutex_unlock(&ictx->mutex);
 		ictx->aaudio_context->device_changed = false;
 	}
 
