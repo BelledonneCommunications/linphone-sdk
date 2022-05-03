@@ -832,13 +832,13 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_SIK2;
 				} else if (memcmp(algoType, "SIK3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_SIK3;
-				} else if (memcmp(algoType, "X2K5", 4) == 0) {
+                } else if (memcmp(algoType, "X1K1", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K255_KYB512;
-				} else if (memcmp(algoType, "X2S4", 4) == 0) {
+                } else if (memcmp(algoType, "X1S1", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K255_SIK434;
-				} else if (memcmp(algoType, "X4K1", 4) == 0) {
+                } else if (memcmp(algoType, "X3K3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K448_KYB1024;
-				} else if (memcmp(algoType, "X4S7", 4) == 0) {
+                } else if (memcmp(algoType, "X3S3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K448_SIK751;
 				} else if (memcmp(algoType, "Prsh", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_Prsh;
@@ -960,16 +960,16 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 			memcpy(algoTypeString, "SIK3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_KYB512:
-			memcpy(algoTypeString, "X2K5", 4);
+            memcpy(algoTypeString, "X1K1", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_SIK434:
-			memcpy(algoTypeString, "X2S4", 4);
+            memcpy(algoTypeString, "X1S1", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-			memcpy(algoTypeString, "X4K1", 4);
+            memcpy(algoTypeString, "X3K3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
-			memcpy(algoTypeString, "X4S7", 4);
+            memcpy(algoTypeString, "X3S3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_Prsh:
 			memcpy(algoTypeString, "Prsh", 4);
