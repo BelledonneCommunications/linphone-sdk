@@ -389,7 +389,7 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 #ifdef __ANDROID__
 		if (ms2_android_get_sdk_version() >= 26){
 			d = &genericSoundDeviceDescriptorAboveAndroid8;
-			ms_message("Using android >= 8 sound device descriptor.");
+			ms_message("Android >= 8, using sound device descriptor.with DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC flags");
 		}else d = &genericSoundDeviceDescriptor;
 #else
 		d = &genericSoundDeviceDescriptor;
