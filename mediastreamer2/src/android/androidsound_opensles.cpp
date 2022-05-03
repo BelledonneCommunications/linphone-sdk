@@ -710,6 +710,10 @@ static int android_snd_read_configure_soundcard(MSFilter *obj, void *data) {
 		ictx->soundCard = ms_snd_card_ref(card);
 		OpenSLESContext* opensles_context = (OpenSLESContext*)card->data;
 		ictx->setContext(opensles_context);
+		if (ictx->mTickerSynchronizer){
+			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
+			ms_message("[OpenSLES] resync ticket synchronizer to avoid audio delay");
+		}
 		ms_mutex_unlock(&ictx->mutex);
 	}
 	return 0;
