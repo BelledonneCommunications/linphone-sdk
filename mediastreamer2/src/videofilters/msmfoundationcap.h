@@ -42,7 +42,8 @@ protected:
 	bool_t mRunning;	// The reading process is running or not. Set it to FALSE to stop it.
 	float mFps;
 	unsigned int mSampleCount, mProcessCount;
-	
+	bool_t mFmtChanged;
+
 public:
 	MSMFoundationCap();
 	virtual ~MSMFoundationCap();

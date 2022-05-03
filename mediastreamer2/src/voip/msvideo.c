@@ -461,6 +461,7 @@ void ms_rgb_to_yuv(const uint8_t rgb[3], uint8_t yuv[3]){
 struct _MSYuvScalerContext{
 	MSVideoSize source;
 	MSVideoSize target;
+	MSPixFmt src_fmt;
 };
 
 typedef struct _MSYuvScalerContext MSYuvScalerContext;
@@ -472,12 +473,25 @@ static MSScalerContext *yuv_create_scale_context(int src_w, int src_h, MSPixFmt 
 	ctx->source.height = src_h;
 	ctx->target.width = dst_w;
 	ctx->target.height = dst_h;
+	ctx->src_fmt = src_fmt;
 	return (MSScalerContext*)ctx;
 }
 
 static int yuv_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
 	MSYuvScalerContext *fctx=(MSYuvScalerContext*)ctx;
-	int err=I420Scale(src[0], src_strides[0], src[1], src_strides[1], src[2], src_strides[2], fctx->source.width, fctx->source.height, dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height, kFilterBilinear);
+	int err=-1;
+	switch (fctx->src_fmt) {
+		case MS_YUV420P:
+			err=I420Scale(src[0], src_strides[0], src[1], src_strides[1], src[2], src_strides[2], fctx->source.width, fctx->source.height, dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height, kFilterBilinear);
+			break;
+		case MS_YUY2:
+			err=YUY2ToI420(src[0], src_strides[0], dst[0], dst_strides[0],dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height);
+			break;
+		default:
+			ms_message("yuv_scale: unsupported format %s", ms_pix_fmt_to_string(fctx->src_fmt));
+			break;
+	}
+	
 	if (err<0) return -1;
 	return 0;
 }
@@ -724,10 +738,10 @@ MSScalerDesc * ms_video_get_scaler_impl(void){
 	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM && (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0){
 		scaler_impl = &ms_android_scaler;
 	}
-#elif !defined(NO_FFMPEG)
-	scaler_impl=&ffmpeg_scaler;
 #elif defined(HAVE_LIBYUV_H)
 	scaler_impl=&yuv_scaler;
+#elif !defined(NO_FFMPEG)
+	scaler_impl=&ffmpeg_scaler;
 #endif
 	return scaler_impl;
 }

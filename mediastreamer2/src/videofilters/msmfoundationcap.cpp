@@ -87,6 +87,7 @@ MSMFoundationCap::MSMFoundationCap() {
 	mFps = 60.0;
 	mOrientation = 0;
 	mSampleCount= mProcessCount=0;
+	mFmtChanged = FALSE;
 }
 
 MSMFoundationCap::~MSMFoundationCap() {
@@ -129,6 +130,11 @@ void MSMFoundationCap::setDeviceOrientation(int orientation){ mOrientation = ori
 void MSMFoundationCap::activate() {}
 
 void MSMFoundationCap::feed(MSFilter * filter) {
+	if (mFmtChanged) {
+		ms_filter_notify_no_arg(filter, MS_FILTER_OUTPUT_FMT_CHANGED);
+		mFmtChanged = FALSE;
+		return;
+	}
 	mblk_t **data = &mFrameData;
 	EnterCriticalSection(&mCriticalSection);
 	if(mRunning && mFrameData ) {
@@ -840,6 +846,7 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 			}
 			mWidth = frameWidth;
 			mHeight = frameHeight;
+			mFmtChanged = TRUE;
 		}
 		if(mSource)
 			ms_message("[MSMFoundationCap] Change the video format : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
@@ -1179,6 +1186,7 @@ HRESULT MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32
 			mHeight = frameHeight;
 			mStride = stride;
 			mPlaneSize = mHeight * abs(mStride);// Details : mWidth * mHeight * abs(mStride) / mWidth;
+			mFmtChanged = TRUE;
 		}
 		if(mSourceReader)
 			ms_message("[MSMFoundationCap] Change the video format : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
