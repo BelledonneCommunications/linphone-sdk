@@ -60,8 +60,9 @@
 
 #define	ZRTP_HASH_S256			0x11
 #define	ZRTP_HASH_S384			0x12
-#define	ZRTP_HASH_N256			0x13
-#define	ZRTP_HASH_N384			0x14
+#define	ZRTP_HASH_S512			0x13
+#define	ZRTP_HASH_N256			0x14
+#define	ZRTP_HASH_N384			0x15
 
 #define ZRTP_CIPHER_AES1		0x21
 #define ZRTP_CIPHER_AES2		0x22

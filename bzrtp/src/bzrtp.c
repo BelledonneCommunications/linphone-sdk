@@ -1290,6 +1290,7 @@ const char *bzrtp_algoToString(uint8_t algo){
 
 		case(ZRTP_HASH_S256): return "SHA-256";
 		case(ZRTP_HASH_S384): return "SHA-384";
+		case(ZRTP_HASH_S512): return "SHA-512";
 		case(ZRTP_HASH_N256): return "SHA3-256";
 		case(ZRTP_HASH_N384): return "SHA3-384";
 

@@ -31,6 +31,7 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 		case ZRTP_HASH_TYPE:
 			availableTypes[0] = ZRTP_HASH_S256;
 			availableTypes[1] = ZRTP_HASH_S384;
+			availableTypes[2] = ZRTP_HASH_S512;
 			return 2;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			availableTypes[0] = ZRTP_CIPHER_AES1;
@@ -560,6 +561,11 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 			zrtpChannelContext->hmacFunction = bctbx_hmacSha384;
 			zrtpChannelContext->hashLength = 48;
 			break;
+		case ZRTP_HASH_S512 :
+			zrtpChannelContext->hashFunction = bctbx_sha512;
+			zrtpChannelContext->hmacFunction = bctbx_hmacSha512;
+			zrtpChannelContext->hashLength = 48;
+			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->hashFunction = NULL;
 			zrtpChannelContext->hmacFunction = NULL;
@@ -757,6 +763,8 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_HASH_S256;
 				} else if (memcmp(algoType, "S384", 4) == 0) {
 					return ZRTP_HASH_S384;
+				} else if (memcmp(algoType, "S512", 4) == 0) {
+					return ZRTP_HASH_S512;
 				} else if (memcmp(algoType, "N256", 4) == 0) {
 					return ZRTP_HASH_N256;
 				} else if (memcmp(algoType, "N384", 4) == 0) {
@@ -877,6 +885,9 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 			break;
 		case ZRTP_HASH_S384:
 			memcpy(algoTypeString, "S384", 4);
+			break;
+		case ZRTP_HASH_S512:
+			memcpy(algoTypeString, "S512", 4);
 			break;
 		case ZRTP_HASH_N256:
 			memcpy(algoTypeString, "N256", 4);
@@ -1188,6 +1199,7 @@ static int bzrtp_getHashAlgoId(uint8_t hashAlgo){
 	switch(hashAlgo){
 		case ZRTP_HASH_S256: return BCTBX_MD_SHA256;
 		case ZRTP_HASH_S384: return BCTBX_MD_SHA384;
+		case ZRTP_HASH_S512: return BCTBX_MD_SHA512;
 		default: return BCTBX_MD_UNDEFINED;
 	}
 }
