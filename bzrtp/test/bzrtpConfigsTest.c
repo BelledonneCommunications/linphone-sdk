@@ -835,7 +835,7 @@ static void test_mtu(void) {
 	/* serie tested only if ECDH is available */
 	cryptoParams_t ecdh_patterns[] = {
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
@@ -844,8 +844,8 @@ static void test_mtu(void) {
 	cryptoParams_t hybrid_kem_patterns[] = {
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
 		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
@@ -884,7 +884,7 @@ static void test_loosy_network_mtu(void) {
 	int i,j;
 	resetGlobalParams();
 	srand((unsigned int)time(NULL));
-	cryptoParams_t pattern = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0};
+	cryptoParams_t pattern = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0};
 
 	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
 	for (j=0; j<10; j++) {
