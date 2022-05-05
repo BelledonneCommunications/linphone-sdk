@@ -457,8 +457,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	if (commonCipherTypeNumber == 0) {/* This shall never happend but... */
 		return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
 	}
-    /* rfc section 5.1.5 specifies that if EC38 is choosen we MUST use AES256 or AES192 */
-    /* if a post quantum algorithm is choosen we MUST use AES256 */
+	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
+	/* if a post quantum algorithm is choosen we SHOULD use AES256 */
     if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
             || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
@@ -472,11 +472,21 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 			i++;
 		}
 		/* is AES2 available */
-		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO && zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38) {
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 			i=0;
 			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
 				if (commonCipherType[i] == ZRTP_CIPHER_AES2) {
 					zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES2;
+				}
+				i++;
+			}
+		}
+		/* is AES1 available */
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+			i=0;
+			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+				if (commonCipherType[i] == ZRTP_CIPHER_AES1) {
+					zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES1;
 				}
 				i++;
 			}
@@ -496,7 +506,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 
     /* rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
-    /* if a post quantum algorithm is choosen we MUST use SHA512 */
+	/* if a post quantum algorithm is choosen we SHOULD use SHA512 */
     if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
             || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
@@ -508,6 +518,16 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 				zrtpChannelContext->hashAlgo = ZRTP_HASH_S384;
 			}
 			i++;
+		}
+		/* is S256 available */
+		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+			i = 0;
+			while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
+				if (commonHashType[i] == ZRTP_HASH_S256) {
+					zrtpChannelContext->hashAlgo = ZRTP_HASH_S256;
+				}
+				i++;
+			}
 		}
 		if (zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
