@@ -546,6 +546,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	int is_retransmition=FALSE;
 	int delete_dialog=FALSE;
 	belle_sip_request_t *req=belle_sip_transaction_get_request(transaction);
+	belle_sip_header_cseq_t* current_cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
+	unsigned int current_transaction_cseq = belle_sip_header_cseq_get_seq_number(current_cseq);
 	belle_sip_response_t *resp=belle_sip_transaction_get_response(transaction);
 	int code=0;
 	int ret = 0;
@@ -559,7 +561,8 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	if (resp)
 		code=belle_sip_response_get_status_code(resp);
 
-	if (as_uas && code == 491) { /**/
+	bool_t do_not_update_last_transaction = (as_uas && (code == 491));
+	if (do_not_update_last_transaction) { /**/
 		belle_sip_message("Dialog [%p]: don't update last transaction by transaction [%p].",obj, transaction);
 	} else {
 		belle_sip_object_ref(transaction);
@@ -573,15 +576,23 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 		SET_OBJECT_PROPERTY(obj,privacy,privacy_header);
 	}
 
-	/*first update local/remote cseq*/
+	/*
+	  first update local/remote cseq
+	  Do not update remote and remote invite CSeq if it is lower than the current one as it may be a retransmission and the next transaction may already be executing
+	*/
 	if (as_uas) {
-		belle_sip_header_cseq_t* cseq=belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(req),belle_sip_header_cseq_t);
-		obj->remote_cseq=belle_sip_header_cseq_get_seq_number(cseq);
-		if (is_invite && code>=200 && code<300)
-			obj->remote_invite_cseq = belle_sip_header_cseq_get_seq_number(cseq);
-		/*else ACK is handled by transaction, not dialog*/
+		bool_t update_remote_invite_cseq = (obj->remote_invite_cseq < current_transaction_cseq);
+		bool_t update_cseq = (obj->remote_cseq < current_transaction_cseq);
+		if ((is_invite && (code>=200) && (code<300) && !update_remote_invite_cseq) || (!update_cseq && !do_not_update_last_transaction)) {
+			obj->last_transaction=previous_transaction;
+		}
+		if (update_cseq) {
+			obj->remote_cseq=current_transaction_cseq;
+		}
+		if (is_invite && (code>=200) && (code<300) && update_remote_invite_cseq) {
+				obj->remote_invite_cseq = current_transaction_cseq;
+		} /*else ACK is handled by transaction, not dialog*/
 	}
-
 
 	switch (obj->state){
 		case BELLE_SIP_DIALOG_NULL:
@@ -662,6 +673,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 				if (code>=200 && code<300){
 					/*handle possible retransmission of 200Ok */
 					if (!as_uas && (is_retransmition=(belle_sip_dialog_handle_200Ok(obj,resp)==0))) {
+						obj->last_transaction=previous_transaction;
 						ret = 1;
 						goto end;
 					} else {
@@ -725,7 +737,13 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t* tr
 	}
 
 end:
-	if (previous_transaction) belle_sip_object_unref(previous_transaction);
+	if (!do_not_update_last_transaction) {
+		if (obj->last_transaction && (obj->last_transaction == transaction)) {
+			if (previous_transaction) belle_sip_object_unref(previous_transaction);
+		} else {
+			if (transaction) belle_sip_object_unref(transaction);
+		}
+	}
 	if (delete_dialog) belle_sip_dialog_delete(obj);
 	else {
 		belle_sip_dialog_process_queue(obj);
@@ -1201,7 +1219,7 @@ int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ac
 		belle_sip_dialog_process_queue(obj);
 		return 0;
 	}
-	belle_sip_message("Dialog ignoring incoming ACK (surely a retransmission)");
+	belle_sip_message("Dialog ignoring incoming ACK (surely a retransmission) to dialog %p with CSeq %0d", obj, belle_sip_header_cseq_get_seq_number(cseq));
 	return -1;
 }
 
@@ -1274,9 +1292,7 @@ void belle_sip_dialog_queue_client_transaction(belle_sip_dialog_t *dialog, belle
 
 static void _belle_sip_dialog_process_queue(belle_sip_dialog_t* dialog){
 	belle_sip_client_transaction_t *tr=NULL;
-
 	if (dialog->state==BELLE_SIP_DIALOG_TERMINATED || belle_sip_dialog_request_pending(dialog)) goto end;
-
 	dialog->queued_ct=belle_sip_list_pop_front(dialog->queued_ct,(void**)&tr);
 	if (tr){
 		belle_sip_message("Dialog [%p]: sending queued request [%p].",dialog,tr);

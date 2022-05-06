@@ -288,7 +288,7 @@ belle_sip_response_t *belle_sip_transaction_get_response(const belle_sip_transac
 }
 
 void belle_sip_transaction_notify_timeout(belle_sip_transaction_t *t){
-	/* Report the channel as possibly dead. If an alternate IP can be tryied, the channel will notify us with the RETRY state.
+	/* Report the channel as possibly dead. If an alternate IP can be tried, the channel will notify us with the RETRY state.
 	 * Otherwise it will report the error.
 	 * We limit this dead channel reporting to REGISTER transactions, who are unlikely to be unresponded.
 	**/
