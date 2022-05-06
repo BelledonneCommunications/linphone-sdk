@@ -210,6 +210,21 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	bzrtp_getSelfZID_lock(context->zidCache, context->selfURI, context->selfZID, context->RNGContext, context->zidCacheMutex);
 	context->isInitialised = 1;
 
+	/* In the case where we supporte a post quantum algorithm,
+	 * we need to supporte AES3 and SHA384 */
+	int i = 0;
+	while (i < context->kc && !bzrtp_isPostQuantum(context->supportedKeyAgreement[i])) {
+		i++;
+	}
+	if (i < context->kc) {
+		if (context->cc < 7) {
+			context->supportedCipher[context->cc] = ZRTP_CIPHER_AES3;
+		}
+		if (context->hc < 7) {
+			context->supportedCipher[context->hc] = ZRTP_HASH_S384;
+		}
+	}
+
 	/* allocate 1 channel context, set all the others pointers to NULL */
 	context->channelContext[0] = (bzrtpChannelContext_t *)malloc(sizeof(bzrtpChannelContext_t));
 	memset(context->channelContext[0], 0, sizeof(bzrtpChannelContext_t));

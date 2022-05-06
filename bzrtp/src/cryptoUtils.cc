@@ -357,12 +357,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 	return ((crc&0xFF000000)>>24)|((crc&0x00FF0000)>>8)|((crc&0x0000FF00)<<8)|((crc&0x000000FF)<<24);
 }
 
-/**
- * @brief Check if the keyAgreementAlgo is a post quantum algorithm
- * @param[in]	keyAgreementAlgo	The key agreement algorithm
- * @return	TRUE if the keyAgreementAlgo is a post quantum algorithm
- */
-static bool_t bzrtp_isPostQuantum(uint8_t keyAgreementAlgo) {
+bool_t bzrtp_isPostQuantum(uint8_t keyAgreementAlgo) {
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
 		case ZRTP_KEYAGREEMENT_KYB2:
@@ -506,7 +501,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 
     /* rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
-	/* if a post quantum algorithm is choosen we SHOULD use SHA512 */
+	/* if a post quantum algorithm is choosen we SHOULD use SHA384 */
     if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
             || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
@@ -520,7 +515,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 			i++;
 		}
 		/* is S256 available */
-		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+		if (zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			i = 0;
 			while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 				if (commonHashType[i] == ZRTP_HASH_S256) {

@@ -121,6 +121,14 @@ BZRTP_EXPORT uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length);
 #define ZRTP_CRYPTOAGREEMENT_INVALIDHASH		0x1006
 #define ZRTP_CRYPTOAGREEMENT_INVALIDAUTHTAG		0x1007
 #define ZRTP_CRYPTOAGREEMENT_INVALIDSAS			0x1008
+
+/**
+ * @brief Check if the keyAgreementAlgo is a post quantum algorithm
+ * @param[in]	keyAgreementAlgo	The key agreement algorithm
+ * @return	TRUE if the keyAgreementAlgo is a post quantum algorithm
+ */
+bool_t bzrtp_isPostQuantum(uint8_t keyAgreementAlgo);
+
 /**
  * @brief select a key agreement algorithm from the one available in context and the one provided by
  * peer in Hello Message as described in rfc section 4.1.2
