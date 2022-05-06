@@ -1195,7 +1195,8 @@ static void snd_card_device_create_extra_fields(MSSndCardManager *m, MSSndCard *
 			ms_message("[OpenSLES] Adding MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER flag to soundcard ([%s] device ID [%0d] type [%s]) because of DEVICE_HAS_BUILTIN_OPENSLES_AEC", card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
 			card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 			card_data->builtin_aec = true;
-		} else if (hasBuiltinAec && !hasCrappyAec) {
+		} else if (hasBuiltinAec && !hasCrappyAec && card->device_type == MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
+			// Only apply this workaround to default microphone, not any other device that has CAPTURE capability
 			ms_warning("[OpenSLES] Removing MS_SND_CARD_CAP_CAPTURE flag from soundcard ([%s] device ID [%0d] type [%s]) to use HAEC Java capture soundcard", card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
 			card->capabilities &= ~MS_SND_CARD_CAP_CAPTURE;
 			card_data->builtin_aec = false;
@@ -1221,19 +1222,31 @@ static void snd_card_device_create(int device_id, const char * name, MSSndCardDe
 	card->capabilities = capabilities;
 	snd_card_device_create_extra_fields(m, card, deviceDescription);
 
+	bool hasCaptureCapability = (card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE;
+	bool hasPlaybackCapability = (card->capabilities & MS_SND_CARD_CAP_PLAYBACK) == MS_SND_CARD_CAP_PLAYBACK;
 	// Last argument is set to false because cards are added based on their type.
 	// Their capabilities are ignored as we do upcalls to the audio manager to set the desired device
 	// For example a Bluetooth device can be a speaker and/or microphone. The upcall to the audio manager will enable (i.e. start) or disable (i.e. stop) the bluetooth device regardless whether it is used as speaker or microphone.
-	if (!ms_snd_card_is_card_duplicate(m, card, FALSE)) {
-		int mask = MS_SND_CARD_CAP_PLAYBACK | MS_SND_CARD_CAP_CAPTURE;
-		if ((card->capabilities & mask) != 0) {
+	MSSndCard *duplicate = ms_snd_card_get_card_duplicate(m, card, FALSE);
+	if (duplicate == NULL) {
+		if (hasCaptureCapability || hasPlaybackCapability) {
 			ms_snd_card_manager_add_card(m, card);
 			ms_message("[OpenSLES] Added card [%p]: name [%s] device ID [%0d] type [%s]", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
 		} else {
 			ms_warning("[OpenSLES] Card [%p]: name [%s] device ID [%0d] type [%s] not added, neither capture nor playback capability", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
 		}
 	} else {
-		ms_warning("[OpenSLES] Card [%p]: name [%s] device ID [%0d] type [%s] not added, considered as duplicate", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type));
+		ms_warning("[OpenSLES] Card [%p]: name [%s] device ID [%0d] type [%s] not added, considered a duplicate of card [%p]: name [%s] device ID [%0d] type [%s]", card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), duplicate, duplicate->name, duplicate->internal_id, ms_snd_card_device_type_to_string(duplicate->device_type));
+		if (card->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH || card->device_type == MS_SND_CARD_DEVICE_TYPE_HEADSET || card->device_type == MS_SND_CARD_DEVICE_TYPE_HEADPHONES) {
+			if (hasCaptureCapability && (duplicate->capabilities & MS_SND_CARD_CAP_PLAYBACK) == MS_SND_CARD_CAP_PLAYBACK) {
+				ms_message("[OpenSLES] Duplicate card has Playback capability, adding to it the Capture capability");
+				duplicate->capabilities |= MS_SND_CARD_CAP_CAPTURE;
+			} else if (hasPlaybackCapability && (duplicate->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
+				ms_message("[OpenSLES] Duplicate card has Capture capability, adding to it the Playback capability");
+				duplicate->capabilities |= MS_SND_CARD_CAP_PLAYBACK;
+			}
+			ms_snd_card_unref(duplicate);
+		}
 	}
 	ms_snd_card_unref(card);
 }

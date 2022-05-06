@@ -417,7 +417,17 @@ MS2_PUBLIC bool_t ms_snd_card_manager_reload_requested(MSSndCardManager *m);
  *
  * Returns: true if a duplicate has been found, false otherwise
 **/
-MS2_PUBLIC bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool_t checkCapabilities);
+MS2_PUBLIC bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard *card, bool_t checkCapabilities);
+
+/**
+ * Check if there is another card in the manager having same driver_type, name and device_type
+ * @param m    Card Manager
+ * @param card Card to compare properties against
+ * @param checkCapabilities flag to check capabilities
+ *
+ * Returns: The duplicate if it is found, NULL otherwise
+**/
+MS2_PUBLIC MSSndCard* ms_snd_card_get_card_duplicate(MSSndCardManager *m, MSSndCard *card, bool_t checkCapabilities);
 
 /**
  * Prevent card type to be at the head fo the list

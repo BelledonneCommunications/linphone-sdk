@@ -578,7 +578,16 @@ void ms_snd_card_unref(MSSndCard *sndCard) {
 }
 
 bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool_t checkCapabilities) {
-	bctbx_list_t * cards = ms_snd_card_manager_get_all_cards_with_name(m, card->name);
+	MSSndCard *duplicate = ms_snd_card_get_card_duplicate(m, card, checkCapabilities);
+	if (duplicate != NULL) {
+		ms_snd_card_unref(duplicate);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+MSSndCard* ms_snd_card_get_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool_t checkCapabilities) {
+	bctbx_list_t* cards = ms_snd_card_manager_get_all_cards_with_name(m, card->name);
 
 	// Distinguish card by playback and capture.
 	// Ignore other capatibilirties such as built-in echo cancelling
@@ -589,21 +598,21 @@ bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard * card, bool
 	// Only one of them will be added to the card manager. In order to simplify the logic, the device added to the manager will depend on the order devices are in the list.
 	// For any given combination of <name>,<driver_type>,<device_type> only the first one inn the list will be added to the card manager
 	// If a card with same driver type and device_type has already been added to the sound card manager
-	bctbx_list_t * elem;
-	bool_t same_type_card_found = FALSE;
-	for (elem=cards;elem!=NULL;elem=elem->next){
-		MSSndCard *c=(MSSndCard*)elem->data;
+	bctbx_list_t* elem;
+	MSSndCard *duplicate = NULL;
+	for (elem = cards; elem != NULL; elem = elem->next) {
+		MSSndCard *c = (MSSndCard*)elem->data;
 		unsigned int elem_caps = ms_snd_card_get_capabilities(c) & caps_mask;
-		if ((c->device_type == card->device_type) && (strcmp(c->desc->driver_type, card->desc->driver_type)==0) && ((checkCapabilities == FALSE) || (card_caps == elem_caps))) {
-			same_type_card_found = TRUE;
+		if ((c->device_type == card->device_type) && (strcmp(c->desc->driver_type, card->desc->driver_type) == 0) && ((checkCapabilities == FALSE) || (card_caps == elem_caps))) {
+			duplicate = ms_snd_card_ref(c);
+			break;
 		}
 	}
 
 	// Free memory and unref sound cards
-	bctbx_list_for_each(cards, (void (*)(void*))ms_snd_card_unref);
-	bctbx_list_free(cards);
+	bctbx_list_free_with_data(cards, (bctbx_list_free_func)ms_snd_card_unref);
 
-	return same_type_card_found;
+	return duplicate;
 }
 
 void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSndCardDeviceType type) {
