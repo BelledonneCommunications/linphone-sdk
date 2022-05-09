@@ -964,6 +964,7 @@ struct _VideoStream
 	MSFilter *itcsink;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
+	MSVideoSize max_sent_vsize;
 	float forced_fps; /*the target fps explicitely set by application, overrides internally selected fps*/
 	float configured_fps; /*the fps that was configured to the encoder. It might be different from the one really obtained from camera.*/
 	float real_fps; /*the fps obtained from camera.*/
@@ -1367,6 +1368,14 @@ MS2_PUBLIC void video_stream_enable_retransmission_on_nack(VideoStream *stream, 
 MS2_PUBLIC void video_stream_set_retransmission_on_nack_max_packet(VideoStream *stream, unsigned int max);
 
 MS2_PUBLIC void video_stream_enable_fec(VideoStream *stream, char* local_ip, int local_port, int local_rtcp_port, char* remote_ip, int remote_port, int L, int D);
+
+/**
+ * Sets the max size the sent video stream can reach.
+ *
+ * @param stream the video stream
+ * @param max the max size the sent videostream can reach. 0x0 will remove this limitation.
+ */
+MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max);
 
 /**
  * Small API to display a local preview window.

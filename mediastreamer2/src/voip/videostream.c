@@ -2373,3 +2373,7 @@ void video_stream_enable_fec(VideoStream *stream, char* local_ip, int local_port
 void video_stream_set_frame_marking_extension_id(VideoStream *stream, int extension_id) {
 	stream->frame_marking_extension_id = extension_id;
 }
+
+void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max) {
+	stream->max_sent_vsize = max;
+}
