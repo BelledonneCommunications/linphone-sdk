@@ -478,16 +478,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		}
 		/* is AES1 available */
 		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
-			i=0;
-			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
-				if (commonCipherType[i] == ZRTP_CIPHER_AES1) {
-					zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES1;
-				}
-				i++;
-			}
-		}
-		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
-			return ZRTP_CRYPTOAGREEMENT_INVALIDCIPHER;
+			zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES1;
+
 		}
 	} else { /* no restrictions, pick the first one */
 		zrtpChannelContext->cipherAlgo = commonCipherType[0];
@@ -516,16 +508,7 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		}
 		/* is S256 available */
 		if (zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
-			i = 0;
-			while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
-				if (commonHashType[i] == ZRTP_HASH_S256) {
-					zrtpChannelContext->hashAlgo = ZRTP_HASH_S256;
-				}
-				i++;
-			}
-		}
-		if (zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
-			return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
+			zrtpChannelContext->hashAlgo = ZRTP_HASH_S256;
 		}
 	} else { /* no restrictions, pick the first one */
 		zrtpChannelContext->hashAlgo = commonHashType[0];
