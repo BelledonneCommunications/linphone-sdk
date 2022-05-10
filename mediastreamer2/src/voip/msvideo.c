@@ -480,20 +480,29 @@ static MSScalerContext *yuv_create_scale_context(int src_w, int src_h, MSPixFmt 
 static int yuv_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
 	MSYuvScalerContext *fctx=(MSYuvScalerContext*)ctx;
 	int err=-1;
+	
 	switch (fctx->src_fmt) {
 		case MS_YUV420P:
 			err=I420Scale(src[0], src_strides[0], src[1], src_strides[1], src[2], src_strides[2], fctx->source.width, fctx->source.height, dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height, kFilterBilinear);
 			break;
-		case MS_YUY2:
+		case MS_YUY2: case MS_YUYV:
 			err=YUY2ToI420(src[0], src_strides[0], dst[0], dst_strides[0],dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height);
 			break;
+		break;
+		case MS_UYVY:
+			err=UYVYToI420(src[0], src_strides[0], dst[0], dst_strides[0],dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height);
+		break;
+		case MS_RGB24: /*BI_RGB on windows*/
+			err=RGB24ToJ420(src[0], src_strides[0], dst[0], dst_strides[0],dst[1], dst_strides[1], dst[2], dst_strides[2], fctx->target.width, fctx->target.height);
+		break;
 		default:
-			ms_message("yuv_scale: unsupported format %s", ms_pix_fmt_to_string(fctx->src_fmt));
-			break;
+			ms_warning("yuv_scale: unsupported format %s", ms_pix_fmt_to_string(fctx->src_fmt));
+		break;
 	}
-	
-	if (err<0) return -1;
-	return 0;
+	if(err != 0)// err can be negative or positive in case of error.
+		return -1;
+	else
+		return 0;
 }
 
 static void yuv_free(MSScalerContext *ctx){
@@ -1091,7 +1100,7 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size(const MSVideoConf
 
 	/* search for configuration that is first nearest to target video size, then second has the greater fps,
 	 * but any case making sure the the cpu count is sufficient*/
-	while(TRUE) {
+	while(vconf_it) {
 		int pixels=vconf_it->vsize.width*vconf_it->vsize.height;
 		int score=abs(pixels-ref_pixels);
 		if (cpu_count>=vconf_it->mincpu){
