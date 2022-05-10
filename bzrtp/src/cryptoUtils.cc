@@ -467,14 +467,12 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 			i++;
 		}
 		/* is AES2 available */
-		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
-			i=0;
-			while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
-				if (commonCipherType[i] == ZRTP_CIPHER_AES2) {
-					zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES2;
-				}
-				i++;
+		i=0;
+		while (i<commonCipherTypeNumber && zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
+			if (commonCipherType[i] == ZRTP_CIPHER_AES2) {
+				zrtpChannelContext->cipherAlgo = ZRTP_CIPHER_AES2;
 			}
+			i++;
 		}
 		/* is AES1 available */
 		if (zrtpChannelContext->cipherAlgo == ZRTP_UNSET_ALGO) {
@@ -493,13 +491,21 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 
     /* rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
-	/* if a post quantum algorithm is choosen we SHOULD use SHA384 */
+	/* if a post quantum algorithm is choosen we SHOULD use SHA512 */
     if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
             || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
 
 		zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
+		/* is S512 available */
+		while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
+			if (commonHashType[i] == ZRTP_HASH_S512) {
+				zrtpChannelContext->hashAlgo = ZRTP_HASH_S512;
+			}
+			i++;
+		}
 		/* is S384 available */
+		i=0;
 		while (i<commonHashTypeNumber && zrtpChannelContext->hashAlgo == ZRTP_UNSET_ALGO) {
 			if (commonHashType[i] == ZRTP_HASH_S384) {
 				zrtpChannelContext->hashAlgo = ZRTP_HASH_S384;
