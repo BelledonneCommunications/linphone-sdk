@@ -490,8 +490,9 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 		return ZRTP_CRYPTOAGREEMENT_INVALIDHASH;
 	}
 
-    /* rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
-	/* if a post quantum algorithm is choosen we SHOULD use SHA512 */
+	/* the rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
+	/* hier we implement as : if EC38 is choosen we SHOULD use SHA512 (or SHA384) */
+	/* if a post quantum algorithm or X448 is choosen we SHOULD use SHA512 (or SHA384) */
     if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
             || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
