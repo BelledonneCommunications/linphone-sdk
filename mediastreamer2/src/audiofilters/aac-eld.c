@@ -171,6 +171,10 @@ static void enc_preprocess ( MSFilter *f ) {
 	UInt32 dataSize = sizeof ( s->destinationFormat );
 	OSStatus status = AudioFormatGetProperty ( kAudioFormatProperty_FormatInfo, 0, NULL, &dataSize , & ( s->destinationFormat ) ) ;
 
+	if (status != 0){
+		ms_error("MSAACELDEnc: AudioFormatGetProperty(kAudioFormatProperty_FormatInfo) failed !");
+	}
+
 	/* Create a new audio converter */
 	status = AudioConverterNew ( & ( s->sourceFormat ), & ( s->destinationFormat ), & ( s->audioConverter ) ) ;
 	ms_debug("AudioConverter: %p, status: %x", s->audioConverter, (unsigned int)status );
@@ -741,7 +745,7 @@ static void dec_process ( MSFilter *f ) {
 		outBufferList.mBuffers[0].mDataByteSize   = SIGNAL_FRAME_SIZE*s->nchannels;
 		outBufferList.mBuffers[0].mData           = outputMessage->b_wptr;
 
-		OSStatus status = noErr;
+		OSStatus status;
 		AudioStreamPacketDescription outputPacketDesc[numOutputDataPackets];
 
 		/* Start the decoding process */
@@ -751,6 +755,9 @@ static void dec_process ( MSFilter *f ) {
 												  &numOutputDataPackets,
 												  &outBufferList,
 												  outputPacketDesc );
+		if (status != 0){
+			ms_error("MSAACELDDec: AudioConverterFillComplexBuffer() failed.");
+		}
 
 		outputMessage->b_wptr += numOutputDataPackets*s->nchannels;
 		mblk_set_plc_flag(outputMessage, 1);

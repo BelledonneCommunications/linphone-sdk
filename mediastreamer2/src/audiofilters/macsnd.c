@@ -369,9 +369,8 @@ static void au_card_detect(MSSndCardManager * m)
 	OSStatus err;
 	UInt32 slen;
 	int count;
-	Boolean writable;
 	int i;
-	writable = 0;
+	
 	slen = 0;
 	AudioObjectPropertyAddress theAddress = { kAudioHardwarePropertyDevices,
 												  kAudioObjectPropertyScopeGlobal,
