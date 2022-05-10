@@ -1667,6 +1667,7 @@ char * bctbx_concat(const char *str, ...) {
 			/* Resize the allocated memory if necessary.  */
 			if (wp + len + 1 > result + allocated)
 			{
+				intptr_t current_offset = wp - result;
 				allocated = (allocated + len) * 2;
 				newp = (char *) realloc (result, allocated);
 				if (newp == NULL)
@@ -1674,7 +1675,7 @@ char * bctbx_concat(const char *str, ...) {
 					free (result);
 					return NULL;
 				}
-				wp = newp + (wp - result);
+				wp = newp + current_offset;
 				result = newp;
 			}
 			memcpy (wp, s, len);
