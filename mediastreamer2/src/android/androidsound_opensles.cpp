@@ -213,6 +213,7 @@ struct OpenSLESInputContext {
 		recBuffer[0] = NULL;
 		recBuffer[1] = NULL;
 		voiceRecognitionMode = false;
+		deviceChanged = false;
 	}
 
 	~OpenSLESInputContext() {
@@ -247,6 +248,7 @@ struct OpenSLESInputContext {
 	int currentBuffer;
 	double mAvSkew;
 	bool voiceRecognitionMode;
+	bool deviceChanged;
 };
 
 static SLuint32 convertSamplerate(int samplerate)
@@ -489,8 +491,6 @@ static void opensles_recorder_callback(SLAndroidSimpleBufferQueueItf bq, void *c
 	m->b_wptr += ictx->inBufSize;
 
 	ms_mutex_lock(&ictx->mutex);
-
-	ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->opensles_context->samplerate);
 	putq(&ictx->q, m);
 	ms_mutex_unlock(&ictx->mutex);
 
@@ -588,6 +588,13 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 static void android_snd_read_process(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext*) obj->data;
 	mblk_t *m;
+	if (ictx->deviceChanged &&  ictx->mTickerSynchronizer){
+		ms_mutex_lock(&ictx->mutex);
+		ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
+		ms_message("[OpenSLES] resync ticket synchronizer to avoid audio delay");
+		ictx->deviceChanged = false;
+		ms_mutex_unlock(&ictx->mutex);
+	}
 
 	if (obj->ticker->time % 1000 == 0) {
 		if (ictx->recorderBufferQueue == NULL) {
@@ -604,6 +611,7 @@ static void android_snd_read_process(MSFilter *obj) {
 	while ((m = getq(&ictx->q)) != NULL) {
 		ms_queue_put(obj->outputs[0], m);
 	}
+	ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->opensles_context->samplerate);
 	ms_mutex_unlock(&ictx->mutex);
 	if (obj->ticker->time % 5000 == 0)
 		ms_message("[OpenSLES] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
@@ -710,10 +718,7 @@ static int android_snd_read_configure_soundcard(MSFilter *obj, void *data) {
 		ictx->soundCard = ms_snd_card_ref(card);
 		OpenSLESContext* opensles_context = (OpenSLESContext*)card->data;
 		ictx->setContext(opensles_context);
-		if (ictx->mTickerSynchronizer){
-			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
-			ms_message("[OpenSLES] resync ticket synchronizer to avoid audio delay");
-		}
+		ictx->deviceChanged = true;
 		ms_mutex_unlock(&ictx->mutex);
 	}
 	return 0;
