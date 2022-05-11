@@ -219,7 +219,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	if (i < context->kc) {
 		int j = 0;
 		if (context->cc < 7) {
-			while (context->supportedCipher[context->cc] != ZRTP_CIPHER_AES3) {
+			while (context->supportedCipher[context->cc] != ZRTP_CIPHER_AES3 && j < context->cc) {
 				j++;
 			}
 			if (j == context->cc) {
@@ -229,7 +229,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 		}
 		j = 0;
 		if (context->hc < 7) {
-			while (context->supportedCipher[context->hc] != ZRTP_HASH_S384) {
+			while (context->supportedCipher[context->hc] != ZRTP_HASH_S384 && j < context->hc) {
 				j++;
 			}
 			if (j == context->hc) {
