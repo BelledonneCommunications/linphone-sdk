@@ -93,9 +93,6 @@ static aaudio_data_callback_result_t aaudio_recorder_callback(AAudioStream *stre
 	m->b_wptr += bufferSize;
 
 	ms_mutex_lock(&ictx->mutex);
-	if (ictx->mTickerSynchronizer != NULL) {
-		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->aaudio_context->samplerate);
-	}
 	putq(&ictx->q, m);
 	ms_mutex_unlock(&ictx->mutex);
 
@@ -278,7 +275,9 @@ static void android_snd_read_process(MSFilter *obj) {
 	while ((m = getq(&ictx->q)) != NULL) {
 		ms_queue_put(obj->outputs[0], m);
 	}
-
+	if (ictx->mTickerSynchronizer != NULL) {
+		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->aaudio_context->samplerate);
+	}
 	if (obj->ticker->time % 5000 == 0) {
 		ms_message("[AAudio] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
 	}
