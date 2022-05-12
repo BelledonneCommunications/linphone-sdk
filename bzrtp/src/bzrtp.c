@@ -211,7 +211,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	context->isInitialised = 1;
 
 	/* In the case where we supporte a post quantum algorithm,
-	 * we need to supporte AES3 and SHA384 */
+	 * we need to supporte AES3 and SHA512 */
 	int i = 0;
 	while (i < context->kc && !bzrtp_isPostQuantum(context->supportedKeyAgreement[i])) {
 		i++;
@@ -229,11 +229,11 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 		}
 		j = 0;
 		if (context->hc < 7) {
-			while (context->supportedCipher[context->hc] != ZRTP_HASH_S384 && j < context->hc) {
+			while (context->supportedCipher[context->hc] != ZRTP_HASH_S512 && j < context->hc) {
 				j++;
 			}
 			if (j == context->hc) {
-				context->supportedCipher[context->hc] = ZRTP_HASH_S384;
+				context->supportedCipher[context->hc] = ZRTP_HASH_S512;
 				context->hc++;
 			}
 		}

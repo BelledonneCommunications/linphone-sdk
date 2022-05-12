@@ -569,7 +569,7 @@ int bzrtp_updateCryptoFunctionPointers(bzrtpChannelContext_t *zrtpChannelContext
 		case ZRTP_HASH_S512 :
 			zrtpChannelContext->hashFunction = bctbx_sha512;
 			zrtpChannelContext->hmacFunction = bctbx_hmacSha512;
-			zrtpChannelContext->hashLength = 48;
+			zrtpChannelContext->hashLength = 64;
 			break;
 		case ZRTP_UNSET_ALGO :
 			zrtpChannelContext->hashFunction = NULL;
