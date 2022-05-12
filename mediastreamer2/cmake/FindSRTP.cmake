@@ -71,7 +71,7 @@ find_package_handle_standard_args(SRTP
 mark_as_advanced(SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION)
 
 if(SRTP_FOUND)
-	add_library(SRTP SHARED IMPORTED)
+	add_library(srtp2 SHARED IMPORTED)
 
 	if(NOT WIN32)
 		set(lib_location_property "IMPORTED_LOCATION")
@@ -82,7 +82,7 @@ if(SRTP_FOUND)
 		# mandatory somehow.
 		set(lib_location_property "IMPORTED_IMPLIB")
 	endif()
-	set_target_properties(SRTP PROPERTIES
+	set_target_properties(srtp2 PROPERTIES
 		INTERFACE_INCLUDE_DIRECTORIES "${SRTP_INCLUDE_DIRS}"
 		${lib_location_property} "${SRTP_LIBRARIES}"
 	)

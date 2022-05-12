@@ -548,7 +548,7 @@ if(BZRTP_FOUND)
 endif()
 
 if(SRTP_FOUND)
-	list(APPEND LINK_LIBS "SRTP")
+	list(APPEND LINK_LIBS "srtp2")
 	set(HAVE_SRTP 1)
 endif()
 if(SPANDSP_FOUND)
