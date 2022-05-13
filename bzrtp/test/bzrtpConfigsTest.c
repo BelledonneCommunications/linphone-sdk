@@ -752,16 +752,16 @@ static void test_cacheless_exchange(void) {
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK2},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0}, /* K255 and K448 are available only if OQS is available */
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
 
 	/* serie tested only when both ECDH and OQS PQC KEM available */
 	cryptoParams_t hybrid_kem_patterns[] = {
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0}, /* K255 and K448 are available only if OQS is available */
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
@@ -805,6 +805,51 @@ static void test_cacheless_exchange(void) {
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
 }
 
+static void test_config_contraints(void) {
+	cryptoParams_t *pattern;
+	cryptoParams_t *excepted;
+
+	/* Reset Global Static settings */
+	resetGlobalParams();
+
+	cryptoParams_t post_quantum_patterns[] = {
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_KYB3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_SIK3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	cryptoParams_t excepted_post_quantum_patterns[] = {
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_KYB3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
+
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+
+	/* with OQS PQC KEM agreement and ECDH types if available */
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+		pattern = &post_quantum_patterns[0]; /* pattern is a pointer to current pattern */
+		excepted = &excepted_post_quantum_patterns[0];
+		while (pattern->cipherNb!=0) {
+			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, excepted, NULL, NULL, NULL, NULL), 0, int, "%x");
+			pattern++; /* point to next row in the array of patterns */
+			excepted++;
+		}
+	}
+}
+
 static void test_loosy_network(void) {
 	int i,j;
 	resetGlobalParams();
@@ -845,10 +890,10 @@ static void test_mtu(void) {
 
 	/* serie tested only if OQS PQC KEM and ECDH are available */
 	cryptoParams_t hybrid_kem_patterns[] = {
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES1},1,{ZRTP_HASH_S256},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
-		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_SIK434},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_SIK751},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0},
 
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
@@ -887,7 +932,7 @@ static void test_loosy_network_mtu(void) {
 	int i,j;
 	resetGlobalParams();
 	srand((unsigned int)time(NULL));
-	cryptoParams_t pattern = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S384},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0};
+	cryptoParams_t pattern = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS80},1,0};
 
 	/* run through all the configs 10 times to maximise chance to spot a random error based on a specific packet lost sequence */
 	for (j=0; j<10; j++) {
@@ -1792,6 +1837,7 @@ static void test_cache_concurrent_access(void) {
 
 static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Cacheless multi channel", test_cacheless_exchange),
+	TEST_NO_TAG("Config contraints", test_config_contraints),
 	TEST_NO_TAG("Packet Fragmentation", test_mtu),
 	TEST_NO_TAG("Packet Fragmentation over loosy network", test_loosy_network_mtu),
 	TEST_NO_TAG("Cached Simple", test_cache_enabled_exchange),

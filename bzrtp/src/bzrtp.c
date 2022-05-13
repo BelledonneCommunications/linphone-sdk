@@ -219,7 +219,7 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 	if (i < context->kc) {
 		int j = 0;
 		if (context->cc < 7) {
-			while (context->supportedCipher[context->cc] != ZRTP_CIPHER_AES3 && j < context->cc) {
+			while (context->supportedCipher[j] != ZRTP_CIPHER_AES3 && j < context->cc) {
 				j++;
 			}
 			if (j == context->cc) {
@@ -229,11 +229,11 @@ int bzrtp_initBzrtpContext(bzrtpContext_t *context, uint32_t selfSSRC) {
 		}
 		j = 0;
 		if (context->hc < 7) {
-			while (context->supportedCipher[context->hc] != ZRTP_HASH_S512 && j < context->hc) {
+			while (context->supportedHash[j] != ZRTP_HASH_S512 && j < context->hc) {
 				j++;
 			}
 			if (j == context->hc) {
-				context->supportedCipher[context->hc] = ZRTP_HASH_S512;
+				context->supportedHash[context->hc] = ZRTP_HASH_S512;
 				context->hc++;
 			}
 		}
@@ -777,13 +777,16 @@ uint8_t bzrtp_getSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoT
  * @param[in]		supportedTypes			mapped to uint8_t value of the 4 char strings giving the supported types as string according to rfc section 5.1.2 to 5.1.6
  * @param[in]		supportedTypesCount		number of supported crypto types
  */
-void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount)
-{
+int bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType, uint8_t supportedTypes[7], uint8_t supportedTypesCount) {
+	if (zrtpContext->isInitialised) {
+		return 1;
+	}
+
 	uint8_t implementedTypes[256];
 	uint8_t implementedTypesCount;
 
 	if (zrtpContext==NULL) {
-		return;
+		return 2;
 	}
 
 	implementedTypesCount = bzrtpUtils_getAllAvailableCryptoTypes(algoType, implementedTypes);
@@ -810,6 +813,8 @@ void bzrtp_setSupportedCryptoTypes(bzrtpContext_t *zrtpContext, uint8_t algoType
 			bzrtp_addMandatoryCryptoTypesIfNeeded(algoType, zrtpContext->supportedSas, &zrtpContext->sc);
 			break;
 	}
+
+	return 0;
 }
 
 /**
