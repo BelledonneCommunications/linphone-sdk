@@ -75,17 +75,6 @@ int VideoConferenceAllToAll::findFreeInputPin() {
 	return -1;
 }
 
-int VideoConferenceAllToAll::findSinkPin(std::string participant) {
-	for (const bctbx_list_t *elem = mEndpoints; elem != nullptr; elem = elem->next){
-		VideoEndpoint *ep_it = (VideoEndpoint *)elem->data;
-		if (ep_it->mName.compare(participant) == 0) {
-			ms_message("Found sink pin %d for %s", ep_it->mPin, participant.c_str());
-			return ep_it->mPin;
-		}
-	}
-	ms_message("Can not find sink pin for %s",participant.c_str());
-	return -1;
-}
 
 int VideoConferenceAllToAll::findSourcePin(std::string participant) {
 	for (const bctbx_list_t *elem = getMembers(); elem != nullptr; elem = elem->next){
@@ -137,7 +126,6 @@ void VideoConferenceAllToAll::addVideoPlaceholderMember() {
 
 	mVideoPlaceholderMember->mConference = (MSVideoConference *)this;
 	mVideoPlaceholderMember->mPin = mMixer->desc->ninputs-1;
-	mVideoPlaceholderMember->switched = TRUE;
 	ms_message("[all to all] conference %p add video placeholder %p to pin input %d", this, mVideoPlaceholderMember, mVideoPlaceholderMember->mPin);
 	plumb_to_conf(mVideoPlaceholderMember);
 }
@@ -151,16 +139,14 @@ void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
 
 	ep->mConference = (MSVideoConference *)this;
 	if (ep->mIsRemote && media_stream_get_direction(&ep->mSt->ms) == MediaStreamSendOnly) {
-		if (findSinkPin(ep->mName) == -1) {
-			ep->mOutPin = findFreeOutputPin();
-			ms_message("[all to all] conference %p add endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
-			ms_ticker_detach(mTicker,mMixer);
-			plumb_to_conf(ep);
-			video_stream_set_encoder_control_callback(ep->mSt, ms_video_conference_process_encoder_control, ep);
-			ms_ticker_attach(mTicker,mMixer);
-			connectEndpoint(ep);
-			mEndpoints = bctbx_list_append(mEndpoints, ep);
-		}
+		ep->mOutPin = findFreeOutputPin();
+		ms_message("[all to all] conference %p add endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
+		ms_ticker_detach(mTicker,mMixer);
+		plumb_to_conf(ep);
+		video_stream_set_encoder_control_callback(ep->mSt, ms_video_conference_process_encoder_control, ep);
+		ms_ticker_attach(mTicker,mMixer);
+		connectEndpoint(ep);
+		mEndpoints = bctbx_list_append(mEndpoints, ep);
 		return;
 	}
 
@@ -173,7 +159,7 @@ void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
 			addVideoPlaceholderMember();
 		}
 		ep->mOutPin = findFreeOutputPin();
-		ep->switched = TRUE;
+		ep->mLinkSource = ep->mPin;
 		video_stream_set_encoder_control_callback(ep->mSt, ms_video_conference_process_encoder_control, ep);
 	}
 	ms_message("[all to all] conference %p add remote[%d] member %s to pin input %d output %d", this, ep->mIsRemote, ep->mName.c_str(), ep->mPin, ep->mOutPin);
@@ -270,7 +256,7 @@ void VideoConferenceAllToAll::configureOutput(VideoEndpoint *ep) {
 	MSVideoRouterPinData pd;
 	pd.input = ep->mSource;
 	pd.output = ep->mOutPin;
-	pd.switched = ep->switched;
+	pd.link_source = ep->mLinkSource;
 	ms_filter_call_method(mMixer, MS_VIDEO_ROUTER_CONFIGURE_OUTPUT, &pd);
 }
 

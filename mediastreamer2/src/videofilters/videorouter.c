@@ -76,7 +76,7 @@ typedef struct _OutputContext{
 	uint16_t out_seq;
 	int next_source;
 	int current_source;
-	int switched;
+	int link_source;    // for active speaker
 }OutputContext;
 
 typedef struct RouterState{
@@ -90,6 +90,9 @@ static void router_init(MSFilter *f){
 	RouterState *s=ms_new0(RouterState,1);
 	s->is_key_frame=is_key_frame_dummy;
 	s->focus_pin = -1;
+	for(int i=0;i<f->desc->noutputs;i++){
+		s->output_contexts[i].link_source = -1;
+	}
 	f->data=s;
 }
 
@@ -103,9 +106,9 @@ static int router_configure_output(MSFilter *f, void *data){
 	MSVideoRouterPinData *pd = (MSVideoRouterPinData *)data;
 	ms_filter_lock(f);
 	s->output_contexts[pd->output].current_source = pd->input;
-	s->output_contexts[pd->output].switched =pd->switched;
+	s->output_contexts[pd->output].link_source =pd->link_source;
 	ms_filter_unlock(f);
-	ms_message("%s: router configure switched[%d] pin output %d with input %d", f->desc->name, pd->switched, pd->output, pd->input);
+	ms_message("%s: router configure link_source[%d] pin output %d with input %d", f->desc->name, pd->link_source, pd->output, pd->input);
 	return 0;
 }
 
@@ -114,6 +117,7 @@ static int router_unconfigure_output(MSFilter *f, void *data){
 	int pin = *(int*)data;
 	ms_filter_lock(f);
 	s->output_contexts[pin].current_source = -1;
+	s->output_contexts[pin].link_source = -1;
 	ms_filter_unlock(f);
 	ms_message("%s: router unconfigure output pin %i ", f->desc->name, pin);
 	return 0;
@@ -157,11 +161,11 @@ static void router_channel_update_input(RouterState *s, int pin, MSQueue *q){
 static int next_input_pin(MSFilter *f, int i){
 	int k;
 	for(k=i+1;k<i+1+f->desc->ninputs-2;k++){
-		int next_pin=k % (f->desc->ninputs-2);
-		if (f->inputs[next_pin]) return next_pin;
+		int next_pin=k % f->desc->ninputs;
+		if (f->inputs[next_pin] && next_pin < f->desc->ninputs-2) return next_pin;
 	}
 	ms_error("next_input_pin: should not happen");
-	return 0;
+	return f->desc->ninputs-1; // nowebcam
 }
 
 static void router_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, OutputContext *output_context, mblk_t *start){
@@ -193,11 +197,16 @@ static void router_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, Outpu
 static void _router_set_focus(MSFilter *f, RouterState *s , int pin){
 	int i;
 	ms_message("%s: set focus %d", f->desc->name, pin);
-	for (i = 0 ; i < f->desc->noutputs-1; ++i){ // pin is reserved
-		if (i != pin){
-			s->output_contexts[i].next_source = pin;
-		} else {
-			ms_message("%s: this pin %d keeps current source %d and next source %d", f->desc->name, i,s->output_contexts[i].current_source, s->output_contexts[i].next_source);
+	for (i = 0 ; i < f->desc->noutputs-1; ++i){
+		// if there is no link_source, always keep current source
+		if (s->output_contexts[i].link_source != -1) {
+			if (pin != s->output_contexts[i].link_source){
+				// can't switched to link_source
+				s->output_contexts[i].next_source = pin;
+			} else {
+				s->output_contexts[i].next_source = next_input_pin(f, pin);
+			}
+			ms_message("%s: this pin %d link_source[%d], current_source %d and next_source %d", f->desc->name, i, s->output_contexts[i].link_source, s->output_contexts[i].current_source, s->output_contexts[i].next_source);
 		}
 	}
 	s->focus_pin=pin;
@@ -251,7 +260,7 @@ static void router_process(MSFilter *f){
 		if (q){
 			mblk_t *key_frame_start = NULL;
 
-			if (output_context->switched) {
+			if (output_context->link_source != -1) {
 				if (f->inputs[output_context->next_source] == NULL){
 					ms_warning("%s: next source %i disapeared, choosing another one.", f->desc->name, output_context->next_source);
 					output_context->next_source = next_input_pin(f, output_context->next_source);

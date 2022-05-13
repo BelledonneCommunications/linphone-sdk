@@ -53,7 +53,7 @@ public:
 	std::string mName=""; /*Particapant*/
 	int mIsRemote=0;
 	int mLastTmmbrReceived=0; /*Value in bits/s */
-	bool switched = false;
+	int mLinkSource = -1;
 };
 
 class VideoConferenceGeneric {
@@ -121,7 +121,6 @@ public:
 
 protected:
 	void addVideoPlaceholderMember() override;
-	int findSinkPin(std::string participant);
 	int findSourcePin(std::string participant);
 	void configureOutput(VideoEndpoint *ep) override;
 	int mOutputs[ROUTER_MAX_OUTPUT_CHANNELS] ;
