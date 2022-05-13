@@ -403,7 +403,7 @@ static void test_algoSetterGetter(void) {
 		{ {ZRTP_KEYAGREEMENT_KYB2}, 1, {ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
 		{ {ZRTP_KEYAGREEMENT_KYB3}, 1, {ZRTP_KEYAGREEMENT_KYB3, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
 		{ {ZRTP_KEYAGREEMENT_SIK1}, 1, {ZRTP_KEYAGREEMENT_SIK1, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
-	//	{ {ZRTP_KEYAGREEMENT_SIK2}, 1, {ZRTP_KEYAGREEMENT_SIK2, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
+		{ {ZRTP_KEYAGREEMENT_SIK2}, 1, {ZRTP_KEYAGREEMENT_SIK2, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
 		{ {ZRTP_KEYAGREEMENT_SIK3}, 1, {ZRTP_KEYAGREEMENT_SIK3, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 3 },
 		{ {ZRTP_KEYAGREEMENT_KYB1, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB3}, 3, {ZRTP_KEYAGREEMENT_KYB1, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB3, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 5 },
 		{ {ZRTP_KEYAGREEMENT_KYB3, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB1}, 3, {ZRTP_KEYAGREEMENT_KYB3, ZRTP_KEYAGREEMENT_KYB2, ZRTP_KEYAGREEMENT_KYB1, ZRTP_KEYAGREEMENT_DH3k, ZRTP_KEYAGREEMENT_Mult}, 5 },
@@ -431,6 +431,15 @@ static void test_algoSetterGetter(void) {
 		{ {ZRTP_UNSET_ALGO}, 0, {ZRTP_UNSET_ALGO}, 0, }
 	};
 	struct st_algo_setter_getter *cipher_type;
+	struct st_algo_setter_getter hash_types[] = {
+		{ {ZRTP_HASH_S256}, 1, {ZRTP_HASH_S256}, 1 },
+		{ {ZRTP_HASH_S384}, 1, {ZRTP_HASH_S384, ZRTP_HASH_S256}, 2 },
+		{ {ZRTP_HASH_S512}, 1, {ZRTP_HASH_S512, ZRTP_HASH_S256}, 2 },
+		{ {ZRTP_HASH_N256}, 1, {ZRTP_HASH_S256}, 1 },
+		{ {ZRTP_HASH_N384}, 1, {ZRTP_HASH_S256}, 1 },
+		{ {ZRTP_UNSET_ALGO}, 0, {ZRTP_UNSET_ALGO}, 0, }
+	};
+	struct st_algo_setter_getter *hash_type;
 
 	/* key agreement type */
 	agreement_type = &agreement_types[0];
@@ -463,6 +472,13 @@ static void test_algoSetterGetter(void) {
 	while (cipher_type->contextTypesCount > 0) {
 		BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_CIPHERBLOCK_TYPE, cipher_type->contextTypes, cipher_type->contextTypesCount, cipher_type->expectedTypes, cipher_type->expectedTypesCount));
 		cipher_type++;
+	}
+
+	/* hash type */
+	hash_type = &hash_types[0];
+	while (hash_type->contextTypesCount > 0) {
+		BC_ASSERT_TRUE(testAlgoSetterGetter(ZRTP_HASH_TYPE, hash_type->contextTypes, hash_type->contextTypesCount, hash_type->expectedTypes, hash_type->expectedTypesCount));
+		hash_type++;
 	}
 }
 

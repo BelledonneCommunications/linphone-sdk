@@ -32,7 +32,7 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 			availableTypes[0] = ZRTP_HASH_S256;
 			availableTypes[1] = ZRTP_HASH_S384;
 			availableTypes[2] = ZRTP_HASH_S512;
-			return 2;
+			return 3;
 		case ZRTP_CIPHERBLOCK_TYPE:
 			availableTypes[0] = ZRTP_CIPHER_AES1;
 			availableTypes[1] = ZRTP_CIPHER_AES3;
