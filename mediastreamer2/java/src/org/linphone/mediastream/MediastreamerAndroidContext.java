@@ -34,6 +34,7 @@ public class MediastreamerAndroidContext {
 	private static Context mContext;
 	private static int mDeviceFavoriteSampleRate = 44100;
 	private static int mDeviceFavoriteBufferSize = 256;
+	private static boolean mDisableAudioRouteChanges = false;
 
 	private MediastreamerAndroidContext() {
 	}
@@ -168,6 +169,19 @@ public class MediastreamerAndroidContext {
 	 * */
 	public static boolean filterFromNameEnabled(String name) {
 		return getInstance().filterFromNameEnabledImpl(name);
+	}
+
+	public synchronized static boolean isAudioRouteChangesDisabled() {
+		return mDisableAudioRouteChanges;
+	}
+
+	public synchronized static void disableAudioRouteChanges(boolean disable) {
+		if (disable) {
+			Log.i("[Audio Manager] Disabling audio route changes in sound cards");
+		} else {
+			Log.i("[Audio Manager] Enabling audio route changes in sound cards");
+		}
+		mDisableAudioRouteChanges = disable;
 	}
 
 	public synchronized static void enableSpeaker() { 

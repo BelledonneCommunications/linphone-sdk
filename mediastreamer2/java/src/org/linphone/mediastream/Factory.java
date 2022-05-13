@@ -18,7 +18,7 @@
  */
 package org.linphone.mediastream;
 
-public class Factory{
+public class Factory {
 	public static final int DEVICE_HAS_BUILTIN_AEC  = 1; // Says the device has a builtin AEC because the API that would tell us that isn't available
 	public static final int DEVICE_HAS_BUILTIN_AEC_CRAPPY = 2; // The device has the API to tell us it has a builtin AEC but we shouldn't trust it (so we'll use software AEC)
 	public static final int DEVICE_USE_ANDROID_MIC = 4; // The device needs to capture using MIC instead of Voice communication (I.E kindle fire)
@@ -37,29 +37,34 @@ public class Factory{
 	private Factory(long nativePtr){
 		mNativePtr = nativePtr;
 	}
+	
 	private native void enableFilterFromName(long nativePtr, String name, boolean enabled);
 	public void enableFilterFromName(String name, boolean enabled){
 		enableFilterFromName(mNativePtr, name, enabled);
 	}
+
 	private native boolean filterFromNameEnabled(long nativePtr, String name);
 	public boolean filterFromNameEnabled(String name){
 		return filterFromNameEnabled(mNativePtr, name);
 	}
+
 	private native void setDeviceInfo(long nativePtr, String manufacturer, String model, String platform, int flags, int delay, int recommended_rate);
 	public void setDeviceInfo(String manufacturer, String model, String platform, int flags, int delay, int recommended_rate) {
 		setDeviceInfo(mNativePtr, manufacturer, model, platform, flags, delay, recommended_rate);
 	}
+
 	private native int getDeviceFlags(long nativePtr);
 	public int getDeviceFlags() {
 		return getDeviceFlags(mNativePtr);
 	}
+
 	private native String getEncoderText(long nativePtr, String mime);
 	public String getEncoderText(String mime){
 		return getEncoderText(mNativePtr, mime);
 	}
+
 	private native String getDecoderText(long nativePtr, String mime);
 	public String getDecoderText(String mime){
 		return getDecoderText(mNativePtr, mime);
 	}
-	
 };
