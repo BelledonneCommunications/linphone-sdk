@@ -141,6 +141,7 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 
 uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {
 	uint8_t allTypes[256];
+	memset(allTypes, ZRTP_UNSET_ALGO, 7);
 	uint8_t ret = bzrtpUtils_getAllAvailableCryptoTypes(algoType, allTypes);
 	memcpy(availableTypes, allTypes, 7);
 	if (algoType != ZRTP_KEYAGREEMENT_TYPE) {
