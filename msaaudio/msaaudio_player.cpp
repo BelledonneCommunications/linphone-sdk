@@ -255,10 +255,6 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 	aaudio_player_init(octx);
-
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	//ms_android_hack_volume(env);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -315,10 +311,6 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	ms_mutex_lock(&octx->stream_mutex);
 	aaudio_player_close(octx);
 	ms_mutex_unlock(&octx->stream_mutex);
-
-	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, FALSE);
 }
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
@@ -348,11 +340,9 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		}
 		ms_message("[AAudio] Waited for state change, current state is %i", nextState);
 
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-
 		if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
 			ms_message("[AAudio] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
+			JNIEnv *env = ms_get_jni_env();
 			ms_android_hack_volume(env);
 		}
 		ms_mutex_unlock(&octx->stream_mutex);

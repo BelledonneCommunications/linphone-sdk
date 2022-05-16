@@ -223,9 +223,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
-
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -303,8 +300,6 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ms_message("[AAudio] Hardware echo canceller deleted");
 	}
 
-	ms_android_set_bt_enable(env, FALSE);
-
 	ms_mutex_unlock(&ictx->mutex);
 }
 
@@ -356,9 +351,6 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 		}
 		ictx->soundCard = ms_snd_card_ref(card);
 		ictx->aaudio_context->device_changed = true;
-
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 		ms_mutex_unlock(&ictx->stream_mutex);
 	}
 	return 0;
