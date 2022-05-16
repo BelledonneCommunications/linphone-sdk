@@ -236,11 +236,20 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 	return 0;
 }
 
-static int ms_zrtp_getAlgoId(int algo) {
+/**
+ * @brief: convert bzrtp uint8_t mapped algo Id to ms enum mapped algo Id
+ *
+ * @param[in]	algo	the uint8_t bzrtp mapped(in bzrtp.h) algo id
+ *
+ * @return the ms enum mapped (in zrtp.h) algo id
+ */
+
+static int ms_zrtp_getAlgoId(uint8_t algo) {
 	switch(algo) {
 
 		case(ZRTP_HASH_S256): return MS_ZRTP_HASH_S256;
 		case(ZRTP_HASH_S384): return MS_ZRTP_HASH_S384;
+		case(ZRTP_HASH_S512): return MS_ZRTP_HASH_S512;
 		case(ZRTP_HASH_N256): return MS_ZRTP_HASH_N256;
 		case(ZRTP_HASH_N384): return MS_ZRTP_HASH_N384;
 
@@ -517,6 +526,7 @@ static void set_hash_suites(bzrtpContext_t *ctx, const MSZrtpHash *hashes, const
 			case MS_ZRTP_HASH_INVALID: break;
 			case MS_ZRTP_HASH_S256: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_S256; break;
 			case MS_ZRTP_HASH_S384: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_S384; break;
+			case MS_ZRTP_HASH_S512: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_S512; break;
 			case MS_ZRTP_HASH_N256: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_N256; break;
 			case MS_ZRTP_HASH_N384: bzrtpHashes[bzrtpCount++] = ZRTP_HASH_N384; break;
 		}
@@ -861,6 +871,7 @@ int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *se
 MS2_PUBLIC MSZrtpHash ms_zrtp_hash_from_string(const char* str) {
 	STRING_COMPARE_RETURN(str, MS_ZRTP_HASH_S256);
 	STRING_COMPARE_RETURN(str, MS_ZRTP_HASH_S384);
+	STRING_COMPARE_RETURN(str, MS_ZRTP_HASH_S512);
 	STRING_COMPARE_RETURN(str, MS_ZRTP_HASH_N256);
 	STRING_COMPARE_RETURN(str, MS_ZRTP_HASH_N384);
 	return MS_ZRTP_HASH_INVALID;
@@ -871,6 +882,7 @@ MS2_PUBLIC const char* ms_zrtp_hash_to_string(const MSZrtpHash hash) {
 		CASE_RETURN_STRING(MS_ZRTP_HASH_INVALID);\
 		CASE_RETURN_STRING(MS_ZRTP_HASH_S256);\
 		CASE_RETURN_STRING(MS_ZRTP_HASH_S384);\
+		CASE_RETURN_STRING(MS_ZRTP_HASH_S512);\
 		CASE_RETURN_STRING(MS_ZRTP_HASH_N256);\
 		CASE_RETURN_STRING(MS_ZRTP_HASH_N384);\
 	);
