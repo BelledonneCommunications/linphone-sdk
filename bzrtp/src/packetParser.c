@@ -115,7 +115,7 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |0 0 0 1|Not Used (set to zero) |         Sequence Number       |
+   |0 0 0 1 0 0 0 0| (set to zero) |         Sequence Number       |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                 Magic Cookie 'ZRTP' (0x5a525450)              |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -133,7 +133,7 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
    0                   1                   2                   3
    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |0 0 1 1|Not Used (set to zero) |         Sequence Number       |
+   |0 0 0 1 0 0 0 1| (set to zero) |         Sequence Number       |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                 Magic Cookie 'ZRTP' (0x5a525450)              |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -151,13 +151,13 @@ bzrtpPacket_t *bzrtp_packetCheck(uint8_t **inputPtr, uint16_t *inputLength, bzrt
    |                          CRC (1 word)                         |
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    */
-	if (((input[0] != 0x10) && (input[0] != 0x30)) || (input[1] != 0)|| (input[4]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF)) || (input[5]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF)) || (input[6]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF)) || (input[7]!= (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF))) {
+	if (((input[0] != 0x10) && (input[0] != 0x11)) || (input[1] != 0)|| (input[4]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>24)&0xFF)) || (input[5]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>16)&0xFF)) || (input[6]!= (uint8_t)((ZRTP_MAGIC_COOKIE>>8)&0xFF)) || (input[7]!= (uint8_t)(ZRTP_MAGIC_COOKIE&0xFF))) {
 		*exitCode = BZRTP_PARSER_ERROR_INVALIDPACKET;
 		return NULL;
 	}
 
 	/* Fragmented packet detection */
-	bool_t isFragmented = input[0] == 0x30?TRUE:FALSE;
+	bool_t isFragmented = input[0] == 0x11?TRUE:FALSE;
 
 	/* Check the sequence number : it must be > to the last valid one (given in parameter) to discard out of order packets
 	 * Perform this check only on non fragmented packets to avoid discarding fragments incoming unordered
@@ -1269,7 +1269,7 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 				/* 0                   1                   2                   3
 				 * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 *
 				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-				 * |0 0 1 1|Not Used (set to zero) |         Sequence Number       |  in fragmented packet, first byte is 0x30 while it is 0x10 in regular packet
+				 * |0 0 0 1 0 0 0 1| (set to zero) |         Sequence Number       |  in fragmented packet, first byte is 0x11 while it is 0x10 in regular packet
 				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 				 * |                 Magic Cookie 'ZRTP' (0x5a525450)              |
 				 * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                This part is always present
@@ -1854,7 +1854,7 @@ static void zrtpMessageSetHeader(uint8_t *outputBuffer, uint16_t messageLength, 
  */
 static void zrtpPacketSetHeader(bzrtpPacket_t *zrtpPacket) {
 	/* preambule */
-	zrtpPacket->packetString[0] = (zrtpPacket->messageType == MSGTYPE_FRAGMENT)?0x30:0x10;
+	zrtpPacket->packetString[0] = (zrtpPacket->messageType == MSGTYPE_FRAGMENT)?0x11:0x10;
 	zrtpPacket->packetString[1] = 0x00;
 
 	/* ZRTP magic cookie */
