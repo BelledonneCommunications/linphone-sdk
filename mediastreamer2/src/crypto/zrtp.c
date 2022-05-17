@@ -61,7 +61,7 @@ struct _MSZrtpContext{
 static void ms_zrtp_getPacketInfo(const uint8_t *packet, char info[PACKET_INFO_MAX_SIZE]) {
 	if (packet[0] == 0x10) { /* packet is not fragmented */
 		snprintf(info, PACKET_INFO_MAX_SIZE, "packet type is %.8s", packet+16);
-	} else if (packet[0] == 0x30) { /* message fragment */
+	} else if (packet[0] == 0x11) { /* message fragment */
 		uint16_t offset = ((uint16_t)packet[16]<<8)+((uint16_t)packet[17]);
 		if (offset == 0) { /* we can retrieve the packet type */
 			snprintf(info, PACKET_INFO_MAX_SIZE, "fragmented message of type %.8s id %04x offset %d fragSize %d",
