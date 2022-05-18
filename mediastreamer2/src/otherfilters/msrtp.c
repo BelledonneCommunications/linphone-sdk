@@ -427,7 +427,10 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 	
 	m1=rtp_session_create_telephone_event_packet(d->session,timestamp_start==d->dtmf_ts_cur);
 	
-	if (m1==NULL) return -1;
+	if (m1==NULL) {
+		ms_warning("There is no usable telephone-event payload type configured in the RTP session. The DTMF cannot be sent.");
+		return -1;
+	}
 
 	d->dtmf_ts_cur+=d->dtmf_ts_step;
 	if (RTP_TIMESTAMP_IS_NEWER_THAN(d->dtmf_ts_cur, d->skip_until)) {
@@ -452,8 +455,6 @@ static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
 }
 
 static void check_stun_sending(MSFilter *f) {
-	if (!f->ticker) return;
-
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
 	/* No need to send stun packets if media was sent during last 20s (or the last 2s while we still have not sent any packets) */
@@ -600,24 +601,26 @@ static void _sender_process(MSFilter * f)
 	im = ms_queue_get(f->inputs[0]);
 	do {
 		mblk_t *header = NULL;
-		if (f->ticker) {
-			timestamp = get_cur_timestamp(f, im);
+		timestamp = get_cur_timestamp(f, im);
 		
-			if (d->dtmf != 0 && !d->skip) {
-				ms_debug("prepare to send RFC2833 dtmf.");
-				d->skip_until = timestamp + d->dtmf_duration;
-				d->dtmf_ts_cur=timestamp;
-				d->skip = TRUE;
-			}
-			if (d->skip) {
-				uint32_t origin_ts=d->skip_until-d->dtmf_duration;
-				if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,d->dtmf_ts_cur)){
-					ms_debug("Sending RFC2833 packet, start_timestamp=%u, dtmf_ts_cur=%u",origin_ts,d->dtmf_ts_cur);
-					send_dtmf(f, origin_ts);
+		if (d->dtmf != 0 && !d->skip) {
+			ms_debug("prepare to send RFC2833 dtmf.");
+			d->skip_until = timestamp + d->dtmf_duration;
+			d->dtmf_ts_cur=timestamp;
+			d->skip = TRUE;
+		}
+		if (d->skip) {
+			uint32_t origin_ts=d->skip_until-d->dtmf_duration;
+			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,d->dtmf_ts_cur)){
+				ms_debug("Sending RFC2833 packet, start_timestamp=%u, dtmf_ts_cur=%u",origin_ts,d->dtmf_ts_cur);
+				if (send_dtmf(f, origin_ts) == -1){
+					/* Abort the sending of dtmf if an error occured */
+					d->dtmf = 0;
+					d->skip = FALSE;
 				}
 			}
 		}
-		if (im && f->ticker){
+		if (im){
 			compute_processing_delay_stats(f, im);
 
 			if (d->rtp_transfer_mode) {
@@ -644,16 +647,16 @@ static void _sender_process(MSFilter * f)
 			// Send STUN packet as RTP keep alive even if there is no input
 			check_stun_sending(f);
 		}
-	}while (f->inputs[0] != NULL && (im = ms_queue_get(f->inputs[0])) != NULL);
+	}while ( (im = ms_queue_get(f->inputs[0]) ) != NULL);
 
 	if (d->last_sent_time == -1) {
 		check_stun_sending(f);
 	}
 
 	/*every second, compute output bandwidth*/
-	if (f->ticker && (f->ticker->time % 1000 == 0)) rtp_session_compute_send_bandwidth(d->session);
+	if (f->ticker->time % 1000 == 0) rtp_session_compute_send_bandwidth(d->session);
 
-	if (f->ticker && (f->ticker->time % 5000 == 0)) {
+	if (f->ticker->time % 5000 == 0) {
 		print_processing_delay_stats(d);
 		ms_box_plot_reset(&d->processing_delay_stats);
 	}
