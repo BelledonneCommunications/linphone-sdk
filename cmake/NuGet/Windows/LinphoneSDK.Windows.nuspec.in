@@ -5,7 +5,7 @@
 		<description>
 @LINPHONESDK_DESCRIPTION@
 
-This package holds the UWP, WinRT, and WindowsStore libraries for Windows development.
+This package provides the UWP, WinRT, and WindowsStore libraries for Windows development.
 		</description>
 		<dependencies>
 			<group targetFramework="uap10.0" /><!--UWP-->

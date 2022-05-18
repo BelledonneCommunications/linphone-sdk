@@ -5,7 +5,7 @@
 		<description>
 @LINPHONESDK_DESCRIPTION@
 
-This package holds the Android and iOS libraries for Xamarin development.
+This package provides the Android and iOS libraries for Xamarin development.
 		</description>
 		<dependencies>
 			<group targetFramework="MonoAndroid8.1"></group>

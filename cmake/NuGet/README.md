@@ -48,3 +48,26 @@ The nuget package will be in `linphone-sdk/packages`
 The generated package can keep the same file name between generations on the same git version.
 Visual studio keeps a cache and you need to delete its internal folder to force a new packaging.
 The folder can be found in your system path at `<User>/.nuget/packages/linphonesdk`
+
+## Pitfalls knowledge base
+
+Intended for maintainers working on packaging the LinphoneSDK for .NET
+
+### System.DllNotFoundException
+
+```
+System.DllNotFoundException
+  Message=linphone assembly:<unknown assembly> type:<unknown type> member:(null)
+```
+
+You are probably missing the native library for your architecture.
+
+E.g. if you are building for an Android emulator, make sure the `.aar` includes the `x86_64` architecture. (You can use `ANDROID_ARCHS=arm64,armv7,x86_64,x86` in the CI pipeline)
+
+### I keep running into the same error even after changing something and rebuilding the package
+
+**Beware [the `nuget` cache].**
+
+If you are manually tinkering with a local build, you probably re-exported the package **with the same version**. In that case, nuget will reuse the cached version of the package. Make sure you either clear the cache or use a different version name when exporting the package. (You can use the `-Suffix` option of the `nuget` cli for that.)
+
+[the `nuget` cache]: https://docs.microsoft.com/en-us/nuget/Consume-Packages/managing-the-global-packages-and-cache-folders
