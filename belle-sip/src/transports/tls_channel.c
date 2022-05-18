@@ -280,7 +280,6 @@ int belle_sip_generate_self_signed_certificate(const char* path, const char *sub
 
 		if ( (fd = fopen(name_with_path, "w") ) == NULL) {
 			belle_sip_error("Certificate generation can't open/create file %s", name_with_path);
-			free(name_with_path);
 			belle_sip_object_unref(*pkey);
 			belle_sip_object_unref(*certificate);
 			*pkey = NULL;
