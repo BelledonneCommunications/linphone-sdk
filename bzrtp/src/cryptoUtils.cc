@@ -349,7 +349,7 @@ uint32_t bzrtp_CRC32(uint8_t *input, uint16_t length) {
 
 	uint32_t crc = 0xFFFFFFFF;
 	for (i=0; i<length; i++) {
-    	crc = (crc >> 8) ^ CRC32LookupTable[(crc & 0xFF) ^ input[i]];
+		crc = (crc >> 8) ^ CRC32LookupTable[(crc & 0xFF) ^ input[i]];
 	}
 
 	crc =~crc;
@@ -455,8 +455,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	}
 	/* rfc section 5.1.5 specifies that if EC38 is choosen we SHOULD use AES256 or AES192 */
 	/* if a post quantum algorithm is choosen we SHOULD use AES256 */
-    if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
-            || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
+			|| zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
 
 		zrtpChannelContext->cipherAlgo = ZRTP_UNSET_ALGO;
@@ -494,8 +494,8 @@ int bzrtp_cryptoAlgoAgreement(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	/* the rfc section 5.1.5 specifies that if EC38 is choosen we MUST use SHA384 */
 	/* hier we implement as : if EC38 is choosen we SHOULD use SHA512 (or SHA384) */
 	/* if a post quantum algorithm or X448 is choosen we SHOULD use SHA512 (or SHA384) */
-    if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
-            || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
+	if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_EC38 || bzrtp_isPostQuantum(zrtpChannelContext->keyAgreementAlgo)
+			|| zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_X448 || zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_K448) {
 		int i=0;
 
 		zrtpChannelContext->hashAlgo = ZRTP_UNSET_ALGO;
@@ -846,13 +846,13 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 					return ZRTP_KEYAGREEMENT_SIK2;
 				} else if (memcmp(algoType, "SIK3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_SIK3;
-                } else if (memcmp(algoType, "X1K1", 4) == 0) {
+				} else if (memcmp(algoType, "X1K1", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K255_KYB512;
-                } else if (memcmp(algoType, "X1S1", 4) == 0) {
+				} else if (memcmp(algoType, "X1S1", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K255_SIK434;
-                } else if (memcmp(algoType, "X3K3", 4) == 0) {
+				} else if (memcmp(algoType, "X3K3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K448_KYB1024;
-                } else if (memcmp(algoType, "X3S3", 4) == 0) {
+				} else if (memcmp(algoType, "X3S3", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_K448_SIK751;
 				} else if (memcmp(algoType, "Prsh", 4) == 0) {
 					return ZRTP_KEYAGREEMENT_Prsh;
@@ -977,16 +977,16 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 			memcpy(algoTypeString, "SIK3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_KYB512:
-            memcpy(algoTypeString, "X1K1", 4);
+			memcpy(algoTypeString, "X1K1", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K255_SIK434:
-            memcpy(algoTypeString, "X1S1", 4);
+			memcpy(algoTypeString, "X1S1", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-            memcpy(algoTypeString, "X3K3", 4);
+			memcpy(algoTypeString, "X3K3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
-            memcpy(algoTypeString, "X3S3", 4);
+			memcpy(algoTypeString, "X3S3", 4);
 			break;
 		case ZRTP_KEYAGREEMENT_Prsh:
 			memcpy(algoTypeString, "Prsh", 4);
