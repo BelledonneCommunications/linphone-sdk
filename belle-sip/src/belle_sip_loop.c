@@ -432,7 +432,7 @@ static int _do_later_cb(void *user_data, unsigned int event) {
 	return BELLE_SIP_STOP;
 }
 
-belle_sip_source_t* belle_sip_main_loop_do_later_with_name(
+void belle_sip_main_loop_do_later_with_name(
 	belle_sip_main_loop_t *ml,
 	belle_sip_callback_t func,
 	void *data,
@@ -452,11 +452,10 @@ belle_sip_source_t* belle_sip_main_loop_do_later_with_name(
 
 	/* This function MUST be the last to guarantee thread-safety. */
 	belle_sip_main_loop_add_source(ml,dolater_data->source);
-	return dolater_data->source;
 }
 
-belle_sip_source_t* belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
-	return belle_sip_main_loop_do_later_with_name(ml, func, data, NULL);
+void belle_sip_main_loop_do_later(belle_sip_main_loop_t *ml, belle_sip_callback_t func, void *data){
+	belle_sip_main_loop_do_later_with_name(ml, func, data, NULL);
 }
 
 void belle_sip_source_set_timeout(belle_sip_source_t *s, unsigned int value_ms) {
