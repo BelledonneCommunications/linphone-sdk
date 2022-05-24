@@ -786,7 +786,7 @@ static void test_cacheless_exchange(void) {
 	}
 
 	/* with OQS PQC KEM agreement types if available */
-	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
+	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
 		pattern = &kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
@@ -795,7 +795,7 @@ static void test_cacheless_exchange(void) {
 	}
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
 		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
@@ -806,8 +806,9 @@ static void test_cacheless_exchange(void) {
 }
 
 static void test_config_contraints(void) {
+#ifdef HAVE_BCTBXPQ
 	cryptoParams_t *pattern;
-	cryptoParams_t *excepted;
+	cryptoParams_t *expected;
 
 	/* Reset Global Static settings */
 	resetGlobalParams();
@@ -825,7 +826,7 @@ static void test_config_contraints(void) {
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
 
-	cryptoParams_t excepted_post_quantum_patterns[] = {
+	cryptoParams_t expected_post_quantum_patterns[] = {
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_KYB1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_SIK1},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_KYB3},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0},
@@ -839,15 +840,19 @@ static void test_config_contraints(void) {
 	};
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
 		pattern = &post_quantum_patterns[0]; /* pattern is a pointer to current pattern */
-		excepted = &excepted_post_quantum_patterns[0];
+		expected = &expected_post_quantum_patterns[0];
 		while (pattern->cipherNb!=0) {
-			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, excepted, NULL, NULL, NULL, NULL), 0, int, "%x");
+			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, expected, NULL, NULL, NULL, NULL), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
-			excepted++;
+			expected++;
 		}
 	}
+#else /* HAVE_BCTBXPQ */
+	bctbx_warning("test skipped as we do not support key exchange requesting constraints (PQC)");
+#endif /* HAVE_BCTBXPQ */
+
 }
 
 static void test_loosy_network(void) {
@@ -868,6 +873,7 @@ static void test_loosy_network(void) {
 }
 
 static void test_mtu(void) {
+#ifdef HAVE_BCTBXPQ
 	cryptoParams_t *pattern;
 
 	/* Reset Global Static settings */
@@ -914,17 +920,21 @@ static void test_mtu(void) {
 	}
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
 		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange_mtu(pattern, pattern, pattern, 800), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
 		}
 	}
+#else /* HAVE_BCTBXPQ */
+	bctbx_warning("mtu test skipped as we do not support key exchange requesting fragmentation");
+#endif /* HAVE_BCTBXPQ */
 }
 
 static void test_loosy_network_mtu(void) {
-	if (!(bctbx_key_agreement_algo_list()&BCTBX_KEM_X25519)) {
+#ifdef HAVE_BCTBXPQ
+	if (!(bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519)) {
 		bctbx_warning("mtu test on loosy network skipped as we do not support key exchange requesting fragmentation");
 		return;
 	}
@@ -944,6 +954,9 @@ static void test_loosy_network_mtu(void) {
 			bzrtp_message("Lost packets: %f pc", (100.0*totalPacketLost)/totalPacketSent);
 		}
 	}
+#else /* HAVE_BCTBXPQ */
+	bctbx_warning("mtu test on loosy network skipped as we do not support key exchange requesting fragmentation");
+#endif /* HAVE_BCTBXPQ */
 }
 
 static void test_cache_enabled_exchange(void) {

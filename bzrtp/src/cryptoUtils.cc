@@ -24,6 +24,17 @@
 
 #include "cryptoUtils.h"
 #include "bctoolbox/crypto.hh"
+#ifdef HAVE_BCTBXPQ
+#include "postquantumcryptoengine/crypto.hh"
+#endif /* HAVE_BCTBXPQ */
+
+uint32_t bzrtp_key_agreement_algo_list(void) {
+	uint32_t ret = bctbx_key_agreement_algo_list();
+#ifdef HAVE_BCTBXPQ
+	ret |= bctbxpq_key_agreement_algo_list();
+#endif /* HAVE_BCTBXPQ */
+	return ret;
+}
 
 uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[256]) {
 
@@ -44,7 +55,8 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 		case ZRTP_KEYAGREEMENT_TYPE:
 			{
 				/* get availables types from bctoolbox */
-				uint32_t available_key_agreements = bctbx_key_agreement_algo_list();
+				uint32_t available_key_agreements = bzrtp_key_agreement_algo_list();
+
 				/* Put them in a list in a prefered order, if no configuration is done the first 6 are used */
 				uint8_t index=0;
 				if (available_key_agreements&BCTBX_ECDH_X25519) {
@@ -1020,7 +1032,6 @@ void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext) {
 	}
 }
 
-//TODO: all these size shall use bctoolbox defined constants
 /**
  * Returns public key size in bytes for any supported KEM algo
  * @param[in] keyAgreementAlgo
@@ -1028,6 +1039,7 @@ void bzrtp_DestroyKey(uint8_t *key, size_t keyLength, void *rngContext) {
  * @return The public key size in bytes
  */
 static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
+#ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
 			return bctoolbox::KYBER512::pkSize;
@@ -1056,6 +1068,9 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
 		default:
 			return 0;
 	}
+#else /* HAVE_BCTBXPQ */
+	return 0;
+#endif /* HAVE_BCTBXPQ */
 }
 
 /**
@@ -1065,6 +1080,7 @@ static uint16_t bzrt_getKEMPublicKeyLength(uint8_t keyAgreementAlgo) {
  * @return The cipher text size in bytes
  */
 static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
+#ifdef HAVE_BCTBXPQ
 	switch (keyAgreementAlgo) {
 		case ZRTP_KEYAGREEMENT_KYB1:
 			return bctoolbox::KYBER512::ctSize;
@@ -1093,6 +1109,9 @@ static uint16_t bzrt_getKEMCipherTextLength(uint8_t keyAgreementAlgo) {
 		default:
 			return 0;
 	}
+#else /* HAVE_BCTBXPQ */
+	return 0;
+#endif /* HAVE_BCTBXPQ */
 }
 
 uint16_t bzrtp_computeKeyAgreementPublicValueLength(uint8_t keyAgreementAlgo, uint8_t messageType) {
@@ -1150,6 +1169,7 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, u
 			return 96;
 		case ZRTP_KEYAGREEMENT_EC52 :
 			return 132;
+#ifdef HAVE_BCTBXPQ
 		case ZRTP_KEYAGREEMENT_KYB1:
 			return bctoolbox::KYBER512::ssSize;
 		case ZRTP_KEYAGREEMENT_KYB2:
@@ -1171,6 +1191,7 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, u
 		case ZRTP_KEYAGREEMENT_K448_KYB1024:
 		case ZRTP_KEYAGREEMENT_K448_SIK751:
 			return (uint16_t) hashLength;
+#endif /* HAVE_BCTBXPQ */
 		default:
 			return 0;
 	}
@@ -1210,6 +1231,7 @@ static int bzrtp_getHashAlgoId(uint8_t hashAlgo){
 	}
 }
 
+#ifdef HAVE_BCTBXPQ
 typedef struct bzrtp_KEMContext_struct {
 		std::shared_ptr<bctoolbox::KEM> ctx;
 		std::vector<uint8_t> publicKey;
@@ -1369,3 +1391,35 @@ int bzrtp_destroyKEMContext(bzrtp_KEMContext_t *ctx) {
 	delete ctx;
 	return 0;
 }
+
+#else /* HAVE_BCTBXPQ */
+/* KEM functions are implemented in postquantumcryptoengine, stub them if we don't have it */
+
+bzrtp_KEMContext_t *bzrtp_createKEMContext(uint8_t keyAgreementAlgo, uint8_t hashAlgo) {
+	return NULL;
+}
+int bzrtp_KEM_generateKeyPair(bzrtp_KEMContext_t *ctx) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_getPublicKey(bzrtp_KEMContext_t *ctx, uint8_t *publicKey) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_getSharedSecret(bzrtp_KEMContext_t *ctx, uint8_t *sharedSecret) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_encaps(bzrtp_KEMContext_t *ctx, uint8_t *publicKey, uint8_t *cipherText) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_KEM_decaps(bzrtp_KEMContext_t *ctx, uint8_t *cipherText) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+int bzrtp_destroyKEMContext(bzrtp_KEMContext_t *ctx) {
+	return BZRTP_ERROR_CONTEXTNOTREADY;
+}
+
+#endif /* HAVE_BCTBXPQ */

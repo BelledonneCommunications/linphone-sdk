@@ -685,6 +685,16 @@ BZRTP_EXPORT int bzrtp_set_MTU(bzrtpContext_t *zrtpContext, size_t mtu);
 BZRTP_EXPORT size_t bzrtp_get_MTU(bzrtpContext_t *zrtpContext);
 
 
+/**
+ * @brief Return a 32 bits unsigned integer, each bit set to one matches an
+ * available key agreement algorithm as defined in bctoolbox/include/crypto.h
+ *
+ * This function is used for testing only, it compiles algo provided by
+ * bctoolbox and post quantum crypto engine if available
+ *
+ * @return An unsigned integer of 32 flags matching key agreement algos
+ */
+BZRTP_EXPORT uint32_t bzrtp_key_agreement_algo_list(void);
 #ifdef __cplusplus
 }
 #endif
