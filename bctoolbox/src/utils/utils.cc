@@ -18,7 +18,8 @@
  */
 
 #include "bctoolbox/utils.hh"
-#include<sstream> 
+#include <codecvt>
+#include <sstream> 
 
 using namespace std;
 
@@ -116,4 +117,26 @@ std::string bctoolbox::Utils::getMemoryReportAsString() {
 #endif
 #endif
 	return ossReport.str();
+}
+
+// tolower/towlower/use_facet doesn't work on all cases, beacause it depends on locale. A solution is to use regex with icase. Maybe be inefficient but that seems to work.
+int bctoolbox::Utils::find(smatch * results, const string &stringWords, const string &filter){
+	wstring_convert<codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
+	// We need to use wstring to add brackets on utf16.
+	wstring filterLC = converter.from_bytes(filter);
+// Build Regex
+	wstring regexLC = L".*";
+	regexLC.reserve(filterLC.size() *3 + 5);// Size optimization : brackets*chars + *_encapsulation + '\0'
+	for(size_t i = 0 ; i < filterLC.size() ; ++i){
+		regexLC += L"[";
+		regexLC += filterLC[i];
+		regexLC += L"]";
+	}
+	regexLC += L".*";
+// revert back to string because wregex doesn't seem to work.
+	string regexStr = converter.to_bytes(regexLC);
+	regex entry_regex(regexStr, regex_constants::extended | regex_constants::nosubs | regex_constants::icase);
+	//setlocale(LC_CTYPE, ""); // useful for 'towlower' functions but useless for regex.
+	
+	return regex_search(stringWords, *results, entry_regex) ? 0 : -1;
 }
