@@ -27,6 +27,12 @@ include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.1)
 
+# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
+# version is higer or equal to 3.13.
+if (NOT CMAKE_VERSION VERSION_LESS 3.13)
+	cmake_policy(SET CMP0077 NEW)
+endif ()
+
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
@@ -38,6 +44,10 @@ option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+
+# Hidden non-cache options:
+# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
+# * DISABLE_SOCI_PACKAGE_SEARCH: skip find_package() for Soci.
 
 set (LANGUAGES_LIST CXX)
 if (ENABLE_C_INTERFACE)
@@ -60,9 +70,19 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(bctoolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
+if (NOT DISABLE_BC_PACKAGE_SEARCH)
+	find_package(bctoolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
+endif ()
 
-find_package(Soci REQUIRED)
+if (NOT DISABLE_SOCI_PACKAGE_SEARCH)
+	find_package(Soci REQUIRED)
+else()
+	set(SOCI_FOUND YES)
+	set(SOCI_LIBRARIES soci_core)
+	if (APPLE OR ANDROID)
+		set(SOCI_sqlite3_PLUGIN soci_sqlite3)
+	endif()
+endif()
 
 include_directories(
 	include/
@@ -162,9 +182,11 @@ endif()
 
 set(ConfigPackageLocation "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 
-export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
-)
+if (LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
+	export(EXPORT ${EXPORT_TARGETS_NAME}Targets
+			FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
+			)
+endif ()
 
 configure_package_config_file(cmake/LimeConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"

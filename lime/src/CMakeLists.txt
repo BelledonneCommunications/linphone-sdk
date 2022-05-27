@@ -81,7 +81,7 @@ if(ENABLE_SHARED)
 		set_target_properties(lime PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.lime
-			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${LIME_HEADER_FILES}"
 		)
 	endif()
