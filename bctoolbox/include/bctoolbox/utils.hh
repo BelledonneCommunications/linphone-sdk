@@ -20,7 +20,6 @@
 #ifndef BCTBX_UTILS_H
 #define BCTBX_UTILS_H
 
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -49,14 +48,6 @@ namespace bctoolbox {
 		
 		// Return the current state of memory as a string. This is currently implemented only for Windows.
 		BCTBX_PUBLIC std::string getMemoryReportAsString();
-		
-		/**
-		 *  The purpose is to replace std::find for search with case insensitive, without having to deal with locale.
-		 *  Set 'results' as string results from regex_search.
-		 *  
-		 *  Return 0 if successful, -1 otherwise. (Linphone convention)
-		 */
-		BCTBX_PUBLIC int find(std::smatch * results, const std::string &stringWords, const std::string &filter);
 	
 	}
 
