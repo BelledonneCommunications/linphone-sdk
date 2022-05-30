@@ -37,6 +37,9 @@ if (project.hasProperty("no-video")) {
 if (project.hasProperty("minimal-size")) {
     artefactGroupId = artefactGroupId + '.minimal'
 }
+if (project.hasProperty("no-gpl")) {
+    artefactGroupId = artefactGroupId + '.no-gpl'
+}
 println("AAR artefact group is: " + artefactGroupId + ", SDK version @LINPHONESDK_VERSION@")
 
 publishing {

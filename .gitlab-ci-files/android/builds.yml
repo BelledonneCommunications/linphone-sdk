@@ -138,6 +138,14 @@ android-ninja-r20-allcodecs:
 
   extends: android-ninja-r20
 
+android-ninja-r20-no-gpl:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=NO
+
+  extends: android-ninja-r20
+
 #android-ninja-r20-sanitizer:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
