@@ -23,6 +23,8 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <list>
+#include "crypto.h"
 
 namespace bctoolbox {
 /**
@@ -87,8 +89,8 @@ class RNG {
  * @brief SHA1 buffer size definition
  */
 struct SHA1 {
-    /// maximum output size for SHA1 is 20 bytes
-    static constexpr size_t ssize() {return 20;}
+	/// maximum output size for SHA1 is 20 bytes
+	static constexpr size_t ssize() {return 20;}
 };
 
 /**
@@ -122,7 +124,7 @@ struct SHA512 {
  * @tparam	hashAlgo	the hash algorithm used: SHA256, SHA384, SHA512
  *
  * @param[in]	key		HMAC key
- * @param[in]	input		HMAC input
+ * @param[in]	input	HMAC input
  *
  * @return an array of size matching the selected hash algorithm output size
  *
@@ -171,6 +173,8 @@ std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt, const std::vector<ui
 /* declare template specialisations */
 template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
 template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
 template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
 template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
 

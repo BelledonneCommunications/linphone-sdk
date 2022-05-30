@@ -54,18 +54,18 @@ static constexpr size_t secretMaterialSize=16;
 
 static std::string getHex(const std::vector<uint8_t>& v)
 {
-    std::string result;
-    result.reserve(v.size() * 2);   // two digits per character
+	std::string result;
+	result.reserve(v.size() * 2);   // two digits per character
 
-    static constexpr char hex[] = "0123456789ABCDEF";
+	static constexpr char hex[] = "0123456789ABCDEF";
 
-    for (uint8_t c : v)
-    {
-        result.push_back(hex[c / 16]);
-        result.push_back(hex[c % 16]);
-    }
+	for (uint8_t c : v)
+	{
+		result.push_back(hex[c / 16]);
+		result.push_back(hex[c % 16]);
+	}
 
-    return result;
+	return result;
 }
 
 // chunk index is in chunk 8,9,10,11

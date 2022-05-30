@@ -140,9 +140,9 @@ std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uin
 
 /* HMAC specialized template for SHA1 */
 template <> std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-    std::vector<uint8_t> hmacOutput(SHA1::ssize());
-    mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
-    return  hmacOutput;
+	std::vector<uint8_t> hmacOutput(SHA1::ssize());
+	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key.data(), key.size(), input.data(), input.size(), hmacOutput.data());
+	return  hmacOutput;
 }
 
 /* HMAC specialized template for SHA256 */
@@ -200,6 +200,22 @@ template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, 
 	return okm;
 };
 
+/* HKDF specialized template for SHA384 */
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
+	std::vector<uint8_t> okm(outputSize);
+	if (mbedtls_hkdf(mbedtls_md_info_from_type(MBEDTLS_MD_SHA384), salt.data(), salt.size(), ikm.data(), ikm.size(), info.data(), info.size(), okm.data(), outputSize) != 0) {
+		throw BCTBX_EXCEPTION<<"HKDF-SHA384 error";
+	}
+	return okm;
+};
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize) {
+	std::vector<uint8_t> okm(outputSize);
+	if (mbedtls_hkdf(mbedtls_md_info_from_type(MBEDTLS_MD_SHA384), salt.data(), salt.size(), ikm.data(), ikm.size(), reinterpret_cast<const unsigned char*>(info.data()), info.size(), okm.data(), outputSize) != 0) {
+		throw BCTBX_EXCEPTION<<"HKDF-SHA384 error";
+	}
+	return okm;
+};
+
 /* HKDF specialized template for SHA512 */
 template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
 	std::vector<uint8_t> okm(outputSize);
@@ -252,6 +268,14 @@ template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, 
 };
 template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize) {
 	return HMAC_KDF<SHA256, std::string>(salt, ikm, info, outputSize);
+};
+
+/* HKDF specialized template for SHA384 */
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize) {
+	return HMAC_KDF<SHA384, std::vector<uint8_t>>(salt, ikm, info, outputSize);
+};
+template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize) {
+	return HMAC_KDF<SHA384, std::string>(salt, ikm, info, outputSize);
 };
 
 /* HKDF specialized template for SHA512 */

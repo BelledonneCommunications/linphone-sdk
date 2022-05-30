@@ -462,7 +462,7 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 		break;
 
 		case POLARSSL_MD_SHA512:
-			sha512(crt->raw.p, crt->raw.len, buffer, 0); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+            sha512(crt->raw.p, crt->raw.len, buffer, 0);
 			hash_length = 64;
 			hash_alg_string="SHA-512";
 		break;

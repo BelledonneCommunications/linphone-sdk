@@ -26,11 +26,20 @@
 /* Each algo is defined as a bit toggled in a 32 bits integer,
  * so we can easily ask for all availables ones
  */
-#define BCTBX_DHM_UNSET		0x00000000
-#define BCTBX_DHM_2048		0x00000001
-#define BCTBX_DHM_3072		0x00000002
-#define BCTBX_ECDH_X25519	0x00000004
-#define BCTBX_ECDH_X448		0x00000008
+#define BCTBX_DHM_UNSET				0x00000000
+#define BCTBX_DHM_2048				0x00000001
+#define BCTBX_DHM_3072				0x00000002
+#define BCTBX_ECDH_X25519			0x00000004
+#define BCTBX_ECDH_X448				0x00000008
+#define BCTBX_KEM_KYBER512			0x00000010
+#define BCTBX_KEM_KYBER768			0x00000020
+#define BCTBX_KEM_KYBER1024			0x00000040
+#define BCTBX_KEM_SIKE434			0x00000080
+#define BCTBX_KEM_SIKE610			0x00000100
+#define BCTBX_KEM_SIKE751			0x00000200
+#define BCTBX_KEM_X25519			0x00000400
+#define BCTBX_KEM_X448				0x00000800
+
 
 /* EdDSA defines */
 #define BCTBX_EDDSA_UNSET	0
@@ -878,7 +887,7 @@ BCTBX_PUBLIC void bctbx_sha256(const uint8_t *input,
 		uint8_t hashLength,
 		uint8_t *output);
 
-/*
+/**
  * @brief HMAC-SHA512 wrapper
  * @param[in] 	key		HMAC secret key
  * @param[in] 	keyLength	HMAC key length

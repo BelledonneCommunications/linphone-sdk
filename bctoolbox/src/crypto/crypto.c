@@ -22,6 +22,19 @@
 
 #include <bctoolbox/crypto.h>
 
+/**
+ * List of available key agreement algorithm
+ */
+uint32_t bctbx_key_agreement_algo_list(void) {
+	uint32_t ret = BCTBX_DHM_2048|BCTBX_DHM_3072; /* provided by mbedtls */
+#ifdef HAVE_DECAF
+	/* decaf always provide X448 and X25519 */
+	ret |= BCTBX_ECDH_X25519
+	|BCTBX_ECDH_X448;
+#endif /* HAVE_DECAF */
+	return ret;
+}
+
 
 /*****************************************************************************/
 /***** AES GCM encrypt/decrypt chunk by chunk, needed for file encryption ****/

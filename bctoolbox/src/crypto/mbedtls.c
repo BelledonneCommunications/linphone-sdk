@@ -455,7 +455,7 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 		break;
 
 		case MBEDTLS_MD_SHA512:
-			mbedtls_sha512(crt->raw.p, crt->raw.len, buffer, 0); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			mbedtls_sha512(crt->raw.p, crt->raw.len, buffer, 0);
 			hash_length = 64;
 			hash_alg_string="SHA-512";
 		break;
@@ -812,16 +812,16 @@ static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
  */
 const mbedtls_x509_crt_profile bctbx_x509_crt_profile_default =
 {
-    /* Hashes from SHA-1 and above */
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
-    MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
-    0xFFFFFFF, /* Any PK alg    */
-    0xFFFFFFF, /* Any curve     */
-    1024,
+	/* Hashes from SHA-1 and above */
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA1 ) |
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_RIPEMD160 ) |
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA224 ) |
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA256 ) |
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA384 ) |
+	MBEDTLS_X509_ID_FLAG( MBEDTLS_MD_SHA512 ),
+	0xFFFFFFF, /* Any PK alg    */
+	0xFFFFFFF, /* Any curve     */
+	1024,
 };
 
 /** context **/
@@ -1515,7 +1515,7 @@ void bctbx_sha512(const uint8_t *input,
 		uint8_t *output)
 {
 	uint8_t hashOutput[64];
-	mbedtls_sha512(input, inputLength, hashOutput, 0); /* last param to zero to select SHA512 and not SHA384 */
+	mbedtls_sha512(input, inputLength, hashOutput, 0);
 
 	/* check output length, can't be>64 */
 	if (hashLength>64) {
