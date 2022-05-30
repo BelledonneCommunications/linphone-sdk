@@ -815,6 +815,28 @@ BCTBX_PUBLIC void bctbx_uint64_to_str(uint8_t output_string[17], uint64_t input_
  */
 BCTBX_PUBLIC uint64_t bctbx_str_to_uint64(const uint8_t input_string[17]);
 
+/**
+ * @brief Call of strcasecmp where parameters can be NULL.
+ *
+ * @param[in] a first string to compare. @maybenil
+ * @param[in] b second string to compare. @maybenil
+ *
+ *@return the value of strcasecmp.
+ */
+BCTBX_PUBLIC int bctbx_strcasecmp(const char *a, const char *b);
+
+/**
+ * @brief Call of strcmp where parameters can be NULL.
+ *
+ * @param[in] a first string to compare. @maybenil
+ * @param[in] b second string to compare. @maybenil
+ *
+ *@return the value of strcmp.
+ */
+BCTBX_PUBLIC int bctbx_strcmp(const char *a, const char *b);
+
+
+
 #ifdef __cplusplus
 }
 

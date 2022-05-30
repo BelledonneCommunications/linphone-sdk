@@ -1966,3 +1966,15 @@ int wctomb(char *s, wchar_t wc) {
   return wcrtomb(s,wc,NULL);
 }
 #endif
+
+int bctbx_strcasecmp(const char *a, const char *b) {
+	if (a == NULL) a = "";
+	if (b == NULL) b = "";
+	return strcasecmp(a, b);
+}
+
+int bctbx_strcmp(const char *a, const char *b) {
+	if (a == NULL) a = "";
+	if (b == NULL) b = "";
+	return strcmp(a, b);
+}
