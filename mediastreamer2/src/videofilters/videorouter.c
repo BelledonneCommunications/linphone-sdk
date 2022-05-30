@@ -160,7 +160,7 @@ static void router_channel_update_input(RouterState *s, int pin, MSQueue *q){
 
 static int next_input_pin(MSFilter *f, int i){
 	int k;
-	for(k=i+1;k<i+1+f->desc->ninputs-2;k++){
+	for(k=i+1;k<i+1+f->desc->ninputs;k++){
 		int next_pin=k % f->desc->ninputs;
 		if (f->inputs[next_pin] && next_pin < f->desc->ninputs-2) return next_pin;
 	}
