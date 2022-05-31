@@ -228,6 +228,40 @@ template <> std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uin
 template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
 		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
 
+/************************** AES Key Wrap Algorithm ***************************/
+enum class AesId {AES128, AES192, AES256};
+
+/**
+ * @brief AES Key Wrap with Padding Algorithm described by the RFC 5649 Section 4.1 : https://datatracker.ietf.org/doc/html/rfc5649#section-4.1
+ *		  Implementation of the alternative description of the algorithm
+ *		  Used to encrypt the AES keys
+ *		  Works with AES-128, AES-192 and AES-256
+ *
+ * @param[in]   plaintext	AES key that we want to encrypt OR a plaintext
+ * @param[in]   key			Key-encryption key (KEK)
+ * @param[out]  ciphertext	The AES key encrypted OR the ciphertext
+ * @param[in]	aes_id		Id of the AES version used here
+ *
+ * @return 0 if no problem, BCTBX_ERROR_INVALID_INPUT_DATA otherwise
+ */
+int AES_key_wrap(const std::vector<uint8_t> &plaintext, const std::vector<uint8_t> &key, std::vector<uint8_t> &ciphertext, AesId id);
+
+/**
+ * @brief AES Key Unwrap with Padding Algorithm described by the RFC 5649 Section 4.2 : https://datatracker.ietf.org/doc/html/rfc5649#section-4.2
+ *		  Implementation of the alternative description of the algorithm
+ *		  Used to decrypt the AES keys
+ *		  Works with AES-128, AES-192 and AES-256
+ *
+ * @param[in]   ciphertext	AES key that we want to decrypt OR a ciphertext
+ * @param[in]   key			Key-encryption key (KEK)
+ * @param[out]  plaintext	The AES key decrypted OR the plaintext
+ * @param[in]	aes_id		Id of the AES version used here
+ *
+ * @return 0 if no problem, {BCTBX_ERROR_INVALID_INPUT_DATA, BCTBX_ERROR_UNSPECIFIED_ERROR} otherwise
+ */
+int AES_key_unwrap(const std::vector<uint8_t> &ciphertext, const std::vector<uint8_t> &key, std::vector<uint8_t> &plaintext, AesId id);
+
+
 } // namespace bctoolbox
 #endif // BCTBX_CRYPTO_HH
 

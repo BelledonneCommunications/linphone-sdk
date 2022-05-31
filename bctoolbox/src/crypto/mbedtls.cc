@@ -369,6 +369,192 @@ template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, cons
 }
 
 
+int AES_key_wrap(const std::vector<uint8_t> &plaintext, const std::vector<uint8_t> &key, std::vector<uint8_t> &ciphertext, AesId id){
+
+	uint64_t t;
+	size_t m = plaintext.size();	// Size of the plaintext
+	size_t r;						// Size of the padded plaintext
+	size_t n;						// Number of 64-bit blocks in the padded plaintext
+	uint8_t input[16];				// Buffer of the AES input
+	uint8_t B[16];					// Buffer of the AES output
+	uint8_t *R = (uint8_t *) bctbx_malloc((m+8) * sizeof(uint8_t));	// An array of 8-bit registers
+
+	/* Append padding */
+	r = m;
+	memcpy(R, plaintext.data(), r);
+	while (r%8 != 0) {
+		R[r] = 0;
+		r++;
+	}
+	n = r / 8;
+
+	/* Initialise variables */
+	// Initialisation of A described in the RFC 5649 Section 3 : https://datatracker.ietf.org/doc/html/rfc5649#section-3
+	uint8_t A[8];
+	A[0] = 0xA6;
+	A[1] = 0x59;
+	A[2] = 0x59;
+	A[3] = 0xA6;
+	for (size_t i = 0 ; i < 4 ; i++) {
+		A[4+i] = (m >> (3-i)*8) & 0xFF;
+	}
+
+	// Initialise AES context with the key
+	mbedtls_aes_context context;
+	mbedtls_aes_init(&context);
+	switch (id) {
+		case AesId::AES128 :
+			mbedtls_aes_setkey_enc(&context, key.data(), 128);
+			break;
+		case AesId::AES192 :
+			mbedtls_aes_setkey_enc(&context, key.data(), 192);
+			break;
+		case AesId::AES256 :
+			mbedtls_aes_setkey_enc(&context, key.data(), 256);
+			break;
+		default :
+			return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+
+	/* Calculate intermediate values */
+	if (r == 8) {
+		// input = concat(A, R[0])
+		memcpy(input, A, 8);
+		memcpy(input+8, R, 8);
+
+		// B = AES(key, input)
+		mbedtls_aes_crypt_ecb(&context, MBEDTLS_AES_ENCRYPT, input, B);
+
+		/* Output the results */
+		ciphertext.assign(B, B+16);
+
+		mbedtls_aes_free(&context);
+		bctbx_free(R);
+
+		return 0;
+	}
+	for (int j = 0 ; j <= 5 ; j++) {
+		for (size_t i = 0 ; i < n ; i++) {
+			// input = concat(A, R[i])
+			memcpy(input, A, 8);
+			memcpy(input+8, R+(i*8), 8);
+
+			// B = AES(key, input)
+			mbedtls_aes_crypt_ecb(&context, MBEDTLS_AES_ENCRYPT, input, B);
+
+			// A = MSB(64, B) ^ t where t = (n*j)+i
+			t = (n * j) + i+1;
+			for (size_t k = 0 ; k < 8 ; k++) {
+				A[k] = B[k] ^ ((t >> (7-k)*8) & 0xFF);
+			}
+
+			// R[i] = LSB(64, B)
+			memcpy(R+(i*8), B+8, 8);
+		}
+	}
+
+	/* Output the results */
+	ciphertext.assign(A, A+8);
+	ciphertext.insert(ciphertext.end(), R, R+r);
+
+	mbedtls_aes_free(&context);
+	bctbx_free(R);
+
+	return 0;
+}
+
+int AES_key_unwrap(const std::vector<uint8_t> &ciphertext, const std::vector<uint8_t> &key, std::vector<uint8_t> &plaintext, AesId id){
+
+	size_t n = (ciphertext.size() - 8) / 8;	// Number of 64-bit blocks of the padded plaintext
+	size_t r = ciphertext.size() - 8;		// Size of the padded plaintext
+	size_t m = 0;							// Size of the plaintext
+	uint8_t input[16];						// Buffer of the AES input
+	uint8_t B[16];							// Buffer of the AES output
+	uint8_t *R = (uint8_t *) bctbx_malloc(r * sizeof(uint8_t));	// An array of 8-bit registers
+
+	/* Initialise variables */
+	uint8_t A[8];
+	memcpy(A, ciphertext.data(), 8);
+	memcpy(R, ciphertext.data()+8, r);
+
+	// Initialise AES context with the key
+	mbedtls_aes_context context;
+	mbedtls_aes_init(&context);
+	switch (id) {
+		case AesId::AES128 :
+			mbedtls_aes_setkey_dec(&context, key.data(), 128);
+			break;
+		case AesId::AES192 :
+			mbedtls_aes_setkey_dec(&context, key.data(), 192);
+			break;
+		case AesId::AES256 :
+			mbedtls_aes_setkey_dec(&context, key.data(), 256);
+			break;
+		default :
+			mbedtls_aes_free(&context);
+			bctbx_free(R);
+			return BCTBX_ERROR_INVALID_INPUT_DATA;
+	}
+
+	/* Compute intermediate values */
+	if (n == 1) {
+		// input = ciphertext
+		memcpy(input, ciphertext.data(), 16);
+
+		// B = AES-1(K, input)
+		mbedtls_aes_crypt_ecb(&context, MBEDTLS_AES_DECRYPT, input, B);
+
+		// A = MSB(64, B)
+		memcpy(A, B, 8);
+
+		// R[i] = LSB(64, B)
+		memcpy(R, B+8, 8);
+	} else {
+		for (int j = 5 ; j >= 0 ; j--) {
+			for (size_t i = n ; i > 0 ; i--) {
+				// input = concat(A ^ t, R[i]) where t = n*j+i
+				uint64_t t = (n * j) + i;
+				for (size_t k = 0 ; k < 8 ; k++) {
+					input[k] = A[k] ^ ((t >> (7-k)*8) & 0xFF);
+					input[k+8] = R[(i-1)*8+k];
+				}
+
+				// B = AES-1(K, input)
+				mbedtls_aes_crypt_ecb(&context, MBEDTLS_AES_DECRYPT, input, B);
+
+				// A = MSB(64, B)
+				memcpy(A, B, 8);
+
+				// R[i] = LSB(64, B)
+				memcpy(R+((i-1)*8), B+8, 8);
+			}
+		}
+	}
+
+	/* Output the results */
+	mbedtls_aes_free(&context);
+	// AIV verification described in the RFC 5649 Section 3 : https://datatracker.ietf.org/doc/html/rfc5649#section-3
+	if (!(A[0] == 0xA6 && A[1] == 0x59 && A[2] == 0x59 && A[3] == 0xA6)){
+		bctbx_free(R);
+		return BCTBX_ERROR_UNSPECIFIED_ERROR;
+	}
+	// m = concat(A[4], A[5], A[6], A[7])
+	for (size_t i = 0 ; i < 4 ; i++) {
+		m |= A[4+i] << ((3-i)*8);
+	}
+	if ((m <= 8*(n-1)) || (8*n <= m)) {
+		bctbx_free(R);
+		return BCTBX_ERROR_UNSPECIFIED_ERROR;
+	}
+
+	// Remove padding & Return plaintext
+	plaintext.assign(R, R+m);
+
+	bctbx_free(R);
+
+	return 0;
+}
+
 } // namespace bctoolbox
 
 /*** Random Number Generation: C API ***/
