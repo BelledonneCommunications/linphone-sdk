@@ -835,7 +835,6 @@ BCTBX_PUBLIC int bctbx_strcasecmp(const char *a, const char *b);
  */
 BCTBX_PUBLIC int bctbx_strcmp(const char *a, const char *b);
 
-
 /**
  * @brief Set the name of the calling thread.
  * This can ease the analysis of bug reports, such as ANR reports on Android.
@@ -843,6 +842,12 @@ BCTBX_PUBLIC int bctbx_strcmp(const char *a, const char *b);
  */
 BCTBX_PUBLIC void bctbx_set_self_thread_name(const char *name);
 
+/**
+ * @brief Set handlers to catch exceptions and write the stack trace into log. Available for Windows.
+ * It keeps old handlers.
+ * @param[in] if TRUE, prepends handlers with bctoolbox hooks. If FALSE, remove them and replace by old hooks (stored from the last call of bctbx_set_stack_trace_hooks() ). By default, it is FALSE.
+ */
+BCTBX_PUBLIC void bctbx_set_stack_trace_hooks(bool_t use_bctbx_hooks);
 
 #ifdef __cplusplus
 }
