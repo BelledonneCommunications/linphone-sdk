@@ -50,7 +50,7 @@ find_library(OPENH264_LIBRARIES
 )
 
 if(OPENH264_LIBRARIES)
-	if( WIN32 )#issue with check_cxx_symbol_exists on Windows (TODO: missing libraries in OPENH264_LIBRARIES?). If OPENH264_INCLUDE_DIRS, then decoder exists.
+	if( WIN32 OR ANDROID )#issue with check_cxx_symbol_exists on Windows (TODO: missing libraries in OPENH264_LIBRARIES?). If OPENH264_INCLUDE_DIRS, then decoder exists.
 		set(OPENH264_FOUND TRUE)
 		set(HAVE_WELS_CREATE_DECODER TRUE)
 	else()
