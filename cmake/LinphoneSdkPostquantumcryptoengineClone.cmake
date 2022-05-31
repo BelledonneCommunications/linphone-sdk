@@ -27,7 +27,7 @@ include(LinphoneSdkUtils)
 linphone_sdk_check_git()
 
 
-set(POSTQUANTUMCRYPTOENGINE_REVISION "9569b213fc935584d7e1b45b51756a6fc7ebdb75")
+set(POSTQUANTUMCRYPTOENGINE_REVISION "8f877fc35b644df48e6442ec3dc04ab4717de989")
 
 
 if(IS_DIRECTORY "${LINPHONESDK_DIR}/postquantumcryptoengine")

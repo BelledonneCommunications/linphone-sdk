@@ -25,13 +25,14 @@
 
     - echo $CI_JOB_IMAGE
     ##
-    ## If a TUNNEL_USER_KEY is defined then start ssh-agent and add the key
+    ## If a SSH_USER_KEY is defined then start ssh-agent and add the key
     ##
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then eval $(ssh-agent -s); fi
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then echo "$TUNNEL_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null; fi
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then mkdir -p ~/.ssh && chmod 700 ~/.ssh; fi
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then eval $(ssh-agent -s); fi
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then echo "$SSH_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null; fi
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then mkdir -p ~/.ssh && chmod 700 ~/.ssh; fi
+    ## TODO add host key to variables instead of blindly trusting the server
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then echo -e "Host gitlab.linphone.org\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
 
     ##
     ## Then configure ccache
@@ -59,6 +60,6 @@
     - if [ -n "$CENTOS_VERSION" ] && [ -n "$(echo $CENTOS_VERSION | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
 
   after_script:
-    - if ! [ -z ${TUNNEL_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
+    - if ! [ -z ${SSH_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
     - export CCACHE_DIR=${PWD}/ccache
     - ccache -s
