@@ -115,12 +115,3 @@ android-upload-g729-ldap:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
     - android-makefile-r20-g729-ldap
-
-android-upload-no-gpl:
-  extends: .android-upload-common
-  variables:
-    MAVEN_REPO_URL: $ANDROID_MAVEN_URL
-    GRADLE_OPTIONS: -Pno-gpl -i
-    MAVEN_REPO_PATH: no-gpl
-  needs:
-    - android-ninja-r20-no-gpl
