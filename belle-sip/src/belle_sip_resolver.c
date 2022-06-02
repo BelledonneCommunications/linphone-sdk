@@ -1661,7 +1661,7 @@ static void process_a_fallback_result(void *data, belle_sip_resolver_results_t *
 	* Start a global timer in order to workaround buggy home routers that don't respond to SRV requests.
 	* If A fallback response arrived, SRV shall not take a lot longer.
 	*/
-	belle_sip_message("resolver[%p]: starting SRV timeout since A/AAAA fallback response is received.", ctx);
+	belle_sip_message("resolver[%p]: starting SRV timer since A/AAAA fallback response is received.", ctx);
 	belle_sip_socket_source_init((belle_sip_source_t*)ctx, (belle_sip_source_func_t)combined_resolver_srv_timeout, ctx, -1 , BELLE_SIP_EVENT_TIMEOUT, 
 			belle_sip_srv_timeout_after_a_received);
 	belle_sip_main_loop_add_source(ctx->base.stack->ml, (belle_sip_source_t*)ctx);
