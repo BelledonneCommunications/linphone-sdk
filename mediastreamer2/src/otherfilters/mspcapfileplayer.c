@@ -257,8 +257,8 @@ static void player_process(MSFilter *f){
 									om = allocb(bytes_pcap, 0);
 									memcpy(om->b_wptr, payload, bytes_pcap);
 									om->b_wptr += bytes_pcap;
-									mblk_set_cseq(om, ntohs(rtph->seq_number));
-									mblk_set_timestamp_info(om, ntohl(rtph->timestamp));
+									mblk_set_cseq(om, rtp_header_get_seqnumber(rtph));
+									mblk_set_timestamp_info(om, rtp_header_get_timestamp(rtph));
 									mblk_set_marker_info(om,markbit);
 								}
 							}
