@@ -254,5 +254,5 @@ public:
 
 } // namespace bctoolbox
 
-#endif // BCTBXPQ_CRYPTO_HH
+#endif // POSTQUANTUMCRYPTO_HH
 

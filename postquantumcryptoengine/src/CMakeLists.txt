@@ -38,26 +38,38 @@ bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_C_SOURCE_FILES STRICT_OPTIONS_CPP
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_CXX_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(ENABLE_STATIC)
-	add_library(postquantumcryptoengine STATIC ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+	add_library(postquantumcryptoengine-static STATIC ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+	set_target_properties(postquantumcryptoengine-static PROPERTIES POSITION_INDEPENDENT_CODE On)
 	if(WIN32)
-		target_link_libraries(postquantumcryptoengine INTERFACE "Winmm" "Ws2_32")
+		target_link_libraries(postquantumcryptoengine-static INTERFACE "Winmm" "Ws2_32")
 	endif()
-	set_target_properties(postquantumcryptoengine PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(postquantumcryptoengine PROPERTIES OUTPUT_NAME postquantumcryptoengine)
+	set_target_properties(postquantumcryptoengine-static PROPERTIES LINKER_LANGUAGE "CXX")
+	set_target_properties(postquantumcryptoengine-static PROPERTIES OUTPUT_NAME postquantumcryptoengine)
 	if(ANDROID)
-		target_link_libraries(postquantumcryptoengine INTERFACE log)
+		target_link_libraries(postquantumcryptoengine-static INTERFACE log)
 	endif()
-	target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox)
-	target_link_libraries(postquantumcryptoengine INTERFACE OQS::oqs)
+	target_include_directories(postquantumcryptoengine-static PUBLIC
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+	)
+	target_link_libraries(postquantumcryptoengine-static PRIVATE bctoolbox)
+	target_link_libraries(postquantumcryptoengine-static PRIVATE OQS::oqs)
 endif()
 if(ENABLE_SHARED)
 	add_library(postquantumcryptoengine SHARED ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+	if(APPLE)
+		if(IOS)
+			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+		else()
+			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
+		endif()
+	endif()
 	if(WIN32)
 		set_target_properties(postquantumcryptoengine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 		if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 			target_link_libraries(postquantumcryptoengine PRIVATE "Winmm" "Ws2_32")
 		endif()
-		target_compile_definitions(postquantumcryptoengine PRIVATE "-DBCTBX_EXPORTS")
+		target_compile_definitions(postquantumcryptoengine PRIVATE "-DPQCE_EXPORTS")
 		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")#Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
 			get_target_property(BC_LINK_FLAGS postquantumcryptoengine LINK_FLAGS)
 			if(NOT BC_LINK_FLAGS)
@@ -89,16 +101,16 @@ if(ENABLE_SHARED)
 	if(ANDROID)
 		target_link_libraries(postquantumcryptoengine PRIVATE log)
 	endif()
+	target_include_directories(postquantumcryptoengine PUBLIC
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+	)
 	target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox)
 	target_link_libraries(postquantumcryptoengine PRIVATE OQS::oqs)
 endif()
 
 if(ENABLE_STATIC)
-	target_include_directories(postquantumcryptoengine PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-	)
-	install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS postquantumcryptoengine-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		COMPONENT core
@@ -106,10 +118,6 @@ if(ENABLE_STATIC)
 endif()
 
 if(ENABLE_SHARED)
-	target_include_directories(postquantumcryptoengine PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-	)
 	install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -126,6 +134,6 @@ if(MSVC)
 		target_compile_options(postquantumcryptoengine PRIVATE "/wd4996")
 	endif()
 	if(ENABLE_STATIC)
-		target_compile_options(postquantumcryptoengine PRIVATE "/wd4996")
+		target_compile_options(postquantumcryptoengine-static PRIVATE "/wd4996")
 	endif()
 endif()

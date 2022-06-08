@@ -40,10 +40,6 @@ option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." OFF)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
-
-# Hidden non-cache options:
-# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -71,13 +67,12 @@ include_directories(
 
 set(POSTQUANTUMCRYPTOENGINE_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(ENABLE_STATIC)
-	set(BCTBX_STATIC 1)
+	set(PQCE_STATIC 1)
 endif()
 if(POSTQUANTUMCRYPTOENGINE_CPPFLAGS)
 	list(REMOVE_DUPLICATES POSTQUANTUMCRYPTOENGINE_CPPFLAGS)
 	add_definitions(${POSTQUANTUMCRYPTOENGINE_CPPFLAGS})
 endif()
-
 
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
@@ -92,25 +87,24 @@ add_definitions("-DHAVE_CONFIG_H")
 
 add_subdirectory(include)
 add_subdirectory(src)
+
 if(ENABLE_TESTS)
+	enable_testing()
 	add_subdirectory(tester)
-endif()
-if(ENABLE_PACKAGE_SOURCE)
-	add_subdirectory(build)
 endif()
 
 include(CMakePackageConfigHelpers)
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY AnyNewerVersion
-)
 configure_package_config_file(cmake/postquantumcryptoengineConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
 	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
 	NO_SET_AND_CHECK_MACRO
+)
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
 )
 
 install(EXPORT ${EXPORT_TARGETS_NAME}Targets

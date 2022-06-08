@@ -21,32 +21,32 @@
 #define POSTQUANTUMCRYPTO_H
 
 #ifdef _MSC_VER
-	#ifdef BCTBXPQ_STATIC
-		#define BCTBXPQ_EXPORT
-	#else /* BCTBXPQ_STATIC */
-		#ifdef BCTBXPQ_EXPORTS
-			#define BCTBXPQ_EXPORT __declspec(dllexport)
-		#else /* BCTBXPQ_EXPORTS */
-			#define BCTBXPQ_EXPORT __declspec(dllimport)
-		#endif /* BCTBXPQ_EXPORTS */
-	#endif /* BCTBXPQ_STATIC */
+	#ifdef PQCE_STATIC
+		#define PQCE_EXPORT
+	#else /* PQCE_STATIC */
+		#ifdef PQCE_EXPORTS
+			#define PQCE_EXPORT __declspec(dllexport)
+		#else /* PQCE_EXPORTS */
+			#define PQCE_EXPORT __declspec(dllimport)
+		#endif /* PQCE_EXPORTS */
+	#endif /* PQCE_STATIC */
 
-	#ifndef BCTBXPQ_DEPRECATED
-		#define BCTBXPQ_DEPRECATED __declspec(deprecated)
-	#endif /* BCTBXPQ_DEPRECATED */
+	#ifndef PQCE_DEPRECATED
+		#define PQCE_DEPRECATED __declspec(deprecated)
+	#endif /* PQCE_DEPRECATED */
 #else /* _MSC_VER*/
-	#define BCTBXPQ_EXPORT __attribute__ ((visibility ("default")))
+	#define PQCE_EXPORT __attribute__ ((visibility ("default")))
 
-	#ifndef BCTBXPQ_DEPRECATED
-		#define BCTBXPQ_DEPRECATED __attribute__ ((deprecated))
-	#endif /* BCTBXPQ_DEPRECATED */
+	#ifndef PQCE_DEPRECATED
+		#define PQCE_DEPRECATED __attribute__ ((deprecated))
+	#endif /* PQCE_DEPRECATED */
 #endif /* _MSC_VER*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-BCTBXPQ_EXPORT uint32_t bctbxpq_key_agreement_algo_list(void);
+PQCE_EXPORT uint32_t bctbxpq_key_agreement_algo_list(void);
 
 #ifdef __cplusplus
 }

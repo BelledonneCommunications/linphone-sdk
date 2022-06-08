@@ -41,7 +41,7 @@ set_target_properties(postquantumcryptoengine-tester PROPERTIES LINKER_LANGUAGE 
 target_link_libraries(postquantumcryptoengine-tester PRIVATE bctoolbox bctoolbox-tester)
 
 if(ENABLE_STATIC)
-	target_link_libraries(postquantumcryptoengine-tester PRIVATE postquantumcryptoengine)
+	target_link_libraries(postquantumcryptoengine-tester PRIVATE postquantumcryptoengine-static)
 else()
 	target_link_libraries(postquantumcryptoengine-tester PRIVATE postquantumcryptoengine)
 endif()
