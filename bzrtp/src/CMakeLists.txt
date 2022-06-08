@@ -60,9 +60,9 @@ if(ENABLE_STATIC)
 		$<INSTALL_INTERFACE:include>
 		PRIVATE ${INCLUDE_DIRS})
 	target_link_libraries(bzrtp PRIVATE bctoolbox ${LIBS})
-if (postquantumcryptoengine_FOUND)
-	target_link_libraries(bzrtp PRIVATE postquantumcryptoengine)
-endif()
+	if (postquantumcryptoengine_FOUND)
+		target_link_libraries(bzrtp PRIVATE postquantumcryptoengine)
+	endif()
 	install(TARGETS bzrtp EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
@@ -78,9 +78,9 @@ if(ENABLE_SHARED)
 		PRIVATE ${INCLUDE_DIRS}
 	)
 	target_link_libraries(bzrtp PRIVATE bctoolbox ${LIBS})
-if (postquantumcryptoengine_FOUND)
-	target_link_libraries(bzrtp PRIVATE postquantumcryptoengine)
-endif()
+	if (postquantumcryptoengine_FOUND)
+		target_link_libraries(bzrtp PRIVATE postquantumcryptoengine)
+	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES $<TARGET_PDB_FILE:bzrtp>

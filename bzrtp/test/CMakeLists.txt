@@ -43,9 +43,6 @@ set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(bzrtpTest PRIVATE bctoolbox bctoolbox-tester)
-if (postquantumcryptoengine_FOUND)
-target_link_libraries(bzrtpTest PRIVATE postquantumcryptoengine)
-endif()
 
 if(ENABLE_STATIC)
 	target_link_libraries(bzrtpTest PRIVATE bzrtp)
