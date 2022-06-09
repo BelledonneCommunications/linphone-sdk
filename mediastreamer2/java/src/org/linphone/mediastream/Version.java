@@ -61,7 +61,8 @@ public class Version {
 	public static final int API29_ANDROID_10 = 29;
 	public static final int API30_ANDROID_11 = 30;
 	public static final int API31_ANDROID_12 = 31;
-	public static final int API32_ANDROID_13_TIRAMISU = 32;
+	public static final int API32_ANDROID_12L = 32;
+	public static final int API33_ANDROID_13_TIRAMISU = 33;
 
 	private static native boolean nativeHasZrtp();
 	private static native boolean nativeHasNeon();
