@@ -348,6 +348,7 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	bool_t declares_builtin_aec = FALSE;
 
 #ifdef __ANDROID__
+	bool_t force_disable_builtin_aec = FALSE;
 
 	if (__system_property_get("ro.product.manufacturer", manufacturer) <= 0) {
 		ms_warning("Could not get product manufacturer.");
@@ -370,7 +371,10 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 				if (ret) {
 					ms_message("This device (%s/%s/%s) declares it has a built-in echo canceller.", manufacturer, model, platform);
 					declares_builtin_aec = TRUE;
-				} else ms_message("This device (%s/%s/%s) says it has no built-in echo canceller.", manufacturer, model, platform);
+				} else {
+					ms_message("This device (%s/%s/%s) says it has no built-in echo canceller.", manufacturer, model, platform);
+					force_disable_builtin_aec = TRUE;
+				}
 			} else {
 				ms_error("isAvailable() not found in class AcousticEchoCanceler !");
 				(*env)->ExceptionClear(env); //very important.
@@ -387,10 +391,18 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	if (!d) {
 		ms_message("No information available for [%s/%s/%s],", manufacturer, model, platform);
 #ifdef __ANDROID__
-		if (ms2_android_get_sdk_version() >= 26){
-			d = &genericSoundDeviceDescriptorAboveAndroid8;
-			ms_message("Android >= 8, using sound device descriptor.with DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC flags");
-		}else d = &genericSoundDeviceDescriptor;
+		if (ms2_android_get_sdk_version() >= 26) {
+			if (force_disable_builtin_aec) {
+				d = &genericSoundDeviceDescriptor;
+				ms_message("Android >= 8 but AcousticEchoCanceler isn't available, using default sound device descriptor");
+			} else {
+				d = &genericSoundDeviceDescriptorAboveAndroid8;
+				ms_message("Android >= 8, using sound device descriptor.with DEVICE_HAS_BUILTIN_AEC | DEVICE_HAS_BUILTIN_OPENSLES_AEC flags");
+			}
+		} else {
+			d = &genericSoundDeviceDescriptor;
+			ms_message("Android < 8, using default sound device descriptor");
+		}
 #else
 		d = &genericSoundDeviceDescriptor;
 #endif
