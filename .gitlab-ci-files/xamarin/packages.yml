@@ -5,7 +5,7 @@ xamarin-package:
     GIT_STRATEGY: fetch
   needs:
     - ios-xcode
-    - android-makefile-r20-g729-ldap
+    - android-makefile-r23-g729-ldap
 
   rules:
     - if: $DEPLOY_RUN_NUGET
