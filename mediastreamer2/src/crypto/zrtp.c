@@ -851,6 +851,8 @@ int ms_zrtp_transport_modifier_new(MSZrtpContext* ctx, RtpTransportModifier **rt
 void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp)  {}
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {}
 int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength) {return 0;}
+int ms_zrtp_setAuxiliarySharedSecret(MSZrtpContext *ctx, const uint8_t *auxSharedSecret, size_t auxSharedSecretLength) {return 0;}
+uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx) {return 0;}
 int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
 int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex){return 0;}
 int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {return 0;}
