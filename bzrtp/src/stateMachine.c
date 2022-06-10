@@ -1510,7 +1510,14 @@ static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 			/* if we have a self DHPart packet (means we are in DHM mode) we must rebuild the self DHPart packet to be responder and not initiator */
 			/* as responder we must swap the aux shared secret between responder and initiator as they are computed using the H3 and not a constant string */
 			if (zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] != NULL) {
-			int retval;
+				int retval;
+
+				/* swap initiator and receiver aux secretId */
+				uint8_t tmpBuffer[8];
+				memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
+				memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
+				memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
+
 				if (bzrtp_isKem(zrtpChannelContext->keyAgreementAlgo)) {
 					/* destroy stored KEMContext, we might have created one when receiving peer's Hello */
 					bzrtp_destroyKEMContext((bzrtp_KEMContext_t *)zrtpContext->keyAgreementContext);
@@ -1526,12 +1533,8 @@ static int bzrtp_turnIntoResponder(bzrtpContext_t *zrtpContext, bzrtpChannelCont
 					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID] = dhPart1Packet;
 				} else {
 					/* This is a classic (EC)DH mode, we can reuse the DHPart2 and turn it into a DHPart1 */
-					uint8_t tmpBuffer[8];
 					bzrtpDHPartMessage_t *selfDHPart1Packet;
 
-					memcpy(tmpBuffer, zrtpChannelContext->initiatorAuxsecretID, 8);
-					memcpy(zrtpChannelContext->initiatorAuxsecretID, zrtpChannelContext->responderAuxsecretID, 8);
-					memcpy(zrtpChannelContext->responderAuxsecretID, tmpBuffer, 8);
 
 					/* responder self DHPart packet is DHPart1, change the type (we created a DHPart2) */
 					zrtpChannelContext->selfPackets[DHPART_MESSAGE_STORE_ID]->messageType = MSGTYPE_DHPART1;

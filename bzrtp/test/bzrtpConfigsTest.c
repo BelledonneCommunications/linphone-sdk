@@ -959,7 +959,7 @@ static void test_loosy_network_mtu(void) {
 #endif /* HAVE_BCTBXPQ */
 }
 
-static void test_cache_enabled_exchange(void) {
+static void test_cache_enabled_exchange_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams) {
 #ifdef ZIDCACHE_ENABLED
 	sqlite3 *aliceDB=NULL;
 	sqlite3 *bobDB=NULL;
@@ -984,7 +984,7 @@ static void test_cache_enabled_exchange(void) {
 	bzrtptester_sqlite3_open(bobTesterFile, &bobDB);
 
 	/* make a first exchange */
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 
 	/* after the first exchange we shall have both pvs values at 1 and both rs1 identical and rs2 null, retrieve them from cache and check it */
 	/* first get each ZIDs, note give NULL as RNG context may lead to segfault in case of error(caches were not created correctly)*/
@@ -1019,7 +1019,7 @@ static void test_cache_enabled_exchange(void) {
 	}
 
 	/* make a second exchange */
-	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
+	BC_ASSERT_EQUAL(multichannel_exchange(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceDB, "alice@sip.linphone.org", bobDB, "bob@sip.linphone.org"), 0, int, "%x");
 	/* read new values in cache, ZIDs and zuids must be identical, read alice first to be able to check rs2 with old rs1 */
 	BC_ASSERT_EQUAL(bzrtp_cache_read_lock((void *)aliceDB, zuidAlice, "zrtp", colNames, colValuesAlice, colLengthAlice, 3, NULL), 0, int, "%x");
 	/* check what is now rs2 is the old rs1 */
@@ -1061,6 +1061,13 @@ static void test_cache_enabled_exchange(void) {
 #endif /* ZIDCACHE_ENABLED */
 }
 
+static void test_cache_enabled_exchange(void) {
+	test_cache_enabled_exchange_params(NULL, NULL, defaultCryptoAlgoSelection());
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
+		cryptoParams_t cryptoParams = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
+		test_cache_enabled_exchange_params(&cryptoParams, &cryptoParams, &cryptoParams);
+	}
+}
 /* first perform an exchange to establish a correct shared cache, then modify one of them and perform an other exchange to check we have a cache mismatch warning */
 static void test_cache_mismatch_exchange(void) {
 #ifdef ZIDCACHE_ENABLED
@@ -1339,7 +1346,7 @@ static void test_cache_sas_not_confirmed(void) {
 #endif /* ZIDCACHE_ENABLED */
 }
 
-static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAuxSecretLength, uint8_t *bobAuxSecret, size_t bobAuxSecretLength, uint8_t aliceExpectedAuxSecretMismatch, uint8_t bobExpectedAuxSecretMismatch, uint8_t badTimingFlag) {
+static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAuxSecretLength, uint8_t *bobAuxSecret, size_t bobAuxSecretLength, uint8_t aliceExpectedAuxSecretMismatch, uint8_t bobExpectedAuxSecretMismatch, uint8_t badTimingFlag, cryptoParams_t *cryptoParams) {
 	int retval;
 	clientContext_t Alice,Bob;
 	uint64_t initialTime=0;
@@ -1349,13 +1356,13 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 	uint8_t setAuxSecretFlag=0; // switch to 1 once we've set the aux secret
 
 	/*** Create the main channel */
-	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
+	if ((retval=setUpClientContext(&Alice, ALICE, aliceSSRC, NULL, NULL, NULL, NULL, cryptoParams))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", ALICE);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return -1;
 	}
 
-	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL, NULL))!=0) {
+	if ((retval=setUpClientContext(&Bob, BOB, bobSSRC, NULL, NULL, NULL, NULL, cryptoParams))!=0) {
 		bzrtp_message("ERROR: can't init setup client context id %d\n", BOB);
 		BC_ASSERT_EQUAL(retval, 0, uint32_t, "0x%08x");
 		return -1;
@@ -1492,30 +1499,37 @@ static int test_auxiliary_secret_params(uint8_t *aliceAuxSecret, size_t aliceAux
 	return 0;
 }
 
-static void test_auxiliary_secret(void) {
+static void test_auxiliary_secret_crypto_params(cryptoParams_t *cryptoParams) {
 	uint8_t secret1[] = {0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78, 0x89, 0x9a, 0x00, 0xff};
 	uint8_t secret2[] = {0xfe, 0xed, 0xdc, 0xcb, 0xba, 0xa9, 0x98, 0x87, 0x76, 0x65, 0x54, 0x43};
 
 	resetGlobalParams();
 
 	// matching cases (expect mismatch flag to be 0)
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0), 0, int, "%d");
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret2, sizeof(secret2), secret2, sizeof(secret2), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0, cryptoParams), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret2, sizeof(secret2), secret2, sizeof(secret2), BZRTP_AUXSECRET_MATCH, BZRTP_AUXSECRET_MATCH, 0, cryptoParams), 0, int, "%d");
 
 	// mismatching cases (expect mismatch flag to be 1)
 	// different secrets
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret2, sizeof(secret2), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret2, sizeof(secret2), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0, cryptoParams), 0, int, "%d");
 	// only one side has a secret
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), NULL, 0, BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_UNSET, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), NULL, 0, BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_UNSET, 0, cryptoParams), 0, int, "%d");
 	// no one has a secret
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(NULL, 0, NULL, 0, BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(NULL, 0, NULL, 0, BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 0, cryptoParams), 0, int, "%d");
 	// same secret but one is one byte shorter
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1)-1, secret1, sizeof(secret1), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1)-1, secret1, sizeof(secret1), BZRTP_AUXSECRET_MISMATCH, BZRTP_AUXSECRET_MISMATCH, 0, cryptoParams), 0, int, "%d");
 
 	// matching secret, but inserted to late(last param is a flag to do that) so we expect unset
-	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 1), 0, int, "%d");
+	BC_ASSERT_EQUAL(test_auxiliary_secret_params(secret1, sizeof(secret1), secret1, sizeof(secret1), BZRTP_AUXSECRET_UNSET, BZRTP_AUXSECRET_UNSET, 1, cryptoParams), 0, int, "%d");
 };
 
+static void test_auxiliary_secret(void) {
+	test_auxiliary_secret_crypto_params(NULL);
+	if (bctbx_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
+		cryptoParams_t cryptoParams = {{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_HS32},1,0};
+		test_auxiliary_secret_crypto_params(&cryptoParams);
+	}
+}
 /**
  * scenario:
  *  - create new users with empty zid cache
