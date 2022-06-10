@@ -294,7 +294,7 @@ MS2_PUBLIC void ice_session_set_default_candidates_types(IceSession *session,
 /**
  * Set the AF_INET/AF_INET6 preference for electing the default candidates, when both are available.
  */
-MS2_PUBLIC void ice_sesession_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred);
+MS2_PUBLIC void ice_session_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred);
 /**
  * Destroy a previously allocated ICE session.
  *

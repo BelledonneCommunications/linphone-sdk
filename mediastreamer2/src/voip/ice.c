@@ -166,6 +166,7 @@ static void ice_stun_server_request_add_transaction(IceStunServerRequest *reques
 static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nomination_delay_expired);
 static void ice_dump_candidate(const IceCandidate *candidate, const char * const prefix);
 static void ice_dump_valid_pair(const IceValidCandidatePair *valid_pair, int *i);
+static bool_t ice_has_componentID(const bctbx_list_t *list, uint16_t componentID);
 #if 0
 static int ice_session_connectivity_checks_duration(IceSession *session);
 #endif
@@ -281,7 +282,7 @@ void ice_session_set_default_candidates_types(IceSession *session, const IceCand
 	memcpy(session->default_types, types, sizeof(session->default_types));
 }
 
-void ice_sesession_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred){
+void ice_session_set_default_candidates_ip_version(IceSession *session, bool_t ipv6_preferred){
 	session->default_candidates_prefer_ipv6 = ipv6_preferred;
 }
 
@@ -575,16 +576,18 @@ bool_t ice_check_list_default_local_candidate(const IceCheckList *cl, IceCandida
 	bctbx_list_t *elem;
 
 	if (rtp_candidate != NULL) {
-		componentID = 1;
+		componentID = ICE_RTP_COMPONENT_ID;
 		elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_default_local_candidate, &componentID);
 		if (elem == NULL) return FALSE;
 		*rtp_candidate = (IceCandidate *)elem->data;
 	}
 	if (rtcp_candidate != NULL) {
-		componentID = 2;
-		elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_default_local_candidate, &componentID);
-		if (elem == NULL) return FALSE;
-		*rtcp_candidate = (IceCandidate *)elem->data;
+		if (ice_has_componentID(cl->local_componentIDs, ICE_RTCP_COMPONENT_ID)){
+			componentID = ICE_RTCP_COMPONENT_ID;
+			elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_default_local_candidate, &componentID);
+			if (elem == NULL) return FALSE;
+			else *rtcp_candidate = (IceCandidate *)elem->data;
+		}else *rtcp_candidate = NULL;
 	}
 
 	return TRUE;
@@ -596,7 +599,7 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 	bctbx_list_t *elem;
 
 	if (rtp_candidate != NULL) {
-		componentID = 1;
+		componentID = ICE_RTP_COMPONENT_ID;
 		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
 		if (elem == NULL) {
 			ms_warning("No selected valid RTP local candidate.");
@@ -606,20 +609,14 @@ bool_t ice_check_list_selected_valid_local_candidate(const IceCheckList *cl, Ice
 		*rtp_candidate = valid_pair->valid->local;
 	}
 	if (rtcp_candidate != NULL) {
-		if (rtp_session_rtcp_mux_enabled(cl->rtp_session)) {
-			componentID = 1;
-		} else {
-			componentID = 2;
-		}
-		elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
-		if (elem == NULL) {
-			ms_warning("No selected valid RTCP local candidate.");
-			return FALSE;
-		}
-		valid_pair = (IceValidCandidatePair *)elem->data;
-		*rtcp_candidate = valid_pair->valid->local;
+		if (ice_has_componentID(cl->local_componentIDs, ICE_RTCP_COMPONENT_ID)){
+			componentID = ICE_RTCP_COMPONENT_ID;
+			elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_selected_valid_pair_from_componentID, &componentID);
+			if (elem == NULL) return FALSE;
+			valid_pair = (IceValidCandidatePair *)elem->data;
+			*rtcp_candidate = valid_pair->valid->local;
+		}else *rtcp_candidate = NULL;
 	}
-
 	return TRUE;
 }
 
@@ -2443,6 +2440,13 @@ static IceCandidatePair * ice_construct_valid_pair(IceCheckList *cl, RtpSession 
 	ice_transport_address_to_printable_ip_address(&pair->remote->taddr, remote_addr_str, sizeof(remote_addr_str));
 	elem = bctbx_list_find_custom(cl->valid_list, (bctbx_compare_func)ice_find_valid_pair, valid_pair);
 	if (elem == NULL) {
+		if (pair->is_default){
+			OrtpEvent *ev;
+			ms_message("ice: succeeded pair with the local default candidate.");
+			/* Notify the application that a pair using the default local candidate was verified, which is helpful to know that stream should be now working. */
+			ev = ortp_event_new(ORTP_EVENT_ICE_CHECK_LIST_DEFAULT_CANDIDATE_VERIFIED);
+			rtp_session_dispatch_event(cl->rtp_session, ev);
+		}
 		cl->valid_list = bctbx_list_insert_sorted(cl->valid_list, valid_pair, (bctbx_compare_func)ice_compare_valid_pair_priorities);
 		ms_message("ice: Added pair %p to the valid list: %s:%s --> %s:%s", pair,
 			local_addr_str, candidate_type_values[pair->local->type], remote_addr_str, candidate_type_values[pair->remote->type]);
@@ -2787,6 +2791,7 @@ static void ice_handle_received_binding_response(IceCheckList *cl, RtpSession *r
 	candidate = ice_discover_peer_reflexive_candidate(cl, succeeded_pair, msg);
 	valid_pair = ice_construct_valid_pair(cl, rtp_session, evt_data, candidate, succeeded_pair);
 	ice_update_pair_states_on_binding_response(cl, succeeded_pair);
+	
 	ice_update_nominated_flag_on_binding_response(cl, valid_pair, succeeded_pair);
 	ice_conclude_processing(cl, rtp_session, FALSE);
 }
@@ -3066,6 +3071,11 @@ static void ice_add_componentID(bctbx_list_t **list, uint16_t *componentID)
 
 static void ice_remove_componentID(bctbx_list_t **list, uint16_t componentID){
 	*list = bctbx_list_remove_custom(*list, (bctbx_compare_func)ice_find_componentID, &componentID);
+}
+
+static bool_t ice_has_componentID(const bctbx_list_t *list, uint16_t componentID){
+	const bctbx_list_t *elem = bctbx_list_find_custom(list, (bctbx_compare_func)ice_find_componentID, &componentID);
+	return elem != NULL;
 }
 
 IceCandidate * ice_add_local_candidate(IceCheckList* cl, const char* type, int family, const char* ip, int port, uint16_t componentID, IceCandidate* base)
@@ -3813,14 +3823,13 @@ static void ice_check_list_perform_nominations(IceCheckList *cl, bool_t nominati
 		ms_message("ice_check_list_perform_nominations(): check list is concludable.");
 		if (need_more_time && !cl->nomination_delay_running){
 			ms_message("ice_check_list_perform_nominations(cl=%p): for a component, the best candidate is a relay one, let's wait a bit before performing nomination", cl);
+			cl->nomination_delay_running = TRUE;
+			cl->nomination_delay_start_time = ice_current_time();
 		}
 		if (nomination_delay_expired || need_more_time == FALSE){
 			ms_message("ice_check_list_perform_nominations(cl=%p): nominating the best valid pair for each component.",cl);
 			cl->nomination_delay_running = FALSE;
 			ice_check_list_nominate(cl, best_valid_list);
-		}else if (need_more_time && !cl->nomination_delay_running){
-			cl->nomination_delay_running = TRUE;
-			cl->nomination_delay_start_time = ice_current_time();
 		}
 	}
 	bctbx_list_free(best_valid_list);
