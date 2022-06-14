@@ -28,38 +28,12 @@
 #  postquantumcryptoengine_LIBRARIES - The libraries needed to use postquantumcryptoengine
 #  postquantumcryptoengine_CPPFLAGS - The compilation flags needed to use postquantumcryptoengine
 #  postquantumcryptoengine_LDFLAGS - The linking flags needed to use postquantumcryptoengine
-
-
 @PACKAGE_INIT@
 
-set(postquantumcryptoengine_TARGETNAME postquantumcryptoengine)
+include("${CMAKE_CURRENT_LIST_DIR}/postquantumcryptoengineTargets.cmake")
 
-include("${CMAKE_CURRENT_LIST_DIR}/${postquantumcryptoengine_TARGETNAME}Targets.cmake")
+# We must propagate the dependency on liboqs for static build
+include(CMakeFindDependencyMacro)
+find_dependency(liboqs)
 
-set(postquantumcryptoengine_CPPFLAGS @postquantumcryptoengine_CPPFLAGS@)
-set(postquantumcryptoengine_LDFLAGS "@LINK_FLAGS_STR@")
-
-if(@ENABLE_SHARED@)
-	set(postquantumcryptoengine_LIBRARIES ${postquantumcryptoengine_TARGETNAME})
-else()
-	set(postquantumcryptoengine_TARGETNAME ${postquantumcryptoengine_TARGETNAME}-static)
-	if(TARGET ${postquantumcryptoengine_TARGETNAME})
-		get_target_property(postquantumcryptoengine_LIBRARIES ${postquantumcryptoengine_TARGETNAME} LOCATION)
-		if(NOT postquantumcryptoengine_LIBRARIES)
-			set(postquantumcryptoengine_LIBRARIES)
-		endif()
-		#	get_target_property(postquantumcryptoengine_LINK_LIBRARIES ${postquantumcryptoengine_TARGETNAME} INTERFACE_LINK_LIBRARIES)
-		#if(postquantumcryptoengine_LINK_LIBRARIES)
-			#list(APPEND postquantumcryptoengine_LIBRARIES ${postquantumcryptoengine_LINK_LIBRARIES})
-			#endif()
-	endif()
-endif()
-
-if(TARGET ${postquantumcryptoengine_TARGETNAME})
-	get_target_property(postquantumcryptoengine_INCLUDE_DIRS ${postquantumcryptoengine_TARGETNAME} INTERFACE_INCLUDE_DIRECTORIES)
-	if(NOT postquantumcryptoengine_INCLUDE_DIRS)
-		set(postquantumcryptoengine_INCLUDE_DIRS)
-	endif()
-endif()
-
-set(postquantumcryptoengine_FOUND 1)
+check_required_components(postquantumcryptoengine)

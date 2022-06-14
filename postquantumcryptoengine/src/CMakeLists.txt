@@ -38,22 +38,22 @@ bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_C_SOURCE_FILES STRICT_OPTIONS_CPP
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_CXX_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(ENABLE_STATIC)
-	add_library(postquantumcryptoengine-static STATIC ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
-	set_target_properties(postquantumcryptoengine-static PROPERTIES POSITION_INDEPENDENT_CODE On)
+	add_library(postquantumcryptoengine STATIC ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+	set_target_properties(postquantumcryptoengine PROPERTIES POSITION_INDEPENDENT_CODE On)
 	if(WIN32)
-		target_link_libraries(postquantumcryptoengine-static INTERFACE "Winmm" "Ws2_32")
+		target_link_libraries(postquantumcryptoengine INTERFACE "Winmm" "Ws2_32")
 	endif()
-	set_target_properties(postquantumcryptoengine-static PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(postquantumcryptoengine-static PROPERTIES OUTPUT_NAME postquantumcryptoengine)
+	#set_target_properties(postquantumcryptoengine PROPERTIES LINKER_LANGUAGE "CXX")
+	set_target_properties(postquantumcryptoengine PROPERTIES OUTPUT_NAME postquantumcryptoengine)
 	if(ANDROID)
-		target_link_libraries(postquantumcryptoengine-static INTERFACE log)
+		target_link_libraries(postquantumcryptoengine INTERFACE log)
 	endif()
-	target_include_directories(postquantumcryptoengine-static PUBLIC
+	target_include_directories(postquantumcryptoengine PUBLIC
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
 	)
-	target_link_libraries(postquantumcryptoengine-static PRIVATE bctoolbox)
-	target_link_libraries(postquantumcryptoengine-static PRIVATE OQS::oqs)
+	target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox)
+	target_link_libraries(postquantumcryptoengine PRIVATE OQS::oqs)
 endif()
 if(ENABLE_SHARED)
 	add_library(postquantumcryptoengine SHARED ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
@@ -110,7 +110,7 @@ if(ENABLE_SHARED)
 endif()
 
 if(ENABLE_STATIC)
-	install(TARGETS postquantumcryptoengine-static EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		COMPONENT core
@@ -130,10 +130,5 @@ endif()
 
 if(MSVC)
 	# Disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this).
-	if(ENABLE_SHARED)
-		target_compile_options(postquantumcryptoengine PRIVATE "/wd4996")
-	endif()
-	if(ENABLE_STATIC)
-		target_compile_options(postquantumcryptoengine-static PRIVATE "/wd4996")
-	endif()
+	target_compile_options(postquantumcryptoengine PRIVATE "/wd4996")
 endif()

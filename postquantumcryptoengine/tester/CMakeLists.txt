@@ -38,12 +38,6 @@ add_executable(postquantumcryptoengine-tester ${POSTQUANTUMCRYPTOENGINE_TEST_C_S
 set_target_properties(postquantumcryptoengine-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
 set_target_properties(postquantumcryptoengine-tester PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(postquantumcryptoengine-tester PRIVATE bctoolbox bctoolbox-tester)
-
-if(ENABLE_STATIC)
-	target_link_libraries(postquantumcryptoengine-tester PRIVATE postquantumcryptoengine-static)
-else()
-	target_link_libraries(postquantumcryptoengine-tester PRIVATE postquantumcryptoengine)
-endif()
+target_link_libraries(postquantumcryptoengine-tester PRIVATE bctoolbox bctoolbox-tester postquantumcryptoengine)
 
 add_test(NAME postquantumcryptoengine-tester COMMAND postquantumcryptoengine-tester)
