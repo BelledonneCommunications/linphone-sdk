@@ -540,6 +540,9 @@ if(ENABLE_STATIC)
 	add_dependencies(mediastreamer-static ${MS2_DEPENDENCIES})
 	target_include_directories(mediastreamer-static PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS})
 	target_link_libraries(mediastreamer-static PRIVATE ${LINK_LIBS})
+	if(bzrtp_FOUND)
+		target_link_libraries(mediastreamer-static PRIVATE bzrtp)
+	endif()
 
 	install(TARGETS mediastreamer-static EXPORT ${EXPORT_TARGETS_NAME}Targets
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -632,6 +635,9 @@ if(ENABLE_SHARED)
 		PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
 	)
 	target_link_libraries(mediastreamer PRIVATE ${LINK_LIBS})
+	if(bzrtp_FOUND)
+		target_link_libraries(mediastreamer PRIVATE bzrtp)
+	endif()
 	if(IOS)
 		target_link_libraries(mediastreamer INTERFACE "-framework Foundation" "-framework AVFoundation")
 	endif()
