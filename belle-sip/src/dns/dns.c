@@ -7259,11 +7259,12 @@ static void dns_res_frame_destroy(struct dns_resolver *R, struct dns_res_frame *
 
 static void dns_res_frame_init(struct dns_resolver *R, struct dns_res_frame *frame) {
 	memset(frame, '\0', sizeof *frame);
-
-	if (!R->resconf->options.recurse)
-		frame->qflags |= DNS_Q_RD;
-	if (R->resconf->options.edns0)
-		frame->qflags |= DNS_Q_EDNS0;
+	if (R != NULL && R->resconf != NULL) {
+		if (!R->resconf->options.recurse)
+			frame->qflags |= DNS_Q_RD;
+		if (R->resconf->options.edns0)
+			frame->qflags |= DNS_Q_EDNS0;
+	}
 } /* dns_res_frame_init() */
 
 
