@@ -324,6 +324,12 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 		case MS_AES_256_SHA1_32:
 			crypto_policy_set_aes_cm_256_hmac_sha1_32(policy);
 			break;
+		case MS_AEAD_AES_128_GCM:
+			srtp_crypto_policy_set_aes_gcm_128_16_auth(policy);
+			break;
+		case MS_AEAD_AES_256_GCM:
+			srtp_crypto_policy_set_aes_gcm_256_16_auth(policy);
+			break;
 		case MS_CRYPTO_SUITE_INVALID:
 			return -1;
 			break;
@@ -365,6 +371,12 @@ const char * ms_crypto_suite_to_string(MSCryptoSuite suite) {
 			break;
 		case MS_AES_256_SHA1_32:
 			return "AES_256_CM_HMAC_SHA1_32";
+			break;
+		case MS_AEAD_AES_128_GCM:
+			return "AEAD_AES_128_GCM";
+			break;
+		case MS_AEAD_AES_256_GCM:
+			return "AEAD_AES_256_GCM";
 			break;
 	}
 	return "<invalid-or-unsupported-suite>";

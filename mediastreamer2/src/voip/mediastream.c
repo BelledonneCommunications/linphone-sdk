@@ -595,7 +595,6 @@ MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNamePara
 		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) return MS_AES_128_SHA1_32_NO_AUTH;
 		else return MS_AES_128_SHA1_32;
 	}else if ( keywordcmp ("AES_256_CM_HMAC_SHA1_32", name) == 0 ){
-
 		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
 		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
 		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
@@ -613,6 +612,18 @@ MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNamePara
 		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
 		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
 		else return MS_AES_CM_256_SHA1_80;
+	}else if ( keywordcmp ("AEAD_AES_128_GCM", name) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AEAD_AES_128_GCM;
+	}else if ( keywordcmp ("AEAD_AES_256_GCM", name) == 0 ){
+		if (parameters && strstr(parameters,"UNENCRYPTED_SRTP") && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters,"UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters,"UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AEAD_AES_256_GCM;
 	}
 error:
 	ms_error("Unsupported crypto suite '%s' with parameters '%s'",name, parameters ? parameters : "");
@@ -667,6 +678,12 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 			break;
 		case MS_AES_256_SHA1_32:
 			params->name= "AES_256_CM_HMAC_SHA1_32";
+			break;
+		case MS_AEAD_AES_128_GCM:
+			params->name= "AEAD_AES_128_GCM";
+			break;
+		case MS_AEAD_AES_256_GCM:
+			params->name= "AEAD_AES_256_GCM";
 			break;
 	}
 	if (params->name==NULL) return -1;
