@@ -433,6 +433,7 @@ MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(f->data);
 	ictx->soundCard = ms_snd_card_ref(card);
+	ms_message("[AAudio] Created using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
 	ictx->setContext((AAudioContext*)card->data);
 	return f;
 }
