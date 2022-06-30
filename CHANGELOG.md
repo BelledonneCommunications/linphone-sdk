@@ -11,16 +11,16 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.__
 
-## Unreleased
+## [5.2.0] Unreleased
 
+### Changed
+- Updated firebase messaging dependency for Android, now requires at least 23.0.6 (BoM 30.2.0)
 
 ## [5.1.0] 2022-02-14
 
 ### Added
 - Support for Android NDK r23b
 - Android device rotation is now handled by linphone's PlatformHelper, apps no longer need to do it.
-
-
 
 ### Changed
 - Link Android build to OpenGLESv3 instead of OpenGLESv2
