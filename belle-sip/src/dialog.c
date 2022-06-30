@@ -973,7 +973,7 @@ belle_sip_request_t * belle_sip_dialog_create_queued_request(belle_sip_dialog_t 
 bool_t belle_sip_dialog_can_create_synchronous_request(belle_sip_dialog_t *obj, const char *method){
 	if (!dialog_can_create_request(obj, method)) return FALSE;
 	/*don't prevent to send a BYE in any case */
-	if (	obj->pending_trans_checking_enabled
+	if (obj->pending_trans_checking_enabled
 			&& strcmp(method,"BYE")!=0
 			&& obj->last_transaction
 			&& belle_sip_transaction_state_is_transient(belle_sip_transaction_get_state(obj->last_transaction))){
@@ -981,7 +981,7 @@ bool_t belle_sip_dialog_can_create_synchronous_request(belle_sip_dialog_t *obj, 
 		if (obj->state != BELLE_SIP_DIALOG_EARLY && strcmp(method,"UPDATE")!=0 && strcmp(method,"NOTIFY")!=0) {
 			belle_sip_error("%s(): cannot create [%s] request from dialog [%p] while pending [%s] transaction in state [%s]",__func__,method,obj,belle_sip_transaction_get_method(obj->last_transaction), belle_sip_transaction_state_to_string(belle_sip_transaction_get_state(obj->last_transaction)));
 			return FALSE;
-		} /*else UPDATE transaction can be send in // */
+		} /*else UPDATE transaction can be sent in // */
 	}
 	return TRUE;
 }
