@@ -852,7 +852,9 @@ int bc_tester_run_parallel(void) {
 				print_timer = bctbx_get_cur_time_ms();
 			}
 			elapsed = bctbx_get_cur_time_ms();
-		} while (testsFinished < nb_test_suites && elapsed < timeout);
+		} while (testsFinished < nb_test_suites);
+// This code has been commented out in order to display failing test of timed out suites in the allure report
+//		} while (testsFinished < nb_test_suites && elapsed < timeout);
 
 		if (elapsed >= timeout) {
 			bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
@@ -945,7 +947,9 @@ int bc_tester_run_parallel(void) {
 			print_timer = bctbx_get_cur_time_ms();
 		}
 		elapsed = bctbx_get_cur_time_ms();
-	} while (testsFinished < nb_test_suites && elapsed < timeout);
+	} while (testsFinished < nb_test_suites);
+// This code has been commented out in order to display failing test of timed out suites in the allure report
+//	} while (testsFinished < nb_test_suites && elapsed < timeout);
 
 	if (elapsed >= timeout) {
 		bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
