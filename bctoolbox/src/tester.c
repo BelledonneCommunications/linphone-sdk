@@ -856,10 +856,12 @@ int bc_tester_run_parallel(void) {
 
 		if (elapsed >= timeout) {
 			bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
-			for(int i = 0 ;  i < nextSuite ; ++i){
+			// This code has been commented out in order to display failing test of timed out suites in the allure report
+/*			for(int i = 0 ;  i < nextSuite ; ++i){
 				if( processed[i] == 0)
 					TerminateProcess(suitesPids[i].hProcess, -1);
 			}
+*/
 			bc_tester_printf(bc_printf_verbosity_error, "*** Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution. ***");
 			ret = -1;
 		}
@@ -948,7 +950,8 @@ int bc_tester_run_parallel(void) {
 	if (elapsed >= timeout) {
 		bc_tester_printf(bc_printf_verbosity_error, "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
 		bc_tester_printf(bc_printf_verbosity_error, "*** Test suite took too much time. Please check errors or split longest test suites to benefit from parallel execution. ***");
-		kill_sub_processes(suitesPids);
+		// This code has been commented out in order to display failing test of timed out suites in the allure report
+		//kill_sub_processes(suitesPids);
 		ret = -1;
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
