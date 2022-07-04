@@ -756,12 +756,7 @@ static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *b
 		/* call the recv_chunk function with the buffer content */
 		belle_sip_file_body_handler_recv_chunk(base, NULL, obj->buffer.next_offset, NULL, 0);
 	}
-
-	if (obj->user_bh && obj->user_bh->stop_cb) {
-		obj->user_bh->stop_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
-	}
-
-	if (obj->file) {
+	if (obj->file) {// Close the file before calling stop callback to let cb to do file modifications like renaming.
 		ssize_t ret;
 		ret = bctbx_file_close(obj->file);
 		if (ret == BCTBX_VFS_ERROR) {
@@ -769,6 +764,11 @@ static void belle_sip_file_body_handler_end_transfer(belle_sip_body_handler_t *b
 		}
 		obj->file = NULL;
 	}
+	if (obj->user_bh && obj->user_bh->stop_cb) {
+		obj->user_bh->stop_cb((belle_sip_user_body_handler_t*)&(obj->user_bh->base), obj->user_bh->base.user_data);
+	}
+
+	
 }
 
 static int belle_sip_file_body_handler_send_chunk(belle_sip_body_handler_t *base, belle_sip_message_t *msg, off_t offset, uint8_t *buf, size_t *size) {
