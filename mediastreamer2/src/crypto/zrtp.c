@@ -824,6 +824,43 @@ int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *se
 	}
 }
 
+uint8_t ms_zrtp_available_key_agreement(MSZrtpKeyAgreement algos[256]) {
+	uint8_t bzrtpAlgos[256];
+	uint8_t nbAlgos = bzrtp_available_key_agreement(bzrtpAlgos);
+	uint8_t i=0;
+	uint8_t count=0;
+	for (i=0; i < nbAlgos; i++) {
+		switch (bzrtpAlgos[i]) {
+			case ZRTP_KEYAGREEMENT_DH2k: algos[count++] = MS_ZRTP_KEY_AGREEMENT_DH2K; break;
+			case ZRTP_KEYAGREEMENT_X255: algos[count++] = MS_ZRTP_KEY_AGREEMENT_X255; break;
+			case ZRTP_KEYAGREEMENT_K255: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K255; break;
+			case ZRTP_KEYAGREEMENT_EC25: algos[count++] = MS_ZRTP_KEY_AGREEMENT_EC25; break;
+			case ZRTP_KEYAGREEMENT_X448: algos[count++] = MS_ZRTP_KEY_AGREEMENT_X448; break;
+			case ZRTP_KEYAGREEMENT_K448: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K448; break;
+			case ZRTP_KEYAGREEMENT_DH3k: algos[count++] = MS_ZRTP_KEY_AGREEMENT_DH3K; break;
+			case ZRTP_KEYAGREEMENT_EC38: algos[count++] = MS_ZRTP_KEY_AGREEMENT_EC38; break;
+			case ZRTP_KEYAGREEMENT_EC52: algos[count++] = MS_ZRTP_KEY_AGREEMENT_EC52; break;
+			case ZRTP_KEYAGREEMENT_KYB1: algos[count++] = MS_ZRTP_KEY_AGREEMENT_KYB1; break;
+			case ZRTP_KEYAGREEMENT_KYB2: algos[count++] = MS_ZRTP_KEY_AGREEMENT_KYB2; break;
+			case ZRTP_KEYAGREEMENT_KYB3: algos[count++] = MS_ZRTP_KEY_AGREEMENT_KYB3; break;
+			case ZRTP_KEYAGREEMENT_SIK1: algos[count++] = MS_ZRTP_KEY_AGREEMENT_SIK1; break;
+			case ZRTP_KEYAGREEMENT_SIK2: algos[count++] = MS_ZRTP_KEY_AGREEMENT_SIK2; break;
+			case ZRTP_KEYAGREEMENT_SIK3: algos[count++] = MS_ZRTP_KEY_AGREEMENT_SIK3; break;
+			case ZRTP_KEYAGREEMENT_K255_KYB512: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K255_KYB512; break;
+			case ZRTP_KEYAGREEMENT_K255_SIK434: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K255_SIK434; break;
+			case ZRTP_KEYAGREEMENT_K448_KYB1024: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K448_KYB1024; break;
+			case ZRTP_KEYAGREEMENT_K448_SIK751: algos[count++] = MS_ZRTP_KEY_AGREEMENT_K448_SIK751; break;
+			default: break;
+		}
+	}
+
+	return count;
+}
+
+bool_t ms_zrtp_is_PQ_available(void) {
+	return bzrtp_is_PQ_available();
+}
+
 #else /* HAVE_ZRTP */
 
 void ms_zrtp_context_reset(MSZrtpContext* context) {
@@ -856,6 +893,8 @@ uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx) {return 0;}
 int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength) {return 0;}
 int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex){return 0;}
 int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {return 0;}
+uint8_t ms_zrtp_available_key_agreement(MSZrtpKeyAgreement algos[256]) { return 0;}
+bool_t ms_zrtp_is_PQ_available(void) { return FALSE;}
 #endif /* HAVE_ZRTP */
 
 #define STRING_COMPARE_RETURN(string, value)\

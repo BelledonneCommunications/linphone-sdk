@@ -249,6 +249,22 @@ MS2_PUBLIC const char* ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement 
 MS2_PUBLIC MSZrtpSasType ms_zrtp_sas_type_from_string(const char* str);
 MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
 
+/**
+ * @brief Retrieve the list of key agreement algorithm available
+ *
+ * @param[in/out]	algos An array of enum MSZrtpKeyAgreement listing the available algorithms. Buffer allocation is of caller's responsability
+ *
+ * @return the number of availables algorithms (0 on error)
+ */
+MS2_PUBLIC uint8_t ms_zrtp_available_key_agreement(MSZrtpKeyAgreement algos[256]);
+
+/**
+ * @brief check if PostQuantum key exchange is available
+ *
+ * @return TRUE when PQ is available, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ms_zrtp_is_PQ_available(void);
+
 /* Cache wrapper functions : functions needed by liblinphone wrapped to avoid direct dependence of linphone on bzrtp */
 /**
  * @brief Check the given sqlite3 DB and create requested tables if needed
