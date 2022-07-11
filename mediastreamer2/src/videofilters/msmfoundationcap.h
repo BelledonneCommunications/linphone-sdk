@@ -83,7 +83,7 @@ public:
 	UINT32 mHeight;
 	std::string mDeviceName;
 	MSAverageFPS mAvgFps;
-	MSFrameRateController mFramerateController;	
+	MSFrameRateController mFramerateController;
 	
 //----------------------------------------  Tools
 	static const char *pixFmtToString(const GUID &fmt);	// Helper to return the name of the format

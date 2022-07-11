@@ -40,12 +40,13 @@ struct GUIDComparer{
 template<typename Format>
 class ConfigurationManager {
 public:
-	std::map<UINT32, std::map<UINT32, std::map<float, std::map<GUID, Format, GUIDComparer> > > > mSortedList;
+	std::map<UINT32, std::map<UINT32, std::map<int, std::map<GUID, Format, GUIDComparer> > > > mSortedList;
 	ConfigurationManager(){}
 	
 	virtual ~ConfigurationManager(){};
 	virtual void clean(){mSortedList.clear();}
 	Format getMediaConfiguration(GUID* videoFormat, UINT32* width, UINT32 *height, float * fps){// Return Best Format from parameters
+		int roundedFps = (int)(*fps * 100.0);
 		if( mSortedList.size() > 0){
 			auto mediaWidth = mSortedList.lower_bound(*width);
 			if(mediaWidth == mSortedList.end() )
@@ -53,8 +54,8 @@ public:
 			auto mediaHeight = mediaWidth->second.lower_bound(*height);
 			if(mediaHeight == mediaWidth->second.end() )
 				--mediaHeight;
-			auto mediaFps = mediaHeight->second.upper_bound(*fps);// Try to get more FPS than target
-			if(mediaFps == mediaHeight->second.end() )
+			auto mediaFps = mediaHeight->second.upper_bound(roundedFps);// Try to get more FPS than target
+			if(mediaFps != mediaHeight->second.begin() )// fps <= target or fps[0]
 				--mediaFps;
 
 			auto mediaVideo = mediaFps->second.find(*videoFormat);
@@ -62,18 +63,33 @@ public:
 				mediaVideo = mediaFps->second.find(MFVideoFormat_NV12);// The format is not found. Try with NV12
 			if(mediaVideo == mediaFps->second.end())
 				mediaVideo = mediaFps->second.find(MFVideoFormat_MJPG);// Try with MFVideoFormat_MJPG format
+			if(mediaVideo == mediaFps->second.end())
+				mediaVideo = mediaFps->second.find(MFVideoFormat_YUY2);// Try with MFVideoFormat_YUY2 format
 			if(mediaVideo == mediaFps->second.end()){
 				return nullptr;
 			}else{
 				*videoFormat = mediaVideo->first;
 				*width = mediaWidth->first;
 				*height = mediaHeight->first;
-				*fps = mediaFps->first;
+				*fps = mediaFps->first / 100.0f;
 				return mediaVideo->second;
 			}
 		}else
 			return nullptr;
 
+	}
+	std::string toString(){
+		std::string displayStr;
+		for(auto width : mSortedList){
+			for(auto height : width.second){
+				for(auto fps : height.second) {
+					for(auto video : fps.second) {
+						displayStr += std::to_string(width.first) +" | " + std::to_string(height.first) + " | " + std::to_string(fps.first/100.0)+ std::string("fps | ") + MSMFoundationCap::pixFmtToString(video.first) +std::string("\n");
+					}
+				}
+			}
+		}
+		return displayStr;
 	}
 };
 
@@ -163,7 +179,6 @@ HRESULT MSMFoundationCap::setMediaConfiguration(GUID videoFormat, UINT32 frameWi
 
 void MSMFoundationCap::setVideoFormat(const GUID &videoFormat){
 	if( videoFormat == MFVideoFormat_Base || !isSupportedFormat(videoFormat)){// Default format
-		//setVideoFormat(MFVideoFormat_MJPG);
 		setVideoFormat(MFVideoFormat_NV12);
 	}else{
 		mVideoFormat = videoFormat;
@@ -171,6 +186,8 @@ void MSMFoundationCap::setVideoFormat(const GUID &videoFormat){
 			mPixelFormat = MS_YUV420P;
 		else if(mVideoFormat == MFVideoFormat_MJPG)
 			mPixelFormat = MS_MJPEG;
+		else if(mVideoFormat == MFVideoFormat_YUY2)
+			mPixelFormat = MS_YUY2;
 	}
 }
 
@@ -182,9 +199,9 @@ bool_t MSMFoundationCap::isTimeToSend(uint64_t tickerTime){
 	return ms_video_capture_new_frame(&mFramerateController, tickerTime);
 }
 
-//Only support NV12 and MJPG
+//Only support NV12, MJPG and YUY2
 bool_t MSMFoundationCap::isSupportedFormat(const GUID &videoFormat){
-	return videoFormat == MFVideoFormat_NV12 || videoFormat == MFVideoFormat_MJPG;
+	return videoFormat == MFVideoFormat_NV12 || videoFormat == MFVideoFormat_MJPG || videoFormat ==  MFVideoFormat_YUY2;
 }
 
 void MSMFoundationCap::processFrame(byte* inputBytes, DWORD inputCapacity, int inputStride ) {
@@ -195,7 +212,7 @@ void MSMFoundationCap::processFrame(byte* inputBytes, DWORD inputCapacity, int i
 	if (mVideoFormat == MFVideoFormat_NV12) { // Process raw data from NV12
 		if( inputCapacity >= mHeight * inputStride)// Ensure to get enough data in frame
 			mFrameData = copy_ycbcrbiplanar_to_true_yuv_with_rotation(mAllocator, inputBytes, inputBytes + mHeight * abs(inputStride), mOrientation, mWidth, mHeight, inputStride, inputStride, TRUE);
-	} else if (mVideoFormat == MFVideoFormat_MJPG) { // Process raw data from MJPEG
+	} else if (mVideoFormat == MFVideoFormat_MJPG || mVideoFormat == MFVideoFormat_YUY2) { // Process raw data from MJPEG/YUY2
 		mFrameData = ms_yuv_allocator_get(mAllocator, inputCapacity, mWidth, mHeight);
 		if (mFrameData) {
 			memcpy(mFrameData->b_rptr, inputBytes, inputCapacity);
@@ -523,7 +540,7 @@ public:
 			if( format->VideoFormat){
 				UINT32 width = format->VideoFormat->Width;
 				UINT32 height = format->VideoFormat->Height;
-				float framerate = format->FrameRate ? static_cast<float>(format->FrameRate->Numerator / format->FrameRate->Denominator) : 0.0f;
+				int framerate = (int)((format->FrameRate ? static_cast<float>(format->FrameRate->Numerator / format->FrameRate->Denominator) : 0.0f) * 100.0f);
 			
 				std::wstring wsstr(format->Subtype->Data());
 				const GUID& videoType = MSMFoundationCap::pixStringToGuid(make_string(wsstr));
@@ -849,10 +866,11 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 			mFmtChanged = TRUE;
 		}
 		if(mSource)
-			ms_message("[MSMFoundationCap] Change the video format : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
+			ms_message("[MSMFoundationCap] %s the video format : %dx%d : %s, %f fps", (mFmtChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
 		else
-			ms_message("[MSMFoundationCap] Change the video format without Reader : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-	}
+			ms_message("[MSMFoundationCap] %s the video format without Reader : %dx%d : %s, %f fps", (mFmtChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
+	}else
+		ms_error("[MSMFoundationCap] Cannot set the video format : %dx%d : %s, %f fps. [%x]", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps, hr);
 	LeaveCriticalSection(&mCriticalSection);
 	configs.clean();
 	return hr;
@@ -965,24 +983,31 @@ public:
 HRESULT MFDevices::getDevices(){
 		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 		UINT32 count = 0;
-		if (FAILED(hr)) return hr;
+		if (FAILED(hr)) {
+			ms_error("[MSMFoundationCap] Cannot get devices because of failed CoInitialize");
+			return hr;
+		}
 		// Create an attribute store to specify enumeration parameters.
 		
 		hr = MFCreateAttributes(&mAttributes, 1);
 		if (FAILED(hr)) {
+			ms_error("[MSMFoundationCap] Cannot get devices due to create enumeration attributes");
 			clean();
 			return hr;
 		}
 		//The attribute to be requested is devices that can capture video
 		hr = mAttributes->SetGUID( MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID );
 		if (FAILED(hr)) {
+			ms_error("[MSMFoundationCap] Cannot get devices due to capture attribute");
 			clean();
 			return hr;
 		}
 		//Enummerate the video capture devices
 		hr =  MFEnumDeviceSources(mAttributes, &mDevices, &mDevicesCount);//[desktop apps only]
-		if (FAILED(hr))
+		if (FAILED(hr)) {
+			ms_error("[MSMFoundationCap] Cannot enumerate capture devices from MFEnumDeviceSources");
 			clean();
+		}
 		return hr;
 	}
 class ConfigurationManagerDesktop : public ConfigurationManager<IMFMediaType *>{
@@ -1000,23 +1025,45 @@ public:
 		HRESULT hr;
 		UINT32 width, height, fpsNumerator, fpsDenominator;
 		GUID videoType;
-		for(DWORD i = 0 ; source->GetNativeMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, i, &mediaType) != MF_E_NO_MORE_TYPES ; ++i ) {
+		int mediaCount = 0, acceptableMediaCount = 0;
+		std::vector<std::string> traces;
+		for(DWORD i = 0 ; source->GetNativeMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, i, &mediaType) != MF_E_NO_MORE_TYPES ; ++i ) {	
+			++mediaCount;
 			if(mediaType) {
+				++acceptableMediaCount;
 				hr = mediaType->GetGUID(MF_MT_SUBTYPE, &videoType);
-				if(SUCCEEDED(hr) && MSMFoundationCap::isSupportedFormat(videoType))// Get frame size from media type
+				if(SUCCEEDED(hr) && MSMFoundationCap::isSupportedFormat(videoType)){// Get frame size from media type
+					traces.push_back("Got a good format : " +std::string(MSMFoundationCap::pixFmtToString(videoType)));
 					hr = MFGetAttributeSize(mediaType, MF_MT_FRAME_SIZE, &width, &height);
-				else
+				}else{
+					if(SUCCEEDED(hr))
+						traces.push_back("Bad Format : " +std::string(MSMFoundationCap::pixFmtToString(videoType)));
+					else
+						traces.push_back("Cannot get Format from MF_MT_SUBTYPE: [" +std::to_string(hr)+"]");
 					hr = -1;
-				if (SUCCEEDED(hr))
+				}
+				if (SUCCEEDED(hr)){
+					traces.push_back("Attributes could be retrieved: "+std::to_string(width) +"/"+std::to_string(height) );
 					hr = MFGetAttributeRatio(mediaType, MF_MT_FRAME_RATE , &fpsNumerator, &fpsDenominator);
+				}else{
+					traces.push_back("Cannot get attributes (o previous error) [" +std::to_string(hr)+"]");
+				}
 				if (SUCCEEDED(hr)) {
-					mSortedList[width][height][static_cast<float>(fpsNumerator)/fpsDenominator][videoType] = mediaType;
+					mSortedList[width][height][(int)((static_cast<float>(fpsNumerator)/fpsDenominator) * 100.0f)][videoType] = mediaType;
 					mMediaTypes.push_back(mediaType);
 				}else {
+					traces.push_back("Cannot get ratio(or previous error) [" +std::to_string(hr)+"]");
 					mediaType->Release();
 					mediaType = NULL;
 				}
 			}
+		}
+		// Debug mode
+		if( mSortedList.size() == 0)
+		{
+			ms_error("There are no available configurations. Media:%d UsableMedia:%d. Traces:", mediaCount, acceptableMediaCount);
+			for(size_t i = 0 ; i < traces.size() ; ++i)
+				ms_error("[MSMFoundationCap] %s", traces[i].c_str());
 		}
 	}
 };
@@ -1048,12 +1095,13 @@ void MSMFoundationDesktopImpl::activate() {
 		UINT32 cchName; 
 		hr = devices.mDevices[currentDeviceIndex]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &nameString, &cchName);
 		if (SUCCEEDED(hr)) {
-			size_t inputlen = wcslen(nameString) + 1;
+			// We don't need null-terminated character because we are using std::string for convertion.
+			size_t inputlen = wcslen(nameString);
 			UINT currentCodePage = GetACP();
 			int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, NULL, 0, NULL, NULL);
-			char strConversion[256] = {0};
+			std::string strConversion( sizeNeeded, '\0');
 			if(WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, &strConversion[0], (int)sizeNeeded, NULL, NULL) && mDeviceName == strConversion) {
-					found = TRUE;
+				found = TRUE;
 			}else
 				++currentDeviceIndex;
 		}else
@@ -1063,6 +1111,22 @@ void MSMFoundationDesktopImpl::activate() {
 	if(found){
 		hr = setSourceReader(devices.mDevices[currentDeviceIndex]);
 		ms_average_fps_init(&mAvgFps,"[MSMFoundationCap] fps=%f");
+	}else{
+		ms_error("[MSMFoundationCap] Device cannot be activated because friendly name has not been found : '%s' in the current device list:", mDeviceName.c_str());
+		for(UINT32 i = 0 ; i <  devices.mDevicesCount ; ++i){
+			WCHAR *nameString = NULL;		
+			UINT32 cchName; 
+			hr = devices.mDevices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME, &nameString, &cchName);
+			if (SUCCEEDED(hr)) {
+				// We don't need null-terminated character because we are using std::string for convertion.
+				size_t inputlen = wcslen(nameString);
+				UINT currentCodePage = GetACP();
+				int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, NULL, 0, NULL, NULL);
+				std::string strConversion( sizeNeeded, 0 );
+				if(WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, &strConversion[0], (int)sizeNeeded, NULL, NULL))
+					ms_error("[MSMFoundationCap] %s", strConversion.c_str());
+			}
+		}
 	}
 	devices.clean();
 }
@@ -1077,7 +1141,8 @@ void MSMFoundationDesktopImpl::start() {
 			ms_error("[MSMFoundationCap] Cannot start reading from Camera : %d", hr);
 		}
 		LeaveCriticalSection(&mCriticalSection);
-	}
+	}else
+		ms_error("[MSMFoundationCap] Cannot start reading from Camera because of source reader not activated.");
 }
 
 void MSMFoundationDesktopImpl::stop(const int& pWaitStop) {
@@ -1171,8 +1236,11 @@ HRESULT MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32
 				}
 				if(SUCCEEDED(hr)) getStride(mediaType, &stride);
 			}
-		}else
+			ms_message("%s", configs.toString().c_str());
+		}else{
 			hr = -1;
+			ms_warning("[MSMFoundationCap] No available configuration have been found from this list : \n%s", configs.toString().c_str());			
+		}
 	}
 	if(doSet && SUCCEEDED(hr)) {
 		setVideoFormat(videoFormat);
@@ -1189,11 +1257,12 @@ HRESULT MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32
 			mFmtChanged = TRUE;
 		}
 		if(mSourceReader)
-			ms_message("[MSMFoundationCap] Change the video format : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
+			ms_message("[MSMFoundationCap] %s the video format : %dx%d : %s, %f fps", (mFmtChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
 		else
-			ms_message("[MSMFoundationCap] Change the video format without Reader : %dx%d : %s, %f fps", mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
+			ms_message("[MSMFoundationCap] %s the video format without Reader : %dx%d : %s, %f fps", (mFmtChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
 	}else
-		ms_error("[MSMFoundationCap] Cannot change the video format : %dx%d : %s, %f fps. [%x]", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps, hr);
+		ms_error("[MSMFoundationCap] Cannot set the video format : %dx%d : %s, %f fps. [%x]", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps, hr);
+	
 	LeaveCriticalSection(&mCriticalSection);
 	configs.clean();
 	return hr;
@@ -1208,12 +1277,20 @@ HRESULT MSMFoundationDesktopImpl::setSourceReader(IMFActivate *device) {
 	hr = device->ActivateObject(__uuidof(IMFMediaSource), (void**)&source);
 	if (SUCCEEDED(hr)) //Allocate attributes
 		hr = MFCreateAttributes(&attributes, 2);
+	else
+		ms_error("[MSMFoundationCap] Cannot create source reader because of failing attributes allocation [%x]", hr);
 	if (SUCCEEDED(hr)) //get attributes
-		hr = attributes->SetUINT32(MF_READWRITE_DISABLE_CONVERTERS, TRUE);	
+		hr = attributes->SetUINT32(MF_READWRITE_DISABLE_CONVERTERS, TRUE);
+	else
+		ms_error("[MSMFoundationCap] Cannot create source reader because of failing attributes setting [%x]", hr);	
 	if (SUCCEEDED(hr)) // Set the callback pointer.
 		hr = attributes->SetUnknown(MF_SOURCE_READER_ASYNC_CALLBACK, this);	
+	else
+		ms_error("[MSMFoundationCap] Cannot create source reader because of failing callback initialization [%x]", hr);
 	if (SUCCEEDED(hr)) //Create the source reader
-		hr = MFCreateSourceReaderFromMediaSource(source, attributes, &mSourceReader);	
+		hr = MFCreateSourceReaderFromMediaSource(source, attributes, &mSourceReader);
+	else
+		ms_error("[MSMFoundationCap] Cannot create source reader from media source [%x]", hr);	
 	if (SUCCEEDED(hr)){  // Try to find a suitable output type.
 		hr = setMediaConfiguration(mVideoFormat, mWidth, mHeight, mFps);
 	}
@@ -1322,7 +1399,8 @@ static void ms_mfoundationcap_detect(MSWebCamManager *manager) {
 		UINT32 cchName; 
 		HRESULT hr = devices.mDevices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME , &nameString, &cchName);
 		if (SUCCEEDED(hr)) {
-			size_t inputlen = wcslen(nameString) + 1;
+			// We don't need null-terminated character because we are using std::string for convertion.
+			size_t inputlen = wcslen(nameString);
 			UINT currentCodePage = GetACP();
 			int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, NULL, 0, NULL, NULL);
 			std::string strConversion( sizeNeeded, 0 );
@@ -1330,6 +1408,7 @@ static void ms_mfoundationcap_detect(MSWebCamManager *manager) {
 			if(WideCharToMultiByte(currentCodePage, 0, nameString, (int)inputlen, &strConversion[0], sizeNeeded, NULL, NULL)){
 				nameStr = (char *)ms_malloc(strConversion.length()+1 );
 				strcpy(nameStr, strConversion.c_str());
+				nameStr[strConversion.length()] = '\0';
 			}
 			if(!nameStr){
 				ms_error("[MSMFoundationCap] Cannot convert webcam name to multi-byte string.");
