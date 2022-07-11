@@ -686,15 +686,21 @@ BZRTP_EXPORT size_t bzrtp_get_MTU(bzrtpContext_t *zrtpContext);
 
 
 /**
- * @brief Return a 32 bits unsigned integer, each bit set to one matches an
- * available key agreement algorithm as defined in bctoolbox/include/crypto.h
+ * @brief Retrieve the list of available key agreements algorithms
  *
- * This function is used for testing only, it compiles algo provided by
- * bctoolbox and post quantum crypto engine if available
+ * @param[in/out] algos		an array containing the list of available algorithms mapped on uint8
+ * 				as defined in this header(ZRTP_KEYAGREEMENT_<ID>). Caller is responsible for the array allocation
  *
- * @return An unsigned integer of 32 flags matching key agreement algos
+ * @return The number of available key agreement algorithms
  */
-BZRTP_EXPORT uint32_t bzrtp_key_agreement_algo_list(void);
+BZRTP_EXPORT uint8_t bzrtp_available_key_agreement(uint8_t availableTypes[256]);
+
+
+/**
+ * @brief check is Post Quantum algorithms are available
+ * @return TRUE when PQ key exchange algorithms are available, FALSE otherwise
+ */
+BZRTP_EXPORT bool_t bzrtp_is_PQ_available(void);
 #ifdef __cplusplus
 }
 #endif

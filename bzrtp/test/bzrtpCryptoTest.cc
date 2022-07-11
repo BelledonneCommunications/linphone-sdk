@@ -494,7 +494,7 @@ static void test_algoSetterGetter(void) {
 	}
 	
 	/* PQ KEM agreement type */
-	if ( bzrtp_key_agreement_algo_list()&BCTBX_KEM_KYBER512 ) {
+	if ( bzrtp_is_PQ_available() == TRUE ) {
 		//agreement_type = &ecdh_agreement_types[0];
 		agreement_type = &pqkem_agreement_types[0];
 		while (agreement_type->contextTypesCount > 0) {
@@ -504,7 +504,7 @@ static void test_algoSetterGetter(void) {
 	}
 
 	/* cipher type */
-	if ( bzrtp_key_agreement_algo_list()&BCTBX_KEM_KYBER512 ) {
+	if ( bzrtp_is_PQ_available() == TRUE ) {
 		cipher_type = &cipher_types_with_PQ[0];
 	} else {
 		cipher_type = &cipher_types[0];
@@ -515,7 +515,7 @@ static void test_algoSetterGetter(void) {
 	}
 
 	/* hash type */
-	if ( bzrtp_key_agreement_algo_list()&BCTBX_KEM_KYBER512 ) {
+	if ( bzrtp_is_PQ_available() == TRUE ) {
 		hash_type = &hash_types_with_PQ[0];
 	} else {
 		hash_type = &hash_types[0];

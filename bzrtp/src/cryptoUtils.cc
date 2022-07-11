@@ -28,7 +28,7 @@
 #include "postquantumcryptoengine/crypto.hh"
 #endif /* HAVE_BCTBXPQ */
 
-uint32_t bzrtp_key_agreement_algo_list(void) {
+static uint32_t bzrtp_key_agreement_algo_list(void) {
 	uint32_t ret = bctbx_key_agreement_algo_list();
 #ifdef HAVE_BCTBXPQ
 	ret |= bctbxpq_key_agreement_algo_list();
@@ -149,6 +149,17 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 		default:
 			return 0;
 	}
+}
+uint8_t bzrtp_available_key_agreement(uint8_t algos[256]) {
+	return bzrtpUtils_getAllAvailableCryptoTypes(ZRTP_KEYAGREEMENT_TYPE, algos);
+}
+
+bool_t bzrtp_is_PQ_available(void) {
+#ifdef HAVE_BCTBXPQ
+	return TRUE;
+#else // HAVE_BCTBXPQ
+	return FALSE;
+#endif // HAVE_BCTBXPQ
 }
 
 uint8_t bzrtpUtils_getAvailableCryptoTypes(uint8_t algoType, uint8_t availableTypes[7]) {

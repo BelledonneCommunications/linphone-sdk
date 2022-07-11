@@ -786,7 +786,7 @@ static void test_cacheless_exchange(void) {
 	}
 
 	/* with OQS PQC KEM agreement types if available */
-	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_KYBER512) {
+	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
@@ -795,7 +795,7 @@ static void test_cacheless_exchange(void) {
 	}
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
@@ -840,7 +840,7 @@ static void test_config_contraints(void) {
 	};
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &post_quantum_patterns[0]; /* pattern is a pointer to current pattern */
 		expected = &expected_post_quantum_patterns[0];
 		while (pattern->cipherNb!=0) {
@@ -920,7 +920,7 @@ static void test_mtu(void) {
 	}
 
 	/* with OQS PQC KEM agreement and ECDH types if available */
-	if (bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519) {
+	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
 			BC_ASSERT_EQUAL(multichannel_exchange_mtu(pattern, pattern, pattern, 800), 0, int, "%x");
@@ -934,7 +934,7 @@ static void test_mtu(void) {
 
 static void test_loosy_network_mtu(void) {
 #ifdef HAVE_BCTBXPQ
-	if (!(bzrtp_key_agreement_algo_list()&BCTBX_KEM_X25519)) {
+	if (bzrtp_is_PQ_available() == FALSE) {
 		bctbx_warning("mtu test on loosy network skipped as we do not support key exchange requesting fragmentation");
 		return;
 	}
