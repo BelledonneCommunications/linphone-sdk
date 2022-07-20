@@ -335,14 +335,20 @@ void bctbx_EDDSA_sign(bctbx_EDDSAContext_t *context, const uint8_t *message, con
 		switch (context->algo) {
 			case BCTBX_EDDSA_25519:
 				if (*signatureLength>=DECAF_EDDSA_25519_SIGNATURE_BYTES) { /* check the buffer is large enough to hold the signature */
-					decaf_ed25519_sign ( signature, context->secretKey, context->publicKey, message, messageLength, 0, associatedData, associatedDataLength);
+					decaf_eddsa_25519_keypair_t keypair;
+					decaf_ed25519_derive_keypair(keypair, context->secretKey);
+					decaf_ed25519_keypair_sign ( signature, keypair, message, messageLength, 0, associatedData, associatedDataLength);
+					decaf_ed25519_keypair_destroy(keypair);
 					*signatureLength=DECAF_EDDSA_25519_SIGNATURE_BYTES;
 					return;
 				}
 				break;
 			case BCTBX_EDDSA_448:
 				if (*signatureLength>=DECAF_EDDSA_448_SIGNATURE_BYTES) { /* check the buffer is large enough to hold the signature */
-					decaf_ed448_sign ( signature, context->secretKey, context->publicKey, message, messageLength, 0, associatedData, associatedDataLength); 
+					decaf_eddsa_448_keypair_t keypair;
+					decaf_ed448_derive_keypair(keypair, context->secretKey);
+					decaf_ed448_keypair_sign ( signature, keypair, message, messageLength, 0, associatedData, associatedDataLength);
+					decaf_ed448_keypair_destroy(keypair);
 					*signatureLength=DECAF_EDDSA_448_SIGNATURE_BYTES;
 					return;
 				}
