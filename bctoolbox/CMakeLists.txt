@@ -174,7 +174,12 @@ set(EXPORT_TARGETS_NAME "bctoolbox")
 
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 check_library_exists("dl" "dladdr" "" HAVE_LIBDL)
-check_include_file("execinfo.h" HAVE_EXECINFO)
+
+if(ANDROID)
+	set(HAVE_EXECINFO 0)
+else()
+	check_include_file("execinfo.h" HAVE_EXECINFO)
+endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
