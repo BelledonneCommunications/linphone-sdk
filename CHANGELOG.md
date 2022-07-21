@@ -13,6 +13,9 @@ changes made to these components.__
 
 ## [5.2.0] Unreleased
 
+### Added
+- Support for Android NDK r25
+
 ### Changed
 - Updated firebase messaging dependency for Android, now requires at least 23.0.6 (BoM 30.2.0)
 

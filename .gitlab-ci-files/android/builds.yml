@@ -51,11 +51,11 @@
 # Makefile
 #################################################
 
-android-makefile-r23:
+android-ninja-r25:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r23:$ANDROID_R23_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25:$ANDROID_R25_IMAGE_VERSION
   variables:
-    CMAKE_GENERATOR: Unix Makefiles
+    CMAKE_GENERATOR: Ninja
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -63,20 +63,20 @@ android-makefile-r23:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   extends: .android
 
-android-makefile-r23-g729-ldap:
+android-makefile-r25-g729-ldap:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
     - if: $DEPLOY_RUN_NUGET
     - if: $UPLOAD_XAMARIN
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
   variables:
+    CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_G729=ON -DENABLE_LDAP=ON
-  extends: android-makefile-r23
+  extends: android-ninja-r25
 
-android-makefile-r23-minimal-size:
+android-ninja-r25-minimal-size:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -84,16 +84,16 @@ android-makefile-r23-minimal-size:
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO
-  extends: android-makefile-r23
+  extends: android-ninja-r25
 
 
 #################################################
 # Ninja
 #################################################
 
-android-ninja-r23-no-video:
+android-ninja-r25-no-video:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r23:$ANDROID_R23_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25:$ANDROID_R25_IMAGE_VERSION
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
@@ -104,7 +104,7 @@ android-ninja-r23-no-video:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: .android
 
-#android-ninja-r23-macos:
+#android-ninja-r25-macos:
 #  tags: [ "macosx" ]
 # rules:
 #   - if: $NIGHTLY_MASTER
@@ -113,32 +113,23 @@ android-ninja-r23-no-video:
 #    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 #  extends: .android
 
-android-ninja-r23:
-
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r23:$ANDROID_R23_IMAGE_VERSION
-  rules:
-    - if: $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Ninja
-  extends: .android
-
-android-ninja-r23-smallsdk:
+android-ninja-r25-smallsdk:
 
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
-  extends: android-ninja-r23
+  extends: android-ninja-r25
 
-android-ninja-r23-allcodecs:
+android-ninja-r25-allcodecs:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_G729=YES
 
-  extends: android-ninja-r23
+  extends: android-ninja-r25
 
-#android-ninja-r23-sanitizer:
+#android-ninja-r25-sanitizer:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
-#  extends: android-ninja-r23
+#  extends: android-ninja-r25
