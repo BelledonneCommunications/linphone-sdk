@@ -59,6 +59,25 @@ static void assign_value_to_mirroring_flag_to_preview(VideoStream *stream) {
 	}
 }
 
+static void configure_sink(VideoStream *stream, MSFilter *sink) {
+	MSPinFormat pf={0};
+	ms_filter_call_method(stream->ms.decoder,MS_FILTER_GET_OUTPUT_FMT,&pf);
+	if (pf.fmt){
+		MSPinFormat pinfmt={0};
+		RtpSession *session=stream->ms.sessions.rtp_session;
+		PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_recv_payload_type(session));
+		if (!pt) pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_send_payload_type(session));
+		if (pt){
+			MSFmtDescriptor tmp=*pf.fmt;
+			tmp.encoding=pt->mime_type;
+			tmp.rate=pt->clock_rate;
+			pinfmt.pin=0;
+			pinfmt.fmt=ms_factory_get_format(stream->ms.factory,&tmp);
+			ms_filter_call_method(sink,MS_FILTER_SET_INPUT_FMT,&pinfmt);
+			ms_message("configure_itc(): format set to %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
+		}
+	}else ms_warning("configure_itc(): video decoder doesn't give output format.");
+}
 
 static void video_stream_update_jitter_for_nack(const OrtpEventData *evd, VideoStream *stream) {
 	if (stream->audiostream != NULL) {
@@ -129,6 +148,8 @@ void video_stream_free(VideoStream *stream) {
 		ms_filter_destroy(stream->void_source);
 	if (stream->itcsink)
 		ms_filter_destroy(stream->itcsink);
+	if (stream->forward_sink)
+		ms_filter_destroy(stream->forward_sink);
 
 	if (stream->display_name)
 		ms_free(stream->display_name);
@@ -188,6 +209,7 @@ static void internal_event_cb(void *ud, MSFilter *f, unsigned int event, void *e
 			break;
 		case MS_FILTER_OUTPUT_FMT_CHANGED:
 			if (stream->recorder_output) configure_recorder_output(stream);
+			if (stream->forward_sink) configure_sink(stream, stream->forward_sink);
 			break;
 		case MS_CAMERA_PREVIEW_SIZE_CHANGED:
 			ms_message("Camera video preview size changed on videostream [%p]", stream);
@@ -469,6 +491,8 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 	stream->staticimage_webcam_fps_optimization = TRUE;
 	stream->vconf_list = NULL;
 	stream->frame_marking_extension_id = 0;
+
+	stream->is_forwarding = FALSE;
 
 	ortp_ev_dispatcher_connect(stream->ms.evd
 								, ORTP_EVENT_JITTER_UPDATE_FOR_NACK
@@ -789,7 +813,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 					ms_error("Could not create mjpeg decoder, check your build options.");
 				}
 			}else if (format==MS_PIX_FMT_UNKNOWN && pf.fmt != NULL){
-				stream->pixconv = ms_factory_create_decoder(stream->ms.factory, pf.fmt->encoding);
+				if (!stream->is_forwarding) stream->pixconv = ms_factory_create_decoder(stream->ms.factory, pf.fmt->encoding);
 			}else{
 				stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_PIX_CONV_ID);
 				/*set it to the pixconv */
@@ -820,27 +844,9 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 	}
 }
 
-
-
 static void configure_recorder_output(VideoStream *stream){
 	if (stream->recorder_output){
-		MSPinFormat pf={0};
-		ms_filter_call_method(stream->ms.decoder,MS_FILTER_GET_OUTPUT_FMT,&pf);
-		if (pf.fmt){
-			MSPinFormat pinfmt={0};
-			RtpSession *session=stream->ms.sessions.rtp_session;
-			PayloadType *pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_recv_payload_type(session));
-			if (!pt) pt=rtp_profile_get_payload(rtp_session_get_profile(session),rtp_session_get_send_payload_type(session));
-			if (pt){
-				MSFmtDescriptor tmp=*pf.fmt;
-				tmp.encoding=pt->mime_type;
-				tmp.rate=pt->clock_rate;
-				pinfmt.pin=0;
-				pinfmt.fmt=ms_factory_get_format(stream->ms.factory,&tmp);
-				ms_filter_call_method(stream->recorder_output,MS_FILTER_SET_INPUT_FMT,&pinfmt);
-				ms_message("configure_itc(): format set to %s",ms_fmt_descriptor_to_string(pinfmt.fmt));
-			}
-		}else ms_warning("configure_itc(): video decoder doesn't give output format.");
+		configure_sink(stream, stream->recorder_output);
 	}
 }
 
@@ -906,6 +912,7 @@ static void video_stream_payload_type_changed(RtpSession *session, void *data){
 	}
 
 	configure_recorder_output(stream);
+	configure_sink(stream, stream->forward_sink);
 }
 
 int video_stream_start (VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
@@ -1340,6 +1347,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 				stream->jpegwriter=ms_factory_create_filter(stream->ms.factory, MS_JPEG_WRITER_ID);
 				if (stream->jpegwriter){
 					stream->tee2=ms_factory_create_filter(stream->ms.factory, MS_TEE_ID);
+					stream->forward_sink = ms_factory_create_filter(stream->ms.factory, MS_ITC_SINK_ID);
 				}
 			}
 
@@ -1411,6 +1419,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 		if (stream->tee2){
 			ms_connection_helper_link (&ch,stream->tee2,0,0);
 			ms_filter_link(stream->tee2,1,stream->jpegwriter,0);
+			ms_filter_link(stream->tee2, 2, stream->forward_sink, 0);
+			configure_sink(stream, stream->forward_sink);
 		}
 		if (stream->output!=NULL)
 			ms_connection_helper_link (&ch,stream->output,0,-1);
@@ -1512,12 +1522,12 @@ void video_stream_update_video_params(VideoStream *stream){
  *
  * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
  */
-static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate){
+static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate, bool_t is_forwarding){
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
 	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
 	bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
-	bool_t encoder_has_builtin_converter = (!stream->pixconv && !stream->sizeconv);
+	bool_t encoder_has_builtin_converter = (!stream->is_forwarding && !stream->pixconv && !stream->sizeconv);
 	/* We get the ticker from the source filter rather than stream->ms.sessions.ticker, for the case where the graph is actually running
 	 * in a MSVideoConference that has its own ticker. */
 	MSTicker *current_ticker = stream->source ? ms_filter_get_ticker(stream->source) : NULL;
@@ -1561,7 +1571,10 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		}
 
 		if (!encoder_has_builtin_converter && (stream->source_performs_encoding == FALSE)) {
-			if (stream->pixconv) ms_filter_destroy(stream->pixconv);
+			if (stream->pixconv)  {
+				ms_filter_destroy(stream->pixconv);
+				stream->pixconv = NULL;
+			}
 			if (stream->sizeconv) {
 				ms_filter_destroy(stream->sizeconv);
 				stream->sizeconv = NULL;
@@ -1574,10 +1587,12 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 				stream->source = ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
 				ms_filter_call_method(sink,MS_ITC_SINK_CONNECT,stream->source);
 				stream->player_active = TRUE;
+				stream->is_forwarding = is_forwarding;
 			} else {
 				stream->source = new_source ? new_source : ms_web_cam_create_reader(cam);
 				stream->cam = cam;
 				stream->player_active = FALSE;
+				stream->is_forwarding = FALSE;
 			}
 		}
 		if (stream->source_performs_encoding == TRUE) {
@@ -1647,28 +1662,32 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam) {
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, TRUE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, TRUE, FALSE);
 }
 
 MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam){
-	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE, FALSE);
+	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE, FALSE, FALSE);
 }
 
 MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous ){
-	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE, FALSE);
+	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE, FALSE, FALSE);
 }
 
 void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 	ms_message("video_stream_open_player(): sink=%p",sink);
-	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_close_player(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE);
+}
+
+void video_stream_forward_source_stream(VideoStream *stream, VideoStream *source) {
+	_video_stream_change_camera(stream, stream->cam, NULL, source->forward_sink, FALSE, FALSE, FALSE, TRUE);
 }
 
 void video_stream_send_fir(VideoStream *stream) {
@@ -1771,6 +1790,7 @@ static MSFilter* _video_stream_stop(VideoStream * stream, bool_t keep_source)
 				if (stream->tee2){
 					ms_connection_helper_unlink (&h,stream->tee2,0,0);
 					ms_filter_unlink(stream->tee2,1,stream->jpegwriter,0);
+					ms_filter_unlink(stream->tee2, 2, stream->forward_sink, 0);
 				}
 				if(stream->output)
 					ms_connection_helper_unlink (&h,stream->output,0,-1);

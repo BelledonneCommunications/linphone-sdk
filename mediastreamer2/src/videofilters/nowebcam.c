@@ -226,11 +226,15 @@ void static_image_uninit(MSFilter *f) {
 	ms_free(d);
 }
 
-void static_image_preprocess(MSFilter *f) {
+static void static_image_load_jpeg(MSFilter *f) {
 	SIData *d = (SIData*)f->data;
 	if (d->pic == NULL) {
 		d->pic = ms_load_jpeg_as_yuv(d->nowebcamimage, &d->vsize);
 	}
+}
+
+void static_image_preprocess(MSFilter *f) {
+	static_image_load_jpeg(f);
 }
 
 void static_image_process(MSFilter *f) {
@@ -280,7 +284,7 @@ int static_image_set_vsize(MSFilter *f, void* data) {
 
 int static_image_get_vsize(MSFilter *f, void* data) {
 	SIData *d = (SIData*)f->data;
-	static_image_preprocess(f);
+	static_image_load_jpeg(f);
 	*(MSVideoSize*)data = d->vsize;
 	return 0;
 }
@@ -310,7 +314,9 @@ static int static_image_set_image(MSFilter *f, void *arg) {
 		d->pic = NULL;
 	}
 	d->lasttime = 0;
-	static_image_preprocess(f);
+
+	// We have to make sure ticker is running so that the image is not loaded until the filter is configured
+	if (f->ticker) static_image_load_jpeg(f);
 
 	ms_filter_unlock(f);
 	return 0;

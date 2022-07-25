@@ -962,6 +962,7 @@ struct _VideoStream
 	MSFilter *tee3;
 	MSFilter *void_source;
 	MSFilter *itcsink;
+	MSFilter *forward_sink;
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
 	MSVideoSize max_sent_vsize;
@@ -998,11 +999,11 @@ struct _VideoStream
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
 	bool_t display_filter_auto_rotate_enabled;
-	
 	bool_t source_performs_encoding;
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
+	bool_t is_forwarding;
 	char *label;
 	MSVideoDisplayMode display_mode;
 	int frame_marking_extension_id;
@@ -1129,6 +1130,17 @@ MS2_PUBLIC void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSW
  * @return the previous source if keep_previous_source is TRUE, otherwise NULL
  */
 MS2_PUBLIC MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous_source );
+
+/**
+ * @brief This function forwards the video from the source stream to the specifed one.
+ * @details This will connect the received video stream from source and will pass it to current stream
+ * to send. Using \ref video_stream_change_camera will stop the forwarding and use the provided camera.
+ * If the source stream is stopped before this stream, a call to \ref video_stream_change_camera is also
+ * required in order to restart the graph.
+ * @param stream the video stream to modify
+ * @param source the video stream that will be used as a source
+ */
+MS2_PUBLIC void video_stream_forward_source_stream(VideoStream *stream, VideoStream *source);
 
 /**
  * @brief This is the same function as \ref video_stream_change_source_filter() called with keep_source=1, but
