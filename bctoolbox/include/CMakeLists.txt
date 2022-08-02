@@ -29,6 +29,7 @@ set(HEADER_FILES
 	list.h
 	logging.h
 	map.h
+	ownership.hh
 	parser.h
 	port.h
 	regex.h
