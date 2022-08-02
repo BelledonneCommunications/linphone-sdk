@@ -104,16 +104,18 @@ int ms_read_wav_header_from_fp(wave_header_t *header,bctbx_vfs_file_t *fp) {
 
 	ssize_t len = bctbx_file_read2(fp, (char*)riff_chunk, sizeof(riff_t));
 	if (len != sizeof(riff_t)){
+		ms_error("Wrong wav header: cannot read the RIFF header");
 		goto not_a_wav;
 	}
 	
 	if (0!=strncmp(riff_chunk->riff, "RIFF", 4) || 0!=strncmp(riff_chunk->wave, "WAVE", 4)){
+		ms_error("Wrong wav header: invalid FourCC[%4.4s] or RIFF format[%4.4s]", riff_chunk->riff, riff_chunk->wave);
 		goto not_a_wav;
 	}
 
 	len = bctbx_file_read2(fp, (char*)format_chunk, sizeof(format_t));
 	if (len != sizeof(format_t)){
-		ms_warning("Wrong wav header: cannot read file");
+		ms_error("Wrong wav header: cannot read 'format' chunk");
 		goto not_a_wav;
 	}
 
@@ -127,11 +129,11 @@ int ms_read_wav_header_from_fp(wave_header_t *header,bctbx_vfs_file_t *fp) {
 	do{
 		len = bctbx_file_read2(fp, data_chunk, sizeof(data_t));
 		if (len != sizeof(data_t)){
-			ms_warning("Wrong wav header: cannot read file");
+			ms_error("Wrong wav header: cannot read data chunk[count=%i]", count);
 			goto not_a_wav;
 		}
 		if (strncmp(data_chunk->data, "data", 4)!=0){
-			ms_warning("skipping chunk=%c%c%c%c len=%i", data_chunk->data[0],data_chunk->data[1],data_chunk->data[2],data_chunk->data[3], data_chunk->len);
+			ms_warning("skipping chunk=%4.4s len=%i", data_chunk->data, data_chunk->len);
 			bctbx_file_seek(fp, le_uint32(data_chunk->len), SEEK_CUR);
 			count++;
 			hsize+=len+le_uint32(data_chunk->len);
