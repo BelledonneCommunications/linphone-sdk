@@ -686,7 +686,12 @@ static void test_www_authenticate_header(void) {
 
 	const char* l_header_2 = "WWW-Authenticate: Basic realm=\"WallyWorld\"";
 
-
+	const char* l_header_3 = "WWW-Authenticate: Digest "
+			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			"nonce=\"c60f3082ee1212b402a21831ae\" , Digest "
+	"algorithm=SHA-256, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+		  "nonce=\"c60f3082ee1212b402a21831ae\"";
+	
 	belle_sip_header_www_authenticate_t* L_tmp;
 	belle_sip_header_www_authenticate_t *l_authenticate = belle_sip_header_www_authenticate_parse(l_header);
 
@@ -720,7 +725,12 @@ static void test_www_authenticate_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(l_authenticate),"Basic");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
 
-
+	BC_ASSERT_PTR_NOT_NULL(L_tmp = belle_sip_header_www_authenticate_parse(l_header_3));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(L_tmp),"MD5");
+	BC_ASSERT_PTR_NOT_NULL(l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_header_get_next(BELLE_SIP_HEADER(L_tmp))));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(l_authenticate),"SHA-256");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	
 	BC_ASSERT_PTR_NULL(belle_sip_header_www_authenticate_parse("nimportequoi"));
 
 }
@@ -729,17 +739,30 @@ static void test_proxy_authenticate_header(void) {
 	const char* l_header = "Proxy-Authenticate: Digest "
 			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
 			" qop=\"auth,auth-int\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\"";
+	const char* l_header_2 = "Proxy-Authenticate: Digest "
+			"algorithm=MD5, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			" qop=\"auth,auth-int\", nonce=\"c60f3082ee1212b402a21831ae\", stale=true, domain=\"sip:boxesbybob.com\""
+			",Digest algorithm=SHA-256, realm=\"atlanta.com\", opaque=\"1bc7f9097684320\","
+			"nonce=\"c60f3082ee1212b402a21831ae\"";
 	belle_sip_header_proxy_authenticate_t* L_tmp;
-	belle_sip_header_proxy_authenticate_t* L_proxy_authorization = belle_sip_header_proxy_authenticate_parse(l_header);
+	belle_sip_header_proxy_authenticate_t* L_proxy_authenticate = belle_sip_header_proxy_authenticate_parse(l_header);
 	//belle_sip_list_t* qop;
 
-	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_proxy_authorization));
-	belle_sip_object_unref(BELLE_SIP_OBJECT(L_proxy_authorization));
+	char* l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_proxy_authenticate));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_proxy_authenticate));
 	L_tmp = belle_sip_header_proxy_authenticate_parse(l_raw_header);
-	L_proxy_authorization = BELLE_SIP_HEADER_PROXY_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	L_proxy_authenticate = BELLE_SIP_HEADER_PROXY_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
 	belle_sip_free(l_raw_header);
-	check_header_authenticate(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_proxy_authorization));
+	check_header_authenticate(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_proxy_authenticate));
+
+	BC_ASSERT_PTR_NOT_NULL(L_tmp = belle_sip_header_proxy_authenticate_parse(l_header_2));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_tmp)),"MD5");
+	BC_ASSERT_PTR_NOT_NULL(L_proxy_authenticate = BELLE_SIP_HEADER_PROXY_AUTHENTICATE(belle_sip_header_get_next(BELLE_SIP_HEADER(L_tmp))));
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_algorithm(BELLE_SIP_HEADER_WWW_AUTHENTICATE(L_proxy_authenticate)),"SHA-256");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_proxy_authenticate_parse("nimportequoi"));
 }
 

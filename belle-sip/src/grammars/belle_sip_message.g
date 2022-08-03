@@ -1064,11 +1064,14 @@ header_proxy_authenticate   returns [belle_sip_header_proxy_authenticate_t* ret]
 scope { belle_sip_header_proxy_authenticate_t* current; }
 @init { $header_proxy_authenticate::current = belle_sip_header_proxy_authenticate_new();$ret = $header_proxy_authenticate::current; }
   :   {IS_TOKEN(Proxy-Authenticate)}? token /*'Proxy-Authenticate'*/
-  hcolon challenge[BELLE_SIP_HEADER_WWW_AUTHENTICATE($header_proxy_authenticate::current)];
+  hcolon (challenge[BELLE_SIP_HEADER_WWW_AUTHENTICATE($header_proxy_authenticate::current)] 
+  					(comma 	{belle_sip_header_t* header = BELLE_SIP_HEADER($header_proxy_authenticate::current);
+  						belle_sip_header_set_next(header,(belle_sip_header_t*)($header_proxy_authenticate::current = belle_sip_header_proxy_authenticate_new()));
+  						}  challenge[BELLE_SIP_HEADER_WWW_AUTHENTICATE($header_proxy_authenticate::current)])*);
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($header_proxy_authenticate::current);
+   belle_sip_object_unref($ret);
    $ret=NULL;
 }
 
@@ -1459,13 +1462,17 @@ pseudonym
 header_www_authenticate returns [belle_sip_header_www_authenticate_t* ret]
 scope { belle_sip_header_www_authenticate_t* current; }
 @init { $header_www_authenticate::current = belle_sip_header_www_authenticate_new();$ret = $header_www_authenticate::current; }
-  :   {IS_TOKEN(WWW-Authenticate)}? token /*'WWW-Authenticate'*/ hcolon challenge[$header_www_authenticate::current];
+  :   {IS_TOKEN(WWW-Authenticate)}? token /*'WWW-Authenticate'*/ hcolon (challenge[$header_www_authenticate::current] 
+  					(comma 	{belle_sip_header_t* header = BELLE_SIP_HEADER($header_www_authenticate::current);
+  						belle_sip_header_set_next(header,(belle_sip_header_t*)($header_www_authenticate::current = belle_sip_header_www_authenticate_new()));
+  						}  challenge[$header_www_authenticate::current])*);
 catch [ANTLR3_RECOGNITION_EXCEPTION]
 {
    belle_sip_message("[\%s]  reason [\%s]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message);
-   belle_sip_object_unref($header_www_authenticate::current);
+   belle_sip_object_unref($ret);
    $ret=NULL;
 }
+	
 state_value: token ;
 
 header_subscription_state  returns [belle_sip_header_subscription_state_t* ret]
