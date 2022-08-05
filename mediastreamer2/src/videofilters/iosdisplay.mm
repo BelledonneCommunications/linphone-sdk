@@ -59,6 +59,7 @@
 @property (nonatomic, retain) UIView* parentView;
 @property (assign) int deviceRotation;
 @property (assign) int displayRotation;
+@property (atomic) int scaleFactor;
 
 @end
 
@@ -75,7 +76,8 @@
 	self->prevBounds = CGRectMake(0, 0, 0, 0);
 	self->context = nil;
 	self->mode = MSVideoDisplayBlackBars;
-
+	_scaleFactor = UIScreen.mainScreen.nativeScale;
+	
 	// Init view
 	[self setOpaque:YES];
 	[self setAutoresizingMask: UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight];
@@ -126,8 +128,10 @@
 	glBindFramebuffer(GL_FRAMEBUFFER, defaultFrameBuffer);
 	glBindRenderbuffer(GL_RENDERBUFFER, colorRenderBuffer);
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRenderBuffer);
-
-	ogl_display_init(display_helper, NULL, prevBounds.size.width, prevBounds.size.height);
+	
+	CAEAGLLayer* layer = (CAEAGLLayer*)self.layer;
+	layer.contentsScale = _scaleFactor;
+	ogl_display_init(display_helper, NULL, prevBounds.size.width*_scaleFactor, prevBounds.size.height*_scaleFactor);// Multiply by scale factor to dissociate screen physical pixel and UIView logical pixel
 
 	// release GL context for this thread
 	[EAGLContext setCurrentContext:nil];
@@ -160,11 +164,11 @@
 
 			// allocate storage
 			if ([context renderbufferStorage:GL_RENDERBUFFER fromDrawable:layer]) {
-				ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
-				ogl_display_set_size(display_helper, prevBounds.size.width, prevBounds.size.height);
+				ms_message("GL renderbuffer allocation size (layer %p frame size: %f x %f, scale factor: x%f)", layer, layer.frame.size.width, layer.frame.size.height, layer.contentsScale);
+				ogl_display_set_size(display_helper, prevBounds.size.width*_scaleFactor, prevBounds.size.height*_scaleFactor); // Multiply by scale factor to dissociate screen physical pixel and UIView logical pixel
 				glClear(GL_COLOR_BUFFER_BIT);
 			} else {
-				ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f)", layer, layer.frame.size.width, layer.frame.size.height);
+				ms_error("Error in renderbufferStorage (layer %p frame size: %f x %f, scale factor: x%f)", layer, layer.frame.size.width, layer.frame.size.height, layer.contentsScale);
 			}
 		}
 
