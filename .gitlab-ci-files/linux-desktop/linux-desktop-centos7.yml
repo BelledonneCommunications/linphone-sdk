@@ -22,7 +22,6 @@
 
 
 centos7-makefile-gcc:
-
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   rules:
@@ -42,7 +41,6 @@ centos7-makefile-gcc:
 
 
 centos7-ninja-gcc:
-
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   rules:
@@ -54,12 +52,9 @@ centos7-ninja-gcc:
     CXX: g++
   extends: .linux-desktop
 
-centos7-ninja-gcc-pqc:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+centos7-ninja-gcc-tunnel-pq:
   variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
   extends: centos7-ninja-gcc
 #################################################
 # TESTS
@@ -73,13 +68,13 @@ pqc-centos7-test:
   extends: .test-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
   needs:
-    - centos7-ninja-gcc-pqc
+    - centos7-ninja-gcc-tunnel-pq
 
 # pqc-centos7-test-mr:
 #  extends: .test-pqc-mr
 #  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 #  needs:
-#    - centos7-ninja-gcc-pqc
+#    - centos7-ninja-gcc-tunnel-pq
 
 belr-centos7-test:
   extends: .test-belr
@@ -154,9 +149,31 @@ liblinphone-centos7-test:
   extends: .test-liblinphone
   <<: *docker_image_needs_platform_devtoolset_libl
 
+liblinphone-centos7-test-tunnel-pq:
+  extends:
+    - .test-liblinphone-tunnel-pq
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+  needs:
+    - centos7-ninja-gcc-tunnel-pq
+  variables:
+    PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
+
 liblinphone-centos7-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
+
+liblinphone-centos7-test-mr-tunnel-pq:
+  extends:
+    - .test-liblinphone-tunnel-pq-mr
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+  needs:
+    - centos7-ninja-gcc-tunnel-pq
+  variables:
+    PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 liblinphone-centos7-test-force:
   extends: .test-liblinphone

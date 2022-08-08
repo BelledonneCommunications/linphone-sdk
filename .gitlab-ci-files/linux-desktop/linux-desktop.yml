@@ -91,10 +91,39 @@
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
-    - ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
-    - $PULSEAUDIO_KILL
-    - exit $EXIT
+    - |
+        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+          then ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+        else
 
+          EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=0;
+          EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=0;
+          EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
+
+          ./$TESTER_BIN --verbose --suite "Single Call" $RESOURCES_DIR --log-file logLiblinphoneSingleCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedSingleCall.xml $ADDITIONNAL_OPTIONS || EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=$?
+
+          ./$TESTER_BIN --verbose --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneSecureCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedSecureCall.xml $ADDITIONNAL_OPTIONS || EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=$?
+
+          ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+        fi
+
+    - $PULSEAUDIO_KILL
+
+    - |
+        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+        then
+          exit $EXIT
+        else
+          echo "EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=$EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=$EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$EXIT_TUNNEL_OVER_TUNNEL_AND_PQ";
+          if [ $EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_TUNNEL_OVER_TUNNEL_AND_PQ != 0 ];
+          then
+            exit 1;
+          else
+            exit 0;
+          fi;
+        fi;
 
   after_script:
     - pwd
@@ -140,7 +169,14 @@
     - sudo mkdir ${CI_PROJECT_DIR}/results
     - sudo chmod 777 ${CI_PROJECT_DIR}/results
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
-    - cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results
+
+    - |
+        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+          then
+            cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results;
+        else
+          cp -r log* ${CI_PROJECT_DIR}/results;
+        fi
     - cp index.html ${CI_PROJECT_DIR}/results
     - echo $CI_JOB_ID > ${CI_PROJECT_DIR}/results/tests_id
     - echo $CI_JOB_URL > ${CI_PROJECT_DIR}/results/job_url
@@ -329,6 +365,15 @@
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "liblinphone"
+    #false
+    USE_TUNNEL_PQ_TESTS: "false"
+
+.test-liblinphone-tunnel-pq:
+  extends: .test-liblinphone
+  variables:
+    #true
+    USE_TUNNEL_PQ_TESTS: "true"
+    ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-mr:
   extends: .test-liblinphone
@@ -336,3 +381,11 @@
   #Only launches mr tests on mr, excepted for wip and draft
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+
+.test-liblinphone-tunnel-pq-mr:
+  extends: .test-liblinphone-mr
+  allow_failure: true
+  variables:
+    #true
+    USE_TUNNEL_PQ_TESTS: "true"
+    ADDITIONNAL_OPTIONS: ""
