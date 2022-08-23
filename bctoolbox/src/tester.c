@@ -1356,9 +1356,11 @@ int bc_tester_parse_args(int argc, char **argv, int argid)
 		max_vm_kb = atol(argv[i]);
 	} else if (strcmp(argv[i], "--resource-dir") == 0) {
 		CHECK_ARG("--resource-dir", ++i, argc);
+		if (bc_tester_resource_dir_prefix) bctbx_free(bc_tester_resource_dir_prefix);
 		bc_tester_resource_dir_prefix = strdup(argv[i]);
 	} else if (strcmp(argv[i], "--writable-dir") == 0) {
 		CHECK_ARG("--writable-dir", ++i, argc);
+		if (bc_tester_writable_dir_prefix) bctbx_free(bc_tester_writable_dir_prefix);
 		bc_tester_writable_dir_prefix = strdup(argv[i]);
 	}else if(strcmp(argv[i],"--child")==0){//Switch off this parameter as it is used for external processing
 	} else {
