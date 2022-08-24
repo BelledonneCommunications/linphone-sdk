@@ -166,7 +166,7 @@ static void source_event_cb(void *ud, MSFilter* f, unsigned int event, void *eve
 	MSVideoSize size;
 	switch (event) {// Allow a source to reinitialize all tree formats
 		case MS_FILTER_OUTPUT_FMT_CHANGED:
-			if(ms_filter_get_id(f)==MS_SIZE_CONV_ID || (st->source && strcmp(ms_filter_get_name(f),ms_filter_get_name(st->source))==0)) {
+			if(ms_filter_get_id(f)==MS_SIZE_CONV_ID){
 				ms_filter_call_method(f, MS_FILTER_GET_VIDEO_SIZE, &size);
 				video_stream_set_sent_video_size(st, size);
 			}

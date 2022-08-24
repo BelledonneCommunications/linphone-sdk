@@ -229,7 +229,7 @@ static void capture_queue_cleanup(void* p) {
 	[self initDevice:deviceId];
 	input = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
         if (error) {
-            ms_error("%s", [[error localizedDescription] UTF8String]);
+            ms_error("AVCapture: %s : %s", [[error localizedDescription] UTF8String], [[error localizedFailureReason] UTF8String]);
 	    return;
 	}
 	if (input && [session canAddInput:input]) {
