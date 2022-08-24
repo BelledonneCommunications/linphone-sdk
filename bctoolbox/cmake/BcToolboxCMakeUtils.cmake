@@ -329,8 +329,28 @@ function(bc_get_release_file_folder OUTPUT_FOLDER)
 		set(${OUTPUT_FOLDER} "linux" PARENT_SCOPE)
 	endif()
 endfunction()
+
 function(bc_make_release_file full_version file_url)
 	bc_parse_full_version(${full_version} LINPHONE_MAJOR_VERSION LINPHONE_MINOR_VERSION LINPHONE_MICRO_VERSION LINPHONE_BRANCH_VERSION)
 	file(WRITE "${CMAKE_INSTALL_PREFIX}/RELEASE" "${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}${LINPHONE_BRANCH_VERSION}\t${file_url}")
 endfunction()
+
+# This macro exactly behaves as CMake find_package() except it doesn't try to find the
+# package if a target with the same name already exists. Otherwise, find_package()
+# is executed with the same arguments than bc_find_package().
+# Should the target exist, the following variable (where <pkgname> is string passed as
+# fist argument) are set in the current scope:
+# * <pkgname>_FOUND: systematically set to ON;
+# * <pkgname>_TARGETNAME: systematically set to <pkgname>.
+macro(bc_find_package name)
+	if(TARGET ${name})
+		string(TOUPPER ${name} NAME)
+		set(${name}_FOUND ON)
+		set(${NAME}_FOUND ON)
+		set(${name}_TARGETNAME ${name})
+		set(${NAME}_TARGETNAME ${name})
+	else()
+		find_package(${ARGV})
+	endif()
+endmacro()
 ##############################################################
