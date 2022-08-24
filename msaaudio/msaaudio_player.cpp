@@ -33,7 +33,7 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
-		soundCard = NULL;
+		soundCard = nullptr;
 		usage = AAUDIO_USAGE_VOICE_COMMUNICATION;
 		content_type = AAUDIO_CONTENT_TYPE_SPEECH;
 		prevXRunCount = 0;
@@ -112,7 +112,7 @@ static void android_snd_write_uninit(MSFilter *obj){
 	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
 	if (octx->soundCard) {
 		ms_snd_card_unref(octx->soundCard);
-		octx->soundCard = NULL;
+		octx->soundCard = nullptr;
 	}
 	delete octx;
 }
@@ -193,7 +193,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	if (result != AAUDIO_OK && !octx->stream) {
 		ms_error("[AAudio] Open stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
 		AAudioStreamBuilder_delete(builder);
-		octx->stream = NULL;
+		octx->stream = nullptr;
 		return;
 	} else {
 		ms_message("[AAudio] Player stream opened");
@@ -223,7 +223,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 		} else {
 			ms_message("[AAudio] Player stream closed");
 		}
-		octx->stream = NULL;
+		octx->stream = nullptr;
 	} else {
 		ms_message("[AAudio] Player stream started");
 	}
@@ -330,7 +330,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		ms_mutex_lock(&octx->stream_mutex);
 		if (octx->soundCard) {
 			ms_snd_card_unref(octx->soundCard);
-			octx->soundCard = NULL;
+			octx->soundCard = nullptr;
 		}
 		octx->soundCard = ms_snd_card_ref(card);
 
@@ -339,14 +339,31 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		}
 
 		aaudio_player_init(octx);
-		aaudio_stream_state_t inputState = AAUDIO_STREAM_STATE_STARTING;
-		aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
-		int64_t timeoutNanos = 100 * 1000000L;
-		aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, timeoutNanos);
-		if (result != AAUDIO_OK) {
-			ms_error("[AAudio] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
+		if (octx->stream == nullptr) {
+			ms_mutex_unlock(&octx->stream_mutex);
+			return -1;
 		}
-		ms_message("[AAudio] Waited for state change, current state is %i", nextState);
+
+		aaudio_stream_state_t inputState = AAudioStream_getState(octx->stream);
+		ms_message("[AAudio] Current state is %i / %s", inputState, AAudio_convertStreamStateToText(inputState));
+
+		if (inputState == AAUDIO_STREAM_STATE_STARTING) {
+			aaudio_stream_state_t nextState = inputState;
+			int tries = 0;
+			do {
+				ms_usleep(10000); // Wait 10ms
+
+				// Waiting more than 0ns can cause a crash
+				aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, 0);
+				if (result != AAUDIO_OK && result != AAUDIO_ERROR_TIMEOUT) {
+					ms_error("[AAudio] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
+					break;
+				}
+
+				tries += 1;
+			} while (nextState == inputState && tries < 10);
+			ms_message("[AAudio] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
+		}
 
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
