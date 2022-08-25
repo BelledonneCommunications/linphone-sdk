@@ -281,20 +281,13 @@ namespace std {
 			return h;
 		}
 	};
+
+	template <> struct equal_to<const belle_sip_uri_t*> {
+		bool operator()(const belle_sip_uri_t* lhs, const belle_sip_uri_t* rhs) const {
+			return belle_sip_uri_equals(lhs,rhs);
+		}
+	};
 }
-
-#include <functional>
-
-namespace bellesip {
-
-struct UriComparator : public std::binary_function<belle_sip_uri_t*, belle_sip_uri_t*, bool> {
-	bool operator()(const belle_sip_uri_t* lhs, const belle_sip_uri_t* rhs) const {
-		return belle_sip_uri_equals(lhs,rhs);
-	}
-};
-}
-
-
 
 #endif
 
