@@ -89,7 +89,7 @@ if(NOT LINPHONESDK_PACKAGER OR LINPHONESDK_PACKAGER STREQUAL "OFF")
 	include(FeatureSummary)
 	feature_summary(FILENAME "${CMAKE_BINARY_DIR}/enabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
 	feature_summary(WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
-	feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT ENABLED_FEATURES DESCRIPTION "Enabled features:")
+	feature_summary(FILENAME "${CMAKE_BINARY_DIR}/disabled_features.txt" WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
 	feature_summary(WHAT DISABLED_FEATURES DESCRIPTION "Disabled features:")
 	
 	if (ENABLE_SANITIZER)
