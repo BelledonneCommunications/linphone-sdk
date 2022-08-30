@@ -1,6 +1,6 @@
 /***************************************************************************
 * config.h.cmake
-* Copyright (C) 2014  Belledonne Communications, Grenoble France
+* Copyright (C) 2010-2022 Belledonne Communications, Grenoble France
 *
 ****************************************************************************
 *
@@ -28,6 +28,7 @@
 #cmakedefine HAVE_CU_GET_SUITE 1
 #cmakedefine HAVE_CU_CURSES 1
 #cmakedefine HAVE_CU_SET_TRACE_HANDLER 1
+#cmakedefine ENABLE_DEFAULT_LOG_HANDLER 1
 
 #cmakedefine HAVE_LIBRT 1
 

@@ -130,21 +130,28 @@ static void wrapper(void* info,const char *domain, BctbxLogLevel lev, const char
 static bctbx_logger_t main_logger = {0};
 static bctbx_log_handler_t static_handler = {0};
 
-static bctbx_logger_t * bctbx_get_logger(void){
-	if (main_logger.default_log_domain == NULL){
-		main_logger.default_log_domain = bctbx_log_domain_new(NULL, BCTBX_LOG_WARNING | BCTBX_LOG_ERROR | BCTBX_LOG_FATAL);
+static void initialize_default_handler(void) {
+	main_logger.default_handler = &static_handler;
+	static_handler.func = wrapper;
+	static_handler.destroy = (BctbxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
+	static_handler.user_info = (void*)bctbx_logv_out;
+	bctbx_add_log_handler(&static_handler);
+}
+
+static bctbx_logger_t* bctbx_get_logger(void) {
+	if (main_logger.default_log_domain == NULL) {
+		main_logger.default_log_domain =
+		    bctbx_log_domain_new(NULL, BCTBX_LOG_WARNING | BCTBX_LOG_ERROR | BCTBX_LOG_FATAL);
 		bctbx_mutex_init(&main_logger.domains_mutex, NULL);
 		bctbx_mutex_init(&main_logger.log_mutex, NULL);
-		main_logger.default_handler = &static_handler;
-		static_handler.func=wrapper;
-		static_handler.destroy=(BctbxLogHandlerDestroyFunc)bctbx_logv_out_destroy;
-		static_handler.user_info=(void*)bctbx_logv_out;
-		bctbx_add_log_handler(&static_handler);
+#if ENABLE_DEFAULT_LOG_HANDLER
+		initialize_default_handler();
+#endif
 	}
 	return &main_logger;
 }
 
-void bctbx_init_logger(bool_t create){
+void bctbx_init_logger(bool_t create) {
 	bctbx_get_logger();
 }
 
@@ -261,9 +268,15 @@ void bctbx_set_log_handler(BctbxLogFunc func){
 	bctbx_set_log_handler_for_domain(func,NULL);
 }
 
-void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain){
-	bctbx_log_handler_t *h = bctbx_get_logger()->default_handler;
-	h->user_info=(void*)func;
+void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain) {
+	bctbx_log_handler_t* h = bctbx_get_logger()->default_handler;
+
+	if (h == NULL) {
+		initialize_default_handler();
+		h = bctbx_get_logger()->default_handler;
+	}
+
+	h->user_info = (void*)func;
 	bctbx_log_handler_set_domain(h, domain);
 }
 
