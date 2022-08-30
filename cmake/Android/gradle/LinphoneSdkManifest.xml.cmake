@@ -20,6 +20,8 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- To vibrate while incoming call -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Needed to check current do not disturb policy -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <!-- End of SDK required permissions -->
 	
 </manifest>
