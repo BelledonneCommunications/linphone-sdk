@@ -738,7 +738,8 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 				{
 					blob CKs(m_localStorage->sql);
 					CKs.write(0, (char *)(m_CKs.data()), m_CKs.size());
-					m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, CKs= :CKs, Status = :active_status WHERE sessionId = :sessionId;", use(m_Ns), use(CKs), use((m_active_status==true)?0x01:0x00), use(m_dbSessionId);
+					int status = (m_active_status==true)?0x01:0x00;
+					m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, CKs= :CKs, Status = :active_status WHERE sessionId = :sessionId;", use(m_Ns), use(CKs), use(status), use(m_dbSessionId);
 				}
 					break;
 				case DRSessionDbStatus::clean: // Session is clean? So why have we been called?
