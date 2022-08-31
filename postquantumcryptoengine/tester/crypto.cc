@@ -111,17 +111,17 @@ static void ECDH_KEM_test(void) {
 	ssb.clear();
 }
 
-static void SIKE_test(void){
+static void HQC_test(void){
 	std::vector<uint8_t> pk, sk, ct, ssa, ssb;
 
-	SIKE434   sike434 = SIKE434();
-	SIKE610   sike610 = SIKE610();
-	SIKE751   sike751 = SIKE751();
+	HQC128   hqc128 = HQC128();
+	HQC192   hqc192 = HQC192();
+	HQC256   hqc256 = HQC256();
 
-	BC_ASSERT_EQUAL(sike434.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(sike434.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc128.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc128.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(sike434.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc128.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -131,10 +131,10 @@ static void SIKE_test(void){
 	ssa.clear();
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(sike610.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(sike610.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc192.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc192.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(sike610.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc192.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -144,10 +144,10 @@ static void SIKE_test(void){
 	ssa.clear();
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(sike751.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(sike751.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc256.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc256.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(sike751.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hqc256.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -157,23 +157,23 @@ static void SIKE_test(void){
 	ssa.clear();
 	ssb.clear();
 
-	/* Test vectors from liboqs */
-
-	// Test for SIKE434
-	BC_ASSERT_EQUAL(sike434.crypto_kem_dec(ssb, SIKE434_pattern.at(1), SIKE434_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(SIKE434_pattern.at(2) == ssb);
-
-	ssb.clear();
-
-	// Test for SIKE610
-	BC_ASSERT_EQUAL(sike610.crypto_kem_dec(ssb, SIKE610_pattern.at(1), SIKE610_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(SIKE610_pattern.at(2) == ssb);
+	// Test for HQC128
+	BC_ASSERT_TRUE(HQC128_pattern[0].size()==HQC128::skSize);
+	BC_ASSERT_TRUE(HQC128_pattern[1].size()==HQC128::ctSize);
+	BC_ASSERT_EQUAL(hqc128.crypto_kem_dec(ssb, HQC128_pattern.at(1), HQC128_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC128_pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	// Test for SIKE751
-	BC_ASSERT_EQUAL(sike751.crypto_kem_dec(ssb, SIKE751_pattern.at(1), SIKE751_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(SIKE751_pattern.at(2) == ssb);
+	// Test for HQC192
+	BC_ASSERT_EQUAL(hqc192.crypto_kem_dec(ssb, HQC192_pattern.at(1), HQC192_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC192_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	// Test for HQC256
+	BC_ASSERT_EQUAL(hqc256.crypto_kem_dec(ssb, HQC256_pattern.at(1), HQC256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(HQC256_pattern.at(2) == ssb);
 
 	ssb.clear();
 }
@@ -243,6 +243,17 @@ static void KYBER_test(void){
 	ssb.clear();
 }
 
+/*
+static void localPrintHex(std::string title, std::vector<uint8_t> buf) {
+	std::cout<<title;
+	for (uint8_t b : buf) {
+		std::cout<<"0x"<<std::hex << std::setfill('0') << std::setw(2) << int(b);
+		std::cout<<", ";
+	}
+	std::cout<<std::endl;
+}
+*/
+
 static void HYBRID_KEM_test(){
 	std::vector<uint8_t> sk, sk1, sk2, ct1, ct2, pk, ct, ssa, ssb;
 
@@ -294,27 +305,27 @@ static void HYBRID_KEM_test(){
 
 	ssb.clear();
 
-	/* K25519 - SIKE434 */
+	/* K25519 - HQC128 */
 
-	HYBRID_KEM hyb_k255_sike434 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<SIKE434>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hyb_k255_hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k255_sike434.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k255_sike434.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k255_hqc128.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k255_hqc128.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
 	BC_ASSERT_FALSE(ssa.empty());
-	BC_ASSERT_EQUAL(hyb_k255_sike434.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k255_hqc128.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
 
 	BC_ASSERT_TRUE(ssa == ssb);
-
 	ct.clear();
 	pk.clear();
 	sk.clear();
 	ssa.clear();
 	ssb.clear();
 
-	// Test vector : K25519 - SIKE434
+	// Test vector : K25519 - HQC128
 
-	BC_ASSERT_EQUAL(hyb_k255_sike434.crypto_kem_dec(ssb, hybrid_X25519_SIKE434_SHA256_pattern.at(1), hybrid_X25519_SIKE434_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X25519_SIKE434_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hyb_k255_hqc128.crypto_kem_dec(ssb, hybrid_X25519_HQC128_SHA256_pattern.at(1), hybrid_X25519_HQC128_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X25519_HQC128_SHA256_pattern.at(2) == ssb);
 
 	ssb.clear();
 
@@ -379,27 +390,13 @@ static void HYBRID_KEM_test(){
 
 	ssb.clear();
 
-	/* K448 - SIKE751 */
+	/* K448 - HQC256 */
 
-	HYBRID_KEM hyb_k448_sike751_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<SIKE751>()}, BCTBX_MD_SHA256);
+	HYBRID_KEM hyb_k448_hqc256_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
 
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha256.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha256.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha256.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
-
-	BC_ASSERT_TRUE(ssa == ssb);
-
-	sk.clear();
-	pk.clear();
-	ct.clear();
-	ssa.clear();
-	ssb.clear();
-
-	HYBRID_KEM hyb_k448_sike751_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<SIKE751>()}, BCTBX_MD_SHA384);
-
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha384.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha384.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha384.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -409,11 +406,11 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	HYBRID_KEM hyb_k448_sike751_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<SIKE751>()}, BCTBX_MD_SHA512);
+	HYBRID_KEM hyb_k448_hqc256_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
 
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha512.crypto_kem_keypair(pk, sk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
 
 	BC_ASSERT_TRUE(ssa == ssb);
 
@@ -423,20 +420,34 @@ static void HYBRID_KEM_test(){
 	ssa.clear();
 	ssb.clear();
 
-	// Test vector : K448 - SIKE751
+	HYBRID_KEM hyb_k448_hqc256_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
 
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha256.crypto_kem_dec(ssb, hybrid_X448_SIKE751_SHA256_pattern.at(1), hybrid_X448_SIKE751_SHA256_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_SIKE751_SHA256_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test vector : K448 - HQC256
+
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha256.crypto_kem_dec(ssb, hybrid_X448_HQC256_SHA256_pattern.at(1), hybrid_X448_HQC256_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA256_pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha384.crypto_kem_dec(ssb, hybrid_X448_SIKE751_SHA384_pattern.at(1), hybrid_X448_SIKE751_SHA384_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_SIKE751_SHA384_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha384.crypto_kem_dec(ssb, hybrid_X448_HQC256_SHA384_pattern.at(1), hybrid_X448_HQC256_SHA384_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA384_pattern.at(2) == ssb);
 
 	ssb.clear();
 
-	BC_ASSERT_EQUAL(hyb_k448_sike751_sha512.crypto_kem_dec(ssb, hybrid_X448_SIKE751_SHA512_pattern.at(1), hybrid_X448_SIKE751_SHA512_pattern.at(0)), 0, int, "%d");
-	BC_ASSERT_TRUE(hybrid_X448_SIKE751_SHA512_pattern.at(2) == ssb);
+	BC_ASSERT_EQUAL(hyb_k448_hqc256_sha512.crypto_kem_dec(ssb, hybrid_X448_HQC256_SHA512_pattern.at(1), hybrid_X448_HQC256_SHA512_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_HQC256_SHA512_pattern.at(2) == ssb);
 
 	ssb.clear();
 
@@ -444,7 +455,7 @@ static void HYBRID_KEM_test(){
 
 static test_t crypto_tests[] = {
 	TEST_NO_TAG("ECDH KEM", ECDH_KEM_test),
-	TEST_NO_TAG("SIKE", SIKE_test),
+	TEST_NO_TAG("HQC", HQC_test),
 	TEST_NO_TAG("KYBER", KYBER_test),
 	TEST_NO_TAG("HYBRID KEM", HYBRID_KEM_test),
 };

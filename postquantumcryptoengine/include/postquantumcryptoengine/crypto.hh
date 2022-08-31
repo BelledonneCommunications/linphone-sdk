@@ -165,17 +165,17 @@ public:
 };
 
 /**
- * @brief The SIKE434 class extends the KEM class
+ * @brief The HQC128 class extends the KEM class
  *		Initialises all key size parameters
- *		Implements all functions that SIKE434 algorithm needs
+ *		Implements all functions that HQC128 algorithm needs
  */
-class SIKE434 : public KEM {
+class HQC128 : public KEM {
 public:
-	SIKE434() = default;
-	constexpr static size_t skSize = 374;
-	constexpr static size_t pkSize = 330;
-	constexpr static size_t ctSize = 346;
-	constexpr static size_t ssSize = 16;
+	HQC128() = default;
+	constexpr static size_t skSize = 2289;
+	constexpr static size_t pkSize = 2249;
+	constexpr static size_t ctSize = 4481;
+	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
 	size_t get_pkSize() const noexcept override;
@@ -187,17 +187,17 @@ public:
 };
 
 /**
- * @brief The SIKE610 class extends the KEM class
+ * @brief The HQC192 class extends the KEM class
  *		Initialises all key size parameters
- *		Implements all functions that SIKE610 algorithm needs
+ *		Implements all functions that HQC192 algorithm needs
  */
-class SIKE610 : public KEM {
+class HQC192 : public KEM {
 public:
-	SIKE610() = default;
-	constexpr static size_t skSize = 524;
-	constexpr static size_t pkSize = 462;
-	constexpr static size_t ctSize = 486;
-	constexpr static size_t ssSize = 24;
+	HQC192() = default;
+	constexpr static size_t skSize = 4562;
+	constexpr static size_t pkSize = 4522;
+	constexpr static size_t ctSize = 9026;
+	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
 	size_t get_pkSize() const noexcept override;
@@ -209,17 +209,17 @@ public:
 };
 
 /**
- * @brief The SIKE751 class extends the KEM class
+ * @brief The HQC256 class extends the KEM class
  *		Initialises all key size parameters
- *		Implements all functions that SIKE751 algorithm needs
+ *		Implements all functions that HQC256 algorithm needs
  */
-class SIKE751 : public KEM {
+class HQC256 : public KEM {
 public:
-	SIKE751() = default;
-	constexpr static size_t skSize = 644;
-	constexpr static size_t pkSize = 564;
-	constexpr static size_t ctSize = 596;
-	constexpr static size_t ssSize = 32;
+	HQC256() = default;
+	constexpr static size_t skSize = 7285;
+	constexpr static size_t pkSize = 7245;
+	constexpr static size_t ctSize = 14469;
+	constexpr static size_t ssSize = 64;
 
 	size_t get_skSize() const noexcept override;
 	size_t get_pkSize() const noexcept override;

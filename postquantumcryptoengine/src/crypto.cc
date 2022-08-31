@@ -46,18 +46,18 @@ static_assert(KYBER1024::pkSize == OQS_KEM_kyber_1024_length_public_key, "forwar
 static_assert(KYBER1024::ctSize == OQS_KEM_kyber_1024_length_ciphertext, "forwarding oqs kyber define mismatch");
 static_assert(KYBER1024::ssSize == OQS_KEM_kyber_1024_length_shared_secret, "forwarding oqs kyber define mismatch");
 
-static_assert(SIKE434::skSize == OQS_KEM_sike_p434_length_secret_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE434::pkSize == OQS_KEM_sike_p434_length_public_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE434::ctSize == OQS_KEM_sike_p434_length_ciphertext, "forwarding oqs sike define mismatch");
-static_assert(SIKE434::ssSize == OQS_KEM_sike_p434_length_shared_secret, "forwarding oqs sike define mismatch");
-static_assert(SIKE610::skSize == OQS_KEM_sike_p610_length_secret_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE610::pkSize == OQS_KEM_sike_p610_length_public_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE610::ctSize == OQS_KEM_sike_p610_length_ciphertext, "forwarding oqs sike define mismatch");
-static_assert(SIKE610::ssSize == OQS_KEM_sike_p610_length_shared_secret, "forwarding oqs sike define mismatch");
-static_assert(SIKE751::skSize == OQS_KEM_sike_p751_length_secret_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE751::pkSize == OQS_KEM_sike_p751_length_public_key, "forwarding oqs sike define mismatch");
-static_assert(SIKE751::ctSize == OQS_KEM_sike_p751_length_ciphertext, "forwarding oqs sike define mismatch");
-static_assert(SIKE751::ssSize == OQS_KEM_sike_p751_length_shared_secret, "forwarding oqs sike define mismatch");
+static_assert(HQC128::skSize == OQS_KEM_hqc_128_length_secret_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC128::pkSize == OQS_KEM_hqc_128_length_public_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC128::ctSize == OQS_KEM_hqc_128_length_ciphertext, "forwarding oqs hqc define mismatch");
+static_assert(HQC128::ssSize == OQS_KEM_hqc_128_length_shared_secret, "forwarding oqs hqc define mismatch");
+static_assert(HQC192::skSize == OQS_KEM_hqc_192_length_secret_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC192::pkSize == OQS_KEM_hqc_192_length_public_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC192::ctSize == OQS_KEM_hqc_192_length_ciphertext, "forwarding oqs hqc define mismatch");
+static_assert(HQC192::ssSize == OQS_KEM_hqc_192_length_shared_secret, "forwarding oqs hqc define mismatch");
+static_assert(HQC256::skSize == OQS_KEM_hqc_256_length_secret_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC256::pkSize == OQS_KEM_hqc_256_length_public_key, "forwarding oqs hqc define mismatch");
+static_assert(HQC256::ctSize == OQS_KEM_hqc_256_length_ciphertext, "forwarding oqs hqc define mismatch");
+static_assert(HQC256::ssSize == OQS_KEM_hqc_256_length_shared_secret, "forwarding oqs hqc define mismatch");
 
 K25519::K25519(int hash_id){
 	this->name = BCTBX_ECDH_X25519;
@@ -141,42 +141,42 @@ size_t KYBER1024::get_ssSize() const noexcept {
 	return ssSize;
 }
 
-size_t SIKE434::get_skSize() const noexcept {
+size_t HQC128::get_skSize() const noexcept {
 	return skSize;
 }
-size_t SIKE434::get_pkSize() const noexcept {
+size_t HQC128::get_pkSize() const noexcept {
 	return pkSize;
 }
-size_t SIKE434::get_ctSize() const noexcept {
+size_t HQC128::get_ctSize() const noexcept {
 	return ctSize;
 }
-size_t SIKE434::get_ssSize() const noexcept {
+size_t HQC128::get_ssSize() const noexcept {
 	return ssSize;
 }
 
-size_t SIKE610::get_skSize() const noexcept {
+size_t HQC192::get_skSize() const noexcept {
 	return skSize;
 }
-size_t SIKE610::get_pkSize() const noexcept {
+size_t HQC192::get_pkSize() const noexcept {
 	return pkSize;
 }
-size_t SIKE610::get_ctSize() const noexcept {
+size_t HQC192::get_ctSize() const noexcept {
 	return ctSize;
 }
-size_t SIKE610::get_ssSize() const noexcept {
+size_t HQC192::get_ssSize() const noexcept {
 	return ssSize;
 }
 
-size_t SIKE751::get_skSize() const noexcept {
+size_t HQC256::get_skSize() const noexcept {
 	return skSize;
 }
-size_t SIKE751::get_pkSize() const noexcept {
+size_t HQC256::get_pkSize() const noexcept {
 	return pkSize;
 }
-size_t SIKE751::get_ctSize() const noexcept {
+size_t HQC256::get_ctSize() const noexcept {
 	return ctSize;
 }
-size_t SIKE751::get_ssSize() const noexcept {
+size_t HQC256::get_ssSize() const noexcept {
 	return ssSize;
 }
 
@@ -301,89 +301,89 @@ int KYBER1024::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, co
 }
 
 
-int SIKE434::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+int HQC128::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	pk.resize(pkSize);
 	sk.resize(skSize);
 
-	// Key pair generation function with SIKE434
-	int res = OQS_KEM_sike_p434_keypair(pk.data(), sk.data());
+	// Key pair generation function with HQC128
+	int res = OQS_KEM_hqc_128_keypair(pk.data(), sk.data());
 
 	return res;
 }
 
-int SIKE434::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+int HQC128::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
 	ct.resize(ctSize);
 	ss.resize(ssSize);
 
-	// Key encapsulation with SIKE434
-	int res = OQS_KEM_sike_p434_encaps(ct.data(), ss.data(), pk.data());
+	// Key encapsulation with HQC128
+	int res = OQS_KEM_hqc_128_encaps(ct.data(), ss.data(), pk.data());
 
 	return res;
 }
 
-int SIKE434::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+int HQC128::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(ssSize);
 
-	// Key decapsulation with SIKE434
-	int res = OQS_KEM_sike_p434_decaps(ss.data(), ct.data(), sk.data());
+	// Key decapsulation with HQC128
+	int res = OQS_KEM_hqc_128_decaps(ss.data(), ct.data(), sk.data());
 
 	return res;
 }
 
-int SIKE610::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+int HQC192::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	pk.resize(pkSize);
 	sk.resize(skSize);
 
-	// Key pair generation function with SIKE610
-	int res = OQS_KEM_sike_p610_keypair(pk.data(), sk.data());
+	// Key pair generation function with HQC192
+	int res = OQS_KEM_hqc_192_keypair(pk.data(), sk.data());
 
 	return res;
 }
 
-int SIKE610::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+int HQC192::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
 	ct.resize(ctSize);
 	ss.resize(ssSize);
 
-	// Key encapsulation with SIKE610
-	int res = OQS_KEM_sike_p610_encaps(ct.data(), ss.data(), pk.data());
+	// Key encapsulation with HQC192
+	int res = OQS_KEM_hqc_192_encaps(ct.data(), ss.data(), pk.data());
 
 	return res;
 }
 
-int SIKE610::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+int HQC192::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(ssSize);
 
-	// Key decapsulation with SIKE610
-	int res = OQS_KEM_sike_p610_decaps(ss.data(), ct.data(), sk.data());
+	// Key decapsulation with HQC192
+	int res = OQS_KEM_hqc_192_decaps(ss.data(), ct.data(), sk.data());
 
 	return res;
 }
 
-int SIKE751::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
+int HQC256::crypto_kem_keypair(vector<uint8_t> &pk, vector<uint8_t> &sk) const noexcept {
 	pk.resize(pkSize);
 	sk.resize(skSize);
 
-	// Key pair generation function with SIKE751
-	int res = OQS_KEM_sike_p751_keypair(pk.data(), sk.data());
+	// Key pair generation function with HQC256
+	int res = OQS_KEM_hqc_256_keypair(pk.data(), sk.data());
 
 	return res;
 }
 
-int SIKE751::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
+int HQC256::crypto_kem_enc(vector<uint8_t> &ct, vector<uint8_t> &ss, const vector<uint8_t> &pk) const noexcept {
 	ct.resize(ctSize);
 	ss.resize(ssSize);
 
-	// Key encapsulation with SIKE751
-	int res = OQS_KEM_sike_p751_encaps(ct.data(), ss.data(), pk.data());
+	// Key encapsulation with HQC256
+	int res = OQS_KEM_hqc_256_encaps(ct.data(), ss.data(), pk.data());
 
 	return res;
 }
 
-int SIKE751::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
+int HQC256::crypto_kem_dec(vector<uint8_t> &ss, const vector<uint8_t> &ct, const vector<uint8_t> &sk) const noexcept {
 	ss.resize(ssSize);
 
-	// Key decapsulation with SIKE751
-	int res = OQS_KEM_sike_p751_decaps(ss.data(), ct.data(), sk.data());
+	// Key decapsulation with HQC256
+	int res = OQS_KEM_hqc_256_decaps(ss.data(), ct.data(), sk.data());
 
 	return res;
 }
