@@ -1292,6 +1292,12 @@ static void bzrtp_destroyChannelContext(bzrtpContext_t *zrtpContext, bzrtpChanne
 	free(zrtpChannelContext->peerHelloHash);
 	zrtpChannelContext->peerHelloHash = NULL;
 
+	/* free possible fragment management buffers */
+	bctbx_list_free_with_data(zrtpChannelContext->incomingFragmentedPacket.fragments, bctbx_free);
+	zrtpChannelContext->incomingFragmentedPacket.fragments = NULL;
+	bctbx_free(zrtpChannelContext->incomingFragmentedPacket.packetString);
+	zrtpChannelContext->incomingFragmentedPacket.packetString = NULL;
+
 	/* free the channel context */
 	free(zrtpChannelContext);
 }
@@ -1342,13 +1348,13 @@ const char *bzrtp_algoToString(uint8_t algo){
 	case(ZRTP_KEYAGREEMENT_KYB1): return "Kyber-512";
 	case(ZRTP_KEYAGREEMENT_KYB2): return "Kyber-768";
 	case(ZRTP_KEYAGREEMENT_KYB3): return "Kyber-1024";
-	case(ZRTP_KEYAGREEMENT_SIK1): return "Sike-434";
-	case(ZRTP_KEYAGREEMENT_SIK2): return "Sike-610";
-	case(ZRTP_KEYAGREEMENT_SIK3): return "Sike-751";
+	case(ZRTP_KEYAGREEMENT_HQC1): return "HQC-128";
+	case(ZRTP_KEYAGREEMENT_HQC2): return "HQC-192";
+	case(ZRTP_KEYAGREEMENT_HQC3): return "HQC-256";
 	case(ZRTP_KEYAGREEMENT_K255_KYB512): return "K25519-Kyber512";
-	case(ZRTP_KEYAGREEMENT_K255_SIK434): return "K25519-Sike434";
+	case(ZRTP_KEYAGREEMENT_K255_HQC128): return "K25519-HQC128";
 	case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
-	case(ZRTP_KEYAGREEMENT_K448_SIK751): return "K448-Sike751";
+	case(ZRTP_KEYAGREEMENT_K448_HQC256): return "K448-HQC256";
 
 	case(ZRTP_SAS_B32): return "Base32";
 	case(ZRTP_SAS_B256): return "PGP-WordList";
