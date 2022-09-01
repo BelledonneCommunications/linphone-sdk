@@ -253,6 +253,16 @@ uint16_t bzrtp_computeKeyAgreementSharedSecretLength(uint8_t keyAgreementAlgo, u
  */
 bool_t bzrtp_isKem(uint8_t keyAgreementAlgo);
 
+/**
+ * Compute the variable size of data in a Commit message based on the given key agreement algorithm
+ * For DH types, it is the hvi size, for KEM types, it is the hvi size + public key size, for preShared or multistream the nonce size
+ *
+ * @param[in]	keyAgreementAlgo a key agreement algo mapped on a uint8_t
+ *
+ * @return the size in bytes of the variable part in a Commit message, 0 in case of unknown keyAgreementAlgo
+ */
+uint16_t bzrtp_computeCommitMessageVariableLength(uint8_t keyAgreementAlgo);
+
 /* have a C interface to the KEM defined in c++ in bctoolbox
  TODO: build bzrtp in c++ and directly use the bctoolbox interface */
 /* Forward declaration of KEM context */
@@ -265,6 +275,7 @@ typedef struct bzrtp_KEMContext_struct bzrtp_KEMContext_t;
  * 									ZRTP_KEYAGREEMENT_HQC1, ZRTP_KEYAGREEMENT_HQC2, ZRTP_KEYAGREEMENT_HQC3,
  *									ZRTP_KEYAGREEMENT_K255_KYB512, ZRTP_KEYAGREEMENT_K255_HQC128,
  *									ZRTP_KEYAGREEMENT_K448_KYB1024, ZRTP_KEYAGREEMENT_K448_HQC256
+ *									ZRTP_KEYAGREEMENT_K255_KYB512_HQC128, ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256,
  *
  * @return a pointer to the created context, NULL in case of failure
  */

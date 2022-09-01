@@ -1355,6 +1355,8 @@ const char *bzrtp_algoToString(uint8_t algo){
 	case(ZRTP_KEYAGREEMENT_K255_HQC128): return "K25519-HQC128";
 	case(ZRTP_KEYAGREEMENT_K448_KYB1024): return "K448-Kyber1024";
 	case(ZRTP_KEYAGREEMENT_K448_HQC256): return "K448-HQC256";
+	case(ZRTP_KEYAGREEMENT_K255_KYB512_HQC128): return "K25519-Kyber512-HQC128";
+	case(ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256): return "K448-Kyber1024-HQC256";
 
 	case(ZRTP_SAS_B32): return "Base32";
 	case(ZRTP_SAS_B256): return "PGP-WordList";

@@ -452,38 +452,8 @@ int bzrtp_packetParser(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpC
 		messageData->keyAgreementAlgo = bzrtp_cryptoAlgoTypeStringToInt(messageContent, ZRTP_KEYAGREEMENT_TYPE);
 		messageContent += 4;
 		/* commit message length depends on the key agreement type choosen (and set in the zrtpContext->keyAgreementAlgo) */
-		switch(messageData->keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH2k :
-		case ZRTP_KEYAGREEMENT_X255 :
-		case ZRTP_KEYAGREEMENT_X448 :
-		case ZRTP_KEYAGREEMENT_EC25 :
-		case ZRTP_KEYAGREEMENT_DH3k :
-		case ZRTP_KEYAGREEMENT_EC38 :
-		case ZRTP_KEYAGREEMENT_EC52 :
-			variableLength = 32; /* hvi is 32 bytes length in DH Commit message format */
-			break;
-		case ZRTP_KEYAGREEMENT_KYB1:
-		case ZRTP_KEYAGREEMENT_KYB2:
-		case ZRTP_KEYAGREEMENT_KYB3:
-		case ZRTP_KEYAGREEMENT_HQC1:
-		case ZRTP_KEYAGREEMENT_HQC2:
-		case ZRTP_KEYAGREEMENT_HQC3:
-		case ZRTP_KEYAGREEMENT_K255:
-		case ZRTP_KEYAGREEMENT_K448:
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_HQC128:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_HQC256:
-			/* for KEM exchange, public key is in the commit packet, add its length to the hvi */
-			variableLength = 32 + bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
-			break;
-		case ZRTP_KEYAGREEMENT_Prsh :
-			variableLength = 24; /* nonce (16 bytes) and keyID(8 bytes) are 24 bytes length in preshared Commit message format */
-			break;
-		case ZRTP_KEYAGREEMENT_Mult :
-			variableLength = 16; /* nonce is 24 bytes length in multistream Commit message format */
-			break;
-		default:
+		variableLength = bzrtp_computeCommitMessageVariableLength(messageData->keyAgreementAlgo);
+		if (variableLength == 0) { /* keyAgreement Algo unknown */
 			free(messageData);
 			return BZRTP_PARSER_ERROR_INVALIDMESSAGE;
 		}
@@ -985,38 +955,8 @@ int bzrtp_packetBuild(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpCh
 		messageData = (bzrtpCommitMessage_t *)zrtpPacket->messageData;
 
 		/* compute message length */
-		switch(messageData->keyAgreementAlgo) {
-		case ZRTP_KEYAGREEMENT_DH2k :
-		case ZRTP_KEYAGREEMENT_EC25 :
-		case ZRTP_KEYAGREEMENT_X255 :
-		case ZRTP_KEYAGREEMENT_X448 :
-		case ZRTP_KEYAGREEMENT_DH3k :
-		case ZRTP_KEYAGREEMENT_EC38 :
-		case ZRTP_KEYAGREEMENT_EC52 :
-			variableLength = 32; /* hvi is 32 bytes length in DH Commit message format */
-			break;
-		case ZRTP_KEYAGREEMENT_KYB1:
-		case ZRTP_KEYAGREEMENT_KYB2:
-		case ZRTP_KEYAGREEMENT_KYB3:
-		case ZRTP_KEYAGREEMENT_HQC1:
-		case ZRTP_KEYAGREEMENT_HQC2:
-		case ZRTP_KEYAGREEMENT_HQC3:
-		case ZRTP_KEYAGREEMENT_K255:
-		case ZRTP_KEYAGREEMENT_K448:
-		case ZRTP_KEYAGREEMENT_K255_KYB512:
-		case ZRTP_KEYAGREEMENT_K255_HQC128:
-		case ZRTP_KEYAGREEMENT_K448_KYB1024:
-		case ZRTP_KEYAGREEMENT_K448_HQC256:
-			/* for KEM exchange, public key is in the commit packet, add its length to the 32 bytes hvi */
-			variableLength = 32 + bzrtp_computeKeyAgreementPublicValueLength(messageData->keyAgreementAlgo, MSGTYPE_COMMIT);
-			break;
-		case ZRTP_KEYAGREEMENT_Prsh :
-			variableLength = 24; /* nonce (16 bytes) and keyID(8 bytes) are 24 bytes length in preshared Commit message format */
-			break;
-		case ZRTP_KEYAGREEMENT_Mult :
-			variableLength = 16; /* nonce is 24 bytes length in multistream Commit message format */
-			break;
-		default:
+		variableLength = bzrtp_computeCommitMessageVariableLength(messageData->keyAgreementAlgo);
+		if (variableLength == 0) { /* unknown key agreement algo */
 			return BZRTP_BUILDER_ERROR_INVALIDMESSAGE;
 		}
 		zrtpPacket->messageLength = ZRTP_COMMITMESSAGE_FIXED_LENGTH + variableLength;
