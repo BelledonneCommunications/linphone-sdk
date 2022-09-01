@@ -573,7 +573,7 @@ static int crypto_enc_N(const list<shared_ptr<KEM>> &algo_list, int hash_id, vec
 		i++;
 	}
 
-	// Concatenation of the both cipher texts in ct
+	// Concatenation of the cipher texts in ct
 	for(vector<uint8_t> e : ct_list){
 		ct.insert(ct.end(), e.begin(), e.end());
 	}

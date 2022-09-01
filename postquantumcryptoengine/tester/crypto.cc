@@ -244,6 +244,8 @@ static void KYBER_test(void){
 }
 
 /*
+ * Code to generate patterns for hybrid KEMs
+ *
 static void localPrintHex(std::string title, std::vector<uint8_t> buf) {
 	std::cout<<title;
 	for (uint8_t b : buf) {
@@ -253,6 +255,7 @@ static void localPrintHex(std::string title, std::vector<uint8_t> buf) {
 	std::cout<<std::endl;
 }
 */
+
 
 static void HYBRID_KEM_test(){
 	std::vector<uint8_t> sk, sk1, sk2, ct1, ct2, pk, ct, ssa, ssb;
@@ -451,6 +454,88 @@ static void HYBRID_KEM_test(){
 
 	ssb.clear();
 
+	/* K25519 - KYBER512 - HQC128 */
+
+	HYBRID_KEM hyb_k255_kyb512_hqc128 = HYBRID_KEM({std::make_shared<K25519>(BCTBX_MD_SHA256), std::make_shared<KYBER512>(), std::make_shared<HQC128>()}, BCTBX_MD_SHA256);
+
+	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_FALSE(ssa.empty());
+	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+	ct.clear();
+	pk.clear();
+	sk.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test vector : K25519 - KYBER512 - HQC128
+
+	BC_ASSERT_EQUAL(hyb_k255_kyb512_hqc128.crypto_kem_dec(ssb, hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(1), hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X25519_KYBER512_HQC128_SHA256_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+
+	/* K448 - KYBER1024 - HQC256 */
+	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha256 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA256), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA256);
+
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha384 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA384), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA384);
+
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	HYBRID_KEM hyb_k448_kyber1024_hqc256_sha512 = HYBRID_KEM({std::make_shared<K448>(BCTBX_MD_SHA512), std::make_shared<KYBER1024>(), std::make_shared<HQC256>()}, BCTBX_MD_SHA512);
+
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.crypto_kem_keypair(pk, sk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.crypto_kem_enc(ct, ssa, pk), 0, int, "%d");
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.crypto_kem_dec(ssb, ct, sk), 0, int, "%d");
+
+	BC_ASSERT_TRUE(ssa == ssb);
+
+	sk.clear();
+	pk.clear();
+	ct.clear();
+	ssa.clear();
+	ssb.clear();
+
+	// Test vector : K448 - KYBER1024 - HQC256
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha256.crypto_kem_dec(ssb, hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA256_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha384.crypto_kem_dec(ssb, hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA384_pattern.at(2) == ssb);
+
+	ssb.clear();
+
+	BC_ASSERT_EQUAL(hyb_k448_kyber1024_hqc256_sha512.crypto_kem_dec(ssb, hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(1), hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(0)), 0, int, "%d");
+	BC_ASSERT_TRUE(hybrid_X448_KYBER1024_HQC256_SHA512_pattern.at(2) == ssb);
+
+	ssb.clear();
 }
 
 static test_t crypto_tests[] = {
