@@ -419,7 +419,7 @@ static int wait_next_tick(void *data, uint64_t virt_ticker_time){
 		diff=s->time-realtime;
 		if (diff>0){
 			/* sleep until next tick */
-            bctbx_sleep_ms((int)diff < 10 ? (int)diff : 10);
+			bctbx_sleep_ms((int)diff < 10 ? (int)diff : 10);
 		}else{
 			late=(int)-diff;
 			break; /*exit the while loop */

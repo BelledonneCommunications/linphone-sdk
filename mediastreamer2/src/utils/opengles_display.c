@@ -1436,6 +1436,10 @@ void ogl_display_set_yuv_to_display(struct opengles_display *gldisp, mblk_t *yuv
 	ogl_display_set_yuv(gldisp, yuv, REMOTE_IMAGE);
 }
 
+mblk_t *ogl_display_get_yuv_to_display(struct opengles_display *gldisp){
+	return gldisp->yuv[REMOTE_IMAGE];
+}
+
 void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mblk_t *yuv) {
 	ogl_display_set_yuv(gldisp, yuv, PREVIEW_IMAGE);
 }

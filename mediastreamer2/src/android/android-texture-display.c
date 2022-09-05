@@ -31,6 +31,14 @@
 #include <android/rect.h>
 #include <android/window.h>
 
+/* All AndroidTextureDisplay filters share a same worker thread to execute OpenGl primitives. 
+ * This structure is not thread-safe: it works as long as filters are not created or destroyed in parallel.
+ */
+typedef struct AndroidTextureSharedContext{
+	MSWorkerThread * process_thread;
+	int use_count;
+}AndroidTextureSharedContext;
+
 typedef struct AndroidTextureDisplay {
 	jobject surface;
 	ANativeWindow *window;
@@ -38,12 +46,35 @@ typedef struct AndroidTextureDisplay {
 	EGLSurface gl_surface;
 	EGLDisplay gl_display;
 	EGLContext gl_context;
-	MSWorkerThread *process_thread;
-	queue_t entry_q;
+	MSTask *refresh_task;
 	jobject nativeWindowId;
 	EGLint width, height;
+	MSWorkerThread *process_thread;
 	MSVideoDisplayMode mode;
 } AndroidTextureDisplay;
+
+
+static AndroidTextureSharedContext shared_context = {NULL, 0};
+
+static MSWorkerThread *android_texture_display_get_worker(void){
+	if (shared_context.use_count == 0){
+		shared_context.process_thread = ms_worker_thread_new();
+	}
+	shared_context.use_count++;
+	return shared_context.process_thread;
+}
+
+static void android_texture_display_release_worker(MSWorkerThread *worker){
+	if (worker != shared_context.process_thread){
+		ms_error("[TextureView Display]: worker thread mismatch.");
+		return;
+	}
+	shared_context.use_count--;
+	if (shared_context.use_count == 0){
+		ms_worker_thread_destroy(shared_context.process_thread, FALSE);
+	}
+}
+
 
 static void android_texture_display_destroy_opengl(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
@@ -51,6 +82,12 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 	ms_message("[TextureView Display][Filter=%p] Destroying context for windowId %p", f, ad->nativeWindowId);
 
 	if (ad->ogl) {
+		if (ad->gl_display && ad->gl_surface && ad->gl_surface && ad->gl_context){
+			if (eglMakeCurrent(ad->gl_display, ad->gl_surface, ad->gl_surface, ad->gl_context) == EGL_FALSE) {         
+				ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
+			}
+		}
+		
 		ogl_display_uninit(ad->ogl, TRUE);
 		ogl_display_free(ad->ogl);
 		ad->ogl = NULL;
@@ -119,7 +156,6 @@ static void android_texture_display_release_windowId(MSFilter *f) {
 	(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
 	ad->nativeWindowId = NULL;
 
-	flushq(&ad->entry_q, 0);
 	ms_free(ad);
 	ms_filter_unlock(f);
 }
@@ -236,8 +272,8 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 		ms_error("[TextureView Display][Filter=%p] Surface size for windowId %p is invalid, do not go further!", f, ad->nativeWindowId);
 		ad->gl_display = display;
 		ad->gl_surface = surface;
-		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
 		ms_filter_unlock(f);
+		android_texture_display_destroy_opengl(f);
 		return;
 	}
 
@@ -246,7 +282,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 		EGL_NONE
 	};
 	context = eglCreateContext(display, config, EGL_NO_CONTEXT, contextAttrs);
-
+	
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {         
 		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
@@ -268,25 +304,41 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 
 static void android_texture_display_swap_buffers(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
-	mblk_t *m;
+	mblk_t *yuv_to_restore = NULL;
+	
 	ms_filter_lock(f);
 
-	if ((m = getq(&ad->entry_q)) == NULL) {
-		ms_warning("[TextureView Display][Filter=%p] No frame in entry queue for windowId %p", f, ad->nativeWindowId);
+	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context) {
 		ms_filter_unlock(f);
 		return;
 	}
 
-	if (!ad->ogl) {
-		ms_warning("[TextureView Display][Filter=%p] No OGL display for windowId %p, abort", f, ad->nativeWindowId);
-		freemsg(m);
+	EGLint w, h;
+	eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_WIDTH, &w);
+	eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_HEIGHT, &h);
+	
+	if (ad->width != w || ad->height != h) {
+		ms_warning("[TextureView Display][Filter=%p] Surface size for windowId %p has changed from %ix%i to %ix%i", f, ad->nativeWindowId, ad->width, ad->height, w, h);
+		
+		/* Get back the last image displayed, in order to set it immediately after the new view is avaiable */
+		yuv_to_restore = ogl_display_get_yuv_to_display(ad->ogl);
+		if (yuv_to_restore) yuv_to_restore = dupmsg(yuv_to_restore);
+		ms_filter_unlock(f);
+		android_texture_display_destroy_opengl(f);
+		android_texture_display_init_opengl(f);
+		ms_filter_lock(f);
+	}
+	
+	if (eglMakeCurrent(ad->gl_display, ad->gl_surface, ad->gl_surface, ad->gl_context) == EGL_FALSE) {         
+		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
 		return;
 	}
-
-	ogl_display_set_yuv_to_display(ad->ogl, m);
+	if (yuv_to_restore){
+		ogl_display_set_yuv_to_display(ad->ogl, yuv_to_restore);
+		freemsg(yuv_to_restore);
+	}
 	ogl_display_render(ad->ogl, 0, ad->mode);
-	freemsg(m);
 
 	EGLBoolean result = eglSwapBuffers(ad->gl_display, ad->gl_surface);
 	if (result != EGL_TRUE) {
@@ -300,10 +352,14 @@ static void android_texture_display_init(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)ms_new0(AndroidTextureDisplay, 1);
 	ad->surface = NULL;
 	ad->nativeWindowId = NULL;
-	ad->process_thread = ms_worker_thread_new();
+	ad->process_thread = android_texture_display_get_worker();
 	ad->mode = MSVideoDisplayBlackBars;
-	qinit(&ad->entry_q);
 	f->data = ad;
+}
+
+static void android_texture_display_preprocess(MSFilter *f) {
+	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
+	ad->refresh_task = ms_worker_thread_add_repeated_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void*)f, 10);
 }
 
 static void android_texture_display_process(MSFilter *f) {
@@ -313,33 +369,29 @@ static void android_texture_display_process(MSFilter *f) {
 	ms_filter_lock(f);
 	if (ad->nativeWindowId != NULL && ad->ogl) {
 		if ((m = ms_queue_peek_last(f->inputs[0])) != NULL) {
-			ms_queue_remove(f->inputs[0], m);
-			putq(&ad->entry_q, m);
-			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void*)f);
-		}
-
-		EGLint w, h;
-		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_WIDTH, &w);
-		eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_HEIGHT, &h);
-		if (ad->width != w || ad->height != h) {
-			ms_warning("[TextureView Display][Filter=%p] Surface size for windowId %p has changed from %ix%i to %ix%i", f, ad->nativeWindowId, ad->width, ad->height, w, h);
-			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
-			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void*)f);
+			ogl_display_set_yuv_to_display(ad->ogl, m);
+			
 		}
 	}
-	ms_filter_unlock(f);
-
 	ms_queue_flush(f->inputs[0]);
 	if (f->inputs[1] != NULL) {
 		ms_queue_flush(f->inputs[1]);
 	}
+	ms_filter_unlock(f);
+}
+
+static void android_texture_display_postprocess(MSFilter *f) {
+	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
+	ms_task_destroy(ad->refresh_task);
 }
 
 static void android_texture_display_uninit(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
+	MSTask *task;
 	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
-	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_release_windowId, (void*)f);
-	ms_worker_thread_destroy(ad->process_thread, TRUE);
+	task = ms_worker_thread_add_waitable_task(ad->process_thread, (MSTaskFunc)android_texture_display_release_windowId, (void*)f);
+	ms_task_destroy(task);
+	android_texture_display_release_worker(ad->process_thread);
 }
 
 static int android_texture_display_set_window(MSFilter *f, void *arg) {
@@ -404,7 +456,9 @@ MSFilterDesc ms_android_texture_display_desc = {
 	.ninputs=2, /*number of inputs*/
 	.noutputs=0, /*number of outputs*/
 	.init=android_texture_display_init,
+	.preprocess=android_texture_display_preprocess,
 	.process=android_texture_display_process,
+	.postprocess=android_texture_display_postprocess,
 	.uninit=android_texture_display_uninit,
 	.methods=methods
 };

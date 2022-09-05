@@ -100,6 +100,11 @@ MS2_PUBLIC void ogl_display_uninit (struct opengles_display *gldisp, bool_t free
 MS2_PUBLIC void ogl_display_set_yuv_to_display (struct opengles_display *gldisp, mblk_t *yuv);
 
 /**
+ * Get last yuv image that was set to display. The mblk_t is still owned by the opengles_display structure.
+ */
+MS2_PUBLIC mblk_t *ogl_display_get_yuv_to_display(struct opengles_display *gldisp);
+
+/**
  * Define the next preview image to diaplsy. Note that yuv its content will be copied.
  */
 MS2_PUBLIC void ogl_display_set_preview_yuv_to_display (struct opengles_display *gldisp, mblk_t *yuv);
