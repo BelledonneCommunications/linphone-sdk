@@ -134,14 +134,14 @@ static void android_camera2_capture_device_on_disconnected(void *context, ACamer
     ms_message("[Camera2 Capture] Camera %s is diconnected", ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
-	android_camera2_capture_stop(d);
+	if (d != nullptr) android_camera2_capture_stop(d);
 }
 
 static void android_camera2_capture_device_on_error(void *context, ACameraDevice *device, int error) {
     ms_error("[Camera2 Capture] Error %d on camera %s", error, ACameraDevice_getId(device));
 
 	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
-	android_camera2_capture_stop(d);
+	if (d != nullptr) android_camera2_capture_stop(d);
 }
 
 static void android_camera2_capture_session_on_ready(void *context, ACameraCaptureSession *session) {
