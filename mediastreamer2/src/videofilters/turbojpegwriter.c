@@ -21,10 +21,14 @@
 #include "mediastreamer-config.h"
 #endif
 
+#include "bctoolbox/utils.hh"
 #include "mediastreamer2/msjpegwriter.h"
 #include "mediastreamer2/msvideo.h"
 #include "turbojpeg.h"
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 typedef struct {
 	FILE *file;
@@ -125,18 +129,8 @@ static void jpg_process(MSFilter *f) {
 
 		error = tjCompressFromYUVPlanes(
 			s->turboJpeg,
-
-//This define has the purpose to support multiple versions of turboJPEG.
-//The related value is set by the check_compile in the cmake/FindTurboJPEG.cmake
-//Here we may have an "incompatible pointer type" build warning treated as an error (build with sanitizer)
-//in the else block. If this is the case, check the CMakeError.log of TurboJPEG and ms2
-
-			
-#ifdef TURBOJPEG_USE_CONST_BUFFERS
-			(const unsigned char **)yuvbuf.planes,
-#else
-			(unsigned char **)yuvbuf.planes,
-#endif
+//This auto cast has the purpose to support multiple versions of turboJPEG where parameter can be const.
+			bctoolbox::Utils::auto_cast<unsigned char **>(yuvbuf.planes),
 			yuvbuf.w,
 			yuvbuf.strides,
 			yuvbuf.h,
@@ -207,6 +201,10 @@ MSFilterDesc ms_jpeg_writer_desc = {
 };
 
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_jpeg_writer_desc)

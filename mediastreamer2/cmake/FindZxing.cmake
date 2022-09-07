@@ -28,27 +28,17 @@
 
 find_path(ZXING_INCLUDE_DIRS
 	NAMES
-		zxing/common/Counted.h
-		zxing/Binarizer.h
-		zxing/MultiFormatReader.h
-		zxing/Result.h
-		zxing/ReaderException.h
-		zxing/common/GlobalHistogramBinarizer.h
-		zxing/common/HybridBinarizer.h
-		zxing/common/IllegalArgumentException.h
-		zxing/BinaryBitmap.h
-		zxing/DecodeHints.h
-		zxing/qrcode/QRCodeReader.h
+		ZXing/ZXConfig.h
 	PATH_SUFFIXES include
 )
 
 find_library(ZXING_LIBRARIES
-	NAMES zxing libzxing
-	PATH_SUFFIXES bin lib
+	NAMES ZXing libZXing
+	PATH_SUFFIXES bin lib lib64
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Zxing
+find_package_handle_standard_args(ZXing
 	DEFAULT_MSG
 	ZXING_INCLUDE_DIRS ZXING_LIBRARIES
 )

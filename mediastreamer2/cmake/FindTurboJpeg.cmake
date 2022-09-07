@@ -50,19 +50,6 @@ if(TURBOJPEG_INCLUDE_DIRS AND TURBOJPEG_LIBRARIES AND NOT MSVC)
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} -Wno-error=unused-command-line-argument")
   endif()
-
-	check_c_source_compiles("
-#include <turbojpeg.h>
-int main(int argc, char *argv[]) {
-	tjhandle handle = 0;
-	const unsigned char *srcPlanes = 0;
-	const int *strides = 0;
-	unsigned char *jpegBuf = 0;
-	unsigned long jpegSize = 0;
-	int width = 0, height = 0, subsamp = 0, jpegQual = 0, flags = 0;
-	return tjCompressFromYUVPlanes(handle, &srcPlanes, width, strides, height, subsamp, &jpegBuf, &jpegSize, jpegQual, flags);
-}" TURBOJPEG_USE_CONST_BUFFERS)
-	cmake_pop_check_state()
 endif()
 
 include(FindPackageHandleStandardArgs)
@@ -71,4 +58,4 @@ find_package_handle_standard_args(TurboJpeg
 	TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES
 )
 
-mark_as_advanced(TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES TURBOJPEG_USE_CONST_BUFFERS)
+mark_as_advanced(TURBOJPEG_INCLUDE_DIRS TURBOJPEG_LIBRARIES)

@@ -359,17 +359,13 @@ if(ENABLE_VIDEO)
 		endif()
 	endif()
 	if(TURBOJPEG_FOUND)
-		list(APPEND VOIP_SOURCE_FILES_C
+		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/turbojpegwriter.c
 		)
-		if(TURBOJPEG_USE_CONST_BUFFERS)
-			set_source_files_properties(videofilters/turbojpegwriter.c PROPERTIES COMPILE_DEFINITIONS "TURBOJPEG_USE_CONST_BUFFERS")
-		endif()
 	endif()
 	if(ZXING_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/zxing_qrcode.cpp
-			utils/qrcode_image.cpp
 		)
 	endif()
 	if(WIN32)

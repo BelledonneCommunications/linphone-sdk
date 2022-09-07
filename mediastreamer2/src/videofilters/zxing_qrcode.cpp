@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2.
  *
@@ -21,7 +21,6 @@
 #include "mediastreamer-config.h"
 #endif
 
-#include "../utils/qrcode_image.hpp"
 #include "mediastreamer2/msqrcodereader.h"
 #include "mediastreamer2/msvideo.h"
 
@@ -37,29 +36,18 @@
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #endif
 
-#include <zxing/Binarizer.h>
-#include <zxing/MultiFormatReader.h>
-#include <zxing/Result.h>
-#include <zxing/ReaderException.h>
-#include <zxing/common/GlobalHistogramBinarizer.h>
-#include <zxing/common/HybridBinarizer.h>
-#include <zxing/Exception.h>
-#include <zxing/common/IllegalArgumentException.h>
-#include <zxing/BinaryBitmap.h>
-#include <zxing/DecodeHints.h>
-#include <zxing/qrcode/QRCodeReader.h>
+#define ZX_USE_UTF8
+#include <ZXing/ReadBarcode.h>
 
 #if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop
 #endif
 
-
 using namespace std;
-using namespace zxing;
-using namespace zxing::qrcode;
+using namespace ZXing;
 
 typedef struct {
-	QRCodeImage *image;
+	ImageView image;
 	char* resultText;
 	bool_t searchQRCode;
 	MSRect decoderRect;
@@ -72,7 +60,7 @@ static void qrcode_init(MSFilter *f) {
 	qrc->searchQRCode = TRUE;
 	qrc->decoderRect.h = 0;
 	qrc->decoderRect.w = 0;
-	qrc->image = NULL;
+	qrc->image = ImageView(NULL, 0, 0, ImageFormat::RGB);
 	qrc->msAllocator = ms_yuv_buf_allocator_new();
 	f->data = qrc;
 }
@@ -100,43 +88,22 @@ static int set_decoder_rect(MSFilter *f, void *arg) {
 
 static void read_qrcode(MSFilter *f) {
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
-	if (qrc->image) {
-		Ref<Result> result;
-		Ref<Binarizer> binarizer;
-		binarizer = new HybridBinarizer(qrc->image->getLuminanceSource());
-		DecodeHints hints(DecodeHints::DEFAULT_HINT);
-		Ref<BinaryBitmap> binary(new BinaryBitmap(binarizer));
-		Ref<Reader> reader(new QRCodeReader);
-		try {
-			result = reader->decode(binary, hints);
-		} catch (ReaderException const& re) {
-			(void)re;
-			return;
+	if (qrc->image.data(0,0)) {
+		DecodeHints hints;
+		Result result = ReadBarcode(qrc->image, hints);
+		if (result.error())
+			ms_warning("[MSQRCodeReader] Cannot decode QRCode : %s", ToString(result.error()).c_str());
+		else if(result.format() == BarcodeFormat::None){
+		}else if(!result.isValid())
+			ms_warning("[MSQRCodeReader] QRCode is not valid");
+		else{
+			MSQrCodeReaderEventData data = {{0}};
+			snprintf(data.data, sizeof(data.data), "%s", result.text().c_str());
+			qrc->searchQRCode = FALSE;
+			ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, &data);
+		
 		}
-		Ref<String> text = result->getText();
-		MSQrCodeReaderEventData data = {{0}};
-		snprintf(data.data, sizeof(data.data), "%s", text->getText().c_str());
-		qrc->searchQRCode = FALSE;
-		ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, &data);
 	}
-}
-
-static mblk_t * cropBeforeDecode(QRCodeReaderStruct *qrc, MSPicture *p, MSPicture *newP) {
-	if (qrc->decoderRect.h == 0 && qrc->decoderRect.w == 0) return NULL;
-
-	MSRect newRect;
-	mblk_t *mblk;
-	int pixStride[] = {1, 1, 1};
-
-	newRect = qrc->decoderRect;
-	newRect.x = 0;
-	newRect.y = 0;
-	mblk = ms_yuv_buf_allocator_get(qrc->msAllocator, newP, newRect.w, newRect.h);
-
-	ms_yuv_buf_copy_with_pix_strides(p->planes, p->strides, pixStride, qrc->decoderRect,
-		newP->planes, newP->strides, pixStride, newRect);
-
-	return mblk;
 }
 
 void qrcode_process(MSFilter *f) {
@@ -147,18 +114,12 @@ void qrcode_process(MSFilter *f) {
 	ms_filter_lock(f);
 	while((m = ms_queue_get(f->inputs[0])) != NULL) {
 		if (qrc->searchQRCode) {
-			mblk_t *mblk;
-			MSPicture newYuvbuf;
-
 			ms_yuv_buf_init_from_mblk(&yuvBuf,m);
-			mblk = cropBeforeDecode(qrc, &yuvBuf, &newYuvbuf);
-			if (!mblk) newYuvbuf = yuvBuf;
-			// Do not call delete for qrc-image, zxing will automatically delete this after decode.
-			qrc->image = new QRCodeImage(newYuvbuf.w, newYuvbuf.h, newYuvbuf.planes[0], newYuvbuf.strides[0]);
+			qrc->image = ImageView(yuvBuf.planes[0], yuvBuf.w, yuvBuf.h, ImageFormat::RGB, yuvBuf.strides[0], 1);
+			if (qrc->decoderRect.h != 0 && qrc->decoderRect.w != 0)	// Crop before decode
+				qrc->image = qrc->image.cropped(qrc->decoderRect.x, qrc->decoderRect.y, qrc->decoderRect.w, qrc->decoderRect.h);
 			read_qrcode(f);
-			qrc->image = NULL;
-
-			if (mblk) freemsg(mblk);
+			qrc->image = ImageView(NULL, 0,0,ImageFormat::RGB);// Reset
 		}
 		ms_queue_put(f->outputs[0], m);
 	}
