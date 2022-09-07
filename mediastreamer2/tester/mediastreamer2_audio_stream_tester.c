@@ -142,6 +142,7 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	char* hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	char* recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
 	uint64_t marielle_rtp_sent=0;
+	int dummy=0;
 
 	rtp_session_set_multicast_loopback(marielle->ms.sessions.rtp_session,TRUE);
 	rtp_session_set_multicast_loopback(margaux->ms.sessions.rtp_session,TRUE);
@@ -186,6 +187,8 @@ static void basic_audio_stream_base_2(	const char* marielle_local_ip
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
 	wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000);
+	audio_stream_play(marielle, NULL);
+	wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,500);
 
 	audio_stream_get_local_rtp_stats(marielle,&marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux,&margaux_stats.rtp);
@@ -371,6 +374,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), suite, send_key_2) ==0);
 		}
 		BC_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,1,12000));
+		audio_stream_play(marielle, NULL);
 
 		/*make sure packets can cross from sender to receiver*/
 		wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,500);
@@ -407,6 +411,7 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats,TRUE);
 
 			BC_ASSERT_TRUE(wait_for_until(&marielle->ms,&margaux->ms,&marielle_stats.number_of_EndOfFile,2,12000));
+			audio_stream_play(marielle, NULL);
 
 			/*make sure packets can cross from sender to receiver*/
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,500);
@@ -485,6 +490,7 @@ static void codec_change_for_audio_stream(void) {
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000));
+	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
 	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
@@ -506,6 +512,7 @@ static void codec_change_for_audio_stream(void) {
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 
 	BC_ASSERT_TRUE(wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000));
+	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
 	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
