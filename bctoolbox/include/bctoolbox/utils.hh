@@ -22,6 +22,7 @@
 
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "bctoolbox/port.h"
 
@@ -48,6 +49,20 @@ namespace bctoolbox {
 		
 		// Return the current state of memory as a string. This is currently implemented only for Windows.
 		BCTBX_PUBLIC std::string getMemoryReportAsString();
+		
+// Replace const_cast in order to be adapted from types. Be carefull when using it.
+		template <typename From>
+		class auto_cast {
+		public:
+			explicit constexpr auto_cast(From const& t) noexcept : val { t }{}
+		
+			template <typename To>
+			constexpr operator To() const noexcept(noexcept(const_cast<To>(std::declval<From>()))) {
+				return const_cast<To>(val);
+			}
+		private:
+			From const& val;
+		};
 	
 	}
 
