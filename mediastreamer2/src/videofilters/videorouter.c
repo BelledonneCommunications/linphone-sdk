@@ -101,14 +101,42 @@ static void router_uninit(MSFilter *f){
 	ms_free(s);
 }
 
-static int next_input_pin(MSFilter *f, int i){
+/* Only called in the active speaker case */
+static void elect_new_source(MSFilter *f, OutputContext *output_context){
+	RouterState *s=(RouterState *)f->data;
 	int k;
-	for(k=i+1;k<i+1+f->desc->ninputs;k++){
-		int next_pin=k % f->desc->ninputs;
-		if (f->inputs[next_pin] && next_pin < f->desc->ninputs-2) return next_pin;
+	int current;
+	
+	if (output_context->link_source == -1){
+		ms_error("elect_new_source(): should be called only for active speaker case.");
+		return;
 	}
-	ms_error("next_input_pin: should not happen");
-	return f->desc->ninputs-1; // nowebcam
+	if (output_context->link_source != s->focus_pin && s->focus_pin != -1){
+		/* show the active speaker */
+		output_context->next_source = s->focus_pin;
+		return;
+	}
+	if (output_context->next_source != -1){
+		current = output_context->next_source;
+	}else if (output_context->current_source != -1){
+		current = output_context->current_source;
+	}else current = output_context->link_source;
+	
+	/* show somebody else, but not us */
+	for(k=current+1; k < current+1+f->desc->ninputs; k++){
+		int next_pin=k % f->desc->ninputs;
+		/* Comment about f->desc->ninputs - 2:
+		 * FIXME: -1 = nowebcam, -2 = VoidSource
+		 * This filter shall not make such assumptions.
+		 */
+		if (f->inputs[next_pin] && next_pin < f->desc->ninputs - 2 && next_pin != output_context->link_source){
+			output_context->next_source = next_pin;
+			return;
+		}
+	}
+	/* Otherwise, show nothing. */
+	output_context->next_source = -1;
+	return;
 }
 
 static int router_configure_output(MSFilter *f, void *data){
@@ -118,8 +146,14 @@ static int router_configure_output(MSFilter *f, void *data){
 	s->output_contexts[pd->output].current_source = pd->input;
 	s->output_contexts[pd->output].link_source =pd->link_source;
 
-	if (s->output_contexts[pd->output].link_source != -1) {
-		s->output_contexts[pd->output].next_source = s->focus_pin;
+	if (s->output_contexts[pd->output].link_source != -1){
+		/* Active speaker mode */
+		s->output_contexts[pd->output].current_source = -1;
+		if (s->focus_pin != s->output_contexts[pd->output].link_source) {
+			s->output_contexts[pd->output].next_source = s->focus_pin;
+		}else{
+			/* we will elect another source in process() function */
+		}
 	}
 
 	ms_filter_unlock(f);
@@ -266,17 +300,21 @@ static void router_process(MSFilter *f){
 			mblk_t *key_frame_start = NULL;
 
 			if (output_context->link_source != -1) {
-				if (f->inputs[output_context->next_source] == NULL){
+				/* Active speaker mode */
+				if (output_context->next_source != -1 && f->inputs[output_context->next_source] == NULL){
 					ms_warning("%s: next source %i disapeared, choosing another one.", f->desc->name, output_context->next_source);
-					output_context->next_source = next_input_pin(f, output_context->next_source);
+					output_context->next_source = -1;
 				}
 				if (output_context->current_source != -1 && f->inputs[output_context->current_source] == NULL){
 					ms_warning("%s: current source %i disapeared, choosing another one to switch to.", f->desc->name, output_context->current_source);
-					output_context->next_source = next_input_pin(f, output_context->current_source);
+					output_context->next_source = -1;
 					output_context->current_source = -1; /* Invalidate the current source until the switch.*/
 				}
+				if (output_context->next_source == -1){
+					elect_new_source(f, output_context);
+				}
 
-				if (output_context->current_source != output_context->next_source){
+				if (output_context->current_source != output_context->next_source && output_context->next_source != -1){
 					/* This output is waiting a key-frame to start */
 					input_context = &s->input_contexts[output_context->next_source];
 					if (input_context->key_frame_start != NULL){
