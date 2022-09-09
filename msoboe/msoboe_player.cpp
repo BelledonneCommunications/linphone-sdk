@@ -62,25 +62,25 @@ struct OboeOutputContext {
 			case MS_SND_CARD_STREAM_RING:
 				usage = oboe::Usage::NotificationRingtone;
 				contentType = oboe::ContentType::Music;
-				ms_message("[Oboe] Using NotificationRingtone usage / Music content type");
+				ms_message("[Oboe Player] Using NotificationRingtone usage / Music content type");
 				break;
 			case MS_SND_CARD_STREAM_MEDIA:
 				usage = oboe::Usage::Media;
 				contentType = oboe::ContentType::Music;
-				ms_message("[Oboe] Using Media usage / Music content type");
+				ms_message("[Oboe Player] Using Media usage / Music content type");
 				break;
 			case MS_SND_CARD_STREAM_DTMF:
 				usage = oboe::Usage::VoiceCommunicationSignalling;
 				contentType =  oboe::ContentType::Sonification ;
-				ms_message("[Oboe] Using VoiceCommunicationSignalling usage / Sonification content type");
+				ms_message("[Oboe Player] Using VoiceCommunicationSignalling usage / Sonification content type");
 				break;
 			case MS_SND_CARD_STREAM_VOICE:
 				usage = oboe::Usage::VoiceCommunication;
 				contentType = oboe::ContentType::Speech;
-				ms_message("[Oboe] Using VoiceCommunication usage / Speech content type");
+				ms_message("[Oboe Player] Using VoiceCommunication usage / Speech content type");
 				break;
 			default:
-				ms_error("[Oboe] Unknown stream type %0d", type);
+				ms_error("[Oboe Player] Unknown stream type %0d", type);
 				break;
 		}
 	}
@@ -108,14 +108,14 @@ public:
 	virtual ~OboeOutputCallback() = default;
 
 	OboeOutputCallback(OboeOutputContext *context): oboeOutputContext(context) {
-		ms_message("[Oboe] OboeOutputCallback created");
+		ms_message("[Oboe Player] OboeOutputCallback created");
 	}
 
 	oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream, void *audioData, int32_t numFrames) override {
 		OboeOutputContext *octx = oboeOutputContext;
 	
 		if (numFrames <= 0) {
-			ms_error("[Oboe] onAudioReady has %i frames", numFrames);
+			ms_error("[Oboe Player] onAudioReady has %i frames", numFrames);
 			return oboe::DataCallbackResult::Continue;
 		}
 
@@ -129,7 +129,7 @@ public:
 		}
 
 		if (avail < ask) {
-			memset(static_cast<int16_t *>(audioData) + avail, 0, ask - avail);
+			memset(static_cast<uint8_t *>(audioData) + avail, 0, ask - avail);
 		}
 		
 		ms_mutex_unlock(&octx->mutex);
@@ -199,7 +199,7 @@ static void oboe_player_init(OboeOutputContext *octx) {
 	builder.setDataCallback(octx->oboeCallback);
 
 	builder.setDeviceId(octx->soundCard->internal_id);
-	ms_message("[Oboe] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
+	ms_message("[Oboe Player] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	
 	builder.setUsage(octx->usage);
 	builder.setContentType(octx->contentType);
@@ -208,12 +208,12 @@ static void oboe_player_init(OboeOutputContext *octx) {
 	
 	oboe::Result result = builder.openStream(octx->stream);
 	if (result != oboe::Result::OK) {
-		ms_error("[Oboe] Open stream for player failed: %i / %s", result, oboe::convertToText(result));
+		ms_error("[Oboe Player] Open stream for player failed: %i / %s", result, oboe::convertToText(result));
 		octx->stream = nullptr;
 		return;
 	} else {
-		ms_message("[Oboe] Player stream opened, status: %s", oboe_state_to_string(octx->stream->getState()));
-		ms_message("[Oboe] Player stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
+		ms_message("[Oboe Player] Player stream opened, status: %s", oboe_state_to_string(octx->stream->getState()));
+		ms_message("[Oboe Player] Player stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
 			oboe_api_to_string(octx->stream->getAudioApi()), oboe_direction_to_string(octx->stream->getDirection()), 
 			octx->stream->getDeviceId(), oboe_sharing_mode_to_string(octx->stream->getSharingMode()), oboe_performance_mode_to_string(octx->stream->getPerformanceMode()), 
 			octx->stream->getSampleRate(), octx->stream->getChannelCount(), oboe_format_to_string(octx->stream->getFormat()), 
@@ -231,50 +231,46 @@ static void oboe_player_init(OboeOutputContext *octx) {
 
 	result = octx->stream->start();
 	if (result != oboe::Result::OK) {
-		ms_error("[Oboe] Start stream for player failed: %i / %s", result, oboe::convertToText(result));
+		ms_error("[Oboe Player] Start stream for player failed: %i / %s", result, oboe::convertToText(result));
 		result = octx->stream->close();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Player stream close failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Player] Player stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Player stream closed");
+			ms_message("[Oboe Player] Player stream closed");
 		}
 		octx->stream = nullptr;
 	} else {
-		ms_message("[Oboe] Player stream started, status: %s", oboe_state_to_string(octx->stream->getState()));
+		ms_message("[Oboe Player] Player stream started, status: %s", oboe_state_to_string(octx->stream->getState()));
 	}
 }
 
 static void oboe_player_close(OboeOutputContext *octx) {
-	ms_mutex_lock(&octx->streamMutex);
-
 	if (octx->stream) {
-		ms_message("[Oboe] Stopping player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
+		ms_message("[Oboe Player] Stopping player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
 		oboe::Result result = octx->stream->stop();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Player stream stop failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Player] Player stream stop failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Player stream stopped");
+			ms_message("[Oboe Player] Player stream stopped");
 		}
 
-		ms_message("[Oboe] Closing player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
+		ms_message("[Oboe Player] Closing player stream, status: %s", oboe_state_to_string(octx->stream->getState()));
 		result = octx->stream->close();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Player stream close failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Player] Player stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Player stream closed");
+			ms_message("[Oboe Player] Player stream closed");
 		}
 		octx->stream = nullptr;
 	} else {
-		ms_warning("[Oboe] Player stream already closed?");
+		ms_warning("[Oboe Player] Player stream already closed?");
 	}
 
 	if (octx->oboeCallback) {
 		delete octx->oboeCallback;
 		octx->oboeCallback = nullptr;
-		ms_message("[Oboe] OboeOutputCallback destroyed");
+		ms_message("[Oboe Player] OboeOutputCallback destroyed");
 	}
-
-	ms_mutex_unlock(&octx->streamMutex);
 }
 
 static void android_snd_write_preprocess(MSFilter *obj) {
@@ -283,7 +279,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	ms_android_hack_volume(env);
+	//ms_android_hack_volume(env);
 }
 
 static void android_snd_adjust_buffer_size(OboeOutputContext *octx) {
@@ -304,7 +300,7 @@ static void android_snd_adjust_buffer_size(OboeOutputContext *octx) {
 				newBufferSize = 1;
 			}
 
-			ms_message("[Oboe] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
+			ms_message("[Oboe Player] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
 			octx->stream->setBufferSizeInFrames(newBufferSize);
 
 			octx->bufferSize = newBufferSize;
@@ -322,7 +318,7 @@ static void android_snd_write_process(MSFilter *obj) {
 	} else {
 		oboe::StreamState streamState = octx->stream->getState();
 		if (streamState == oboe::StreamState::Disconnected) {
-			ms_warning("[Oboe] Player stream has disconnected");
+			ms_warning("[Oboe Player] Player stream has disconnected");
 			if (octx->stream) {
 				octx->stream->close();
 				octx->stream = nullptr;
@@ -339,7 +335,10 @@ static void android_snd_write_process(MSFilter *obj) {
 
 static void android_snd_write_postprocess(MSFilter *obj) {
 	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
+	ms_mutex_lock(&octx->streamMutex);
 	oboe_player_close(octx);
+	ms_mutex_unlock(&octx->streamMutex);
+	
 	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, FALSE);
@@ -348,7 +347,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
 	OboeOutputContext *octx = static_cast<OboeOutputContext*>(obj->data);
-	ms_message("[Oboe] Requesting to change output card. Current device is %s (device ID %0d) and requested device is %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
+	ms_message("[Oboe Player] Requesting to change output card. Current device is %s (device ID %0d) and requested device is %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
 	
 	// Change device ID only if the new value is different from the previous one
 	if (octx->soundCard->internal_id != card->internal_id) {
@@ -359,19 +358,48 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		octx->soundCard = ms_snd_card_ref(card);
 
 		if (octx->stream) {
+			ms_mutex_lock(&octx->streamMutex);
 			oboe_player_close(octx);
+			ms_mutex_unlock(&octx->streamMutex);
 		}
 		
 		ms_mutex_lock(&octx->streamMutex);
 		oboe_player_init(octx);
 		ms_mutex_unlock(&octx->streamMutex);
 
+		if (octx->stream == nullptr) {
+			return -1;
+		}
+
+		oboe::StreamState inputState = octx->stream->getState();
+		ms_message("[Oboe Player] Current state is: %s", oboe_state_to_string(inputState));
+		if (inputState == oboe::StreamState::Starting) {
+			oboe::StreamState nextState = inputState;
+			int tries = 0;
+			do {
+				ms_usleep(10000); // Wait 10ms
+
+				oboe::Result result = octx->stream->waitForStateChange(inputState, &nextState, 0);
+				if (result != oboe::Result::OK) {
+					ms_error("[Oboe Player] Couldn't wait for state change: %i / %s", result, oboe::convertToText(result));
+					break;
+				}
+
+				tries += 1;
+			} while (nextState == inputState && tries < 10);
+			ms_message("[Oboe Player] Waited for state change, current state is %s (waited for %i ms)", oboe_state_to_string(nextState), 10*tries);
+		}
+
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-		ms_android_hack_volume(env);
+
+		if (octx->usage == oboe::Usage::VoiceCommunication) {
+			ms_message("[Oboe Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
+			ms_android_hack_volume(env);
+		}
 
 	} else {
-		ms_warning("[Oboe] Sound cards internal ids are the same, nothing has been done!");
+		ms_warning("[Oboe Player] Sound cards internal ids are the same, nothing has been done!");
 	}
 
 	return 0;
@@ -424,6 +452,7 @@ MSFilter *android_snd_card_create_writer(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_write_new(ms_snd_card_get_factory(card));
 	OboeOutputContext *octx = static_cast<OboeOutputContext*>(f->data);
 	octx->soundCard = ms_snd_card_ref(card);
+	ms_message("[Oboe Player] Created using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	octx->setContext((OboeContext*)card->data);
 	return f;
 }

@@ -36,6 +36,7 @@ struct OboeInputContext {
 		aec = NULL;
 		aecEnabled = true;
 		voiceRecognitionMode = false;
+		deviceChanged = false;
 	}
 
 	~OboeInputContext() {
@@ -64,6 +65,7 @@ struct OboeInputContext {
 	jobject aec;
 	bool aecEnabled;
 	bool voiceRecognitionMode;
+	bool deviceChanged;
 };
 
 class OboeInputCallback: public oboe::AudioStreamDataCallback {
@@ -71,7 +73,7 @@ public:
 	virtual ~OboeInputCallback() = default;
 
 	OboeInputCallback(OboeInputContext *context): oboeInputContext(context) {
-		ms_message("[Oboe] OboeInputCallback created");
+		ms_message("[Oboe Recorder] OboeInputCallback created");
 	}
 
 	oboe::DataCallbackResult onAudioReady(oboe::AudioStream *oboeStream, void *audioData, int32_t numFrames) override {
@@ -80,7 +82,7 @@ public:
 		ictx->totalReadSamples += samples;
 
 		if (numFrames <= 0) {
-			ms_error("[Oboe] onAudioReady has %i frames", numFrames);
+			ms_error("[Oboe Recorder] onAudioReady has %i frames", numFrames);
 			return oboe::DataCallbackResult::Continue;
 		}
 
@@ -90,10 +92,6 @@ public:
 		m->b_wptr += bufferSize;
 
 		ms_mutex_lock(&ictx->mutex);
-		if (ictx->mTickerSynchronizer != NULL) {
-			ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->totalReadSamples, (unsigned int)ictx->oboeContext->sampleRate);
-		}
-
 		putq(&ictx->q, m);	
 		ms_mutex_unlock(&ictx->mutex);
 		return oboe::DataCallbackResult::Continue;
@@ -110,7 +108,12 @@ static OboeInputContext* oboe_input_context_init() {
 
 static void android_snd_read_init(MSFilter *obj) {
 	OboeInputContext *ictx = oboe_input_context_init();
-	obj->data = ictx;	
+	obj->data = ictx;
+
+	bool permissionGranted = ms_android_is_record_audio_permission_granted();
+	if (!permissionGranted) {
+		ms_error("[Oboe Recorder] RECORD_AUDIO permission hasn't been granted!");
+	}
 }
 
 static void oboe_recorder_init(OboeInputContext *ictx) {
@@ -130,35 +133,35 @@ static void oboe_recorder_init(OboeInputContext *ictx) {
 	builder.setDataCallback(ictx->oboeCallback);
 
 	builder.setDeviceId(ictx->soundCard->internal_id);
-	ms_message("[Oboe] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
+	ms_message("[Oboe Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
 	
 	builder.setContentType(oboe::ContentType::Speech);
 	if (ictx->voiceRecognitionMode) {
 		// Voice recognition preset works better when recording voice message
-		ms_message("[Oboe] Using voice recognition input preset");
+		ms_message("[Oboe Recorder] Using voice recognition input preset");
 		builder.setInputPreset(oboe::InputPreset::VoiceRecognition);
 	} else {
-		ms_message("[Oboe] Using voice communication input preset");
+		ms_message("[Oboe Recorder] Using voice communication input preset");
 		builder.setInputPreset(oboe::InputPreset::VoiceCommunication);
 		builder.setUsage(oboe::Usage::VoiceCommunication);
 	}
 
 	if (ictx->aecEnabled && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
-		ms_message("[Oboe] Asking for a session ID so we can use echo canceller");
+		ms_message("[Oboe Recorder] Asking for a session ID so we can use echo canceller");
 		builder.setSessionId(oboe::SessionId::Allocate);
 	} else {
-		ms_message("[Oboe] Echo canceller isn't available or has been disabled explicitely");
+		ms_message("[Oboe Recorder] Echo canceller isn't available or has been disabled explicitely");
 		builder.setSessionId(oboe::SessionId::None);
 	}
 	
 	oboe::Result result = builder.openStream(ictx->stream);
 	if (result != oboe::Result::OK) {
-		ms_error("[Oboe] Open stream for recorder failed: %i / %s", result, oboe::convertToText(result));
+		ms_error("[Oboe Recorder] Open stream for recorder failed: %i / %s", result, oboe::convertToText(result));
 		ictx->stream = nullptr;
 		return;
 	} else {
-		ms_message("[Oboe] Recorder stream opened, status: %s", oboe_state_to_string(ictx->stream->getState()));
-		ms_message("[Oboe] Recorder stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
+		ms_message("[Oboe Recorder] Recorder stream opened, status: %s", oboe_state_to_string(ictx->stream->getState()));
+		ms_message("[Oboe Recorder] Recorder stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
 			oboe_api_to_string(ictx->stream->getAudioApi()), oboe_direction_to_string(ictx->stream->getDirection()), 
 			ictx->stream->getDeviceId(), oboe_sharing_mode_to_string(ictx->stream->getSharingMode()), oboe_performance_mode_to_string(ictx->stream->getPerformanceMode()),
 			ictx->stream->getSampleRate(), ictx->stream->getChannelCount(), oboe_format_to_string(ictx->stream->getFormat()), 
@@ -172,27 +175,27 @@ static void oboe_recorder_init(OboeInputContext *ictx) {
 
 	result = ictx->stream->start();
 	if (result != oboe::Result::OK) {
-		ms_error("[Oboe] Start stream for recorder failed: %i / %s", result, oboe::convertToText(result));
+		ms_error("[Oboe Recorder] Start stream for recorder failed: %i / %s", result, oboe::convertToText(result));
 		result = ictx->stream->close();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Recorder stream close failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Recorder] Recorder stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Recorder stream closed");
+			ms_message("[Oboe Recorder] Recorder stream closed");
 		}
 		ictx->stream = nullptr;
 	} else {
-		ms_message("[Oboe] Recorder stream started, status: %s", oboe_state_to_string(ictx->stream->getState()));
+		ms_message("[Oboe Recorder] Recorder stream started, status: %s", oboe_state_to_string(ictx->stream->getState()));
 	}
 
 	if (ictx->aecEnabled && ictx->soundCard->capabilities & MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER) {
 		ictx->sessionId = ictx->stream->getSessionId();
-		ms_message("[Oboe] Session ID is %i, hardware echo canceller can be enabled", ictx->sessionId);
+		ms_message("[Oboe Recorder] Session ID is %i, hardware echo canceller can be enabled", ictx->sessionId);
 		if (ictx->sessionId != oboe::SessionId::None) {
 			JNIEnv *env = ms_get_jni_env();
 			ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->sessionId);
-			ms_message("[Oboe] Hardware echo canceller enabled");
+			ms_message("[Oboe Recorder] Hardware echo canceller enabled");
 		} else {
-			ms_warning("[Oboe] Session ID is oboe::SessionId::None, can't enable hardware echo canceller");
+			ms_warning("[Oboe Recorder] Session ID is oboe::SessionId::None, can't enable hardware echo canceller");
 		}
 	}
 }
@@ -201,30 +204,30 @@ static void oboe_recorder_close(OboeInputContext *ictx) {
 	ms_mutex_lock(&ictx->streamMutex);
 
 	if (ictx->stream) {
-		ms_message("[Oboe] Stopping recorder stream, status: %s", oboe_state_to_string(ictx->stream->getState()));
+		ms_message("[Oboe Recorder] Stopping recorder stream, status: %s", oboe_state_to_string(ictx->stream->getState()));
 		oboe::Result result = ictx->stream->stop();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Recorder stream stop failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Recorder] Recorder stream stop failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Recorder stream stopped");
+			ms_message("[Oboe Recorder] Recorder stream stopped");
 		}
 
-		ms_message("[Oboe] Closing recorder stream, status: %s", oboe_state_to_string(ictx->stream->getState()));
+		ms_message("[Oboe Recorder] Closing recorder stream, status: %s", oboe_state_to_string(ictx->stream->getState()));
 		result = ictx->stream->close();
 		if (result != oboe::Result::OK) {
-			ms_error("[Oboe] Recorder stream close failed: %i / %s", result, oboe::convertToText(result));
+			ms_error("[Oboe Recorder] Recorder stream close failed: %i / %s", result, oboe::convertToText(result));
 		} else {
-			ms_message("[Oboe] Recorder stream closed");
+			ms_message("[Oboe Recorder] Recorder stream closed");
 		}
 		ictx->stream = nullptr;
 	} else {
-		ms_warning("[Oboe] Recorder stream already closed?");
+		ms_warning("[Oboe Recorder] Recorder stream already closed?");
 	}
 
 	if (ictx->oboeCallback) {
 		delete ictx->oboeCallback;
 		ictx->oboeCallback = nullptr;
-		ms_message("[Oboe] OboeInputCallback destroyed");
+		ms_message("[Oboe Recorder] OboeInputCallback destroyed");
 	}
 
 	ms_mutex_unlock(&ictx->streamMutex);
@@ -236,11 +239,13 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->totalReadSamples = 0;
 	oboe_recorder_init(ictx);
 
+	ms_mutex_lock(&ictx->mutex);
 	if (ictx->mTickerSynchronizer == NULL) {
 		MSFilter *obj = ictx->filter;
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
+	ms_mutex_unlock(&ictx->mutex);
 
 	JNIEnv *env = ms_get_jni_env();
 	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
@@ -251,12 +256,28 @@ static void android_snd_read_process(MSFilter *obj) {
 	mblk_t *m;
 
 	ms_mutex_lock(&ictx->streamMutex);
+
+	if (ictx->deviceChanged) {
+		ms_warning("[Oboe Recorder] Device ID changed to %0d", ictx->soundCard->internal_id);
+		if (ictx->stream) {
+			ictx->stream->close();
+			ictx->stream = nullptr;
+		}
+		ms_mutex_lock(&ictx->mutex);
+		if (ictx->mTickerSynchronizer){
+			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
+			ms_message("[Oboe Recorder] resync ticket synchronizer to avoid audio delay");
+		}
+		ms_mutex_unlock(&ictx->mutex);
+		ictx->deviceChanged = false;
+	}
+
 	if (!ictx->stream) {
 		oboe_recorder_init(ictx);
 	} else {
 		oboe::StreamState streamState = ictx->stream->getState();
 		if (streamState == oboe::StreamState::Disconnected) {
-			ms_warning("[Oboe] Recorder stream has disconnected");
+			ms_warning("[Oboe Recorder] Recorder stream has disconnected");
 			if (ictx->stream) {
 				ictx->stream->close();
 				ictx->stream = nullptr;
@@ -269,10 +290,13 @@ static void android_snd_read_process(MSFilter *obj) {
 	while ((m = getq(&ictx->q)) != NULL) {
 		ms_queue_put(obj->outputs[0], m);
 	}
-	ms_mutex_unlock(&ictx->mutex);
-	if (obj->ticker->time % 5000 == 0) {
-		ms_message("[Oboe] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
+	if (ictx->mTickerSynchronizer != NULL) {
+		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->totalReadSamples, (unsigned int)ictx->oboeContext->sampleRate);
 	}
+	if (obj->ticker->time % 5000 == 0) {
+		ms_message("[Oboe Recorder] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
+	}
+	ms_mutex_unlock(&ictx->mutex);
 }
 
 static void android_snd_read_postprocess(MSFilter *obj) {
@@ -291,7 +315,7 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 	if (ictx->aec) {
 		ms_android_delete_hardware_echo_canceller(env, ictx->aec);
 		ictx->aec = NULL;
-		ms_message("[Oboe] Hardware echo canceller deleted");
+		ms_message("[Oboe Recorder] Hardware echo canceller deleted");
 	}
 
 	ms_android_set_bt_enable(env, FALSE);
@@ -336,7 +360,7 @@ static int android_snd_read_get_nchannels(MSFilter *obj, void *data) {
 static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
 	OboeInputContext *ictx = static_cast<OboeInputContext*>(obj->data);
-	ms_message("[Oboe] Requesting to change capture device ID from %0d to %0d", ictx->soundCard->internal_id, card->internal_id);
+	ms_message("[Oboe Recorder] Requesting to change capture device ID from %0d to %0d", ictx->soundCard->internal_id, card->internal_id);
 
 	// Change device ID only if the new value is different from the previous one
 	if (ictx->soundCard->internal_id != card->internal_id) {
@@ -345,14 +369,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 			ictx->soundCard = NULL;
 		}
 		ictx->soundCard = ms_snd_card_ref(card);
-
-		if (ictx->stream) {
-			oboe_recorder_close(ictx);
-		}
-		
-		ms_mutex_lock(&ictx->streamMutex);
-		oboe_recorder_init(ictx);
-		ms_mutex_unlock(&ictx->streamMutex);
+		ictx->deviceChanged = true;
 
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
@@ -430,6 +447,7 @@ MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	OboeInputContext *ictx = static_cast<OboeInputContext*>(f->data);
 	ictx->soundCard = ms_snd_card_ref(card);
+	ms_message("[Oboe Recorder] Created using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
 	ictx->setContext((OboeContext*)card->data);
 	return f;
 }
