@@ -64,14 +64,23 @@ MSTask * ms_task_new(MSWorkerThread *worker, MSTaskFunc func, void *data, int re
 	return obj;
 }
 
-static void ms_worker_thread_run_task(MSWorkerThread *obj, MSTask *task, int do_it){
+static bool_t ms_worker_thread_run_task(MSWorkerThread *obj, MSTask *task, int do_it){
+	bool_t drop = TRUE;
 	task->state = MSTaskRunning;
 	if (do_it) {
 		ms_mutex_unlock(&obj->mutex);
 		task->func(task->data);
 		ms_mutex_lock(&obj->mutex);
 	}
-	task->state = MSTaskDone;
+	if (obj->running && task->state == MSTaskRunning && task->repeat_interval != 0){
+		/* This tasks needs to be repeated */
+		task->state = MSTaskQueued;
+		drop = FALSE; 
+	}else{
+		/* the task is one-shot, cancelled or the worker is exiting */
+		task->state = MSTaskDone;
+	}
+	return drop;
 }
 
 /* prequisite: the worker's mutex is held when calling this function */
@@ -81,18 +90,12 @@ static bool_t ms_worker_thread_process_task(MSWorkerThread *obj, MSTask *task, u
 		if (task->repeat_interval != 0){
 			if (task->repeat_at == 0) task->repeat_at = curtime;
 			if (curtime >= task->repeat_at){
-				ms_worker_thread_run_task(obj, task, do_it);
+				drop = ms_worker_thread_run_task(obj, task, do_it);
 				task->repeat_at += task->repeat_interval;
 			}
-			if (obj->running && task->state != MSTaskCancelled){
-				drop = FALSE; /* repeating tasks are kept in the list until they are cancelled */
-				task->state = MSTaskQueued;
-			} else {
-				/* else the worker thread is exiting, or the task has been cancelled, so drop the task */
-				task->state = MSTaskDone;
-			}
 		}else{
-			ms_worker_thread_run_task(obj, task, do_it);
+			
+			drop = ms_worker_thread_run_task(obj, task, do_it);
 		}
 	}else if (task->state == MSTaskCancelled){
 		task->state = MSTaskDone;
