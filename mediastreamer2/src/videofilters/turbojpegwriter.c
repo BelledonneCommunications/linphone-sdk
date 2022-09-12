@@ -167,7 +167,7 @@ static MSFilterMethod jpg_methods[] = {
 	{	0,NULL}
 };
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) && !defined(__cplusplus)
 
 MSFilterDesc ms_jpeg_writer_desc = {
 	.id = MS_JPEG_WRITER_ID,
