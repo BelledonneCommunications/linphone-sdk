@@ -1,8 +1,7 @@
 .macosx-desktop:
-
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode13" ]
 
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null

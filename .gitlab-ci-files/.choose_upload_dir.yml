@@ -9,7 +9,7 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode13" ]
   script:
 
     # getSnapshotOrReleaseDirFromGitTag($DESCRIBE, $DEFAULT_SNAPSHOT_LOCATION, $DEFAULT_RELEASE_LOCATION)
@@ -60,7 +60,7 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
     - RELEASES_LOCATION=$DEPLOY_RELEASES_DIRECTORY
@@ -78,7 +78,7 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$MACOS_SNAPSHOTS_URL
     - RELEASES_LOCATION=$MACOS_RELEASES_URL
@@ -96,7 +96,7 @@
   stage: deploy
   rules:
     - if: $DEPLOY_RUN_TEST
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$IOS_SNAPSHOTS_URL
     - RELEASES_LOCATION=$IOS_RELEASES_URL
