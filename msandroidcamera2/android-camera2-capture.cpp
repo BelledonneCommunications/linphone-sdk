@@ -542,7 +542,6 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 
 	if (!d->capturing) {
 		ms_warning("[Camera2 Capture] Capture was already stopped, ignoring...");
-		ms_filter_unlock(d->filter);
 		return;
 	}
 	d->capturing = false;
@@ -691,6 +690,7 @@ static void android_camera2_capture_postprocess(MSFilter *f) {
 static void android_camera2_capture_uninit(MSFilter *f) {
 	ms_message("[Camera2 Capture] Filter uninit");
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
+	d->deviceStateCallbacks.context = nullptr;
 
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
