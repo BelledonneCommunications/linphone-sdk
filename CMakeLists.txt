@@ -20,7 +20,7 @@
 cmake_minimum_required(VERSION 3.2)
 
 
-project(linphone-sdk VERSION 5.2.0 LANGUAGES NONE)
+project(linphone-sdk VERSION 5.2.0 LANGUAGES CXX)#Set CXX language to get compiler type while configuring
 
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
