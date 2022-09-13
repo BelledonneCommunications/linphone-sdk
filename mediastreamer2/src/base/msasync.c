@@ -26,7 +26,6 @@ void ms_task_cancel(MSTask *task){
 	if (task->state != MSTaskDone){ /* task may be queued or running */
 		ms_debug("msasync.c: cancelling task %p", task);
 		task->state = MSTaskCancelled;
-		task->repeat_interval = 0;
 	}
 	ms_mutex_unlock(&task->worker->mutex);
 	return;
@@ -94,7 +93,6 @@ static bool_t ms_worker_thread_process_task(MSWorkerThread *obj, MSTask *task, u
 				task->repeat_at += task->repeat_interval;
 			}
 		}else{
-			
 			drop = ms_worker_thread_run_task(obj, task, do_it);
 		}
 	}else if (task->state == MSTaskCancelled){
@@ -139,11 +137,12 @@ static void *ms_worker_thread_run(void *d){
 			}
 		}
 		if (obj->tasks) {
-			/* New tasks may have been queued to obj->tasks */
+			/* New tasks may have been queued to obj->tasks while executing the tasks (the mutex is unhold)*/
 			obj->tasks = bctbx_list_concat(obj->tasks, tasks);
 			/* The loop must continue */
+			continue;
 		}else if (tasks){
-			/* No new tasks, but there are repeatable tasks (not dequeued). Go to sleep for a while. */
+			/* No new tasks, but there are repeatable tasks (re-queued). Go to sleep for a while. */
 			obj->tasks = tasks;
 		}
 		if (obj->running){
@@ -154,8 +153,7 @@ static void *ms_worker_thread_run(void *d){
 				bctbx_sleep_ms(10);
 				ms_mutex_lock(&obj->mutex);
 			}else{
-				/* If there no tasks left at all , go to sleep until new tasks are queued.*/
-				/* and wait for other tasks to come */
+				/* If there are no tasks left at all, go to sleep until new tasks are queued.*/
 				ms_debug("msasync.c: worker thread has no tasks.");
 				obj->inwait = TRUE;
 				ms_cond_wait(&obj->cond, &obj->mutex);
