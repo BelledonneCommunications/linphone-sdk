@@ -477,15 +477,24 @@ void belle_sdp_acap_attribute_clone(belle_sdp_acap_attribute_t* attribute, const
 }
 
 belle_sip_error_code belle_sdp_acap_attribute_marshal(belle_sdp_acap_attribute_t* attribute, char * buff, size_t buff_size, size_t *offset) {
-	belle_sip_error_code error = belle_sip_snprintf(
-		buff, buff_size, offset,
-		"a=acap:%d %s:%s",
-		attribute->id,
-		attribute->name,
-		attribute->value
-	);
-
-	return error;
+	if (attribute->value != NULL && attribute->value[0] != '\0') {
+		belle_sip_error_code error = belle_sip_snprintf(
+			buff, buff_size, offset,
+			"a=acap:%d %s:%s",
+			attribute->id,
+			attribute->name,
+			attribute->value
+		);
+		return error;
+	} else {
+		belle_sip_error_code error = belle_sip_snprintf(
+			buff, buff_size, offset,
+			"a=acap:%d %s",
+			attribute->id,
+			attribute->name
+		);
+		return error;
+	}
 }
 
 BELLE_SDP_NEW_WITH_CTR(acap_attribute,belle_sdp_attribute)
