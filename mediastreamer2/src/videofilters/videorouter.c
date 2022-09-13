@@ -330,7 +330,7 @@ static void router_process(MSFilter *f){
 					}
 				}
 
-				if (output_context->current_source != -1){
+				if (output_context->current_source != -1 && f->inputs[output_context->current_source]){
 					input_context = &s->input_contexts[output_context->current_source];
 					if (input_context->state == RUNNING){
 						router_transfer(f, f->inputs[output_context->current_source], q, output_context, key_frame_start);
