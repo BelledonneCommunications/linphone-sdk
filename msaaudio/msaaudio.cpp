@@ -93,6 +93,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 		card->name = ms_android_get_device_product_name(env, deviceInfo);
 		card->internal_id = ms_android_get_device_id(env, deviceInfo);
 		card->device_type = type;
+		card->device_description = deviceDescription;
 
 		AAudioContext *card_data = (AAudioContext*)card->data;
 
@@ -113,7 +114,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 		}
 
 		card->latency = deviceDescription->delay;
-		if (deviceDescription->recommended_rate){
+		if (deviceDescription->recommended_rate) {
 			card_data->samplerate = deviceDescription->recommended_rate;
 		}
 
