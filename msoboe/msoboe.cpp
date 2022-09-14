@@ -185,6 +185,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 		card->name = ms_android_get_device_product_name(env, deviceInfo);
 		card->internal_id = ms_android_get_device_id(env, deviceInfo);
 		card->device_type = type;
+		card->device_description = deviceDescription;
 
 		OboeContext *card_data = (OboeContext*)card->data;
 
