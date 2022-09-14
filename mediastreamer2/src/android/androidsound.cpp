@@ -320,6 +320,7 @@ static MSSndCard * android_snd_card_new(SoundDeviceDescription *d)
 	
 	obj=ms_snd_card_new(&android_native_snd_card_desc);
 	obj->name=ms_strdup("android sound card");
+	obj->device_description = d;
 	
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) obj->capabilities|=MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 	obj->latency=d->delay;

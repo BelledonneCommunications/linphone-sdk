@@ -1209,7 +1209,7 @@ static void snd_card_device_create_extra_fields(MSSndCardManager *m, MSSndCard *
 	}
 
 	card->latency = deviceDescription->delay;
-	if (deviceDescription->recommended_rate){
+	if (deviceDescription->recommended_rate) {
 		card_data->samplerate = deviceDescription->recommended_rate;
 	}
 }
@@ -1222,6 +1222,7 @@ static void snd_card_device_create(int device_id, const char * name, MSSndCardDe
 	card->name = ms_strdup(name);
 	card->internal_id = device_id;
 	card->device_type = type;
+	card->device_description = deviceDescription;
 
 	// Card capabilities
 	card->capabilities = capabilities;

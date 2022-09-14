@@ -191,6 +191,7 @@ struct _MSSndCard{
 	int latency;
 	MSSndCardStreamType streamType;
 	int ref_count;
+	const SoundDeviceDescription *device_description;
 };
 
 #ifdef __cplusplus

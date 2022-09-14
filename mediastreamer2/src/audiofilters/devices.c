@@ -428,3 +428,40 @@ SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesIn
 	return d;
 }
 
+bool_t ms_sound_devices_description_equals(const SoundDeviceDescription *sdd1, const SoundDeviceDescription *sdd2) {
+	if (sdd1 == NULL && sdd2 == NULL) return TRUE;
+	if (sdd1 == NULL || sdd2 == NULL) return FALSE;
+
+	if (sdd1->flags != sdd2->flags) return FALSE;
+	if (sdd1->delay != sdd2->delay) return FALSE;
+	if (sdd1->recommended_rate != sdd2->recommended_rate) return FALSE;
+
+	int manufacturer_diff = 1;
+	if (sdd1->manufacturer == NULL && sdd2->manufacturer == NULL) {
+		manufacturer_diff = 0;
+	} else if (sdd1->manufacturer != NULL && sdd2->manufacturer != NULL) {
+		manufacturer_diff = strcmp(sdd1->manufacturer, sdd2->manufacturer);
+	} else {
+		return FALSE;
+	}
+
+	int model_diff = 1;
+	if (sdd1->model == NULL && sdd2->model == NULL) {
+		model_diff = 0;
+	} else if (sdd1->model != NULL && sdd2->model != NULL) {
+		model_diff = strcmp(sdd1->model, sdd2->model);
+	} else {
+		return FALSE;
+	}
+
+	int platform_diff = 1;
+	if (sdd1->platform == NULL && sdd2->platform == NULL) {
+		platform_diff = 0;
+	} else if (sdd1->platform != NULL && sdd2->platform != NULL) {
+		platform_diff = strcmp(sdd1->platform, sdd2->platform);
+	} else {
+		return FALSE;
+	}
+
+	return manufacturer_diff == 0 && model_diff == 0 && platform_diff == 0;
+}

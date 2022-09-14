@@ -144,6 +144,7 @@ MSSndCardDesc msandroid_sound_card_desc = {
 MSSndCard *msandroid_sound_duplicate(MSSndCard *obj){
 	MSSndCard *card=ms_snd_card_new(&msandroid_sound_card_desc);
 	card->name=ms_strdup(obj->name);
+	card->device_description=obj->device_description;
 	return card;
 }
 
@@ -155,6 +156,7 @@ MSSndCard *msandroid_sound_card_new(MSSndCardManager *m) {
 
 	devices = ms_factory_get_devices_info(m->factory);
 	d = ms_devices_info_get_sound_device_description(devices);
+	card->device_description = d;
 	
 	if (d->flags & DEVICE_HAS_BUILTIN_AEC) {
 		card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;

@@ -80,7 +80,7 @@ MS2_PUBLIC SoundDeviceDescription* ms_devices_info_lookup_device(MSDevicesInfo *
 
 MS2_PUBLIC SoundDeviceDescription* ms_devices_info_get_sound_device_description(MSDevicesInfo *devices_info);
 
-
+MS2_PUBLIC bool_t ms_sound_devices_description_equals(const SoundDeviceDescription *sdd1, const SoundDeviceDescription *sdd2);
 
 #ifdef __cplusplus
 }

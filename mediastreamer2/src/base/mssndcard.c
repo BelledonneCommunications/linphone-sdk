@@ -285,7 +285,9 @@ void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCardDesc *des
 
 bool_t ms_snd_card_equals(const MSSndCard *c1, const MSSndCard *c2){
 	if (strcmp(ms_snd_card_get_string_id(c1), ms_snd_card_get_string_id(c2)) == 0
-		&& c1->capabilities == c2->capabilities){
+		&& c1->capabilities == c2->capabilities
+		&& ms_sound_devices_description_equals(c1->device_description, c2->device_description)
+	) {
 		return TRUE;
 	}
 	return FALSE;
@@ -361,6 +363,7 @@ MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name) {
 	obj->device_type=MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 	obj->capabilities=MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK;
 	obj->streamType=MS_SND_CARD_STREAM_VOICE;
+	obj->device_description=NULL;
 	if (desc->init!=NULL)
 		desc->init(obj);
 	return obj;
@@ -573,6 +576,7 @@ void ms_snd_card_unref(MSSndCard *sndCard) {
 		if (sndCard->desc->uninit) sndCard->desc->uninit(sndCard);
 		if (sndCard->name != NULL) ms_free(sndCard->name);
 		if (sndCard->id != NULL) ms_free(sndCard->id);
+		sndCard->device_description = NULL;
 		ms_free(sndCard);
 	}
 }
