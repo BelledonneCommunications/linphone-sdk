@@ -336,10 +336,7 @@ static void uncompress_body_if_required(belle_sip_message_t *msg) {
 				belle_sip_header_content_length_set_content_length(content_length, belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)));
 				belle_sip_message_remove_header_from_ptr(msg, ceh);
 				if (content_type && (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
-					const char *unparsed_value = belle_sip_header_get_unparsed_value(BELLE_SIP_HEADER(content_type));
-					const char *boundary = strstr(unparsed_value, ";boundary=");
-					if (boundary != NULL) boundary += 10;
-					if (boundary[0] == '\0') boundary = NULL;
+					const char *boundary = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary");
 					bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new_from_buffer(
 						belle_sip_memory_body_handler_get_buffer(mbh), belle_sip_body_handler_get_size((belle_sip_body_handler_t *)mbh), boundary);
 					belle_sip_message_set_body_handler(msg, bh);
@@ -410,11 +407,8 @@ static int check_body(belle_sip_channel_t *obj){
 				bh = (belle_sip_body_handler_t *)belle_sip_memory_body_handler_new(NULL, NULL);
 				belle_sip_body_handler_add_header(bh, content_encoding);
 			} else if (content_type && (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
-				const char *unparsed_value = belle_sip_header_get_unparsed_value(BELLE_SIP_HEADER(content_type));
-				const char *boundary = strstr(unparsed_value, ";boundary=");
-				if (boundary) boundary += 10;
-				if (boundary[0] == '\0') boundary = NULL;
-				bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new(belle_sip_multipart_body_handler_progress_cb, NULL, NULL, boundary);
+				const char *boundary = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary");
+				bh = (belle_sip_body_handler_t *)belle_sip_multipart_body_handler_new(NULL, NULL, NULL, boundary);
 			} else {
 				bh = (belle_sip_body_handler_t *)belle_sip_memory_body_handler_new(NULL, NULL);
 			}

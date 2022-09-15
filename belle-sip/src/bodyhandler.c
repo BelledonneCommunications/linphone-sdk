@@ -864,6 +864,9 @@ void belle_sip_file_body_handler_set_user_body_handler(belle_sip_file_body_handl
  * TODO
 **/
 
+
+static void belle_sip_multipart_body_handler_parse_final(belle_sip_multipart_body_handler_t *obj);
+
 struct belle_sip_multipart_body_handler{
 	belle_sip_body_handler_t base;
 	belle_sip_list_t *parts;
@@ -880,8 +883,8 @@ static void belle_sip_multipart_body_handler_destroy(belle_sip_multipart_body_ha
 	if (obj->boundary != NULL) belle_sip_free(obj->boundary);
 }
 
-static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_handler_t *obj){
-	obj->parts=belle_sip_list_copy_with_data(obj->parts,(void *(*)(void*))belle_sip_object_clone_and_ref);
+static void belle_sip_multipart_body_handler_clone(belle_sip_multipart_body_handler_t *obj, const belle_sip_multipart_body_handler_t*other){
+	belle_sip_fatal("belle_sip_multipart_body_handler_clone() not implemenented.");
 }
 
 static void belle_sip_multipart_body_handler_begin_recv_transfer(belle_sip_body_handler_t *obj) {
@@ -907,11 +910,17 @@ static void belle_sip_multipart_body_handler_begin_send_transfer(belle_sip_body_
 static void belle_sip_multipart_body_handler_end_transfer(belle_sip_body_handler_t *obj) {
 	const belle_sip_list_t *it;
 	belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
-	for (it = obj_multipart->parts; it != NULL; it = it->next) {
-		belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
-		belle_sip_body_handler_end_transfer(bh);
+	
+	if (obj_multipart->parts == NULL){
+		/* this was a receive transfer */
+		belle_sip_multipart_body_handler_parse_final(obj_multipart);
+	}else{
+		for (it = obj_multipart->parts; it != NULL; it = it->next) {
+			belle_sip_body_handler_t *bh = BELLE_SIP_BODY_HANDLER(it->data);
+			belle_sip_body_handler_end_transfer(bh);
+		}
+		obj_multipart->transfer_current_part = NULL;
 	}
-	obj_multipart->transfer_current_part = NULL;
 }
 
 static void belle_sip_multipart_body_handler_recv_chunk(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, off_t offset,
@@ -927,7 +936,7 @@ static int belle_sip_multipart_body_handler_send_chunk(belle_sip_body_handler_t 
 														 uint8_t *buffer, size_t *size){
 	belle_sip_multipart_body_handler_t *obj_multipart=(belle_sip_multipart_body_handler_t*)obj;
 
-	if (obj_multipart->transfer_current_part->data) { /* we have a part, get its content from handler */
+	if (obj_multipart->transfer_current_part && obj_multipart->transfer_current_part->data) { /* we have a part, get its content from handler */
 		int retval = BELLE_SIP_STOP;
 		size_t offsetSize = 0; /* used to store size of data added by this function and not given by the body handler of current part */
 		size_t boundary_len = strlen(obj_multipart->boundary);
@@ -1039,7 +1048,7 @@ belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new(belle_s
 belle_sip_multipart_body_handler_t *belle_sip_multipart_body_handler_new_from_buffer(const void *buffer, size_t bufsize, const char *boundary) {
 	belle_sip_multipart_body_handler_t *obj_multipart = belle_sip_object_new(belle_sip_multipart_body_handler_t);
 	belle_sip_body_handler_t *obj = (belle_sip_body_handler_t *)obj_multipart;
-	belle_sip_body_handler_init((belle_sip_body_handler_t *)obj, belle_sip_multipart_body_handler_progress_cb, NULL);
+	belle_sip_body_handler_init((belle_sip_body_handler_t *)obj, NULL, NULL);
 	belle_sip_multipart_body_handler_set_boundary(obj_multipart, boundary);
 	obj_multipart->base.expected_size = bufsize;
 	belle_sip_body_handler_begin_recv_transfer(obj);
@@ -1085,71 +1094,68 @@ const belle_sip_list_t* belle_sip_multipart_body_handler_get_parts(const belle_s
 	return obj->parts;
 }
 
-void belle_sip_multipart_body_handler_progress_cb(belle_sip_body_handler_t *obj, belle_sip_message_t *msg, void *user_data, size_t transfered, size_t expected_total) {
-	if (transfered == expected_total) {
-		/* The full multipart body has been received, we can now parse it and split the different parts,
-		 * creating a belle_sip_memory_body_handler for each part and adding them to the belle_sip_multipart_body_handler
-		 * parts list. */
-		belle_sip_multipart_body_handler_t *obj_multipart = (belle_sip_multipart_body_handler_t *)obj;
-		belle_sip_memory_body_handler_t *memorypart;
-		belle_sip_header_t *header;
-		uint8_t *end_part_cursor;
-		uint8_t *end_headers_cursor;
-		uint8_t *end_header_cursor;
-		uint8_t *cursor = obj_multipart->buffer;
-		char *dash_boundary = belle_sip_strdup_printf("--%s", obj_multipart->boundary);
-		size_t expected_size = obj_multipart->base.expected_size; /* Save expected size. Indeed add_parts() plays with it
-		* for the composing process. For parsing process we actually don't need this, so the correct size will be restored at the end.*/
-		
-		if (strncmp((char *)cursor, dash_boundary, strlen(dash_boundary))) {
-			belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by specified boundary '%s'", obj_multipart, obj_multipart->boundary);
+static void belle_sip_multipart_body_handler_parse_final(belle_sip_multipart_body_handler_t *obj_multipart){
+	/* The full multipart body has been received, we can now parse it and split the different parts,
+		* creating a belle_sip_memory_body_handler for each part and adding them to the belle_sip_multipart_body_handler
+		* parts list. */
+	belle_sip_memory_body_handler_t *memorypart;
+	belle_sip_header_t *header;
+	uint8_t *end_part_cursor;
+	uint8_t *end_headers_cursor;
+	uint8_t *end_header_cursor;
+	uint8_t *cursor = obj_multipart->buffer;
+	char *dash_boundary = belle_sip_strdup_printf("--%s", obj_multipart->boundary);
+	size_t expected_size = obj_multipart->base.expected_size; /* Save expected size. Indeed add_parts() plays with it
+	* for the composing process. For parsing process we actually don't need this, so the correct size will be restored at the end.*/
+	
+	if (strncmp((char *)cursor, dash_boundary, strlen(dash_boundary))) {
+		belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by specified boundary '%s'", obj_multipart, obj_multipart->boundary);
+		belle_sip_free(dash_boundary);
+		return;
+	}
+	cursor += strlen(dash_boundary);
+	
+	do {
+		bool_t delimiter_contains_crlf = FALSE;
+		if (strncmp((char *)cursor, "\r\n", 2)) {
+			belle_sip_warning("belle_sip_multipart_body_handler [%p]: no new-line after boundary", obj_multipart);
 			belle_sip_free(dash_boundary);
 			return;
 		}
-		cursor += strlen(dash_boundary);
-		
-		do {
-			bool_t delimiter_contains_crlf = FALSE;
-			if (strncmp((char *)cursor, "\r\n", 2)) {
-				belle_sip_warning("belle_sip_multipart_body_handler [%p]: no new-line after boundary", obj_multipart);
-				belle_sip_free(dash_boundary);
-				return;
+		cursor += 2;
+		end_part_cursor = (uint8_t *)strstr((char *)cursor, dash_boundary);
+		if (end_part_cursor == NULL) {
+			belle_sip_error("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
+			belle_sip_free(dash_boundary);
+			return;
+		} else {
+			if (*(end_part_cursor-1) == '\n' && *(end_part_cursor-2) == '\r') {
+				end_part_cursor-=2; /* delimiter is well formed: delimiter := CRLF dash-boundary */
+				delimiter_contains_crlf = TRUE;
 			}
-			cursor += 2;
-			end_part_cursor = (uint8_t *)strstr((char *)cursor, dash_boundary);
-			if (end_part_cursor == NULL) {
-				belle_sip_warning("belle_sip_multipart_body_handler [%p]: cannot find next boundary", obj_multipart);
-				belle_sip_free(dash_boundary);
-				return;
+			*end_part_cursor = 0;
+			end_headers_cursor = (uint8_t *)strstr((char *)cursor, "\r\n\r\n");
+			if (end_headers_cursor == NULL) {
+				memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(cursor, strlen((char *)cursor), NULL, NULL);
 			} else {
-				if (*(end_part_cursor-1) == '\n' && *(end_part_cursor-2) == '\r') {
-					end_part_cursor-=2; /* delimiter is well formed: delimiter := CRLF dash-boundary */
-					delimiter_contains_crlf = TRUE;
-				}
-				*end_part_cursor = 0;
-				end_headers_cursor = (uint8_t *)strstr((char *)cursor, "\r\n\r\n");
-				if (end_headers_cursor == NULL) {
-					memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(cursor, strlen((char *)cursor), NULL, NULL);
-				} else {
-					uint8_t *begin_body_cursor = end_headers_cursor + 4;
-					memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(begin_body_cursor, strlen((char *)begin_body_cursor), NULL, NULL);
-					do {
-						end_header_cursor = (uint8_t *)strstr((char *)cursor, "\r\n");
-						*end_header_cursor = 0;
-						header = belle_sip_header_parse((char *)cursor);
-						if (header != NULL) {
-							belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(memorypart), header);
-						}
-						cursor = end_header_cursor + 2;
-					} while (end_header_cursor != end_headers_cursor);
-				}
-				belle_sip_multipart_body_handler_add_part(obj_multipart, BELLE_SIP_BODY_HANDLER(memorypart));
-				cursor = end_part_cursor + strlen(dash_boundary);
-				if (delimiter_contains_crlf)
-					cursor += 2;
+				uint8_t *begin_body_cursor = end_headers_cursor + 4;
+				memorypart = belle_sip_memory_body_handler_new_copy_from_buffer(begin_body_cursor, strlen((char *)begin_body_cursor), NULL, NULL);
+				do {
+					end_header_cursor = (uint8_t *)strstr((char *)cursor, "\r\n");
+					*end_header_cursor = 0;
+					header = belle_sip_header_parse((char *)cursor);
+					if (header != NULL) {
+						belle_sip_body_handler_add_header(BELLE_SIP_BODY_HANDLER(memorypart), header);
+					}
+					cursor = end_header_cursor + 2;
+				} while (end_header_cursor != end_headers_cursor);
 			}
-		} while (strcmp((char *)cursor, "--\r\n"));
-		belle_sip_free(dash_boundary);
-		obj_multipart->base.expected_size = expected_size;
-	}
+			belle_sip_multipart_body_handler_add_part(obj_multipart, BELLE_SIP_BODY_HANDLER(memorypart));
+			cursor = end_part_cursor + strlen(dash_boundary);
+			if (delimiter_contains_crlf)
+				cursor += 2;
+		}
+	} while (strncmp((char *)cursor, "--\r\n", 4));
+	belle_sip_free(dash_boundary);
+	obj_multipart->base.expected_size = expected_size;
 }
