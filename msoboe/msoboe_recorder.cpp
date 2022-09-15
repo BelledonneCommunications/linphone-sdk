@@ -37,6 +37,7 @@ struct OboeInputContext {
 		aecEnabled = true;
 		voiceRecognitionMode = false;
 		deviceChanged = false;
+		bluetoothScoStarted = false;
 	}
 
 	~OboeInputContext() {
@@ -62,10 +63,12 @@ struct OboeInputContext {
 	int64_t totalReadSamples;
 	double mAvSkew;
 	oboe::SessionId sessionId;
+	oboe::AudioApi usedAudioApi;
 	jobject aec;
 	bool aecEnabled;
 	bool voiceRecognitionMode;
 	bool deviceChanged;
+	bool bluetoothScoStarted;
 };
 
 class OboeInputCallback: public oboe::AudioStreamDataCallback {
@@ -128,6 +131,23 @@ static void oboe_recorder_init(OboeInputContext *ictx) {
 	builder.setFormat(oboe::AudioFormat::I16);
 	builder.setChannelCount(ictx->oboeContext->nchannels);
 	builder.setSampleRate(ictx->oboeContext->sampleRate);
+	
+	bool forceOpenSLES = false;
+	if (ictx->soundCard->device_description != nullptr) {
+		if (ictx->soundCard->device_description->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
+			ms_warning("[Oboe Recorder] Device has CRAPPY_AAUDIO flag, asking Oboe to use OpenSLES");
+			forceOpenSLES = true;
+		}
+	}
+	if (!forceOpenSLES && ms_get_android_sdk_version() < 28) {
+		ms_message("[Oboe Recorder] Android < 28 detected, asking Oboe to use OpenSLES");
+	}
+	if (forceOpenSLES) {
+		ictx->usedAudioApi = oboe::AudioApi::OpenSLES;
+	} else {
+		ictx->usedAudioApi = oboe::AudioApi::AAudio;
+	}
+	builder.setAudioApi(ictx->usedAudioApi);
 
 	ictx->oboeCallback = new OboeInputCallback(ictx);
 	builder.setDataCallback(ictx->oboeCallback);
@@ -161,12 +181,17 @@ static void oboe_recorder_init(OboeInputContext *ictx) {
 		return;
 	} else {
 		ms_message("[Oboe Recorder] Recorder stream opened, status: %s", oboe_state_to_string(ictx->stream->getState()));
+		oboe::AudioApi audioApi = ictx->stream->getAudioApi();
 		ms_message("[Oboe Recorder] Recorder stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
-			oboe_api_to_string(ictx->stream->getAudioApi()), oboe_direction_to_string(ictx->stream->getDirection()), 
+			oboe_api_to_string(audioApi), oboe_direction_to_string(ictx->stream->getDirection()), 
 			ictx->stream->getDeviceId(), oboe_sharing_mode_to_string(ictx->stream->getSharingMode()), oboe_performance_mode_to_string(ictx->stream->getPerformanceMode()),
 			ictx->stream->getSampleRate(), ictx->stream->getChannelCount(), oboe_format_to_string(ictx->stream->getFormat()), 
 			ictx->stream->getFramesPerBurst(), ictx->stream->getBufferCapacityInFrames()
 		);
+		if (audioApi != ictx->usedAudioApi) {
+			ms_warning("[Oboe Recorder] We asked for audio API [%s] but Oboe choosed [%s]", oboe_api_to_string(ictx->usedAudioApi), oboe_api_to_string(audioApi));
+			ictx->usedAudioApi = audioApi;
+		}
 	}
 
 	int32_t framesPerBust = ictx->stream->getFramesPerBurst();
@@ -237,6 +262,15 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	OboeInputContext *ictx = (OboeInputContext*) obj->data;
 	ictx->filter = obj;
 	ictx->totalReadSamples = 0;
+
+	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
+		ms_message("[Oboe Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
+		ictx->bluetoothScoStarted = true;
+
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, ictx->bluetoothScoStarted);
+	}
+	
 	oboe_recorder_init(ictx);
 
 	ms_mutex_lock(&ictx->mutex);
@@ -246,9 +280,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
 	ms_mutex_unlock(&ictx->mutex);
-
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -311,14 +342,18 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 	}
 
 	JNIEnv *env = ms_get_jni_env();
-
 	if (ictx->aec) {
 		ms_android_delete_hardware_echo_canceller(env, ictx->aec);
 		ictx->aec = NULL;
 		ms_message("[Oboe Recorder] Hardware echo canceller deleted");
 	}
-
-	ms_android_set_bt_enable(env, FALSE);
+	
+	if (ictx->bluetoothScoStarted) {
+		ms_message("[Oboe Recorder] We previously started SCO in Android's AudioManager, stopping it now");
+		ictx->bluetoothScoStarted = false;
+		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
+		ms_android_set_bt_enable(env, FALSE);
+	}
 
 	ms_mutex_unlock(&ictx->mutex);
 }
@@ -371,8 +406,19 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 		ictx->soundCard = ms_snd_card_ref(card);
 		ictx->deviceChanged = true;
 
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+		bool bluetoothSoundDevice = (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
+		if (bluetoothSoundDevice != ictx->bluetoothScoStarted) {
+			if (bluetoothSoundDevice) {
+				ms_message("[Oboe Recorder] New sound device is bluetooth, starting Android AudioManager's SCO");
+			} else {
+				ms_message("[Oboe Recorder] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
+			}
+
+			JNIEnv *env = ms_get_jni_env();
+			ms_android_set_bt_enable(env, bluetoothSoundDevice);
+			ictx->bluetoothScoStarted = bluetoothSoundDevice;
+		}
+
 		ms_mutex_unlock(&ictx->streamMutex);
 	}
 	return 0;

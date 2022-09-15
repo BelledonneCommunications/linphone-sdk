@@ -40,6 +40,7 @@ struct OboeOutputContext {
 		bufferCapacity = 0;
 		bufferSize = 0;
 		framesPerBurst = 0;
+		bluetoothScoStarted = false;
 	}
 
 	~OboeOutputContext() {
@@ -96,11 +97,14 @@ struct OboeOutputContext {
 	ms_mutex_t mutex;
 	oboe::Usage usage;
 	oboe::ContentType contentType;
+	oboe::AudioApi usedAudioApi;
 
 	int32_t bufferCapacity;
 	int32_t prevXRunCount;
 	int32_t bufferSize;
 	int32_t framesPerBurst;
+
+	bool bluetoothScoStarted;
 };
 
 class OboeOutputCallback: public oboe::AudioStreamDataCallback {
@@ -194,6 +198,23 @@ static void oboe_player_init(OboeOutputContext *octx) {
 	builder.setFormat(oboe::AudioFormat::I16);
 	builder.setChannelCount(octx->oboeContext->nchannels);
 	builder.setSampleRate(octx->oboeContext->sampleRate);
+	
+	bool forceOpenSLES = false;
+	if (octx->soundCard->device_description != nullptr) {
+		if (octx->soundCard->device_description->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
+			ms_warning("[Oboe Player] Device has CRAPPY_AAUDIO flag, asking Oboe to use OpenSLES");
+			forceOpenSLES = true;
+		}
+	}
+	if (!forceOpenSLES && ms_get_android_sdk_version() < 28) {
+		ms_message("[Oboe Player] Android < 28 detected, asking Oboe to use OpenSLES");
+	}
+	if (forceOpenSLES) {
+		octx->usedAudioApi = oboe::AudioApi::OpenSLES;
+	} else {
+		octx->usedAudioApi = oboe::AudioApi::AAudio;
+	}
+	builder.setAudioApi(octx->usedAudioApi);
 
 	octx->oboeCallback = new OboeOutputCallback(octx);
 	builder.setDataCallback(octx->oboeCallback);
@@ -213,12 +234,17 @@ static void oboe_player_init(OboeOutputContext *octx) {
 		return;
 	} else {
 		ms_message("[Oboe Player] Player stream opened, status: %s", oboe_state_to_string(octx->stream->getState()));
+		oboe::AudioApi audioApi = octx->stream->getAudioApi();
 		ms_message("[Oboe Player] Player stream configuration: API = %s, direction = %s, device id = %i, sharing mode = %s, performance mode = %s, sample rate = %i, channel count = %i, format = %s, frames per burst = %i, buffer capacity in frames = %i", 
-			oboe_api_to_string(octx->stream->getAudioApi()), oboe_direction_to_string(octx->stream->getDirection()), 
+			oboe_api_to_string(audioApi), oboe_direction_to_string(octx->stream->getDirection()), 
 			octx->stream->getDeviceId(), oboe_sharing_mode_to_string(octx->stream->getSharingMode()), oboe_performance_mode_to_string(octx->stream->getPerformanceMode()), 
 			octx->stream->getSampleRate(), octx->stream->getChannelCount(), oboe_format_to_string(octx->stream->getFormat()), 
 			octx->stream->getFramesPerBurst(), octx->stream->getBufferCapacityInFrames()
 		);
+		if (audioApi != octx->usedAudioApi) {
+			ms_warning("[Oboe Player] We asked for audio API [%s] but Oboe choosed [%s]", oboe_api_to_string(octx->usedAudioApi), oboe_api_to_string(audioApi));
+			octx->usedAudioApi = audioApi;
+		}
 	}
 
 	int32_t framesPerBust = octx->stream->getFramesPerBurst();
@@ -275,11 +301,16 @@ static void oboe_player_close(OboeOutputContext *octx) {
 
 static void android_snd_write_preprocess(MSFilter *obj) {
 	OboeOutputContext *octx = (OboeOutputContext*)obj->data;
-	oboe_player_init(octx);
+	
+	if ((ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
+		ms_message("[Oboe Player] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
+		octx->bluetoothScoStarted = true;
 
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	//ms_android_hack_volume(env);
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, octx->bluetoothScoStarted);
+	}
+
+	oboe_player_init(octx);
 }
 
 static void android_snd_adjust_buffer_size(OboeOutputContext *octx) {
@@ -339,9 +370,13 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	oboe_player_close(octx);
 	ms_mutex_unlock(&octx->streamMutex);
 	
-	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, FALSE);
+	if (octx->bluetoothScoStarted) {
+		ms_message("[Oboe Player] We previously started SCO in Android's AudioManager, stopping it now");
+		octx->bluetoothScoStarted = false;
+		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, FALSE);
+	}
 }
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
@@ -357,47 +392,62 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		}
 		octx->soundCard = ms_snd_card_ref(card);
 
-		if (octx->stream) {
+		JNIEnv *env = ms_get_jni_env();
+		if (octx->usedAudioApi == oboe::AudioApi::OpenSLES) {
 			ms_mutex_lock(&octx->streamMutex);
-			oboe_player_close(octx);
+			ms_android_change_device(env, card->device_type);
 			ms_mutex_unlock(&octx->streamMutex);
-		}
-		
-		ms_mutex_lock(&octx->streamMutex);
-		oboe_player_init(octx);
-		ms_mutex_unlock(&octx->streamMutex);
+		} else {
+			if (octx->stream) {
+				ms_mutex_lock(&octx->streamMutex);
+				oboe_player_close(octx);
+				ms_mutex_unlock(&octx->streamMutex);
+			}
 
-		if (octx->stream == nullptr) {
-			return -1;
-		}
-
-		oboe::StreamState inputState = octx->stream->getState();
-		ms_message("[Oboe Player] Current state is: %s", oboe_state_to_string(inputState));
-		if (inputState == oboe::StreamState::Starting) {
-			oboe::StreamState nextState = inputState;
-			int tries = 0;
-			do {
-				ms_usleep(10000); // Wait 10ms
-
-				oboe::Result result = octx->stream->waitForStateChange(inputState, &nextState, 0);
-				if (result != oboe::Result::OK) {
-					ms_error("[Oboe Player] Couldn't wait for state change: %i / %s", result, oboe::convertToText(result));
-					break;
+			bool bluetoothSoundDevice = (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
+			if (bluetoothSoundDevice != octx->bluetoothScoStarted) {
+				if (bluetoothSoundDevice) {
+					ms_message("[Oboe Player] New sound device has bluetooth type, starting Android AudioManager's SCO");
+				} else {
+					ms_message("[Oboe Player] New sound device has, stopping Android AudioManager's SCO");
 				}
 
-				tries += 1;
-			} while (nextState == inputState && tries < 10);
-			ms_message("[Oboe Player] Waited for state change, current state is %s (waited for %i ms)", oboe_state_to_string(nextState), 10*tries);
+				ms_android_set_bt_enable(env, bluetoothSoundDevice);
+				octx->bluetoothScoStarted = bluetoothSoundDevice;
+			}
+			
+			ms_mutex_lock(&octx->streamMutex);
+			oboe_player_init(octx);
+			ms_mutex_unlock(&octx->streamMutex);
+
+			if (octx->stream == nullptr) {
+				return -1;
+			}
+
+			oboe::StreamState inputState = octx->stream->getState();
+			ms_message("[Oboe Player] Current state is: %s", oboe_state_to_string(inputState));
+			if (inputState == oboe::StreamState::Starting) {
+				oboe::StreamState nextState = inputState;
+				int tries = 0;
+				do {
+					ms_usleep(10000); // Wait 10ms
+
+					oboe::Result result = octx->stream->waitForStateChange(inputState, &nextState, 0);
+					if (result != oboe::Result::OK) {
+						ms_error("[Oboe Player] Couldn't wait for state change: %i / %s", result, oboe::convertToText(result));
+						break;
+					}
+
+					tries += 1;
+				} while (nextState == inputState && tries < 10);
+				ms_message("[Oboe Player] Waited for state change, current state is %s (waited for %i ms)", oboe_state_to_string(nextState), 10*tries);
+			}
+
+			if (octx->usage == oboe::Usage::VoiceCommunication) {
+				ms_message("[Oboe Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
+				ms_android_hack_volume(env);
+			}
 		}
-
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-
-		if (octx->usage == oboe::Usage::VoiceCommunication) {
-			ms_message("[Oboe Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
-			ms_android_hack_volume(env);
-		}
-
 	} else {
 		ms_warning("[Oboe Player] Sound cards internal ids are the same, nothing has been done!");
 	}
