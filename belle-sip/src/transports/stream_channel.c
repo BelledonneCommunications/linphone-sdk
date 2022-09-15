@@ -222,7 +222,9 @@ int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int rev
 				return -1;
 			}
 #if TARGET_OS_IPHONE
-			stream_channel_enable_ios_background_mode(obj);
+			if (belle_sip_get_ios_device_major_version() < 16) { // Causes crash on app built for iOS16 with Xcode 14
+				stream_channel_enable_ios_background_mode(obj);
+			}
 #endif
 			if (obj->base.stack->dscp && obj->base.lp){
 				/*apply dscp only to channel belonging to a SIP listening point*/

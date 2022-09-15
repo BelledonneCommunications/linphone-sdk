@@ -176,6 +176,7 @@ set(GRAMMAR_FILES
 if(APPLE)
 	set(BELLE_SIP_SOURCE_FILES_OBJC
 		backgroundtask.mm
+		ios_check_version.m
 	)
 endif()
 

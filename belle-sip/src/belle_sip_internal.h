@@ -1147,4 +1147,9 @@ uint32_t belle_sip_random(void);
 }
 #endif
 
+
+#if TARGET_OS_IPHONE
+int belle_sip_get_ios_device_major_version();
+#endif
+
 #endif
