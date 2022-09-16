@@ -1,6 +1,6 @@
-ios-xcode-upload:
+ios-xcode-upload-xcode12:
   stage: deploy
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-min-xcode12.2-upload" ]
 
   rules:
     - if: $DEPLOY_RUN_IOS
@@ -44,9 +44,9 @@ ios-xcode-upload:
     - pod repo remove linphone-sdk
 
 
-ios-xcode-novideo-upload:
+ios-xcode-novideo-upload-xcode12:
   stage: deploy
-  tags: [ "macosx-xcode11" ]
+  tags: [ "macosx-min-xcode12.2-upload" ]
 
   rules:
     - if: $DEPLOY_RUN_IOS
