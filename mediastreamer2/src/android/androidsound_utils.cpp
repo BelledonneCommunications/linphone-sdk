@@ -193,7 +193,7 @@ void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable) {
 			jmethodID toggleBTEnable = env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
 			if (toggleBTEnable != NULL) {
 					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, toggleBTEnable);
-					ms_message("[Android Audio Utils] setting enable for bluetooth devices to %s", (enable) ? "true" : "false");
+					ms_debug("[Android Audio Utils] setting enable for bluetooth devices to %s", (enable) ? "true" : "false");
 			}
 			env->DeleteLocalRef(mediastreamerAndroidContextClass);
 		}

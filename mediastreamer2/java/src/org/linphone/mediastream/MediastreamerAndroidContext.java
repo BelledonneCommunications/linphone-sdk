@@ -206,16 +206,24 @@ public class MediastreamerAndroidContext {
 
 	public synchronized static void startBluetooth() {
 		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
-		Log.i("[Audio Manager] Starting bluetooth SCO");
-		audioManager.setBluetoothScoOn(true);
-		audioManager.startBluetoothSco();
+		if (audioManager.isBluetoothScoOn()) {
+			Log.i("[Audio Manager] Bluetooth SCO is already started");
+		} else {
+			Log.i("[Audio Manager] Starting bluetooth SCO");
+			audioManager.setBluetoothScoOn(true);
+			audioManager.startBluetoothSco();
+		}
 	}
 
 	public synchronized static void stopBluetooth() {
 		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
-		Log.i("[Audio Manager] Stopping bluetooth SCO");
-		audioManager.stopBluetoothSco();
-		audioManager.setBluetoothScoOn(false);
+		if (!audioManager.isBluetoothScoOn()) {
+			Log.i("[Audio Manager] Bluetooth SCO is not started");
+		} else {
+			Log.i("[Audio Manager] Stopping bluetooth SCO");
+			audioManager.stopBluetoothSco();
+			audioManager.setBluetoothScoOn(false);
+		}
 	}
 
 	public synchronized static void hackVolume() {
