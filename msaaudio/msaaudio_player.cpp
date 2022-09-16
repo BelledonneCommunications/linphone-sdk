@@ -40,6 +40,7 @@ struct AAudioOutputContext {
 		bufferCapacity = 0;
 		bufferSize = 0;
 		framesPerBurst = 0;
+		bluetoothScoStarted = false;
 	}
 
 	~AAudioOutputContext() {
@@ -101,6 +102,7 @@ struct AAudioOutputContext {
 	int32_t prevXRunCount;
 	int32_t bufferSize;
 	int32_t framesPerBurst;
+	bool bluetoothScoStarted;
 };
 
 static void android_snd_write_init(MSFilter *obj){
@@ -254,11 +256,16 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
-	aaudio_player_init(octx);
+	
+	if ((ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
+		ms_message("[AAudio Player] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
+		octx->bluetoothScoStarted = true;
 
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
-	//ms_android_hack_volume(env);
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, octx->bluetoothScoStarted);
+	}
+
+	aaudio_player_init(octx);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -315,10 +322,14 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	ms_mutex_lock(&octx->stream_mutex);
 	aaudio_player_close(octx);
 	ms_mutex_unlock(&octx->stream_mutex);
-
-	// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, FALSE);
+	
+	if (octx->bluetoothScoStarted) {
+		ms_message("[AAudio Player] We previously started SCO in Android's AudioManager, stopping it now");
+		octx->bluetoothScoStarted = false;
+		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, FALSE);
+	}
 }
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
@@ -336,6 +347,19 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 
 		if (octx->stream) {
 			aaudio_player_close(octx);
+		}
+
+		JNIEnv *env = ms_get_jni_env();
+		bool bluetoothSoundDevice = (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
+		if (bluetoothSoundDevice != octx->bluetoothScoStarted) {
+			if (bluetoothSoundDevice) {
+				ms_message("[AAudio Player] New sound device has bluetooth type, starting Android AudioManager's SCO");
+			} else {
+				ms_message("[AAudio Player] New sound device has, stopping Android AudioManager's SCO");
+			}
+
+			ms_android_set_bt_enable(env, bluetoothSoundDevice);
+			octx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
 
 		aaudio_player_init(octx);
@@ -364,9 +388,6 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 			} while (nextState == inputState && tries < 10);
 			ms_message("[AAudio Player] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
 		}
-
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
 
 		if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
 			ms_message("[AAudio Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");

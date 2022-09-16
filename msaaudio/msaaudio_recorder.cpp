@@ -34,6 +34,7 @@ struct AAudioInputContext {
 		aec = NULL;
 		aecEnabled = true;
 		voiceRecognitionMode = false;
+		bluetoothScoStarted = false;
 	}
 
 	~AAudioInputContext() {
@@ -62,6 +63,7 @@ struct AAudioInputContext {
 	jobject aec;
 	bool aecEnabled;
 	bool voiceRecognitionMode;
+	bool bluetoothScoStarted;
 };
 
 static AAudioInputContext* aaudio_input_context_init() {
@@ -224,8 +226,13 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
 
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
+		ms_message("[AAudio Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
+		ictx->bluetoothScoStarted = true;
+
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_set_bt_enable(env, ictx->bluetoothScoStarted);
+	}
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -302,8 +309,13 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ictx->aec = NULL;
 		ms_message("[AAudio Recorder] Hardware echo canceller deleted");
 	}
-
-	ms_android_set_bt_enable(env, FALSE);
+	
+	if (ictx->bluetoothScoStarted) {
+		ms_message("[AAudio Recorder] We previously started SCO in Android's AudioManager, stopping it now");
+		ictx->bluetoothScoStarted = false;
+		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
+		ms_android_set_bt_enable(env, FALSE);
+	}
 
 	ms_mutex_unlock(&ictx->mutex);
 }
@@ -357,8 +369,18 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 		ictx->soundCard = ms_snd_card_ref(card);
 		ictx->aaudio_context->device_changed = true;
 
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH));
+		bool bluetoothSoundDevice = (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
+		if (bluetoothSoundDevice != ictx->bluetoothScoStarted) {
+			if (bluetoothSoundDevice) {
+				ms_message("[AAudio Recorder] New sound device is bluetooth, starting Android AudioManager's SCO");
+			} else {
+				ms_message("[AAudio Recorder] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
+			}
+
+			JNIEnv *env = ms_get_jni_env();
+			ms_android_set_bt_enable(env, bluetoothSoundDevice);
+			ictx->bluetoothScoStarted = bluetoothSoundDevice;
+		}
 		ms_mutex_unlock(&ictx->stream_mutex);
 	}
 	return 0;
