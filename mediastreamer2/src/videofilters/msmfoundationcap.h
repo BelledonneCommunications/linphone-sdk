@@ -139,6 +139,10 @@ public:
 //----------------------------------------	Special Microsoft Section
 	
 	concurrency::task<void> mCurrentTask = concurrency::task_from_result();
+private:
+	concurrency::task<void> startAsync();
+	concurrency::task<void> stopAsync();
+	void setInternalFormat(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
 	
 };
 #else
