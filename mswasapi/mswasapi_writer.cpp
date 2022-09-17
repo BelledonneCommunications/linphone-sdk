@@ -74,14 +74,16 @@ MSWASAPIWriter::~MSWASAPIWriter()
 }
 
 
-void MSWASAPIWriter::init(LPCWSTR id, MSFilter *f) {
+void MSWASAPIWriter::init(MSSndCard *card, MSFilter *f) {
+	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
+	LPCWSTR id = wasapicard->id;
 	bool useBestFormat = false;
 	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 	AudioClientProperties properties = { 0 };
 #endif
-
+	mDeviceName = card->name;
 #if defined(MS2_WINDOWS_UNIVERSAL)
 	IActivateAudioInterfaceAsyncOperation *asyncOp;
 	mRenderId = ref new Platform::String(id);
@@ -198,7 +200,7 @@ int MSWASAPIWriter::activate()
 	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio output interface [%x]", result);
 	mIsActivated = true;
 
-	ms_message("Wasapi playback output initialized at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, %i-bit frames are on %i bits", (int)mRate, (int)mNChannels,
+	ms_message("MSWASAPI playback output initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), device period is %i, %i-bit frames are on %i bits", mDeviceName.c_str(), (int)mRate, (int)mNChannels,
 		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/ mRate, devicePeriodMs, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
@@ -333,7 +335,6 @@ void MSWASAPIWriter::setVolumeLevel(float volume) {
 error:
 	return;
 }
-
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 //

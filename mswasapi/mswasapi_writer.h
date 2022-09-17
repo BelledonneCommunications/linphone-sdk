@@ -41,7 +41,7 @@ public:
 	MSWASAPIWriter();
 	virtual ~MSWASAPIWriter();
 
-	void init(LPCWSTR id, MSFilter *f);
+	void init(MSSndCard *card, MSFilter *f);
 	int activate();
 	int deactivate();
 	bool isStarted() { return mIsStarted; }
@@ -72,6 +72,7 @@ private:
 #else
 	LPCWSTR mRenderId;
 #endif
+	
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
@@ -79,6 +80,7 @@ private:
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
+	std::string mDeviceName;
 };
 
 

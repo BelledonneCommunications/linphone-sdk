@@ -41,7 +41,7 @@ public:
 	MSWASAPIReader(MSFilter *filter);
 	virtual ~MSWASAPIReader();
 
-	void init(LPCWSTR id);
+	void init(MSSndCard *card);
 	int activate();
 	int deactivate();
 	bool isStarted() { return mIsStarted; }
@@ -76,6 +76,7 @@ private:
 	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
+	std::string mDeviceName;
 	
 	MSFilter *mFilter;
 	MSTickerSynchronizer *mTickerSynchronizer;
