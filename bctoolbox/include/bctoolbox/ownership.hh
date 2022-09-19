@@ -10,6 +10,7 @@
 #pragma once
 
 #include <stdexcept>
+#include <memory>
 
 namespace ownership {
 
@@ -22,10 +23,25 @@ class BorrowedMut {
 	T* mPointer;
 
 public:
-	/* State explicitly that this pointer represents a mutable borrow
-	 */
+	/* State explicitly that this pointer represents a mutable borrow */
 	explicit BorrowedMut(T* pointer) : mPointer(pointer) {
 	}
+
+	/* Downcasts from smart pointers */
+	BorrowedMut(const std::shared_ptr<T>& shared) : mPointer(shared.get()) {
+	}
+	template <class Deleter>
+	BorrowedMut(const std::unique_ptr<T, Deleter>& unique) : mPointer(unique.get()) {
+	}
+
+	/* Cast wrapped type */
+	template <class U>
+	BorrowedMut(BorrowedMut<U> other) : mPointer(other) {
+	}
+
+	T* operator->() {
+		return mPointer;
+	};
 
 	operator T*() {
 		return mPointer;
