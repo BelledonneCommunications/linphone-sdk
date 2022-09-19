@@ -76,18 +76,6 @@ MS2_PUBLIC bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs);
 /* defined in srtp.h*/
 typedef struct _MSSrtpCtx MSSrtpCtx;
 
-typedef enum {
-	MSSRTP_RTP_STREAM,
-	MSSRTP_RTCP_STREAM,
-	MSSRTP_ALL_STREAMS
-} MSSrtpStreamType;
-/**
- * return humanly readable string
- * @param[in]	type
- * @return
- *
- * */
-MS2_PUBLIC const char * ms_srtp_stream_type_to_string(const MSSrtpStreamType type);
 /**
  * Check if SRTP is supported
  * @return true if SRTP is supported
@@ -120,22 +108,10 @@ MS2_PUBLIC bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
  * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
- * @return	0 on success, error code otherwise
- * @deprecated use ms_media_stream_sessions_set_sourced_srtp_recv_key_b64 instead
- */
-MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
-
-/**
- * Set srtp receiver key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
- *
- * @param[in/out]	sessions	The sessions associated to the current media stream
- * @param[in]		suite		The srtp crypto suite to use
- * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -145,36 +121,10 @@ MS2_PUBLIC int ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(MSMediaStr
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt
  * @param[in]		key_length	key buffer length
- * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
- * @return	0 on success, error code otherwise
- * @deprecated use ms_media_stream_sessions_set_sourced_srtp_recv_key instead
- */
-MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
-/**
- * Set srtp receiver key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
- *
- * @param[in/out]	sessions	The sessions associated to the current media stream
- * @param[in]		suite		The srtp crypto suite to use
- * @param[in]		key		Srtp master key and master salt
- * @param[in]		key_length	key buffer length
- * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_sourced_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource source);
-
-/**
- * Set srtp sender key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
- *
- * @param[in/out]	sessions	The sessions associated to the current media stream
- * @param[in]		suite	The srtp crypto suite to use
- * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
- * @return	0 on success, error code otherwise
- * @deprecated use ms_media_stream_sessions_set_sourced_srtp_send_key_b64
- */
-MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -186,21 +136,7 @@ MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_send_key_b64(MSM
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_sourced_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
-
-/**
- * Set srtp sender key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
- *
- * @param[in/out]	stream	The mediastream to operate on
- * @param[in]		suite		The srtp crypto suite to use
- * @param[in]		key		Srtp master key and master salt
- * @param[in]		key_length	key buffer length
- * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
- * @return	0 on success, error code otherwise
- * @deprecated use ms_media_stream_sessions_set_sourced_srtp_send_key instead
- */
-MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -214,7 +150,7 @@ MS2_PUBLIC MS2_DEPRECATED int ms_media_stream_sessions_set_srtp_send_key(MSMedia
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_sourced_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpStreamType stream_type, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
 
 /**
  * Convert MSCryptoSuite enum to a string.

@@ -333,8 +333,8 @@ bool_t media_stream_dtls_supported(void){
 /*deprecated*/
 /* This function is called only when using SDES to exchange SRTP keys */
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
-	return ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&stream->sessions,suite,rcv_key,MSSrtpKeySourceSDES)==0
-	&& ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&stream->sessions,suite,snd_key,MSSrtpKeySourceSDES)==0;
+	return ms_media_stream_sessions_set_srtp_recv_key_b64(&stream->sessions,suite,rcv_key,MSSrtpKeySourceSDES)==0
+	&& ms_media_stream_sessions_set_srtp_send_key_b64(&stream->sessions,suite,snd_key,MSSrtpKeySourceSDES)==0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream){

@@ -239,10 +239,10 @@ static void srtp_protected_text_stream(void) {
 
 	BC_ASSERT_TRUE(ms_srtp_supported());
 
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj", MSSrtpKeySourceSDES),0,int,"%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_sourced_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F", MSSrtpKeySourceSDES),0,int,"%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj", MSSrtpKeySourceSDES),0,int,"%d");
-	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_sourced_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F", MSSrtpKeySourceSDES),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj", MSSrtpKeySourceSDES),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_send_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F", MSSrtpKeySourceSDES),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ts->ms.sessions), MS_AES_128_SHA1_32, "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj", MSSrtpKeySourceSDES),0,int,"%d");
+	BC_ASSERT_EQUAL(ms_media_stream_sessions_set_srtp_recv_key_b64(&(marielle->ts->ms.sessions), MS_AES_128_SHA1_32, "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F", MSSrtpKeySourceSDES),0,int,"%d");
 
 	BC_ASSERT_TRUE(media_stream_secured(&marielle->ts->ms));
 	BC_ASSERT_TRUE(media_stream_secured(&margaux->ts->ms));
