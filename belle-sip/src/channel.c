@@ -1167,9 +1167,11 @@ static int send_buffer(belle_sip_channel_t *obj, const char *buffer, size_t size
 		ret=belle_sip_channel_send(obj,buffer,size);
 	}else if (obj->stack->send_error<0){
 		/*for testing purpose only */
+		belle_sip_message("channel[%p]: simulating socket error [%i].", obj, (int) obj->stack->send_error);
 		ret=obj->stack->send_error;
 	} else {
 		ret=(int)size; /*to silently discard message*/
+		belle_sip_message("channel[%p]: %i bytes are silently discarded, to simulate loss of data.", obj, (int) size);
 	}
 
 	if (ret<0){
