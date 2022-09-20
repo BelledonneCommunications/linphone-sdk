@@ -488,6 +488,7 @@ void ms_srtp_shutdown(void){
 
 static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, bool_t is_send, MSSrtpKeySource source){
 	int error = -1;
+	int ret = 0;
 	check_and_create_srtp_context(sessions);
 
 	if (key) {
@@ -507,25 +508,33 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 		stream_ctx->secured = FALSE;
 		stream_ctx->source = MSSrtpKeySourceUnavailable;
 		stream_ctx->suite = MS_CRYPTO_SUITE_INVALID;
-		return 0;
 	}
 
 	if ((error = ms_media_stream_session_fill_srtp_context(sessions,is_send))) {
 		stream_ctx->secured=FALSE;
+		stream_ctx->source = MSSrtpKeySourceUnavailable;
 		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
-		return error;
-	}
-
-	if ((error = ms_add_srtp_stream(stream_ctx->srtp, suite, key, key_length, is_send))) {
+		ret = error;
+	} else	if ((error = ms_add_srtp_stream(stream_ctx->srtp, suite, key, key_length, is_send))) {
 		stream_ctx->secured=FALSE;
+		stream_ctx->source = MSSrtpKeySourceUnavailable;
 		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
-		return error;
+		ret = error;
+	} else {
+		stream_ctx->secured=ms_srtp_is_crypto_policy_secure(suite);
+		stream_ctx->source = source;
+		stream_ctx->suite = suite;
 	}
 
-	stream_ctx->secured=ms_srtp_is_crypto_policy_secure(suite);
-	stream_ctx->source = source;
-	stream_ctx->suite = suite;
-	return 0;
+	/* Srtp encryption has changed, notify to get it in call stats */
+	OrtpEvent *ev = ortp_event_new(ORTP_EVENT_SRTP_ENCRYPTION_CHANGED);
+	OrtpEventData *eventData=ortp_event_get_data(ev);
+	eventData->info.srtp_info.is_send = is_send;
+	eventData->info.srtp_info.source = source;
+	eventData->info.srtp_info.suite = suite;
+	rtp_session_dispatch_event(sessions->rtp_session, ev);
+
+	return ret;
 }
 
 

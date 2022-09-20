@@ -59,7 +59,6 @@ typedef enum _MSCryptoSuite{
         MS_AES_256_SHA1_32,
 	MS_AEAD_AES_128_GCM,
 	MS_AEAD_AES_256_GCM
-
 } MSCryptoSuite;
 
 typedef struct _MSCryptoSuiteNameParams{
