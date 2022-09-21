@@ -5,7 +5,7 @@ nuget-upload-xamarin:
   rules:
     - if: $DEPLOY_RUN_NUGET
     - if: $UPLOAD_XAMARIN
-    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
     - if: $NIGHTLY_RELEASE
 
   variables:

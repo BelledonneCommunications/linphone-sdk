@@ -3,7 +3,7 @@ debian-doc-upload:
   tags: [ "deploy" ]
 
   rules:
-    - if: $UPLOAD_C_CPP_DOC
+    - if: $UPLOAD_C_CPP_DOC && $SKIP_DEPLOY == null
 
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
@@ -45,7 +45,7 @@ bzrtp-doc-upload:
   tags: [ "deploy" ]
 
   rules:
-    - if: $UPLOAD_BZRTP_DOC
+    - if: $UPLOAD_BZRTP_DOC && $SKIP_DEPLOY == null
 
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
@@ -85,7 +85,7 @@ lime-doc-upload:
   tags: [ "deploy" ]
 
   rules:
-    - if: $UPLOAD_LIME_DOC
+    - if: $UPLOAD_LIME_DOC && $SKIP_DEPLOY == null
 
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes

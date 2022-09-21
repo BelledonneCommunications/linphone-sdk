@@ -12,7 +12,7 @@
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   rules:
     - if: $DEPLOY_RUN_IOS
-    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
     - if: $NIGHTLY_RELEASE
   needs:
     - ios-xcode

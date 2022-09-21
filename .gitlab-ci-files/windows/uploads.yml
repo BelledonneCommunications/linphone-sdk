@@ -24,7 +24,7 @@ vs2017-win32-windows-upload:
 
   rules:
     - if: $DEPLOY_RUN_WINDOWS
-    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
     - if: $NIGHTLY_RELEASE
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
@@ -48,7 +48,7 @@ cs-doc-windows-upload:
   tags: [ "windows-powershell"]
 
   rules:
-    - if: $UPLOAD_CS_DOC
+    - if: $UPLOAD_CS_DOC && $SKIP_DEPLOY == null
 
   needs:
     - vs2017-win32-scheduled-windows

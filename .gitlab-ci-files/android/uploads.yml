@@ -5,7 +5,7 @@
 
   rules:
     - if: $DEPLOY_RUN_ANDROID
-    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
     - if: $NIGHTLY_RELEASE
 
   variables:
@@ -41,7 +41,7 @@ android-doc-upload:
 
   rules:
     - if: $DEPLOY_RUN_ANDROID
-    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
     - if: $NIGHTLY_RELEASE
 
   variables:
