@@ -862,8 +862,9 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 		}else
 			hr = -1;
 	}
+	auto configsStr = configs.toString();
 	if(doSet && SUCCEEDED(hr)) {
-		mCurrentTask = mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr = configs.toString()
+		mCurrentTask = mCurrentTask.then([this, mediaFormat, videoFormat, frameWidth, frameHeight, pFps, configsStr
 											, requestedVideoFormat, requestedFrameWidth, requestedFrameHeight]() {
 			bool_t restartCamera = mRunning && mSource;
 			if (restartCamera)
