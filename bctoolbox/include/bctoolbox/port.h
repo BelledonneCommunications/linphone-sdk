@@ -836,6 +836,13 @@ BCTBX_PUBLIC int bctbx_strcasecmp(const char *a, const char *b);
 BCTBX_PUBLIC int bctbx_strcmp(const char *a, const char *b);
 
 
+/**
+ * @brief Set the name of the calling thread.
+ * This can ease the analysis of bug reports, such as ANR reports on Android.
+ * @param[in] the name. Its length is subject to underlying platform's limitations.
+ */
+BCTBX_PUBLIC void bctbx_set_self_thread_name(const char *name);
+
 
 #ifdef __cplusplus
 }

@@ -29,8 +29,13 @@
 #include "bctoolbox/charconv.h"
 #include "utils.h"
 
+#ifdef __APPLE__
+   #include "TargetConditionals.h"
+#endif
+
 #if	defined(_WIN32) && !defined(_WIN32_WCE)
 #include <process.h>
+#include <processthreadsapi.h>
 #endif
 
 #ifdef _MSC_VER
@@ -47,6 +52,10 @@
 
 #ifdef HAVE_SYS_SHM_H
 #include <sys/shm.h>
+#endif
+
+#ifdef __linux__
+#include <sys/prctl.h>
 #endif
 
 #ifndef MIN
@@ -356,6 +365,16 @@ unsigned long __bctbx_thread_self(void) {
 	return (unsigned long)pthread_self();
 }
 
+void bctbx_set_self_thread_name(const char *name){
+#ifdef __linux__ /* Android, Gnu/Linux */
+	prctl(PR_SET_NAME, name, NULL, NULL, NULL);
+#elif TARGET_OS_MAC
+	pthread_setname_np(name);
+#elif
+	bctbx_warning("bctbx_set_self_thread_name(): not implemented on this platform.");
+#endif
+}
+
 #endif
 #if	defined(_WIN32) || defined(_WIN32_WCE)
 
@@ -395,6 +414,12 @@ int __bctbx_WIN_mutex_destroy(bctbx_mutex_t * hMutex)
 	CloseHandle(*hMutex);
 #endif
 	return 0;
+}
+
+void bctbx_set_self_thread_name(const char *name){
+	wchar_t *unicode_name = bctbx_string_to_wide_string(name);
+	SetThreadDescription(GetCurrentThread(), unicode_name);
+	bctbx_free(unicode_name);
 }
 
 typedef struct thread_param{
