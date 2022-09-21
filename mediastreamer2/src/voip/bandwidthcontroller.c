@@ -187,7 +187,8 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 	for (elem = obj->streams; elem != NULL; elem = elem->next){
 		MediaStream *ms = (MediaStream*) elem->data;
 		if (ms->type == MSVideo) {
-			if (!ms->is_thumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
+			VideoStream *vs = (VideoStream*)ms;
+			if (!vs->is_thumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
 				if (!ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
 					ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,on_video_bandwidth_estimation_available, ms);
 					params.enabled = TRUE;

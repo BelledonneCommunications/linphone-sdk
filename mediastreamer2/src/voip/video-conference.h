@@ -121,7 +121,7 @@ public:
 
 protected:
 	void addVideoPlaceholderMember() override;
-	int findSourcePin(std::string participant);
+	int findSourcePin(const std::string &participant);
 	void configureOutput(VideoEndpoint *ep) override;
 	int mOutputs[ROUTER_MAX_OUTPUT_CHANNELS] ;
 	int mInputs[ROUTER_MAX_INPUT_CHANNELS];

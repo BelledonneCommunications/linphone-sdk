@@ -41,7 +41,7 @@ MSAsyncReader *ms_async_reader_new(bctbx_vfs_file_t *fp){
 	ms_mutex_init(&obj->mutex, NULL);
 	ms_bufferizer_init(&obj->buf);
 	obj->fp = fp;
-	obj->wth = ms_worker_thread_new();
+	obj->wth = ms_worker_thread_new("MSAsyncReader");
 #ifndef WIN32
 	obj->blocksize = getpagesize();
 #else
@@ -145,7 +145,7 @@ MSAsyncWriter *ms_async_writer_new(bctbx_vfs_file_t *fp){
 	ms_mutex_init(&obj->mutex, NULL);
 	ms_bufferizer_init(&obj->buf);
 	obj->fp = fp;
-	obj->wth = ms_worker_thread_new();
+	obj->wth = ms_worker_thread_new("MSAsyncWriter");
 #ifndef WIN32
 	obj->blocksize = getpagesize();
 #else

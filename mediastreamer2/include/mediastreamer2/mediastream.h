@@ -158,8 +158,7 @@ struct _MediaStream {
 	MSFactory *factory;
 	MSBandwidthController *bandwidth_controller;
 	MSVideoQualityController *video_quality_controller;
-    MediaStreamDir direction;
-	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
+	MediaStreamDir direction;
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -993,6 +992,9 @@ struct _VideoStream
 	MediaStreamVideoStat ms_video_stat;
 	VideoStreamEncoderControlCb encoder_control_cb;
 	void *encoder_control_cb_user_data;
+	MSVideoDisplayMode display_mode;
+	int frame_marking_extension_id;
+	char *label;
 	bool_t use_preview_window;
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
@@ -1002,9 +1004,7 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
-	char *label;
-	MSVideoDisplayMode display_mode;
-	int frame_marking_extension_id;
+	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 };
 
 typedef struct _VideoStream VideoStream;

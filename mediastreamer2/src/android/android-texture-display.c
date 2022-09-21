@@ -58,7 +58,7 @@ static AndroidTextureSharedContext shared_context = {NULL, 0};
 
 static MSWorkerThread *android_texture_display_get_worker(void){
 	if (shared_context.use_count == 0){
-		shared_context.process_thread = ms_worker_thread_new();
+		shared_context.process_thread = ms_worker_thread_new("ms2 OGL");
 	}
 	shared_context.use_count++;
 	return shared_context.process_thread;

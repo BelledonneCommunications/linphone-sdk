@@ -76,16 +76,22 @@ int VideoConferenceAllToAll::findFreeInputPin() {
 }
 
 
-int VideoConferenceAllToAll::findSourcePin(std::string participant) {
+int VideoConferenceAllToAll::findSourcePin(const std::string &participant) {
+	VideoEndpoint *ret = nullptr;
 	for (const bctbx_list_t *elem = getMembers(); elem != nullptr; elem = elem->next){
 		VideoEndpoint *ep_it = (VideoEndpoint *)elem->data;
 		if (ep_it->mName.compare(participant) == 0) {
-			ms_message("Found source pin %d for %s", ep_it->mPin, participant.c_str());
-			return ep_it->mPin;
+			if (!ret){
+				ms_message("Found source pin %d for %s", ep_it->mPin, participant.c_str());
+				ret = ep_it;
+			}else{
+				ms_error("There are more than one endpoint with label '%s' !", participant.c_str());
+			}
 		}
 	}
-	ms_message("Can not find source pin for %s",participant.c_str());
-	return -1;
+	if (!ret)
+		ms_message("Can not find source pin for %s",participant.c_str());
+	return ret ? ret->mPin : -1;
 }
 
 static void configureEndpoint(VideoEndpoint *ep){

@@ -254,6 +254,9 @@ typedef enum _MSRecorderState MSRecorderState;
 	MS_FILTER_METHOD_NO_ARG(MSFilterVideoDecoderInterface, 10)
 #define MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED \
 	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 11, bool_t)
+#define MS_VIDEO_DECODER_SET_MAX_THREADS \
+	MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 12, int)
+
 
 
 

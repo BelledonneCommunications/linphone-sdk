@@ -106,6 +106,8 @@ static bool_t ms_worker_thread_process_task(MSWorkerThread *obj, MSTask *task, u
 static void *ms_worker_thread_run(void *d){
 	MSWorkerThread *obj = (MSWorkerThread*)d;
 	
+	if (obj->name) bctbx_set_self_thread_name(obj->name);
+	
 	ms_mutex_lock(&obj->mutex);
 	while(obj->running || obj->tasks){ /*don't let the thread exit with unterminated tasks*/
 		uint64_t curtime = 0;
@@ -167,14 +169,16 @@ static void *ms_worker_thread_run(void *d){
 	return NULL;
 }
 
-MSWorkerThread * ms_worker_thread_new(void){
+MSWorkerThread * ms_worker_thread_new(const char *name){
 	MSWorkerThread *obj = ms_new0(MSWorkerThread, 1);
 	ms_mutex_init(&obj->mutex, NULL);
 	ms_cond_init(&obj->cond, NULL);
 	obj->running = TRUE;
+	obj->name = bctbx_strdup(name);
 	ms_thread_create(&obj->thread, NULL, ms_worker_thread_run, obj);
 	return obj;
 }
+
 
 static void ms_worker_thread_queue_task(MSWorkerThread *obj, MSTask *task){
 	ms_mutex_lock(&obj->mutex);
@@ -214,6 +218,7 @@ void ms_worker_thread_destroy(MSWorkerThread *obj, bool_t finish_tasks){
 	}
 	ms_mutex_destroy(&obj->mutex);
 	ms_cond_destroy(&obj->cond);
+	if (obj->name) bctbx_free(obj->name);
 	ms_free(obj);
 }
 

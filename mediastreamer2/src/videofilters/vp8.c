@@ -243,7 +243,7 @@ static void enc_preprocess(MSFilter *f) {
 		ms_video_starter_init(&s->starter);
 	}
 
-	s->process_thread = ms_worker_thread_new();
+	s->process_thread = ms_worker_thread_new("MSVp8Enc");
 	qinit(&s->entry_q);
 	s->exit_q = ms_queue_new(0, 0, 0, 0);
 	s->ready = TRUE;
@@ -920,6 +920,7 @@ typedef struct DecState {
 	unsigned int yuv_width, yuv_height;
 	MSAverageFPS fps;
 	uint32_t last_timestamp;
+	int max_threads;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
@@ -948,6 +949,18 @@ static void dec_init(MSFilter *f) {
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
 	s->freeze_on_error = TRUE;
+#if TARGET_OS_OSX
+	/**
+	 * On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4.
+	 * Value belows is a tradeoff between scalability and realtime.
+	 * The loss of performance is correlated to the number of threads allocated for the decoding.
+	 * It appears to be due to the inefficiency of spinlocks used by the libvpx.
+	 */
+	s->max_threads = MAX(ms_factory_get_cpu_count(f->factory)-2,1);
+#else
+	s->max_threads = ms_factory_get_cpu_count(f->factory);
+#endif
+	
 	ms_cond_init(&s->thread_cond, NULL);
 	ms_queue_init(&s->entry_q);
 	ms_queue_init(&s->exit_q);
@@ -960,12 +973,7 @@ static int dec_initialize_impl(MSFilter *f){
 	vpx_codec_dec_cfg_t cfg;
 
 	memset(&cfg, 0, sizeof(cfg));
-#if TARGET_OS_OSX
-	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
-	cfg.threads = MAX(ms_factory_get_cpu_count(f->factory)-2,1);
-#else
-	cfg.threads = ms_factory_get_cpu_count(f->factory);
-#endif
+	cfg.threads = s->max_threads;
 	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
 		ms_error("Failed to initialize VP8 decoder");
 		return -1;
@@ -993,7 +1001,8 @@ static void dec_preprocess(MSFilter* f) {
 		}
 
 		if (dec_initialize_impl(f) != 0) return;
-		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i]",s->avpf_enabled,s->freeze_on_error);
+		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i] max_threads=[%i]",
+			   s->avpf_enabled, s->freeze_on_error, s->max_threads);
 		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
 		s->ready=TRUE;
@@ -1216,11 +1225,18 @@ static int dec_get_out_fmt(MSFilter *f, void *data){
 	return 0;
 }
 
+static int dec_set_max_threads(MSFilter *f, void *data){
+	DecState *s = (DecState *)f->data;
+	s->max_threads = *(int*)data;
+	return 0;
+}
+
 static MSFilterMethod dec_methods[] = {
 	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
 	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
 	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
 	{ MS_VIDEO_DECODER_RESET,                          dec_reset             },
+	{ MS_VIDEO_DECODER_SET_MAX_THREADS,                dec_set_max_threads   },
 	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
 	{ MS_FILTER_GET_FPS,                               dec_get_fps           },
 	{ MS_FILTER_GET_OUTPUT_FMT,                        dec_get_out_fmt       },

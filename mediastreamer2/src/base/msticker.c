@@ -437,6 +437,8 @@ void * ms_ticker_run(void *arg)
 	int late;
 	int max_late=0;
 	uint64_t late_time_checkpoint=0;
+	
+	bctbx_set_self_thread_name(s->name);
 
 	ms_mutex_lock(&s->lock);
 
