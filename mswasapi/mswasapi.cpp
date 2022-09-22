@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mssndcard.h"
+#include "bctoolbox/charconv.h"
 
 #include "mswasapi.h"
 #include "mswasapi_reader.h"
@@ -532,7 +533,8 @@ public:
 		inputlen = wcslen(DeviceName->Data())+1;
 		returnlen = inputlen * 2;
 		name = (char *)ms_malloc(returnlen);
-		if ((err = WideCharToMultiByte(CP_ACP, 0, DeviceName->Data(), -1, name, (int)returnlen, NULL, NULL)) == 0) {
+		UINT currentCodePage = bctbx_get_code_page(NULL);
+		if ((err = WideCharToMultiByte(currentCodePage, 0, DeviceName->Data(), -1, name, (int)returnlen, NULL, NULL)) == 0) {
 			ms_error("mswasapi: Cannot convert card name to multi-byte string.");
 			return;
 		}
@@ -641,7 +643,7 @@ static void add_or_update_card(MSSndCardManager *m, bctbx_list_t **l, LPWSTR id,
 	char *nameStr = NULL;
 	size_t inputlen = wcslen(wname) + 1;
 	size_t returnlen;
-	UINT currentCodePage = GetACP();
+	UINT currentCodePage = bctbx_get_code_page(NULL);
 	int sizeNeeded = WideCharToMultiByte(currentCodePage, 0, wname, (int)inputlen, NULL, 0, NULL, NULL);
 	std::string strConversion( sizeNeeded, 0 );
 	if(WideCharToMultiByte(currentCodePage, 0, wname, (int)inputlen, &strConversion[0], sizeNeeded, NULL, NULL)){
