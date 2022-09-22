@@ -84,6 +84,17 @@ BCTBX_PUBLIC char *bctbx_convert_any_to_utf8 (const char *str, const char *encod
  */
 BCTBX_PUBLIC wchar_t* bctbx_string_to_wide_string(const char* s);
 
+/**
+ * @brief Return the code page from the encoding. Only available for Windows platform
+ *
+ * @param[in] encoding string to convert. If NULL or "", return the code page defined by bctbx_get_default_encoding(). @maybenil
+ *
+ * @return The code page associated to the encoding. Return system's locale if not found.
+ */
+BCTBX_PUBLIC unsigned int bctbx_get_code_page(const char* encoding);
+
+
+
 #ifdef __cplusplus
 }
 #endif

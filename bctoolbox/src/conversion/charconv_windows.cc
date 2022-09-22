@@ -189,3 +189,19 @@ wchar_t* bctbx_string_to_wide_string(const char* str){
 	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
 	return buf;
 }
+
+unsigned int bctbx_get_code_page(const char* encoding){
+	unsigned int codePage = CP_ACP;
+	std::string encodingStr;
+	if(!encoding || encoding[0] == '\0')
+		encodingStr = bctbx_get_default_encoding();
+	else
+		encodingStr = encoding;
+	try {
+		codePage = windowsCharset.at(stringToUpper(encodingStr));
+	}catch (const std::out_of_range&) {
+		bctbx_error("No code page found for '%s'. Using Locale.", encodingStr.c_str());
+		return CP_ACP;
+	}
+	return codePage;
+}
