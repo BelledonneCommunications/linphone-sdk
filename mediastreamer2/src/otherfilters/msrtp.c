@@ -166,6 +166,11 @@ static void sender_uninit(MSFilter * f)
 	ms_free(d);
 }
 
+static int sender_telephone_event_supported(MSFilter *f, void *_) {
+	SenderData *d = (SenderData *)f->data;
+	return -1 < rtp_profile_find_payload_number(d->session->snd.profile, "telephone-event", d->rate, 1);
+};
+
 static int sender_send_dtmf(MSFilter * f, void *arg)
 {
 	const char *dtmf = (const char *) arg;
@@ -727,17 +732,17 @@ static MSFilterMethod sender_methods[] = {
 	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id},
 	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb},
 	{MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id},
-	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
-	{MS_FILTER_GET_NCHANNELS, sender_get_ch },
-	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
-	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
-	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
-	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
-	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
-	{ MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced },
-	{ MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode },
-	{0, NULL}
-};
+	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr},
+	{MS_FILTER_GET_NCHANNELS, sender_get_ch},
+	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration},
+	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn},
+	{MS_RTP_SEND_ENABLE_STUN, sender_enable_stun},
+	{MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt},
+	{MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment},
+	{MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced},
+	{MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode},
+	{MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
+	{0, NULL}};
 
 #ifdef _MSC_VER
 

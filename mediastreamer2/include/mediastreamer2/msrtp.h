@@ -98,6 +98,10 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 // This is usefull to transfer packets that are already fully constructed
 #define MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE	MS_FILTER_METHOD(MS_RTP_SEND_ID, 16, bool_t)
 
+/**
+ * Used to determine if DTMFs can be sent out-of-band
+ */
+#define MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED MS_FILTER_METHOD_NO_ARG(MS_RTP_SEND_ID, 17)
 
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;

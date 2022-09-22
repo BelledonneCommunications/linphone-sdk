@@ -21,6 +21,7 @@
 #ifndef MEDIASTREAM_H
 #define MEDIASTREAM_H
 
+#include "ortp/port.h"
 #include <ortp/ortp.h>
 #include <ortp/event.h>
 #include <ortp/nack.h>
@@ -785,6 +786,11 @@ MS2_PUBLIC void audio_stream_stop (AudioStream * stream);
  *  send a dtmf
  *  */
 MS2_PUBLIC int audio_stream_send_dtmf (AudioStream * stream, char dtmf);
+
+/**
+ *  Are telephone events supported? Used to determine if DTMFs can be sent out-of-band
+ */
+MS2_PUBLIC bool_t audio_stream_supports_telephone_events(AudioStream *stream);
 
 MS2_PUBLIC MSFilter *audio_stream_get_local_player(AudioStream *stream);
 
