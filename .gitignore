@@ -14,3 +14,6 @@ tester/Windows/**/obj
 tester/Windows/**/bin
 tester/Windows/**/Generated*
 tester/Windows/LinphoneTester_uwp/packages
+
+# Cache
+.direnv
