@@ -108,7 +108,7 @@
     # searching for core files and if there are some, launch gdb on all of it
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
-    - if [[ -n $(find . -type f -name "core*") ]]; then find . -type f -name "core*" | xargs -L1 gdb $TESTER_BIN; fi || true
+    - if [[ -n $(find . -type f -name 'core*') ]]; then find . -type f -name 'core*' | xargs -d '\n' -L1 gdb $TESTER_BIN; fi || true
     - COMMIT=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
     - echo $COMMIT
     #generation of html file to redirect on test results page
