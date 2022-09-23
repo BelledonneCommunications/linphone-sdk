@@ -20,7 +20,7 @@
 #define TYPEDEF_H
 
 /* maximum number of simultaneous channels opened in a ZRTP session */
-#define ZRTP_MAX_CHANNEL_NUMBER 2
+#define ZRTP_MAX_CHANNEL_NUMBER 64
 /* aux secret may rarely be used define his maximum length in bytes */
 #define MAX_AUX_SECRET_LENGTH	64
 /* the context will store some of the sent or received packets */
