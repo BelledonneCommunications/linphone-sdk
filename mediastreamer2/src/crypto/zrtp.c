@@ -41,7 +41,6 @@ struct _MSZrtpContext{
 	void *cacheDB; /**< pointer to an already open sqlite db holding the zid cache */
 	bctbx_mutex_t *cacheDBMutex; /**< pointer to a mutex used to lock cache access */
 	bool_t autoStart; /*allow zrtp to start on first hello packet received*/
-	bool_t isSecondary; /* whether this context depends on a primary context (generally the audio stream) */
 };
 
 /***********************************************/
@@ -710,7 +709,8 @@ MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 	int retval;
 	MSZrtpContext *userData;
 	if ((retval = bzrtp_addChannel(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc)) != 0) {
-		ms_warning("ZRTP could't add stream, returns %x", retval);
+		ms_error("ZRTP could't add stream, returns %x", retval);
+		return NULL;
 	}
 
 	ms_message("Initializing multistream ZRTP context on rtp session [%p] ssrc 0x%x",sessions->rtp_session, sessions->rtp_session->snd.ssrc);
@@ -718,7 +718,6 @@ MSZrtpContext* ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 	userData->zrtpContext=activeContext->zrtpContext;
 	userData->stream_sessions = sessions;
 	userData->self_ssrc = sessions->rtp_session->snd.ssrc;
-	userData->isSecondary = TRUE;
 	/* no cache related information here as it is not needed for multistream channel */
 	bzrtp_setClientData(activeContext->zrtpContext, sessions->rtp_session->snd.ssrc, (void *)userData);
 
@@ -747,7 +746,7 @@ int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 
 void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 	ms_message("Stopping ZRTP context on session [%p]", ctx->stream_sessions ? ctx->stream_sessions->rtp_session : NULL);
-	if (ctx->zrtpContext && !ctx->isSecondary) {
+	if (ctx->zrtpContext) {
 		bzrtp_destroyBzrtpContext(ctx->zrtpContext, ctx->self_ssrc);
 	}
 	ms_free(ctx);
