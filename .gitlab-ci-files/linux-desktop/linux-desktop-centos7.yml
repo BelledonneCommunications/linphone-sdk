@@ -53,12 +53,26 @@ centos7-ninja-gcc:
     CC: gcc
     CXX: g++
   extends: .linux-desktop
+
+centos7-ninja-gcc-pqc:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+  extends: centos7-ninja-gcc
 #################################################
 # TESTS
 #################################################
 
 bctoolbox-centos7-test:
   extends: .test-bctoolbox
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
+pqc-centos7-test:
+  extends: .test-pqc
+  needs:
+    - centos7-ninja-gcc-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 belr-centos7-test:

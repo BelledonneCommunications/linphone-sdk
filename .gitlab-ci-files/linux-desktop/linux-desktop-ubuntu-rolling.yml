@@ -82,6 +82,12 @@ ubuntu-rolling-ninja-clang:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
   extends: .linux-desktop
 
+ubuntu-rolling-ninja-clang-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: ubuntu-rolling-ninja-clang
 
 #ubuntu-rolling-ninja-clang-novideo:
 
@@ -100,6 +106,12 @@ bctoolbox-ubuntu-test:
   extends: .test-bctoolbox
   needs:
     - ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
+
+pqc-ubuntu-test:
+  extends: .test-pqc
+  needs:
+    - ubuntu-rolling-ninja-clang-pqc
   <<: *docker_image_platform_and_runner_tag
 
 bellesip-ubuntu-test:

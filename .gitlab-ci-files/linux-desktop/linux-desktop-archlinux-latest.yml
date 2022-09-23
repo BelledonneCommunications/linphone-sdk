@@ -89,6 +89,13 @@ arch-latest-ninja-clang-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: arch-latest-ninja-clang
 
+arch-latest-ninja-clang-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: arch-latest-ninja-clang
+
 
 #################################################
 # TESTS
@@ -99,6 +106,12 @@ bctoolbox-arch-test:
   extends: .test-bctoolbox
   needs:
     - arch-latest-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
+
+pqc-arch-test:
+  extends: .test-pqc
+  needs:
+    - arch-latest-ninja-clang-pqc
   <<: *docker_image_platform_and_runner_tag
 
 bellesip-arch-test:

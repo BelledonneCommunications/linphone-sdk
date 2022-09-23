@@ -79,6 +79,15 @@ debian10-ninja-gcc-smallsdk:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
   extends: debian10-ninja-gcc
 
+debian10-ninja-gcc-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
+  extends: debian10-ninja-gcc
+
+
 
 debian10-ninja-clang:
 
@@ -120,6 +129,12 @@ bctoolbox-debian10-test:
   extends: .test-bctoolbox
   needs:
     - debian10-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+pqc-debian10-test:
+  extends: .test-pqc
+  needs:
+    - debian10-ninja-gcc-pqc
   <<: *docker_image_platform_and_runner_tag
 
 bellesip-debian10-test:
