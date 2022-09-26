@@ -39,6 +39,7 @@ option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 option(ENABLE_GOCLEAR "Enable the possibility to send and receive GoClear" YES)
+option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorithms" NO)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -64,7 +65,9 @@ check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
 if(NOT DISABLE_BC_PACKAGE_SEARCH)
 	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
-	find_package(postquantumcryptoengine CONFIG)
+	if (ENABLE_PQCRYPTO)
+		find_package(postquantumcryptoengine CONFIG REQUIRED)
+	endif()
 endif()
 
 if(ENABLE_ZIDCACHE)
@@ -117,6 +120,7 @@ endif()
 
 if (postquantumcryptoengine_FOUND)
 	add_definitions("-DHAVE_BCTBXPQ")
+	message(STATUS "Building with Post Quantum Key Agreements")
 endif()
 
 set(EXPORT_TARGETS_NAME "bzrtp")
