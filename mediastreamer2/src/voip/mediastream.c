@@ -553,15 +553,14 @@ bool_t media_stream_secured (const MediaStream *stream) {
 	return FALSE;
 }
 
-MSSrtpKeySource media_stream_get_srtp_key_source (const MediaStream *stream) {
+MSSrtpKeySource media_stream_get_srtp_key_source (const MediaStream *stream, MediaStreamDir dir) {
 	if (stream->state != MSStreamStarted)
 		return MSSrtpKeySourceUnavailable;
 
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
-			/*fixme need also audio stream direction to be more precise*/
-			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, MediaStreamSendRecv);
+			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, dir);
 		case MSVideo:{
 			VideoStream *vs = (VideoStream*)stream;
 			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, vs->dir);
@@ -569,8 +568,27 @@ MSSrtpKeySource media_stream_get_srtp_key_source (const MediaStream *stream) {
 		case MSUnknownMedia:
 			break;
 	}
-	return FALSE;
+	return MSSrtpKeySourceUnavailable;
 }
+
+MSCryptoSuite media_stream_get_srtp_crypto_suite (const MediaStream *stream, MediaStreamDir dir) {
+	if (stream->state != MSStreamStarted)
+		return MS_CRYPTO_SUITE_INVALID;
+
+	switch (stream->type) {
+		case MSAudio:
+		case MSText:
+			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, dir);
+		case MSVideo:{
+			VideoStream *vs = (VideoStream*)stream;
+			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, vs->dir);
+		}
+		case MSUnknownMedia:
+			break;
+	}
+	return MS_CRYPTO_SUITE_INVALID;
+}
+
 
 
 bool_t media_stream_avpf_enabled(const MediaStream *stream) {

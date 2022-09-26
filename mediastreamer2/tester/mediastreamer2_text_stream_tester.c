@@ -246,8 +246,8 @@ static void srtp_protected_text_stream(void) {
 
 	BC_ASSERT_TRUE(media_stream_secured(&marielle->ts->ms));
 	BC_ASSERT_TRUE(media_stream_secured(&margaux->ts->ms));
-	BC_ASSERT_TRUE(media_stream_get_srtp_key_source(&marielle->ts->ms) == MSSrtpKeySourceSDES);
-	BC_ASSERT_TRUE(media_stream_get_srtp_key_source(&margaux->ts->ms) == MSSrtpKeySourceSDES);
+	BC_ASSERT_TRUE(media_stream_get_srtp_key_source(&marielle->ts->ms, MediaStreamSendRecv) == MSSrtpKeySourceSDES);
+	BC_ASSERT_TRUE(media_stream_get_srtp_key_source(&margaux->ts->ms, MediaStreamSendRecv) == MSSrtpKeySourceSDES);
 
 	for (; i < strlen(helloworld); i++) {
 		char c = helloworld[i];

@@ -27,7 +27,6 @@
 #include "mediastreamer2/msvolume.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
-#include "private.h"
 
 #include <sys/stat.h>
 

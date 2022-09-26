@@ -266,6 +266,14 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 	const char *aes_256_bits_send_key_2 = "N3vq6TMfvtyYpqGaEi9vAHMCzgWJvaD1PIfwEYtdEgI2ACezZo2vpOdV2YWEcQ==";
 	const char *aes_256_bits_recv_key = "UKg69sFLbrA7d0hEVKMtT83R3GR3sjhE0XMqNBbQ+axoDWMP5dQNfjNuSQQHbw==";
 
+	const char *aes_gcm_128_bits_send_key = "bkTcxXe9N3/vHKKiqQAqmL0qJ+CSiWRat/Tadg==";
+	const char *aes_gcm_128_bits_send_key_2 = "MPKEi1/zHMH9osL2FIxUH/r3BiPjgS/LWIiTPA==";
+	const char *aes_gcm_128_bits_recv_key = "Ya+BvAxQUqPer3X/AF4gDJUT4pVjbYc6O+u1pg==";
+
+	const char *aes_gcm_256_bits_send_key = "WpvA7zUhbhJ2i1ui2nOX43QjrOwCGBkaCPtjnphQKwv/L+GdscAKGQWzG/c=";
+	const char *aes_gcm_256_bits_send_key_2 = "J74fLdR6tp6EwJVgWjtcGufB7GcR64kAHbIbZyGKVq62acCZmx4mNNLIkus=";
+	const char *aes_gcm_256_bits_recv_key = "PtyD6l92cGR643om/5dEIGirCCxPeL9/LJF7PaFMoMocqMrz73CO0Fz7L20=";
+
 	const char *send_key = NULL;
 	const char *send_key_2 = NULL;
 	const char *recv_key = NULL;
@@ -285,6 +293,16 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			send_key = aes_256_bits_send_key;
 			send_key_2 = aes_256_bits_send_key_2;
 			recv_key = aes_256_bits_recv_key;
+			break;
+		case MS_AEAD_AES_128_GCM:
+			send_key = aes_gcm_128_bits_send_key;
+			send_key_2 = aes_gcm_128_bits_send_key_2;
+			recv_key = aes_gcm_128_bits_recv_key;
+			break;
+		case MS_AEAD_AES_256_GCM:
+			send_key = aes_gcm_256_bits_send_key;
+			send_key_2 = aes_gcm_256_bits_send_key_2;
+			recv_key = aes_gcm_256_bits_recv_key;
 			break;
 		default:
 			BC_FAIL("Unsupported suite");
@@ -361,9 +379,15 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 			wait_for_until(&marielle->ms,&margaux->ms,&dummy,1,1000);
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream*)marielle));
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream*)margaux));
-			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)marielle)==MSSrtpKeySourceSDES);
-			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)margaux)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)marielle, MediaStreamSendRecv)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)margaux, MediaStreamSendRecv)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream*)marielle, MediaStreamSendRecv)==suite);
+			BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream*)margaux, MediaStreamSendRecv)==suite);
 		} else {
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)marielle, MediaStreamSendOnly)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream*)margaux, MediaStreamRecvOnly)==MSSrtpKeySourceSDES);
+			BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream*)marielle, MediaStreamSendOnly)==suite);
+			BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream*)margaux, MediaStreamRecvOnly)==suite);
 			/*so far, not possible to know audio stream direction*/
 			BC_ASSERT_FALSE(media_stream_secured((MediaStream*)marielle));
 			BC_ASSERT_FALSE(media_stream_secured((MediaStream*)margaux));
@@ -439,12 +463,20 @@ static void encrypted_audio_stream_base( bool_t change_ssrc,
 
 static void encrypted_audio_stream(void) {
 	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AES_128_SHA1_32);
+	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AES_128_SHA1_80);
+	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AES_256_SHA1_32);
 	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AES_256_SHA1_80);
+	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AEAD_AES_128_GCM);
+	encrypted_audio_stream_base(FALSE, FALSE, FALSE, TRUE,FALSE,MS_AEAD_AES_256_GCM);
 }
 
 static void encrypted_audio_stream_with_2_srtp_stream(void) {
 	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AES_128_SHA1_32);
+	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AES_128_SHA1_80);
+	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AES_256_SHA1_32);
 	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AES_256_SHA1_80);
+	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AEAD_AES_128_GCM);
+	encrypted_audio_stream_base(FALSE, FALSE, TRUE, TRUE,FALSE,MS_AEAD_AES_256_GCM);
 }
 
 static void encrypted_audio_stream_with_2_srtp_stream_recv_first(void) {

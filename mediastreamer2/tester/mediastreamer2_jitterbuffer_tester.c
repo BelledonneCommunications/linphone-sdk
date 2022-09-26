@@ -30,7 +30,6 @@
 #include "mediastreamer2/mstonedetector.h"
 #include "mediastreamer2/mseventqueue.h"
 #include "pcap_sender.h"
-#include "private.h"
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 

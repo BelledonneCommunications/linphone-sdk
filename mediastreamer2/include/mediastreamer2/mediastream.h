@@ -208,13 +208,24 @@ MS2_PUBLIC bool_t media_stream_secured(const MediaStream *stream);
 
 /**
  * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
- *
- * @param[in] stream MediaStream object
- * @return the srtp key source if stream is secured and sources consistent:
- * 			all RTP (and RTCP if enabled) channels have the same source.
+ * @param[in] 		stream MediaStream object
+ * @param[in]		dir	stream direction (send, recv or both)
+ * @return the srtp key source if they are consistent:
+ * 			both direction (send and receive) have the same source when dir is both
  * 			MSSrtpKeySourceUnavailable otherwise
- * */
-MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream);
+ */
+MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const  MediaStream *stream, MediaStreamDir dir);
+
+/**
+ * Get the crypto suite used to secure this stream
+ * @param[in] 		stream MediaStream object
+ * @param[in]		dir	stream direction (send, recv or both)
+ * @return the srtp key crypto suite if they are consistent:
+ * 			both direction (send and receive) have the same suite when dir is both
+ * 			MS_CRYPTO_SUITE_INVALID otherwise
+ */
+MS2_PUBLIC MSCryptoSuite media_stream_get_srtp_crypto_suite(const  MediaStream *stream, MediaStreamDir dir);
+
 
 /**
  * Tells whether AVPF is enabled or not.
