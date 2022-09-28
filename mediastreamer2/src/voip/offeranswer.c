@@ -39,6 +39,7 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 	PayloadType *local_h264_with_packetization_mode_1_pt = NULL;
 	bctbx_list_t *local_h264_list = NULL;
 	PayloadType *remote_h264_with_packetization_mode_1_pt = NULL;
+	PayloadType *matching_pt = NULL;
 	
 	//extract h264 from remote list and get first one with packetization-mode=1 if any
 	for (it=remote_payloads;it!=NULL;it=it->next){
@@ -60,53 +61,53 @@ static PayloadType * h264_match(MSOfferAnswerContext *ctx, const bctbx_list_t *l
 	
 	if (bctbx_list_size(local_h264_list) < 1) {
 		ms_message("No H264 payload configured locally");
-		return NULL;
+		goto end;
 	}
 	//taking first one by default
-	PayloadType *maching_pt = bctbx_list_get_data(local_h264_list);
+	matching_pt = bctbx_list_get_data(local_h264_list);
 
 	if (remote_h264_with_packetization_mode_1_pt != NULL ) {
 		//proceeding with packetization-mode=1
 		//at least one offer has packetization-mode=1, so this is the one we want.
 		if (remote_h264_with_packetization_mode_1_pt != refpt) {
 			//not the right one
-			return NULL;
+			matching_pt = NULL;
+			goto end;
 		} else {
 			//this is our best choice.
 			if (local_h264_with_packetization_mode_1_pt) {
-				if (local_h264_list) {
-					bctbx_list_free(local_h264_list);
-				}
 				//there is also a packetization-mode=1 in local conf, so taking it
-				maching_pt = local_h264_with_packetization_mode_1_pt;
+				matching_pt = local_h264_with_packetization_mode_1_pt;
 			} else {
 				//if only packetization-mode=0 locally configured, we assume packetization-mode=1
 				//taking firt one from local
-				maching_pt = bctbx_list_get_data(local_h264_list);
+				/* FIXME: the PayloadType from the const list 'local_payloads' is modified here, is this intended ?*/
+				ms_warning("h264_match(): fixing local payload type.");
+				matching_pt = bctbx_list_get_data(local_h264_list);
 				// "fixing" matching payload
 				char* fixed_fmtp;
-				if (maching_pt->recv_fmtp)
-					fixed_fmtp = ms_strdup_printf("%s; packetization-mode=1", maching_pt->recv_fmtp);
+				if (matching_pt->recv_fmtp)
+					fixed_fmtp = ms_strdup_printf("%s; packetization-mode=1", matching_pt->recv_fmtp);
 				else
-					fixed_fmtp = ms_strdup(maching_pt->recv_fmtp);
-				payload_type_set_recv_fmtp(maching_pt, fixed_fmtp);
+					fixed_fmtp = ms_strdup(matching_pt->recv_fmtp);
+				payload_type_set_recv_fmtp(matching_pt, fixed_fmtp);
 				ms_free(fixed_fmtp);
 				
-				if (maching_pt->send_fmtp)
-					fixed_fmtp = ms_strdup_printf("%s ; packetization-mode=1", maching_pt->send_fmtp);
+				if (matching_pt->send_fmtp)
+					fixed_fmtp = ms_strdup_printf("%s ; packetization-mode=1", matching_pt->send_fmtp);
 				else
-					fixed_fmtp = ms_strdup(maching_pt->send_fmtp);
-				payload_type_set_send_fmtp(maching_pt, fixed_fmtp);
+					fixed_fmtp = ms_strdup(matching_pt->send_fmtp);
+				payload_type_set_send_fmtp(matching_pt, fixed_fmtp);
 				ms_free(fixed_fmtp);
 			}
 		}
 	}
-
+end:
 	if (local_h264_list) {
 		bctbx_list_free(local_h264_list);
 	}
 
-	return maching_pt?payload_type_clone(maching_pt):NULL;
+	return matching_pt?payload_type_clone(matching_pt):NULL;
 }
 
 static MSOfferAnswerContext *h264_offer_answer_create_context(void){
