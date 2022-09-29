@@ -354,6 +354,9 @@ static unsigned int level_to_mask(BctbxLogLevel level){
 	return levelmask;
 }
 
+/**
+* Set log level
+**/
 void bctbx_set_log_level(const char *domain, BctbxLogLevel level){
 	bctbx_set_log_level_mask(domain, level_to_mask(level));
 }
