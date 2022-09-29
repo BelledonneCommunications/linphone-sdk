@@ -91,6 +91,9 @@ static void router_init(MSFilter *f){
 	s->is_key_frame=is_key_frame_dummy;
 	s->focus_pin = -1;
 	for(int i=0;i<f->desc->noutputs;i++){
+		/* All outputs must be unconfigured */
+		s->output_contexts[i].next_source = -1;
+		s->output_contexts[i].current_source = -1;
 		s->output_contexts[i].link_source = -1;
 	}
 	f->data=s;

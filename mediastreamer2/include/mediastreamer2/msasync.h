@@ -73,11 +73,22 @@ typedef struct _MSTask MSTask;
  * be executing, or have been executed already.
  */
 MS2_PUBLIC void ms_task_cancel(MSTask *task);
+
+/*
+ * Cancel a task and schedule it for destruction.
+ * If the task is already completed, it is destroyed synchronously.
+ * Unlike ms_task_destroy(), ms_task_cancel_and_destroy() does not wait 
+ * the task to be processed by the worker thread, but returns immediately.
+ */
+MS2_PUBLIC void ms_task_cancel_and_destroy(MSTask *task);
 /*
  * Wait for the task to reach the MSTaskDone state.
  */
 MS2_PUBLIC void ms_task_wait_completion(MSTask *task);
-/* destroy automatically cancels if necessar, and waits for completion.*/
+
+/* 
+ * Automatically cancels if necessary, and waits for completion before destroying the task.
+ */
 MS2_PUBLIC void ms_task_destroy(MSTask *task); 
 
 /* Create a worker thread. Name is mandatory to ease debugging. */

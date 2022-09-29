@@ -382,7 +382,7 @@ static void android_texture_display_process(MSFilter *f) {
 
 static void android_texture_display_postprocess(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
-	ms_task_destroy(ad->refresh_task);
+	ms_task_cancel_and_destroy(ad->refresh_task);
 }
 
 static void android_texture_display_uninit(MSFilter *f) {
@@ -390,6 +390,7 @@ static void android_texture_display_uninit(MSFilter *f) {
 	MSTask *task;
 	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
 	task = ms_worker_thread_add_waitable_task(ad->process_thread, (MSTaskFunc)android_texture_display_release_windowId, (void*)f);
+	ms_task_wait_completion(task);
 	ms_task_destroy(task);
 	android_texture_display_release_worker(ad->process_thread);
 }

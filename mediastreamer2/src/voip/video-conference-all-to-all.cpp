@@ -90,7 +90,7 @@ int VideoConferenceAllToAll::findSourcePin(const std::string &participant) {
 		}
 	}
 	if (!ret)
-		ms_message("Can not find source pin for %s",participant.c_str());
+		ms_message("Can not find source pin for '%s'",participant.c_str());
 	return ret ? ret->mPin : -1;
 }
 
@@ -219,6 +219,8 @@ void VideoConferenceAllToAll::connectEndpoint(VideoEndpoint *ep) {
 	if (ep->mSource > -1) {
 		ms_message("[all to all] configure endpoint output pin %d with source pin %d", ep->mOutPin, ep->mSource);
 		configureOutput(ep);
+	}else{
+		ms_warning("There is no source connected for stream labeled '%s'", ep->mName.c_str());
 	}
 }
 

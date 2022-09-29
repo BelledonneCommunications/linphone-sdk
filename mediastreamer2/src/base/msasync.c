@@ -20,16 +20,28 @@
 
 #include "mediastreamer2/msasync.h"
 
-void ms_task_cancel(MSTask *task){
+static void _ms_task_cancel(MSTask *task, bool_t with_destroy){
 	if (!task->worker) return ;
 	ms_mutex_lock(&task->worker->mutex);
+	if (with_destroy) task->auto_release = TRUE;
 	if (task->state != MSTaskDone){ /* task may be queued or running */
 		ms_debug("msasync.c: cancelling task %p", task);
 		task->state = MSTaskCancelled;
+	}else{
+		/* The task was already processed by the worker, we can safely destroy it if required.*/
+		if (with_destroy) ms_task_destroy(task);
 	}
 	ms_mutex_unlock(&task->worker->mutex);
-	return;
 }
+
+void ms_task_cancel_and_destroy(MSTask *task){
+	_ms_task_cancel(task, TRUE);
+}
+
+void ms_task_cancel(MSTask *task){
+	_ms_task_cancel(task, FALSE);
+}
+
 
 void ms_task_wait_completion(MSTask *task){
 	if (!task->worker) return;
@@ -144,11 +156,12 @@ static void *ms_worker_thread_run(void *d){
 			/* The loop must continue */
 			continue;
 		}else if (tasks){
-			/* No new tasks, but there are repeatable tasks (re-queued). Go to sleep for a while. */
+			/* No new tasks, but there are repeatable tasks (re-queued).  */
 			obj->tasks = tasks;
 		}
 		if (obj->running){
 			if (tasks){
+				/* Go to sleep for a while.*/
 				ms_debug("msasync.c: worker thread has repeatable tasks, going to sleep for a while.");
 				/* This could be further optimized, using pthread_cond_timedwait() */
 				ms_mutex_unlock(&obj->mutex);
