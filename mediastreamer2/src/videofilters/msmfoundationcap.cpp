@@ -104,6 +104,7 @@ MSMFoundationCap::MSMFoundationCap() {
 	mOrientation = 0;
 	mSampleCount= mProcessCount=0;
 	mFmtChanged = FALSE;
+	mNewFormatTakenAccount = TRUE;
 }
 
 MSMFoundationCap::~MSMFoundationCap() {
@@ -148,10 +149,13 @@ void MSMFoundationCap::activate() {}
 void MSMFoundationCap::feed(MSFilter * filter) {
 	if (mFmtChanged) {// Keep this if we want to manage camera behaviors (format changing not coming from Linphone)
 		ms_message("[MSMFoundationCap] Camera has changed its own output format. Sending event (%dx%d)", mWidth, mHeight);
+		mNewFormatTakenAccount = FALSE;// Reset flag before sending new format event.
 		ms_filter_notify_no_arg(filter, MS_FILTER_OUTPUT_FMT_CHANGED);
 		mFmtChanged = FALSE;
 		return;
 	}
+	if(!mNewFormatTakenAccount)
+		return;// Avoid sending new frames till new format has not been taken account (look for getter of size)
 	mblk_t **data = &mFrameData;
 	EnterCriticalSection(&mCriticalSection);
 	if(mRunning && mFrameData ) {
@@ -295,6 +299,7 @@ static int ms_mfoundation_get_vsize(MSFilter *filter, void *arg) {
 	MSVideoSize *vs = (MSVideoSize*)arg;
 	vs->height = mf->mHeight;
 	vs->width = mf->mWidth;
+	mf->mNewFormatTakenAccount = TRUE;// We get a size : we suppose that the new format is taken account.
 	return 0;
 }
 
@@ -885,6 +890,7 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 			if (restartCamera)
 				create_task(startAsync()).wait();
 			mFmtChanged = mFmtChanged || (videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth || requestedFrameHeight != frameHeight);
+			mNewFormatTakenAccount = !mFmtChanged;// Block new frames
 		});
 	}else if(!SUCCEEDED(hr)) {
 		ms_error("[MSMFoundationCapUwp] Cannot set the video format : %dx%d : %s, %f fps. [%X]", frameWidth, frameHeight, pixFmtToString(videoFormat), pFps, hr);
@@ -1289,6 +1295,7 @@ HRESULT MSMFoundationDesktopImpl::setMediaConfiguration(GUID videoFormat, UINT32
 			mPlaneSize = mHeight * abs(mStride);// Details : mWidth * mHeight * abs(mStride) / mWidth;
 			formatChanged = TRUE;
 			mFmtChanged = videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth || requestedFrameHeight != frameHeight;
+			mNewFormatTakenAccount = FALSE;// Block new frames
 		}
 		if(mSourceReader)
 			ms_message("[MSMFoundationCap] %s the video format : %dx%d : %s, %f fps", (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);

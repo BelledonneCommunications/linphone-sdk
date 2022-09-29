@@ -84,6 +84,7 @@ public:
 	std::string mDeviceName;
 	MSAverageFPS mAvgFps;
 	MSFrameRateController mFramerateController;
+	bool_t mNewFormatTakenAccount;
 	
 //----------------------------------------  Tools
 	static const char *pixFmtToString(const GUID &fmt);	// Helper to return the name of the format
