@@ -1311,7 +1311,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 		/* display logic */
 		if (stream->rendercb!=NULL){
-			/* rendering logic delegated to user suppsourcelied callback */
+			/* rendering logic delegated to user supplied callback */
 			stream->output=ms_factory_create_filter(stream->ms.factory, MS_EXT_DISPLAY_ID);
 			ms_filter_add_notify_callback(stream->output,ext_display_cb,stream,TRUE);
 		}else{
@@ -1341,7 +1341,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 		/* Don't allow null output */
 		if(stream->output == NULL) {
-			ms_fatal("No video display filter could be instantiated. Please check build-time configuration");
+			ms_fatal("No video display filter could be instantiated. Please check build-time configuration. display_name: %s", stream->display_name);
 		}
 
 
