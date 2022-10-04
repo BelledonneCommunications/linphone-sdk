@@ -121,19 +121,46 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessi
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt
  * @param[in]		key_length	key buffer length
- * @param[in]		source	algorithm used to exchange this key
+ * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+
+/**
+ * Set srtp inner receiver key for the given media stream.
+ * This is used for double encryption only (RFC8723)
+ * If no outer srtp session exists on the stream returns an error
+ *
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt
+ * @param[in]		key_length	key buffer length
+ * @param[in]		source		algorithm used to exchange this key
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc);
+
+/**
+ * Set srtp inner receiver key for the given media stream.
+ * This is used for double encryption only (RFC8723)
+ * If no outer srtp session exists on the stream returns an error
+ *
+ * @param[in/out]	sessions	The sessions associated to the current media stream
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
+ * @param[in]		source		algorithm used to exchange this key
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source, uint32_t ssrc);
 
 /**
  * Set srtp sender key for the given media stream.
  * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
  *
  * @param[in/out]	sessions	The sessions associated to the current media stream
- * @param[in]		suite	The srtp crypto suite to use
- * @param[in]		key	Srtp master key and master salt in a base 64 NULL terminated string
- * @param[in]		source	algorithm used to exchange this key
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
+ * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
@@ -142,15 +169,44 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
  * Set srtp sender key for the given media stream.
  * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
  *
- * @param[in/out]	stream	The mediastream to operate on
+ * @param[in/out]	stream		The mediastream to operate on
  * @param[in]		suite		The srtp crypto suite to use
  * @param[in]		key		Srtp master key and master salt
  * @param[in]		key_length	key buffer length
  * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
- * @param[in]		source	algorithm used to exchange this key
+ * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+
+/**
+ * Set srtp inner sender key for the given media stream.
+ * This is used for double encryption only (RFC8723)
+ * If no outer srtp session exists on the stream returns an error
+ *
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt
+ * @param[in]		key_length	key buffer length
+ * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
+ * @param[in]		source		algorithm used to exchange this key
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+
+/**
+ * Set srtp inner sender key for the given media stream.
+ * This is used for double encryption only (RFC8723)
+ * If no outer srtp session exists on the stream returns an error
+ *
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		suite		The srtp crypto suite to use
+ * @param[in]		key		Srtp master key and master salt in a base 64 NULL terminated string
+ * @param[in]		stream_type	Srtp suite is applied to RTP stream, RTCP stream or both
+ * @param[in]		source		algorithm used to exchange this key
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
 
 /**
  * Convert MSCryptoSuite enum to a string.
