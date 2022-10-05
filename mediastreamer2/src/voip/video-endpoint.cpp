@@ -24,21 +24,25 @@
 using namespace ms2;
 
 //------------------------------------------------------------------------------
-extern "C" MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote) {
+MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote) {
 	VideoEndpoint *ep = new VideoEndpoint();
 	ep->cutVideoStreamGraph(is_remote, st);
 	return (MSVideoEndpoint *)ep;
 }
 
-extern "C" void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data) {
+void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data) {
 	((VideoEndpoint *)ep)->setUserData(user_data);
 }
 
-extern "C" void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep) {
+void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep) {
 	return ((VideoEndpoint *)ep)->getUserData();
 }
 
-extern "C" void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj) {
+MediaStreamDir ms_video_endpoint_get_direction(const MSVideoEndpoint *ep){
+	return ((VideoEndpoint *)ep)->getDirection();
+}
+
+void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj) {
 	((VideoEndpoint *)obj)->redoVideoStreamGraph();
 	delete ((VideoEndpoint *)obj);
 }
@@ -85,6 +89,15 @@ static void ms_video_endpoint_tmmbr_received(const OrtpEventData *evd, void *use
 }
 
 //-------------------------------------------------------------------------
+
+
+MediaStreamDir VideoEndpoint::getDirection()const{
+	if (!mSt) {
+		ms_error("Endpoint direction is undefined when the endpoint is not constructed.");
+		return MediaStreamSendRecv;
+	}
+	return media_stream_get_direction(&mSt->ms);
+}
 
 void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	mSt = st;

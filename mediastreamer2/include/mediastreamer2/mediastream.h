@@ -119,7 +119,7 @@ typedef enum _MSStreamState{
 typedef enum MediaStreamDir{
 	MediaStreamSendRecv,
 	MediaStreamSendOnly,
-	MediaStreamRecvOnly
+	MediaStreamRecvOnly,
 }MediaStreamDir;
 
 /**

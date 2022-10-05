@@ -415,6 +415,12 @@ MS2_PUBLIC void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_
  */
 MS2_PUBLIC void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep);
 
+/**
+ * Get the direction of the endpoint (which is the one of the underlying VideoStream).
+ * @param ep the endpoint
+ * @return the direction
+ */
+MS2_PUBLIC MediaStreamDir ms_video_endpoint_get_direction(const MSVideoEndpoint *ep);
 
 /**
  * Destroys a MSVideoEndpoint that was created from a VideoStream with ms_video_endpoint_get_from_stream().

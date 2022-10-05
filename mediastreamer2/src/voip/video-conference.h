@@ -36,6 +36,7 @@ public:
 	void setUserData(void *userData) {mUserData = userData;};
 	void *getUserData() const {return mUserData;};
 	void redoVideoStreamGraph();
+	MediaStreamDir getDirection()const;
 
 	VideoStream *mSt=NULL;
 	void *mUserData=NULL;
@@ -50,7 +51,7 @@ public:
 	int mOutPin=-1;
 	int mSource = -1;
 	bool connected = false;
-	std::string mName=""; /*Particapant*/
+	std::string mName=""; /*Participant*/
 	int mIsRemote=0;
 	int mLastTmmbrReceived=0; /*Value in bits/s */
 	int mLinkSource = -1;

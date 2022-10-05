@@ -114,7 +114,7 @@ static void elect_new_source(MSFilter *f, OutputContext *output_context){
 		ms_error("elect_new_source(): should be called only for active speaker case.");
 		return;
 	}
-	if (output_context->link_source != s->focus_pin && s->focus_pin != -1){
+	if (output_context->link_source != s->focus_pin && s->focus_pin != -1 && f->inputs[s->focus_pin] != NULL){
 		/* show the active speaker */
 		output_context->next_source = s->focus_pin;
 		return;
