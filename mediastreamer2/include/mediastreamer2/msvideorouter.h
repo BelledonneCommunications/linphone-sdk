@@ -23,6 +23,8 @@
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideoswitcher.h"
+
+
 #define ROUTER_MAX_CHANNELS 20
 #define ROUTER_MAX_INPUT_CHANNELS ROUTER_MAX_CHANNELS + 2 /* 2 pin reserved for nowebcam and voidsource */
 #define ROUTER_MAX_OUTPUT_CHANNELS ROUTER_MAX_CHANNELS*ROUTER_MAX_CHANNELS /* 1 pin reserved for voidsink */
@@ -37,8 +39,13 @@ typedef struct _MSVideoRouterPinData{
 #define MS_VIDEO_ROUTER_SET_FOCUS MS_FILTER_METHOD(MS_VIDEO_ROUTER_ID,2,int)
 #define MS_VIDEO_ROUTER_SET_AS_LOCAL_MEMBER MS_FILTER_METHOD(MS_VIDEO_ROUTER_ID,3,MSVideoConferenceFilterPinControl)
 
-#define MS_VIDEO_ROUTER_NOTIFY_PLI MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,4,int)
-#define MS_VIDEO_ROUTER_NOTIFY_FIR MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,5,int)
+/* Set the input pin connected to a video placeholder generator */
+#define MS_VIDEO_ROUTER_SET_PLACEHOLDER MS_FILTER_METHOD(MS_VIDEO_ROUTER_ID,4,int) 
+
+#define MS_VIDEO_ROUTER_NOTIFY_PLI MS_FILTER_METHOD(MS_VIDEO_ROUTER_ID,5,int)
+#define MS_VIDEO_ROUTER_NOTIFY_FIR MS_FILTER_METHOD(MS_VIDEO_ROUTER_ID,6,int)
+
+
 
 /**Events raised by the router when it needs to receive a key frame in order to complete the route to new input source*/
 #define MS_VIDEO_ROUTER_SEND_FIR MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,6,int)

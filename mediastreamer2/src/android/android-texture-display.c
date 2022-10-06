@@ -295,6 +295,9 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ad->width = w;
 	ad->height = h;
 
+	if (ad->ogl){
+		ms_error("[TextureView Display][Filter=%p] ogl_display already created !", f);
+	}
 	ad->ogl = ogl_display_new();
 	ogl_display_init(ad->ogl, NULL, w, h);
 

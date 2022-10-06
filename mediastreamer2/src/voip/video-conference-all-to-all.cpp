@@ -31,7 +31,7 @@ VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConf
 
 	mTicker=ms_ticker_new();
 	ms_ticker_set_name(mTicker,"Video conference(all to all) MSTicker");
-	ms_ticker_set_priority(mTicker,__ms_get_default_prio(FALSE));
+	ms_ticker_set_priority(mTicker,__ms_get_default_prio(TRUE));
 	mMixer = ms_factory_create_filter(f, MS_VIDEO_ROUTER_ID);
 	mVoidSource = ms_factory_create_filter(f, MS_VOID_SOURCE_ID);
 	mVoidOutput = ms_factory_create_filter(f, MS_VOID_SINK_ID);
@@ -128,23 +128,27 @@ static MSVideoEndpoint *create_video_placeholder_member(VideoConferenceAllToAll 
 }
 
 void VideoConferenceAllToAll::addVideoPlaceholderMember() {
-	mVideoPlaceholderMember = (VideoEndpoint *)(create_video_placeholder_member(this));
+	mVideoPlaceholderMember = (VideoEndpoint *)create_video_placeholder_member(this);
 
 	mVideoPlaceholderMember->mConference = (MSVideoConference *)this;
 	mVideoPlaceholderMember->mPin = mMixer->desc->ninputs-1;
+	ms_filter_call_method(mMixer, MS_VIDEO_ROUTER_SET_PLACEHOLDER, &mVideoPlaceholderMember->mPin);
 	ms_message("[all to all] conference %p add video placeholder %p to pin input %d", this, mVideoPlaceholderMember, mVideoPlaceholderMember->mPin);
 	plumb_to_conf(mVideoPlaceholderMember);
 }
 
 void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
+	MSVideoContent content = video_stream_get_content(ep->mSt);
+	MediaStreamDir dir = media_stream_get_direction(&ep->mSt->ms);
 	/* now connect to the filter */
-	if (media_stream_get_direction(&ep->mSt->ms) != MediaStreamSendRecv && ep->mName.empty()) {
+	if (dir != MediaStreamSendRecv && ep->mName.empty()) {
 		ms_error("[all to all] conference %p add member %p failed because the label is empty.", this, ep);
 		return;
 	}
 
 	ep->mConference = (MSVideoConference *)this;
-	if (ep->mIsRemote && media_stream_get_direction(&ep->mSt->ms) == MediaStreamSendOnly) {
+	if (ep->mIsRemote && dir == MediaStreamSendOnly && content != MSVideoContentSpeaker) {
+		/* Case of a remote participant that is requesting to receive a specific video stream pointed by its label */
 		ep->mOutPin = findFreeOutputPin();
 		ms_message("[all to all] conference %p add endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
 		ms_ticker_detach(mTicker,mMixer);
@@ -156,11 +160,12 @@ void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
 		return;
 	}
 
-	if (media_stream_get_direction(&ep->mSt->ms) != MediaStreamSendRecv && findSourcePin(ep->mName) > -1) return;
+	if (dir != MediaStreamSendRecv && findSourcePin(ep->mName) > -1) return;
 
 	ep->mPin = findFreeInputPin();
 	ms_ticker_detach(mTicker,mMixer);
-	if (media_stream_get_direction(&ep->mSt->ms) == MediaStreamSendRecv) {
+	if (content == MSVideoContentSpeaker) {
+		/* case of participant that is willing to receive the active speaker stream */
 		if (mVideoPlaceholderMember == NULL) {
 			addVideoPlaceholderMember();
 		}
@@ -172,20 +177,27 @@ void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
 	plumb_to_conf(ep);
 	ms_ticker_attach(mTicker,mMixer);
 	mMembers=bctbx_list_append(mMembers,ep);
-	if (media_stream_get_direction(&ep->mSt->ms) == MediaStreamSendRecv) configureOutput(ep);
+	if (dir == MediaStreamSendRecv || dir == MediaStreamSendOnly) configureOutput(ep);
 	bctbx_list_for_each(mEndpoints, (void (*)(void*))configureEndpoint);
 }
 
 void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
+	bool needNewFocus = false;
+	
 	if (bctbx_list_find(mMembers,ep) != NULL) {
-		ms_message("[all to all] conference %p remove member %s with input pin %d output pin %d", this, ep->mName.c_str(), ep->mPin, ep->mOutPin);
+		ms_message("[VideoConferenceAllToAll]: conference %p remove member %s with input pin %d output pin %d", this, ep->mName.c_str(), ep->mPin, ep->mOutPin);
 		mMembers=bctbx_list_remove(mMembers,ep);
+		if (ep->mPin == mLastFocusPin){
+			ms_message("[VideoConferenceAllToAll]: removing the currently focused member, a new focus will be selected.");
+			needNewFocus = true;
+		}
 		mInputs[ep->mPin] = -1;
 		if (ep->mOutPin > -1) mOutputs[ep->mOutPin] = -1;
 		bctbx_list_for_each2(mEndpoints, (void (*)(void*,void*))unconfigureEndpoint, (void*)&ep->mPin);
 	} else if (bctbx_list_find(mEndpoints,ep) != NULL) {
-		ms_message("[all to all] conference %p remove endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
+		ms_message("[VideoConferenceAllToAll] conference %p remove endpoint %s with output pin %d", this, ep->mName.c_str(), ep->mOutPin);
 		mEndpoints=bctbx_list_remove(mEndpoints,ep);
+		unconfigureOutput(ep->mOutPin);
 		mOutputs[ep->mOutPin] = -1;
 	} else {
 		return;
@@ -195,7 +207,7 @@ void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
 	ms_ticker_detach(mTicker,mMixer);
 
 	if (mMembers == NULL && mVideoPlaceholderMember) {
-		ms_message("[all to all] conference %p remove video placeholder member %p at pin %d", this, mVideoPlaceholderMember, mVideoPlaceholderMember->mPin);
+		ms_message("[VideoConferenceAllToAll] conference %p remove video placeholder member %p at pin %d", this, mVideoPlaceholderMember, mVideoPlaceholderMember->mPin);
 		video_stream_set_encoder_control_callback(mVideoPlaceholderMember->mSt, NULL, NULL);
 		unplumb_from_conf(mVideoPlaceholderMember);
 		mVideoPlaceholderMember->redoVideoStreamGraph();
@@ -210,6 +222,21 @@ void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
 	ep->mConference=NULL;
 	if (mMembers || mEndpoints) {
 		ms_ticker_attach(mTicker,mMixer);
+	}
+	if (needNewFocus){
+		chooseNewFocus();
+	}
+}
+
+void VideoConferenceAllToAll::chooseNewFocus(){
+	if (mMembers == nullptr) return;
+	size_t size = bctbx_list_size(mMembers);
+	int newFocusIndex = bctbx_random() % (int)size;
+	VideoEndpoint *ep = (VideoEndpoint*) bctbx_list_nth_data(mMembers, newFocusIndex);
+	if (ep){
+		setFocus(ep);
+	}else{
+		ms_error("VideoConferenceAllToAll::chooseNewFocus(): bug here.");
 	}
 }
 
@@ -229,7 +256,7 @@ void VideoConferenceAllToAll::updateBitrateRequest() {
 	int min_of_tmmbr = -1;
 	for (elem = mEndpoints; elem != NULL; elem = elem->next){
 		VideoEndpoint *ep = (VideoEndpoint*) elem->data;
-		if (!video_stream_thumbnail_enabled(ep->mSt) && ep->mLastTmmbrReceived != 0){
+		if (ep->mSt->content != MSVideoContentThumbnail && ep->mLastTmmbrReceived != 0){
 			if (min_of_tmmbr == -1){
 				min_of_tmmbr = ep->mLastTmmbrReceived;
 			}else{
@@ -286,6 +313,7 @@ void VideoConferenceAllToAll::notifySli(int pin) {
 
 void VideoConferenceAllToAll::setFocus(VideoEndpoint *ep) {
 	ms_filter_call_method(mMixer, MS_VIDEO_ROUTER_SET_FOCUS, &ep->mPin);
+	mLastFocusPin = ep->mPin;
 }
 
 VideoConferenceAllToAll::~VideoConferenceAllToAll() {

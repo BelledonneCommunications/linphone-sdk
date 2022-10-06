@@ -942,6 +942,13 @@ struct _MediastreamVideoStat
 
 typedef struct _MediastreamVideoStat MediaStreamVideoStat;
 
+typedef enum _MSVideoContent{
+	MSVideoContentDefault,
+	MSVideoContentSpeaker,
+	MSVideoContentThumbnail
+} MSVideoContent;
+
+
 struct _VideoStream
 {
 	MediaStream ms;
@@ -995,6 +1002,7 @@ struct _VideoStream
 	MSVideoDisplayMode display_mode;
 	int frame_marking_extension_id;
 	char *label;
+	MSVideoContent content;
 	bool_t use_preview_window;
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
@@ -1004,7 +1012,6 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
-	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1038,8 +1045,9 @@ MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEvent
 MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC void video_stream_set_label(VideoStream *s, const char *label);
-MS2_PUBLIC void video_stream_enable_thumbnail(VideoStream *s, bool_t enabled);
-MS2_PUBLIC bool_t video_stream_thumbnail_enabled(VideoStream *s);
+MS2_PUBLIC void video_stream_set_content(VideoStream *s, MSVideoContent content);
+MS2_PUBLIC MSVideoContent video_stream_get_content(const VideoStream *vs);
+
 MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);
 MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip,

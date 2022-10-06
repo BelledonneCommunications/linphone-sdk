@@ -105,11 +105,9 @@ void VideoConferenceGeneric::applyNewBitrateRequest() {
 void plumb_to_conf(VideoEndpoint *ep) {
 	VideoConferenceGeneric *conf=(VideoConferenceGeneric *)ep->mConference;
 	MSVideoConferenceFilterPinControl pc;
-
-	if (ep != conf->getVideoPlaceholderMember()) {
-		if (ep->mMixerOut.filter){
-			ms_filter_link(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
-		}
+	
+	if (ep->mMixerOut.filter && ep->mOutPin != -1){
+		ms_filter_link(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
 	}
 
 	if (ep->mMixerIn.filter){
@@ -129,7 +127,7 @@ void unplumb_from_conf(VideoEndpoint *ep) {
 	if (ep->mMixerIn.filter){
 		ms_filter_unlink(ep->mMixerIn.filter,ep->mMixerIn.pin,conf->getMixer(),ep->mPin);
 	}
-	if (ep->mMixerOut.filter && ep != conf->getVideoPlaceholderMember()){
+	if (ep->mMixerOut.filter && ep->mOutPin != -1){
 		ms_filter_unlink(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
 	}
 }
