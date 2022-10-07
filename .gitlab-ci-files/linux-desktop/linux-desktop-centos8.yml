@@ -111,9 +111,9 @@ bctoolbox-centos8-test:
 
 pqc-centos8-test:
   extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - centos8-ninja-gcc-pqc
-  <<: *docker_image_platform_and_runner_tag
 
 bellesip-centos8-test:
   extends: .test-bellesip

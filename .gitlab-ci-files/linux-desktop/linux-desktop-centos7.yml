@@ -71,9 +71,15 @@ bctoolbox-centos7-test:
 
 pqc-centos7-test:
   extends: .test-pqc
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
   needs:
     - centos7-ninja-gcc-pqc
-  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
+# pqc-centos7-test-mr:
+#  extends: .test-pqc-mr
+#  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#  needs:
+#    - centos7-ninja-gcc-pqc
 
 belr-centos7-test:
   extends: .test-belr

@@ -110,9 +110,9 @@ bctoolbox-arch-test:
 
 pqc-arch-test:
   extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - arch-latest-ninja-clang-pqc
-  <<: *docker_image_platform_and_runner_tag
 
 bellesip-arch-test:
   extends: .test-bellesip

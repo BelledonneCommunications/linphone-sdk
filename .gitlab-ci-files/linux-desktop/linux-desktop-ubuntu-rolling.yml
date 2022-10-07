@@ -110,9 +110,9 @@ bctoolbox-ubuntu-test:
 
 pqc-ubuntu-test:
   extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - ubuntu-rolling-ninja-clang-pqc
-  <<: *docker_image_platform_and_runner_tag
 
 bellesip-ubuntu-test:
   extends: .test-bellesip

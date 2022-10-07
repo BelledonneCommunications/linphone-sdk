@@ -120,9 +120,9 @@ bctoolbox-debian12-test:
 
 pqc-debian12-test:
   extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - debian12-ninja-gcc-pqc
-  <<: *docker_image_platform_and_runner_tag
 
 bellesip-debian12-test:
   extends: .test-bellesip
