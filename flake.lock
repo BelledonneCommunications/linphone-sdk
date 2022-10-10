@@ -1,12 +1,188 @@
 {
   "nodes": {
+    "bctoolbox-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1665674331,
+        "narHash": "sha256-9kJUCQfajb8kvvDk21Lk/+7+Kuy9uNNL4DMjW7Hv1uM=",
+        "ref": "c1a10ffa622f9226e355a5b311c06f0f4b78976e",
+        "rev": "c1a10ffa622f9226e355a5b311c06f0f4b78976e",
+        "revCount": 790,
+        "type": "git",
+        "url": "file:./bctoolbox"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./bctoolbox"
+      }
+    },
+    "bcunit-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1644485554,
+        "narHash": "sha256-8DSfqHerx/V00SJjTSQaG9Rjqx330iG6sGivBDUvQfA=",
+        "ref": "e3557aed8ba22e04047a9e4371a331b863081fc8",
+        "rev": "e3557aed8ba22e04047a9e4371a331b863081fc8",
+        "revCount": 221,
+        "type": "git",
+        "url": "file:./bcunit"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./bcunit"
+      }
+    },
+    "belcard-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1643288240,
+        "narHash": "sha256-Q5FJ1Nh61woyXN7BVTZGNGXOVhcZXakLWcxaavPpgeY=",
+        "ref": "f50f203d6a44b6ec3bfd897d8057a94dfefa3e57",
+        "rev": "f50f203d6a44b6ec3bfd897d8057a94dfefa3e57",
+        "revCount": 230,
+        "type": "git",
+        "url": "file:./belcard"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./belcard"
+      }
+    },
+    "belle-sip-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1663847344,
+        "narHash": "sha256-Q7vfoWs8T3aYR4MZ5tUgq939zUJIDR7Ue2WPSfy4jSk=",
+        "ref": "fc0ed18ffe51d078d34507e2abdb9ea162d72bd4",
+        "rev": "fc0ed18ffe51d078d34507e2abdb9ea162d72bd4",
+        "revCount": 2111,
+        "type": "git",
+        "url": "file:./belle-sip"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./belle-sip"
+      }
+    },
+    "belr-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1644486107,
+        "narHash": "sha256-EXD4OFTSBfaNgjv9yaWquCq6oqz0/d5nugc7BDwiQrg=",
+        "ref": "5b9f1ecb134f431b92a5d4bb5d4ca65ab4f47d59",
+        "rev": "5b9f1ecb134f431b92a5d4bb5d4ca65ab4f47d59",
+        "revCount": 196,
+        "type": "git",
+        "url": "file:./belr"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./belr"
+      }
+    },
+    "bzrtp-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1663933031,
+        "narHash": "sha256-opYeK0104pbSJy4BCTviU/kFDkxMiIKUWThA1QCA+68=",
+        "ref": "141838f51e3aa0e93109c1060f5068b1aa103b22",
+        "rev": "141838f51e3aa0e93109c1060f5068b1aa103b22",
+        "revCount": 309,
+        "type": "git",
+        "url": "file:./bzrtp"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./bzrtp"
+      }
+    },
+    "decaf-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1658325219,
+        "narHash": "sha256-QFOAgLiPbG2ZdwKoCOrVD5/sPq9IH4rtAWnnk/rZWcs=",
+        "ref": "876ddb4d465c94f97beba1be450e8538d866cc5d",
+        "rev": "876ddb4d465c94f97beba1be450e8538d866cc5d",
+        "revCount": 561,
+        "type": "git",
+        "url": "file:./external/decaf"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./external/decaf"
+      }
+    },
+    "liblinphone-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1667204666,
+        "narHash": "sha256-xMf/bQ1944XlqHmRwAfDyLNJ8wb1yfdPhTnEtS5pV8A=",
+        "ref": "refs/heads/feature/nix-flake",
+        "rev": "ac82490110728af311b2f2aa9e7803a8abc760c9",
+        "revCount": 15937,
+        "type": "git",
+        "url": "file:./liblinphone"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./liblinphone"
+      }
+    },
+    "lime-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1661851313,
+        "narHash": "sha256-ZgTynyH+4O4Mq8qUHmlBvlBm9eWwhBjPlEx5LKtVO80=",
+        "ref": "ca59593f3e577d28d3dadecba0516eaa2aa92e92",
+        "rev": "ca59593f3e577d28d3dadecba0516eaa2aa92e92",
+        "revCount": 239,
+        "type": "git",
+        "url": "file:./lime"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./lime"
+      }
+    },
+    "mediastreamer2-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1665731892,
+        "narHash": "sha256-LhifxjuX8IRsdFF3X059YUbzOOt4egqMliEXFA/Fka8=",
+        "ref": "8b10264baa07a5e108b4b8052d16c47605690b8c",
+        "rev": "8b10264baa07a5e108b4b8052d16c47605690b8c",
+        "revCount": 6319,
+        "type": "git",
+        "url": "file:./mediastreamer2"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./mediastreamer2"
+      }
+    },
+    "msopenh264-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1654001160,
+        "narHash": "sha256-YM1KQ+4VJPfQ0jI8dWFVyOtTphoX6TAd1NZTZtFAHRA=",
+        "ref": "c09d2652245f0d660f427c1cf5ae97709b504803",
+        "rev": "c09d2652245f0d660f427c1cf5ae97709b504803",
+        "revCount": 154,
+        "type": "git",
+        "url": "file:./msopenh264"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./msopenh264"
+      }
+    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1663819708,
-        "narHash": "sha256-nKyJpwzGoV+5BNLHlrEMawsDxR1i6WOXqTcHWrWE8y4=",
+        "lastModified": 1666659249,
+        "narHash": "sha256-Qbyj7ya2ZTL5Vt5ONMUwgq/shNSqZVbxDInQbmDO5iw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "f586d35a11ec07ced41d9d62c125c6ca0006141f",
+        "rev": "d4f8e53720b554b6dac71c7ec62b3b51158905f9",
         "type": "github"
       },
       "original": {
@@ -14,9 +190,54 @@
         "type": "indirect"
       }
     },
+    "ortp-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1663665382,
+        "narHash": "sha256-47FWIiNTMztcRILUsm6gY4odfu3V/t3Rl8tHD3DfEKo=",
+        "ref": "855a5bb64297a32b31f217eeb1bef03c7049bac1",
+        "rev": "855a5bb64297a32b31f217eeb1bef03c7049bac1",
+        "revCount": 1942,
+        "type": "git",
+        "url": "file:./ortp"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./ortp"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "bctoolbox-src": "bctoolbox-src",
+        "bcunit-src": "bcunit-src",
+        "belcard-src": "belcard-src",
+        "belle-sip-src": "belle-sip-src",
+        "belr-src": "belr-src",
+        "bzrtp-src": "bzrtp-src",
+        "decaf-src": "decaf-src",
+        "liblinphone-src": "liblinphone-src",
+        "lime-src": "lime-src",
+        "mediastreamer2-src": "mediastreamer2-src",
+        "msopenh264-src": "msopenh264-src",
+        "nixpkgs": "nixpkgs",
+        "ortp-src": "ortp-src",
+        "soci-src": "soci-src"
+      }
+    },
+    "soci-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1662122129,
+        "narHash": "sha256-2Plx++w1UCP3NBLroD36hdHBkx8ldT2DXMs8PYXWxSg=",
+        "ref": "43f48293bb1f7d00891335686b5e42d93b51f468",
+        "rev": "43f48293bb1f7d00891335686b5e42d93b51f468",
+        "revCount": 2450,
+        "type": "git",
+        "url": "file:./external/soci"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:./external/soci"
       }
     }
   },
