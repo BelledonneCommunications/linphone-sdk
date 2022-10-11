@@ -494,6 +494,11 @@ VideoStream *video_stream_new_with_sessions(MSFactory* factory, const MSMediaStr
 
 	stream->is_forwarding = FALSE;
 
+	stream->csrc_changed_cb = NULL;
+	stream->csrc_changed_cb_user_data = NULL;
+	stream->new_csrc = 0;
+	stream->wait_for_frame_decoded = FALSE;
+
 	ortp_ev_dispatcher_connect(stream->ms.evd
 								, ORTP_EVENT_JITTER_UPDATE_FOR_NACK
 								, 0
@@ -1135,6 +1140,25 @@ static MSPixFmt mime_type_to_pix_format(const char *mime_type) {
 	return MS_PIX_FMT_UNKNOWN;
 }
 
+static void csrc_event_cb(void *ud, MSFilter *f, unsigned int event, void *eventdata) {
+	VideoStream *stream = (VideoStream *)ud;
+
+	switch(event) {
+		case MS_RTP_RECV_CSRC_CHANGED:
+			stream->new_csrc = *((uint32_t *) eventdata);
+			stream->wait_for_frame_decoded = TRUE;
+			break;
+		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
+			if (stream->wait_for_frame_decoded) {
+				stream->csrc_changed_cb(stream->csrc_changed_cb_user_data, stream->new_csrc);
+				stream->wait_for_frame_decoded = FALSE;
+			}
+			break;
+		default:
+			break;
+	}
+}
+
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output) {
 	PayloadType *pt;
@@ -1347,6 +1371,13 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 
 		stream->ms.rtprecv = ms_factory_create_filter( stream->ms.factory, MS_RTP_RECV_ID);
 		ms_filter_call_method(stream->ms.rtprecv,MS_RTP_RECV_SET_SESSION,stream->ms.sessions.rtp_session);
+
+		if (stream->csrc_changed_cb) {
+			bool_t enable = TRUE;
+			ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_ENABLE_CSRC_EVENTS, &enable);
+			ms_filter_add_notify_callback(stream->ms.rtprecv, csrc_event_cb, stream, TRUE);
+			ms_filter_add_notify_callback(stream->ms.decoder, csrc_event_cb, stream, TRUE);
+		}
 
 		if (!rtp_output) {
 			if (stream->output_performs_decoding == FALSE) {
@@ -2408,4 +2439,17 @@ void video_stream_set_frame_marking_extension_id(VideoStream *stream, int extens
 
 void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max) {
 	stream->max_sent_vsize = max;
+}
+
+void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer) {
+	stream->csrc_changed_cb = cb;
+	stream->csrc_changed_cb_user_data = user_pointer;
+}
+
+uint32_t video_stream_get_send_ssrc(const VideoStream *stream) {
+	return rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session);
+}
+
+uint32_t video_stream_get_recv_ssrc(const VideoStream *stream) {
+	return rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
 }

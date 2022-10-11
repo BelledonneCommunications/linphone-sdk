@@ -932,6 +932,7 @@ typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *l
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
+typedef void (*VideoStreamCsrcChangedCb)(void *user_pointer, uint32_t new_csrc);
 
 struct _MediastreamVideoStat
 {
@@ -1013,6 +1014,10 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
+	VideoStreamCsrcChangedCb csrc_changed_cb;
+	void *csrc_changed_cb_user_data;
+	uint32_t new_csrc;
+	bool_t wait_for_frame_decoded;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1395,6 +1400,24 @@ MS2_PUBLIC void video_stream_enable_fec(VideoStream *stream, char* local_ip, int
  * @param max the max size the sent videostream can reach. 0x0 will remove this limitation.
  */
 MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max);
+
+MS2_PUBLIC void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer);
+
+/**
+ * Retrieve the receive ssrc of the stream
+ *
+ * @param stream the video stream
+ * @return the receive ssrc of the stream
+ */
+MS2_PUBLIC uint32_t video_stream_get_recv_ssrc(const VideoStream *stream);
+
+/**
+ * Retrieve the send ssrc of the stream
+ *
+ * @param stream the video stream
+ * @return the send ssrc of the stream
+ */
+MS2_PUBLIC uint32_t video_stream_get_send_ssrc(const VideoStream *stream);
 
 /**
  * Small API to display a local preview window.

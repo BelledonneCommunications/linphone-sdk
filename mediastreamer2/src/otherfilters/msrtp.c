@@ -786,6 +786,8 @@ struct ReceiverData {
 	int mixer_to_client_extension_id;
 	int client_to_mixer_extension_id;
 	bool_t rtp_transfer_mode;
+	bool_t csrc_events_enabled;
+	uint32_t last_csrc;
 };
 
 typedef struct ReceiverData ReceiverData;
@@ -798,6 +800,8 @@ static void receiver_init(MSFilter * f)
 	d->mixer_to_client_extension_id = 0;
 	d->client_to_mixer_extension_id = 0;
 	d->rtp_transfer_mode = FALSE;
+	d->csrc_events_enabled = FALSE;
+	d->last_csrc = 0;
 	f->data = d;
 }
 
@@ -943,6 +947,16 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 	}
 }
 
+static void receiver_check_for_csrc_change(MSFilter *f, mblk_t *m) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	uint32_t csrc = rtp_get_csrc(m, 0);
+
+	if (csrc != d->last_csrc) {
+		ms_filter_notify(f, MS_RTP_RECV_CSRC_CHANGED, &csrc);
+		d->last_csrc = csrc;
+	}
+}
+
 static void receiver_process(MSFilter * f)
 {
 	ReceiverData *d = (ReceiverData *) f->data;
@@ -979,6 +993,7 @@ static void receiver_process(MSFilter * f)
 			mblk_set_marker_info(m, rtp_get_markbit(m));
 			mblk_set_cseq(m, rtp_get_seqnumber(m));
 			receiver_check_for_extensions(f, m);
+			if (d->csrc_events_enabled) receiver_check_for_csrc_change(f, m);
 			rtp_get_payload(m,&m->b_rptr);
 			ms_queue_put(f->outputs[0], m);
 		}else{
@@ -1004,12 +1019,19 @@ static int receiver_enable_rtp_transfer_mode(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int receiver_enable_csrc_events(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	d->csrc_events_enabled = * (bool_t *) arg;
+	return 0;
+}
+
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
 	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID, receiver_set_mixer_to_client_extension_id },
 	{	MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID, receiver_set_client_to_mixer_extension_id },
 	{	MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode },
+	{	MS_RTP_RECV_ENABLE_CSRC_EVENTS, receiver_enable_csrc_events },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
 	{ 	MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt },
