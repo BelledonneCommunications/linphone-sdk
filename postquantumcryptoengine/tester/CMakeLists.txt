@@ -34,10 +34,10 @@ add_definitions(
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_TEST_C_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_TEST_CXX_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_executable(postquantumcryptoengine-tester ${POSTQUANTUMCRYPTOENGINE_TEST_C_SOURCES} ${POSTQUANTUMCRYPTOENGINE_TEST_CXX_SOURCES})
-set_target_properties(postquantumcryptoengine-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-set_target_properties(postquantumcryptoengine-tester PROPERTIES LINKER_LANGUAGE CXX)
+add_executable(pqcrypto-tester ${POSTQUANTUMCRYPTOENGINE_TEST_C_SOURCES} ${POSTQUANTUMCRYPTOENGINE_TEST_CXX_SOURCES})
+set_target_properties(pqcrypto-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+set_target_properties(pqcrypto-tester PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(postquantumcryptoengine-tester PRIVATE bctoolbox bctoolbox-tester postquantumcryptoengine)
+target_link_libraries(pqcrypto-tester PRIVATE bctoolbox bctoolbox-tester postquantumcryptoengine)
 
-add_test(NAME postquantumcryptoengine-tester COMMAND postquantumcryptoengine-tester)
+add_test(NAME pqcrypto-tester COMMAND pqcrypto-tester)
