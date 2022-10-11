@@ -43,6 +43,12 @@ debian9-makefile-clang:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
 
+debian9-makefile-clang-pqc:
+  rules:
+   - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+  extends: debian9-makefile-clang
 
 #################################################
 # Ninja

@@ -100,10 +100,14 @@ debian12-ninja-clang-sanitizer:
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: debian12-ninja-clang
 
-
 debian12-ninja-clang-novideo:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+  extends: debian12-ninja-clang
+
+debian12-ninja-clang-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
   extends: debian12-ninja-clang
 
 #################################################

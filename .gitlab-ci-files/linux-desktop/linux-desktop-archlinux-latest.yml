@@ -57,14 +57,20 @@ arch-latest-ninja-gcc:
     CXX: g++
   extends: .linux-desktop
 
-
 arch-latest-ninja-gcc-novideo:
-
   tags: [ "docker" ]
   rules:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+  extends: arch-latest-ninja-gcc
+
+arch-latest-ninja-gcc-pqc:
+  tags: [ "docker" ]
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
   extends: arch-latest-ninja-gcc
 
 

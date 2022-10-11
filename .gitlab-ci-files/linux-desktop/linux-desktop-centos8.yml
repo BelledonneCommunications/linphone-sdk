@@ -98,6 +98,13 @@ centos8-ninja-clang-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: centos8-ninja-clang
 
+centos8-ninja-clang-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: centos8-ninja-clang
+
 #################################################
 # TESTS
 #################################################
