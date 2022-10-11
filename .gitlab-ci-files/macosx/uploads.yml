@@ -1,6 +1,6 @@
 macosx-upload:
   stage: deploy
-  tags: [ "macmini-m1-xcode13" ]
+  tags: [ "macos-xcode13" ]
 
   rules:
     - if: $DEPLOY_RUN_MACOSX
