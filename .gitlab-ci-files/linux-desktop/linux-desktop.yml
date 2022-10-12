@@ -179,7 +179,7 @@
 .test-pqc:
   extends: .test
   variables:
-    TESTER_BIN: "postquantumcryptoengine-tester"
+    TESTER_BIN: "pqcrypto-tester"
     LOG_PATTERN: "logPostQuantumCryptoEngineAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/postquantumcryptoengine/tester"
     TESTER: "postquantumcryptoengine"
