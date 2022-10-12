@@ -54,6 +54,7 @@
   variables:
     GIT_STRATEGY: none
     GIT_SUBMODULE_STRATEGY: none
+    USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
   rules:
     - if: $ENABLE_LINUX_TESTS
     - if: $SKIP_LINUX
@@ -92,7 +93,7 @@
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - |
-        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
           then ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
         else
 
@@ -110,7 +111,7 @@
     - $PULSEAUDIO_KILL
 
     - |
-        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
         then
           exit $EXIT
         else
@@ -171,7 +172,7 @@
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
 
     - |
-        if [ $USE_TUNNEL_PQ_TESTS = "false" ];
+        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
           then
             cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results;
         else
@@ -366,13 +367,13 @@
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "liblinphone"
     #false
-    USE_TUNNEL_PQ_TESTS: "false"
+    USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
   variables:
     #true
-    USE_TUNNEL_PQ_TESTS: "true"
+    USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
     ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-mr:
@@ -387,5 +388,5 @@
   allow_failure: true
   variables:
     #true
-    USE_TUNNEL_PQ_TESTS: "true"
+    USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
     ADDITIONNAL_OPTIONS: ""
