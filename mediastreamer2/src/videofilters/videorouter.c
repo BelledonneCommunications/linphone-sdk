@@ -114,19 +114,19 @@ static void router_uninit(MSFilter *f){
 }
 
 /* Only called in the active speaker case */
-static void elect_new_source(MSFilter *f, OutputContext *output_context){
+static int elect_new_source(MSFilter *f, OutputContext *output_context){
 	RouterState *s=(RouterState *)f->data;
 	int k;
 	int current;
 	
 	if (output_context->link_source == -1){
 		ms_error("elect_new_source(): should be called only for active speaker case.");
-		return;
+		return output_context->next_source;
 	}
 	if (output_context->link_source != s->focus_pin && s->focus_pin != -1 && f->inputs[s->focus_pin] != NULL){
 		/* show the active speaker */
 		output_context->next_source = s->focus_pin;
-		return;
+		return output_context->next_source;
 	}
 	if (output_context->next_source != -1){
 		current = output_context->next_source;
@@ -140,12 +140,12 @@ static void elect_new_source(MSFilter *f, OutputContext *output_context){
 		if (f->inputs[next_pin] && next_pin != output_context->link_source 
 			&& next_pin != s->placeholder_pin && !s->input_contexts[next_pin].disabled){
 			output_context->next_source = next_pin;
-			return;
+			return output_context->next_source;
 		}
 	}
 	/* Otherwise, show nothing. */
 	output_context->next_source = -1;
-	return;
+	return output_context->next_source;
 }
 
 static int router_configure_output(MSFilter *f, void *data){
@@ -272,7 +272,7 @@ static void _router_set_focus(MSFilter *f, RouterState *s , int pin){
 			ms_message("%s: this pin %d link_source[%d], current_source %d and next_source %d", f->desc->name, i, s->output_contexts[i].link_source, s->output_contexts[i].current_source, s->output_contexts[i].next_source);
 		}
 	}
-	s->focus_pin=pin;
+	s->focus_pin = requested_pin;
 }
 
 static void router_preprocess(MSFilter *f){
@@ -336,18 +336,23 @@ static void router_process(MSFilter *f){
 					ms_warning("%s: current source %i disapeared.", f->desc->name, output_context->current_source);
 				}
 				if (output_context->next_source == -1){
-					elect_new_source(f, output_context);
-					ms_message("New source automatically selected for output pin [%i]: next_source=[%i]",
-						i, output_context->next_source);
+					if (elect_new_source(f, output_context) != -1){
+						ms_message("%s: new source automatically selected for output pin [%i]: next_source=[%i]",
+							f->desc->name, i, output_context->next_source);
+					}
 				}
 
 				if (output_context->current_source != output_context->next_source && output_context->next_source != -1){
 					/* This output is waiting a key-frame to start */
 					input_context = &s->input_contexts[output_context->next_source];
 					if (input_context->key_frame_start != NULL){
+						MSVideoRouterSwitchedEventData event_data;
+						event_data.output = i;
+						event_data.input = output_context->next_source;
 						/* The input just got a key frame, we can switch ! */
 						output_context->current_source = output_context->next_source;
 						key_frame_start = input_context->key_frame_start;
+						ms_filter_notify(f, MS_VIDEO_ROUTER_OUTPUT_SWITCHED, &event_data);
 					}else{
 						/* else request a key frame */
 						if (input_context->key_frame_requested == FALSE){
@@ -381,10 +386,10 @@ static int router_set_focus(MSFilter *f, void *data){
 		return -1;
 	}
 	if (s->focus_pin != pin){
+		ms_message("%s: focus requested on pin %i", f->desc->name, pin);
 		ms_filter_lock(f);
 		_router_set_focus(f, s, pin);
 		ms_filter_unlock(f);
-		ms_message("%s: focus requested on pin %i", f->desc->name, pin);
 	}
 	return 0;
 }

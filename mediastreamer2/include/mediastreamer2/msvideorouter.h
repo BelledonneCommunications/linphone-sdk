@@ -48,7 +48,14 @@ typedef struct _MSVideoRouterPinData{
 
 
 /**Events raised by the router when it needs to receive a key frame in order to complete the route to new input source*/
-#define MS_VIDEO_ROUTER_SEND_FIR MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,6,int)
-#define MS_VIDEO_ROUTER_SEND_PLI MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,7,int)
+#define MS_VIDEO_ROUTER_SEND_FIR 	MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,0,int)
+#define MS_VIDEO_ROUTER_SEND_PLI 	MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,1,int)
+
+/* Event emitted when an output starts flowing data from a new input */
+typedef struct _MSVideoRouterSwitchedEventData{
+	int output; /*< The output pin that started flowing packets */
+	int input;  /*< The input pin from which packets are taken */
+}MSVideoRouterSwitchedEventData;
+#define MS_VIDEO_ROUTER_OUTPUT_SWITCHED  MS_FILTER_EVENT(MS_VIDEO_ROUTER_ID,2,MSVideoRouterSwitchedEventData)
 
 #endif
