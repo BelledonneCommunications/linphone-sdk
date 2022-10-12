@@ -21,6 +21,7 @@
 #ifdef VIDEO_ENABLED
 #include "video-conference.h"
 #include "mediastreamer2/msconference.h"
+#include "mediastreamer2/msrtp.h"
 
 using namespace ms2;
 
@@ -73,13 +74,23 @@ VideoEndpoint *VideoConferenceGeneric::getVideoPlaceholderMember() const {
 	return mVideoPlaceholderMember;
 }
 
-VideoEndpoint *VideoConferenceGeneric::getMemberAtPin(int pin) const {
+VideoEndpoint *VideoConferenceGeneric::getMemberAtInputPin(int pin) const {
 	const MSList *it;
 	for (it=mMembers;it!=NULL;it=it->next){
 		VideoEndpoint *ep=(VideoEndpoint*)it->data;
 		if (ep->mPin==pin) return ep;
 	}
 	if (mVideoPlaceholderMember && (mVideoPlaceholderMember->mPin == pin)) return mVideoPlaceholderMember;
+	return NULL;
+}
+
+VideoEndpoint *VideoConferenceGeneric::getMemberAtOutputPin(int pin) const {
+	const MSList *it;
+	for (it=mMembers;it!=NULL;it=it->next){
+		VideoEndpoint *ep=(VideoEndpoint*)it->data;
+		if (ep->mOutPin==pin) return ep;
+	}
+	if (mVideoPlaceholderMember && (mVideoPlaceholderMember->mOutPin == pin)) return mVideoPlaceholderMember;
 	return NULL;
 }
 
@@ -134,24 +145,33 @@ void unplumb_from_conf(VideoEndpoint *ep) {
 }
 
 void on_filter_event(void *data, MSFilter *f, unsigned int event_id, void *event_data) {
-	VideoConferenceGeneric *obj=(VideoConferenceGeneric*)data;
-	int pin=*(int*)event_data;
-	VideoEndpoint *ep=obj->getMemberAtPin(pin);
-	if (ep){
-		switch(event_id){
-			case MS_VIDEO_SWITCHER_SEND_FIR:
-			case MS_VIDEO_ROUTER_SEND_FIR:
+	VideoConferenceGeneric *obj = (VideoConferenceGeneric *) data;
+	int pin;
+	VideoEndpoint *ep;
+
+	switch(event_id) {
+		case MS_VIDEO_SWITCHER_SEND_FIR:
+		case MS_VIDEO_ROUTER_SEND_FIR:
+			pin = *(int *) event_data;
+			ep = obj->getMemberAtInputPin(pin);
+			if (ep) {
 				ms_message("Filter needs a refresh frame (FIR) for [%s] endpoint created from VideoStream [%p]",
 					ep->mIsRemote ? "remote" : "local",
 					ep->mSt);
-				if (ep->mIsRemote){
+				if (ep->mIsRemote) {
 					video_stream_send_fir(ep->mSt);
-				}else{
+				} else {
 					video_stream_send_vfu(ep->mSt);
 				}
-			break;
-			case MS_VIDEO_SWITCHER_SEND_PLI:
-			case MS_VIDEO_ROUTER_SEND_PLI:
+			} else {
+				ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			}
+		break;
+		case MS_VIDEO_SWITCHER_SEND_PLI:
+		case MS_VIDEO_ROUTER_SEND_PLI:
+			pin = *(int *) event_data;
+			ep = obj->getMemberAtInputPin(pin);
+			if (ep) {
 				ms_message("Filter needs a refresh frame (PLI) for [%s] endpoint created from VideoStream [%p]",
 					ep->mIsRemote ? "remote" : "local",
 					ep->mSt);
@@ -160,10 +180,21 @@ void on_filter_event(void *data, MSFilter *f, unsigned int event_id, void *event
 				}else{
 					ms_filter_call_method_noarg(ep->mSt->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
 				}
-			break;
-		}
-	}else{
-		ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			} else {
+				ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			}
+		break;
+		case MS_VIDEO_ROUTER_OUTPUT_SWITCHED:
+			MSVideoRouterSwitchedEventData *data = (MSVideoRouterSwitchedEventData *) event_data;
+			VideoEndpoint *in = obj->getMemberAtInputPin(data->input);
+			VideoEndpoint *out = obj->getMemberAtOutputPin(data->output);
+
+			if (in != NULL && out != NULL) {
+				uint32_t ssrc = media_stream_get_recv_ssrc(&in->mSt->ms);
+
+				ms_filter_call_method(out->mSt->ms.rtpsend, MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, &ssrc);
+			}
+		break;
 	}
 }
 

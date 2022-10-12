@@ -77,7 +77,8 @@ public:
 	virtual void setLocalMember(MSVideoConferenceFilterPinControl pc) = 0;
 	virtual void notifyFir(int pin) = 0;
 	virtual void notifySli(int pin) = 0;
-	virtual VideoEndpoint *getMemberAtPin(int pin) const;
+	virtual VideoEndpoint *getMemberAtInputPin(int pin) const;
+	virtual VideoEndpoint *getMemberAtOutputPin(int pin) const;
 	virtual void unconfigureOutput(int pin) {};
 	virtual bool allToAllEnabled() const = 0;
 

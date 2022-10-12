@@ -318,6 +318,22 @@ MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
 
 MS2_PUBLIC OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream);
 
+/**
+ * Retrieve the receive ssrc of the stream
+ *
+ * @param stream the media stream
+ * @return the receive ssrc of the stream
+ */
+MS2_PUBLIC uint32_t media_stream_get_recv_ssrc(const MediaStream *stream);
+
+/**
+ * Retrieve the send ssrc of the stream
+ *
+ * @param stream the media stream
+ * @return the send ssrc of the stream
+ */
+MS2_PUBLIC uint32_t media_stream_get_send_ssrc(const MediaStream *stream);
+
 typedef enum EchoLimiterType{
 	ELInactive,
 	ELControlMic,
@@ -1014,10 +1030,10 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
+	bool_t wait_for_frame_decoded;
 	VideoStreamCsrcChangedCb csrc_changed_cb;
 	void *csrc_changed_cb_user_data;
 	uint32_t new_csrc;
-	bool_t wait_for_frame_decoded;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1402,22 +1418,6 @@ MS2_PUBLIC void video_stream_enable_fec(VideoStream *stream, char* local_ip, int
 MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max);
 
 MS2_PUBLIC void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer);
-
-/**
- * Retrieve the receive ssrc of the stream
- *
- * @param stream the video stream
- * @return the receive ssrc of the stream
- */
-MS2_PUBLIC uint32_t video_stream_get_recv_ssrc(const VideoStream *stream);
-
-/**
- * Retrieve the send ssrc of the stream
- *
- * @param stream the video stream
- * @return the send ssrc of the stream
- */
-MS2_PUBLIC uint32_t video_stream_get_send_ssrc(const VideoStream *stream);
 
 /**
  * Small API to display a local preview window.

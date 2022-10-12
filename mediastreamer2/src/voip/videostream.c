@@ -1146,6 +1146,9 @@ static void csrc_event_cb(void *ud, MSFilter *f, unsigned int event, void *event
 	switch(event) {
 		case MS_RTP_RECV_CSRC_CHANGED:
 			stream->new_csrc = *((uint32_t *) eventdata);
+
+			bool_t reset = TRUE;
+			ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
 			stream->wait_for_frame_decoded = TRUE;
 			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
@@ -1376,7 +1379,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 			bool_t enable = TRUE;
 			ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_ENABLE_CSRC_EVENTS, &enable);
 			ms_filter_add_notify_callback(stream->ms.rtprecv, csrc_event_cb, stream, TRUE);
-			ms_filter_add_notify_callback(stream->ms.decoder, csrc_event_cb, stream, TRUE);
+			ms_filter_add_notify_callback(stream->ms.decoder, csrc_event_cb, stream, FALSE);
 		}
 
 		if (!rtp_output) {
@@ -2444,12 +2447,4 @@ void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max) 
 void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer) {
 	stream->csrc_changed_cb = cb;
 	stream->csrc_changed_cb_user_data = user_pointer;
-}
-
-uint32_t video_stream_get_send_ssrc(const VideoStream *stream) {
-	return rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session);
-}
-
-uint32_t video_stream_get_recv_ssrc(const VideoStream *stream) {
-	return rtp_session_get_recv_ssrc(stream->ms.sessions.rtp_session);
 }

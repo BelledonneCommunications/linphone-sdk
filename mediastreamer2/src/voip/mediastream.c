@@ -852,3 +852,11 @@ void media_stream_print_summary(MediaStream *ms){
 	rtp_stats_display(rtp_session_get_stats(ms->sessions.rtp_session),
 		"                     RTP STATISTICS                          ");
 }
+
+uint32_t media_stream_get_send_ssrc(const MediaStream *stream) {
+	return rtp_session_get_send_ssrc(stream->sessions.rtp_session);
+}
+
+uint32_t media_stream_get_recv_ssrc(const MediaStream *stream) {
+	return rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
+}
