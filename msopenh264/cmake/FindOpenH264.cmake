@@ -44,7 +44,7 @@ if(OPENH264_INCLUDE_DIRS)
 endif()
 
 find_library(OPENH264_LIBRARIES
-	NAMES openh264 openh264_dll
+	NAMES openh264_dll openh264
 	HINTS _OPENH264_ROOT_PATHS
 	PATH_SUFFIXES bin lib
 )
