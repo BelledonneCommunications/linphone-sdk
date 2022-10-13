@@ -4,8 +4,8 @@
   tags: [ "macmini-m1-xcode13" ]
 
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == "toto"
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_MACOSX == "toto"
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
 
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
