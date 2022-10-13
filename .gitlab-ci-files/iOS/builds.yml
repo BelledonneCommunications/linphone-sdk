@@ -68,11 +68,12 @@ ios-makefile:
 ios-ninja:
 
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == "toto"
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
 
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
+    CMAKE_OPTIONS: -DLINPHONESDK_IOS_PLATFORM=Iphone 
   extends: .ios
 
 ios-ninja-allcodecs:
