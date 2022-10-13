@@ -42,12 +42,11 @@ ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
 USER bc
 WORKDIR /home/bc
 
-# Install python3 and python modules.
+# Install python3 module.
 # This must be done as 'bc' user because some python modules are installed into /usr/local/lib when pip is invoked
 # as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
 # modules to be installed into /home/bc/.local/lib.
-RUN sudo apt-get install -y python-pip python3-pip && sudo apt-get clean -y && \
-    python -m pip install --user six pystache graphviz && \
+RUN sudo apt-get install -y python3-pip && sudo apt-get clean -y && \
     python3 -m pip install --user six pystache graphviz
 
 COPY --chown=bc rpmmacros /home/bc/.rpmmacros

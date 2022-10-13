@@ -1,3 +1,6 @@
+.no-cache:
+  cache: []
+
 .linux-prepare:
 
   cache:
@@ -58,6 +61,11 @@
 
     - CENTOS_VERSION=$(cat /etc/centos-release) || true
     - if [ -n "$CENTOS_VERSION" ] && [ -n "$(echo $CENTOS_VERSION | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
+
+    #debug empty value on updated arch
+    - git describe --debug || true
+    - git config --global --add safe.directory /builds/BC/public/linphone-sdk
+    - git -C liblinphone describe --debug || true
 
   after_script:
     - if ! [ -z ${SSH_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi

@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_ubuntu-rolling_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+  rules:
+    - if: $DOCKER_UPDATE_UBUNTU
+  cache:
+    - !reference [.no-cache, cache]
+
 ubuntu-rolling-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
@@ -10,9 +21,9 @@ ubuntu-rolling-image-docker-rebuild:
   script:
     - docker pull ubuntu:rolling
     - cd docker-files
-    - docker build -f ./bc-dev-ubuntu-rolling -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated --rm --no-cache .
+    - docker build -f ./bc-dev-ubuntu-rolling -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
-    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:latestupdated
 
 ubuntu-rolling-image-docker-rebuild-ms-test:
   stage: docker-update-build-ms
@@ -26,9 +37,9 @@ ubuntu-rolling-image-docker-rebuild-ms-test:
   needs:
     - ubuntu-rolling-image-docker-rebuild
   script:
-    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-ubuntu-rolling-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-ubuntu-rolling-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
 
@@ -46,45 +57,33 @@ ubuntu-rolling-image-docker-rebuild-liblinphone-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-ubuntu-rolling-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-ubuntu-rolling-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:latestupdated
 
 ubuntu-rolling-makefile-gcc-newdocker:
   extends: ubuntu-rolling-makefile-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  rules:
-    - if: $DOCKER_UPDATE_UBUNTU
+  <<: *docker_image_rule_no_cache
 
 #ubuntu-rolling-ninja-gcc-newdocker:
 #  extends: ubuntu-rolling-ninja-gcc
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-#  rules:
-#    - if: $DOCKER_UPDATE_UBUNTU
+#  <<: *docker_image_rule_no_cache
 
 #ubuntu-rolling-ninja-gcc-newdocker-novideo:
 #  extends: ubuntu-rolling-ninja-gcc-novideo
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-#  rules:
-#   - if: $DOCKER_UPDATE_UBUNTU
+#  <<: *docker_image_rule_no_cache
 
 #ubuntu-rolling-makefile-clang-newdocker:
 #  extends: ubuntu-rolling-makefile-clang
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-#  rules:
-#    - if: $DOCKER_UPDATE_UBUNTU
+#  <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-clang-newdocker:
   extends: ubuntu-rolling-ninja-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-  rules:
-    - if: $DOCKER_UPDATE_UBUNTU
+  <<: *docker_image_rule_no_cache
 
 #ubuntu-rolling-ninja-clang-newdocker-novideo:
 #  extends: ubuntu-rolling-ninja-clang-novideo
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
-#  rules:
-#    - if: $DOCKER_UPDATE_UBUNTU
+#  <<: *docker_image_rule_no_cache
 
 liblinphone-ubuntu-test-rolling-newdocker:
   extends: liblinphone-ubuntu-test

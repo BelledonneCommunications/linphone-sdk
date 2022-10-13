@@ -1,3 +1,15 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+
+.factorize_arch_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_ARCHLINUX
+  cache:
+    - !reference [.no-cache, cache]
+
 arch-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
@@ -8,7 +20,7 @@ arch-image-docker-rebuild:
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: none
   script:
-    - docker pull archlinux/base:latest
+    - docker pull archlinux:latest
     - cd docker-files
     - docker build -f ./bc-dev-archlinux -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
@@ -28,7 +40,7 @@ arch-image-docker-rebuild-ms-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-archlinux-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-archlinux-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
 
@@ -46,46 +58,33 @@ arch-image-docker-rebuild-liblinphone-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-archlinux-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-archlinux-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:latestupdated
 
 arch-makefile-gcc-newdocker:
   extends: arch-latest-makefile-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
-
+  <<: *docker_image_rule_no_cache
 
 arch-ninja-gcc-newdocker:
   extends: arch-latest-ninja-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
+  <<: *docker_image_rule_no_cache
 
 arch-ninja-gcc-newdocker-novideo:
   extends: arch-latest-ninja-gcc-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
+  <<: *docker_image_rule_no_cache
 
 arch-makefile-clang-newdocker:
   extends: arch-latest-makefile-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
+  <<: *docker_image_rule_no_cache
 
 arch-ninja-clang-newdocker:
   extends: arch-latest-ninja-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
+  <<: *docker_image_rule_no_cache
 
 arch-ninja-clang-newdocker-novideo:
   extends: arch-latest-ninja-clang-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_ARCHLINUX
+  <<: *docker_image_rule_no_cache
 
 liblinphone-arch-testlinux-newdocker:
   extends: liblinphone-arch-test

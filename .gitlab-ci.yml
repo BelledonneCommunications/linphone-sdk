@@ -87,6 +87,8 @@ include:
   - '.gitlab-ci-files/docker-image-update/update-ubuntu-rolling.yml'
   - '.gitlab-ci-files/docker-image-update/update-archlinux.yml'
   - '.gitlab-ci-files/docker-image-update/update-debian10.yml'
+  - '.gitlab-ci-files/docker-image-update/update-debian11.yml'
+  - '.gitlab-ci-files/docker-image-update/update-debian12.yml'
   - '.gitlab-ci-files/docker-image-update/update-centos8.yml'
   - '.gitlab-ci-files/docker-image-update/update-centos7.yml'
 

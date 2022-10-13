@@ -1,4 +1,6 @@
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20211122_init
+ARG FROM_IMAGE_TAG=2022_10_13_update_docker_image
+
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$FROM_IMAGE_TAG
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 

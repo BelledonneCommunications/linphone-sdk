@@ -1,0 +1,95 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_debian12_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN12
+  cache:
+    - !reference [.no-cache, cache]
+
+debian12-image-docker-rebuild:
+  stage: docker-update-build
+  tags: [ "linux-deploy" ]
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN12
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - docker pull debian:buster
+    - cd docker-files
+    - docker build -f ./bc-dev-debian12 -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:latestupdated
+
+debian12-image-docker-rebuild-ms-test:
+  stage: docker-update-build-ms
+  tags: [ "linux-deploy" ]
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN12
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  needs:
+    - debian12-image-docker-rebuild
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-debian12-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-mediastreamer:latestupdated
+
+debian12-image-docker-rebuild-liblinphone-test:
+  stage: docker-update-build-liblinphone
+  tags: [ "linux-deploy" ]
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN12
+  # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
+  variables:
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: none
+  needs:
+    - debian12-image-docker-rebuild-ms-test
+  script:
+    - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-mediastreamer:latestupdated
+    - cd docker-files
+    - docker build -f ./bc-dev-debian12-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:latestupdated --rm --no-cache .
+    - docker login gitlab.linphone.org:4567
+    - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:latestupdated
+
+debian12-makefile-gcc-newdocker:
+  extends: debian12-makefile-gcc
+  <<: *docker_image_rule_no_cache
+
+
+debian12-ninja-gcc-newdocker:
+  extends: debian12-ninja-gcc
+  <<: *docker_image_rule_no_cache
+
+debian12-ninja-gcc-newdocker-novideo:
+  extends: debian12-ninja-gcc-novideo
+  <<: *docker_image_rule_no_cache
+
+debian12-makefile-clang-newdocker:
+  extends: debian12-makefile-clang
+  <<: *docker_image_rule_no_cache
+
+debian12-ninja-clang-newdocker:
+  extends: debian12-ninja-clang
+  <<: *docker_image_rule_no_cache
+
+debian12-ninja-clang-newdocker-novideo:
+  extends: debian12-ninja-clang-novideo
+  <<: *docker_image_rule_no_cache
+
+liblinphone-debian12-test-newdocker:
+  extends: liblinphone-debian12-test
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN12
+  needs:
+    - debian12-ninja-gcc-newdocker

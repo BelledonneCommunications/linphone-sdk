@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_debian10_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_DEBIAN10
+  cache:
+    - !reference [.no-cache, cache]
+
 debian10-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
@@ -28,7 +39,7 @@ debian10-image-docker-rebuild-ms-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-debian10-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-debian10-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
 
@@ -46,46 +57,33 @@ debian10-image-docker-rebuild-liblinphone-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-debian10-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-debian10-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:latestupdated
 
 debian10-makefile-gcc-newdocker:
   extends: debian10-makefile-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
-
+  <<: *docker_image_rule_no_cache
 
 debian10-ninja-gcc-newdocker:
   extends: debian10-ninja-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
+  <<: *docker_image_rule_no_cache
 
 debian10-ninja-gcc-newdocker-novideo:
   extends: debian10-ninja-gcc-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
+  <<: *docker_image_rule_no_cache
 
 debian10-makefile-clang-newdocker:
   extends: debian10-makefile-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
+  <<: *docker_image_rule_no_cache
 
 debian10-ninja-clang-newdocker:
   extends: debian10-ninja-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
+  <<: *docker_image_rule_no_cache
 
 debian10-ninja-clang-newdocker-novideo:
   extends: debian10-ninja-clang-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian:10
-  rules:
-    - if: $DOCKER_UPDATE_DEBIAN10
+  <<: *docker_image_rule_no_cache
 
 liblinphone-debian10-test-newdocker:
   extends: liblinphone-debian10-test

@@ -1,3 +1,14 @@
+#Build template to use in other job scripts without having to copy same code
+#format = .className: &referenceName
+#Use = "<< *referenceName" to use the template ("-*" in script)
+
+.factorize_centos8_newdocker: &docker_image_rule_no_cache
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
+  rules:
+    - if: $DOCKER_UPDATE_CENTOS8
+  cache:
+    - !reference [.no-cache, cache]
+
 centos8-image-docker-rebuild:
   stage: docker-update-build
   tags: [ "linux-deploy" ]
@@ -28,7 +39,7 @@ centos8-image-docker-rebuild-ms-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-centos8-test-mediastreamer -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-centos8-test-mediastreamer --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
 
@@ -46,40 +57,30 @@ centos8-image-docker-rebuild-liblinphone-test:
   script:
     - docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-mediastreamer:latestupdated
     - cd docker-files
-    - docker build -f ./bc-dev-centos8-test-liblinphone -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated --rm --no-cache .
+    - docker build -f ./bc-dev-centos8-test-liblinphone --build-arg FROM_IMAGE_TAG=latestupdated -t gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated --rm --no-cache .
     - docker login gitlab.linphone.org:4567
     - docker push gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8-test-liblinphone:latestupdated
 
 centos8-makefile-gcc-newdocker:
   extends: centos8-makefile-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_CENTOS8
+  <<: *docker_image_rule_no_cache
 
 
 centos8-ninja-gcc-newdocker:
   extends: centos8-ninja-gcc
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_CENTOS8
+  <<: *docker_image_rule_no_cache
 
 centos8-ninja-gcc-newdocker-novideo:
   extends: centos8-ninja-gcc-novideo
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_CENTOS8
+  <<: *docker_image_rule_no_cache
 
 centos8-makefile-clang-newdocker:
   extends: centos8-makefile-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_CENTOS8
+  <<: *docker_image_rule_no_cache
 
 centos8-ninja-clang-newdocker:
   extends: centos8-ninja-clang
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:latestupdated
-  rules:
-    - if: $DOCKER_UPDATE_CENTOS8
+  <<: *docker_image_rule_no_cache
 
 centos8-ninja-clang-newdocker-novideo:
   extends: centos8-ninja-clang-novideo

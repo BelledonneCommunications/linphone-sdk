@@ -1,7 +1,6 @@
-FROM archlinux/base:latest
+FROM archlinux:latest
 
-MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
-
+MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 
 # Configure locale
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -10,6 +9,10 @@ ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
 
 ENV SHELL=/bin/bash
 #ENV PS1='\[\e[33m\]\u@bc-dev-archlinux-latest>\[\e[0m\] '
+
+# WARNING : AS ARCHLINUX IS A ROLLING RELEASE, ALL THE IMAGE MUST BE REBUILT FOR AN UPGRADE, OTHERWIZE THERE COULD BE CONFLICTS BETWEEN PACKAGES (ALL THE SYSTEM MUST BE UPDATED AT ONCE, THIS IS ALSO TRUE OUT OF DOCKER)
+# Update keyring
+RUN pacman --noconfirm --noprogressbar -Sy archlinux-keyring
 
 # Install common general tools
 RUN pacman --noconfirm --noprogressbar -Syu && \
@@ -36,4 +39,3 @@ USER bc
 WORKDIR /home/bc
 CMD bash
 ENTRYPOINT /bin/bash
-

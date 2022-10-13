@@ -44,7 +44,7 @@ RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.bashrc
 RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.shrc
 
 # This tells /bin/sh to load '~/.shrc' on starting
-ENV ENV=~/.shrc 
+ENV ENV=~/.shrc
 
 
 ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
@@ -53,12 +53,11 @@ ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
 USER bc
 WORKDIR /home/bc
 
-# Install python3 and python modules.
+# Install python3 module.
 # This must be done as 'bc' user because some python modules are installed into /usr/local/lib when pip is invoked
 # as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
 # modules to be installed into /home/bc/.local/lib.
-RUN sudo yum install -y python-pip python3 python3-pip && sudo yum clean all && \
-    python -m pip install --user six pystache graphviz && \
+RUN sudo yum install -y python3 python3-pip && sudo yum clean all && \
     python3 -m pip install --user six pystache graphviz
 
 ENV PS1='\[\e[34m\]\u@bc-dev-centos7>\[\e[0m\] '
