@@ -6,12 +6,18 @@
 
   before_script:
     - export CCACHE_BASEDIR=${PWD}
+    - ccache -s
 
+    # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
+    - ccache -z
+    - ccache -s
+
+  after_script:
+    - ccache -s
 
   script:
     - !reference [.set-max-jobs-unix, script]
     - echo $IOS_DEPLOY_URL
-    - ccache -s
     - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
     - mkdir build-ios
     - cd build-ios
@@ -25,7 +31,6 @@
     # get SDK version from cached cmake variables
     - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
-    - ccache -s
     - echo $(git describe) > gitdescribe.txt
 
   artifacts:
@@ -73,7 +78,7 @@ ios-ninja:
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
-    CMAKE_OPTIONS: -DLINPHONESDK_IOS_PLATFORM=Iphone 
+    CMAKE_OPTIONS: -DLINPHONESDK_IOS_PLATFORM=Iphone
   extends: .ios
 
 ios-ninja-allcodecs:
@@ -140,6 +145,10 @@ ios-xcode:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
+  before_script:
+    - CCACHE_CONFIGPATH=~/Library/Preferences/ccache/ccache-xcode.conf
+
+    - !reference [.ios, before_script]
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
   script:
@@ -166,6 +175,10 @@ ios-xcode-novideo:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
+  before_script:
+    - CCACHE_CONFIGPATH=~/Library/Preferences/ccache/ccache-xcode.conf
+
+    - !reference [.ios, before_script]
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
   script:

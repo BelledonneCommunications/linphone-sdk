@@ -9,15 +9,24 @@
 
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
-    LINPHONESDK_MACOS_ARCHS: "x86_64"
+    LINPHONESDK_MACOS_ARCHS: "arm64"
     LINPHONESDK_OPENSSL_ROOT_DIR_X86_64: "/usr/local/opt/openssl@1.1"
     LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
+
+  before_script:
+    - ccache -s
+
+    # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
+    - ccache -z
+    - ccache -s
+
+  after_script:
+    - ccache -s
 
   script:
     - !reference [.set-max-jobs-unix, script]
     - echo $MACOS_DEPLOY_URL
     - echo $XCODE_OPTIONS
-    - ccache -s
     - if [ -d "build-desktop" ]; then rm -rf build-desktop; fi;
     - mkdir -p build-desktop
     - cd build-desktop
@@ -34,7 +43,6 @@
     #using only the git describe doesn't work because the commit hashes don't match
     - ls -t linphone-sdk-*.zip > sdk_archive_name.txt
     - cat sdk_archive_name.txt
-    - ccache -s
     - echo $(git describe) > gitdescribe.txt
 
   artifacts:
@@ -47,8 +55,8 @@
     when: always
     expire_in: 1 week
 
-.macosx-m1-desktop:
-  tags: [ "macmini-m1-xcode12" ]
+.macosx-m1-multiarch-desktop:
+  tags: [ "macosx-min-xcode12.2" ]
   variables:
     LINPHONESDK_MACOS_ARCHS: "arm64, x86_64"
   extends: .macosx-desktop
@@ -68,7 +76,7 @@ macosx-makefile:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .macosx-desktop
 
-macosx-m1-makefile:
+macosx-m1-multiarch-makefile:
 
   rules:
     - if: $NIGHTLY_MASTER
@@ -76,7 +84,7 @@ macosx-m1-makefile:
     CMAKE_GENERATOR: Unix Makefiles
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-  extends: .macosx-m1-desktop
+  extends: .macosx-m1-multiarch-desktop
 
 #################################################
 # Ninja
@@ -90,14 +98,14 @@ macosx-ninja:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
   extends: .macosx-desktop
 
-macosx-m1-ninja:
+macosx-m1-multiarch-ninja:
 
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
   rules:
     - if: $NIGHTLY_MASTER
-  extends: .macosx-m1-desktop
+  extends: .macosx-m1-multiarch-desktop
 
 macosx-ninja-novideo:
 
@@ -126,6 +134,11 @@ macosx-xcode:
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_MACOSX
 
+  before_script:
+    - CCACHE_CONFIGPATH=~/Library/Preferences/ccache/ccache-xcode.conf
+
+    - !reference [.macosx-desktop, before_script]
+
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
   script:
 
@@ -136,4 +149,4 @@ macosx-xcode:
 
     - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
 
-    - !reference [.macosx-m1-desktop, script]
+    - !reference [.macosx-desktop, script]
