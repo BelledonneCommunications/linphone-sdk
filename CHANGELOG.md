@@ -16,6 +16,7 @@ changes made to these components.__
 ### Added
 - Support for Android NDK r25
 - QRCode image generation.
+- Support OpenH264 for UWP.
 
 ### Changed
 - Updated firebase messaging dependency for Android, now requires at least 23.0.6 (BoM 30.2.0)

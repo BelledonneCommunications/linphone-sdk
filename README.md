@@ -257,7 +257,7 @@ Build SDK:
 You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Compatibility.
 
 - win32: this is the win32 version of Linphone-SDK without any restrictions. The framework is 'win'.
-- uwp : this is a uwp x64 version of linphone--sdk. You will not be able to use OpenH264 and Lime X3DH. The framework is 'uap10.0'.
+- uwp : this is a uwp x64 version of Linphone-SDK. The framework is 'uap10.0'.
 - win32 Windows Store : this is the win32 version of Linphone-SDK with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
 
 In an another build folder (like buildNuget), set these options :
@@ -278,10 +278,4 @@ The folder can be found in your system path at <User>/.nuget/packages/linphonesd
 ### Demo app
 
 There is a very limited version of an application that can use this nuget at `https://gitlab.linphone.org/BC/public/linphone-windows10/tree/feature/uwp`
-
-## Known issues
-
-### Windows
-
-OpenH264 has been removed from the Windows Store because of the unsupported API.
 
