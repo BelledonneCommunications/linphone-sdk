@@ -203,7 +203,7 @@ spx_int32_t ms_inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int
 
 
 static void inner_product_test(void) {
-#ifdef SPEEX_LIB_CPU_FEATURE_NEON
+#if defined(SPEEX_LIB_CPU_FEATURE_NEON) && !defined(__aarch64__)
 #define SAMPLE_SIZE 64 /* has to be %8 and < 64 ! */
 #define ITERATIONS 1000000
 	static spx_int16_t test_sample[SAMPLE_SIZE];

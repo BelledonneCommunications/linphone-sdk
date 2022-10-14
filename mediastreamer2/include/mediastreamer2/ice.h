@@ -39,6 +39,9 @@
 #define ICE_SESSION_MAX_CHECK_LISTS 8
 
 
+#define ICE_RTP_COMPONENT_ID	1
+#define ICE_RTCP_COMPONENT_ID	2
+
 /**
  * ICE agent role.
  *
@@ -820,9 +823,14 @@ MS2_PUBLIC int ice_session_nb_losing_pairs(const IceSession *session);
 /**
  * Set the base for the local server reflexive candidates of an ICE session.
  *
- * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
- * work around the fact that it does not use candidates gathering.
- * It is to be called automatically when the gathering process finishes.
+ * This function is usually not necessary, because the base candidate is automatically set during gathering.
+ * However, it is required when server-reflexive candidates are added manually into the session,
+ * which happens at least in these two cases:
+ * - in 'mediastream' tool for testing purpose to
+ *   work around the fact that it does not use candidates gathering.
+ * - when server-reflexive candidates are defined by configuration, for example
+ *   when ICE is used in a server software deployed behind a NAT.
+ * It is to be called before starting the connectivity checks.
  */
 MS2_PUBLIC void ice_session_set_base_for_srflx_candidates(IceSession *session);
 
