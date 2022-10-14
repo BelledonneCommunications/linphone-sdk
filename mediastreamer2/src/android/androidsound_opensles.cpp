@@ -1052,7 +1052,7 @@ static int android_snd_write_configure_soundcard(MSFilter *obj, void *data) {
 		octx->soundCard = ms_snd_card_ref(card);
 		octx->setContext((OpenSLESContext*)card->data);
 		JNIEnv *env = ms_get_jni_env();
-		ms_android_change_device(env, card->device_type);
+		ms_android_change_device(env, card->internal_id, card->device_type);
 		ms_mutex_unlock(&octx->mutex);
 	}
 	return 0;
@@ -1093,7 +1093,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 
 	// Ensure consistency between the soundcard the core is setting and the one actually used as an output
 	JNIEnv *env = ms_get_jni_env();
-	ms_android_change_device(env, octx->soundCard->device_type);
+	ms_android_change_device(env, octx->soundCard->internal_id, octx->soundCard->device_type);
 }
 
 static void android_snd_write_process(MSFilter *obj) {
@@ -1136,7 +1136,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 
 	// At the end of a call, postprocess is called therefore here the output device can be changed to earpiece in the audio manager
 	JNIEnv *env = ms_get_jni_env();
-	ms_android_change_device(env, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
+	ms_android_change_device(env, -1, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
 	free(octx->playBuffer[0]);
 	octx->playBuffer[0]=NULL;
 	free(octx->playBuffer[1]);

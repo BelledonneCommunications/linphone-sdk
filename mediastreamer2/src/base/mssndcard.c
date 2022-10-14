@@ -395,6 +395,8 @@ const char * ms_snd_card_device_type_to_string(const MSSndCardDeviceType type){
 			return "Bluetooth";
 		case MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP:
 			return "Bluetooth A2DP";
+		case MS_SND_CARD_DEVICE_TYPE_HEARING_AID:
+			return "Hearing Aid";
 		case MS_SND_CARD_DEVICE_TYPE_UNKNOWN:
 			return "Unknown";
 		default:

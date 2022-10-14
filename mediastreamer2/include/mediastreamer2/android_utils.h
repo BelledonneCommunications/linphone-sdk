@@ -78,7 +78,7 @@ MS2_PUBLIC int ms_android_get_sdk_version(JNIEnv *env);
 /**
  * Make upcalls to change device from mediastreamer.
 **/
-MS2_PUBLIC void ms_android_change_device(JNIEnv *env, MSSndCardDeviceType type);
+MS2_PUBLIC void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDeviceType type);
 
 /**
  * Make upcalls to enable/disable bluetooth devices from mediastreamer.

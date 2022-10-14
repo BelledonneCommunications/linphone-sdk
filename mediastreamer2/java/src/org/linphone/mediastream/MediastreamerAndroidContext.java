@@ -250,6 +250,25 @@ public class MediastreamerAndroidContext {
 		return granted;
 	}
 
+	@TargetApi(31)
+	public synchronized static boolean setCommunicationDevice(int id) {
+		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+		for (AudioDeviceInfo audioDeviceInfo : audioManager.getAvailableCommunicationDevices()) {
+			if (audioDeviceInfo.getId() == id) {
+				Log.i("[Audio Manager] Found available communication device matching ID [" + id + "]: " + audioDeviceInfo);
+				return audioManager.setCommunicationDevice(audioDeviceInfo);
+			}
+		}
+		return false;
+	}
+
+	@TargetApi(31)
+	public synchronized static void clearCommunicationDevice() {
+		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
+		audioManager.clearCommunicationDevice();
+		Log.i("[Audio Manager] Cleared communication device");
+	}
+
 	private static String getHumanReadableAudioDeviceType(int type) {
 		if (type == 19/*AudioDeviceInfo.TYPE_AUX_LINE*/) {
 			return "Auxiliary line";
@@ -301,6 +320,16 @@ public class MediastreamerAndroidContext {
 			return "Headphones";
 		} else if (type == 3 /*AudioDeviceInfo.TYPE_WIRED_HEADSET*/) {
 			return "Headset";
+		} else if (type == 25/*TYPE_REMOTE_SUBMIX*/) {
+			return "Remote Submix";
+		} else if (type == 26/*TYPE_BLE_HEADSET*/) {
+			return "BLE Headset";
+		} else if (type == 27/*TYPE_BLE_SPEAKER*/) {
+			return "BLE Speaker";
+		} else if (type == 29/*TYPE_HDMI_EARC*/) {
+			return "HDMI Enhanced Audio Return Channel";
+		} else if (type == 30/*TYPE_BLE_BROADCAST*/) {
+			return "BLE Broadcast";
 		}
 		return "UNEXPECTED";
 	}
