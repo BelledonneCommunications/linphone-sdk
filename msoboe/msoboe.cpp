@@ -177,6 +177,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) ||
+		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)
 	) {
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_oboe_card_desc);

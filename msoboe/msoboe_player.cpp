@@ -370,12 +370,16 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 	oboe_player_close(octx);
 	ms_mutex_unlock(&octx->streamMutex);
 	
+	JNIEnv *env = ms_get_jni_env();
 	if (octx->bluetoothScoStarted) {
 		ms_message("[Oboe Player] We previously started SCO in Android's AudioManager, stopping it now");
 		octx->bluetoothScoStarted = false;
 		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, FALSE);
+	}
+	if (octx->usedAudioApi == oboe::AudioApi::OpenSLES) {
+		ms_message("[Oboe Player] Used Audio API is OpenSLES, clearing communication device");
+		ms_android_change_device(env, -1, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
 	}
 }
 
@@ -395,7 +399,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		JNIEnv *env = ms_get_jni_env();
 		if (octx->usedAudioApi == oboe::AudioApi::OpenSLES) {
 			ms_mutex_lock(&octx->streamMutex);
-			ms_android_change_device(env, card->device_type);
+			ms_android_change_device(env, card->internal_id, card->device_type);
 			ms_mutex_unlock(&octx->streamMutex);
 		} else {
 			if (octx->stream) {
