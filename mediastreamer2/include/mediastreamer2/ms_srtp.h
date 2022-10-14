@@ -111,7 +111,7 @@ MS2_PUBLIC bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
 
 /**
  * Set srtp receiver key for the given media stream.
@@ -124,7 +124,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessi
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
 
 /**
  * Set srtp inner receiver key for the given media stream.
@@ -138,7 +138,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions 
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc);
 
 /**
  * Set srtp inner receiver key for the given media stream.
@@ -151,7 +151,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSes
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source, uint32_t ssrc);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source, uint32_t ssrc);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -163,7 +163,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStrea
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
 
 /**
  * Set srtp sender key for the given media stream.
@@ -177,7 +177,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
 
 /**
  * Set srtp inner sender key for the given media stream.
@@ -192,7 +192,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions 
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
 
 /**
  * Set srtp inner sender key for the given media stream.
@@ -206,7 +206,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSes
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
 
 /**
  * Convert MSCryptoSuite enum to a string.

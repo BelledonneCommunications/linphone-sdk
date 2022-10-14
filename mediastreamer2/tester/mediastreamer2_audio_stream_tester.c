@@ -816,7 +816,7 @@ static void double_encrypted_audio_stream_base( bool_t set_both_send_recv_key,
 	const char *aes_128_bits_marielle_outer_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_marielle_inner_key = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
 	const char *aes_128_bits_margaux_outer_key = "6jCLmtRkVW9E/BUuJtYj/R2z6+4iEe06/DWohQ9F";
-	const char *aes_128_bits_margaux_inner_key = " 0JygkVbNRoV8wLWoRuhiCxGDB9pOXGdoLl0P5EgJ";
+	const char *aes_128_bits_margaux_inner_key = "0JygkVbNRoV8wLWoRuhiCxGDB9pOXGdoLl0P5EgJ";
 
 	const char *aes_256_bits_marielle_outer_key = "nJNTwiMkyAu8zs0MWUiSQbnBL4M+xkWTYgrVLR2eFwZyO+ca2UqBy2Uh9pVRbA==";
 	const char *aes_256_bits_marielle_inner_key = "N3vq6TMfvtyYpqGaEi9vAHMCzgWJvaD1PIfwEYtdEgI2ACezZo2vpOdV2YWEcQ==";

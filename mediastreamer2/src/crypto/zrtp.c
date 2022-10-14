@@ -210,14 +210,14 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
 				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions,
 																	MS_AES_256_SHA1_32,
-																	(const char *)key,
+																	key,
 																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);
 			}else{
 				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions,
 																	MS_AES_128_SHA1_32,
-																	(const char *)key,
+																	key,
 																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);
@@ -226,14 +226,14 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
 				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions,
 																	MS_AES_256_SHA1_80,
-																	(const char *)key,
+																	key,
 																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																  );
 			}else{
 				ms_media_stream_sessions_set_srtp_recv_key(userData->stream_sessions,
 																	MS_AES_128_SHA1_80,
-																	(const char *)key,
+																	key,
 																	(secrets->peerSrtpKeyLength+secrets->peerSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																  );
@@ -253,14 +253,14 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
 				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions,
 																	MS_AES_256_SHA1_32,
-																	(const char *)key,
+																	key,
 																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);
 			}else{
 				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions,
 																	MS_AES_128_SHA1_32,
-																	(const char *)key,
+																	key,
 																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);
@@ -269,14 +269,14 @@ static int32_t ms_zrtp_srtpSecretsAvailable(void* clientData, const bzrtpSrtpSec
 			if (secrets->cipherAlgo == ZRTP_CIPHER_AES3){
 				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions,
 																	MS_AES_256_SHA1_80,
-																	(const char *)key,
+																	key,
 																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);
 			}else{
 				ms_media_stream_sessions_set_srtp_send_key(userData->stream_sessions,
 																	MS_AES_128_SHA1_80,
-																	(const char *)key,
+																	key,
 																	(secrets->selfSrtpKeyLength+secrets->selfSrtpSaltLength),
 																	MSSrtpKeySourceZRTP
 																);

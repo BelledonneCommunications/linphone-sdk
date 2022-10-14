@@ -86,7 +86,6 @@ set(VOIP_SOURCE_FILES_C
 	audiofilters/ulaw.c
 	audiofilters/waveheader.h
 	crypto/dtls_srtp.c
-	crypto/ms_srtp.c
 	crypto/zrtp.c
 	otherfilters/msrtp.c
 	utils/_kiss_fft_guts.h
@@ -136,6 +135,7 @@ set(VOIP_SOURCE_FILES_CXX
 	voip/video-conference.cpp
 	voip/video-conference-all-to-all.cpp
 	voip/video-endpoint.cpp
+	crypto/ms_srtp.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
