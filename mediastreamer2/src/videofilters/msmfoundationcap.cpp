@@ -899,7 +899,7 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 				   ((mediaFormat->VideoFormat == nullptr && currentMediaFormat->VideoFormat == nullptr) ||
 					(mediaFormat->VideoFormat != nullptr && currentMediaFormat->VideoFormat != nullptr &&
 					 mediaFormat->VideoFormat->Width == currentMediaFormat->VideoFormat->Width &&
-					mediaFormat->VideoFormat->Height == currentMediaFormat->VideoFormat->Height)));
+					mediaFormat->VideoFormat->Height == currentMediaFormat->VideoFormat->Height))) || !mNewFormatValidated;
 			}
 		}else
 			hr = -1;
@@ -933,14 +933,14 @@ HRESULT MSMFoundationUwpImpl::setMediaConfiguration(GUID videoFormat, UINT32 fra
 			formatChanged = formatChanged || (videoFormat != requestedVideoFormat || requestedFrameWidth != frameWidth || requestedFrameHeight != frameHeight);
 			mFmtChanged |= formatChanged;
 // Block new frames
-			mNewFormatValidated = TRUE;// The new format (coming from requested or best fit) has been validated.
 			mNewFormatTakenAccount = !mFmtChanged;// The validated format is different from the request.
 			if(formatChanged){// As requested format couldn't be set, add it to the blacklist
 				addToBlacklist(VideoFormat(requestedFrameWidth, requestedFrameHeight, requestedFps, requestedVideoFormat));
 			}
-			if (mSource)
+			if (mSource){
+				mNewFormatValidated = TRUE;// The new format (coming from requested or best fit) has been validated.
 				ms_message("[MSMFoundationCapUwp] %s the video format : %dx%d : %s, %f fps", (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
-			else
+			}else
 				ms_message("[MSMFoundationCapUwp] %s the video format without Reader : %dx%d : %s, %f fps", (formatChanged ? "Changed" : "Keep"), mWidth, mHeight, pixFmtToString(mVideoFormat), mFps);
 		
 		});
