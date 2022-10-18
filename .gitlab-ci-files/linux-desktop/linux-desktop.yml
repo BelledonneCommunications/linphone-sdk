@@ -371,6 +371,7 @@
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
+  tags: [ "docker-liblinphone-tester-light" ]
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
@@ -385,6 +386,7 @@
 
 .test-liblinphone-tunnel-pq-mr:
   extends: .test-liblinphone-mr
+  tags: [ "docker-liblinphone-tester-light" ]
   allow_failure: true
   variables:
     #true
