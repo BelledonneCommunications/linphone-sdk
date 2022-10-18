@@ -3,7 +3,7 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 .factorize_ubuntu-rolling_newdocker: &docker_image_rule_no_cache
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu:rollingupdated
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:latestupdated
   rules:
     - if: $DOCKER_UPDATE_UBUNTU
   cache:
