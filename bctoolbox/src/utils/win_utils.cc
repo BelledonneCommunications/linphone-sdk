@@ -73,7 +73,7 @@ std::string GetBackTrace(int SkipFrames)
 // Hooks
 void _signal_hook(int u ){
 	// Skip 8 useless stack frames
-	bctbx_error("Structured Exception Handling failure type %s. Stack trace:\n%s\n", std::to_string(u), GetBackTrace(8));
+	bctbx_error("Structured Exception Handling failure type %d. Stack trace:\n%s\n", u, GetBackTrace(8).c_str());
 }
 
 //------------------------------------
