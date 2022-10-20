@@ -361,6 +361,7 @@ ms_mutex_t mutex;
 
 -(void)configure_audio_unit {
 	OSStatus auresult;
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 
 	if (_audio_unit_state != MSAudioUnitCreated){
 		ms_error("configure_audio_unit(): not created, in state %i", _audio_unit_state);
@@ -384,6 +385,10 @@ ms_mutex_t mutex;
 
 	UInt32 doNotSetProperty    = 0;
 	UInt32 doSetProperty    = 1;
+	
+	bool_t recording = audioSession.category == AVAudioSessionCategoryPlayAndRecord;
+	
+	if (!recording) ms_message("configure_audio_unit(): configured for playback only.");
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
@@ -402,7 +407,7 @@ ms_mutex_t mutex;
 								   kAudioOutputUnitProperty_EnableIO,
 								   kAudioUnitScope_Input ,
 								   inputBus,
-								   _mic_enabled ? &doSetProperty : &doNotSetProperty,
+								   _mic_enabled && recording ? &doSetProperty : &doNotSetProperty,
 								   sizeof (_mic_enabled ? doSetProperty : doNotSetProperty)
 								   );
 
