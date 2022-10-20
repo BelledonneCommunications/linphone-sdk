@@ -407,37 +407,33 @@ namespace lime {
 		/* open DB */
 		auto localStorage = std::unique_ptr<lime::Db>(new lime::Db(dbFilename, db_mutex)); // create as unique ptr, ownership is then passed to the Lime structure when instanciated
 
-		try {
-			//instanciate the correct Lime object
-			switch (curve) {
-				case lime::CurveId::c25519 :
+		//instanciate the correct Lime object
+		switch (curve) {
+			case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-				{
-					/* constructor will insert user in Db, if already present, raise an exception*/
-					auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, X3DH_post_data);
-					lime_ptr->publish_user(callback, OPkInitialBatchSize);
-					return lime_ptr;
-				}
-#endif
-				break;
-
-				case lime::CurveId::c448 :
-#ifdef EC448_ENABLED
-				{
-					auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, X3DH_post_data);
-					lime_ptr->publish_user(callback, OPkInitialBatchSize);
-					return lime_ptr;
-				}
-#endif
-				break;
-
-				case lime::CurveId::unset :
-				default: // asking for an unsupported type
-					throw BCTBX_EXCEPTION << "Cannot create lime user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
-				break;
+			{
+				/* constructor will insert user in Db, if already present, raise an exception*/
+				auto lime_ptr = std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, url, X3DH_post_data);
+				lime_ptr->publish_user(callback, OPkInitialBatchSize);
+				return lime_ptr;
 			}
-		} catch (BctbxException &) {
-			throw; // just forward the exceptions raised by constructor
+#endif
+			break;
+
+			case lime::CurveId::c448 :
+#ifdef EC448_ENABLED
+			{
+				auto lime_ptr = std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, url, X3DH_post_data);
+				lime_ptr->publish_user(callback, OPkInitialBatchSize);
+				return lime_ptr;
+			}
+#endif
+			break;
+
+			case lime::CurveId::unset :
+			default: // asking for an unsupported type
+				throw BCTBX_EXCEPTION << "Cannot create lime user "<<deviceId;//<<". Unsupported curve (id <<"static_cast<uint8_t>(curve)") requested";
+				break;
 		}
 		return nullptr;
 	};
@@ -480,28 +476,23 @@ namespace lime {
 #endif
 
 
-		try {
-			switch (curve) {
-				case lime::CurveId::c25519 :
+		switch (curve) {
+			case lime::CurveId::c25519 :
 #ifdef EC25519_ENABLED
-					return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C255>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
-				break;
+			break;
 
-				case lime::CurveId::c448 :
+			case lime::CurveId::c448 :
 #ifdef EC448_ENABLED
-
-					return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C448>>(std::move(localStorage), deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
-				break;
+			break;
 
-				case lime::CurveId::unset :
-				default: // asking for an unsupported type
-					throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;
-				break;
-			}
-		} catch (BctbxException &) {
-			throw;
+			case lime::CurveId::unset :
+			default: // asking for an unsupported type
+				throw BCTBX_EXCEPTION << "Cannot create load user "<<deviceId;
+			break;
 		}
 		return nullptr;
 	};

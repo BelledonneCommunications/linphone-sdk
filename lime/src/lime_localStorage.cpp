@@ -792,11 +792,11 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 				m_localStorage->sql<<"DELETE from DR_MSk_DHr WHERE DHid = :DHid;", use(m_usedDHid);
 			}
 		}
-	} catch (...) {
+	} catch (exception const &e) {
 		if (commit) {
 			m_localStorage->sql.rollback();
 		}
-		throw;
+		throw BCTBX_EXCEPTION << "Lime save session in DB failed. DB backend says : "<<e.what();
 	}
 
 	if (commit) {

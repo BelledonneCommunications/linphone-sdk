@@ -575,9 +575,12 @@ namespace lime {
 					recipients[i].DRSession->ratchetEncrypt(randomSeed, std::move(recipientAD), recipients[i].DRmessage, payloadDirectEncryption);
 				}
 			}
-		} catch (...) {
+		} catch (BctbxException const &e) {
 			localStorage->rollback_transaction();
-			throw;
+			throw BCTBX_EXCEPTION << "Encryption to recipients failed : "<<e.str();
+		} catch (exception const &e) {
+			localStorage->rollback_transaction();
+			throw BCTBX_EXCEPTION << "Encryption to recipients failed : "<<e.what();
 		}
 
 		// ratchet encrypt write to the db, to avoid a serie of transaction, manage it outside of the loop
