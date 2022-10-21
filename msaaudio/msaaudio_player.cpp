@@ -355,7 +355,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 			if (bluetoothSoundDevice) {
 				ms_message("[AAudio Player] New sound device has bluetooth type, starting Android AudioManager's SCO");
 			} else {
-				ms_message("[AAudio Player] New sound device has, stopping Android AudioManager's SCO");
+				ms_message("[AAudio Player] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
 			}
 
 			ms_android_set_bt_enable(env, bluetoothSoundDevice);
