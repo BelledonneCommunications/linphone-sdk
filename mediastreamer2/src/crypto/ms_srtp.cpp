@@ -244,9 +244,10 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 
 	if (is_rtp) {
 		if ((srtp_err = srtp_unprotect(ctx->srtp,m->b_rptr,&slen)) != err_status_ok) {
-			ms_warning("srtp_unprotect_rtp() failed (%d) on stream ctx [%p]", srtp_err,ctx);
+			ms_warning("srtp_unprotect_rtp failed (%d) on stream ctx [%p]", srtp_err,ctx);
 			return -1;
 		}
+
 		/* Do we have double encryption */
 		if (ctx->inner_srtp != NULL) {
 			/* RFC8723: now that we applied outer crypto algo, we must
@@ -254,7 +255,11 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 			 * 2 - if we have extensions remove them
 			 * 3 - decrypt and put the extensions back */
 			if (m->b_rptr[slen-1] != 0) { /* there is some OHB bits sets, restore it */
-				// TODO: parse the OHB
+				// For now we have no reason to support the PT, M or SeqNum modification
+				// So this is not implemented but leads to an error message and packet discarded
+				// Note: this may happend in case of error in the outer layer decryption - the auth tag should prevent it but...
+				ms_error("A double encrypted packet seem to have a non null OHB - see RFC8723 section 4 - section. This is not supported yet - discard the packet.");
+				return 0;
 			}
 			slen--; /* drop the OHB Config byte */
 			if (rtp_get_extbit(m) != 0) { /* There is an extension header */
@@ -276,7 +281,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 				/* decrypt the synthetic packet */
 				srtp_err=srtp_unprotect(ctx->inner_srtp,synthetic,&synthetic_len);
 				if (srtp_err!=err_status_ok){
-					ms_warning("srtp_unprotect inner encryption failed (%d) for stream ctx [%p]", srtp_err,ctx);
+					ms_warning("srtp_unprotect_rtp inner encryption failed (%d) for stream ctx [%p]", srtp_err,ctx);
 					ms_free(synthetic);
 					ms_mutex_unlock(&ctx->mutex);
 					return -1;
@@ -299,7 +304,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 	if (srtp_err==err_status_ok) {
 		return slen;
 	} else {
-		ms_warning("srtp_unprotect%s() failed (%d) on stream ctx [%p]", is_rtp?"":"_rtcp", srtp_err,ctx);
+		ms_warning("srtp_unprotect%s failed (%d) on stream ctx [%p]", is_rtp?"_rtp inner encryption":"_rtcp", srtp_err,ctx);
 		return -1;
 	}
 	return 0;
@@ -338,16 +343,19 @@ static int ms_media_stream_session_fill_srtp_context(MSMediaStreamSessions *sess
 	ms_mutex_lock(&stream_ctx->mutex);
 
 	if (is_inner) { /* inner srtp context just need to setup itself, not the modifier*/
-		if (stream_ctx->inner_srtp) {
-			/*we cannot reuse srtp context, so freeing first*/
+		if (stream_ctx->inner_srtp && is_send == true) {
+			/*we cannot reuse inner srtp context in output as it is in ssrc_any_outbound mode, so freeing first*/
+			/* for incoming inner context, we use specific ssrc mode so we have one context */
 			srtp_dealloc(stream_ctx->inner_srtp);
 			stream_ctx->inner_srtp=NULL;
 		}
 
-		err = srtp_create(&stream_ctx->inner_srtp, NULL);
-		if (err != srtp_err_status_ok) {
-			ms_error("Failed to create inner srtp session (%d) for stream sessions [%p]", err,sessions);
-			goto end;
+		if (stream_ctx->inner_srtp == NULL) {
+			err = srtp_create(&stream_ctx->inner_srtp, NULL);
+			if (err != srtp_err_status_ok) {
+				ms_error("Failed to create inner srtp session (%d) for stream sessions [%p]", err,sessions);
+				goto end;
+			}
 		}
 	} else { /* this is outer srtp context, setup srtp and modifier */
 		if (stream_ctx->srtp && stream_ctx->secured) {
@@ -632,7 +640,7 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 	check_and_create_srtp_context(sessions);
 
 	if (key) {
-		ms_message("media_stream_set_srtp_%s%s_key(): key %02x..%02x stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], sessions);
+		ms_message("media_stream_set_srtp_%s%s_key(): key %02x..%02x (ssrc %x) stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], (is_send==FALSE && is_inner==TRUE)?ssrc:0, sessions);
 	} else {
 		ms_message("media_stream_set_srtp_%s%s_key(): key none stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), sessions);
 	}
@@ -704,6 +712,9 @@ bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,Me
 }
 
 MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+	if (sessions->srtp_context == NULL) {
+		return MSSrtpKeySourceUnavailable;
+	}
 	switch (dir) {
 		case MediaStreamSendRecv:
 			// Check sender and receiver keys have the same source
@@ -722,6 +733,9 @@ MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStream
 }
 
 MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+	if (sessions->srtp_context == NULL) {
+		return MS_CRYPTO_SUITE_INVALID;
+	}
 	switch (dir) {
 		case MediaStreamSendRecv:
 			// Check sender and receiver keys have the suite
