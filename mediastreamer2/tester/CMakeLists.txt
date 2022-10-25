@@ -122,7 +122,9 @@ if(SPEEXDSP_FOUND)
 	list(APPEND SOURCE_FILES_C mediastreamer2_neon_tester.c)
 endif()
 
-set(SOURCE_FILES_CXX )
+set(SOURCE_FILES_CXX
+	mediastreamer2_double_encryption_tester.cpp
+)
 set(SOURCE_FILES_OBJC )
 
 add_definitions(
