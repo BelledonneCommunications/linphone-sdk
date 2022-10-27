@@ -14,6 +14,7 @@
     LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
 
   before_script:
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
     - ccache -s
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
