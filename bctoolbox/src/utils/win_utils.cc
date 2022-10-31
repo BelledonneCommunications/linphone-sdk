@@ -47,25 +47,20 @@ std::string GetBackTrace(int SkipFrames)
 	void *stack[TRACE_MAX_STACK_FRAMES];
 	ULONG hash;
 	const int numFrames = CaptureStackBackTrace(SkipFrames + 1, TRACE_MAX_STACK_FRAMES, stack, &hash);
+	constexpr auto MODULE_BUF_SIZE = 4096U;
+	char modulePath[MODULE_BUF_SIZE];
 	result << "Stack hash: " << hash << "\n";
 	for (int i = 0; i < numFrames; ++i) {
 		void *moduleBaseVoid = nullptr;
 		RtlPcToFileHeader(stack[i], &moduleBaseVoid);
 		auto moduleBase = (const unsigned char *)moduleBaseVoid;
-		constexpr auto MODULE_BUF_SIZE = 4096U;
-		wchar_t modulePath[MODULE_BUF_SIZE];
-		const wchar_t *moduleFilename = modulePath;
+		const char *moduleFilename = modulePath;
+		result << i << ": ";
 		if (moduleBase != nullptr) {
-			GetModuleFileName((HMODULE)moduleBase, modulePath, MODULE_BUF_SIZE);
-			int moduleFilenamePos = 0;
-			while(moduleFilenamePos < MODULE_BUF_SIZE && modulePath[moduleFilenamePos] != '\0' && modulePath[moduleFilenamePos] != L'\\' )
-				++moduleFilenamePos;
-			if(moduleFilenamePos < MODULE_BUF_SIZE && modulePath[moduleFilenamePos] != '\0')
-				moduleFilename += moduleFilenamePos + 1;
-			result << i << ":" << moduleFilename << "+" << (uint32_t)((unsigned char *)stack[i] - moduleBase) << "\n";
-		}
-		else
-			result << i << ":" << moduleFilename << "+" << (uint64_t)stack[i] << "\n";
+			GetModuleFileNameA((HMODULE)moduleBase, modulePath, MODULE_BUF_SIZE);
+			result << moduleFilename << "+" << (uint32_t)((unsigned char*)stack[i] - moduleBase) << "\n";
+		}else
+			result << moduleFilename << "+" << (uint64_t)stack[i] << "\n";
 	}
 	return result.str();
 }
@@ -73,7 +68,7 @@ std::string GetBackTrace(int SkipFrames)
 // Hooks
 void _signal_hook(int u ){
 	// Skip 8 useless stack frames
-	bctbx_error("Structured Exception Handling failure type %d. Stack trace:\n%s\n", u, GetBackTrace(8).c_str());
+	bctbx_error("UWP Stack trace %d :\n%s\n", u, GetBackTrace(8).c_str());
 }
 
 //------------------------------------
