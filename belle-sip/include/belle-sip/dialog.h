@@ -29,6 +29,13 @@ enum belle_sip_dialog_state{
 
 typedef enum belle_sip_dialog_state belle_sip_dialog_state_t;
 
+enum belle_sip_dialog_termination_cause{
+	BELLE_SIP_DIALOG_TERMINATION_CAUSE_NORMAL,
+	BELLE_SIP_DIALOG_TERMINATION_CAUSE_ABORT_NO_ACK
+};
+
+typedef enum belle_sip_dialog_termination_cause belle_sip_dialog_termination_cause_t;
+
 BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT const char* belle_sip_dialog_state_to_string(const belle_sip_dialog_state_t state);
@@ -130,7 +137,10 @@ BELLESIP_EXPORT int belle_sip_dialog_get_request_retry_timeout(const belle_sip_d
 BELLESIP_EXPORT int belle_sip_dialog_pending_trans_checking_enabled( const belle_sip_dialog_t *dialog) ;
 BELLESIP_EXPORT int belle_sip_dialog_enable_pending_trans_checking(belle_sip_dialog_t *dialog, int value) ;
 
+BELLESIP_EXPORT belle_sip_dialog_termination_cause_t belle_sip_dialog_get_termination_cause(const belle_sip_dialog_t *dialog);
 
+/*for testing purposes only*/
+BELLESIP_EXPORT void belle_sip_dialog_set_simulate_lost_ack_enabled(belle_sip_dialog_t *dialog, int enable);
 
 BELLE_SIP_END_DECLS
 

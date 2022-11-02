@@ -878,6 +878,7 @@ struct belle_sip_dialog{
 	belle_sip_list_t *route_set;
 	belle_sip_header_address_t *remote_target;
 	belle_sip_source_t *expiration_timer;
+	belle_sip_dialog_termination_cause_t termination_cause;
 	char *local_tag;
 	char *remote_tag;
 	unsigned int local_cseq;
@@ -893,6 +894,7 @@ struct belle_sip_dialog{
 	unsigned char is_expired;
 	unsigned char pending_trans_checking_enabled; /*use to disabled pending transaction check at request creation (testing)*/
 	unsigned char is_internal; /*Internal dialogs are those created by refreshers. */
+	unsigned char simulate_lost_ack; /*used by testers*/
 };
 
 belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t);
