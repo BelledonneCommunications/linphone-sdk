@@ -51,6 +51,7 @@ Compatibility with RFC6189 - ZRTP: Media Path Key Agreement for Unicast Secure R
 * SAS rendering: B32, B256(PGP word list)
 * Auth Tag : HS32, HS80
 * Key Agreement : DH-2048, DH-3072, X25519, X448
+* Post Quantum Hybrid Key Agreement: see the extension section below
 
 *Notes*: 
 * X25519 and X448 Key agreements(RFC7748) are not part of RFC6189 and supported only when *bctoolbox[1]* is linking *libdecaf[2]*
@@ -63,6 +64,8 @@ When Post Quantum Cryptography is enabled, the library also supports the followi
 * X255/Kyber512, X255/HQC128, X255/Kyber512/HQC128
 * X448/Kyber1024, X448/HQC256, X448/Kyber1024/HQC256
 
+*Notes*:
+* Post Quantum key agreements are not part of RFC6189 and are available only when linking with *PostQuantumCryptoEngine[3]*
 
 Dependencies
 ------------
