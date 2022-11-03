@@ -7,14 +7,16 @@
   before_script:
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
-    - ccache -s
+    - ccache -s --verbose
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
     - ccache -z
-    - ccache -s
+    - ccache -s --verbose
 
   after_script:
-    - ccache -s
+    #Mandatory to specify it to show accurate stats, as variable export is not kept between before_script/script and after script
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
 
   script:
     - !reference [.set-max-jobs-unix, script]

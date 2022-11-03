@@ -43,11 +43,11 @@
     - echo ${PWD}/ccache
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
-    - ccache -s
+    - ccache -s --verbose || ccache -s
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
     - ccache -z
-    - ccache -s
+    - ccache -s --verbose || ccache -s
 
     ##
     ## Set max number of jobs
@@ -62,4 +62,4 @@
   after_script:
     - if ! [ -z ${SSH_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
     - export CCACHE_DIR=${PWD}/ccache
-    - ccache -s
+    - ccache -s --verbose || ccache -s

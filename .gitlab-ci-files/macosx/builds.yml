@@ -15,14 +15,16 @@
 
   before_script:
     - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
-    - ccache -s
+    - ccache -s --verbose
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
     - ccache -z
-    - ccache -s
+    - ccache -s --verbose
 
   after_script:
-    - ccache -s
+    #Mandatory, as variable export is not kept between before_script/script and after script
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
 
   script:
     - !reference [.set-max-jobs-unix, script]
@@ -45,7 +47,7 @@
     - ls -t linphone-sdk-*.zip > sdk_archive_name.txt
     - cat sdk_archive_name.txt
     - echo $(git describe) > gitdescribe.txt
-
+    
   artifacts:
     paths:
       - build-desktop/gitdescribe.txt
