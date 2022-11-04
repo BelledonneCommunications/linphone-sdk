@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.2.0] - 2022-11-07
+
+## Added
+- Support for authentication headers with multiple challenges.
+
+## Fixed
+- various weaknesses within multipart decoding process.
+- endless UDP transaction in a specific scenario.
+- crash on iOS 16 because of kCFStreamNetworkServiceTypeVoIP that no longer works.
+- crashes.
+
+
 ## [5.1.0] - 2022-02-14
 
 ### Fixed
