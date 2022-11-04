@@ -14,7 +14,8 @@ Copyright © Belledonne Communications
 
 The software products developed in the context of the Linphone project are dual licensed, and are available either :
 
- - under a [GNU/AGPLv3 license](https://www.gnu.org/licenses/agpl-3.0.html), for free (open source). Please make sure that you understand and agree with the terms of this license before using it (see LICENSE.txt file for details).
+ - under a [GNU/AGPLv3 license](https://www.gnu.org/licenses/agpl-3.0.html), for free (open source). Please make sure that you understand and agree with the terms of this license before using it (see LICENSE.txt file for details). AGPLv3 is choosen over GPLv3 because linphone-sdk can be used to create server-side applications, not just client-side ones. Any product incorporating linphone-sdk to provide a remote service then has to be licensed under AGPLv3.
+ For a client-side product, the "remote interaction" clause of AGPLv3 being irrelevant, the usual terms GPLv3 terms do apply (the two licences differ by this only clause).
 
  - under a proprietary license, for a fee, to be used in closed source applications. Contact [Belledonne Communications](https://www.linphone.org/contact) for any question about costs and services.
 

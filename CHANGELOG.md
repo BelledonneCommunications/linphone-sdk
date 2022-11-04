@@ -9,17 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This changelog file keeps track of changes made to the linphone-sdk project, which is a only an unbrella project
 that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
-changes made to these components.__
+changes made to these components.
 
-## [5.2.0] Unreleased
+## [5.2.0] - 2022-11-14
 
 ### Added
-- Support for Android NDK r25
-- QRCode image generation.
-- Support OpenH264 for UWP.
+- Upgrade of zxing-cpp library in order to support QR-code generation.
+- OpenH264 compilation for UWP.
+- Support for ARM64 GNU/Linux, XCode 14, Android NDK r25.
+- New dependencies: Libyuv (image scaling/conversion) and liboqs (quantum-safe cryptographic algorithms).
 
 ### Changed
 - Updated firebase messaging dependency for Android, now requires at least 23.0.6 (BoM 30.2.0)
+
 
 ## [5.1.0] 2022-02-14
 
@@ -30,7 +32,8 @@ changes made to these components.__
 ### Changed
 - Link Android build to OpenGLESv3 instead of OpenGLESv2
 
-## [5.0.0] 2021-07-08
+
+## [5.0.0] - 2021-07-08
 
 ### Added
 - Native Windows 10 UWP platform support.
@@ -39,7 +42,8 @@ changes made to these components.__
 ## Changed
 - Windows build now relying on MSYS2 (for parts not built with MSVC)
 
-## [4.5.0] 2021-03-29
+
+## [4.5.0] - 2021-03-29
 
 ### Added
 - Windows Store compatibility
@@ -52,7 +56,7 @@ changes made to these components.__
 ### Changed
 - Update libvpx to 1.9.0
 
-## [4.4.0] 2020-06-16
+## [4.4.0] - 2020-06-16
 
 ### Added
 - Windows Store compatibility
