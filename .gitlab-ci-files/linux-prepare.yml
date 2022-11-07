@@ -1,9 +1,9 @@
 .linux-prepare:
 
   cache:
-    key: $CI_JOB_IMAGE-master
-    paths:
-      - ccache/
+    - key: $CI_JOB_IMAGE-master
+      paths:
+        - ccache/
 
   variables:
     #Misleading name, means no compression at all
@@ -58,6 +58,7 @@
 
     - CENTOS_VERSION=$(cat /etc/centos-release) || true
     - if [ -n "$CENTOS_VERSION" ] && [ -n "$(echo $CENTOS_VERSION | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
+    - export GRADLE_USER_HOME=`pwd`/.gradle
 
   after_script:
     - if ! [ -z ${SSH_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi

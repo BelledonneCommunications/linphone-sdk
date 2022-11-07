@@ -3,6 +3,13 @@
   stage: build
   tags: [ "docker" ]
 
+  cache:
+    - !reference [.linux-prepare, cache]
+    - key: $CI_JOB_IMAGE-gradle-master
+      paths:
+        - .gradle/wrapper
+        - .gradle/caches
+
   variables:
     CCACHE_SIZE: 4G
 
