@@ -22,6 +22,7 @@
 #include <memory> //smart ptrs
 #include <unordered_map>
 #include <vector>
+#include <list>
 #include <functional>
 #include <string>
 #include <mutex>
@@ -324,12 +325,24 @@ namespace lime {
 
 			/**
 			 * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
+			 * device's Id matching a local account are always considered as trusted
 			 *
 			 * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
 			 *
 			 * @return unknown if the device is not in localStorage, untrusted, trusted or unsafe according to the stored value of peer device status flag otherwise
 			 */
 			lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);
+
+			/**
+			 * @brief get the lowest status of a list of peer device
+			 * The order, from low to up, is : unsafe, unknown, untrusted, trusted
+			 * device's Id matching a local account are always considered as trusted
+			 *
+			 * @param[in]	peerDeviceIds	The list of device Ids to consider, shall be a list of GRUUs
+			 *
+			 * @return the lowest status from the list of these devices
+			 */
+			lime::PeerDeviceStatus get_peerDeviceStatus(const std::list<std::string> &peerDeviceIds);
 
 			/**
 			 * @brief checks if a device iD exists in the local users

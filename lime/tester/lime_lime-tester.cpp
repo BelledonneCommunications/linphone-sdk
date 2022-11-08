@@ -1072,6 +1072,9 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("dave.");
 		daveManager->create_user(*daveDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
 
+		// This is a list of all device's id to test getting status of a device list
+		std::list<std::string> allDevicesId{*aliceDeviceId, *bobDeviceId, *carolDeviceId, *daveDeviceId};
+
 		expected_success += 4;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success,lime_tester::wait_for_timeout));
 
@@ -1109,6 +1112,10 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		BC_ASSERT_TRUE(daveManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::unknown);
 		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*daveDeviceId) == lime::PeerDeviceStatus::unknown);
 
+		// Now Alice's storage has Bob as trusted and Carol as untrusted and does not know Dave
+		// Getting status for all of them as a list shall return unknown (alice considers herself as trusted)
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::unknown);
+
 		// Alice encrypts a message for Bob, Carol and Dave
 		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
 		aliceRecipients->emplace_back(*bobDeviceId);
@@ -1123,6 +1130,10 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		BC_ASSERT_TRUE((*aliceRecipients)[0].peerStatus == lime::PeerDeviceStatus::trusted); // recipient 0 is Bob: trusted
 		BC_ASSERT_TRUE((*aliceRecipients)[1].peerStatus == lime::PeerDeviceStatus::untrusted); // recipient 1 is Carol: untrusted
 		BC_ASSERT_TRUE((*aliceRecipients)[2].peerStatus == lime::PeerDeviceStatus::unknown); // recipient 2 is Dave: unknown
+
+		// Now Alice's storage has Bob as trusted and Carol as untrusted and Dave untrusted
+		// Getting status for all of them as a list shall return untrusted
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::untrusted);
 
 		// recipients decrypt
 		std::vector<uint8_t> receivedMessage{};
@@ -1181,6 +1192,25 @@ static void lime_peerDeviceStatus_test(const lime::CurveId curve, const std::str
 		BC_ASSERT_TRUE(daveManager->decrypt(*daveDeviceId, "my friends group", *aliceDeviceId, (*aliceRecipients)[2].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
 		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1]);
+
+		// set Dave's status to trusted in Alice's cache and query the group status, it still shall be untrusted
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::trusted);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::untrusted);
+
+		// now also set Carol as trusted, the group status shall be trusted
+		aliceManager->set_peerDeviceStatus(*carolDeviceId, carolIk, lime::PeerDeviceStatus::trusted);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::trusted);
+
+		// Turn Dave to unsafe, the group status shall be unsafe
+		aliceManager->set_peerDeviceStatus(*daveDeviceId, daveIk, lime::PeerDeviceStatus::unsafe);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::unsafe);
+		
+		// Remove Carol from Alice cache, Alice is unknown but the group is still unsafe
+		aliceManager->delete_peerDevice(*carolDeviceId);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*carolDeviceId) == lime::PeerDeviceStatus::unknown);
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(*aliceDeviceId) == lime::PeerDeviceStatus::trusted); // query herself as peer, should be trusted
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(std::list<std::string>{*aliceDeviceId}) == lime::PeerDeviceStatus::trusted); // query herself as peer, should be trusted
+		BC_ASSERT_TRUE(aliceManager->get_peerDeviceStatus(allDevicesId) == lime::PeerDeviceStatus::unsafe);
 
 		if (cleanDatabase) {
 			aliceManager->delete_user(*aliceDeviceId, callback);
@@ -2913,7 +2943,8 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[3]);
 		receivedMessage.clear();
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d2 already set up the DR Session, we shall not have any  X3DH message here
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "alice", *bobDevice2, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		// bob.d1 and bob.d2 share the same db, like two accounts on the same device, so for bob.d1, bob.d2 status is always trusted.
+		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice1, "alice", *bobDevice2, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::trusted);
 		receivedMessageStringBob = std::string{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_tester::messages_pattern[3]);
 

@@ -436,6 +436,7 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
 
 /**
  * @brief get the status of a peer device: unknown, untrusted, trusted, unsafe
+ * device's Id matching a local account are always considered as trusted
  *
  * @param[in]	peerDeviceId	The device Id of peer, shall be its GRUU
  *
@@ -443,6 +444,9 @@ void Db::set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceS
  */
 lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId) {
 	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
+	if (is_localUser(peerDeviceId)) {
+		return lime::PeerDeviceStatus::trusted;
+	}
 	int status;
 	sql<<"SELECT Status FROM Lime_PeerDevices WHERE DeviceId = :peerDeviceId LIMIT 1;", into(status), use(peerDeviceId);
 	if (sql.got_data()) { // Found it
@@ -461,6 +465,83 @@ lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::string &peerDeviceId)
 	// peerDeviceId not found in local storage
 	return lime::PeerDeviceStatus::unknown;
 }
+
+/**
+ * @brief get the status of a list of peer device: unknown, untrusted, trusted, unsafe
+ * and return the lowest found, crescent order being unsafe, unknown, untrusted, trusted
+ * device's Id matching a local account are always considered as trusted
+ *
+ * @param[in]	peerDeviceIds	A list of devices Id, shall be their GRUUs
+ *
+ * @return the lowest status found in the list
+ */
+lime::PeerDeviceStatus Db::get_peerDeviceStatus(const std::list<std::string> &peerDeviceIds) {
+
+	// If there is nothing to search, just return unknown
+	if (peerDeviceIds.empty()) return lime::PeerDeviceStatus::unknown;
+
+	std::lock_guard<std::recursive_mutex> lock(*m_db_mutex);
+	bool have_untrusted=false;
+	size_t found_devices_count =  0;
+
+	// create a comma separated list of device id for the IN parameter in the SQL query as SOCI does not handle a list of it
+	std::string sqlString_allDevicesId{""};
+	for (const auto &peerDeviceId : peerDeviceIds) {
+		sqlString_allDevicesId.append("'").append(peerDeviceId).append("',");
+	}
+	sqlString_allDevicesId.pop_back(); // remove the last ','
+	// Get local devices among the list
+	rowset<std::string> rs_localDevices = (sql.prepare << "SELECT l.UserId FROM lime_LocalUsers as l WHERE l.UserId IN ("<<sqlString_allDevicesId<<");");
+	std::string sqlString_peerDeviceQuery{"SELECT d.Status FROM lime_PeerDevices as d WHERE d.DeviceId IN ("};
+
+	std::list<std::string> nolocalDevices = peerDeviceIds; // copy original list
+	// remove local users from the list: they are all considered as trusted
+	for (const std::string &localDevice : rs_localDevices) {
+		nolocalDevices.remove(localDevice);
+		found_devices_count++;
+	}
+
+	if (found_devices_count > 0) {
+		// there are local devices, we must use the list without local ones as they can be present both in localUser and PeerDevices
+		// but in that case they must be ignored in the second list as they always are considered as trusted
+		std::string sqlString_peerDevicesId{""};
+		for (const auto &peerDeviceId : nolocalDevices) {
+			sqlString_peerDevicesId.append("'").append(peerDeviceId).append("',");
+		}
+		if (!sqlString_peerDevicesId.empty()) {
+			sqlString_peerDevicesId.pop_back(); // remove the last ','
+		}
+		sqlString_peerDeviceQuery.append(sqlString_peerDevicesId);
+	} else {
+		// there is no local device in the list, fetch using the whole list
+		sqlString_peerDeviceQuery.append(sqlString_allDevicesId);
+	}
+
+	rowset<int> rs_devicesStatus = (sql.prepare << sqlString_peerDeviceQuery << ");");
+	for (const int status : rs_devicesStatus) {
+		found_devices_count++;
+		switch (status) {
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::trusted) :
+				// Do nothing for trusted as it is the higher status we can get
+				break;
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted) :
+				have_untrusted=true;
+				break;
+			case static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe) :
+				return lime::PeerDeviceStatus::unsafe; // if unsafe is found, it can't get worse, return it
+			default : // something is wrong with the local storage
+				throw BCTBX_EXCEPTION << "Trying to get the status for peer devices "<<sqlString_allDevicesId<<" but get an unexpected value "<<status<<" from local storage";
+		}
+	}
+
+	if (found_devices_count != peerDeviceIds.size()) {
+		return lime::PeerDeviceStatus::unknown; // we are missing some, return unknown
+	}
+
+	if (have_untrusted) return lime::PeerDeviceStatus::untrusted;
+	return lime::PeerDeviceStatus::trusted;
+}
+
 
 /**
  * @brief checks if a device Id exists in the local users table
@@ -1233,7 +1314,6 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 						break;
 					default : // something is wrong with the local storage
 						throw BCTBX_EXCEPTION << "Trying to get the status for peer device "<<deviceId<<" but get an unexpected value "<<status<<" from local storage";
-
 				}
 			}
 		}
