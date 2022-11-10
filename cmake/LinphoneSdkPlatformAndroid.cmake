@@ -89,7 +89,6 @@ foreach(_arch IN LISTS _archs)
 	list(APPEND _android_build_targets android-${_arch})
 endforeach()
 
-
 add_custom_target(copy-libs ALL
 	"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_BINARY_DIR}" "-DLINPHONESDK_ANDROID_ARCHS=${LINPHONESDK_ANDROID_ARCHS}" "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}" "-DCMAKE_ANDROID_NDK=${CMAKE_ANDROID_NDK}" "-P" "${LINPHONESDK_DIR}/cmake/Android/CopyLibs.cmake"
 	COMMENT "Copying libs"
