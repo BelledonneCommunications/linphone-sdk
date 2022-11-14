@@ -60,22 +60,25 @@ struct _MSZrtpContext{
  * @param[out]	info	The string to print the informations
  */
 static void ms_zrtp_getPacketInfo(const uint8_t *packet, char info[PACKET_INFO_MAX_SIZE]) {
+	uint16_t seqNum = ((uint16_t)packet[2]<<8) + ((uint16_t)packet[3]);
 	if (packet[0] == 0x10) { /* packet is not fragmented */
-		snprintf(info, PACKET_INFO_MAX_SIZE, "packet type is %.8s", packet+16);
+		snprintf(info, PACKET_INFO_MAX_SIZE, "message %.8s with seqNum %x", packet+16, seqNum);
 	} else if (packet[0] == 0x11) { /* message fragment */
 		uint16_t offset = ((uint16_t)packet[16]<<8)+((uint16_t)packet[17]);
 		if (offset == 0) { /* we can retrieve the packet type */
-			snprintf(info, PACKET_INFO_MAX_SIZE, "fragmented message of type %.8s id %04x offset %d fragSize %d",
+			snprintf(info, PACKET_INFO_MAX_SIZE, "fragmented message %.8s id %04x offset %d fragSize %d seqNum %x",
 					packet+24,
 					((uint16_t)packet[12]<<8)+((uint16_t)packet[13]), /* message Id */
 					offset,
-					((uint16_t)packet[18]<<8)+((uint16_t)packet[19]) /* frag size */
+					((uint16_t)packet[18]<<8)+((uint16_t)packet[19]), /* frag size */
+					seqNum
 					);
 		} else {
-			snprintf(info, PACKET_INFO_MAX_SIZE, "fragmented message id %04x offset %d fragSize %d",
+			snprintf(info, PACKET_INFO_MAX_SIZE, "fragmented message id %04x offset %d fragSize %d seqNum %x",
 					((uint16_t)packet[12]<<8)+((uint16_t)packet[13]), /* message Id */
 					offset,
-					((uint16_t)packet[18]<<8)+((uint16_t)packet[19]) /* frag size */
+					((uint16_t)packet[18]<<8)+((uint16_t)packet[19]), /* frag size */
+					seqNum
 					);
 		}
 	} else {
@@ -155,7 +158,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
 
 	char packetInfo[PACKET_INFO_MAX_SIZE];
 	ms_zrtp_getPacketInfo(data, packetInfo);
-	ms_message("ZRTP Send %s on rtp session [%p]", packetInfo, session);
+	ms_message("ZRTP Send %s of size %d on rtp session [%p]", packetInfo, length, session);
 
 	/* get RTP transport from session */
 	rtp_session_get_transports(session,&rtpt,NULL);
@@ -470,15 +473,19 @@ static int ms_zrtp_rtp_process_on_receive(RtpTransportModifier *t, mblk_t *msg){
 	// display received message
 	char packetInfo[PACKET_INFO_MAX_SIZE];
 	ms_zrtp_getPacketInfo(rtp, packetInfo);
-	ms_message("ZRTP Receive %s on rtp session [%p]", packetInfo, t->session);
+	ms_message("ZRTP Receive %s of size %d on rtp session [%p]", packetInfo, msgLength, t->session);
 
 	// check if the ZRTP channel is started, if not(ZRTP not set on our side but incoming zrtp packets), start it
 	if (userData->autoStart && bzrtp_getChannelStatus(zrtpContext, userData->self_ssrc) == BZRTP_CHANNEL_INITIALISED) {
+		ms_message("ZRTP autostart channel on rtp session [%p]", t->session);
 		bzrtp_startChannelEngine(zrtpContext, userData->self_ssrc);
 	}
 
 	// send ZRTP packet to engine
-	bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
+	int ret = bzrtp_processMessage(zrtpContext, userData->self_ssrc, rtp, msgLength);
+	if (ret != 0) {
+		ms_message("ZRTP packet %s processing returns %04x on rtp session [%p]", packetInfo, ret, t->session);
+	}
 	return 0;
 }
 
