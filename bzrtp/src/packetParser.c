@@ -1376,6 +1376,7 @@ bzrtpPacket_t *bzrtp_createZrtpPacket(bzrtpContext_t *zrtpContext, bzrtpChannelC
 		zrtpCommitMessage->authTagAlgo = zrtpChannelContext->authTagAlgo;
 		zrtpCommitMessage->keyAgreementAlgo = zrtpChannelContext->keyAgreementAlgo;
 		zrtpCommitMessage->sasAlgo = zrtpChannelContext->sasAlgo;
+		bctbx_message("zrtp channel [%p] creates a commit message with algo: Cipher: %s - KeyAgreement: %s - Hash: %s - AuthTag: %s - Sas Rendering: %s", zrtpChannelContext, bzrtp_algoToString(zrtpChannelContext->cipherAlgo), bzrtp_algoToString(zrtpChannelContext->keyAgreementAlgo), bzrtp_algoToString(zrtpChannelContext->hashAlgo), bzrtp_algoToString(zrtpChannelContext->authTagAlgo), bzrtp_algoToString(zrtpChannelContext->sasAlgo));
 
 		/* if it is a multistream or preshared commit create a 16 random bytes nonce */
 		if ((zrtpCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Prsh) || (zrtpCommitMessage->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult)) {

@@ -57,6 +57,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 	/*** Manage the first call to this function ***/
 	/* We are supposed to send Hello packet, it shall be already present int the selfPackets(created at channel init) */
 	if (event.eventType == BZRTP_EVENT_INIT) {
+		bctbx_message("Entering state discovery init on channel [%p]", zrtpChannelContext);
 		if (zrtpChannelContext->selfPackets[HELLO_MESSAGE_STORE_ID] == NULL) {
 			/* We shall never go through this one because Hello packet shall be created at channel init */
 			int retval;
@@ -73,7 +74,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 				bzrtp_freeZrtpPacket(helloPacket);
 				return retval;
 			}
-			/* TODO: Shall add a warning trace here */
+			bctbx_warning("Hello packet created at discovery_init state, it should be performed at chennel initialisation");
 		}
 
 		/* it is the first call to this function, so we must also set the timer for retransmissions */
@@ -120,6 +121,8 @@ int state_discovery_init(bzrtpEvent_t event) {
 
 			/* set next state (do not call it as we will just be waiting for a HelloACK packet from peer, nothing to do) */
 			zrtpChannelContext->stateMachine = state_discovery_waitingForHelloAck;
+			bctbx_message("Entering state discovery waiting for HelloACK on channel [%p]", zrtpChannelContext);
+			return 0;
 		}
 
 		/* if we have a HelloACK packet, stop the timer and  set next state to state_discovery_waitingForHello */
@@ -132,7 +135,7 @@ int state_discovery_init(bzrtpEvent_t event) {
 
 			/* set next state (do not call it as we will just be waiting for a Hello packet from peer, nothing to do) */
 			zrtpChannelContext->stateMachine = state_discovery_waitingForHello;
-
+			bctbx_message("Entering state discovery waiting for Hello on channel [%p]", zrtpChannelContext);
 			return 0;
 		}
 
@@ -386,6 +389,8 @@ int state_keyAgreement_sendingCommit(bzrtpEvent_t event) {
 	/* We are supposed to send commit packet, check if we have one in the channel Context, the event type shall be INIT in this case */
 	if ((event.eventType == BZRTP_EVENT_INIT)  && (zrtpChannelContext->selfPackets[COMMIT_MESSAGE_STORE_ID] == NULL)) {
 		int retval;
+		bctbx_message("Entering state sending Commit on channel [%p]", zrtpChannelContext);
+
 		/* create the commit packet */
 		bzrtpPacket_t *commitPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_COMMIT, &retval);
 		if (retval != 0) {
@@ -697,6 +702,8 @@ int state_keyAgreement_responderSendingDHPart1(bzrtpEvent_t event) {
 
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
+		bctbx_message("Entering state sending DHPart1 on channel [%p]", zrtpChannelContext);
+
 		/* There is no timer in this state, make sure it is off */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
@@ -905,6 +912,7 @@ int state_keyAgreement_initiatorSendingDHPart2(bzrtpEvent_t event) {
 	/*** Manage the first call to this function ***/
 	/* We have to send a DHPart2 packet, it is already present in the context */
 	if (event.eventType == BZRTP_EVENT_INIT) {
+		bctbx_message("Entering state sending DHPart2 on channel [%p]", zrtpChannelContext);
 		/* it is the first call to this state function, so we must set the timer for retransmissions */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_ON;
 		zrtpChannelContext->timer.firingTime = zrtpContext->timeReference + NON_HELLO_BASE_RETRANSMISSION_STEP;
@@ -1042,6 +1050,7 @@ int state_confirmation_responderSendingConfirm1(bzrtpEvent_t event) {
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
 		bzrtpPacket_t *confirm1Packet;
+		bctbx_message("Entering state responder sending confirm1 on channel [%p]", zrtpChannelContext);
 
 		/* when in multistream mode, we must derive s0 and other keys from ZRTPSess */
 		if (zrtpChannelContext->keyAgreementAlgo == ZRTP_KEYAGREEMENT_Mult) {
@@ -1262,6 +1271,7 @@ int state_confirmation_initiatorSendingConfirm2(bzrtpEvent_t event) {
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
 		bzrtpPacket_t *confirm2Packet;
+		bctbx_message("Entering state initiator sending confirm2 on channel [%p]", zrtpChannelContext);
 
 		/* we must build the confirm2 packet, check in the channel context if we have the needed keys */
 		if ((zrtpChannelContext->mackeyi == NULL) || (zrtpChannelContext->zrtpkeyi == NULL)) {
@@ -1424,6 +1434,7 @@ int state_secure(bzrtpEvent_t event) {
 
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
+		bctbx_message("Entering state secure on channel [%p]", zrtpChannelContext);
 		/* there is no timer in this state, turn it off */
 		zrtpChannelContext->timer.status = BZRTP_TIMER_OFF;
 
@@ -1644,6 +1655,7 @@ int state_sending_GoClear(bzrtpEvent_t event){
 	/*** Manage the first call to this function ***/
 	if (event.eventType == BZRTP_EVENT_INIT) {
 		bzrtpPacket_t *goClearPacket;
+		bctbx_message("Entering state sending GoClear on channel [%p]", zrtpChannelContext);
 
 		/* build the GoClear packet */
 		goClearPacket = bzrtp_createZrtpPacket(zrtpContext, zrtpChannelContext, MSGTYPE_GOCLEAR, &retval);
@@ -1857,6 +1869,7 @@ int state_clear(bzrtpEvent_t event){
 		if (zrtpContext==NULL) {
 			return BZRTP_ERROR_INVALIDCONTEXT;
 		}
+		bctbx_message("Entering state sending clear on channel [%p]", zrtpChannelContext);
 		/* Set all channels to clear and roles to initiator */
 		for (int i=0; i<ZRTP_MAX_CHANNEL_NUMBER; i++) {
 			if (zrtpContext->channelContext[i]!=NULL) {

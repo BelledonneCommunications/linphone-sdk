@@ -20,7 +20,6 @@
 #ifndef bzrtpTester_h
 #define bzrtpTester_h
 
-#define BCTOOLBOX_LOG_DOMAIN "bzrtp-tester"
 #include <bctoolbox/logging.h>
 
 #define bzrtp_message bctbx_message
