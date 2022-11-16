@@ -260,6 +260,21 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
 }
 
 /*------------------------------------------------------------------------*/
+/** Makes a copy of the source string with XML control characters
+ *  translated to escape sequences.
+ *  Potential optimization: Allocate only if there's something to translate,
+ *  and tell caller if it should free or not.
+ *  @param szSource  The source string that may contain XML control chars.
+ *  @return a newly allocated string that is XML-safe. Callers MUST CU_FREE() it.
+ */
+static char* to_xml_safe(const char* szSource) {
+  size_t szXmlSafe_len = CU_translated_strlen(szSource) + 1;
+  char* szXmlSafe = (char *)CU_MALLOC(szXmlSafe_len);
+  CU_translate_special_characters(szSource, szXmlSafe, szXmlSafe_len); // ignored return
+  return szXmlSafe;
+}
+
+/*------------------------------------------------------------------------*/
 /** Handler function called at start of each test.
  *  The test result file must have been opened before this
  *  function is called (i.e. f_pTestResultFile non-NULL).
@@ -369,6 +384,9 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
   assert(NULL != pSuite->pName);
   assert(NULL != f_pTestResultFile);
 
+  /* translate test name that may contain XML control characters */
+  char* szTestName = to_xml_safe(pTest->pName);
+
   if (NULL != pTempFailure) {
 
     if(NULL != pTempFailure) {
@@ -389,7 +407,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
         fprintf(f_pTestResultFile, "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%f\">\n",
                 pPackageName,
                 pSuite->pName,
-                (NULL != pTest->pName) ? pTest->pName : "",
+                szTestName,
                 endTime - startTime
                 );
 
@@ -446,7 +464,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
               "            <CONDITION> %s </CONDITION> \n"
               "          </BCUNIT_RUN_TEST_FAILURE> \n"
               "        </BCUNIT_RUN_TEST_RECORD> \n",
-              pTest->pName,
+              szTestName,
               (NULL != pTempFailure->strFileName) ? pTempFailure->strFileName : "",
               pTempFailure->uiLineNumber,
               szTemp);
@@ -464,7 +482,7 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
       fprintf(f_pTestResultFile,  "        <testcase classname=\"%s.%s\" name=\"%s\" time=\"%f\"/>\n",
               pPackageName,
               pSuite->pName,
-              (NULL != pTest->pName) ? pTest->pName : "",
+              szTestName,
               endTime - startTime
               );
     } else {
@@ -474,10 +492,11 @@ static void automated_test_complete_message_handler(const CU_pTest pTest,
               "            <TEST_NAME> %s </TEST_NAME> \n"
               "          </BCUNIT_RUN_TEST_SUCCESS> \n"
               "        </BCUNIT_RUN_TEST_RECORD> \n",
-              pTest->pName);
+              szTestName);
     }
   }
 
+  CU_FREE(szTestName);
   if (NULL != szTemp) {
     CU_FREE(szTemp);
   }
@@ -781,13 +800,16 @@ static CU_ErrorCode automated_list_all_tests(CU_pTestRegistry pRegistry, const c
               "      <BCUNIT_ALL_TEST_LISTING_SUITE_TESTS> \n");
       while (NULL != pTest) {
         assert(NULL != pTest->pName);
+        /* translate test name that may contain XML control characters */
+        char* szTestName = to_xml_safe(pTest->pName);
         fprintf(pTestListFile,
                 "        <TEST_CASE_DEFINITION> \n"
                 "          <TEST_CASE_NAME> %s </TEST_CASE_NAME> \n"
                 "          <TEST_ACTIVE_VALUE> %s </TEST_ACTIVE_VALUE> \n"
                 "        </TEST_CASE_DEFINITION> \n",
-                pTest->pName,
+                szTestName,
                 (CU_FALSE != pSuite->fActive) ? _("Yes") : _("No"));
+        CU_FREE(szTestName);
         pTest = pTest->pNext;
       }
 
