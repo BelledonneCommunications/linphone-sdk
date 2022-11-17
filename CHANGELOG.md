@@ -11,6 +11,11 @@ that bundles liblinphone and its dependencies as git submodules.
 Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *mediastreamer2*, *ortp*) for the actual
 changes made to these components.__
 
+## [5.3.0] Unreleased
+
+### Changed
+- Update ZLib to 1.2.13
+
 ## [5.2.0] Unreleased
 
 ### Added
