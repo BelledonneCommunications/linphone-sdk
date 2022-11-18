@@ -18,7 +18,7 @@
     # We double the "\" to escape paths as -replace uses regular expressions
     - $PATH_TEMP = $PATH_TEMP -replace "C:\\MinGW\\bin;" -replace "C:\\Strawberry\\c\\bin;" -replace "C:\\Program Files\\NASM"
     - echo $PATH_TEMP
-    - $env:Path = ($PATH_TEMP + ";C:\msys64;C:\msys64\usr\bin;C:\msys64\" + $MINGW_TYPE + "\bin")
+    - $env:Path = ($PATH_TEMP + ";C:\msys64\mingw64\bin;C:\msys64;C:\msys64\usr\bin;C:\msys64\mingw32\bin")
 
     - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
 
@@ -219,7 +219,7 @@ vs2017-uwp-scheduled-windows:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO 
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
-    CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
+    CMAKE_GENERATOR: "Visual Studio 15 2017"
 
 vs2017-uwp-scheduled-windows-pqc:
   extends: vs2017-uwp-scheduled-windows

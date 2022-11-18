@@ -183,13 +183,15 @@ CMake use `OPENSSL_ROOT_DIR` to build each architectures. If you want to specify
  - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to Cmake (see customization options below).
  - use `Build solution` to build.
 
-#### Windows UWP
-You can use linphone-sdk in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
+### Windows UWP and Stores
+
+You can use linphone-sdk in your Windows UWP app with the UWP mode.
+Win32 application can use the Windows Store mode in order to be publishable in Windows Stores.
 The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
-The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. It is for x64 builds. You will find all libraries in linphone-sdk/uwp-x64
+The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. If `-DLINPHONESDK_UWP_ARCHS` is not used, x86 and x64 will be build. 
+All libraries will be in linphone-sdk/uwp-x86 or linphone-sdk/uwp-x64
 
 Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
-
 
 ### NuGet packaging
 
@@ -213,7 +215,7 @@ The following options control the cpu architectures built for a target platform:
 - `LINPHONESDK_IOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an iOS build.
 - `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK.
 - `LINPHONESDK_MACOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for a MacOS build. Currently supported : x86_64, arm64
-- `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build.
+- `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build and Nuget.
 
 These ON/OFF options control the enablement of important features of the SDK, which have an effect on the size of produced size object code:
 - `ENABLE_VIDEO`: enablement of video call features.
@@ -243,33 +245,23 @@ Before embedding these features in your final application, **make sure to have t
 
 For more information, please visit [our dedicated wiki page](https://wiki.linphone.org/xwiki/wiki/public/view/Linphone/Third%20party%20components%20/)
 
-## Windows UWP
-You can use Linphone-SDK in your Windows UWP app with 2 kinds of library : using the Windows Bridge or the UWP mode.
-The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
-The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. It is for x64 builds. You will find all libraries in linphone-sdk/uwp-x64
-
-Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
-
-Build SDK:
-
-    cmake --build . --target ALL_BUILD --config=RelWithDebInfo
-
 ### Nuget packaging
 You can package 3 kinds of binaries : win32, uwp and win32 with Windows Store Compatibility.
 
 - win32: this is the win32 version of Linphone-SDK without any restrictions. The framework is 'win'.
-- uwp : this is a uwp x64 version of Linphone-SDK. The framework is 'uap10.0'.
+- uwp : this is a uwp x64/x86 version of Linphone-SDK. The framework is 'uap10.0'.
 - win32 Windows Store : this is the win32 version of Linphone-SDK with the Windows Store Compatibility enabled for Windows Bridge. The framework is 'netcore'.
 
-In an another build folder (like buildNuget), set these options :
+In an another build folder (like buildNuget), set these options. At least one path is needed :
 - (Needed) -DLINPHONESDK_PACKAGER=Nuget
 - (Optional) -DLINPHONESDK_DESKTOP_ZIP_PATH=<path of the zip file containing the Desktop binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86/linphone-sdk)
 - (Optional) -DLINPHONESDK_UWP_ZIP_PATH=<path of the zip file containing the UWP binaries> (eg. C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk)
 - (Optional) -DLINPHONESDK_WINDOWSSTORE_ZIP_PATH=<path of the zip file containing the Desktop binaries with Store compatibility enabled> (eg. C:/projects/desktop-uwp/linphone-sdk/buildx86_store/linphone-sdk)
+- (Optional) -DLINPHONESDK_UWP_ARCHS=<list of archs to package> (eg. "x86, x64" or "x64")
 
 Build the Package:
 
-	cmake ..
+	cmake .. -DLINPHONESDK_PACKAGER=Nuget -DLINPHONESDK_UWP_ZIP_PATH=C:/projects/desktop-uwp/linphone-sdk/builduwp/linphone-sdk
 	cmake --build . --target ALL_BUILD --config=RelWithDebInfo
 
 The nuget package will be in linphone-sdk/packages
