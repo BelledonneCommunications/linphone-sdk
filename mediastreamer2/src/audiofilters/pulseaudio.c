@@ -458,7 +458,9 @@ static bool_t stream_connect(Stream *s) {
 	pa_threaded_mainloop_unlock(the_pa_loop);
 	if(err < 0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
 		ms_error("Fails to connect pulseaudio stream. err=%d", err);
+		pa_threaded_mainloop_lock(the_pa_loop);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		s->stream = NULL;
 		return FALSE;
 	}
@@ -479,7 +481,9 @@ static void stream_disconnect(Stream *s) {
 		if(err!=0 || !stream_wait_for_state(s, PA_STREAM_TERMINATED, PA_STREAM_FAILED)) {
 			ms_error("pa_stream_disconnect() failed. err=%d", err);
 		}
+		pa_threaded_mainloop_lock(the_pa_loop);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		
 		s->stream = NULL;
 		s->state = PA_STREAM_UNCONNECTED;
