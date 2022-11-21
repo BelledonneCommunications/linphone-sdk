@@ -313,12 +313,11 @@ typedef enum _MSRecorderState MSRecorderState;
 /** Interface definitions for audio capture */
 
 typedef struct _MSAudioRouteChangedEvent{
+	char new_input[96];
+	char new_output[96];
 	bool_t need_update_device_list;
 	bool_t has_new_input;
-	char new_input[256];
 	bool_t has_new_output;
-	char new_output[256];
-	
 } MSAudioRouteChangedEvent;
 
 /* Start numbering from the end for hacks */
