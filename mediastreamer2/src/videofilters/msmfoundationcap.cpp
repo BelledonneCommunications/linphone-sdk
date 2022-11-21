@@ -50,11 +50,11 @@ public:
 	Format getMediaConfiguration(GUID* videoFormat, UINT32* width, UINT32 *height, float * fps){// Return Best Format from parameters
 		int roundedFps = (int)(*fps * 100.0);
 		if( mSortedList.size() > 0){
-			auto mediaWidth = mSortedList.lower_bound(*width);
-			if(mediaWidth == mSortedList.end() )
+			auto mediaWidth = mSortedList.upper_bound(*width);
+			if(mediaWidth != mSortedList.begin() )
 				--mediaWidth;
-			auto mediaHeight = mediaWidth->second.lower_bound(*height);
-			if(mediaHeight == mediaWidth->second.end() )
+			auto mediaHeight = mediaWidth->second.upper_bound(*height);
+			if(mediaHeight != mediaWidth->second.begin() )
 				--mediaHeight;
 			auto mediaFps = mediaHeight->second.upper_bound(roundedFps);// Try to get more FPS than target
 			if(mediaFps != mediaHeight->second.begin() )// fps <= target or fps[0]

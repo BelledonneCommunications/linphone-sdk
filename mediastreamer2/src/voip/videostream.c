@@ -177,6 +177,21 @@ static void source_event_cb(void *ud, MSFilter* f, unsigned int event, void *eve
 	}
 }
 
+static void preview_source_event_cb(void* ud, MSFilter* f, unsigned int event, void* eventdata) {
+	VideoStream* st = (VideoStream*)ud;
+	MSVideoSize size;
+	switch (event) {// Allow a source to reinitialize all tree formats
+	case MS_FILTER_OUTPUT_FMT_CHANGED:
+		if (ms_filter_get_id(f) == MS_SIZE_CONV_ID) {
+			ms_filter_call_method(f, MS_FILTER_GET_VIDEO_SIZE, &size);
+			video_stream_set_sent_video_size(st, size);
+		}
+		video_preview_stream_update_video_params(st);
+		break;
+	default: {}
+	}
+}
+
 static void event_cb(void *ud, MSFilter* f, unsigned int event, void *eventdata){
 	VideoStream *st=(VideoStream*)ud;
 	if (st->eventcb!=NULL){
@@ -667,7 +682,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 	return size;
 }
 #endif
-
+static void configure_video_preview_source(VideoPreview* stream);
 static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t source_changed){
 	MSVideoSize cam_vsize = {320, 240};
 	MSVideoConfiguration vconf;
@@ -1549,6 +1564,11 @@ void video_stream_update_video_params(VideoStream *stream){
 	video_stream_change_camera(stream,stream->cam);
 }
 
+void video_preview_stream_update_video_params(VideoStream* stream) {
+	/*calling video_preview_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph for preview*/
+	video_preview_stream_change_camera(stream, stream->cam);
+}
+
 /**
  * Will update the source camera for the videostream passed as argument.
  * The parameters:
@@ -1562,7 +1582,8 @@ void video_stream_update_video_params(VideoStream *stream){
  *
  * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
  */
-static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate, bool_t is_forwarding){
+static void _configure_video_preview_source(VideoPreview* stream, bool_t change_source);
+static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate, bool_t is_forwarding, bool_t is_preview){
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
 	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
@@ -1660,8 +1681,10 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 			apply_video_preset(stream, pt);
 			if (!skip_bitrate) apply_bitrate_limit(stream ,pt);
 		}
-
-		configure_video_source(stream, skip_bitrate, change_source);
+		if(is_preview)
+			_configure_video_preview_source(stream, change_source);
+		else
+			configure_video_source(stream, skip_bitrate, change_source);
 
 		if (encoder_has_builtin_converter || (stream->source_performs_encoding == TRUE)) {
 			ms_filter_link (stream->source, 0, stream->tee, 0);
@@ -1701,33 +1724,37 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 	return old_source;
 }
 
+void video_preview_stream_change_camera(VideoStream* stream, MSWebCam* cam) {
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE, TRUE);
+}
+
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam) {
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, TRUE, FALSE);
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, TRUE, FALSE, FALSE);
 }
 
 MSFilter* video_stream_change_camera_keep_previous_source(VideoStream *stream, MSWebCam *cam){
-	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE, FALSE, FALSE);
+	return _video_stream_change_camera(stream, cam, NULL, NULL, TRUE, FALSE, FALSE, FALSE, FALSE);
 }
 
 MSFilter* video_stream_change_source_filter(VideoStream *stream, MSWebCam* cam, MSFilter* filter, bool_t keep_previous ){
-	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE, FALSE, FALSE);
+	return _video_stream_change_camera(stream, cam, filter, NULL, keep_previous, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_open_player(VideoStream *stream, MSFilter *sink){
 	ms_message("video_stream_open_player(): sink=%p",sink);
-	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream, stream->cam, NULL, sink, FALSE, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_close_player(VideoStream *stream){
-	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE);
+	_video_stream_change_camera(stream,stream->cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_forward_source_stream(VideoStream *stream, VideoStream *source) {
-	_video_stream_change_camera(stream, stream->cam, NULL, source->forward_sink, FALSE, FALSE, FALSE, TRUE);
+	_video_stream_change_camera(stream, stream->cam, NULL, source->forward_sink, FALSE, FALSE, FALSE, TRUE, FALSE);
 }
 
 void video_stream_send_fir(VideoStream *stream) {
@@ -2004,10 +2031,11 @@ MSVideoSize video_preview_get_current_size(VideoPreview *stream){
 	return ret;
 }
 
-static void configure_video_preview_source(VideoPreview *stream) {
+static void _configure_video_preview_source(VideoPreview *stream, bool_t change_source) {
 	MSPixFmt format;
 	MSVideoSize vsize = stream->sent_vsize;
 	float fps;
+	bool_t is_player = stream->content != MSVideoContentThumbnail && (ms_filter_get_id(stream->source) == MS_ITC_SOURCE_ID || ms_filter_get_id(stream->source) == MS_MKV_PLAYER_ID);
 
 	if (stream->forced_fps != 0) fps = stream->forced_fps;
 	else fps = (float)29.97;
@@ -2019,11 +2047,12 @@ static void configure_video_preview_source(VideoPreview *stream) {
 	if (ms_filter_has_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION)) {
 		ms_filter_call_method(stream->source, MS_VIDEO_DISPLAY_SET_DEVICE_ORIENTATION, &stream->device_orientation);
 	}
-
-	ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE);
+	if(change_source) {// Add callbacks if sources changed.
+		ms_filter_add_notify_callback(stream->source, event_cb, stream, FALSE); 
+		if (!is_player) ms_filter_add_notify_callback(stream->source, preview_source_event_cb, stream, FALSE);
 	/* It is important that the internal_event_cb is called synchronously! */
-	ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
-
+		ms_filter_add_notify_callback(stream->source, internal_event_cb, stream, TRUE);
+	}
 	if (!ms_filter_implements_interface(stream->source, MSFilterVideoEncoderInterface)) {
 		ms_filter_call_method(stream->source, MS_FILTER_SET_VIDEO_SIZE, &vsize);
 		if (ms_filter_get_id(stream->source) != MS_STATIC_IMAGE_ID) {
@@ -2038,6 +2067,10 @@ static void configure_video_preview_source(VideoPreview *stream) {
 		ms_filter_call_method(stream->source, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
 	}
     ms_filter_call_method(stream->source, MS_FILTER_GET_PIX_FMT, &format);
+	if(stream->pixconv) {
+		ms_filter_destroy(stream->pixconv);
+		stream->pixconv = NULL;
+	}
 	if (format == MS_MJPEG) {
 		stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 		if (stream->pixconv == NULL) {
@@ -2049,7 +2082,9 @@ static void configure_video_preview_source(VideoPreview *stream) {
 		ms_filter_call_method(stream->pixconv, MS_FILTER_SET_VIDEO_SIZE, &vsize);
 	}
 }
-
+static void configure_video_preview_source(VideoPreview* stream) {
+	_configure_video_preview_source(stream, TRUE);
+}
 void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	MSConnectionHelper ch;
 

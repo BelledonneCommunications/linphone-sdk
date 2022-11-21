@@ -1119,6 +1119,7 @@ MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
  */
 MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
+MS2_PUBLIC void video_preview_stream_change_camera(VideoStream* stream, MSWebCam* cam);
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 
 MS2_PUBLIC void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam);
@@ -1182,7 +1183,8 @@ MS2_PUBLIC MSFilter* video_stream_change_camera_keep_previous_source(VideoStream
 
 
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
-The following function allows to take into account new parameters by redrawing the sending graph*/
+The following functions allow to take into account new parameters by redrawing the sending graph*/
+MS2_PUBLIC void video_preview_stream_update_video_params(VideoStream *stream);
 MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
 MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
