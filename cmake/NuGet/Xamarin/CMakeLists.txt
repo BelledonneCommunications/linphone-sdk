@@ -84,6 +84,6 @@ add_custom_target(${PROJECT_NAME}
 )
 
 add_custom_command(TARGET ${PROJECT_NAME}
-	COMMAND ${CMAKE_COMMAND} "-E" "copy_directory"  "${CMAKE_CURRENT_BINARY_DIR}/packages" "${CMAKE_INSTALL_PREFIX}"
+	COMMAND ${CMAKE_COMMAND} "-E" "copy_directory"  "${CMAKE_CURRENT_BINARY_DIR}/packages" "${CMAKE_INSTALL_PREFIX}/packages"
 	WORKING_DIRECTORY ${LINPHONESDK_OUTPUT_DIR}
 )
