@@ -69,10 +69,39 @@ BCTBX_PUBLIC char *bctbx_utf8_to_locale (const char *str);
  * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
  * by caller. NULL on failure.
  *
- * @note If encoding is equal to "locale" then it will use the system's locale
+ * @note If encoding is equal to "locale" or NULL then it will use the system's locale
  * @note If encoding is UTF-8 then it returns a copy of str
  */
 BCTBX_PUBLIC char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding);
+
+/**
+ * @brief Convert the given string.
+ *
+ * @param[in] str string to convert
+ * @param[in] encoding charset of the string
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ *
+ * @note If encoding is equal to "locale" or NULL then it will use the system's locale
+ * @note If encoding is UTF-8 then it returns a copy of str
+ */
+BCTBX_PUBLIC char *bctbx_convert_utf8_to_any (const char *str, const char *encoding);
+
+/**
+ * @brief Convert the given string.
+ *
+ * @param[in] str string to convert
+ * @param[in] encoding charset of the string
+ * @param[in] encoding charset of the string
+ *
+ * @return a pointer to a null-terminated string containing the converted string. This buffer must then be freed
+ * by caller. NULL on failure.
+ *
+ * @note If from_encoding or to_encoding is equal to "locale" or NULL then it will use the system's locale. Use bctbx_get_default_encoding() to get the application locale.
+ * @note If encodings are the same then it returns a copy of str
+ */
+BCTBX_PUBLIC char *bctbx_convert_string (const char *str, const char *from_encoding, const char *to_encoding);
 
 /**
  * @brief Convert the char string to wide char string. Only available for Windows platform
