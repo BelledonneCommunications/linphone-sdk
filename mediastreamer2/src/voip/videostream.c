@@ -2275,6 +2275,7 @@ static MSFilter* _video_preview_change_camera(VideoPreview *stream, MSWebCam *ca
 
 		if (stream->pixconv) {
 			ms_filter_destroy(stream->pixconv);
+			stream->pixconv = NULL;
 		}
 
 		/*re create new ones and configure them*/
