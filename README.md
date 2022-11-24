@@ -170,11 +170,6 @@ The freshly built SDK is located in `<linphone-sdk>/build`.
 Requirement:
  - Xcode >= 12
 
-OpenSSL is not yet build by Linphone and need binaries on wanted architectures (eg. from `Homebrew`)
-CMake use `OPENSSL_ROOT_DIR` to build each architectures. If you want to specify what binaries to use, you have to set theses variables (in configure step or in environment) :
- - `LINPHONESDK_OPENSSL_ROOT_DIR_X86_64`
- - `LINPHONESDK_OPENSSL_ROOT_DIR_ARM64`
-
 ### Windows
 
  `cmake --build .` works on Windows as for all platforms.
