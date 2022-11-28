@@ -50,8 +50,8 @@ typedef struct _MSSrtpStreamContext {
 	RtpTransportModifier *modifier_rtp;
 	RtpTransportModifier *modifier_rtcp;
 	ms_mutex_t mutex;
-	bool_t secured;
-	bool_t mandatory_enabled;
+	bool secured;
+	bool mandatory_enabled;
 	/* for stats purpose */
 	MSSrtpKeySource source; /**< who provided the key (SDES, ZRTP, DTLS-SRTP) */
 	MSCryptoSuite suite; /**< what crypto suite was set. Is set to MS_CRYPTO_SUITE_INVALID if setting fails */
@@ -100,7 +100,7 @@ static void check_and_create_srtp_context(MSMediaStreamSessions *sessions) {
 		sessions->srtp_context=ms_srtp_context_new();
 }
 /**** Sender functions ****/
-static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool_t is_rtp) {
+static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool is_rtp) {
 	int slen;
 	err_status_t err;
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
@@ -133,12 +133,17 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 				uint8_t *payload = NULL;
 				uint16_t cc = rtp_get_cc(m);
 				int payload_size = rtp_get_payload(m,&payload);
+				if (payload_size < 0) {
+					ms_warning("srtp_protect inner encryption failed (unable to get payload) for stream ctx [%p]", ctx);
+					ms_mutex_unlock(&ctx->mutex);
+					return -1;
+				}
 				/* create a synthetic packet, it holds:
 				 * RTP header + size of CSRC if any - No extensions
 				 * payload
 				 * reserve space for SRTP trailer */
 				size_t synthetic_header_size = RTP_FIXED_HEADER_SIZE+4*cc;
-				size_t synthetic_size = synthetic_header_size + payload_size + SRTP_MAX_TRAILER_LEN + 4;
+				size_t synthetic_size = synthetic_header_size + (size_t)payload_size + SRTP_MAX_TRAILER_LEN + 4;
 				synthetic_size += 4 - synthetic_size%4; /* make sure the memory is 32 bits aligned for srtp */
 				uint8_t *synthetic = (uint8_t *)ms_malloc0(synthetic_size);
 				memcpy(synthetic, m->b_rptr, synthetic_header_size); /* copy header */
@@ -146,7 +151,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 				memcpy(synthetic+synthetic_header_size, payload, payload_size); /* append payload */
 
 				/* encrypt the synthetic packet */
-				int synthetic_len = synthetic_header_size+payload_size;
+				int synthetic_len = (int)(synthetic_header_size+payload_size);
 				err=srtp_protect(ctx->inner_srtp,synthetic,&synthetic_len);
 				if (err!=err_status_ok){
 					ms_warning("srtp_protect inner encryption failed (%d) for stream ctx [%p]", err,ctx);
@@ -158,7 +163,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 				/* put it back in the original one */
 				memcpy(payload, synthetic + synthetic_header_size, synthetic_len-synthetic_header_size);
 				ms_free(synthetic);
-				slen += (synthetic_len - synthetic_header_size - payload_size); /* slen is header + payload -> set it with new payload size: (synthetic_len - synthetic_header_size) instead of the original payload_size  */
+				slen += (int)(synthetic_len - synthetic_header_size - payload_size); /* slen is header + payload -> set it with new payload size: (synthetic_len - synthetic_header_size) instead of the original payload_size  */
 
 
 			} else { /* no extension header, we can directly proceed to inner encryption */
@@ -207,17 +212,17 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 }
 
 static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, TRUE);
+	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, true);
 }
 
 static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, FALSE);
+	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, false);
 }
 
 static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
 	return (int)msgdsize(m);
 }
-static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool_t is_rtp){
+static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool is_rtp){
 	int slen=(int)msgdsize(m);
 	err_status_t srtp_err=err_status_ok;
 
@@ -272,7 +277,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 				 * RTP header + size of CSRC if any - No extensions
 				 * payload (includes inner SRTP auth tag) */
 				size_t synthetic_header_size = RTP_FIXED_HEADER_SIZE+4*cc;
-				int synthetic_len = synthetic_header_size + payload_size;
+				int synthetic_len = (int)synthetic_header_size + payload_size;
 				uint8_t *synthetic = (uint8_t *)ms_malloc0(synthetic_len);
 				memcpy(synthetic, m->b_rptr, synthetic_header_size); /* copy header */
 				((rtp_header_t*)(synthetic))->extbit = 0; /* force the ext bit to 0 */
@@ -290,8 +295,8 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 				/* put it back in the original packet */
 				memcpy(payload, synthetic + synthetic_header_size, synthetic_len-synthetic_header_size);
 				ms_free(synthetic);
-				slen = RTP_FIXED_HEADER_SIZE+4*cc+extsize /* original header size */
-					+ synthetic_len-synthetic_header_size; /* current payload size (after decrypt) */
+				slen = (int)(RTP_FIXED_HEADER_SIZE+4*cc+extsize /* original header size */
+					+ synthetic_len-synthetic_header_size); /* current payload size (after decrypt) */
 			} else {
 				/* no extension header, decrypt directly */
 				srtp_err = srtp_unprotect(ctx->inner_srtp,m->b_rptr,&slen);
@@ -311,11 +316,11 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 }
 
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, TRUE);
+	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, true);
 }
 
 static int ms_srtcp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, FALSE);
+	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, false);
 }
 
 /**** Session management functions ****/
@@ -328,12 +333,12 @@ static void ms_srtp_transport_modifier_destroy(RtpTransportModifier *tp){
 	ms_free(tp);
 }
 
-static MSSrtpStreamContext* get_stream_context(MSMediaStreamSessions *sessions, bool_t is_send) {
+static MSSrtpStreamContext* get_stream_context(MSMediaStreamSessions *sessions, bool is_send) {
 	return is_send?&sessions->srtp_context->send_rtp_context:&sessions->srtp_context->recv_rtp_context;
 }
 
 
-static int ms_media_stream_session_fill_srtp_context(MSMediaStreamSessions *sessions, bool_t is_send, bool_t is_inner) {
+static int ms_media_stream_session_fill_srtp_context(MSMediaStreamSessions *sessions, bool is_send, bool is_inner) {
 	err_status_t err = srtp_err_status_ok;
 	RtpTransport *transport_rtp=NULL,*transport_rtcp=NULL;
 	MSSrtpStreamContext* stream_ctx = get_stream_context(sessions,is_send);
@@ -343,7 +348,7 @@ static int ms_media_stream_session_fill_srtp_context(MSMediaStreamSessions *sess
 	ms_mutex_lock(&stream_ctx->mutex);
 
 	if (is_inner) { /* inner srtp context just need to setup itself, not the modifier*/
-		if (stream_ctx->inner_srtp && is_send == true) {
+		if (stream_ctx->inner_srtp && is_send) {
 			/*we cannot reuse inner srtp context in output as it is in ssrc_any_outbound mode, so freeing first*/
 			/* for incoming inner context, we use specific ssrc mode so we have one context */
 			srtp_dealloc(stream_ctx->inner_srtp);
@@ -400,17 +405,17 @@ static int ms_media_stream_sessions_fill_srtp_context_all_stream(struct _MSMedia
 	int  err = -1;
 	/*check if exist before filling*/
 
-	if (!(get_stream_context(sessions, TRUE)->srtp) && (err = ms_media_stream_session_fill_srtp_context(sessions, TRUE, FALSE)))
+	if (!(get_stream_context(sessions, true)->srtp) && (err = ms_media_stream_session_fill_srtp_context(sessions, true, false)))
 		 return err;
 
-	if (!get_stream_context(sessions, FALSE)->srtp)
-		err = ms_media_stream_session_fill_srtp_context(sessions,FALSE, FALSE);
+	if (!get_stream_context(sessions, false)->srtp)
+		err = ms_media_stream_session_fill_srtp_context(sessions,false, false);
 
 	return err;
 }
 
 
-static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *policy, bool_t is_rtp) {
+static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *policy, bool is_rtp) {
 	switch(suite){
 		case MS_AES_128_SHA1_32:
 			// srtp doc says: not adapted to rtcp...
@@ -460,7 +465,7 @@ static int ms_set_srtp_crypto_policy(MSCryptoSuite suite, crypto_policy_t *polic
 	return 0;
 }
 
-static bool_t ms_srtp_is_crypto_policy_secure(MSCryptoSuite suite) {
+static bool ms_srtp_is_crypto_policy_secure(MSCryptoSuite suite) {
 	switch(suite){
 		case MS_AES_128_SHA1_32:
 		case MS_AES_128_SHA1_80_NO_AUTH:
@@ -471,13 +476,13 @@ static bool_t ms_srtp_is_crypto_policy_secure(MSCryptoSuite suite) {
 		case MS_AES_256_SHA1_32:
 		case MS_AEAD_AES_128_GCM:
 		case MS_AEAD_AES_256_GCM:
-			return TRUE;
+			return true;
 		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
 		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
 		case MS_AES_128_SHA1_80_NO_CIPHER:
 		case MS_CRYPTO_SUITE_INVALID:
 		default:
-			return FALSE;
+			return false;
 	}
 }
 
@@ -536,7 +541,7 @@ static err_status_t ms_srtp_add_or_update_stream(srtp_t session, const srtp_poli
 	return status;
 }
 
-static int ms_add_srtp_stream(MSSrtpStreamContext *stream_ctx, MSCryptoSuite suite, const uint8_t *key, size_t key_length, bool_t is_send, bool_t is_inner, uint32_t ssrc) {
+static int ms_add_srtp_stream(MSSrtpStreamContext *stream_ctx, MSCryptoSuite suite, const uint8_t *key, size_t key_length, bool is_send, bool is_inner, uint32_t ssrc) {
 	srtp_policy_t policy;
 	err_status_t err;
 	ssrc_t ssrc_conf;
@@ -547,12 +552,12 @@ static int ms_add_srtp_stream(MSSrtpStreamContext *stream_ctx, MSCryptoSuite sui
 	/* Init both RTP and RTCP policies, even if this srtp_t is used for one of them.
 	 * Indeed the key derivation algorithm that computes the SRTCP auth key depends on parameters
 	 * of the SRTP stream.*/
-	if (ms_set_srtp_crypto_policy(suite, &policy.rtp, TRUE) != 0) {
+	if (ms_set_srtp_crypto_policy(suite, &policy.rtp, true) != 0) {
 		return -1;
 	}
 
 	// and RTCP stream
-	if (ms_set_srtp_crypto_policy(suite, &policy.rtcp, FALSE) != 0) {
+	if (ms_set_srtp_crypto_policy(suite, &policy.rtcp, false) != 0) {
 		return -1;
 	}
 
@@ -634,13 +639,13 @@ void ms_srtp_shutdown(void){
 	}
 }
 
-static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, bool_t is_send, bool_t is_inner, MSSrtpKeySource source, uint32_t ssrc){
+static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, bool is_send, bool is_inner, MSSrtpKeySource source, uint32_t ssrc){
 	int error = -1;
 	int ret = 0;
 	check_and_create_srtp_context(sessions);
 
 	if (key) {
-		ms_message("media_stream_set_srtp_%s%s_key(): key %02x..%02x (ssrc %x) stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], (is_send==FALSE && is_inner==TRUE)?ssrc:0, sessions);
+		ms_message("media_stream_set_srtp_%s%s_key(): key %02x..%02x (ssrc %x) stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), (uint8_t)key[0], (uint8_t)key[key_length-1], (!is_send && is_inner)?ssrc:0, sessions);
 	} else {
 		ms_message("media_stream_set_srtp_%s%s_key(): key none stream sessions is [%p]", (is_inner?"inner_":""), (is_send?"send":"recv"), sessions);
 	}
@@ -655,23 +660,23 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 				srtp_dealloc(stream_ctx->srtp);
 				stream_ctx->srtp=NULL;
 			}
-			stream_ctx->secured = FALSE;
+			stream_ctx->secured = false;
 			stream_ctx->source = MSSrtpKeySourceUnavailable;
 			stream_ctx->suite = MS_CRYPTO_SUITE_INVALID;
 		}
 	} else if ((error = ms_media_stream_session_fill_srtp_context(sessions,is_send, is_inner))) {
-		stream_ctx->secured=FALSE;
+		stream_ctx->secured = false;
 		stream_ctx->source = MSSrtpKeySourceUnavailable;
 		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
 		ret = error;
 	} else	if ((error = ms_add_srtp_stream(stream_ctx, suite, key, key_length, is_send, is_inner, ssrc))) {
-		stream_ctx->secured=FALSE;
+		stream_ctx->secured = false;
 		stream_ctx->source = MSSrtpKeySourceUnavailable;
 		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
 		ret = error;
 	} else {
 		if (!is_inner) { // not stats on inner encryption
-			stream_ctx->secured=ms_srtp_is_crypto_policy_secure(suite);
+			stream_ctx->secured = ms_srtp_is_crypto_policy_secure(suite);
 			stream_ctx->source = source;
 			stream_ctx->suite = suite;
 		}
@@ -753,7 +758,7 @@ MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStream
 	return MS_CRYPTO_SUITE_INVALID;
 }
 
-static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source, bool_t is_send, bool_t is_inner, uint32_t ssrc){
+static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source, bool is_send, bool is_inner, uint32_t ssrc){
 	int retval;
 
 	size_t key_length = 0;
@@ -782,36 +787,36 @@ static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions 
 }
 
 int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source){
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, FALSE, FALSE, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, false, NULL_SSRC);
 }
 int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source, uint32_t ssrc){
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, FALSE, TRUE, ssrc);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, true, ssrc);
 }
 
 int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, TRUE, FALSE, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, false, NULL_SSRC);
 }
 
 int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, TRUE, TRUE, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, true, NULL_SSRC);
 }
 
 
 
 int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, FALSE, FALSE, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, false, source, NULL_SSRC);
 }
 
 int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc) {
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, FALSE, TRUE, source, ssrc);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, true, source, ssrc);
 }
 
 int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, TRUE, FALSE, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, false, source, NULL_SSRC);
 }
 
 int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, TRUE, TRUE, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, true, source, NULL_SSRC);
 }
 
 int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
@@ -823,8 +828,8 @@ int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *ses
 			return err;
 		}
 	}
-	sessions->srtp_context->send_rtp_context.mandatory_enabled=yesno;
-	sessions->srtp_context->recv_rtp_context.mandatory_enabled=yesno;
+	sessions->srtp_context->send_rtp_context.mandatory_enabled = (yesno == TRUE);
+	sessions->srtp_context->recv_rtp_context.mandatory_enabled= (yesno == TRUE);
 	return 0;
 }
 
