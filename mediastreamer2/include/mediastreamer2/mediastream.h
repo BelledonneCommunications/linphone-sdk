@@ -148,7 +148,7 @@ struct _MediaStream {
 	bool_t rc_enable;
 	bool_t is_beginning;
 	bool_t owns_sessions;
-	bool_t pad;
+	bool_t stun_allowed; /* Whether sending basic stun packet as keepalive is permitted, default is yes */
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
@@ -193,6 +193,8 @@ MS2_PUBLIC void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream,
 MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
 
 MS2_PUBLIC void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl);
+
+MS2_PUBLIC void media_stream_set_stun_allowed(MediaStream *stream, bool_t value);
 
 /*
  * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.

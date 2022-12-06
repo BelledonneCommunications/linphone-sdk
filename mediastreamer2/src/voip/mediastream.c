@@ -120,6 +120,7 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
 	media_stream_add_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
+	stream->stun_allowed = TRUE;
 }
 
 void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data){
@@ -285,10 +286,14 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
+void media_stream_set_stun_allowed(MediaStream *stream, bool_t value){
+	stream->stun_allowed = value;
+
+}
 
 /* This function decides whether it is necessary to send dummy stun packets for firewall opening. */
 static void media_stream_configure_stun_packet_sending(MediaStream *stream){
-	bool_t stun_enabled = TRUE;
+	bool_t stun_enabled = stream->stun_allowed;
 	if (stream->ice_check_list) stun_enabled = FALSE;
 	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
 		stun_enabled = FALSE;
@@ -297,7 +302,8 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream){
 		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
 		if (stream->sessions.dtls_context) {
 			/* In case STUN packets are necessary, and DTLS is used and encryption mandatory is set to TRUE,
-			 * no packets will be emitted at all. We must configure the rtpsend filter to regularly send dummy stun packets
+			 * no RTP packets will be emitted at all, until handshake takes places.
+			 * We must configure the rtpsend filter to regularly send dummy stun packets
 			 * to ensure that firewall gets open to the remote endpoint.
 			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
 			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
