@@ -101,7 +101,6 @@ add_subdirectory(antlr3c)
 set(BELLE_SIP_SOURCE_FILES_C
 	auth_event.c
 	auth_helper.c
-	belle_sip_dict.c
 	belle_sip_headers_impl.c
 	belle_sip_loop.c
 	belle_sip_mdns_register.c

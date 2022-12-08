@@ -238,7 +238,6 @@ BELLE_SIP_DECLARE_VPTR(belle_sip_header_privacy_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_certificates_chain_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_signing_key_t);
 BELLE_SIP_DECLARE_VPTR(belle_sip_dns_srv_t);
-BELLE_SIP_DECLARE_VPTR(belle_sip_dict_t)
 BELLE_SIP_DECLARE_VPTR(belle_http_provider_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_channel_context_t);
 BELLE_SIP_DECLARE_VPTR(belle_http_request_t);
@@ -321,12 +320,6 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 
 
 #define belle_sip_list_next(elem) ((elem)->next)
-
-
-/* dictionary */
-struct belle_sip_dict {
-	belle_sip_object_t base;
-};
 
 
 #undef MIN

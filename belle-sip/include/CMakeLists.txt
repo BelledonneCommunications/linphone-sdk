@@ -27,7 +27,6 @@ set(HEADER_FILES
 	bodyhandler.h
 	defs.h
 	dialog.h
-	dict.h
 	generic-uri.h
 	headers.h
 	http-listener.h

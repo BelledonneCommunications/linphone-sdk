@@ -19,7 +19,6 @@
 
 #include "belle-sip/belle-sip.h"
 #include "belle-sip/object.h"
-#include "belle-sip/dict.h"
 #include "belle_sip_tester.h"
 #include "belle_sip_internal.h"
 
@@ -149,43 +148,6 @@ static void test_object_data(void)
 
 }
 
-static void test_dictionary(void)
-{
-	belle_sip_dict_t* obj = belle_sip_object_new(belle_sip_dict_t);
-	const char* str = "";
-	int i = 5;
-	int64_t i64 = 0xF2345678 << 1; // gcc doesn't like 0x1234567890 as a 64 bit literal..
-
-	belle_sip_dict_set_int(obj, "test_i", i);
-	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),i, int, "%d");
-
-	// return default int value
-	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"unexistent",-1),-1, int, "%d");
-
-	// remove existing entry
-	BC_ASSERT_EQUAL(belle_sip_dict_remove(obj, "test_i"),0, int, "%d");
-
-	// test_i should't be present anymore
-	BC_ASSERT_EQUAL(belle_sip_dict_get_int(obj,"test_i",-1),-1, int, "%d");
-
-	// remove unknown entry
-	BC_ASSERT_NOT_EQUAL(belle_sip_dict_remove(obj, "unexistent"),0,int,"%d");
-
-	belle_sip_dict_set_string(obj, "test_str", str);
-	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "test_str", ""),str);
-
-	// unknown string value
-	BC_ASSERT_STRING_EQUAL( (const char*)belle_sip_dict_get_string(obj, "unexistent", "toto"),"toto");
-
-	belle_sip_dict_set_int64(obj, "test_i64", i64);
-	BC_ASSERT_EQUAL(belle_sip_dict_get_int64(obj,"test_i64",-1),i64, long long, "%lld");
-
-	belle_sip_dict_clear(obj);
-	// test_str shouldn't exist anymore
-	BC_ASSERT_STRING_EQUAL(belle_sip_dict_get_string(obj,"test_str","toto"),"toto");
-
-	belle_sip_object_unref(obj);
-}
 
 static const char *parts_id[] = {
 	"6h-Yqv3@sip.linphonecyberattack.fr",
@@ -341,7 +303,6 @@ static void test_truncated_compressed_body(void) {
 
 test_t core_tests[] = {
 	TEST_NO_TAG("Object Data", test_object_data),
-	TEST_NO_TAG("Dictionary", test_dictionary),
 	TEST_NO_TAG("Presence marshal", test_presence_marshal),
 	TEST_NO_TAG("Compressed body", test_compressed_body),
 	TEST_NO_TAG("Truncated compressed body", test_truncated_compressed_body)

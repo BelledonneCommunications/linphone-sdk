@@ -22,7 +22,6 @@
 
 #include "belle-sip/defs.h"
 #include "belle-sip/object.h"
-#include "belle-sip/dict.h"
 
 #ifndef BELLESIP_DEPRECATED
 #if defined(_MSC_VER)
@@ -137,7 +136,6 @@ BELLE_SIP_DECLARE_TYPES_BEGIN(belle_sip,1)
 	BELLE_SIP_TYPE_ID(belle_sip_dns_srv_t),
 	BELLE_SIP_TYPE_ID(belle_sip_simple_resolver_context_t),
 	BELLE_SIP_TYPE_ID(belle_sip_combined_resolver_context_t),
-	BELLE_SIP_TYPE_ID(belle_sip_dict_t),
 	BELLE_SIP_TYPE_ID(belle_sip_dual_resolver_context_t),
 	BELLE_SIP_TYPE_ID(belle_http_provider_t),
 	BELLE_SIP_TYPE_ID(belle_http_request_t),
