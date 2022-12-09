@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <memory>
 #include <functional>
 
 namespace bctoolbox {
@@ -39,6 +38,7 @@ public:
     void endBackgroundTask(unsigned long id);
     bool isApplicationStateActive();
     bool isApp();
+    int getOSMajorVersion() const;
     static IOSUtils& getUtils();
     
     IOSUtils(const IOSUtils&) = delete;

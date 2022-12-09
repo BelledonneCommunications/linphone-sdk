@@ -177,7 +177,17 @@ char *bctbx_utf8_to_locale (const char *str) {
 }
 
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
-	return convertFromTo(str, encoding, "UTF-8");
+	return convertFromTo(str, (encoding ? encoding : "LOCALE"), "UTF-8");
+}
+
+char *bctbx_convert_utf8_to_any (const char *str, const char *encoding) {
+	return convertFromTo(str, "UTF-8", (encoding ? encoding : "LOCALE"));
+}
+
+char *bctbx_convert_string (const char *str, const char *from_encoding, const char *to_encoding) {
+	if ( (from_encoding && to_encoding && !strcmp(from_encoding, to_encoding)) || (!from_encoding && !to_encoding))
+		return bctbx_strdup(str);
+	return convertFromTo(str, (from_encoding ? from_encoding : "LOCALE"), (to_encoding ? to_encoding : "LOCALE"));
 }
 
 wchar_t* bctbx_string_to_wide_string(const char* str){
@@ -188,4 +198,20 @@ wchar_t* bctbx_string_to_wide_string(const char* str){
 	wchar_t* buf = (wchar_t *) bctbx_malloc(len*sizeof(wchar_t));
 	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
 	return buf;
+}
+
+unsigned int bctbx_get_code_page(const char* encoding){
+	unsigned int codePage = CP_ACP;
+	std::string encodingStr;
+	if(!encoding || encoding[0] == '\0')
+		encodingStr = bctbx_get_default_encoding();
+	else
+		encodingStr = encoding;
+	try {
+		codePage = windowsCharset.at(stringToUpper(encodingStr));
+	}catch (const std::out_of_range&) {
+		bctbx_error("No code page found for '%s'. Using Locale.", encodingStr.c_str());
+		return CP_ACP;
+	}
+	return codePage;
 }

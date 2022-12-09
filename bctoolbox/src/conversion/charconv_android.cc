@@ -36,15 +36,28 @@ char *bctbx_utf8_to_locale (const char *str) {
 }
 
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
-	if (!encoding)
-		return NULL;
-
 	// TODO change this part when the NDK will contain a usable iconv
 	return bctbx_strdup(str);
 }
+
+char *bctbx_convert_utf8_to_any (const char *str, const char *encoding) {
+	// TODO change this part when the NDK will contain a usable iconv
+	return bctbx_strdup(str);
+}
+
+char *bctbx_convert_string (const char *str, const char *from_encoding, const char *to_encoding) {
+	// TODO change this part when the NDK will contain a usable iconv
+	return bctbx_strdup(str);
+}
+
 
 wchar_t* bctbx_string_to_wide_string(const char* str){
 // TODO	
 	bctbx_error("Conversion from string to wide string is not implemented");
     return NULL;
+}
+
+unsigned int bctbx_get_code_page(const char* encoding){
+	bctbx_error("Getting code page is not implemented");
+	return 0;
 }

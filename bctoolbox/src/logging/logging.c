@@ -22,6 +22,11 @@
 #endif
 
 #include "bctoolbox/logging.h"
+
+#ifdef _WIN32
+extern void setStackTraceHooks();
+#endif
+
 #include <time.h>
 #include <stdio.h>
 #include <sys/stat.h>

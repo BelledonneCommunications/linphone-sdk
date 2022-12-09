@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [5.2.0] - 2022-11-14
+
+## Added
+- Crypto: add support for post-quantum algorithms.
+- Crash handler and backtrace logger for Windows.
+
+## Changed
+- minor changes.
+
+
 ## [5.1.0] - 2022-02-14
 
 ### Added

@@ -19,6 +19,8 @@
 
 #ifdef __APPLE__
 
+#include <TargetConditionals.h>
+
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
@@ -26,6 +28,11 @@
 #include "bctoolbox/exception.hh"
 #include "bctoolbox/logging.h"
 #include "ios_utils_stub.hh"
+
+#if TARGET_OS_IPHONE
+#import <UIKit/UIKit.h>
+#endif
+
 
 namespace bctoolbox {
 
@@ -102,6 +109,16 @@ void IOSUtils::endBackgroundTask(unsigned long id) {
 
 bool IOSUtils::isApplicationStateActive() {
     return mUtils->isApplicationStateActive();
+}
+
+int IOSUtils::getOSMajorVersion() const{
+#if TARGET_OS_IPHONE
+    NSArray *versionCompatibility = [[UIDevice currentDevice].systemVersion componentsSeparatedByString:@"."];
+	return [[versionCompatibility objectAtIndex:0] intValue];
+#else
+	bctbx_error("IOSUtils::getOSMajorVersion() not running on iOS");
+	return 0;
+#endif
 }
 
 

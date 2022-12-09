@@ -107,11 +107,26 @@ char *bctbx_utf8_to_locale (const char *str) {
 }
 
 char *bctbx_convert_any_to_utf8 (const char *str, const char *encoding) {
-	return convert_from_to(str, encoding, "UTF-8");
+	return convert_from_to(str, (encoding ? encoding : "LOCALE"), "UTF-8");
+}
+
+char *bctbx_convert_utf8_to_any (const char *str, const char *encoding) {
+	return convert_from_to(str, "UTF-8", (encoding ? encoding : "LOCALE"));
+}
+
+char *bctbx_convert_string (const char *str, const char *from_encoding, const char *to_encoding) {
+	if ( (from_encoding && to_encoding && !strcmp(from_encoding, to_encoding)) || (!from_encoding && !to_encoding))
+		return bctbx_strdup(str);
+	return convert_from_to(str, (from_encoding ? from_encoding : "LOCALE"), (to_encoding ? to_encoding : "LOCALE"));
 }
 
 wchar_t* bctbx_string_to_wide_string(const char* str){
 // TODO	
 	bctbx_error("Conversion from string to wide string is not implemented");
     return NULL;
+}
+
+unsigned int bctbx_get_code_page(const char* encoding){
+	bctbx_error("Getting code page is not implemented");
+	return 0;
 }
