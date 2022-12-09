@@ -69,6 +69,14 @@ centos8-ninja-gcc-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: centos8-ninja-gcc
 
+centos8-ninja-gcc-pqc:
+
+  tags: [ "docker" ]
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: centos8-ninja-gcc
 
 centos8-ninja-clang:
 
@@ -82,7 +90,6 @@ centos8-ninja-clang:
     CXX: clang++
   extends: .linux-desktop
 
-
 centos8-ninja-clang-novideo:
 
   rules:
@@ -91,6 +98,12 @@ centos8-ninja-clang-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
   extends: centos8-ninja-clang
 
+centos8-ninja-clang-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: centos8-ninja-clang
 
 #################################################
 # TESTS
@@ -102,6 +115,12 @@ bctoolbox-centos8-test:
   needs:
     - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
+
+pqc-centos8-test:
+  extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
+  needs:
+    - centos8-ninja-gcc-pqc
 
 bellesip-centos8-test:
   extends: .test-bellesip

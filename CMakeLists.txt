@@ -1,34 +1,35 @@
-################################################################################
+############################################################################
+# CMakeLists.txt
+# Copyright (c) 2010-2022 Belledonne Communications SARL.
 #
-#  Copyright (c) 2010-2021 Belledonne Communications SARL.
-# 
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-# 
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-# 
-#  You should have received a copy of the GNU General Public License
-#  along with this program. If not, see <http://www.gnu.org/licenses/>.
+############################################################################
 #
-################################################################################
+# This file is part of Linphone SDK 
+# (see https://gitlab.linphone.org/BC/public/linphone-sdk).
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+############################################################################
 
 cmake_minimum_required(VERSION 3.2)
 
-
 project(linphone-sdk VERSION 5.2.0 LANGUAGES NONE)
-
 
 set(LINPHONESDK_DIR "${CMAKE_CURRENT_LIST_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
 include(LinphoneSdkUtils)
 
 include(bctoolbox/cmake/BcToolboxCMakeUtils.cmake)
-
 
 if(NOT LINPHONESDK_VERSION)#If LINPHONESDK_VERSION exists (ie: is in cache), then the variable has been overriden by user
 	bc_compute_full_version(LINPHONESDK_VERSION)
@@ -47,13 +48,6 @@ if(ENABLE_TUNNEL)
 	)
 	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES tunnel-clone)
 endif()
-if(ENABLE_PQCRYPTO)
-	add_custom_target(postquantumcryptoengine-clone
-		"${CMAKE_COMMAND}" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-P" "${LINPHONESDK_DIR}/cmake/LinphoneSdkPostquantumcryptoengineClone.cmake"
-	)
-	list(APPEND LINPHONESDK_PREBUILD_DEPENDENCIES postquantumcryptoengine-clone)
-endif()
-
 
 if(APPLE)
 	if(LINPHONESDK_PLATFORM MATCHES "Desktop")#on Apple, Desktop == Macos

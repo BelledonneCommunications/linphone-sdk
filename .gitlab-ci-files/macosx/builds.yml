@@ -10,8 +10,19 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
     LINPHONESDK_MACOS_ARCHS: "arm64"
-    LINPHONESDK_OPENSSL_ROOT_DIR_X86_64: "/usr/local/opt/openssl@1.1"
-    LINPHONESDK_OPENSSL_ROOT_DIR_ARM64: "/opt/homebrew/opt/openssl@1.1"
+
+  before_script:
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
+
+    # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
+    - ccache -z
+    - ccache -s --verbose
+
+  after_script:
+    #Mandatory, as variable export is not kept between before_script/script and after script
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
 
   before_script:
     - ccache -s
@@ -34,9 +45,7 @@
     - echo $DEFAULT_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
     - echo $LINPHONESDK_MACOS_ARCHS
-    - echo $LINPHONESDK_OPENSSL_ROOT_DIR_X86_64
-    - echo $LINPHONESDK_OPENSSL_ROOT_DIR_ARM64
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" -DLINPHONESDK_OPENSSL_ROOT_DIR_X86_64="$LINPHONESDK_OPENSSL_ROOT_DIR_X86_64" -DLINPHONESDK_OPENSSL_ROOT_DIR_ARM64="$LINPHONESDK_OPENSSL_ROOT_DIR_ARM64" $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
@@ -44,7 +53,7 @@
     - ls -t linphone-sdk-*.zip > sdk_archive_name.txt
     - cat sdk_archive_name.txt
     - echo $(git describe) > gitdescribe.txt
-
+    
   artifacts:
     paths:
       - build-desktop/gitdescribe.txt
@@ -76,6 +85,14 @@ macosx-makefile:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .macosx-desktop
 
+<<<<<<< HEAD
+=======
+macosx-makefile-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+  extends: macosx-makefile
+
+>>>>>>> origin/release/5.2
 macosx-m1-multiarch-makefile:
 
   rules:
@@ -85,6 +102,14 @@ macosx-m1-multiarch-makefile:
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .macosx-m1-multiarch-desktop
+<<<<<<< HEAD
+=======
+
+macosx-m1-multiarch-makefile-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+  extends: macosx-m1-multiarch-makefile
+>>>>>>> origin/release/5.2
 
 #################################################
 # Ninja
@@ -106,6 +131,16 @@ macosx-m1-multiarch-ninja:
   rules:
     - if: $NIGHTLY_MASTER
   extends: .macosx-m1-multiarch-desktop
+<<<<<<< HEAD
+=======
+
+macosx-m1-ninja-pqc:
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+  rules:
+    - if: $NIGHTLY_MASTER
+  extends: macosx-m1-multiarch-ninja
+>>>>>>> origin/release/5.2
 
 macosx-ninja-novideo:
 
@@ -115,6 +150,13 @@ macosx-ninja-novideo:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
   extends: macosx-ninja
 
+macosx-ninja-pqc:
+
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+  extends: macosx-ninja
 
 #################################################
 # XCode
@@ -149,4 +191,15 @@ macosx-xcode:
 
     - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
 
+<<<<<<< HEAD
     - !reference [.macosx-desktop, script]
+=======
+    - !reference [.macosx-m1-multiarch-desktop, script]
+
+macosx-xcode-pqc:
+  extends: macosx-xcode
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=ON
+  rules:
+    - if: $NIGHTLY_MASTER
+>>>>>>> origin/release/5.2

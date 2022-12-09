@@ -53,17 +53,9 @@ centos7-ninja-gcc:
   extends: .linux-desktop
 
 centos7-ninja-gcc-tunnel-pq:
-  tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
-    CMAKE_GENERATOR: Ninja
-    CC: gcc
-    CXX: g++
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
-  extends: .linux-desktop
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
+  extends: centos7-ninja-gcc
 
 #################################################
 # TESTS
@@ -72,6 +64,18 @@ centos7-ninja-gcc-tunnel-pq:
 bctoolbox-centos7-test:
   extends: .test-bctoolbox
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
+pqc-centos7-test:
+  extends: .test-pqc
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+  needs:
+    - centos7-ninja-gcc-tunnel-pq
+
+# pqc-centos7-test-mr:
+#  extends: .test-pqc-mr
+#  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+#  needs:
+#    - centos7-ninja-gcc-tunnel-pq
 
 belr-centos7-test:
   extends: .test-belr

@@ -83,7 +83,7 @@ add_custom_target(${PROJECT_NAME}
 	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.Xamarin.${NUPKG_VERSION}.nupkg"
 )
 
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/packages"
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-        FILES_MATCHING PATTERN "*.nupkg"
+add_custom_command(TARGET ${PROJECT_NAME}
+	COMMAND ${CMAKE_COMMAND} "-E" "copy_directory"  "${CMAKE_CURRENT_BINARY_DIR}/packages" "${CMAKE_INSTALL_PREFIX}/packages"
+	WORKING_DIRECTORY ${LINPHONESDK_OUTPUT_DIR}
 )

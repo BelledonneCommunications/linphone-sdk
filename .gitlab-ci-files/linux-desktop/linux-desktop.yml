@@ -38,6 +38,7 @@
       #We have to find it and add it manually...
       - lime/tester/*
       - liblinphone/tester/*
+      - build-desktop/WORK/desktop/Build/postquantumcryptoengine/tester/*
     expire_in: 1 week
 
 
@@ -211,6 +212,22 @@
 #       - $ENABLE_TESTS_IN_MR
 #   except:
 #    - schedules
+
+.test-pqc:
+  extends: .test
+  variables:
+    TESTER_BIN: "pqcrypto-tester"
+    LOG_PATTERN: "logPostQuantumCryptoEngineAllPar"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/postquantumcryptoengine/tester"
+    TESTER: "postquantumcryptoengine"
+
+
+# .test-pqc-mr:
+#  extends: .test-pqc
+#  allow_failure: false
+#  #Only launches mr tests on mr, excepted for wip and draft
+#  rules:
+#    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-bellesip:
   extends: .test

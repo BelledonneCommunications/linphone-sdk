@@ -63,12 +63,6 @@ foreach(_arch ${_archs})
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "libs-debug/${_libarch}"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
-	
-	if(EXISTS "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${_libarch}/libc++_shared.so")
-		file(COPY "${CMAKE_ANDROID_NDK}/sources/cxx-stl/llvm-libc++/libs/${_libarch}/libc++_shared.so" DESTINATION "linphone-sdk/android-${_arch}/lib/")
-	else()
-		file(COPY "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/${_ndk_sysroot}/libc++_shared.so" DESTINATION "linphone-sdk/android-${_arch}/lib/")
-	endif()
 
 	file(GLOB _libs "linphone-sdk/android-${_arch}/lib/lib*.so")
 	file(GLOB _plugins "linphone-sdk/android-${_arch}/lib/mediastreamer/plugins/*.so")
@@ -88,18 +82,8 @@ foreach(_arch ${_archs})
 	endforeach()
 
 	if(CMAKE_BUILD_TYPE STREQUAL "ASAN")
-		file(GLOB _asan_libs "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/*/lib/linux/libclang_rt.asan-${_asan_libarch}-android.so")
-		foreach(_asan_lib ${_asan_libs})
-			configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs/${_libarch}/wrap.sh)
-			configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs-debug/${_libarch}/wrap.sh)
-			execute_process(
-				COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_asan_lib}" "libs/${_libarch}/"
-				COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_asan_lib}" "libs-debug/${_libarch}/"
-				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-			)
-
-			
-		endforeach()
+		configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs/${_libarch}/wrap.sh)
+		configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs-debug/${_libarch}/wrap.sh)
 	endif()
 
 	execute_process(

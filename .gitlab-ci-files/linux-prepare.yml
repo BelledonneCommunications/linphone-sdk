@@ -4,9 +4,9 @@
 .linux-prepare:
 
   cache:
-    key: $CI_JOB_IMAGE-master
-    paths:
-      - ccache/
+    - key: $CI_JOB_IMAGE-master
+      paths:
+        - ccache/
 
   variables:
     #Misleading name, means no compression at all
@@ -46,11 +46,11 @@
     - echo ${PWD}/ccache
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=${PWD}/ccache
-    - ccache -s
+    - ccache -s --verbose || ccache -s
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
     - ccache -z
-    - ccache -s
+    - ccache -s --verbose || ccache -s
 
     ##
     ## Set max number of jobs
@@ -61,6 +61,7 @@
 
     - CENTOS_VERSION=$(cat /etc/centos-release) || true
     - if [ -n "$CENTOS_VERSION" ] && [ -n "$(echo $CENTOS_VERSION | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
+    - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch
     - git describe --debug || true
@@ -70,4 +71,4 @@
   after_script:
     - if ! [ -z ${SSH_USER_KEY+x} ]; then rm -rf ~/.ssh || true; fi
     - export CCACHE_DIR=${PWD}/ccache
-    - ccache -s
+    - ccache -s --verbose || ccache -s

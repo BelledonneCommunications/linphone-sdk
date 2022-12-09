@@ -3,6 +3,13 @@
   stage: build
   tags: [ "docker" ]
 
+  cache:
+    - !reference [.linux-prepare, cache]
+    - key: $CI_JOB_IMAGE-gradle-master
+      paths:
+        - .gradle/wrapper
+        - .gradle/caches
+
   variables:
     CCACHE_SIZE: 4G
 
@@ -133,3 +140,10 @@ android-ninja-r25-allcodecs:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
 #  extends: android-ninja-r25
+#
+android-ninja-r25-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PQCRYPTO=YES
+  extends: android-ninja-r25

@@ -43,6 +43,12 @@ debian9-makefile-clang:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
 
+debian9-makefile-clang-pqc:
+  rules:
+   - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+  extends: debian9-makefile-clang
 
 #################################################
 # Ninja
@@ -74,6 +80,13 @@ debian9-ninja-gcc:
 #    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
 #  extends: debian9-ninja-gcc
 
+debian9-ninja-gcc-pqc:
+
+  rules:
+   - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+  extends: debian9-ninja-gcc
 
 debian9-ninja-gcc-smallsdk:
 
@@ -117,6 +130,12 @@ bctoolbox-debian9-test:
   needs:
     - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
+
+pqc-debian9-test:
+  extends: .test-pqc
+  <<: *docker_image_platform_and_runner_tag
+  needs:
+    - debian9-ninja-gcc-pqc
 
 bellesip-debian9-test:
   extends: .test-bellesip

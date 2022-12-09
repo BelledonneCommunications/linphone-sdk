@@ -23,7 +23,7 @@ include(LinphoneSdkCheckBuildToolsUWP)
 
 #set(LINPHONESDK_UWP_ARCHS "ARM, x64, x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
 #set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
-set(LINPHONESDK_UWP_ARCHS "x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x86, x64]")
+set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x86, x64]")
 #set(LINPHONESDK_UWP_ARCHS "x86" CACHE STRING "UWP architectures to build for: comma-separated list of values in [ARM, x64, x86]")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_UWP_ARCHS}" _archs)
@@ -119,13 +119,14 @@ foreach(_arch IN LISTS _archs)
 		BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
 		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
 	)
-	
-	ExternalProject_Add_Step(uwp-wrapper-${_arch} compress
-		COMMENT "Generating the SDK (zip file)"
-		DEPENDEES install
-		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATFORM=UWP" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" ${_cmake_args}
-		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
-		ALWAYS 1
-	)
+	list(APPEND LINPHONESDK_FOLDERS "${CMAKE_INSTALL_PREFIX}/uwp-${_arch}")
 	list(APPEND _uwp_build_targets uwp-${_arch} uwp-wrapper-${_arch})
 endforeach()
+
+#"Generating the SDK (zip file)"
+
+add_custom_target(uwp-compress ALL
+		DEPENDS ${_uwp_build_targets}
+		COMMAND "${CMAKE_COMMAND}" "-DLINPHONESDK_PLATFORM=UWP" "-DLINPHONESDK_DIR=${LINPHONESDK_DIR}" "-DLINPHONESDK_BUILD_DIR=${CMAKE_INSTALL_PREFIX}" "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}" "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt" "-DLINPHONESDK_FOLDERS=\"${LINPHONESDK_FOLDERS}\"" ${_cmake_args}
+		"-P" "${LINPHONESDK_DIR}/cmake/Windows/GenerateSDK.cmake"
+)

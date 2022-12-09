@@ -19,6 +19,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+include(LinphoneSdkUtils)
+
+set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x86, x64]")
+
+
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_UWP_ARCHS}" UWP_ARCHS)
 
 #Configuration
 
@@ -38,11 +44,13 @@ function(add_command_from_zip zip_path nuget_folder)
 	endforeach(item)
 	if(NOT ${FILE_ITEM} STREQUAL "")
 		message(STATUS "-  ${FILE_ITEM}")
+		set(out_dir "${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}")
 		add_custom_command(TARGET unzip PRE_BUILD
 			COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILE_ITEM}
-			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}
-			COMMENT "Unzipping files : ${FILE_ITEM}\n"
+			WORKING_DIRECTORY "${out_dir}"
+			COMMENT "Unzipping files : ${FILE_ITEM} into ${out_dir}\n"
 			VERBATIM)
+		
 	else()
 		message(FATAL_ERROR ".zip files not found in folder : ${zip_path}.")
 	endif()
@@ -78,15 +86,17 @@ if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
 endif()
 if(LINPHONESDK_UWP_ZIP_PATH)
-	message(STATUS "Retrieve UWP build")
+	message(STATUS "Retrieve UWP build from [${LINPHONESDK_UWP_ARCHS}] archs.")
 	add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
-
-	set(NUSPEC_UWP "<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
-			<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\bin\\**\\*.*\" target=\"lib\\uap10.0\\x64\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-			<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\lib\\**\\*.*\" target=\"lib\\uap10.0\\x64\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
-			")
-	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\uwp-x64\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	set(NUSPEC_UWP "")
+	foreach(UWP_ARCH ${UWP_ARCHS})
+		set(NUSPEC_UWP "${NUSPEC_UWP} <file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
+								<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\bin\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
+								<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\lib\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
+								<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
+		")
+		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	endforeach()
 endif()
 
 
@@ -117,10 +127,8 @@ add_custom_command(TARGET nuget
 	COMMAND ${NUGET_PROGRAM} "pack" "LinphoneSDK.Windows.nuspec" "-Properties" "OutputSdkDir=${WINDOWS_INSTALL_PATH}" "-OutputDirectory" "packages"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-# "-OutputDirectory" "${WINDOWS_INSTALL_PATH}"
-#install(FILES "*.nupkg" DESTINATION ${CMAKE_INSTALL_PREFIX})
-
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/packages"
-        DESTINATION ${CMAKE_INSTALL_PREFIX}
-        FILES_MATCHING PATTERN "*.nupkg"
+add_custom_command(TARGET nuget
+	COMMAND ${CMAKE_COMMAND} "-E" "copy_directory"  "${CMAKE_CURRENT_BINARY_DIR}/packages" "${CMAKE_INSTALL_PREFIX}/packages"
+	WORKING_DIRECTORY ${LINPHONESDK_OUTPUT_DIR}
 )
+# "-OutputDirectory" "${WINDOWS_INSTALL_PATH}"

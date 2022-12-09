@@ -6,14 +6,17 @@
 
   before_script:
     - export CCACHE_BASEDIR=${PWD}
-    - ccache -s
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
 
     # We clean the cache stats because it is our only way to see the cache stats per job run (one cleaner way would be to store in a file a do the delta by hand)
     - ccache -z
-    - ccache -s
+    - ccache -s --verbose
 
   after_script:
-    - ccache -s
+    #Mandatory to specify it to show accurate stats, as variable export is not kept between before_script/script and after script
+    - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
+    - ccache -s --verbose
 
   script:
     - !reference [.set-max-jobs-unix, script]
@@ -124,6 +127,14 @@ ios-ninja-smallsdk:
   extends: ios-ninja
 
 
+ios-ninja-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+  variables:
+    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+  extends: ios-ninja
+
+
 #################################################
 # XCode
 #################################################
@@ -189,3 +200,21 @@ ios-xcode-novideo:
     - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/novideo/"
     - !reference [.ios, script]
   extends: .ios
+
+ios-xcode-pqc:
+  rules:
+    - if: $NIGHTLY_MASTER
+
+  variables:
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_PQC=YES
+
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+
+  script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - !reference [.choose_url_ios, script]
+    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/pqc/"
+    - !reference [.ios, script]
+  extends: ios-xcode
