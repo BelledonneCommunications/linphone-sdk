@@ -85,14 +85,12 @@ macosx-makefile:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .macosx-desktop
 
-<<<<<<< HEAD
-=======
 macosx-makefile-pqc:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
   extends: macosx-makefile
 
->>>>>>> origin/release/5.2
+
 macosx-m1-multiarch-makefile:
 
   rules:
@@ -102,14 +100,11 @@ macosx-m1-multiarch-makefile:
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .macosx-m1-multiarch-desktop
-<<<<<<< HEAD
-=======
 
 macosx-m1-multiarch-makefile-pqc:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
   extends: macosx-m1-multiarch-makefile
->>>>>>> origin/release/5.2
 
 #################################################
 # Ninja
@@ -131,8 +126,6 @@ macosx-m1-multiarch-ninja:
   rules:
     - if: $NIGHTLY_MASTER
   extends: .macosx-m1-multiarch-desktop
-<<<<<<< HEAD
-=======
 
 macosx-m1-ninja-pqc:
   variables:
@@ -140,7 +133,6 @@ macosx-m1-ninja-pqc:
   rules:
     - if: $NIGHTLY_MASTER
   extends: macosx-m1-multiarch-ninja
->>>>>>> origin/release/5.2
 
 macosx-ninja-novideo:
 
@@ -191,9 +183,6 @@ macosx-xcode:
 
     - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
 
-<<<<<<< HEAD
-    - !reference [.macosx-desktop, script]
-=======
     - !reference [.macosx-m1-multiarch-desktop, script]
 
 macosx-xcode-pqc:
@@ -202,4 +191,4 @@ macosx-xcode-pqc:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=ON
   rules:
     - if: $NIGHTLY_MASTER
->>>>>>> origin/release/5.2
+

@@ -15,16 +15,16 @@
 	url = ../bzrtp.git
 [submodule "msamr"]
 	path = msamr
-	url = https://gitlab.linphone.org/BC/public/msamr.git
+	url = ../msamr.git
 [submodule "msopenh264"]
 	path = msopenh264
-	url = https://gitlab.linphone.org/BC/public/msopenh264.git
+	url = ../msopenh264.git
 [submodule "mssilk"]
 	path = mssilk
-	url = https://gitlab.linphone.org/BC/public/mssilk.git
+	url = ../mssilk.git
 [submodule "mswebrtc"]
 	path = mswebrtc
-	url = https://gitlab.linphone.org/BC/public/mswebrtc.git
+	url = ../mswebrtc.git
 [submodule "belcard"]
 	path = belcard
 	url = ../belcard.git
@@ -132,7 +132,7 @@
 	url = https://github.com/open-source-parsers/jsoncpp.git
 [submodule "msoboe"]
 	path = msoboe
-	url = https://gitlab.linphone.org/BC/public/msoboe.git
+	url = ../msoboe.git
 [submodule "external/libyuv"]
 	path = external/libyuv
 	url = https://gitlab.linphone.org/BC/public/external/libyuv.git
