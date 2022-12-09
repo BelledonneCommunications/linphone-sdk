@@ -341,6 +341,8 @@ static int dialog_on_200Ok_timer(belle_sip_dialog_t *dialog){
 static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog){
 	belle_sip_request_t *bye;
 	belle_sip_client_transaction_t *trn;
+	belle_sip_header_reason_t *reason;
+
 	belle_sip_dialog_stop_200Ok_retrans(dialog);
 	
 	belle_sip_error("Dialog [%p] was not ACK'd within T1*64 seconds.", dialog);
@@ -352,10 +354,19 @@ static int dialog_on_200Ok_end(belle_sip_dialog_t *dialog){
 			return BELLE_SIP_STOP;
 		}
 	}
-	
+
 	belle_sip_error("Dialog [%p] it is going to be terminated automatically.",dialog);
 	dialog->state=BELLE_SIP_DIALOG_CONFIRMED;
+
 	bye=belle_sip_dialog_create_request(dialog,"BYE");
+	reason=belle_sip_header_reason_new();
+	belle_sip_header_reason_set_protocol(reason,"SIP");
+	belle_sip_header_reason_set_cause(reason,408);
+	belle_sip_header_reason_set_text(reason,"no ACK received");
+	belle_sip_message_add_header(BELLE_SIP_MESSAGE(bye), BELLE_SIP_HEADER(reason));
+
+	dialog->termination_cause = BELLE_SIP_DIALOG_TERMINATION_CAUSE_ABORT_NO_ACK;
+
 	trn=belle_sip_provider_create_client_transaction(dialog->provider,bye);
 	BELLE_SIP_TRANSACTION(trn)->is_internal=1; /*don't bother user with this transaction*/
 	belle_sip_client_transaction_send_request(trn);
@@ -818,6 +829,7 @@ belle_sip_dialog_t *belle_sip_dialog_new(belle_sip_transaction_t *t){
 	obj->pending_trans_checking_enabled=1;
 	obj->call_id=(belle_sip_header_call_id_t*)belle_sip_object_ref(call_id);
 	obj->type=type;
+	obj->termination_cause=BELLE_SIP_DIALOG_TERMINATION_CAUSE_NORMAL;
 
 	belle_sip_object_ref(t);
 	obj->last_transaction=t;
@@ -1181,6 +1193,11 @@ void belle_sip_dialog_check_ack_sent(belle_sip_dialog_t*obj){
 		belle_sip_error("Your listener did not ACK'd the 200Ok for your INVITE request. The dialog will be terminated.");
 		req=belle_sip_dialog_create_request(obj,"BYE");
 		if (req){
+			belle_sip_header_reason_t *reason=belle_sip_header_reason_new();
+			belle_sip_header_reason_set_protocol(reason,"SIP");
+			belle_sip_header_reason_set_cause(reason,500);
+			belle_sip_header_reason_set_text(reason,"Internal Error");
+			belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(reason));
 			client_trans=belle_sip_provider_create_client_transaction(obj->provider,req);
 			BELLE_SIP_TRANSACTION(client_trans)->is_internal=TRUE; /*internal transaction, don't bother user with 200ok*/
 			belle_sip_client_transaction_send_request(client_trans);
@@ -1211,6 +1228,10 @@ static int belle_sip_dialog_handle_200Ok(belle_sip_dialog_t *obj, belle_sip_resp
 }
 
 int belle_sip_dialog_handle_ack(belle_sip_dialog_t *obj, belle_sip_request_t *ack){
+	if (obj->simulate_lost_ack) {
+		belle_sip_message("Simulating lost ACK for dialog %p", obj);
+		return -1;
+	}
 	belle_sip_header_cseq_t *cseq=belle_sip_message_get_header_by_type(ack,belle_sip_header_cseq_t);
 	if (obj->needs_ack && belle_sip_header_cseq_get_seq_number(cseq)==obj->remote_invite_cseq){
 		belle_sip_message("Incoming INVITE has ACK, dialog is happy");
@@ -1330,4 +1351,12 @@ int belle_sip_dialog_pending_trans_checking_enabled( const belle_sip_dialog_t *d
 int belle_sip_dialog_enable_pending_trans_checking(belle_sip_dialog_t *dialog, int value) {
 	dialog->pending_trans_checking_enabled = value;
 	return 0;
+}
+
+belle_sip_dialog_termination_cause_t belle_sip_dialog_get_termination_cause(const belle_sip_dialog_t *dialog) {
+	return dialog->termination_cause;
+}
+
+void belle_sip_dialog_set_simulate_lost_ack_enabled(belle_sip_dialog_t *dialog, int enable) {
+	dialog->simulate_lost_ack = (unsigned char) enable;
 }
