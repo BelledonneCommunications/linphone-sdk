@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.2.0] - 2022-11-14
+
+### Added
+- Video conferencing features
+  * RFC6464 client-to-mixer
+  * RFC6465 mixer-to-client
+- Video conference: added CSRC of contributor to active speaker stream.
+- Add support for post-quantum encryption algorithms within ZRTP protocol.
+
+### Changed
+- Licence becomes AGPL-3.
+- Improvements to Android bluetooth audio support.
+- Performance improvements to Android Texture video renderer.
+- Optimizations to DTLS handshake to be more robust to packet losses.
+- libyuv used for rescaling and pixel conversion (instead of libswscale).
+
+### Fixed
+- Crash with buffer overflow in GenericPLC filter.
+- Random crashes with video capture on Windows.
+- ARM64/linux compilation.
+- MSVideoRouter algorithm improved.
+- Non working audio playback on iOS 16.
+- Blurry video rendering on iOS.
+
 
 ## [5.1.0] - 2022-02-14
 

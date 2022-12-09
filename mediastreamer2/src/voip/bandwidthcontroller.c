@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -188,7 +189,7 @@ void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj
 		MediaStream *ms = (MediaStream*) elem->data;
 		if (ms->type == MSVideo) {
 			VideoStream *vs = (VideoStream*)ms;
-			if (!vs->is_thumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
+			if (vs->content != MSVideoContentThumbnail && media_stream_get_direction(ms) != MediaStreamSendOnly) {
 				if (!ms->sessions.rtp_session->video_bandwidth_estimator_enabled) {
 					ortp_ev_dispatcher_connect(media_stream_get_event_dispatcher(ms), ORTP_EVENT_NEW_VIDEO_BANDWIDTH_ESTIMATION_AVAILABLE, 0,on_video_bandwidth_estimation_available, ms);
 					params.enabled = TRUE;

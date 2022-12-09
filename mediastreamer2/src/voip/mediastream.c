@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -119,6 +120,7 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 		ms_dtls_srtp_set_stream_sessions(sessions->dtls_context, &stream->sessions);
 	}
 	media_stream_add_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
+	stream->stun_allowed = TRUE;
 }
 
 void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data){
@@ -284,10 +286,14 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
+void media_stream_set_stun_allowed(MediaStream *stream, bool_t value){
+	stream->stun_allowed = value;
+
+}
 
 /* This function decides whether it is necessary to send dummy stun packets for firewall opening. */
 static void media_stream_configure_stun_packet_sending(MediaStream *stream){
-	bool_t stun_enabled = TRUE;
+	bool_t stun_enabled = stream->stun_allowed;
 	if (stream->ice_check_list) stun_enabled = FALSE;
 	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
 		stun_enabled = FALSE;
@@ -296,7 +302,8 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream){
 		ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN, &stun_enabled);
 		if (stream->sessions.dtls_context) {
 			/* In case STUN packets are necessary, and DTLS is used and encryption mandatory is set to TRUE,
-			 * no packets will be emitted at all. We must configure the rtpsend filter to regularly send dummy stun packets
+			 * no RTP packets will be emitted at all, until handshake takes places.
+			 * We must configure the rtpsend filter to regularly send dummy stun packets
 			 * to ensure that firewall gets open to the remote endpoint.
 			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
 			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
@@ -890,4 +897,12 @@ void media_stream_print_summary(MediaStream *ms){
 	}
 	rtp_stats_display(rtp_session_get_stats(ms->sessions.rtp_session),
 		"                     RTP STATISTICS                          ");
+}
+
+uint32_t media_stream_get_send_ssrc(const MediaStream *stream) {
+	return rtp_session_get_send_ssrc(stream->sessions.rtp_session);
+}
+
+uint32_t media_stream_get_recv_ssrc(const MediaStream *stream) {
+	return rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
 }

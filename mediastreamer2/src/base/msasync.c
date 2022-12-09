@@ -1,35 +1,48 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 
 #include "mediastreamer2/msasync.h"
 
-void ms_task_cancel(MSTask *task){
+static void _ms_task_cancel(MSTask *task, bool_t with_destroy){
 	if (!task->worker) return ;
 	ms_mutex_lock(&task->worker->mutex);
+	if (with_destroy) task->auto_release = TRUE;
 	if (task->state != MSTaskDone){ /* task may be queued or running */
 		ms_debug("msasync.c: cancelling task %p", task);
 		task->state = MSTaskCancelled;
+	}else{
+		/* The task was already processed by the worker, we can safely destroy it if required.*/
+		if (with_destroy) ms_task_destroy(task);
 	}
 	ms_mutex_unlock(&task->worker->mutex);
-	return;
 }
+
+void ms_task_cancel_and_destroy(MSTask *task){
+	_ms_task_cancel(task, TRUE);
+}
+
+void ms_task_cancel(MSTask *task){
+	_ms_task_cancel(task, FALSE);
+}
+
 
 void ms_task_wait_completion(MSTask *task){
 	if (!task->worker) return;
@@ -144,11 +157,12 @@ static void *ms_worker_thread_run(void *d){
 			/* The loop must continue */
 			continue;
 		}else if (tasks){
-			/* No new tasks, but there are repeatable tasks (re-queued). Go to sleep for a while. */
+			/* No new tasks, but there are repeatable tasks (re-queued).  */
 			obj->tasks = tasks;
 		}
 		if (obj->running){
 			if (tasks){
+				/* Go to sleep for a while.*/
 				ms_debug("msasync.c: worker thread has repeatable tasks, going to sleep for a while.");
 				/* This could be further optimized, using pthread_cond_timedwait() */
 				ms_mutex_unlock(&obj->mutex);

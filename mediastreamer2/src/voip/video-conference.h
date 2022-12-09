@@ -1,21 +1,22 @@
 /*
-* Copyright (c) 2010-2020 Belledonne Communications SARL.
-*
-* This file is part of mediastreamer2.
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef VIDEO_ENABLED
 #ifndef MS_VIDEO_CONFERENCE_H
@@ -36,6 +37,7 @@ public:
 	void setUserData(void *userData) {mUserData = userData;};
 	void *getUserData() const {return mUserData;};
 	void redoVideoStreamGraph();
+	MediaStreamDir getDirection()const;
 
 	VideoStream *mSt=NULL;
 	void *mUserData=NULL;
@@ -50,7 +52,7 @@ public:
 	int mOutPin=-1;
 	int mSource = -1;
 	bool connected = false;
-	std::string mName=""; /*Particapant*/
+	std::string mName=""; /*Participant*/
 	int mIsRemote=0;
 	int mLastTmmbrReceived=0; /*Value in bits/s */
 	int mLinkSource = -1;
@@ -75,7 +77,8 @@ public:
 	virtual void setLocalMember(MSVideoConferenceFilterPinControl pc) = 0;
 	virtual void notifyFir(int pin) = 0;
 	virtual void notifySli(int pin) = 0;
-	virtual VideoEndpoint *getMemberAtPin(int pin) const;
+	virtual VideoEndpoint *getMemberAtInputPin(int pin) const;
+	virtual VideoEndpoint *getMemberAtOutputPin(int pin) const;
 	virtual void unconfigureOutput(int pin) {};
 	virtual bool allToAllEnabled() const = 0;
 
@@ -120,11 +123,13 @@ public:
 	
 
 protected:
+	void chooseNewFocus();
 	void addVideoPlaceholderMember() override;
 	int findSourcePin(const std::string &participant);
 	void configureOutput(VideoEndpoint *ep) override;
 	int mOutputs[ROUTER_MAX_OUTPUT_CHANNELS] ;
 	int mInputs[ROUTER_MAX_INPUT_CHANNELS];
+	int mLastFocusPin = -1;
 };
 
 

@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -295,6 +296,9 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ad->width = w;
 	ad->height = h;
 
+	if (ad->ogl){
+		ms_error("[TextureView Display][Filter=%p] ogl_display already created !", f);
+	}
 	ad->ogl = ogl_display_new();
 	ogl_display_init(ad->ogl, NULL, w, h);
 
@@ -382,7 +386,7 @@ static void android_texture_display_process(MSFilter *f) {
 
 static void android_texture_display_postprocess(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay*)f->data;
-	ms_task_destroy(ad->refresh_task);
+	ms_task_cancel_and_destroy(ad->refresh_task);
 }
 
 static void android_texture_display_uninit(MSFilter *f) {
@@ -390,6 +394,7 @@ static void android_texture_display_uninit(MSFilter *f) {
 	MSTask *task;
 	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl, (void*)f);
 	task = ms_worker_thread_add_waitable_task(ad->process_thread, (MSTaskFunc)android_texture_display_release_windowId, (void*)f);
+	ms_task_wait_completion(task);
 	ms_task_destroy(task);
 	android_texture_display_release_worker(ad->process_thread);
 }

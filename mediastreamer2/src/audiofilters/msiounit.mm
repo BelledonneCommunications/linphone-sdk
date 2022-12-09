@@ -134,6 +134,7 @@ typedef enum _MSAudioUnitState{
 @property bool_t callkit_enabled;
 @property bool_t mic_enabled;
 @property bool_t zombified;
+@property bool_t stalled;
 @property bool_t devices_changed_since_last_reload;
 @property bool_t interacted_with_bluetooth_since_last_devices_reload;
 @property std::string removedDevice;
@@ -305,6 +306,7 @@ ms_mutex_t mutex;
 		ms_mutex_init(&mutex,NULL);
 		_mic_enabled = TRUE;
 		_zombified = FALSE;
+		_stalled = FALSE;
 		_interacted_with_bluetooth_since_last_devices_reload = FALSE;
 		_devices_changed_since_last_reload=FALSE;
 		[NSNotificationCenter.defaultCenter addObserver:self
@@ -355,12 +357,14 @@ ms_mutex_t mutex;
 		ms_message("AudioUnit created with type %s.", subtype==kAudioUnitSubType_RemoteIO ? "kAudioUnitSubType_RemoteIO" : "kAudioUnitSubType_VoiceProcessingIO" );
 		_audio_unit_state =MSAudioUnitCreated;
 		_zombified = FALSE;
+		_stalled = FALSE;
 	}
 	return;
 }
 
 -(void)configure_audio_unit {
 	OSStatus auresult;
+	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
 
 	if (_audio_unit_state != MSAudioUnitCreated){
 		ms_error("configure_audio_unit(): not created, in state %i", _audio_unit_state);
@@ -384,6 +388,10 @@ ms_mutex_t mutex;
 
 	UInt32 doNotSetProperty    = 0;
 	UInt32 doSetProperty    = 1;
+	
+	bool_t recording = audioSession.category == AVAudioSessionCategoryPlayAndRecord;
+	
+	if (!recording) ms_message("configure_audio_unit(): configured for playback only.");
 
 	//enable speaker output
 	auresult =AudioUnitSetProperty (
@@ -402,7 +410,7 @@ ms_mutex_t mutex;
 								   kAudioOutputUnitProperty_EnableIO,
 								   kAudioUnitScope_Input ,
 								   inputBus,
-								   _mic_enabled ? &doSetProperty : &doNotSetProperty,
+								   _mic_enabled && recording ? &doSetProperty : &doNotSetProperty,
 								   sizeof (_mic_enabled ? doSetProperty : doNotSetProperty)
 								   );
 
@@ -571,42 +579,6 @@ ms_mutex_t mutex;
 	ms_mutex_unlock(&mutex);
 }
 
--(void) configure_audio_session_by_default {
-	ms_message("configure_audio_session_by_default(): configure audio session by default for playback/record.");
-	NSError *err = nil;;
-	AVAudioSession *audioSession = [AVAudioSession sharedInstance];
-
-	[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
-			withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
-				  error:&err];
-	if (err) {
-		ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
-		err = nil;
-	}
-	[audioSession setMode:AVAudioSessionModeVoiceChat error:&err];
-	if (err) {
-		ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
-		err = nil;
-	}
-	double sampleRate = defaultSampleRate;
-	[audioSession setPreferredSampleRate:sampleRate error:&err];
-	if (err) {
-		ms_error("Unable to change preferred sample rate because : %s", [err localizedDescription].UTF8String);
-		err = nil;
-	}
-	[audioSession setActive:TRUE error:&err];
-
-	if (_ms_snd_card && _ms_snd_card->device_type != MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
-		// Activating the audio session, by default, will change the audio route to iphone microphone/receiver
-		// To avoid this, we redirect the sound to the current snd card
-		apply_sound_card_to_audio_session(_ms_snd_card);
-	}
-	if(err){
-		ms_error("Unable to activate audio session because : %s", [err localizedDescription].UTF8String);
-		err = nil;
-	}
-}
-
 -(void) configure_audio_session {
 	NSError *err = nil;
 	//UInt32 audioCategorySize=sizeof(audioCategory);
@@ -621,14 +593,23 @@ ms_mutex_t mutex;
 		/*check that category wasn't changed*/
 		NSString *currentCategory = audioSession.category;
 		NSString *newCategory = AVAudioSessionCategoryPlayAndRecord;
+		AVAudioSessionMode currentMode = audioSession.mode;
+		AVAudioSessionMode newMode = AVAudioSessionModeVoiceChat;
+		AVAudioSessionCategoryOptions options = AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP;
 
 		if (_ms_snd_card->streamType == MS_SND_CARD_STREAM_MEDIA){
+			ms_message("Configuring audio session for playback.");
 			newCategory = AVAudioSessionCategoryPlayback;
+			newMode = AVAudioSessionModeDefault;
+			options = 0;
 		}else if (bctbx_param_string_get_bool_value(_ms_snd_card->sndcardmanager->paramString, SCM_PARAM_RINGER) ){
+			ms_message("Configuring audio session for ambiant sound.");
 			newCategory = AVAudioSessionCategoryAmbient;
+			newMode = AVAudioSessionModeDefault;
+			options = 0;
 		}
 
-		if (currentCategory != newCategory){
+		if (currentCategory != newCategory || currentMode != AVAudioSessionModeVoiceChat){
 			_audio_session_configured = FALSE;
 		}
 
@@ -642,35 +623,18 @@ ms_mutex_t mutex;
 				[audioSession setActive:FALSE error:&err];
 				reactivate_audio_session = TRUE;
 			}
-
-			if (newCategory != AVAudioSessionCategoryPlayAndRecord) {
-				ms_message("Configuring audio session for playback");
-				[audioSession setCategory:newCategory
-									error:&err];
-				if (err){
-					ms_error("Unable to change audio session category because : %s", [err localizedDescription].UTF8String);
-					err = nil;
-				}
-				[audioSession setMode:AVAudioSessionModeDefault error:&err];
-				if(err){
-					ms_error("Unable to change audio session mode because : %s", [err localizedDescription].UTF8String);
-					err = nil;
-				}
-			} else {
-				ms_message("Configuring audio session for playback/record");
-
-				[audioSession   setCategory:AVAudioSessionCategoryPlayAndRecord
-						withOptions:AVAudioSessionCategoryOptionAllowBluetooth| AVAudioSessionCategoryOptionAllowBluetoothA2DP
-							  error:&err];
-				if (err) {
-					ms_error("Unable to change audio category because : %s", [err localizedDescription].UTF8String);
-					err = nil;
-				}
-				[audioSession setMode:AVAudioSessionModeVoiceChat error:&err];
-				if (err) {
-					ms_error("Unable to change audio mode because : %s", [err localizedDescription].UTF8String);
-					err = nil;
-				}
+				
+			[audioSession setCategory:newCategory
+									withOptions: options
+									error: &err];
+			if (err){
+				ms_error("Unable to change audio session category because : %s", [err localizedDescription].UTF8String);
+				err = nil;
+			}
+			[audioSession setMode:newMode error:&err];
+			if(err){
+				ms_error("Unable to change audio session mode because : %s", [err localizedDescription].UTF8String);
+				err = nil;
 			}
 			double sampleRate = defaultSampleRate;
 			[audioSession setPreferredSampleRate:sampleRate error:&err];
@@ -986,7 +950,7 @@ static void au_callkit_enabled(MSSndCard *obj, bool_t enabled) {
 static void au_configure(MSSndCard *obj) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	update_audio_unit_holder_ms_snd_card(obj);
-	[au_holder configure_audio_session_by_default];
+	[au_holder configure_audio_session];
 }
 
 MSSndCardDesc au_card_desc={
@@ -1224,12 +1188,16 @@ static void au_read_process(MSFilter *f){
 		 * AudioUnit that suddenly stops after a few seconds without any error notified to the application.
 		 * That's really poor work, so mediastreamer2 has to adapt
 		 */
-		if (d->read_samples_last_activity_check == d->read_samples && d->read_samples_last_activity_check != (uint64_t)-1){
-			ms_error("Stalled AudioUnit detected, will now restart it");
+		if (d->read_samples_last_activity_check == d->read_samples && d->read_samples_last_activity_check != (uint64_t)-1 && au_holder.stalled == FALSE){
+			ms_error("Stalled AudioUnit detected, will restart it");
+			au_holder.stalled = TRUE;
 			dispatch_async(dispatch_get_main_queue(), ^{
-					[au_holder recreate_audio_unit];
-					[au_holder configure_audio_unit];
-					[au_holder start_audio_unit:0];
+					if (au_holder.stalled){
+						ms_message("Stalled AudioUnit is now going to be recreated and restarted.");
+						[au_holder recreate_audio_unit];
+						[au_holder configure_audio_unit];
+						[au_holder start_audio_unit:0];
+					}
 			});
 		}else d->read_samples_last_activity_check = d->read_samples;
 	}
@@ -1348,7 +1316,9 @@ static int mute_mic(MSFilter *f, void *data){
                                        sizeof (enableMic)
                                        );
         check_au_unit_result(auresult,"kAudioOutputUnitProperty_EnableIO,kAudioUnitScope_Input");
+        ms_message("Enabling microphone input [%u] on non-running AudioUnit.", enableMic);
     } else {
+		 ms_message("Enabling microphone input [%u] on running AudioUnit, restarted required.", enableMic);
 		[au_holder stop_audio_unit_with_param:TRUE];
         [au_holder configure_audio_unit];
 		[au_holder start_audio_unit:0];

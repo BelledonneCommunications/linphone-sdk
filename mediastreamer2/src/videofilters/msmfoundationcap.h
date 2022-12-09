@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2020 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -29,21 +30,35 @@
 #include <windows.h>
 #include <stdlib.h>	// wchar => char
 #include <stdio.h>
+#include <list>
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/mswebcam.h"
 
 class MSMFoundationCap{
-protected:	
+protected:
+//----- Stores requested format that didn't work. It is used to know in advance that the requested format won't work, without the need to request it asynchronous to the camera.
+	class VideoFormat{
+		public:
+		VideoFormat();
+		VideoFormat(UINT32 pWidth, UINT32 pHeight, int pFps, GUID pVideoFormat);
+		UINT32 mWidth;
+		UINT32 mHeight;
+		int mFps;
+		GUID mVideoFormat;
+		bool isEqual(const VideoFormat& format) const;
+		bool isBlacklisted(const std::list<VideoFormat>& blacklist) const;
+	};
+	std::list<VideoFormat> mVideoFormatBlacklist;
+//-----
 	CRITICAL_SECTION mCriticalSection;
 	MSYuvBufAllocator * mAllocator;
 	mblk_t * mFrameData;		// Frame to send to MS Queue when it request one
 	bool_t mRunning;	// The reading process is running or not. Set it to FALSE to stop it.
 	float mFps;
 	unsigned int mSampleCount, mProcessCount;
-	bool_t mFmtChanged;
-
+	
 public:
 	MSMFoundationCap();
 	virtual ~MSMFoundationCap();
@@ -70,6 +85,7 @@ public:
 	
 	virtual HRESULT setMediaConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float FPS);// Set internal data and do updates
 	virtual HRESULT restartWithNewConfiguration(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
+	void addToBlacklist(const VideoFormat& format);
 	bool_t isTimeToSend(uint64_t tickerTime);// Wheck if we have to put the frame in ms queue
 	static bool_t isSupportedFormat(const GUID &videoFormat);
 	void processFrame(byte* inputBytes, DWORD inputCapacity, int inputStride );// Read inputs and store data into frameData
@@ -84,6 +100,9 @@ public:
 	std::string mDeviceName;
 	MSAverageFPS mAvgFps;
 	MSFrameRateController mFramerateController;
+	bool_t mFmtChanged;
+	bool_t mNewFormatTakenAccount;
+	bool_t mNewFormatValidated;
 	
 //----------------------------------------  Tools
 	static const char *pixFmtToString(const GUID &fmt);	// Helper to return the name of the format
@@ -107,6 +126,9 @@ class MSMFoundationUwpImpl : public MSMFoundationCap{
 		Platform::String^ mId;
 		Platform::String^ mDisplayName;
 		Windows::Media::Capture::Frames::MediaFrameSourceGroup^ mSourceGroup;// Store available formats
+		
+		UINT32 mInternalWidth;
+		UINT32 mInternalHeight;
 //--------------------------------------------------------		
 public:
 	MSMFoundationUwpImpl();
@@ -142,7 +164,7 @@ public:
 private:
 	concurrency::task<void> startAsync();
 	concurrency::task<void> stopAsync();
-	void setInternalFormat(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
+	bool_t setInternalFormat(GUID videoFormat, UINT32 frameWidth, UINT32 frameHeight, float pFps);
 	
 };
 #else

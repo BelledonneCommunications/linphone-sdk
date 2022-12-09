@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -55,11 +56,15 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 // The RTP_TRANSFER_MODE will bypass the extraction of the data and pass the packet in it's output as it is
 #define MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE	MS_FILTER_METHOD(MS_RTP_RECV_ID, 4, bool_t)
 
+#define MS_RTP_RECV_ENABLE_CSRC_EVENTS	MS_FILTER_METHOD(MS_RTP_RECV_ID, 5, bool_t)
+
 #define MS_RTP_RECV_GENERIC_CN_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,0, MSCngData)
 
 #define MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,1, rtp_audio_level_t[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL])
 
 #define MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED		MS_FILTER_EVENT(MS_RTP_RECV_ID,2, rtp_audio_level_t)
+
+#define MS_RTP_RECV_CSRC_CHANGED		MS_FILTER_EVENT(MS_RTP_RECV_ID,3, uint32_t)
 
 
 #define MS_RTP_SEND_SET_SESSION			MS_FILTER_METHOD(MS_RTP_SEND_ID,0,RtpSession*)
@@ -98,10 +103,12 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
 // This is usefull to transfer packets that are already fully constructed
 #define MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE	MS_FILTER_METHOD(MS_RTP_SEND_ID, 16, bool_t)
 
+#define MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC	MS_FILTER_METHOD(MS_RTP_SEND_ID, 17, uint32_t)
+
 /**
  * Used to determine if DTMFs can be sent out-of-band
  */
-#define MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED MS_FILTER_METHOD_NO_ARG(MS_RTP_SEND_ID, 17)
+#define MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED MS_FILTER_METHOD_NO_ARG(MS_RTP_SEND_ID, 18)
 
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;

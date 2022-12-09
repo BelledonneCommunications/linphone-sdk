@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -203,7 +204,7 @@ spx_int32_t ms_inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int
 
 
 static void inner_product_test(void) {
-#ifdef SPEEX_LIB_CPU_FEATURE_NEON
+#if defined(SPEEX_LIB_CPU_FEATURE_NEON) && !defined(__aarch64__)
 #define SAMPLE_SIZE 64 /* has to be %8 and < 64 ! */
 #define ITERATIONS 1000000
 	static spx_int16_t test_sample[SAMPLE_SIZE];

@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -73,11 +74,22 @@ typedef struct _MSTask MSTask;
  * be executing, or have been executed already.
  */
 MS2_PUBLIC void ms_task_cancel(MSTask *task);
+
+/*
+ * Cancel a task and schedule it for destruction.
+ * If the task is already completed, it is destroyed synchronously.
+ * Unlike ms_task_destroy(), ms_task_cancel_and_destroy() does not wait 
+ * the task to be processed by the worker thread, but returns immediately.
+ */
+MS2_PUBLIC void ms_task_cancel_and_destroy(MSTask *task);
 /*
  * Wait for the task to reach the MSTaskDone state.
  */
 MS2_PUBLIC void ms_task_wait_completion(MSTask *task);
-/* destroy automatically cancels if necessar, and waits for completion.*/
+
+/* 
+ * Automatically cancels if necessary, and waits for completion before destroying the task.
+ */
 MS2_PUBLIC void ms_task_destroy(MSTask *task); 
 
 /* Create a worker thread. Name is mandatory to ease debugging. */

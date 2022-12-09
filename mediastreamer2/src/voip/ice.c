@@ -1,22 +1,22 @@
-﻿/*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+/*
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 #if !defined(_WIN32) && !defined(_WIN32_WCE)
 #ifdef __APPLE__
@@ -36,9 +36,6 @@
 
 #define ICE_MAX_NB_CANDIDATES		32
 #define ICE_MAX_NB_CANDIDATE_PAIRS	128
-
-#define ICE_RTP_COMPONENT_ID	1
-#define ICE_RTCP_COMPONENT_ID	2
 
 #define ICE_MIN_COMPONENTID		1
 #define ICE_MAX_COMPONENTID		256
@@ -4428,8 +4425,10 @@ static int ice_find_host_candidate(const IceCandidate *candidate, const Componen
 
 static void ice_set_base_for_srflx_candidate(IceCandidate *candidate, IceCandidate *base)
 {
-	if ((candidate->type == ICT_ServerReflexiveCandidate) && (candidate->base == NULL) && (candidate->componentID == base->componentID))
+	if ((candidate->type == ICT_ServerReflexiveCandidate) && (candidate->base == NULL) && (candidate->componentID == base->componentID)
+		&& candidate->taddr.family == base->taddr.family){
 		candidate->base = base;
+	}
 }
 
 static void ice_set_base_for_srflx_candidate_with_componentID(uint16_t *componentID, IceCheckList *cl)
@@ -4437,6 +4436,13 @@ static void ice_set_base_for_srflx_candidate_with_componentID(uint16_t *componen
 	IceCandidate *base;
 	ComponentID_Family cf = { *componentID, AF_INET };
 	bctbx_list_t *elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
+	if (elem != NULL) {
+		base = (IceCandidate *)elem->data;
+		bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);
+	}
+	cf.componentID = *componentID;
+	cf.family = AF_INET6;
+	elem = bctbx_list_find_custom(cl->local_candidates, (bctbx_compare_func)ice_find_host_candidate, &cf);
 	if (elem != NULL) {
 		base = (IceCandidate *)elem->data;
 		bctbx_list_for_each2(cl->local_candidates, (void (*)(void*,void*))ice_set_base_for_srflx_candidate, (void *)base);

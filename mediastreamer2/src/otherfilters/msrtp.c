@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -494,11 +495,11 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 		rtp_audio_level_t *tmp = d->mtc_volumes + (d->mtc_volumes_size - d->mtc_volumes_left_to_send);
 
 		if (d->mtc_volumes_left_to_send <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 12, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp, payload, payload_size);
+			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp, payload, payload_size);
 			ms_free(d->mtc_volumes);
 			d->mtc_volumes_left_to_send = 0;
 		} else {
-			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 12, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp, payload, payload_size);
+			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp, payload, payload_size);
 			d->mtc_volumes_left_to_send -= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
 		}
 
@@ -512,10 +513,10 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 			int size = d->mtc_request_data_cb(f, &audio_levels, d->mtc_request_data_user_data);
 			if (audio_levels != NULL) {
 				if (size <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 12, d->mixer_to_client_extension_id, size, audio_levels, payload, payload_size);
+					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, size, audio_levels, payload, payload_size);
 					ms_free(audio_levels);
 				} else {
-					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 12, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels, payload, payload_size);
+					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels, payload, payload_size);
 					d->mtc_volumes = audio_levels;
 					d->mtc_volumes_size = size;
 					d->mtc_volumes_left_to_send = size - RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
@@ -523,14 +524,14 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 			}
 		} else if (d->client_to_mixer_extension_id > 0 && d->ctm_request_data_cb) {
 			int volume = d->ctm_request_data_cb(f, d->ctm_request_data_user_data);
-			if (!header) header = rtp_session_create_packet(s, 12, payload, payload_size);
+			if (!header) header = rtp_session_create_packet(s, 40, payload, payload_size);
 			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, FALSE, volume);
 		}
 
 		d->last_audio_level_sent_time = f->ticker->time;
 	}
 
-	return header ? header : rtp_session_create_packet(s, 12, payload, payload_size);
+	return header ? header : rtp_session_create_packet(s, 0, payload, payload_size);
 }
 
 static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *im ){
@@ -720,29 +721,40 @@ static int sender_enable_rtp_transfer_mode(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int sender_set_active_speaker_ssrc(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *) f->data;
+	uint32_t csrc = *(uint32_t *) data;
+
+	rtp_session_clear_contributing_sources(d->session);
+	if (csrc != 0) rtp_session_add_contributing_source(d->session, csrc, "", NULL, NULL, NULL, NULL, NULL, NULL);
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
-	{MS_RTP_SEND_MUTE, sender_mute},
-	{MS_RTP_SEND_UNMUTE, sender_unmute},
-	{MS_RTP_SEND_SET_SESSION, sender_set_session},
-	{MS_RTP_SEND_SEND_DTMF, sender_send_dtmf},
-	{MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id},
-	{MS_RTP_SEND_SET_AUDIO_LEVEL_SEND_INTERVAL, sender_set_audio_level_send_interval},
-	{MS_RTP_SEND_SET_MIXER_TO_CLIENT_EXTENSION_ID, sender_set_mixer_to_client_extension_id},
-	{MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, sender_set_mixer_to_client_data_request_cb},
-	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id},
-	{MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb},
-	{MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id},
-	{MS_FILTER_GET_SAMPLE_RATE, sender_get_sr},
-	{MS_FILTER_GET_NCHANNELS, sender_get_ch},
-	{MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration},
-	{MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn},
-	{MS_RTP_SEND_ENABLE_STUN, sender_enable_stun},
-	{MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt},
-	{MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment},
-	{MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced},
-	{MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode},
-	{MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
-	{0, NULL}};
+	{ MS_RTP_SEND_MUTE, sender_mute },
+	{ MS_RTP_SEND_UNMUTE, sender_unmute },
+	{ MS_RTP_SEND_SET_SESSION, sender_set_session },
+	{ MS_RTP_SEND_SEND_DTMF, sender_send_dtmf },
+	{ MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id },
+	{ MS_RTP_SEND_SET_AUDIO_LEVEL_SEND_INTERVAL, sender_set_audio_level_send_interval },
+	{ MS_RTP_SEND_SET_MIXER_TO_CLIENT_EXTENSION_ID, sender_set_mixer_to_client_extension_id },
+	{ MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, sender_set_mixer_to_client_data_request_cb },
+	{ MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id },
+	{ MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb },
+	{ MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id },
+	{ MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
+	{ MS_FILTER_GET_NCHANNELS, sender_get_ch },
+	{ MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
+	{ MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
+	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
+	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
+	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
+	{ MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced },
+	{ MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode },
+	{ MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, sender_set_active_speaker_ssrc },
+	{ MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
+	{0, NULL}
+};
 
 #ifdef _MSC_VER
 
@@ -790,6 +802,8 @@ struct ReceiverData {
 	int mixer_to_client_extension_id;
 	int client_to_mixer_extension_id;
 	bool_t rtp_transfer_mode;
+	bool_t csrc_events_enabled;
+	uint32_t last_csrc;
 };
 
 typedef struct ReceiverData ReceiverData;
@@ -802,6 +816,8 @@ static void receiver_init(MSFilter * f)
 	d->mixer_to_client_extension_id = 0;
 	d->client_to_mixer_extension_id = 0;
 	d->rtp_transfer_mode = FALSE;
+	d->csrc_events_enabled = FALSE;
+	d->last_csrc = 0;
 	f->data = d;
 }
 
@@ -947,6 +963,20 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 	}
 }
 
+static void receiver_check_for_csrc_change(MSFilter *f, mblk_t *m) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	uint32_t csrc = 0;
+
+	if (rtp_get_cc(m) > 0) {
+		csrc = rtp_get_csrc(m, 0);
+	}
+
+	if (csrc != d->last_csrc) {
+		ms_filter_notify(f, MS_RTP_RECV_CSRC_CHANGED, &csrc);
+		d->last_csrc = csrc;
+	}
+}
+
 static void receiver_process(MSFilter * f)
 {
 	ReceiverData *d = (ReceiverData *) f->data;
@@ -983,6 +1013,7 @@ static void receiver_process(MSFilter * f)
 			mblk_set_marker_info(m, rtp_get_markbit(m));
 			mblk_set_cseq(m, rtp_get_seqnumber(m));
 			receiver_check_for_extensions(f, m);
+			if (d->csrc_events_enabled) receiver_check_for_csrc_change(f, m);
 			rtp_get_payload(m,&m->b_rptr);
 			ms_queue_put(f->outputs[0], m);
 		}else{
@@ -1008,12 +1039,19 @@ static int receiver_enable_rtp_transfer_mode(MSFilter *f, void *arg) {
 	return 0;
 }
 
+static int receiver_enable_csrc_events(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *) f->data;
+	d->csrc_events_enabled = * (bool_t *) arg;
+	return 0;
+}
+
 static MSFilterMethod receiver_methods[] = {
 	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
 	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
 	{	MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID, receiver_set_mixer_to_client_extension_id },
 	{	MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID, receiver_set_client_to_mixer_extension_id },
 	{	MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode },
+	{	MS_RTP_RECV_ENABLE_CSRC_EVENTS, receiver_enable_csrc_events },
 	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
 	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
 	{ 	MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt },

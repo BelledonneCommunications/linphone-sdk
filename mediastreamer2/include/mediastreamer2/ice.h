@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -38,6 +39,9 @@
  */
 #define ICE_SESSION_MAX_CHECK_LISTS 8
 
+
+#define ICE_RTP_COMPONENT_ID	1
+#define ICE_RTCP_COMPONENT_ID	2
 
 /**
  * ICE agent role.
@@ -820,9 +824,14 @@ MS2_PUBLIC int ice_session_nb_losing_pairs(const IceSession *session);
 /**
  * Set the base for the local server reflexive candidates of an ICE session.
  *
- * This function SHOULD not be used. However, it is used by mediastream for testing purpose to
- * work around the fact that it does not use candidates gathering.
- * It is to be called automatically when the gathering process finishes.
+ * This function is usually not necessary, because the base candidate is automatically set during gathering.
+ * However, it is required when server-reflexive candidates are added manually into the session,
+ * which happens at least in these two cases:
+ * - in 'mediastream' tool for testing purpose to
+ *   work around the fact that it does not use candidates gathering.
+ * - when server-reflexive candidates are defined by configuration, for example
+ *   when ICE is used in a server software deployed behind a NAT.
+ * It is to be called before starting the connectivity checks.
  */
 MS2_PUBLIC void ice_session_set_base_for_srflx_candidates(IceSession *session);
 

@@ -1,21 +1,22 @@
 /*
-* Copyright (c) 2010-2020 Belledonne Communications SARL.
-*
-* This file is part of mediastreamer2.
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef VIDEO_ENABLED
 #include "video-conference.h"
@@ -24,21 +25,25 @@
 using namespace ms2;
 
 //------------------------------------------------------------------------------
-extern "C" MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote) {
+MSVideoEndpoint * ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote) {
 	VideoEndpoint *ep = new VideoEndpoint();
 	ep->cutVideoStreamGraph(is_remote, st);
 	return (MSVideoEndpoint *)ep;
 }
 
-extern "C" void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data) {
+void ms_video_endpoint_set_user_data(MSVideoEndpoint *ep, void *user_data) {
 	((VideoEndpoint *)ep)->setUserData(user_data);
 }
 
-extern "C" void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep) {
+void * ms_video_endpoint_get_user_data(const MSVideoEndpoint *ep) {
 	return ((VideoEndpoint *)ep)->getUserData();
 }
 
-extern "C" void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj) {
+MediaStreamDir ms_video_endpoint_get_direction(const MSVideoEndpoint *ep){
+	return ((VideoEndpoint *)ep)->getDirection();
+}
+
+void ms_video_endpoint_release_from_stream(MSVideoEndpoint *obj) {
 	((VideoEndpoint *)obj)->redoVideoStreamGraph();
 	delete ((VideoEndpoint *)obj);
 }
@@ -85,6 +90,15 @@ static void ms_video_endpoint_tmmbr_received(const OrtpEventData *evd, void *use
 }
 
 //-------------------------------------------------------------------------
+
+
+MediaStreamDir VideoEndpoint::getDirection()const{
+	if (!mSt) {
+		ms_error("Endpoint direction is undefined when the endpoint is not constructed.");
+		return MediaStreamSendRecv;
+	}
+	return media_stream_get_direction(&mSt->ms);
+}
 
 void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	mSt = st;

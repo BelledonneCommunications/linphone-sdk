@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -457,7 +458,9 @@ static bool_t stream_connect(Stream *s) {
 	pa_threaded_mainloop_unlock(the_pa_loop);
 	if(err < 0 || !stream_wait_for_state(s, PA_STREAM_READY, PA_STREAM_FAILED)) {
 		ms_error("Fails to connect pulseaudio stream. err=%d", err);
+		pa_threaded_mainloop_lock(the_pa_loop);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		s->stream = NULL;
 		return FALSE;
 	}
@@ -478,7 +481,9 @@ static void stream_disconnect(Stream *s) {
 		if(err!=0 || !stream_wait_for_state(s, PA_STREAM_TERMINATED, PA_STREAM_FAILED)) {
 			ms_error("pa_stream_disconnect() failed. err=%d", err);
 		}
+		pa_threaded_mainloop_lock(the_pa_loop);
 		pa_stream_unref(s->stream);
+		pa_threaded_mainloop_unlock(the_pa_loop);
 		
 		s->stream = NULL;
 		s->state = PA_STREAM_UNCONNECTED;

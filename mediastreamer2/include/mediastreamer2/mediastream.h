@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -120,7 +121,7 @@ typedef enum _MSStreamState{
 typedef enum MediaStreamDir{
 	MediaStreamSendRecv,
 	MediaStreamSendOnly,
-	MediaStreamRecvOnly
+	MediaStreamRecvOnly,
 }MediaStreamDir;
 
 /**
@@ -148,7 +149,7 @@ struct _MediaStream {
 	bool_t rc_enable;
 	bool_t is_beginning;
 	bool_t owns_sessions;
-	bool_t pad;
+	bool_t stun_allowed; /* Whether sending basic stun packet as keepalive is permitted, default is yes */
 	/**
 	 * defines encoder target network bit rate, uses #media_stream_set_target_network_bitrate() setter.
 	 * */
@@ -193,6 +194,8 @@ MS2_PUBLIC void media_stream_set_adaptive_bitrate_algorithm(MediaStream *stream,
 MS2_PUBLIC void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled);
 
 MS2_PUBLIC void media_stream_set_ice_check_list(MediaStream *stream, IceCheckList *cl);
+
+MS2_PUBLIC void media_stream_set_stun_allowed(MediaStream *stream, bool_t value);
 
 /*
  * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.
@@ -338,6 +341,22 @@ MS2_PUBLIC bool_t media_stream_alive(MediaStream *stream, int timeout_seconds);
 MS2_PUBLIC MSStreamState media_stream_get_state(const MediaStream *stream);
 
 MS2_PUBLIC OrtpEvDispatcher* media_stream_get_event_dispatcher(const MediaStream *stream);
+
+/**
+ * Retrieve the receive ssrc of the stream
+ *
+ * @param stream the media stream
+ * @return the receive ssrc of the stream
+ */
+MS2_PUBLIC uint32_t media_stream_get_recv_ssrc(const MediaStream *stream);
+
+/**
+ * Retrieve the send ssrc of the stream
+ *
+ * @param stream the media stream
+ * @return the send ssrc of the stream
+ */
+MS2_PUBLIC uint32_t media_stream_get_send_ssrc(const MediaStream *stream);
 
 typedef enum EchoLimiterType{
 	ELInactive,
@@ -958,6 +977,7 @@ typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *l
 typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id, const void *args);
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
+typedef void (*VideoStreamCsrcChangedCb)(void *user_pointer, uint32_t new_csrc);
 
 struct _MediastreamVideoStat
 {
@@ -968,6 +988,13 @@ struct _MediastreamVideoStat
 };
 
 typedef struct _MediastreamVideoStat MediaStreamVideoStat;
+
+typedef enum _MSVideoContent{
+	MSVideoContentDefault,
+	MSVideoContentSpeaker,
+	MSVideoContentThumbnail
+} MSVideoContent;
+
 
 struct _VideoStream
 {
@@ -1022,6 +1049,7 @@ struct _VideoStream
 	MSVideoDisplayMode display_mode;
 	int frame_marking_extension_id;
 	char *label;
+	MSVideoContent content;
 	bool_t use_preview_window;
 	bool_t enable_qrcode_decoder;
 	bool_t freeze_on_error;
@@ -1031,7 +1059,10 @@ struct _VideoStream
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
-	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
+	bool_t wait_for_frame_decoded;
+	VideoStreamCsrcChangedCb csrc_changed_cb;
+	void *csrc_changed_cb_user_data;
+	uint32_t new_csrc;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1065,8 +1096,9 @@ MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEvent
 MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC void video_stream_set_label(VideoStream *s, const char *label);
-MS2_PUBLIC void video_stream_enable_thumbnail(VideoStream *s, bool_t enabled);
-MS2_PUBLIC bool_t video_stream_thumbnail_enabled(VideoStream *s);
+MS2_PUBLIC void video_stream_set_content(VideoStream *s, MSVideoContent content);
+MS2_PUBLIC MSVideoContent video_stream_get_content(const VideoStream *vs);
+
 MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 		const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam* cam, MSFilter* source);
 MS2_PUBLIC int video_stream_start(VideoStream * stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port, const char *rem_rtcp_ip,
@@ -1116,6 +1148,7 @@ MS2_PUBLIC const MSWebCam * video_stream_get_camera(const VideoStream *stream);
  */
 MS2_PUBLIC MSFilter* video_stream_get_source_filter(const VideoStream* stream);
 
+MS2_PUBLIC void video_preview_stream_change_camera(VideoStream* stream, MSWebCam* cam);
 MS2_PUBLIC void video_stream_change_camera(VideoStream *stream, MSWebCam *cam);
 
 MS2_PUBLIC void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSWebCam *cam);
@@ -1179,7 +1212,8 @@ MS2_PUBLIC MSFilter* video_stream_change_camera_keep_previous_source(VideoStream
 
 
 /* Calling video_stream_set_sent_video_size() or changing the bitrate value in the used PayloadType during a stream is running does nothing.
-The following function allows to take into account new parameters by redrawing the sending graph*/
+The following functions allow to take into account new parameters by redrawing the sending graph*/
+MS2_PUBLIC void video_preview_stream_update_video_params(VideoStream *stream);
 MS2_PUBLIC void video_stream_update_video_params(VideoStream *stream);
 /*function to call periodically to handle various events */
 MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
@@ -1413,6 +1447,8 @@ MS2_PUBLIC void video_stream_enable_fec(VideoStream *stream, char* local_ip, int
  * @param max the max size the sent videostream can reach. 0x0 will remove this limitation.
  */
 MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max);
+
+MS2_PUBLIC void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer);
 
 /**
  * Small API to display a local preview window.

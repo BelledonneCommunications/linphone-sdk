@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -921,6 +922,8 @@ typedef struct DecState {
 	MSAverageFPS fps;
 	uint32_t last_timestamp;
 	int max_threads;
+	int discarded_frames_count;
+	int output_frames_count;
 	bool_t first_image_decoded;
 	bool_t avpf_enabled;
 	bool_t freeze_on_error;
@@ -1092,8 +1095,11 @@ static void *dec_processing_thread(void *obj) {
 				}
 
 				if (yuv_msg == NULL) {
-					ms_warning("MSVp8Dec: no more output buffers, frame is discarded.");
+					s->discarded_frames_count++;
+					ms_warning("%s[%p]: no more output buffers, [%i] discarded frames, [%i] output frames", f->desc->name, f,
+						s->discarded_frames_count, s->output_frames_count);
 				}else{
+					s->output_frames_count++;
 					/* copy frame to destination mblk_t */
 					for (i = 0; i < 3; i++) {
 						uint8_t *dest = s->outbuf.planes[i];

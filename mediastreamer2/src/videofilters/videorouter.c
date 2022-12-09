@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2021 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -61,6 +62,7 @@ typedef enum _IOState IOState;
 
 typedef struct _InputContext{
 	IOState state;
+	bool_t disabled;
 	uint8_t ignore_cseq;
 	uint16_t cur_seq; /* to detect discontinuties*/
 	uint32_t cur_ts; /* current timestamp, to detect beginning of frames */
@@ -84,13 +86,24 @@ typedef struct RouterState{
 	OutputContext output_contexts[ROUTER_MAX_OUTPUT_CHANNELS];
 	int focus_pin;
 	is_key_frame_func_t is_key_frame;
+	int placeholder_pin;
 } RouterState;
 
 static void router_init(MSFilter *f){
 	RouterState *s=ms_new0(RouterState,1);
 	s->is_key_frame=is_key_frame_dummy;
 	s->focus_pin = -1;
+	s->placeholder_pin = -1;
+	/* FIXME: 
+	 * Disable N-2 pin because it is linked to a VoidSource.
+	 * Remove this assumption. Should be set by upper layer instead.
+	 */
+	s->input_contexts[ROUTER_MAX_INPUT_CHANNELS-2].disabled = TRUE;
+	
 	for(int i=0;i<f->desc->noutputs;i++){
+		/* All outputs must be unconfigured */
+		s->output_contexts[i].next_source = -1;
+		s->output_contexts[i].current_source = -1;
 		s->output_contexts[i].link_source = -1;
 	}
 	f->data=s;
@@ -102,19 +115,19 @@ static void router_uninit(MSFilter *f){
 }
 
 /* Only called in the active speaker case */
-static void elect_new_source(MSFilter *f, OutputContext *output_context){
+static int elect_new_source(MSFilter *f, OutputContext *output_context){
 	RouterState *s=(RouterState *)f->data;
 	int k;
 	int current;
 	
 	if (output_context->link_source == -1){
 		ms_error("elect_new_source(): should be called only for active speaker case.");
-		return;
+		return output_context->next_source;
 	}
-	if (output_context->link_source != s->focus_pin && s->focus_pin != -1){
+	if (output_context->link_source != s->focus_pin && s->focus_pin != -1 && f->inputs[s->focus_pin] != NULL){
 		/* show the active speaker */
 		output_context->next_source = s->focus_pin;
-		return;
+		return output_context->next_source;
 	}
 	if (output_context->next_source != -1){
 		current = output_context->next_source;
@@ -125,18 +138,15 @@ static void elect_new_source(MSFilter *f, OutputContext *output_context){
 	/* show somebody else, but not us */
 	for(k=current+1; k < current+1+f->desc->ninputs; k++){
 		int next_pin=k % f->desc->ninputs;
-		/* Comment about f->desc->ninputs - 2:
-		 * FIXME: -1 = nowebcam, -2 = VoidSource
-		 * This filter shall not make such assumptions.
-		 */
-		if (f->inputs[next_pin] && next_pin < f->desc->ninputs - 2 && next_pin != output_context->link_source){
+		if (f->inputs[next_pin] && next_pin != output_context->link_source 
+			&& next_pin != s->placeholder_pin && !s->input_contexts[next_pin].disabled){
 			output_context->next_source = next_pin;
-			return;
+			return output_context->next_source;
 		}
 	}
 	/* Otherwise, show nothing. */
 	output_context->next_source = -1;
-	return;
+	return output_context->next_source;
 }
 
 static int router_configure_output(MSFilter *f, void *data){
@@ -153,6 +163,7 @@ static int router_configure_output(MSFilter *f, void *data){
 			s->output_contexts[pd->output].next_source = s->focus_pin;
 		}else{
 			/* we will elect another source in process() function */
+			s->output_contexts[pd->output].next_source = -1;
 		}
 	}
 
@@ -237,29 +248,45 @@ static void router_transfer(MSFilter *f, MSQueue *input,  MSQueue *output, Outpu
 
 static void _router_set_focus(MSFilter *f, RouterState *s , int pin){
 	int i;
+	int requested_pin = pin;
+	
 	ms_message("%s: set focus %d", f->desc->name, pin);
+	
+	if (pin != -1  && f->inputs[pin] == NULL && s->placeholder_pin != -1){
+		ms_message("%s: Focus requested on an unconnected pin, will use placeholder on input pin [%i]", f->desc->name, s->placeholder_pin);
+		pin = s->placeholder_pin;
+	}
+	
 	for (i = 0 ; i < f->desc->noutputs-1; ++i){
-		// if there is no link_source, always keep current source
-		if (s->output_contexts[i].link_source != -1) {
-			if (pin != s->output_contexts[i].link_source){
-				// don't switched to link_source (itself)
+		// When link_source is defined, it means that the output has to be feed with active speaker stream.
+		if (f->outputs[i] && s->output_contexts[i].link_source != -1) {
+			// Never send back self contribution.
+			if (requested_pin != s->output_contexts[i].link_source){
 				s->output_contexts[i].next_source = pin;
+			}else if (s->output_contexts[i].next_source == s->placeholder_pin){
+				/* Do not leave the new focus on the place holder : 
+				 * - looking at the placeholder is not so pleasant, even more if it is no longer speaking
+				 * - this solves the case where a member leaves, where a new focus is arbitrary selected.
+				 */
+				s->output_contexts[i].next_source = -1;
 			}
 			ms_message("%s: this pin %d link_source[%d], current_source %d and next_source %d", f->desc->name, i, s->output_contexts[i].link_source, s->output_contexts[i].current_source, s->output_contexts[i].next_source);
 		}
 	}
-	s->focus_pin=pin;
+	s->focus_pin = requested_pin;
 }
 
 static void router_preprocess(MSFilter *f){
 	RouterState *s=(RouterState *)f->data;
 	int i;
 	
-	if (s->focus_pin == -1){
-		for(i=0;i<f->desc->noutputs-1;++i){ // pin is reserved
+	if (s->focus_pin != -1) {
+		/* Re-apply the focus selection in case of reconnection.
+		* Indeed, some new contributors may appear, in which case the placeholder is no longer needed */
+		for(i=0;i<f->desc->noutputs-1;++i){
 			MSQueue *q = f->outputs[i];
 			if (q){
-				_router_set_focus(f, s, i);
+				_router_set_focus(f, s, s->focus_pin);
 				break;
 			}
 		}
@@ -306,21 +333,27 @@ static void router_process(MSFilter *f){
 					output_context->next_source = -1;
 				}
 				if (output_context->current_source != -1 && f->inputs[output_context->current_source] == NULL){
-					ms_warning("%s: current source %i disapeared, choosing another one to switch to.", f->desc->name, output_context->current_source);
-					output_context->next_source = -1;
-					output_context->current_source = -1; /* Invalidate the current source until the switch.*/
+					output_context->current_source = -1; /* Invalidate the current source until the next switch. */
+					ms_warning("%s: current source %i disapeared.", f->desc->name, output_context->current_source);
 				}
 				if (output_context->next_source == -1){
-					elect_new_source(f, output_context);
+					if (elect_new_source(f, output_context) != -1){
+						ms_message("%s: new source automatically selected for output pin [%i]: next_source=[%i]",
+							f->desc->name, i, output_context->next_source);
+					}
 				}
 
 				if (output_context->current_source != output_context->next_source && output_context->next_source != -1){
 					/* This output is waiting a key-frame to start */
 					input_context = &s->input_contexts[output_context->next_source];
 					if (input_context->key_frame_start != NULL){
+						MSVideoRouterSwitchedEventData event_data;
+						event_data.output = i;
+						event_data.input = output_context->next_source;
 						/* The input just got a key frame, we can switch ! */
 						output_context->current_source = output_context->next_source;
 						key_frame_start = input_context->key_frame_start;
+						ms_filter_notify(f, MS_VIDEO_ROUTER_OUTPUT_SWITCHED, &event_data);
 					}else{
 						/* else request a key frame */
 						if (input_context->key_frame_requested == FALSE){
@@ -329,17 +362,11 @@ static void router_process(MSFilter *f){
 						}
 					}
 				}
-
-				if (output_context->current_source != -1 && f->inputs[output_context->current_source]){
-					input_context = &s->input_contexts[output_context->current_source];
-					if (input_context->state == RUNNING){
-						router_transfer(f, f->inputs[output_context->current_source], q, output_context, key_frame_start);
-					}
-				}
-			} else if (output_context->current_source != -1 && f->inputs[output_context->current_source]){
+			}
+			if (output_context->current_source != -1 && f->inputs[output_context->current_source]){
 				input_context = &s->input_contexts[output_context->current_source];
 				if (input_context->state == RUNNING){
-					router_transfer(f, f->inputs[output_context->current_source], q, output_context, input_context->key_frame_start);
+					router_transfer(f, f->inputs[output_context->current_source], q, output_context, key_frame_start);
 				}
 			}
 		}
@@ -359,11 +386,11 @@ static int router_set_focus(MSFilter *f, void *data){
 		ms_warning("router_set_focus: invalid pin number %i",pin);
 		return -1;
 	}
-	if (s->focus_pin!=pin){
+	if (s->focus_pin != pin){
+		ms_message("%s: focus requested on pin %i", f->desc->name, pin);
 		ms_filter_lock(f);
 		_router_set_focus(f, s, pin);
 		ms_filter_unlock(f);
-		ms_message("%s: focus requested on pin %i", f->desc->name, pin);
 	}
 	return 0;
 }
@@ -394,6 +421,12 @@ static int router_set_local_member_pin(MSFilter *f, void *data) {
 	}
 	ms_error("%s: invalid argument to MS_VIDEO_ROUTER_SET_AS_LOCAL_MEMBER", f->desc->name);
 	return -1;
+}
+
+static int router_set_placeholder(MSFilter *f, void *data){
+	RouterState *s=(RouterState *)f->data;
+	s->placeholder_pin = *(int*)data;
+	return 0;
 }
 
 static int router_notify_pli(MSFilter *f, void *data){
@@ -433,6 +466,7 @@ static MSFilterMethod methods[]={
 	{	MS_VIDEO_ROUTER_UNCONFIGURE_OUTPUT , router_unconfigure_output },
 	{	MS_VIDEO_ROUTER_SET_FOCUS , router_set_focus},
 	{	MS_VIDEO_ROUTER_SET_AS_LOCAL_MEMBER , router_set_local_member_pin },
+	{	MS_VIDEO_ROUTER_SET_PLACEHOLDER , router_set_placeholder},
 	{	MS_VIDEO_ROUTER_NOTIFY_PLI, router_notify_pli },
 	{	MS_VIDEO_ROUTER_NOTIFY_FIR, router_notify_fir },
 	{	MS_FILTER_SET_INPUT_FMT, router_set_fmt },

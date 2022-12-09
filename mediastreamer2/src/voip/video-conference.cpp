@@ -1,25 +1,27 @@
 /*
-* Copyright (c) 2010-2020 Belledonne Communications SARL.
-*
-* This file is part of mediastreamer2.
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ *
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef VIDEO_ENABLED
 #include "video-conference.h"
 #include "mediastreamer2/msconference.h"
+#include "mediastreamer2/msrtp.h"
 
 using namespace ms2;
 
@@ -72,13 +74,23 @@ VideoEndpoint *VideoConferenceGeneric::getVideoPlaceholderMember() const {
 	return mVideoPlaceholderMember;
 }
 
-VideoEndpoint *VideoConferenceGeneric::getMemberAtPin(int pin) const {
+VideoEndpoint *VideoConferenceGeneric::getMemberAtInputPin(int pin) const {
 	const MSList *it;
 	for (it=mMembers;it!=NULL;it=it->next){
 		VideoEndpoint *ep=(VideoEndpoint*)it->data;
 		if (ep->mPin==pin) return ep;
 	}
 	if (mVideoPlaceholderMember && (mVideoPlaceholderMember->mPin == pin)) return mVideoPlaceholderMember;
+	return NULL;
+}
+
+VideoEndpoint *VideoConferenceGeneric::getMemberAtOutputPin(int pin) const {
+	const MSList *it;
+	for (it=mMembers;it!=NULL;it=it->next){
+		VideoEndpoint *ep=(VideoEndpoint*)it->data;
+		if (ep->mOutPin==pin) return ep;
+	}
+	if (mVideoPlaceholderMember && (mVideoPlaceholderMember->mOutPin == pin)) return mVideoPlaceholderMember;
 	return NULL;
 }
 
@@ -105,11 +117,9 @@ void VideoConferenceGeneric::applyNewBitrateRequest() {
 void plumb_to_conf(VideoEndpoint *ep) {
 	VideoConferenceGeneric *conf=(VideoConferenceGeneric *)ep->mConference;
 	MSVideoConferenceFilterPinControl pc;
-
-	if (ep != conf->getVideoPlaceholderMember()) {
-		if (ep->mMixerOut.filter){
-			ms_filter_link(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
-		}
+	
+	if (ep->mMixerOut.filter && ep->mOutPin != -1){
+		ms_filter_link(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
 	}
 
 	if (ep->mMixerIn.filter){
@@ -129,30 +139,39 @@ void unplumb_from_conf(VideoEndpoint *ep) {
 	if (ep->mMixerIn.filter){
 		ms_filter_unlink(ep->mMixerIn.filter,ep->mMixerIn.pin,conf->getMixer(),ep->mPin);
 	}
-	if (ep->mMixerOut.filter && ep != conf->getVideoPlaceholderMember()){
+	if (ep->mMixerOut.filter && ep->mOutPin != -1){
 		ms_filter_unlink(conf->getMixer(),ep->mOutPin,ep->mMixerOut.filter,ep->mMixerOut.pin);
 	}
 }
 
 void on_filter_event(void *data, MSFilter *f, unsigned int event_id, void *event_data) {
-	VideoConferenceGeneric *obj=(VideoConferenceGeneric*)data;
-	int pin=*(int*)event_data;
-	VideoEndpoint *ep=obj->getMemberAtPin(pin);
-	if (ep){
-		switch(event_id){
-			case MS_VIDEO_SWITCHER_SEND_FIR:
-			case MS_VIDEO_ROUTER_SEND_FIR:
+	VideoConferenceGeneric *obj = (VideoConferenceGeneric *) data;
+	int pin;
+	VideoEndpoint *ep;
+
+	switch(event_id) {
+		case MS_VIDEO_SWITCHER_SEND_FIR:
+		case MS_VIDEO_ROUTER_SEND_FIR:
+			pin = *(int *) event_data;
+			ep = obj->getMemberAtInputPin(pin);
+			if (ep) {
 				ms_message("Filter needs a refresh frame (FIR) for [%s] endpoint created from VideoStream [%p]",
 					ep->mIsRemote ? "remote" : "local",
 					ep->mSt);
-				if (ep->mIsRemote){
+				if (ep->mIsRemote) {
 					video_stream_send_fir(ep->mSt);
-				}else{
+				} else {
 					video_stream_send_vfu(ep->mSt);
 				}
-			break;
-			case MS_VIDEO_SWITCHER_SEND_PLI:
-			case MS_VIDEO_ROUTER_SEND_PLI:
+			} else {
+				ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			}
+		break;
+		case MS_VIDEO_SWITCHER_SEND_PLI:
+		case MS_VIDEO_ROUTER_SEND_PLI:
+			pin = *(int *) event_data;
+			ep = obj->getMemberAtInputPin(pin);
+			if (ep) {
 				ms_message("Filter needs a refresh frame (PLI) for [%s] endpoint created from VideoStream [%p]",
 					ep->mIsRemote ? "remote" : "local",
 					ep->mSt);
@@ -161,10 +180,21 @@ void on_filter_event(void *data, MSFilter *f, unsigned int event_id, void *event
 				}else{
 					ms_filter_call_method_noarg(ep->mSt->ms.encoder, MS_VIDEO_ENCODER_NOTIFY_PLI);
 				}
-			break;
-		}
-	}else{
-		ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			} else {
+				ms_error("Filter generated an event for an unknown pin [%i]",pin);
+			}
+		break;
+		case MS_VIDEO_ROUTER_OUTPUT_SWITCHED:
+			MSVideoRouterSwitchedEventData *data = (MSVideoRouterSwitchedEventData *) event_data;
+			VideoEndpoint *in = obj->getMemberAtInputPin(data->input);
+			VideoEndpoint *out = obj->getMemberAtOutputPin(data->output);
+
+			if (in != NULL && out != NULL) {
+				uint32_t ssrc = media_stream_get_recv_ssrc(&in->mSt->ms);
+
+				ms_filter_call_method(out->mSt->ms.rtpsend, MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, &ssrc);
+			}
+		break;
 	}
 }
 

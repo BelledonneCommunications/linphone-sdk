@@ -1,19 +1,20 @@
 /*
- * Copyright (c) 2010-2019 Belledonne Communications SARL.
+ * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2.
+ * This file is part of mediastreamer2 
+ * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
+ * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
@@ -548,10 +549,11 @@ static int msv4l2_do_mmap(V4l2State *s){
 	return 0;
 }
 
-static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
+static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms, bool_t * timeout){
 	struct v4l2_buffer buf;
 	mblk_t *ret=NULL;
 	struct pollfd fds;
+	int pollret;
 
 	memset(&buf,0,sizeof(buf));
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -561,7 +563,7 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 	fds.events=POLLIN;
 	fds.fd=s->fd;
 	/*check with poll if there is something to read */
-	if (poll(&fds,1,poll_timeout_ms)==1 && fds.revents==POLLIN){
+	if ( (pollret = poll(&fds,1,poll_timeout_ms))==1 && fds.revents==POLLIN){
 		if (v4l2_ioctl(s->fd, VIDIOC_DQBUF, &buf)<0) {
 			switch (errno) {
 			case EAGAIN:
@@ -597,6 +599,8 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms){
 			else ret->b_cont->b_wptr=ret->b_cont->b_rptr+buf.bytesused;
 		}
 	}
+	if( pollret == 0 && timeout)
+		*timeout = TRUE;
 	return ret;
 }
 
@@ -631,7 +635,7 @@ static mblk_t * v4lv2_grab_image(V4l2State *s, int poll_timeout_ms){
 	}
 
 	if (s->queued){
-		ret=v4l2_dequeue_ready_buffer(s,poll_timeout_ms);
+		ret=v4l2_dequeue_ready_buffer(s,poll_timeout_ms, NULL);
 	}else if (no_slot_available){
 		ms_usleep(100000);
 	}
@@ -697,6 +701,7 @@ static void msv4l2_uninit(MSFilter *f){
 static void *msv4l2_thread(void *ptr){
 	V4l2State *s=(V4l2State*)ptr;
 	uint64_t start;
+	bool_t is_poll_timeout = FALSE;
 
 	ms_message("[MSV4l2] msv4l2_thread starting");
 	if (s->fd==-1){
@@ -733,8 +738,9 @@ static void *msv4l2_thread(void *ptr){
 	}
 	/*dequeue pending buffers so that we can properly unref them (avoids memleak ), and even worse crashes (vmware)*/
 	start=bctbx_get_cur_time_ms();
-	while(s->queued){
-		v4l2_dequeue_ready_buffer(s,50);
+	
+	while(s->queued && !is_poll_timeout){
+		v4l2_dequeue_ready_buffer(s,50, &is_poll_timeout);
 		if (bctbx_get_cur_time_ms()-start > 5000){
 			ms_warning("[MSV4l2] still [%i] buffers not dequeued at exit !", s->queued);
 			break;
