@@ -72,7 +72,7 @@ endif()
 
 find_path(_dnssd_INCLUDE_DIR dns_sd.h
   HINTS $ENV{DNSSD_ROOT} ${DNSSD_ROOT}
-  PATH_SUFFIXES include
+  PATH_SUFFIXES include include/avahi-compat-libdns_sd
   PATHS ${_dnssd_lib_paths}
   )
 
