@@ -28,7 +28,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.13)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-project(bzrtp VERSION 5.2.0 LANGUAGES C CXX)
+project(bzrtp VERSION 5.3.0 LANGUAGES C CXX)
 
 option(ENABLE_SHARED "Build shared library." YES)
 option(ENABLE_STATIC "Build static library." YES)
