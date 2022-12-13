@@ -28,7 +28,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.13)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-project(belle-sip VERSION 5.2.0 LANGUAGES C CXX)
+project(belle-sip VERSION 5.3.0 LANGUAGES C CXX)
 
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
