@@ -29,7 +29,7 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.13)
     cmake_policy(SET CMP0077 NEW)
 endif()
 
-project(mediastreamer2 VERSION 5.2.0 LANGUAGES C CXX)
+project(mediastreamer2 VERSION 5.3.0 LANGUAGES C CXX)
 
 if(WIN32)
     if( NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
