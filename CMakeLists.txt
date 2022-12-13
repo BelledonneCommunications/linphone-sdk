@@ -58,7 +58,7 @@ if(APPLE)
 else()
 	set(LINPHONESDK_PLATFORM "Desktop" CACHE STRING "Platform to build")
 endif()
-set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "UWP" "Macos")
+set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "Macos" "UWP" "Yocto")
 
 set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
 set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
