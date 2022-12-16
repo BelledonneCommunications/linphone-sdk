@@ -64,8 +64,7 @@ include:
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu1804.yml'
 
-  - '.gitlab-ci-files/linux-yocto.yml'
-
+  - '.gitlab-ci-files/yocto-qemuarm64.yml'
 
   - '.gitlab-ci-files/macosx/builds.yml'
   - '.gitlab-ci-files/macosx/tests.yml'

@@ -1,0 +1,34 @@
+debian11-yocto-qemuarm64:
+  stage: build
+  tags: ["docker-debian11-yocto-qemuarm64"]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:kirkstone-qemuarm64
+  #rules:
+  #  - if: $NIGHTLY_MASTER
+  script:
+    - export WORKSPACE_PATH="$CI_PROJECT_DIR"
+    # Update to latest version of meta-bc for current branch (see docker file from meta-bc)
+    - cd /home/build/poky
+    - git clone https://gitlab.linphone.org/BC/public/meta-bc.git -b feature/yocto-kirkstone
+    - echo -e '\nBBLAYERS += "${BSPDIR}/meta-bc"' >> build/conf/bblayers.conf
+    - echo -e '\nLICENSE_FLAGS_ACCEPTED = "commercial"' >> build/conf/local.conf
+    - echo -e 'PACKAGECONFIG:append:pn-avahi = " libdns_sd"' >> build/conf/local.conf
+    - echo -e 'PACKAGECONFIG:append:pn-linphone-sdk = " mdns"' >> build/conf/local.conf
+    - echo -e 'PACKAGECONFIG:append:pn-linphone-sdk = " h264"' >> build/conf/local.conf
+    - echo -e 'IMAGE_INSTALL:append = " linphone-sdk"' >> build/conf/local.conf
+    - export BB_ENV_PASSTHROUGH_ADDITIONS="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH PREFERED_LINPHONE_SDK_RECIPE_VERSION LATEST_REVISIONS"
+    - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
+    - echo $LINPHONE_SDK_REV
+    - export LINPHONE_SDK_BRANCH="$CI_COMMIT_REF_NAME"
+    - echo $LINPHONE_SDK_BRANCH
+    - export PREFERED_LINPHONE_SDK_RECIPE_VERSION="latest"
+    - echo $PREFERED_LINPHONE_SDK_RECIPE_VERSION
+    - export LATEST_REVISIONS="1"
+    - echo $LATEST_REVISIONS
+    - source oe-init-build-env
+    - bitbake core-image-base 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
+    # Get build logs from linphone-sdk
+    - tar cvzf ${CI_PROJECT_DIR}/bitbake_build_logs.tgz `bitbake -e linphone-sdk | grep ^T= |cut -d'"' -f 2`
+  artifacts:
+    paths:
+      - bitbake_build_error.log
+      - bitbake_build_logs.tgz
