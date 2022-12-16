@@ -1060,7 +1060,7 @@ public:
 HRESULT MFDevices::getDevices(){
 		HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 		UINT32 count = 0;
-		if (FAILED(hr)) {
+		if (FAILED(hr) && hr != S_FALSE) {
 			ms_error("[MSMFoundationCapDesk] Cannot get devices because of failed CoInitialize [%X]", hr);
 			return hr;
 		}
@@ -1070,6 +1070,7 @@ HRESULT MFDevices::getDevices(){
 		if (FAILED(hr)) {
 			ms_error("[MSMFoundationCapDesk] Cannot get devices due to create enumeration attributes [%X]", hr);
 			clean();
+			CoUninitialize();
 			return hr;
 		}
 		//The attribute to be requested is devices that can capture video
@@ -1077,6 +1078,7 @@ HRESULT MFDevices::getDevices(){
 		if (FAILED(hr)) {
 			ms_error("[MSMFoundationCapDesk] Cannot get devices due to capture attribute [%X]", hr);
 			clean();
+			CoUninitialize();
 			return hr;
 		}
 		//Enummerate the video capture devices
@@ -1085,6 +1087,7 @@ HRESULT MFDevices::getDevices(){
 			ms_error("[MSMFoundationCapDesk] Cannot enumerate capture devices from MFEnumDeviceSources [%X]", hr);
 			clean();
 		}
+		CoUninitialize();
 		return hr;
 	}
 class ConfigurationManagerDesktop : public ConfigurationManager<IMFMediaType *>{
