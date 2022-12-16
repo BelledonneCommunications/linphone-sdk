@@ -417,9 +417,21 @@ int __bctbx_WIN_mutex_destroy(bctbx_mutex_t * hMutex)
 }
 
 void bctbx_set_self_thread_name(const char *name){
+	/*
+	 * FIXME later.
+	 * SetThreadDescription() is available from Windows 10 version 1607, causing DLL exception on earlier versions.
+	 * Using GetModuleHandle() + GetProcAddress() would let it work dynamically for win32 apps.
+	 * However GetModuleHandle() is not available on UWP.
+	 * As a result there is no solution to know whether this method is available dynamically on all windows flavors.
+	 * Let's drop it for the moment.
+	 */
+#if 0
 	wchar_t *unicode_name = bctbx_string_to_wide_string(name);
 	SetThreadDescription(GetCurrentThread(), unicode_name);
 	bctbx_free(unicode_name);
+#else
+		bctbx_warning("bctbx_set_self_thread_name(): not implemented.");
+#endif
 }
 
 typedef struct thread_param{
