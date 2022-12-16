@@ -41,6 +41,7 @@ typedef enum _MSSrtpKeySource {
 	MSSrtpKeySourceSDES = 1, /**< The Srtp keys were exchanged using SDES */
 	MSSrtpKeySourceZRTP = 2, /**< The Srtp keys were exchanged using ZRTP */
 	MSSrtpKeySourceDTLS = 3, /**< The Srtp keys were exchanged using DTLS-SRTP */
+	MSSrtpKeySourceEKT = 4, /**< The Srtp keys were exchanged using EKT */
 	MSSrtpKeySourceUnavailable = 0xFF /**< The Srtp keys are not set for all sessions yet (stream is not secure)*/
 } MSSrtpKeySource;
 
@@ -66,6 +67,27 @@ typedef struct _MSCryptoSuiteNameParams{
         const char *name;
         const char *params;
 }MSCryptoSuiteNameParams;
+
+/* EKT as described in RFC 8870 */
+typedef enum _MSEKTCipherType {
+	MS_EKT_CIPHERTYPE_AESKW128 = 0x00,
+	MS_EKT_CIPHERTYPE_AESKW256 = 0x01,
+} MSEKTCipherType;
+
+typedef enum _MSEKTMode {
+	MS_EKT_DISABLED=0, /**< EKT is not in operation */
+	MS_EKT_ENABLED, /**< EKT is used, we should be given an EKT and use it to produce EKT tag on sending and expect EKT tag on reception */
+	MS_EKT_TRANSFER /**< We are in transfer mode: we expect EKT tag at the end of the packet but cannot decrypt, just pass them */
+} MSEKTMode;
+
+typedef struct _MSEKTParametersSet{
+	MSEKTCipherType ekt_cipher_type; /**< AESKW128 or AESKW256 */
+	MSCryptoSuite ekt_srtp_crypto_suite; /**< The SRTP crypto suite to be used to protect the RTP packets with the key encrypted with this EKT */
+	uint8_t ekt_key_value[32]; /**< The EKTKey that the recipient should use when generating EKTCiphertext values, actual size depends on ekt_cipher_type */
+	uint8_t ekt_master_salt[14]; /**< The SRTP master salt to be used with any master key encrypted with this EKT Key, actual size depends on ekt_srtp_crypto_suite */
+	uint16_t ekt_spi; /**< reference this EKTKey and SRTP master salt */
+	uint32_t ekt_ttl; /**< The maximum amount of time, in seconds, that this EKTKey can be used.(on 24 bits) */
+}MSEKTParametersSet;
 
 MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
 MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
@@ -207,6 +229,41 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSes
  * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
+
+/**
+ * Set the session EKT operation mode:
+ *   - MS_EKT_DISABLED: No EKT, this is the default mode.
+ *   - MS_EKT_ENABLED: We are expecting to get a EKT and use it to produce EKT tag on outgoing packet and parse EKT tag on incoming ones
+ *   - MS_EKT_TRANSFER: We are a relay unable to decrypt the EKT tag but it will be present at the end of the packet and we need to relay it
+ *
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		mode		One of disabled, enabled or transfer
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode);
+
+/**
+ * Set Encrypted Key transport for sending
+ * Once set, sending stream on this session will regenerate a SRTP master key and dispatch it using the given EKT
+ *
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		ekt		The parameter set holding all information needed to generate and dispatch Srtp master key.
+ *                                      Data is copied internally and caller can dispose of it at anytime after this call
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
+
+/**
+ * Add an Encrypted Key transport for receiving to the existing contexts
+ * If a SRTP packet using this paramer set is received, we will be able to decrypt it
+ * old parameter set are kept to be able to decrypt packets using old one arriving late
+ *
+ * @param[in/out]	stream		The mediastream to operate on
+ * @param[in]		ekt		The parameter set holding all information needed to decrypt incoming EKT tags and set the SRTP receiving context
+ *                                      Data is copied internally and caller can dispose of it at anytime after this call
+ * @return	0 on success, error code otherwise
+ */
+MS2_PUBLIC int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
 
 /**
  * Convert MSCryptoSuite enum to a string.

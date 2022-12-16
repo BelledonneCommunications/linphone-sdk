@@ -18,6 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <vector>
+#include <map>
+
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
@@ -26,9 +29,8 @@
 #include "mediastreamer2/ms_srtp.h"
 #include "mediastreamer2/mediastream.h"
 #include "bctoolbox/crypto.h"
+#include "bctoolbox/crypto.hh"
 
-// interface is linked as C
-extern "C" {
 
 #ifdef HAVE_SRTP
 
@@ -42,9 +44,60 @@ extern "C" {
 #include "srtp_prefix.h"
 
 
+
 #define NULL_SSRC 0
 
-typedef struct _MSSrtpStreamContext {
+static size_t ms_srtp_get_master_key_size(MSCryptoSuite suite);
+static size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite);
+
+struct MSSrtpStreamStats {
+	MSSrtpKeySource source; /**< who provided the key (SDES, ZRTP, DTLS-SRTP) */
+	MSCryptoSuite suite; /**< what crypto suite was set. Is set to MS_CRYPTO_SUITE_INVALID if setting fails */
+	MSSrtpStreamStats() : source{MSSrtpKeySourceUnavailable}, suite{MS_CRYPTO_SUITE_INVALID} {};
+};
+
+enum class EktMode {
+	disabled, /**< Do not use EKT */
+	enabled, /**< We are expecting to get a EKT and use it to produce EKT tag on outgoing packet and parse EKT tag on incoming ones. If no keys are present packets are dropped */
+	transfer /**< We are a relay unable to decrypt the EKT tag but it will be present at the end of the packet and we need to relay it */
+};
+
+/**
+ * Class to store all context informations needed by the EKT
+ */
+class Ekt {
+	public:
+		bctoolbox::AesId cipher_type; /**< AESKW128 or AESKW256 */
+		MSCryptoSuite srtp_crypto_suite; /**< The SRTP crypto suite to be used to protect the RTP packets with the key encrypted with this EKT */
+		std::vector<uint8_t> key; /**< The EKTKey that the recipient should use when generating EKTCiphertext values, size depends on ekt_cipher_type */
+		std::vector<uint8_t> srtp_master_key; /**< The SRTP master key currently in use: note we use the same key when bundling sessions when sending */
+		std::vector<uint8_t> srtp_master_salt; /**< The SRTP master salt to be used with any master key encrypted with this EKT Key, size depends on ekt_srtp_crypto_suite */
+		uint16_t spi; /**< reference this EKTKey and SRTP master salt */
+		uint32_t ttl; /**< The maximum amount of time, in seconds, that this EKTKey can be used.(on 24 bits) */
+		uint16_t epoch; /**< how many SRTP keys have been sent for this SSRC under the current EKTKey, prior to the current key */
+		std::map<uint32_t,std::vector<uint8_t>> cipher_texts; /**< maps of current cipher text in use indexed by SSRC - as a session can bundle several SSRC */
+
+		Ekt() {};
+		Ekt(const MSEKTParametersSet *params):cipher_type{bctoolbox::AesId::AES128}, srtp_crypto_suite{params->ekt_srtp_crypto_suite}, key{std::vector<uint8_t>(ms_srtp_get_master_key_size(srtp_crypto_suite))}, srtp_master_salt{std::vector<uint8_t>(ms_srtp_get_master_salt_size(srtp_crypto_suite))}, spi{params->ekt_spi}, ttl{params->ekt_ttl}, epoch{0}  {
+			memcpy(key.data(), params->ekt_key_value, key.size());
+			memcpy(srtp_master_salt.data(), params->ekt_master_salt, srtp_master_salt.size());
+			if (params->ekt_cipher_type == MS_EKT_CIPHERTYPE_AESKW256) {
+				cipher_type = bctoolbox::AesId::AES256;
+			}
+		}
+		~Ekt() {
+			if (!key.empty()) {
+				bctbx_clean(key.data(), key.size());
+			}
+			if (!srtp_master_key.empty()) {
+				bctbx_clean(srtp_master_key.data(), srtp_master_key.size());
+			}
+		}
+};
+
+
+class MSSrtpStreamContext {
+	public:
 	srtp_t srtp;
 	/* store modifiers in the context just to be able to not append then again if the context is modified */
 	RtpTransportModifier *modifier_rtp;
@@ -53,48 +106,54 @@ typedef struct _MSSrtpStreamContext {
 	bool secured;
 	bool mandatory_enabled;
 	/* for stats purpose */
-	MSSrtpKeySource source; /**< who provided the key (SDES, ZRTP, DTLS-SRTP) */
-	MSCryptoSuite suite; /**< what crypto suite was set. Is set to MS_CRYPTO_SUITE_INVALID if setting fails */
+	MSSrtpStreamStats stats;
+
 	/* For double encryption */
 	srtp_t inner_srtp;
-} MSSrtpStreamContext;
+	MSSrtpStreamStats inner_stats;
 
-struct _MSSrtpCtx {
-	MSSrtpStreamContext send_rtp_context;
-	MSSrtpStreamContext recv_rtp_context;
+	/* For EKT */
+	EktMode ekt_mode; /**< EKT operation mode: disabled, enabled, transfer */
+	std::shared_ptr<Ekt> send_ekt; /**< the EKT used by sender */
+	std::map<uint16_t,std::shared_ptr<Ekt>> recv_ekts; /**< a map of EKT used to decrypt incoming EKT tag if needed, indexed by SPI */
+
+	MSSrtpStreamContext() : srtp{nullptr}, modifier_rtp{nullptr}, modifier_rtcp{nullptr}, secured{false}, mandatory_enabled{false}, inner_srtp{nullptr}, ekt_mode{EktMode::disabled}, send_ekt{nullptr} {};
 };
 
-MSSrtpCtx* ms_srtp_context_new(void) {
-	MSSrtpCtx* ctx = ms_new0(struct _MSSrtpCtx,1);
 
-	ms_mutex_init(&ctx->send_rtp_context.mutex, NULL);
-	ctx->send_rtp_context.source = MSSrtpKeySourceUnavailable;
-	ctx->send_rtp_context.suite = MS_CRYPTO_SUITE_INVALID;
+struct _MSSrtpCtx {
+	std::shared_ptr<bctoolbox::RNG> mRNG; /**< EKT needs a RNG to be able to generate srtp master key */
+	MSSrtpStreamContext send; /**< The context used to protect outgoing packets, is always using any_outbound mode so we don't manage SSRC */
+	MSSrtpStreamContext recv; /**< The contex used to unprotect incoming packets. Outer encryption always use any_inbound mode, inner - if present - uses ssrc specific */
 
-	ms_mutex_init(&ctx->recv_rtp_context.mutex, NULL);
-	ctx->recv_rtp_context.source = MSSrtpKeySourceUnavailable;
-	ctx->recv_rtp_context.suite = MS_CRYPTO_SUITE_INVALID;
+	_MSSrtpCtx() : mRNG{std::make_shared<bctoolbox::RNG>()} {};
+};
 
-	return ctx;
-}
-void ms_srtp_context_delete(MSSrtpCtx* session) {
-	ms_mutex_destroy(&session->send_rtp_context.mutex);
-	ms_mutex_destroy(&session->recv_rtp_context.mutex);
-	if (session->send_rtp_context.srtp)
-		srtp_dealloc(session->send_rtp_context.srtp);
-	if (session->recv_rtp_context.srtp)
-		srtp_dealloc(session->recv_rtp_context.srtp);
-	if (session->send_rtp_context.inner_srtp)
-		srtp_dealloc(session->send_rtp_context.inner_srtp);
-	if (session->recv_rtp_context.inner_srtp)
-		srtp_dealloc(session->recv_rtp_context.inner_srtp);
-
-	ms_free(session);
-}
+static int ms_add_srtp_stream(MSSrtpStreamContext *stream_ctx, MSCryptoSuite suite, const uint8_t *key, size_t key_length, bool is_send, bool is_inner, uint32_t ssrc);
 
 /***********************************************/
 /***** LOCAL FUNCTIONS                     *****/
 /***********************************************/
+static MSSrtpCtx* ms_srtp_context_new(void) {
+	MSSrtpCtx* ctx = new _MSSrtpCtx();
+
+	ms_mutex_init(&ctx->send.mutex, NULL);
+	ms_mutex_init(&ctx->recv.mutex, NULL);
+
+	return ctx;
+}
+
+/**** Encrypted Key Transport related functions ****/
+static size_t ms_srtp_ekt_get_tag_size(std::shared_ptr<Ekt> ekt) {
+	// TODO: implement a mecanism to tell if we must send a long or short tag, for now always long
+	// RFC 8870 section 4.1: tag is EKTCipherText + 7 bytes trailer(SPI, Epoch, Length, terminal byte)
+	// EKTPlain is SRTPMasterKeyLength(1 byte) SRTPMasterKey(depends on crypto suite) SSRC(4 bytes) ROC(4 bytes)
+	size_t EKTPlain_size = 1 + ms_srtp_get_master_key_size(ekt->srtp_crypto_suite) + 4 + 4;
+	// EKTCipher size, using AESKeyWrap 128 or 256 is : round up the plaintext size to a multiple of 8 + 8
+	size_t EKTCipher_size = EKTPlain_size + ((EKTPlain_size%8 == 0)?0:(8 - (EKTPlain_size % 8))) + 8;
+	return EKTCipher_size+7;
+}
+
 static void check_and_create_srtp_context(MSMediaStreamSessions *sessions) {
 	if (!sessions->srtp_context)
 		sessions->srtp_context=ms_srtp_context_new();
@@ -108,14 +167,34 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 	slen=(int)msgdsize(m);
 
 	if (rtp_header && (slen>RTP_FIXED_HEADER_SIZE && rtp_header->version==2)) {
+		size_t ekt_tag_size = 0;
+		std::vector<uint8_t> ekt_tag{};
 		ms_mutex_lock(&ctx->mutex);
-		if (ctx->suite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
+		if (ctx->stats.suite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
 			if (ctx->mandatory_enabled) {
 				ms_mutex_unlock(&ctx->mutex);
 				return 0; /* drop the packet */
 			} else {
 				ms_mutex_unlock(&ctx->mutex);
 				return slen; /* pass it uncrypted */
+			}
+		}
+
+		if (ctx->ekt_mode == EktMode::enabled && ctx->send_ekt!=nullptr) {
+			ekt_tag_size = ms_srtp_ekt_get_tag_size(ctx->send_ekt);
+		} else if (ctx->ekt_mode == EktMode::transfer) { // We are in transfer mode: the EktTag shall already be at the end of the packet
+								 // copy it in a buffer to be able to append it again after the srtp_protect call
+			msgpullup(m, -1); // This should be useless(and thus harmless) as in transfer mode the message shall not be fragmented, but just in case
+			if (m->b_rptr[slen-1] == 0x00) { // Short EKT tag
+				ekt_tag_size = 1;
+				ekt_tag.assign({0x00});
+				slen--;
+			} else if (m->b_rptr[slen-1] == 0x02) { // Full EKT tag
+				ekt_tag_size = ((uint16_t)(m->b_rptr[slen-3]))<<8 | (uint16_t)(m->b_rptr[slen-2]);
+				ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
+				slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+			} else {
+				ms_error("SRTP stream [%p] sending packet in transfer mode expecting EKT tag but none were found, type is %x", ctx, m->b_rptr[slen-1]);
 			}
 		}
 
@@ -127,7 +206,7 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 			 * 3 - append the OHB byte to 0x00 after the auth tag
 			 * 4 - pass it to outer encryption */
 			/* defragment incoming message and enlarge the buffer for srtp to write its data */
-			msgpullup(m,slen+2*SRTP_MAX_TRAILER_LEN+5 /*for 32 bits alignment + 1 byte for OHB set to 0x00 */);
+			msgpullup(m, slen + 2*SRTP_MAX_TRAILER_LEN + 5 + ekt_tag_size); // +4 for 32 bits alignment + 1 byte for OHB set to 0x00
 
 			if (rtp_get_extbit(m) != 0) { /* There is an extension header */
 				uint8_t *payload = NULL;
@@ -167,8 +246,6 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 
 
 			} else { /* no extension header, we can directly proceed to inner encryption */
-				/* defragment incoming message and enlarge the buffer for srtp to write its data */
-				msgpullup(m,slen+2*SRTP_MAX_TRAILER_LEN+5 /*for 32 bits alignment + 1 byte for OHB set to 0x00 */);
 				err=srtp_protect(ctx->inner_srtp,m->b_rptr,&slen);
 				if (err!=err_status_ok){
 					ms_warning("srtp_protect inner encryption failed (%d) for stream ctx [%p]", err,ctx);
@@ -180,14 +257,79 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 			slen++;
 		} else {
 			/* defragment incoming message and enlarge the buffer for srtp to write its data */
-			msgpullup(m,slen+SRTP_MAX_TRAILER_LEN+4 /*for 32 bits alignment*/);
+			msgpullup(m, slen + SRTP_MAX_TRAILER_LEN + ekt_tag_size + 4); /*+4 for 32 bits alignment*/ ;
 		}
 
 		err=srtp_protect(ctx->srtp,m->b_rptr,&slen);
+
+		// Append the EKT tag
+		if (ctx->ekt_mode == EktMode::enabled) {
+			if (ctx->send_ekt!=nullptr) {
+				// TODO: implement mecanism to decide if we use short or long EKT tag. For now always long
+				uint32_t ssrc = rtp_header_get_ssrc((rtp_header_t*)m->b_rptr); // Get SSRC from the packet header and not the session as we can bundle several sessions
+				if (ctx->send_ekt->cipher_texts.count(ssrc) == 0) { // We dot not have any cipher text for this SSRC, create it. TODO: We must store also the ROC and check it has not changed
+					auto ekt = ctx->send_ekt;
+					// We must create the cipher text
+					// Plain text is: SRTPMasterKeyLength SRTPMasterKey SSRC ROC
+					// Weird gcc bug: won't build when concatenate the master key to the key length, do it the opposite way: prepend length
+					std::vector<uint8_t> plain_text{ekt->srtp_master_key.begin(), ekt->srtp_master_key.end()};
+					plain_text.insert(plain_text.begin(), static_cast<uint8_t>(ms_srtp_get_master_key_size(ekt->srtp_crypto_suite)));
+
+					plain_text.push_back(static_cast<uint8_t>((ssrc>>24)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((ssrc>>16)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((ssrc>>8)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((ssrc)&0xFF));
+					uint32_t roc = 0;
+					auto ret = srtp_get_stream_roc(ctx->inner_srtp, ssrc, &roc);
+					if (ret != err_status_ok) {
+						ms_error("Unable to retrieve ROC when creating EKT plain text");
+					}
+					plain_text.push_back(static_cast<uint8_t>((roc>>24)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((roc>>16)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((roc>>8)&0xFF));
+					plain_text.push_back(static_cast<uint8_t>((roc)&0xFF));
+
+					// encrypt it
+					std::vector<uint8_t> cipher_text{};
+					cipher_text.reserve(ekt_tag_size);
+					AES_key_wrap(plain_text, ekt->key, cipher_text, ekt->cipher_type);
+
+					// append SPI
+					cipher_text.push_back(static_cast<uint8_t>((ekt->spi>>8)&0xFF));
+					cipher_text.push_back(static_cast<uint8_t>((ekt->spi)&0xFF));
+
+					// append epoch
+					cipher_text.push_back(static_cast<uint8_t>((ekt->epoch>>8)&0xFF));
+					cipher_text.push_back(static_cast<uint8_t>((ekt->epoch)&0xFF));
+
+					// append Length: in bytes, including length and message type byte
+					cipher_text.push_back(static_cast<uint8_t>((ekt_tag_size>>8)&0xFF));
+					cipher_text.push_back(static_cast<uint8_t>((ekt_tag_size)&0xFF));
+
+					// Full EKT tag message type : 0x02
+					cipher_text.push_back(0x02);
+					ekt->cipher_texts.emplace(ssrc, cipher_text);
+				}
+
+				memcpy(m->b_rptr+slen, ctx->send_ekt->cipher_texts[ssrc].data(), ekt_tag_size);
+				slen += (int)(ekt_tag_size);
+			} else { // We were expecting an EKT but don't have it to create the EKT tag
+				if (ctx->mandatory_enabled) { // drop the packet if encryption is mandatory
+					ms_mutex_unlock(&ctx->mutex);
+					return 0; /* drop the packet */
+				}
+			}
+		} else if (ctx->ekt_mode == EktMode::transfer) { // We are in transfer mode: put back the EKT tag at the end of the packet
+			if (ekt_tag_size > 0) {
+				memcpy(m->b_rptr+slen, ekt_tag.data(), ekt_tag_size);
+				slen += (int)(ekt_tag_size);
+			}
+		}
+
 		ms_mutex_unlock(&ctx->mutex);
 	} else if (rtcp_header && (slen>RTP_FIXED_HEADER_SIZE && rtcp_header->version==2)) {
 		ms_mutex_lock(&ctx->mutex);
-		if (ctx->suite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
+		if (ctx->stats.suite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
 			err=err_status_ok;
 			if (ctx->mandatory_enabled) {
 				slen = 0; /*droping packets*/
@@ -239,7 +381,126 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 		}
 	}
 
-	if (ctx->suite == MS_CRYPTO_SUITE_INVALID) {
+	/* Shall we check the EKT ? */
+	std::vector<uint8_t> ekt_tag{};
+	if (is_rtp) {
+		if (ctx->ekt_mode == EktMode::enabled) {
+			if (!ctx->recv_ekts.empty()) {
+				// Is this a FullEKT Tag
+				if (m->b_rptr[slen-1] == 0x00) { // Short EKT tag, just remove it
+					slen--;
+				} else if (m->b_rptr[slen-1] != 0x02) {
+					ms_error("SRTP is expecting an EKT tag but message type is invalid : 0x%x", m->b_rptr[slen-1]);
+				} else {
+					// parse the EKTTag
+					slen -=3;
+					size_t ekt_tag_size = (((uint16_t)m->b_rptr[slen])<<8) | ((uint16_t)m->b_rptr[slen+1]);
+					// skip epoch: not supported for now
+					slen -= 4;
+					uint16_t spi = (((uint16_t)m->b_rptr[slen])<<8) | ((uint16_t)m->b_rptr[slen+1]);
+
+					slen -= (int)(ekt_tag_size) - 7; // b_ptr+slen points at the begining of the EKTtag
+
+					// Do we already have this EKT?
+					auto search = ctx->recv_ekts.find(spi);
+					if (search != ctx->recv_ekts.end()) {
+						auto ekt = search->second;
+						uint32_t ssrc = rtp_header_get_ssrc((rtp_header_t*)m->b_rptr);
+						// If we do not have any cipher text matching this SSRC or the received EKTtag different than one we already have
+						if ((ekt->cipher_texts.count(ssrc) == 0) || (ekt->cipher_texts[ssrc].size() != ekt_tag_size) || (memcmp(ekt->cipher_texts[ssrc].data(), m->b_rptr+slen, ekt_tag_size)!=0)) {
+							// This is a new EKTtag
+							ekt->cipher_texts.emplace(ssrc, std::vector<uint8_t>(m->b_rptr+slen, m->b_rptr+slen+ekt_tag_size));
+
+							// Decrypt it
+							std::vector<uint8_t> ekt_plain_text{};
+							ekt_plain_text.reserve(ekt->cipher_texts[ssrc].size()-8);
+							if (AES_key_unwrap( ekt->cipher_texts[ssrc], ekt->key, ekt_plain_text, ekt->cipher_type) != 0) {
+								ms_error("SRTP stream [%p] unable to decryt EKT tag with SPI %02x. Drop the packet", ctx, spi);
+								return 0;
+							}
+
+							// Parse the EKT tag: Key Length(1 byte), key, SSRC(4 bytes), ROC(4 bytes)
+							size_t index = 0;
+							size_t srtp_master_key_size = ekt_plain_text[index++];
+							std::vector<uint8_t> srtp_master_key(ekt_plain_text.cbegin()+1, ekt_plain_text.cbegin()+1+srtp_master_key_size);
+							index += srtp_master_key_size;
+							uint32_t ekt_ssrc = ((uint32_t)ekt_plain_text[index])<<24
+								| ((uint32_t)ekt_plain_text[index+1])<<16
+								| ((uint32_t)ekt_plain_text[index+2])<<8
+								| ((uint32_t)ekt_plain_text[index+3]);
+							index += 4;
+							uint32_t roc = ((uint32_t)ekt_plain_text[index])<<24
+								| ((uint32_t)ekt_plain_text[index+1])<<16
+								| ((uint32_t)ekt_plain_text[index+2])<<8
+								| ((uint32_t)ekt_plain_text[index+3]);
+
+							// Check SSRC
+							if (ssrc != ekt_ssrc) {
+								ms_error("EKT incoming: EKTTag with SPI %02x  get an SSRC(%04x) and Packet SSRC(%04x) differs. Drop the packet", spi, ekt_ssrc, ssrc);
+								return 0;
+							}
+
+							// Insert the key and ROC in the srtp context
+							srtp_master_key.insert(srtp_master_key.end(), ekt->srtp_master_salt.cbegin(), ekt->srtp_master_salt.cend());
+							if (ctx->inner_srtp == NULL) {
+								ms_mutex_lock(&ctx->mutex);
+								auto err = srtp_create(&ctx->inner_srtp, NULL);
+								if (err != srtp_err_status_ok) {
+									ms_error("Failed to create inner srtp session (%d) for srtp stream [%p] upon reception of a new EKT tag with spi %02x, drop the packet", err, ctx, spi);
+									ms_mutex_unlock(&ctx->mutex);
+									return 0;
+								}
+								ms_mutex_unlock(&ctx->mutex);
+							}
+
+							if (ms_add_srtp_stream(ctx, ekt->srtp_crypto_suite, srtp_master_key.data(), srtp_master_key.size(), false, true, ssrc) != 0) {
+								ms_error("SRTP stream [%p] unable to add EKT tag retrieved SRTP master key in reception on SSRC %04x. Drop the packet", ctx, ssrc);
+								return 0;
+							}
+
+							auto ret = srtp_set_stream_roc(ctx->inner_srtp, ssrc, roc);
+							if (ret != err_status_ok) {
+								ms_error("SRTP stream [%p] unable to set ROC from EKT tag in reception on SSRC %04x. Drop the packet", ctx, ssrc);
+								return 0;
+							}
+							if (ctx->inner_stats.source != MSSrtpKeySourceEKT || ctx->inner_stats.suite != ekt->srtp_crypto_suite) {
+								ctx->inner_stats.source = MSSrtpKeySourceEKT;
+								ctx->inner_stats.suite = ekt->srtp_crypto_suite;
+								/* Srtp encryption has changed, notify to get it in call stats */
+								OrtpEvent *ev = ortp_event_new(ORTP_EVENT_SRTP_ENCRYPTION_CHANGED);
+								OrtpEventData *eventData=ortp_event_get_data(ev);
+								eventData->info.srtp_info.is_send = FALSE;
+								eventData->info.srtp_info.is_inner = TRUE;
+								eventData->info.srtp_info.source = MSSrtpKeySourceEKT;
+								eventData->info.srtp_info.suite = ekt->srtp_crypto_suite;
+								rtp_session_dispatch_event(session, ev);
+							}
+						}
+					} else {
+						ms_warning("Receive EKT tag but we do not have the key to decrypt it(spi %02x), drop packet", spi);
+						return 0;
+					}
+				}
+			} else {
+				ms_warning("EKT enabled but we were given no keys, drop packet");
+				return 0;
+			}
+		} else if (ctx->ekt_mode == EktMode::transfer) {
+			// In transfer mode, we shall save the EktTag in a temp buffer to restore it after the srtp unprotect
+			if (m->b_rptr[slen-1] == 0x00) { // Short EKT tag
+				ekt_tag.assign({0x00});
+				slen--;
+			} else if (m->b_rptr[slen-1] == 0x02) { // Full EKT tag
+				size_t ekt_tag_size = ((uint16_t)(m->b_rptr[slen-3]))<<8 | (uint16_t)(m->b_rptr[slen-2]);
+				ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
+				slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+			} else {
+				ms_error("SRTP stream [%p] receiving packet in transfer mode expecting EKT tag but none were found, type is %x", ctx, m->b_rptr[slen-1]);
+			}
+		}
+	}
+
+	if (ctx->stats.suite == MS_CRYPTO_SUITE_INVALID) {
 		if (ctx->mandatory_enabled) {
 			return 0; /* drop message: we cannot decrypt but encryption is mandatory */
 		} else {
@@ -248,6 +509,7 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 	}
 
 	if (is_rtp) {
+
 		if ((srtp_err = srtp_unprotect(ctx->srtp,m->b_rptr,&slen)) != err_status_ok) {
 			ms_warning("srtp_unprotect_rtp failed (%d) on stream ctx [%p]", srtp_err,ctx);
 			return -1;
@@ -288,7 +550,6 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 				if (srtp_err!=err_status_ok){
 					ms_warning("srtp_unprotect_rtp inner encryption failed (%d) for stream ctx [%p]", srtp_err,ctx);
 					ms_free(synthetic);
-					ms_mutex_unlock(&ctx->mutex);
 					return -1;
 				}
 
@@ -300,6 +561,12 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 			} else {
 				/* no extension header, decrypt directly */
 				srtp_err = srtp_unprotect(ctx->inner_srtp,m->b_rptr,&slen);
+			}
+		} else if (ctx->ekt_mode == EktMode::transfer) { // We shall not be in transfer mode and have inner_srtp context
+			// Restore the Ekt tag after the decrypted packet
+			if (!ekt_tag.empty()) {
+				memcpy(m->b_rptr+slen, ekt_tag.data(), ekt_tag.size()); // No need to worry with pullups as we are just putting back what we removed, buffer is already allocated for that
+				slen += (static_cast<int>(ekt_tag.size()));
 			}
 		}
 	} else { /* rtcp */
@@ -323,6 +590,52 @@ static int ms_srtcp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
 	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, false);
 }
 
+static size_t ms_srtp_get_master_key_size(MSCryptoSuite suite) {
+	switch (suite) {
+		case MS_AES_128_SHA1_80 :
+		case MS_AES_128_SHA1_80_NO_AUTH :
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER :
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER :
+		case MS_AES_128_SHA1_80_NO_CIPHER :
+		case MS_AES_128_SHA1_32 :
+		case MS_AES_128_SHA1_32_NO_AUTH :
+		case MS_AEAD_AES_128_GCM :
+			return SRTP_AES_128_KEY_LEN;
+		case MS_AES_256_SHA1_80 :
+		case MS_AES_CM_256_SHA1_80 :
+		case MS_AES_256_SHA1_32 :
+		case MS_AEAD_AES_256_GCM :
+			return SRTP_AES_256_KEY_LEN;
+		case MS_CRYPTO_SUITE_INVALID :
+		default:
+			return 0;
+			break;
+	}
+}
+
+static size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite) {
+	switch (suite) {
+		case MS_AES_128_SHA1_80 :
+		case MS_AES_128_SHA1_80_NO_AUTH :
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER :
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER :
+		case MS_AES_128_SHA1_80_NO_CIPHER :
+		case MS_AES_128_SHA1_32 :
+		case MS_AES_128_SHA1_32_NO_AUTH :
+		case MS_AES_256_SHA1_80 :
+		case MS_AES_CM_256_SHA1_80 :
+		case MS_AES_256_SHA1_32 :
+			return  SRTP_SALT_LEN;
+		case MS_AEAD_AES_128_GCM :
+		case MS_AEAD_AES_256_GCM :
+			return SRTP_AEAD_SALT_LEN;
+		case MS_CRYPTO_SUITE_INVALID :
+		default:
+			return 0;
+			break;
+	}
+}
+
 /**** Session management functions ****/
 
 /**
@@ -334,7 +647,7 @@ static void ms_srtp_transport_modifier_destroy(RtpTransportModifier *tp){
 }
 
 static MSSrtpStreamContext* get_stream_context(MSMediaStreamSessions *sessions, bool is_send) {
-	return is_send?&sessions->srtp_context->send_rtp_context:&sessions->srtp_context->recv_rtp_context;
+	return is_send?&sessions->srtp_context->send:&sessions->srtp_context->recv;
 }
 
 
@@ -616,7 +929,7 @@ static int ms_add_srtp_stream(MSSrtpStreamContext *stream_ctx, MSCryptoSuite sui
 /* header declared in voip/private.h */
 static int srtp_init_done=0;
 
-int ms_srtp_init(void)
+extern "C" int ms_srtp_init(void)
 {
 
 	err_status_t st =srtp_err_status_ok;
@@ -632,7 +945,7 @@ int ms_srtp_init(void)
 	return (int)st;
 }
 
-void ms_srtp_shutdown(void){
+extern "C" void ms_srtp_shutdown(void){
 	srtp_init_done--;
 	if (srtp_init_done==0){
 		srtp_shutdown();
@@ -655,42 +968,56 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 	/* When the key is NULL or suite set to INVALID, juste deactivate SRTP */
 	if (key == NULL || suite == MS_CRYPTO_SUITE_INVALID) {
 		if (is_inner) {
+			stream_ctx->inner_stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->inner_stats.suite = MS_CRYPTO_SUITE_INVALID;
 		} else {
 			if (stream_ctx->srtp) {
 				srtp_dealloc(stream_ctx->srtp);
 				stream_ctx->srtp=NULL;
 			}
 			stream_ctx->secured = false;
-			stream_ctx->source = MSSrtpKeySourceUnavailable;
-			stream_ctx->suite = MS_CRYPTO_SUITE_INVALID;
+			stream_ctx->stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->stats.suite = MS_CRYPTO_SUITE_INVALID;
 		}
 	} else if ((error = ms_media_stream_session_fill_srtp_context(sessions,is_send, is_inner))) {
 		stream_ctx->secured = false;
-		stream_ctx->source = MSSrtpKeySourceUnavailable;
-		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
+		if (is_inner) {
+			stream_ctx->inner_stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->inner_stats.suite=MS_CRYPTO_SUITE_INVALID;
+		} else {
+			stream_ctx->stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->stats.suite=MS_CRYPTO_SUITE_INVALID;
+		}
 		ret = error;
 	} else	if ((error = ms_add_srtp_stream(stream_ctx, suite, key, key_length, is_send, is_inner, ssrc))) {
 		stream_ctx->secured = false;
-		stream_ctx->source = MSSrtpKeySourceUnavailable;
-		stream_ctx->suite=MS_CRYPTO_SUITE_INVALID;
+		if (is_inner) {
+			stream_ctx->inner_stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->inner_stats.suite=MS_CRYPTO_SUITE_INVALID;
+		} else {
+			stream_ctx->stats.source = MSSrtpKeySourceUnavailable;
+			stream_ctx->stats.suite=MS_CRYPTO_SUITE_INVALID;
+		}
 		ret = error;
 	} else {
-		if (!is_inner) { // not stats on inner encryption
+		if (is_inner) {
+			stream_ctx->inner_stats.source = source;
+			stream_ctx->inner_stats.suite = suite;
+		} else {
 			stream_ctx->secured = ms_srtp_is_crypto_policy_secure(suite);
-			stream_ctx->source = source;
-			stream_ctx->suite = suite;
+			stream_ctx->stats.source = source;
+			stream_ctx->stats.suite = suite;
 		}
 	}
 
-	if (!is_inner) {
-		/* Srtp encryption has changed, notify to get it in call stats */
-		OrtpEvent *ev = ortp_event_new(ORTP_EVENT_SRTP_ENCRYPTION_CHANGED);
-		OrtpEventData *eventData=ortp_event_get_data(ev);
-		eventData->info.srtp_info.is_send = is_send;
-		eventData->info.srtp_info.source = source;
-		eventData->info.srtp_info.suite = suite;
-		rtp_session_dispatch_event(sessions->rtp_session, ev);
-	}
+	/* Srtp encryption has changed, notify to get it in call stats */
+	OrtpEvent *ev = ortp_event_new(ORTP_EVENT_SRTP_ENCRYPTION_CHANGED);
+	OrtpEventData *eventData=ortp_event_get_data(ev);
+	eventData->info.srtp_info.is_send = is_send;
+	eventData->info.srtp_info.is_inner = is_inner;
+	eventData->info.srtp_info.source = source;
+	eventData->info.srtp_info.suite = suite;
+	rtp_session_dispatch_event(sessions->rtp_session, ev);
 
 	return ret;
 }
@@ -698,62 +1025,111 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 
 /**** Public Functions ****/
 /* header declared in include/mediastreamer2/ms_srtp.h */
-bool_t ms_srtp_supported(void){
+extern "C" bool_t ms_srtp_supported(void){
 	return TRUE;
 }
 
+extern "C" void ms_srtp_context_delete(MSSrtpCtx* session) {
+	ms_mutex_destroy(&session->send.mutex);
+	ms_mutex_destroy(&session->recv.mutex);
+	if (session->send.srtp)
+		srtp_dealloc(session->send.srtp);
+	if (session->recv.srtp)
+		srtp_dealloc(session->recv.srtp);
+	if (session->send.inner_srtp)
+		srtp_dealloc(session->send.inner_srtp);
+	if (session->recv.inner_srtp)
+		srtp_dealloc(session->recv.inner_srtp);
 
-bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir) {
+	session->mRNG = nullptr;
+
+	delete(session);
+}
+
+extern "C" bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir) {
 	if(!sessions->srtp_context)
 		return FALSE;
 
 	switch (dir) {
-	case MediaStreamSendRecv: return (sessions->srtp_context->send_rtp_context.secured && sessions->srtp_context->recv_rtp_context.secured);
-	case MediaStreamSendOnly: return sessions->srtp_context->send_rtp_context.secured;
-	case MediaStreamRecvOnly: return sessions->srtp_context->recv_rtp_context.secured;
+	case MediaStreamSendRecv: return (sessions->srtp_context->send.secured && sessions->srtp_context->recv.secured);
+	case MediaStreamSendOnly: return sessions->srtp_context->send.secured;
+	case MediaStreamRecvOnly: return sessions->srtp_context->recv.secured;
 	}
 
 	return FALSE;
 }
 
-MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+extern "C" MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner) {
 	if (sessions->srtp_context == NULL) {
 		return MSSrtpKeySourceUnavailable;
 	}
 	switch (dir) {
 		case MediaStreamSendRecv:
 			// Check sender and receiver keys have the same source
-			if (sessions->srtp_context->send_rtp_context.source == sessions->srtp_context->recv_rtp_context.source) {
-				return sessions->srtp_context->send_rtp_context.source;
+			if (is_inner == TRUE) {
+				if (sessions->srtp_context->send.inner_stats.source == sessions->srtp_context->recv.inner_stats.source) {
+					return sessions->srtp_context->send.inner_stats.source;
+				} else {
+					return MSSrtpKeySourceUnavailable;
+				}
 			} else {
-				return MSSrtpKeySourceUnavailable;
+				if (sessions->srtp_context->send.stats.source == sessions->srtp_context->recv.stats.source) {
+					return sessions->srtp_context->send.stats.source;
+				} else {
+					return MSSrtpKeySourceUnavailable;
+				}
 			}
 			break;
 		case MediaStreamSendOnly:
-			return sessions->srtp_context->send_rtp_context.source;
+			if (is_inner == TRUE) {
+				return sessions->srtp_context->send.inner_stats.source;
+			} else  {
+				return sessions->srtp_context->send.stats.source;
+			}
 		case MediaStreamRecvOnly:
-			return sessions->srtp_context->recv_rtp_context.source;
+			if (is_inner == TRUE) {
+				return sessions->srtp_context->recv.inner_stats.source;
+			} else  {
+				return sessions->srtp_context->recv.stats.source;
+			}
 	}
 	return MSSrtpKeySourceUnavailable;
 }
 
-MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+extern "C" MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner) {
 	if (sessions->srtp_context == NULL) {
 		return MS_CRYPTO_SUITE_INVALID;
 	}
 	switch (dir) {
 		case MediaStreamSendRecv:
-			// Check sender and receiver keys have the suite
-			if (sessions->srtp_context->send_rtp_context.suite == sessions->srtp_context->recv_rtp_context.suite) {
-				return sessions->srtp_context->send_rtp_context.suite;
-			} else {
-				return MS_CRYPTO_SUITE_INVALID;
+			if (is_inner == TRUE) {
+				// Check sender and receiver keys have the suite
+				if (sessions->srtp_context->send.inner_stats.suite == sessions->srtp_context->recv.inner_stats.suite) {
+					return sessions->srtp_context->send.inner_stats.suite;
+				} else {
+					return MS_CRYPTO_SUITE_INVALID;
+				}
+			} else  {
+				// Check sender and receiver keys have the suite
+				if (sessions->srtp_context->send.stats.suite == sessions->srtp_context->recv.stats.suite) {
+					return sessions->srtp_context->send.stats.suite;
+				} else {
+					return MS_CRYPTO_SUITE_INVALID;
+				}
 			}
 			break;
 		case MediaStreamSendOnly:
-			return sessions->srtp_context->send_rtp_context.suite;
+			if (is_inner == TRUE) {
+				return sessions->srtp_context->send.inner_stats.suite;
+			} else  {
+				return sessions->srtp_context->send.stats.suite;
+			}
 		case MediaStreamRecvOnly:
-			return sessions->srtp_context->recv_rtp_context.suite;
+			if (is_inner == TRUE) {
+				return sessions->srtp_context->recv.inner_stats.suite;
+			} else  {
+				return sessions->srtp_context->recv.stats.suite;
+			}
 	}
 	return MS_CRYPTO_SUITE_INVALID;
 }
@@ -786,40 +1162,40 @@ static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions 
 	return retval;
 }
 
-int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source){
 	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, false, NULL_SSRC);
 }
-int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source, uint32_t ssrc){
+extern "C" int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source, uint32_t ssrc){
 	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, true, ssrc);
 }
 
-int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
+extern "C" int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
 	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, false, NULL_SSRC);
 }
 
-int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
+extern "C" int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source) {
 	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, true, NULL_SSRC);
 }
 
 
 
-int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source) {
+extern "C" int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source) {
 	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, false, source, NULL_SSRC);
 }
 
-int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc) {
+extern "C" int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc) {
 	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, true, source, ssrc);
 }
 
-int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
 	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, false, source, NULL_SSRC);
 }
 
-int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source){
 	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, true, source, NULL_SSRC);
 }
 
-int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
+extern "C" int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	/*for now, managing all streams in one time*/
 	int err;
 	check_and_create_srtp_context(sessions);
@@ -828,18 +1204,107 @@ int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *ses
 			return err;
 		}
 	}
-	sessions->srtp_context->send_rtp_context.mandatory_enabled = (yesno == TRUE);
-	sessions->srtp_context->recv_rtp_context.mandatory_enabled= (yesno == TRUE);
+	sessions->srtp_context->send.mandatory_enabled = (yesno == TRUE);
+	sessions->srtp_context->recv.mandatory_enabled= (yesno == TRUE);
 	return 0;
 }
 
-bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
+extern "C" bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
 
 	if(!sessions->srtp_context)
 		return FALSE;
 
-	return 	   sessions->srtp_context->send_rtp_context.mandatory_enabled
-			&& sessions->srtp_context->recv_rtp_context.mandatory_enabled;
+	return 	   sessions->srtp_context->send.mandatory_enabled
+			&& sessions->srtp_context->recv.mandatory_enabled;
+}
+
+/**
+ * Copy the content of a EKT parameter set to another one
+ * This is used to copy the data given in parameter
+ */
+/*
+static void ms_media_stream_MSEKTParametersSet_copy(MSEKTParametersSet *dst, const MSEKTParametersSet *src) {
+	dst->ekt_cipher_type = src->ekt_cipher_type;
+	dst->ekt_srtp_crypto_suite = src->ekt_srtp_crypto_suite;
+	memcpy(dst->ekt_key_value, src->ekt_key_value, 32);
+	memcpy(dst->ekt_master_salt, src->ekt_master_salt, 14);
+	dst->ekt_spi = src->ekt_spi;
+	dst->ekt_ttl = src->ekt_ttl;
+}
+*/
+extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode) {
+	check_and_create_srtp_context(sessions);
+
+	auto ekt_mode = EktMode::disabled;
+
+	switch (mode) {
+		case MS_EKT_DISABLED:
+			ekt_mode = EktMode::disabled;
+			break;
+		case MS_EKT_ENABLED:
+			ekt_mode = EktMode::enabled;
+			break;
+		case MS_EKT_TRANSFER:
+			ekt_mode = EktMode::transfer;
+			break;
+		default:
+			ms_error("Invalid EKT operation mode %d", (int)mode);
+			return -1;
+			break;
+	}
+
+	sessions->srtp_context->send.ekt_mode = ekt_mode;
+	sessions->srtp_context->recv.ekt_mode = ekt_mode;
+
+	return 0;
+}
+
+extern "C" int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
+	check_and_create_srtp_context(sessions);
+	// Check this is not a key already in use
+	if (sessions->srtp_context->send.send_ekt != nullptr) {
+		if (sessions->srtp_context->send.send_ekt->spi == ekt_params->ekt_spi) {
+			ms_warning("EKT with SPI %d already used in sending context", ekt_params->ekt_spi);
+			return 0;
+		}
+	}
+
+	// Force the operating mode to enable as we are given a key
+	sessions->srtp_context->send.ekt_mode = EktMode::enabled;
+
+	// copy the data in to current sending ekt, old one is not needed anymore
+	sessions->srtp_context->send.send_ekt = std::make_shared<Ekt>(ekt_params);
+	auto ekt = sessions->srtp_context->send.send_ekt;
+	size_t master_key_size =  ms_srtp_get_master_key_size(ekt->srtp_crypto_suite);
+	uint8_t salted_key[SRTP_MAX_KEY_LEN]; // local buffer to temporary store key||salt
+
+	// Generate new Master Key for this sending context
+	ekt->srtp_master_key = sessions->srtp_context->mRNG->randomize(master_key_size);
+	memcpy (salted_key, ekt->srtp_master_key.data(), master_key_size); // copy the freshly generated master key
+	memcpy (salted_key+master_key_size, ekt->srtp_master_salt.data(), ekt->srtp_master_salt.size()); // append the master salt after the key
+
+	// Set these keys in the current srtp context
+	ms_media_stream_sessions_set_srtp_inner_send_key(sessions, ekt_params->ekt_srtp_crypto_suite, salted_key, master_key_size+ekt->srtp_master_salt.size(), MSSrtpKeySourceEKT);
+
+	// Cleaning
+	bctbx_clean(salted_key, master_key_size);
+	return 0;
+}
+extern "C" int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
+	check_and_create_srtp_context(sessions);
+	// Check we do not have it yet in the receiver map
+	if (sessions->srtp_context->recv.recv_ekts.count(ekt_params->ekt_spi) != 0) {
+		ms_warning("EKT with SPI %d already present in recv context", ekt_params->ekt_spi);
+		return 0;
+	}
+
+	// Force the operating mode to enable as we are given a key
+	sessions->srtp_context->recv.ekt_mode = EktMode::enabled;
+
+	// duplicate the incoming parameter set and insert it in the map of receiver EKT
+	sessions->srtp_context->recv.recv_ekts.emplace(ekt_params->ekt_spi, std::make_shared<Ekt>(ekt_params));
+	// Key retrieval is performed upon reception of full EKT tag matching the SPI.
+	return 0;
 }
 
 #else /* HAVE_SRTP */
@@ -847,67 +1312,77 @@ bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSess
 typedef void* srtp_t;
 typedef int err_status_t;
 
-bool_t ms_srtp_supported(void){
+extern "C" bool_t ms_srtp_supported(void){
 	return FALSE;
 }
 
-int ms_srtp_init(void) {
+extern "C" int ms_srtp_init(void) {
 	return -1;
 }
 
-void ms_srtp_shutdown(void){
+extern "C" void ms_srtp_shutdown(void){
 }
 
-int ms_media_stream_sessions_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_recv_key_b64(struct _MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
 	ms_error("Unable to set srtp recv key b64: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source){
 	ms_error("Unable to set srtp recv key: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* b64_key, MSSrtpKeySource source){
 	ms_error("Unable to set srtp send key b64: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source){
+extern "C" int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char* key, size_t key_length, MSSrtpKeySource source){
 	ms_error("Unable to set srtp send key: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-int ms_media_stream_session_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
+extern "C" int ms_media_stream_session_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	ms_error("Unable to set srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
+extern "C" bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMediaStreamSessions *sessions) {
 	ms_error("Unable to get srtp encryption mandatory mode: srtp support disabled in mediastreamer2");
 	return -1;
 }
 
-bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir) {
+extern "C" bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir) {
 	return FALSE;
 }
 
-MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+extern "C" MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner) {
 	return MSSrtpKeySourceUnavailable;
 }
 
-MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir) {
+extern "C" MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner) {
 	return MS_CRYPTO_SUITE_INVALID;
 }
 
-void ms_srtp_context_delete(MSSrtpCtx* session) {
+extern "C" void ms_srtp_context_delete(MSSrtpCtx* session) {
 	ms_error("Unable to delete srtp context [%p]: srtp support disabled in mediastreamer2",session);
 }
 
-int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
+extern "C" int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
 	ms_error("Unable to set encryption_mandatory [%p]: srtp support disabled in mediastreamer2",sessions);
 	return -1;
 }
+extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode) {
+	ms_error("Unable to set EKT operation mode: srtp support disabled in mediastreamer2");
+	return -1;
+}
+extern "C" int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, MSEKTParametersSet *ekt) {
+	ms_error("Unable to set EKT send key: srtp support disabled in mediastreamer2");
+	return -1;
+}
+extern "C" int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, MSEKTParametersSet *ekt) {
+	ms_error("Unable to add EKT recv key: srtp support disabled in mediastreamer2");
+	return -1;
+}
 #endif
-
-} // extern "C"

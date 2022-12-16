@@ -100,26 +100,6 @@ MS2_PUBLIC void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMedia
 
 bool_t ms_media_stream_sessions_secured(const MSMediaStreamSessions *sessions,MediaStreamDir dir);
 
-/**
- * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
- * @param[in]		stream_sessions	Pointer to the stream session structure
- * @param[in]		dir	stream direction (send, recv or both)
- * @return the srtp key source if they are consistent:
- * 			both direction (send and receive) have the same source when dir is both
- * 			MSSrtpKeySourceUnavailable otherwise
- */
-MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir);
-
-/**
- * Get the crypto suite used to secure this stream
- * @param[in]		stream_sessions	Pointer to the stream session structure
- * @param[in]		dir	stream direction (send, recv or both)
- * @return the srtp key crypto suite if they are consistent:
- * 			both direction (send and receive) have the same source when dir is both
- * 			MS_CRYPTO_SUITE_INVALID otherwise
- */
-MS2_PUBLIC MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir);
-
 /* The handler of tmmbr for MediaStream objects.*/
 void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer);
 void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr);
