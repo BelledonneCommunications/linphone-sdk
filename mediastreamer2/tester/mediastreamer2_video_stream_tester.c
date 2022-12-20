@@ -198,6 +198,8 @@ typedef struct _video_stream_tester_t {
 	int local_rtcp;
 	MSWebCam * cam;
 	int payload_type;
+	RtpBundle *bundle;
+
 } video_stream_tester_t;
 
 void video_stream_tester_set_local_ip(video_stream_tester_t* obj,const char*ip) {
@@ -232,6 +234,7 @@ video_stream_tester_t* video_stream_tester_create(const char* local_ip, int loca
 void video_stream_tester_destroy(video_stream_tester_t* obj) {
 	if (obj->vconf) ms_free(obj->vconf);
 	if(obj->local_ip) ms_free(obj->local_ip);
+	if(obj->bundle) rtp_bundle_delete(obj->bundle);
 	ms_free(obj);
 }
 
@@ -352,6 +355,22 @@ static void destroy_video_stream(video_stream_tester_t *vst) {
 	video_stream_stop(vst->vs);
 	ortp_ev_queue_destroy(vst->stats.q);
 }
+static void video_stream_tester_bundle_fec(video_stream_tester_t *vst, int L, int D, int pt){
+
+	FecParameters *fec_params;
+	rtp_session_set_jitter_compensation(vst->vs->ms.sessions.rtp_session, 200);
+	vst->vs->ms.sessions.fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
+	rtp_session_set_payload_type(vst->vs->ms.sessions.fec_session, pt);
+	rtp_session_set_scheduling_mode(vst->vs->ms.sessions.fec_session, 0);
+	rtp_session_set_blocking_mode(vst->vs->ms.sessions.fec_session, 0);
+	fec_params = fec_params_new(L, D, 200000);
+
+	vst->bundle = rtp_bundle_new();
+	vst->vs->fec_stream = fec_stream_new(vst->vs->ms.sessions.rtp_session, vst->vs->ms.sessions.fec_session, fec_params);
+	rtp_bundle_add_session(vst->bundle, "video_fec", vst->vs->ms.sessions.rtp_session);
+	rtp_bundle_set_primary_session(vst->bundle, "video_fec");
+	fec_stream_init(vst->vs->fec_stream);
+}
 
 static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, bool_t avpf, bool_t one_way, OrtpNetworkSimulatorParams *params, int payload_type, bool_t nack, bool_t fec) {
 	PayloadType *pt;
@@ -385,10 +404,9 @@ static void init_video_streams(video_stream_tester_t *vst1, video_stream_tester_
 		video_stream_enable_retransmission_on_nack(vst1->vs, TRUE);
 		video_stream_enable_retransmission_on_nack(vst2->vs, TRUE);
     }
-
     if (fec == TRUE) {
-        video_stream_enable_fec(vst1->vs, vst1->local_ip, vst1->local_rtp, vst1->local_rtcp, vst2->local_ip, vst2->local_rtp, 3, 0);
-        video_stream_enable_fec(vst2->vs, vst2->local_ip, vst2->local_rtp, vst2->local_rtcp, vst1->local_ip, vst1->local_rtp, 3, 0);
+		video_stream_tester_bundle_fec(vst1, 5,5, 10);
+		video_stream_tester_bundle_fec(vst2, 5, 5, 10);
     }
 
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip, vst2->local_rtcp, payload_type, 50, vst1->cam), 0,int,"%d");
@@ -1114,280 +1132,17 @@ static void video_stream_with_itcsink(void) {
 	video_stream_tester_destroy(pauline);
 }
 
-mblk_t *fec_stream_on_new_source_packet_sent_test(FecStream *fec_stream, mblk_t *source_packet){
-    msgpullup(source_packet, -1);
-
-    if(fec_stream->cpt == 0){
-        fec_stream->SSRC = rtp_get_ssrc(source_packet);
-        memset(fec_stream->bitstring, 0, UDP_MAX_SIZE * sizeof(uint8_t));
-        fec_stream->bitstring[0] = 1 << 6;
-    }
-
-    if(fec_stream->max_size < (msgdsize(source_packet) - RTP_FIXED_HEADER_SIZE)) fec_stream->max_size = msgdsize(source_packet) - RTP_FIXED_HEADER_SIZE;
-
-    fec_stream->bitstring[0] ^= rtp_get_padbit(source_packet) << 5;
-    fec_stream->bitstring[0] ^= rtp_get_extbit(source_packet) << 4;
-    fec_stream->bitstring[0] ^= rtp_get_cc(source_packet);
-    fec_stream->bitstring[1] ^= rtp_get_markbit(source_packet) << 7;
-    fec_stream->bitstring[1] ^= rtp_get_payload_type(source_packet);
-
-    //Length
-    *(uint16_t *) &fec_stream->bitstring[2] ^= htons((uint16_t)(msgdsize(source_packet) - RTP_FIXED_HEADER_SIZE));
-
-    //Timestamp
-    *(uint32_t *) &fec_stream->bitstring[4] ^= rtp_get_timestamp(source_packet);
-
-    //All octets after the fixed 12-bytes RTPheader
-    for(size_t i = 0 ; i < (msgdsize(source_packet) - RTP_FIXED_HEADER_SIZE) ; i++){
-        fec_stream->bitstring[8 + i] ^= *(uint8_t *) (source_packet->b_rptr+RTP_FIXED_HEADER_SIZE+i);
-    }
-
-    fec_stream->seqnumlist[fec_stream->cpt] = rtp_get_seqnumber(source_packet);
-
-    fec_stream->cpt++;
-
-    if(fec_stream->cpt == fec_stream->params.L){
-        uint16_t *p16 = NULL;
-        uint8_t *p8 = NULL;
-        mblk_t *repair_packet = rtp_session_create_packet(fec_stream->fec_session, RTP_FIXED_HEADER_SIZE, NULL, 0);
-
-        rtp_set_version(repair_packet, 2);
-        rtp_set_padbit(repair_packet, 0);
-        rtp_set_extbit(repair_packet, 0);
-        rtp_set_markbit(repair_packet, 0);
-
-        msgpullup(repair_packet, msgdsize(repair_packet) + 4 + 8 + fec_stream->params.L*4 + fec_stream->max_size);
-
-        rtp_add_csrc(repair_packet, fec_stream->SSRC);
-        repair_packet->b_wptr += sizeof(uint32_t);
-
-        memcpy(repair_packet->b_wptr, &fec_stream->bitstring[0], 8*sizeof(uint8_t));
-        repair_packet->b_wptr += 8*sizeof(uint8_t);
-
-        for (int i = 0 ; i < fec_stream->params.L ; i++){
-            p16 = (uint16_t *) (repair_packet->b_wptr);
-            *p16 = fec_stream->seqnumlist[i];
-            repair_packet->b_wptr += sizeof(uint16_t);
-            p8 = repair_packet->b_wptr;
-            *p8 = fec_stream->params.L;
-            repair_packet->b_wptr++;
-            p8 = repair_packet->b_wptr;
-            *p8 = fec_stream->params.D;
-            repair_packet->b_wptr++;
-        }
-
-        memcpy(repair_packet->b_wptr, &fec_stream->bitstring[8], fec_stream->max_size);
-        repair_packet->b_wptr += fec_stream->max_size;
-
-        fec_stream->cpt = 0;
-        fec_stream->max_size = 0;
-
-        return repair_packet;
-    }
-    return NULL;
-}
-
-static void fec_stream_test_reconstruction(void){
-
-    int L = 5;
-    int packet_size = 0;
-    int pos = 0;
-
-    uint8_t *buffer = NULL;
-    mblk_t *packet = NULL;
-    mblk_t *repair = NULL;
-    mblk_t *lost_packet = NULL;
-    mblk_t *new_packet = NULL;
-    RtpSession *source_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    RtpSession *repair_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    const FecParameters *params = fec_params_new(L, 0, 2);
-    FecStream *fec_stream = fec_stream_new(source_session, repair_session, params);
-    source_session->fec_stream = fec_stream;
-
-    srand((unsigned int) time(NULL));
-
-    for(int stop = 0 ; stop < 1000 ; stop++){
-
-        bool_t reconstruction = FALSE;
-        uint16_t num = 0;
-        int position = 0;
-
-        rtp_session_set_payload_type(source_session, 114);
-
-        for(int i = 0 ; i < 100 ; i++){
-            packet_size = rand()%1400;
-            buffer = (uint8_t *) malloc(packet_size*sizeof(uint8_t));
-            for(int i = 0 ; i < packet_size ; i++){
-                buffer[i] = rand()%256;
-            }
-            packet = rtp_session_create_packet(source_session, RTP_FIXED_HEADER_SIZE, buffer, packet_size);
-            rtp_set_seqnumber(packet, num);
-            num++;
-            rtp_set_timestamp(packet, rand()%429496729);
-            putq(&fec_stream->source_packets_recvd, packet);
-            repair = fec_stream_on_new_source_packet_sent_test(fec_stream, packet);
-            if(repair != NULL){
-                putq(&fec_stream->repair_packets_recvd, repair);
-            }
-            free(buffer);
-        }
-
-        pos = rand()%100;
-        for(mblk_t *tmp = qbegin(&fec_stream->source_packets_recvd) ; !qend(&fec_stream->source_packets_recvd, tmp) ; tmp = qnext(&fec_stream->source_packets_recvd, tmp)){
-            if(position == pos){
-                lost_packet = tmp;
-                remq(&fec_stream->source_packets_recvd, lost_packet);
-                break;
-            } position++;
-        }
-
-        new_packet = fec_stream_reconstruct_missing_packet(fec_stream, rtp_get_seqnumber(lost_packet));
-
-        if(msgdsize(lost_packet) == msgdsize(new_packet)){
-            if(memcmp(lost_packet->b_rptr, new_packet->b_rptr, msgdsize(lost_packet)) == 0){
-                reconstruction = TRUE;
-            }
-        }
-
-        BC_ASSERT_TRUE(reconstruction);
-
-        flushq(&fec_stream->source_packets_recvd, 0);
-        flushq(&fec_stream->repair_packets_recvd, 0);
-    }
-
-    rtp_session_destroy(source_session);
-}
-
-static void fec_stream_test_lost_repair_packet(void){
-
-    int L = 5;
-    int packet_size = 0;
-    int pos = 0;
-
-    uint8_t *buffer = NULL;
-    mblk_t *packet = NULL;
-    mblk_t *lost_packet = NULL;
-    mblk_t *new_packet = NULL;
-    RtpSession *source_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    RtpSession *repair_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    const FecParameters *params = fec_params_new(L, 0, 2);
-    FecStream *fec_stream = fec_stream_new(source_session, repair_session, params);
-    source_session->fec_stream = fec_stream;
-
-    srand((unsigned int) time(NULL));
-
-    for(int stop = 0 ; stop < 1000 ; stop++){
-
-        uint16_t num = 0;
-        int position = 0;
-
-        rtp_session_set_payload_type(source_session, 114);
-
-        for(int i = 0 ; i < L ; i++){
-            packet_size = rand()%1400;
-            buffer = (uint8_t *) malloc(packet_size*sizeof(uint8_t));
-            for(int i = 0 ; i < packet_size ; i++){
-                buffer[i] = rand()%256;
-            }
-            packet = rtp_session_create_packet(source_session, RTP_FIXED_HEADER_SIZE, buffer, packet_size);
-            rtp_set_seqnumber(packet, num);
-            rtp_set_timestamp(packet, rand()%429496729);
-            num++;
-            putq(&fec_stream->source_packets_recvd, packet);
-            free(buffer);
-        }
-
-        pos = rand()%L;
-        for(mblk_t *tmp = qbegin(&fec_stream->source_packets_recvd) ; !qend(&fec_stream->source_packets_recvd, tmp) ; tmp = qnext(&fec_stream->source_packets_recvd, tmp)){
-            if(position == pos){
-                lost_packet = tmp;
-                remq(&fec_stream->source_packets_recvd, lost_packet);
-                break;
-            } position++;
-        }
-
-        new_packet = fec_stream_reconstruct_missing_packet(fec_stream, rtp_get_seqnumber(lost_packet));
-
-        BC_ASSERT_PTR_NULL(new_packet);
-
-        flushq(&fec_stream->source_packets_recvd, 0);
-        flushq(&fec_stream->repair_packets_recvd, 0);
-    }
-
-    rtp_session_destroy(source_session);
-}
-
-static void fec_stream_test_lost_2_source_packets(void){
-
-    int L = 5;
-    int packet_size = 0;
-    int pos1 = 0;
-    int pos2 = 0;
-
-    uint8_t *buffer = NULL;
-    mblk_t *packet = NULL;
-    mblk_t *repair = NULL;
-    mblk_t *lost_packet = NULL;
-    mblk_t *new_packet = NULL;
-    RtpSession *source_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    RtpSession *repair_session = rtp_session_new(RTP_SESSION_SENDONLY);
-    const FecParameters *params = fec_params_new(L, 0, 2);
-    FecStream *fec_stream = fec_stream_new(source_session, repair_session, params);
-    source_session->fec_stream = fec_stream;
-
-    srand((unsigned int) time(NULL));
-
-    for(int stop = 0 ; stop < 1000 ; stop++){
-
-        uint16_t num = 0;
-
-        rtp_session_set_payload_type(source_session, 114);
-
-        pos1 = rand()%L;
-        pos2 = rand()%L;
-        pos2 = (pos2 != pos1 ? pos2 : (pos2 + 1) % L);
-        for(int i = 0 ; i < L ; i++){
-            packet_size = rand()%1400;
-            buffer = (uint8_t *) malloc(packet_size*sizeof(uint8_t));
-            for(int i = 0 ; i < packet_size ; i++){
-                buffer[i] = rand()%256;
-            }
-            packet = rtp_session_create_packet(source_session, RTP_FIXED_HEADER_SIZE, buffer, packet_size);
-            if(i == pos2) lost_packet = packet;
-            rtp_set_seqnumber(packet, num);
-            rtp_set_timestamp(packet, rand()%429496729);
-            num++;
-            if(i != pos1 && i != pos2) putq(&fec_stream->source_packets_recvd, packet);
-            repair = fec_stream_on_new_source_packet_sent_test(fec_stream, packet);
-            if(repair != NULL){
-                putq(&fec_stream->repair_packets_recvd, repair);
-            }
-            free(buffer);
-        }
-
-        new_packet = fec_stream_reconstruct_missing_packet(fec_stream, rtp_get_seqnumber(lost_packet));
-
-        BC_ASSERT_PTR_NULL(new_packet);
-
-        flushq(&fec_stream->source_packets_recvd, 0);
-        flushq(&fec_stream->repair_packets_recvd, 0);
-    }
-
-    rtp_session_destroy(source_session);
-}
-
 static void media_stream_test_2_videostreams(int payload_type){
     video_stream_tester_t* marielle=video_stream_tester_new();
     video_stream_tester_t* margaux=video_stream_tester_new();
     OrtpNetworkSimulatorParams params = { 0 };
-
     params.enabled = TRUE;
     params.loss_rate = 5.;
+	fec_stats * stats = NULL;
 
     init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type, FALSE, TRUE);
-
-    BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
-        &marielle->stats.number_of_packet_reconstructed, 1, 6000, event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
+	stats = fec_stream_get_stats(marielle->vs->fec_stream);
+    BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &stats->packets_recovered, 10, 20000));
 
     uninit_video_streams(marielle, margaux);
 
@@ -1498,9 +1253,6 @@ static test_t tests[] = {
 	TEST_NO_TAG("AVPF RPSI count"                            , avpf_rpsi_count),
 	TEST_NO_TAG("Video stream normal loss with retransmission on NACK" , video_stream_normal_loss_with_retransmission_on_nack),
 	TEST_NO_TAG("One-way video stream with itcsink"          , video_stream_with_itcsink),
-	TEST_NO_TAG("Reconstruction packet with FEC"             , fec_stream_test_reconstruction),
-	TEST_NO_TAG("Lost repair packet"                         , fec_stream_test_lost_repair_packet),
-	TEST_NO_TAG("Lost 2 source packets"                      , fec_stream_test_lost_2_source_packets),
 	TEST_NO_TAG("FEC video stream VP8"                       , fec_video_stream_vp8),
 	TEST_NO_TAG("FEC video stream H264"                      , fec_video_stream_h264),
 	TEST_NO_TAG("Basic VP8 stream with frame marking"        , basic_vp8_stream_with_frame_marking)

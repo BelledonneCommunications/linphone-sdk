@@ -1238,6 +1238,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream, RtpPro
 	jbp.max_packets=1000;//needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session,&jbp);
 
+	media_stream_handle_fec(&stream->ms, profile);
+
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port>0) ms_filter_call_method(stream->ms.rtpsend,MS_RTP_SEND_SET_SESSION,stream->ms.sessions.rtp_session);
 	ms_filter_call_method(stream->ms.rtpsend, MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, &do_ts_adjustments);
@@ -2458,18 +2460,6 @@ void video_stream_close_remote_record(VideoStream *stream){
 	if (state != MSRecorderClosed){
 		ms_filter_call_method_noarg(recorder, MS_RECORDER_CLOSE);
 	}
-}
-
-void video_stream_enable_fec(VideoStream *stream, char* local_ip, int local_port, int local_rtcp_port, char* remote_ip, int remote_port, int L, int D){
-    ms_factory_set_mtu(stream->ms.factory, ms_factory_get_mtu(stream->ms.factory) - (12 + L*4));
-    RtpSession *fec_session = ms_create_duplex_rtp_session(ms_is_ipv6(local_ip) ? "::" : "0.0.0.0", local_port+10, local_rtcp_port+10, 0);
-    rtp_session_set_remote_addr(fec_session, remote_ip, remote_port+10);
-    fec_session->fec_stream = NULL;
-    JBParameters jitter_params;
-    rtp_session_get_jitter_buffer_params(stream->ms.sessions.rtp_session, &jitter_params);
-    const FecParameters *fec_params = fec_params_new(L, D, jitter_params.nom_size);
-    FecStream *fec_stream = fec_stream_new(stream->ms.sessions.rtp_session, fec_session, fec_params);
-    stream->ms.sessions.rtp_session->fec_stream = fec_stream;
 }
 
 void video_stream_set_frame_marking_extension_id(VideoStream *stream, int extension_id) {

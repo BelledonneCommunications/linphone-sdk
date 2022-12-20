@@ -164,6 +164,7 @@ typedef struct _MediastreamDatas {
     bool_t enable_fec;
     RtpSession *fec_session;
     FecStream *fec_stream;
+	RtpBundle *fec_bundle;
     int L;
     int D;
 } MediastreamDatas;
@@ -709,16 +710,42 @@ static MSSndCard *get_sound_card(MSSndCardManager *manager, const char* card_nam
 }
 
 void mediastream_fec_enable(MediastreamDatas *args, MSFactory *factory){
-    ms_factory_set_mtu(factory, ms_factory_get_mtu(factory) - (12 + 4*args->L));
+    ms_factory_set_mtu(factory, ms_factory_get_mtu(factory) - (12 + 4*1));
     args->fec_session = ms_create_duplex_rtp_session(ms_is_ipv6(args->ip) ? "::" : "0.0.0.0", rtp_session_get_local_port(args->session)+10, rtp_session_get_local_rtcp_port(args->session)+10, args->mtu);
     rtp_session_set_remote_addr(args->fec_session, args->ip, args->remoteport+10);
     args->fec_session->fec_stream = NULL;
-    const FecParameters *params = fec_params_new(args->L, args->D, args->jitter);
+    FecParameters *params = fec_params_new(args->L, args->D, 200000);
     args->fec_stream = fec_stream_new(args->session, args->fec_session, params);
     args->session->fec_stream = args->fec_stream;
+	if(args->netsim.enabled){
+		rtp_session_enable_network_simulation(args->fec_session, &args->netsim);
+	}
     ms_message("FEC SESSION Socket number : %d", args->fec_session->rtp.gs.socket);
+
 }
 
+void mediastream_fec_enable_bundle(MediastreamDatas *args, MSFactory *factory){
+
+	FecParameters *fec_params;
+
+	args->fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
+	rtp_session_set_payload_type(args->fec_session, 10);
+	rtp_session_set_scheduling_mode(args->fec_session, 0);
+	rtp_session_set_blocking_mode(args->fec_session, 0);
+	fec_params = fec_params_new(args->L, args->D, 200000);
+
+	if(args->netsim.enabled){
+		rtp_session_enable_network_simulation(args->fec_session, &args->netsim);
+	}
+
+	args->fec_bundle = rtp_bundle_new();
+	rtp_bundle_add_session(args->fec_bundle, "video_fec", args->session);
+	rtp_bundle_add_fec_session(args->fec_bundle, args->session, args->fec_session);
+	rtp_bundle_set_primary_session(args->fec_bundle, "video_fec");
+	args->fec_stream = fec_stream_new(args->session, args->fec_session, fec_params);
+	fec_stream_init(args->fec_stream);
+
+}
 void setup_media_streams(MediastreamDatas* args) {
 	/*create the rtp session */
 #ifdef VIDEO_ENABLED
@@ -1025,7 +1052,8 @@ void setup_media_streams(MediastreamDatas* args) {
 		}
 
         if(args->enable_fec){
-            mediastream_fec_enable(args, factory);
+            mediastream_fec_enable_bundle(args, factory);
+
         }
 #else
 		ms_error("Error: video support not compiled.\n");
@@ -1179,11 +1207,7 @@ void clear_mediastreams(MediastreamDatas* args) {
     if (args->video) {
         ms_message("Payload max size : %d", ms_factory_get_payload_max_size(args->factory));
         if(args->enable_fec){
-            ms_message("Number of lost source packets : %d", args->session->fec_stream->total_lost_packets);
-            ms_message("Number of unrepaired packets : %d", args->session->fec_stream->reconstruction_fail);
-            ms_message("Number of repair packets not found : %d", args->session->fec_stream->repair_packet_not_found);
-            ms_message("Number of source packets not found : %d", args->session->fec_stream->source_packets_not_found);
-            ms_message("Number of errors : %d\n", args->session->fec_stream->error);
+			fec_stream_print_stats(args->session->fec_stream);
         }
         if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
