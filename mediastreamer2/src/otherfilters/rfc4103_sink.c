@@ -336,9 +336,19 @@ static int ms_rtt_4103_sink_set_red_payload(MSFilter *f, void *red) {
 	return 0;
 }
 
+static int ms_rtt_4103_resync(MSFilter *f, void *arg){
+	RealTimeTextSinkData *s = (RealTimeTextSinkData *)f->data;
+	ms_filter_lock(f);
+	s->flags = 0;
+	s->prevseqno = 0;
+	ms_filter_unlock(f);
+	return 0;
+}
+
 static MSFilterMethod ms_rtt_4103_sink_methods[] = {
 	{ MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_sink_set_t140_payload	},
 	{ MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER,		ms_rtt_4103_sink_set_red_payload	},
+	{ MS_RTT_4103_SINK_RESYNC,						 	ms_rtt_4103_resync					},
 	{ 0,												NULL								}
 };
 

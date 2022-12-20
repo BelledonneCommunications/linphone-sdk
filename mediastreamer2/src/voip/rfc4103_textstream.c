@@ -59,6 +59,16 @@ static void text_stream_payload_type_changed(RtpSession *session, void *data)
 	}
 }
 
+static void text_stream_ssrc_changed(RtpSession *session, void *data){
+	TextStream *stream = (TextStream *)data;
+	ms_warning("SSRC changed on text stream, resync RED/T140 contexts.");
+	if (!stream->rttsink){
+		ms_error("No RTT sink, should not happen.");
+		return;
+	}
+	ms_filter_call_method_noarg(stream->rttsink, MS_RTT_4103_SINK_RESYNC);
+}
+
 
 TextStream *text_stream_new_with_sessions(MSFactory *factory, const MSMediaStreamSessions *sessions) {
 	TextStream *stream = (TextStream *)ms_new0(TextStream, 1);
@@ -137,6 +147,7 @@ TextStream* text_stream_start(TextStream *stream, RtpProfile *profile, const cha
 		ms_filter_call_method(stream->rttsink, MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, &stream->pt_red);
 	}
 	rtp_session_signal_connect(rtps,"payload_type_changed",(RtpCallback)text_stream_payload_type_changed, stream);
+	rtp_session_signal_connect(rtps,"ssrc_changed",(RtpCallback)text_stream_ssrc_changed, stream);
 	
 	ms_connection_helper_start(&h);
 	ms_connection_helper_link(&h, stream->rttsource, -1, 0);
@@ -177,6 +188,9 @@ void text_stream_stop(TextStream *stream) {
 	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,
                                               "payload_type_changed",
                                               (RtpCallback)text_stream_payload_type_changed);
+	rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session,
+                                              "ssrc_changed",
+                                              (RtpCallback)text_stream_ssrc_changed);
 	ms_factory_log_statistics(stream->ms.factory);
 	text_stream_free(stream);
 	
