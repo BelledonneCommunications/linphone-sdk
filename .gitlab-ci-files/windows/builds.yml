@@ -216,7 +216,7 @@ vs2017-uwp-scheduled-windows:
         - cmake/NuGet/Windows/**/*
   variables:
     LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO 
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
     CMAKE_GENERATOR: "Visual Studio 15 2017"
@@ -233,14 +233,29 @@ vs2017-win32-scheduled-windows:
   rules:
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
-    - if: $UPLOAD_CS_DOC
     - if: $DEPLOY_RUN_WINDOWS
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
     CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_DOC=YES
     OUTPUT_ZIP_FOLDER: win32
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+
+vs2017-win64-scheduled-windows:
+  extends: .windows-vs2017-scheduled
+  rules:
+    - if: $NIGHTLY_MASTER
+    - if: $NIGHTLY_RELEASE
+    - if: $UPLOAD_CS_DOC
+    - if: $DEPLOY_RUN_WINDOWS
+    - *nuget_deploy_rule
+    - *nuget_dev_rule
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_DOC=YES
+    MINGW_TYPE: mingw64
+    OUTPUT_ZIP_FOLDER: win64
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
