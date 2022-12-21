@@ -258,6 +258,7 @@ vs2017-win64-scheduled-windows:
     OUTPUT_ZIP_FOLDER: win64
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+    CMAKE_GENERATOR: "Visual Studio 15 2017 Win64"
 
 vs2017-win32-scheduled-windows-pqc:
   extends: vs2017-win32-scheduled-windows
