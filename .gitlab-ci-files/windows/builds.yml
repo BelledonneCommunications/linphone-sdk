@@ -6,7 +6,7 @@
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     LINPHONESDK_PLATFORM: Desktop
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
@@ -123,7 +123,7 @@
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     MINGW_TYPE: mingw32
     LINPHONESDK_PLATFORM: Desktop
     CMAKE_GENERATOR: Ninja
@@ -143,7 +143,7 @@
 .windows-vs2017-msvc:
   extends: .windows-vs2017
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     LINPHONESDK_PLATFORM: Desktop
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
@@ -182,7 +182,7 @@ vs2017-ninja-win64-windows-pqc:
   rules:
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PQCRYPTO=ON
 
 vs2017-ninja-win32-windows:
   extends: .windows-vs2017-ninja
@@ -260,7 +260,7 @@ vs2017-win32store-scheduled-windows:
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
-    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
     OUTPUT_ZIP_FOLDER: win32store
 
 win32-vs2017-novideo-windows:
