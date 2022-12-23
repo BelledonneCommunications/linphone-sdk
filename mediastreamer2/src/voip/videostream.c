@@ -44,6 +44,8 @@
 static void configure_recorder_output(VideoStream *stream);
 static int video_stream_start_with_source_and_output(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
 	const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp, MSWebCam *cam, MSFilter *source, MSFilter *output);
+static void _configure_video_preview_source(VideoPreview* stream, bool_t change_source);
+static void configure_video_preview_source(VideoPreview* stream);
 
 static void assign_value_to_mirroring_flag_to_preview(VideoStream *stream) {
 	if (stream && stream->output2) {
@@ -682,7 +684,7 @@ static MSVideoSize get_with_same_orientation_and_ratio(MSVideoSize size, MSVideo
 	return size;
 }
 #endif
-static void configure_video_preview_source(VideoPreview* stream);
+
 static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, bool_t source_changed){
 	MSVideoSize cam_vsize = {320, 240};
 	MSVideoConfiguration vconf;
@@ -1561,15 +1563,6 @@ MSFilter* video_stream_get_source_filter(const VideoStream* stream) {
 	}
 }
 
-void video_stream_update_video_params(VideoStream *stream){
-	/*calling video_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph*/
-	video_stream_change_camera(stream,stream->cam);
-}
-
-void video_preview_stream_update_video_params(VideoStream* stream) {
-	/*calling video_preview_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph for preview*/
-	video_preview_stream_change_camera(stream, stream->cam);
-}
 
 /**
  * Will update the source camera for the videostream passed as argument.
@@ -1584,12 +1577,11 @@ void video_preview_stream_update_video_params(VideoStream* stream) {
  *
  * @return NULL if keep_old_source is FALSE, or the previous source filter if keep_old_source is TRUE
  */
-static void _configure_video_preview_source(VideoPreview* stream, bool_t change_source);
 static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam, MSFilter* new_source, MSFilter *sink, bool_t keep_old_source, bool_t skip_payload_config, bool_t skip_bitrate, bool_t is_forwarding, bool_t is_preview){
 	MSFilter* old_source = NULL;
 	bool_t new_src_different = (new_source && new_source != stream->source);
-	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active);
-	bool_t change_source       = ( cam!=stream->cam || new_src_different || use_player);
+	bool_t use_player        = (sink && !stream->player_active) || (!sink && stream->player_active && cam != NULL);
+	bool_t change_source       = ( (cam != NULL && cam != stream->cam) || new_src_different || use_player);
 	bool_t encoder_has_builtin_converter = (!stream->is_forwarding && !stream->pixconv && !stream->sizeconv);
 	/* We get the ticker from the source filter rather than stream->ms.sessions.ticker, for the case where the graph is actually running
 	 * in a MSVideoConference that has its own ticker. */
@@ -1634,6 +1626,10 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 		}
 
 		if (!encoder_has_builtin_converter && (stream->source_performs_encoding == FALSE)) {
+			/* FIXME:
+			 * Destroying pixconv is a problem when pixconv is actually a video decoder because we are playing
+			 * from mkv file with ItcSource. We are going to loose the decoding context until next key frame.
+			 */
 			if (stream->pixconv)  {
 				ms_filter_destroy(stream->pixconv);
 				stream->pixconv = NULL;
@@ -1726,8 +1722,9 @@ static MSFilter* _video_stream_change_camera(VideoStream *stream, MSWebCam *cam,
 	return old_source;
 }
 
-void video_preview_stream_change_camera(VideoStream* stream, MSWebCam* cam) {
-	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE, TRUE);
+void video_stream_update_video_params(VideoStream *stream){
+	/*calling video_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph*/
+	_video_stream_change_camera(stream, NULL, NULL, NULL, FALSE, FALSE, FALSE, FALSE, FALSE);
 }
 
 void video_stream_change_camera(VideoStream *stream, MSWebCam *cam){
@@ -2178,6 +2175,15 @@ void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
 
 void video_preview_set_decode_rect(VideoPreview *stream, MSRect rect) {
 	stream->decode_rect = rect;
+}
+
+void video_preview_stream_change_camera(VideoStream* stream, MSWebCam* cam) {
+	_video_stream_change_camera(stream, cam, NULL, NULL, FALSE, FALSE, FALSE, FALSE, TRUE);
+}
+
+void video_preview_stream_update_video_params(VideoStream* stream) {
+	/*calling video_preview_stream_change_camera() does the job of unplumbing/replumbing and configuring the new graph for preview*/
+	video_preview_stream_change_camera(stream, stream->cam);
 }
 
 bool_t video_preview_qrcode_enabled(VideoPreview *stream) {

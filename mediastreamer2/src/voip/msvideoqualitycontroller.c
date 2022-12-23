@@ -67,7 +67,7 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj, int
 				obj->stream->sent_vsize = best_vconf.vsize;
 				obj->stream->preview_vsize = best_vconf.vsize;
 				media_stream_set_target_network_bitrate(&obj->stream->ms, best_vconf.required_bitrate);
-				video_stream_change_camera(obj->stream, obj->stream->cam);
+				video_stream_update_video_params(obj->stream);
 				obj->last_vsize = best_vconf.vsize;
 				return;
 			}

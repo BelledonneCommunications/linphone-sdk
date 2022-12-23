@@ -122,7 +122,7 @@ MS2_PUBLIC MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MS
 
 /* The handler of tmmbr for MediaStream objects.*/
 void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer);
-void media_stream_process_tmmbr(MediaStream *ms, int tmmbr_mxtbr);
+void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr);
 
 void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *), void *user_data);
 
