@@ -2,8 +2,8 @@ debian11-yocto-qemuarm64:
   stage: build
   tags: ["docker-debian11-yocto"]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:kirkstone-qemuarm64
-  #rules:
-  #  - if: $NIGHTLY_MASTER
+  rules:
+   - if: $NIGHTLY_MASTER
   script:
     - export WORKSPACE_PATH="$CI_PROJECT_DIR"
     # Update to latest version of meta-bc for current branch (see docker file from meta-bc)
@@ -25,10 +25,10 @@ debian11-yocto-qemuarm64:
     - export LATEST_REVISIONS="1"
     - echo $LATEST_REVISIONS
     - source oe-init-build-env
-    - bitbake core-image-base 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
+    - bitbake core-image-sato 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
     # Get build logs from linphone-sdk
-    - tar cvzf ${CI_PROJECT_DIR}/bitbake_build_logs.tgz `bitbake -e linphone-sdk | grep ^T= |cut -d'"' -f 2`
+    - tar cvzf ${CI_PROJECT_DIR}/bitbake_linphonesdk_logs.tgz `bitbake -e linphone-sdk | grep ^T= |cut -d'"' -f 2`
   artifacts:
     paths:
       - bitbake_build_error.log
-      - bitbake_build_logs.tgz
+      - bitbake_linphonesdk_logs.tgz
