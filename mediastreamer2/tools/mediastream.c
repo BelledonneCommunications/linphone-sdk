@@ -1050,6 +1050,12 @@ void setup_media_streams(MediastreamDatas* args) {
 					args->srtp_local_master_key,
 					args->srtp_remote_master_key));
 		}
+		if(args->enable_zrtp){
+			
+			MSZrtpParams params = {0};
+			args->video->ms.sessions.zrtp_context=ms_zrtp_context_new(&(args->video->ms.sessions), &params);
+			video_stream_start_zrtp(args->video);
+		}
 
         if(args->enable_fec){
             mediastream_fec_enable_bundle(args, factory);
