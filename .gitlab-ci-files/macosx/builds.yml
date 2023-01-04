@@ -148,7 +148,9 @@ macosx-xcode:
   extends: .macosx-desktop
   variables:
     CMAKE_GENERATOR: Xcode
-    ADDITIONAL_BUILD_OPTIONS: -IDEBuildOperationMaxNumberOfConcurrentCompileTasks=$MAX_NUMBER_TASK
+    #Only used to overwrite value set by .set_parallel_level.yml
+    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
+    ADDITIONAL_BUILD_OPTIONS: --config RelWithDebInfo 
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
