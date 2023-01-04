@@ -36,7 +36,7 @@
     - echo $CMAKE_OPTIONS
     - echo $LINPHONESDK_MACOS_ARCHS
     - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build . --config RelWithDebInfo  --target sdk -- $ADDITIONAL_BUILD_OPTIONS
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
     #using only the git describe doesn't work because the commit hashes don't match
@@ -150,7 +150,6 @@ macosx-xcode:
     CMAKE_GENERATOR: Xcode
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-    ADDITIONAL_BUILD_OPTIONS: --config RelWithDebInfo 
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
