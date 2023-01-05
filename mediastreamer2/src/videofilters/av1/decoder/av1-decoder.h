@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -20,24 +20,41 @@
 
 #pragma once
 
-#include <cstdint>
+#include <queue>
 
-#include <ortp/str_utils.h>
+#include <dav1d/dav1d.h>
 
-#include "mediastreamer2/msqueue.h"
+#include "../obu/obu-key-frame-indicator.h"
+#include "mediastreamer2/msvideo.h"
+#include "video-decoder.h"
 
 namespace mediastreamer {
 
-class VideoDecoder {
+class Av1Decoder : public VideoDecoder {
 public:
-	enum Status { NoError, NoFrameAvailable, DecodingFailure };
+	Av1Decoder();
+	virtual ~Av1Decoder();
 
-	virtual ~VideoDecoder() = default;
+	void waitForKeyFrame() override {
+		mKeyFrameNeeded = true;
+	}
 
-	virtual void waitForKeyFrame() = 0;
+	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
+	Status fetch(mblk_t *&frame) override;
 
-	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
-	virtual Status fetch(mblk_t *&frame) = 0;
+	void flush();
+
+protected:
+	Dav1dSettings mSettings{};
+	Dav1dContext *mContext = nullptr;
+
+	ObuKeyFrameIndicator mKeyFrameIndicator;
+
+	MSYuvBufAllocator *mYuvBufAllocator = nullptr;
+
+	std::queue<Dav1dPicture> mPendingFrames;
+
+	bool mKeyFrameNeeded = true;
 };
 
 } // namespace mediastreamer

@@ -83,11 +83,11 @@ VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
 	std::lock_guard<std::mutex> lck(_mutex);
 	if (_queue.empty()) {
 		frame = nullptr;
-		return noFrameAvailable;
+		return NoFrameAvailable;
 	} else {
 		frame = _queue.front().getData();
 		_queue.pop_front();
-		return frame ? noError : decodingFailure;
+		return frame ? NoError : DecodingFailure;
 	}
 }
 

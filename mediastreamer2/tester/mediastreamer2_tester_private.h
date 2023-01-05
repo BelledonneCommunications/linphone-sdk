@@ -76,6 +76,7 @@ extern unsigned char ms_tester_tone_detected;
 #define H263_PAYLOAD_TYPE 34
 #define VP8_PAYLOAD_TYPE 96
 #define H264_PAYLOAD_TYPE 102
+#define AV1_PAYLOAD_TYPE 103
 #define MP4V_PAYLOAD_TYPE 104
 #define OPUS_PAYLOAD_TYPE 121
 #define SPEEX_PAYLOAD_TYPE 122

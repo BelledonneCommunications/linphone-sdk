@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -20,24 +20,29 @@
 
 #pragma once
 
-#include <cstdint>
+#include <memory>
 
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/mediastream.h"
 
 namespace mediastreamer {
 
-class VideoDecoder {
+class ObuUnpacker {
 public:
-	enum Status { NoError, NoFrameAvailable, DecodingFailure };
+	enum Status { NoFrame, FrameAvailable, FrameCorrupted };
 
-	virtual ~VideoDecoder() = default;
+	virtual ~ObuUnpacker();
 
-	virtual void waitForKeyFrame() = 0;
+	Status unpack(mblk_t *im, MSQueue *output);
+	void reset();
 
-	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
-	virtual Status fetch(mblk_t *&frame) = 0;
+protected:
+	mblk_t *feed(mblk_t *packet);
+	bool isAggregating() const;
+	mblk_t *completeAggregation();
+
+	mblk_t *mFrame = nullptr;
+	bool mInitializedRefCSeq = false;
+	uint16_t mRefCSeq = 0;
 };
 
 } // namespace mediastreamer

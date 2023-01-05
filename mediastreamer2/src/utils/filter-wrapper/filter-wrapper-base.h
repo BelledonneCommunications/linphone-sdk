@@ -20,9 +20,9 @@
 
 #pragma once
 
-#include "mediastreamer2/msfilter.h"
-
 #include "filter-interface/filter-base.h"
+
+#include "mediastreamer2/msfilter.h"
 
 namespace mediastreamer {
 
@@ -56,17 +56,21 @@ public:
 #define MS_FILTER_WRAPPER_METHODS_NAME(base_name) ms_##base_name##_methods
 
 #define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs, flags)    \
-	extern "C" MSFilterDesc ms_##base_name##_desc = {id,                                                               \
-	                                                 "MS" #base_name,                                                  \
-	                                                 text,                                                             \
-	                                                 category,                                                         \
-	                                                 enc_fmt,                                                          \
-	                                                 ninputs,                                                          \
-	                                                 noutputs,                                                         \
-	                                                 FilterWrapperBase::onFilterInit<base_name##FilterImpl>,           \
-	                                                 FilterWrapperBase::onFilterPreProcess,                            \
-	                                                 FilterWrapperBase::onFilterProcces,                               \
-	                                                 FilterWrapperBase::onFilterPostProcess,                           \
-	                                                 FilterWrapperBase::onFilterUninit,                                \
-	                                                 MS_FILTER_WRAPPER_METHODS_NAME(base_name),                        \
-	                                                 flags}
+	extern "C" {                                                                                                       \
+	MSFilterDesc ms_##base_name##_desc = {                                                                             \
+	    id,                                                                                                            \
+	    "MS" #base_name,                                                                                               \
+	    text,                                                                                                          \
+	    category,                                                                                                      \
+	    enc_fmt,                                                                                                       \
+	    ninputs,                                                                                                       \
+	    noutputs,                                                                                                      \
+	    FilterWrapperBase::onFilterInit<base_name##FilterImpl>,                                                        \
+	    FilterWrapperBase::onFilterPreProcess,                                                                         \
+	    FilterWrapperBase::onFilterProcces,                                                                            \
+	    FilterWrapperBase::onFilterPostProcess,                                                                        \
+	    FilterWrapperBase::onFilterUninit,                                                                             \
+	    MS_FILTER_WRAPPER_METHODS_NAME(base_name),                                                                     \
+	    flags,                                                                                                         \
+	};                                                                                                                 \
+	}

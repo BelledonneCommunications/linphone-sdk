@@ -423,6 +423,26 @@ if(ENABLE_VIDEO)
 	if(X11_Xv_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/x11video.c)
 	endif()
+	if(DAV1D_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/av1/decoder/av1-decoder.cpp
+			videofilters/av1/decoder/av1-decoder-filter.cpp
+		)
+	endif()
+	if(AOM_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/av1/encoder/av1-encoder.cpp
+			videofilters/av1/encoder/av1-encoder-filter.cpp
+		)
+	endif()
+	if(DAV1D_FOUND OR AOM_FOUND)
+		list(APPEND VOIP_SOURCE_FILES_C videofilters/av1/obu/obuparse.c)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			videofilters/av1/obu/obu-key-frame-indicator.cpp
+			videofilters/av1/obu/obu-packer.cpp
+			videofilters/av1/obu/obu-unpacker.cpp
+		)
+	endif()
 endif()
 if(BCMatroska2_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C

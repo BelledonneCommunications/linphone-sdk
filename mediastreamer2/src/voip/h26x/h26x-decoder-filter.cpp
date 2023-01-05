@@ -93,8 +93,8 @@ void H26xDecoderFilter::process() {
 		// regulatorPendingCount);
 	}
 
-	while ((status = _codec->fetch(om)) != VideoDecoder::Status::noFrameAvailable) {
-		if (status == VideoDecoder::decodingFailure) {
+	while ((status = _codec->fetch(om)) != VideoDecoder::Status::NoFrameAvailable) {
+		if (status == VideoDecoder::DecodingFailure) {
 			ms_error("H26xDecoder: decoding failure");
 			requestPli = true;
 			continue;

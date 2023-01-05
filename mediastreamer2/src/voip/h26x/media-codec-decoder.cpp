@@ -119,12 +119,12 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	MSRect dst_roi = {0};
 	AMediaCodecBufferInfo info;
 	ssize_t oBufidx = -1;
-	Status status = noError;
+	Status status = NoError;
 
 	frame = nullptr;
 
 	if (_impl == nullptr || _pendingFrames <= 0) {
-		status = noFrameAvailable;
+		status = NoFrameAvailable;
 		goto end;
 	}
 
@@ -144,7 +144,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 
 	if (oBufidx < 0) {
 		if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
-			return noFrameAvailable;
+			return NoFrameAvailable;
 		} else {
 			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s",
 			         codecInfoToString(oBufidx).c_str());
@@ -157,7 +157,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 					         "lost !");
 				}
 			}
-			return decodingFailure;
+			return DecodingFailure;
 		}
 		goto end;
 	}
@@ -166,7 +166,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 
 	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
 		ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
-		status = decodingFailure;
+		status = DecodingFailure;
 		goto end;
 	}
 

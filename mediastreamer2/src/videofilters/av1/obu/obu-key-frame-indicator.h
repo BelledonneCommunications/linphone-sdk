@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -20,24 +20,33 @@
 
 #pragma once
 
-#include <cstdint>
-
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/mediastream.h"
+#include "obuparse.h"
 
 namespace mediastreamer {
 
-class VideoDecoder {
+class ObuKeyFrameIndicator {
 public:
-	enum Status { NoError, NoFrameAvailable, DecodingFailure };
+	ObuKeyFrameIndicator() = default;
+	~ObuKeyFrameIndicator() = default;
 
-	virtual ~VideoDecoder() = default;
+	ObuKeyFrameIndicator(const ObuKeyFrameIndicator &) = delete;
+	ObuKeyFrameIndicator &operator=(const ObuKeyFrameIndicator &) = delete;
 
-	virtual void waitForKeyFrame() = 0;
+	/**
+	 * Parse all OBUs in the packet and tells if it contains a key frame.
+	 * @param im - Input packet, requires a msgpullup beforehand.
+	 * @return true if it contains a key frame.
+	 */
+	bool parseFrame(mblk_t *im);
 
-	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
-	virtual Status fetch(mblk_t *&frame) = 0;
+	void reset();
+
+private:
+	OBPState mState{};
+	OBPSequenceHeader mSequenceHeader{};
+
+	bool mSequenceHeaderSeen = false;
 };
 
 } // namespace mediastreamer

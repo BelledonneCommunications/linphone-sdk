@@ -148,6 +148,7 @@ static int tester_before_all(void) {
 	rtp_profile_set_payload(&rtp_profile, VP8_PAYLOAD_TYPE, &payload_type_vp8);
 	rtp_profile_set_payload(&rtp_profile, H264_PAYLOAD_TYPE, &payload_type_h264);
 	rtp_profile_set_payload(&rtp_profile, MP4V_PAYLOAD_TYPE, &payload_type_mp4v);
+	rtp_profile_set_payload(&rtp_profile, AV1_PAYLOAD_TYPE, &payload_type_av1);
 
 	_h264_codecs_manager = codecs_manager_new(_factory, "h264");
 
@@ -521,6 +522,14 @@ static void basic_video_stream_h264(void) {
 		basic_video_stream_base(H264_PAYLOAD_TYPE);
 	} else {
 		ms_error("H264 codec is not supported!");
+	}
+}
+
+static void basic_video_stream_av1(void) {
+	if (ms_factory_codec_supported(_factory, "av1")) {
+		basic_video_stream_base(AV1_PAYLOAD_TYPE);
+	} else {
+		ms_error("AV1 codec is not supported!");
 	}
 }
 
@@ -1339,6 +1348,7 @@ end:
 static test_t tests[] = {
     TEST_NO_TAG("Basic video stream VP8", basic_video_stream_vp8),
     TEST_NO_TAG("Basic video stream H264", basic_video_stream_all_h264_codec_combinations),
+    TEST_NO_TAG("Basic video stream AV1", basic_video_stream_av1),
     TEST_NO_TAG("Multicast video stream", multicast_video_stream),
     TEST_NO_TAG("Basic one-way video stream", basic_one_way_video_stream),
     TEST_NO_TAG("Codec change for video stream", codec_change_for_video_stream),
@@ -1361,7 +1371,8 @@ static test_t tests[] = {
     TEST_NO_TAG("One-way video stream with itcsink", video_stream_with_itcsink),
     TEST_NO_TAG("FEC video stream VP8", fec_video_stream_vp8),
     TEST_NO_TAG("FEC video stream H264", fec_video_stream_h264),
-    TEST_NO_TAG("Basic VP8 stream with frame marking", basic_vp8_stream_with_frame_marking)};
+    TEST_NO_TAG("Basic VP8 stream with frame marking", basic_vp8_stream_with_frame_marking),
+};
 
 test_suite_t video_stream_test_suite = {
     "VideoStream", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};

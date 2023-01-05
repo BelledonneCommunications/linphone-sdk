@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2022 Belledonne Communications SARL.
+ * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
  * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -20,24 +20,43 @@
 
 #pragma once
 
-#include <cstdint>
+#include <utility>
+#include <vector>
 
-#include <ortp/str_utils.h>
-
-#include "mediastreamer2/msqueue.h"
+#include "mediastreamer2/mediastream.h"
+#include "obuparse.h"
 
 namespace mediastreamer {
 
-class VideoDecoder {
+class ObuPacker {
 public:
-	enum Status { NoError, NoFrameAvailable, DecodingFailure };
+	ObuPacker(size_t maxPayloadSize);
 
-	virtual ~VideoDecoder() = default;
+	void setMaxPayloadSize(size_t size);
+	size_t getMaxPayloadSize() {
+		return mMaxPayloadSize;
+	}
 
-	virtual void waitForKeyFrame() = 0;
+	void enableAggregation(bool enable);
+	bool isAggregationEnabled() {
+		return mAggregationEnabled;
+	}
 
-	virtual bool feed(MSQueue *encodedFrame, uint64_t timestamp) = 0;
-	virtual Status fetch(mblk_t *&frame) = 0;
+	void pack(MSQueue *input, MSQueue *output, uint32_t timestamp);
+
+protected:
+	struct ParsedObu {
+		OBPOBUType type;
+		uint8_t *start;
+		size_t size;
+	};
+
+	static ParsedObu parseNextObu(uint8_t *buf, size_t size);
+	void sendObus(std::vector<ParsedObu> &obus, MSQueue *output, uint32_t ts);
+	mblk_t *makePacket(uint8_t *buf, size_t size, bool Z, bool Y, bool N, bool M, uint32_t ts);
+
+	size_t mMaxPayloadSize;
+	bool mAggregationEnabled = false;
 };
 
 } // namespace mediastreamer
