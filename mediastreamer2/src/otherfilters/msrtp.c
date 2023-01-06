@@ -724,9 +724,18 @@ static int sender_enable_rtp_transfer_mode(MSFilter *f, void *data) {
 static int sender_set_active_speaker_ssrc(MSFilter *f, void *data) {
 	SenderData *d = (SenderData *) f->data;
 	uint32_t csrc = *(uint32_t *) data;
+	bool_t was_set = FALSE;
 
-	rtp_session_clear_contributing_sources(d->session);
-	if (csrc != 0) rtp_session_add_contributing_source(d->session, csrc, "", NULL, NULL, NULL, NULL, NULL, NULL);
+	ms_filter_lock(f);
+	if (d->session){
+		rtp_session_clear_contributing_sources(d->session);
+		if (csrc != 0) rtp_session_add_contributing_source(d->session, csrc, "", NULL, NULL, NULL, NULL, NULL, NULL);
+		was_set = TRUE;
+	}
+	ms_filter_unlock(f);
+	if (!was_set){
+		ms_error("sender_set_active_speaker_ssrc(): could not be set because no RtpSession was assigned yet.");
+	}
 	return 0;
 }
 
