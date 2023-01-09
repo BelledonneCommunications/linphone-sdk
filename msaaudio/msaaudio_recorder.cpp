@@ -218,13 +218,6 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	AAudioInputContext *ictx = (AAudioInputContext*) obj->data;
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
-	aaudio_recorder_init(ictx);
-
-	if (ictx->mTickerSynchronizer == NULL) {
-		MSFilter *obj = ictx->mFilter;
-		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
-		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
-	}
 
 	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
 		ms_message("[AAudio Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
@@ -232,6 +225,14 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, ictx->bluetoothScoStarted);
+	}
+	
+	aaudio_recorder_init(ictx);
+
+	if (ictx->mTickerSynchronizer == NULL) {
+		MSFilter *obj = ictx->mFilter;
+		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
+		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
 }
 
