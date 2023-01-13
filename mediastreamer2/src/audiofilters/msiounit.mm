@@ -888,6 +888,11 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	bool_t need_audio_session_reconfiguration = FALSE;
 	ms_message("AVAudioSession activated: %i", (int)activated);
+	
+	if (!au_holder.callkit_enabled){
+		ms_error("AudioUnit: AudioSession activation notified but not in Callkit mode: this is an application mistake.");
+		return;
+	}
 
 	if (au_holder.audio_session_activated && activated && [au_holder audio_unit_state] != MSAudioUnitNotCreated){
 		ms_warning("Callkit notifies that AVAudioSession is activated while it was supposed to be already activated. It means that a device disconnection happened.");
@@ -938,6 +943,7 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 static void au_callkit_enabled(MSSndCard *obj, bool_t enabled) {
 	AudioUnitHolder *au_holder = [AudioUnitHolder sharedInstance];
 	[au_holder setCallkit_enabled:enabled];
+	ms_message("AudioUnit: callkit mode is %s", enabled ? "enabled" : "disabled");
 	if (!enabled || TARGET_IPHONE_SIMULATOR) {
 		// There is only callKit can notify audio session is activated or not.
 		// So set audio session always activated when callkit is disabled.
