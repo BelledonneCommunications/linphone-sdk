@@ -69,6 +69,13 @@ MS2_PUBLIC void ms_media_player_free(MSMediaPlayer *obj);
 MS2_PUBLIC void * ms_media_player_get_window_id(const MSMediaPlayer *obj);
 
 /**
+ * Create a window ID
+ * @param obj The player
+ * @return window_id the window ID
+ */
+MS2_PUBLIC void * ms_media_player_create_window_id(MSMediaPlayer *obj);
+
+/**
  * Set the window ID
  * @param obj The player
  * @param window_id the window ID

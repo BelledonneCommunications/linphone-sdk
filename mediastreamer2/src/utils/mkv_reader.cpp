@@ -279,11 +279,14 @@ MKVTrackReader *MKVReader::getTrackReader(int track_num) noexcept {
 
 	const auto &trackElt = mTracksElt.at(i);
 
+	auto file_stream = Stream_Duplicate(mFile.get(), SFLAG_RDONLY);
+	if(!file_stream) return nullptr;
+	
 	auto track_reader = new MKVTrackReader{};
 	track_reader->mRoot = this;
 	track_reader->mTrackNum = track_num;
 	track_reader->mTrackElt = trackElt.get();
-	track_reader->mFile.reset(Stream_Duplicate(mFile.get(), SFLAG_RDONLY));
+	track_reader->mFile.reset(file_stream);
 	track_reader->mParser.Context = &MATROSKA_ContextSegment;
 	track_reader->mParser.EndPosition = mLastClusterEnd;
 	track_reader->mParser.UpContext = NULL;

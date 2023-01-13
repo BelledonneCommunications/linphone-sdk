@@ -150,6 +150,14 @@ void * ms_media_player_get_window_id(const MSMediaPlayer *obj) {
 	return obj->window_id;
 }
 
+void * ms_media_player_create_window_id(MSMediaPlayer *obj) {
+	void *id = NULL;
+	if (obj->video_sink) {
+		ms_filter_call_method(obj->video_sink, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &id);
+	}
+	return id;
+}
+
 void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id) {
 #ifdef ANDROID
 	if (obj->window_id) {
