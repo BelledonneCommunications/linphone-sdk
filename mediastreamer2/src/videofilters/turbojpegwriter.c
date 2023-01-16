@@ -23,16 +23,19 @@
 #endif
 
 #include "bctoolbox/utils.hh"
+#include "bctoolbox/vfs.h"
 #include "mediastreamer2/msjpegwriter.h"
 #include "mediastreamer2/msvideo.h"
 #include "turbojpeg.h"
+
+#include "fd_portab.h" // keep this include at the last of the inclusion sequence!
 
 #ifdef __cplusplus
 extern "C"{
 #endif
 
 typedef struct {
-	FILE *file;
+	bctbx_vfs_file_t *file;
 	char *filename;
 	char *tmpFilename;
 	tjhandle turboJpeg;
@@ -42,7 +45,7 @@ typedef struct {
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
 	MSJpegWriteEventData eventData = {{0}};
 	if (obj->file) {
-		fclose(obj->file);
+		bctbx_file_close(obj->file);
 		obj->file = NULL;
 	}
 	if (doRenaming) {
@@ -63,7 +66,7 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 static bool_t open_file(JpegWriter *obj, const char *filename) {
 	obj->filename = ms_strdup(filename);
 	obj->tmpFilename = ms_strdup_printf("%s.part",filename);
-	obj->file = fopen(obj->tmpFilename, "wb");
+	obj->file = bctbx_file_open2(bctbx_vfs_get_default(), obj->tmpFilename, O_WRONLY|O_CREAT|O_BINARY);
 	if (!obj->file) {
 		ms_error("Could not open %s for write", obj->tmpFilename);
 		close_file(obj,FALSE);
@@ -147,8 +150,7 @@ static void jpg_process(MSFilter *f) {
 			if (jpegBuffer != NULL) tjFree(jpegBuffer);
 			goto end;
 		}
-
-		if (fwrite(jpegBuffer, jpegSize, 1, s->file)>0) {
+		if(bctbx_file_write2(s->file, jpegBuffer, jpegSize) != BCTBX_VFS_ERROR){
 			ms_message("Snapshot done with turbojpeg");
 			success = TRUE;
 		} else {
