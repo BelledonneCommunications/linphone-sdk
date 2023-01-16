@@ -427,13 +427,16 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	bool error = false;
 	/* read the whole file by chunk of 160 bytes */
 	while ( (error == false) && ((len = bctbx_file_read2(fp, buffer, 160)) > 0) ) {
-		/* marielle create a packet with the chunk */
-		mblk_t *sent_packet = rtp_session_create_packet(rtpSession_marielle, 0, buffer, len);
+		/* marielle create a packet header */
+		mblk_t *sent_packet = rtp_session_create_packet_header(rtpSession_marielle, 0);
 
 		/* Marielle voice activity On, audio level -32 */
 		if(participant_volume) {
 			rtp_add_client_to_mixer_audio_level(sent_packet, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, TRUE, -32);
 		}
+
+		/* add payload */
+		sent_packet->b_cont = rtp_create_packet(buffer, len);
 
 		/* send the packet to the relay */
 		int size = rtp_session_sendm_with_ts(rtpSession_marielle, copymsg(sent_packet), user_ts);
@@ -448,7 +451,10 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			for (int i=0; i<len; i++) {
 				bBuffer[i] = buffer[i]^0x55;
 			}
-			sent_packet = rtp_session_create_packet(rtpSession_marielle_bis, 0, bBuffer, len);
+			sent_packet = rtp_session_create_packet_header(rtpSession_marielle_bis, 0);
+			/* add payload */
+			sent_packet->b_cont = rtp_create_packet(bBuffer, len);
+
 			/* send the packet to the relay */
 			size = rtp_session_sendm_with_ts(rtpSession_marielle_bis, copymsg(sent_packet), user_ts);
 			if (size < 0) {
@@ -463,12 +469,15 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		for (int i=0; i<len; i++) {
 			xBuffer[i] = buffer[i]^0xaa;
 		}
-		sent_packet = rtp_session_create_packet(rtpSession_pauline, 0, xBuffer, len);
+		sent_packet = rtp_session_create_packet_header(rtpSession_pauline, 8); // allocate 8 bytes of extra header to store possible participant volume extension header
 
 		/* Pauline voice activity Off, audio level -96 */
 		if(participant_volume) {
 			rtp_add_client_to_mixer_audio_level(sent_packet, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, FALSE, -96);
 		}
+
+		/* add payload */
+		sent_packet->b_cont = rtp_create_packet(xBuffer, len);
 
 		/* send the packet to the relay */
 		size = rtp_session_sendm_with_ts(rtpSession_pauline, copymsg(sent_packet), user_ts);

@@ -164,7 +164,7 @@ static int32_t ms_zrtp_sendDataZRTP (void *clientData, const uint8_t* data, uint
 	rtp_session_get_transports(session,&rtpt,NULL);
 
 	/* generate message from raw data */
- 	msg = rtp_session_create_packet_raw(data, length);
+	msg = rtp_create_packet(data, length);
 
 	meta_rtp_transport_modifier_inject_packet_to_send(rtpt, userData->rtp_modifier, msg , 0);
 

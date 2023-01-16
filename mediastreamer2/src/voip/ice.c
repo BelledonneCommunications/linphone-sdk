@@ -1441,7 +1441,7 @@ static void ice_stun_server_request_free(IceStunServerRequest *request) {
 }
 
 static int ice_send_message_to_socket(RtpTransport * rtptp, char* buf, size_t len, const struct sockaddr *from, socklen_t fromlen, const struct sockaddr *to, socklen_t tolen) {
-	mblk_t *m = rtp_session_create_packet_raw((const uint8_t *)buf, len);
+	mblk_t *m = rtp_create_packet((const uint8_t *)buf, len);
 	int err;
 	struct addrinfo *v6ai = NULL;
 

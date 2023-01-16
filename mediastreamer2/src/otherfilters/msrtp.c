@@ -485,7 +485,7 @@ static void check_stun_sending(MSFilter *f) {
 	}
 }
 
-static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t header_size, const uint8_t *payload, size_t payload_size) {
+static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 	SenderData *d = (SenderData *) f->data;
 	RtpSession *s = d->session;
 	rtp_audio_level_t *audio_levels = NULL;
@@ -495,11 +495,11 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 		rtp_audio_level_t *tmp = d->mtc_volumes + (d->mtc_volumes_size - d->mtc_volumes_left_to_send);
 
 		if (d->mtc_volumes_left_to_send <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp, payload, payload_size);
+			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
 			ms_free(d->mtc_volumes);
 			d->mtc_volumes_left_to_send = 0;
 		} else {
-			header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp, payload, payload_size);
+			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp);
 			d->mtc_volumes_left_to_send -= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
 		}
 
@@ -513,10 +513,10 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 			int size = d->mtc_request_data_cb(f, &audio_levels, d->mtc_request_data_user_data);
 			if (audio_levels != NULL) {
 				if (size <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, size, audio_levels, payload, payload_size);
+					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, size, audio_levels);
 					ms_free(audio_levels);
 				} else {
-					header = rtp_session_create_packet_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels, payload, payload_size);
+					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels);
 					d->mtc_volumes = audio_levels;
 					d->mtc_volumes_size = size;
 					d->mtc_volumes_left_to_send = size - RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
@@ -524,14 +524,14 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f, size_t h
 			}
 		} else if (d->client_to_mixer_extension_id > 0 && d->ctm_request_data_cb) {
 			int volume = d->ctm_request_data_cb(f, d->ctm_request_data_user_data);
-			if (!header) header = rtp_session_create_packet(s, 40, payload, payload_size);
+			if (!header) header = rtp_session_create_packet_header(s, 8); // allocate 8 more bytes than needed so we can add an extension header with client to mixer extension without reallocating
 			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, FALSE, volume);
 		}
 
 		d->last_audio_level_sent_time = f->ticker->time;
 	}
 
-	return header ? header : rtp_session_create_packet(s, 0, payload, payload_size);
+	return header ? header : rtp_session_create_packet_header(s, 0);
 }
 
 static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *im ){
@@ -541,7 +541,8 @@ static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *i
 		int cn_pt=rtp_profile_find_payload_number(d->session->snd.profile, "CN", 8000, 1);
 
 		/* create the packet, payload type number is the one used for current codec */
-		mblk_t *m=create_packet_with_volume_data_at_intervals(f, 12, d->cng_data.data, d->cng_data.datasize);
+		mblk_t *m=create_packet_with_volume_data_at_intervals(f);
+		m->b_cont = rtp_create_packet(d->cng_data.data, d->cng_data.datasize);
 		mblk_meta_copy(im, m);
 		/* replace payload type in RTP header */
 		rtp=(rtp_header_t*)m->b_rptr;
@@ -635,7 +636,7 @@ static void _sender_process(MSFilter * f)
 			}
 
 			if (d->skip == FALSE && d->mute==FALSE){
-				header = create_packet_with_volume_data_at_intervals(f, 12, NULL, 0);
+				header = create_packet_with_volume_data_at_intervals(f);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 				if (d->frame_marking_extension_id > 0) add_frame_marking_extension(d, header, im);
 				header->b_cont = im;
