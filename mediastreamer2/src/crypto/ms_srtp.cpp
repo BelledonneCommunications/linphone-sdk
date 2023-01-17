@@ -114,17 +114,27 @@ class MSSrtpStreamContext {
 
 	/* For EKT */
 	EktMode ekt_mode; /**< EKT operation mode: disabled, enabled, transfer */
-	std::shared_ptr<Ekt> send_ekt; /**< the EKT used by sender */
-	std::map<uint16_t,std::shared_ptr<Ekt>> recv_ekts; /**< a map of EKT used to decrypt incoming EKT tag if needed, indexed by SPI */
 
-	MSSrtpStreamContext() : srtp{nullptr}, modifier_rtp{nullptr}, modifier_rtcp{nullptr}, secured{false}, mandatory_enabled{false}, inner_srtp{nullptr}, ekt_mode{EktMode::disabled}, send_ekt{nullptr} {};
+	MSSrtpStreamContext() : srtp{nullptr}, modifier_rtp{nullptr}, modifier_rtcp{nullptr}, secured{false}, mandatory_enabled{false}, inner_srtp{nullptr}, ekt_mode{EktMode::disabled} {};
 };
+
+class MSSrtpSendStreamContext : public MSSrtpStreamContext {
+	public:
+	std::shared_ptr<Ekt> send_ekt; /**< the EKT used by sender */
+	MSSrtpSendStreamContext() : send_ekt{nullptr} {};
+};
+class MSSrtpRecvStreamContext : public MSSrtpStreamContext {
+	public:
+	std::map<uint16_t,std::shared_ptr<Ekt>> recv_ekts; /**< a map of EKT used to decrypt incoming EKT tag if needed, indexed by SPI */
+	MSSrtpRecvStreamContext() {};
+};
+
 
 
 struct _MSSrtpCtx {
 	std::shared_ptr<bctoolbox::RNG> mRNG; /**< EKT needs a RNG to be able to generate srtp master key */
-	MSSrtpStreamContext send; /**< The context used to protect outgoing packets, is always using any_outbound mode so we don't manage SSRC */
-	MSSrtpStreamContext recv; /**< The contex used to unprotect incoming packets. Outer encryption always use any_inbound mode, inner - if present - uses ssrc specific */
+	MSSrtpSendStreamContext send; /**< The context used to protect outgoing packets, is always using any_outbound mode so we don't manage SSRC */
+	MSSrtpRecvStreamContext recv; /**< The contex used to unprotect incoming packets. Outer encryption always use any_inbound mode, inner - if present - uses ssrc specific */
 
 	_MSSrtpCtx() : mRNG{std::make_shared<bctoolbox::RNG>()} {};
 };
@@ -155,11 +165,12 @@ static size_t ms_srtp_ekt_get_tag_size(std::shared_ptr<Ekt> ekt) {
 }
 
 static void check_and_create_srtp_context(MSMediaStreamSessions *sessions) {
-	if (!sessions->srtp_context)
+	if (!sessions->srtp_context) {
 		sessions->srtp_context=ms_srtp_context_new();
+	}
 }
 /**** Sender functions ****/
-static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool is_rtp) {
+static int _process_on_send(RtpSession* session,MSSrtpSendStreamContext *ctx, mblk_t *m, bool is_rtp) {
 	int slen;
 	err_status_t err;
 	rtp_header_t *rtp_header=is_rtp?(rtp_header_t*)m->b_rptr:NULL;
@@ -354,17 +365,17 @@ static int _process_on_send(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t
 }
 
 static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, true);
+	return _process_on_send(t->session,(MSSrtpSendStreamContext*)t->data, m, true);
 }
 
 static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_send(t->session,(MSSrtpStreamContext*)t->data, m, false);
+	return _process_on_send(t->session,(MSSrtpSendStreamContext*)t->data, m, false);
 }
 
 static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
 	return (int)msgdsize(m);
 }
-static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mblk_t *m, bool is_rtp){
+static int _process_on_receive(RtpSession* session,MSSrtpRecvStreamContext *ctx, mblk_t *m, bool is_rtp){
 	int slen=(int)msgdsize(m);
 	err_status_t srtp_err=err_status_ok;
 
@@ -583,11 +594,11 @@ static int _process_on_receive(RtpSession* session,MSSrtpStreamContext *ctx, mbl
 }
 
 static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, true);
+	return _process_on_receive(t->session,(MSSrtpRecvStreamContext*)t->data, m, true);
 }
 
 static int ms_srtcp_process_on_receive(RtpTransportModifier *t, mblk_t *m){
-	return _process_on_receive(t->session,(MSSrtpStreamContext*)t->data, m, false);
+	return _process_on_receive(t->session,(MSSrtpRecvStreamContext*)t->data, m, false);
 }
 
 static size_t ms_srtp_get_master_key_size(MSCryptoSuite suite) {
@@ -647,7 +658,11 @@ static void ms_srtp_transport_modifier_destroy(RtpTransportModifier *tp){
 }
 
 static MSSrtpStreamContext* get_stream_context(MSMediaStreamSessions *sessions, bool is_send) {
-	return is_send?&sessions->srtp_context->send:&sessions->srtp_context->recv;
+	if (is_send) {
+		return &sessions->srtp_context->send;
+	} else {
+		return &sessions->srtp_context->recv;
+	}
 }
 
 
@@ -1218,20 +1233,6 @@ extern "C" bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
 			&& sessions->srtp_context->recv.mandatory_enabled;
 }
 
-/**
- * Copy the content of a EKT parameter set to another one
- * This is used to copy the data given in parameter
- */
-/*
-static void ms_media_stream_MSEKTParametersSet_copy(MSEKTParametersSet *dst, const MSEKTParametersSet *src) {
-	dst->ekt_cipher_type = src->ekt_cipher_type;
-	dst->ekt_srtp_crypto_suite = src->ekt_srtp_crypto_suite;
-	memcpy(dst->ekt_key_value, src->ekt_key_value, 32);
-	memcpy(dst->ekt_master_salt, src->ekt_master_salt, 14);
-	dst->ekt_spi = src->ekt_spi;
-	dst->ekt_ttl = src->ekt_ttl;
-}
-*/
 extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode) {
 	check_and_create_srtp_context(sessions);
 
@@ -1259,22 +1260,7 @@ extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 	return 0;
 }
 
-extern "C" int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
-	check_and_create_srtp_context(sessions);
-	// Check this is not a key already in use
-	if (sessions->srtp_context->send.send_ekt != nullptr) {
-		if (sessions->srtp_context->send.send_ekt->spi == ekt_params->ekt_spi) {
-			ms_warning("EKT with SPI %d already used in sending context", ekt_params->ekt_spi);
-			return 0;
-		}
-	}
-
-	// Force the operating mode to enable as we are given a key
-	sessions->srtp_context->send.ekt_mode = EktMode::enabled;
-
-	// copy the data in to current sending ekt, old one is not needed anymore
-	sessions->srtp_context->send.send_ekt = std::make_shared<Ekt>(ekt_params);
-	auto ekt = sessions->srtp_context->send.send_ekt;
+static void ms_media_stream_generate_and_set_srtp_keys_for_ekt(MSMediaStreamSessions *sessions, std::shared_ptr<Ekt> ekt) {
 	size_t master_key_size =  ms_srtp_get_master_key_size(ekt->srtp_crypto_suite);
 	uint8_t salted_key[SRTP_MAX_KEY_LEN]; // local buffer to temporary store key||salt
 
@@ -1284,26 +1270,41 @@ extern "C" int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sess
 	memcpy (salted_key+master_key_size, ekt->srtp_master_salt.data(), ekt->srtp_master_salt.size()); // append the master salt after the key
 
 	// Set these keys in the current srtp context
-	ms_media_stream_sessions_set_srtp_inner_send_key(sessions, ekt_params->ekt_srtp_crypto_suite, salted_key, master_key_size+ekt->srtp_master_salt.size(), MSSrtpKeySourceEKT);
+	ms_media_stream_sessions_set_srtp_inner_send_key(sessions, ekt->srtp_crypto_suite, salted_key, master_key_size+ekt->srtp_master_salt.size(), MSSrtpKeySourceEKT);
 
 	// Cleaning
 	bctbx_clean(salted_key, master_key_size);
-	return 0;
 }
-extern "C" int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
-	check_and_create_srtp_context(sessions);
-	// Check we do not have it yet in the receiver map
-	if (sessions->srtp_context->recv.recv_ekts.count(ekt_params->ekt_spi) != 0) {
-		ms_warning("EKT with SPI %d already present in recv context", ekt_params->ekt_spi);
-		return 0;
-	}
 
+extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
+	ms_message("set EKT with SPI %04x on session %p", ekt_params->ekt_spi, sessions);
+	check_and_create_srtp_context(sessions);
 	// Force the operating mode to enable as we are given a key
 	sessions->srtp_context->recv.ekt_mode = EktMode::enabled;
+	sessions->srtp_context->send.ekt_mode = EktMode::enabled;
 
-	// duplicate the incoming parameter set and insert it in the map of receiver EKT
-	sessions->srtp_context->recv.recv_ekts.emplace(ekt_params->ekt_spi, std::make_shared<Ekt>(ekt_params));
-	// Key retrieval is performed upon reception of full EKT tag matching the SPI.
+	std::shared_ptr<Ekt> ekt = nullptr;
+
+	// Check we do not have it yet in the receiver map
+	if (sessions->srtp_context->recv.recv_ekts.count(ekt_params->ekt_spi) != 0) {
+		// Is this the one used in send context?
+		if (sessions->srtp_context->send.send_ekt != nullptr && sessions->srtp_context->send.send_ekt->spi == ekt_params->ekt_spi) {
+			ms_warning("EKT with SPI %04x already present and used for outgoing ekttags, keep using it, no SRTP master key generation", ekt_params->ekt_spi);
+			return 0;
+		} else {
+			ms_warning("EKT with SPI %04x already present, switch back to if for outgoing ekttags and regenerate srtp master key", ekt_params->ekt_spi);
+			ekt = sessions->srtp_context->recv.recv_ekts[ekt_params->ekt_spi];
+			ekt->epoch++;
+		}
+	}
+
+	// create the ekt object from given params, insert it in the recv context map and set is as the current sending one
+	ekt = std::make_shared<Ekt>(ekt_params);
+	sessions->srtp_context->recv.recv_ekts.emplace(ekt_params->ekt_spi, ekt);
+	sessions->srtp_context->send.send_ekt = ekt;
+	// SRTP master key retrieval is performed upon reception of full EKT tag matching the SPI.
+	// Generate a master key for sending stream
+	ms_media_stream_generate_and_set_srtp_keys_for_ekt(sessions, ekt);
 	return 0;
 }
 
@@ -1377,12 +1378,8 @@ extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 	ms_error("Unable to set EKT operation mode: srtp support disabled in mediastreamer2");
 	return -1;
 }
-extern "C" int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, MSEKTParametersSet *ekt) {
-	ms_error("Unable to set EKT send key: srtp support disabled in mediastreamer2");
-	return -1;
-}
-extern "C" int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, MSEKTParametersSet *ekt) {
-	ms_error("Unable to add EKT recv key: srtp support disabled in mediastreamer2");
+extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, MSEKTParametersSet *ekt) {
+	ms_error("Unable to set EKT key: srtp support disabled in mediastreamer2");
 	return -1;
 }
 #endif

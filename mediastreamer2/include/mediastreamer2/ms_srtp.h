@@ -243,27 +243,16 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStrea
 MS2_PUBLIC int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode);
 
 /**
- * Set Encrypted Key transport for sending
+ * Set Encrypted Key transport
  * Once set, sending stream on this session will regenerate a SRTP master key and dispatch it using the given EKT
+ * EKT is stored in reception context to decrypt incoming ekt tag (more than one can be used in reception as peers mays not update all together)
  *
  * @param[in/out]	stream		The mediastream to operate on
- * @param[in]		ekt		The parameter set holding all information needed to generate and dispatch Srtp master key.
+ * @param[in]		ekt		The parameter set holding all information needed to generate, dispatch and decrypt incoming Srtp master key
  *                                      Data is copied internally and caller can dispose of it at anytime after this call
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_send_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
-
-/**
- * Add an Encrypted Key transport for receiving to the existing contexts
- * If a SRTP packet using this paramer set is received, we will be able to decrypt it
- * old parameter set are kept to be able to decrypt packets using old one arriving late
- *
- * @param[in/out]	stream		The mediastream to operate on
- * @param[in]		ekt		The parameter set holding all information needed to decrypt incoming EKT tags and set the SRTP receiving context
- *                                      Data is copied internally and caller can dispose of it at anytime after this call
- * @return	0 on success, error code otherwise
- */
-MS2_PUBLIC int ms_media_stream_sessions_add_recv_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
+MS2_PUBLIC int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
 
 /**
  * Convert MSCryptoSuite enum to a string.

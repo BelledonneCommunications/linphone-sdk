@@ -1293,8 +1293,8 @@ static void double_encrypted_rtp_relay_audio_stream_base(
 
 	/* set inner keys */
 	if (use_ekt) {
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_send_ekt(&(marielle->ms.sessions), &ekt_params) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_add_recv_ekt(&(margaux->ms.sessions), &ekt_params) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&(marielle->ms.sessions), &ekt_params) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&(margaux->ms.sessions), &ekt_params) == 0);
 	} else {
 		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&(margaux->ms.sessions), inner_suite, inner_key, MSSrtpKeySourceDTLS, marielle->ms.sessions.rtp_session->snd.ssrc) == 0);
 		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(&(marielle->ms.sessions), inner_suite, inner_key, MSSrtpKeySourceDTLS) == 0);

@@ -403,9 +403,9 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 	/* set inner keys */
 	if (use_ekt) { // Just set the same EKT for all sources and recipient, they will generate keys and decrypt them
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_send_ekt(&marielle, &ekt_params) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_send_ekt(&pauline, &ekt_params) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_add_recv_ekt(&margaux, &ekt_params) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&marielle, &ekt_params) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&pauline, &ekt_params) == 0);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&margaux, &ekt_params) == 0);
 	} else { // set the inner keys
 		// Marielle (even when 2 sessions are bundled from marielle, they will use the same key)
 		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(&marielle, inner_suite, marielle_inner_key, MSSrtpKeySourceZRTP) == 0);
