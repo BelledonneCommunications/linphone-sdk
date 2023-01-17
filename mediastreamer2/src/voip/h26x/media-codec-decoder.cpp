@@ -182,6 +182,7 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		_curWidth = image.crop_rect.w;
 		_curHeight = image.crop_rect.h;
 	}
+	ms_message("MediaCodecDecoder: got output image with presentation timestamp [%llu].", (unsigned long long) image.timestamp);
 
 	MSPicture pic;
 	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
