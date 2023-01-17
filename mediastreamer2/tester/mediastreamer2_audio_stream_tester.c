@@ -1337,9 +1337,17 @@ static void double_encrypted_rtp_relay_audio_stream_base(
 	BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent,margaux_stats.rtp.packet_recv+number_of_dropped_packets, unsigned long long, "%llu");
 
 	/* cleaning */
+	ms_ticker_detach(sessions_legA.ticker, rtprecv_legA);
+	ms_ticker_detach(sessions_legB.ticker, rtprecv_legB);
+	ms_filter_unlink(rtprecv_legA, 0, rtpsend_legB, 0);
+	ms_filter_unlink(rtprecv_legB, 0, rtpsend_legA, 0);
+	ms_tester_destroy_filter(&rtpsend_legA);
+	ms_tester_destroy_filter(&rtpsend_legB);
+	ms_tester_destroy_filter(&rtprecv_legA);
+	ms_tester_destroy_filter(&rtprecv_legB);
+	audio_stream_stop(marielle);
 	ms_media_stream_sessions_uninit(&sessions_legA);
 	ms_media_stream_sessions_uninit(&sessions_legB);
-	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
 	rtp_profile_destroy(profile);
 
@@ -1375,6 +1383,11 @@ static void double_encrypted_relayed_audio_stream_use_ekt( void ) {
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, FALSE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
 };
 
+static void double_encrypted_relayed_audio_stream_with_participants_volumes_use_ekt( void ) {
+	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, TRUE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
+	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
+};
+
 
 static test_t tests[] = {
 	TEST_NO_TAG("Basic audio stream", basic_audio_stream),
@@ -1394,6 +1407,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Double Encrypted relayed audio stream, encryption mandatory", double_encrypted_relayed_audio_stream_encryption_mandatory),
 	TEST_NO_TAG("Double Encrypted relayed audio stream with participants volumes", double_encrypted_relayed_audio_stream_with_participants_volumes),
 	TEST_NO_TAG("Double Encrypted relayed audio stream using ekt", double_encrypted_relayed_audio_stream_use_ekt),
+	TEST_NO_TAG("Double Encrypted relayed audio stream with participants volumes using ekt", double_encrypted_relayed_audio_stream_with_participants_volumes_use_ekt),
 	TEST_NO_TAG("Codec change for audio stream", codec_change_for_audio_stream),
 	TEST_NO_TAG("TMMBR feedback for audio stream", tmmbr_feedback_for_audio_stream),
 	TEST_NO_TAG("Symetric rtp with wrong address", symetric_rtp_with_wrong_addr),
