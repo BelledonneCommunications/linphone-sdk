@@ -55,7 +55,7 @@ Follow MSYS2 instructions on their ["Getting Started" page](https://www.msys2.or
 
 Both MinGW32 and MinGW64 are supported.
 
-When building the SDK, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2`, `intltool` and `graphviz` (if needed)
+When building the SDK and if you set `-DLINPHONE_BUILDER_WINDOWS_TOOLS_CHECK=ON`, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2`, `intltool` and `graphviz` (if needed)
 
 In this order, add `C:\msys64\mingw<N>\bin`, `C:\msys64\` and `C:\msys64\usr\bin` in your PATH environement variable from Windows advanced settings. Binaries from the msys folder (not from mingw32/64) doesn't fully support Windows Path and thus, they are to be avoided.
 *<N> is the version of MinGW32/64*
