@@ -53,7 +53,7 @@
     - ls -t linphone-sdk-*.zip > sdk_archive_name.txt
     - cat sdk_archive_name.txt
     - echo $(git describe) > gitdescribe.txt
-    
+
   artifacts:
     paths:
       - build-desktop/gitdescribe.txt
@@ -73,23 +73,6 @@
 #################################################
 # Makefile
 #################################################
-
-
-macosx-makefile:
-
-  rules:
-    - if: $NIGHTLY_MASTER
-  variables:
-    CMAKE_GENERATOR: Unix Makefiles
-    #Only used to overwrite value set by .set_parallel_level.yml
-    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-  extends: .macosx-desktop
-
-macosx-makefile-pqc:
-  variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
-  extends: macosx-makefile
-
 
 macosx-m1-multiarch-makefile:
 
@@ -112,6 +95,9 @@ macosx-m1-multiarch-makefile-pqc:
 
 
 macosx-ninja:
+
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
 
   variables:
     CMAKE_GENERATOR: Ninja
@@ -140,14 +126,6 @@ macosx-ninja-novideo:
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=ON
-  extends: macosx-ninja
-
-macosx-ninja-pqc:
-
-  rules:
-    - if: $NIGHTLY_MASTER
-  variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
   extends: macosx-ninja
 
 #################################################
@@ -192,4 +170,3 @@ macosx-xcode-pqc:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=ON
   rules:
     - if: $NIGHTLY_MASTER
-
