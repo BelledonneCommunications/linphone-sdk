@@ -166,26 +166,24 @@ class HybridObject : public Object {
 			return result;
 		}
 		//Convenience method for easy std::list<shared_ptr<CppType>> -> bctbx_list(CType) conversion
-		//It does not take ownership of the hybrid object, but takes a ref.
-		static bctbx_list_t* getCListFromCppList(const std::list<std::shared_ptr<_CppType> > &cppList) {
+		//The takeRef bool indicates whether a reference to the objects must be taken.
+		static bctbx_list_t* getCListFromCppList(const std::list<std::shared_ptr<_CppType> > &cppList, bool takeRef = true) {
 			bctbx_list_t *result = nullptr;
 			for (auto it = cppList.begin(); it != cppList.end(); it++) {
 				std::shared_ptr<_CppType> cppPtr = static_cast<std::shared_ptr<_CppType>>(*it);
-				cppPtr->ref();
-				_CType *cptr = cppPtr->toC();
-				result = bctbx_list_append(result, cptr);
+				if (takeRef) cppPtr->ref();
+				result = bctbx_list_append(result, cppPtr->toC());
 			}
 			return result;
 		}
 		//Convenience method for easy std::list<CppType*> -> bctbx_list(CType) conversion
-		//It does not take ownership of the hybrid object, but takes a ref.
-		static bctbx_list_t* getCListFromCppList(const std::list<_CppType*> &cppList) {
+		//The takeRef bool indicates whether a reference to the objects must be taken.
+		static bctbx_list_t* getCListFromCppList(const std::list<_CppType*> &cppList, bool takeRef = true) {
 			bctbx_list_t *result = nullptr;
 			for (auto it = cppList.begin(); it != cppList.end(); it++) {
 				_CppType *cppPtr = static_cast<_CppType*>(*it);
-				cppPtr->ref();
-				_CType *cptr = cppPtr->toC();
-				result = bctbx_list_append(result, cptr);
+				if (takeRef) cppPtr->ref();
+				result = bctbx_list_append(result, cppPtr->toC());
 			}
 			return result;
 		}

@@ -871,6 +871,7 @@ static int is_mdns_query(const char *name){
 static void dns_service_deallocate(belle_sip_simple_resolver_context_t *ctx) {
 	if (ctx->dns_service_timer) {
 		dispatch_source_cancel(ctx->dns_service_timer);
+		dispatch_release(ctx->dns_service_timer);
 		ctx->dns_service_timer = NULL;
 	}
 	if (ctx->dns_service) {
@@ -960,6 +961,7 @@ static void dns_service_query_record_cb(DNSServiceRef dns_service, DNSServiceFla
 
 				char host[NI_MAXHOST + 1];
 				belle_sip_dns_srv_t * b_srv=belle_sip_dns_srv_create_dns_service(rr);
+				dns_free_resource_record(rr);
 				snprintf(host, sizeof(host), "[target:%s port:%d prio:%d weight:%d]", b_srv->target, b_srv->port, b_srv->priority, b_srv->weight);
 
 				ctx->srv_list = belle_sip_list_insert_sorted(ctx->srv_list, belle_sip_object_ref(b_srv), srv_compare_prio);
