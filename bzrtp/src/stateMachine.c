@@ -24,6 +24,7 @@
 #include "cryptoUtils.h"
 #include "zidCache.h"
 #include <bctoolbox/crypto.h>
+#include <bctoolbox/defs.h>
 #include "stateMachine.h"
 
 
@@ -2584,7 +2585,7 @@ static int bzrtp_computeS0MultiStreamMode(bzrtpContext_t *zrtpContext, bzrtpChan
  * return 0 on success, error code otherwise
  *
  */
-static int bzrtp_deriveKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t *zrtpChannelContext) {
+static int bzrtp_deriveKeysFromS0(BCTBX_UNUSED(bzrtpContext_t *zrtpContext), bzrtpChannelContext_t *zrtpChannelContext) {
 	int retval = 0;
 	/* allocate memory for mackeyi, mackeyr, zrtpkeyi, zrtpkeyr */
 	zrtpChannelContext->mackeyi = (uint8_t *)malloc(zrtpChannelContext->hashLength*(sizeof(uint8_t)));
