@@ -101,6 +101,14 @@ bzrtp-centos7-test:
 #   extends: .test-bzrtp-mr
 #   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
+ortp-centos7-test:
+  extends: .test-ortp
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
+ortp-centos7-test-mr:
+  extends: .test-ortp-mr
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
 .factorize_bs_centos7: &docker_image_needs_tag_platform_devtoolset_bs
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7:$CENTOS_7_IMAGE_VERSION
   needs:

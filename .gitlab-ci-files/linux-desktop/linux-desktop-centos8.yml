@@ -149,6 +149,13 @@ bzrtp-centos8-test:
   needs:
     - centos8-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
+
+ortp-centos8-test:
+  extends: .test-ortp
+  needs:
+    - centos8-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
 #mediastreamer-centos8-test:
 #  tags: [ "docker-test-centos8-liblinphone-nuc" ]
 #  extends: .test

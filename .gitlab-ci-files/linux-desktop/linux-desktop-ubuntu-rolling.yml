@@ -141,6 +141,12 @@ bzrtp-ubuntu-test:
     - ubuntu-rolling-ninja-clang
   <<: *docker_image_platform_and_runner_tag
 
+ortp-ubuntu-test:
+  extends: .test-ortp
+  needs:
+    - ubuntu-rolling-ninja-clang
+  <<: *docker_image_platform_and_runner_tag
+
 liblinphone-ubuntu-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone

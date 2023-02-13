@@ -213,6 +213,25 @@
 #   except:
 #    - schedules
 
+.test-ortp:
+  extends: .test
+  variables:
+    TESTER_BIN: "ortp_tester"
+    LOG_PATTERN: "logOrtpAllPar"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    RESOURCES_DIR: "--resource-dir ../share/"
+    TESTER: "ortp"
+
+.test-ortp-mr:
+  extends: .test-ortp
+    #  only:
+    #changes:
+    #  - ortp
+  allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+
 .test-pqc:
   extends: .test
   variables:

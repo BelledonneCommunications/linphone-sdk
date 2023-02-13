@@ -156,6 +156,12 @@ bzrtp-debian11-test:
     - debian11-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
+ortp-debian11-test:
+  extends: .test-ortp
+  needs:
+    - debian11-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
 liblinphone-debian11-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone

@@ -164,6 +164,13 @@ bzrtp-debian9-test:
     - debian9-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
 
+ortp-debian9-test:
+  extends: .test-ortp
+  needs:
+    - debian9-ninja-gcc
+  <<: *docker_image_platform_and_runner_tag
+
+
 liblinphone-debian9-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian9-test-liblinphone:$DEBIAN_9_TEST_LIBLIN_IMAGE_VERSION
   extends: .test-liblinphone
