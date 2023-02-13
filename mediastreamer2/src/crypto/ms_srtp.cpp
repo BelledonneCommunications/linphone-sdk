@@ -144,15 +144,12 @@ public:
 	MSSrtpRecvStreamContext(){};
 };
 
-class _MSSrtpCtx {
-public:
+struct _MSSrtpCtx {
 	bctoolbox::RNG mRNG;           /**< EKT needs a RNG to be able to generate srtp master key */
 	MSSrtpSendStreamContext mSend; /**< The context used to protect outgoing packets, is always using any_outbound mode
 	                                 so we don't manage SSRC */
 	MSSrtpRecvStreamContext mRecv; /**< The contex used to unprotect incoming packets. Outer encryption always use
 	                                 any_inbound mode, inner - if present - uses ssrc specific */
-
-	_MSSrtpCtx(){};
 };
 
 static int ms_add_srtp_stream(MSSrtpStreamContext *streamCtx,
@@ -368,12 +365,10 @@ static bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *sl
 		if (createTag || replaceTag) {
 			auto ekt = ctx->ektSender;
 			// We must create the cipher text
-			// Plain text is: SRTPMasterKeyLength SRTPMasterKey SSRC ROC
-			// Weird gcc bug: won't build when concatenate the master key to the key length, do it the opposite
-			// way: prepend length
-			std::vector<uint8_t> plainText{ekt->mSrtpMasterKey.begin(), ekt->mSrtpMasterKey.end()};
-			plainText.insert(plainText.begin(),
-			                 static_cast<uint8_t>(ms_srtp_get_master_key_size(ekt->mSrtpCryptoSuite)));
+			// Plain text is: SRTPMasterKeyLength(1 byte) SRTPMasterKey SSRC ROC
+			std::vector<uint8_t> plainText{static_cast<uint8_t>(ms_srtp_get_master_key_size(ekt->mSrtpCryptoSuite))};
+			plainText.reserve(ms_srtp_get_master_key_size(ekt->mSrtpCryptoSuite) + 9);
+			plainText.insert(plainText.end(), ekt->mSrtpMasterKey.cbegin(), ekt->mSrtpMasterKey.cend());
 
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 16) & 0xFF));

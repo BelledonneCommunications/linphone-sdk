@@ -550,12 +550,8 @@ bool_t media_stream_secured(const MediaStream *stream) {
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
-			/*fixme need also audio stream direction to be more precise*/
-			return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
-		case MSVideo: {
-			VideoStream *vs = (VideoStream *)stream;
-			return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
-		}
+		case MSVideo:
+			return ms_media_stream_sessions_secured(&stream->sessions, stream->direction);
 		case MSUnknownMedia:
 			break;
 	}
@@ -568,11 +564,8 @@ MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream, Medi
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
+		case MSVideo:
 			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, dir, is_inner);
-		case MSVideo: {
-			VideoStream *vs = (VideoStream *)stream;
-			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, vs->dir, is_inner);
-		}
 		case MSUnknownMedia:
 		default:
 			break;
@@ -586,11 +579,8 @@ MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *stream, Medi
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
+		case MSVideo:
 			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, dir, is_inner);
-		case MSVideo: {
-			VideoStream *vs = (VideoStream *)stream;
-			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, vs->dir, is_inner);
-		}
 		case MSUnknownMedia:
 		default:
 			break;
