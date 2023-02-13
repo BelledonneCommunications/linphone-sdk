@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -43,8 +43,7 @@
 time_t ms_time(time_t *t) {
 	DWORD timemillis = GetTickCount();
 	if (timemillis > 0) {
-		if (t != NULL)
-			*t = timemillis / 1000;
+		if (t != NULL) *t = timemillis / 1000;
 	}
 	return timemillis / 1000;
 }
@@ -84,8 +83,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #ifndef MS2_WINDOWS_UNIVERSAL
 		penv = getenv("MS_VIDEO_PRIO");
 #endif
-		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0)
-			return prio;
+		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
 #if TARGET_OS_IPHONE
 		return MS_TICKER_PRIO_HIGH;
@@ -96,8 +94,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #ifndef MS2_WINDOWS_UNIVERSAL
 		penv = getenv("MS_AUDIO_PRIO");
 #endif
-		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0)
-			return prio;
+		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
 		return MS_TICKER_PRIO_HIGH;
 	}
@@ -122,24 +119,26 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	stream->stun_allowed = TRUE;
 }
 
-void media_stream_add_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
-									void *user_data) {
+void media_stream_add_tmmbr_handler(MediaStream *stream,
+                                    void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
+                                    void *user_data) {
 	ortp_ev_dispatcher_connect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB,
-							   (OrtpEvDispatcherCb)on_tmmbr_received, user_data);
+	                           (OrtpEvDispatcherCb)on_tmmbr_received, user_data);
 }
 
-void media_stream_remove_tmmbr_handler(MediaStream *stream, void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
-									   void *user_data) {
+void media_stream_remove_tmmbr_handler(MediaStream *stream,
+                                       void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
+                                       void *user_data) {
 	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB,
-								  (OrtpEvDispatcherCb)on_tmmbr_received);
+	                              (OrtpEvDispatcherCb)on_tmmbr_received);
 }
 
-static void on_ssrc_changed(RtpSession *session){
+static void on_ssrc_changed(RtpSession *session) {
 	ms_message("SSRC change detected !");
 	rtp_session_resync(session);
 }
 
-RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
+RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu) {
 	RtpSession *rtpr;
 	const int socket_buf_size = 2000000;
 
@@ -164,7 +163,7 @@ RtpSession * ms_create_duplex_rtp_session(const char* local_ip, int loc_rtp_port
 
 	rtp_session_set_ssrc_changed_threshold(rtpr, 0);
 	rtp_session_set_rtcp_report_interval(rtpr, 2500); /* At the beginning of the session send more reports. */
-	rtp_session_set_multicast_loopback(rtpr, TRUE);	  /*very useful, specially for testing purposes*/
+	rtp_session_set_multicast_loopback(rtpr, TRUE);   /*very useful, specially for testing purposes*/
 	rtp_session_set_send_ts_offset(rtpr, (uint32_t)bctbx_random());
 	rtp_session_enable_avpf_feature(rtpr, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 	disable_checksums(rtp_session_get_rtp_socket(rtpr));
@@ -187,8 +186,7 @@ void media_stream_start_ticker(MediaStream *stream) {
 	MSTickerParams params = {0};
 	char name[32] = {0};
 
-	if (stream->sessions.ticker)
-		return;
+	if (stream->sessions.ticker) return;
 	snprintf(name, sizeof(name) - 1, "%s MSTicker", media_stream_type_str(stream));
 	name[0] = toupper(name[0]);
 	params.name = name;
@@ -236,29 +234,18 @@ void media_stream_free(MediaStream *stream) {
 
 	if (stream->sessions.rtp_session != NULL)
 		rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
-	if (stream->evq != NULL)
-		ortp_ev_queue_destroy(stream->evq);
-	if (stream->evd != NULL)
-		ortp_ev_dispatcher_destroy(stream->evd);
-	if (stream->owns_sessions)
-		ms_media_stream_sessions_uninit(&stream->sessions);
-	if (stream->rc != NULL)
-		ms_bitrate_controller_destroy(stream->rc);
-	if (stream->rtpsend != NULL)
-		ms_filter_destroy(stream->rtpsend);
-	if (stream->rtprecv != NULL)
-		ms_filter_destroy(stream->rtprecv);
-	if (stream->encoder != NULL)
-		ms_filter_destroy(stream->encoder);
-	if (stream->decoder != NULL)
-		ms_filter_destroy(stream->decoder);
-	if (stream->voidsink != NULL)
-		ms_filter_destroy(stream->voidsink);
-	if (stream->qi)
-		ms_quality_indicator_destroy(stream->qi);
+	if (stream->evq != NULL) ortp_ev_queue_destroy(stream->evq);
+	if (stream->evd != NULL) ortp_ev_dispatcher_destroy(stream->evd);
+	if (stream->owns_sessions) ms_media_stream_sessions_uninit(&stream->sessions);
+	if (stream->rc != NULL) ms_bitrate_controller_destroy(stream->rc);
+	if (stream->rtpsend != NULL) ms_filter_destroy(stream->rtpsend);
+	if (stream->rtprecv != NULL) ms_filter_destroy(stream->rtprecv);
+	if (stream->encoder != NULL) ms_filter_destroy(stream->encoder);
+	if (stream->decoder != NULL) ms_filter_destroy(stream->decoder);
+	if (stream->voidsink != NULL) ms_filter_destroy(stream->voidsink);
+	if (stream->qi) ms_quality_indicator_destroy(stream->qi);
 #ifdef VIDEO_ENABLED
-	if (stream->video_quality_controller)
-		ms_video_quality_controller_destroy(stream->video_quality_controller);
+	if (stream->video_quality_controller) ms_video_quality_controller_destroy(stream->video_quality_controller);
 #endif
 }
 
@@ -280,8 +267,7 @@ void media_stream_get_local_rtp_stats(MediaStream *stream, rtp_stats_t *lstats) 
 	if (stream->sessions.rtp_session) {
 		const rtp_stats_t *stats = rtp_session_get_stats(stream->sessions.rtp_session);
 		memcpy(lstats, stats, sizeof(*stats));
-	} else
-		memset(lstats, 0, sizeof(rtp_stats_t));
+	} else memset(lstats, 0, sizeof(rtp_stats_t));
 }
 
 int media_stream_set_dscp(MediaStream *stream, int dscp) {
@@ -301,16 +287,15 @@ void media_stream_enable_adaptive_jittcomp(MediaStream *stream, bool_t enabled) 
 	rtp_session_enable_adaptive_jitter_compensation(stream->sessions.rtp_session, enabled);
 }
 
-void media_stream_set_stun_allowed(MediaStream *stream, bool_t value){
+void media_stream_set_stun_allowed(MediaStream *stream, bool_t value) {
 	stream->stun_allowed = value;
-
 }
 
 /* This function decides whether it is necessary to send dummy stun packets for firewall opening. */
-static void media_stream_configure_stun_packet_sending(MediaStream *stream){
+static void media_stream_configure_stun_packet_sending(MediaStream *stream) {
 	bool_t stun_enabled = stream->stun_allowed;
 	if (stream->ice_check_list) stun_enabled = FALSE;
-	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary){
+	if (stream->sessions.rtp_session->bundle && !stream->sessions.rtp_session->is_primary) {
 		stun_enabled = FALSE;
 	}
 	if (stream->rtpsend != NULL) {
@@ -320,8 +305,8 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream){
 			 * no RTP packets will be emitted at all, until handshake takes places.
 			 * We must configure the rtpsend filter to regularly send dummy stun packets
 			 * to ensure that firewall gets open to the remote endpoint.
-			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might be
-			 * undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
+			 * Note that we are unable to check here if encryption mandatory is on (due to order of operation that might
+			 * be undetermined), but it is acceptable to send dummy stun packets even if encryption mandatory is off.
 			 */
 			ms_filter_call_method(stream->rtpsend, MS_RTP_SEND_ENABLE_STUN_FORCED, &stun_enabled);
 		}
@@ -332,8 +317,7 @@ void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *param
 	if (stream->sessions.dtls_context == NULL) {
 		MSDtlsSrtpParams params_copy = *params;
 		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
-		if (params_copy.mtu == 0)
-			params_copy.mtu = ms_factory_get_mtu(stream->factory);
+		if (params_copy.mtu == 0) params_copy.mtu = ms_factory_get_mtu(stream->factory);
 
 		stream->sessions.dtls_context = ms_dtls_srtp_context_new(&(stream->sessions), &params_copy);
 		media_stream_configure_stun_packet_sending(stream);
@@ -356,8 +340,8 @@ bool_t media_stream_dtls_supported(void) {
 /* This function is called only when using SDES to exchange SRTP keys */
 bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key, const char *rcv_key) {
 	return ms_media_stream_sessions_set_srtp_recv_key_b64(&stream->sessions, suite, rcv_key, MSSrtpKeySourceSDES) ==
-			   0 &&
-		   ms_media_stream_sessions_set_srtp_send_key_b64(&stream->sessions, suite, snd_key, MSSrtpKeySourceSDES) == 0;
+	           0 &&
+	       ms_media_stream_sessions_set_srtp_send_key_b64(&stream->sessions, suite, snd_key, MSSrtpKeySourceSDES) == 0;
 }
 
 const MSQualityIndicator *media_stream_get_quality_indicator(MediaStream *stream) {
@@ -410,12 +394,10 @@ bool_t ms_is_multicast(const char *address) {
 static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime) {
 	stream->last_packet_time = curtime;
 	ms_message("%s stream [%p]: receiving RTCP %s%s", media_stream_type_str(stream), stream,
-			   (rtcp_is_SR(m) ? "SR" : ""), (rtcp_is_RR(m) ? "RR" : ""));
+	           (rtcp_is_SR(m) ? "SR" : ""), (rtcp_is_RR(m) ? "RR" : ""));
 	do {
-		if (stream->rc_enable && stream->rc)
-			ms_bitrate_controller_process_rtcp(stream->rc, m);
-		if (stream->qi)
-			ms_quality_indicator_update_from_feedback(stream->qi, m);
+		if (stream->rc_enable && stream->rc) ms_bitrate_controller_process_rtcp(stream->rc, m);
+		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi, m);
 		stream->process_rtcp(stream, m);
 	} while (rtcp_next_packet(m));
 }
@@ -434,8 +416,7 @@ MediaStreamDir media_stream_get_direction(const MediaStream *stream) {
 void media_stream_iterate(MediaStream *stream) {
 	time_t curtime = ms_time(NULL);
 
-	if (stream->ice_check_list)
-		ice_check_list_process(stream->ice_check_list, stream->sessions.rtp_session);
+	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list, stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
 	if (stream->state == MSStreamStarted) {
 		if (stream->is_beginning && (curtime - stream->start_time > 15)) {
@@ -450,8 +431,7 @@ void media_stream_iterate(MediaStream *stream) {
 	}
 	stream->last_iterate_time = curtime;
 
-	if (stream->rc)
-		ms_bitrate_controller_update(stream->rc);
+	if (stream->rc) ms_bitrate_controller_update(stream->rc);
 
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
@@ -467,14 +447,14 @@ void media_stream_iterate(MediaStream *stream) {
 				media_stream_process_rtcp(stream, m, curtime);
 			} else if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
 				ms_message("%s_stream_iterate[%p], local statistics available:"
-						   "\n\tLocal current jitter buffer size: %5.1fms",
-						   media_stream_type_str(stream), stream,
-						   rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
+				           "\n\tLocal current jitter buffer size: %5.1fms",
+				           media_stream_type_str(stream), stream,
+				           rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
 			} else if (evt == ORTP_EVENT_STUN_PACKET_RECEIVED && stream->ice_check_list) {
 				ice_handle_stun_packet(stream->ice_check_list, stream->sessions.rtp_session, ortp_event_get_data(ev));
 			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
 				ms_message("%s_stream_iterate[%p]: is %s ", media_stream_type_str(stream), stream,
-						   media_stream_secured(stream) ? "encrypted" : "not encrypted");
+				           media_stream_secured(stream) ? "encrypted" : "not encrypted");
 			}
 			ortp_event_destroy(ev);
 		}
@@ -565,34 +545,32 @@ void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *s
 }
 
 bool_t media_stream_secured(const MediaStream *stream) {
-	if (stream->state != MSStreamStarted)
-		return FALSE;
+	if (stream->state != MSStreamStarted) return FALSE;
 
 	switch (stream->type) {
-	case MSAudio:
-	case MSText:
-		/*fixme need also audio stream direction to be more precise*/
-		return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
-	case MSVideo: {
-		VideoStream *vs = (VideoStream *)stream;
-		return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
-	}
-	case MSUnknownMedia:
-		break;
+		case MSAudio:
+		case MSText:
+			/*fixme need also audio stream direction to be more precise*/
+			return ms_media_stream_sessions_secured(&stream->sessions, MediaStreamSendRecv);
+		case MSVideo: {
+			VideoStream *vs = (VideoStream *)stream;
+			return ms_media_stream_sessions_secured(&stream->sessions, vs->dir);
+		}
+		case MSUnknownMedia:
+			break;
 	}
 	return FALSE;
 }
 
 MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream, MediaStreamDir dir, bool_t is_inner) {
-	if (stream->state != MSStreamStarted)
-		return MSSrtpKeySourceUnavailable;
+	if (stream->state != MSStreamStarted) return MSSrtpKeySourceUnavailable;
 
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
 			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, dir, is_inner);
-		case MSVideo:{
-			VideoStream *vs = (VideoStream*)stream;
+		case MSVideo: {
+			VideoStream *vs = (VideoStream *)stream;
 			return ms_media_stream_sessions_get_srtp_key_source(&stream->sessions, vs->dir, is_inner);
 		}
 		case MSUnknownMedia:
@@ -603,15 +581,14 @@ MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream, Medi
 }
 
 MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *stream, MediaStreamDir dir, bool_t is_inner) {
-	if (stream->state != MSStreamStarted)
-		return MS_CRYPTO_SUITE_INVALID;
+	if (stream->state != MSStreamStarted) return MS_CRYPTO_SUITE_INVALID;
 
 	switch (stream->type) {
 		case MSAudio:
 		case MSText:
 			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, dir, is_inner);
-		case MSVideo:{
-			VideoStream *vs = (VideoStream*)stream;
+		case MSVideo: {
+			VideoStream *vs = (VideoStream *)stream;
 			return ms_media_stream_sessions_get_srtp_crypto_suite(&stream->sessions, vs->dir, is_inner);
 		}
 		case MSUnknownMedia:
@@ -648,80 +625,46 @@ MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNamePara
 	if (keywordcmp("AES_CM_128_HMAC_SHA1_80", name) == 0) {
 		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
 			return MS_AES_128_SHA1_80_NO_CIPHER;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			return MS_AES_128_SHA1_80_SRTP_NO_CIPHER;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			return MS_AES_128_SHA1_80_SRTCP_NO_CIPHER;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			return MS_AES_128_SHA1_80_NO_AUTH;
-		else
-			return MS_AES_128_SHA1_80;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) return MS_AES_128_SHA1_80_SRTP_NO_CIPHER;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) return MS_AES_128_SHA1_80_SRTCP_NO_CIPHER;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) return MS_AES_128_SHA1_80_NO_AUTH;
+		else return MS_AES_128_SHA1_80;
 	} else if (keywordcmp("AES_CM_128_HMAC_SHA1_32", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			return MS_AES_128_SHA1_32_NO_AUTH;
-		else
-			return MS_AES_128_SHA1_32;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) return MS_AES_128_SHA1_32_NO_AUTH;
+		else return MS_AES_128_SHA1_32;
 	} else if (keywordcmp("AES_256_CM_HMAC_SHA1_32", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			goto error;
-		else
-			return MS_AES_256_SHA1_32;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_256_SHA1_32;
 	} else if (keywordcmp("AES_256_CM_HMAC_SHA1_80", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			goto error;
-		else
-			return MS_AES_256_SHA1_80;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_256_SHA1_80;
 	} else if (keywordcmp("AES_CM_256_HMAC_SHA1_80", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			goto error;
-		else
-			return MS_AES_CM_256_SHA1_80;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AES_CM_256_SHA1_80;
 	} else if (keywordcmp("AEAD_AES_128_GCM", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			goto error;
-		else
-			return MS_AEAD_AES_128_GCM;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AEAD_AES_128_GCM;
 	} else if (keywordcmp("AEAD_AES_256_GCM", name) == 0) {
-		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP"))
-			goto error;
-		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP"))
-			goto error;
-		else
-			return MS_AEAD_AES_256_GCM;
+		if (parameters && strstr(parameters, "UNENCRYPTED_SRTP") && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTP")) goto error;
+		else if (parameters && strstr(parameters, "UNENCRYPTED_SRTCP")) goto error;
+		else if (parameters && strstr(parameters, "UNAUTHENTICATED_SRTP")) goto error;
+		else return MS_AEAD_AES_256_GCM;
 	}
 error:
 	ms_error("Unsupported crypto suite '%s' with parameters '%s'", name, parameters ? parameters : "");
@@ -730,7 +673,7 @@ error:
 
 bool_t ms_crypto_suite_is_unencrypted(MSCryptoSuite cs) {
 	return (cs == MS_AES_128_SHA1_80_SRTP_NO_CIPHER) || (cs == MS_AES_128_SHA1_80_SRTCP_NO_CIPHER) ||
-		   (cs == MS_AES_128_SHA1_80_NO_CIPHER);
+	       (cs == MS_AES_128_SHA1_80_NO_CIPHER);
 }
 
 bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs) {
@@ -741,52 +684,51 @@ int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *pa
 	params->name = NULL;
 	params->params = NULL;
 	switch (cs) {
-	case MS_CRYPTO_SUITE_INVALID:
-		break;
-	case MS_AES_128_SHA1_80:
-		params->name = "AES_CM_128_HMAC_SHA1_80";
-		break;
-	case MS_AES_128_SHA1_32:
-		params->name = "AES_CM_128_HMAC_SHA1_32";
-		break;
-	case MS_AES_128_SHA1_80_NO_AUTH:
-		params->name = "AES_CM_128_HMAC_SHA1_80";
-		params->params = "UNAUTHENTICATED_SRTP";
-		break;
-	case MS_AES_128_SHA1_32_NO_AUTH:
-		params->name = "AES_CM_128_HMAC_SHA1_32";
-		params->params = "UNAUTHENTICATED_SRTP";
-		break;
-	case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
-		params->name = "AES_CM_128_HMAC_SHA1_80";
-		params->params = "UNENCRYPTED_SRTP";
-		break;
-	case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
-		params->name = "AES_CM_128_HMAC_SHA1_80";
-		params->params = "UNENCRYPTED_SRTCP";
-		break;
-	case MS_AES_128_SHA1_80_NO_CIPHER:
-		params->name = "AES_CM_128_HMAC_SHA1_80";
-		params->params = "UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
-		break;
-	case MS_AES_256_SHA1_80:
-		params->name = "AES_256_CM_HMAC_SHA1_80";
-		break;
-	case MS_AES_CM_256_SHA1_80:
-		params->name = "AES_CM_256_HMAC_SHA1_80";
-		break;
-	case MS_AES_256_SHA1_32:
-		params->name = "AES_256_CM_HMAC_SHA1_32";
-		break;
-	case MS_AEAD_AES_128_GCM:
-		params->name = "AEAD_AES_128_GCM";
-		break;
-	case MS_AEAD_AES_256_GCM:
-		params->name = "AEAD_AES_256_GCM";
-		break;
+		case MS_CRYPTO_SUITE_INVALID:
+			break;
+		case MS_AES_128_SHA1_80:
+			params->name = "AES_CM_128_HMAC_SHA1_80";
+			break;
+		case MS_AES_128_SHA1_32:
+			params->name = "AES_CM_128_HMAC_SHA1_32";
+			break;
+		case MS_AES_128_SHA1_80_NO_AUTH:
+			params->name = "AES_CM_128_HMAC_SHA1_80";
+			params->params = "UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_32_NO_AUTH:
+			params->name = "AES_CM_128_HMAC_SHA1_32";
+			params->params = "UNAUTHENTICATED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTP_NO_CIPHER:
+			params->name = "AES_CM_128_HMAC_SHA1_80";
+			params->params = "UNENCRYPTED_SRTP";
+			break;
+		case MS_AES_128_SHA1_80_SRTCP_NO_CIPHER:
+			params->name = "AES_CM_128_HMAC_SHA1_80";
+			params->params = "UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_128_SHA1_80_NO_CIPHER:
+			params->name = "AES_CM_128_HMAC_SHA1_80";
+			params->params = "UNENCRYPTED_SRTP UNENCRYPTED_SRTCP";
+			break;
+		case MS_AES_256_SHA1_80:
+			params->name = "AES_256_CM_HMAC_SHA1_80";
+			break;
+		case MS_AES_CM_256_SHA1_80:
+			params->name = "AES_CM_256_HMAC_SHA1_80";
+			break;
+		case MS_AES_256_SHA1_32:
+			params->name = "AES_256_CM_HMAC_SHA1_32";
+			break;
+		case MS_AEAD_AES_128_GCM:
+			params->name = "AEAD_AES_128_GCM";
+			break;
+		case MS_AEAD_AES_256_GCM:
+			params->name = "AEAD_AES_256_GCM";
+			break;
 	}
-	if (params->name == NULL)
-		return -1;
+	if (params->name == NULL) return -1;
 	return 0;
 }
 
@@ -796,47 +738,47 @@ OrtpEvDispatcher *media_stream_get_event_dispatcher(const MediaStream *stream) {
 
 const char *ms_resource_type_to_string(MSResourceType type) {
 	switch (type) {
-	case MSResourceDefault:
-		return "MSResourceDefault";
-	case MSResourceInvalid:
-		return "MSResourceInvalid";
-	case MSResourceCamera:
-		return "MSResourceCamera";
-	case MSResourceFile:
-		return "MSResourceFile";
-	case MSResourceRtp:
-		return "MSResourceRtp";
-	case MSResourceSoundcard:
-		return "MSResourceSoundcard";
-	case MSResourceVoid:
-		return "MSResourceVoid";
-	case MSResourceItc:
-		return "MSResourceItc";
+		case MSResourceDefault:
+			return "MSResourceDefault";
+		case MSResourceInvalid:
+			return "MSResourceInvalid";
+		case MSResourceCamera:
+			return "MSResourceCamera";
+		case MSResourceFile:
+			return "MSResourceFile";
+		case MSResourceRtp:
+			return "MSResourceRtp";
+		case MSResourceSoundcard:
+			return "MSResourceSoundcard";
+		case MSResourceVoid:
+			return "MSResourceVoid";
+		case MSResourceItc:
+			return "MSResourceItc";
 	}
 	return "INVALID";
 }
 
 bool_t ms_media_resource_is_consistent(const MSMediaResource *r) {
 	switch (r->type) {
-	case MSResourceCamera:
-	case MSResourceRtp:
-	case MSResourceSoundcard:
-		if (r->resource_arg == NULL) {
-			ms_error("No resource argument specified for resource type %s", ms_resource_type_to_string(r->type));
+		case MSResourceCamera:
+		case MSResourceRtp:
+		case MSResourceSoundcard:
+			if (r->resource_arg == NULL) {
+				ms_error("No resource argument specified for resource type %s", ms_resource_type_to_string(r->type));
+				return FALSE;
+			}
+			return TRUE;
+			break;
+		case MSResourceFile:
+			/*setting up file player/recorder without specifying the file to play immediately is allowed*/
+		case MSResourceDefault:
+		case MSResourceItc:
+			return TRUE;
+		case MSResourceInvalid:
+			ms_error("Invalid resource type specified");
 			return FALSE;
-		}
-		return TRUE;
-		break;
-	case MSResourceFile:
-		/*setting up file player/recorder without specifying the file to play immediately is allowed*/
-	case MSResourceDefault:
-	case MSResourceItc:
-		return TRUE;
-	case MSResourceInvalid:
-		ms_error("Invalid resource type specified");
-		return FALSE;
-	case MSResourceVoid:
-		return TRUE;
+		case MSResourceVoid:
+			return TRUE;
 	}
 	ms_error("Unsupported media resource type [%i]", (int)r->type);
 	return FALSE;
@@ -872,7 +814,7 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 
 	if (obj->max_target_bitrate > 0 && br_limit > obj->max_target_bitrate) {
 		ms_message("TMMBR is greater than maximum target bitrate set (%i > %i), capping to %i bits/s", br_limit,
-				   obj->max_target_bitrate, obj->max_target_bitrate);
+		           obj->max_target_bitrate, obj->max_target_bitrate);
 		br_limit = obj->max_target_bitrate;
 	}
 
@@ -892,14 +834,13 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 	return br_limit;
 }
 
-
-void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr){
+void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr) {
 	int br_int;
-	ms_message("MediaStream[%p]: received a TMMBR for bitrate %llu kbits/s"
-				, ms, (unsigned long long)(tmmbr_mxtbr/1000));
-	if (tmmbr_mxtbr < (uint64_t)INT_MAX){
+	ms_message("MediaStream[%p]: received a TMMBR for bitrate %llu kbits/s", ms,
+	           (unsigned long long)(tmmbr_mxtbr / 1000));
+	if (tmmbr_mxtbr < (uint64_t)INT_MAX) {
 		br_int = (int)tmmbr_mxtbr;
-	}else{
+	} else {
 		br_int = INT_MAX;
 	}
 	br_int = update_bitrate_limit_from_tmmbr(ms, br_int);
@@ -919,8 +860,8 @@ void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr){
 			if (vconf_list != NULL) {
 				ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
 
-				vconf = ms_video_find_best_configuration_for_size_and_bitrate(vconf_list, current_vconf.vsize,
-																		ms_factory_get_cpu_count(ms->factory), br_int);
+				vconf = ms_video_find_best_configuration_for_size_and_bitrate(
+				    vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(ms->factory), br_int);
 
 				new_bitrate_limit = br_int < vconf.bitrate_limit ? br_int : vconf.bitrate_limit;
 				ms_message("Changing video encoder's output bitrate to %i", new_bitrate_limit);
@@ -958,17 +899,17 @@ void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
 
 void media_stream_print_summary(MediaStream *ms) {
 	ms_message("MediaStream[%p] (%s) with RtpSession[%p] summary:", ms, ms_format_type_to_string(ms->type),
-			   ms->sessions.rtp_session);
+	           ms->sessions.rtp_session);
 	ms_message("send-ssrc = [dec:%u hex:%x]", rtp_session_get_send_ssrc(ms->sessions.rtp_session),
-			   rtp_session_get_send_ssrc(ms->sessions.rtp_session));
+	           rtp_session_get_send_ssrc(ms->sessions.rtp_session));
 	ms_message("recv-ssrc = [dec:%u hex:%x]", rtp_session_get_recv_ssrc(ms->sessions.rtp_session),
-			   rtp_session_get_recv_ssrc(ms->sessions.rtp_session));
+	           rtp_session_get_recv_ssrc(ms->sessions.rtp_session));
 	if (ms->ice_check_list != NULL) {
 		ice_check_list_print_route(ms->ice_check_list, "ICE route:");
 		ms->ice_check_list = NULL;
 	}
 	rtp_stats_display(rtp_session_get_stats(ms->sessions.rtp_session),
-					  "                     RTP STATISTICS                          ");
+	                  "                     RTP STATISTICS                          ");
 	if (ms->sessions.rtp_session->fec_stream) {
 		fec_stream_print_stats(ms->sessions.rtp_session->fec_stream);
 	}
@@ -982,40 +923,36 @@ uint32_t media_stream_get_recv_ssrc(const MediaStream *stream) {
 	return rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
 }
 
-FecParameters * media_stream_extract_fec_params(PayloadType *fec_payload_type) {
+FecParameters *media_stream_extract_fec_params(PayloadType *fec_payload_type) {
 
 	size_t max_size = 10;
-	char * buffer = ortp_malloc0(max_size*sizeof(char));
+	char *buffer = ortp_malloc0(max_size * sizeof(char));
 	int rw = 0;
 	int L = 10;
 	int D = 0;
 
-	FecParameters * params = NULL;
-	if(fmtp_get_value(fec_payload_type->recv_fmtp, "repair-window", buffer, max_size)){
+	FecParameters *params = NULL;
+	if (fmtp_get_value(fec_payload_type->recv_fmtp, "repair-window", buffer, max_size)) {
 		rw = atoi(buffer);
 		ms_message("[flexfec] repair window set to %d according to fmtp", rw);
-	}
-	else{
+	} else {
 		ms_error("[flexfec] Impossible to read value of repair window. A default value of 100000 is given.");
 		rw = 100000;
 	}
-	if(fmtp_get_value(fec_payload_type->recv_fmtp, "L", buffer, 10)){
+	if (fmtp_get_value(fec_payload_type->recv_fmtp, "L", buffer, 10)) {
 		L = atoi(buffer);
 		ms_message("[flexfec] L parameter set to %d according to fmtp", L);
-	}
-	else{
+	} else {
 		ms_error("[flexfec] Impossible to read value of parameter L. A default value of 10 is given.");
 	}
-	if(fmtp_get_value(fec_payload_type->recv_fmtp, "D", buffer, 10)){
+	if (fmtp_get_value(fec_payload_type->recv_fmtp, "D", buffer, 10)) {
 		D = atoi(buffer);
 		ms_message("[flexfec] D parameter set to %d according to fmtp", D);
-	}
-	else{
+	} else {
 		ms_error("[flexfec] Impossible to read value of parameter D. A default value of 0 is given.");
 	}
-	if(buffer)
-		ortp_free(buffer);
-	params = fec_params_new(L,D,rw);
+	if (buffer) ortp_free(buffer);
+	params = fec_params_new(L, D, rw);
 	return params;
 }
 void media_stream_handle_fec(MediaStream *ms, RtpProfile *profile) {
@@ -1029,7 +966,7 @@ void media_stream_handle_fec(MediaStream *ms, RtpProfile *profile) {
 	RtpBundle *bundle = ms->sessions.rtp_session->bundle;
 	rtp_session_set_jitter_compensation(ms->sessions.rtp_session, 200);
 	if (!ms->sessions.fec_session) {
-		ms->sessions.fec_session = rtp_session_new(RTP_SESSION_SENDRECV);	
+		ms->sessions.fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
 	}
 
 	rtp_session_set_scheduling_mode(ms->sessions.fec_session, 0);
@@ -1040,7 +977,7 @@ void media_stream_handle_fec(MediaStream *ms, RtpProfile *profile) {
 	rtp_session_set_payload_type(ms->sessions.fec_session, payload_type_number);
 	ms->sessions.fec_session->fec_stream = NULL;
 	rtp_bundle_add_fec_session(bundle, ms->sessions.rtp_session, ms->sessions.fec_session);
-	
+
 	FecParameters *fec_params = media_stream_extract_fec_params(fec_payload_type);
 
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, fec_params);
