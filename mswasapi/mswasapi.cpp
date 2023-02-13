@@ -20,6 +20,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+#include <bctoolbox/defs.h>
 #include <mediastreamer2/mscommon.h>
 #if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
 #include <initguid.h>	// Put it at first or there will be a mess with MMDeviceAPI and PKEY_AudioEndpoint* symbols
@@ -191,9 +192,8 @@ static int ms_wasapi_read_get_sample_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_wasapi_read_set_sample_rate(MSFilter *f, void *arg) {
+static int ms_wasapi_read_set_sample_rate(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
 	/* This is not supported: the Audio Client requires to use the native sample rate. */
-	MS_UNUSED(f), MS_UNUSED(arg);
 	int sampleRate = 0;
 	ms_wasapi_read_get_sample_rate(f, &sampleRate);
 	if(sampleRate == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
@@ -208,9 +208,8 @@ static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_wasapi_read_set_nchannels(MSFilter *f, void *arg) {
+static int ms_wasapi_read_set_nchannels(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
 	/* This is not supported: the Audio Client requires to use 2 channels. */
-	MS_UNUSED(f), MS_UNUSED(arg);
 	int channelCount = 2;
 	ms_wasapi_read_get_nchannels(f, &channelCount);
 	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
@@ -342,9 +341,8 @@ static int ms_wasapi_write_get_sample_rate(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_wasapi_write_set_sample_rate(MSFilter *f, void *arg) {
+static int ms_wasapi_write_set_sample_rate(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
 	/* This is not supported: the Audio Client requires to use the native sample rate. */
-	MS_UNUSED(f), MS_UNUSED(arg);
 	int sampleRate = 0;
 	ms_wasapi_write_get_sample_rate(f, &sampleRate);
 	if(sampleRate == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
@@ -359,9 +357,8 @@ static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int ms_wasapi_write_set_nchannels(MSFilter *f, void *arg) {
+static int ms_wasapi_write_set_nchannels(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
 	/* This is not supported: the Audio Client requires to use 2 channels. */
-	MS_UNUSED(f), MS_UNUSED(arg);
 	int channelCount = 2;
 	ms_wasapi_write_get_nchannels(f, &channelCount);
 	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
