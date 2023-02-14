@@ -10,7 +10,7 @@ Depends
 -------
 
 - **mbedtls[1]**: implementation of TLS interface of BcToolbox. For backward
-  compatibility, support of polarssl is also provided.
+  compatibility, support of mbedtlsv2 is also provided.
 - **bcunit[2]** for unitary test tools. (optional)
 
 
@@ -36,8 +36,6 @@ Options
 
 - `CMAKE_INSTALL_PREFIX=<string>`: install prefix.
 - `CMAKE_PREFIX_PATH=<string>`: search path prefix for dependencies e.g. mbedtls.
-- `ENABLE_MBEDTLS=NO`: do not look for mbedtls. Then, polarssl will be selected.
-- `ENABLE_POLARSSL=NO`: do not look for polarssl. That ensure to use mbedtls.
 - `ENABLE_SHARED=NO`: do not build the shared libraries.
 - `ENABLE_STATIC=NO`: do not build the static libraries.
 - `ENABLE_STRICT=NO`: do not build with strict compilator flags e.g. `-Wall -Werror`.

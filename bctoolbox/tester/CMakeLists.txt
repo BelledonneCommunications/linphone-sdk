@@ -36,7 +36,7 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		param_string.c
 		vfs.c
 	)
-	if(MBEDTLS_FOUND OR POLARSSL_FOUND)
+	if(MBEDTLS_FOUND)
 		list(APPEND TESTER_SOURCES
 			crypto.cc
 			encrypted_vfs.cc)
@@ -55,9 +55,6 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	target_link_libraries(bctoolbox_tester_exe PRIVATE ${PROJECT_LIBS})
 	if(MBEDTLS_FOUND)
 		target_link_libraries(bctoolbox_tester_exe PRIVATE ${MBEDTLS_TARGETS})
-	endif()
-	if(POLARSSL_FOUND)
-		target_link_libraries(bctoolbox_tester_exe PRIVATE ${POLARSSL_LIBRARIES})
 	endif()
 	if(DECAF_FOUND)
 		target_link_libraries(bctoolbox_tester_exe PRIVATE ${DECAF_TARGETNAME})

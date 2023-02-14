@@ -23,7 +23,6 @@
 #cmakedefine HAVE_DTLS_SRTP 1
 #cmakedefine HAVE_DECAF 1
 #cmakedefine HAVE_MBEDTLS 1
-#cmakedefine HAVE_POLARSSL 1
 #cmakedefine HAVE_CTR_DRGB_FREE 1
 #cmakedefine HAVE_CU_GET_SUITE 1
 #cmakedefine HAVE_CU_CURSES 1

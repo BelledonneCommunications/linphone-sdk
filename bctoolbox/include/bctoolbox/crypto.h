@@ -81,8 +81,7 @@ bctoolbox will fail to compile if these values are not in sync with the decaf on
 #define BCTBX_GCM_DECRYPT 0
 
 /* Error codes : All error codes are negative and defined  on 32 bits on format -0x7XXXXXXX
- * in order to be sure to not overlap on crypto librairy (polarssl or mbedtls for now) which are defined on 16 bits
- * 0x[7-0]XXX */
+ * in order to be sure to not overlap on crypto librairy (mbedtls for now) which are defined on 16 bits 0x[7-0]XXX */
 #define BCTBX_ERROR_UNSPECIFIED_ERROR -0x70000000
 #define BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL -0x70001000
 #define BCTBX_ERROR_INVALID_BASE64_INPUT -0x70002000
@@ -165,7 +164,7 @@ typedef enum bctbx_srtp_profile {
 	BCTBX_SRTP_NULL_HMAC_SHA1_32
 } bctbx_dtls_srtp_profile_t;
 
-typedef enum bctbx_type_implementation { BCTBX_POLARSSL, BCTBX_POLARSSL1_2, BCTBX_MBEDTLS } bctbx_type_implementation_t;
+typedef enum bctbx_type_implementation { BCTBX_MBEDTLS2, BCTBX_MBEDTLS } bctbx_type_implementation_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -176,9 +175,9 @@ extern "C" {
 /*****************************************************************************/
 /**
  * @brief Return a string translation of an error code
- * PolarSSL and mbedTLS error codes are on 16 bits always negatives, and these are forwarded to the crypto library error
- * to string translation Specific bctoolbox error code are on 32 bits, all in the form -0x7XXX XXXX Output string is
- * truncated if the buffer is too small and always include a null termination char
+ * mbedTLS error codes are on 16 bits always negatives, and these are forwarded to the crypto library error to string
+ * translation Specific bctoolbox error code are on 32 bits, all in the form -0x7XXX XXXX Output string is truncated if
+ * the buffer is too small and always include a null termination char
  *
  * @param[in]		error_code		The error code
  * @param[in/out]	buffer			Buffer to place error string representation
