@@ -88,6 +88,9 @@ RUN sudo python3 -m pip install "requests[security]"
 RUN sudo pip3 install --upgrade setuptools
 RUN sudo pip3 install ez_setup
 
+## For mbedtls build
+RUN sudo pip3 install jsonschema jinja2
+
 ## Install Qt download tool
 RUN sudo pip3 install aqtinstall
 RUN sudo python3 -m aqt install $QT_VERSION linux desktop -O /opt/Qt -m $QT_MODULES

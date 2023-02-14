@@ -47,7 +47,7 @@ WORKDIR /home/bc
 # as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
 # modules to be installed into /home/bc/.local/lib.
 RUN sudo apt-get install -y python3-pip && sudo apt-get clean -y && \
-    python3 -m pip install --user six pystache graphviz
+    python3 -m pip install --user six pystache graphviz jsonschema jinja2
 
 COPY --chown=bc rpmmacros /home/bc/.rpmmacros
 

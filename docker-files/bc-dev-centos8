@@ -61,7 +61,7 @@ WORKDIR /home/bc
 # as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
 # modules to be installed into /home/bc/.local/lib.
 RUN sudo dnf install -y python2-pip python3 python3-pip && sudo dnf clean all && \
-  	python3 -m pip install --user six pystache graphviz
+    python3 -m pip install --user six pystache graphviz jsonschema jinja2
 
 ENV PS1='\[\e[34m\]\u@bc-dev-centos8>\[\e[0m\] '
 CMD bash

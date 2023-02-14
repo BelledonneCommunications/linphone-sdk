@@ -48,7 +48,7 @@ WORKDIR /home/bc
 # Need to install setuptools version 57.5.0 otherwize newer versions break compability with 2to3 module used by pystache
 RUN sudo apt-get install -y python3-pip && sudo apt-get clean -y && \
     python3 -m pip install --user setuptools==57.5.0 && \
-    python3 -m pip install --user six pystache graphviz
+    python3 -m pip install --user six pystache graphviz jsonschema jinja2
 
 ENV PATH=$PATH:/home/bc/.local/bin
 

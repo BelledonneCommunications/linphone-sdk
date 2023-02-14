@@ -12,6 +12,7 @@
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null
   script:
+    - pip3 install --user jsonschema jinja2
     - export CC=$CC
     - export CXX=$CXX
     - mkdir -p build-desktop
