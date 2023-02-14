@@ -718,8 +718,9 @@ static int ioscapture_set_native_window(MSFilter *f, void *arg) {
 	UIView* parentView = *(UIView**)arg;
 	IOSCapture *thiz = (IOSCapture*)f->data;
 	if (thiz != nil) {
-		// set curent parent view
-		[thiz performSelectorOnMainThread:@selector(setParentView:) withObject:parentView waitUntilDone:NO];
+		DISPATCH_SYNC_MAIN(^{
+			[thiz setParentView:parentView];
+		});
 	}
 	return 0;
 }
