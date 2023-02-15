@@ -18,6 +18,7 @@ nuget-upload-xamarin:
     - nuget sources Add -Name gitlab -Source "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json" -UserName gitlab-ci-token -Password $CI_JOB_TOKEN -StorePasswordInClearText
 
   script:
+    - "echo 'You can find uploaded nuget packages here: https://gitlab.linphone.org/BC/public/linphone-sdk/-/packages'"
     - nuget push "results/packages/*.nupkg" -Source gitlab
 
   after_script:
