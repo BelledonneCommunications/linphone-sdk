@@ -1,42 +1,40 @@
 /*
-	belcard_property.cpp
-	Copyright (C) 2015  Belledonne Communications SARL
+    belcard_property.cpp
+    Copyright (C) 2015  Belledonne Communications SARL
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belcard/belcard_property.hpp"
 
+using namespace ::std;
+using namespace ::belr;
+using namespace ::belcard;
 
-using namespace::std;
-using namespace::belr;
-using namespace::belcard;
-
-shared_ptr<BelCardProperty> BelCardProperty::parse(const string& input) {
+shared_ptr<BelCardProperty> BelCardProperty::parse(const string &input) {
 	return BelCardProperty::parseProperty<BelCardProperty>("X-PROPERTY", input);
 }
 
 void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
 	parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
-			->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-			->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-			->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
-			->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
+	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+	    ->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
+	    ->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
 }
 
 BelCardProperty::BelCardProperty() : BelCardGeneric() {
-
 }
 
 void BelCardProperty::setGroup(const string &group) {
@@ -57,9 +55,8 @@ void BelCardProperty::setValue(const string &value) {
 	string s = value;
 
 	// Trim.
-	s.erase(s.begin(), find_if(s.begin(), s.end(), [](const unsigned char& c) { return !isspace(c);}));
-	s.erase(find_if(s.rbegin(), s.rend(), [](const unsigned char& c){ return !isspace(c);}).base(), s.end());
-
+	s.erase(s.begin(), find_if(s.begin(), s.end(), [](const unsigned char &c) { return !isspace(c); }));
+	s.erase(find_if(s.rbegin(), s.rend(), [](const unsigned char &c) { return !isspace(c); }).base(), s.end());
 
 	_value = s;
 }
@@ -198,7 +195,7 @@ void BelCardProperty::removeParam(const shared_ptr<BelCardParam> &param) {
 	_params.remove(param);
 }
 
-void BelCardProperty::serialize(ostream& output) const {
+void BelCardProperty::serialize(ostream &output) const {
 	if (getGroup().length() > 0) {
 		output << getGroup() << ".";
 	}

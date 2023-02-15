@@ -1,19 +1,19 @@
 /*
-	belcard_parser.cpp
-	Copyright (C) 2015  Belledonne Communications SARL
+    belcard_parser.cpp
+    Copyright (C) 2015  Belledonne Communications SARL
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "belcard/belcard_parser.hpp"
@@ -21,14 +21,13 @@
 #include "belcard/belcard_utils.hpp"
 #include "belcard/vcard_grammar.hpp"
 
-
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
-using namespace::std;
-using namespace::belr;
-using namespace::belcard;
+using namespace ::std;
+using namespace ::belr;
+using namespace ::belcard;
 
 shared_ptr<BelCardParser> BelCardParser::getInstance() {
 	static shared_ptr<BelCardParser> parser(new BelCardParser);
@@ -100,7 +99,7 @@ BelCardParser::~BelCardParser() {
 shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const string &rule) {
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = _parser->parseInput(rule, input, &parsedSize);
-	if (parsedSize < input.size()){
+	if (parsedSize < input.size()) {
 		bctbx_error("[belcard] Parsing ended prematuraly at pos %llu", (unsigned long long)parsedSize);
 	}
 	return ret;
