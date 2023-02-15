@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@
 
 #include "mediastreamer2/msvideopresets.h"
 
-
 struct _MSVideoPresetConfiguration {
 	bctbx_list_t *tags;
 	MSVideoConfiguration *config;
@@ -40,7 +39,6 @@ struct _MSVideoPresetsManager {
 	bctbx_list_t *presets; /**< List of MSVideoPreset objects */
 };
 
-
 static void free_preset_config(MSVideoPresetConfiguration *vpc) {
 	bctbx_list_for_each(vpc->tags, ms_free);
 	bctbx_list_free(vpc->tags);
@@ -54,14 +52,14 @@ static void free_preset(MSVideoPreset *vp) {
 	ms_free(vp);
 }
 
-static MSVideoPreset * add_video_preset(MSVideoPresetsManager *manager, const char *name) {
+static MSVideoPreset *add_video_preset(MSVideoPresetsManager *manager, const char *name) {
 	MSVideoPreset *vp = ms_new0(MSVideoPreset, 1);
 	vp->name = ms_strdup(name);
 	manager->presets = bctbx_list_append(manager->presets, vp);
 	return vp;
 }
 
-static MSVideoPreset * find_video_preset(MSVideoPresetsManager *manager, const char *name) {
+static MSVideoPreset *find_video_preset(MSVideoPresetsManager *manager, const char *name) {
 	bctbx_list_t *elem = manager->presets;
 	while (elem != NULL) {
 		MSVideoPreset *vp = (MSVideoPreset *)elem->data;
@@ -73,7 +71,7 @@ static MSVideoPreset * find_video_preset(MSVideoPresetsManager *manager, const c
 	return NULL;
 }
 
-static bctbx_list_t * parse_tags(const char *tags) {
+static bctbx_list_t *parse_tags(const char *tags) {
 	bctbx_list_t *tags_list = NULL;
 	char *t;
 	char *p;
@@ -98,13 +96,14 @@ static void add_video_preset_configuration(MSVideoPreset *preset, const char *ta
 	preset->configs = bctbx_list_append(preset->configs, vpc);
 }
 
-static int video_preset_configuration_match(MSVideoPresetConfiguration *vpc, bctbx_list_t *platform_tags, bctbx_list_t *codec_tags) {
+static int video_preset_configuration_match(MSVideoPresetConfiguration *vpc,
+                                            bctbx_list_t *platform_tags,
+                                            bctbx_list_t *codec_tags) {
 	bctbx_list_t *elem = vpc->tags;
 	int nb = 0;
 	while (elem != NULL) {
 		char *tag = (char *)elem->data;
-		if (!ms_tags_list_contains_tag(platform_tags, tag) && !ms_tags_list_contains_tag(codec_tags, tag))
-			return 0;
+		if (!ms_tags_list_contains_tag(platform_tags, tag) && !ms_tags_list_contains_tag(codec_tags, tag)) return 0;
 		nb++;
 		elem = elem->next;
 	}
@@ -119,7 +118,7 @@ void ms_video_presets_manager_destroy(MSVideoPresetsManager *manager) {
 	}
 }
 
-MSVideoPresetsManager * ms_video_presets_manager_new(MSFactory *factory) {
+MSVideoPresetsManager *ms_video_presets_manager_new(MSFactory *factory) {
 	MSVideoPresetsManager *manager = (MSVideoPresetsManager *)ms_new0(MSVideoPresetsManager, 1);
 	manager->factory = factory;
 	if (factory->video_presets_manager != NULL) {
@@ -130,7 +129,9 @@ MSVideoPresetsManager * ms_video_presets_manager_new(MSFactory *factory) {
 }
 
 void ms_video_presets_manager_register_preset_configuration(MSVideoPresetsManager *manager,
-	const char *name, const char *tags, MSVideoConfiguration *config) {
+                                                            const char *name,
+                                                            const char *tags,
+                                                            MSVideoConfiguration *config) {
 	MSVideoPreset *preset = find_video_preset(manager, name);
 	if (preset == NULL) {
 		preset = add_video_preset(manager, name);
@@ -138,8 +139,9 @@ void ms_video_presets_manager_register_preset_configuration(MSVideoPresetsManage
 	add_video_preset_configuration(preset, tags, config);
 }
 
-MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(MSVideoPresetsManager *manager,
-	const char *name, bctbx_list_t *codec_tags) {
+MSVideoPresetConfiguration *ms_video_presets_manager_find_preset_configuration(MSVideoPresetsManager *manager,
+                                                                               const char *name,
+                                                                               bctbx_list_t *codec_tags) {
 	bctbx_list_t *elem = NULL;
 	MSVideoPreset *preset = find_video_preset(manager, name);
 	MSVideoPresetConfiguration *best_vpc = NULL;
@@ -159,10 +161,10 @@ MSVideoPresetConfiguration * ms_video_presets_manager_find_preset_configuration(
 	return best_vpc;
 }
 
-MSVideoConfiguration * ms_video_preset_configuration_get_video_configuration(MSVideoPresetConfiguration *vpc) {
+MSVideoConfiguration *ms_video_preset_configuration_get_video_configuration(MSVideoPresetConfiguration *vpc) {
 	return vpc->config;
 }
 
-char * ms_video_preset_configuration_get_tags_as_string(MSVideoPresetConfiguration *vpc) {
+char *ms_video_preset_configuration_get_tags_as_string(MSVideoPresetConfiguration *vpc) {
 	return ms_tags_list_as_string(vpc->tags);
 }

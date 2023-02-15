@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <bctoolbox/defs.h>
 
 #include "decoding-filter-wrapper.h"
 
@@ -34,7 +36,7 @@ int DecodingFilterWrapper::onAddFmtpCall(MSFilter *f, void *arg) {
 	}
 }
 
-int DecodingFilterWrapper::onResetFirstImageCall(MSFilter *f, void *arg) {
+int DecodingFilterWrapper::onResetFirstImageCall(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	try {
 		static_cast<DecoderFilter *>(f->data)->resetFirstImage();
 		return 0;
@@ -101,4 +103,4 @@ int DecodingFilterWrapper::onFreezeOnErrorEnabledCall(MSFilter *f, void *arg) {
 	}
 }
 
-}
+} // namespace mediastreamer

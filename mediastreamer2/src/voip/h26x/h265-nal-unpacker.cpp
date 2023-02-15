@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -86,7 +86,7 @@ void H265NalUnpacker::ApSpliter::feed(mblk_t *packet) {
 	}
 
 	const uint8_t *it;
-	for (it = packet->b_rptr+2; it < packet->b_wptr;) {
+	for (it = packet->b_rptr + 2; it < packet->b_wptr;) {
 		if (packet->b_wptr - it < 2) break;
 		uint16_t naluSize = ntohs(*reinterpret_cast<const uint16_t *>(it));
 		it += 2;

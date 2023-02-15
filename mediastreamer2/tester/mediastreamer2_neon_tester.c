@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,17 +18,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2_tester.h"
+#include <inttypes.h>
+#include <ortp/port.h>
 #include <stdio.h>
 #include <time.h>
-#include <inttypes.h>
-#include "mediastreamer2_tester.h"
-#include <ortp/port.h>
 
 #if MS_HAS_ARM_NEON && defined(HAVE_SPEEXDSP)
 #include <arm_neon.h>
 #include <speex/speex.h>
 
-static MSFactory *_factory= NULL;
+static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
@@ -44,10 +44,9 @@ static int tester_after_all(void) {
 	return 0;
 }
 
-
 // tests the inner product with and without neon (using speex)
 extern int libspeex_cpu_features;
-extern spx_int32_t inner_prod( const spx_int16_t* a, const spx_int16_t* b, int len);
+extern spx_int32_t inner_prod(const spx_int16_t *a, const spx_int16_t *b, int len);
 
 #if 0 /* These are inner product implementations that we used for fixing speex's one */
 spx_int32_t ms_inner_product_neon_xcode(const spx_int16_t *a, const spx_int16_t *b, unsigned int len) {
@@ -202,7 +201,6 @@ spx_int32_t ms_inner_product_neon_intrinsics(const spx_int16_t *a, const spx_int
 }
 #endif
 
-
 static void inner_product_test(void) {
 #if defined(SPEEX_LIB_CPU_FEATURE_NEON) && !defined(__aarch64__)
 #define SAMPLE_SIZE 64 /* has to be %8 and < 64 ! */
@@ -218,7 +216,7 @@ static void inner_product_test(void) {
 	bool_t fast_enough;
 
 	// put some values to process
-	for( i = 0; i<SAMPLE_SIZE; i++) {
+	for (i = 0; i < SAMPLE_SIZE; i++) {
 		test_sample[i] = bctbx_random() % 16384;
 		test_sample2[i] = bctbx_random() % 16384;
 	}
@@ -232,7 +230,7 @@ static void inner_product_test(void) {
 	{
 		uint64_t start = ms_get_cur_time_ms();
 		while (i--) {
-			non_neon_result = inner_prod((const spx_int16_t*)test_sample, (const spx_int16_t*)test_sample2, length);
+			non_neon_result = inner_prod((const spx_int16_t *)test_sample, (const spx_int16_t *)test_sample2, length);
 		}
 		soft_ms = ms_get_cur_time_ms() - start;
 	}
@@ -243,42 +241,32 @@ static void inner_product_test(void) {
 	{
 		uint64_t start = ms_get_cur_time_ms();
 		while (i--) {
-			neon_result= inner_prod((const spx_int16_t*)test_sample, (const spx_int16_t*)test_sample2, length);
+			neon_result = inner_prod((const spx_int16_t *)test_sample, (const spx_int16_t *)test_sample2, length);
 		}
 		neon_ms = ms_get_cur_time_ms() - start;
 	}
 
-	percent_off = ((float)abs(non_neon_result-neon_result))/MAX(non_neon_result, neon_result)*100;
-	ms_debug("%10d, NON Neon: %10d - diff: %d - percent off: %f",
-	         non_neon_result, neon_result, abs(non_neon_result-neon_result), percent_off);
+	percent_off = ((float)abs(non_neon_result - neon_result)) / MAX(non_neon_result, neon_result) * 100;
+	ms_debug("%10d, NON Neon: %10d - diff: %d - percent off: %f", non_neon_result, neon_result,
+	         abs(non_neon_result - neon_result), percent_off);
 
-	fast_enough = (float)neon_ms < (float)soft_ms/5;
+	fast_enough = (float)neon_ms < (float)soft_ms / 5;
 
 	// we expect the result to be very similar and at least 5 times faster with NEON
 	BC_ASSERT(percent_off < 1.0);
 	BC_ASSERT(fast_enough);
 	ms_message("NEON = %" PRIu64 " ms, SOFT: %" PRIu64 " ms", neon_ms, soft_ms);
-	if( !fast_enough ) {
+	if (!fast_enough) {
 		ms_error("NEON not fast enough it seems");
 	}
 #else
 	ms_warning("Test skipped, not using the speex from git://git.linphone.org/speex.git with NEON support");
 #endif
-
 }
 
-static test_t tests[] = {
-	{ "Inner product", inner_product_test }
-};
+static test_t tests[] = {{"Inner product", inner_product_test}};
 
-test_suite_t neon_test_suite = {
-	"NEON",
-	tester_before_all,
-	tester_after_all,
-	NULL,
-	NULL,
-	sizeof(tests)/sizeof(test_t),
-	tests
-};
+test_suite_t neon_test_suite = {"NEON", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t),
+                                tests};
 
 #endif // ARM NEON

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,8 +39,8 @@
  * @{
  */
 
-struct _MSWebCamManager{
-	MSFactory* factory;
+struct _MSWebCamManager {
+	MSFactory *factory;
 	MSList *cams;
 	MSList *descs;
 };
@@ -51,16 +51,15 @@ struct _MSWebCamManager{
  */
 typedef struct _MSWebCamManager MSWebCamManager;
 
-
 struct _MSWebCam;
 
 typedef void (*MSWebCamDetectFunc)(MSWebCamManager *obj);
 typedef void (*MSWebCamInitFunc)(struct _MSWebCam *obj);
 typedef void (*MSWebCamUninitFunc)(struct _MSWebCam *obj);
-typedef struct _MSFilter * (*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj);
+typedef struct _MSFilter *(*MSWebCamCreateReaderFunc)(struct _MSWebCam *obj);
 typedef bool_t (*MSWebCamEncodeToMimeType)(struct _MSWebCam *obj, const char *mime_type);
 
-struct _MSWebCamDesc{
+struct _MSWebCamDesc {
 	const char *driver_type;
 	MSWebCamDetectFunc detect;
 	MSWebCamInitFunc init;
@@ -75,8 +74,8 @@ struct _MSWebCamDesc{
  */
 typedef struct _MSWebCamDesc MSWebCamDesc;
 
-struct _MSWebCam{
-	MSWebCamManager* wbcmanager;
+struct _MSWebCam {
+	MSWebCamManager *wbcmanager;
 	MSWebCamDesc *desc;
 	char *name;
 	char *id;
@@ -90,7 +89,7 @@ struct _MSWebCam{
 typedef struct _MSWebCam MSWebCam;
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -99,26 +98,26 @@ extern "C"{
  * @returns: MSWebCamManager if successfull, NULL otherwise.
  * @deprecated use ms_factory_get_web_cam_manager().
  */
-MS2_PUBLIC MS2_DEPRECATED MSWebCamManager * ms_web_cam_manager_get(void);
+MS2_PUBLIC MS2_DEPRECATED MSWebCamManager *ms_web_cam_manager_get(void);
 
 /**
  * Returns the factory from the webcam object.
  * @param c MSWebCam used to get to the factory.
  */
-MS2_PUBLIC MSFactory * ms_web_cam_get_factory(MSWebCam *c);
+MS2_PUBLIC MSFactory *ms_web_cam_get_factory(MSWebCam *c);
 
 /**
  * Create a webcam manager object.
  * You usually do not need this function, instead get the webcam manager from a factory
  * with ms_factory_get_web_cam_manager().
  */
-MS2_PUBLIC MSWebCamManager * ms_web_cam_manager_new(void);
+MS2_PUBLIC MSWebCamManager *ms_web_cam_manager_new(void);
 
 /**
  * Destroy the webcam manager object.
  * You usually don't need this function, ms_factory_destroy() doing the job for you.
  */
-MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager* scm);
+MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager *scm);
 
 /**
  * Retreive a webcam object based on its name.
@@ -128,7 +127,7 @@ MS2_PUBLIC void ms_web_cam_manager_destroy(MSWebCamManager* scm);
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id);
+MS2_PUBLIC MSWebCam *ms_web_cam_manager_get_cam(MSWebCamManager *m, const char *id);
 
 /**
  * Retreive the default webcam object.
@@ -137,7 +136,7 @@ MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_cam(MSWebCamManager *m, const char 
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
+MS2_PUBLIC MSWebCam *ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
 
 /**
  * Retreive the list of webcam objects.
@@ -146,7 +145,7 @@ MS2_PUBLIC MSWebCam * ms_web_cam_manager_get_default_cam(MSWebCamManager *m);
  *
  * Returns: MSList of cards if successfull, NULL otherwise.
  */
-MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
+MS2_PUBLIC const MSList *ms_web_cam_manager_get_list(MSWebCamManager *m);
 
 /**
  * Add a webcam object in a webcam  manager's list.
@@ -157,10 +156,10 @@ MS2_PUBLIC const MSList * ms_web_cam_manager_get_list(MSWebCamManager *m);
  */
 MS2_PUBLIC void ms_web_cam_manager_add_cam(MSWebCamManager *m, MSWebCam *c);
 
-MS2_PUBLIC MSWebCam * ms_web_cam_manager_create_cam(MSWebCamManager *m, MSWebCamDesc *desc);
+MS2_PUBLIC MSWebCam *ms_web_cam_manager_create_cam(MSWebCamManager *m, MSWebCamDesc *desc);
 
-MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c);
-	
+MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager *m, MSWebCam *c);
+
 /**
  * Add a webcam object on top of list of the webcam  manager's list.
  *
@@ -169,7 +168,6 @@ MS2_PUBLIC void ms_web_cam_set_manager(MSWebCamManager*m, MSWebCam *c);
  *
  */
 MS2_PUBLIC void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c);
-
 
 /**
  * Register a webcam descriptor in a webcam manager.
@@ -180,12 +178,11 @@ MS2_PUBLIC void ms_web_cam_manager_prepend_cam(MSWebCamManager *m, MSWebCam *c);
  */
 MS2_PUBLIC void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDesc *desc);
 
-
 /**
  * Ask all registered MSWebCamDesc to detect the webcams again.
  *
  * @param m A webcam manager
-**/
+ **/
 MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
 
 /**
@@ -195,7 +192,7 @@ MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
+MS2_PUBLIC struct _MSFilter *ms_web_cam_create_reader(MSWebCam *obj);
 
 /**
  * Create a new webcam object.
@@ -204,7 +201,7 @@ MS2_PUBLIC struct _MSFilter * ms_web_cam_create_reader(MSWebCam *obj);
  *
  * Returns: MSWebCam if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSWebCam * ms_web_cam_new(MSWebCamDesc *desc);
+MS2_PUBLIC MSWebCam *ms_web_cam_new(MSWebCamDesc *desc);
 
 /**
  * Destroy webcam object.
@@ -212,7 +209,6 @@ MS2_PUBLIC MSWebCam * ms_web_cam_new(MSWebCamDesc *desc);
  * @param obj   A MSWebCam object.
  */
 MS2_PUBLIC void ms_web_cam_destroy(MSWebCam *obj);
-
 
 /**
  * Retreive a webcam's driver type string.
@@ -243,15 +239,13 @@ MS2_PUBLIC const char *ms_web_cam_get_name(const MSWebCam *obj);
  */
 MS2_PUBLIC const char *ms_web_cam_get_string_id(MSWebCam *obj);
 
-
 /*specific methods for static image:*/
 
 MS2_PUBLIC void ms_static_image_set_default_image(const char *path);
 MS2_PUBLIC const char *ms_static_image_get_default_image(void);
 
 /** method for the "nowebcam" filter */
-#define MS_STATIC_IMAGE_SET_IMAGE \
-	MS_FILTER_METHOD(MS_STATIC_IMAGE_ID,0,const char)
+#define MS_STATIC_IMAGE_SET_IMAGE MS_FILTER_METHOD(MS_STATIC_IMAGE_ID, 0, const char)
 
 #ifdef __cplusplus
 }

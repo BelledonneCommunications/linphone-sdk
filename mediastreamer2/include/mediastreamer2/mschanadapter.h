@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 
 #include <mediastreamer2/msfilter.h>
 
-#define MS_CHANNEL_ADAPTER_SET_OUTPUT_NCHANNELS	MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID,0,int)
-#define MS_CHANNEL_ADAPTER_GET_OUTPUT_NCHANNELS	MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID,1,int)
+#define MS_CHANNEL_ADAPTER_SET_OUTPUT_NCHANNELS MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID, 0, int)
+#define MS_CHANNEL_ADAPTER_GET_OUTPUT_NCHANNELS MS_FILTER_METHOD(MS_CHANNEL_ADAPTER_ID, 1, int)
 
 #endif

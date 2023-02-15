@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 
 #ifndef MS_TICKER_H
 #define MS_TICKER_H
@@ -38,7 +37,6 @@
  * @{
  */
 
-
 /**
  * Function pointer for method getting time in miliseconds from an external source.
  * @var MSTickerTimeFunc
@@ -54,46 +52,48 @@ typedef int (*MSTickerTickFunc)(void *, uint64_t ticker_virtual_time);
 
 /**
  * Enum for ticker priority
-**/
-enum _MSTickerPrio{
-	MS_TICKER_PRIO_NORMAL, /**<the default OS priority for threads*/
-	MS_TICKER_PRIO_HIGH, /**<Increased priority: done by setpriority() or sched_setschedparams() with SCHED_RR on linux/MacOS*/
+ **/
+enum _MSTickerPrio {
+	MS_TICKER_PRIO_NORMAL,  /**<the default OS priority for threads*/
+	MS_TICKER_PRIO_HIGH,    /**<Increased priority: done by setpriority() or sched_setschedparams() with SCHED_RR on
+	                           linux/MacOS*/
 	MS_TICKER_PRIO_REALTIME /**<Topmost priority, running SCHED_FIFO on linux */
 };
 
 typedef enum _MSTickerPrio MSTickerPrio;
 
-struct _MSTickerLateEvent{
-	int lateMs; /**< late at the time of the last event, in milliseconds */
-	uint64_t time; /**< time of late event, in milliseconds */
+struct _MSTickerLateEvent {
+	int lateMs;          /**< late at the time of the last event, in milliseconds */
+	uint64_t time;       /**< time of late event, in milliseconds */
 	int current_late_ms; /**< late at the time of the last tick, in milliseconds */
 };
 
 typedef struct _MSTickerLateEvent MSTickerLateEvent;
 
-struct _MSTicker
-{
+struct _MSTicker {
 	ms_mutex_t lock; /*main lock protecting the filter execution list */
 	ms_cond_t cond;
-	MSList *execution_list;     /* the list of source filters to be executed.*/
-	MSList *task_list; /* list of tasks (see ms_filter_postpone_task())*/
-	ms_thread_t thread;   /* the thread ressource*/
-	int interval; /* in miliseconds*/
+	MSList *execution_list; /* the list of source filters to be executed.*/
+	MSList *task_list;      /* list of tasks (see ms_filter_postpone_task())*/
+	ms_thread_t thread;     /* the thread ressource*/
+	int interval;           /* in miliseconds*/
 	int exec_id;
 	uint32_t ticks;
-	uint64_t time;	/* a time since the start of the ticker expressed in milisec*/
-	uint64_t orig; /* a relative time to take in account difference between time base given by consecutive get_cur_time_ptr() functions.*/
+	uint64_t time; /* a time since the start of the ticker expressed in milisec*/
+	uint64_t orig; /* a relative time to take in account difference between time base given by consecutive
+	                  get_cur_time_ptr() functions.*/
 	MSTickerTimeFunc get_cur_time_ptr;
 	void *get_cur_time_data;
-	ms_mutex_t cur_time_lock; /*mutex protecting the get_cur_time_ptr/get_cur_time_data which can be changed at any time*/
+	ms_mutex_t
+	    cur_time_lock; /*mutex protecting the get_cur_time_ptr/get_cur_time_data which can be changed at any time*/
 	char *name;
-	double av_load;	/*average load of the ticker */
+	double av_load; /*average load of the ticker */
 	MSTickerPrio prio;
 	MSTickerTickFunc wait_next_tick;
 	void *wait_next_tick_data;
 	MSTickerLateEvent late_event;
 	unsigned long thread_id;
-	bool_t run;       /* flag to indicate whether the ticker must be run or not */
+	bool_t run; /* flag to indicate whether the ticker must be run or not */
 };
 
 /**
@@ -102,22 +102,19 @@ struct _MSTicker
  */
 typedef struct _MSTicker MSTicker;
 
-
-struct _MSTickerParams{
+struct _MSTickerParams {
 	MSTickerPrio prio;
 	const char *name;
 };
 
 typedef struct _MSTickerParams MSTickerParams;
 
-
-struct _MSTickerSynchronizer
-{
-	uint64_t offset; /**<the default offset of ticker*/
-	double av_skew; /**< mean skew */
-	uint64_t origin_nsamples; /**< Sample count when ms_ticker_synchronizer_update() is called for the first time */
+struct _MSTickerSynchronizer {
+	uint64_t offset;           /**<the default offset of ticker*/
+	double av_skew;            /**< mean skew */
+	uint64_t origin_nsamples;  /**< Sample count when ms_ticker_synchronizer_update() is called for the first time */
 	uint64_t current_nsamples; /**< The last number of samples read notified with ms_ticker_synchronizer_update*/
-	uint64_t last_log_time; /**< The last time the skew log was issued*/
+	uint64_t last_log_time;    /**< The last time the skew log was issued*/
 	unsigned int sample_rate;
 };
 
@@ -128,9 +125,8 @@ struct _MSTickerSynchronizer
 typedef struct _MSTickerSynchronizer MSTickerSynchronizer;
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
-
 
 /**
  * Create a ticker that will be used to start
@@ -147,17 +143,17 @@ MS2_PUBLIC MSTicker *ms_ticker_new(void);
  * Returns: MSTicker * if successfull, NULL otherwise.
  */
 MS2_PUBLIC MSTicker *ms_ticker_new_with_params(const MSTickerParams *params);
-	
+
 /**
  * Set a name to the ticker (used for logging)
-**/
+ **/
 MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
 /**
  * Deprecated: Set priority to the ticker
-**/
+ **/
 MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
-	
+
 /**
  * Attach a chain of filters to a ticker.
  * The processing chain will be executed until ms_ticker_detach
@@ -168,7 +164,7 @@ MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
+MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker, MSFilter *f);
 
 /**
  * Attach a chain of filters to a ticker.
@@ -181,7 +177,7 @@ MS2_PUBLIC int ms_ticker_attach(MSTicker *ticker,MSFilter *f);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-MS2_PUBLIC int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...);
+MS2_PUBLIC int ms_ticker_attach_multiple(MSTicker *ticker, MSFilter *f, ...);
 
 /**
  * Dettach a chain of filters to a ticker.
@@ -193,7 +189,7 @@ MS2_PUBLIC int ms_ticker_attach_multiple(MSTicker *ticker,MSFilter *f,...);
  *
  * Returns: 0 if successfull, -1 otherwise.
  */
-MS2_PUBLIC int ms_ticker_detach(MSTicker *ticker,MSFilter *f);
+MS2_PUBLIC int ms_ticker_detach(MSTicker *ticker, MSFilter *f);
 
 /**
  * Destroy a ticker.
@@ -205,7 +201,7 @@ MS2_PUBLIC void ms_ticker_destroy(MSTicker *ticker);
 
 /**
  * Override MSTicker's time function.
- * This can be used to control the ticker from an external time provider, for example the 
+ * This can be used to control the ticker from an external time provider, for example the
  * clock of a sound card.
  * WARNING: this must not be used in conjunction with ms_ticker_set_tick_func().
  *
@@ -217,8 +213,8 @@ MS2_PUBLIC void ms_ticker_set_time_func(MSTicker *ticker, MSTickerTimeFunc func,
 
 /**
  * Override MSTicker's ticking function.
- * This can be used to control the ticker from an external ticking source, for example an interrupt, an event on a file descriptor, etc.
- * WARNING: this must not be used in conjunction with ms_ticker_set_time_func().
+ * This can be used to control the ticker from an external ticking source, for example an interrupt, an event on a file
+ * descriptor, etc. WARNING: this must not be used in conjunction with ms_ticker_set_time_func().
  *
  * @param ticker  A #MSTicker object.
  * @param func    A replacement method waiting the next tick.
@@ -239,14 +235,14 @@ MS2_PUBLIC void ms_ticker_print_graphs(MSTicker *ticker);
  * tick interval (default is 10 ms).
  * This value is averaged over several ticks to get consistent and useful value.
  * A load greater than 100% clearly means that the ticker is over loaded and runs late.
-**/
+ **/
 MS2_PUBLIC float ms_ticker_get_average_load(MSTicker *ticker);
 
 /**
  * Get last late tick event description.
  * @param ticker the MSTicker
  * @param ev a MSTickerLaterEvent structure that will be filled in return by the ticker.
-**/
+ **/
 MS2_PUBLIC void ms_ticker_get_last_late_tick(MSTicker *ticker, MSTickerLateEvent *ev);
 
 /**
@@ -267,7 +263,7 @@ MS2_PUBLIC void ms_ticker_set_synchronizer(MSTicker *ticker, MSTickerSynchronize
  * Create a ticker synchronizer.
  * @return MSTickerSynchronizer object if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSTickerSynchronizer* ms_ticker_synchronizer_new(void);
+MS2_PUBLIC MSTickerSynchronizer *ms_ticker_synchronizer_new(void);
 
 /**
  * Set the current external time.
@@ -283,28 +279,29 @@ MS2_PUBLIC double ms_ticker_synchronizer_set_external_time(MSTickerSynchronizer 
  * @param nb_samples The number of samples since the processing started
  * @param sample_rate The sample rate of the stream
  */
-MS2_PUBLIC double ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_samples, unsigned int sample_rate);
+MS2_PUBLIC double
+ms_ticker_synchronizer_update(MSTickerSynchronizer *ts, uint64_t nb_samples, unsigned int sample_rate);
 
 /**
  * Get the corrected current time following the set external times.
  * @param ts  A #MSTickerSynchronizer object.
  * @return A corrected current time.
  */
-MS2_PUBLIC uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer* ts);
+MS2_PUBLIC uint64_t ms_ticker_synchronizer_get_corrected_time(MSTickerSynchronizer *ts);
 
 /**
- * Ask the ticker synchronizer to resynchronize. Use this when you are aware of an overrun/underrun and you think that the
- * next update will report an errouneous sample count.
+ * Ask the ticker synchronizer to resynchronize. Use this when you are aware of an overrun/underrun and you think that
+ * the next update will report an errouneous sample count.
  * @param ts  A #MSTickerSynchronizer object.
  * @return A corrected current time.
  */
-MS2_PUBLIC void ms_ticker_synchronizer_resync(MSTickerSynchronizer* ts);
+MS2_PUBLIC void ms_ticker_synchronizer_resync(MSTickerSynchronizer *ts);
 
 /**
  * Destroy a ticker synchronizer.
  * @param ts  A #MSTickerSynchronizer object.
  */
-MS2_PUBLIC void ms_ticker_synchronizer_destroy(MSTickerSynchronizer* ts);
+MS2_PUBLIC void ms_ticker_synchronizer_destroy(MSTickerSynchronizer *ts);
 
 #ifdef __cplusplus
 }

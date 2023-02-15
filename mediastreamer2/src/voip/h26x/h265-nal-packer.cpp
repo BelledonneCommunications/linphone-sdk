@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -111,7 +111,10 @@ void H265NalPacker::NaluSpliter::feed(mblk_t *nalu) {
 	freemsg(nalu);
 }
 
-mblk_t *H265NalPacker::NaluSpliter::makeFu(const H265NaluHeader &naluHeader, const H265FuHeader &fuHeader, const uint8_t *payload, size_t length) {
+mblk_t *H265NalPacker::NaluSpliter::makeFu(const H265NaluHeader &naluHeader,
+                                           const H265FuHeader &fuHeader,
+                                           const uint8_t *payload,
+                                           size_t length) {
 	mblk_t *naluHeaderBuf = naluHeader.forge();
 	mblk_t *fuHeaderBuf = fuHeader.forge();
 	mblk_t *payloadBuf = allocb(length, 0);
@@ -125,4 +128,4 @@ mblk_t *H265NalPacker::NaluSpliter::makeFu(const H265NaluHeader &naluHeader, con
 	return fu;
 }
 
-}
+} // namespace mediastreamer

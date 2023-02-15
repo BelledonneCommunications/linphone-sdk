@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,19 +19,18 @@
  */
 ﻿#pragma once
 
-namespace mediastreamer2_tester_native
-{
+    namespace mediastreamer2_tester_native {
 	class Mediastreamer2TesterVideoPrivate;
 
-    public ref class Mediastreamer2TesterVideo sealed
-    {
-    public:
-        Mediastreamer2TesterVideo(Mediastreamer2::WP8Video::IVideoRenderer^ videoRenderer);
+public
+	ref class Mediastreamer2TesterVideo sealed {
+	public:
+		Mediastreamer2TesterVideo(Mediastreamer2::WP8Video::IVideoRenderer ^ videoRenderer);
 		virtual ~Mediastreamer2TesterVideo();
 		int GetNativeWindowId();
-		Platform::String^ GetVideoDevice();
+		Platform::String ^ GetVideoDevice();
 
 	private:
 		Mediastreamer2TesterVideoPrivate *d;
-    };
+	};
 }

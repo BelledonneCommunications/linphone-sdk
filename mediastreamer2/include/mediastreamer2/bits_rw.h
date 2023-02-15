@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,7 +23,7 @@
 
 #include <ortp/port.h>
 
-typedef struct ms_bits_reader{
+typedef struct ms_bits_reader {
 	const uint8_t *buffer;
 	size_t buf_size;
 	int bit_index;
@@ -35,25 +35,25 @@ extern "C" {
 
 void ms_bits_reader_init(MSBitsReader *reader, const uint8_t *buffer, size_t bufsize);
 
-int ms_bits_reader_n_bits(MSBitsReader *reader, int count, unsigned int *ret, const char* symbol_name);
+int ms_bits_reader_n_bits(MSBitsReader *reader, int count, unsigned int *ret, const char *symbol_name);
 
-int ms_bits_reader_ue(MSBitsReader *reader, unsigned int* ret, const char* symbol_name);
+int ms_bits_reader_ue(MSBitsReader *reader, unsigned int *ret, const char *symbol_name);
 
-int ms_bits_reader_se(MSBitsReader *reader, int* ret, const char* symbol_name);
+int ms_bits_reader_se(MSBitsReader *reader, int *ret, const char *symbol_name);
 
 typedef struct ms_bits_writer {
-	uint8_t* buffer;
+	uint8_t *buffer;
 	size_t buf_size;
 	int bit_index;
 } MSBitsWriter;
 
 void ms_bits_writer_init(MSBitsWriter *writer, size_t initialbufsize);
 
-int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, const char* symbol_name);
+int ms_bits_writer_n_bits(MSBitsWriter *writer, int count, unsigned int value, const char *symbol_name);
 
-int ms_bits_writer_ue(MSBitsWriter *writer, unsigned int value, const char* symbol_name);
+int ms_bits_writer_ue(MSBitsWriter *writer, unsigned int value, const char *symbol_name);
 
-int ms_bits_writer_se(MSBitsWriter *writer, int value, const char* symbol_name);
+int ms_bits_writer_se(MSBitsWriter *writer, int value, const char *symbol_name);
 
 int ms_bits_writer_trailing_bits(MSBitsWriter *writer);
 

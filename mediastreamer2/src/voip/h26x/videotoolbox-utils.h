@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -33,10 +33,13 @@ namespace mediastreamer {
 
 std::string toString(OSStatus status);
 
-class AppleOSError: public std::exception {
+class AppleOSError : public std::exception {
 public:
-	AppleOSError(OSStatus status): _desc(toString(status)) {}
-	const char *what() const noexcept override {return _desc.c_str();}
+	AppleOSError(OSStatus status) : _desc(toString(status)) {
+	}
+	const char *what() const noexcept override {
+		return _desc.c_str();
+	}
 
 private:
 	std::string _desc;
@@ -56,12 +59,18 @@ public:
 	static VideoToolboxUtilities *create(const std::string &mime);
 
 protected:
-	virtual void getParameterSet(const CMFormatDescriptionRef format, size_t offset, const uint8_t *&parameterSet, size_t &parameterSetSize, size_t &parameterSetsCount) const = 0;
-	virtual CMFormatDescriptionRef createFormatDescription(size_t parameterSetsCount, const uint8_t *parameterSets[], const size_t parameterSetSizes[]) const = 0;
+	virtual void getParameterSet(const CMFormatDescriptionRef format,
+	                             size_t offset,
+	                             const uint8_t *&parameterSet,
+	                             size_t &parameterSetSize,
+	                             size_t &parameterSetsCount) const = 0;
+	virtual CMFormatDescriptionRef createFormatDescription(size_t parameterSetsCount,
+	                                                       const uint8_t *parameterSets[],
+	                                                       const size_t parameterSetSizes[]) const = 0;
 
 	static void loadCodecAvailability();
 
-	static std::map<CMVideoCodecType,bool> _codecAvailability;
+	static std::map<CMVideoCodecType, bool> _codecAvailability;
 };
 
 } // namespace mediastreamer

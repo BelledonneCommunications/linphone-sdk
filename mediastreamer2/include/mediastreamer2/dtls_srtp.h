@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,11 +21,11 @@
 #ifndef ms_dtls_srtp_h
 #define ms_dtls_srtp_h
 
-#include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
+#include <ortp/rtpsession.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /* defined in mediastream.h */
@@ -40,8 +40,9 @@ typedef enum {
 
 typedef struct MSDtlsSrtpParams {
 	const char *pem_certificate; /**< Self certificate in pem format */
-	const char *pem_pkey; /**< Private key associated to self certificate */
-	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to receive packets) */
+	const char *pem_pkey;        /**< Private key associated to self certificate */
+	MSDtlsSrtpRole role; /**< Unset(at caller init, role is then choosen by responder but we must still be able to
+	                        receive packets) */
 	int mtu;
 } MSDtlsSrtpParams;
 
@@ -56,17 +57,20 @@ MS2_PUBLIC bool_t ms_dtls_srtp_available(void);
 
 /**
  * Create an initialise a DTLS-SRTP context
- * @param[in]	sessions	A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready
- * @param[in]	params		Self certificate and private key to be used for this session. Role (client/server) may be given but can be set later
+ * @param[in]	sessions	A link to the stream sessions structures, used to get rtp session to add transport modifier
+ * and needed to set SRTP sessions when keys are ready
+ * @param[in]	params		Self certificate and private key to be used for this session. Role (client/server) may be
+ * given but can be set later
  * @return	a pointer to the opaque context structure needed by DTLS-SRTP
  */
-MS2_PUBLIC MSDtlsSrtpContext* ms_dtls_srtp_context_new(struct _MSMediaStreamSessions *sessions, MSDtlsSrtpParams *params);
+MS2_PUBLIC MSDtlsSrtpContext *ms_dtls_srtp_context_new(struct _MSMediaStreamSessions *sessions,
+                                                       MSDtlsSrtpParams *params);
 
 /**
  * Start the DTLS-SRTP channel: send DTLS ClientHello if we are client
  * @param[in/out]	context		the DTLS-SRTP context
  */
-MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext* context);
+MS2_PUBLIC void ms_dtls_srtp_start(MSDtlsSrtpContext *context);
 
 /**
  * Free ressources used by DTLS-SRTP context
@@ -87,7 +91,6 @@ MS2_PUBLIC void ms_dtls_srtp_reset_context(MSDtlsSrtpContext *context);
  */
 MS2_PUBLIC void ms_dtls_srtp_set_role(MSDtlsSrtpContext *context, MSDtlsSrtpRole role);
 
-
 /**
  * Get DTLS role: server or client, called when SDP exchange reach the point where we can determine self role
  * @param[in/out]	context		the DTLS-SRTP context
@@ -97,9 +100,11 @@ MS2_PUBLIC MSDtlsSrtpRole ms_dtls_srtp_get_role(const MSDtlsSrtpContext *context
 
 /**
  * Give to the DTLS-SRTP context the peer certificate fingerprint extracted from trusted SDP INVITE,
- * it will be compared(case insensitive) with locally computed one after DTLS handshake is completed successfully and peer certicate retrieved
+ * it will be compared(case insensitive) with locally computed one after DTLS handshake is completed successfully and
+ * peer certicate retrieved
  * @param[in/out]	context			the DTLS-SRTP context
- * @param[in]		peer_fingerprint	a null terminated string containing the peer certificate as found in the SDP INVITE(including the heading hash algorithm name)
+ * @param[in]		peer_fingerprint	a null terminated string containing the peer certificate as found in the SDP
+ * INVITE(including the heading hash algorithm name)
  */
 MS2_PUBLIC void ms_dtls_srtp_set_peer_fingerprint(MSDtlsSrtpContext *context, const char *peer_fingerprint);
 

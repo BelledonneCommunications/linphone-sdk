@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,23 +24,28 @@
 
 namespace mediastreamer {
 
-class H264FuaAggregator: public NalUnpacker::FuAggregatorInterface {
+class H264FuaAggregator : public NalUnpacker::FuAggregatorInterface {
 public:
 	mblk_t *feed(mblk_t *im) override;
-	bool isAggregating() const override {return _m != nullptr;}
+	bool isAggregating() const override {
+		return _m != nullptr;
+	}
 	void reset() override;
 	mblk_t *completeAggregation() override;
 };
 
-class H264StapaSpliter: public NalUnpacker::ApSpliterInterface {
+class H264StapaSpliter : public NalUnpacker::ApSpliterInterface {
 public:
 	void feed(mblk_t *im) override;
-	MSQueue *getNalus() override {return &_q;}
+	MSQueue *getNalus() override {
+		return &_q;
+	}
 };
 
-class H264NalUnpacker: public NalUnpacker {
+class H264NalUnpacker : public NalUnpacker {
 public:
-	H264NalUnpacker(): NalUnpacker(new H264FuaAggregator(), new H264StapaSpliter()) {}
+	H264NalUnpacker() : NalUnpacker(new H264FuaAggregator(), new H264StapaSpliter()) {
+	}
 	~H264NalUnpacker();
 
 	void setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps);

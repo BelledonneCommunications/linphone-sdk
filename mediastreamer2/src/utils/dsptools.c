@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,27 +19,27 @@
  */
 
 /* This file contains useful DSP routines from the speex project.
-*/
+ */
 
-/* Copyright (C) 2002-2006 Jean-Marc Valin 
+/* Copyright (C) 2002-2006 Jean-Marc Valin
    File: filters.c
    Various analysis/synthesis filters
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
    are met:
-   
+
    - Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
-   
+
    - Redistributions in binary form must reproduce the above copyright
    notice, this list of conditions and the following disclaimer in the
    documentation and/or other materials provided with the distribution.
-   
+
    - Neither the name of the Xiph.org Foundation nor the names of its
    contributors may be used to endorse or promote products derived from
    this software without specific prior written permission.
-   
+
    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
    ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -67,7 +67,7 @@
 #endif
 #endif
 
-#define ALLOC(var,size,type) var = alloca(sizeof(type)*(size))
+#define ALLOC(var, size, type) var = alloca(sizeof(type) * (size))
 
 #if 0
 //#ifdef ARCH_BFIN
@@ -226,7 +226,6 @@ void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, in
    filter_mem16(x, num, den, y, N, ord, mem, stack);
 }
 
-
 #else
 #if 0
 /* this one comes from speex but unfortunately does not make the expected result, maybe it is mis-used.*/
@@ -251,44 +250,43 @@ void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, in
 
 #ifndef MS_FIXED_POINT
 
-void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, int N, int ord, ms_mem_t *mem){
-	int i,j;
+void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, int N, int ord, ms_mem_t *mem) {
+	int i, j;
 	ms_word16_t xi;
 	ms_word32_t acc;
-	for(i=0;i<N;++i){
-		xi=x[i];
-		mem[0]=xi;
+	for (i = 0; i < N; ++i) {
+		xi = x[i];
+		mem[0] = xi;
 		/* accumulate and shift within the same loop*/
-		acc=mem[ord-1]*num[ord-1];
-		for(j=ord-2;j>=0;--j){
-			acc+=num[j]*mem[j];
-			mem[j+1]=mem[j];
+		acc = mem[ord - 1] * num[ord - 1];
+		for (j = ord - 2; j >= 0; --j) {
+			acc += num[j] * mem[j];
+			mem[j + 1] = mem[j];
 		}
-		y[i]=acc;
+		y[i] = acc;
 	}
 }
 
 #else
 
-void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, int N, int ord, ms_mem_t *mem){
-	int i,j;
+void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, int N, int ord, ms_mem_t *mem) {
+	int i, j;
 	ms_word16_t xi;
 	ms_word32_t acc;
-	int shift=0; /* REVISIT: empiric value...*/
+	int shift = 0; /* REVISIT: empiric value...*/
 
-	for(i=0;i<N;++i){
-		xi=x[i];
-		mem[0]=xi;
+	for (i = 0; i < N; ++i) {
+		xi = x[i];
+		mem[0] = xi;
 		/* accumulate and shift memories within the same loop*/
-		acc=(mem[ord-1]*(ms_word32_t)num[ord-1])>>shift;
-		for(j=ord-2;j>=0;--j){
-			acc+=(((ms_word32_t)num[j])*mem[j])>>shift;
-			mem[j+1]=mem[j];
+		acc = (mem[ord - 1] * (ms_word32_t)num[ord - 1]) >> shift;
+		for (j = ord - 2; j >= 0; --j) {
+			acc += (((ms_word32_t)num[j]) * mem[j]) >> shift;
+			mem[j + 1] = mem[j];
 		}
-		y[i]=(ms_word16_t)SATURATE16(acc>>14,32767);
+		y[i] = (ms_word16_t)SATURATE16(acc >> 14, 32767);
 	}
 }
-
 
 #endif
 
@@ -297,61 +295,51 @@ void ms_fir_mem16(const ms_word16_t *x, const ms_coef_t *num, ms_word16_t *y, in
 #endif
 
 #ifdef MS_FIXED_POINT
-static int maximize_range(ms_word16_t *in, ms_word16_t *out, ms_word16_t bound, int len)
-{
-   int i, shift;
-   ms_word16_t max_val = 0;
-   for (i=0;i<len;i++)
-   {
-      if (in[i]>max_val)
-         max_val = in[i];
-      if (-in[i]>max_val)
-         max_val = -in[i];
-   }
-   shift=0;
-   while (max_val <= (bound>>1) && max_val != 0)
-   {
-      max_val <<= 1;
-      shift++;
-   }
-   for (i=0;i<len;i++)
-   {
-      out[i] = SHL16(in[i], shift);
-   }   
-   return shift;
+static int maximize_range(ms_word16_t *in, ms_word16_t *out, ms_word16_t bound, int len) {
+	int i, shift;
+	ms_word16_t max_val = 0;
+	for (i = 0; i < len; i++) {
+		if (in[i] > max_val) max_val = in[i];
+		if (-in[i] > max_val) max_val = -in[i];
+	}
+	shift = 0;
+	while (max_val <= (bound >> 1) && max_val != 0) {
+		max_val <<= 1;
+		shift++;
+	}
+	for (i = 0; i < len; i++) {
+		out[i] = SHL16(in[i], shift);
+	}
+	return shift;
 }
 
-static void renorm_range(ms_word16_t *in, ms_word16_t *out, int shift, int len)
-{
-   int i;
-   for (i=0;i<len;i++)
-   {
-      out[i] = PSHR16(in[i], shift);
-   }
+static void renorm_range(ms_word16_t *in, ms_word16_t *out, int shift, int len) {
+	int i;
+	for (i = 0; i < len; i++) {
+		out[i] = PSHR16(in[i], shift);
+	}
 }
 #endif
 
-#include "kiss_fftr.h"
 #include "kiss_fft.h"
+#include "kiss_fftr.h"
 
 struct kiss_config {
-   kiss_fftr_cfg forward;
-   kiss_fftr_cfg backward;
-   int N;
+	kiss_fftr_cfg forward;
+	kiss_fftr_cfg backward;
+	int N;
 };
 
-void *ms_fft_init(int size)
-{
+void *ms_fft_init(int size) {
 	struct kiss_config *table;
-	table = (struct kiss_config*)ms_malloc(sizeof(struct kiss_config));
-	table->forward = kiss_fftr_alloc(size,0,NULL,NULL);
-	table->backward = kiss_fftr_alloc(size,1,NULL,NULL);
+	table = (struct kiss_config *)ms_malloc(sizeof(struct kiss_config));
+	table->forward = kiss_fftr_alloc(size, 0, NULL, NULL);
+	table->backward = kiss_fftr_alloc(size, 1, NULL, NULL);
 	table->N = size;
 	return table;
 }
 
-void ms_fft_destroy(void *table)
-{
+void ms_fft_destroy(void *table) {
 	struct kiss_config *t = (struct kiss_config *)table;
 	kiss_fftr_free(t->forward);
 	kiss_fftr_free(t->backward);
@@ -360,8 +348,7 @@ void ms_fft_destroy(void *table)
 
 #ifdef MS_FIXED_POINT
 
-void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out)
-{
+void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out) {
 	int shift;
 	struct kiss_config *t = (struct kiss_config *)table;
 	shift = maximize_range(in, in, 32000, t->N);
@@ -372,20 +359,18 @@ void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out)
 
 #else
 
-void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out)
-{
+void ms_fft(void *table, ms_word16_t *in, ms_word16_t *out) {
 	int i;
 	float scale;
 	struct kiss_config *t = (struct kiss_config *)table;
-	scale = 1.f/t->N;
+	scale = 1.f / t->N;
 	kiss_fftr2(t->forward, in, out);
-	for (i=0;i<t->N;i++)
+	for (i = 0; i < t->N; i++)
 		out[i] *= scale;
 }
 #endif
 
-void ms_ifft(void *table, ms_word16_t *in, ms_word16_t *out)
-{
+void ms_ifft(void *table, ms_word16_t *in, ms_word16_t *out) {
 	struct kiss_config *t = (struct kiss_config *)table;
 	kiss_fftri2(t->backward, in, out);
 }

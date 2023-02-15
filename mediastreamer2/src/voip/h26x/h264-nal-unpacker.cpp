@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -45,13 +45,13 @@ mblk_t *H264FuaAggregator::feed(mblk_t *im) {
 		nri = ms_h264_nalu_get_nri(im);
 		if (_m != nullptr) {
 			ms_error("receiving FU-A start while previous FU-A is not "
-			"finished");
+			         "finished");
 			freemsg(_m);
 			_m = nullptr;
 		}
-		im->b_rptr += 2; /*skip the nal header and the fu header*/
-		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write on the buffer
-		which can break processing of other users of the buffers */
+		im->b_rptr += 2;           /*skip the nal header and the fu header*/
+		new_header = allocb(1, 0); /* allocate small fragment to put the correct nal header, this is to avoid to write
+		on the buffer which can break processing of other users of the buffers */
 		H264Tools::nalHeaderInit(new_header->b_wptr, nri, type);
 		new_header->b_wptr++;
 		mblk_meta_copy(im, new_header);
@@ -131,14 +131,16 @@ void H264NalUnpacker::setOutOfBandSpsPps(mblk_t *sps, mblk_t *pps) {
 	_pps = pps;
 }
 
-
 // Private methods
 // ---------------
 NalUnpacker::PacketType H264NalUnpacker::getNaluType(const mblk_t *nalu) const {
 	switch (ms_h264_nalu_get_type(nalu)) {
-		case MSH264NaluTypeFUA: return PacketType::FragmentationUnit;
-		case MSH264NaluTypeSTAPA: return PacketType::AggregationPacket;
-		default: return PacketType::SingleNalUnit;
+		case MSH264NaluTypeFUA:
+			return PacketType::FragmentationUnit;
+		case MSH264NaluTypeSTAPA:
+			return PacketType::AggregationPacket;
+		default:
+			return PacketType::SingleNalUnit;
 	}
 }
 

@@ -22,13 +22,15 @@
 #include <mutex>
 #include <vector>
 
-#ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
-#endif
 #include "ortp/ortp.h"
 
 #include "bctoolbox/crypto.h"
 #include "bctoolbox/crypto.hh"
+#include <bctoolbox/defs.h>
+
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h"
+#endif
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/ms_srtp.h"
 
@@ -588,7 +590,7 @@ static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 	return slen;
 }
 
-static int ms_srtp_process_dummy(RtpTransportModifier *t, mblk_t *m) {
+static int ms_srtp_process_dummy(BCTBX_UNUSED(RtpTransportModifier *t), mblk_t *m) {
 	return (int)msgdsize(m);
 }
 

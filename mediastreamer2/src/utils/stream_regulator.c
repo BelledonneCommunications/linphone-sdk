@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -46,8 +46,8 @@ void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt) {
 }
 
 mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj) {
-	if(ms_queue_empty(&obj->queue)) return NULL;
-	if(!obj->origin_set) {
+	if (ms_queue_empty(&obj->queue)) return NULL;
+	if (!obj->origin_set) {
 		mblk_t *pkt = ms_queue_get(&obj->queue);
 		obj->t_origin = obj->ticker->time - (int64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
 		obj->origin_set = TRUE;
@@ -55,7 +55,7 @@ mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj) {
 	} else {
 		mblk_t *pkt = ms_queue_peek_first(&obj->queue);
 		uint64_t timestamp = (uint64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
-		if(timestamp <= obj->ticker->time - obj->t_origin) {
+		if (timestamp <= obj->ticker->time - obj->t_origin) {
 			return ms_queue_get(&obj->queue);
 		} else {
 			return NULL;

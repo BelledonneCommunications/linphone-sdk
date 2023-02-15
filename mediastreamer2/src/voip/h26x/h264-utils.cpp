@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
 		nalu->b_wptr += nalu_size;
 
 		nalu_type = ms_h264_nalu_get_type(nalu);
-		if (idr_count && nalu_type == MSH264NaluTypeIDR)(*idr_count)++;
+		if (idr_count && nalu_type == MSH264NaluTypeIDR) (*idr_count)++;
 
 		ms_queue_put(nalus, nalu);
 	}
@@ -105,9 +105,7 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 	ms_bits_reader_ue(&reader, NULL, "seq_parameter_set_id");
 
 	if (profile_idc == 100) {
-		{
-			ms_bits_reader_ue(&reader, NULL, "chroma_format_idc");
-		}
+		{ ms_bits_reader_ue(&reader, NULL, "chroma_format_idc"); }
 		ms_bits_reader_ue(&reader, NULL, "bit_depth_luma_minus8");
 		ms_bits_reader_ue(&reader, NULL, "bit_depth_chroma_minus8");
 		ms_bits_reader_n_bits(&reader, 1, NULL, "qpprime_y_zero_transform_bypass_flag");
@@ -121,9 +119,7 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 		ms_bits_reader_ue(&reader, NULL, "log2_max_pic_order_cnt_lsb_minus4");
 	} else if (pic_order_cnt_type == 1) {
 		int i;
-		{
-			ms_bits_reader_n_bits(&reader, 1, NULL, "delta_pic_order_always_zero_flag");
-		}
+		{ ms_bits_reader_n_bits(&reader, 1, NULL, "delta_pic_order_always_zero_flag"); }
 		ms_bits_reader_se(&reader, NULL, "offset_for_non_ref_pic");
 		ms_bits_reader_se(&reader, NULL, "offset_for_top_to_bottom_field");
 		{
@@ -159,10 +155,12 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 		unsigned int frame_crop_bottom_offset;
 		ms_bits_reader_ue(&reader, &frame_crop_left_offset, "frame_crop_left_offset");
 		ms_bits_reader_ue(&reader, &frame_crop_right_offset, "frame_crop_right_offset");
-		video_size.width = ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_left_offset * 2 - frame_crop_right_offset * 2;
+		video_size.width =
+		    ((pic_width_in_mbs_minus1 + 1) * 16) - frame_crop_left_offset * 2 - frame_crop_right_offset * 2;
 		ms_bits_reader_ue(&reader, &frame_crop_top_offset, "frame_crop_top_offset");
 		ms_bits_reader_ue(&reader, &frame_crop_bottom_offset, "frame_crop_bottom_offset");
-		video_size.height = ((2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16) - (frame_crop_top_offset * 2) - (frame_crop_bottom_offset * 2);
+		video_size.height = ((2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16) -
+		                    (frame_crop_top_offset * 2) - (frame_crop_bottom_offset * 2);
 	} else {
 		video_size.width = (pic_width_in_mbs_minus1 + 1) * 16;
 		video_size.height = (2 - frame_mbs_only_flag) * (pic_height_in_map_units_minus1 + 1) * 16;
@@ -173,7 +171,6 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps) {
 }
 
 } // extern "C"
-
 
 namespace mediastreamer {
 
@@ -279,8 +276,8 @@ mblk_t *H264Tools::prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, boo
 	h->b_wptr[1] = ((start & 0x1) << 7) | ((end & 0x1) << 6) | type;
 	h->b_wptr += 2;
 	h->b_cont = m;
-	if (start) m->b_rptr++;/*skip original nalu header */
-		return h;
+	if (start) m->b_rptr++; /*skip original nalu header */
+	return h;
 }
 
 H264ParameterSetsInserter::~H264ParameterSetsInserter() {
@@ -337,4 +334,4 @@ H26xParameterSetsStore *H264ToolFactory::createParameterSetsStore() const {
 	return new H264ParameterSetsStore();
 }
 
-} // namespace mediastreamer2
+} // namespace mediastreamer

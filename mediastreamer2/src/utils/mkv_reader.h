@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include <memory>
 #include <list>
+#include <memory>
 #include <vector>
 
 #include "mediastreamer2/mscommon.h"
@@ -30,12 +30,16 @@ class MKVReader;
 
 template <typename T>
 struct NodeDeleter {
-	void operator()(T *ptr) {NodeDelete(reinterpret_cast<node *>(ptr));}
+	void operator()(T *ptr) {
+		NodeDelete(reinterpret_cast<node *>(ptr));
+	}
 };
 using EbmlElementPtr = std::unique_ptr<ebml_element, NodeDeleter<ebml_element>>;
 
 struct StreamCloser {
-	void operator()(stream *ptr) {StreamClose(ptr);}
+	void operator()(stream *ptr) {
+		StreamClose(ptr);
+	}
 };
 using StreamPtr = std::unique_ptr<stream, StreamCloser>;
 
@@ -68,16 +72,16 @@ struct MKVBlock {
 	uint32_t mTimestamp{0}; // ms
 	bool mKeyframe{false};
 	std::vector<uint8_t> mData{};
-	std::vector<uint8_t>mCodecState{};
+	std::vector<uint8_t> mCodecState{};
 };
 
-#define MKV_TRACK_TYPE_VIDEO    0x01
-#define MKV_TRACK_TYPE_AUDIO    0x02
-#define MKV_TRACK_TYPE_COMPLEX  0x03
-#define MKV_TRACK_TYPE_LOGO     0x10
+#define MKV_TRACK_TYPE_VIDEO 0x01
+#define MKV_TRACK_TYPE_AUDIO 0x02
+#define MKV_TRACK_TYPE_COMPLEX 0x03
+#define MKV_TRACK_TYPE_LOGO 0x10
 #define MKV_TRACK_TYPE_SUBTITLE 0x11
-#define MKV_TRACK_TYPE_BUTTONS  0x12
-#define MKV_TRACK_TYPE_CONTROL  0x20
+#define MKV_TRACK_TYPE_BUTTONS 0x12
+#define MKV_TRACK_TYPE_CONTROL 0x20
 
 struct MKVTrack {
 	uint8_t mNum{0};
@@ -117,13 +121,17 @@ struct MKVAudioTrack : public MKVTrack {
 
 class MKVTrackReader;
 
-class MKVReader{
+class MKVReader {
 public:
 	MKVReader() = default;
-	MKVReader(const std::string &filename) {open(filename);}
+	MKVReader(const std::string &filename) {
+		open(filename);
+	}
 	MKVReader(const MKVReader &) = delete;
 	MKVReader(MKVReader &&) = delete;
-	~MKVReader() noexcept {close();}
+	~MKVReader() noexcept {
+		close();
+	}
 
 	/**
 	 * @brief Open a MKV file for reading
@@ -139,10 +147,12 @@ public:
 	void close() noexcept;
 
 	/**
-     * @brief Get information about the Matroska segment
-     * @return Matroska segment information
-     */
-	const MKVSegmentInfo *getSegmentInfo() const noexcept {return mInfo.get();}
+	 * @brief Get information about the Matroska segment
+	 * @return Matroska segment information
+	 */
+	const MKVSegmentInfo *getSegmentInfo() const noexcept {
+		return mInfo.get();
+	}
 	/**
 	 * @brief Get the default track for a specified track type
 	 * @param r MKVReader object

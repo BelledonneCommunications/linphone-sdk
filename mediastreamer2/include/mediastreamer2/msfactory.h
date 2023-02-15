@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,12 +21,11 @@
 #ifndef msfactory_h
 #define msfactory_h
 
-
-#include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/devices.h"
+#include "mediastreamer2/msfilter.h"
 
 /*do not use these fields directly*/
-struct _MSFactory{
+struct _MSFactory {
 	MSList *desc_list;
 	MSList *stats_list;
 	MSList *offer_answer_provider_list;
@@ -41,9 +40,9 @@ struct _MSFactory{
 	struct _MSEventQueue *evq;
 	int max_payload_size;
 	int mtu;
-	struct _MSSndCardManager* sndcardmanager;
-	struct _MSWebCamManager* wbcmanager;
-	void (*voip_uninit_func)(struct _MSFactory*);
+	struct _MSSndCardManager *sndcardmanager;
+	struct _MSWebCamManager *wbcmanager;
+	void (*voip_uninit_func)(struct _MSFactory *);
 	bool_t statistics_enabled;
 	bool_t voip_initd;
 	MSDevicesInfo *devices_info;
@@ -62,22 +61,23 @@ extern "C" {
 #if defined(_MSC_VER)
 #define MS2_DEPRECATED __declspec(deprecated)
 #else
-#define MS2_DEPRECATED __attribute__ ((deprecated))
+#define MS2_DEPRECATED __attribute__((deprecated))
 #endif
 #endif
 
 /**
  * Create a mediastreamer2 factory. This is the root object that will create everything else from mediastreamer2.
-**/
+ **/
 MS2_PUBLIC MSFactory *ms_factory_new(void);
 
 /**
  * Create a mediastreamer2 factory and initialize all voip related filter, card and webcam managers.
-**/
-MS2_PUBLIC MSFactory* ms_factory_new_with_voip(void);
+ **/
+MS2_PUBLIC MSFactory *ms_factory_new_with_voip(void);
 
 /**
- * Create a mediastreamer2 factory, initialize all voip related filters, cards and webcam managers and load the plugins from the specified directory.
+ * Create a mediastreamer2 factory, initialize all voip related filters, cards and webcam managers and load the plugins
+ * from the specified directory.
  * @param[in] plugins_dir The path where to find the mediastreamer2 plugins to be loaded
  * @param[in] images_dir The path where to find the images
  */
@@ -85,35 +85,34 @@ MS2_PUBLIC MSFactory *ms_factory_new_with_voip_and_directories(const char *plugi
 
 /**
  * Create the fallback factory (for compatibility with applications not using MSFactory to create ms2 object)
-**/
+ **/
 MS2_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_create_fallback(void);
 
 /**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
-**/
+ **/
 MS2_DEPRECATED MS2_PUBLIC MSFactory *ms_factory_get_fallback(void);
 
 /**
  * Destroy the factory.
  * This should be done after destroying all objects created by the factory.
-**/
+ **/
 MS2_PUBLIC void ms_factory_destroy(MSFactory *factory);
 
 /*
  * Obtain the soundcard manager.
-**/
-MS2_PUBLIC struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *f);
+ **/
+MS2_PUBLIC struct _MSSndCardManager *ms_factory_get_snd_card_manager(MSFactory *f);
 
 /**
  * Obtain the webcam manager.
-*/
-MS2_PUBLIC struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f);
-
+ */
+MS2_PUBLIC struct _MSWebCamManager *ms_factory_get_web_cam_manager(MSFactory *f);
 
 /**
  * Register a filter descriptor (MSFilterDesc) into the factory.
-**/
+ **/
 MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc);
 
 /**
@@ -123,7 +122,7 @@ MS2_PUBLIC void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *des
  *
  * @return a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilterDesc *ms_factory_get_encoding_capturer(MSFactory *factory, const char *mime);
 
 /**
  * Retrieve render filter that supports decoding to codec name.
@@ -132,7 +131,7 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory *factory, c
  *
  * @return a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilterDesc *ms_factory_get_decoding_renderer(MSFactory *factory, const char *mime);
 
 /**
  * Retrieve encoders according to codec name.
@@ -141,7 +140,7 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory *factory, c
  *
  * @return a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilterDesc * ms_factory_get_encoder(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilterDesc *ms_factory_get_encoder(MSFactory *factory, const char *mime);
 
 /**
  * Retrieve decoders according to codec name.
@@ -150,7 +149,7 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_encoder(MSFactory *factory, const char 
  *
  * @return a MSFilterDesc if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilterDesc * ms_factory_get_decoder(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilterDesc *ms_factory_get_decoder(MSFactory *factory, const char *mime);
 
 /**
  * Lookup a mediastreamer2 filter using its name.
@@ -159,7 +158,7 @@ MS2_PUBLIC MSFilterDesc * ms_factory_get_decoder(MSFactory *factory, const char 
  * This function can be useful to query the presence of a filter loaded as a plugin, for example.
  *
  * @param filter_name The filter name.
-**/
+ **/
 MS2_PUBLIC MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory *factory, const char *filter_name);
 
 /**
@@ -169,15 +168,15 @@ MS2_PUBLIC MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory *facto
  * This function can be useful to query the presence of a filter loaded as a plugin, for example.
  *
  * @param id The filter id.
-**/
-MS2_PUBLIC MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSFilterId id);
+ **/
+MS2_PUBLIC MSFilterDesc *ms_factory_lookup_filter_by_id(MSFactory *factory, MSFilterId id);
 
 /**
  * Returns a list of filter descriptions implementing a given interface.
  * The list itself must be freed by the caller of this function, but not the MSFilterDesc pointed by the list elements.
  * @param id a filter interface id
  * @return a newly allocated MSList of #MSFilterDesc.
-**/
+ **/
 MS2_PUBLIC MSList *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id);
 
 /**
@@ -193,7 +192,7 @@ MS2_PUBLIC const MSList *ms_factory_get_filter_decs(const MSFactory *factory);
  *
  * @return a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilter * ms_factory_create_encoder(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilter *ms_factory_create_encoder(MSFactory *factory, const char *mime);
 
 /**
  * Create decoder filter according to codec name.
@@ -202,7 +201,7 @@ MS2_PUBLIC MSFilter * ms_factory_create_encoder(MSFactory *factory, const char *
  *
  * @return a MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSFilter * ms_factory_create_decoder(MSFactory *factory, const char *mime);
+MS2_PUBLIC MSFilter *ms_factory_create_decoder(MSFactory *factory, const char *mime);
 
 /**
  * Check if a encode or decode filter exists for a codec name.
@@ -230,7 +229,6 @@ MS2_PUBLIC bool_t ms_factory_has_encoder(MSFactory *factory, const char *mime);
  * @return TRUE if successfull, FALSE otherwise.
  */
 MS2_PUBLIC bool_t ms_factory_has_decoder(MSFactory *factory, const char *mime);
-
 
 /**
  * Create decoder filter according to a filter's MSFilterId.
@@ -264,55 +262,57 @@ MS2_PUBLIC MSFilter *ms_factory_create_filter_from_desc(MSFactory *factory, MSFi
 
 /**
  * Enable filter statistics measurement at run time.
-**/
-MS2_PUBLIC void ms_factory_enable_statistics(MSFactory* obj, bool_t enabled);
+ **/
+MS2_PUBLIC void ms_factory_enable_statistics(MSFactory *obj, bool_t enabled);
 
 /**
  * Obtain a list of MSFilterStats.
-**/
-MS2_PUBLIC const MSList * ms_factory_get_statistics(MSFactory* obj);
+ **/
+MS2_PUBLIC const MSList *ms_factory_get_statistics(MSFactory *obj);
 
 /**
  * Reset filter's statistics.
-**/
+ **/
 MS2_PUBLIC void ms_factory_reset_statistics(MSFactory *obj);
 
 /**
  * Output statistics to logs.
-**/
+ **/
 MS2_PUBLIC void ms_factory_log_statistics(MSFactory *obj);
 
 /**
  * Get number of available cpus for processing.
  * The factory initializes this value to the number of logicial processors
  * available on the machine where it runs.
-**/
+ **/
 MS2_PUBLIC unsigned int ms_factory_get_cpu_count(MSFactory *obj);
 
 /**
  * Set the number of available cpus for processing.
-**/
+ **/
 MS2_PUBLIC void ms_factory_set_cpu_count(MSFactory *obj, unsigned int c);
 
 MS2_PUBLIC void ms_factory_add_platform_tag(MSFactory *obj, const char *tag);
 
-MS2_PUBLIC MSList * ms_factory_get_platform_tags(MSFactory *obj);
+MS2_PUBLIC MSList *ms_factory_get_platform_tags(MSFactory *obj);
 
-MS2_PUBLIC char * ms_factory_get_platform_tags_as_string(MSFactory *obj);
+MS2_PUBLIC char *ms_factory_get_platform_tags_as_string(MSFactory *obj);
 
-MS2_PUBLIC struct _MSVideoPresetsManager * ms_factory_get_video_presets_manager(MSFactory *factory);
+MS2_PUBLIC struct _MSVideoPresetsManager *ms_factory_get_video_presets_manager(MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_init_plugins(MSFactory *obj);
 
 /**
  * Set directory where plugins are to be loaded.
-**/
+ **/
 MS2_PUBLIC void ms_factory_set_plugins_dir(MSFactory *obj, const char *path);
 
 /**
  * Allows to load plugins from a list that contains their names instead of listing files from a directory.
- **/ 
-MS2_PUBLIC int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *plugins_list, const char *optionnal_plugins_path);
+ **/
+MS2_PUBLIC int ms_factory_load_plugins_from_list(MSFactory *factory,
+                                                 const bctbx_list_t *plugins_list,
+                                                 const char *optionnal_plugins_path);
 
 /**
  * Loads files in parameter directory matching template libms<name>.PLUGIN_EXT.
@@ -323,7 +323,7 @@ MS2_PUBLIC void ms_factory_uninit_plugins(MSFactory *obj);
 
 /**
  * Init VOIP features (registration of codecs, sound card and webcam managers).
-**/
+ **/
 MS2_PUBLIC void ms_factory_init_voip(MSFactory *obj);
 
 MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
@@ -334,24 +334,24 @@ MS2_PUBLIC void ms_factory_uninit_voip(MSFactory *obj);
  * @param[in] obj MSFactory object.
  * @return The created event queue.
  */
-MS2_PUBLIC struct _MSEventQueue * ms_factory_create_event_queue(MSFactory *obj);
-	
+MS2_PUBLIC struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj);
+
 MS2_PUBLIC void ms_factory_destroy_event_queue(MSFactory *obj);
-	
-	/**
+
+/**
  * Gets the event queue associated with the factory.
  * Can be NULL if no event queue has been created.
  * @param[in] obj MSFactory object.
  * @return The event queue associated with the factory.
  */
-MS2_PUBLIC struct _MSEventQueue * ms_factory_get_event_queue(MSFactory *obj);
+MS2_PUBLIC struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj);
 
-MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj,struct _MSEventQueue *q);
+MS2_PUBLIC void ms_factory_set_event_queue(MSFactory *obj, struct _MSEventQueue *q);
 
 MS2_PUBLIC int ms_factory_get_payload_max_size(const MSFactory *factory);
 
 MS2_PUBLIC void ms_factory_set_payload_max_size(MSFactory *obj, int size);
-	
+
 MS2_PUBLIC void ms_factory_set_mtu(MSFactory *obj, int mtu);
 
 MS2_PUBLIC int ms_factory_get_mtu(const MSFactory *obj);
@@ -368,11 +368,13 @@ MS2_PUBLIC void ms_factory_set_echo_canceller_filter_name(MSFactory *obj, const 
  * @param[in] obj MSFactory object
  * @return The name of the echo canceller filter being used
  */
-MS2_PUBLIC const char * ms_factory_get_echo_canceller_filter_name(const MSFactory *obj);
+MS2_PUBLIC const char *ms_factory_get_echo_canceller_filter_name(const MSFactory *obj);
 
-MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
+MS2_PUBLIC const struct _MSFmtDescriptor *
+ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp);
 
-MS2_PUBLIC const struct _MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp);
+MS2_PUBLIC const struct _MSFmtDescriptor *
+ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp);
 
 MS2_PUBLIC const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref);
 
@@ -396,7 +398,6 @@ MS2_PUBLIC int ms_factory_enable_filter_from_name(MSFactory *factory, const char
  */
 MS2_PUBLIC bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name);
 
-
 #ifndef MS_OFFER_ANSWER_CONTEXT_DEFINED
 #define MS_OFFER_ANSWER_CONTEXT_DEFINED
 typedef struct _MSOfferAnswerContext MSOfferAnswerContext;
@@ -410,9 +411,9 @@ typedef struct _MSOfferAnswerProvider MSOfferAnswerProvider;
  * treated in a generic way by the global SDP offer answer logic.
  * Mediastreamer2 plugins can then register with this method their offer/answer logic together with the encoder
  * and decoder filters, so that it can be used by the signaling layer of the application.
- * @param factory 
+ * @param factory
  * @param offer_answer_prov the offer answer provider descriptor.
-**/
+ **/
 MS2_PUBLIC void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov);
 
 /**
@@ -420,25 +421,25 @@ MS2_PUBLIC void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferA
  * @param f the factory
  * @param mime_type the codec mime type.
  * @return an MSOfferAnswerProvider or NULL if none was registered for this codec.
-**/
-MS2_PUBLIC MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type);
+ **/
+MS2_PUBLIC MSOfferAnswerProvider *ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type);
 
 /**
  * Directly creates an offer-answer context giving the codec mime-type.
  * @param f the factory
  * @param the mime-type of the codec.
  * @return an MSOfferAnswerContext or NULL if none was registered for this codec.
-**/
-MS2_PUBLIC MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
+ **/
+MS2_PUBLIC MSOfferAnswerContext *ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
 
-MS2_PUBLIC MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f);
+MS2_PUBLIC MSDevicesInfo *ms_factory_get_devices_info(MSFactory *f);
 
 /**
  * Get the path where the image resources (mainly the nowebcam image) are located.
  * @param[in] f MSFactory object
  * @return The path where the image resources are located
  */
-MS2_PUBLIC const char * ms_factory_get_image_resources_dir(const MSFactory *f);
+MS2_PUBLIC const char *ms_factory_get_image_resources_dir(const MSFactory *f);
 
 /**
  * Set the path where the image resources are located
@@ -461,5 +462,5 @@ MS2_PUBLIC const char *ms_factory_get_default_video_renderer(MSFactory *f);
 #ifdef __cplusplus
 }
 #endif
-	
+
 #endif

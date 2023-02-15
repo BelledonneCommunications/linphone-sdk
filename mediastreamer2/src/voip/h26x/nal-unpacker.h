@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,9 @@ public:
 
 	class FuAggregatorInterface {
 	public:
-		virtual ~FuAggregatorInterface() {if (_m) freemsg(_m);}
+		virtual ~FuAggregatorInterface() {
+			if (_m) freemsg(_m);
+		}
 		virtual mblk_t *feed(mblk_t *packet) = 0;
 		virtual bool isAggregating() const = 0;
 		virtual void reset() = 0;
@@ -53,8 +55,12 @@ public:
 
 	class ApSpliterInterface {
 	public:
-		ApSpliterInterface() {ms_queue_init(&_q);}
-		virtual ~ApSpliterInterface() {ms_queue_flush(&_q);}
+		ApSpliterInterface() {
+			ms_queue_init(&_q);
+		}
+		virtual ~ApSpliterInterface() {
+			ms_queue_flush(&_q);
+		}
 		virtual void feed(mblk_t *packet) = 0;
 		virtual MSQueue *getNalus() = 0;
 
@@ -63,13 +69,16 @@ public:
 	};
 
 	NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter);
-	virtual ~NalUnpacker() {ms_queue_flush(&_q);}
+	virtual ~NalUnpacker() {
+		ms_queue_flush(&_q);
+	}
 
 	/**
 	 * Process incoming rtp data and output NALUs, whenever possible.
 	 * @param ctx the Rfc3984Context object
 	 * @param im a new H264 packet to process
-	 * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL units.
+	 * @param naluq a MSQueue into which a frame ready to be decoded will be output, in the form of a sequence of NAL
+	 *units.
 	 * @return a bitmask of Rfc3984Status values.
 	 * The return value is a bitmask of the #Rfc3984Status enum.
 	 **/
@@ -77,11 +86,7 @@ public:
 	void reset();
 
 protected:
-	enum class PacketType {
-	    SingleNalUnit,
-	    AggregationPacket,
-	    FragmentationUnit
-	};
+	enum class PacketType { SingleNalUnit, AggregationPacket, FragmentationUnit };
 
 	virtual Status outputFrame(MSQueue *out, const Status &flags);
 	virtual void storeNal(mblk_t *nal);
@@ -97,4 +102,4 @@ protected:
 	std::unique_ptr<ApSpliterInterface> _apSpliter;
 };
 
-}
+} // namespace mediastreamer

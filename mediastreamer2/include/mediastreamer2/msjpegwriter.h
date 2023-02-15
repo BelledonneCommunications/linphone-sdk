@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ typedef struct _MSJpegWriteEventData {
 	char filePath[MAX_PATH_TEMP];
 } MSJpegWriteEventData;
 
-#define MS_JPEG_WRITER_TAKE_SNAPSHOT	MS_FILTER_METHOD(MS_JPEG_WRITER_ID, 0, const char)
-#define MS_JPEG_WRITER_SNAPSHOT_TAKEN 	MS_FILTER_EVENT(MS_JPEG_WRITER_ID, 0, MSJpegWriteEventData)
+#define MS_JPEG_WRITER_TAKE_SNAPSHOT MS_FILTER_METHOD(MS_JPEG_WRITER_ID, 0, const char)
+#define MS_JPEG_WRITER_SNAPSHOT_TAKEN MS_FILTER_EVENT(MS_JPEG_WRITER_ID, 0, MSJpegWriteEventData)
 
 #endif

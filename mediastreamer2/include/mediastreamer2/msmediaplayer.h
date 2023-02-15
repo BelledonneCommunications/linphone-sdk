@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 #ifndef MS_MEDIA_PLAYER_H
 #define MS_MEDIA_PLAYER_H
 
-#include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/msinterfaces.h>
+#include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/msvideo.h>
 
 /**
@@ -34,15 +34,10 @@ typedef struct _MSMediaPlayer MSMediaPlayer;
  * Callbacks definitions */
 typedef void (*MSMediaPlayerEofCallback)(void *user_data);
 
-typedef enum {
-	MS_FILE_FORMAT_UNKNOWN,
-	MS_FILE_FORMAT_WAVE,
-	MS_FILE_FORMAT_MATROSKA
-} MSFileFormat;
-
+typedef enum { MS_FILE_FORMAT_UNKNOWN, MS_FILE_FORMAT_WAVE, MS_FILE_FORMAT_MATROSKA } MSFileFormat;
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -53,7 +48,8 @@ extern "C"{
  * @param window_id Pointer on the drawing window
  * @return A pointer on the created MSMediaPlayer
  */
-MS2_PUBLIC MSMediaPlayer *ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_display_name, void *window_id);
+MS2_PUBLIC MSMediaPlayer *
+ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_display_name, void *window_id);
 
 /**
  * Free a media player
@@ -66,21 +62,21 @@ MS2_PUBLIC void ms_media_player_free(MSMediaPlayer *obj);
  * @param obj The player
  * @return The window ID
  */
-MS2_PUBLIC void * ms_media_player_get_window_id(const MSMediaPlayer *obj);
+MS2_PUBLIC void *ms_media_player_get_window_id(const MSMediaPlayer *obj);
 
 /**
  * Create a window ID
  * @param obj The player
  * @return window_id the window ID
  */
-MS2_PUBLIC void * ms_media_player_create_window_id(MSMediaPlayer *obj);
+MS2_PUBLIC void *ms_media_player_create_window_id(MSMediaPlayer *obj);
 
 /**
  * Set the window ID
  * @param obj The player
  * @param window_id the window ID
  */
-MS2_PUBLIC void ms_media_player_set_window_id(MSMediaPlayer *obj, void* window_id);
+MS2_PUBLIC void ms_media_player_set_window_id(MSMediaPlayer *obj, void *window_id);
 
 /**
  * Set the "End of File" callback
@@ -215,6 +211,5 @@ MS2_PUBLIC MSFilter *ms_media_player_get_video_sink(const MSMediaPlayer *const o
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

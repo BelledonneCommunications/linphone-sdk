@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,6 +29,8 @@
 #endif
 
 #include <bctoolbox/crypto.h>
+#include <bctoolbox/defs.h>
+
 #include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/stun.h>
 
@@ -39,10 +41,10 @@ static const uint64_t flowControlMaxTime = 3000;
 
 using namespace ms2::turn;
 
-extern "C" MSTurnTCPClient *ms_turn_tcp_client_new(MSTurnContext *context, bool_t use_ssl,
-												   const char *root_certificate_path) {
+extern "C" MSTurnTCPClient *
+ms_turn_tcp_client_new(MSTurnContext *context, bool_t use_ssl, const char *root_certificate_path) {
 	return (MSTurnTCPClient *)(new TurnClient(context, use_ssl,
-											  root_certificate_path == NULL ? std::string() : root_certificate_path));
+	                                          root_certificate_path == NULL ? std::string() : root_certificate_path));
 }
 
 extern "C" void ms_turn_tcp_client_destroy(MSTurnTCPClient *turn_tcp_client) {
@@ -53,13 +55,13 @@ extern "C" void ms_turn_tcp_client_connect(MSTurnTCPClient *turn_tcp_client) {
 	((TurnClient *)turn_tcp_client)->connect();
 }
 
-extern "C" int ms_turn_tcp_client_recvfrom(MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags,
-										   struct sockaddr *from, socklen_t *fromlen) {
+extern "C" int ms_turn_tcp_client_recvfrom(
+    MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
 	return ((TurnClient *)turn_tcp_client)->recvfrom(msg, flags, from, fromlen);
 }
 
-extern "C" int ms_turn_tcp_client_sendto(MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags,
-										 const struct sockaddr *to, socklen_t tolen) {
+extern "C" int ms_turn_tcp_client_sendto(
+    MSTurnTCPClient *turn_tcp_client, mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
 	return ((TurnClient *)turn_tcp_client)->sendto(msg, flags, to, tolen);
 }
 
@@ -95,8 +97,7 @@ void Packet::concat(const std::unique_ptr<Packet> &other, size_t size) {
 		size = other->length();
 	}
 	msgappend(mMblk, (const char *)other->mMblk->b_rptr, size, FALSE);
-	if (mMblk->b_cont)
-		msgpullup(mMblk, -1);
+	if (mMblk->b_cont) msgpullup(mMblk, -1);
 }
 
 void Packet::setTimestampCurrent() {
@@ -120,12 +121,12 @@ void PacketReader::reset() {
 
 int PacketReader::parseData(std::unique_ptr<Packet> rawPacket) {
 	switch (mState) {
-	case WaitingHeader:
-		return parsePacket(std::move(rawPacket));
-		break;
-	case Continuation:
-		return processContinuationPacket(std::move(rawPacket));
-		break;
+		case WaitingHeader:
+			return parsePacket(std::move(rawPacket));
+			break;
+		case Continuation:
+			return processContinuationPacket(std::move(rawPacket));
+			break;
 	}
 	return 0;
 }
@@ -229,7 +230,7 @@ static int tls_callback_certificate_verify(void *data, bctbx_x509_certificate_t 
 	bctbx_x509_certificate_flags_to_string(flags_str, flags_str_size - 1, *flags);
 
 	ms_message("SslContext [%p]: found certificate depth=[%i], flags=[%s]:\n%s", (SslContext *)data, depth, flags_str,
-			   tmp);
+	           tmp);
 
 	free(flags_str);
 	free(tmp);
@@ -250,8 +251,7 @@ static int tls_callback_read(void *ctx, unsigned char *buf, size_t len) {
 	int ret = recv(*socket, (char *)buf, (int)len, 0);
 	if (ret < 0) {
 		ret = -ret;
-		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR)
-			return BCTBX_ERROR_NET_WANT_READ;
+		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR) return BCTBX_ERROR_NET_WANT_READ;
 		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
@@ -263,15 +263,14 @@ static int tls_callback_write(void *ctx, const unsigned char *buf, size_t len) {
 	int ret = send(*socket, (const char *)buf, (int)len, 0);
 	if (ret < 0) {
 		ret = -ret;
-		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR)
-			return BCTBX_ERROR_NET_WANT_WRITE;
+		if (ret == TURN_EWOULDBLOCK || ret == TURN_EINPROGRESS || ret == TURN_EINTR) return BCTBX_ERROR_NET_WANT_WRITE;
 		return BCTBX_ERROR_NET_CONN_RESET;
 	}
 	return ret;
 }
 
 SslContext::SslContext(ortp_socket_t socket, std::string rootCertificatePath, std::string cn, bctbx_rng_context_t *rng)
-	: mSocket(socket) {
+    : mSocket(socket) {
 	mContext = bctbx_ssl_context_new();
 	mConfig = bctbx_ssl_config_new();
 
@@ -285,7 +284,7 @@ SslContext::SslContext(ortp_socket_t socket, std::string rootCertificatePath, st
 			if (statbuf.st_mode & S_IFDIR) {
 				if (bctbx_x509_certificate_parse_path(mRootCertificate, rootCertificatePath.c_str()) < 0) {
 					ms_error("SslContext [%p]: Failed to load ca from directory: %s", this,
-							 rootCertificatePath.c_str());
+					         rootCertificatePath.c_str());
 					bctbx_x509_certificate_free(mRootCertificate);
 					mRootCertificate = NULL;
 				}
@@ -300,7 +299,7 @@ SslContext::SslContext(ortp_socket_t socket, std::string rootCertificatePath, st
 			ms_message("SslContext [%p]: get root certificate from: %s", this, rootCertificatePath.c_str());
 		} else {
 			ms_error("SslContext [%p]: could not load root ca from: %s (%s)", this, rootCertificatePath.c_str(),
-					 strerror(errno));
+			         strerror(errno));
 		}
 
 		bctbx_ssl_config_set_ca_chain(mConfig, mRootCertificate);
@@ -362,10 +361,10 @@ TurnSocket::~TurnSocket() {
 
 int TurnSocket::connect() {
 	struct addrinfo *ai =
-		bctbx_name_to_addrinfo(AF_UNSPEC, SOCK_STREAM, mClient->mTurnServerIp.c_str(), mClient->mTurnServerPort);
+	    bctbx_name_to_addrinfo(AF_UNSPEC, SOCK_STREAM, mClient->mTurnServerIp.c_str(), mClient->mTurnServerPort);
 	if (!ai) {
 		ms_error("TurnSocket [%p]: getaddrinfo failed for %s:%d", this, mClient->mTurnServerIp.c_str(),
-				 mClient->mTurnServerPort);
+		         mClient->mTurnServerPort);
 		bctbx_freeaddrinfo(ai);
 		return -1;
 	}
@@ -384,9 +383,9 @@ int TurnSocket::connect() {
 
 	set_non_blocking_socket(mSocket);
 	ms_message("TurnSocket [%p]: trying to connect to %s:%d", this, mClient->mTurnServerIp.c_str(),
-			   mClient->mTurnServerPort);
+	           mClient->mTurnServerPort);
 
-	int error = ::connect(mSocket, ai->ai_addr, (int) ai->ai_addrlen);
+	int error = ::connect(mSocket, ai->ai_addr, (int)ai->ai_addrlen);
 	if (error != 0 && getSocketErrorCode() != TURN_EWOULDBLOCK && getSocketErrorCode() != TURN_EINPROGRESS) {
 		ms_error("TurnSocket [%p]: connect failed: %s", this, getSocketError());
 		bctbx_freeaddrinfo(ai);
@@ -426,7 +425,7 @@ int TurnSocket::connect() {
 
 	if (mClient->mUseSsl) {
 		mSsl =
-			std::make_unique<SslContext>(mSocket, mClient->mRootCertificatePath, mClient->mTurnServerCn, mClient->mRng);
+		    std::make_unique<SslContext>(mSocket, mClient->mRootCertificatePath, mClient->mTurnServerCn, mClient->mRng);
 
 		error = mSsl->connect();
 		if (error < 0) {
@@ -454,7 +453,7 @@ int TurnSocket::connect() {
 	}
 
 	ms_message("TurnSocket [%p]: connected to turn server %s:%d", this, mClient->mTurnServerIp.c_str(),
-			   mClient->mTurnServerPort);
+	           mClient->mTurnServerPort);
 	mReady = true;
 
 	return 0;
@@ -549,8 +548,7 @@ void TurnSocket::processRead() {
 					} else {
 						ms_error("TurnSocket [%p]: SSL error while reading: %i ", this, bytes);
 					}
-				} else
-					ms_error("TurnSocket [%p]: read error: %s", this, getSocketError());
+				} else ms_error("TurnSocket [%p]: read error: %s", this, getSocketError());
 				mError = true;
 			}
 		} else if (bytes == 0) {
@@ -579,16 +577,15 @@ int TurnSocket::send(std::unique_ptr<Packet> packet) {
 		if (getSocketErrorCode() != TURN_EWOULDBLOCK) {
 			if (mSsl) {
 				switch (error) {
-				case BCTBX_ERROR_NET_CONN_RESET:
-					ms_warning("TurnSocket [%p]: server disconnected us", this);
-					break;
-				default:
-					ms_error("TurnSocket [%p]: SSL error while sending: %i", this, error);
-					break;
+					case BCTBX_ERROR_NET_CONN_RESET:
+						ms_warning("TurnSocket [%p]: server disconnected us", this);
+						break;
+					default:
+						ms_error("TurnSocket [%p]: SSL error while sending: %i", this, error);
+						break;
 				}
 			} else {
-				if (error == -1)
-					ms_error("TurnSocket [%p]: fail to send: %s", this, getSocketError());
+				if (error == -1) ms_error("TurnSocket [%p]: fail to send: %s", this, getSocketError());
 				else {
 					ms_warning("TurnSocket [%p]: server disconnected us", this);
 				}
@@ -618,7 +615,7 @@ void TurnSocket::runSend() {
 					ms_warning("TurnSocket [%p]: purging queue on send error", this);
 				} else {
 					ms_warning("TurnSocket [%p]: purging queue packet age [%llu]", this,
-							   (unsigned long long)lPacketAge);
+					           (unsigned long long)lPacketAge);
 				}
 				purging = true;
 			}
@@ -673,12 +670,12 @@ void TurnSocket::runRead() {
 // -------------------------------------------------------------------------------------------------------
 
 TurnClient::TurnClient(MSTurnContext *context, bool useSsl, std::string rootCertificate)
-	: mContext(context), mUseSsl(useSsl), mRootCertificatePath(rootCertificate) {
+    : mContext(context), mUseSsl(useSsl), mRootCertificatePath(rootCertificate) {
 	mTurnServerCn = std::string(context->cn);
 
 	char ip[64] = {0};
 	bctbx_sockaddr_to_ip_address((struct sockaddr *)&context->turn_server_addr, context->turn_server_addrlen, ip,
-								 sizeof(ip), &mTurnServerPort);
+	                             sizeof(ip), &mTurnServerPort);
 	mTurnServerIp = std::string(ip);
 
 	mTurnConnection = nullptr;
@@ -687,8 +684,7 @@ TurnClient::TurnClient(MSTurnContext *context, bool useSsl, std::string rootCert
 }
 
 TurnClient::~TurnClient() {
-	if (mRng)
-		bctbx_rng_context_free(mRng);
+	if (mRng) bctbx_rng_context_free(mRng);
 }
 
 void TurnClient::connect() {
@@ -698,7 +694,7 @@ void TurnClient::connect() {
 	}
 }
 
-int TurnClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen) {
+int TurnClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockaddr *from, socklen_t *fromlen) {
 	std::unique_ptr<Packet> p = nullptr;
 
 	mTurnConnection->mReceivingLock.lock();
@@ -731,7 +727,7 @@ int TurnClient::recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_
 	return 0;
 }
 
-int TurnClient::sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen) {
+int TurnClient::sendto(mblk_t *msg, BCTBX_UNUSED(int flags), const struct sockaddr *, socklen_t) {
 	if (!mTurnConnection->isRunning()) {
 		return -1;
 	}

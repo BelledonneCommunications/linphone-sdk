@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,24 +24,26 @@
 
 namespace mediastreamer {
 
-class H264NalPacker: public NalPacker {
+class H264NalPacker : public NalPacker {
 public:
-	enum PacketizationMode {
-		SingleNalUnitMode,
-		NonInterleavedMode
-	};
+	enum PacketizationMode { SingleNalUnitMode, NonInterleavedMode };
 
-	H264NalPacker(size_t maxPayloadSize): NalPacker(new NaluAggregator(maxPayloadSize), new NaluSpliter(maxPayloadSize), maxPayloadSize) {}
+	H264NalPacker(size_t maxPayloadSize)
+	    : NalPacker(new NaluAggregator(maxPayloadSize), new NaluSpliter(maxPayloadSize), maxPayloadSize) {
+	}
 
 private:
-
-	class NaluAggregator: public NaluAggregatorInterface {
+	class NaluAggregator : public NaluAggregatorInterface {
 	public:
 		using NaluAggregatorInterface::NaluAggregatorInterface;
-		~NaluAggregator() override {reset();}
+		~NaluAggregator() override {
+			reset();
+		}
 
 		mblk_t *feed(mblk_t *nalu) override;
-		bool isAggregating() const override {return _stap != nullptr;}
+		bool isAggregating() const override {
+			return _stap != nullptr;
+		}
 		void reset() override;
 		mblk_t *completeAggregation() override;
 
@@ -54,12 +56,11 @@ private:
 		size_t _size = 0;
 	};
 
-	class NaluSpliter: public NaluSpliterInterface {
+	class NaluSpliter : public NaluSpliterInterface {
 	public:
 		using NaluSpliterInterface::NaluSpliterInterface;
 		void feed(mblk_t *nalu) override;
 	};
-
 };
 
 } // namespace mediastreamer

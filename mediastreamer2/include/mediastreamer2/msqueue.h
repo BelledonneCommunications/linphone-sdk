@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,31 +20,29 @@
 #ifndef MSQUEUE_H
 #define MSQUEUE_H
 
-#include <ortp/str_utils.h>
+#include <bctoolbox/defs.h>
 #include <mediastreamer2/mscommon.h>
+#include <ortp/str_utils.h>
 
-
-typedef struct _MSCPoint{
+typedef struct _MSCPoint {
 	struct _MSFilter *filter;
 	int pin;
 } MSCPoint;
 
-typedef struct _MSQueue
-{
+typedef struct _MSQueue {
 	queue_t q;
 	MSCPoint prev;
 	MSCPoint next;
-}MSQueue;
+} MSQueue;
 
+MS2_PUBLIC MSQueue *ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2);
 
-MS2_PUBLIC MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 );
-
-static MS2_INLINE mblk_t *ms_queue_get(MSQueue *q){
+static MS2_INLINE mblk_t *ms_queue_get(MSQueue *q) {
 	return getq(&q->q);
 }
 
-static MS2_INLINE void ms_queue_put(MSQueue *q, mblk_t *m){
-	putq(&q->q,m);
+static MS2_INLINE void ms_queue_put(MSQueue *q, mblk_t *m) {
+	putq(&q->q, m);
 	return;
 }
 
@@ -53,39 +51,38 @@ static MS2_INLINE void ms_queue_put(MSQueue *q, mblk_t *m){
  * If em is NULL, m is inserted at the end and becomes the last element.
  */
 static MS2_INLINE void ms_queue_insert(MSQueue *q, mblk_t *em, mblk_t *m) {
-    insq(&q->q, em, m);
-    return;
+	insq(&q->q, em, m);
+	return;
 }
 
-static MS2_INLINE mblk_t * ms_queue_peek_last(const MSQueue *q){
+static MS2_INLINE mblk_t *ms_queue_peek_last(const MSQueue *q) {
 	return qlast(&q->q);
 }
 
-static MS2_INLINE mblk_t *ms_queue_peek_first(const MSQueue *q){
+static MS2_INLINE mblk_t *ms_queue_peek_first(const MSQueue *q) {
 	return qbegin(&q->q);
 }
 
 #define ms_queue_next(q, m) (m)->b_next
 
-static MS2_INLINE bool_t ms_queue_end(const MSQueue *q, const mblk_t *m){
-	return qend(&q->q,m);
+static MS2_INLINE bool_t ms_queue_end(const MSQueue *q, const mblk_t *m) {
+	return qend(&q->q, m);
 }
 
-static MS2_INLINE mblk_t *ms_queue_peek_next(MSQueue *q, mblk_t *cur){
+static MS2_INLINE mblk_t *ms_queue_peek_next(BCTBX_UNUSED(MSQueue *q), mblk_t *cur) {
 	return cur->b_next;
 }
 
-static MS2_INLINE void ms_queue_remove(MSQueue *q, mblk_t *m){
-	remq(&q->q,m);
+static MS2_INLINE void ms_queue_remove(MSQueue *q, mblk_t *m) {
+	remq(&q->q, m);
 }
 
-static MS2_INLINE bool_t ms_queue_empty(const MSQueue *q){
+static MS2_INLINE bool_t ms_queue_empty(const MSQueue *q) {
 	return qempty(&q->q);
 }
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /*yes these functions need to be public for plugins to work*/
@@ -97,39 +94,37 @@ MS2_PUBLIC void ms_queue_flush(MSQueue *q);
 
 MS2_PUBLIC void ms_queue_destroy(MSQueue *q);
 
+#define __mblk_set_flag(m, pos, bitval) (m)->reserved2 = (m->reserved2 & ~(1 << pos)) | ((!!bitval) << pos)
 
-#define __mblk_set_flag(m,pos,bitval) \
-	(m)->reserved2=(m->reserved2 & ~(1<<pos)) | ((!!bitval)<<pos) 
-	
-#define mblk_set_timestamp_info(m,ts) (m)->reserved1=(ts);
-#define mblk_get_timestamp_info(m)    ((m)->reserved1)
-#define mblk_set_marker_info(m,bit)   __mblk_set_flag(m,0,bit)
-#define mblk_get_marker_info(m)	      ((m)->reserved2 & 0x1) /*bit 1*/
+#define mblk_set_timestamp_info(m, ts) (m)->reserved1 = (ts);
+#define mblk_get_timestamp_info(m) ((m)->reserved1)
+#define mblk_set_marker_info(m, bit) __mblk_set_flag(m, 0, bit)
+#define mblk_get_marker_info(m) ((m)->reserved2 & 0x1) /*bit 1*/
 
-#define mblk_set_precious_flag(m,bit)    __mblk_set_flag(m,1,bit)  /*use to prevent mirroring for video*/
-#define mblk_get_precious_flag(m)    (((m)->reserved2)>>1 & 0x1) /*bit 2 */
+#define mblk_set_precious_flag(m, bit) __mblk_set_flag(m, 1, bit) /*use to prevent mirroring for video*/
+#define mblk_get_precious_flag(m) (((m)->reserved2) >> 1 & 0x1)   /*bit 2 */
 
-#define mblk_set_plc_flag(m,bit)    __mblk_set_flag(m,2,bit)  /*use to mark a plc generated block*/
-#define mblk_get_plc_flag(m)    (((m)->reserved2)>>2 & 0x1) /*bit 3*/
+#define mblk_set_plc_flag(m, bit) __mblk_set_flag(m, 2, bit) /*use to mark a plc generated block*/
+#define mblk_get_plc_flag(m) (((m)->reserved2) >> 2 & 0x1)   /*bit 3*/
 
-#define mblk_set_cng_flag(m,bit)    __mblk_set_flag(m,3,bit)  /*use to mark a cng generated block*/
-#define mblk_get_cng_flag(m)    (((m)->reserved2)>>3 & 0x1) /*bit 4*/
+#define mblk_set_cng_flag(m, bit) __mblk_set_flag(m, 3, bit) /*use to mark a cng generated block*/
+#define mblk_get_cng_flag(m) (((m)->reserved2) >> 3 & 0x1)   /*bit 4*/
 
-#define mblk_set_independent_flag(m,bit)    __mblk_set_flag(m,4,bit)  /*use to mark an independent frame*/
-#define mblk_get_independent_flag(m)    (((m)->reserved2)>>4 & 0x1) /*bit 5*/
+#define mblk_set_independent_flag(m, bit) __mblk_set_flag(m, 4, bit) /*use to mark an independent frame*/
+#define mblk_get_independent_flag(m) (((m)->reserved2) >> 4 & 0x1)   /*bit 5*/
 
-#define mblk_set_discardable_flag(m,bit)    __mblk_set_flag(m,5,bit)  /*use to mark a discardable frame*/
-#define mblk_get_discardable_flag(m)    (((m)->reserved2)>>5 & 0x1) /*bit 6*/
+#define mblk_set_discardable_flag(m, bit) __mblk_set_flag(m, 5, bit) /*use to mark a discardable frame*/
+#define mblk_get_discardable_flag(m) (((m)->reserved2) >> 5 & 0x1)   /*bit 6*/
 
-#define mblk_set_user_flag(m,bit)    __mblk_set_flag(m,7,bit)  /* to be used by extensions to mediastreamer2*/
-#define mblk_get_user_flag(m)    (((m)->reserved2)>>7 & 0x1) /*bit 8*/
+#define mblk_set_user_flag(m, bit) __mblk_set_flag(m, 7, bit) /* to be used by extensions to mediastreamer2*/
+#define mblk_get_user_flag(m) (((m)->reserved2) >> 7 & 0x1)   /*bit 8*/
 
-#define mblk_set_cseq(m,value) (m)->reserved2 = ((m)->reserved2 & 0x0000FFFF) | ((value&0xFFFF)<<16);	
-#define mblk_get_cseq(m) ((m)->reserved2>>16)
+#define mblk_set_cseq(m, value) (m)->reserved2 = ((m)->reserved2 & 0x0000FFFF) | ((value & 0xFFFF) << 16);
+#define mblk_get_cseq(m) ((m)->reserved2 >> 16)
 
 #define HAVE_ms_bufferizer_fill_current_metas
-	
-struct _MSBufferizer{
+
+struct _MSBufferizer {
 	queue_t q;
 	size_t size;
 };
@@ -141,7 +136,7 @@ struct _MSBufferizer{
 typedef struct _MSBufferizer MSBufferizer;
 
 /*allocates and initialize */
-MS2_PUBLIC MSBufferizer * ms_bufferizer_new(void);
+MS2_PUBLIC MSBufferizer *ms_bufferizer_new(void);
 
 /*initialize in memory */
 MS2_PUBLIC void ms_bufferizer_init(MSBufferizer *obj);
@@ -158,7 +153,7 @@ MS2_PUBLIC size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t da
 MS2_PUBLIC void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *m);
 
 /* returns the number of bytes available in the bufferizer*/
-static MS2_INLINE size_t ms_bufferizer_get_avail(MSBufferizer *obj){
+static MS2_INLINE size_t ms_bufferizer_get_avail(MSBufferizer *obj) {
 	return obj->size;
 }
 
@@ -175,10 +170,10 @@ MS2_PUBLIC void ms_bufferizer_destroy(MSBufferizer *obj);
  * The drop method explicits how the MSFlowControlledBufferizer should react when
  * it detects an excessive amount of samples.
  */
-typedef enum _MSFlowControlledBufferizerDropMethod{
+typedef enum _MSFlowControlledBufferizerDropMethod {
 	MSFlowControlledBufferizerSendEvent, /**< Send a MS_AUDIO_FLOW_CONTROL_DROP_EVENT to be caught by the upper layer */
 	MSFlowControlledBufferizerImmediateDrop /**< Immediately and abruptly drop samples */
-}MSFlowControlledBufferizerDropMethod;
+} MSFlowControlledBufferizerDropMethod;
 
 struct _MSFlowControlledBufferizer {
 	MSBufferizer base;
@@ -195,25 +190,29 @@ struct _MSFlowControlledBufferizer {
 
 /**
  * The MSFlowControlledBufferizer is an object that buffer audio samples provided as mblk_t of any size,
- * and allows a reader to read (in a FIFO manner) with an arbitrary size, exactly as the MSBufferizer, but with an additional feature:
- * it monitors the actual fullness (minimum amount of sample) of the internal buffer over a period of time.
- * If this amount exceeds a give maximum size, it can either raise an event to request samples to be dropped
- * by an upstream filter, or simply eliminate such amount of samples in excess.
- * It is particularly useful when synchronizing several streams together, that may not operate at exactly the same rate.
+ * and allows a reader to read (in a FIFO manner) with an arbitrary size, exactly as the MSBufferizer, but with an
+ * additional feature: it monitors the actual fullness (minimum amount of sample) of the internal buffer over a period
+ * of time. If this amount exceeds a give maximum size, it can either raise an event to request samples to be dropped by
+ * an upstream filter, or simply eliminate such amount of samples in excess. It is particularly useful when
+ * synchronizing several streams together, that may not operate at exactly the same rate.
  */
 typedef struct _MSFlowControlledBufferizer MSFlowControlledBufferizer;
 
-MS2_PUBLIC MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(struct _MSFilter *f, int samplerate, int nchannels);
+MS2_PUBLIC MSFlowControlledBufferizer *
+ms_flow_controlled_bufferizer_new(struct _MSFilter *f, int samplerate, int nchannels);
 
-MS2_PUBLIC void ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, struct _MSFilter *f, int samplerate, int nchannels);
+MS2_PUBLIC void
+ms_flow_controlled_bufferizer_init(MSFlowControlledBufferizer *obj, struct _MSFilter *f, int samplerate, int nchannels);
 
-MS2_PUBLIC void ms_flow_controlled_bufferizer_set_drop_method(MSFlowControlledBufferizer *obj, MSFlowControlledBufferizerDropMethod method);
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_drop_method(MSFlowControlledBufferizer *obj,
+                                                              MSFlowControlledBufferizerDropMethod method);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_max_size_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_granularity_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
 
-MS2_PUBLIC void ms_flow_controlled_bufferizer_set_flow_control_interval_ms(MSFlowControlledBufferizer *obj, uint32_t ms);
+MS2_PUBLIC void ms_flow_controlled_bufferizer_set_flow_control_interval_ms(MSFlowControlledBufferizer *obj,
+                                                                           uint32_t ms);
 
 MS2_PUBLIC void ms_flow_controlled_bufferizer_set_samplerate(MSFlowControlledBufferizer *obj, int samplerate);
 
@@ -225,7 +224,8 @@ MS2_PUBLIC void ms_flow_controlled_bufferizer_put_from_queue(MSFlowControlledBuf
 
 #define ms_flow_controlled_bufferizer_read(obj, data, datalen) ms_bufferizer_read((MSBufferizer *)(obj), data, datalen)
 
-#define ms_flow_controlled_bufferizer_fill_current_metas(obj, m) ms_bufferizer_fill_current_metas((MSBufferizer *)(obj), m)
+#define ms_flow_controlled_bufferizer_fill_current_metas(obj, m)                                                       \
+	ms_bufferizer_fill_current_metas((MSBufferizer *)(obj), m)
 
 #define ms_flow_controlled_bufferizer_get_avail(obj) ms_bufferizer_get_avail((MSBufferizer *)(obj))
 

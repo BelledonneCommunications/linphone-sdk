@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,23 +29,37 @@
 
 namespace mediastreamer {
 
-class MediaCodecEncoder: public H26xEncoder {
+class MediaCodecEncoder : public H26xEncoder {
 public:
 	~MediaCodecEncoder();
 
-	const std::string &getMime() const {return _mime;}
+	const std::string &getMime() const {
+		return _mime;
+	}
 
-	MSVideoSize getVideoSize() const override {return _vsize;}
-	void setVideoSize(const MSVideoSize &vsize) override {_vsize = vsize;}
+	MSVideoSize getVideoSize() const override {
+		return _vsize;
+	}
+	void setVideoSize(const MSVideoSize &vsize) override {
+		_vsize = vsize;
+	}
 
-	float getFps() const override {return _fps;}
+	float getFps() const override {
+		return _fps;
+	}
 	void setFps(float fps) override;
 
-	int getBitrate() const override {return _bitrate;}
+	int getBitrate() const override {
+		return _bitrate;
+	}
 	void setBitrate(int bitrate) override;
 
-	bool pixelFormatConversionEnabled() const {return _pixelFormatConvertionEnabled;}
-	void enablePixelFormatConversion(bool enable) {_pixelFormatConvertionEnabled = enable;}
+	bool pixelFormatConversionEnabled() const {
+		return _pixelFormatConvertionEnabled;
+	}
+	void enablePixelFormatConversion(bool enable) {
+		_pixelFormatConvertionEnabled = enable;
+	}
 
 	/**
 	 * Controls whether we should avoid perform continous polling with dequeueOutputBuffer().
@@ -56,8 +70,10 @@ public:
 	 * Indeed, an encoder may generate more output buffers than the number of input frames they are processing.
 	 **/
 	void enableOutbufferDequeueLimit(bool enable);
-	
-	bool isRunning() override {return _isRunning;}
+
+	bool isRunning() override {
+		return _isRunning;
+	}
 	void start() override;
 	void stop() override;
 
@@ -84,11 +100,10 @@ protected:
 
 	static const int _timeoutUs = 0;
 	static const int32_t _colorFormat = 0x7f420888; // COLOR_FormatYUV420Flexible
-	static const int32_t _bitrateMode = 1; // VBR mode
-	static const int32_t _iFrameInterval = 20; // 20 seconds
+	static const int32_t _bitrateMode = 1;          // VBR mode
+	static const int32_t _iFrameInterval = 20;      // 20 seconds
 	static const int32_t _encodingLatency = 1;
 	static const int32_t _priority = 0; // real-time priority
 };
 
-}
-
+} // namespace mediastreamer

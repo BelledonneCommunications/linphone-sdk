@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,21 +28,33 @@
 
 namespace mediastreamer {
 
-class VideoToolboxEncoder: public H26xEncoder {
+class VideoToolboxEncoder : public H26xEncoder {
 public:
 	VideoToolboxEncoder(const std::string &mime);
-	~VideoToolboxEncoder() {if (_session) CFRelease(_session);}
+	~VideoToolboxEncoder() {
+		if (_session) CFRelease(_session);
+	}
 
-	MSVideoSize getVideoSize() const override {return _vsize;}
-	void setVideoSize(const MSVideoSize &vsize) override {_vsize = vsize;}
+	MSVideoSize getVideoSize() const override {
+		return _vsize;
+	}
+	void setVideoSize(const MSVideoSize &vsize) override {
+		_vsize = vsize;
+	}
 
-	float getFps() const override {return _framerate;}
+	float getFps() const override {
+		return _framerate;
+	}
 	void setFps(float fps) override;
 
-	int getBitrate() const override {return _bitrate;}
+	int getBitrate() const override {
+		return _bitrate;
+	}
 	void setBitrate(int bitrate) override;
 
-	bool isRunning() override {return _session != nullptr;}
+	bool isRunning() override {
+		return _session != nullptr;
+	}
 	void start() override;
 	void stop() override;
 
@@ -52,15 +64,25 @@ public:
 private:
 	class Frame {
 	public:
-		Frame() {ms_queue_init(&_nalus);}
+		Frame() {
+			ms_queue_init(&_nalus);
+		}
 		Frame(Frame &&src);
-		~Frame() {ms_queue_flush(&_nalus);}
+		~Frame() {
+			ms_queue_flush(&_nalus);
+		}
 
-		void put(mblk_t *m) {ms_queue_put(&_nalus, m);}
+		void put(mblk_t *m) {
+			ms_queue_put(&_nalus, m);
+		}
 		void insert(MSQueue *q);
-		mblk_t *get() {return ms_queue_get(&_nalus);}
+		mblk_t *get() {
+			return ms_queue_get(&_nalus);
+		}
 
-		MSQueue *getQueue() {return &_nalus;}
+		MSQueue *getQueue() {
+			return &_nalus;
+		}
 
 	private:
 		MSQueue _nalus;
@@ -68,7 +90,11 @@ private:
 
 	void applyFramerate();
 	void applyBitrate();
-	static void outputCb(void *outputCallbackRefCon, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer);
+	static void outputCb(void *outputCallbackRefCon,
+	                     void *sourceFrameRefCon,
+	                     OSStatus status,
+	                     VTEncodeInfoFlags infoFlags,
+	                     CMSampleBufferRef sampleBuffer);
 
 	MSVideoSize _vsize;
 	float _framerate = 0.0f;
@@ -78,4 +104,4 @@ private:
 	std::list<Frame> _encodedFrames;
 };
 
-}
+} // namespace mediastreamer

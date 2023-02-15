@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,20 +18,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bctoolbox/defs.h>
 
+#include "mediastreamer2/box-plot.h"
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msticker.h"
-#include "mediastreamer2/box-plot.h"
 
 #include "ortp/telephonyevents.h"
 #if defined(__cplusplus)
 #define B64_NO_NAMESPACE
 #endif
-#include "ortp/b64.h"
 #include "mediastreamer2/stun.h"
+#include "ortp/b64.h"
 
-static const int default_dtmf_duration_ms=100; /*in milliseconds*/
+static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 
 struct SenderData {
 	RtpSession *session;
@@ -78,8 +79,7 @@ struct SenderData {
 typedef struct SenderData SenderData;
 
 /* Send dummy STUN packet to open NAT ports ASAP. */
-static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtcp)
-{
+static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtcp) {
 	MSStunMessage *msg;
 	mblk_t *mp;
 	RtpSession *s = d->session;
@@ -88,7 +88,7 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 
 	if (!d->stun_enabled && !d->stun_forced_enabled) return;
 	if (ms_is_multicast_addr((const struct sockaddr *)&s->rtcp.gs.loc_addr)) {
-		ms_debug("Stun packet not sent for session [%p] because of multicast",s);
+		ms_debug("Stun packet not sent for session [%p] because of multicast", s);
 		return;
 	}
 
@@ -100,29 +100,30 @@ static void send_stun_packet(SenderData *d, bool_t enable_rtp, bool_t enable_rtc
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
 
-			ms_message("Stun packet of length %0zd sent on rtp for session [%p] %s",len, s, d->stun_forced_enabled ?  "(forced)" : "");
+			ms_message("Stun packet of length %0zd sent on rtp for session [%p] %s", len, s,
+			           d->stun_forced_enabled ? "(forced)" : "");
 			rtp_session_sendm_with_ts(s, mp, 0);
 		}
 		if (enable_rtcp) {
 			mp = allocb(len, BPRI_MED);
 			memcpy(mp->b_wptr, buf, len);
 			mp->b_wptr += len;
-			ms_message("Stun packet of length %0zd sent on rtcp for session [%p] %s",len, s, d->stun_forced_enabled ?  "(forced)" : "");
-			rtp_session_rtcp_sendm_raw(s,mp);
+			ms_message("Stun packet of length %0zd sent on rtcp for session [%p] %s", len, s,
+			           d->stun_forced_enabled ? "(forced)" : "");
+			rtp_session_rtcp_sendm_raw(s, mp);
 		}
 	}
 	if (buf != NULL) ms_free(buf);
 	ms_stun_message_destroy(msg);
 }
 
-static void sender_init(MSFilter * f)
-{
+static void sender_init(MSFilter *f) {
 	SenderData *d = (SenderData *)ms_new0(SenderData, 1);
 	const char *tmp = NULL;
 #ifndef MS2_WINDOWS_UNIVERSAL
 	tmp = getenv("MS2_RTP_FIXED_DELAY");
 #endif
-	
+
 	d->session = NULL;
 	d->tsoff = 0;
 	d->skip_until = 0;
@@ -130,15 +131,15 @@ static void sender_init(MSFilter * f)
 	d->rate = 8000;
 	d->dtmf = 0;
 	d->dtmf_duration = 800;
-	d->dtmf_ts_step=160;
-	d->mute=FALSE;
-	d->relay_session_id_size=0;
-	d->last_rsi_time=0;
-	d->last_sent_time=-1;
+	d->dtmf_ts_step = 160;
+	d->mute = FALSE;
+	d->relay_session_id_size = 0;
+	d->last_rsi_time = 0;
+	d->last_sent_time = -1;
 	d->last_rtp_stun_sent_time = -1;
 	d->last_rtcp_stun_sent_time = -1;
-	d->last_ts=0;
-	d->use_task= tmp ? (!!atoi(tmp)) : FALSE;
+	d->last_ts = 0;
+	d->use_task = tmp ? (!!atoi(tmp)) : FALSE;
 	d->timestamp_adjustment_threshold = d->rate / 5;
 	if (d->use_task) ms_message("MSRtpSend will use tasks to send out packet at the beginning of ticks.");
 	d->stun_enabled = TRUE;
@@ -160,26 +161,23 @@ static void sender_init(MSFilter * f)
 	f->data = d;
 }
 
-static void sender_uninit(MSFilter * f)
-{
-	SenderData *d = (SenderData *) f->data;
+static void sender_uninit(MSFilter *f) {
+	SenderData *d = (SenderData *)f->data;
 
 	ms_free(d);
 }
 
-static int sender_telephone_event_supported(MSFilter *f, void *_) {
+static int sender_telephone_event_supported(MSFilter *f, BCTBX_UNUSED(void *_)) {
 	SenderData *d = (SenderData *)f->data;
 	return -1 < rtp_profile_find_payload_number(d->session->snd.profile, "telephone-event", d->rate, 1);
 };
 
-static int sender_send_dtmf(MSFilter * f, void *arg)
-{
-	const char *dtmf = (const char *) arg;
-	SenderData *d = (SenderData *) f->data;
+static int sender_send_dtmf(MSFilter *f, void *arg) {
+	const char *dtmf = (const char *)arg;
+	SenderData *d = (SenderData *)f->data;
 
 	ms_filter_lock(f);
-	if (d->skip==TRUE)
-	{
+	if (d->skip == TRUE) {
 		ms_filter_unlock(f);
 		ms_warning("MSRtpSend: already sending a dtmf.");
 		return -1;
@@ -189,75 +187,70 @@ static int sender_send_dtmf(MSFilter * f, void *arg)
 	return 0;
 }
 
-static int sender_set_dtmf_duration(MSFilter * f, void *arg)
-{
-	SenderData *d = (SenderData *) f->data;
-	d->dtmf_duration = *((int*)arg);
+static int sender_set_dtmf_duration(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
+	d->dtmf_duration = *((int *)arg);
 	return 0;
 }
 
-static int sender_set_session(MSFilter * f, void *arg)
-{
-	SenderData *d = (SenderData *) f->data;
-	RtpSession *s = (RtpSession *) arg;
-	PayloadType *pt =
-		rtp_profile_get_payload(rtp_session_get_profile(s),
-								rtp_session_get_send_payload_type(s));
+static int sender_set_session(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
+	RtpSession *s = (RtpSession *)arg;
+	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(s), rtp_session_get_send_payload_type(s));
 	d->session = s;
 	if (pt != NULL) {
 		d->rate = pt->clock_rate;
-		d->dtmf_duration=(default_dtmf_duration_ms*d->rate)/1000;
-		d->dtmf_ts_step=(20*d->rate)/1000;
+		d->dtmf_duration = (default_dtmf_duration_ms * d->rate) / 1000;
+		d->dtmf_ts_step = (20 * d->rate) / 1000;
 		/*Tolerate more jitter in video streams, knowing that video packets are not discarded if they are late*/
 		d->timestamp_adjustment_threshold = (pt->type == PAYLOAD_VIDEO) ? d->rate : d->rate / 5;
-		send_stun_packet(d,TRUE,TRUE);
+		send_stun_packet(d, TRUE, TRUE);
 	} else {
 		ms_warning("Sending undefined payload type ?");
 	}
 	return 0;
 }
 
-static int sender_mute(MSFilter * f, void *arg)
-{
-	SenderData *d = (SenderData *) f->data;
+static int sender_mute(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	SenderData *d = (SenderData *)f->data;
 	ms_filter_lock(f);
-	d->mute=TRUE;
+	d->mute = TRUE;
 	ms_filter_unlock(f);
 	return 0;
 }
 
-static int sender_unmute(MSFilter * f, void *arg)
-{
-	SenderData *d = (SenderData *) f->data;
+static int sender_unmute(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	SenderData *d = (SenderData *)f->data;
 	ms_filter_lock(f);
-	d->mute=FALSE;
+	d->mute = FALSE;
 	ms_filter_unlock(f);
 	return 0;
 }
 
-static int sender_set_relay_session_id(MSFilter *f, void*arg){
-	SenderData *d = (SenderData *) f->data;
-	const char *tmp=(const char *)arg;
-	d->relay_session_id_size=(int)b64_decode(tmp, strlen(tmp), (void*)d->relay_session_id, (unsigned int)sizeof(d->relay_session_id));
+static int sender_set_relay_session_id(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
+	const char *tmp = (const char *)arg;
+	d->relay_session_id_size =
+	    (int)b64_decode(tmp, strlen(tmp), (void *)d->relay_session_id, (unsigned int)sizeof(d->relay_session_id));
 	return 0;
 }
 
 static int sender_set_audio_level_send_interval(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	int *interval = (int *)arg;
 	d->audio_level_send_interval = *interval;
 	return 0;
 }
 
 static int sender_set_mixer_to_client_extension_id(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	int *id = (int *)arg;
 	d->mixer_to_client_extension_id = *id;
 	return 0;
 }
 
 static int sender_set_mixer_to_client_data_request_cb(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	MSFilterRequestMixerToClientDataCb *cb = (MSFilterRequestMixerToClientDataCb *)arg;
 	d->mtc_request_data_cb = cb->cb;
 	d->mtc_request_data_user_data = cb->user_data;
@@ -265,14 +258,14 @@ static int sender_set_mixer_to_client_data_request_cb(MSFilter *f, void *arg) {
 }
 
 static int sender_set_client_to_mixer_extension_id(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	int *id = (int *)arg;
 	d->client_to_mixer_extension_id = *id;
 	return 0;
 }
 
 static int sender_set_client_to_mixer_data_request_cb(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	MSFilterRequestClientToMixerDataCb *cb = (MSFilterRequestClientToMixerDataCb *)arg;
 	d->ctm_request_data_cb = cb->cb;
 	d->ctm_request_data_user_data = cb->user_data;
@@ -280,27 +273,24 @@ static int sender_set_client_to_mixer_data_request_cb(MSFilter *f, void *arg) {
 }
 
 static int sender_set_frame_marking_extension_id(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	int *id = (int *)arg;
 	d->frame_marking_extension_id = *id;
 	return 0;
 }
 
-static int sender_get_sr(MSFilter *f, void *arg){
-	SenderData *d = (SenderData *) f->data;
+static int sender_get_sr(MSFilter *f, void *arg) {
+	SenderData *d = (SenderData *)f->data;
 	PayloadType *pt;
-	if (d->session==NULL) {
+	if (d->session == NULL) {
 		ms_warning("Could not obtain sample rate, session is not set.");
 		return -1;
 	}
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session),
-									rtp_session_get_recv_payload_type(d->session));
+	pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
 	if (pt != NULL) {
-		if (strcasecmp(pt->mime_type,"G722")==0)
-			*(int*)arg=16000;
-		else
-			*(int*)arg=pt->clock_rate;
-	}else{
+		if (strcasecmp(pt->mime_type, "G722") == 0) *(int *)arg = 16000;
+		else *(int *)arg = pt->clock_rate;
+	} else {
 		ms_warning("MSRtpSend: Could not obtain sample rate, payload type is unknown.");
 		return -1;
 	}
@@ -310,12 +300,12 @@ static int sender_get_sr(MSFilter *f, void *arg){
 static int sender_get_ch(MSFilter *f, void *arg) {
 	SenderData *d = (SenderData *)f->data;
 	PayloadType *pt;
-	if (d->session==NULL) {
+	if (d->session == NULL) {
 		ms_warning("Could not obtain number of channels, session is not set.");
 		return -1;
 	}
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
-	if (pt==NULL){
+	pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+	if (pt == NULL) {
 		ms_warning("MSRtpSend: Could not obtain number of channels, payload type is unknown.");
 		return -1;
 	}
@@ -323,170 +313,172 @@ static int sender_get_ch(MSFilter *f, void *arg) {
 	return 0;
 }
 
-/* the goal of that function is to return a absolute timestamp closest to real time, with respect of given packet_ts, which is a relative to an undefined origin*/
-static uint32_t get_cur_timestamp(MSFilter * f, mblk_t *im){
-	SenderData *d = (SenderData *) f->data;
-	uint32_t curts = (uint32_t)( (f->ticker->time*(uint64_t)d->rate)/(uint64_t)1000) ;
+/* the goal of that function is to return a absolute timestamp closest to real time, with respect of given packet_ts,
+ * which is a relative to an undefined origin*/
+static uint32_t get_cur_timestamp(MSFilter *f, mblk_t *im) {
+	SenderData *d = (SenderData *)f->data;
+	uint32_t curts = (uint32_t)((f->ticker->time * (uint64_t)d->rate) / (uint64_t)1000);
 	int diffts;
 	uint32_t netts;
 	int difftime_ts;
 
-	if (im && d->dtmf==0){ /*do not perform timestamp adjustment while a dtmf is being sent, otherwise durations are erroneous */
-		uint32_t packet_ts=mblk_get_timestamp_info(im);
-		if (d->last_sent_time==-1){
+	if (im &&
+	    d->dtmf ==
+	        0) { /*do not perform timestamp adjustment while a dtmf is being sent, otherwise durations are erroneous */
+		uint32_t packet_ts = mblk_get_timestamp_info(im);
+		if (d->last_sent_time == -1) {
 			d->tsoff = curts - packet_ts;
-		}else if (d->enable_ts_adjustment){
-			diffts=packet_ts-d->last_ts;
-			difftime_ts=(int)(((f->ticker->time-d->last_sent_time)*d->rate)/1000);
+		} else if (d->enable_ts_adjustment) {
+			diffts = packet_ts - d->last_ts;
+			difftime_ts = (int)(((f->ticker->time - d->last_sent_time) * d->rate) / 1000);
 			/* detect timestamp jump in the stream and adjust so that they become continuous on the network*/
-			if (abs(diffts-difftime_ts)>(d->timestamp_adjustment_threshold)){
-				uint32_t tsoff=curts - packet_ts;
-				ms_message("Adjusting output timestamp by %i",(tsoff-d->tsoff));
+			if (abs(diffts - difftime_ts) > (d->timestamp_adjustment_threshold)) {
+				uint32_t tsoff = curts - packet_ts;
+				ms_message("Adjusting output timestamp by %i", (tsoff - d->tsoff));
 				d->tsoff = tsoff;
 			}
 		}
 		netts = packet_ts + d->tsoff;
-		d->last_sent_time=f->ticker->time;
-		d->last_ts=packet_ts;
-	}else netts=curts;
+		d->last_sent_time = f->ticker->time;
+		d->last_ts = packet_ts;
+	} else netts = curts;
 	return netts;
 }
 
-static int send_dtmf(MSFilter * f, uint32_t timestamp_start)
-{
-	SenderData *d = (SenderData *) f->data;
+static int send_dtmf(MSFilter *f, uint32_t timestamp_start) {
+	SenderData *d = (SenderData *)f->data;
 	mblk_t *m1;
 	int tev_type;
 
 	/* create the first telephony event packet */
-	switch (d->dtmf){
+	switch (d->dtmf) {
 		case '1':
-			tev_type=TEV_DTMF_1;
-		break;
+			tev_type = TEV_DTMF_1;
+			break;
 		case '2':
-			tev_type=TEV_DTMF_2;
-		break;
+			tev_type = TEV_DTMF_2;
+			break;
 		case '3':
-			tev_type=TEV_DTMF_3;
-		break;
+			tev_type = TEV_DTMF_3;
+			break;
 		case '4':
-			tev_type=TEV_DTMF_4;
-		break;
+			tev_type = TEV_DTMF_4;
+			break;
 		case '5':
-			tev_type=TEV_DTMF_5;
-		break;
+			tev_type = TEV_DTMF_5;
+			break;
 		case '6':
-			tev_type=TEV_DTMF_6;
-		break;
+			tev_type = TEV_DTMF_6;
+			break;
 		case '7':
-			tev_type=TEV_DTMF_7;
-		break;
+			tev_type = TEV_DTMF_7;
+			break;
 		case '8':
-			tev_type=TEV_DTMF_8;
-		break;
+			tev_type = TEV_DTMF_8;
+			break;
 		case '9':
-			tev_type=TEV_DTMF_9;
-		break;
+			tev_type = TEV_DTMF_9;
+			break;
 		case '*':
-			tev_type=TEV_DTMF_STAR;
-		break;
+			tev_type = TEV_DTMF_STAR;
+			break;
 		case '0':
-			tev_type=TEV_DTMF_0;
-		break;
+			tev_type = TEV_DTMF_0;
+			break;
 		case '#':
-			tev_type=TEV_DTMF_POUND;
-		break;
+			tev_type = TEV_DTMF_POUND;
+			break;
 
 		case 'A':
 		case 'a':
-		  tev_type=TEV_DTMF_A;
-		  break;
+			tev_type = TEV_DTMF_A;
+			break;
 
 		case 'B':
 		case 'b':
-		  tev_type=TEV_DTMF_B;
-		  break;
+			tev_type = TEV_DTMF_B;
+			break;
 
 		case 'C':
 		case 'c':
-		  tev_type=TEV_DTMF_C;
-		  break;
+			tev_type = TEV_DTMF_C;
+			break;
 
 		case 'D':
 		case 'd':
-		  tev_type=TEV_DTMF_D;
-		  break;
+			tev_type = TEV_DTMF_D;
+			break;
 
 		case '!':
-		  tev_type=TEV_FLASH;
-		  break;
-
+			tev_type = TEV_FLASH;
+			break;
 
 		default:
-		ms_warning("Bad dtmf: %c.",d->dtmf);
-		d->skip = FALSE; /*reset dtmf*/
-		d->dtmf = 0;
+			ms_warning("Bad dtmf: %c.", d->dtmf);
+			d->skip = FALSE; /*reset dtmf*/
+			d->dtmf = 0;
+			return -1;
+	}
+
+	m1 = rtp_session_create_telephone_event_packet(d->session, timestamp_start == d->dtmf_ts_cur);
+
+	if (m1 == NULL) {
+		ms_warning(
+		    "There is no usable telephone-event payload type configured in the RTP session. The DTMF cannot be sent.");
 		return -1;
 	}
 
-
-	
-	m1=rtp_session_create_telephone_event_packet(d->session,timestamp_start==d->dtmf_ts_cur);
-	
-	if (m1==NULL) {
-		ms_warning("There is no usable telephone-event payload type configured in the RTP session. The DTMF cannot be sent.");
-		return -1;
-	}
-
-	d->dtmf_ts_cur+=d->dtmf_ts_step;
+	d->dtmf_ts_cur += d->dtmf_ts_step;
 	if (RTP_TIMESTAMP_IS_NEWER_THAN(d->dtmf_ts_cur, d->skip_until)) {
-		//retransmit end of rtp dtmf event
+		// retransmit end of rtp dtmf event
 		mblk_t *tmp;
-		rtp_session_add_telephone_event(d->session,m1,tev_type,1,10,(d->dtmf_ts_cur-timestamp_start));
-		tmp=copymsg(m1);
-		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
+		rtp_session_add_telephone_event(d->session, m1, tev_type, 1, 10, (d->dtmf_ts_cur - timestamp_start));
+		tmp = copymsg(m1);
+		rtp_session_sendm_with_ts(d->session, tmp, timestamp_start);
 		d->session->rtp.snd_seq--;
-		tmp=copymsg(m1);
-		rtp_session_sendm_with_ts(d->session,tmp,timestamp_start);
+		tmp = copymsg(m1);
+		rtp_session_sendm_with_ts(d->session, tmp, timestamp_start);
 		d->session->rtp.snd_seq--;
-		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
+		rtp_session_sendm_with_ts(d->session, m1, timestamp_start);
 		d->skip = FALSE;
 		d->dtmf = 0;
-		ms_message("Finished sending RFC2833 dtmf %c",d->dtmf);
-	}else {
-		rtp_session_add_telephone_event(d->session,m1,tev_type,0,10,(d->dtmf_ts_cur-timestamp_start));
-		rtp_session_sendm_with_ts(d->session,m1,timestamp_start);
+		ms_message("Finished sending RFC2833 dtmf %c", d->dtmf);
+	} else {
+		rtp_session_add_telephone_event(d->session, m1, tev_type, 0, 10, (d->dtmf_ts_cur - timestamp_start));
+		rtp_session_sendm_with_ts(d->session, m1, timestamp_start);
 	}
 	return 0;
 }
 
 static void check_stun_sending(MSFilter *f) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	RtpSession *s = d->session;
-	/* No need to send stun packets if media was sent during last 20s (or the last 2s while we still have not sent any packets) */
+	/* No need to send stun packets if media was sent during last 20s (or the last 2s while we still have not sent any
+	 * packets) */
 	uint64_t last_sent_timeout = 20000;
-	if (rtp_session_get_stats(s)->packet_sent == 0)
-		last_sent_timeout = 2000;
+	if (rtp_session_get_stats(s)->packet_sent == 0) last_sent_timeout = 2000;
 
-	if ((d->last_rtp_stun_sent_time == -1) || ((d->stun_forced_enabled ||  ((f->ticker->time - d->last_sent_time) > last_sent_timeout))
-											&& (f->ticker->time - d->last_rtp_stun_sent_time) >= 500)) {
-		/* send stun packet every 500 ms: 
+	if ((d->last_rtp_stun_sent_time == -1) ||
+	    ((d->stun_forced_enabled || ((f->ticker->time - d->last_sent_time) > last_sent_timeout)) &&
+	     (f->ticker->time - d->last_rtp_stun_sent_time) >= 500)) {
+		/* send stun packet every 500 ms:
 		 * - in absence of any RTP packet for more than last_sent_timeout
 		 * - or always in "forced" mode */
 		d->last_rtp_stun_sent_time = f->ticker->time;
-		send_stun_packet(d,TRUE,FALSE);
+		send_stun_packet(d, TRUE, FALSE);
 	}
-	
-	if ( rtp_session_rtcp_enabled(s) && ((d->last_rtcp_stun_sent_time == -1)
-										 || (rtp_session_get_stats(s)->recv_rtcp_packets == 0 /*no need to send stun packets if rtcp packet already received*/
-											 && (f->ticker->time - d->last_rtcp_stun_sent_time) >= 500))) {
+
+	if (rtp_session_rtcp_enabled(s) &&
+	    ((d->last_rtcp_stun_sent_time == -1) || (rtp_session_get_stats(s)->recv_rtcp_packets ==
+	                                                 0 /*no need to send stun packets if rtcp packet already received*/
+	                                             && (f->ticker->time - d->last_rtcp_stun_sent_time) >= 500))) {
 		d->last_rtcp_stun_sent_time = f->ticker->time;
-		send_stun_packet(d,FALSE,TRUE);
+		send_stun_packet(d, FALSE, TRUE);
 	}
 }
 
 static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	RtpSession *s = d->session;
 	rtp_audio_level_t *audio_levels = NULL;
 	mblk_t *header = NULL;
@@ -495,28 +487,32 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 		rtp_audio_level_t *tmp = d->mtc_volumes + (d->mtc_volumes_size - d->mtc_volumes_left_to_send);
 
 		if (d->mtc_volumes_left_to_send <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
+			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+			    s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
 			ms_free(d->mtc_volumes);
 			d->mtc_volumes_left_to_send = 0;
 		} else {
-			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp);
+			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+			    s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp);
 			d->mtc_volumes_left_to_send -= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
 		}
 
 		return header;
 	}
 
-	if ((d->mixer_to_client_extension_id > 0 || d->client_to_mixer_extension_id > 0)
-		&& f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
+	if ((d->mixer_to_client_extension_id > 0 || d->client_to_mixer_extension_id > 0) &&
+	    f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
 
 		if (d->mixer_to_client_extension_id > 0 && d->mtc_request_data_cb) {
 			int size = d->mtc_request_data_cb(f, &audio_levels, d->mtc_request_data_user_data);
 			if (audio_levels != NULL) {
 				if (size <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, size, audio_levels);
+					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+					    s, 0, d->mixer_to_client_extension_id, size, audio_levels);
 					ms_free(audio_levels);
 				} else {
-					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels);
+					header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+					    s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, audio_levels);
 					d->mtc_volumes = audio_levels;
 					d->mtc_volumes_size = size;
 					d->mtc_volumes_left_to_send = size - RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
@@ -524,7 +520,10 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 			}
 		} else if (d->client_to_mixer_extension_id > 0 && d->ctm_request_data_cb) {
 			int volume = d->ctm_request_data_cb(f, d->ctm_request_data_user_data);
-			if (!header) header = rtp_session_create_packet_header(s, 8); // allocate 8 more bytes than needed so we can add an extension header with client to mixer extension without reallocating
+			if (!header)
+				header = rtp_session_create_packet_header(
+				    s, 8); // allocate 8 more bytes than needed so we can add an extension header with client to mixer
+				           // extension without reallocating
 			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, FALSE, volume);
 		}
 
@@ -534,22 +533,22 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 	return header ? header : rtp_session_create_packet_header(s, 0);
 }
 
-static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *im ){
-	if (d->cng_data.datasize>0){
+static void process_cn(MSFilter *f, SenderData *d, uint32_t timestamp, mblk_t *im) {
+	if (d->cng_data.datasize > 0) {
 		rtp_header_t *rtp;
 		/* get CN payload type number */
-		int cn_pt=rtp_profile_find_payload_number(d->session->snd.profile, "CN", 8000, 1);
+		int cn_pt = rtp_profile_find_payload_number(d->session->snd.profile, "CN", 8000, 1);
 
 		/* create the packet, payload type number is the one used for current codec */
-		mblk_t *m=create_packet_with_volume_data_at_intervals(f);
+		mblk_t *m = create_packet_with_volume_data_at_intervals(f);
 		m->b_cont = rtp_create_packet(d->cng_data.data, d->cng_data.datasize);
 		mblk_meta_copy(im, m);
 		/* replace payload type in RTP header */
-		rtp=(rtp_header_t*)m->b_rptr;
+		rtp = (rtp_header_t *)m->b_rptr;
 		rtp->paytype = cn_pt;
 
-		rtp_session_sendm_with_ts(d->session,m,timestamp);
-		d->cng_data.datasize=0;
+		rtp_session_sendm_with_ts(d->session, m, timestamp);
+		d->cng_data.datasize = 0;
 	}
 }
 
@@ -590,18 +589,16 @@ static void add_frame_marking_extension(SenderData *d, mblk_t *header, mblk_t *i
 	rtp_add_frame_marker(header, d->frame_marking_extension_id, marker);
 }
 
-static void _sender_process(MSFilter * f)
-{
-	SenderData *d = (SenderData *) f->data;
+static void _sender_process(MSFilter *f) {
+	SenderData *d = (SenderData *)f->data;
 	RtpSession *s = d->session;
 	mblk_t *im;
 	uint32_t timestamp = 0;
 
-	if (d->relay_session_id_size>0 && 
-		( (f->ticker->time-d->last_rsi_time)>5000 || d->last_rsi_time==0) ) {
+	if (d->relay_session_id_size > 0 && ((f->ticker->time - d->last_rsi_time) > 5000 || d->last_rsi_time == 0)) {
 		ms_message("relay session id sent in RTCP APP");
-		rtp_session_send_rtcp_APP(s,0,"RSID",(const uint8_t *)d->relay_session_id,d->relay_session_id_size);
-		d->last_rsi_time=f->ticker->time;
+		rtp_session_send_rtcp_APP(s, 0, "RSID", (const uint8_t *)d->relay_session_id, d->relay_session_id_size);
+		d->last_rsi_time = f->ticker->time;
 	}
 
 	ms_filter_lock(f);
@@ -609,25 +606,25 @@ static void _sender_process(MSFilter * f)
 	do {
 		mblk_t *header = NULL;
 		timestamp = get_cur_timestamp(f, im);
-		
+
 		if (d->dtmf != 0 && !d->skip) {
 			ms_debug("prepare to send RFC2833 dtmf.");
 			d->skip_until = timestamp + d->dtmf_duration;
-			d->dtmf_ts_cur=timestamp;
+			d->dtmf_ts_cur = timestamp;
 			d->skip = TRUE;
 		}
 		if (d->skip) {
-			uint32_t origin_ts=d->skip_until-d->dtmf_duration;
-			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp,d->dtmf_ts_cur)){
-				ms_debug("Sending RFC2833 packet, start_timestamp=%u, dtmf_ts_cur=%u",origin_ts,d->dtmf_ts_cur);
-				if (send_dtmf(f, origin_ts) == -1){
+			uint32_t origin_ts = d->skip_until - d->dtmf_duration;
+			if (RTP_TIMESTAMP_IS_NEWER_THAN(timestamp, d->dtmf_ts_cur)) {
+				ms_debug("Sending RFC2833 packet, start_timestamp=%u, dtmf_ts_cur=%u", origin_ts, d->dtmf_ts_cur);
+				if (send_dtmf(f, origin_ts) == -1) {
 					/* Abort the sending of dtmf if an error occured */
 					d->dtmf = 0;
 					d->skip = FALSE;
 				}
 			}
 		}
-		if (im){
+		if (im) {
 			compute_processing_delay_stats(f, im);
 
 			if (d->rtp_transfer_mode) {
@@ -635,26 +632,26 @@ static void _sender_process(MSFilter * f)
 				continue;
 			}
 
-			if (d->skip == FALSE && d->mute==FALSE){
+			if (d->skip == FALSE && d->mute == FALSE) {
 				header = create_packet_with_volume_data_at_intervals(f);
 				rtp_set_markbit(header, mblk_get_marker_info(im));
 				if (d->frame_marking_extension_id > 0) add_frame_marking_extension(d, header, im);
 				header->b_cont = im;
 				mblk_meta_copy(im, header);
 				rtp_session_sendm_with_ts(s, header, timestamp);
-			} else if (d->mute==TRUE && d->skip == FALSE) {
+			} else if (d->mute == TRUE && d->skip == FALSE) {
 				process_cn(f, d, timestamp, im);
 				freemsg(im);
-				//Send STUN packet as RTP keep alive
+				// Send STUN packet as RTP keep alive
 				check_stun_sending(f);
-			}else{
+			} else {
 				freemsg(im);
 			}
 		} else if (d->skip == FALSE) {
 			// Send STUN packet as RTP keep alive even if there is no input
 			check_stun_sending(f);
 		}
-	}while ( (im = ms_queue_get(f->inputs[0]) ) != NULL);
+	} while ((im = ms_queue_get(f->inputs[0])) != NULL);
 
 	if (d->last_sent_time == -1) {
 		check_stun_sending(f);
@@ -670,20 +667,19 @@ static void _sender_process(MSFilter * f)
 	ms_filter_unlock(f);
 }
 
-static void sender_process(MSFilter * f){
-	SenderData *d = (SenderData *) f->data;
+static void sender_process(MSFilter *f) {
+	SenderData *d = (SenderData *)f->data;
 	RtpSession *s = d->session;
-	if (s == NULL){
+	if (s == NULL) {
 		ms_queue_flush(f->inputs[0]);
 		return;
 	}
-	if (d->use_task)
-		ms_filter_postpone_task(f,_sender_process);
+	if (d->use_task) ms_filter_postpone_task(f, _sender_process);
 	else _sender_process(f);
 }
 
-static int sender_send_generic_cn(MSFilter *f, void *data){
-	SenderData *d = (SenderData *) f->data;
+static int sender_send_generic_cn(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *)f->data;
 	ms_filter_lock(f);
 	memcpy(&d->cng_data, data, sizeof(MSCngData));
 	ms_filter_unlock(f);
@@ -703,103 +699,99 @@ static int sender_enable_stun_forced(MSFilter *f, void *data) {
 }
 
 static int get_sender_output_fmt(MSFilter *f, void *arg) {
-	SenderData *d = (SenderData *) f->data;
+	SenderData *d = (SenderData *)f->data;
 	MSPinFormat *pinFmt = (MSPinFormat *)arg;
-	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
+	PayloadType *pt =
+	    rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
 	pinFmt->fmt = ms_factory_get_audio_format(f->factory, pt->mime_type, pt->clock_rate, pt->channels, NULL);
 	return 0;
 }
 
-static int enable_ts_adjustment(MSFilter *f, void *data){
-	SenderData *d = (SenderData *) f->data;
-	d->enable_ts_adjustment = *(bool_t*)data;
+static int enable_ts_adjustment(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *)f->data;
+	d->enable_ts_adjustment = *(bool_t *)data;
 	return 0;
 }
 
 static int sender_enable_rtp_transfer_mode(MSFilter *f, void *data) {
-	SenderData *d = (SenderData *) f->data;
-	d->rtp_transfer_mode = *(bool_t*)data;
+	SenderData *d = (SenderData *)f->data;
+	d->rtp_transfer_mode = *(bool_t *)data;
 	return 0;
 }
 
 static int sender_set_active_speaker_ssrc(MSFilter *f, void *data) {
-	SenderData *d = (SenderData *) f->data;
-	uint32_t csrc = *(uint32_t *) data;
+	SenderData *d = (SenderData *)f->data;
+	uint32_t csrc = *(uint32_t *)data;
 	bool_t was_set = FALSE;
 
 	ms_filter_lock(f);
-	if (d->session){
+	if (d->session) {
 		rtp_session_clear_contributing_sources(d->session);
 		if (csrc != 0) rtp_session_add_contributing_source(d->session, csrc, "", NULL, NULL, NULL, NULL, NULL, NULL);
 		was_set = TRUE;
 	}
 	ms_filter_unlock(f);
-	if (!was_set){
+	if (!was_set) {
 		ms_error("sender_set_active_speaker_ssrc(): could not be set because no RtpSession was assigned yet.");
 	}
 	return 0;
 }
 
 static MSFilterMethod sender_methods[] = {
-	{ MS_RTP_SEND_MUTE, sender_mute },
-	{ MS_RTP_SEND_UNMUTE, sender_unmute },
-	{ MS_RTP_SEND_SET_SESSION, sender_set_session },
-	{ MS_RTP_SEND_SEND_DTMF, sender_send_dtmf },
-	{ MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id },
-	{ MS_RTP_SEND_SET_AUDIO_LEVEL_SEND_INTERVAL, sender_set_audio_level_send_interval },
-	{ MS_RTP_SEND_SET_MIXER_TO_CLIENT_EXTENSION_ID, sender_set_mixer_to_client_extension_id },
-	{ MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, sender_set_mixer_to_client_data_request_cb },
-	{ MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id },
-	{ MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb },
-	{ MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id },
-	{ MS_FILTER_GET_SAMPLE_RATE, sender_get_sr },
-	{ MS_FILTER_GET_NCHANNELS, sender_get_ch },
-	{ MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration },
-	{ MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn },
-	{ MS_RTP_SEND_ENABLE_STUN, sender_enable_stun },
-	{ MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt },
-	{ MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment },
-	{ MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced },
-	{ MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode },
-	{ MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, sender_set_active_speaker_ssrc },
-	{ MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
-	{0, NULL}
-};
+    {MS_RTP_SEND_MUTE, sender_mute},
+    {MS_RTP_SEND_UNMUTE, sender_unmute},
+    {MS_RTP_SEND_SET_SESSION, sender_set_session},
+    {MS_RTP_SEND_SEND_DTMF, sender_send_dtmf},
+    {MS_RTP_SEND_SET_RELAY_SESSION_ID, sender_set_relay_session_id},
+    {MS_RTP_SEND_SET_AUDIO_LEVEL_SEND_INTERVAL, sender_set_audio_level_send_interval},
+    {MS_RTP_SEND_SET_MIXER_TO_CLIENT_EXTENSION_ID, sender_set_mixer_to_client_extension_id},
+    {MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, sender_set_mixer_to_client_data_request_cb},
+    {MS_RTP_SEND_SET_CLIENT_TO_MIXER_EXTENSION_ID, sender_set_client_to_mixer_extension_id},
+    {MS_RTP_SEND_SET_CLIENT_TO_MIXER_DATA_REQUEST_CB, sender_set_client_to_mixer_data_request_cb},
+    {MS_RTP_SEND_SET_FRAME_MARKING_EXTENSION_ID, sender_set_frame_marking_extension_id},
+    {MS_FILTER_GET_SAMPLE_RATE, sender_get_sr},
+    {MS_FILTER_GET_NCHANNELS, sender_get_ch},
+    {MS_RTP_SEND_SET_DTMF_DURATION, sender_set_dtmf_duration},
+    {MS_RTP_SEND_SEND_GENERIC_CN, sender_send_generic_cn},
+    {MS_RTP_SEND_ENABLE_STUN, sender_enable_stun},
+    {MS_FILTER_GET_OUTPUT_FMT, get_sender_output_fmt},
+    {MS_RTP_SEND_ENABLE_TS_ADJUSTMENT, enable_ts_adjustment},
+    {MS_RTP_SEND_ENABLE_STUN_FORCED, sender_enable_stun_forced},
+    {MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode},
+    {MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, sender_set_active_speaker_ssrc},
+    {MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
+    {0, NULL}};
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_rtp_send_desc = {
-	MS_RTP_SEND_ID,
-	"MSRtpSend",
-	N_("RTP output filter"),
-	MS_FILTER_OTHER,
-	NULL,
-	1,
-	0,
-	sender_init,
-	NULL,
-	sender_process,
-	NULL,
-	sender_uninit,
-	sender_methods,
-	MS_FILTER_IS_PUMP
-};
+MSFilterDesc ms_rtp_send_desc = {MS_RTP_SEND_ID,
+                                 "MSRtpSend",
+                                 N_("RTP output filter"),
+                                 MS_FILTER_OTHER,
+                                 NULL,
+                                 1,
+                                 0,
+                                 sender_init,
+                                 NULL,
+                                 sender_process,
+                                 NULL,
+                                 sender_uninit,
+                                 sender_methods,
+                                 MS_FILTER_IS_PUMP};
 
 #else
 
-MSFilterDesc ms_rtp_send_desc = {
-	.id = MS_RTP_SEND_ID,
-	.name = "MSRtpSend",
-	.text = N_("RTP output filter"),
-	.category = MS_FILTER_OTHER,
-	.ninputs = 1,
-	.noutputs = 0,
-	.init = sender_init,
-	.process = sender_process,
-	.uninit = sender_uninit,
-	.methods = sender_methods,
-	.flags=MS_FILTER_IS_PUMP
-};
+MSFilterDesc ms_rtp_send_desc = {.id = MS_RTP_SEND_ID,
+                                 .name = "MSRtpSend",
+                                 .text = N_("RTP output filter"),
+                                 .category = MS_FILTER_OTHER,
+                                 .ninputs = 1,
+                                 .noutputs = 0,
+                                 .init = sender_init,
+                                 .process = sender_process,
+                                 .uninit = sender_uninit,
+                                 .methods = sender_methods,
+                                 .flags = MS_FILTER_IS_PUMP};
 
 #endif
 
@@ -818,8 +810,7 @@ struct ReceiverData {
 
 typedef struct ReceiverData ReceiverData;
 
-static void receiver_init(MSFilter * f)
-{
+static void receiver_init(MSFilter *f) {
 	ReceiverData *d = (ReceiverData *)ms_new0(ReceiverData, 1);
 	d->session = NULL;
 	d->rate = 8000;
@@ -831,62 +822,59 @@ static void receiver_init(MSFilter * f)
 	f->data = d;
 }
 
-static void receiver_postprocess(MSFilter * f){
-	ReceiverData *d = (ReceiverData *) f->data;
+static void receiver_postprocess(MSFilter *f) {
+	ReceiverData *d = (ReceiverData *)f->data;
 	rtp_session_reset_recvfrom(d->session);
 }
 
-static void receiver_uninit(MSFilter * f){
-	ReceiverData *d = (ReceiverData *) f->data;
+static void receiver_uninit(MSFilter *f) {
+	ReceiverData *d = (ReceiverData *)f->data;
 	ms_free(d);
 }
 
-static int receiver_set_session(MSFilter * f, void *arg)
-{
-	ReceiverData *d = (ReceiverData *) f->data;
-	RtpSession *s = (RtpSession *) arg;
+static int receiver_set_session(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	RtpSession *s = (RtpSession *)arg;
 	PayloadType *pt;
-	d->current_pt=rtp_session_get_recv_payload_type(s);
-	pt = rtp_profile_get_payload(rtp_session_get_profile(s),d->current_pt);
+	d->current_pt = rtp_session_get_recv_payload_type(s);
+	pt = rtp_profile_get_payload(rtp_session_get_profile(s), d->current_pt);
 	if (pt != NULL) {
 		d->rate = pt->clock_rate;
 	} else {
 		ms_warning("receiver_set_session(): receiving undefined payload type %i ?",
-		    rtp_session_get_recv_payload_type(s));
+		           rtp_session_get_recv_payload_type(s));
 	}
 	d->session = s;
 
 	return 0;
 }
 
-static int receiver_set_mixer_to_client_extension_id(MSFilter * f, void *arg) {
-	ReceiverData *d = (ReceiverData *) f->data;
-	int *id = (int *) arg;
+static int receiver_set_mixer_to_client_extension_id(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	int *id = (int *)arg;
 	d->mixer_to_client_extension_id = *id;
 	return 0;
 }
 
-static int receiver_set_client_to_mixer_extension_id(MSFilter * f, void *arg) {
-	ReceiverData *d = (ReceiverData *) f->data;
-	int *id = (int *) arg;
+static int receiver_set_client_to_mixer_extension_id(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	int *id = (int *)arg;
 	d->client_to_mixer_extension_id = *id;
 	return 0;
 }
 
-static int receiver_get_sr(MSFilter *f, void *arg){
-	ReceiverData *d = (ReceiverData *) f->data;
+static int receiver_get_sr(MSFilter *f, void *arg) {
+	ReceiverData *d = (ReceiverData *)f->data;
 	PayloadType *pt;
-	if (d->session==NULL) {
+	if (d->session == NULL) {
 		ms_warning("Could not obtain sample rate, session is not set.");
 		return -1;
 	}
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+	pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
 	if (pt != NULL) {
-		if (strcasecmp(pt->mime_type,"G722")==0)
-			*(int*)arg=16000;
-		else
-			*(int*)arg=pt->clock_rate;
-	}else{
+		if (strcasecmp(pt->mime_type, "G722") == 0) *(int *)arg = 16000;
+		else *(int *)arg = pt->clock_rate;
+	} else {
 		ms_warning("Could not obtain sample rate, payload type is unknown.");
 		return -1;
 	}
@@ -896,11 +884,11 @@ static int receiver_get_sr(MSFilter *f, void *arg){
 static int receiver_get_ch(MSFilter *f, void *arg) {
 	ReceiverData *d = (ReceiverData *)f->data;
 	PayloadType *pt;
-	if (d->session==NULL) {
+	if (d->session == NULL) {
 		ms_warning("MSRtpRecv: Could not obtain sample rate, session is not set.");
 		return -1;
 	}
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+	pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
 	if (pt == NULL) {
 		ms_warning("MSRtpRecv: could not obtain number of channels, payload type is unknown.");
 		return -1;
@@ -909,38 +897,37 @@ static int receiver_get_ch(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int receiver_reset_jitter_buffer(MSFilter *f, void *arg) {
+static int receiver_reset_jitter_buffer(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	ReceiverData *d = (ReceiverData *)f->data;
 	d->reset_jb = TRUE;
 	return 0;
 }
 
-
-static void receiver_preprocess(MSFilter * f){
-	ReceiverData *d = (ReceiverData *) f->data;
-	d->starting=TRUE;
+static void receiver_preprocess(MSFilter *f) {
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->starting = TRUE;
 }
 
 /*returns TRUE if the packet is ok to be sent to output queue*/
-static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *m){
-	int ptn=rtp_get_payload_type(m);
+static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *m) {
+	int ptn = rtp_get_payload_type(m);
 	PayloadType *pt;
-	if (ptn==d->current_pt) return TRUE;
-	pt=rtp_profile_get_payload(rtp_session_get_profile(d->session), ptn);
-	if (pt==NULL){
-		ms_warning("Discarding packet with unknown payload type %i",ptn);
+	if (ptn == d->current_pt) return TRUE;
+	pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), ptn);
+	if (pt == NULL) {
+		ms_warning("Discarding packet with unknown payload type %i", ptn);
 		return FALSE;
 	}
-	if (strcasecmp(pt->mime_type,"CN")==0){
+	if (strcasecmp(pt->mime_type, "CN") == 0) {
 		MSCngData cngdata;
-		uint8_t *data=NULL;
-		int datasize=rtp_get_payload(m, &data);
-		if (data){
-			if (datasize<= (int)sizeof(cngdata.data)){
+		uint8_t *data = NULL;
+		int datasize = rtp_get_payload(m, &data);
+		if (data) {
+			if (datasize <= (int)sizeof(cngdata.data)) {
 				memcpy(cngdata.data, data, datasize);
-				cngdata.datasize=datasize;
+				cngdata.datasize = datasize;
 				ms_filter_notify(f, MS_RTP_RECV_GENERIC_CN_RECEIVED, &cngdata);
-			}else{
+			} else {
 				ms_warning("CN packet has unexpected size %i", datasize);
 			}
 		}
@@ -951,7 +938,7 @@ static bool_t receiver_check_payload_type(MSFilter *f, ReceiverData *d, mblk_t *
 }
 
 static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
-	ReceiverData *d = (ReceiverData *) f->data;
+	ReceiverData *d = (ReceiverData *)f->data;
 	rtp_audio_level_t mtc_levels[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL] = {{0}};
 	rtp_audio_level_t ctm_level;
 	bool_t voice_activity;
@@ -965,7 +952,8 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 	}
 
 	if (d->client_to_mixer_extension_id > 0) {
-		if ((ret = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, &voice_activity)) != -1) {
+		if ((ret = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL,
+		                                               &voice_activity)) != -1) {
 			ctm_level.csrc = rtp_get_ssrc(m);
 			ctm_level.dbov = ret;
 			ms_filter_notify(f, MS_RTP_RECV_CLIENT_TO_MIXER_AUDIO_LEVEL_RECEIVED, &ctm_level);
@@ -974,7 +962,7 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 }
 
 static void receiver_check_for_csrc_change(MSFilter *f, mblk_t *m) {
-	ReceiverData *d = (ReceiverData *) f->data;
+	ReceiverData *d = (ReceiverData *)f->data;
 	uint32_t csrc = 0;
 
 	if (rtp_get_cc(m) > 0) {
@@ -987,121 +975,112 @@ static void receiver_check_for_csrc_change(MSFilter *f, mblk_t *m) {
 	}
 }
 
-static void receiver_process(MSFilter * f)
-{
-	ReceiverData *d = (ReceiverData *) f->data;
+static void receiver_process(MSFilter *f) {
+	ReceiverData *d = (ReceiverData *)f->data;
 	mblk_t *m;
 	uint32_t timestamp;
 
-	if (d->session == NULL)
-		return;
-	
-	if (d->reset_jb){
+	if (d->session == NULL) return;
+
+	if (d->reset_jb) {
 		ms_message("Reseting jitter buffer");
 		rtp_session_resync(d->session);
-		d->reset_jb=FALSE;
+		d->reset_jb = FALSE;
 	}
 
-	if (d->starting){
-		PayloadType *pt=rtp_profile_get_payload(
-			rtp_session_get_profile(d->session),
-			rtp_session_get_recv_payload_type(d->session));
-		if (pt && pt->type!=PAYLOAD_VIDEO)
-			rtp_session_flush_sockets(d->session);
-		d->starting=FALSE;
+	if (d->starting) {
+		PayloadType *pt =
+		    rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_recv_payload_type(d->session));
+		if (pt && pt->type != PAYLOAD_VIDEO) rtp_session_flush_sockets(d->session);
+		d->starting = FALSE;
 	}
 
-	timestamp = (uint32_t) (f->ticker->time * (d->rate/1000));
+	timestamp = (uint32_t)(f->ticker->time * (d->rate / 1000));
 	while ((m = rtp_session_recvm_with_ts(d->session, timestamp)) != NULL) {
 		if (d->rtp_transfer_mode) {
 			ms_queue_put(f->outputs[0], m);
 			continue;
 		}
 
-		if (receiver_check_payload_type(f, d, m)){
+		if (receiver_check_payload_type(f, d, m)) {
 			mblk_set_timestamp_info(m, rtp_get_timestamp(m));
 			mblk_set_marker_info(m, rtp_get_markbit(m));
 			mblk_set_cseq(m, rtp_get_seqnumber(m));
 			receiver_check_for_extensions(f, m);
 			if (d->csrc_events_enabled) receiver_check_for_csrc_change(f, m);
-			rtp_get_payload(m,&m->b_rptr);
+			rtp_get_payload(m, &m->b_rptr);
 			ms_queue_put(f->outputs[0], m);
-		}else{
+		} else {
 			freemsg(m);
 		}
 	}
 	/*every second compute recv bandwidth*/
-	if (f->ticker->time % 1000 == 0)
-		rtp_session_compute_recv_bandwidth(d->session);
+	if (f->ticker->time % 1000 == 0) rtp_session_compute_recv_bandwidth(d->session);
 }
 
 static int get_receiver_output_fmt(MSFilter *f, void *arg) {
-	ReceiverData *d = (ReceiverData *) f->data;
+	ReceiverData *d = (ReceiverData *)f->data;
 	MSPinFormat *pinFmt = (MSPinFormat *)arg;
-	PayloadType *pt = rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
+	PayloadType *pt =
+	    rtp_profile_get_payload(rtp_session_get_profile(d->session), rtp_session_get_send_payload_type(d->session));
 	pinFmt->fmt = ms_factory_get_audio_format(f->factory, pt->mime_type, pt->clock_rate, pt->channels, NULL);
 	return 0;
 }
 
 static int receiver_enable_rtp_transfer_mode(MSFilter *f, void *arg) {
-	ReceiverData *d = (ReceiverData *) f->data;
-	d->rtp_transfer_mode = * (bool_t *) arg;
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->rtp_transfer_mode = *(bool_t *)arg;
 	return 0;
 }
 
 static int receiver_enable_csrc_events(MSFilter *f, void *arg) {
-	ReceiverData *d = (ReceiverData *) f->data;
-	d->csrc_events_enabled = * (bool_t *) arg;
+	ReceiverData *d = (ReceiverData *)f->data;
+	d->csrc_events_enabled = *(bool_t *)arg;
 	return 0;
 }
 
 static MSFilterMethod receiver_methods[] = {
-	{	MS_RTP_RECV_SET_SESSION	, receiver_set_session	},
-	{	MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer },
-	{	MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID, receiver_set_mixer_to_client_extension_id },
-	{	MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID, receiver_set_client_to_mixer_extension_id },
-	{	MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode },
-	{	MS_RTP_RECV_ENABLE_CSRC_EVENTS, receiver_enable_csrc_events },
-	{	MS_FILTER_GET_SAMPLE_RATE	, receiver_get_sr		},
-	{	MS_FILTER_GET_NCHANNELS	,	receiver_get_ch	},
-	{ 	MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt },
-	{	0, NULL}
-};
+    {MS_RTP_RECV_SET_SESSION, receiver_set_session},
+    {MS_RTP_RECV_RESET_JITTER_BUFFER, receiver_reset_jitter_buffer},
+    {MS_RTP_RECV_SET_MIXER_TO_CLIENT_EXTENSION_ID, receiver_set_mixer_to_client_extension_id},
+    {MS_RTP_RECV_SET_CLIENT_TO_MIXER_EXTENSION_ID, receiver_set_client_to_mixer_extension_id},
+    {MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, receiver_enable_rtp_transfer_mode},
+    {MS_RTP_RECV_ENABLE_CSRC_EVENTS, receiver_enable_csrc_events},
+    {MS_FILTER_GET_SAMPLE_RATE, receiver_get_sr},
+    {MS_FILTER_GET_NCHANNELS, receiver_get_ch},
+    {MS_FILTER_GET_OUTPUT_FMT, get_receiver_output_fmt},
+    {0, NULL}};
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_rtp_recv_desc = {
-	MS_RTP_RECV_ID,
-	"MSRtpRecv",
-	N_("RTP input filter"),
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	1,
-	receiver_init,
-	receiver_preprocess,
-	receiver_process,
-	receiver_postprocess,
-	receiver_uninit,
-	receiver_methods
-};
+MSFilterDesc ms_rtp_recv_desc = {MS_RTP_RECV_ID,
+                                 "MSRtpRecv",
+                                 N_("RTP input filter"),
+                                 MS_FILTER_OTHER,
+                                 NULL,
+                                 0,
+                                 1,
+                                 receiver_init,
+                                 receiver_preprocess,
+                                 receiver_process,
+                                 receiver_postprocess,
+                                 receiver_uninit,
+                                 receiver_methods};
 
 #else
 
-MSFilterDesc ms_rtp_recv_desc = {
-	.id = MS_RTP_RECV_ID,
-	.name = "MSRtpRecv",
-	.text = N_("RTP input filter"),
-	.category = MS_FILTER_OTHER,
-	.ninputs = 0,
-	.noutputs = 1,
-	.init = receiver_init,
-	.preprocess = receiver_preprocess,
-	.process = receiver_process,
-	.postprocess=receiver_postprocess,
-	.uninit = receiver_uninit,
-	.methods = receiver_methods
-};
+MSFilterDesc ms_rtp_recv_desc = {.id = MS_RTP_RECV_ID,
+                                 .name = "MSRtpRecv",
+                                 .text = N_("RTP input filter"),
+                                 .category = MS_FILTER_OTHER,
+                                 .ninputs = 0,
+                                 .noutputs = 1,
+                                 .init = receiver_init,
+                                 .preprocess = receiver_preprocess,
+                                 .process = receiver_process,
+                                 .postprocess = receiver_postprocess,
+                                 .uninit = receiver_uninit,
+                                 .methods = receiver_methods};
 
 #endif
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,35 +24,35 @@
 #include "h26x/h26x-encoder-filter.h"
 #include "media-codec-encoder.h"
 
-#define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus) \
-{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, ncpus, nullptr }
+#define MS_MEDIACODECH265_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus)                                \
+	{                                                                                                                  \
+		required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, ncpus, \
+		    nullptr                                                                                                    \
+	}
 
 static const MSVideoConfiguration _media_codec_h264_conf_list[] = {
-	/*
-	 * Formats above 720P are disabled. Indeed, there are not supported in baseline profile of H264, and it was observed
-	 * that when we ask a MediaCodec to output a 1080P stream with baseline profile, we get interoperability issues:
-	 * the remote decoder decodes it improperly, even on iOS.
-	 * TODO: enable use of higher profiles to use formats above 720P.
-	 */
+/*
+ * Formats above 720P are disabled. Indeed, there are not supported in baseline profile of H264, and it was observed
+ * that when we ask a MediaCodec to output a 1080P stream with baseline profile, we get interoperability issues:
+ * the remote decoder decodes it improperly, even on iOS.
+ * TODO: enable use of higher profiles to use formats above 720P.
+ */
 #if 0
 	MS_MEDIACODECH265_CONF(2048000, 5000000,       UXGA, 25,  2),
 	MS_MEDIACODECH265_CONF(1500000, 3000000, SXGA_MINUS, 25,  2),
 #endif
-	MS_MEDIACODECH265_CONF(1024000, 2048000,       720P, 30,  2),
-	MS_MEDIACODECH265_CONF( 850000, 2048000,        XGA, 25,  2),
-	MS_MEDIACODECH265_CONF( 750000, 1500000,       SVGA, 30,  2),
-	MS_MEDIACODECH265_CONF( 600000, 3000000,        VGA, 30,  2),
-	MS_MEDIACODECH265_CONF( 400000,  800000,        VGA, 15,  2),
-	MS_MEDIACODECH265_CONF( 128000,  512000,        CIF, 15,  1),
-	MS_MEDIACODECH265_CONF( 100000,  380000,       QVGA, 15,  1),
-	MS_MEDIACODECH265_CONF(      0,  170000,       QCIF, 10,  1),
+    MS_MEDIACODECH265_CONF(1024000, 2048000, 720P, 30, 2), MS_MEDIACODECH265_CONF(850000, 2048000, XGA, 25, 2),
+    MS_MEDIACODECH265_CONF(750000, 1500000, SVGA, 30, 2),  MS_MEDIACODECH265_CONF(600000, 3000000, VGA, 30, 2),
+    MS_MEDIACODECH265_CONF(400000, 800000, VGA, 15, 2),    MS_MEDIACODECH265_CONF(128000, 512000, CIF, 15, 1),
+    MS_MEDIACODECH265_CONF(100000, 380000, QVGA, 15, 1),   MS_MEDIACODECH265_CONF(0, 170000, QCIF, 10, 1),
 };
 
 namespace mediastreamer {
 
-class MediaCodecH264Encoder: public MediaCodecEncoder {
+class MediaCodecH264Encoder : public MediaCodecEncoder {
 public:
-	MediaCodecH264Encoder(): MediaCodecEncoder("video/avc") {}
+	MediaCodecH264Encoder() : MediaCodecEncoder("video/avc") {
+	}
 
 private:
 	AMediaFormat *createMediaFormat() const override {
@@ -66,18 +66,23 @@ private:
 	static const int32_t _level = 512; // AVCLevel31
 };
 
-class MediaCodecH264EncoderFilterImpl: public H26xEncoderFilter {
+class MediaCodecH264EncoderFilterImpl : public H26xEncoderFilter {
 public:
-	MediaCodecH264EncoderFilterImpl(MSFilter *f): H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {
+	MediaCodecH264EncoderFilterImpl(MSFilter *f)
+	    : H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {
 		SoundDeviceDescription *info = ms_devices_info_get_sound_device_description(f->factory->devices_info);
 		auto &encoder = static_cast<MediaCodecEncoder &>(*_encoder);
 		encoder.enablePixelFormatConversion((info->flags & DEVICE_MCH264ENC_NO_PIX_FMT_CONV) == 0);
 	}
 };
 
-} // mamespace mediastreamer
+} // namespace mediastreamer
 
 using namespace mediastreamer;
 
 MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH264Encoder);
-MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Encoder, MS_MEDIACODEC_H264_ENC_ID, "A H264 encoder based on MediaCodec API.", "H264", MS_FILTER_IS_PUMP);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Encoder,
+                                                   MS_MEDIACODEC_H264_ENC_ID,
+                                                   "A H264 encoder based on MediaCodec API.",
+                                                   "H264",
+                                                   MS_FILTER_IS_PUMP);

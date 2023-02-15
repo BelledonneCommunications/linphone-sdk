@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -39,20 +39,19 @@ public:
 	static int onFreezeOnErrorEnabledCall(MSFilter *f, void *arg);
 };
 
-}
+} // namespace mediastreamer
 
-#define MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
-static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{	MS_FILTER_ADD_FMTP                                 , DecodingFilterWrapper::onAddFmtpCall              }, \
-	{	MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION    , DecodingFilterWrapper::onResetFirstImageCall      }, \
-	{	MS_FILTER_GET_VIDEO_SIZE                           , DecodingFilterWrapper::onGetVideoSizeCall         }, \
-	{	MS_FILTER_GET_FPS                                  , DecodingFilterWrapper::onGetFpsCall               }, \
-	{	MS_FILTER_GET_OUTPUT_FMT                           , DecodingFilterWrapper::onGetOutFmtCall            }, \
-	{ 	MS_VIDEO_DECODER_ENABLE_AVPF                       , DecodingFilterWrapper::onEnableAvpfCall           }, \
-	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR                   , DecodingFilterWrapper::onEnableFreezeOnErrorCall  }, \
-	{	MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED           , DecodingFilterWrapper::onFreezeOnErrorEnabledCall }, \
-	{	0                                                  , nullptr                                           } \
-}
+#define MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name)                                                      \
+	static MSFilterMethod MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = {                                              \
+	    {MS_FILTER_ADD_FMTP, DecodingFilterWrapper::onAddFmtpCall},                                                    \
+	    {MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, DecodingFilterWrapper::onResetFirstImageCall},               \
+	    {MS_FILTER_GET_VIDEO_SIZE, DecodingFilterWrapper::onGetVideoSizeCall},                                         \
+	    {MS_FILTER_GET_FPS, DecodingFilterWrapper::onGetFpsCall},                                                      \
+	    {MS_FILTER_GET_OUTPUT_FMT, DecodingFilterWrapper::onGetOutFmtCall},                                            \
+	    {MS_VIDEO_DECODER_ENABLE_AVPF, DecodingFilterWrapper::onEnableAvpfCall},                                       \
+	    {MS_VIDEO_DECODER_FREEZE_ON_ERROR, DecodingFilterWrapper::onEnableFreezeOnErrorCall},                          \
+	    {MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED, DecodingFilterWrapper::onFreezeOnErrorEnabledCall},                 \
+	    {0, nullptr}}
 
-#define MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags) \
+#define MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags)                        \
 	MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, MS_FILTER_DECODER, enc_fmt, 1, 1, flags)

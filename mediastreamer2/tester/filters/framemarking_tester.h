@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 
 extern MSFilterDesc ms_framemarking_tester_desc;
 
-typedef void (*MSFrameMarkingTesterCb)(MSFilter *filter, uint8_t marker, void* user_data);
+typedef void (*MSFrameMarkingTesterCb)(MSFilter *filter, uint8_t marker, void *user_data);
 
 struct _MSFrameMarkingTesterCbData {
 	MSFrameMarkingTesterCb cb;

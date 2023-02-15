@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,13 +23,5 @@ extern MSFilterDesc ms_tee_desc;
 extern MSFilterDesc ms_join_desc;
 extern MSFilterDesc ms_void_source_desc;
 extern MSFilterDesc ms_void_sink_desc;
- 
 
-MSFilterDesc * ms_base_filter_descs[]={
-&ms_tee_desc,
-&ms_join_desc,
-&ms_void_source_desc,
-&ms_void_sink_desc,
-NULL
-};
-
+MSFilterDesc *ms_base_filter_descs[] = {&ms_tee_desc, &ms_join_desc, &ms_void_source_desc, &ms_void_sink_desc, NULL};

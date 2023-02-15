@@ -39,70 +39,67 @@ struct AMediaFormat;
 typedef struct AMediaFormat AMediaFormat;
 
 AMediaFormat *AMediaFormat_new(void);
-media_status_t AMediaFormat_delete(AMediaFormat*);
+media_status_t AMediaFormat_delete(AMediaFormat *);
 
 /**
  * Human readable representation of the format. The returned string is owned by the format,
  * and remains valid until the next call to toString, or until the format is deleted.
  */
-const char* AMediaFormat_toString(AMediaFormat*);
+const char *AMediaFormat_toString(AMediaFormat *);
 
-bool AMediaFormat_getInt32(AMediaFormat*, const char *name, int32_t *out);
-bool AMediaFormat_getInt64(AMediaFormat*, const char *name, int64_t *out);
-bool AMediaFormat_getFloat(AMediaFormat*, const char *name, float *out);
+bool AMediaFormat_getInt32(AMediaFormat *, const char *name, int32_t *out);
+bool AMediaFormat_getInt64(AMediaFormat *, const char *name, int64_t *out);
+bool AMediaFormat_getFloat(AMediaFormat *, const char *name, float *out);
 /**
  * The returned data is owned by the format and remains valid as long as the named entry
  * is part of the format.
  */
-bool AMediaFormat_getBuffer(AMediaFormat*, const char *name, void** data, size_t *size);
+bool AMediaFormat_getBuffer(AMediaFormat *, const char *name, void **data, size_t *size);
 /**
  * The returned string is owned by the format, and remains valid until the next call to getString,
  * or until the format is deleted.
  */
-bool AMediaFormat_getString(AMediaFormat*, const char *name, const char **out);
+bool AMediaFormat_getString(AMediaFormat *, const char *name, const char **out);
 
-
-void AMediaFormat_setInt32(AMediaFormat*, const char* name, int32_t value);
-void AMediaFormat_setInt64(AMediaFormat*, const char* name, int64_t value);
-void AMediaFormat_setFloat(AMediaFormat*, const char* name, float value);
+void AMediaFormat_setInt32(AMediaFormat *, const char *name, int32_t value);
+void AMediaFormat_setInt64(AMediaFormat *, const char *name, int64_t value);
+void AMediaFormat_setFloat(AMediaFormat *, const char *name, float value);
 /**
  * The provided string is copied into the format.
  */
-void AMediaFormat_setString(AMediaFormat*, const char* name, const char* value);
+void AMediaFormat_setString(AMediaFormat *, const char *name, const char *value);
 /**
  * The provided data is copied into the format.
  */
-void AMediaFormat_setBuffer(AMediaFormat*, const char* name, void* data, size_t size);
-
-
+void AMediaFormat_setBuffer(AMediaFormat *, const char *name, void *data, size_t size);
 
 /**
  * XXX should these be ints/enums that we look up in a table as needed?
  */
-extern const char* AMEDIAFORMAT_KEY_AAC_PROFILE;
-extern const char* AMEDIAFORMAT_KEY_BIT_RATE;
-extern const char* AMEDIAFORMAT_KEY_CHANNEL_COUNT;
-extern const char* AMEDIAFORMAT_KEY_CHANNEL_MASK;
-extern const char* AMEDIAFORMAT_KEY_COLOR_FORMAT;
-extern const char* AMEDIAFORMAT_KEY_DURATION;
-extern const char* AMEDIAFORMAT_KEY_FLAC_COMPRESSION_LEVEL;
-extern const char* AMEDIAFORMAT_KEY_FRAME_RATE;
-extern const char* AMEDIAFORMAT_KEY_HEIGHT;
-extern const char* AMEDIAFORMAT_KEY_IS_ADTS;
-extern const char* AMEDIAFORMAT_KEY_IS_AUTOSELECT;
-extern const char* AMEDIAFORMAT_KEY_IS_DEFAULT;
-extern const char* AMEDIAFORMAT_KEY_IS_FORCED_SUBTITLE;
-extern const char* AMEDIAFORMAT_KEY_I_FRAME_INTERVAL;
-extern const char* AMEDIAFORMAT_KEY_LANGUAGE;
-extern const char* AMEDIAFORMAT_KEY_MAX_HEIGHT;
-extern const char* AMEDIAFORMAT_KEY_MAX_INPUT_SIZE;
-extern const char* AMEDIAFORMAT_KEY_MAX_WIDTH;
-extern const char* AMEDIAFORMAT_KEY_MIME;
-extern const char* AMEDIAFORMAT_KEY_PUSH_BLANK_BUFFERS_ON_STOP;
-extern const char* AMEDIAFORMAT_KEY_REPEAT_PREVIOUS_FRAME_AFTER;
-extern const char* AMEDIAFORMAT_KEY_SAMPLE_RATE;
-extern const char* AMEDIAFORMAT_KEY_WIDTH;
-extern const char* AMEDIAFORMAT_KEY_STRIDE;
+extern const char *AMEDIAFORMAT_KEY_AAC_PROFILE;
+extern const char *AMEDIAFORMAT_KEY_BIT_RATE;
+extern const char *AMEDIAFORMAT_KEY_CHANNEL_COUNT;
+extern const char *AMEDIAFORMAT_KEY_CHANNEL_MASK;
+extern const char *AMEDIAFORMAT_KEY_COLOR_FORMAT;
+extern const char *AMEDIAFORMAT_KEY_DURATION;
+extern const char *AMEDIAFORMAT_KEY_FLAC_COMPRESSION_LEVEL;
+extern const char *AMEDIAFORMAT_KEY_FRAME_RATE;
+extern const char *AMEDIAFORMAT_KEY_HEIGHT;
+extern const char *AMEDIAFORMAT_KEY_IS_ADTS;
+extern const char *AMEDIAFORMAT_KEY_IS_AUTOSELECT;
+extern const char *AMEDIAFORMAT_KEY_IS_DEFAULT;
+extern const char *AMEDIAFORMAT_KEY_IS_FORCED_SUBTITLE;
+extern const char *AMEDIAFORMAT_KEY_I_FRAME_INTERVAL;
+extern const char *AMEDIAFORMAT_KEY_LANGUAGE;
+extern const char *AMEDIAFORMAT_KEY_MAX_HEIGHT;
+extern const char *AMEDIAFORMAT_KEY_MAX_INPUT_SIZE;
+extern const char *AMEDIAFORMAT_KEY_MAX_WIDTH;
+extern const char *AMEDIAFORMAT_KEY_MIME;
+extern const char *AMEDIAFORMAT_KEY_PUSH_BLANK_BUFFERS_ON_STOP;
+extern const char *AMEDIAFORMAT_KEY_REPEAT_PREVIOUS_FRAME_AFTER;
+extern const char *AMEDIAFORMAT_KEY_SAMPLE_RATE;
+extern const char *AMEDIAFORMAT_KEY_WIDTH;
+extern const char *AMEDIAFORMAT_KEY_STRIDE;
 
 #ifdef __cplusplus
 } // extern "C"

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,6 +27,8 @@
 
 #include <bctoolbox/vfs.h>
 
+#include <ortp/str_utils.h>
+
 typedef struct _MSAsyncReader MSAsyncReader;
 typedef struct _MSAsyncWriter MSAsyncWriter;
 
@@ -38,12 +40,10 @@ int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size);
 
 void ms_async_reader_seek(MSAsyncReader *obj, off_t offset);
 
-
 MSAsyncWriter *ms_async_writer_new(bctbx_vfs_file_t *fp);
 
 void ms_async_writer_destroy(MSAsyncWriter *obj);
 
 int ms_async_writer_write(MSAsyncWriter *obj, mblk_t *m);
-
 
 #endif

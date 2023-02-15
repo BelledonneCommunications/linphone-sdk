@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,7 @@
 #include <mediastreamer2/msfilter.h>
 
 /*mute/unmute some outputs of the MSTee */
-#define MS_TEE_UNMUTE	MS_FILTER_METHOD(MS_TEE_ID,0,int)
-#define MS_TEE_MUTE	MS_FILTER_METHOD(MS_TEE_ID,1,int)
-
-
+#define MS_TEE_UNMUTE MS_FILTER_METHOD(MS_TEE_ID, 0, int)
+#define MS_TEE_MUTE MS_FILTER_METHOD(MS_TEE_ID, 1, int)
 
 #endif

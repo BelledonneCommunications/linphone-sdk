@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@ using namespace std;
 
 namespace mediastreamer {
 
-VideoToolboxDecoder::VideoToolboxDecoder(const string &mime): H26xDecoder(mime) {
+VideoToolboxDecoder::VideoToolboxDecoder(const string &mime) : H26xDecoder(mime) {
 	_pixbufAllocator = ms_yuv_buf_allocator_new();
 	const H26xToolFactory &factory = H26xToolFactory::get(mime);
 	_psStore.reset(factory.createParameterSetsStore());
@@ -54,8 +54,9 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 		if (ms_queue_empty(encodedFrame)) return true;
 		if (!_psStore->psGatheringCompleted()) throw runtime_error("need more parameter sets");
 		if (_session == nullptr) createDecoder();
-		if (_freeze){
-			for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu); nalu = ms_queue_next(encodedFrame, nalu)) {
+		if (_freeze) {
+			for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame); !ms_queue_end(encodedFrame, nalu);
+			     nalu = ms_queue_next(encodedFrame, nalu)) {
 				_naluHeader->parse(nalu->b_rptr);
 				if (_naluHeader->getAbsType().isKeyFramePart()) {
 					_freeze = false;
@@ -79,7 +80,7 @@ bool VideoToolboxDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 }
 
 VideoDecoder::Status VideoToolboxDecoder::fetch(mblk_t *&frame) {
-	std::lock_guard<std::mutex> lck (_mutex);
+	std::lock_guard<std::mutex> lck(_mutex);
 	if (_queue.empty()) {
 		frame = nullptr;
 		return noFrameAvailable;
@@ -95,7 +96,7 @@ void VideoToolboxDecoder::createDecoder() {
 	VTDecompressionOutputCallbackRecord dec_cb = {outputCb, this};
 
 	vt_dec_message("creating a decoding session");
-	
+
 	/*
 	 * Since the decoder might be destroyed and recreated during the lifetime of the filter (for example
 	 * when SPS/PPS change because of video size changed by remote encoder), we must reset the _destroying flag.
@@ -107,26 +108,31 @@ void VideoToolboxDecoder::createDecoder() {
 
 	CFMutableDictionaryRef decoder_params = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IPHONE
-	CFDictionarySetValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
+	CFDictionarySetValue(decoder_params, kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder,
+	                     kCFBooleanTrue);
 #endif
 
-	CFMutableDictionaryRef pixel_parameters = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+	CFMutableDictionaryRef pixel_parameters =
+	    CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
 	int32_t format = kCVPixelFormatType_420YpCbCr8Planar;
 	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &format);
 	CFDictionarySetValue(pixel_parameters, kCVPixelBufferPixelFormatTypeKey, value);
 	CFRelease(value);
 
-	status = VTDecompressionSessionCreate(kCFAllocatorDefault, _formatDesc, decoder_params, pixel_parameters, &dec_cb, &_session);
+	status = VTDecompressionSessionCreate(kCFAllocatorDefault, _formatDesc, decoder_params, pixel_parameters, &dec_cb,
+	                                      &_session);
 	CFRelease(pixel_parameters);
 	CFRelease(decoder_params);
-	if(status != noErr) {
+	if (status != noErr) {
 		throw runtime_error("could not create the decoding context: " + toString(status));
 	} else {
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration;
-		status = VTSessionCopyProperty(_session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder, kCFAllocatorDefault, &hardware_acceleration);
+		status = VTSessionCopyProperty(_session, kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder,
+		                               kCFAllocatorDefault, &hardware_acceleration);
 		if (status != noErr) {
-			vt_dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s", toString(status).c_str());
+			vt_dec_error("could not read kVTDecompressionPropertyKey_UsingHardwareAcceleratedVideoDecoder property: %s",
+			             toString(status).c_str());
 		} else {
 			if (hardware_acceleration != NULL && CFBooleanGetValue(hardware_acceleration)) {
 				vt_dec_message("hardware acceleration enabled");
@@ -172,31 +178,32 @@ void VideoToolboxDecoder::decodeFrame(MSQueue *encodedFrame, uint64_t timestamp)
 	if (status != kCMBlockBufferNoErr) {
 		throw runtime_error("failure while creating input buffer for decoder");
 	}
-	while(mblk_t *nalu = ms_queue_get(encodedFrame)) {
+	while (mblk_t *nalu = ms_queue_get(encodedFrame)) {
 		CMBlockBufferRef nalu_block;
 		size_t nalu_block_size = msgdsize(nalu) + _naluSizeLength;
 		uint32_t nalu_size = htonl(msgdsize(nalu));
 
-		CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size, kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
+		CMBlockBufferCreateWithMemoryBlock(NULL, NULL, nalu_block_size, NULL, NULL, 0, nalu_block_size,
+		                                   kCMBlockBufferAssureMemoryNowFlag, &nalu_block);
 		CMBlockBufferReplaceDataBytes(&nalu_size, nalu_block, 0, _naluSizeLength);
 		CMBlockBufferReplaceDataBytes(nalu->b_rptr, nalu_block, _naluSizeLength, msgdsize(nalu));
 		CMBlockBufferAppendBufferReference(stream, nalu_block, 0, nalu_block_size, 0);
 		CFRelease(nalu_block);
 		freemsg(nalu);
 	}
-	if(!CMBlockBufferIsEmpty(stream)) {
+	if (!CMBlockBufferIsEmpty(stream)) {
 		CMSampleBufferRef sample = NULL;
 		CMSampleTimingInfo timing_info;
 		timing_info.duration = kCMTimeInvalid;
 		timing_info.presentationTimeStamp = CMTimeMake(timestamp, 1000);
 		timing_info.decodeTimeStamp = CMTimeMake(timestamp, 1000);
-		CMSampleBufferCreate(
-					kCFAllocatorDefault, stream, TRUE, NULL, NULL,
-					_formatDesc, 1, 1, &timing_info,
-					0, NULL, &sample);
-		status = VTDecompressionSessionDecodeFrame(_session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL, NULL);
+		CMSampleBufferCreate(kCFAllocatorDefault, stream, TRUE, NULL, NULL, _formatDesc, 1, 1, &timing_info, 0, NULL,
+		                     &sample);
+		status = VTDecompressionSessionDecodeFrame(
+		    _session, sample, kVTDecodeFrame_EnableAsynchronousDecompression | kVTDecodeFrame_1xRealTimePlayback, NULL,
+		    NULL);
 		CFRelease(sample);
-		if(status != noErr) {
+		if (status != noErr) {
 			CFRelease(stream);
 			if (status == kVTInvalidSessionErr) {
 				throw InvalidSessionError();
@@ -221,18 +228,22 @@ void VideoToolboxDecoder::formatDescFromSpsPps() {
 	}
 }
 
-void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSStatus status,
-								   VTDecodeInfoFlags infoFlags, CVImageBufferRef imageBuffer,
-								   CMTime presentationTimeStamp, CMTime presentationDuration) {
+void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon,
+                                   BCTBX_UNUSED(void *sourceFrameRefCon),
+                                   OSStatus status,
+                                   BCTBX_UNUSED(VTDecodeInfoFlags infoFlags),
+                                   CVImageBufferRef imageBuffer,
+                                   BCTBX_UNUSED(CMTime presentationTimeStamp),
+                                   BCTBX_UNUSED(CMTime presentationDuration)) {
 	auto ctx = static_cast<VideoToolboxDecoder *>(decompressionOutputRefCon);
 
-	std::lock_guard<std::mutex> lck (ctx->_mutex);
+	std::lock_guard<std::mutex> lck(ctx->_mutex);
 
 	if (ctx->_destroying) {
 		return;
 	}
 
-	if(status != noErr || imageBuffer == nullptr) {
+	if (status != noErr || imageBuffer == nullptr) {
 		vt_dec_error("fail to decode one frame: %s", toString(status).c_str());
 		ctx->_queue.push_back(Frame());
 		return;
@@ -245,14 +256,15 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon, void *source
 	uint8_t *src_planes[4] = {0};
 	int src_strides[4] = {0};
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
-	for(size_t i=0; i<3; i++) {
+	for (size_t i = 0; i < 3; i++) {
 		src_planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(imageBuffer, i));
 		src_strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, i);
 	}
-	ms_yuv_buf_copy(src_planes, src_strides, pixbuf_desc.planes, pixbuf_desc.strides, {int(vsize.width), int(vsize.height)});
+	ms_yuv_buf_copy(src_planes, src_strides, pixbuf_desc.planes, pixbuf_desc.strides,
+	                {int(vsize.width), int(vsize.height)});
 	CVPixelBufferUnlockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);
 
 	ctx->_queue.push_back(Frame(pixbuf));
 }
 
-}
+} // namespace mediastreamer

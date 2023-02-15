@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,23 +24,28 @@
 
 namespace mediastreamer {
 
-class H265NalUnpacker: public NalUnpacker {
+class H265NalUnpacker : public NalUnpacker {
 public:
-	H265NalUnpacker(): NalUnpacker(new FuAggregator(), new ApSpliter()) {}
+	H265NalUnpacker() : NalUnpacker(new FuAggregator(), new ApSpliter()) {
+	}
 
 private:
-	class FuAggregator: public NalUnpacker::FuAggregatorInterface {
+	class FuAggregator : public NalUnpacker::FuAggregatorInterface {
 	public:
 		mblk_t *feed(mblk_t *packet) override;
-		bool isAggregating() const override {return _m != nullptr;}
+		bool isAggregating() const override {
+			return _m != nullptr;
+		}
 		void reset() override;
 		mblk_t *completeAggregation() override;
 	};
 
-	class ApSpliter: public NalUnpacker::ApSpliterInterface {
+	class ApSpliter : public NalUnpacker::ApSpliterInterface {
 	public:
 		void feed(mblk_t *packet) override;
-		MSQueue *getNalus() override {return &_q;}
+		MSQueue *getNalus() override {
+			return &_q;
+		}
 	};
 
 	PacketType getNaluType(const mblk_t *nalu) const override;

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,9 +23,9 @@
 
 #include <mediastreamer2/msfilter.h>
 
-#define	MS_V4L_START		MS_FILTER_METHOD_NO_ARG(MS_V4L_ID,0)
-#define	MS_V4L_STOP			MS_FILTER_METHOD_NO_ARG(MS_V4L_ID,1)
-#define	MS_V4L_SET_DEVICE	MS_FILTER_METHOD(MS_V4L_ID,2,int)
-#define	MS_V4L_SET_IMAGE	MS_FILTER_METHOD(MS_V4L_ID,3,char)
+#define MS_V4L_START MS_FILTER_METHOD_NO_ARG(MS_V4L_ID, 0)
+#define MS_V4L_STOP MS_FILTER_METHOD_NO_ARG(MS_V4L_ID, 1)
+#define MS_V4L_SET_DEVICE MS_FILTER_METHOD(MS_V4L_ID, 2, int)
+#define MS_V4L_SET_IMAGE MS_FILTER_METHOD(MS_V4L_ID, 3, char)
 
 #endif

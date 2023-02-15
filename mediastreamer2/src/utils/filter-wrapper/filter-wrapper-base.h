@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -50,26 +50,23 @@ public:
 	}
 };
 
-};
-
+}; // namespace mediastreamer
 
 #define MS_FILTER_WRAPPER_NAME(base_name) FilterWrapperBase
-#define MS_FILTER_WRAPPER_METHODS_NAME(base_name) ms_ ## base_name ## _methods
+#define MS_FILTER_WRAPPER_METHODS_NAME(base_name) ms_##base_name##_methods
 
-#define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs, flags) \
-extern "C" MSFilterDesc ms_ ## base_name ## _desc = { \
-	id, \
-	"MS" #base_name, \
-	text, \
-	category, \
-	enc_fmt, \
-	ninputs, \
-	noutputs, \
-	FilterWrapperBase::onFilterInit<base_name ## FilterImpl>, \
-	FilterWrapperBase::onFilterPreProcess, \
-	FilterWrapperBase::onFilterProcces, \
-	FilterWrapperBase::onFilterPostProcess, \
-	FilterWrapperBase::onFilterUninit, \
-	MS_FILTER_WRAPPER_METHODS_NAME(base_name), \
-	flags \
-}
+#define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs, flags)    \
+	extern "C" MSFilterDesc ms_##base_name##_desc = {id,                                                               \
+	                                                 "MS" #base_name,                                                  \
+	                                                 text,                                                             \
+	                                                 category,                                                         \
+	                                                 enc_fmt,                                                          \
+	                                                 ninputs,                                                          \
+	                                                 noutputs,                                                         \
+	                                                 FilterWrapperBase::onFilterInit<base_name##FilterImpl>,           \
+	                                                 FilterWrapperBase::onFilterPreProcess,                            \
+	                                                 FilterWrapperBase::onFilterProcces,                               \
+	                                                 FilterWrapperBase::onFilterPostProcess,                           \
+	                                                 FilterWrapperBase::onFilterUninit,                                \
+	                                                 MS_FILTER_WRAPPER_METHODS_NAME(base_name),                        \
+	                                                 flags}

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,35 +21,32 @@
 #ifndef ms_zrtp_h
 #define ms_zrtp_h
 
-#include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
 #include <bctoolbox/port.h>
+#include <ortp/rtpsession.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /* defined in mediastream.h */
 struct _MSMediaStreamSessions;
 
-
 /* Error codes */
-#define MSZRTP_ERROR_CHANNEL_ALREADY_STARTED		-0x0001
+#define MSZRTP_ERROR_CHANNEL_ALREADY_STARTED -0x0001
 
 #define MS_MAX_ZRTP_CRYPTO_TYPES 7
 
 /* cache related function return codes */
-#define MSZRTP_CACHE_ERROR		-0x1000
-#define MSZRTP_CACHE_SETUP		0x2000
-#define MSZRTP_CACHE_UPDATE		0x2001
-#define MSZRTP_ERROR_CACHEDISABLED				-0x0200
-#define MSZRTP_ERROR_CACHEMIGRATIONFAILED			-0x0400
-
-
+#define MSZRTP_CACHE_ERROR -0x1000
+#define MSZRTP_CACHE_SETUP 0x2000
+#define MSZRTP_CACHE_UPDATE 0x2001
+#define MSZRTP_ERROR_CACHEDISABLED -0x0200
+#define MSZRTP_ERROR_CACHEMIGRATIONFAILED -0x0400
 
 typedef uint8_t MsZrtpCryptoTypesCount;
 
-typedef enum _MSZrtpHash{
+typedef enum _MSZrtpHash {
 	MS_ZRTP_HASH_INVALID,
 	MS_ZRTP_HASH_S256,
 	MS_ZRTP_HASH_S384,
@@ -58,7 +55,7 @@ typedef enum _MSZrtpHash{
 	MS_ZRTP_HASH_N384
 } MSZrtpHash;
 
-typedef enum _MSZrtpCipher{
+typedef enum _MSZrtpCipher {
 	MS_ZRTP_CIPHER_INVALID,
 	MS_ZRTP_CIPHER_AES1,
 	MS_ZRTP_CIPHER_AES2,
@@ -68,7 +65,7 @@ typedef enum _MSZrtpCipher{
 	MS_ZRTP_CIPHER_2FS3
 } MSZrtpCipher;
 
-typedef enum _MSZrtpAuthTag{
+typedef enum _MSZrtpAuthTag {
 	MS_ZRTP_AUTHTAG_INVALID,
 	MS_ZRTP_AUTHTAG_HS32,
 	MS_ZRTP_AUTHTAG_HS80,
@@ -76,7 +73,7 @@ typedef enum _MSZrtpAuthTag{
 	MS_ZRTP_AUTHTAG_SK64
 } MSZrtpAuthTag;
 
-typedef enum _MSZrtpKeyAgreement{
+typedef enum _MSZrtpKeyAgreement {
 	MS_ZRTP_KEY_AGREEMENT_INVALID,
 	MS_ZRTP_KEY_AGREEMENT_DH2K,
 	MS_ZRTP_KEY_AGREEMENT_DH3K,
@@ -101,41 +98,37 @@ typedef enum _MSZrtpKeyAgreement{
 	MS_ZRTP_KEY_AGREEMENT_K448_KYB1024_HQC256,
 } MSZrtpKeyAgreement;
 
-typedef enum _MSZrtpSasType{
-	MS_ZRTP_SAS_INVALID,
-	MS_ZRTP_SAS_B32,
-	MS_ZRTP_SAS_B256
-} MSZrtpSasType;
+typedef enum _MSZrtpSasType { MS_ZRTP_SAS_INVALID, MS_ZRTP_SAS_B32, MS_ZRTP_SAS_B256 } MSZrtpSasType;
 
-typedef enum _MSZrtpPeerStatus{
+typedef enum _MSZrtpPeerStatus {
 	MS_ZRTP_PEER_STATUS_UNKNOWN,
 	MS_ZRTP_PEER_STATUS_INVALID,
 	MS_ZRTP_PEER_STATUS_VALID
 } MSZrtpPeerStatus;
 
 typedef struct MSZrtpParams {
-	void *zidCacheDB; /**< a pointer to an sqlite database holding all zrtp related information */
+	void *zidCacheDB;               /**< a pointer to an sqlite database holding all zrtp related information */
 	bctbx_mutex_t *zidCacheDBMutex; /**< pointer to a mutex used to lock cache access */
-	const char *selfUri; /* our sip URI, needed for zrtp Cache */
-	const char *peerUri; /* the sip URI of correspondant, needed for zrtp Cache */
+	const char *selfUri;            /* our sip URI, needed for zrtp Cache */
+	const char *peerUri;            /* the sip URI of correspondant, needed for zrtp Cache */
 	uint32_t limeKeyTimeSpan; /**< amount in seconds of the lime key life span, set to 0 for infinite life span **/
-	bool_t autoStart; /*allow zrtp to start on first hello packet received*/
+	bool_t autoStart;         /*allow zrtp to start on first hello packet received*/
 	bool_t acceptGoClear;
 
 	/* activated crypto types */
-	MSZrtpHash             hashes[MS_MAX_ZRTP_CRYPTO_TYPES];
-	MsZrtpCryptoTypesCount hashesCount ;
-	MSZrtpCipher           ciphers[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MSZrtpHash hashes[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MsZrtpCryptoTypesCount hashesCount;
+	MSZrtpCipher ciphers[MS_MAX_ZRTP_CRYPTO_TYPES];
 	MsZrtpCryptoTypesCount ciphersCount;
-	MSZrtpAuthTag          authTags[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MSZrtpAuthTag authTags[MS_MAX_ZRTP_CRYPTO_TYPES];
 	MsZrtpCryptoTypesCount authTagsCount;
-	MSZrtpKeyAgreement     keyAgreements[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MSZrtpKeyAgreement keyAgreements[MS_MAX_ZRTP_CRYPTO_TYPES];
 	MsZrtpCryptoTypesCount keyAgreementsCount;
-	MSZrtpSasType          sasTypes[MS_MAX_ZRTP_CRYPTO_TYPES];
+	MSZrtpSasType sasTypes[MS_MAX_ZRTP_CRYPTO_TYPES];
 	MsZrtpCryptoTypesCount sasTypesCount;
 } MSZrtpParams;
 
-typedef struct _MSZrtpContext MSZrtpContext ;
+typedef struct _MSZrtpContext MSZrtpContext;
 
 /**
  * check if ZRTP is available
@@ -145,19 +138,23 @@ MS2_PUBLIC bool_t ms_zrtp_available(void);
 
 /**
  * Create an initialise a ZRTP context
- * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready
+ * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport
+ * modifier and needed to set SRTP sessions when keys are ready
  * @param[in]	params			ZID cache filename and peer sip uri
  * @return	a pointer to the opaque context structure needed by MSZRTP
  */
-MS2_PUBLIC MSZrtpContext* ms_zrtp_context_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpParams *params);
+MS2_PUBLIC MSZrtpContext *ms_zrtp_context_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpParams *params);
 
 /**
  * Create an initialise a ZRTP context on a channel when a ZRTP exchange was already performed on an other one
- * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport modifier and needed to set SRTP sessions when keys are ready
- * @param[in]	activeContext		The MSZRTP context of the already active session, used to pass to lib bzrtp its own context which shall remain unique.
+ * @param[in]	stream_sessions		A link to the stream sessions structures, used to get rtp session to add transport
+ * modifier and needed to set SRTP sessions when keys are ready
+ * @param[in]	activeContext		The MSZRTP context of the already active session, used to pass to lib bzrtp its own
+ * context which shall remain unique.
  * @return	a pointer to the opaque context structure needed by MSZRTP
  */
-MS2_PUBLIC MSZrtpContext* ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions, MSZrtpContext* activeContext);
+MS2_PUBLIC MSZrtpContext *ms_zrtp_multistream_new(struct _MSMediaStreamSessions *stream_sessions,
+                                                  MSZrtpContext *activeContext);
 
 /**
  * Enables or disables capability of starting the goClear procedure to change call encryption
@@ -184,19 +181,20 @@ MS2_PUBLIC void ms_zrtp_context_destroy(MSZrtpContext *ctx);
  * Can be used to give more time for establishing zrtp session
  * @param[in] ctx	The MSZRTP context
  * */
-MS2_PUBLIC void ms_zrtp_reset_transmition_timer(MSZrtpContext* ctx);
+MS2_PUBLIC void ms_zrtp_reset_transmition_timer(MSZrtpContext *ctx);
 
 /**
  * Tell the MSZRTP context that SAS was controlled by user, it will trigger a ZID cache update
  * @param[in]	ctx	MSZRTP context, used to retrieve cache and update it
  */
-MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext* ctx);
+MS2_PUBLIC void ms_zrtp_sas_verified(MSZrtpContext *ctx);
 
 /**
- * Tell the MSZRTP context that user have requested the SAS verified status to be reseted, it will trigger a ZID cache update
+ * Tell the MSZRTP context that user have requested the SAS verified status to be reseted, it will trigger a ZID cache
+ * update
  * @param[in]	ctx	MSZRTP context, used to retrieve cache and update it
  */
-MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
+MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext *ctx);
 
 /**
  * Get the zrtp sas validation status for a peer uri.
@@ -206,7 +204,8 @@ MS2_PUBLIC void ms_zrtp_sas_reset_verified(MSZrtpContext* ctx);
  * @param[in]		peerUri	the sip uri of the peer device we're querying status
  * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
  *
- * @return  - MS_ZRTP_PEER_STATUS_UNKNOWN: this uri is not present in cache OR during calls with the active device, SAS never was validated or rejected
+ * @return  - MS_ZRTP_PEER_STATUS_UNKNOWN: this uri is not present in cache OR during calls with the active device, SAS
+ * never was validated or rejected
  *  		- MS_ZRTP_PEER_STATUS_INVALID: the active device status is set to valid
  *  		- MS_ZRTP_PEER_STATUS_VALID: the active peer device status is set to invalid
  */
@@ -217,7 +216,7 @@ MS2_PUBLIC MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUr
  * @param[in]	ctx	MSZRTP context
  * @param[out]	The Zrtp Hello Hash as defined in RFC6189 section 8
  */
-MS2_PUBLIC int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t outputLength);
+MS2_PUBLIC int ms_zrtp_getHelloHash(MSZrtpContext *ctx, uint8_t *output, size_t outputLength);
 
 /**
  * Set the optional ZRTP auxiliary shared secret
@@ -226,7 +225,8 @@ MS2_PUBLIC int ms_zrtp_getHelloHash(MSZrtpContext* ctx, uint8_t *output, size_t 
  * @param[in]	The size of the auxiliary shared secret
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_zrtp_setAuxiliarySharedSecret(MSZrtpContext *ctx, const uint8_t *auxSharedSecret, size_t auxSharedSecretLength);
+MS2_PUBLIC int
+ms_zrtp_setAuxiliarySharedSecret(MSZrtpContext *ctx, const uint8_t *auxSharedSecret, size_t auxSharedSecretLength);
 
 /**
  * Get the ZRTP auxiliary shared secret mismatch status
@@ -242,26 +242,28 @@ MS2_PUBLIC uint8_t ms_zrtp_getAuxiliarySharedSecretMismatch(MSZrtpContext *ctx);
  * @param[in]	The Zrtp Hello Hash length
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength);
+MS2_PUBLIC int
+ms_zrtp_setPeerHelloHash(MSZrtpContext *ctx, uint8_t *peerHelloHashHexString, size_t peerHelloHashHexStringLength);
 
 /**
  * from_string and to_string for enums: MSZrtpHash, MSZrtpCipher, MSZrtpAuthTag, MSZrtpKeyAgreement, MSZrtpSasType
  */
-MS2_PUBLIC MSZrtpHash ms_zrtp_hash_from_string(const char* str);
-MS2_PUBLIC const char* ms_zrtp_hash_to_string(const MSZrtpHash hash);
-MS2_PUBLIC MSZrtpCipher ms_zrtp_cipher_from_string(const char* str);
-MS2_PUBLIC const char* ms_zrtp_cipher_to_string(const MSZrtpCipher cipher);
-MS2_PUBLIC MSZrtpAuthTag ms_zrtp_auth_tag_from_string(const char* str);
-MS2_PUBLIC const char* ms_zrtp_auth_tag_to_string(const MSZrtpAuthTag authTag);
-MS2_PUBLIC MSZrtpKeyAgreement ms_zrtp_key_agreement_from_string(const char* str);
-MS2_PUBLIC const char* ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement keyAgreement);
-MS2_PUBLIC MSZrtpSasType ms_zrtp_sas_type_from_string(const char* str);
-MS2_PUBLIC const char* ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
+MS2_PUBLIC MSZrtpHash ms_zrtp_hash_from_string(const char *str);
+MS2_PUBLIC const char *ms_zrtp_hash_to_string(const MSZrtpHash hash);
+MS2_PUBLIC MSZrtpCipher ms_zrtp_cipher_from_string(const char *str);
+MS2_PUBLIC const char *ms_zrtp_cipher_to_string(const MSZrtpCipher cipher);
+MS2_PUBLIC MSZrtpAuthTag ms_zrtp_auth_tag_from_string(const char *str);
+MS2_PUBLIC const char *ms_zrtp_auth_tag_to_string(const MSZrtpAuthTag authTag);
+MS2_PUBLIC MSZrtpKeyAgreement ms_zrtp_key_agreement_from_string(const char *str);
+MS2_PUBLIC const char *ms_zrtp_key_agreement_to_string(const MSZrtpKeyAgreement keyAgreement);
+MS2_PUBLIC MSZrtpSasType ms_zrtp_sas_type_from_string(const char *str);
+MS2_PUBLIC const char *ms_zrtp_sas_type_to_string(const MSZrtpSasType sasType);
 
 /**
  * @brief Retrieve the list of key agreement algorithm available
  *
- * @param[in/out]	algos An array of enum MSZrtpKeyAgreement listing the available algorithms. Buffer allocation is of caller's responsability
+ * @param[in/out]	algos An array of enum MSZrtpKeyAgreement listing the available algorithms. Buffer allocation is of
+ * caller's responsability
  *
  * @return the number of availables algorithms (0 on error)
  */
@@ -282,26 +284,30 @@ MS2_PUBLIC bool_t ms_zrtp_is_PQ_available(void);
  * 				Use a void * to keep this API when building cacheless
  * @param[in]		dbMutex	a mutex to synchronise zrtp cache database operation. Ignored if NULL
  *
- * @return	0 on success, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error code otherwise
+ * @return	0 on success, MSZRTP_CACHE_SETUP if cache was empty, MSZRTP_CACHE_UPDATE if db structure was updated error
+ * code otherwise
  */
 MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
 
 /**
  * @brief Perform migration from xml version to sqlite3 version of cache
  *	Warning: new version of cache associate a ZID to each local URI, the old one did not
- *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
+ *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the
+ *default URI
  * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using ms_zrtp_cache_init function
+ * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using
+ *ms_zrtp_cache_init function
  * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
  *
- * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
+ * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled,
+ *MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
  */
 MS2_PUBLIC int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
 
 /**
  * @brief Send a GoClear message when the participant decides to change encryption mode
- *		The endpoint of the initiator (of the GoClear) stops sending SRTP packets and begin to send RTP packets on ClearACK reception
- *		The endpoint of the responder (of the GoClear) stops sending SRTP packets on GoClear reception
+ *		The endpoint of the initiator (of the GoClear) stops sending SRTP packets and begin to send RTP packets on
+ *ClearACK reception The endpoint of the responder (of the GoClear) stops sending SRTP packets on GoClear reception
  * @param[in]   ctx     The zrtp context
  * @return 0 on success
  */

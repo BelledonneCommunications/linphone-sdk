@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,14 +24,20 @@
 
 namespace mediastreamer {
 
-class VideoToolboxH264Utilities: public VideoToolboxUtilities {
+class VideoToolboxH264Utilities : public VideoToolboxUtilities {
 public:
 	CMVideoCodecType getCodecType() const override;
 	CFStringRef getDefaultProfileLevel() const override;
 
 private:
-	void getParameterSet(const CMFormatDescriptionRef format, size_t offset, const uint8_t *&parameterSet, size_t &parameterSetSize, size_t &parameterSetsCount) const override;
-	CMFormatDescriptionRef createFormatDescription(size_t parameterSetsCount, const uint8_t *parameterSets[], const size_t parameterSetSizes[]) const override;
+	void getParameterSet(const CMFormatDescriptionRef format,
+	                     size_t offset,
+	                     const uint8_t *&parameterSet,
+	                     size_t &parameterSetSize,
+	                     size_t &parameterSetsCount) const override;
+	CMFormatDescriptionRef createFormatDescription(size_t parameterSetsCount,
+	                                               const uint8_t *parameterSets[],
+	                                               const size_t parameterSetSizes[]) const override;
 };
 
-}
+} // namespace mediastreamer

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,9 +17,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include "media/NdkMediaCodec.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msvideo.h"
-#include "media/NdkMediaCodec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,15 +39,13 @@ typedef struct {
 } AMediaImage;
 
 media_status_t AMediaCodec_reset(AMediaCodec *codec);
-void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt);
+void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat *fmt);
 bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image);
 bool AMediaCodec_getOutputImage(AMediaCodec *codec, int index, AMediaImage *image);
 void AMediaImage_close(AMediaImage *image);
 bool_t AMediaImage_isAvailable(void);
 
-
 bool_t AMediaCodec_checkCodecAvailability(const char *mime);
-
 
 #ifdef __cplusplus
 } // extern "C"

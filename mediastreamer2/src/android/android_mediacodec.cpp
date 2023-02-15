@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,13 +17,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include <bctoolbox/defs.h>
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msjava.h"
 
+#include "android_mediacodec.h"
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include "android_mediacodec.h"
 
 ////////////////////////////////////////////////////
 //                                                //
@@ -100,7 +101,7 @@ int handle_java_exception() {
 
 static bool _loadClass(JNIEnv *env, const char *className, jclass *_class) {
 	*_class = env->FindClass(className);
-	if(handle_java_exception() == -1 || *_class == NULL) {
+	if (handle_java_exception() == -1 || *_class == NULL) {
 		ms_error("Could not load Java class [%s]", className);
 		return false;
 	}
@@ -109,7 +110,7 @@ static bool _loadClass(JNIEnv *env, const char *className, jclass *_class) {
 
 static bool _getMethodID(JNIEnv *env, jclass _class, const char *name, const char *sig, jmethodID *method) {
 	*method = env->GetMethodID(_class, name, sig);
-	if(handle_java_exception() == -1 || *method == NULL) {
+	if (handle_java_exception() == -1 || *method == NULL) {
 		ms_error("Could not get method %s[%s]", name, sig);
 		return false;
 	}
@@ -118,7 +119,7 @@ static bool _getMethodID(JNIEnv *env, jclass _class, const char *name, const cha
 
 static bool _getStaticMethodID(JNIEnv *env, jclass _class, const char *name, const char *sig, jmethodID *method) {
 	*method = env->GetStaticMethodID(_class, name, sig);
-	if(handle_java_exception() == -1 || *method == NULL) {
+	if (handle_java_exception() == -1 || *method == NULL) {
 		ms_error("Could not get static method %s[%s]", name, sig);
 		return false;
 	}
@@ -127,7 +128,7 @@ static bool _getStaticMethodID(JNIEnv *env, jclass _class, const char *name, con
 
 static bool _getFieldID(JNIEnv *env, jclass _class, const char *name, const char *sig, jfieldID *field) {
 	*field = env->GetFieldID(_class, name, sig);
-	if(handle_java_exception() == -1 || *field == NULL) {
+	if (handle_java_exception() == -1 || *field == NULL) {
 		ms_error("Could not get field %s[%s]", name, sig);
 		return false;
 	}
@@ -137,7 +138,8 @@ static bool _getFieldID(JNIEnv *env, jclass _class, const char *name, const char
 bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const char *mime_type) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject jcodec = NULL;
-	jclass mediaCodecClass = NULL, imageClass = NULL, planeClass = NULL, rectClass = NULL, mediaBufferInfoClass = NULL, BundleClass = NULL;
+	jclass mediaCodecClass = NULL, imageClass = NULL, planeClass = NULL, rectClass = NULL, mediaBufferInfoClass = NULL,
+	       BundleClass = NULL;
 	jmethodID createMethod = NULL;
 	jstring msg = NULL;
 	bool success = true;
@@ -153,21 +155,30 @@ bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const 
 		goto error;
 	}
 
-	success &= _getStaticMethodID(env, mediaCodecClass, createName, "(Ljava/lang/String;)Landroid/media/MediaCodec;", &createMethod);
-	success &= _getMethodID(env, mediaCodecClass, "configure", "(Landroid/media/MediaFormat;Landroid/view/Surface;Landroid/media/MediaCrypto;I)V", &(codec->configure));
+	success &= _getStaticMethodID(env, mediaCodecClass, createName, "(Ljava/lang/String;)Landroid/media/MediaCodec;",
+	                              &createMethod);
+	success &= _getMethodID(env, mediaCodecClass, "configure",
+	                        "(Landroid/media/MediaFormat;Landroid/view/Surface;Landroid/media/MediaCrypto;I)V",
+	                        &(codec->configure));
 	success &= _getMethodID(env, mediaCodecClass, "reset", "()V", &(codec->reset));
 	success &= _getMethodID(env, mediaCodecClass, "start", "()V", &(codec->start));
 	success &= _getMethodID(env, mediaCodecClass, "release", "()V", &(codec->release));
 	success &= _getMethodID(env, mediaCodecClass, "flush", "()V", &(codec->flush));
 	success &= _getMethodID(env, mediaCodecClass, "stop", "()V", &(codec->stop));
-	success &= _getMethodID(env, mediaCodecClass, "getInputBuffer", "(I)Ljava/nio/ByteBuffer;", &(codec->getInputBuffer));
-	success &= _getMethodID(env, mediaCodecClass, "getOutputBuffer","(I)Ljava/nio/ByteBuffer;", &(codec->getOutputBuffer));
+	success &=
+	    _getMethodID(env, mediaCodecClass, "getInputBuffer", "(I)Ljava/nio/ByteBuffer;", &(codec->getInputBuffer));
+	success &=
+	    _getMethodID(env, mediaCodecClass, "getOutputBuffer", "(I)Ljava/nio/ByteBuffer;", &(codec->getOutputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "dequeueInputBuffer", "(J)I", &(codec->dequeueInputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "queueInputBuffer", "(IIIJI)V", &(codec->queueInputBuffer));
-	success &= _getMethodID(env, mediaCodecClass, "dequeueOutputBuffer", "(Landroid/media/MediaCodec$BufferInfo;J)I", &(codec->dequeueOutputBuffer));
-	success &= _getMethodID(env, mediaCodecClass, "getOutputFormat", "()Landroid/media/MediaFormat;", &(codec->getOutputFormat));
-	success &= _getMethodID(env, mediaCodecClass, "getInputImage", "(I)Landroid/media/Image;", &(codec->getInputImageMethod));
-	success &= _getMethodID(env, mediaCodecClass, "getOutputImage", "(I)Landroid/media/Image;", &(codec->getOutputImageMethod));
+	success &= _getMethodID(env, mediaCodecClass, "dequeueOutputBuffer", "(Landroid/media/MediaCodec$BufferInfo;J)I",
+	                        &(codec->dequeueOutputBuffer));
+	success &= _getMethodID(env, mediaCodecClass, "getOutputFormat", "()Landroid/media/MediaFormat;",
+	                        &(codec->getOutputFormat));
+	success &=
+	    _getMethodID(env, mediaCodecClass, "getInputImage", "(I)Landroid/media/Image;", &(codec->getInputImageMethod));
+	success &= _getMethodID(env, mediaCodecClass, "getOutputImage", "(I)Landroid/media/Image;",
+	                        &(codec->getOutputImageMethod));
 	success &= _getMethodID(env, mediaCodecClass, "releaseOutputBuffer", "(IZ)V", &(codec->releaseOutputBuffer));
 	success &= _getMethodID(env, mediaCodecClass, "setParameters", "(Landroid/os/Bundle;)V", &(codec->setParameters));
 	success &= _getMethodID(env, imageClass, "getFormat", "()I", &(codec->getFormatMethod));
@@ -180,16 +191,16 @@ bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const 
 	success &= _getMethodID(env, planeClass, "getRowStride", "()I", &(codec->getRowStrideMethod));
 	success &= _getMethodID(env, planeClass, "getBuffer", "()Ljava/nio/ByteBuffer;", &(codec->getBufferMethod));
 	success &= _getMethodID(env, mediaBufferInfoClass, "<init>", "()V", &(codec->_init_mediaBufferInfoClass));
-	success &= _getMethodID(env, BundleClass,"<init>","()V", &(codec->_init_BundleClass));
-	success &= _getMethodID(env, BundleClass,"putInt","(Ljava/lang/String;I)V", &(codec->putIntId));
+	success &= _getMethodID(env, BundleClass, "<init>", "()V", &(codec->_init_BundleClass));
+	success &= _getMethodID(env, BundleClass, "putInt", "(Ljava/lang/String;I)V", &(codec->putIntId));
 	success &= _getFieldID(env, rectClass, "bottom", "I", &(codec->bottomField));
 	success &= _getFieldID(env, rectClass, "left", "I", &(codec->leftField));
 	success &= _getFieldID(env, rectClass, "right", "I", &(codec->rightField));
 	success &= _getFieldID(env, rectClass, "top", "I", &(codec->topField));
-	success &= _getFieldID(env, mediaBufferInfoClass, "size" , "I", &(codec->size));
-	success &= _getFieldID(env, mediaBufferInfoClass, "flags" , "I", &(codec->flags));
-	success &= _getFieldID(env, mediaBufferInfoClass, "offset" , "I", &(codec->offset));
-	if(!success) {
+	success &= _getFieldID(env, mediaBufferInfoClass, "size", "I", &(codec->size));
+	success &= _getFieldID(env, mediaBufferInfoClass, "flags", "I", &(codec->flags));
+	success &= _getFieldID(env, mediaBufferInfoClass, "offset", "I", &(codec->offset));
+	if (!success) {
 		ms_error("%s(): one method or field could not be found", __FUNCTION__);
 		goto error;
 	}
@@ -214,7 +225,7 @@ bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const 
 	env->DeleteLocalRef(msg);
 	return true;
 
-	error:
+error:
 	if (mediaCodecClass) env->DeleteLocalRef(mediaCodecClass);
 	if (jcodec) env->DeleteLocalRef(jcodec);
 	if (imageClass) env->DeleteLocalRef(imageClass);
@@ -225,7 +236,7 @@ bool AMediaCodec_loadMethodID(const char *createName, AMediaCodec *codec, const 
 	return false;
 }
 
-AMediaCodec * AMediaCodec_createDecoderByType(const char *mime_type) {
+AMediaCodec *AMediaCodec_createDecoderByType(const char *mime_type) {
 	AMediaCodec *codec = ms_new0(AMediaCodec, 1);
 	if (!AMediaCodec_loadMethodID("createDecoderByType", codec, mime_type)) {
 		ms_free(codec);
@@ -234,7 +245,7 @@ AMediaCodec * AMediaCodec_createDecoderByType(const char *mime_type) {
 	return codec;
 }
 
-AMediaCodec* AMediaCodec_createEncoderByType(const char *mime_type) {
+AMediaCodec *AMediaCodec_createEncoderByType(const char *mime_type) {
 	AMediaCodec *codec = ms_new0(AMediaCodec, 1);
 	if (!AMediaCodec_loadMethodID("createEncoderByType", codec, mime_type)) {
 		ms_free(codec);
@@ -243,7 +254,11 @@ AMediaCodec* AMediaCodec_createEncoderByType(const char *mime_type) {
 	return codec;
 }
 
-media_status_t AMediaCodec_configure(AMediaCodec *codec, const AMediaFormat* format, ANativeWindow* surface, AMediaCrypto *crypto, uint32_t flags) {
+media_status_t AMediaCodec_configure(AMediaCodec *codec,
+                                     const AMediaFormat *format,
+                                     BCTBX_UNUSED(ANativeWindow *surface),
+                                     BCTBX_UNUSED(AMediaCrypto *crypto),
+                                     uint32_t flags) {
 	JNIEnv *env = ms_get_jni_env();
 
 	env->CallVoidMethod(codec->jcodec, codec->configure, format->jformat, NULL, NULL, flags);
@@ -282,41 +297,40 @@ media_status_t AMediaCodec_stop(AMediaCodec *codec) {
 	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
 }
 
-
-uint8_t* AMediaCodec_getInputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
+uint8_t *AMediaCodec_getInputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject jbuf = NULL;
 	uint8_t *buf = NULL;
 
-	jbuf = env->CallObjectMethod(codec->jcodec, codec->getInputBuffer, (jint) idx);
-	if(jbuf != NULL){
+	jbuf = env->CallObjectMethod(codec->jcodec, codec->getInputBuffer, (jint)idx);
+	if (jbuf != NULL) {
 		jlong capacity = env->GetDirectBufferCapacity(jbuf);
-		*out_size = (size_t) capacity;
-		buf = (uint8_t *) env->GetDirectBufferAddress(jbuf);
+		*out_size = (size_t)capacity;
+		buf = (uint8_t *)env->GetDirectBufferAddress(jbuf);
 		env->DeleteLocalRef(jbuf);
 	} else {
-			ms_error("getInputBuffer() failed !");
-			env->ExceptionClear();
+		ms_error("getInputBuffer() failed !");
+		env->ExceptionClear();
 	}
 	handle_java_exception();
 	return buf;
 }
 
-uint8_t* AMediaCodec_getOutputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
+uint8_t *AMediaCodec_getOutputBuffer(AMediaCodec *codec, size_t idx, size_t *out_size) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject jbuf = NULL;
 	uint8_t *buf = NULL;
 	jlong capacity;
 
-	jbuf = env->CallObjectMethod(codec->jcodec, codec->getOutputBuffer, (jint) idx);
-	if (jbuf != NULL){
-		buf = (uint8_t *) env->GetDirectBufferAddress(jbuf);
+	jbuf = env->CallObjectMethod(codec->jcodec, codec->getOutputBuffer, (jint)idx);
+	if (jbuf != NULL) {
+		buf = (uint8_t *)env->GetDirectBufferAddress(jbuf);
 		capacity = env->GetDirectBufferCapacity(jbuf);
-		*out_size = (size_t) capacity;
+		*out_size = (size_t)capacity;
 		env->DeleteLocalRef(jbuf);
 	} else {
-			ms_error("getOutputBuffer() failed !");
-			env->ExceptionClear();
+		ms_error("getOutputBuffer() failed !");
+		env->ExceptionClear();
 	}
 	handle_java_exception();
 	return buf;
@@ -330,10 +344,11 @@ ssize_t AMediaCodec_dequeueInputBuffer(AMediaCodec *codec, int64_t timeoutUs) {
 
 	/*return value to notify the exception*/
 	/*otherwise, if -1 is returned as index, it just means that no buffer are available at this time (not an error)*/
-	return (handle_java_exception() == -1) ? AMEDIA_ERROR_UNKNOWN : (ssize_t) jindex;
+	return (handle_java_exception() == -1) ? AMEDIA_ERROR_UNKNOWN : (ssize_t)jindex;
 }
 
-media_status_t AMediaCodec_queueInputBuffer(AMediaCodec *codec, size_t idx, off_t offset, size_t size, uint64_t time, uint32_t flags) {
+media_status_t
+AMediaCodec_queueInputBuffer(AMediaCodec *codec, size_t idx, off_t offset, size_t size, uint64_t time, uint32_t flags) {
 	JNIEnv *env = ms_get_jni_env();
 
 	env->CallVoidMethod(codec->jcodec, codec->queueInputBuffer, idx, offset, size, time, flags);
@@ -348,7 +363,7 @@ ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInf
 	jclass mediaBufferInfoClass;
 
 	/* We can't stock jclass information due to JNIEnv difference between different threads */
-	if(!_loadClass(env, "android/media/MediaCodec$BufferInfo", &mediaBufferInfoClass)) {
+	if (!_loadClass(env, "android/media/MediaCodec$BufferInfo", &mediaBufferInfoClass)) {
 		ms_error("%s(): one class could not be found", __FUNCTION__);
 		env->ExceptionClear();
 		return AMEDIA_ERROR_UNKNOWN;
@@ -356,13 +371,14 @@ ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInf
 
 	jinfo = env->NewObject(mediaBufferInfoClass, codec->_init_mediaBufferInfoClass);
 
-	jindex = env->CallIntMethod(codec->jcodec, codec->dequeueOutputBuffer , jinfo, timeoutUs);
+	jindex = env->CallIntMethod(codec->jcodec, codec->dequeueOutputBuffer, jinfo, timeoutUs);
 	if (env->ExceptionCheck()) {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 		ms_error("Exception");
 		jindex = AMEDIA_ERROR_UNKNOWN; /*return value to notify the exception*/
-		/*otherwise, if -1 is returned as index, it just means that no buffer are available at this time (not an error)*/
+		/*otherwise, if -1 is returned as index, it just means that no buffer are available at this time (not an
+		 * error)*/
 	}
 
 	if (jindex >= 0) {
@@ -373,10 +389,10 @@ ssize_t AMediaCodec_dequeueOutputBuffer(AMediaCodec *codec, AMediaCodecBufferInf
 
 	env->DeleteLocalRef(mediaBufferInfoClass);
 	env->DeleteLocalRef(jinfo);
-	return (ssize_t) jindex;
+	return (ssize_t)jindex;
 }
 
-AMediaFormat* AMediaCodec_getOutputFormat(AMediaCodec *codec) {
+AMediaFormat *AMediaCodec_getOutputFormat(AMediaCodec *codec) {
 	AMediaFormat *format = AMediaFormat_new();
 	JNIEnv *env = ms_get_jni_env();
 	jobject jformat = NULL;
@@ -393,7 +409,7 @@ AMediaFormat* AMediaCodec_getOutputFormat(AMediaCodec *codec) {
 	return format;
 }
 
-media_status_t AMediaCodec_releaseOutputBuffer(AMediaCodec *codec, size_t idx, bool render) {
+media_status_t AMediaCodec_releaseOutputBuffer(AMediaCodec *codec, size_t idx, BCTBX_UNUSED(bool render)) {
 	JNIEnv *env = ms_get_jni_env();
 	env->CallVoidMethod(codec->jcodec, codec->releaseOutputBuffer, (int)idx, FALSE);
 	return (handle_java_exception() == -1) ? AMEDIA_ERROR_BASE : AMEDIA_OK;
@@ -406,10 +422,10 @@ media_status_t AMediaCodec_reset(AMediaCodec *codec) {
 	return AMEDIA_OK;
 }
 
-static void putToBundle(JNIEnv *env, AMediaCodec *codec, jobject jbundle, AMediaFormat *fmt, const char *key){
+static void putToBundle(JNIEnv *env, AMediaCodec *codec, jobject jbundle, AMediaFormat *fmt, const char *key) {
 	int32_t value = 0;
-	
-	if (AMediaFormat_getInt32(fmt, key, &value)){
+
+	if (AMediaFormat_getInt32(fmt, key, &value)) {
 		jstring jkey = env->NewStringUTF(key);
 		env->CallVoidMethod(jbundle, codec->putIntId, jkey, value);
 		handle_java_exception();
@@ -418,11 +434,10 @@ static void putToBundle(JNIEnv *env, AMediaCodec *codec, jobject jbundle, AMedia
 	}
 }
 
-void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat * fmt) {
+void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat *fmt) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject jbundle = NULL;
 	jclass BundleClass = NULL;
-	
 
 	/* We can't stock jclass information due to JNIEnv difference between different threads */
 	if (!_loadClass(env, "android/os/Bundle", &BundleClass)) {
@@ -448,12 +463,12 @@ static bool _getImage(JNIEnv *env, AMediaCodec *codec, const bool isInput, int i
 	int bottom, left, right, top;
 	bool success = TRUE;
 
-	jimage = (isInput) ?
-		env->CallObjectMethod(codec->jcodec, codec->getInputImageMethod, index):
-		env->CallObjectMethod(codec->jcodec, codec->getOutputImageMethod, index);
+	jimage = (isInput) ? env->CallObjectMethod(codec->jcodec, codec->getInputImageMethod, index)
+	                   : env->CallObjectMethod(codec->jcodec, codec->getOutputImageMethod, index);
 
-	if(handle_java_exception() == -1 || jimage == NULL) {
-		ms_error("%s(): could not get the %s image with index [%d]", __FUNCTION__, (isInput) ? "input" : "output", index);
+	if (handle_java_exception() == -1 || jimage == NULL) {
+		ms_error("%s(): could not get the %s image with index [%d]", __FUNCTION__, (isInput) ? "input" : "output",
+		         index);
 		success = FALSE;
 		goto end;
 	}
@@ -464,7 +479,7 @@ static bool _getImage(JNIEnv *env, AMediaCodec *codec, const bool isInput, int i
 	image->timestamp = env->CallLongMethod(jimage, codec->getTimestrampMethod);
 
 	jrect = env->CallObjectMethod(jimage, codec->getCropRectMethod);
-	if(jrect == NULL) {
+	if (jrect == NULL) {
 		ms_error("%s: could not get crop rectangle", __FUNCTION__);
 		success = FALSE;
 		goto end;
@@ -480,15 +495,15 @@ static bool _getImage(JNIEnv *env, AMediaCodec *codec, const bool isInput, int i
 
 	jplanes = reinterpret_cast<jobjectArray>(env->CallObjectMethod(jimage, codec->getPlanesMethod));
 	image->nplanes = env->GetArrayLength(jplanes);
-	for(int i=0; i<image->nplanes; i++) {
+	for (int i = 0; i < image->nplanes; i++) {
 		jobject jplane = env->GetObjectArrayElement(jplanes, i);
 		image->pixel_strides[i] = env->CallIntMethod(jplane, codec->getPixelStrideMethod);
-		if(env->ExceptionCheck()) {
+		if (env->ExceptionCheck()) {
 			image->pixel_strides[i] = -1;
 			env->ExceptionClear();
 		}
 		image->row_strides[i] = env->CallIntMethod(jplane, codec->getRowStrideMethod);
-		if(env->ExceptionCheck()) {
+		if (env->ExceptionCheck()) {
 			image->row_strides[i] = -1;
 			env->ExceptionClear();
 		}
@@ -507,7 +522,7 @@ end:
 	return success;
 }
 
-bool AMediaCodec_getInputImage(AMediaCodec * codec, int index, AMediaImage *image) {
+bool AMediaCodec_getInputImage(AMediaCodec *codec, int index, AMediaImage *image) {
 	JNIEnv *env = ms_get_jni_env();
 	return _getImage(env, codec, TRUE, index, image);
 }
@@ -564,14 +579,13 @@ bool_t AMediaCodec_checkCodecAvailability(const char *mime) {
 	return res;
 }
 
-
 ////////////////////////////////////////////////////
 //                                                //
 //                 MEDIA FORMAT                   //
 //                                                //
 ////////////////////////////////////////////////////
 
-bool AMediaFormat_loadMethodID(AMediaFormat * format) {
+bool AMediaFormat_loadMethodID(AMediaFormat *format) {
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediaFormatClass = NULL;
 	jobject jformat = NULL;
@@ -580,18 +594,20 @@ bool AMediaFormat_loadMethodID(AMediaFormat * format) {
 	bool success = true;
 
 	success &= _loadClass(env, "android/media/MediaFormat", &mediaFormatClass);
-	if(!success) {
+	if (!success) {
 		ms_error("%s(): one class could not be found", __FUNCTION__);
 		goto error;
 	}
 
-	success &= _getStaticMethodID(env, mediaFormatClass, "createVideoFormat", "(Ljava/lang/String;II)Landroid/media/MediaFormat;", &createID);
+	success &= _getStaticMethodID(env, mediaFormatClass, "createVideoFormat",
+	                              "(Ljava/lang/String;II)Landroid/media/MediaFormat;", &createID);
 	success &= _getMethodID(env, mediaFormatClass, "setInteger", "(Ljava/lang/String;I)V", &(format->setInteger));
 	success &= _getMethodID(env, mediaFormatClass, "getInteger", "(Ljava/lang/String;)I", &(format->getInteger));
-	success &= _getMethodID(env, mediaFormatClass, "setString", "(Ljava/lang/String;Ljava/lang/String;)V", &(format->setString));
+	success &= _getMethodID(env, mediaFormatClass, "setString", "(Ljava/lang/String;Ljava/lang/String;)V",
+	                        &(format->setString));
 	success &= _getMethodID(env, mediaFormatClass, "containsKey", "(Ljava/lang/String;)Z", &(format->containsKey));
 	success &= _getMethodID(env, mediaFormatClass, "toString", "()Ljava/lang/String;", &(format->toString));
-	if(!success) {
+	if (!success) {
 		ms_error("%s(): one method or field could not be found", __FUNCTION__);
 		goto error;
 	}
@@ -609,14 +625,14 @@ bool AMediaFormat_loadMethodID(AMediaFormat * format) {
 	env->DeleteLocalRef(msg);
 	return true;
 
-	error:
+error:
 	if (mediaFormatClass) env->DeleteLocalRef(mediaFormatClass);
 	if (jformat) env->DeleteLocalRef(jformat);
 	if (msg) env->DeleteLocalRef(msg);
 	return false;
 }
 
-//STUB
+// STUB
 AMediaFormat *AMediaFormat_new(void) {
 	AMediaFormat *format = ms_new0(AMediaFormat, 1);
 
@@ -627,7 +643,7 @@ AMediaFormat *AMediaFormat_new(void) {
 	return format;
 }
 
-media_status_t AMediaFormat_delete(AMediaFormat* format) {
+media_status_t AMediaFormat_delete(AMediaFormat *format) {
 	JNIEnv *env = ms_get_jni_env();
 
 	env->DeleteGlobalRef(format->jformat);
@@ -647,7 +663,7 @@ const char *AMediaFormat_toString(AMediaFormat *format) {
 	return format->description.c_str();
 }
 
-bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out){
+bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out) {
 	JNIEnv *env = ms_get_jni_env();
 	bool hasValue;
 
@@ -655,12 +671,11 @@ bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out)
 		ms_error("Format null");
 		return false;
 	}
-	
 
 	jstring jkey = env->NewStringUTF(name);
 	hasValue = env->CallBooleanMethod(format->jformat, format->containsKey, jkey);
-	
-	if (hasValue){
+
+	if (hasValue) {
 		jint jout = env->CallIntMethod(format->jformat, format->getInteger, jkey);
 		*out = jout;
 	}
@@ -669,7 +684,7 @@ bool AMediaFormat_getInt32(AMediaFormat *format, const char *name, int32_t *out)
 	return hasValue;
 }
 
-void AMediaFormat_setInt32(AMediaFormat *format, const char* name, int32_t value) {
+void AMediaFormat_setInt32(AMediaFormat *format, const char *name, int32_t value) {
 	JNIEnv *env = ms_get_jni_env();
 	jstring jkey = env->NewStringUTF(name);
 	env->CallVoidMethod(format->jformat, format->setInteger, jkey, value);
@@ -677,7 +692,7 @@ void AMediaFormat_setInt32(AMediaFormat *format, const char* name, int32_t value
 	handle_java_exception();
 }
 
-void AMediaFormat_setString(AMediaFormat *format, const char* key, const char* name) {
+void AMediaFormat_setString(AMediaFormat *format, const char *key, const char *name) {
 	JNIEnv *env = ms_get_jni_env();
 
 	jstring jkey = env->NewStringUTF(key);

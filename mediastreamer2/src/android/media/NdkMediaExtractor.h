@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /*
  * This file defines an NDK API.
  * Do not remove methods.
@@ -31,8 +30,8 @@
 #include <sys/types.h>
 
 #include "NdkMediaCodec.h"
-#include "NdkMediaFormat.h"
 #include "NdkMediaCrypto.h"
+#include "NdkMediaFormat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,36 +40,35 @@ extern "C" {
 struct AMediaExtractor;
 typedef struct AMediaExtractor AMediaExtractor;
 
-
 /**
  * Create new media extractor
  */
-AMediaExtractor* AMediaExtractor_new();
+AMediaExtractor *AMediaExtractor_new();
 
 /**
  * Delete a previously created media extractor
  */
-media_status_t AMediaExtractor_delete(AMediaExtractor*);
+media_status_t AMediaExtractor_delete(AMediaExtractor *);
 
 /**
  *  Set the file descriptor from which the extractor will read.
  */
-media_status_t AMediaExtractor_setDataSourceFd(AMediaExtractor*, int fd, off64_t offset, off64_t length);
+media_status_t AMediaExtractor_setDataSourceFd(AMediaExtractor *, int fd, off64_t offset, off64_t length);
 
 /**
  * Set the URI from which the extractor will read.
  */
-media_status_t AMediaExtractor_setDataSource(AMediaExtractor*, const char *location); // TODO support headers
+media_status_t AMediaExtractor_setDataSource(AMediaExtractor *, const char *location); // TODO support headers
 
 /**
  * Return the number of tracks in the previously specified media file
  */
-size_t AMediaExtractor_getTrackCount(AMediaExtractor*);
+size_t AMediaExtractor_getTrackCount(AMediaExtractor *);
 
 /**
  * Return the format of the specified track. The caller must free the returned format
  */
-AMediaFormat* AMediaExtractor_getTrackFormat(AMediaExtractor*, size_t idx);
+AMediaFormat *AMediaExtractor_getTrackFormat(AMediaExtractor *, size_t idx);
 
 /**
  * Select the specified track. Subsequent calls to readSampleData, getSampleTrackIndex and
@@ -78,82 +76,80 @@ AMediaFormat* AMediaExtractor_getTrackFormat(AMediaExtractor*, size_t idx);
  * Selecting the same track multiple times has no effect, the track is
  * only selected once.
  */
-media_status_t AMediaExtractor_selectTrack(AMediaExtractor*, size_t idx);
+media_status_t AMediaExtractor_selectTrack(AMediaExtractor *, size_t idx);
 
 /**
  * Unselect the specified track. Subsequent calls to readSampleData, getSampleTrackIndex and
  * getSampleTime only retrieve information for the subset of tracks selected..
  */
-media_status_t AMediaExtractor_unselectTrack(AMediaExtractor*, size_t idx);
+media_status_t AMediaExtractor_unselectTrack(AMediaExtractor *, size_t idx);
 
 /**
  * Read the current sample.
  */
-ssize_t AMediaExtractor_readSampleData(AMediaExtractor*, uint8_t *buffer, size_t capacity);
+ssize_t AMediaExtractor_readSampleData(AMediaExtractor *, uint8_t *buffer, size_t capacity);
 
 /**
  * Read the current sample's flags.
  */
-uint32_t AMediaExtractor_getSampleFlags(AMediaExtractor*); // see definitions below
+uint32_t AMediaExtractor_getSampleFlags(AMediaExtractor *); // see definitions below
 
 /**
  * Returns the track index the current sample originates from (or -1
  * if no more samples are available)
  */
-int AMediaExtractor_getSampleTrackIndex(AMediaExtractor*);
+int AMediaExtractor_getSampleTrackIndex(AMediaExtractor *);
 
 /**
  * Returns the current sample's presentation time in microseconds.
  * or -1 if no more samples are available.
  */
-int64_t AMediaExtractor_getSampleTime(AMediaExtractor*);
+int64_t AMediaExtractor_getSampleTime(AMediaExtractor *);
 
 /**
  * Advance to the next sample. Returns false if no more sample data
  * is available (end of stream).
  */
-bool AMediaExtractor_advance(AMediaExtractor*);
+bool AMediaExtractor_advance(AMediaExtractor *);
 
 typedef enum {
-    AMEDIAEXTRACTOR_SEEK_PREVIOUS_SYNC,
-    AMEDIAEXTRACTOR_SEEK_NEXT_SYNC,
-    AMEDIAEXTRACTOR_SEEK_CLOSEST_SYNC
+	AMEDIAEXTRACTOR_SEEK_PREVIOUS_SYNC,
+	AMEDIAEXTRACTOR_SEEK_NEXT_SYNC,
+	AMEDIAEXTRACTOR_SEEK_CLOSEST_SYNC
 } SeekMode;
 
 /**
  *
  */
-media_status_t AMediaExtractor_seekTo(AMediaExtractor*, int64_t seekPosUs, SeekMode mode);
+media_status_t AMediaExtractor_seekTo(AMediaExtractor *, int64_t seekPosUs, SeekMode mode);
 
 /**
  * mapping of crypto scheme uuid to the scheme specific data for that scheme
  */
 typedef struct PsshEntry {
-    AMediaUUID uuid;
-    size_t datalen;
-    void *data;
+	AMediaUUID uuid;
+	size_t datalen;
+	void *data;
 } PsshEntry;
 
 /**
  * list of crypto schemes and their data
  */
 typedef struct PsshInfo {
-    size_t numentries;
-    PsshEntry entries[0];
+	size_t numentries;
+	PsshEntry entries[0];
 } PsshInfo;
 
 /**
  * Get the PSSH info if present.
  */
-PsshInfo* AMediaExtractor_getPsshInfo(AMediaExtractor*);
-
+PsshInfo *AMediaExtractor_getPsshInfo(AMediaExtractor *);
 
 AMediaCodecCryptoInfo *AMediaExtractor_getSampleCryptoInfo(AMediaExtractor *);
 
-
 enum {
-    AMEDIAEXTRACTOR_SAMPLE_FLAG_SYNC = 1,
-    AMEDIAEXTRACTOR_SAMPLE_FLAG_ENCRYPTED = 2,
+	AMEDIAEXTRACTOR_SAMPLE_FLAG_SYNC = 1,
+	AMEDIAEXTRACTOR_SAMPLE_FLAG_ENCRYPTED = 2,
 };
 
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,6 +20,6 @@
 #ifndef scaler_h
 #define scaler_h
 
-void img_ycrcb420p_to_bgra(uint8_t* src[],unsigned short w,unsigned short h, uint32_t dest[]) ;
+void img_ycrcb420p_to_bgra(uint8_t *src[], unsigned short w, unsigned short h, uint32_t dest[]);
 
 #endif

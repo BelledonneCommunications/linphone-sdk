@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,24 +18,26 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bctoolbox/defs.h>
+
 #ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
 #include "gitversion.h"
+#include "mediastreamer-config.h"
 #else
-#   ifndef MEDIASTREAMER_VERSION
-#   define MEDIASTREAMER_VERSION "unknown"
-#   endif
+#ifndef MEDIASTREAMER_VERSION
+#define MEDIASTREAMER_VERSION "unknown"
+#endif
 #endif
 
 #ifndef MS2_GIT_VERSION
 #define MS2_GIT_VERSION "unknown"
 #endif
 
-#include "mediastreamer2/msfilter.h"
+#include "basedescs.h"
 #include "mediastreamer2/mseventqueue.h"
+#include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/mswebcam.h"
-#include "basedescs.h"
 
 #if !defined(_WIN32_WCE)
 #include <sys/types.h>
@@ -65,15 +67,15 @@
 #endif
 
 #ifdef __APPLE__
-   #include "TargetConditionals.h"
-   #include "apple_utils.h"
+#include "TargetConditionals.h"
+#include "apple_utils.h"
 #endif
 
 #ifdef __QNX__
 #include <sys/syspage.h>
 #endif
 
-MS2_DEPRECATED static MSFactory *fallback_factory=NULL;
+MS2_DEPRECATED static MSFactory *fallback_factory = NULL;
 
 static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj);
 
@@ -87,26 +89,26 @@ int ms_factory_get_payload_max_size(const MSFactory *factory) {
 	return factory->max_payload_size;
 }
 
-void ms_factory_set_payload_max_size(MSFactory *obj, int size){
-	if (size<=0) size=DEFAULT_MAX_PAYLOAD_SIZE;
-	obj->max_payload_size=size;
+void ms_factory_set_payload_max_size(MSFactory *obj, int size) {
+	if (size <= 0) size = DEFAULT_MAX_PAYLOAD_SIZE;
+	obj->max_payload_size = size;
 }
 #ifdef _WIN32
-#define MS_MTU_DEFAULT 1460	// Limited by WSock2
+#define MS_MTU_DEFAULT 1460 // Limited by WSock2
 #else
 #define MS_MTU_DEFAULT 1500
 #endif
 
-void ms_factory_set_mtu(MSFactory *obj, int mtu){
+void ms_factory_set_mtu(MSFactory *obj, int mtu) {
 	/*60= IPv6+UDP+RTP overhead */
-	if (mtu>60){
-		obj->mtu=mtu;
-		ms_factory_set_payload_max_size(obj,mtu-60);
-	}else {
-		if (mtu>0){
-			ms_warning("MTU is too short: %i bytes, using default value instead.",mtu);
+	if (mtu > 60) {
+		obj->mtu = mtu;
+		ms_factory_set_payload_max_size(obj, mtu - 60);
+	} else {
+		if (mtu > 0) {
+			ms_warning("MTU is too short: %i bytes, using default value instead.", mtu);
 		}
-		ms_factory_set_mtu(obj,MS_MTU_DEFAULT);
+		ms_factory_set_mtu(obj, MS_MTU_DEFAULT);
 	}
 }
 
@@ -119,7 +121,7 @@ void ms_factory_set_echo_canceller_filter_name(MSFactory *obj, const char *filte
 	obj->echo_canceller_filtername = ms_strdup(filtername);
 }
 
-const char * ms_factory_get_echo_canceller_filter_name(const MSFactory *obj) {
+const char *ms_factory_get_echo_canceller_filter_name(const MSFactory *obj) {
 	return obj->echo_canceller_filtername;
 }
 
@@ -139,36 +141,37 @@ void ms_factory_add_platform_tag(MSFactory *obj, const char *tag) {
 	}
 }
 
-bctbx_list_t * ms_factory_get_platform_tags(MSFactory *obj) {
+bctbx_list_t *ms_factory_get_platform_tags(MSFactory *obj) {
 	return obj->platform_tags;
 }
 
-char * ms_factory_get_platform_tags_as_string(MSFactory *obj) {
+char *ms_factory_get_platform_tags_as_string(MSFactory *obj) {
 	return ms_tags_list_as_string(obj->platform_tags);
 }
 
-struct _MSVideoPresetsManager * ms_factory_get_video_presets_manager(MSFactory *factory) {
+struct _MSVideoPresetsManager *ms_factory_get_video_presets_manager(MSFactory *factory) {
 	return factory->video_presets_manager;
 }
 
-static int compare_stats_with_name(const MSFilterStats *stat, const char *name){
-	return strcmp(stat->name,name);
+static int compare_stats_with_name(const MSFilterStats *stat, const char *name) {
+	return strcmp(stat->name, name);
 }
 
-static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *desc){
-	bctbx_list_t *elem=bctbx_list_find_custom(factory->stats_list,(bctbx_compare_func)compare_stats_with_name,desc->name);
-	MSFilterStats *ret=NULL;
-	if (elem==NULL){
-		ret=ms_new0(MSFilterStats,1);
-		ret->name=desc->name;
-		factory->stats_list=bctbx_list_append(factory->stats_list,ret);
-	}else ret=(MSFilterStats*)elem->data;
+static MSFilterStats *find_or_create_stats(MSFactory *factory, MSFilterDesc *desc) {
+	bctbx_list_t *elem =
+	    bctbx_list_find_custom(factory->stats_list, (bctbx_compare_func)compare_stats_with_name, desc->name);
+	MSFilterStats *ret = NULL;
+	if (elem == NULL) {
+		ret = ms_new0(MSFilterStats, 1);
+		ret->name = desc->name;
+		factory->stats_list = bctbx_list_append(factory->stats_list, ret);
+	} else ret = (MSFilterStats *)elem->data;
 	return ret;
 }
 
-void ms_factory_init(MSFactory *obj){
+void ms_factory_init(MSFactory *obj) {
 	int i;
-	long num_cpu=1;
+	long num_cpu = 1;
 	char *debug_log_enabled = NULL;
 	char *tags;
 #ifdef _WIN32
@@ -176,34 +179,35 @@ void ms_factory_init(MSFactory *obj){
 #endif
 
 #if defined(ENABLE_NLS)
-	bindtextdomain (GETTEXT_PACKAGE, LOCALEDIR);
+	bindtextdomain(GETTEXT_PACKAGE, LOCALEDIR);
 #endif
 #ifndef MS2_WINDOWS_UNIVERSAL
-	debug_log_enabled=getenv("MEDIASTREAMER_DEBUG");
+	debug_log_enabled = getenv("MEDIASTREAMER_DEBUG");
 #endif
-	if (debug_log_enabled!=NULL && (strcmp("1",debug_log_enabled)==0) ){
+	if (debug_log_enabled != NULL && (strcmp("1", debug_log_enabled) == 0)) {
 		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE);
 	}
 
 	ms_message("Mediastreamer2 factory " MEDIASTREAMER_VERSION " (git: " MS2_GIT_VERSION ") initialized.");
 	/* register builtin MSFilter's */
-	for (i=0;ms_base_filter_descs[i]!=NULL;i++){
-		ms_factory_register_filter(obj,ms_base_filter_descs[i]);
+	for (i = 0; ms_base_filter_descs[i] != NULL; i++) {
+		ms_factory_register_filter(obj, ms_base_filter_descs[i]);
 	}
 
 #ifdef _WIN32 /*fixme to be tested*/
-	GetNativeSystemInfo( &sysinfo );
+	GetNativeSystemInfo(&sysinfo);
 
 	num_cpu = sysinfo.dwNumberOfProcessors;
 #elif __APPLE__ || __linux__
-	num_cpu = sysconf( _SC_NPROCESSORS_CONF); /*check the number of processors configured, not just the one that are currently active.*/
+	num_cpu = sysconf(_SC_NPROCESSORS_CONF); /*check the number of processors configured, not just the one that are
+	                                            currently active.*/
 #elif __QNX__
 	num_cpu = _syspage_ptr->num_cpu;
 #else
 #warning "There is no code that detects the number of CPU for this platform."
 #endif
-	ms_factory_set_cpu_count(obj,num_cpu);
-	ms_factory_set_mtu(obj,MS_MTU_DEFAULT);
+	ms_factory_set_cpu_count(obj, num_cpu);
+	ms_factory_set_mtu(obj, MS_MTU_DEFAULT);
 #ifdef _WIN32
 	ms_factory_add_platform_tag(obj, "win32");
 #ifdef MS2_WINDOWS_PHONE
@@ -247,74 +251,70 @@ void ms_factory_init(MSFactory *obj){
 	obj->image_resources_dir = bctbx_strdup_printf("%s/images", PACKAGE_DATA_DIR);
 }
 
-
-
-MSFactory *ms_factory_new(void){
-	MSFactory *obj=ms_new0(MSFactory,1);
+MSFactory *ms_factory_new(void) {
+	MSFactory *obj = ms_new0(MSFactory, 1);
 	ms_factory_init(obj);
 	return obj;
 }
 
-
-void ms_factory_register_filter(MSFactory* factory, MSFilterDesc* desc ) {
-	if (desc->id==MS_FILTER_NOT_SET_ID){
-		ms_fatal("MSFilterId for %s not set !",desc->name);
+void ms_factory_register_filter(MSFactory *factory, MSFilterDesc *desc) {
+	if (desc->id == MS_FILTER_NOT_SET_ID) {
+		ms_fatal("MSFilterId for %s not set !", desc->name);
 	}
 
 	if (ms_filter_desc_implements_interface(desc, MSFilterVideoEncoderInterface)) {
-		MSFilterMethod *methods=desc->methods;
+		MSFilterMethod *methods = desc->methods;
 		int i;
-		for(i=0;methods!=NULL && methods[i].method!=NULL; i++) {
-			if (methods[i].id==MS_FILTER_GET_BITRATE || methods[i].id==MS_FILTER_SET_BITRATE
-				|| methods[i].id==MS_FILTER_GET_VIDEO_SIZE || methods[i].id==MS_FILTER_SET_VIDEO_SIZE
-				|| methods[i].id==MS_FILTER_GET_FPS || methods[i].id==MS_FILTER_SET_FPS
-				|| methods[i].id==MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST
-			) {
-				ms_error("MSFilter %s is using a deprecated method (id=%i)",desc->name,methods[i].id);
+		for (i = 0; methods != NULL && methods[i].method != NULL; i++) {
+			if (methods[i].id == MS_FILTER_GET_BITRATE || methods[i].id == MS_FILTER_SET_BITRATE ||
+			    methods[i].id == MS_FILTER_GET_VIDEO_SIZE || methods[i].id == MS_FILTER_SET_VIDEO_SIZE ||
+			    methods[i].id == MS_FILTER_GET_FPS || methods[i].id == MS_FILTER_SET_FPS ||
+			    methods[i].id == MS_VIDEO_ENCODER_SET_CONFIGURATION_LIST) {
+				ms_error("MSFilter %s is using a deprecated method (id=%i)", desc->name, methods[i].id);
 				return;
 			}
 		}
 	}
 
-	desc->flags|=MS_FILTER_IS_ENABLED; /*by default a registered filter is enabled*/
+	desc->flags |= MS_FILTER_IS_ENABLED; /*by default a registered filter is enabled*/
 
 	/*lastly registered encoder/decoders may replace older ones*/
-	factory->desc_list=bctbx_list_prepend(factory->desc_list,desc);
+	factory->desc_list = bctbx_list_prepend(factory->desc_list, desc);
 }
 
-bool_t ms_factory_codec_supported(MSFactory* factory, const char *mime) {
-	return ms_factory_has_encoder(factory, mime) &&	ms_factory_has_decoder(factory, mime);
+bool_t ms_factory_codec_supported(MSFactory *factory, const char *mime) {
+	return ms_factory_has_encoder(factory, mime) && ms_factory_has_decoder(factory, mime);
 }
 
-bool_t ms_factory_has_encoder(MSFactory* factory, const char *mime) {
+bool_t ms_factory_has_encoder(MSFactory *factory, const char *mime) {
 	MSFilterDesc *enc = ms_factory_get_encoding_capturer(factory, mime);
 
 	if (enc == NULL) enc = ms_factory_get_encoder(factory, mime);
 
-	if(enc!=NULL) return TRUE;
+	if (enc != NULL) return TRUE;
 
-	if(enc==NULL) ms_message("Could not find encoder for %s", mime);
+	if (enc == NULL) ms_message("Could not find encoder for %s", mime);
 	return FALSE;
 }
 
-bool_t ms_factory_has_decoder(MSFactory* factory, const char *mime) {
+bool_t ms_factory_has_decoder(MSFactory *factory, const char *mime) {
 	MSFilterDesc *dec = ms_factory_get_decoding_renderer(factory, mime);
 
 	if (dec == NULL) dec = ms_factory_get_decoder(factory, mime);
 
-	if(dec!=NULL) return TRUE;
+	if (dec != NULL) return TRUE;
 
-	if(dec==NULL) ms_message("Could not find decoder for %s", mime);
+	if (dec == NULL) ms_message("Could not find decoder for %s", mime);
 	return FALSE;
 }
 
-MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory* factory, const char *mime) {
+MSFilterDesc *ms_factory_get_encoding_capturer(MSFactory *factory, const char *mime) {
 	bctbx_list_t *elem;
 
 	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_ENCODING_CAPTURER) {
-			char *saveptr=NULL;
+			char *saveptr = NULL;
 			char *enc_fmt = ms_strdup(desc->enc_fmt);
 			char *token = strtok_r(enc_fmt, " ", &saveptr);
 			while (token != NULL) {
@@ -330,13 +330,13 @@ MSFilterDesc * ms_factory_get_encoding_capturer(MSFactory* factory, const char *
 	return NULL;
 }
 
-MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory* factory, const char *mime) {
+MSFilterDesc *ms_factory_get_decoding_renderer(MSFactory *factory, const char *mime) {
 	bctbx_list_t *elem;
 
 	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
 		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
 		if (desc->category == MS_FILTER_DECODER_RENDERER) {
-			char *saveptr=NULL;
+			char *saveptr = NULL;
 			char *enc_fmt = ms_strdup(desc->enc_fmt);
 			char *token = strtok_r(enc_fmt, " ", &saveptr);
 			while (token != NULL) {
@@ -352,145 +352,142 @@ MSFilterDesc * ms_factory_get_decoding_renderer(MSFactory* factory, const char *
 	return NULL;
 }
 
-MSFilterDesc * ms_factory_get_encoder(MSFactory* factory, const char *mime){
+MSFilterDesc *ms_factory_get_encoder(MSFactory *factory, const char *mime) {
 	bctbx_list_t *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if ((desc->flags & MS_FILTER_IS_ENABLED)
-			&& (desc->category==MS_FILTER_ENCODER || desc->category==MS_FILTER_ENCODING_CAPTURER)
-			&& strcasecmp(desc->enc_fmt,mime)==0){
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
+		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
+		if ((desc->flags & MS_FILTER_IS_ENABLED) &&
+		    (desc->category == MS_FILTER_ENCODER || desc->category == MS_FILTER_ENCODING_CAPTURER) &&
+		    strcasecmp(desc->enc_fmt, mime) == 0) {
 			return desc;
 		}
 	}
 	return NULL;
 }
 
-MSFilterDesc * ms_factory_get_decoder(MSFactory* factory, const char *mime){
+MSFilterDesc *ms_factory_get_decoder(MSFactory *factory, const char *mime) {
 	bctbx_list_t *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if ((desc->flags & MS_FILTER_IS_ENABLED)
-			&& (desc->category==MS_FILTER_DECODER || desc->category==MS_FILTER_DECODER_RENDERER)
-			&& strcasecmp(desc->enc_fmt,mime)==0){
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
+		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
+		if ((desc->flags & MS_FILTER_IS_ENABLED) &&
+		    (desc->category == MS_FILTER_DECODER || desc->category == MS_FILTER_DECODER_RENDERER) &&
+		    strcasecmp(desc->enc_fmt, mime) == 0) {
 			return desc;
 		}
 	}
 	return NULL;
 }
 
-MSFilter * ms_factory_create_encoder(MSFactory* factory, const char *mime){
-	MSFilterDesc *desc=ms_factory_get_encoder(factory,mime);
-	if (desc!=NULL) return ms_factory_create_filter_from_desc(factory,desc);
+MSFilter *ms_factory_create_encoder(MSFactory *factory, const char *mime) {
+	MSFilterDesc *desc = ms_factory_get_encoder(factory, mime);
+	if (desc != NULL) return ms_factory_create_filter_from_desc(factory, desc);
 	return NULL;
 }
 
-MSFilter * ms_factory_create_decoder(MSFactory* factory, const char *mime){
-	//MSFilterDesc *desc=ms_filter_get_decoder(mime);
+MSFilter *ms_factory_create_decoder(MSFactory *factory, const char *mime) {
+	// MSFilterDesc *desc=ms_filter_get_decoder(mime);
 	MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
-	if (desc!=NULL) return ms_factory_create_filter_from_desc(factory,desc);
+	if (desc != NULL) return ms_factory_create_filter_from_desc(factory, desc);
 	return NULL;
 }
 
-MSFilter *ms_factory_create_filter_from_desc(MSFactory* factory, MSFilterDesc *desc){
+MSFilter *ms_factory_create_filter_from_desc(MSFactory *factory, MSFilterDesc *desc) {
 	MSFilter *obj;
-	obj=(MSFilter *)ms_new0(MSFilter,1);
-	ms_mutex_init(&obj->lock,NULL);
-	obj->desc=desc;
-	if (desc->ninputs>0)	obj->inputs=(MSQueue**)ms_new0(MSQueue*,desc->ninputs);
-	if (desc->noutputs>0)	obj->outputs=(MSQueue**)ms_new0(MSQueue*,desc->noutputs);
+	obj = (MSFilter *)ms_new0(MSFilter, 1);
+	ms_mutex_init(&obj->lock, NULL);
+	obj->desc = desc;
+	if (desc->ninputs > 0) obj->inputs = (MSQueue **)ms_new0(MSQueue *, desc->ninputs);
+	if (desc->noutputs > 0) obj->outputs = (MSQueue **)ms_new0(MSQueue *, desc->noutputs);
 
-	if (factory->statistics_enabled){
-		obj->stats=find_or_create_stats(factory,desc);
+	if (factory->statistics_enabled) {
+		obj->stats = find_or_create_stats(factory, desc);
 	}
-	obj->factory=factory;
-	if (obj->desc->init!=NULL)
-		obj->desc->init(obj);
+	obj->factory = factory;
+	if (obj->desc->init != NULL) obj->desc->init(obj);
 	return obj;
 }
 
-struct _MSSndCardManager* ms_factory_get_snd_card_manager(MSFactory *factory){
+struct _MSSndCardManager *ms_factory_get_snd_card_manager(MSFactory *factory) {
 	return factory->sndcardmanager;
 }
 
-struct _MSWebCamManager* ms_factory_get_web_cam_manager(MSFactory* f){
+struct _MSWebCamManager *ms_factory_get_web_cam_manager(MSFactory *f) {
 	return f->wbcmanager;
 }
 
-MSFilter *ms_factory_create_filter(MSFactory* factory, MSFilterId id){
+MSFilter *ms_factory_create_filter(MSFactory *factory, MSFilterId id) {
 	MSFilterDesc *desc;
-	if (id==MS_FILTER_PLUGIN_ID){
+	if (id == MS_FILTER_PLUGIN_ID) {
 		ms_warning("cannot create plugin filters with ms_filter_new_from_id()");
 		return NULL;
 	}
-	desc=ms_factory_lookup_filter_by_id(factory,id);
-	if (desc) return ms_factory_create_filter_from_desc(factory,desc);
-	ms_error("No such filter with id %i",id);
+	desc = ms_factory_lookup_filter_by_id(factory, id);
+	if (desc) return ms_factory_create_filter_from_desc(factory, desc);
+	ms_error("No such filter with id %i", id);
 	return NULL;
 }
 
-MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory* factory, const char *filter_name){
+MSFilterDesc *ms_factory_lookup_filter_by_name(const MSFactory *factory, const char *filter_name) {
 	bctbx_list_t *elem;
-	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (strcmp(desc->name,filter_name)==0){
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
+		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
+		if (strcmp(desc->name, filter_name) == 0) {
 			return desc;
 		}
 	}
 	return NULL;
 }
 
-MSFilterDesc* ms_factory_lookup_filter_by_id( MSFactory* factory, MSFilterId id){
+MSFilterDesc *ms_factory_lookup_filter_by_id(MSFactory *factory, MSFilterId id) {
 	bctbx_list_t *elem;
 
-	for (elem=factory->desc_list;elem!=NULL;elem=bctbx_list_next(elem)){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (desc->id==id){
+	for (elem = factory->desc_list; elem != NULL; elem = bctbx_list_next(elem)) {
+		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
+		if (desc->id == id) {
 			return desc;
 		}
 	}
 	return NULL;
 }
 
-bctbx_list_t *ms_factory_lookup_filter_by_interface(MSFactory* factory, MSFilterInterfaceId id){
-	bctbx_list_t *ret=NULL;
+bctbx_list_t *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilterInterfaceId id) {
+	bctbx_list_t *ret = NULL;
 	bctbx_list_t *elem;
-	for(elem=factory->desc_list;elem!=NULL;elem=elem->next){
-		MSFilterDesc *desc=(MSFilterDesc*)elem->data;
-		if (ms_filter_desc_implements_interface(desc,id))
-			ret=bctbx_list_append(ret,desc);
+	for (elem = factory->desc_list; elem != NULL; elem = elem->next) {
+		MSFilterDesc *desc = (MSFilterDesc *)elem->data;
+		if (ms_filter_desc_implements_interface(desc, id)) ret = bctbx_list_append(ret, desc);
 	}
 	return ret;
 }
 
-MSFilter *ms_factory_create_filter_from_name(MSFactory* factory, const char *filter_name){
-	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory, filter_name);
-	if (desc==NULL) return NULL;
-	return ms_factory_create_filter_from_desc(factory,desc);
+MSFilter *ms_factory_create_filter_from_name(MSFactory *factory, const char *filter_name) {
+	MSFilterDesc *desc = ms_factory_lookup_filter_by_name(factory, filter_name);
+	if (desc == NULL) return NULL;
+	return ms_factory_create_filter_from_desc(factory, desc);
 }
 
-void ms_factory_enable_statistics(MSFactory* obj, bool_t enabled){
-	obj->statistics_enabled=enabled;
+void ms_factory_enable_statistics(MSFactory *obj, bool_t enabled) {
+	obj->statistics_enabled = enabled;
 }
 
-const bctbx_list_t * ms_factory_get_statistics(MSFactory* obj){
+const bctbx_list_t *ms_factory_get_statistics(MSFactory *obj) {
 	return obj->stats_list;
 }
 
-void ms_factory_reset_statistics(MSFactory *obj){
+void ms_factory_reset_statistics(MSFactory *obj) {
 	bctbx_list_t *elem;
 
-	for(elem=obj->stats_list;elem!=NULL;elem=elem->next){
-		MSFilterStats *stats=(MSFilterStats *)elem->data;
+	for (elem = obj->stats_list; elem != NULL; elem = elem->next) {
+		MSFilterStats *stats = (MSFilterStats *)elem->data;
 		ms_u_box_plot_reset(&stats->bp_elapsed);
 	}
 }
 
-static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2){
-	if (s1->bp_elapsed.mean ==s2->bp_elapsed.mean) return 0;
+static int usage_compare(const MSFilterStats *s1, const MSFilterStats *s2) {
+	if (s1->bp_elapsed.mean == s2->bp_elapsed.mean) return 0;
 	if (s1->bp_elapsed.mean < s2->bp_elapsed.mean) return 1;
 	return -1;
 }
-
 
 void ms_factory_log_statistics(MSFactory *obj) {
 	bctbx_list_t *sorted = NULL;
@@ -513,14 +510,15 @@ void ms_factory_log_statistics(MSFactory *obj) {
 		double max = stats->bp_elapsed.max * 1e-6;
 		double sd = ms_u_box_plot_get_standard_deviation(&stats->bp_elapsed) * 1e-6;
 		double percentage = total == 0.0 ? 0.0 : 100.0 * stats->bp_elapsed.mean / total;
-		ms_message("%-29s %-9llu %-7.2f %-7.2f %-7.2f %-7.2f %9.1f", stats->name, (long long unsigned)stats->bp_elapsed.count, min, mean, max, sd, percentage);
+		ms_message("%-29s %-9llu %-7.2f %-7.2f %-7.2f %-7.2f %9.1f", stats->name,
+		           (long long unsigned)stats->bp_elapsed.count, min, mean, max, sd, percentage);
 	}
 	ms_message("=================================================================================");
 	bctbx_list_free(sorted);
 }
 
 #ifndef PLUGINS_EXT
-	#define PLUGINS_EXT ".so"
+#define PLUGINS_EXT ".so"
 #endif
 typedef void (*init_func_t)(MSFactory *);
 
@@ -552,7 +550,7 @@ static bool_t ms_factory_dlopen_plugin(MSFactory *factory, const char *plugin_pa
 	}
 
 #ifdef __APPLE__
-	if (initroutine ==  NULL){
+	if (initroutine == NULL) {
 		char *p = NULL;
 		/* on macosx: library name are libxxxx.1.2.3.dylib */
 		/* -> MUST remove the .1.2.3 */
@@ -581,7 +579,9 @@ static bool_t ms_factory_dlopen_plugin(MSFactory *factory, const char *plugin_pa
 	return plugin_loaded;
 }
 
-int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *plugins_list, const char *optionnal_plugins_path) {
+int ms_factory_load_plugins_from_list(MSFactory *factory,
+                                      const bctbx_list_t *plugins_list,
+                                      const char *optionnal_plugins_path) {
 	size_t num = 0;
 	size_t plugins_list_size = 0;
 	const bctbx_list_t *it = NULL;
@@ -594,7 +594,7 @@ int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *pl
 	plugins_list_size = bctbx_list_size(plugins_list);
 
 	for (it = plugins_list; it != NULL; it = bctbx_list_next(it)) {
-		const char *plugin_name = (const char*)bctbx_list_get_data(it);
+		const char *plugin_name = (const char *)bctbx_list_get_data(it);
 #if defined(HAVE_DLOPEN)
 		if (ms_factory_dlopen_plugin(factory, optionnal_plugins_path, plugin_name)) {
 			num++;
@@ -611,8 +611,8 @@ int ms_factory_load_plugins_from_list(MSFactory *factory, const bctbx_list_t *pl
 	return (int)num;
 }
 
-int ms_factory_load_plugins(MSFactory *factory, const char *dir){
-	int num=0;
+int ms_factory_load_plugins(MSFactory *factory, const char *dir) {
+	int num = 0;
 #if defined(_WIN32) && !defined(_WIN32_WCE)
 	WIN32_FIND_DATA FileData;
 	HANDLE hSearch;
@@ -639,18 +639,16 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 #else
 	hSearch = FindFirstFileExA(szDirPath, FindExInfoStandard, &FileData, FindExSearchNameMatch, NULL, 0);
 #endif
-	if (hSearch == INVALID_HANDLE_VALUE)
-	{
+	if (hSearch == INVALID_HANDLE_VALUE) {
 		ms_message("no plugin (*.dll) found in [%s] [%d].", szDirPath, (int)GetLastError());
 		return 0;
 	}
 	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
 
-	while (!fFinished)
-	{
+	while (!fFinished) {
 		/* load library */
 #ifdef MS2_WINDOWS_DESKTOP
-		UINT em=0;
+		UINT em = 0;
 #endif
 		HINSTANCE os_handle;
 #ifdef UNICODE
@@ -663,29 +661,27 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 		snprintf(szPluginFile, sizeof(szPluginFile), "%s\\%s", szDirPath, FileData.cFileName);
 #endif
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
-		if (!debug) em = SetErrorMode (SEM_FAILCRITICALERRORS);
+		if (!debug) em = SetErrorMode(SEM_FAILCRITICALERRORS);
 
 #ifdef UNICODE
 		os_handle = LoadLibraryExW(wszPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
 		os_handle = LoadLibraryExA(szPluginFile, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
 #endif
-		if (os_handle==NULL)
-		{
-			ms_message("Fail to load plugin %s with altered search path: error %i",szPluginFile,(int)GetLastError());
+		if (os_handle == NULL) {
+			ms_message("Fail to load plugin %s with altered search path: error %i", szPluginFile, (int)GetLastError());
 #ifdef UNICODE
 			os_handle = LoadLibraryExW(wszPluginFile, NULL, 0);
 #else
 			os_handle = LoadLibraryExA(szPluginFile, NULL, 0);
 #endif
 		}
-		if (!debug) SetErrorMode (em);
+		if (!debug) SetErrorMode(em);
 #else
 		os_handle = LoadPackagedLibrary(wszPluginFile, 0);
 #endif
-		if (os_handle==NULL)
-			ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());
-		else{
+		if (os_handle == NULL) ms_error("Fail to load plugin %s: error %i", szPluginFile, (int)GetLastError());
+		else {
 			init_func_t initroutine;
 			char szPluginName[256];
 			char szMethodName[256];
@@ -696,28 +692,25 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 			snprintf(szPluginName, sizeof(szPluginName), "%s", FileData.cFileName);
 #endif
 			/*on mingw, dll names might be libsomething-3.dll. We must skip the -X.dll stuff*/
-			minus=strchr(szPluginName,'-');
-			if (minus) *minus='\0';
-			else szPluginName[strlen(szPluginName)-4]='\0'; /*remove .dll*/
+			minus = strchr(szPluginName, '-');
+			if (minus) *minus = '\0';
+			else szPluginName[strlen(szPluginName) - 4] = '\0'; /*remove .dll*/
 			snprintf(szMethodName, sizeof(szMethodName), "%s_init", szPluginName);
-			initroutine = (init_func_t) GetProcAddress (os_handle, szMethodName);
-				if (initroutine!=NULL){
-					initroutine(factory);
-					ms_message("Plugin loaded (%s)", szPluginFile);
-					// Add this new loaded plugin to the list (useful for FreeLibrary at the end)
-					factory->ms_plugins_loaded_list=bctbx_list_append(factory->ms_plugins_loaded_list,os_handle);
-					num++;
-				}else{
-					ms_warning("Could not locate init routine of plugin %s. Should be %s",
-					szPluginFile, szMethodName);
-				}
+			initroutine = (init_func_t)GetProcAddress(os_handle, szMethodName);
+			if (initroutine != NULL) {
+				initroutine(factory);
+				ms_message("Plugin loaded (%s)", szPluginFile);
+				// Add this new loaded plugin to the list (useful for FreeLibrary at the end)
+				factory->ms_plugins_loaded_list = bctbx_list_append(factory->ms_plugins_loaded_list, os_handle);
+				num++;
+			} else {
+				ms_warning("Could not locate init routine of plugin %s. Should be %s", szPluginFile, szMethodName);
+			}
 		}
 		if (!FindNextFile(hSearch, &FileData)) {
-			if (GetLastError() == ERROR_NO_MORE_FILES){
+			if (GetLastError() == ERROR_NO_MORE_FILES) {
 				fFinished = TRUE;
-			}
-			else
-			{
+			} else {
 				ms_error("couldn't find next plugin dll.");
 				fFinished = TRUE;
 			}
@@ -732,17 +725,17 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	bctbx_list_t *loaded_plugins = NULL;
 	struct dirent *de;
 	char *ext;
-	ds=opendir(dir);
-	if (ds==NULL){
-		ms_message("Cannot open directory %s: %s",dir,strerror(errno));
+	ds = opendir(dir);
+	if (ds == NULL) {
+		ms_message("Cannot open directory %s: %s", dir, strerror(errno));
 		return -1;
 	}
-	while( (de=readdir(ds))!=NULL){
+	while ((de = readdir(ds)) != NULL) {
 		if (
 #ifndef __QNX__
-			(de->d_type==DT_REG || de->d_type==DT_UNKNOWN || de->d_type==DT_LNK) &&
+		    (de->d_type == DT_REG || de->d_type == DT_UNKNOWN || de->d_type == DT_LNK) &&
 #endif
-			(strstr(de->d_name, "libms") == de->d_name) && ((ext=strstr(de->d_name,PLUGINS_EXT))!=NULL)) {
+		    (strstr(de->d_name, "libms") == de->d_name) && ((ext = strstr(de->d_name, PLUGINS_EXT)) != NULL)) {
 			snprintf(plugin_name, MIN(sizeof(plugin_name), (size_t)(ext - de->d_name + 1)), "%s", de->d_name);
 			if (bctbx_list_find_custom(loaded_plugins, (bctbx_compare_func)strcmp, plugin_name) != NULL) continue;
 			loaded_plugins = bctbx_list_append(loaded_plugins, ms_strdup(plugin_name));
@@ -756,40 +749,46 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir){
 	closedir(ds);
 #else
 	ms_warning("no loadable plugin support: plugins cannot be loaded.");
-	num=-1;
+	num = -1;
 #endif
 	return num;
 }
 
-void ms_factory_uninit_plugins(MSFactory *factory){
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif // _MSC_VER
+void ms_factory_uninit_plugins(MSFactory *factory) {
 #if defined(_WIN32)
 	bctbx_list_t *elem;
 #endif
 
 #if defined(_WIN32)
-	for(elem=factory->ms_plugins_loaded_list;elem!=NULL;elem=elem->next)
-	{
-		HINSTANCE handle=(HINSTANCE )elem->data;
+	for (elem = factory->ms_plugins_loaded_list; elem != NULL; elem = elem->next) {
+		HINSTANCE handle = (HINSTANCE)elem->data;
 		FreeLibrary(handle);
 	}
 
 	factory->ms_plugins_loaded_list = bctbx_list_free(factory->ms_plugins_loaded_list);
 #endif
 }
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif // _MSC_VER
 
 void ms_factory_init_plugins(MSFactory *obj) {
 	if (obj->plugins_dir == NULL) {
 #ifdef __APPLE__
-	char *dir = getPluginsDir();
-	if (dir != NULL) {
-	    //getPluginsDir returns an allocated str. No need to strdup
-	    obj->plugins_dir = dir;
-	}
+		char *dir = getPluginsDir();
+		if (dir != NULL) {
+			// getPluginsDir returns an allocated str. No need to strdup
+			obj->plugins_dir = dir;
+		}
 #else
 #ifdef PACKAGE_PLUGINS_DIR
-	obj->plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
+		obj->plugins_dir = ms_strdup(PACKAGE_PLUGINS_DIR);
 #else
-	obj->plugins_dir = ms_strdup("");
+		obj->plugins_dir = ms_strdup("");
 #endif
 #endif
 	}
@@ -820,71 +819,70 @@ void ms_factory_init_plugins(MSFactory *obj) {
 void ms_factory_set_plugins_dir(MSFactory *obj, const char *path) {
 	if (obj->plugins_dir != NULL) {
 		ms_free(obj->plugins_dir);
-		obj->plugins_dir=NULL;
+		obj->plugins_dir = NULL;
 	}
-	if (path)
-		obj->plugins_dir = ms_strdup(path);
+	if (path) obj->plugins_dir = ms_strdup(path);
 }
 
 struct _MSEventQueue *ms_factory_create_event_queue(MSFactory *obj) {
-	if (obj->evq==NULL){
-		obj->evq=ms_event_queue_new();
+	if (obj->evq == NULL) {
+		obj->evq = ms_event_queue_new();
 	}
 	return obj->evq;
 }
 
 void ms_factory_destroy_event_queue(MSFactory *obj) {
 	ms_event_queue_destroy(obj->evq);
-	ms_factory_set_event_queue(obj,NULL);
+	ms_factory_set_event_queue(obj, NULL);
 }
 
-
-struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj){
+struct _MSEventQueue *ms_factory_get_event_queue(MSFactory *obj) {
 	return obj->evq;
 }
 
 /*this function is for compatibility, when event queues were created by the application*/
-void ms_factory_set_event_queue(MSFactory *obj, MSEventQueue *evq){
-	obj->evq=evq;
+void ms_factory_set_event_queue(MSFactory *obj, MSEventQueue *evq) {
+	obj->evq = evq;
 }
 
-static int compare_fmt(const MSFmtDescriptor *a, const MSFmtDescriptor *b){
-	if (a->type!=b->type) return -1;
-	if (strcasecmp(a->encoding,b->encoding)!=0) return -1;
-	if (a->rate!=b->rate) return -1;
-	if (a->nchannels!=b->nchannels) return -1;
-	if (a->fmtp==NULL && b->fmtp!=NULL) return -1;
-	if (a->fmtp!=NULL && b->fmtp==NULL) return -1;
-	if (a->fmtp && b->fmtp && strcmp(a->fmtp,b->fmtp)!=0) return -1;
-	if (a->type==MSVideo){
-		if (a->vsize.width!=b->vsize.width || a->vsize.height!=b->vsize.height) return -1;
-		if (a->fps!=b->fps) return -1;
+static int compare_fmt(const MSFmtDescriptor *a, const MSFmtDescriptor *b) {
+	if (a->type != b->type) return -1;
+	if (strcasecmp(a->encoding, b->encoding) != 0) return -1;
+	if (a->rate != b->rate) return -1;
+	if (a->nchannels != b->nchannels) return -1;
+	if (a->fmtp == NULL && b->fmtp != NULL) return -1;
+	if (a->fmtp != NULL && b->fmtp == NULL) return -1;
+	if (a->fmtp && b->fmtp && strcmp(a->fmtp, b->fmtp) != 0) return -1;
+	if (a->type == MSVideo) {
+		if (a->vsize.width != b->vsize.width || a->vsize.height != b->vsize.height) return -1;
+		if (a->fps != b->fps) return -1;
 	}
 	return 0;
 }
 
-static MSFmtDescriptor * ms_fmt_descriptor_new_copy(const MSFmtDescriptor *orig){
-	MSFmtDescriptor *obj=ms_new0(MSFmtDescriptor,1);
-	obj->type=orig->type;
-	obj->rate=orig->rate;
-	obj->nchannels=orig->nchannels;
-	if (orig->fmtp) obj->fmtp=ms_strdup(orig->fmtp);
-	if (orig->encoding) obj->encoding=ms_strdup(orig->encoding);
-	obj->vsize=orig->vsize;
-	obj->fps=orig->fps;
+static MSFmtDescriptor *ms_fmt_descriptor_new_copy(const MSFmtDescriptor *orig) {
+	MSFmtDescriptor *obj = ms_new0(MSFmtDescriptor, 1);
+	obj->type = orig->type;
+	obj->rate = orig->rate;
+	obj->nchannels = orig->nchannels;
+	if (orig->fmtp) obj->fmtp = ms_strdup(orig->fmtp);
+	if (orig->encoding) obj->encoding = ms_strdup(orig->encoding);
+	obj->vsize = orig->vsize;
+	obj->fps = orig->fps;
 	return obj;
 }
 
-const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj){
-	MSFmtDescriptor *mutable_fmt=(MSFmtDescriptor*)obj;
+const char *ms_fmt_descriptor_to_string(const MSFmtDescriptor *obj) {
+	MSFmtDescriptor *mutable_fmt = (MSFmtDescriptor *)obj;
 	if (!obj) return "null";
-	if (obj->text==NULL){
-		if (obj->type==MSAudio){
-			mutable_fmt->text=ms_strdup_printf("type=audio;encoding=%s;rate=%i;channels=%i;fmtp='%s'",
-							 obj->encoding,obj->rate,obj->nchannels,obj->fmtp ? obj->fmtp : "");
-		}else{
-			mutable_fmt->text=ms_strdup_printf("type=video;encoding=%s;vsize=%ix%i;fps=%f;fmtp='%s'",
-							 obj->encoding,obj->vsize.width,obj->vsize.height,obj->fps,obj->fmtp ? obj->fmtp : "");
+	if (obj->text == NULL) {
+		if (obj->type == MSAudio) {
+			mutable_fmt->text = ms_strdup_printf("type=audio;encoding=%s;rate=%i;channels=%i;fmtp='%s'", obj->encoding,
+			                                     obj->rate, obj->nchannels, obj->fmtp ? obj->fmtp : "");
+		} else {
+			mutable_fmt->text =
+			    ms_strdup_printf("type=video;encoding=%s;vsize=%ix%i;fps=%f;fmtp='%s'", obj->encoding, obj->vsize.width,
+			                     obj->vsize.height, obj->fps, obj->fmtp ? obj->fmtp : "");
 		}
 	}
 	return obj->text;
@@ -895,93 +893,94 @@ bool_t ms_fmt_descriptor_equals(const MSFmtDescriptor *fmt1, const MSFmtDescript
 	return compare_fmt(fmt1, fmt2) == 0;
 }
 
-static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj){
+static void ms_fmt_descriptor_destroy(MSFmtDescriptor *obj) {
 	if (obj->encoding) ms_free(obj->encoding);
 	if (obj->fmtp) ms_free(obj->fmtp);
 	if (obj->text) ms_free(obj->text);
 	ms_free(obj);
 }
 
-const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref){
+const MSFmtDescriptor *ms_factory_get_format(MSFactory *obj, const MSFmtDescriptor *ref) {
 	MSFmtDescriptor *ret;
 	bctbx_list_t *found;
-	if ((found=bctbx_list_find_custom(obj->formats,(int (*)(const void*, const void*))compare_fmt, ref))==NULL){
-		obj->formats=bctbx_list_append(obj->formats,ret=ms_fmt_descriptor_new_copy(ref));
-	}else{
-		ret=(MSFmtDescriptor *)found->data;
+	if ((found = bctbx_list_find_custom(obj->formats, (int (*)(const void *, const void *))compare_fmt, ref)) == NULL) {
+		obj->formats = bctbx_list_append(obj->formats, ret = ms_fmt_descriptor_new_copy(ref));
+	} else {
+		ret = (MSFmtDescriptor *)found->data;
 	}
 	return ret;
 }
 
-const MSFmtDescriptor * ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp){
-	MSFmtDescriptor tmp={0};
-	tmp.type=MSAudio;
-	tmp.encoding=(char*)mime;
-	tmp.rate=rate;
-	tmp.nchannels=channels;
-	tmp.fmtp=(char*)fmtp;
-	return ms_factory_get_format(obj,&tmp);
+const MSFmtDescriptor *
+ms_factory_get_audio_format(MSFactory *obj, const char *mime, int rate, int channels, const char *fmtp) {
+	MSFmtDescriptor tmp = {0};
+	tmp.type = MSAudio;
+	tmp.encoding = (char *)mime;
+	tmp.rate = rate;
+	tmp.nchannels = channels;
+	tmp.fmtp = (char *)fmtp;
+	return ms_factory_get_format(obj, &tmp);
 }
 
-const MSFmtDescriptor * ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp){
-	MSFmtDescriptor tmp={0};
-	tmp.type=MSVideo;
-	tmp.encoding=(char*)mime;
-	tmp.rate=90000;
-	tmp.vsize=size;
-	tmp.fmtp=(char*)fmtp;
-	tmp.fps=fps;
-	return ms_factory_get_format(obj,&tmp);
+const MSFmtDescriptor *
+ms_factory_get_video_format(MSFactory *obj, const char *mime, MSVideoSize size, float fps, const char *fmtp) {
+	MSFmtDescriptor tmp = {0};
+	tmp.type = MSVideo;
+	tmp.encoding = (char *)mime;
+	tmp.rate = 90000;
+	tmp.vsize = size;
+	tmp.fmtp = (char *)fmtp;
+	tmp.fps = fps;
+	return ms_factory_get_format(obj, &tmp);
 }
 
 int ms_factory_enable_filter_from_name(MSFactory *factory, const char *name, bool_t enable) {
-	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
+	MSFilterDesc *desc = ms_factory_lookup_filter_by_name(factory, name);
 	if (!desc) {
-		ms_error("Cannot enable/disable unknown filter [%s] on factory [%p]",name,factory);
+		ms_error("Cannot enable/disable unknown filter [%s] on factory [%p]", name, factory);
 		return -1;
 	}
 	if (enable) desc->flags |= MS_FILTER_IS_ENABLED;
 	else desc->flags &= ~MS_FILTER_IS_ENABLED;
-	ms_message("Filter [%s]  %s on factory [%p]",name,(enable ? "enabled" : "disabled"),factory);
+	ms_message("Filter [%s]  %s on factory [%p]", name, (enable ? "enabled" : "disabled"), factory);
 	return 0;
 }
 
 bool_t ms_factory_filter_from_name_enabled(const MSFactory *factory, const char *name) {
-	MSFilterDesc *desc=ms_factory_lookup_filter_by_name(factory,name);
+	MSFilterDesc *desc = ms_factory_lookup_filter_by_name(factory, name);
 	if (!desc) {
-		ms_error("Cannot get enable/disable state for unknown filter [%s] on factory [%p]",name,factory);
+		ms_error("Cannot get enable/disable state for unknown filter [%s] on factory [%p]", name, factory);
 		return FALSE;
 	}
 	return !!(desc->flags & MS_FILTER_IS_ENABLED);
 }
 
-
-void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov){
-	if (bctbx_list_find(f->offer_answer_provider_list, offer_answer_prov)) return; /*avoid registering several time the same pointer*/
+void ms_factory_register_offer_answer_provider(MSFactory *f, MSOfferAnswerProvider *offer_answer_prov) {
+	if (bctbx_list_find(f->offer_answer_provider_list, offer_answer_prov))
+		return; /*avoid registering several time the same pointer*/
 	f->offer_answer_provider_list = bctbx_list_prepend(f->offer_answer_provider_list, offer_answer_prov);
 }
 
-MSOfferAnswerProvider * ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type){
+MSOfferAnswerProvider *ms_factory_get_offer_answer_provider(MSFactory *f, const char *mime_type) {
 	const bctbx_list_t *elem;
-	for (elem = f->offer_answer_provider_list; elem != NULL; elem = elem->next){
-		MSOfferAnswerProvider *prov = (MSOfferAnswerProvider*) elem->data;
-		if (strcasecmp(mime_type, prov->mime_type) == 0)
-			return prov;
+	for (elem = f->offer_answer_provider_list; elem != NULL; elem = elem->next) {
+		MSOfferAnswerProvider *prov = (MSOfferAnswerProvider *)elem->data;
+		if (strcasecmp(mime_type, prov->mime_type) == 0) return prov;
 	}
 	return NULL;
 }
 
-MSOfferAnswerContext * ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type){
+MSOfferAnswerContext *ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type) {
 	MSOfferAnswerProvider *prov = ms_factory_get_offer_answer_provider(f, mime_type);
 	if (prov) return prov->create_context();
 	return NULL;
 }
 
-MSDevicesInfo* ms_factory_get_devices_info(MSFactory *f) {
+MSDevicesInfo *ms_factory_get_devices_info(MSFactory *f) {
 	return f->devices_info;
 }
 
-const char * ms_factory_get_image_resources_dir(const MSFactory *f) {
+const char *ms_factory_get_image_resources_dir(const MSFactory *f) {
 	return f->image_resources_dir;
 }
 
@@ -990,8 +989,7 @@ void ms_factory_set_image_resources_dir(MSFactory *f, const char *path) {
 		bctbx_free(f->image_resources_dir);
 		f->image_resources_dir = NULL;
 	}
-	if (path)
-		f->image_resources_dir = bctbx_strdup(path);
+	if (path) f->image_resources_dir = bctbx_strdup(path);
 }
 
 void ms_factory_set_expected_bandwidth(MSFactory *f, int bitrate) {
@@ -1002,16 +1000,16 @@ int ms_factory_get_expected_bandwidth(MSFactory *f) {
 	return f->expected_video_bandwidth;
 }
 
-const char * ms_factory_get_default_video_renderer(MSFactory *f) {
+const char *ms_factory_get_default_video_renderer(BCTBX_UNUSED(MSFactory *f)) {
 #if defined(MS2_WINDOWS_PHONE)
 	return "MSWP8Dis";
-#elif defined(MS2_WINDOWS_DESKTOP) || defined (MS2_WINDOWS_UWP)
+#elif defined(MS2_WINDOWS_DESKTOP) || defined(MS2_WINDOWS_UWP)
 	return "MSOGL";
 #elif defined(__ANDROID__)
 	return "MSAndroidTextureDisplay";
 #elif __APPLE__ && !TARGET_OS_IPHONE
 	return "MSOSXGLDisplay";
-#elif defined (HAVE_XV)
+#elif defined(HAVE_XV)
 	return "MSX11Video";
 #elif defined(HAVE_GLX)
 	return "MSGLXVideo";
@@ -1024,49 +1022,55 @@ const char * ms_factory_get_default_video_renderer(MSFactory *f) {
 #endif
 }
 
-
 #ifdef __ANDROID__
 #include "sys/system_properties.h"
 #include <jni.h>
 
-
 #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
 
-JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(JNIEnv* env,  jobject obj, jlong factoryPtr, jstring jname, jboolean enable) {
-	MSFactory *factory = (MSFactory *) factoryPtr;
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_Factory_enableFilterFromName(
+    JNIEnv *env, BCTBX_UNUSED(jobject obj), jlong factoryPtr, jstring jname, jboolean enable) {
+	MSFactory *factory = (MSFactory *)factoryPtr;
 	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
 	int result = ms_factory_enable_filter_from_name(factory, name, enable);
 	(*env)->ReleaseStringUTFChars(env, jname, name);
 	return result;
 }
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv* env, jobject obj, jlong factoryPtr, jstring jname) {
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Factory_filterFromNameEnabled(JNIEnv *env,
+                                                                                       BCTBX_UNUSED(jobject obj),
+                                                                                       jlong factoryPtr,
+                                                                                       jstring jname) {
 	const char *name = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	MSFactory *factory = (MSFactory *) factoryPtr;
+	MSFactory *factory = (MSFactory *)factoryPtr;
 	jboolean result = ms_factory_filter_from_name_enabled(factory, name);
 	(*env)->ReleaseStringUTFChars(env, jname, name);
 	return result;
 }
 
-
-JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getEncoderText(JNIEnv* env, jobject obj,
-    jlong factoryPtr, jstring jmime) {
-	MSFactory *factory = (MSFactory*)factoryPtr;
+JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getEncoderText(JNIEnv *env,
+                                                                               BCTBX_UNUSED(jobject obj),
+                                                                               jlong factoryPtr,
+                                                                               jstring jmime) {
+	MSFactory *factory = (MSFactory *)factoryPtr;
 	const char *mime = (*env)->GetStringUTFChars(env, jmime, NULL);
 	jstring jtext = NULL;
-	if (mime){
+	if (mime) {
 		MSFilterDesc *desc = ms_factory_get_encoder(factory, mime);
-		if (desc) jtext =(*env)->NewStringUTF(env, desc->text);
+		if (desc) jtext = (*env)->NewStringUTF(env, desc->text);
 		(*env)->ReleaseStringUTFChars(env, jmime, mime);
 	}
 	return jtext;
 }
 
-JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getDecoderText(JNIEnv* env, jobject obj,
-    jlong factoryPtr, jstring jmime) {
-	MSFactory *factory = (MSFactory*)factoryPtr;
+JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getDecoderText(JNIEnv *env,
+                                                                               BCTBX_UNUSED(jobject obj),
+                                                                               jlong factoryPtr,
+                                                                               jstring jmime) {
+	MSFactory *factory = (MSFactory *)factoryPtr;
 	const char *mime = (*env)->GetStringUTFChars(env, jmime, NULL);
 	jstring jtext = NULL;
-	if (mime){
+	if (mime) {
 		MSFilterDesc *desc = ms_factory_get_decoder(factory, mime);
 		if (desc) jtext = (*env)->NewStringUTF(env, desc->text);
 		(*env)->ReleaseStringUTFChars(env, jmime, mime);
@@ -1080,34 +1084,37 @@ JNIEXPORT jstring JNICALL Java_org_linphone_mediastream_Factory_getDecoderText(J
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(JNIEnv* env,  jobject obj, jstring jname, jboolean enable) {
+JNIEXPORT jint JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(
+    JNIEnv *env, BCTBX_UNUSED(jobject obj), jstring jname, jboolean enable) {
 	const char *mime;
 	int result;
 	if (ms_factory_get_fallback() == NULL) {
-		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(): no fallback factory. Use Factory.enableFilterFromName()");
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_enableFilterFromNameImpl(): no fallback "
+		         "factory. Use Factory.enableFilterFromName()");
 		return -1;
 	}
 	mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(),mime,enable);
+	result = ms_factory_enable_filter_from_name(ms_factory_get_fallback(), mime, enable);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(JNIEnv* env, jobject obj, jstring jname) {
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(
+    JNIEnv *env, BCTBX_UNUSED(jobject obj), jstring jname) {
 	const char *mime;
 	jboolean result;
 	if (ms_factory_get_fallback() == NULL) {
-		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(): no fallback factory. Use Factory.filterFromNameEnabled()");
+		ms_error("Java_org_linphone_mediastream_MediastreamerAndroidContext_filterFromNameEnabledImpl(): no fallback "
+		         "factory. Use Factory.filterFromNameEnabled()");
 		return FALSE;
 	}
 	mime = jname ? (*env)->GetStringUTFChars(env, jname, NULL) : NULL;
-	result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(),mime);
+	result = ms_factory_filter_from_name_enabled(ms_factory_get_fallback(), mime);
 	(*env)->ReleaseStringUTFChars(env, jname, mime);
 	return result;
 }
 
 #endif
-
-
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
@@ -1116,14 +1123,14 @@ JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_MediastreamerAndroidCon
 #endif
 
 /**
-* Destroy the factory.
-* This should be done after destroying all objects created by the factory.
-**/
+ * Destroy the factory.
+ * This should be done after destroying all objects created by the factory.
+ **/
 void ms_factory_destroy(MSFactory *factory) {
 	if (factory->voip_uninit_func) factory->voip_uninit_func(factory);
 	ms_factory_uninit_plugins(factory);
 	if (factory->evq) ms_factory_destroy_event_queue(factory);
-	factory->formats = bctbx_list_free_with_data(factory->formats, (void(*)(void*))ms_fmt_descriptor_destroy);
+	factory->formats = bctbx_list_free_with_data(factory->formats, (void (*)(void *))ms_fmt_descriptor_destroy);
 	factory->desc_list = bctbx_list_free(factory->desc_list);
 	bctbx_list_for_each(factory->stats_list, ms_free);
 	factory->stats_list = bctbx_list_free(factory->stats_list);
@@ -1138,10 +1145,9 @@ void ms_factory_destroy(MSFactory *factory) {
 	if (factory == fallback_factory) fallback_factory = NULL;
 }
 
-
-MSFactory *ms_factory_create_fallback(void){
-	if (fallback_factory==NULL){
-		fallback_factory=ms_factory_new();
+MSFactory *ms_factory_create_fallback(void) {
+	if (fallback_factory == NULL) {
+		fallback_factory = ms_factory_new();
 	}
 	return fallback_factory;
 }
@@ -1149,12 +1155,11 @@ MSFactory *ms_factory_create_fallback(void){
 /**
  * Used by the legacy functions before MSFactory was added.
  * Do not use in an application.
-**/
-MSFactory *ms_factory_get_fallback(void){
+ **/
+MSFactory *ms_factory_get_fallback(void) {
 	return fallback_factory;
 }
 
 const MSList *ms_factory_get_filter_decs(const MSFactory *factory) {
 	return factory->desc_list;
 }
-

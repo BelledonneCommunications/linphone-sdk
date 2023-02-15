@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,9 +26,9 @@
 #include <ortp/b64.h>
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
-#include "h26x-decoder-filter.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
+#include "h26x-decoder-filter.h"
 
 #include "media-codec-h264-decoder.h"
 
@@ -37,7 +37,7 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecH264Decoder::MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {
+MediaCodecH264Decoder::MediaCodecH264Decoder() : MediaCodecDecoder("video/avc") {
 	DeviceInfo info = getDeviceInfo();
 	ms_message("MediaCodecH264Decoder: got device info: %s", info.toString().c_str());
 	if (find(_tvDevices.cbegin(), _tvDevices.cend(), info) != _tvDevices.cend()) {
@@ -46,7 +46,8 @@ MediaCodecH264Decoder::MediaCodecH264Decoder(): MediaCodecDecoder("video/avc") {
 	} else {
 		for (auto it = _tvDevices.cbegin(); it != _tvDevices.cend(); it++) {
 			if (info.weakEquals(*it)) {
-				ms_message("MediaCodecH264Decoder: found matching manufacturer/platform, enabling reset on new SPS/PPS mode");
+				ms_message(
+				    "MediaCodecH264Decoder: found matching manufacturer/platform, enabling reset on new SPS/PPS mode");
 				_resetOnPsReceiving = true;
 				return;
 			}
@@ -60,7 +61,8 @@ MediaCodecH264Decoder::~MediaCodecH264Decoder() {
 
 bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t timestamp) {
 	if (_resetOnPsReceiving) {
-		for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m); m = ms_queue_next(parameterSet, m)) {
+		for (mblk_t *m = ms_queue_peek_first(parameterSet); !ms_queue_end(parameterSet, m);
+		     m = ms_queue_next(parameterSet, m)) {
 			MSH264NaluType type = ms_h264_nalu_get_type(m);
 			if (type == MSH264NaluTypeSPS && isNewPps(m)) {
 				int32_t curWidth, curHeight;
@@ -68,12 +70,9 @@ bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 				AMediaFormat_getInt32(_format, "height", &curHeight);
 				MSVideoSize vsize = ms_h264_sps_get_video_size(m);
 				if (vsize.width != curWidth || vsize.height != curHeight) {
-					ms_message("MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
-					           curWidth,
-					           curHeight,
-					           vsize.width,
-					           vsize.height
-					          );
+					ms_message(
+					    "MediaCodecDecoder: restarting decoder because the video size has changed (%dx%d->%dx%d)",
+					    curWidth, curHeight, vsize.width, vsize.height);
 					AMediaFormat_setInt32(_format, "width", vsize.width);
 					AMediaFormat_setInt32(_format, "height", vsize.height);
 					stopImpl();
@@ -86,14 +85,11 @@ bool MediaCodecH264Decoder::setParameterSets(MSQueue *parameterSet, uint64_t tim
 }
 
 bool MediaCodecH264Decoder::DeviceInfo::operator==(const DeviceInfo &info) const {
-	return this->manufacturer == info.manufacturer
-		&& this->model == info.model
-		&& this->platform == info.platform;
+	return this->manufacturer == info.manufacturer && this->model == info.model && this->platform == info.platform;
 }
 
 bool MediaCodecH264Decoder::DeviceInfo::weakEquals(const DeviceInfo &info) const {
-	return this->manufacturer == info.manufacturer
-		&& this->platform == info.platform;
+	return this->manufacturer == info.manufacturer && this->platform == info.platform;
 }
 
 std::string MediaCodecH264Decoder::DeviceInfo::toString() const {
@@ -130,9 +126,10 @@ MediaCodecH264Decoder::DeviceInfo MediaCodecH264Decoder::getDeviceInfo() {
 	return DeviceInfo({manufacturer, model, platform});
 }
 
-class MediaCodecH264DecoderFilterImpl: public H26xDecoderFilter {
+class MediaCodecH264DecoderFilterImpl : public H26xDecoderFilter {
 public:
-	MediaCodecH264DecoderFilterImpl(MSFilter *f): H26xDecoderFilter(f, new MediaCodecH264Decoder()) {}
+	MediaCodecH264DecoderFilterImpl(MSFilter *f) : H26xDecoderFilter(f, new MediaCodecH264Decoder()) {
+	}
 	~MediaCodecH264DecoderFilterImpl() {
 		if (_sps) freemsg(_sps);
 		if (_pps) freemsg(_pps);
@@ -215,18 +212,21 @@ private:
 };
 
 const std::vector<const MediaCodecH264Decoder::DeviceInfo> MediaCodecH264Decoder::_tvDevices = {
-	{"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
-	{"rockchip", "X9-LX", "rk3288"},
-	{"rockchip", "rk3288", "rk3288"},
-	{"rockchip", "rk3399", "rk3399"},
-	{"rockchip", "rk3368", "rk3368"},
-	{"rockchip", "Sasincomm S09", "rk3126c"},
-	{"freescale", "Control4-imx8mm", "imx8"}
-};
+    {"Amlogic", "Quad-Core Enjoy TV Box", "gxl"},
+    {"rockchip", "X9-LX", "rk3288"},
+    {"rockchip", "rk3288", "rk3288"},
+    {"rockchip", "rk3399", "rk3399"},
+    {"rockchip", "rk3368", "rk3368"},
+    {"rockchip", "Sasincomm S09", "rk3126c"},
+    {"freescale", "Control4-imx8mm", "imx8"}};
 
-}
+} // namespace mediastreamer
 
 using namespace mediastreamer;
 
 MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH264Decoder);
-MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Decoder, MS_MEDIACODEC_H264_DEC_ID, "A H264 decoder based on MediaCodec API.", "H264", MS_FILTER_IS_PUMP);
+MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Decoder,
+                                                   MS_MEDIACODEC_H264_DEC_ID,
+                                                   "A H264 decoder based on MediaCodec API.",
+                                                   "H264",
+                                                   MS_FILTER_IS_PUMP);

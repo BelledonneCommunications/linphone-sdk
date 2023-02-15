@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,7 +31,8 @@ void ms_iframe_requests_limiter_request_iframe(MSIFrameRequestsLimiterCtx *obj) 
 }
 
 bool_t ms_iframe_requests_limiter_iframe_requested(const MSIFrameRequestsLimiterCtx *obj, uint64_t curtime) {
-	return obj->iframe_required && ( obj->last_sent_iframe_time == (uint64_t)-1 || (int)(curtime - obj->last_sent_iframe_time) > obj->min_iframe_interval);
+	return obj->iframe_required && (obj->last_sent_iframe_time == (uint64_t)-1 ||
+	                                (int)(curtime - obj->last_sent_iframe_time) > obj->min_iframe_interval);
 }
 
 void ms_iframe_requests_limiter_notify_iframe_sent(MSIFrameRequestsLimiterCtx *obj, uint64_t curtime) {

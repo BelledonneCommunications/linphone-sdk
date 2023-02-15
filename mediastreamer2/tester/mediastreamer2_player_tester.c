@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,27 +18,27 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2_tester.h"
-#include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/msmediaplayer.h"
+#include "mediastreamer2_tester.h"
 
 #ifdef VIDEO_ENABLED
-	#include "mediastreamer2/msogl_functions.h" // MSEGLContextDescriptor, EGLint, EGL_CONTEXT_MAJOR_VERSION, EGL_NONE, EGL_OPENGL_ES_API
-	#include "mediastreamer2/msogl.h" // MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT
+#include "mediastreamer2/msogl.h" // MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT
+#include "mediastreamer2/msogl_functions.h" // MSEGLContextDescriptor, EGLint, EGL_CONTEXT_MAJOR_VERSION, EGL_NONE, EGL_OPENGL_ES_API
 #endif
 
 #ifndef max
 #define max(a, b) ((a) > (b)) ? a : b
 #endif
 
-static MSFactory* _factory = NULL;
+static MSFactory *_factory = NULL;
 
 typedef enum {
-	PLAYER_TEST_NONE                 = 0b00000,
-	PLAYER_TEST_UNSUPPORTED_FORMAT   = 0b00001,
-	PLAYER_TEST_SEEKING              = 0b00010,
-	PLAYER_TEST_PLAY_TWICE           = 0b00100,
-	PLAYER_TEST_LOOP                 = 0b01000,
+	PLAYER_TEST_NONE = 0b00000,
+	PLAYER_TEST_UNSUPPORTED_FORMAT = 0b00001,
+	PLAYER_TEST_SEEKING = 0b00010,
+	PLAYER_TEST_PLAY_TWICE = 0b00100,
+	PLAYER_TEST_LOOP = 0b01000,
 	PLAYER_TEST_EGL_CONTEXT_FALLBACK = 0b10000
 } PlayerTestFlags;
 
@@ -72,7 +72,7 @@ static void eof_callback(void *user_data) {
 static void wait_for_neof(Eof *obj, int neof, int refresh_time_ms, int timeout_ms) {
 	int time_ms = 0;
 	ms_mutex_lock(&obj->mutex);
-	while(time_ms < timeout_ms && obj->neof < neof) {
+	while (time_ms < timeout_ms && obj->neof < neof) {
 		ms_mutex_unlock(&obj->mutex);
 		ms_usleep(refresh_time_ms * 1000);
 		time_ms += refresh_time_ms;
@@ -95,20 +95,20 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	BC_ASSERT_PTR_NOT_NULL(snd_card);
 	file_player = ms_media_player_new(_factory, snd_card, renderer, 0);
 	BC_ASSERT_PTR_NOT_NULL(file_player);
-	if(file_player == NULL) return;
+	if (file_player == NULL) return;
 
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	ms_media_player_set_eof_callback(file_player, eof_callback, &eof);
 
 	succeed = ms_media_player_open(file_player, filepath);
-	if(flags & PLAYER_TEST_UNSUPPORTED_FORMAT) {
+	if (flags & PLAYER_TEST_UNSUPPORTED_FORMAT) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 	} else {
 		BC_ASSERT_TRUE(succeed);
 		BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPaused, int, "%d");
 	}
-	if(!succeed) {
+	if (!succeed) {
 		ms_media_player_free(file_player);
 		return;
 	}
@@ -116,24 +116,21 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	duration = ms_media_player_get_duration(file_player);
 	BC_ASSERT_GREATER(duration, 0, int, "%d");
 
-	if(flags & PLAYER_TEST_SEEKING) {
+	if (flags & PLAYER_TEST_SEEKING) {
 		timeout = duration - seek_time;
 	} else {
 		timeout = duration;
 	}
-	if(flags & PLAYER_TEST_LOOP) {
+	if (flags & PLAYER_TEST_LOOP) {
 		int interval_time = 2000;
 		ms_media_player_set_loop(file_player, interval_time);
 		timeout += (duration + interval_time);
 	}
-	timeout = max( (int)(timeout * (1.0 + timeout_prec)) , 100);
+	timeout = max((int)(timeout * (1.0 + timeout_prec)), 100);
 
 #ifdef VIDEO_ENABLED
-	if(flags & PLAYER_TEST_EGL_CONTEXT_FALLBACK) {
-		static const EGLint impossible_version[] = {
-			EGL_CONTEXT_MAJOR_VERSION, -1,
-			EGL_NONE
-		};
+	if (flags & PLAYER_TEST_EGL_CONTEXT_FALLBACK) {
+		static const EGLint impossible_version[] = {EGL_CONTEXT_MAJOR_VERSION, -1, EGL_NONE};
 		static MSEGLContextDescriptor impossible_context = {EGL_OPENGL_ES_API, impossible_version};
 
 		ms_media_player_prepare(file_player);
@@ -146,12 +143,12 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	BC_ASSERT_TRUE(succeed);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerPlaying, int, "%d");
 
-	if(flags & PLAYER_TEST_SEEKING) {
+	if (flags & PLAYER_TEST_SEEKING) {
 		BC_ASSERT_TRUE(ms_media_player_seek(file_player, seek_time));
 	}
 
-	if(succeed) {
-		if(flags & PLAYER_TEST_LOOP) {
+	if (succeed) {
+		if (flags & PLAYER_TEST_LOOP) {
 			wait_for_neof(&eof, 2, 100, timeout);
 			BC_ASSERT_EQUAL(eof.neof, 2, int, "%d");
 		} else {
@@ -162,7 +159,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	ms_media_player_close(file_player);
 	BC_ASSERT_EQUAL(ms_media_player_get_state(file_player), MSPlayerClosed, int, "%d");
 
-	if(flags & PLAYER_TEST_PLAY_TWICE) {
+	if (flags & PLAYER_TEST_PLAY_TWICE) {
 		eof_init(&eof);
 		BC_ASSERT_TRUE(ms_media_player_open(file_player, filepath));
 		BC_ASSERT_TRUE(ms_media_player_start(file_player));
@@ -173,8 +170,8 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	ms_media_player_free(file_player);
 }
 
-static void play_root_file(const char *filepath, PlayerTestFlags flags){
-	char* file = bc_tester_res(filepath);
+static void play_root_file(const char *filepath, PlayerTestFlags flags) {
+	char *file = bc_tester_res(filepath);
 	play_file(file, flags, ms_factory_get_default_video_renderer(_factory));
 	bc_free(file);
 }
@@ -236,7 +233,7 @@ static void loop_test(void) {
 static void egl_opengl_contexts(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
 	flags |= PLAYER_TEST_SEEKING;
-	char* const file = bc_tester_res("sounds/sintel_trailer_opus_vp8.mkv");
+	char *const file = bc_tester_res("sounds/sintel_trailer_opus_vp8.mkv");
 
 	// Try playing with default config
 	play_file(file, flags, "MSOGL");
@@ -251,27 +248,19 @@ static void egl_opengl_contexts(void) {
 
 static test_t tests[] = {
 #ifdef VIDEO_ENABLED
-	TEST_NO_TAG("EGL OpenGL contexts"                 , egl_opengl_contexts                 ),
+    TEST_NO_TAG("EGL OpenGL contexts", egl_opengl_contexts),
 #endif
-	TEST_NO_TAG("Play hello8000.wav"                  , play_hello_8000_wav                 ),
-	TEST_NO_TAG("Play hello16000.wav"                 , play_hello_16000_wav                ),
-	TEST_NO_TAG("Play hello_pcmu.mka"                 , play_hello_pcmu_mka                 ),
-	TEST_NO_TAG("Play hello_opus.mka"                 , play_hello_opus_mka                 ),
-	TEST_NO_TAG("Play sintel_trailer_pcmu_h264.mkv"   , play_sintel_trailer_pcmu_h264_mkv   ),
-	TEST_NO_TAG("Play sintel_trailer_opus_h264.mkv"   , play_sintel_trailer_opus_h264_mkv   ),
-	TEST_NO_TAG("Play sintel_trailer_opus_vp8.mkv"    , play_sintel_trailer_opus_vp8_mkv    ),
-	TEST_NO_TAG("Seeking sintel_trailer_opus_vp8.mkv" , seeking_sintel_trailer_opus_vp8_mkv ),
-	TEST_NO_TAG("Seeking hello_opus.mka (no CUEs)"    , seeking_hello_opus_mka              ),
-	TEST_NO_TAG("Playing twice"                       , playing_twice_test                  ),
-	TEST_NO_TAG("Loop test"                           , loop_test                           )
-};
+    TEST_NO_TAG("Play hello8000.wav", play_hello_8000_wav),
+    TEST_NO_TAG("Play hello16000.wav", play_hello_16000_wav),
+    TEST_NO_TAG("Play hello_pcmu.mka", play_hello_pcmu_mka),
+    TEST_NO_TAG("Play hello_opus.mka", play_hello_opus_mka),
+    TEST_NO_TAG("Play sintel_trailer_pcmu_h264.mkv", play_sintel_trailer_pcmu_h264_mkv),
+    TEST_NO_TAG("Play sintel_trailer_opus_h264.mkv", play_sintel_trailer_opus_h264_mkv),
+    TEST_NO_TAG("Play sintel_trailer_opus_vp8.mkv", play_sintel_trailer_opus_vp8_mkv),
+    TEST_NO_TAG("Seeking sintel_trailer_opus_vp8.mkv", seeking_sintel_trailer_opus_vp8_mkv),
+    TEST_NO_TAG("Seeking hello_opus.mka (no CUEs)", seeking_hello_opus_mka),
+    TEST_NO_TAG("Playing twice", playing_twice_test),
+    TEST_NO_TAG("Loop test", loop_test)};
 
 test_suite_t player_test_suite = {
-	"Player",
-	tester_before_all,
-	tester_after_all,
-	NULL,
-	NULL,
-	sizeof(tests)/sizeof(test_t),
-	tests
-};
+    "Player", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests};

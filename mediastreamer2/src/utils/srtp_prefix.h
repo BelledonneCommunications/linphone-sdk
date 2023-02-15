@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,13 +27,13 @@
 #if defined(MS2_WINDOWS_PHONE) || defined(SRTP_INTERNAL)
 // Windows phone doesn't use make install
 #include <srtp.h>
-#elif SRTP_VERSION==1
+#elif SRTP_VERSION == 1
 #include <srtp/srtp.h>
 #else
 #include <srtp2/srtp.h>
 #endif
 
-#if SRTP_VERSION==2
+#if SRTP_VERSION == 2
 #define err_status_t srtp_err_status_t
 #define err_status_ok srtp_err_status_ok
 #define crypto_policy_t srtp_crypto_policy_t

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,9 +19,9 @@
  */
 
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
 #include "mediastreamer2/mswebcam.h"
-#include "mediastreamer2/msticker.h"
 
 #include <camera/camera_api.h>
 
@@ -102,19 +102,14 @@ typedef struct BB10Capture {
 static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer_t *buffer, void *arg) {
 	BB10Capture *d = (BB10Capture *)arg;
 	mblk_t *om = NULL;
-	
+
 	if (buffer->frametype == CAMERA_FRAMETYPE_NV12) {
-		om = copy_ycbcrbiplanar_to_true_yuv_with_rotation(d->yba, 
-														buffer->framebuf,
-														buffer->framebuf + buffer->framedesc.nv12.uv_offset, 
-														0,
-														buffer->framedesc.nv12.width,
-														buffer->framedesc.nv12.height,
-														buffer->framedesc.nv12.stride,
-														buffer->framedesc.nv12.uv_stride,
-														TRUE);
+		om = copy_ycbcrbiplanar_to_true_yuv_with_rotation(
+		    d->yba, buffer->framebuf, buffer->framebuf + buffer->framedesc.nv12.uv_offset, 0,
+		    buffer->framedesc.nv12.width, buffer->framedesc.nv12.height, buffer->framedesc.nv12.stride,
+		    buffer->framedesc.nv12.uv_stride, TRUE);
 	}
-	
+
 	if (om != NULL && d->capture_started) {
 		ms_mutex_lock(&d->mutex);
 		ms_queue_put(&d->rq, om);
@@ -124,32 +119,35 @@ static void bb10capture_video_callback(camera_handle_t cam_handle, camera_buffer
 
 static void bb10capture_open_camera(BB10Capture *d) {
 	camera_error_t error;
-	
+
 	if (d->camera_openned) {
 		ms_warning("[bb10_capture] camera already openned, skipping...");
 		return;
 	}
-	
-	ms_message("[bb10_capture] openning %s camera", d->camera == CAMERA_UNIT_FRONT ? "front" : (d->camera == CAMERA_UNIT_REAR ? "rear" : "unknown"));
+
+	ms_message("[bb10_capture] openning %s camera",
+	           d->camera == CAMERA_UNIT_FRONT ? "front" : (d->camera == CAMERA_UNIT_REAR ? "rear" : "unknown"));
 	error = camera_open(d->camera, CAMERA_MODE_RW, &(d->cam_handle));
 	if (error == CAMERA_EOK) {
 		camera_set_vf_mode(d->cam_handle, CAMERA_VFMODE_VIDEO);
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT, d->vsize.height);
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, d->vsize.width, CAMERA_IMGPROP_HEIGHT,
+		                       d->vsize.height);
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_FORMAT, CAMERA_FRAMETYPE_NV12);
 		ms_debug("[bb10_capture] camera capture vsize: %i,%i", d->vsize.width, d->vsize.height);
-		
+
 		if (d->framerate > 0) {
 			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate,
+			                       CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
 		}
-		
+
 		int rotation = d->rotation;
 		if (!d->is_front_cam) {
 			rotation = 360 - d->rotation;
 		}
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
 		ms_debug("[bb10_capture] camera capture rotation: %i", rotation);
-	
+
 		d->camera_openned = TRUE;
 	} else {
 		ms_error("[bb10_capture] openning %i camera failed: %s", d->camera, error_to_string(error));
@@ -165,10 +163,11 @@ static void bb10capture_start_capture(BB10Capture *d) {
 		ms_warning("[bb10_capture] capture already started, skipping...");
 		return;
 	}
-	
-	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID, d->window_group);
+
+	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIN_ID, d->window_id, CAMERA_IMGPROP_WIN_GROUPID,
+	                       d->window_group);
 	camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_CREATEWINDOW, 1);
-	
+
 	camera_start_viewfinder(d->cam_handle, bb10capture_video_callback, NULL, d);
 	d->capture_started = TRUE;
 	ms_debug("[bb10_capture] capture started");
@@ -179,7 +178,7 @@ static void bb10capture_stop_capture(BB10Capture *d) {
 		ms_warning("[bb10_capture] capture not started, skipping...");
 		return;
 	}
-	
+
 	camera_stop_viewfinder(d->cam_handle);
 	d->capture_started = FALSE;
 	ms_debug("[bb10_capture] capture stopped");
@@ -190,7 +189,7 @@ static void bb10capture_close_camera(BB10Capture *d) {
 		ms_warning("[bb10_capture] camera not openned, skipping...");
 		return;
 	}
-	
+
 	camera_close(d->cam_handle);
 	d->camera_openned = FALSE;
 	d->cam_handle = 0;
@@ -198,9 +197,9 @@ static void bb10capture_close_camera(BB10Capture *d) {
 }
 
 static void bb10capture_init(MSFilter *f) {
-	BB10Capture *d = (BB10Capture*) ms_new0(BB10Capture, 1);
+	BB10Capture *d = (BB10Capture *)ms_new0(BB10Capture, 1);
 	MSVideoSize def_size;
-	
+
 	d->rotation = 0;
 	d->camera_openned = FALSE;
 	d->capture_started = FALSE;
@@ -214,114 +213,121 @@ static void bb10capture_init(MSFilter *f) {
 	d->window_group = NULL;
 	ms_queue_init(&d->rq);
 	d->yba = ms_yuv_buf_allocator_new();
-	
+
 	f->data = d;
 }
 
 static void bb10capture_uninit(MSFilter *f) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	if (d->capture_started) {
 		bb10capture_stop_capture(d);
 	}
 	bb10capture_close_camera(d);
-	
+
 	ms_yuv_buf_allocator_free(d->yba);
 	ms_mutex_destroy(&d->mutex);
 	ms_free(d);
 }
 
 static void bb10capture_preprocess(MSFilter *f) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	if (!d->camera_openned) {
 		bb10capture_open_camera(d);
 	}
-	
+
 	ms_average_fps_init(&d->avgfps, "[bb10_capture] fps=%f");
 	ms_queue_flush(&d->rq);
-	
+
 	bb10capture_start_capture(d);
 }
 
 static void bb10capture_postprocess(MSFilter *f) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	bb10capture_stop_capture(d);
 	ms_queue_flush(&d->rq);
 }
 
 static void bb10capture_process(MSFilter *f) {
-	BB10Capture *d = (BB10Capture*) f->data;
+	BB10Capture *d = (BB10Capture *)f->data;
 	mblk_t *om = NULL;
 	mblk_t *tmp = NULL;
 	uint32_t timestamp = 0;
 
 	ms_filter_lock(f);
-	
+
 	ms_mutex_lock(&d->mutex);
 	while ((tmp = ms_queue_get(&d->rq)) != NULL) {
 		if (om != NULL) freemsg(om);
 		om = tmp;
 	}
 	ms_mutex_unlock(&d->mutex);
-	
+
 	if (om != NULL) {
-		timestamp = f->ticker->time * 90;/* rtp uses a 90000 Hz clockrate for video*/
+		timestamp = f->ticker->time * 90; /* rtp uses a 90000 Hz clockrate for video*/
 		mblk_set_timestamp_info(om, timestamp);
 		ms_queue_put(f->outputs[0], om);
 		ms_average_fps_update(&d->avgfps, f->ticker->time);
 	}
-	
+
 	ms_filter_unlock(f);
 }
 
 static int bb10capture_set_vsize(MSFilter *f, void *arg) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	MSVideoSize newSize = *(MSVideoSize*)arg;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+	MSVideoSize newSize = *(MSVideoSize *)arg;
+
 	ms_filter_lock(f);
-	
+
 	if (!d->camera_openned) {
 		bb10capture_open_camera(d);
 	}
-	
+
 	if (d->camera_openned) {
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
-		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT,
+		                       newSize.height);
+		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT,
+		                       &(d->vsize.height));
 		if (ms_video_size_equal(d->vsize, newSize)) {
 			ms_filter_unlock(f);
 			return 0;
 		}
-		
-		ms_warning("[bb10_capture] vsize %i,%i couldn't be set, instead try using: %i,%i", newSize.width, newSize.height, newSize.height, newSize.width);
+
+		ms_warning("[bb10_capture] vsize %i,%i couldn't be set, instead try using: %i,%i", newSize.width,
+		           newSize.height, newSize.height, newSize.width);
 		int tmp = newSize.width;
 		newSize.width = newSize.height;
 		newSize.height = tmp;
-		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT, newSize.height);
-		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT, &(d->vsize.height));
+		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, newSize.width, CAMERA_IMGPROP_HEIGHT,
+		                       newSize.height);
+		camera_get_vf_property(d->cam_handle, CAMERA_IMGPROP_WIDTH, &(d->vsize.width), CAMERA_IMGPROP_HEIGHT,
+		                       &(d->vsize.height));
 		if (ms_video_size_equal(d->vsize, newSize)) {
 			ms_filter_unlock(f);
 			return 0;
 		}
-		
-		ms_warning("[bb10_capture] vsize %i,%i couldn't be set either, instead using: %i,%i", newSize.width, newSize.height, d->vsize.width, d->vsize.height);
+
+		ms_warning("[bb10_capture] vsize %i,%i couldn't be set either, instead using: %i,%i", newSize.width,
+		           newSize.height, d->vsize.width, d->vsize.height);
 	}
-	
+
 	ms_filter_unlock(f);
 	return -1;
 }
 
-static int bb10capture_set_fps(MSFilter *f, void *arg){
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+static int bb10capture_set_fps(MSFilter *f, void *arg) {
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	ms_filter_lock(f);
-	d->framerate = *(float*)arg;
-	
+	d->framerate = *(float *)arg;
+
 	if (d->camera_openned) {
 		if (d->framerate > 0) {
 			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_VARIABLEFRAMERATE, 1);
-			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate, CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
+			camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_MINFRAMERATE, (double)d->framerate,
+			                       CAMERA_IMGPROP_FRAMERATE, (double)d->framerate);
 		}
 	}
 	ms_filter_unlock(f);
@@ -329,97 +335,95 @@ static int bb10capture_set_fps(MSFilter *f, void *arg){
 }
 
 static int bb10capture_get_vsize(MSFilter *f, void *arg) {
-	BB10Capture *d = (BB10Capture*) f->data;
+	BB10Capture *d = (BB10Capture *)f->data;
 	MSVideoSize videoSize;
-	// Return the VSize depending on the device orientation (because d->vsize is always the resolution as if the device is in portrait)
+	// Return the VSize depending on the device orientation (because d->vsize is always the resolution as if the device
+	// is in portrait)
 	videoSize.width = d->rotation == 0 ? d->vsize.width : d->vsize.height;
 	videoSize.height = d->rotation == 0 ? d->vsize.height : d->vsize.width;
-	*(MSVideoSize*)arg = videoSize;
+	*(MSVideoSize *)arg = videoSize;
 	return 0;
 }
 
-static int bb10capture_get_fps(MSFilter *f, void *arg){
-	BB10Capture *d = (BB10Capture*) f->data;
-	if (f->ticker){
-		*(float*)arg=ms_average_fps_get(&d->avgfps);
-	}else {
-		*(float*)arg = d->framerate;
+static int bb10capture_get_fps(MSFilter *f, void *arg) {
+	BB10Capture *d = (BB10Capture *)f->data;
+	if (f->ticker) {
+		*(float *)arg = ms_average_fps_get(&d->avgfps);
+	} else {
+		*(float *)arg = d->framerate;
 	}
 	return 0;
 }
 
 static int bb10capture_get_pixfmt(MSFilter *f, void *arg) {
 	MSPixFmt pix_fmt = MS_YUV420P;
-	*(MSPixFmt*)arg = pix_fmt;
+	*(MSPixFmt *)arg = pix_fmt;
 	return 0;
 }
 
 static int bb10capture_set_window_ids(MSFilter *f, void *arg) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	ms_filter_lock(f);
 	const char *group = *(const char **)arg;
-	
+
 	d->window_id = "LinphoneLocalVideoWindowId";
 	d->window_group = group;
 	ms_debug("[bb10_capture] set window_id: %s and window_group: %s", d->window_id, d->window_group);
-	
+
 	ms_filter_unlock(f);
 	return 0;
 }
 
 static int bb10capture_set_device_rotation(MSFilter *f, void *arg) {
-	BB10Capture *d = (BB10Capture*) f->data;
-	
+	BB10Capture *d = (BB10Capture *)f->data;
+
 	ms_filter_lock(f);
-	
-	d->rotation = *((int*)arg);
+
+	d->rotation = *((int *)arg);
 	int rotation = d->rotation;
 	if (!d->is_front_cam) {
 		rotation = 360 - d->rotation;
 	}
-	
+
 	if (d->camera_openned) {
 		camera_set_vf_property(d->cam_handle, CAMERA_IMGPROP_ROTATION, rotation);
 	}
 	ms_debug("[bb10_capture] device rotation changed: %i", d->rotation);
-	
+
 	ms_filter_unlock(f);
 	return 0;
 }
 
 static MSFilterMethod ms_bb10capture_methods[] = {
-	{ MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, 		bb10capture_set_window_ids },
-	{ MS_FILTER_SET_VIDEO_SIZE,						bb10capture_set_vsize },
-	{ MS_FILTER_SET_FPS,							bb10capture_set_fps },
-	{ MS_FILTER_GET_VIDEO_SIZE,						bb10capture_get_vsize },
-	{ MS_FILTER_GET_FPS,							bb10capture_get_fps },
-	{ MS_FILTER_GET_PIX_FMT,						bb10capture_get_pixfmt },
-	{ MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, 		bb10capture_set_device_rotation },
-	{ 0,										NULL }
-};
+    {MS_VIDEO_DISPLAY_SET_NATIVE_WINDOW_ID, bb10capture_set_window_ids},
+    {MS_FILTER_SET_VIDEO_SIZE, bb10capture_set_vsize},
+    {MS_FILTER_SET_FPS, bb10capture_set_fps},
+    {MS_FILTER_GET_VIDEO_SIZE, bb10capture_get_vsize},
+    {MS_FILTER_GET_FPS, bb10capture_get_fps},
+    {MS_FILTER_GET_PIX_FMT, bb10capture_get_pixfmt},
+    {MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION, bb10capture_set_device_rotation},
+    {0, NULL}};
 
-MSFilterDesc ms_bb10_capture_desc = {
-	MS_BB10_CAPTURE_ID,
-	"MSBB10Capture",
-	"A capture filter for blackberry 10",
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	1,
-	bb10capture_init,
-	bb10capture_preprocess,
-	bb10capture_process,
-	bb10capture_postprocess,
-	bb10capture_uninit,
-	ms_bb10capture_methods
-};
+MSFilterDesc ms_bb10_capture_desc = {MS_BB10_CAPTURE_ID,
+                                     "MSBB10Capture",
+                                     "A capture filter for blackberry 10",
+                                     MS_FILTER_OTHER,
+                                     NULL,
+                                     0,
+                                     1,
+                                     bb10capture_init,
+                                     bb10capture_preprocess,
+                                     bb10capture_process,
+                                     bb10capture_postprocess,
+                                     bb10capture_uninit,
+                                     ms_bb10capture_methods};
 
 MS_FILTER_DESC_EXPORT(ms_bb10_capture_desc)
 
 static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
 	MSFilter *f = ms_factory_create_filter_from_desc(ms_web_cam_get_factory(obj), &ms_bb10_capture_desc);
-	BB10Capture *d = (BB10Capture*) f->data;
+	BB10Capture *d = (BB10Capture *)f->data;
 	if (strcmp(obj->name, "BB10 Rear Camera") == 0) {
 		d->camera = CAMERA_UNIT_REAR;
 		d->is_front_cam = FALSE;
@@ -427,30 +431,25 @@ static MSFilter *bb10camera_create_reader(MSWebCam *obj) {
 		d->camera = CAMERA_UNIT_FRONT;
 		d->is_front_cam = TRUE;
 	}
-	
-	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name, d->camera);
-	
+
+	ms_message("[bb10_capture] create reader with id:%i and camera %s (%i)", ms_bb10_capture_desc.id, obj->name,
+	           d->camera);
+
 	return f;
 }
 
 static void bb10camera_detect(MSWebCamManager *obj);
 
 static void bb10camera_init(MSWebCam *cam) {
-	
 }
 
-MSWebCamDesc ms_bb10_camera_desc = {
-	"BB10Camera",
-	&bb10camera_detect,
-	&bb10camera_init,
-	&bb10camera_create_reader,
-	NULL
-};
+MSWebCamDesc ms_bb10_camera_desc = {"BB10Camera", &bb10camera_detect, &bb10camera_init, &bb10camera_create_reader,
+                                    NULL};
 
 static void bb10camera_detect(MSWebCamManager *obj) {
 	camera_error_t error;
 	camera_handle_t handle;
-	
+
 	error = camera_open(CAMERA_UNIT_FRONT, CAMERA_MODE_RW, &handle);
 	if (error == CAMERA_EOK) {
 		if (camera_has_feature(handle, CAMERA_FEATURE_VIDEO)) {
@@ -469,7 +468,7 @@ static void bb10camera_detect(MSWebCamManager *obj) {
 	} else {
 		ms_warning("[bb10_capture] Can't open front camera: %s", error_to_string(error));
 	}
-	
+
 	error = camera_open(CAMERA_UNIT_REAR, CAMERA_MODE_RW, &handle);
 	if (error == CAMERA_EOK) {
 		if (camera_has_feature(handle, CAMERA_FEATURE_VIDEO)) {

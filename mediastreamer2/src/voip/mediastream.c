@@ -22,6 +22,8 @@
 #include "mediastreamer-config.h"
 #endif
 
+#include <bctoolbox/defs.h>
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msrtp.h"
 #include "ortp/port.h"
@@ -49,6 +51,10 @@ time_t ms_time(time_t *t) {
 }
 #endif
 
+#ifndef _MSC_VER
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif // _MSC_VER
 static void disable_checksums(ortp_socket_t sock) {
 #if defined(DISABLE_CHECKSUMS) && defined(SO_NO_CHECK)
 	int option = 1;
@@ -57,6 +63,9 @@ static void disable_checksums(ortp_socket_t sock) {
 	}
 #endif
 }
+#ifndef _MSC_VER
+#pragma GCC diagnostic pop
+#endif // _MSC_VER
 
 static int _ms_ticker_prio_from_env(const char *penv, MSTickerPrio *prio) {
 	if (strcasecmp(penv, "NORMAL") == 0) {
@@ -128,7 +137,7 @@ void media_stream_add_tmmbr_handler(MediaStream *stream,
 
 void media_stream_remove_tmmbr_handler(MediaStream *stream,
                                        void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
-                                       void *user_data) {
+                                       BCTBX_UNUSED(void *user_data)) {
 	ortp_ev_dispatcher_disconnect(stream->evd, ORTP_EVENT_RTCP_PACKET_RECEIVED, RTCP_RTPFB,
 	                              (OrtpEvDispatcherCb)on_tmmbr_received);
 }
@@ -780,13 +789,13 @@ bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io) {
 
 /*stubs*/
 #ifndef VIDEO_ENABLED
-void video_stream_open_player(VideoStream *stream, MSFilter *sink) {
+void video_stream_open_player(BCTBX_UNUSED(VideoStream *stream), BCTBX_UNUSED(MSFilter *sink)) {
 }
 
-void video_stream_close_player(VideoStream *stream) {
+void video_stream_close_player(BCTBX_UNUSED(VideoStream *stream)) {
 }
 
-void video_stream_enable_recording(VideoStream *stream, bool_t enabled) {
+void video_stream_enable_recording(BCTBX_UNUSED(VideoStream *stream), BCTBX_UNUSED(bool_t enabled)) {
 }
 
 MSWebCamDesc *ms_mire_webcam_desc_get(void) {

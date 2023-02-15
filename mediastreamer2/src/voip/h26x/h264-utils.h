@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -99,7 +99,7 @@ void ms_h264_stream_to_nalus(const uint8_t *frame, size_t size, MSQueue *nalus, 
  * @param sps A mblk_t holding the SPS.
  * @return The video size.
  */
-MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
+MSVideoSize ms_h264_sps_get_video_size(const mblk_t *sps);
 
 #ifdef __cplusplus
 }
@@ -108,14 +108,20 @@ MSVideoSize ms_h264_sps_get_video_size(const mblk_t* sps);
 #ifdef __cplusplus
 namespace mediastreamer {
 
-class H264NaluType: public H26xNaluType {
+class H264NaluType : public H26xNaluType {
 public:
 	H264NaluType() = default;
 	H264NaluType(uint8_t value);
 
-	bool isVcl() const override {return _value < 6;}
-	bool isParameterSet() const override {return *this == Sps || *this == Pps;}
-	bool isKeyFramePart() const override {return *this == Idr || *this == DataPartA;}
+	bool isVcl() const override {
+		return _value < 6;
+	}
+	bool isParameterSet() const override {
+		return *this == Sps || *this == Pps;
+	}
+	bool isKeyFramePart() const override {
+		return *this == Idr || *this == DataPartA;
+	}
 
 	static const H264NaluType DataPartA;
 	static const H264NaluType DataPartB;
@@ -128,21 +134,34 @@ public:
 	static const H264NaluType FuA;
 };
 
-class H264NaluHeader: public H26xNaluHeader {
+class H264NaluHeader : public H26xNaluHeader {
 public:
-	H264NaluHeader(): H26xNaluHeader() {}
-	H264NaluHeader(const uint8_t *header) {parse(header);}
+	H264NaluHeader() : H26xNaluHeader() {
+	}
+	H264NaluHeader(const uint8_t *header) {
+		parse(header);
+	}
 
 	void setNri(uint8_t nri);
-	uint8_t getNri() const {return _nri;}
+	uint8_t getNri() const {
+		return _nri;
+	}
 
-	void setType(H264NaluType type) {_type = type;}
-	H264NaluType getType() const {return _type;}
+	void setType(H264NaluType type) {
+		_type = type;
+	}
+	H264NaluType getType() const {
+		return _type;
+	}
 
-	const H26xNaluType &getAbsType() const override {return _type;}
+	const H26xNaluType &getAbsType() const override {
+		return _type;
+	}
 
 	bool operator==(const H264NaluHeader &h2) const;
-	bool operator!=(const H264NaluHeader &h2) const {return !(*this == h2);}
+	bool operator!=(const H264NaluHeader &h2) const {
+		return !(*this == h2);
+	}
 
 	void parse(const uint8_t *header) override;
 	mblk_t *forge() const override;
@@ -178,11 +197,13 @@ private:
 
 class H264Tools {
 public:
-	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {*h=((nri&0x3)<<5) | (type & ((1<<5)-1));}
+	static void nalHeaderInit(uint8_t *h, uint8_t nri, uint8_t type) {
+		*h = ((nri & 0x3) << 5) | (type & ((1 << 5) - 1));
+	}
 	static mblk_t *prependFuIndicatorAndHeader(mblk_t *m, uint8_t indicator, bool_t start, bool_t end, uint8_t type);
 };
 
-class H264ParameterSetsInserter: public H26xParameterSetsInserter {
+class H264ParameterSetsInserter : public H26xParameterSetsInserter {
 public:
 	~H264ParameterSetsInserter();
 	void process(MSQueue *in, MSQueue *out) override;
@@ -193,12 +214,13 @@ private:
 	mblk_t *_pps = nullptr;
 };
 
-class H264ParameterSetsStore: public H26xParameterSetsStore {
+class H264ParameterSetsStore : public H26xParameterSetsStore {
 public:
-	H264ParameterSetsStore(): H26xParameterSetsStore("video/avc", {MSH264NaluTypeSPS, MSH264NaluTypePPS}) {}
+	H264ParameterSetsStore() : H26xParameterSetsStore("video/avc", {MSH264NaluTypeSPS, MSH264NaluTypePPS}) {
+	}
 };
 
-class H264ToolFactory: public H26xToolFactory {
+class H264ToolFactory : public H26xToolFactory {
 public:
 	H26xNaluHeader *createNaluHeader() const override;
 	NalPacker *createNalPacker(size_t maxPayloadeSize) const override;

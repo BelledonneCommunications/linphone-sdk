@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 
 namespace mediastreamer {
 
-class MediaCodecH264Decoder: public MediaCodecDecoder {
+class MediaCodecH264Decoder : public MediaCodecDecoder {
 public:
 	MediaCodecH264Decoder();
 	~MediaCodecH264Decoder();
@@ -48,7 +48,8 @@ private:
 
 	mblk_t *_lastSps = nullptr;
 	bool _resetOnPsReceiving = false;
-	static const std::vector<const DeviceInfo> _tvDevices; // List of devices whose H264 hardware decoder needs to be initialized with the right definition
+	static const std::vector<const DeviceInfo>
+	    _tvDevices; // List of devices whose H264 hardware decoder needs to be initialized with the right definition
 };
 
-}
+} // namespace mediastreamer

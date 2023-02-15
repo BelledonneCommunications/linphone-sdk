@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,13 +26,15 @@ using namespace std;
 
 namespace mediastreamer {
 
-H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList):
-	EncoderFilter(f), _encoder(encoder), _vconfList(vconfList) {
+H26xEncoderFilter::H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList)
+    : EncoderFilter(f), _encoder(encoder), _vconfList(vconfList) {
 
-	_vconf = ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
+	_vconf =
+	    ms_video_find_best_configuration_for_size(_vconfList, MS_VIDEO_SIZE_CIF, ms_factory_get_cpu_count(f->factory));
 	ms_video_starter_init(&_starter);
 
-	_packer.reset(H26xToolFactory::get(_encoder->getMime()).createNalPacker(ms_factory_get_payload_max_size(f->factory)));
+	_packer.reset(
+	    H26xToolFactory::get(_encoder->getMime()).createNalPacker(ms_factory_get_payload_max_size(f->factory)));
 	_packer->setPacketizationMode(NalPacker::NonInterleavedMode);
 	_packer->enableAggregation(false);
 }
@@ -48,7 +50,7 @@ void H26xEncoderFilter::process() {
 	if (mblk_t *im = ms_queue_peek_last(getInput(0))) {
 		bool requestIFrame = false;
 		if (ms_iframe_requests_limiter_iframe_requested(&_iframeLimiter, getTime()) ||
-				(!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, getTime()))) {
+		    (!_avpfEnabled && ms_video_starter_need_i_frame(&_starter, getTime()))) {
 			ms_message("H26xEncoder: requesting I-frame to the encoder.");
 			requestIFrame = true;
 			ms_iframe_requests_limiter_notify_iframe_sent(&_iframeLimiter, getTime());
@@ -77,7 +79,8 @@ void H26xEncoderFilter::postprocess() {
 
 void H26xEncoderFilter::setVideoConfiguration(MSVideoConfiguration vconf) {
 	char videoSettingsStr[255];
-	snprintf(videoSettingsStr, sizeof(videoSettingsStr), "bitrate=%db/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate, _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
+	snprintf(videoSettingsStr, sizeof(videoSettingsStr), "bitrate=%db/s, fps=%f, vsize=%dx%d", _vconf.required_bitrate,
+	         _vconf.fps, _vconf.vsize.width, _vconf.vsize.height);
 	try {
 		if (_encoder->isRunning()) {
 			ms_warning("H26xEncoderFilter: ignoring video size change because the encoder is started");

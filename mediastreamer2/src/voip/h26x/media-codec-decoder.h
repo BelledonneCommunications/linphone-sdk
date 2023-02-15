@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,18 +23,20 @@
 #include <memory>
 #include <vector>
 
+#include "h26x-decoder.h"
 #include "h26x-utils.h"
 #include "media/NdkMediaCodec.h"
-
-#include "h26x-decoder.h"
+#include "mediastreamer2/msvideo.h"
 
 namespace mediastreamer {
 
-class MediaCodecDecoder: public H26xDecoder {
+class MediaCodecDecoder : public H26xDecoder {
 public:
 	virtual ~MediaCodecDecoder();
 
-	void waitForKeyFrame()  override {_needKeyFrame = true;}
+	void waitForKeyFrame() override {
+		_needKeyFrame = true;
+	}
 
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
 	Status fetch(mblk_t *&frame) override;
@@ -44,9 +46,9 @@ protected:
 	public:
 		static const uint32_t None = 0;
 		static const uint32_t KeyFrame = 1;
-		static const uint32_t CodecConfig = 1<<1;
-		static const uint32_t EndOfStream = 1<<2;
-		static const uint32_t PartialFrame = 1<<3;
+		static const uint32_t CodecConfig = 1 << 1;
+		static const uint32_t EndOfStream = 1 << 2;
+		static const uint32_t PartialFrame = 1 << 3;
 	};
 
 	MediaCodecDecoder(const std::string &mime);
@@ -72,4 +74,4 @@ protected:
 	static const unsigned int _timeoutUs = 0;
 };
 
-}
+} // namespace mediastreamer

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -145,21 +145,14 @@ static void packing_unpacking_test_h265_iframe() {
 }
 
 static test_t tests[] = {
-	TEST_NO_TAG("Bytestream transcoding - paramter sets frame", paramter_sets_bytestream_transcoding_test),
-	TEST_NO_TAG("Bytestream transcoding - i-frame", iframe_bytestream_transcoding_test),
-	TEST_NO_TAG("Bytestream transcoding - two consecutive prevention three bytes", bytestream_transcoding_two_consecutive_prevention_thee_bytes),
-	TEST_NO_TAG("H265 Packing/Unpacking - paramter sets frame", packing_unpacking_test_h265_ps),
-	TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)
-};
+    TEST_NO_TAG("Bytestream transcoding - paramter sets frame", paramter_sets_bytestream_transcoding_test),
+    TEST_NO_TAG("Bytestream transcoding - i-frame", iframe_bytestream_transcoding_test),
+    TEST_NO_TAG("Bytestream transcoding - two consecutive prevention three bytes",
+                bytestream_transcoding_two_consecutive_prevention_thee_bytes),
+    TEST_NO_TAG("H265 Packing/Unpacking - paramter sets frame", packing_unpacking_test_h265_ps),
+    TEST_NO_TAG("H265 Packing/Unpacking - i-frame", packing_unpacking_test_h265_iframe)};
 
 extern "C" {
-	test_suite_t h26x_tools_test_suite = {
-		"H26x Tools",
-		initMSFactory,
-		releaseMSFactory,
-		nullptr,
-		nullptr,
-		sizeof(tests)/sizeof(test_t),
-		tests
-	};
+test_suite_t h26x_tools_test_suite = {
+    "H26x Tools", initMSFactory, releaseMSFactory, nullptr, nullptr, sizeof(tests) / sizeof(test_t), tests};
 }

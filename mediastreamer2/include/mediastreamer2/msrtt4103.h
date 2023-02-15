@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 #define TS_OUTBUF_SIZE 1024
 #define TS_REDGEN 2
 #define TS_NUMBER_OF_OUTBUF TS_REDGEN + 1
-#define TS_INBUF_SIZE TS_OUTBUF_SIZE * TS_NUMBER_OF_OUTBUF
+#define TS_INBUF_SIZE TS_OUTBUF_SIZE *TS_NUMBER_OF_OUTBUF
 #define TS_SEND_INTERVAL 299
 
 #define MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER MS_FILTER_METHOD(MS_RTT_4103_SOURCE_ID, 0, int)
@@ -37,10 +37,9 @@
 #define MS_RTT_4103_SOURCE_PUT_CHAR32 MS_FILTER_METHOD(MS_RTT_4103_SOURCE_ID, 2, uint32_t)
 #define MS_RTT_4103_SOURCE_SET_KEEP_ALIVE_INTERVAL MS_FILTER_METHOD(MS_RTT_4103_SOURCE_ID, 3, unsigned int)
 
-
-#define MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER 	MS_FILTER_METHOD(MS_RTT_4103_SINK_ID, 0, int)
-#define MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER 	MS_FILTER_METHOD(MS_RTT_4103_SINK_ID, 1, int)
-#define MS_RTT_4103_SINK_RESYNC							MS_FILTER_METHOD_NO_ARG(MS_RTT_4103_SINK_ID, 2)
+#define MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER MS_FILTER_METHOD(MS_RTT_4103_SINK_ID, 0, int)
+#define MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER MS_FILTER_METHOD(MS_RTT_4103_SINK_ID, 1, int)
+#define MS_RTT_4103_SINK_RESYNC MS_FILTER_METHOD_NO_ARG(MS_RTT_4103_SINK_ID, 2)
 
 typedef struct _RealtimeTextReceivedCharacter {
 	uint32_t character;

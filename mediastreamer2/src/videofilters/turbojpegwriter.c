@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include "fd_portab.h" // keep this include at the last of the inclusion sequence!
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 typedef struct {
@@ -40,7 +40,7 @@ typedef struct {
 	char *tmpFilename;
 	tjhandle turboJpeg;
 	MSFilter *f;
-}JpegWriter;
+} JpegWriter;
 
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
 	MSJpegWriteEventData eventData = {{0}};
@@ -52,7 +52,7 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 		if (rename(obj->tmpFilename, obj->filename) != 0) {
 			ms_error("Could not rename %s into %s", obj->tmpFilename, obj->filename);
 		} else {
-			strncpy(eventData.filePath, obj->filename, sizeof(eventData)-1);
+			strncpy(eventData.filePath, obj->filename, sizeof(eventData) - 1);
 			ms_filter_notify(obj->f, MS_JPEG_WRITER_SNAPSHOT_TAKEN, &eventData);
 		}
 	}
@@ -65,60 +65,59 @@ static void close_file(JpegWriter *obj, bool_t doRenaming) {
 
 static bool_t open_file(JpegWriter *obj, const char *filename) {
 	obj->filename = ms_strdup(filename);
-	obj->tmpFilename = ms_strdup_printf("%s.part",filename);
-	obj->file = bctbx_file_open2(bctbx_vfs_get_default(), obj->tmpFilename, O_WRONLY|O_CREAT|O_BINARY);
+	obj->tmpFilename = ms_strdup_printf("%s.part", filename);
+	obj->file = bctbx_file_open2(bctbx_vfs_get_default(), obj->tmpFilename, O_WRONLY | O_CREAT | O_BINARY);
 	if (!obj->file) {
 		ms_error("Could not open %s for write", obj->tmpFilename);
-		close_file(obj,FALSE);
+		close_file(obj, FALSE);
 	}
 	return TRUE;
 }
 
 static void jpg_init(MSFilter *f) {
-	JpegWriter *s=ms_new0(JpegWriter,1);
+	JpegWriter *s = ms_new0(JpegWriter, 1);
 	s->f = f;
 	s->turboJpeg = tjInitCompress();
 	if (s->turboJpeg == NULL) {
 		ms_error("TurboJpeg init error:%s", tjGetErrorStr());
 	}
-	f->data=s;
+	f->data = s;
 }
 
 static void jpg_uninit(MSFilter *f) {
-	JpegWriter *s = (JpegWriter*)f->data;
+	JpegWriter *s = (JpegWriter *)f->data;
 	s->f = NULL;
 	if (s->file != NULL) {
 		close_file(s, FALSE);
 	}
 	if (s->turboJpeg != NULL) {
-		if (tjDestroy(s->turboJpeg) != 0)
-			ms_error("TurboJpeg destroy error:%s", tjGetErrorStr());
+		if (tjDestroy(s->turboJpeg) != 0) ms_error("TurboJpeg destroy error:%s", tjGetErrorStr());
 	}
 	ms_free(s);
 }
 
 static int take_snapshot(MSFilter *f, void *arg) {
-	JpegWriter *s=(JpegWriter*)f->data;
+	JpegWriter *s = (JpegWriter *)f->data;
 	const char *filename = (const char *)arg;
 	int err = 0;
 	ms_filter_lock(f);
 	if (s->file != NULL) {
 		close_file(s, FALSE);
 	}
-	if (!open_file(s, filename)) err=-1;
+	if (!open_file(s, filename)) err = -1;
 	ms_filter_unlock(f);
 	return err;
 }
 
 static void cleanup(JpegWriter *s, bool_t success) {
-	if (s->file){
+	if (s->file) {
 		close_file(s, success);
 	}
 }
 
 static void jpg_process(MSFilter *f) {
 	bool_t success = FALSE;
-	JpegWriter *s=(JpegWriter*)f->data;
+	JpegWriter *s = (JpegWriter *)f->data;
 	ms_filter_lock(f);
 	if (s->file != NULL && s->turboJpeg != NULL) {
 		int error;
@@ -126,31 +125,22 @@ static void jpg_process(MSFilter *f) {
 		unsigned char *jpegBuffer = NULL;
 		unsigned long jpegSize = 0;
 
-		mblk_t *m=ms_queue_peek_last(f->inputs[0]);
+		mblk_t *m = ms_queue_peek_last(f->inputs[0]);
 
-		if (ms_yuv_buf_init_from_mblk(&yuvbuf,m) != 0)
-			goto end;
+		if (ms_yuv_buf_init_from_mblk(&yuvbuf, m) != 0) goto end;
 
 		error = tjCompressFromYUVPlanes(
-			s->turboJpeg,
-//This auto cast has the purpose to support multiple versions of turboJPEG where parameter can be const.
-			bctoolbox::Utils::auto_cast<unsigned char **>(yuvbuf.planes),
-			yuvbuf.w,
-			yuvbuf.strides,
-			yuvbuf.h,
-			TJSAMP_420,
-			&jpegBuffer,
-			&jpegSize,
-			100,
-			TJFLAG_ACCURATEDCT
-		);
+		    s->turboJpeg,
+		    // This auto cast has the purpose to support multiple versions of turboJPEG where parameter can be const.
+		    bctoolbox::Utils::auto_cast<unsigned char **>(yuvbuf.planes), yuvbuf.w, yuvbuf.strides, yuvbuf.h,
+		    TJSAMP_420, &jpegBuffer, &jpegSize, 100, TJFLAG_ACCURATEDCT);
 
 		if (error != 0) {
 			ms_error("tjCompressFromYUVPlanes() failed: %s", tjGetErrorStr());
 			if (jpegBuffer != NULL) tjFree(jpegBuffer);
 			goto end;
 		}
-		if(bctbx_file_write2(s->file, jpegBuffer, jpegSize) != BCTBX_VFS_ERROR){
+		if (bctbx_file_write2(s->file, jpegBuffer, jpegSize) != BCTBX_VFS_ERROR) {
 			ms_message("Snapshot done with turbojpeg");
 			success = TRUE;
 		} else {
@@ -159,50 +149,42 @@ static void jpg_process(MSFilter *f) {
 
 		tjFree(jpegBuffer);
 	}
-	end:
+end:
 	cleanup(s, success);
 	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
 }
 
-static MSFilterMethod jpg_methods[] = {
-	{	MS_JPEG_WRITER_TAKE_SNAPSHOT, take_snapshot },
-	{	0,NULL}
-};
+static MSFilterMethod jpg_methods[] = {{MS_JPEG_WRITER_TAKE_SNAPSHOT, take_snapshot}, {0, NULL}};
 
 #if !defined(_MSC_VER) && !defined(__cplusplus)
 
-MSFilterDesc ms_jpeg_writer_desc = {
-	.id = MS_JPEG_WRITER_ID,
-	.name = "MSJpegWriter",
-	.text = "Take a video snapshot as jpg file",
-	.category = MS_FILTER_OTHER,
-	.ninputs = 1,
-	.noutputs = 0,
-	.init = jpg_init,
-	.process = jpg_process,
-	.uninit = jpg_uninit,
-	.methods = jpg_methods
-};
+MSFilterDesc ms_jpeg_writer_desc = {.id = MS_JPEG_WRITER_ID,
+                                    .name = "MSJpegWriter",
+                                    .text = "Take a video snapshot as jpg file",
+                                    .category = MS_FILTER_OTHER,
+                                    .ninputs = 1,
+                                    .noutputs = 0,
+                                    .init = jpg_init,
+                                    .process = jpg_process,
+                                    .uninit = jpg_uninit,
+                                    .methods = jpg_methods};
 
 #else
 
-MSFilterDesc ms_jpeg_writer_desc = {
-	MS_JPEG_WRITER_ID,
-	"MSJpegWriter",
-	"Take a video snapshot as jpg file",
-	MS_FILTER_OTHER,
-	NULL,
-	1,
-	0,
-	jpg_init,
-	NULL,
-	jpg_process,
-	NULL,
-	jpg_uninit,
-	jpg_methods
-};
-
+MSFilterDesc ms_jpeg_writer_desc = {MS_JPEG_WRITER_ID,
+                                    "MSJpegWriter",
+                                    "Take a video snapshot as jpg file",
+                                    MS_FILTER_OTHER,
+                                    NULL,
+                                    1,
+                                    0,
+                                    jpg_init,
+                                    NULL,
+                                    jpg_process,
+                                    NULL,
+                                    jpg_uninit,
+                                    jpg_methods};
 
 #endif
 

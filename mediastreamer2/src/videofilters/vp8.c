@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,58 +18,52 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2/msasync.h"
+#include "mediastreamer2/mscodecutils.h"
+#include <bctoolbox/defs.h>
+
 #include "mediastreamer2/msfilter.h"
+#include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/mscodecutils.h"
-#include "mediastreamer2/msasync.h"
-#include "mediastreamer2/msqueue.h"
 #include "vp8rtpfmt.h"
 
 #define PICTURE_ID_ON_16_BITS
 /*#define AVPF_DEBUG*/
 
 #define VPX_CODEC_DISABLE_COMPAT 1
-#include <vpx/vpx_encoder.h>
 #include <vpx/vp8cx.h>
+#include <vpx/vpx_encoder.h>
 
 #ifdef __APPLE__
-   #include "TargetConditionals.h"
+#include "TargetConditionals.h"
 #endif
 
-#define PICID_NEWER_THAN(s1,s2)	( (uint16_t)((uint16_t)s1-(uint16_t)s2) < 1<<15)
+#define PICID_NEWER_THAN(s1, s2) ((uint16_t)((uint16_t)s1 - (uint16_t)s2) < 1 << 15)
 
-#define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus) \
-	{ required_bitrate, bitrate_limit, { MS_VIDEO_SIZE_ ## resolution ## _W, MS_VIDEO_SIZE_ ## resolution ## _H }, fps, cpus, NULL }
+#define MS_VP8_CONF(required_bitrate, bitrate_limit, resolution, fps, cpus)                                            \
+	{                                                                                                                  \
+		required_bitrate, bitrate_limit, {MS_VIDEO_SIZE_##resolution##_W, MS_VIDEO_SIZE_##resolution##_H}, fps, cpus,  \
+		    NULL                                                                                                       \
+	}
 
 static const MSVideoConfiguration vp8_conf_list[] = {
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-	MS_VP8_CONF(1536000, 3000000,       720P, 25, 8),
-	MS_VP8_CONF(1024000, 1536000,        XGA, 25, 8),
-	MS_VP8_CONF( 850000, 1024000,       SVGA, 25, 8),
-	MS_VP8_CONF( 700000, 3000000,        VGA, 30, 8),
-	MS_VP8_CONF( 600000, 3000000,        VGA, 25, 4),
-	MS_VP8_CONF( 400000,  800000,        VGA, 12, 2),
-	MS_VP8_CONF( 100000,  300000,       QVGA, 18, 2),
-	MS_VP8_CONF(  64000,  100000,       QCIF, 12, 2),
-	MS_VP8_CONF( 400000,  800000,        VGA, 12, 1),
-	MS_VP8_CONF( 100000,  300000,       QVGA, 10, 1),
-	MS_VP8_CONF(  64000,  100000,       QCIF, 10, 1),
-	MS_VP8_CONF(      0,   64000,       QCIF,  5, 1),
+    MS_VP8_CONF(1536000, 3000000, 720P, 25, 8), MS_VP8_CONF(1024000, 1536000, XGA, 25, 8),
+    MS_VP8_CONF(850000, 1024000, SVGA, 25, 8),  MS_VP8_CONF(700000, 3000000, VGA, 30, 8),
+    MS_VP8_CONF(600000, 3000000, VGA, 25, 4),   MS_VP8_CONF(400000, 800000, VGA, 12, 2),
+    MS_VP8_CONF(100000, 300000, QVGA, 18, 2),   MS_VP8_CONF(64000, 100000, QCIF, 12, 2),
+    MS_VP8_CONF(400000, 800000, VGA, 12, 1),    MS_VP8_CONF(100000, 300000, QVGA, 10, 1),
+    MS_VP8_CONF(64000, 100000, QCIF, 10, 1),    MS_VP8_CONF(0, 64000, QCIF, 5, 1),
 #else
-//	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
-//	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
-	MS_VP8_CONF(1536000,  3000000,       720P, 25, 8),
-	MS_VP8_CONF( 1024000,  3000000,        XGA, 25, 8),
-	MS_VP8_CONF( 850000,  3000000,       SVGA, 25, 4),
-	MS_VP8_CONF( 600000,  3000000,        VGA, 30, 2),
-	MS_VP8_CONF( 450000,   600000,        VGA, 25, 2),
-	MS_VP8_CONF( 350000,   600000,        VGA, 15, 1),
-	MS_VP8_CONF( 200000,   350000,        CIF, 18, 1),
-	MS_VP8_CONF( 150000,   200000,       QVGA, 15, 1),
-	MS_VP8_CONF( 100000,   150000,       QVGA, 10, 1),
-	MS_VP8_CONF(  64000,   100000,       QCIF, 12, 1),
-	MS_VP8_CONF(      0,    64000,       QCIF,  5 ,1),
+    //	MS_VP8_CONF(2048000,  5000000,       UXGA, 25, 4),
+    //	MS_VP8_CONF(1536000,  2560000, SXGA_MINUS, 25, 4),
+    MS_VP8_CONF(1536000, 3000000, 720P, 25, 8), MS_VP8_CONF(1024000, 3000000, XGA, 25, 8),
+    MS_VP8_CONF(850000, 3000000, SVGA, 25, 4),  MS_VP8_CONF(600000, 3000000, VGA, 30, 2),
+    MS_VP8_CONF(450000, 600000, VGA, 25, 2),    MS_VP8_CONF(350000, 600000, VGA, 15, 1),
+    MS_VP8_CONF(200000, 350000, CIF, 18, 1),    MS_VP8_CONF(150000, 200000, QVGA, 15, 1),
+    MS_VP8_CONF(100000, 150000, QVGA, 10, 1),   MS_VP8_CONF(64000, 100000, QCIF, 12, 1),
+    MS_VP8_CONF(0, 64000, QCIF, 5, 1),
 #endif
 };
 
@@ -149,18 +143,18 @@ static void enc_uninit(MSFilter *f) {
 static int enc_get_ref_frames_interval(EncState *s) {
 	return (uint16_t)(s->vconf.fps * 3); /*s->vconf.fps is dynamic*/
 }
-static void enc_reset_frames_state(EncState *s){
+static void enc_reset_frames_state(EncState *s) {
 	memset(&s->frames_state, 0, sizeof(s->frames_state));
-	s->frames_state.altref.type=VP8_ALTR_FRAME;
-	s->frames_state.golden.type=VP8_GOLD_FRAME;
-	s->frames_state.reconstruct.type=VP8_LAST_FRAME;
+	s->frames_state.altref.type = VP8_ALTR_FRAME;
+	s->frames_state.golden.type = VP8_GOLD_FRAME;
+	s->frames_state.reconstruct.type = VP8_LAST_FRAME;
 }
 
-static void enc_init_impl(MSFilter *f){
+static void enc_init_impl(MSFilter *f) {
 	EncState *s = (EncState *)f->data;
 	vpx_codec_err_t res;
 	vpx_codec_caps_t caps;
-	int cpuused=0;
+	int cpuused = 0;
 
 	/* Populate encoder configuration */
 	s->flags = 0;
@@ -173,41 +167,44 @@ static void enc_init_impl(MSFilter *f){
 		ms_error("Failed to get config: %s", vpx_codec_err_to_string(res));
 		return;
 	}
-	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
-	s->cfg.g_pass = VPX_RC_ONE_PASS; /* -p 1 */
+	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f /
+	                                          1024.0f); // 0.92=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.g_pass = VPX_RC_ONE_PASS;                    /* -p 1 */
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	s->cfg.rc_end_usage = VPX_CBR; /* --end-usage=cbr */
 	if (s->avpf_enabled == TRUE) {
 		s->cfg.kf_mode = VPX_KF_DISABLED;
 	} else {
-		s->cfg.kf_mode = VPX_KF_AUTO; /* encoder automatically places keyframes */
+		s->cfg.kf_mode = VPX_KF_AUTO;                    /* encoder automatically places keyframes */
 		s->cfg.kf_max_dist = 10 * s->cfg.g_timebase.den; /* 1 keyframe each 10s. */
 	}
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
 #elif TARGET_OS_OSX
-	//On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4. Value belows is a tradeoff between scalability and realtime
-	s->cfg.g_threads= MAX(ms_factory_get_cpu_count(f->factory)-2,1);
+	// On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4.
+	// Value belows is a tradeoff between scalability and realtime
+	s->cfg.g_threads = MAX(ms_factory_get_cpu_count(f->factory) - 2, 1);
 #else
 	s->cfg.g_threads = ms_factory_get_cpu_count(f->factory);
 #endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
-	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT|VPX_ERROR_RESILIENT_PARTITIONS;
+	s->cfg.g_error_resilient = VPX_ERROR_RESILIENT_DEFAULT | VPX_ERROR_RESILIENT_PARTITIONS;
 	s->cfg.g_lag_in_frames = 0;
 
 #if defined(__ANDROID__) || (TARGET_OS_IPHONE == 1) || defined(__arm__) || defined(_M_ARM)
-	cpuused = 10 - s->cfg.g_threads; /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
+	cpuused =
+	    10 - s->cfg.g_threads;    /*cpu/quality tradeoff: positive values decrease CPU usage at the expense of quality*/
 	if (cpuused < 7) cpuused = 7; /*values beneath 7 consume too much CPU*/
-	if (ms_video_size_area_greater_than(MS_VIDEO_SIZE_VGA, s->vconf.vsize)){
+	if (ms_video_size_area_greater_than(MS_VIDEO_SIZE_VGA, s->vconf.vsize)) {
 		if (s->cfg.g_threads <= 2) cpuused = 8;
 		else if (s->cfg.g_threads <= 4) cpuused = 5;
 		else cpuused = 1;
-
 	}
-	if (s->cfg.g_threads == 1){
-		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers */
+	if (s->cfg.g_threads == 1) {
+		/* on mono-core iOS devices, we reduce the quality a bit more due to VP8 being slower with new Clang compilers
+		 */
 		cpuused = 16;
 	}
 #endif
@@ -216,7 +213,7 @@ static void enc_init_impl(MSFilter *f){
 	s->cfg.g_h = s->vconf.vsize.height;
 
 	/* Initialize codec */
-	res =  vpx_codec_enc_init(&s->codec, s->iface, &s->cfg, s->flags);
+	res = vpx_codec_enc_init(&s->codec, s->iface, &s->cfg, s->flags);
 	if (res) {
 		ms_error("vpx_codec_enc_init failed: %s (%s)", vpx_codec_err_to_string(res), vpx_codec_error_detail(&s->codec));
 		return;
@@ -255,7 +252,7 @@ static vpx_codec_pts_t enc_last_reference_frame_count(EncState *s) {
 }
 
 static bool_t enc_should_generate_reference_frame(EncState *s) {
-	return ((s->frame_count - enc_last_reference_frame_count(s)) ==enc_get_ref_frames_interval(s)) ? TRUE : FALSE;
+	return ((s->frame_count - enc_last_reference_frame_count(s)) == enc_get_ref_frames_interval(s)) ? TRUE : FALSE;
 }
 
 static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
@@ -263,50 +260,53 @@ static uint8_t enc_get_type_of_reference_frame_to_generate(EncState *s) {
 		/* Generate a keyframe again. */
 		return VP8_GOLD_FRAME | VP8_ALTR_FRAME;
 	} else if (s->frames_state.golden.acknowledged == FALSE) {
-		/* Last golden frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the altref */
+		/* Last golden frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the
+		 * altref */
 		return VP8_GOLD_FRAME;
 	} else if (s->frames_state.altref.acknowledged == FALSE) {
-		/* Last altref frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the golden  */
+		/* Last altref frame has not been acknowledged, send a new one, so that the encoder can continue to refer to the
+		 * golden  */
 		return VP8_ALTR_FRAME;
 	} else {
 		/* Both golden and altref frames have been acknowledged. */
-		if (s->frames_state.golden.count < s->frames_state.altref.count)
-			return VP8_GOLD_FRAME;
-		if (s->frames_state.golden.count > s->frames_state.altref.count)
-			return VP8_ALTR_FRAME;
+		if (s->frames_state.golden.count < s->frames_state.altref.count) return VP8_GOLD_FRAME;
+		if (s->frames_state.golden.count > s->frames_state.altref.count) return VP8_ALTR_FRAME;
 		return VP8_GOLD_FRAME; /* Send a golden frame after a keyframe. */
 	}
 }
 
-static void check_most_recent(EncFrameState **found, vpx_codec_pts_t *most_recent, vpx_ref_frame_type_t type,
-			      EncFrameState *state, bool_t is_acknoledged){
+static void check_most_recent(EncFrameState **found,
+                              vpx_codec_pts_t *most_recent,
+                              BCTBX_UNUSED(vpx_ref_frame_type_t type),
+                              EncFrameState *state,
+                              bool_t is_acknoledged) {
 	if (is_acknoledged && !state->acknowledged) return;
-	if (*most_recent<state->count){
-		*most_recent=state->count;
-		*found=state;
+	if (*most_recent < state->count) {
+		*most_recent = state->count;
+		*found = state;
 	}
 }
 
-static EncFrameState * enc_get_most_recent_reference_frame(EncState *s, bool_t only_acknoledged){
-	EncFrameState *found=NULL;
-	vpx_codec_pts_t most_recent=0;
-	check_most_recent(&found,&most_recent,VP8_GOLD_FRAME,&s->frames_state.golden,only_acknoledged);
-	check_most_recent(&found,&most_recent,VP8_ALTR_FRAME,&s->frames_state.altref,only_acknoledged);
-	check_most_recent(&found,&most_recent,VP8_LAST_FRAME,&s->frames_state.reconstruct,only_acknoledged);
+static EncFrameState *enc_get_most_recent_reference_frame(EncState *s, bool_t only_acknoledged) {
+	EncFrameState *found = NULL;
+	vpx_codec_pts_t most_recent = 0;
+	check_most_recent(&found, &most_recent, VP8_GOLD_FRAME, &s->frames_state.golden, only_acknoledged);
+	check_most_recent(&found, &most_recent, VP8_ALTR_FRAME, &s->frames_state.altref, only_acknoledged);
+	check_most_recent(&found, &most_recent, VP8_LAST_FRAME, &s->frames_state.reconstruct, only_acknoledged);
 	return found;
 }
 
-static EncFrameState *enc_get_reference_frame(EncState *s, vpx_ref_frame_type_t ft){
-	switch(ft){
+static EncFrameState *enc_get_reference_frame(EncState *s, vpx_ref_frame_type_t ft) {
+	switch (ft) {
 		case VP8_LAST_FRAME:
 			return &s->frames_state.reconstruct;
-		break;
+			break;
 		case VP8_GOLD_FRAME:
 			return &s->frames_state.golden;
-		break;
+			break;
 		case VP8_ALTR_FRAME:
 			return &s->frames_state.altref;
-		break;
+			break;
 	}
 	return NULL;
 }
@@ -331,38 +331,38 @@ static void enc_mark_reference_frame_as_sent(EncState *s, vpx_ref_frame_type_t f
 	}
 }
 
-static bool_t is_reference_sane(EncState *s, EncFrameState *fs){
-	int diff=fs->picture_id-s->last_sli_id;
+static bool_t is_reference_sane(EncState *s, EncFrameState *fs) {
+	int diff = fs->picture_id - s->last_sli_id;
 	bool_t ret;
 
-	if (!fs->is_independant && diff<enc_get_ref_frames_interval(s)){
-		ret=FALSE;
-	}else ret=TRUE;
+	if (!fs->is_independant && diff < enc_get_ref_frames_interval(s)) {
+		ret = FALSE;
+	} else ret = TRUE;
 	return ret;
 }
 
-static bool_t is_reconstruction_frame_sane(EncState *s, unsigned int flags){
-	if ( !(flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)){
+static bool_t is_reconstruction_frame_sane(EncState *s, unsigned int flags) {
+	if (!(flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)) {
 		return s->frames_state.altref.acknowledged && s->frames_state.golden.acknowledged;
-	}else if ((flags & VP8_EFLAG_NO_REF_GF) && !(flags & VP8_EFLAG_NO_REF_ARF)){
+	} else if ((flags & VP8_EFLAG_NO_REF_GF) && !(flags & VP8_EFLAG_NO_REF_ARF)) {
 		return s->frames_state.altref.acknowledged;
-	}else if ((flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)){
+	} else if ((flags & VP8_EFLAG_NO_REF_ARF) && !(flags & VP8_EFLAG_NO_REF_GF)) {
 		return s->frames_state.golden.acknowledged;
 	}
 	return FALSE;
 }
 
 static void enc_acknowledge_reference_frame(EncState *s, uint16_t picture_id) {
-	if (s->frames_state.golden.picture_id == picture_id && is_reference_sane(s,&s->frames_state.golden) ) {
+	if (s->frames_state.golden.picture_id == picture_id && is_reference_sane(s, &s->frames_state.golden)) {
 		s->frames_state.golden.acknowledged = TRUE;
 	}
-	if (s->frames_state.altref.picture_id == picture_id && is_reference_sane(s,&s->frames_state.altref)) {
+	if (s->frames_state.altref.picture_id == picture_id && is_reference_sane(s, &s->frames_state.altref)) {
 		s->frames_state.altref.acknowledged = TRUE;
 	}
 	/*if not gold or altref, it is a "last frame"*/
-	if (s->frames_state.reconstruct.picture_id == picture_id ) {
+	if (s->frames_state.reconstruct.picture_id == picture_id) {
 		s->frames_state.reconstruct.acknowledged = TRUE;
-	}else if (PICID_NEWER_THAN(s->frames_state.reconstruct.picture_id,picture_id)){
+	} else if (PICID_NEWER_THAN(s->frames_state.reconstruct.picture_id, picture_id)) {
 		s->frames_state.reconstruct.acknowledged = TRUE;
 	}
 }
@@ -391,10 +391,11 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 	if (s->invalid_frame_reported == TRUE) {
 		s->invalid_frame_reported = FALSE;
 		/* If an invalid frame has been reported. */
-		if ((enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE)
-			&& (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE && should_generate_key_frame(s,MIN_KEY_FRAME_DIST))) {
+		if ((enc_is_reference_frame_acknowledged(s, VP8_GOLD_FRAME) != TRUE) &&
+		    (enc_is_reference_frame_acknowledged(s, VP8_ALTR_FRAME) != TRUE &&
+		     should_generate_key_frame(s, MIN_KEY_FRAME_DIST))) {
 			/* No reference frame has been acknowledged and last frame can not be used
-				as reference. Therefore, generate a new keyframe. */
+			    as reference. Therefore, generate a new keyframe. */
 			*flags = VPX_EFLAG_FORCE_KF;
 			return;
 		}
@@ -413,41 +414,41 @@ static void enc_fill_encoder_flags(EncState *s, unsigned int *flags) {
 			*flags |= (VP8_EFLAG_FORCE_GF | VP8_EFLAG_NO_UPD_ARF | VP8_EFLAG_NO_REF_GF);
 		} else if (frame_type & VP8_ALTR_FRAME) {
 			*flags |= (VP8_EFLAG_FORCE_ARF | VP8_EFLAG_NO_UPD_GF | VP8_EFLAG_NO_REF_ARF);
-			if (s->frame_count > s->frames_state.last_independent_frame + 5*enc_get_ref_frames_interval(s)){
+			if (s->frame_count > s->frames_state.last_independent_frame + 5 * enc_get_ref_frames_interval(s)) {
 				/*force an independant alt ref frame to force picture to be refreshed completely, otherwise
 				 * pixel color saturation appears due to accumulation of small predictive errors*/
 				*flags |= VP8_EFLAG_NO_REF_LAST | VP8_EFLAG_NO_REF_GF;
 				ms_message("Forcing independant altref frame.");
 			}
 		}
-		if (!(*flags & VPX_EFLAG_FORCE_KF)){
-			last=enc_get_most_recent_reference_frame(s,FALSE);
-			newref=enc_get_reference_frame(s,frame_type);
-			if (last && last->type==VP8_LAST_FRAME){
+		if (!(*flags & VPX_EFLAG_FORCE_KF)) {
+			last = enc_get_most_recent_reference_frame(s, FALSE);
+			newref = enc_get_reference_frame(s, frame_type);
+			if (last && last->type == VP8_LAST_FRAME) {
 				/* if the last reference frame wasn't gold or altref, don't reference it*/
 				*flags |= VP8_EFLAG_NO_REF_LAST;
 			}
 			if (newref) {
-				newref->is_independant=!!(*flags & VP8_EFLAG_NO_REF_LAST);
+				newref->is_independant = !!(*flags & VP8_EFLAG_NO_REF_LAST);
 			}
 		}
 	}
 
-	if (s->frames_state.golden.count > s->frames_state.altref.count){
-		if (!s->frames_state.golden.acknowledged){
+	if (s->frames_state.golden.count > s->frames_state.altref.count) {
+		if (!s->frames_state.golden.acknowledged) {
 			*flags |= VP8_EFLAG_NO_REF_GF;
 		}
-	}else if (s->frames_state.golden.count < s->frames_state.altref.count){
-		if (!s->frames_state.altref.acknowledged){
+	} else if (s->frames_state.golden.count < s->frames_state.altref.count) {
+		if (!s->frames_state.altref.acknowledged) {
 			*flags |= VP8_EFLAG_NO_REF_ARF;
 		}
 	}
 }
 
-static bool_t is_frame_independent(unsigned int flags){
+static bool_t is_frame_independent(unsigned int flags) {
 	if (flags & VPX_EFLAG_FORCE_KF) return TRUE;
 
-	if ((flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF)){
+	if ((flags & VP8_EFLAG_FORCE_GF) || (flags & VP8_EFLAG_FORCE_ARF)) {
 		if ((flags & VP8_EFLAG_NO_REF_ARF) && (flags & VP8_EFLAG_NO_REF_LAST) && (flags & VP8_EFLAG_NO_REF_GF))
 			return TRUE;
 	}
@@ -456,12 +457,12 @@ static bool_t is_frame_independent(unsigned int flags){
 
 static void enc_process_frame_task(void *obj) {
 	mblk_t *im, *prev_im = NULL;
-	MSFilter *f = (MSFilter*)obj;
+	MSFilter *f = (MSFilter *)obj;
 	EncState *s = (EncState *)f->data;
 	unsigned int flags = 0;
 	vpx_codec_err_t err;
 	MSPicture yuv;
-	bool_t is_ref_frame=FALSE;
+	bool_t is_ref_frame = FALSE;
 	vpx_image_t img;
 	int skipped_count = 0;
 
@@ -479,11 +480,12 @@ static void enc_process_frame_task(void *obj) {
 
 	ms_filter_unlock(f);
 
-	if (skipped_count > 0){
-		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume too much memory*/
+	if (skipped_count > 0) {
+		/*don't let too much buffers to be queued here, it makes no sense for a real time processing and would consume
+		 * too much memory*/
 		ms_warning("VP8 async encoding process: %i frames skipped", skipped_count);
 	}
-	if (!im){
+	if (!im) {
 		ms_message("VP8 async encoding process: no frame to encode, probably skipped by previous task");
 		return;
 	}
@@ -505,45 +507,49 @@ static void enc_process_frame_task(void *obj) {
 
 #ifdef AVPF_DEBUG
 	ms_message("VP8 encoder frames state:");
-	ms_message("\tgolden: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
-		s->frames_state.golden.count, s->frames_state.golden.picture_id, (s->frames_state.golden.acknowledged == TRUE) ? "Y" : "N");
-	ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s",
-		s->frames_state.altref.count, s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
+	ms_message("\tgolden: count=%" PRIi64 ", picture_id=0x%04x, ack=%s", s->frames_state.golden.count,
+	           s->frames_state.golden.picture_id, (s->frames_state.golden.acknowledged == TRUE) ? "Y" : "N");
+	ms_message("\taltref: count=%" PRIi64 ", picture_id=0x%04x, ack=%s", s->frames_state.altref.count,
+	           s->frames_state.altref.picture_id, (s->frames_state.altref.acknowledged == TRUE) ? "Y" : "N");
 #endif
 	ms_mutex_lock(&s->vp8_mutex);
-	err = vpx_codec_encode(&s->codec, &img, s->frame_count, 1, flags, (unsigned long)((double)1000000/(2.0*(double)s->vconf.fps))); /*encoder has half a framerate interval to encode*/
+	err = vpx_codec_encode(
+	    &s->codec, &img, s->frame_count, 1, flags,
+	    (unsigned long)((double)1000000 /
+	                    (2.0 * (double)s->vconf.fps))); /*encoder has half a framerate interval to encode*/
 	if (err) {
 		ms_mutex_unlock(&s->vp8_mutex);
-		ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec));
+		ms_error("vpx_codec_encode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err),
+		         vpx_codec_error_detail(&s->codec));
 	} else {
 		vpx_codec_iter_t iter = NULL;
 		const vpx_codec_cx_pkt_t *pkt;
 		bctbx_list_t *list = NULL;
 		int current_partition_id = -1;
 		bool_t is_independent_frame = FALSE;
-		
+
 		/* Update the frames state. */
-		is_ref_frame=FALSE;
+		is_ref_frame = FALSE;
 		if (flags & VPX_EFLAG_FORCE_KF) {
 			enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
 			enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
-			s->frames_state.golden.is_independant=TRUE;
-			s->frames_state.altref.is_independant=TRUE;
-			s->frames_state.last_independent_frame=s->frame_count;
+			s->frames_state.golden.is_independant = TRUE;
+			s->frames_state.altref.is_independant = TRUE;
+			s->frames_state.last_independent_frame = s->frame_count;
 			s->force_keyframe = FALSE;
-			is_ref_frame=TRUE;
-		}else if (flags & VP8_EFLAG_FORCE_GF) {
+			is_ref_frame = TRUE;
+		} else if (flags & VP8_EFLAG_FORCE_GF) {
 			enc_mark_reference_frame_as_sent(s, VP8_GOLD_FRAME);
-			is_ref_frame=TRUE;
-		}else if (flags & VP8_EFLAG_FORCE_ARF) {
+			is_ref_frame = TRUE;
+		} else if (flags & VP8_EFLAG_FORCE_ARF) {
 			enc_mark_reference_frame_as_sent(s, VP8_ALTR_FRAME);
-			is_ref_frame=TRUE;
-		}else if (flags & VP8_EFLAG_NO_REF_LAST) {
+			is_ref_frame = TRUE;
+		} else if (flags & VP8_EFLAG_NO_REF_LAST) {
 			enc_mark_reference_frame_as_sent(s, VP8_LAST_FRAME);
-			is_ref_frame=is_reconstruction_frame_sane(s,flags);
+			is_ref_frame = is_reconstruction_frame_sane(s, flags);
 		}
-		if (is_frame_independent(flags)){
-			s->frames_state.last_independent_frame=s->frame_count;
+		if (is_frame_independent(flags)) {
+			s->frames_state.last_independent_frame = s->frame_count;
 			is_independent_frame = TRUE;
 		}
 
@@ -591,10 +597,13 @@ static void enc_process_frame_task(void *obj) {
 
 #ifdef AVPF_DEBUG
 		ms_message("VP8 encoder picture_id=%i ***| %s | %s | %s | %s", (int)s->picture_id,
-			(flags & VPX_EFLAG_FORCE_KF) ? "KF " : (flags & VP8_EFLAG_FORCE_GF) ? "GF " :  (flags & VP8_EFLAG_FORCE_ARF) ? "ARF" : "   ",
-			(flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
-			(flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
-			(flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
+		           (flags & VPX_EFLAG_FORCE_KF)    ? "KF "
+		           : (flags & VP8_EFLAG_FORCE_GF)  ? "GF "
+		           : (flags & VP8_EFLAG_FORCE_ARF) ? "ARF"
+		                                           : "   ",
+		           (flags & VP8_EFLAG_NO_REF_GF) ? "NOREFGF" : "       ",
+		           (flags & VP8_EFLAG_NO_REF_ARF) ? "NOREFARF" : "        ",
+		           (flags & VP8_EFLAG_NO_REF_LAST) ? "NOREFLAST" : "         ");
 #endif
 
 		ms_filter_lock(f);
@@ -610,11 +619,9 @@ static void enc_process_frame_task(void *obj) {
 		/* Increment the pictureID. */
 		s->picture_id++;
 #ifdef PICTURE_ID_ON_16_BITS
-		if (s->picture_id == 0)
-			s->picture_id = 0x8000;
+		if (s->picture_id == 0) s->picture_id = 0x8000;
 #else
-		if (s->picture_id == 0x0080)
-			s->picture_id = 0;
+		if (s->picture_id == 0x0080) s->picture_id = 0;
 #endif
 	}
 
@@ -643,12 +650,13 @@ static void enc_process(MSFilter *f) {
 	if ((entry_f = ms_queue_peek_last(f->inputs[0])) != NULL) {
 		ms_yuv_buf_init_from_mblk(&yuv, entry_f);
 		if (yuv.w != s->vconf.vsize.width || yuv.h != s->vconf.vsize.height)
-			ms_error("enc_process: get yuv w %d, h %d and vconf w %d, h %d", yuv.w, yuv.h, s->vconf.vsize.width, s->vconf.vsize.height);
-		
+			ms_error("enc_process: get yuv w %d, h %d and vconf w %d, h %d", yuv.w, yuv.h, s->vconf.vsize.width,
+			         s->vconf.vsize.height);
+
 		ms_queue_remove(f->inputs[0], entry_f);
 		putq(&s->entry_q, entry_f);
 		ms_mutex_lock(&s->vp8_mutex);
-		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void*)f);
+		ms_worker_thread_add_task(s->process_thread, enc_process_frame_task, (void *)f);
 		ms_mutex_unlock(&s->vp8_mutex);
 	}
 
@@ -667,7 +675,7 @@ static void enc_postprocess(MSFilter *f) {
 	s->process_thread = NULL;
 	if (s->ready) vpx_codec_destroy(&s->codec);
 	vp8rtpfmt_packer_uninit(&s->packer);
-	flushq(&s->entry_q,0);
+	flushq(&s->entry_q, 0);
 	ms_queue_destroy(s->exit_q);
 	s->exit_q = NULL;
 	s->ready = FALSE;
@@ -681,34 +689,37 @@ static int enc_set_configuration(MSFilter *f, void *data) {
 
 	if (vconf != &s->vconf) memcpy(&s->vconf, vconf, sizeof(MSVideoConfiguration));
 
-	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f / 1024.0f); //0.92=take into account IP/UDP/RTP overhead, in average.
+	s->cfg.rc_target_bitrate = (unsigned int)(((float)s->vconf.required_bitrate) * 0.92f /
+	                                          1024.0f); // 0.92=take into account IP/UDP/RTP overhead, in average.
 	s->cfg.g_timebase.num = 1;
 	s->cfg.g_timebase.den = (int)s->vconf.fps;
 	if (s->ready) {
 		/* Do not change video size if encoder is running */
 		if (!ms_video_size_equal(s->vconf.vsize, vsize)) {
-			ms_warning("Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d", vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
+			ms_warning(
+			    "Video configuration: cannot change video size when encoder is running, actual=%dx%d, wanted=%dx%d",
+			    vsize.width, vsize.height, s->vconf.vsize.width, s->vconf.vsize.height);
 			s->vconf.vsize = vsize;
-		}
-		else if (fps_changed){
-			/* The VP8 implementation is unreliable for fps change. Simply destroy the encoder and re-create a new one, it is safer.*/
-			if (s->ready){
+		} else if (fps_changed) {
+			/* The VP8 implementation is unreliable for fps change. Simply destroy the encoder and re-create a new one,
+			 * it is safer.*/
+			if (s->ready) {
 				ms_mutex_lock(&s->vp8_mutex);
 				vpx_codec_destroy(&s->codec);
 				enc_init_impl(f);
 				ms_mutex_unlock(&s->vp8_mutex);
 			}
-		}else{
+		} else {
 			ms_mutex_lock(&s->vp8_mutex);
-			if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0){
+			if (vpx_codec_enc_config_set(&s->codec, &s->cfg) != 0) {
 				ms_error("VP8 encoder new configuration failed to apply.");
 			}
 			ms_mutex_unlock(&s->vp8_mutex);
 		}
 	}
 
-	ms_message("VP8 Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]"	, s->vconf.required_bitrate,
-		   s->vconf.fps, s->vconf.vsize.width, s->vconf.vsize.height, f);
+	ms_message("VP8 Video configuration set: bitrate=%dbits/s, fps=%f, vsize=%dx%d for encoder [%p]",
+	           s->vconf.required_bitrate, s->vconf.fps, s->vconf.vsize.width, s->vconf.vsize.height, f);
 	return 0;
 }
 
@@ -719,27 +730,27 @@ static int enc_get_configuration(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_req_vfu(MSFilter *f, void *unused) {
+static int enc_req_vfu(MSFilter *f, BCTBX_UNUSED(void *unused)) {
 	EncState *s = (EncState *)f->data;
 	s->force_keyframe = TRUE;
 	return 0;
 }
 
-static bool_t should_generate_key_frame(EncState *s, int min_interval){
+static bool_t should_generate_key_frame(EncState *s, int min_interval) {
 	/*as the PLI has no picture id reference, we don't know if it is still current.
 	 * Thus we need to avoid to send too many keyframes. Send one and wait for rpsi to arrive first.
 	 * The receiver sends PLI for each new frame it receives when it does not have the keyframe*/
 	if (s->frame_count > s->frames_state.golden.count + min_interval &&
-		s->frame_count > s->frames_state.altref.count + min_interval){
+	    s->frame_count > s->frames_state.altref.count + min_interval) {
 		return TRUE;
 	}
 	return FALSE;
 }
 
-static int enc_notify_pli(MSFilter *f, void *data) {
+static int enc_notify_pli(MSFilter *f, BCTBX_UNUSED(void *data)) {
 	EncState *s = (EncState *)f->data;
 	ms_message("VP8: PLI requested");
-	if (should_generate_key_frame(s,MIN_KEY_FRAME_DIST)){
+	if (should_generate_key_frame(s, MIN_KEY_FRAME_DIST)) {
 		ms_message("VP8: PLI accepted");
 		if (s->avpf_enabled == TRUE) {
 			s->invalid_frame_reported = TRUE;
@@ -753,7 +764,7 @@ static int enc_notify_pli(MSFilter *f, void *data) {
 static int enc_notify_fir(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
 	uint8_t seq_nr = *((uint8_t *)data);
-	if (should_generate_key_frame(s,MIN_KEY_FRAME_DIST)){
+	if (should_generate_key_frame(s, MIN_KEY_FRAME_DIST)) {
 		if (seq_nr != s->last_fir_seq_nr) {
 			s->force_keyframe = TRUE;
 			s->last_fir_seq_nr = seq_nr;
@@ -761,7 +772,6 @@ static int enc_notify_fir(MSFilter *f, void *data) {
 	}
 	return 0;
 }
-
 
 static int enc_notify_sli(MSFilter *f, void *data) {
 	EncState *s = (EncState *)f->data;
@@ -774,13 +784,14 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 
 	ms_filter_lock(f);
 	/* extend the SLI received picture-id (6 bits) to a normal picture id*/
-	most_recent=s->picture_id;
+	most_recent = s->picture_id;
 
-	diff=(64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
-	s->last_sli_id=most_recent-diff;
+	diff = (64 + (int)(most_recent & 0x3F) - (int)(sli->picture_id & 0x3F)) % 64;
+	s->last_sli_id = most_recent - diff;
 
-	fs=enc_get_most_recent_reference_frame(s,FALSE);
-	ms_message("VP8: receiving SLI with pic id [%i], last-ref=[%i], most recent pic id=[%i]",s->last_sli_id, fs ? (int)fs->picture_id : 0, most_recent);
+	fs = enc_get_most_recent_reference_frame(s, FALSE);
+	ms_message("VP8: receiving SLI with pic id [%i], last-ref=[%i], most recent pic id=[%i]", s->last_sli_id,
+	           fs ? (int)fs->picture_id : 0, most_recent);
 	if (s->frames_state.golden.picture_id == s->last_sli_id) {
 		/* Last golden frame has been lost. */
 		golden_lost = TRUE;
@@ -789,18 +800,18 @@ static int enc_notify_sli(MSFilter *f, void *data) {
 		/* Last altref frame has been lost. */
 		altref_lost = TRUE;
 	}
-	if ((golden_lost == TRUE) && (altref_lost == TRUE) && should_generate_key_frame(s,MIN_KEY_FRAME_DIST)) {
+	if ((golden_lost == TRUE) && (altref_lost == TRUE) && should_generate_key_frame(s, MIN_KEY_FRAME_DIST)) {
 		/* Last key frame has been lost. */
 		s->force_keyframe = TRUE;
 	} else {
 		/* If no reference frame known, OR sli is for a frame that comes after the last reference frame transmitted
 		 * OR last reference frame is older than last 16 bit picture id half cycle. */
-		if (!fs || PICID_NEWER_THAN(s->last_sli_id,fs->picture_id) || (s->frame_count - fs->count >= 1<<15)) {
+		if (!fs || PICID_NEWER_THAN(s->last_sli_id, fs->picture_id) || (s->frame_count - fs->count >= 1 << 15)) {
 			s->invalid_frame_reported = TRUE;
 		} else {
 #ifdef AVPF_DEBUG
 			/* The reported loss is older than the last reference frame, so ignore it. */
-			ms_message("VP8: Ignored SLI with picture_id [%i] last-ref=[%i]",(int)s->last_sli_id, (int)fs->picture_id);
+			ms_message("VP8: Ignored SLI with picture_id [%i] last-ref=[%i]", (int)s->last_sli_id, (int)fs->picture_id);
 #endif
 		}
 	}
@@ -821,7 +832,7 @@ static int enc_notify_rpsi(MSFilter *f, void *data) {
 		ms_warning("VP8 invalid RPSI received");
 		return -1;
 	}
-	ms_message("VP8: receiving RPSI for picture_id %u",(unsigned)picture_id);
+	ms_message("VP8: receiving RPSI for picture_id %u", (unsigned)picture_id);
 	enc_acknowledge_reference_frame(s, picture_id);
 	return 0;
 }
@@ -839,81 +850,64 @@ static int enc_enable_avpf(MSFilter *f, void *data) {
 	return 0;
 }
 
-static MSFilterMethod enc_methods[] = {
-	{ MS_FILTER_REQ_VFU,                       enc_req_vfu                },
-	{ MS_VIDEO_ENCODER_REQ_VFU,                enc_req_vfu                },
-	{ MS_VIDEO_ENCODER_NOTIFY_PLI,             enc_notify_pli             },
-	{ MS_VIDEO_ENCODER_NOTIFY_FIR,             enc_notify_fir             },
-	{ MS_VIDEO_ENCODER_NOTIFY_SLI,             enc_notify_sli             },
-	{ MS_VIDEO_ENCODER_NOTIFY_RPSI,            enc_notify_rpsi            },
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list },
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION,      enc_get_configuration      },
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION,      enc_set_configuration      },
-	{ MS_VIDEO_ENCODER_ENABLE_AVPF,            enc_enable_avpf            },
-	{ 0,                                       NULL                       }
-};
+static MSFilterMethod enc_methods[] = {{MS_FILTER_REQ_VFU, enc_req_vfu},
+                                       {MS_VIDEO_ENCODER_REQ_VFU, enc_req_vfu},
+                                       {MS_VIDEO_ENCODER_NOTIFY_PLI, enc_notify_pli},
+                                       {MS_VIDEO_ENCODER_NOTIFY_FIR, enc_notify_fir},
+                                       {MS_VIDEO_ENCODER_NOTIFY_SLI, enc_notify_sli},
+                                       {MS_VIDEO_ENCODER_NOTIFY_RPSI, enc_notify_rpsi},
+                                       {MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, enc_get_configuration_list},
+                                       {MS_VIDEO_ENCODER_GET_CONFIGURATION, enc_get_configuration},
+                                       {MS_VIDEO_ENCODER_SET_CONFIGURATION, enc_set_configuration},
+                                       {MS_VIDEO_ENCODER_ENABLE_AVPF, enc_enable_avpf},
+                                       {0, NULL}};
 
-#define MS_VP8_ENC_NAME        "MSVp8Enc"
+#define MS_VP8_ENC_NAME "MSVp8Enc"
 #define MS_VP8_ENC_DESCRIPTION "A VP8 video encoder using libvpx library."
-#define MS_VP8_ENC_CATEGORY    MS_FILTER_ENCODER
-#define MS_VP8_ENC_ENC_FMT     "VP8"
-#define MS_VP8_ENC_NINPUTS     1 /*MS_YUV420P is assumed on this input */
-#define MS_VP8_ENC_NOUTPUTS    1
-#define MS_VP8_ENC_FLAGS       MS_FILTER_IS_PUMP
+#define MS_VP8_ENC_CATEGORY MS_FILTER_ENCODER
+#define MS_VP8_ENC_ENC_FMT "VP8"
+#define MS_VP8_ENC_NINPUTS 1 /*MS_YUV420P is assumed on this input */
+#define MS_VP8_ENC_NOUTPUTS 1
+#define MS_VP8_ENC_FLAGS MS_FILTER_IS_PUMP
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_vp8_enc_desc = {
-	MS_VP8_ENC_ID,
-	MS_VP8_ENC_NAME,
-	MS_VP8_ENC_DESCRIPTION,
-	MS_VP8_ENC_CATEGORY,
-	MS_VP8_ENC_ENC_FMT,
-	MS_VP8_ENC_NINPUTS,
-	MS_VP8_ENC_NOUTPUTS,
-	enc_init,
-	enc_preprocess,
-	enc_process,
-	enc_postprocess,
-	enc_uninit,
-	enc_methods,
-	MS_VP8_ENC_FLAGS
-};
+MSFilterDesc ms_vp8_enc_desc = {MS_VP8_ENC_ID,      MS_VP8_ENC_NAME,    MS_VP8_ENC_DESCRIPTION, MS_VP8_ENC_CATEGORY,
+                                MS_VP8_ENC_ENC_FMT, MS_VP8_ENC_NINPUTS, MS_VP8_ENC_NOUTPUTS,    enc_init,
+                                enc_preprocess,     enc_process,        enc_postprocess,        enc_uninit,
+                                enc_methods,        MS_VP8_ENC_FLAGS};
 
 #else
 
-MSFilterDesc ms_vp8_enc_desc = {
-	.id = MS_VP8_ENC_ID,
-	.name = MS_VP8_ENC_NAME,
-	.text = MS_VP8_ENC_DESCRIPTION,
-	.category = MS_VP8_ENC_CATEGORY,
-	.enc_fmt = MS_VP8_ENC_ENC_FMT,
-	.ninputs = MS_VP8_ENC_NINPUTS,
-	.noutputs = MS_VP8_ENC_NOUTPUTS,
-	.init = enc_init,
-	.preprocess = enc_preprocess,
-	.process = enc_process,
-	.postprocess = enc_postprocess,
-	.uninit = enc_uninit,
-	.methods = enc_methods,
-	.flags = MS_VP8_ENC_FLAGS
-};
+MSFilterDesc ms_vp8_enc_desc = {.id = MS_VP8_ENC_ID,
+                                .name = MS_VP8_ENC_NAME,
+                                .text = MS_VP8_ENC_DESCRIPTION,
+                                .category = MS_VP8_ENC_CATEGORY,
+                                .enc_fmt = MS_VP8_ENC_ENC_FMT,
+                                .ninputs = MS_VP8_ENC_NINPUTS,
+                                .noutputs = MS_VP8_ENC_NOUTPUTS,
+                                .init = enc_init,
+                                .preprocess = enc_preprocess,
+                                .process = enc_process,
+                                .postprocess = enc_postprocess,
+                                .uninit = enc_uninit,
+                                .methods = enc_methods,
+                                .flags = MS_VP8_ENC_FLAGS};
 
 #endif
 
 MS_FILTER_DESC_EXPORT(ms_vp8_enc_desc)
 
-
 #include <assert.h>
-#include <vpx/vpx_decoder.h>
 #include <vpx/vp8dx.h>
+#include <vpx/vpx_decoder.h>
 
 typedef struct DecState {
 	vpx_codec_ctx_t codec;
 	vpx_codec_iface_t *iface;
 	vpx_codec_flags_t flags;
 	Vp8RtpFmtUnpackerCtx unpacker;
-	long last_cseq; /*last receive sequence number, used to locate missing partition fragment*/
+	long last_cseq;           /*last receive sequence number, used to locate missing partition fragment*/
 	int current_partition_id; /*current partition id*/
 	uint64_t last_error_reported_time;
 	MSYuvBufAllocator *allocator;
@@ -936,7 +930,7 @@ typedef struct DecState {
 	bool_t waiting; // TRUE when the processing thread is in ms_cond_wait()
 } DecState;
 
-static void * dec_processing_thread(void *obj);
+static void *dec_processing_thread(void *obj);
 
 static void dec_init(MSFilter *f) {
 	DecState *s = (DecState *)ms_new0(DecState, 1);
@@ -959,11 +953,11 @@ static void dec_init(MSFilter *f) {
 	 * The loss of performance is correlated to the number of threads allocated for the decoding.
 	 * It appears to be due to the inefficiency of spinlocks used by the libvpx.
 	 */
-	s->max_threads = MAX(ms_factory_get_cpu_count(f->factory)-2,1);
+	s->max_threads = MAX(ms_factory_get_cpu_count(f->factory) - 2, 1);
 #else
 	s->max_threads = ms_factory_get_cpu_count(f->factory);
 #endif
-	
+
 	ms_cond_init(&s->thread_cond, NULL);
 	ms_queue_init(&s->entry_q);
 	ms_queue_init(&s->exit_q);
@@ -971,25 +965,25 @@ static void dec_init(MSFilter *f) {
 	ms_average_fps_init(&s->fps, "VP8 decoder: FPS: %f");
 }
 
-static int dec_initialize_impl(MSFilter *f){
+static int dec_initialize_impl(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
 	vpx_codec_dec_cfg_t cfg;
 
 	memset(&cfg, 0, sizeof(cfg));
 	cfg.threads = s->max_threads;
-	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)){
+	if (vpx_codec_dec_init(&s->codec, s->iface, &cfg, s->flags)) {
 		ms_error("Failed to initialize VP8 decoder");
 		return -1;
 	}
 	return 0;
 }
 
-static void dec_preprocess(MSFilter* f) {
+static void dec_preprocess(MSFilter *f) {
 	DecState *s = (DecState *)f->data;
 	vpx_codec_caps_t caps = vpx_codec_get_caps(s->iface);
 
 	/* Initialize codec */
-	if (!s->ready){
+	if (!s->ready) {
 
 		s->flags = 0;
 #if 0
@@ -1005,10 +999,11 @@ static void dec_preprocess(MSFilter* f) {
 
 		if (dec_initialize_impl(f) != 0) return;
 		ms_message("VP8: initializing decoder context: avpf=[%i] freeze_on_error=[%i] max_threads=[%i]",
-			   s->avpf_enabled, s->freeze_on_error, s->max_threads);
-		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error, (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
+		           s->avpf_enabled, s->freeze_on_error, s->max_threads);
+		vp8rtpfmt_unpacker_init(&s->unpacker, f, s->avpf_enabled, s->freeze_on_error,
+		                        (s->flags & VPX_CODEC_USE_INPUT_FRAGMENTS) ? TRUE : FALSE);
 		s->first_image_decoded = FALSE;
-		s->ready=TRUE;
+		s->ready = TRUE;
 	}
 
 	s->thread_running = TRUE;
@@ -1028,7 +1023,7 @@ static void dec_uninit(MSFilter *f) {
 }
 
 static void *dec_processing_thread(void *obj) {
-	MSFilter *f = (MSFilter*)obj;
+	MSFilter *f = (MSFilter *)obj;
 	DecState *s = (DecState *)f->data;
 	mblk_t *im;
 	MSQueue frame;
@@ -1037,8 +1032,8 @@ static void *dec_processing_thread(void *obj) {
 	ms_queue_init(&frame);
 
 	ms_filter_lock(f);
-	while(s->thread_running){
-		if (ms_queue_empty(&s->entry_q)){
+	while (s->thread_running) {
+		if (ms_queue_empty(&s->entry_q)) {
 			s->waiting = TRUE;
 			ms_cond_wait(&s->thread_cond, &f->lock);
 			s->waiting = FALSE;
@@ -1061,7 +1056,8 @@ static void *dec_processing_thread(void *obj) {
 					err = vpx_codec_decode(&s->codec, NULL, 0, NULL, 0);
 				}
 				if (err) {
-					ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err), vpx_codec_error_detail(&s->codec)?vpx_codec_error_detail(&s->codec):"no details");
+					ms_warning("vp8 decode failed : %d %s (%s)\n", err, vpx_codec_err_to_string(err),
+					           vpx_codec_error_detail(&s->codec) ? vpx_codec_error_detail(&s->codec) : "no details");
 				}
 				s->last_timestamp = mblk_get_timestamp_info(im);
 				freemsg(im);
@@ -1074,7 +1070,8 @@ static void *dec_processing_thread(void *obj) {
 				mblk_t *yuv_msg;
 
 				if (vpx_codec_control(&s->codec, VP8D_GET_LAST_REF_UPDATES, &reference_updates) == 0) {
-					if (frame_info.pictureid_present && ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
+					if (frame_info.pictureid_present &&
+					    ((reference_updates & VP8_GOLD_FRAME) || (reference_updates & VP8_ALTR_FRAME))) {
 						vp8rtpfmt_send_rpsi(&s->unpacker, frame_info.pictureid);
 					}
 				}
@@ -1096,9 +1093,9 @@ static void *dec_processing_thread(void *obj) {
 
 				if (yuv_msg == NULL) {
 					s->discarded_frames_count++;
-					ms_warning("%s[%p]: no more output buffers, [%i] discarded frames, [%i] output frames", f->desc->name, f,
-						s->discarded_frames_count, s->output_frames_count);
-				}else{
+					ms_warning("%s[%p]: no more output buffers, [%i] discarded frames, [%i] output frames",
+					           f->desc->name, f, s->discarded_frames_count, s->output_frames_count);
+				} else {
 					s->output_frames_count++;
 					/* copy frame to destination mblk_t */
 					for (i = 0; i < 3; i++) {
@@ -1143,7 +1140,7 @@ static void dec_process(MSFilter *f) {
 		return;
 	}
 
-	if (f->ticker->time % 1000 == 0){
+	if (f->ticker->time % 1000 == 0) {
 		ms_message("VP8 dec: entry queue size: %i packets.", (int)s->entry_q.q.q_mcount);
 	}
 	while ((entry_f = ms_queue_get(f->inputs[0])) != NULL) {
@@ -1155,7 +1152,7 @@ static void dec_process(MSFilter *f) {
 	while ((exit_f = ms_queue_get(&s->exit_q)) != NULL) {
 		ms_queue_put(f->outputs[0], exit_f);
 	}
-	if (queued_something && s->waiting){
+	if (queued_something && s->waiting) {
 		/* Wake up the processing thread if it is waiting some job. */
 		ms_cond_signal(&s->thread_cond);
 	}
@@ -1174,7 +1171,7 @@ static void dec_postprocess(MSFilter *f) {
 	ms_thread_join(s->thread, NULL);
 }
 
-static int dec_reset_first_image(MSFilter* f, void *data) {
+static int dec_reset_first_image(MSFilter *f, BCTBX_UNUSED(void *data)) {
 	DecState *s = (DecState *)f->data;
 	s->first_image_decoded = FALSE;
 	return 0;
@@ -1192,12 +1189,12 @@ static int dec_freeze_on_error(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int dec_reset(MSFilter *f, void *data) {
+static int dec_reset(MSFilter *f, BCTBX_UNUSED(void *data)) {
 	DecState *s = (DecState *)f->data;
 	ms_message("Reseting VP8 decoder");
 	ms_filter_lock(f);
 	vpx_codec_destroy(&s->codec);
-	if (dec_initialize_impl(f) != 0){
+	if (dec_initialize_impl(f) != 0) {
 		ms_error("Failed to reinitialize VP8 decoder");
 	}
 	s->first_image_decoded = FALSE;
@@ -1218,82 +1215,67 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int dec_get_fps(MSFilter *f, void *data){
+static int dec_get_fps(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
-	*(float*)data= ms_average_fps_get(&s->fps);
+	*(float *)data = ms_average_fps_get(&s->fps);
 	return 0;
 }
 
-static int dec_get_out_fmt(MSFilter *f, void *data){
+static int dec_get_out_fmt(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
-	MSPinFormat *pf=(MSPinFormat*)data;
-	pf->fmt=ms_factory_get_video_format(f->factory,"YUV420P",ms_video_size_make(s->yuv_width,s->yuv_height),0,NULL);
+	MSPinFormat *pf = (MSPinFormat *)data;
+	pf->fmt =
+	    ms_factory_get_video_format(f->factory, "YUV420P", ms_video_size_make(s->yuv_width, s->yuv_height), 0, NULL);
 	return 0;
 }
 
-static int dec_set_max_threads(MSFilter *f, void *data){
+static int dec_set_max_threads(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
-	s->max_threads = *(int*)data;
+	s->max_threads = *(int *)data;
 	return 0;
 }
 
-static MSFilterMethod dec_methods[] = {
-	{ MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image },
-	{ MS_VIDEO_DECODER_ENABLE_AVPF,                    dec_enable_avpf       },
-	{ MS_VIDEO_DECODER_FREEZE_ON_ERROR,                dec_freeze_on_error   },
-	{ MS_VIDEO_DECODER_RESET,                          dec_reset             },
-	{ MS_VIDEO_DECODER_SET_MAX_THREADS,                dec_set_max_threads   },
-	{ MS_FILTER_GET_VIDEO_SIZE,                        dec_get_vsize         },
-	{ MS_FILTER_GET_FPS,                               dec_get_fps           },
-	{ MS_FILTER_GET_OUTPUT_FMT,                        dec_get_out_fmt       },
-	{ 0,                                               NULL                  }
-};
+static MSFilterMethod dec_methods[] = {{MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, dec_reset_first_image},
+                                       {MS_VIDEO_DECODER_ENABLE_AVPF, dec_enable_avpf},
+                                       {MS_VIDEO_DECODER_FREEZE_ON_ERROR, dec_freeze_on_error},
+                                       {MS_VIDEO_DECODER_RESET, dec_reset},
+                                       {MS_VIDEO_DECODER_SET_MAX_THREADS, dec_set_max_threads},
+                                       {MS_FILTER_GET_VIDEO_SIZE, dec_get_vsize},
+                                       {MS_FILTER_GET_FPS, dec_get_fps},
+                                       {MS_FILTER_GET_OUTPUT_FMT, dec_get_out_fmt},
+                                       {0, NULL}};
 
-#define MS_VP8_DEC_NAME        "MSVp8Dec"
+#define MS_VP8_DEC_NAME "MSVp8Dec"
 #define MS_VP8_DEC_DESCRIPTION "A VP8 video decoder using libvpx library."
-#define MS_VP8_DEC_CATEGORY    MS_FILTER_DECODER
-#define MS_VP8_DEC_ENC_FMT     "VP8"
-#define MS_VP8_DEC_NINPUTS     1
-#define MS_VP8_DEC_NOUTPUTS    1
-#define MS_VP8_DEC_FLAGS       MS_FILTER_IS_PUMP
+#define MS_VP8_DEC_CATEGORY MS_FILTER_DECODER
+#define MS_VP8_DEC_ENC_FMT "VP8"
+#define MS_VP8_DEC_NINPUTS 1
+#define MS_VP8_DEC_NOUTPUTS 1
+#define MS_VP8_DEC_FLAGS MS_FILTER_IS_PUMP
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_vp8_dec_desc = {
-	MS_VP8_DEC_ID,
-	MS_VP8_DEC_NAME,
-	MS_VP8_DEC_DESCRIPTION,
-	MS_VP8_DEC_CATEGORY,
-	MS_VP8_DEC_ENC_FMT,
-	MS_VP8_DEC_NINPUTS,
-	MS_VP8_DEC_NOUTPUTS,
-	dec_init,
-	dec_preprocess,
-	dec_process,
-	dec_postprocess,
-	dec_uninit,
-	dec_methods,
-	MS_VP8_DEC_FLAGS
-};
+MSFilterDesc ms_vp8_dec_desc = {MS_VP8_DEC_ID,      MS_VP8_DEC_NAME,    MS_VP8_DEC_DESCRIPTION, MS_VP8_DEC_CATEGORY,
+                                MS_VP8_DEC_ENC_FMT, MS_VP8_DEC_NINPUTS, MS_VP8_DEC_NOUTPUTS,    dec_init,
+                                dec_preprocess,     dec_process,        dec_postprocess,        dec_uninit,
+                                dec_methods,        MS_VP8_DEC_FLAGS};
 
 #else
 
-MSFilterDesc ms_vp8_dec_desc = {
-	.id = MS_VP8_DEC_ID,
-	.name = MS_VP8_DEC_NAME,
-	.text = MS_VP8_DEC_DESCRIPTION,
-	.category = MS_VP8_DEC_CATEGORY,
-	.enc_fmt = MS_VP8_DEC_ENC_FMT,
-	.ninputs = MS_VP8_DEC_NINPUTS,
-	.noutputs = MS_VP8_DEC_NOUTPUTS,
-	.init = dec_init,
-	.preprocess = dec_preprocess,
-	.process = dec_process,
-	.postprocess = dec_postprocess,
-	.uninit = dec_uninit,
-	.methods = dec_methods,
-	.flags = MS_VP8_DEC_FLAGS
-};
+MSFilterDesc ms_vp8_dec_desc = {.id = MS_VP8_DEC_ID,
+                                .name = MS_VP8_DEC_NAME,
+                                .text = MS_VP8_DEC_DESCRIPTION,
+                                .category = MS_VP8_DEC_CATEGORY,
+                                .enc_fmt = MS_VP8_DEC_ENC_FMT,
+                                .ninputs = MS_VP8_DEC_NINPUTS,
+                                .noutputs = MS_VP8_DEC_NOUTPUTS,
+                                .init = dec_init,
+                                .preprocess = dec_preprocess,
+                                .process = dec_process,
+                                .postprocess = dec_postprocess,
+                                .uninit = dec_uninit,
+                                .methods = dec_methods,
+                                .flags = MS_VP8_DEC_FLAGS};
 
 #endif
 

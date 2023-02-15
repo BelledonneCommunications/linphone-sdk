@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,7 +30,8 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecEncoder::MediaCodecEncoder(const std::string &mime): H26xEncoder(mime), _psInserter(H26xToolFactory::get(mime).createParameterSetsInserter()) {
+MediaCodecEncoder::MediaCodecEncoder(const std::string &mime)
+    : H26xEncoder(mime), _psInserter(H26xToolFactory::get(mime).createParameterSetsInserter()) {
 	try {
 		_vsize.width = 0;
 		_vsize.height = 0;
@@ -46,8 +47,8 @@ MediaCodecEncoder::~MediaCodecEncoder() {
 	if (_impl) AMediaCodec_delete(_impl);
 }
 
-void MediaCodecEncoder::enableOutbufferDequeueLimit(bool enable){
-	if (enable){
+void MediaCodecEncoder::enableOutbufferDequeueLimit(bool enable) {
+	if (enable) {
 		ms_warning("Enabling the DEVICE_MCH265_LIMIT_DEQUEUE_OF_OUTPUT_BUFFERS hack on this device.");
 	}
 	_hasOutbufferDequeueLimit = enable;
@@ -68,7 +69,7 @@ void MediaCodecEncoder::setBitrate(int bitrate) {
 	if (isRunning() && _impl) {
 		AMediaFormat *afmt = AMediaFormat_new();
 		// update the output bitrate
-		AMediaFormat_setInt32(afmt, "video-bitrate", (_bitrate * 9)/10);
+		AMediaFormat_setInt32(afmt, "video-bitrate", (_bitrate * 9) / 10);
 		AMediaCodec_setParams(_impl, afmt);
 		AMediaFormat_delete(afmt);
 	}
@@ -104,8 +105,8 @@ void MediaCodecEncoder::stop() {
 	if (_impl) {
 		AMediaCodec_flush(_impl);
 		AMediaCodec_stop(_impl);
-		// It is preferable to reset the encoder, otherwise it may not accept a new configuration while returning in preprocess().
-		// This was observed at least on Moto G2, with qualcomm encoder.
+		// It is preferable to reset the encoder, otherwise it may not accept a new configuration while returning in
+		// preprocess(). This was observed at least on Moto G2, with qualcomm encoder.
 		AMediaCodec_reset(_impl);
 	}
 	_psInserter->flush();
@@ -116,9 +117,8 @@ void MediaCodecEncoder::stop() {
 
 void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame) {
 	// ensure that rawData is destroyed on function return
-	unique_ptr<mblk_t, void(*)(mblk_t *)> rawDataPtr(rawData, freemsg);
+	unique_ptr<mblk_t, void (*)(mblk_t *)> rawDataPtr(rawData, freemsg);
 
-	
 	if (_recoveryMode && time % 5000 == 0) {
 		try {
 			if (_impl == nullptr) createImpl();
@@ -126,12 +126,13 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 			_recoveryMode = false;
 		} catch (const runtime_error &e) {
 			ms_error("MediaCodecEncoder: %s", e.what());
-			ms_error("MediaCodecEncoder: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
+			ms_error(
+			    "MediaCodecEncoder: AMediaCodec_reset() was not sufficient, will recreate the encoder in a moment...");
 			AMediaCodec_delete(_impl);
 			_impl = nullptr;
 		}
 	}
-	
+
 	if (_impl == nullptr) return;
 
 	if (!_isRunning) {
@@ -179,7 +180,8 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 			if (image.format == 35 /* YUV_420_888 */) {
 				MSRect src_roi = {0, 0, pic.w, pic.h};
 				int src_pix_strides[4] = {1, 1, 1, 1};
-				ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers, image.row_strides, image.pixel_strides, image.crop_rect);
+				ms_yuv_buf_copy_with_pix_strides(pic.planes, pic.strides, src_pix_strides, src_roi, image.buffers,
+				                                 image.row_strides, image.pixel_strides, image.crop_rect);
 				bufsize = image.row_strides[0] * image.height * 3 / 2;
 			} else {
 				ms_error("MediaCodecEncoder: encoder requires non YUV420 format");
@@ -188,16 +190,18 @@ void MediaCodecEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFrame)
 		}
 	} else {
 		uint8_t *inputBuffer = AMediaCodec_getInputBuffer(_impl, ibufidx, &bufsize);
-		size_t dataSize = rawData->b_wptr-rawData->b_rptr;
+		size_t dataSize = rawData->b_wptr - rawData->b_rptr;
 		if (dataSize <= bufsize) {
 			memcpy(inputBuffer, rawData->b_rptr, dataSize);
 		} else {
-			ms_error("MediaCodecEncoder: not enough space in the input buffer (required=%zu, availabel=%zu)", dataSize, bufsize);
+			ms_error("MediaCodecEncoder: not enough space in the input buffer (required=%zu, availabel=%zu)", dataSize,
+			         bufsize);
 			bufsize = 0;
 		}
 	}
 
-	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, min(bufsize, bufsize_max), time * 1000, 0) == AMEDIA_ERROR_BASE) {
+	if (AMediaCodec_queueInputBuffer(_impl, ibufidx, 0, min(bufsize, bufsize_max), time * 1000, 0) ==
+	    AMEDIA_ERROR_BASE) {
 		ms_error("MediaCodecEncoder: error while queuing input buffer");
 		return;
 	}
@@ -212,7 +216,7 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 	size_t bufsize;
 
 	if (_impl == nullptr || !_isRunning || _recoveryMode || !_firstImageQueued) return false;
-	
+
 	if (_hasOutbufferDequeueLimit && _pendingFrames <= 0) return false;
 
 	ms_queue_init(&outq);
@@ -245,14 +249,16 @@ bool MediaCodecEncoder::fetch(MSQueue *encodedData) {
 		return false;
 	}
 	/*
-	 * Split bitstream into NAL units. removePreventionBytes (start code emulation prevention byte) is willingly set to false, which is not obvious.
-	 * Indeed, we should expect that the encoder has inserted prevention bytes (0x03) to escape 0x000001 start codes that could be present
-	 * within slices. When splitting into NAL units, these 0x03 bytes should be removed, since it is allowed to have 0x000001 sequences within a NAL unit.
-	 * However, the practice shows that if we do that, we get random decoding errors at the other end, whatever the other end is an Android or an iOS device.
-	 * If we do not do that, the decoding goes perfectly well. How to explain this ?
-	 * - this could mean that MediaCodec does not insert prevention bytes, but the encoder guarantees by some other means that no 0x000001 sequences can occur.
-	 *   however 0x00000301 may happen but this is not a prevention byte.
-	 * - this could mean that we have another bug elsewhere in H26xUtils routines, but then why decoding goes perfectly well when not removing prevention bytes ?
+	 * Split bitstream into NAL units. removePreventionBytes (start code emulation prevention byte) is willingly set to
+	 * false, which is not obvious. Indeed, we should expect that the encoder has inserted prevention bytes (0x03) to
+	 * escape 0x000001 start codes that could be present within slices. When splitting into NAL units, these 0x03 bytes
+	 * should be removed, since it is allowed to have 0x000001 sequences within a NAL unit. However, the practice shows
+	 * that if we do that, we get random decoding errors at the other end, whatever the other end is an Android or an
+	 * iOS device. If we do not do that, the decoding goes perfectly well. How to explain this ?
+	 * - this could mean that MediaCodec does not insert prevention bytes, but the encoder guarantees by some other
+	 * means that no 0x000001 sequences can occur. however 0x00000301 may happen but this is not a prevention byte.
+	 * - this could mean that we have another bug elsewhere in H26xUtils routines, but then why decoding goes perfectly
+	 * well when not removing prevention bytes ?
 	 */
 	H26xUtils::byteStreamToNalus(buf + info.offset, info.size, &outq, false);
 	_psInserter->process(&outq, encodedData);
@@ -271,7 +277,8 @@ void MediaCodecEncoder::createImpl() {
 void MediaCodecEncoder::configureImpl() {
 	AMediaFormat *format = createMediaFormat();
 
-	ms_message("MediaCodecEncoder: configuring MediaCodec with the following parameters:\n%s", AMediaFormat_toString(format));
+	ms_message("MediaCodecEncoder: configuring MediaCodec with the following parameters:\n%s",
+	           AMediaFormat_toString(format));
 
 	media_status_t status = AMediaCodec_configure(_impl, format, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
 	AMediaFormat_delete(format);
@@ -281,7 +288,8 @@ void MediaCodecEncoder::configureImpl() {
 	}
 
 	format = AMediaCodec_getOutputFormat(_impl);
-	ms_message("MediaCodecEncoder: encoder successfully configured. In-force parameters:\n%s", AMediaFormat_toString(format));
+	ms_message("MediaCodecEncoder: encoder successfully configured. In-force parameters:\n%s",
+	           AMediaFormat_toString(format));
 	AMediaFormat_delete(format);
 }
 
@@ -292,7 +300,7 @@ AMediaFormat *MediaCodecEncoder::createMediaFormat() const {
 	AMediaFormat_setInt32(format, "width", _vsize.width);
 	AMediaFormat_setInt32(format, "height", _vsize.height);
 	AMediaFormat_setInt32(format, "frame-rate", _fps);
-	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9)/10); // take a margin
+	AMediaFormat_setInt32(format, "bitrate", (_bitrate * 9) / 10); // take a margin
 	AMediaFormat_setInt32(format, "bitrate-mode", _bitrateMode);
 	AMediaFormat_setInt32(format, "i-frame-interval", _iFrameInterval);
 	AMediaFormat_setInt32(format, "latency", _encodingLatency);

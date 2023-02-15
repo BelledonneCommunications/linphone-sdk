@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,9 +27,8 @@ typedef struct _MSQrCodeReaderEventData {
 	char data[255];
 } MSQrCodeReaderEventData;
 
-#define MS_QRCODE_READER_QRCODE_FOUND	MS_FILTER_EVENT(MS_QRCODE_READER_ID, 0, MSQrCodeReaderEventData)
-#define MS_QRCODE_READER_RESET_SEARCH	MS_FILTER_METHOD_NO_ARG(MS_QRCODE_READER_ID, 0)
-#define MS_QRCODE_READET_SET_DECODER_RECT	MS_FILTER_METHOD(MS_QRCODE_READER_ID, 1, MSRect)
+#define MS_QRCODE_READER_QRCODE_FOUND MS_FILTER_EVENT(MS_QRCODE_READER_ID, 0, MSQrCodeReaderEventData)
+#define MS_QRCODE_READER_RESET_SEARCH MS_FILTER_METHOD_NO_ARG(MS_QRCODE_READER_ID, 0)
+#define MS_QRCODE_READET_SET_DECODER_RECT MS_FILTER_METHOD(MS_QRCODE_READER_ID, 1, MSRect)
 
 #endif
-

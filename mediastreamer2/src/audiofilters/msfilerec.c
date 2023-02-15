@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,22 +18,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bctoolbox/defs.h>
+
 #if defined(HAVE_CONFIG_H)
 #include "mediastreamer-config.h"
 #endif
 
+#include "asyncrw.h"
 #include "mediastreamer2/msfilerec.h"
 #include "waveheader.h"
-#include "asyncrw.h"
 #include <bctoolbox/vfs.h>
 
 #include "fd_portab.h" // keep this include at the last of the inclusion sequence!
 
-
 static int rec_close(MSFilter *f, void *arg);
 static void write_wav_header(bctbx_vfs_file_t *fp, int rate, int nchannels, int size);
 
-typedef struct RecState{
+typedef struct RecState {
 	bctbx_vfs_file_t *fp;
 	int rate;
 	int nchannels;
@@ -46,204 +47,204 @@ typedef struct RecState{
 	bool_t is_wav;
 } RecState;
 
-static void rec_init(MSFilter *f){
-	RecState *s=ms_new0(RecState,1);
-	s->rate=8000;
+static void rec_init(MSFilter *f) {
+	RecState *s = ms_new0(RecState, 1);
+	s->rate = 8000;
 	s->nchannels = 1;
-	s->size=0;
-	s->max_size=0;
-	s->state=MSRecorderClosed;
+	s->size = 0;
+	s->max_size = 0;
+	s->state = MSRecorderClosed;
 	s->mime = "pcm";
 	s->swap = FALSE;
 	s->is_wav = FALSE;
-	f->data=s;
+	f->data = s;
 }
 
 static void _rec_close(RecState *s);
 
-static void swap_bytes(unsigned char *bytes, int len){
+static void swap_bytes(unsigned char *bytes, int len) {
 	int i;
 	unsigned char tmp;
-	for(i=0;i<len;i+=2){
-		tmp=bytes[i];
-		bytes[i]=bytes[i+1];
-		bytes[i+1]=tmp;
+	for (i = 0; i < len; i += 2) {
+		tmp = bytes[i];
+		bytes[i] = bytes[i + 1];
+		bytes[i + 1] = tmp;
 	}
 }
 
-static void rec_process(MSFilter *f){
-	RecState *s=(RecState*)f->data;
+static void rec_process(MSFilter *f) {
+	RecState *s = (RecState *)f->data;
 	mblk_t *m;
-	
+
 	ms_mutex_lock(&f->lock);
-	while((m=ms_queue_get(f->inputs[0]))!=NULL){
-		
-		if (s->state==MSRecorderRunning){
-			int len=(int)(m->b_wptr-m->b_rptr);
+	while ((m = ms_queue_get(f->inputs[0])) != NULL) {
+
+		if (s->state == MSRecorderRunning) {
+			int len = (int)(m->b_wptr - m->b_rptr);
 			int max_size_reached = 0;
-			if (s->max_size!=0 && s->size+len > s->max_size) {
+			if (s->max_size != 0 && s->size + len > s->max_size) {
 				len = s->max_size - s->size;
 				max_size_reached = 1;
 			}
 			if (s->swap) {
-				if (dblk_ref_value(m->b_datap) != 1){
+				if (dblk_ref_value(m->b_datap) != 1) {
 					mblk_t *old = m;
 					m = copymsg(m);
 					freemsg(old);
 				}
-				swap_bytes(m->b_rptr,len);
+				swap_bytes(m->b_rptr, len);
 			}
-			ms_async_writer_write(s->writer,m);
-			s->size+=len;
+			ms_async_writer_write(s->writer, m);
+			s->size += len;
 			if (max_size_reached) {
-				ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.",s->max_size);
+				ms_warning("MSFileRec: Maximum size (%d) has been reached. closing file.", s->max_size);
 				_rec_close(s);
-				ms_filter_notify_no_arg(f,MS_RECORDER_MAX_SIZE_REACHED);
+				ms_filter_notify_no_arg(f, MS_RECORDER_MAX_SIZE_REACHED);
 			}
-		}else freemsg(m);
+		} else freemsg(m);
 	}
 	ms_mutex_unlock(&f->lock);
 }
 
-static int rec_get_length(const char *file, int *length){
+static int rec_get_length(const char *file, int *length) {
 	wave_header_t header;
-	bctbx_vfs_file_t *fp = bctbx_file_open2(bctbx_vfs_get_default(), file, O_RDONLY|O_BINARY);
-	int ret=ms_read_wav_header_from_fp(&header,fp);
+	bctbx_vfs_file_t *fp = bctbx_file_open2(bctbx_vfs_get_default(), file, O_RDONLY | O_BINARY);
+	int ret = ms_read_wav_header_from_fp(&header, fp);
 	bctbx_file_close(fp);
-	if (ret>0){
-		*length=le_uint32(header.data_chunk.len);
-	}else{
-		*length=0;
+	if (ret > 0) {
+		*length = le_uint32(header.data_chunk.len);
+	} else {
+		*length = 0;
 	}
 	return ret;
 }
 
-static int rec_open(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
-	const char *filename=(const char*)arg;
+static int rec_open(MSFilter *f, void *arg) {
+	RecState *s = (RecState *)f->data;
+	const char *filename = (const char *)arg;
 	int flags;
 	int64_t fsize;
-	
-	if (s->fp) rec_close(f,NULL);
-	
-	if (strstr(filename, ".wav") == filename + strlen(filename) - 4){
+
+	if (s->fp) rec_close(f, NULL);
+
+	if (strstr(filename, ".wav") == filename + strlen(filename) - 4) {
 		s->is_wav = TRUE;
 	}
 
-	if (access(filename,R_OK|W_OK)==0){
-		flags=O_WRONLY|O_BINARY;
-		if (rec_get_length(filename,&s->size)>0){
-			ms_message("Opening wav file in append mode, current data size is %i",s->size);
+	if (access(filename, R_OK | W_OK) == 0) {
+		flags = O_WRONLY | O_BINARY;
+		if (rec_get_length(filename, &s->size) > 0) {
+			ms_message("Opening wav file in append mode, current data size is %i", s->size);
 			s->is_wav = TRUE;
 		}
-	}else{
-		flags=O_WRONLY|O_CREAT|O_TRUNC|O_BINARY;
-		s->size=0;
+	} else {
+		flags = O_WRONLY | O_CREAT | O_TRUNC | O_BINARY;
+		s->size = 0;
 	}
 
 	s->fp = bctbx_file_open2(bctbx_vfs_get_default(), filename, flags);
 	if (s->fp == NULL) {
-		ms_warning("Cannot open %s: %s",filename,strerror(errno));
+		ms_warning("Cannot open %s: %s", filename, strerror(errno));
 		return -1;
 	}
 
-	if (s->size>0){
-		if ((fsize=bctbx_file_size(s->fp))!=BCTBX_VFS_ERROR){
-			if (bctbx_file_seek(s->fp,(off_t)fsize,SEEK_SET) == BCTBX_VFS_ERROR){
+	if (s->size > 0) {
+		if ((fsize = bctbx_file_size(s->fp)) != BCTBX_VFS_ERROR) {
+			if (bctbx_file_seek(s->fp, (off_t)fsize, SEEK_SET) == BCTBX_VFS_ERROR) {
 				int err = errno;
-				ms_error("Could not lseek to end of file: %s",strerror(err));
+				ms_error("Could not lseek to end of file: %s", strerror(err));
 			}
-		}else ms_error("fstat() failed: %s",strerror(errno));
+		} else ms_error("fstat() failed: %s", strerror(errno));
 	}
-	ms_message("MSFileRec: recording into %s",filename);
+	ms_message("MSFileRec: recording into %s", filename);
 	s->writer = ms_async_writer_new(s->fp);
 	ms_mutex_lock(&f->lock);
-	s->state=MSRecorderPaused;
+	s->state = MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
-static int rec_start(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
-	if (s->state!=MSRecorderPaused){
-		ms_error("MSFileRec: cannot start, state=%i",s->state);
+static int rec_start(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	RecState *s = (RecState *)f->data;
+	if (s->state != MSRecorderPaused) {
+		ms_error("MSFileRec: cannot start, state=%i", s->state);
 		return -1;
 	}
 	ms_mutex_lock(&f->lock);
-	s->state=MSRecorderRunning;
+	s->state = MSRecorderRunning;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
-static int rec_stop(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
+static int rec_stop(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	RecState *s = (RecState *)f->data;
 	ms_mutex_lock(&f->lock);
-	s->state=MSRecorderPaused;
+	s->state = MSRecorderPaused;
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
-static void write_wav_header(bctbx_vfs_file_t *fp, int rate, int nchannels, int size){
+static void write_wav_header(bctbx_vfs_file_t *fp, int rate, int nchannels, int size) {
 	wave_header_t header;
-	memcpy(&header.riff_chunk.riff,"RIFF",4);
-	header.riff_chunk.len=le_uint32(size+32);
-	memcpy(&header.riff_chunk.wave,"WAVE",4);
+	memcpy(&header.riff_chunk.riff, "RIFF", 4);
+	header.riff_chunk.len = le_uint32(size + 32);
+	memcpy(&header.riff_chunk.wave, "WAVE", 4);
 
-	memcpy(&header.format_chunk.fmt,"fmt ",4);
-	header.format_chunk.len=le_uint32(0x10);
-	header.format_chunk.type=le_uint16(0x1);
-	header.format_chunk.channel=le_uint16(nchannels);
-	header.format_chunk.rate=le_uint32(rate);
-	header.format_chunk.bps=le_uint32(rate*2*nchannels);
-	header.format_chunk.blockalign=le_uint16(2*nchannels);
-	header.format_chunk.bitpspl=le_uint16(16);
+	memcpy(&header.format_chunk.fmt, "fmt ", 4);
+	header.format_chunk.len = le_uint32(0x10);
+	header.format_chunk.type = le_uint16(0x1);
+	header.format_chunk.channel = le_uint16(nchannels);
+	header.format_chunk.rate = le_uint32(rate);
+	header.format_chunk.bps = le_uint32(rate * 2 * nchannels);
+	header.format_chunk.blockalign = le_uint16(2 * nchannels);
+	header.format_chunk.bitpspl = le_uint16(16);
 
-	memcpy(&header.data_chunk.data,"data",4);
-	header.data_chunk.len=le_uint32(size);
+	memcpy(&header.data_chunk.data, "data", 4);
+	header.data_chunk.len = le_uint32(size);
 	bctbx_file_seek(fp, 0, SEEK_SET);
-	if (bctbx_file_write2(fp, &header, sizeof(header))!=sizeof(header)){
+	if (bctbx_file_write2(fp, &header, sizeof(header)) != sizeof(header)) {
 		ms_warning("Fail to write wav header.");
 	}
 }
 
-static void _rec_close(RecState *s){
-	s->state=MSRecorderClosed;
-	if (s->fp){
+static void _rec_close(RecState *s) {
+	s->state = MSRecorderClosed;
+	if (s->fp) {
 		ms_async_writer_destroy(s->writer);
 		s->writer = NULL;
-		if (s->is_wav){
+		if (s->is_wav) {
 			write_wav_header(s->fp, s->rate, s->nchannels, s->size);
 		}
 
 		bctbx_file_close(s->fp);
-		s->fp=NULL;
+		s->fp = NULL;
 	}
 }
 
-static int rec_close(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
+static int rec_close(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	RecState *s = (RecState *)f->data;
 	ms_mutex_lock(&f->lock);
 	_rec_close(s);
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
-static int rec_get_state(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
-	*(MSRecorderState*)arg=s->state;
+static int rec_get_state(MSFilter *f, void *arg) {
+	RecState *s = (RecState *)f->data;
+	*(MSRecorderState *)arg = s->state;
 	return 0;
 }
 
-static int rec_set_sr(MSFilter *f, void *arg){
-	RecState *s=(RecState*)f->data;
+static int rec_set_sr(MSFilter *f, void *arg) {
+	RecState *s = (RecState *)f->data;
 	ms_mutex_lock(&f->lock);
-	s->rate=*((int*)arg);
+	s->rate = *((int *)arg);
 	ms_mutex_unlock(&f->lock);
 	return 0;
 }
 
-static int rec_get_sr(MSFilter *f, void *arg){
-	RecState *d=(RecState*)f->data;
+static int rec_get_sr(MSFilter *f, void *arg) {
+	RecState *d = (RecState *)f->data;
 	int *sample_rate = (int *)arg;
 	*sample_rate = d->rate;
 	return 0;
@@ -255,29 +256,29 @@ static int rec_set_nchannels(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int rec_get_nchannels(MSFilter *f, void *arg){
-	RecState *d=(RecState*)f->data;
+static int rec_get_nchannels(MSFilter *f, void *arg) {
+	RecState *d = (RecState *)f->data;
 	int *nchannels = (int *)arg;
 	*nchannels = d->nchannels;
 	return 0;
 }
 
-static void rec_uninit(MSFilter *f){
-	RecState *s=(RecState*)f->data;
-	if (s->fp) rec_close(f,NULL);
+static void rec_uninit(MSFilter *f) {
+	RecState *s = (RecState *)f->data;
+	if (s->fp) rec_close(f, NULL);
 	ms_free(s);
 }
 
-static int rec_get_fmtp(MSFilter *f, void *arg){
-	RecState *d=(RecState*)f->data;
-	MSPinFormat *pinfmt = (MSPinFormat*)arg;
+static int rec_get_fmtp(MSFilter *f, void *arg) {
+	RecState *d = (RecState *)f->data;
+	MSPinFormat *pinfmt = (MSPinFormat *)arg;
 	if (pinfmt->pin == 0) pinfmt->fmt = ms_factory_get_audio_format(f->factory, d->mime, d->rate, d->nchannels, NULL);
 	return 0;
 }
 
-static int rec_set_fmtp(MSFilter *f, void *arg){
-	RecState *d=(RecState*)f->data;
-	MSPinFormat *pinfmt = (MSPinFormat*)arg;
+static int rec_set_fmtp(MSFilter *f, void *arg) {
+	RecState *d = (RecState *)f->data;
+	MSPinFormat *pinfmt = (MSPinFormat *)arg;
 	ms_filter_lock(f);
 	d->rate = pinfmt->fmt->rate;
 	d->nchannels = pinfmt->fmt->nchannels;
@@ -289,63 +290,57 @@ static int rec_set_fmtp(MSFilter *f, void *arg){
 }
 
 static int rec_set_max_size(MSFilter *f, void *arg) {
-	RecState *d=(RecState*)f->data;
-	d->max_size = *((int *) arg);
+	RecState *d = (RecState *)f->data;
+	d->max_size = *((int *)arg);
 	return 0;
 }
 
-static MSFilterMethod rec_methods[]={
-	{	MS_FILTER_SET_SAMPLE_RATE,	rec_set_sr	},
-	{	MS_FILTER_SET_NCHANNELS	,	rec_set_nchannels	},
-	{	MS_FILTER_GET_SAMPLE_RATE,	rec_get_sr	},
-	{	MS_FILTER_GET_NCHANNELS	,	rec_get_nchannels	},
-	{	MS_FILE_REC_OPEN	,	rec_open	},
-	{	MS_FILE_REC_START	,	rec_start	},
-	{	MS_FILE_REC_STOP	,	rec_stop	},
-	{	MS_FILE_REC_CLOSE	,	rec_close	},
-	{	MS_RECORDER_OPEN	,	rec_open	},
-	{	MS_RECORDER_START	,	rec_start	},
-	{	MS_RECORDER_PAUSE	,	rec_stop	},
-	{	MS_RECORDER_CLOSE	,	rec_close	},
-	{	MS_RECORDER_GET_STATE	,	rec_get_state	},
-	{ 	MS_FILTER_GET_OUTPUT_FMT, 	rec_get_fmtp },
-	{ 	MS_FILTER_SET_OUTPUT_FMT, 	rec_set_fmtp },
-	{	MS_RECORDER_SET_MAX_SIZE,	rec_set_max_size },
-	{	0			,	NULL		}
-};
+static MSFilterMethod rec_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, rec_set_sr},
+                                       {MS_FILTER_SET_NCHANNELS, rec_set_nchannels},
+                                       {MS_FILTER_GET_SAMPLE_RATE, rec_get_sr},
+                                       {MS_FILTER_GET_NCHANNELS, rec_get_nchannels},
+                                       {MS_FILE_REC_OPEN, rec_open},
+                                       {MS_FILE_REC_START, rec_start},
+                                       {MS_FILE_REC_STOP, rec_stop},
+                                       {MS_FILE_REC_CLOSE, rec_close},
+                                       {MS_RECORDER_OPEN, rec_open},
+                                       {MS_RECORDER_START, rec_start},
+                                       {MS_RECORDER_PAUSE, rec_stop},
+                                       {MS_RECORDER_CLOSE, rec_close},
+                                       {MS_RECORDER_GET_STATE, rec_get_state},
+                                       {MS_FILTER_GET_OUTPUT_FMT, rec_get_fmtp},
+                                       {MS_FILTER_SET_OUTPUT_FMT, rec_set_fmtp},
+                                       {MS_RECORDER_SET_MAX_SIZE, rec_set_max_size},
+                                       {0, NULL}};
 
 #ifdef _WIN32
 
-MSFilterDesc ms_file_rec_desc={
-	MS_FILE_REC_ID,
-	"MSFileRec",
-	N_("Wav file recorder"),
-	MS_FILTER_OTHER,
-	NULL,
-	1,
-	0,
-	rec_init,
-	NULL,
-	rec_process,
-	NULL,
-	rec_uninit,
-	rec_methods
-};
+MSFilterDesc ms_file_rec_desc = {MS_FILE_REC_ID,
+                                 "MSFileRec",
+                                 N_("Wav file recorder"),
+                                 MS_FILTER_OTHER,
+                                 NULL,
+                                 1,
+                                 0,
+                                 rec_init,
+                                 NULL,
+                                 rec_process,
+                                 NULL,
+                                 rec_uninit,
+                                 rec_methods};
 
 #else
 
-MSFilterDesc ms_file_rec_desc={
-	.id=MS_FILE_REC_ID,
-	.name="MSFileRec",
-	.text=N_("Wav file recorder"),
-	.category=MS_FILTER_OTHER,
-	.ninputs=1,
-	.noutputs=0,
-	.init=rec_init,
-	.process=rec_process,
-	.uninit=rec_uninit,
-	.methods=rec_methods
-};
+MSFilterDesc ms_file_rec_desc = {.id = MS_FILE_REC_ID,
+                                 .name = "MSFileRec",
+                                 .text = N_("Wav file recorder"),
+                                 .category = MS_FILTER_OTHER,
+                                 .ninputs = 1,
+                                 .noutputs = 0,
+                                 .init = rec_init,
+                                 .process = rec_process,
+                                 .uninit = rec_uninit,
+                                 .methods = rec_methods};
 
 #endif
 

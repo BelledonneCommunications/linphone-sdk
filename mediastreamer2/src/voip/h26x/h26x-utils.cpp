@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -53,25 +53,28 @@ void H26xUtils::byteStreamToNalus(const std::vector<uint8_t> &byteStream, MSQueu
 	H26xUtils::byteStreamToNalus(byteStream.data(), byteStream.size(), out, removePreventionBytes);
 }
 
-static bool isPictureStartCode(const uint8_t *bytestream, size_t size){
+static bool isPictureStartCode(const uint8_t *bytestream, size_t size) {
 	if (size <= 4) return false;
 	if (bytestream[0] == 0 && bytestream[1] == 0 && bytestream[2] == 0 && bytestream[3] == 1) return true;
 	return false;
 }
 
-mblk_t * H26xUtils::makeNalu(const uint8_t *byteStream, size_t naluSize, bool removePreventionBytes, int *preventionBytesRemoved){
+mblk_t *H26xUtils::makeNalu(const uint8_t *byteStream,
+                            size_t naluSize,
+                            bool removePreventionBytes,
+                            int *preventionBytesRemoved) {
 	mblk_t *nalu = allocb(naluSize, 0);
 	const uint8_t *it;
 	const uint8_t *end = byteStream + naluSize;
-	for(it = byteStream; it < end ;){
-		if (removePreventionBytes && it[0] == 0 && it + 3 < end && it[1] == 0 && it[2] == 3 && it[3] == 1){
+	for (it = byteStream; it < end;) {
+		if (removePreventionBytes && it[0] == 0 && it + 3 < end && it[1] == 0 && it[2] == 3 && it[3] == 1) {
 			/* Found 0x00000301, replace by 0x000001*/
 			it += 3;
 			*nalu->b_wptr++ = 0;
 			*nalu->b_wptr++ = 0;
 			*nalu->b_wptr++ = 1;
 			(*preventionBytesRemoved)++;
-		}else{
+		} else {
 			*nalu->b_wptr++ = *it++;
 		}
 	}
@@ -83,37 +86,37 @@ void H26xUtils::byteStreamToNalus(const uint8_t *byteStream, size_t size, MSQueu
 	size_t i;
 	size_t begin, end;
 	size_t naluSize;
-	
-	if (!isPictureStartCode(byteStream, size)){
+
+	if (!isPictureStartCode(byteStream, size)) {
 		ms_error("no picture start code found in H26x byte stream");
 		throw invalid_argument("no picutre start code found in H26x byte stream");
 		return;
 	}
 	begin = 4;
-	for (i = begin; i + 3 < size ; ++i){
-		if (byteStream[i] == 0 && byteStream[i+1] == 0 && byteStream[i+2] == 1){
+	for (i = begin; i + 3 < size; ++i) {
+		if (byteStream[i] == 0 && byteStream[i + 1] == 0 && byteStream[i + 2] == 1) {
 			end = i;
 			naluSize = end - begin;
 			ms_queue_put(out, makeNalu(byteStream + begin, naluSize, removePreventionBytes, &preventionBytesRemoved));
-			i+=3;
+			i += 3;
 			begin = i;
 		}
 	}
 	naluSize = size - begin;
 	ms_queue_put(out, makeNalu(byteStream + begin, naluSize, removePreventionBytes, &preventionBytesRemoved));
-	
-	if (preventionBytesRemoved > 0){
+
+	if (preventionBytesRemoved > 0) {
 		ms_message("Removed %i start code prevention bytes", preventionBytesRemoved);
 	}
 }
 
-size_t H26xUtils::nalusToByteStream(MSQueue *nalus, uint8_t* byteStream, size_t size) {
+size_t H26xUtils::nalusToByteStream(MSQueue *nalus, uint8_t *byteStream, size_t size) {
 	bool startPicture = true;
 	uint8_t *byteStreamEnd = byteStream + size;
 	uint8_t *it = byteStream;
-	
+
 	if (size < 4) throw invalid_argument("Insufficient buffer size");
-	
+
 	while (mblk_t *im = ms_queue_get(nalus)) {
 		if (startPicture) {
 			// starting picture extra zero byte
@@ -127,14 +130,14 @@ size_t H26xUtils::nalusToByteStream(MSQueue *nalus, uint8_t* byteStream, size_t 
 		*it++ = 1;
 
 		// copy NALu content
-		for (const uint8_t *src = im->b_rptr; src < im->b_wptr && it < byteStreamEnd ;) {
-			if (src[0] == 0 && src+2 < im->b_wptr && src[1] == 0 && (/*src[2] == 0 ||*/ src[2] == 1)) {
-				if (it + 3 <  byteStreamEnd){
+		for (const uint8_t *src = im->b_rptr; src < im->b_wptr && it < byteStreamEnd;) {
+			if (src[0] == 0 && src + 2 < im->b_wptr && src[1] == 0 && (/*src[2] == 0 ||*/ src[2] == 1)) {
+				if (it + 3 < byteStreamEnd) {
 					*it++ = 0;
 					*it++ = 0;
 					*it++ = 3; // emulation prevention three byte
 					src += 2;
-				}else throw invalid_argument("Insufficient buffer size");
+				} else throw invalid_argument("Insufficient buffer size");
 			} else {
 				*it++ = *src++;
 			}
@@ -158,13 +161,13 @@ H26xParameterSetsStore::H26xParameterSetsStore(const std::string &mime, const st
 }
 
 H26xParameterSetsStore::~H26xParameterSetsStore() {
-	for(auto it = _ps.begin(); it != _ps.end(); it++) {
+	for (auto it = _ps.begin(); it != _ps.end(); it++) {
 		if (it->second) freemsg(it->second);
 	}
 }
 
 bool H26xParameterSetsStore::psGatheringCompleted() const {
-	for(const auto &item : _ps) {
+	for (const auto &item : _ps) {
 		if (item.second == nullptr) return false;
 	}
 	return true;
@@ -188,7 +191,7 @@ void H26xParameterSetsStore::extractAllPs(MSQueue *frame) {
 void H26xParameterSetsStore::fetchAllPs(MSQueue *outq) const {
 	MSQueue q;
 	ms_queue_init(&q);
-	for(const auto &item : _ps) {
+	for (const auto &item : _ps) {
 		if (item.second) {
 			ms_queue_put(outq, dupmsg(item.second));
 		}

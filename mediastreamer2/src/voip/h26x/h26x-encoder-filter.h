@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,14 +29,16 @@
 
 namespace mediastreamer {
 
-class H26xEncoderFilter: public EncoderFilter {
+class H26xEncoderFilter : public EncoderFilter {
 public:
 	void preprocess() override;
 	void process() override;
 	void postprocess() override;
 
 	const MSVideoConfiguration *getVideoConfigurations() const override;
-	const MSVideoConfiguration &getVideoConfiguration() const override {return _vconf;}
+	const MSVideoConfiguration &getVideoConfiguration() const override {
+		return _vconf;
+	}
 	void setVideoConfiguration(MSVideoConfiguration vconf) override;
 
 	void enableAvpf(bool enable) override;
@@ -60,4 +62,4 @@ protected:
 	MSIFrameRequestsLimiterCtx _iframeLimiter;
 };
 
-}
+} // namespace mediastreamer

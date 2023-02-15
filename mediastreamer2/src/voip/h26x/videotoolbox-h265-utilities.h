@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 
 namespace mediastreamer {
 
-class VideoToolboxH265Utilities: public VideoToolboxUtilities {
+class VideoToolboxH265Utilities : public VideoToolboxUtilities {
 public:
 	VideoToolboxH265Utilities();
 
@@ -32,17 +32,32 @@ public:
 	CFStringRef getDefaultProfileLevel() const override;
 
 private:
-	typedef OSStatus (*GetParameterSetNativeFunc)(CMFormatDescriptionRef videoDesc, size_t parameterSetIndex, const uint8_t **parameterSetPointerOut,
-											   size_t *parameterSetSizeOut, size_t *parameterSetCountOut, int *NALUnitHeaderLengthOut );
-	typedef OSStatus (*CreateFormatDescriptionNativeFunc)(CFAllocatorRef allocator, size_t parameterSetCount, const uint8_t * const *parameterSetPointers,
-														 const size_t *parameterSetSizes, int NALUnitHeaderLength, CFDictionaryRef extensions, CMFormatDescriptionRef *formatDescriptionOut);
+	typedef OSStatus (*GetParameterSetNativeFunc)(CMFormatDescriptionRef videoDesc,
+	                                              size_t parameterSetIndex,
+	                                              const uint8_t **parameterSetPointerOut,
+	                                              size_t *parameterSetSizeOut,
+	                                              size_t *parameterSetCountOut,
+	                                              int *NALUnitHeaderLengthOut);
+	typedef OSStatus (*CreateFormatDescriptionNativeFunc)(CFAllocatorRef allocator,
+	                                                      size_t parameterSetCount,
+	                                                      const uint8_t *const *parameterSetPointers,
+	                                                      const size_t *parameterSetSizes,
+	                                                      int NALUnitHeaderLength,
+	                                                      CFDictionaryRef extensions,
+	                                                      CMFormatDescriptionRef *formatDescriptionOut);
 
-	void getParameterSet(const CMFormatDescriptionRef format, size_t offset, const uint8_t *&parameterSet, size_t &parameterSetSize, size_t &parameterSetsCount) const override;
-	CMFormatDescriptionRef createFormatDescription(size_t paramterSetsCount, const uint8_t *parameterSets[], const size_t parameterSetSizes[]) const override;
+	void getParameterSet(const CMFormatDescriptionRef format,
+	                     size_t offset,
+	                     const uint8_t *&parameterSet,
+	                     size_t &parameterSetSize,
+	                     size_t &parameterSetsCount) const override;
+	CMFormatDescriptionRef createFormatDescription(size_t paramterSetsCount,
+	                                               const uint8_t *parameterSets[],
+	                                               const size_t parameterSetSizes[]) const override;
 
 	static CFStringRef _kVTProfileLevel_HEVC_Main_AutoLevel;
 	static GetParameterSetNativeFunc _CMVideoFormatDescriptionGetHEVCParameterSetAtIndex;
 	static CreateFormatDescriptionNativeFunc _CMVideoFormatDescriptionCreateFromHEVCParameterSets;
 };
 
-}
+} // namespace mediastreamer

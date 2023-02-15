@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,15 +21,18 @@
 #ifndef flowcontrol_h
 #define flowcontrol_h
 
-typedef enum _MSAudioFlowControlStrategy{
-	MSAudioFlowControlBasic, /**< Immediately drop requested number of samples */
-	MSAudioFlowControlSoft /**< Elimate silent frames first, use zero-crossing sample deletion */
-}MSAudioFlowControlStrategy;
+#include "mediastreamer2/mscommon.h"
 
-typedef struct _MSAudioFlowControlConfig{
+typedef enum _MSAudioFlowControlStrategy {
+	MSAudioFlowControlBasic, /**< Immediately drop requested number of samples */
+	MSAudioFlowControlSoft   /**< Elimate silent frames first, use zero-crossing sample deletion */
+} MSAudioFlowControlStrategy;
+
+typedef struct _MSAudioFlowControlConfig {
 	MSAudioFlowControlStrategy strategy;
-	float silent_threshold; /**< threshold under which a frame is considered as silent (linear), used by "soft" strategy */ 
-}MSAudioFlowControlConfig;
+	float silent_threshold; /**< threshold under which a frame is considered as silent (linear), used by "soft" strategy
+	                         */
+} MSAudioFlowControlConfig;
 
 typedef struct _MSAudioFlowController {
 	MSAudioFlowControlConfig config;
@@ -39,24 +42,23 @@ typedef struct _MSAudioFlowController {
 	uint32_t current_dropped;
 } MSAudioFlowController;
 
-
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 MS2_PUBLIC void ms_audio_flow_controller_init(MSAudioFlowController *ctl);
 
 MS2_PUBLIC void ms_audio_flow_controller_set_config(MSAudioFlowController *ctl, const MSAudioFlowControlConfig *config);
 
-MS2_PUBLIC void ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, uint32_t samples_to_drop, uint32_t total_samples);
+MS2_PUBLIC void
+ms_audio_flow_controller_set_target(MSAudioFlowController *ctl, uint32_t samples_to_drop, uint32_t total_samples);
 
 MS2_PUBLIC mblk_t *ms_audio_flow_controller_process(MSAudioFlowController *ctl, mblk_t *m);
 
-
 /**
  * Structure carried by MS_AUDIO_FLOW_CONTROL_DROP_EVENT
-**/
-typedef struct _MSAudioFlowControlDropEvent{
+ **/
+typedef struct _MSAudioFlowControlDropEvent {
 	uint32_t flow_control_interval_ms;
 	uint32_t drop_ms;
 } MSAudioFlowControlDropEvent;
@@ -64,7 +66,7 @@ typedef struct _MSAudioFlowControlDropEvent{
 /**
  * Event than can be emitted by any filter each time some samples need to be dropped.
  * @FIXME It is badly named. It should belong to MSFilter base class or to a specific audio interface.
-**/
+ **/
 #define MS_AUDIO_FLOW_CONTROL_DROP_EVENT MS_FILTER_EVENT(MS_AUDIO_FLOW_CONTROL_ID, 0, MSAudioFlowControlDropEvent)
 
 /**
@@ -76,8 +78,6 @@ typedef struct _MSAudioFlowControlDropEvent{
  * Request to drop samples.
  */
 #define MS_AUDIO_FLOW_CONTROL_DROP MS_FILTER_METHOD(MS_AUDIO_FLOW_CONTROL_ID, 1, MSAudioFlowControlDropEvent)
-
-
 
 #ifdef __cplusplus
 }

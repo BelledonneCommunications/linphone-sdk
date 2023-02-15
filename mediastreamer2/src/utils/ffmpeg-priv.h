@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -40,9 +40,7 @@
 #pragma warning(disable : 4244)
 #endif
 
-
 #include <ortp/port.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,14 +48,14 @@ extern "C" {
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
 /* new layout */
-# include <libavcodec/avcodec.h>
-# include <libavutil/avutil.h>
-# include <libavutil/mem.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
+#include <libavutil/mem.h>
 #endif
 
 #if defined(HAVE_LIBSWSCALE_SWSCALE_H)
 /* new layout */
-#  include <libswscale/swscale.h>
+#include <libswscale/swscale.h>
 #endif
 
 #ifdef __cplusplus
@@ -65,26 +63,23 @@ extern "C" {
 #endif
 
 #if defined(HAVE_LIBAVCODEC_AVCODEC_H)
-#if LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52,24,0)
+#if LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52, 24, 0)
 /*should work as long as nobody uses avformat.h*/
-typedef struct AVPacket{
+typedef struct AVPacket {
 	uint8_t *data;
 	int size;
-}AVPacket;
+} AVPacket;
 
-static inline void av_init_packet(AVPacket *pkt){
-
+static inline void av_init_packet(AVPacket *pkt) {
 }
-static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
-                         int *got_picture_ptr,
-                         AVPacket *avpkt){
-	return avcodec_decode_video(avctx,picture, got_picture_ptr,avpkt->data,avpkt->size);
+static inline int
+avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture, int *got_picture_ptr, AVPacket *avpkt) {
+	return avcodec_decode_video(avctx, picture, got_picture_ptr, avpkt->data, avpkt->size);
 }
 #endif
 #if HAVE_AVCODEC_OLD_CODEC_IDS
 #include <libavcodec/old_codec_ids.h>
 #endif
-
 
 #if LIBAVUTIL_VERSION_MAJOR <= 51
 #define AVPixelFormat PixelFormat
@@ -100,15 +95,16 @@ static inline int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
 
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54,25,0)
-/*CODEC_ID_* and CodecID have been deprecated for a long time and this release removes it altogether. Please use AV_CODEC_ID_* and AVCodecID instead.*/
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 25, 0)
+/*CODEC_ID_* and CodecID have been deprecated for a long time and this release removes it altogether. Please use
+ * AV_CODEC_ID_* and AVCodecID instead.*/
 #define CodecID AVCodecID
 #ifndef HAVE_AVCODEC_OLD_CODEC_IDS
-	#define CODEC_ID_H264 AV_CODEC_ID_H264
-	#define CODEC_ID_H263 AV_CODEC_ID_H263
-	#define CODEC_ID_H263P AV_CODEC_ID_H263P
-	#define CODEC_ID_MPEG4 AV_CODEC_ID_MPEG4
-	#define CODEC_ID_MJPEG AV_CODEC_ID_MJPEG
+#define CODEC_ID_H264 AV_CODEC_ID_H264
+#define CODEC_ID_H263 AV_CODEC_ID_H263
+#define CODEC_ID_H263P AV_CODEC_ID_H263P
+#define CODEC_ID_MPEG4 AV_CODEC_ID_MPEG4
+#define CODEC_ID_MJPEG AV_CODEC_ID_MJPEG
 #endif
 #endif
 
@@ -117,21 +113,21 @@ extern "C" {
 #endif
 
 #ifndef HAVE_FUN_avcodec_encode_video2
-int avcodec_encode_video2 (AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr);
+int avcodec_encode_video2(AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr);
 #endif
 
 #ifndef HAVE_FUN_avcodec_get_context_defaults3 /**/
-int avcodec_get_context_defaults3 (AVCodecContext *s, AVCodec *codec);
+int avcodec_get_context_defaults3(AVCodecContext *s, AVCodec *codec);
 AVCodecContext *avcodec_alloc_context3(AVCodec *codec);
 #endif
 
 #ifndef HAVE_FUN_avcodec_open2 /**/
-int avcodec_open2 (AVCodecContext *avctx, AVCodec *codec, AVDictionary **options);
+int avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVDictionary **options);
 #endif
 
 #ifndef HAVE_FUN_av_frame_alloc
-AVFrame* av_frame_alloc (void);
-#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,45,101)
+AVFrame *av_frame_alloc(void);
+#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 45, 101)
 #define av_frame_alloc avcodec_alloc_frame
 /*http://git.videolan.org/?p=ffmpeg.git;a=blob;f=doc/APIchanges
  2013-12-11 - 29c83d2 / b9fb59d,409a143 / 9431356,44967ab / d7b3ee9 - lavc 55.45.101 / 55.28.1 - avcodec.h
@@ -142,8 +138,8 @@ AVFrame* av_frame_alloc (void);
 #endif
 
 #ifndef HAVE_FUN_av_frame_free
-void av_frame_free (AVFrame** frame);
-#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,45,101)
+void av_frame_free(AVFrame **frame);
+#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 45, 101)
 #define av_frame_free avcodec_free_frame
 /*http://git.videolan.org/?p=ffmpeg.git;a=blob;f=doc/APIchanges
  2013-12-11 - 29c83d2 / b9fb59d,409a143 / 9431356,44967ab / d7b3ee9 - lavc 55.45.101 / 55.28.1 - avcodec.h
@@ -154,8 +150,8 @@ void av_frame_free (AVFrame** frame);
 #endif
 
 #ifndef HAVE_FUN_av_frame_unref
-void av_frame_unref (AVFrame *frame);
-#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55,45,101)
+void av_frame_unref(AVFrame *frame);
+#elif LIBAVCODEC_VERSION_INT < AV_VERSION_INT(55, 45, 101)
 #define av_frame_unref avcodec_get_frame_defaults
 /*http://git.videolan.org/?p=ffmpeg.git;a=blob;f=doc/APIchanges
  2013-12-11 - 29c83d2 / b9fb59d,409a143 / 9431356,44967ab / d7b3ee9 - lavc 55.45.101 / 55.28.1 - avcodec.h

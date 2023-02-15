@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -72,8 +72,7 @@ inline static int turnPoll(ortp_socket_t socket, int seconds, bool write) {
 
 	pfd.fd = socket;
 	pfd.events = POLLIN;
-	if (write)
-		pfd.events = POLLIN | POLLOUT;
+	if (write) pfd.events = POLLIN | POLLOUT;
 	pfd.revents = 0;
 
 	return poll(&pfd, 1, seconds * 1000);
@@ -87,7 +86,7 @@ namespace turn {
 
 /* A simple class that encapsulate the mblk_t for the purpose of our Turn client/sockets */
 class Packet {
-  public:
+public:
 	Packet(size_t size);
 	Packet(uint8_t *buffer, size_t size);
 	/* Create a packet from a mblk_t, possibly adding necessary padding (because STUN/TURN packets must be 4-bytes
@@ -118,13 +117,13 @@ class Packet {
 	}
 	void setTimestampCurrent();
 
-  private:
+private:
 	mblk_t *mMblk;
 	uint64_t mTimestamp;
 };
 
 class PacketReader {
-  public:
+public:
 	PacketReader(MSTurnContext *context);
 	~PacketReader() = default;
 
@@ -137,7 +136,7 @@ class PacketReader {
 
 	std::unique_ptr<Packet> getTurnPacket();
 
-  private:
+private:
 	enum State { WaitingHeader, Continuation } mState;
 
 	int parsePacket(std::unique_ptr<Packet> packet);
@@ -155,7 +154,7 @@ class PacketReader {
 class SslContext {
 	friend class TurnSocket;
 
-  public:
+public:
 	SslContext(ortp_socket_t socket, std::string rootCertificatePath, std::string cn, bctbx_rng_context_t *rng);
 	~SslContext();
 
@@ -168,7 +167,7 @@ class SslContext {
 	int read(unsigned char *buffer, size_t length);
 	int write(const unsigned char *buffer, size_t length);
 
-  private:
+private:
 	bctbx_ssl_context_t *mContext;
 	bctbx_ssl_config_t *mConfig;
 	bctbx_x509_certificate_t *mRootCertificate;
@@ -179,7 +178,7 @@ class SslContext {
 
 // This is an simple encapsulation to ease the code and prevent a spurious wakeup
 class Condition {
-  public:
+public:
 	Condition() = default;
 	~Condition() = default;
 
@@ -196,7 +195,7 @@ class Condition {
 		condition.notify_all();
 	}
 
-  private:
+private:
 	std::condition_variable condition;
 	bool ready = false;
 };
@@ -206,7 +205,7 @@ class TurnClient;
 class TurnSocket {
 	friend class TurnClient;
 
-  public:
+public:
 	TurnSocket(TurnClient *client, int port);
 	~TurnSocket();
 
@@ -233,7 +232,7 @@ class TurnSocket {
 		return mRunning;
 	}
 
-  private:
+private:
 	void runSend();
 	void runRead();
 
@@ -266,7 +265,7 @@ class TurnSocket {
 class TurnClient {
 	friend class TurnSocket;
 
-  public:
+public:
 	TurnClient(MSTurnContext *context, bool useSsl, std::string rootCertificatePath = "");
 	~TurnClient();
 
@@ -278,7 +277,7 @@ class TurnClient {
 	int recvfrom(mblk_t *msg, int flags, struct sockaddr *from, socklen_t *fromlen);
 	int sendto(mblk_t *msg, int flags, const struct sockaddr *to, socklen_t tolen);
 
-  private:
+private:
 	void runRead();
 
 	MSTurnContext *mContext;

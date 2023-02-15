@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,19 +25,20 @@
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfactory.h"
 
-int main(int argc, char *argv[]){
-	
+int main(int argc, char *argv[]) {
+
 	MSFactory *factory = NULL;
 	factory = ms_factory_new_with_voip();
-	
-	if (argc<2){
+
+	if (argc < 2) {
 		ms_error("Usage: mtudiscover [host]");
 		return -1;
 	}
-	bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE|BCTBX_LOG_WARNING|BCTBX_LOG_ERROR|BCTBX_LOG_FATAL);
-	printf("result: %i \n",ms_discover_mtu(argv[1]));
-	
+	bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN,
+	                         BCTBX_LOG_MESSAGE | BCTBX_LOG_WARNING | BCTBX_LOG_ERROR | BCTBX_LOG_FATAL);
+	printf("result: %i \n", ms_discover_mtu(argv[1]));
+
 	ms_factory_destroy(factory);
-	
+
 	return 0;
 }

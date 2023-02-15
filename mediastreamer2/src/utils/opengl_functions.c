@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,100 +30,101 @@
 
 // =============================================================================
 
-#if defined( __ANDROID__ ) || defined(__APPLE__)
-#  define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)fn)
+#if defined(__ANDROID__) || defined(__APPLE__)
+#define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)fn)
 #elif defined(WIN32)
 
-#  ifndef MS2_WINDOWS_UWP
+#ifndef MS2_WINDOWS_UWP
 //[Desktop app only]
-#    include <wingdi.h>
+#include <wingdi.h>
 
-#    pragma comment(lib,"Opengl32.lib")	//Opengl32 symbols for wglGetProcAddress
+#pragma comment(lib, "Opengl32.lib") // Opengl32 symbols for wglGetProcAddress
 
-void *GetAnyGLFuncAddress(HMODULE library, HMODULE firstFallback, const char *name)
-{
+void *GetAnyGLFuncAddress(HMODULE library, HMODULE firstFallback, const char *name) {
 	void *p = (void *)wglGetProcAddress(name);
-	if(p == 0 ||
-		(p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-		(p == (void*)-1) ) {
-		if(library)
-			p = (void *)GetProcAddress(library, name);
-		if(!p && firstFallback)
-			p = (void *)GetProcAddress(firstFallback, name);	
+	if (p == 0 || (p == (void *)0x1) || (p == (void *)0x2) || (p == (void *)0x3) || (p == (void *)-1)) {
+		if (library) p = (void *)GetProcAddress(library, name);
+		if (!p && firstFallback) p = (void *)GetProcAddress(firstFallback, name);
 	}
-	
+
 	return p;
 }
-#  endif
-#  include <windows.h>
-#  ifdef MS2_WINDOWS_UWP
-#    define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)GetProcAddress( openglLibrary, #fn))
-#  else
-#    define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)GetAnyGLFuncAddress(openglLibrary,firstFallbackLibrary, #fn))
-#  endif
+#endif
+#include <windows.h>
+#ifdef MS2_WINDOWS_UWP
+#define CAST(type, fn)                                                                                                 \
+	(f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn)                                        \
+	                                             : (type)GetProcAddress(openglLibrary, #fn))
+#else
+#define CAST(type, fn)                                                                                                 \
+	(f->getProcAddress && f->getProcAddress(#fn)                                                                       \
+	     ? (type)f->getProcAddress(#fn)                                                                                \
+	     : (type)GetAnyGLFuncAddress(openglLibrary, firstFallbackLibrary, #fn))
+#endif
 #else
 
-void *getAnyGLFuncAddress(void* library, void *firstFallback, const char *name)
-{
-	void * p = NULL;
-	if(library)
-		p = (void *)dlsym(library, name);
-	if(!p && firstFallback)
-		p = (void *)dlsym(firstFallback, name);	
+void *getAnyGLFuncAddress(void *library, void *firstFallback, const char *name) {
+	void *p = NULL;
+	if (library) p = (void *)dlsym(library, name);
+	if (!p && firstFallback) p = (void *)dlsym(firstFallback, name);
 	return p;
 }
 
-#  define CAST(type, fn) (f->getProcAddress && f->getProcAddress(#fn) ? (type)f->getProcAddress(#fn) : (type)getAnyGLFuncAddress(openglLibrary,firstFallbackLibrary, #fn))
+#define CAST(type, fn)                                                                                                 \
+	(f->getProcAddress && f->getProcAddress(#fn)                                                                       \
+	     ? (type)f->getProcAddress(#fn)                                                                                \
+	     : (type)getAnyGLFuncAddress(openglLibrary, firstFallbackLibrary, #fn))
 #endif
 
 // Remove EGL from Android
-#if defined( __ANDROID__ ) || defined(__APPLE__)
+#if defined(__ANDROID__) || defined(__APPLE__)
 #define CAST_EGL(type, fn) NULL
 #elif defined(__APPLE__)
-#define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn):NULL)
+#define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn) : NULL)
 #else
-#define CAST_EGL(type, fn) (f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn):CAST(type,fn))
+#define CAST_EGL(type, fn)                                                                                             \
+	(f->eglGetProcAddress && f->eglGetProcAddress(#fn) ? (type)f->eglGetProcAddress(#fn) : CAST(type, fn))
 #endif
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
-void opengl_functions_default_init (OpenGlFunctions *f) {
+void opengl_functions_default_init(OpenGlFunctions *f) {
 #if defined(_WIN32)
 	HMODULE openglLibrary, firstFallbackLibrary = NULL;
 #elif !defined(__APPLE__)
-	void * openglLibrary = NULL, *firstFallbackLibrary = NULL;
+	void *openglLibrary = NULL, *firstFallbackLibrary = NULL;
 #endif
-	
-	//----------------------    GL   
-#if defined(_WIN32)// On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to embedd "libGLESv2.dll" with the app
+
+	//----------------------    GL
+#if defined(_WIN32) // On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to
+                    // embedd "libGLESv2.dll" with the app
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
-	
-#	ifdef UNICODE
-		firstFallbackLibrary = LoadLibraryW(L"opengl32.dll");
-		openglLibrary = LoadLibraryW(L"libGLESv2.dll");
-#	else
-		firstFallbackLibrary = LoadLibraryA("opengl32.dll");
-		openglLibrary = LoadLibraryA("libGLESv2.dll");
-#	endif
+
+#ifdef UNICODE
+	firstFallbackLibrary = LoadLibraryW(L"opengl32.dll");
+	openglLibrary = LoadLibraryW(L"libGLESv2.dll");
 #else
-		openglLibrary = LoadPackagedLibrary(L"libGLESv2.dll", 0);// UWP compatibility
+	firstFallbackLibrary = LoadLibraryA("opengl32.dll");
+	openglLibrary = LoadLibraryA("libGLESv2.dll");
 #endif
-		if( openglLibrary == NULL ){
-			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.dll: error %i", (int)GetLastError());
-		}
-	
+#else
+	openglLibrary = LoadPackagedLibrary(L"libGLESv2.dll", 0); // UWP compatibility
+#endif
+	if (openglLibrary == NULL) {
+		ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.dll: error %i", (int)GetLastError());
+	}
+
 #elif !defined(__APPLE__)
-		if(openglLibrary == NULL)
-			openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
-		if( openglLibrary == NULL ){
-			ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.so: %s", dlerror());
-		}
-		firstFallbackLibrary = dlopen("libGLEW.so", RTLD_LAZY);
-		if( firstFallbackLibrary == NULL )
-			ms_warning("[ogl_functions] Function : Fail to load plugin libGLEW.so: %s", dlerror());
-	
-#endif// _WIN32
+	if (openglLibrary == NULL) openglLibrary = dlopen("libGLESv2.so", RTLD_LAZY);
+	if (openglLibrary == NULL) {
+		ms_warning("[ogl_functions] Function : Fail to load plugin libGLESv2.so: %s", dlerror());
+	}
+	firstFallbackLibrary = dlopen("libGLEW.so", RTLD_LAZY);
+	if (firstFallbackLibrary == NULL)
+		ms_warning("[ogl_functions] Function : Fail to load plugin libGLEW.so: %s", dlerror());
+
+#endif // _WIN32
 	f->glInitialized = TRUE;
 	f->glInitialized &= ((f->glActiveTexture = CAST(resolveGlActiveTexture, glActiveTexture)) != NULL);
 	f->glInitialized &= ((f->glAttachShader = CAST(resolveGlAttachShader, glAttachShader)) != NULL);
@@ -140,12 +141,13 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glDeleteProgram = CAST(resolveGlDeleteProgram, glDeleteProgram)) != NULL);
 	f->glInitialized &= ((f->glDeleteShader = CAST(resolveGlDeleteShader, glDeleteShader)) != NULL);
 	f->glInitialized &= ((f->glDeleteTextures = CAST(resolveGlDeleteTextures, glDeleteTextures)) != NULL);
-	f->glInitialized &= ((f->glDisable = CAST(resolveGlDisable,glDisable)) != NULL);
+	f->glInitialized &= ((f->glDisable = CAST(resolveGlDisable, glDisable)) != NULL);
 	f->glInitialized &= ((f->glDrawArrays = CAST(resolveGlDrawArrays, glDrawArrays)) != NULL);
-	f->glInitialized &= ((f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
+	f->glInitialized &=
+	    ((f->glEnableVertexAttribArray = CAST(resolveGlEnableVertexAttribArray, glEnableVertexAttribArray)) != NULL);
 	f->glInitialized &= ((f->glFinish = CAST(resolveGlFinish, glFinish)) != NULL);
 	f->glInitialized &= ((f->glGenBuffers = CAST(resolveGlGenBuffers, glGenBuffers)) != NULL);
-	f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures,glGenTextures)) != NULL);
+	f->glInitialized &= ((f->glGenTextures = CAST(resolveGlGenTextures, glGenTextures)) != NULL);
 	f->glInitialized &= ((f->glGetError = CAST(resolveGlGetError, glGetError)) != NULL);
 	f->glInitialized &= ((f->glGetIntegerv = CAST(resolveGlGetIntegerv, glGetIntegerv)) != NULL);
 	f->glInitialized &= ((f->glGetProgramInfoLog = CAST(resolveGlGetProgramInfoLog, glGetProgramInfoLog)) != NULL);
@@ -165,7 +167,8 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 	f->glInitialized &= ((f->glUniformMatrix4fv = CAST(resolveGlUniformMatrix4fv, glUniformMatrix4fv)) != NULL);
 	f->glInitialized &= ((f->glUseProgram = CAST(resolveGlUseProgram, glUseProgram)) != NULL);
 	f->glInitialized &= ((f->glValidateProgram = CAST(resolveGlValidateProgram, glValidateProgram)) != NULL);
-	f->glInitialized &= ((f->glVertexAttribPointer = CAST(resolveGlVertexAttribPointer, glVertexAttribPointer)) != NULL);
+	f->glInitialized &=
+	    ((f->glVertexAttribPointer = CAST(resolveGlVertexAttribPointer, glVertexAttribPointer)) != NULL);
 	f->glInitialized &= ((f->glViewport = CAST(resolveGlViewport, glViewport)) != NULL);
 
 	// Only needed for OpenGL 3.0+
@@ -185,49 +188,55 @@ void opengl_functions_default_init (OpenGlFunctions *f) {
 #endif
 
 	//----------------------    EGL
-#if defined(_WIN32)// On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to embedd "libEGL.dll" with the app
+#if defined(_WIN32) // On Windows, load dynamically library as is it not deployed by the system. Clients must be sure to
+                    // embedd "libEGL.dll" with the app
 #if defined(MS2_WINDOWS_DESKTOP) && !defined(MS2_WINDOWS_UWP)
-	
-#	ifdef UNICODE
-		openglLibrary = LoadLibraryExW(L"libEGL.dll", NULL, 0);
-#	else
-		openglLibrary = LoadLibraryExA("libEGL.dll", NULL, 0);
-#	endif
+
+#ifdef UNICODE
+	openglLibrary = LoadLibraryExW(L"libEGL.dll", NULL, 0);
 #else
-		openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0);// UWP compatibility
+	openglLibrary = LoadLibraryExA("libEGL.dll", NULL, 0);
 #endif
-		if( openglLibrary == NULL ){
-			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
-		}
+#else
+	openglLibrary = LoadPackagedLibrary(L"libEGL.dll", 0);    // UWP compatibility
+#endif
+	if (openglLibrary == NULL) {
+		ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.dll: error %i", (int)GetLastError());
+	}
 #elif !defined(__APPLE__)
-		openglLibrary = dlopen("libEGL.so", RTLD_LAZY);
-		if( openglLibrary == NULL ){
-			ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());
-		}
-#endif// _WIN32
+	openglLibrary = dlopen("libEGL.so", RTLD_LAZY);
+	if (openglLibrary == NULL) {
+		ms_warning("[ogl_functions] Function : Fail to load plugin libEGL.so: %s", dlerror());
+	}
+#endif // _WIN32
 	f->eglGetProcAddress = CAST_EGL(resolveEGLGetProcAddress, eglGetProcAddress);
 
 	f->eglInitialized = TRUE;
 	f->eglInitialized &= ((f->eglQueryAPI = CAST_EGL(resolveEGLQueryAPI, eglQueryAPI)) != NULL);
 	f->eglInitialized &= ((f->eglBindAPI = CAST_EGL(resolveEGLBindAPI, eglBindAPI)) != NULL);
 	f->eglInitialized &= ((f->eglQueryString = CAST_EGL(resolveEGLQueryString, eglQueryString)) != NULL);
-	f->eglInitialized &= ((f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT)) != NULL);
+	f->eglInitialized &=
+	    ((f->eglGetPlatformDisplayEXT = CAST_EGL(resolveEGLGetPlatformDisplayEXT, eglGetPlatformDisplayEXT)) != NULL);
 	f->eglInitialized &= ((f->eglGetDisplay = CAST_EGL(resolveEGLGetDisplay, eglGetDisplay)) != NULL);
-	f->eglInitialized &= ((f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay)) != NULL);
-	f->eglInitialized &= ((f->eglGetCurrentContext= CAST_EGL(resolveEGLGetCurrentContext, eglGetCurrentContext)) != NULL);
-	f->eglInitialized &= ((f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentSurface, eglGetCurrentSurface)) != NULL);
+	f->eglInitialized &=
+	    ((f->eglGetCurrentDisplay = CAST_EGL(resolveEGLGetCurrentDisplay, eglGetCurrentDisplay)) != NULL);
+	f->eglInitialized &=
+	    ((f->eglGetCurrentContext = CAST_EGL(resolveEGLGetCurrentContext, eglGetCurrentContext)) != NULL);
+	f->eglInitialized &=
+	    ((f->eglGetCurrentSurface = CAST_EGL(resolveEGLGetCurrentSurface, eglGetCurrentSurface)) != NULL);
 	f->eglInitialized &= ((f->eglInitialize = CAST_EGL(resolveEGLInitialize, eglInitialize)) != NULL);
 	f->eglInitialized &= ((f->eglChooseConfig = CAST_EGL(resolveEGLChooseConfig, eglChooseConfig)) != NULL);
 	f->eglInitialized &= ((f->eglCreateContext = CAST_EGL(resolveEGLCreateContext, eglCreateContext)) != NULL);
-	f->eglInitialized &= ((f->eglCreateWindowSurface = CAST_EGL(resolveEGLCreateWindowSurface, eglCreateWindowSurface)) != NULL);
+	f->eglInitialized &=
+	    ((f->eglCreateWindowSurface = CAST_EGL(resolveEGLCreateWindowSurface, eglCreateWindowSurface)) != NULL);
 	f->eglInitialized &= ((f->eglMakeCurrent = CAST_EGL(resolveEGLMakeCurrent, eglMakeCurrent)) != NULL);
 	f->eglInitialized &= ((f->eglGetError = CAST_EGL(resolveEGLGetError, eglGetError)) != NULL);
 	f->eglInitialized &= ((f->eglSwapBuffers = CAST_EGL(resolveEGLSwapBuffers, eglSwapBuffers)) != NULL);
 	f->eglInitialized &= ((f->eglQuerySurface = CAST_EGL(resolveEGLQuerySurface, eglQuerySurface)) != NULL);
-	f->eglInitialized &= ((f->eglDestroySurface = CAST_EGL( resolveEGLDestroySurface, eglDestroySurface)) != NULL);
-	f->eglInitialized &= ((f->eglDestroyContext = CAST_EGL( resolveEGLDestroyContext, eglDestroyContext)) != NULL);
-	f->eglInitialized &= ((f->eglReleaseThread = CAST_EGL( resolveEGLReleaseThread, eglReleaseThread)) != NULL);
-	f->eglInitialized &= ((f->eglTerminate = CAST_EGL( resolveEGLTerminate, eglTerminate)) != NULL);
+	f->eglInitialized &= ((f->eglDestroySurface = CAST_EGL(resolveEGLDestroySurface, eglDestroySurface)) != NULL);
+	f->eglInitialized &= ((f->eglDestroyContext = CAST_EGL(resolveEGLDestroyContext, eglDestroyContext)) != NULL);
+	f->eglInitialized &= ((f->eglReleaseThread = CAST_EGL(resolveEGLReleaseThread, eglReleaseThread)) != NULL);
+	f->eglInitialized &= ((f->eglTerminate = CAST_EGL(resolveEGLTerminate, eglTerminate)) != NULL);
 }
 
 #ifdef __cplusplus

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,11 +23,11 @@
 
 /* Helper routines for filters that use a jvm with upcalls to perform some processing */
 
-#include <jni.h>
 #include <bctoolbox/list.h>
+#include <jni.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 void ms_set_jvm(JavaVM *vm);
@@ -39,13 +39,11 @@ JNIEnv *ms_get_jni_env(void);
 #ifdef __ANDROID__
 int ms_get_android_sdk_version(void);
 bctbx_list_t *ms_get_android_plugins_list(void);
-char * ms_get_android_libraries_path(void);
+char *ms_get_android_libraries_path(void);
 #endif
 
 #ifdef __cplusplus
 }
 #endif
 
-
 #endif
-

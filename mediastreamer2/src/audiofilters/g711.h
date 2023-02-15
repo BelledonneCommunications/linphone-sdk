@@ -30,7 +30,6 @@
 unsigned char Snack_Lin2Alaw(short pcm_val);
 short Snack_Alaw2Lin(unsigned char a_val);
 unsigned char Snack_Lin2Mulaw(short pcm_val);
-short Snack_Mulaw2Lin(unsigned char	u_val);
+short Snack_Mulaw2Lin(unsigned char u_val);
 
-
-#endif //g711_h
+#endif // g711_h

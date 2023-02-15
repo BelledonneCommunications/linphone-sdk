@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,9 +30,14 @@ extern "C" {
 #define MS_LAYOUT_MIN_SIZE 40
 
 void ms_layout_center_rectangle(MSVideoSize wsize, MSVideoSize vsize, MSRect *rect);
-	
-void ms_layout_compute(MSVideoSize wsize, MSVideoSize vsize, MSVideoSize orig_psize,
-                       int localrect_pos, float scalefactor, MSRect *mainrect, MSRect *localrect);
+
+void ms_layout_compute(MSVideoSize wsize,
+                       MSVideoSize vsize,
+                       MSVideoSize orig_psize,
+                       int localrect_pos,
+                       float scalefactor,
+                       MSRect *mainrect,
+                       MSRect *localrect);
 
 #ifdef __cplusplus
 }

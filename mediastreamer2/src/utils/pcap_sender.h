@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,14 +31,14 @@ struct _MSPCAPSender;
  * User callback which will be called when PCAP sender has
  * reached end of file or has been stopped
  */
-typedef void (*MSPCAPFileEnded)(struct _MSPCAPSender*,void * user_data);
+typedef void (*MSPCAPFileEnded)(struct _MSPCAPSender *, void *user_data);
 
 typedef struct _MSPCAPSender {
 	MSFilter *file_player;
 	MSFilter *udp_send;
 	MSTicker *ticker;
 	MSPCAPFileEnded pcap_ended_cb;
-	void* pcap_ended_user_data;
+	void *pcap_ended_user_data;
 } MSPCAPSender;
 
 /**
@@ -57,8 +57,13 @@ typedef struct _MSPCAPSender {
  * @param cb User callback which will be called when the file has been played entirely or when stop method was called.
  * @return the created PCAP sender or NULL if parameters are invalid
  */
-MSPCAPSender* ms_pcap_sendto(MSFactory *factory, const char* filepath, unsigned from_port, const MSIPPort* dest,
-							int sample_rate, uint32_t ts_offset, MSPCAPFileEnded cb, void* user_data);
-
+MSPCAPSender *ms_pcap_sendto(MSFactory *factory,
+                             const char *filepath,
+                             unsigned from_port,
+                             const MSIPPort *dest,
+                             int sample_rate,
+                             uint32_t ts_offset,
+                             MSPCAPFileEnded cb,
+                             void *user_data);
 
 #endif

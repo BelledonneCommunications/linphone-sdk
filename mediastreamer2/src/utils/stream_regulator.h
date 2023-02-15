@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,8 +21,8 @@
 #ifndef STREAM_REGULATOR_H
 #define STREAM_REGULATOR_H
 
-#include "ortp/str_utils.h"
 #include "mediastreamer2/msticker.h"
+#include "ortp/str_utils.h"
 
 /**
  * @brief MSStreamRegulator aims to synchronise a stream of mblk_t with a ticker

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,9 +22,9 @@
 
 #include <mediastreamer2/msfilter.h>
 
-typedef struct _MSMireControl{
+typedef struct _MSMireControl {
 	int colors[6];
-}MSMireControl;
-#define MS_MIRE_SET_COLOR MS_FILTER_METHOD(MS_MIRE_ID,0,MSMireControl)
+} MSMireControl;
+#define MS_MIRE_SET_COLOR MS_FILTER_METHOD(MS_MIRE_ID, 0, MSMireControl)
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,17 +30,17 @@ namespace mediastreamer {
 
 class NalPacker {
 public:
-	enum PacketizationMode {
-		SingleNalUnitMode,
-		NonInterleavedMode
-	};
+	enum PacketizationMode { SingleNalUnitMode, NonInterleavedMode };
 
 	class NaluAggregatorInterface {
 	public:
-		NaluAggregatorInterface(size_t maxSize): _maxSize(maxSize) {}
+		NaluAggregatorInterface(size_t maxSize) : _maxSize(maxSize) {
+		}
 		virtual ~NaluAggregatorInterface() = default;
 
-		size_t getMaxSize() const {return _maxSize;}
+		size_t getMaxSize() const {
+			return _maxSize;
+		}
 		void setMaxSize(size_t maxSize);
 
 		virtual mblk_t *feed(mblk_t *nalu) = 0;
@@ -54,29 +54,49 @@ public:
 
 	class NaluSpliterInterface {
 	public:
-		NaluSpliterInterface(size_t maxSize): _maxSize(maxSize) {ms_queue_init(&_q);}
-		virtual ~NaluSpliterInterface() {ms_queue_flush(&_q);}
+		NaluSpliterInterface(size_t maxSize) : _maxSize(maxSize) {
+			ms_queue_init(&_q);
+		}
+		virtual ~NaluSpliterInterface() {
+			ms_queue_flush(&_q);
+		}
 
-		size_t getMaxSize() const {return _maxSize;}
-		void setMaxSize(size_t maxSize) {_maxSize = maxSize;}
+		size_t getMaxSize() const {
+			return _maxSize;
+		}
+		void setMaxSize(size_t maxSize) {
+			_maxSize = maxSize;
+		}
 
 		virtual void feed(mblk_t *nalu) = 0;
-		MSQueue *getPackets() {return &_q;}
+		MSQueue *getPackets() {
+			return &_q;
+		}
 
 	protected:
 		size_t _maxSize;
 		MSQueue _q;
 	};
 
-	void setPacketizationMode(PacketizationMode packMode) {_packMode = packMode;}
-	PacketizationMode getPacketizationMode() const {return _packMode;}
+	void setPacketizationMode(PacketizationMode packMode) {
+		_packMode = packMode;
+	}
+	PacketizationMode getPacketizationMode() const {
+		return _packMode;
+	}
 
 	// some stupid phones don't decode STAP-A packets ...
-	void enableAggregation(bool yesno) {_aggregationEnabled = yesno;}
-	bool aggregationEnabled() const {return _aggregationEnabled;}
+	void enableAggregation(bool yesno) {
+		_aggregationEnabled = yesno;
+	}
+	bool aggregationEnabled() const {
+		return _aggregationEnabled;
+	}
 
 	void setMaxPayloadSize(size_t size);
-	size_t getMaxPayloadSize() {return _maxSize;}
+	size_t getMaxPayloadSize() {
+		return _maxSize;
+	}
 
 	// process NALus and pack them into RTP payloads
 	MS2_PUBLIC void pack(MSQueue *naluq, MSQueue *rtpq, uint32_t ts);
@@ -98,4 +118,4 @@ protected:
 	std::unique_ptr<NaluAggregatorInterface> _naluAggregator;
 };
 
-};
+}; // namespace mediastreamer

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,14 +26,17 @@
 
 namespace mediastreamer {
 
-class H26xDecoder: public VideoDecoder {
+class H26xDecoder : public VideoDecoder {
 public:
-	H26xDecoder(const std::string &mime): _mime(mime) {}
+	H26xDecoder(const std::string &mime) : _mime(mime) {
+	}
 
-	const std::string &getMime() const {return _mime;}
+	const std::string &getMime() const {
+		return _mime;
+	}
 
 protected:
 	std::string _mime;
 };
 
-} // namespcae mediastreamer
+} // namespace mediastreamer

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -45,4 +45,4 @@ public:
 	virtual bool fetch(MSQueue *encodedData) = 0;
 };
 
-}
+} // namespace mediastreamer

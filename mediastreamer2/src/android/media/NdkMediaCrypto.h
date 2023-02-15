@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /*
  * This file defines an NDK API.
  * Do not remove methods.
@@ -28,8 +27,8 @@
 #ifndef _NDK_MEDIA_CRYPTO_H
 #define _NDK_MEDIA_CRYPTO_H
 
-#include <sys/types.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,10 +43,9 @@ bool AMediaCrypto_isCryptoSchemeSupported(const AMediaUUID uuid);
 
 bool AMediaCrypto_requiresSecureDecoderComponent(const char *mime);
 
-AMediaCrypto* AMediaCrypto_new(const AMediaUUID uuid, const void *initData, size_t initDataSize);
+AMediaCrypto *AMediaCrypto_new(const AMediaUUID uuid, const void *initData, size_t initDataSize);
 
-void AMediaCrypto_delete(AMediaCrypto* crypto);
-
+void AMediaCrypto_delete(AMediaCrypto *crypto);
 
 #ifdef __cplusplus
 } // extern "C"

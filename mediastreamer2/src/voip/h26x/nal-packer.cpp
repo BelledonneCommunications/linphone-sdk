@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -31,8 +31,8 @@ void NalPacker::NaluAggregatorInterface::setMaxSize(size_t maxSize) {
 	_maxSize = maxSize;
 }
 
-NalPacker::NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, size_t maxPayloadSize):
-	_naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {
+NalPacker::NalPacker(NaluAggregatorInterface *naluAggregator, NaluSpliterInterface *naluSpliter, size_t maxPayloadSize)
+    : _naluSpliter(naluSpliter), _naluAggregator(naluAggregator) {
 	setMaxPayloadSize(maxPayloadSize);
 }
 
@@ -125,4 +125,4 @@ void NalPacker::sendPacket(MSQueue *rtpq, uint32_t ts, mblk_t *m, bool_t marker)
 	ms_queue_put(rtpq, m);
 }
 
-}
+} // namespace mediastreamer

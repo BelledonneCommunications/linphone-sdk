@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,33 +18,31 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef rfc2429_h
 #define rfc2429_h
 
-#define MAKE_MASK(bits)		( (1<<(bits)) -1 )
+#define MAKE_MASK(bits) ((1 << (bits)) - 1)
 
-static inline unsigned int rfc2429_get_P(const uint8_t *header){
-	return (header[0]>>2) & 0x1;
+static inline unsigned int rfc2429_get_P(const uint8_t *header) {
+	return (header[0] >> 2) & 0x1;
 }
 
-static inline void rfc2429_set_P(uint8_t *header, bool_t val){
-	header[0]=header[0] | ( (val&0x1)<<2);
+static inline void rfc2429_set_P(uint8_t *header, bool_t val) {
+	header[0] = header[0] | ((val & 0x1) << 2);
 }
 
-static inline unsigned int rfc2429_get_V(const uint8_t *header){
-	return (header[0]>>1) & 0x1;
+static inline unsigned int rfc2429_get_V(const uint8_t *header) {
+	return (header[0] >> 1) & 0x1;
 }
 
-static inline unsigned int rfc2429_get_PLEN(const uint8_t *header){
-	unsigned short *p=(unsigned short*)header;
-	return (ntohs(p[0])>>3) & MAKE_MASK(6);
+static inline unsigned int rfc2429_get_PLEN(const uint8_t *header) {
+	unsigned short *p = (unsigned short *)header;
+	return (ntohs(p[0]) >> 3) & MAKE_MASK(6);
 }
 
-static inline unsigned int rfc2429_get_PEBIT(const uint8_t *header){
-	unsigned short *p=(unsigned short*)header;
+static inline unsigned int rfc2429_get_PEBIT(const uint8_t *header) {
+	unsigned short *p = (unsigned short *)header;
 	return ntohs(p[0]) & MAKE_MASK(3);
 }
-
 
 #endif

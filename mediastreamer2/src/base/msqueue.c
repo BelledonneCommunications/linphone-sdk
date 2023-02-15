@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,128 +24,122 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "mediastreamer2/flowcontrol.h"
 #include "mediastreamer2/msqueue.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
-#include "mediastreamer2/flowcontrol.h"
 
-
-
-
-MSQueue * ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2 ){
-	MSQueue *q=(MSQueue*)ms_new0(MSQueue,1);
+MSQueue *ms_queue_new(struct _MSFilter *f1, int pin1, struct _MSFilter *f2, int pin2) {
+	MSQueue *q = (MSQueue *)ms_new0(MSQueue, 1);
 	qinit(&q->q);
-	q->prev.filter=f1;
-	q->prev.pin=pin1;
-	q->next.filter=f2;
-	q->next.pin=pin2;
+	q->prev.filter = f1;
+	q->prev.pin = pin1;
+	q->next.filter = f2;
+	q->next.pin = pin2;
 	return q;
 }
 
-void ms_queue_init(MSQueue *q){
-	q->prev.filter=0;
-	q->prev.pin=0;
-	q->next.filter=0;
-	q->next.pin=0;
+void ms_queue_init(MSQueue *q) {
+	q->prev.filter = 0;
+	q->prev.pin = 0;
+	q->next.filter = 0;
+	q->next.pin = 0;
 	qinit(&q->q);
 }
 
-void ms_queue_destroy(MSQueue *q){
-	flushq(&q->q,0);
+void ms_queue_destroy(MSQueue *q) {
+	flushq(&q->q, 0);
 	ms_free(q);
 }
 
-void ms_queue_flush(MSQueue *q){
-	flushq(&q->q,0);
+void ms_queue_flush(MSQueue *q) {
+	flushq(&q->q, 0);
 }
 
-
-void ms_bufferizer_init(MSBufferizer *obj){
+void ms_bufferizer_init(MSBufferizer *obj) {
 	qinit(&obj->q);
-	obj->size=0;
+	obj->size = 0;
 }
 
-MSBufferizer * ms_bufferizer_new(){
-	MSBufferizer *obj=(MSBufferizer *)ms_new0(MSBufferizer,1);
+MSBufferizer *ms_bufferizer_new() {
+	MSBufferizer *obj = (MSBufferizer *)ms_new0(MSBufferizer, 1);
 	ms_bufferizer_init(obj);
 	return obj;
 }
 
-void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m){
-	obj->size+=msgdsize(m);
-	putq(&obj->q,m);
+void ms_bufferizer_put(MSBufferizer *obj, mblk_t *m) {
+	obj->size += msgdsize(m);
+	putq(&obj->q, m);
 }
 
-void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q){
+void ms_bufferizer_put_from_queue(MSBufferizer *obj, MSQueue *q) {
 	mblk_t *m;
-	while((m=ms_queue_get(q))!=NULL){
-		ms_bufferizer_put(obj,m);
+	while ((m = ms_queue_get(q)) != NULL) {
+		ms_bufferizer_put(obj, m);
 	}
 }
 
-size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen){
-	if (obj->size>=datalen && datalen > 0){
+size_t ms_bufferizer_read(MSBufferizer *obj, uint8_t *data, size_t datalen) {
+	if (obj->size >= datalen && datalen > 0) {
 		/*we can return something */
-		size_t sz=0;
+		size_t sz = 0;
 		size_t cplen;
-		mblk_t *m=peekq(&obj->q);
+		mblk_t *m = peekq(&obj->q);
 
 		/* first store current meta information in the _q_stopper field the queue, just to reuse space*/
 		mblk_meta_copy(m, &obj->q._q_stopper);
-		while(sz<datalen){
-			cplen=MIN((size_t)(m->b_wptr-m->b_rptr),datalen-sz);
-			if (data) memcpy(data+sz,m->b_rptr,cplen);
-			sz+=cplen;
-			m->b_rptr+=cplen;
-			if (m->b_rptr==m->b_wptr){
+		while (sz < datalen) {
+			cplen = MIN((size_t)(m->b_wptr - m->b_rptr), datalen - sz);
+			if (data) memcpy(data + sz, m->b_rptr, cplen);
+			sz += cplen;
+			m->b_rptr += cplen;
+			if (m->b_rptr == m->b_wptr) {
 				/* check cont */
-				if (m->b_cont!=NULL) {
-					m=m->b_cont;
-				}
-				else{
-					mblk_t *remove=getq(&obj->q);
+				if (m->b_cont != NULL) {
+					m = m->b_cont;
+				} else {
+					mblk_t *remove = getq(&obj->q);
 					freemsg(remove);
-					m=peekq(&obj->q);
+					m = peekq(&obj->q);
 				}
 			}
 		}
-		obj->size-=datalen;
+		obj->size -= datalen;
 		return datalen;
 	}
 	return 0;
 }
 
-void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *dest){
-	mblk_t *source=&obj->q._q_stopper;
+void ms_bufferizer_fill_current_metas(MSBufferizer *obj, mblk_t *dest) {
+	mblk_t *source = &obj->q._q_stopper;
 #if defined(ORTP_TIMESTAMP)
 	dest->timestamp = source->timestamp;
 #endif
 	dest->ttl_or_hl = source->ttl_or_hl;
 }
 
-void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes){
+void ms_bufferizer_skip_bytes(MSBufferizer *obj, int bytes) {
 	ms_bufferizer_read(obj, NULL, bytes);
 }
 
-void ms_bufferizer_flush(MSBufferizer *obj){
-	obj->size=0;
-	flushq(&obj->q,0);
+void ms_bufferizer_flush(MSBufferizer *obj) {
+	obj->size = 0;
+	flushq(&obj->q, 0);
 }
 
-void ms_bufferizer_uninit(MSBufferizer *obj){
-	flushq(&obj->q,0);
+void ms_bufferizer_uninit(MSBufferizer *obj) {
+	flushq(&obj->q, 0);
 }
 
-void ms_bufferizer_destroy(MSBufferizer *obj){
+void ms_bufferizer_destroy(MSBufferizer *obj) {
 	ms_bufferizer_uninit(obj);
 	ms_free(obj);
 }
 
-
 static const uint32_t flow_control_interval_ms = 5000;
 static const uint32_t max_size_ms = 100;
 
-MSFlowControlledBufferizer * ms_flow_controlled_bufferizer_new(MSFilter *f, int samplerate, int nchannels) {
+MSFlowControlledBufferizer *ms_flow_controlled_bufferizer_new(MSFilter *f, int samplerate, int nchannels) {
 	MSFlowControlledBufferizer *obj = (MSFlowControlledBufferizer *)ms_new0(MSFlowControlledBufferizer, 1);
 	ms_flow_controlled_bufferizer_init(obj, f, samplerate, nchannels);
 	return obj;
@@ -183,11 +177,12 @@ void ms_flow_controlled_bufferizer_set_nchannels(MSFlowControlledBufferizer *obj
 	obj->nchannels = nchannels;
 }
 
-void ms_flow_controlled_bufferizer_set_drop_method(MSFlowControlledBufferizer *obj, MSFlowControlledBufferizerDropMethod method){
+void ms_flow_controlled_bufferizer_set_drop_method(MSFlowControlledBufferizer *obj,
+                                                   MSFlowControlledBufferizerDropMethod method) {
 	obj->drop_method = method;
 }
 
-static uint32_t update_min_size(MSFlowControlledBufferizer *obj){
+static uint32_t update_min_size(MSFlowControlledBufferizer *obj) {
 	uint32_t accumulated_ms = (uint32_t)((obj->base.size * 1000) / obj->samplerate / 2) / obj->nchannels;
 	if (accumulated_ms < obj->min_size_ms_during_interval) {
 		obj->min_size_ms_during_interval = accumulated_ms;
@@ -211,11 +206,15 @@ static void control_flow(MSFlowControlledBufferizer *obj, uint32_t accumulated_m
 				ev.flow_control_interval_ms = obj->flow_control_interval_ms;
 				ev.drop_ms = diff_ms - (obj->granularity_ms / 2);
 				if (ev.drop_ms > 0) {
-					ms_warning("Flow controlled bufferizer owned by [%s] of max %u ms was filled with at least %u ms in the last %u ms, need to drop %u ms", filter_ident, obj->max_size_ms, obj->min_size_ms_during_interval, obj->flow_control_interval_ms, ev.drop_ms);
-					if (obj->drop_method == MSFlowControlledBufferizerSendEvent){
+					ms_warning("Flow controlled bufferizer owned by [%s] of max %u ms was filled with at least %u ms "
+					           "in the last %u ms, need to drop %u ms",
+					           filter_ident, obj->max_size_ms, obj->min_size_ms_during_interval,
+					           obj->flow_control_interval_ms, ev.drop_ms);
+					if (obj->drop_method == MSFlowControlledBufferizerSendEvent) {
 						ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
-					}else{
-						ms_bufferizer_skip_bytes(&obj->base, (ev.drop_ms * 2 * obj->nchannels * obj->samplerate) / 1000);
+					} else {
+						ms_bufferizer_skip_bytes(&obj->base,
+						                         (ev.drop_ms * 2 * obj->nchannels * obj->samplerate) / 1000);
 					}
 				}
 			}
@@ -226,11 +225,15 @@ static void control_flow(MSFlowControlledBufferizer *obj, uint32_t accumulated_m
 				ev.flow_control_interval_ms = obj->flow_control_interval_ms;
 				ev.drop_ms = diff_ms - (obj->granularity_ms / 2);
 				if (ev.drop_ms > 0) {
-					ms_warning("Flow controlled bufferizer owned by [%s] of max %u ms is filled with %u ms at the end of the %u ms interval, asking to drop %u ms", filter_ident, obj->max_size_ms, accumulated_ms, obj->flow_control_interval_ms, ev.drop_ms);
-					if (obj->drop_method == MSFlowControlledBufferizerSendEvent){
+					ms_warning("Flow controlled bufferizer owned by [%s] of max %u ms is filled with %u ms at the end "
+					           "of the %u ms interval, asking to drop %u ms",
+					           filter_ident, obj->max_size_ms, accumulated_ms, obj->flow_control_interval_ms,
+					           ev.drop_ms);
+					if (obj->drop_method == MSFlowControlledBufferizerSendEvent) {
 						ms_filter_notify(obj->filter, MS_AUDIO_FLOW_CONTROL_DROP_EVENT, &ev);
-					}else{
-						ms_bufferizer_skip_bytes(&obj->base, (ev.drop_ms * 2 * obj->nchannels * obj->samplerate) / 1000);
+					} else {
+						ms_bufferizer_skip_bytes(&obj->base,
+						                         (ev.drop_ms * 2 * obj->nchannels * obj->samplerate) / 1000);
 					}
 				}
 			}

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,8 @@ unsigned int NalUnpacker::Status::toUInt() const {
 	return flags.to_ulong();
 }
 
-NalUnpacker::NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter): _fuAggregator(aggregator), _apSpliter(spliter) {
+NalUnpacker::NalUnpacker(FuAggregatorInterface *aggregator, ApSpliterInterface *spliter)
+    : _fuAggregator(aggregator), _apSpliter(spliter) {
 	ms_queue_init(&_q);
 }
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <bctoolbox/defs.h>
 
 #include "h26x/h26x-utils.h"
 #include "videotoolbox-utils.h"
@@ -46,7 +48,7 @@ void VideoToolboxEncoder::Frame::insert(MSQueue *q) {
 	}
 }
 
-VideoToolboxEncoder::VideoToolboxEncoder(const string &mime): H26xEncoder(mime) {
+VideoToolboxEncoder::VideoToolboxEncoder(const string &mime) : H26xEncoder(mime) {
 	_vsize.width = 0;
 	_vsize.height = 0;
 	ms_mutex_init(&_mutex, nullptr);
@@ -81,22 +83,24 @@ void VideoToolboxEncoder::start() {
 
 		unique_ptr<VideoToolboxUtilities> utils(VideoToolboxUtilities::create(_mime));
 
-		CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
+		CFMutableDictionaryRef pixbuf_attr =
+		    CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, &kCFTypeDictionaryValueCallBacks);
 		int32_t pixel_type = kCVPixelFormatType_420YpCbCr8Planar;
 		value = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pixel_type);
 		CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
 		CFRelease(value);
 
-		CFMutableDictionaryRef session_props = CFDictionaryCreateMutable (kCFAllocatorDefault, 1, NULL, NULL);
+		CFMutableDictionaryRef session_props = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, NULL, NULL);
 #if !TARGET_OS_IPHONE
-		CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder, kCFBooleanTrue);
+		CFDictionarySetValue(session_props, kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder,
+		                     kCFBooleanTrue);
 #endif
 
 		err = VTCompressionSessionCreate(kCFAllocatorDefault, _vsize.width, _vsize.height, utils->getCodecType(),
-										 session_props, pixbuf_attr, kCFAllocatorDefault, outputCb, this, &_session);
+		                                 session_props, pixbuf_attr, kCFAllocatorDefault, outputCb, this, &_session);
 		CFRelease(pixbuf_attr);
 		CFRelease(session_props);
-		if(err) throw runtime_error("could not initialize the VideoToolbox compresson session: " + toString(err));
+		if (err) throw runtime_error("could not initialize the VideoToolbox compresson session: " + toString(err));
 
 		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_ProfileLevel, utils->getDefaultProfileLevel());
 		if (err != noErr) {
@@ -111,16 +115,18 @@ void VideoToolboxEncoder::start() {
 		applyFramerate();
 		applyBitrate();
 
-		if((err = VTCompressionSessionPrepareToEncodeFrames(_session)) != noErr) {
+		if ((err = VTCompressionSessionPrepareToEncodeFrames(_session)) != noErr) {
 			throw runtime_error("could not prepare the VideoToolbox compression session: " + toString(err));
 		}
 
 		vt_enc_message("encoder succesfully initialized.");
 #if !TARGET_OS_IPHONE
 		CFBooleanRef hardware_acceleration_enabled;
-		err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder, kCFAllocatorDefault, &hardware_acceleration_enabled);
+		err = VTSessionCopyProperty(_session, kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder,
+		                            kCFAllocatorDefault, &hardware_acceleration_enabled);
 		if (err != noErr) {
-			vt_enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s", toString(err).c_str());
+			vt_enc_error("could not read kVTCompressionPropertyKey_UsingHardwareAcceleratedVideoEncoder property: %s",
+			             toString(err).c_str());
 		} else {
 			if (hardware_acceleration_enabled != nullptr && CFBooleanGetValue(hardware_acceleration_enabled)) {
 				vt_enc_message("hardware acceleration enabled");
@@ -133,7 +139,7 @@ void VideoToolboxEncoder::start() {
 		return;
 	} catch (const runtime_error &e) {
 		vt_enc_error("%s", e.what());
-		if(_session) {
+		if (_session) {
 			CFRelease(_session);
 			_session = nullptr;
 		}
@@ -144,7 +150,7 @@ void VideoToolboxEncoder::stop() {
 	if (_session == nullptr) return;
 	vt_enc_message("destroying the encoding session");
 	VTCompressionSessionInvalidate(_session);
-	CFRelease( _session);
+	CFRelease(_session);
 	_session = nullptr;
 }
 
@@ -158,25 +164,29 @@ void VideoToolboxEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFram
 	CFMutableDictionaryRef pixbuf_attr = CFDictionaryCreateMutable(nullptr, 0, nullptr, nullptr);
 	CFNumberRef value = CFNumberCreate(nullptr, kCFNumberIntType, &pixbuf_fmt);
 	CFDictionarySetValue(pixbuf_attr, kCVPixelBufferPixelFormatTypeKey, value);
-	CVPixelBufferCreate(nullptr, _vsize.width, _vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,  &pixbuf);
+	CVPixelBufferCreate(nullptr, _vsize.width, _vsize.height, kCVPixelFormatType_420YpCbCr8Planar, pixbuf_attr,
+	                    &pixbuf);
 	CFRelease(pixbuf_attr);
 
 	CVPixelBufferLockBaseAddress(pixbuf, 0);
 	dst_yuv_frame.w = (int)CVPixelBufferGetWidth(pixbuf);
 	dst_yuv_frame.h = (int)CVPixelBufferGetHeight(pixbuf);
-	for(int i=0; i<3; i++) {
+	for (int i = 0; i < 3; i++) {
 		dst_yuv_frame.planes[i] = static_cast<uint8_t *>(CVPixelBufferGetBaseAddressOfPlane(pixbuf, i));
 		dst_yuv_frame.strides[i] = (int)CVPixelBufferGetBytesPerRowOfPlane(pixbuf, i);
 	}
-	ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides, (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
+	ms_yuv_buf_copy(src_yuv_frame.planes, src_yuv_frame.strides, dst_yuv_frame.planes, dst_yuv_frame.strides,
+	                (MSVideoSize){dst_yuv_frame.w, dst_yuv_frame.h});
 	CVPixelBufferUnlockBaseAddress(pixbuf, 0);
 
 	CMTime p_time = CMTimeMake(time, 1000);
 	CFMutableDictionaryRef frameProperties = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, nullptr, nullptr);
-	CFDictionarySetValue(frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame, requestIFrame ? kCFBooleanTrue : kCFBooleanFalse);
+	CFDictionarySetValue(frameProperties, kVTEncodeFrameOptionKey_ForceKeyFrame,
+	                     requestIFrame ? kCFBooleanTrue : kCFBooleanFalse);
 
 	OSStatus err;
-	if((err = VTCompressionSessionEncodeFrame(_session, pixbuf, p_time, kCMTimeInvalid, frameProperties, nullptr, nullptr)) != noErr) {
+	if ((err = VTCompressionSessionEncodeFrame(_session, pixbuf, p_time, kCMTimeInvalid, frameProperties, nullptr,
+	                                           nullptr)) != noErr) {
 		vt_enc_error("could not pass a pixbuf to the encoder: %s", toString(err).c_str());
 		if (err == kVTInvalidSessionErr) {
 			stop();
@@ -184,8 +194,8 @@ void VideoToolboxEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFram
 		}
 	}
 	CFRelease(pixbuf);
-    CFRelease(frameProperties);
-    freemsg(rawData);
+	CFRelease(frameProperties);
+	freemsg(rawData);
 }
 
 bool VideoToolboxEncoder::fetch(MSQueue *encodedData) {
@@ -244,24 +254,29 @@ void VideoToolboxEncoder::applyBitrate() {
 	}
 }
 
-void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrameRefCon, OSStatus status, VTEncodeInfoFlags infoFlags, CMSampleBufferRef sampleBuffer) {
+void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon,
+                                   BCTBX_UNUSED(void *sourceFrameRefCon),
+                                   OSStatus status,
+                                   BCTBX_UNUSED(VTEncodeInfoFlags infoFlags),
+                                   CMSampleBufferRef sampleBuffer) {
 	VideoToolboxEncoder *ctx = static_cast<VideoToolboxEncoder *>(outputCallbackRefCon);
 
 	try {
 		if (sampleBuffer == nullptr) throw runtime_error("no output buffer");
 		if (status != noErr) throw AppleOSError(status);
 
-		if(ctx->_session) {
+		if (ctx->_session) {
 			Frame encodedFrame;
 			CMBlockBufferRef block_buffer = CMSampleBufferGetDataBuffer(sampleBuffer);
 			const size_t frame_size = CMBlockBufferGetDataLength(block_buffer);
 			size_t read_size = 0;
 
-			while(read_size < frame_size) {
+			while (read_size < frame_size) {
 				char *chunk;
 				size_t chunk_size;
 				OSStatus status = CMBlockBufferGetDataPointer(block_buffer, read_size, &chunk_size, NULL, &chunk);
-				if (status != kCMBlockBufferNoErr) throw runtime_error(string("chunk reading failed: ") + toString(status));
+				if (status != kCMBlockBufferNoErr)
+					throw runtime_error(string("chunk reading failed: ") + toString(status));
 
 				H26xUtils::naluStreamToNalus(reinterpret_cast<uint8_t *>(chunk), chunk_size, encodedFrame.getQueue());
 				read_size += chunk_size;
@@ -269,7 +284,8 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 
 			bool isKeyFrame = false;
 			unique_ptr<H26xNaluHeader> header(H26xToolFactory::get(ctx->_mime).createNaluHeader());
-			for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame.getQueue()); !ms_queue_end(encodedFrame.getQueue(), nalu); nalu = ms_queue_next(encodedFrame.getQueue(), nalu)) {
+			for (const mblk_t *nalu = ms_queue_peek_first(encodedFrame.getQueue());
+			     !ms_queue_end(encodedFrame.getQueue(), nalu); nalu = ms_queue_next(encodedFrame.getQueue(), nalu)) {
 				header->parse(nalu->b_rptr);
 				if (header->getAbsType().isKeyFramePart()) {
 					isKeyFrame = true;
@@ -277,7 +293,7 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 				}
 			}
 
-			if(isKeyFrame) {
+			if (isKeyFrame) {
 				MSQueue parameterSets;
 				ms_queue_init(&parameterSets);
 				try {
@@ -302,4 +318,4 @@ void VideoToolboxEncoder::outputCb(void *outputCallbackRefCon, void *sourceFrame
 	}
 }
 
-}
+} // namespace mediastreamer

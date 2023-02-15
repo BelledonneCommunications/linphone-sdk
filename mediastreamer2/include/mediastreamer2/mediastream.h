@@ -64,8 +64,8 @@ struct _RingStream {
 typedef struct _RingStream RingStream;
 
 MS2_PUBLIC RingStream *ring_start(MSFactory *factory, const char *file, int interval, MSSndCard *sndcard);
-MS2_PUBLIC RingStream *ring_start_with_cb(MSFactory *factory, const char *file, int interval, MSSndCard *sndcard,
-										  MSFilterNotifyFunc func, void *user_data);
+MS2_PUBLIC RingStream *ring_start_with_cb(
+    MSFactory *factory, const char *file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void *user_data);
 MS2_PUBLIC void ring_stop(RingStream *stream);
 
 /**
@@ -195,8 +195,10 @@ MS2_PUBLIC void media_stream_set_stun_allowed(MediaStream *stream, bool_t value)
 /*
  * deprecated, use media_stream_set_srtp_recv_key and media_stream_set_srtp_send_key.
  **/
-MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream *stream, MSCryptoSuite suite, const char *snd_key,
-										   const char *rcv_key);
+MS2_PUBLIC bool_t media_stream_enable_srtp(MediaStream *stream,
+                                           MSCryptoSuite suite,
+                                           const char *snd_key,
+                                           const char *rcv_key);
 
 /**
  * @param[in] stream MediaStream object
@@ -214,7 +216,9 @@ MS2_PUBLIC bool_t media_stream_secured(const MediaStream *stream);
  * 			both direction (send and receive) have the same source when dir is both
  * 			MSSrtpKeySourceUnavailable otherwise
  */
-MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream, MediaStreamDir dir, bool_t is_inner);
+MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *stream,
+                                                            MediaStreamDir dir,
+                                                            bool_t is_inner);
 
 /**
  * Get the crypto suite used to secure this stream
@@ -225,7 +229,9 @@ MS2_PUBLIC MSSrtpKeySource media_stream_get_srtp_key_source(const MediaStream *s
  * 			both direction (send and receive) have the same suite when dir is both
  * 			MS_CRYPTO_SUITE_INVALID otherwise
  */
-MS2_PUBLIC MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *stream, MediaStreamDir dir, bool_t is_inner);
+MS2_PUBLIC MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *stream,
+                                                            MediaStreamDir dir,
+                                                            bool_t is_inner);
 
 /**
  * Get the source(SDES, ZRTP, DTLS-SRTP) of srtp key used to secure this stream
@@ -236,7 +242,9 @@ MS2_PUBLIC MSCryptoSuite media_stream_get_srtp_crypto_suite(const MediaStream *s
  * 			both direction (send and receive) have the same source when dir is both
  * 			MSSrtpKeySourceUnavailable otherwise
  */
-MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner);
+MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MSMediaStreamSessions *sessions,
+                                                                        MediaStreamDir dir,
+                                                                        bool_t is_inner);
 
 /**
  * Get the crypto suite used to secure this stream
@@ -247,7 +255,9 @@ MS2_PUBLIC MSSrtpKeySource ms_media_stream_sessions_get_srtp_key_source(const MS
  * 			both direction (send and receive) have the same source when dir is both
  * 			MS_CRYPTO_SUITE_INVALID otherwise
  */
-MS2_PUBLIC MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions, MediaStreamDir dir, bool_t is_inner);
+MS2_PUBLIC MSCryptoSuite ms_media_stream_sessions_get_srtp_crypto_suite(const MSMediaStreamSessions *sessions,
+                                                                        MediaStreamDir dir,
+                                                                        bool_t is_inner);
 
 /**
  * Tells whether AVPF is enabled or not.
@@ -435,15 +445,19 @@ typedef struct _MSMediaStreamIO {
 
 #define MS_MEDIA_STREAM_IO_INITIALIZER                                                                                 \
 	{                                                                                                                  \
-		{MSResourceInvalid}, { MSResourceInvalid }                                                                     \
+		{MSResourceInvalid}, {                                                                                         \
+			MSResourceInvalid                                                                                          \
+		}                                                                                                              \
 	}
 
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 
 typedef void (*AudioStreamIsSpeakingCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_speaking);
 typedef void (*AudioStreamIsMutedCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_muted);
-typedef void (*MSAudioRouteChangedCallback)(void *audioStream, bool_t needReloadSoundDevices, char *newInputPort,
-											char *newOutputPort);
+typedef void (*MSAudioRouteChangedCallback)(void *audioStream,
+                                            bool_t needReloadSoundDevices,
+                                            char *newInputPort,
+                                            char *newOutputPort);
 struct _AudioStream {
 	MediaStream ms;
 	MSSndCard *playcard;
@@ -453,12 +467,12 @@ struct _AudioStream {
 	MSFilter *dtmfgen;
 	MSFilter *dtmfgen_rtp;
 	MSFilter *plc;
-	MSFilter *ec;				 /*echo canceler*/
+	MSFilter *ec;                /*echo canceler*/
 	MSFilter *volsend, *volrecv; /*MSVolumes*/
 	MSFilter *local_mixer;
 	MSFilter *local_player;
 	MSFilter *local_player_resampler;
-	MSFilter *read_decoder;	 /* Used when the input is done via RTP */
+	MSFilter *read_decoder;  /* Used when the input is done via RTP */
 	MSFilter *write_encoder; /* Used when the output is done via RTP */
 	MSFilter *read_resampler;
 	MSFilter *write_resampler;
@@ -524,17 +538,35 @@ struct _AudioStream {
 typedef struct _AudioStream AudioStream;
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
-MS2_PUBLIC AudioStream *audio_stream_start(MSFactory *factory, RtpProfile *prof, int locport, const char *remip,
-										   int remport, int payload_type, int jitt_comp, bool_t echo_cancel);
+MS2_PUBLIC AudioStream *audio_stream_start(MSFactory *factory,
+                                           RtpProfile *prof,
+                                           int locport,
+                                           const char *remip,
+                                           int remport,
+                                           int payload_type,
+                                           int jitt_comp,
+                                           bool_t echo_cancel);
 
-MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(MSFactory *factory, RtpProfile *prof, int locport,
-														 const char *remip4, int remport, int payload_type,
-														 int jitt_comp, MSSndCard *playcard, MSSndCard *captcard,
-														 bool_t echocancel);
+MS2_PUBLIC AudioStream *audio_stream_start_with_sndcards(MSFactory *factory,
+                                                         RtpProfile *prof,
+                                                         int locport,
+                                                         const char *remip4,
+                                                         int remport,
+                                                         int payload_type,
+                                                         int jitt_comp,
+                                                         MSSndCard *playcard,
+                                                         MSSndCard *captcard,
+                                                         bool_t echocancel);
 
-MS2_PUBLIC int audio_stream_start_with_files(AudioStream *stream, RtpProfile *prof, const char *remip, int remport,
-											 int rem_rtcp_port, int pt, int jitt_comp, const char *infile,
-											 const char *outfile);
+MS2_PUBLIC int audio_stream_start_with_files(AudioStream *stream,
+                                             RtpProfile *prof,
+                                             const char *remip,
+                                             int remport,
+                                             int rem_rtcp_port,
+                                             int pt,
+                                             int jitt_comp,
+                                             const char *infile,
+                                             const char *outfile);
 
 /**
  * Start an audio stream according to the specified AudioStreamIO.
@@ -549,9 +581,14 @@ MS2_PUBLIC int audio_stream_start_with_files(AudioStream *stream, RtpProfile *pr
  * at this index in the profile.
  * @param[in] io A MSMediaStreamIO describing the local input/output of the audio stream.
  */
-MS2_PUBLIC int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,
-										  int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
-										  int payload_type, const MSMediaStreamIO *io);
+MS2_PUBLIC int audio_stream_start_from_io(AudioStream *stream,
+                                          RtpProfile *profile,
+                                          const char *rem_rtp_ip,
+                                          int rem_rtp_port,
+                                          const char *rem_rtcp_ip,
+                                          int rem_rtcp_port,
+                                          int payload_type,
+                                          const MSMediaStreamIO *io);
 
 /**
  * Starts an audio stream from/to local wav files or soundcards.
@@ -577,10 +614,19 @@ MS2_PUBLIC int audio_stream_start_from_io(AudioStream *stream, RtpProfile *profi
  * @param use_ec whether echo cancellation is to be performed.
  * @return 0 if sucessful, -1 otherwise.
  **/
-MS2_PUBLIC int audio_stream_start_full(AudioStream *stream, RtpProfile *profile, const char *rem_rtp_ip,
-									   int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port, int payload,
-									   int jitt_comp, const char *infile, const char *outfile, MSSndCard *playcard,
-									   MSSndCard *captcard, bool_t use_ec);
+MS2_PUBLIC int audio_stream_start_full(AudioStream *stream,
+                                       RtpProfile *profile,
+                                       const char *rem_rtp_ip,
+                                       int rem_rtp_port,
+                                       const char *rem_rtcp_ip,
+                                       int rem_rtcp_port,
+                                       int payload,
+                                       int jitt_comp,
+                                       const char *infile,
+                                       const char *outfile,
+                                       MSSndCard *playcard,
+                                       MSSndCard *captcard,
+                                       bool_t use_ec);
 
 MS2_PUBLIC void audio_stream_play(AudioStream *st, const char *name);
 MS2_PUBLIC void audio_stream_record(AudioStream *st, const char *name);
@@ -660,9 +706,16 @@ MS2_PUBLIC bool_t audio_stream_started(AudioStream *stream);
  * @param captcard The soundcard to be used for catpure.
  * @param echo_cancel whether echo cancellation is to be performed.
  **/
-MS2_PUBLIC int audio_stream_start_now(AudioStream *stream, RtpProfile *prof, const char *remip, int remport,
-									  int rem_rtcp_port, int payload_type, int jitt_comp, MSSndCard *playcard,
-									  MSSndCard *captcard, bool_t echo_cancel);
+MS2_PUBLIC int audio_stream_start_now(AudioStream *stream,
+                                      RtpProfile *prof,
+                                      const char *remip,
+                                      int remport,
+                                      int rem_rtcp_port,
+                                      int payload_type,
+                                      int jitt_comp,
+                                      MSSndCard *playcard,
+                                      MSSndCard *captcard,
+                                      bool_t echo_cancel);
 MS2_PUBLIC void audio_stream_set_relay_session_id(AudioStream *stream, const char *relay_session_id);
 /*returns true if we are still receiving some data from remote end in the last timeout seconds*/
 MS2_PUBLIC bool_t audio_stream_alive(AudioStream *stream, int timeout);
@@ -829,8 +882,8 @@ MS2_PUBLIC void audio_stream_enable_equalizer(AudioStream *stream, EqualizerLoca
  * @param[in] location Location of the concerned equalizer (speaker or microphone)
  * @param[in] gain Description of the band and the gain to apply.
  */
-MS2_PUBLIC void audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location,
-												const MSEqualizerGain *gain);
+MS2_PUBLIC void
+audio_stream_equalizer_set_gain(AudioStream *stream, EqualizerLocation location, const MSEqualizerGain *gain);
 
 /**
  *  stop the audio streaming thread and free everything
@@ -894,8 +947,10 @@ MS2_PUBLIC void audio_stream_start_zrtp(AudioStream *stream);
 bool_t audio_stream_zrtp_enabled(const AudioStream *stream);
 
 /* enable SRTP on the audio stream */
-static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream *stream, MSCryptoSuite suite, const char *snd_key,
-												  const char *rcv_key) {
+static MS2_INLINE bool_t audio_stream_enable_srtp(AudioStream *stream,
+                                                  MSCryptoSuite suite,
+                                                  const char *snd_key,
+                                                  const char *rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
@@ -930,8 +985,8 @@ MS2_PUBLIC void audio_stream_set_mixer_to_client_extension_id(AudioStream *strea
  */
 MS2_PUBLIC void audio_stream_set_client_to_mixer_extension_id(AudioStream *stream, int extension_id);
 
-MS2_PUBLIC void audio_stream_set_is_speaking_callback(AudioStream *s, AudioStreamIsSpeakingCallback cb,
-													  void *user_pointer);
+MS2_PUBLIC void
+audio_stream_set_is_speaking_callback(AudioStream *s, AudioStreamIsSpeakingCallback cb, void *user_pointer);
 MS2_PUBLIC void audio_stream_set_is_muted_callback(AudioStream *s, AudioStreamIsMutedCallback cb, void *user_pointer);
 
 /**
@@ -978,7 +1033,7 @@ MS2_PUBLIC int audio_stream_volumes_append(AudioStreamVolumes *volumes, AudioStr
 MS2_PUBLIC void audio_stream_volumes_reset_values(AudioStreamVolumes *volumes);
 
 MS2_PUBLIC void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *volumes,
-														   rtp_audio_level_t *audio_levels);
+                                                           rtp_audio_level_t *audio_levels);
 
 MS2_PUBLIC bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes);
 MS2_PUBLIC uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes);
@@ -991,10 +1046,13 @@ MS2_PUBLIC uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes);
  * @{
  **/
 
-typedef void (*VideoStreamRenderCallback)(void *user_pointer, const MSPicture *local_view,
-										  const MSPicture *remote_view);
-typedef void (*VideoStreamEventCallback)(void *user_pointer, const MSFilter *f, const unsigned int event_id,
-										 const void *args);
+typedef void (*VideoStreamRenderCallback)(void *user_pointer,
+                                          const MSPicture *local_view,
+                                          const MSPicture *remote_view);
+typedef void (*VideoStreamEventCallback)(void *user_pointer,
+                                         const MSFilter *f,
+                                         const unsigned int event_id,
+                                         const void *args);
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
 typedef void (*VideoStreamCsrcChangedCb)(void *user_pointer, uint32_t new_csrc);
@@ -1019,7 +1077,7 @@ struct _VideoStream {
 	MSFilter *pixconv;
 	MSFilter *qrcode;
 	MSFilter *recorder_output; /*can be an ItcSink to send video to the audiostream's multimedia recorder, or directly a
-								  MkvRecorder */
+	                              MkvRecorder */
 	MSFilter *sizeconv;
 	MSFilter *source;
 	MSFilter *tee;
@@ -1031,11 +1089,11 @@ struct _VideoStream {
 	MSVideoSize sent_vsize;
 	MSVideoSize preview_vsize;
 	MSVideoSize max_sent_vsize;
-	float forced_fps;	  /*the target fps explicitely set by application, overrides internally selected fps*/
+	float forced_fps;     /*the target fps explicitely set by application, overrides internally selected fps*/
 	float configured_fps; /*the fps that was configured to the encoder. It might be different from the one really
-							 obtained from camera.*/
-	float real_fps;		  /*the fps obtained from camera.*/
-	int corner;			  /*for selfview*/
+	                         obtained from camera.*/
+	float real_fps;       /*the fps obtained from camera.*/
+	int corner;           /*for selfview*/
 	VideoStreamRenderCallback rendercb;
 	void *render_pointer;
 	VideoStreamEventCallback eventcb;
@@ -1073,7 +1131,7 @@ struct _VideoStream {
 	bool_t output_performs_decoding;
 	bool_t player_active;
 	bool_t staticimage_webcam_fps_optimization; /* if TRUE, the StaticImage webcam will ignore the fps target in order
-												   to save CPU time. Default is TRUE */
+	                                               to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
 	bool_t wait_for_frame_decoded;
 	VideoStreamCsrcChangedCb csrc_changed_cb;
@@ -1109,22 +1167,42 @@ static MS2_INLINE void video_stream_enable_adaptive_jittcomp(VideoStream *stream
 }
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
-MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb,
-															 void *user_pointer);
+MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s,
+                                                             VideoStreamCameraNotWorkingCallback cb,
+                                                             void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC void video_stream_set_label(VideoStream *s, const char *label);
 MS2_PUBLIC void video_stream_set_content(VideoStream *s, MSVideoContent content);
 MS2_PUBLIC MSVideoContent video_stream_get_content(const VideoStream *vs);
 
-MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip,
-											  int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port, int payload,
-											  int jitt_comp, MSWebCam *cam, MSFilter *source);
-MS2_PUBLIC int video_stream_start(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip, int rem_rtp_port,
-								  const char *rem_rtcp_ip, int rem_rtcp_port, int payload, int jitt_comp,
-								  MSWebCam *device);
-MS2_PUBLIC int video_stream_start_with_files(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip,
-											 int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
-											 int payload_type, const char *play_file, const char *record_file);
+MS2_PUBLIC int video_stream_start_with_source(VideoStream *stream,
+                                              RtpProfile *profile,
+                                              const char *rem_rtp_ip,
+                                              int rem_rtp_port,
+                                              const char *rem_rtcp_ip,
+                                              int rem_rtcp_port,
+                                              int payload,
+                                              int jitt_comp,
+                                              MSWebCam *cam,
+                                              MSFilter *source);
+MS2_PUBLIC int video_stream_start(VideoStream *stream,
+                                  RtpProfile *profile,
+                                  const char *rem_rtp_ip,
+                                  int rem_rtp_port,
+                                  const char *rem_rtcp_ip,
+                                  int rem_rtcp_port,
+                                  int payload,
+                                  int jitt_comp,
+                                  MSWebCam *device);
+MS2_PUBLIC int video_stream_start_with_files(VideoStream *stream,
+                                             RtpProfile *profile,
+                                             const char *rem_rtp_ip,
+                                             int rem_rtp_port,
+                                             const char *rem_rtcp_ip,
+                                             int rem_rtcp_port,
+                                             int payload_type,
+                                             const char *play_file,
+                                             const char *record_file);
 
 /**
  * Start a video stream according to the specified VideoStreamIO.
@@ -1139,9 +1217,14 @@ MS2_PUBLIC int video_stream_start_with_files(VideoStream *stream, RtpProfile *pr
  * at this index in the profile.
  * @param[in] io A VideoStreamIO describing the input/output of the video stream.
  */
-MS2_PUBLIC int video_stream_start_from_io(VideoStream *stream, RtpProfile *profile, const char *rem_rtp_ip,
-										  int rem_rtp_port, const char *rem_rtcp_ip, int rem_rtcp_port,
-										  int payload_type, const MSMediaStreamIO *io);
+MS2_PUBLIC int video_stream_start_from_io(VideoStream *stream,
+                                          RtpProfile *profile,
+                                          const char *rem_rtp_ip,
+                                          int rem_rtp_port,
+                                          const char *rem_rtcp_ip,
+                                          int rem_rtcp_port,
+                                          int payload_type,
+                                          const MSMediaStreamIO *io);
 
 /**
  * Link a video stream with ItcSink filter. Used for starting another video stream.
@@ -1208,8 +1291,8 @@ MS2_PUBLIC void video_stream_change_camera_skip_bitrate(VideoStream *stream, MSW
  * @param cam_filter the filter for this camera. It can be obtained with ms_web_cam_create_reader(cam)
  * @return the previous source if keep_previous_source is TRUE, otherwise NULL
  */
-MS2_PUBLIC MSFilter *video_stream_change_source_filter(VideoStream *stream, MSWebCam *cam, MSFilter *filter,
-													   bool_t keep_previous_source);
+MS2_PUBLIC MSFilter *
+video_stream_change_source_filter(VideoStream *stream, MSWebCam *cam, MSFilter *filter, bool_t keep_previous_source);
 
 /**
  * @brief This function forwards the video from the source stream to the specifed one.
@@ -1243,8 +1326,8 @@ MS2_PUBLIC void video_stream_iterate(VideoStream *stream);
  * Assign a specific callback to process PLI, SLI, FIR received by RTCP.
  * When set to NULL, or not assigned, the default behavior is to target these commands to the video encoder.
  */
-MS2_PUBLIC void video_stream_set_encoder_control_callback(VideoStream *stream, VideoStreamEncoderControlCb cb,
-														  void *user_data);
+MS2_PUBLIC void
+video_stream_set_encoder_control_callback(VideoStream *stream, VideoStreamEncoderControlCb cb, void *user_data);
 
 /**
  * Asks the video stream to send a Full-Intra Request.
@@ -1334,10 +1417,16 @@ MS2_PUBLIC void video_stream_set_display_mode(VideoStream *stream, MSVideoDispla
 MS2_PUBLIC int video_stream_get_camera_sensor_rotation(VideoStream *stream);
 
 /*provided for compatibility, use media_stream_set_direction() instead */
-MS2_PUBLIC int video_stream_recv_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port,
-											int used_pt, int jitt_comp);
-MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream, RtpProfile *profile, const char *addr, int port,
-											int rtcp_port, int used_pt, int jitt_comp, MSWebCam *device);
+MS2_PUBLIC int video_stream_recv_only_start(
+    VideoStream *videostream, RtpProfile *profile, const char *addr, int port, int used_pt, int jitt_comp);
+MS2_PUBLIC int video_stream_send_only_start(VideoStream *videostream,
+                                            RtpProfile *profile,
+                                            const char *addr,
+                                            int port,
+                                            int rtcp_port,
+                                            int used_pt,
+                                            int jitt_comp,
+                                            MSWebCam *device);
 MS2_PUBLIC void video_stream_recv_only_stop(VideoStream *vs);
 MS2_PUBLIC void video_stream_send_only_stop(VideoStream *vs);
 
@@ -1346,8 +1435,10 @@ MS2_PUBLIC void video_stream_enable_zrtp(VideoStream *vstream, AudioStream *astr
 MS2_PUBLIC void video_stream_start_zrtp(VideoStream *stream);
 
 /* enable SRTP on the video stream */
-static MS2_INLINE bool_t video_stream_enable_strp(VideoStream *stream, MSCryptoSuite suite, const char *snd_key,
-												  const char *rcv_key) {
+static MS2_INLINE bool_t video_stream_enable_strp(VideoStream *stream,
+                                                  MSCryptoSuite suite,
+                                                  const char *snd_key,
+                                                  const char *rcv_key) {
 	return media_stream_enable_srtp(&stream->ms, suite, snd_key, rcv_key);
 }
 
@@ -1468,8 +1559,8 @@ MS2_PUBLIC void video_stream_set_retransmission_on_nack_max_packet(VideoStream *
  */
 MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max);
 
-MS2_PUBLIC void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb,
-													   void *user_pointer);
+MS2_PUBLIC void
+video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer);
 
 /**
  * Small API to display a local preview window.
@@ -1531,8 +1622,9 @@ MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute r
  * @param[in] callback The function to call when receiving the route change event
  * @param[in] audio_route_changed_cb_user_data Context for the callback
  */
-MS2_PUBLIC void audio_stream_set_audio_route_changed_callback(AudioStream *stream, MSAudioRouteChangedCallback callback,
-															  void *audio_route_changed_cb_user_data);
+MS2_PUBLIC void audio_stream_set_audio_route_changed_callback(AudioStream *stream,
+                                                              MSAudioRouteChangedCallback callback,
+                                                              void *audio_route_changed_cb_user_data);
 /**
  * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
  * @param[in] stream The AudioStream object
@@ -1621,9 +1713,13 @@ MS2_PUBLIC TextStream *text_stream_new2(MSFactory *factory, const char *ip, int 
  * at this index in the profile.
  * @param[in] factory
  */
-MS2_PUBLIC TextStream *text_stream_start(TextStream *stream, RtpProfile *profile, const char *rem_rtp_addr,
-										 int rem_rtp_port, const char *rem_rtcp_addr, int rem_rtcp_port,
-										 int payload_type);
+MS2_PUBLIC TextStream *text_stream_start(TextStream *stream,
+                                         RtpProfile *profile,
+                                         const char *rem_rtp_addr,
+                                         int rem_rtp_port,
+                                         const char *rem_rtcp_addr,
+                                         int rem_rtcp_port,
+                                         int payload_type);
 
 /**
  *  Stops the text streaming thread and free everything

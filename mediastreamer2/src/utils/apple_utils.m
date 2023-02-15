@@ -27,7 +27,7 @@ char *getPluginsDir(void) {
 
 //Safely get an encoded string from the given CFStringRef
 char *toSafeCStr(CFStringRef str, CFStringEncoding encoding) {
-    char *ret;
+    char *ret  = NULL;
 
     if (str == NULL) {
         return ret;

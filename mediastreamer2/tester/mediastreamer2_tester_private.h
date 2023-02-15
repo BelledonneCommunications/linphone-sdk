@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,6 @@
 #ifndef _MEDIASTREAMER2_TESTER_PRIVATE_H
 #define _MEDIASTREAMER2_TESTER_PRIVATE_H
 
-
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
@@ -30,10 +29,8 @@
 #define unlink _unlink
 #endif
 
-
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 extern MSTicker *ms_tester_ticker;
@@ -70,9 +67,7 @@ enum filter_mask_enum {
 	FILTER_MASK_VIDEOCAPTURE = (1 << 13)
 };
 
-
 extern unsigned char ms_tester_tone_detected;
-
 
 /*set payload type assignment here*/
 #define PCMU8_PAYLOAD_TYPE 0
@@ -84,11 +79,9 @@ extern unsigned char ms_tester_tone_detected;
 #define OPUS_PAYLOAD_TYPE 121
 #define SPEEX_PAYLOAD_TYPE 122
 #define SPEEX16_PAYLOAD_TYPE 123
-#define SILK_PAYLOAD_TYPE  124
-#define SILK16_PAYLOAD_TYPE  125
+#define SILK_PAYLOAD_TYPE 124
+#define SILK16_PAYLOAD_TYPE 125
 #define BV16_PAYLOAD_TYPE 127
-
-
 
 void ms_tester_create_ticker(void);
 void ms_tester_destroy_ticker(void);
@@ -106,13 +99,19 @@ typedef void (*ms_tester_iterate_cb)(MediaStream *ms, void *user_pointer);
 bool_t wait_for_list(MSList *mss, int *counter, int value, int timeout_ms);
 bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int timeout_ms, MSList *cbs, MSList *ptrs);
 bool_t wait_for_until(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms);
-bool_t wait_for_until_with_parse_events(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms, ms_tester_iterate_cb cb1, void *ptr1, ms_tester_iterate_cb cb2, void *ptr2);
-bool_t wait_for(MediaStream* ms1, MediaStream* ms2, int *counter, int value);
+bool_t wait_for_until_with_parse_events(MediaStream *ms1,
+                                        MediaStream *ms2,
+                                        int *counter,
+                                        int value,
+                                        int timeout_ms,
+                                        ms_tester_iterate_cb cb1,
+                                        void *ptr1,
+                                        ms_tester_iterate_cb cb2,
+                                        void *ptr2);
+bool_t wait_for(MediaStream *ms1, MediaStream *ms2, int *counter, int value);
 
 #ifdef __cplusplus
 }
 #endif
-
-
 
 #endif /* _MEDIASTREAMER2_TESTER_PRIVATE_H */

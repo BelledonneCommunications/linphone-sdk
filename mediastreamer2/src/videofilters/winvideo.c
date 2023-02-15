@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,15 +18,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/msvideo.h"
+#include "Vfw.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msv4l.h"
-#include "Vfw.h"
-#include <winuser.h>
+#include "mediastreamer2/msvideo.h"
 #include <Windows.h>
+#include <winuser.h>
 
-#include "nowebcam.h"
 #include "mediastreamer2/mswebcam.h"
+#include "nowebcam.h"
 
 #ifndef AVSTREAMMASTER_NONE
 #define AVSTREAMMASTER_NONE 1
@@ -34,7 +34,7 @@
 
 #define AMD_HACK2
 
-typedef struct V4wState{
+typedef struct V4wState {
 #ifdef AMD_HACK2
 	ms_thread_t thread;
 	ms_mutex_t thread_lock;
@@ -60,56 +60,54 @@ typedef struct V4wState{
 	bool_t started;
 	bool_t autostarted;
 	bool_t invert_rgb;
-}V4wState;
+} V4wState;
 
-static void dummy(void*p){
+static void dummy(void *p) {
 }
 
-LRESULT CALLBACK VideoStreamCallback(HWND hWnd, LPVIDEOHDR lpVHdr)
-{
+LRESULT CALLBACK VideoStreamCallback(HWND hWnd, LPVIDEOHDR lpVHdr) {
 	V4wState *s;
 	mblk_t *buf;
 	int size;
-	
+
 	s = (V4wState *)capGetUserData(hWnd);
-	if (s==NULL)
-		return FALSE;
+	if (s == NULL) return FALSE;
 
 	size = lpVHdr->dwBufferLength;
-	if (size>0 && s->running){
-		buf = esballoc(lpVHdr->lpData,size,0,dummy);
-		buf->b_wptr+=size;  
-		
+	if (size > 0 && s->running) {
+		buf = esballoc(lpVHdr->lpData, size, 0, dummy);
+		buf->b_wptr += size;
+
 		ms_mutex_lock(&s->mutex);
 		putq(&s->rq, buf);
 		ms_mutex_unlock(&s->mutex);
 	}
-	return TRUE ;
+	return TRUE;
 }
 
-static bool_t try_format(V4wState *s, BITMAPINFO *videoformat, MSPixFmt pixfmt){
+static bool_t try_format(V4wState *s, BITMAPINFO *videoformat, MSPixFmt pixfmt) {
 	bool_t ret;
 	capGetVideoFormat(s->capvideo, videoformat, sizeof(BITMAPINFO));
 	videoformat->bmiHeader.biSizeImage = 0;
-	videoformat->bmiHeader.biWidth  = s->vsize.width;
+	videoformat->bmiHeader.biWidth = s->vsize.width;
 	videoformat->bmiHeader.biHeight = s->vsize.height;
-	switch(pixfmt){
+	switch (pixfmt) {
 		case MS_YUV420P:
 			videoformat->bmiHeader.biBitCount = 12;
-			videoformat->bmiHeader.biCompression=MAKEFOURCC('I','4','2','0');
-		break;
+			videoformat->bmiHeader.biCompression = MAKEFOURCC('I', '4', '2', '0');
+			break;
 		case MS_YUY2:
 			videoformat->bmiHeader.biBitCount = 16;
-			videoformat->bmiHeader.biCompression=MAKEFOURCC('Y','U','Y','2');
-		break;
+			videoformat->bmiHeader.biCompression = MAKEFOURCC('Y', 'U', 'Y', '2');
+			break;
 		case MS_RGB24:
 			videoformat->bmiHeader.biBitCount = 24;
-			videoformat->bmiHeader.biCompression=BI_RGB;
-		break;
+			videoformat->bmiHeader.biCompression = BI_RGB;
+			break;
 		default:
 			return FALSE;
 	}
-	ret=capSetVideoFormat(s->capvideo, videoformat, sizeof(BITMAPINFO));
+	ret = capSetVideoFormat(s->capvideo, videoformat, sizeof(BITMAPINFO));
 	if (ret) {
 		/*recheck video format */
 		capGetVideoFormat(s->capvideo, videoformat, sizeof(BITMAPINFO));
@@ -117,71 +115,66 @@ static bool_t try_format(V4wState *s, BITMAPINFO *videoformat, MSPixFmt pixfmt){
 	return ret;
 }
 
-static int v4w_open_videodevice(V4wState *s)
-{
-	CAPTUREPARMS capparam ;
+static int v4w_open_videodevice(V4wState *s) {
+	CAPTUREPARMS capparam;
 	BITMAPINFO videoformat;
 	char compname[5];
 	int i;
 	MSPixFmt driver_last;
 	char dev[80];
 	char ver[80];
-	compname[4]='\0';
+	compname[4] = '\0';
 
-	for (i = 0; i < 9; i++){
-		if (capGetDriverDescription(i, dev, sizeof (dev),
-			ver, sizeof (ver)))
-		{
-			snprintf(s->dev, sizeof(s->dev), "%s/%s",dev,ver);
-			ms_message("v4w: detected %s",s->dev);
-			s->devidx=i;
+	for (i = 0; i < 9; i++) {
+		if (capGetDriverDescription(i, dev, sizeof(dev), ver, sizeof(ver))) {
+			snprintf(s->dev, sizeof(s->dev), "%s/%s", dev, ver);
+			ms_message("v4w: detected %s", s->dev);
+			s->devidx = i;
 			break;
 		}
 	}
-	if (s->capvideo==NULL)
-	{
-		s->capvideo = capCreateCaptureWindow("Capture Window",WS_CHILD /* WS_OVERLAPPED */
-			,0,0,s->vsize.width,s->vsize.height,HWND_MESSAGE, 0) ;
-		if (s->capvideo==NULL)
-		{
+	if (s->capvideo == NULL) {
+		s->capvideo = capCreateCaptureWindow("Capture Window", WS_CHILD /* WS_OVERLAPPED */
+		                                     ,
+		                                     0, 0, s->vsize.width, s->vsize.height, HWND_MESSAGE, 0);
+		if (s->capvideo == NULL) {
 			ms_warning("v4w: could not create capture windows");
 			return -1;
 		}
 	}
 
-	if(!capDriverConnect(s->capvideo,s->devidx ))
-	{
+	if (!capDriverConnect(s->capvideo, s->devidx)) {
 		ms_warning("v4w: could not connect to capture driver");
 		DestroyWindow(s->capvideo);
-		s->capvideo=NULL;
-		s->pix_fmt=MS_YUV420P; /* no webcam stuff */
+		s->capvideo = NULL;
+		s->pix_fmt = MS_YUV420P; /* no webcam stuff */
 		return -1;
 	}
 	/*
 	capPreviewRate(s->capvideo,s->fps) ;
 	if(!capPreview (s->capvideo, 1))
 	{
-		ms_warning("v4w: cannot start video preview");
-		capDriverDisconnect(s->capvideo);
-		DestroyWindow(s->capvideo);
-		s->capvideo=NULL;
-		return -1;
+	    ms_warning("v4w: cannot start video preview");
+	    capDriverDisconnect(s->capvideo);
+	    DestroyWindow(s->capvideo);
+	    s->capvideo=NULL;
+	    return -1;
 	}
 	*/
-	capCaptureGetSetup(s->capvideo,&capparam,sizeof(capparam)) ;
-	capparam.dwRequestMicroSecPerFrame = 100000 ;
+	capCaptureGetSetup(s->capvideo, &capparam, sizeof(capparam));
+	capparam.dwRequestMicroSecPerFrame = 100000;
 	// detach capture from application
-	capparam.fYield                    = TRUE ;
-	capparam.fMakeUserHitOKToCapture   = FALSE;
-	capparam.fAbortLeftMouse           = FALSE;
-	capparam.fAbortRightMouse          = FALSE;
-	capparam.wPercentDropForError      = 90 ;
-	capparam.fCaptureAudio             = FALSE ;
-	capparam.fAbortRightMouse	= FALSE;
-	capparam.fAbortLeftMouse	= FALSE;
-	capparam.AVStreamMaster            = AVSTREAMMASTER_NONE ;
+	capparam.fYield = TRUE;
+	capparam.fMakeUserHitOKToCapture = FALSE;
+	capparam.fAbortLeftMouse = FALSE;
+	capparam.fAbortRightMouse = FALSE;
+	capparam.wPercentDropForError = 90;
+	capparam.fCaptureAudio = FALSE;
+	capparam.fAbortRightMouse = FALSE;
+	capparam.fAbortLeftMouse = FALSE;
+	capparam.AVStreamMaster = AVSTREAMMASTER_NONE;
 
-	if (!capCaptureSetSetup(s->capvideo,&capparam,sizeof(capparam))){
+	if (!capCaptureSetSetup(s->capvideo, &capparam, sizeof(capparam))) {
 		ms_error("capCaptureSetSetup failed.");
 	}
 	capSetUserData(s->capvideo, s);
@@ -189,132 +182,128 @@ static int v4w_open_videodevice(V4wState *s)
 	/* "orig planes = " disp->videoformat.bmiHeader.biPlanes */
 	/* "orig bitcount = " disp->videoformat.bmiHeader.biBitCount */
 	/* "orig compression = " disp->videoformat.bmiHeader.biCompression */
-	memcpy(compname,&videoformat.bmiHeader.biCompression,4);
+	memcpy(compname, &videoformat.bmiHeader.biCompression, 4);
 	ms_message("v4w: camera's current format is %s", compname);
 
-	driver_last=ms_fourcc_to_pix_fmt(videoformat.bmiHeader.biCompression);
-	if (s->startwith_yuv_bug==TRUE && try_format(s,&videoformat,MS_RGB24)){
-		s->pix_fmt=MS_RGB24;
+	driver_last = ms_fourcc_to_pix_fmt(videoformat.bmiHeader.biCompression);
+	if (s->startwith_yuv_bug == TRUE && try_format(s, &videoformat, MS_RGB24)) {
+		s->pix_fmt = MS_RGB24;
 		ms_message("Using RGB24");
-	}else if (driver_last!=MS_PIX_FMT_UNKNOWN && try_format(s,&videoformat,driver_last)){
+	} else if (driver_last != MS_PIX_FMT_UNKNOWN && try_format(s, &videoformat, driver_last)) {
 		ms_message("Using driver last setting");
-		s->pix_fmt=driver_last;
-	}else if (try_format(s,&videoformat,MS_YUV420P)){
-		s->pix_fmt=MS_YUV420P;
+		s->pix_fmt = driver_last;
+	} else if (try_format(s, &videoformat, MS_YUV420P)) {
+		s->pix_fmt = MS_YUV420P;
 		ms_message("Using YUV420P");
-	}else if (try_format(s,&videoformat,MS_RGB24)){
-		s->pix_fmt=MS_RGB24;
+	} else if (try_format(s, &videoformat, MS_RGB24)) {
+		s->pix_fmt = MS_RGB24;
 		ms_message("Using RGB24");
-		s->startwith_yuv_bug=TRUE;
-	}else if (try_format(s,&videoformat,MS_YUY2)){
-		s->pix_fmt=MS_YUY2;
+		s->startwith_yuv_bug = TRUE;
+	} else if (try_format(s, &videoformat, MS_YUY2)) {
+		s->pix_fmt = MS_YUY2;
 		ms_message("Using YUY2");
-	}else{
+	} else {
 		ms_error("v4w: Failed to set any video format.");
-		capDriverDisconnect (s->capvideo);
+		capDriverDisconnect(s->capvideo);
 		DestroyWindow(s->capvideo);
-		s->capvideo=NULL;
+		s->capvideo = NULL;
 		return -1;
 	}
-	if (s->pix_fmt==MS_RGB24){
-		s->invert_rgb=(videoformat.bmiHeader.biHeight>0);
-	}else s->invert_rgb=FALSE;
+	if (s->pix_fmt == MS_RGB24) {
+		s->invert_rgb = (videoformat.bmiHeader.biHeight > 0);
+	} else s->invert_rgb = FALSE;
 
-	if (!capSetCallbackOnVideoStream(s->capvideo, VideoStreamCallback))
-	{
+	if (!capSetCallbackOnVideoStream(s->capvideo, VideoStreamCallback)) {
 		ms_error("v4w: fail to set capture callback");
-		capDriverDisconnect (s->capvideo);
+		capDriverDisconnect(s->capvideo);
 		DestroyWindow(s->capvideo);
-		s->capvideo=NULL;
+		s->capvideo = NULL;
 		return -1;
 	}
-	if (!capCaptureSequenceNoFile(s->capvideo)){
+	if (!capCaptureSequenceNoFile(s->capvideo)) {
 		ms_error("v4w: fail to start capture");
-		capDriverDisconnect (s->capvideo);
+		capDriverDisconnect(s->capvideo);
 		capSetCallbackOnVideoStream(s->capvideo, NULL);
 		DestroyWindow(s->capvideo);
-		s->capvideo=NULL;
+		s->capvideo = NULL;
 	}
 	return 0;
 }
 
-static void v4w_init(MSFilter *f){
-	V4wState *s=(V4wState *)ms_new0(V4wState,1);
+static void v4w_init(MSFilter *f) {
+	V4wState *s = (V4wState *)ms_new0(V4wState, 1);
 	int idx;
-	s->vsize.width=MS_VIDEO_SIZE_CIF_W;
-	s->vsize.height=MS_VIDEO_SIZE_CIF_H;
-	s->pix_fmt=MS_RGB24;
+	s->vsize.width = MS_VIDEO_SIZE_CIF_W;
+	s->vsize.height = MS_VIDEO_SIZE_CIF_H;
+	s->pix_fmt = MS_RGB24;
 
-	s->capvideo=NULL;
+	s->capvideo = NULL;
 	qinit(&s->rq);
-	for (idx=0;idx<10;idx++)
-	{
-		s->mire[idx]=NULL;
+	for (idx = 0; idx < 10; idx++) {
+		s->mire[idx] = NULL;
 	}
-	ms_mutex_init(&s->mutex,NULL);
-	s->start_time=0;
-	s->frame_count=-1;
-	s->fps=15;
-	s->started=FALSE;
-	s->autostarted=FALSE;
-	s->invert_rgb=FALSE;
-	s->reverted=NULL;
+	ms_mutex_init(&s->mutex, NULL);
+	s->start_time = 0;
+	s->frame_count = -1;
+	s->fps = 15;
+	s->started = FALSE;
+	s->autostarted = FALSE;
+	s->invert_rgb = FALSE;
+	s->reverted = NULL;
 #ifdef AMD_HACK2
 	/* avoid bug with USB vimicro cards:
-		How can I detect that this problem exist?
+	    How can I detect that this problem exist?
 	*/
-	s->startwith_yuv_bug=FALSE;
+	s->startwith_yuv_bug = FALSE;
 #endif
 
 #ifdef AMD_HACK2
 	s->thread = NULL;
-	ms_mutex_init(&s->thread_lock,NULL);
-	ms_cond_init(&s->thread_cond,NULL);
+	ms_mutex_init(&s->thread_lock, NULL);
+	ms_cond_init(&s->thread_cond, NULL);
 	s->thread_running = FALSE;
 #endif
-	f->data=s;
+	f->data = s;
 }
 
-static int _v4w_start(V4wState *s, void *arg)
-{
+static int _v4w_start(V4wState *s, void *arg) {
 	int i;
-	s->frame_count=-1;
+	s->frame_count = -1;
 	i = v4w_open_videodevice(s);
-	if (i==0 && s->startwith_yuv_bug==TRUE)
-	{
+	if (i == 0 && s->startwith_yuv_bug == TRUE) {
 		/* reopen device directly with MS_RGB24 */
-		if (s->capvideo){
-			capSetUserData(s->capvideo, (long) 0);
+		if (s->capvideo) {
+			capSetUserData(s->capvideo, (long)0);
 			capCaptureStop(s->capvideo);
 			capCaptureAbort(s->capvideo);
 			capDriverDisconnect(s->capvideo);
 			capSetCallbackOnVideoStream(s->capvideo, NULL);
-			flushq(&s->rq,0);
+			flushq(&s->rq, 0);
 			ms_message("v4w: destroying capture window");
 			DestroyWindow(s->capvideo);
 			ms_message("v4w: capture window destroyed");
-			s->capvideo=NULL;
+			s->capvideo = NULL;
 		}
 		i = v4w_open_videodevice(s);
 	}
 	return i;
 }
 
-static int _v4w_stop(V4wState *s, void *arg){
-	s->frame_count=-1;
-	if (s->capvideo){
+static int _v4w_stop(V4wState *s, void *arg) {
+	s->frame_count = -1;
+	if (s->capvideo) {
 		capCaptureStop(s->capvideo);
 		Sleep(1000);
-		//capCaptureAbort(s->capvideo);
+		// capCaptureAbort(s->capvideo);
 		capSetCallbackOnVideoStream(s->capvideo, NULL);
-		//SendMessage(s->capvideo, WM_CLOSE, 0, 0);
+		// SendMessage(s->capvideo, WM_CLOSE, 0, 0);
 		capDriverDisconnect(s->capvideo);
-		capSetUserData(s->capvideo, (long) 0);
-		flushq(&s->rq,0);
+		capSetUserData(s->capvideo, (long)0);
+		flushq(&s->rq, 0);
 		ms_message("v4w: destroying capture window");
 		DestroyWindow(s->capvideo);
 		ms_message("v4w: capture window destroyed");
-		s->capvideo=NULL;
+		s->capvideo = NULL;
 	}
 #if 0
 	if (s->capvideo){
@@ -343,27 +332,21 @@ static int _v4w_stop(V4wState *s, void *arg){
 
 #ifdef AMD_HACK2
 
-void *  
-v4w_thread(void *arg)
-{
-	V4wState *s=(V4wState*)arg;
-    MSG msg;
-	
+void *v4w_thread(void *arg) {
+	V4wState *s = (V4wState *)arg;
+	MSG msg;
+
 	ms_mutex_lock(&s->thread_lock);
 	_v4w_start(s, NULL);
 	ms_cond_signal(&s->thread_cond);
 	ms_mutex_unlock(&s->thread_lock);
 
-	while(s->thread_running)
-	{
+	while (s->thread_running) {
 		BOOL fGotMessage;
-		if((fGotMessage = PeekMessage(&msg, (HWND) s->capvideo, 0, 0, PM_REMOVE)) != 0)
-		{
-		  TranslateMessage(&msg); 
-		  DispatchMessage(&msg);
-		}
-		else
-			Sleep(10);
+		if ((fGotMessage = PeekMessage(&msg, (HWND)s->capvideo, 0, 0, PM_REMOVE)) != 0) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		} else Sleep(10);
 	}
 
 	ms_mutex_lock(&s->thread_lock);
@@ -374,67 +357,63 @@ v4w_thread(void *arg)
 	return NULL;
 }
 
-
-static int v4w_start(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
-	s->thread_running=TRUE;
-	ms_thread_create(&s->thread,NULL,v4w_thread,s);
+static int v4w_start(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
+	s->thread_running = TRUE;
+	ms_thread_create(&s->thread, NULL, v4w_thread, s);
 	ms_mutex_lock(&s->thread_lock);
-	ms_cond_wait(&s->thread_cond,&s->thread_lock);
+	ms_cond_wait(&s->thread_cond, &s->thread_lock);
 	ms_mutex_unlock(&s->thread_lock);
-	s->started=TRUE;
+	s->started = TRUE;
 	return 0;
 }
 
-static int v4w_stop(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
+static int v4w_stop(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
 	ms_mutex_lock(&s->thread_lock);
-	s->thread_running=FALSE;
-	//SendMessage(s->capvideo, WM_CLOSE, 0, 0);
-	ms_cond_wait(&s->thread_cond,&s->thread_lock);
+	s->thread_running = FALSE;
+	// SendMessage(s->capvideo, WM_CLOSE, 0, 0);
+	ms_cond_wait(&s->thread_cond, &s->thread_lock);
 	ms_mutex_unlock(&s->thread_lock);
-	ms_thread_join(s->thread,NULL);
-	s->started=FALSE;
+	ms_thread_join(s->thread, NULL);
+	s->started = FALSE;
 	return 0;
 }
 
 #else
 
-static int v4w_start(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
+static int v4w_start(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
 	_v4w_start(s, NULL);
-	s->started=TRUE;
+	s->started = TRUE;
 	return 0;
 }
 
-static int v4w_stop(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
+static int v4w_stop(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
 	_v4w_stop(s, NULL);
-	s->started=FALSE;
+	s->started = FALSE;
 	return 0;
 }
 
 #endif
 
-static void v4w_uninit(MSFilter *f){
-	V4wState *s=(V4wState*)f->data;
+static void v4w_uninit(MSFilter *f) {
+	V4wState *s = (V4wState *)f->data;
 	int idx;
-	flushq(&s->rq,0);
+	flushq(&s->rq, 0);
 	ms_mutex_destroy(&s->mutex);
-	for (idx=0;idx<10;idx++)
-	{
-		if (s->mire[idx]==NULL)
-			break;
+	for (idx = 0; idx < 10; idx++) {
+		if (s->mire[idx] == NULL) break;
 		freemsg(s->mire[idx]);
 	}
-	if (s->capvideo!=NULL)
-	{
+	if (s->capvideo != NULL) {
 		ms_message("v4w: destroying capture window");
 		DestroyWindow(s->capvideo);
 		ms_message("v4w: capture window destroyed");
-		s->capvideo=NULL;
+		s->capvideo = NULL;
 	}
-	if (s->reverted){
+	if (s->reverted) {
 		freemsg(s->reverted);
 	}
 #ifdef AMD_HACK2
@@ -444,184 +423,168 @@ static void v4w_uninit(MSFilter *f){
 	ms_free(s);
 }
 
-static mblk_t * v4w_make_nowebcam(MSFilter *f, V4wState *s){
+static mblk_t *v4w_make_nowebcam(MSFilter *f, V4wState *s) {
 	int idx;
 	int count;
-	if (s->mire[0]==NULL && s->frame_ind==0){
+	if (s->mire[0] == NULL && s->frame_ind == 0) {
 		/* load several images to fake a movie */
-		for (idx=0;idx<10;idx++)
-		{
-			s->mire[idx]=ms_load_nowebcam(f->factory, &s->vsize, idx);
-			if (s->mire[idx]==NULL)
-				break;
+		for (idx = 0; idx < 10; idx++) {
+			s->mire[idx] = ms_load_nowebcam(f->factory, &s->vsize, idx);
+			if (s->mire[idx] == NULL) break;
 		}
-		if (idx==0)
-			s->mire[0]=ms_load_nowebcam(f->factory, &s->vsize, -1);
+		if (idx == 0) s->mire[0] = ms_load_nowebcam(f->factory, &s->vsize, -1);
 	}
-	for (count=0;count<10;count++)
-	{
-		if (s->mire[count]==NULL)
-			break;
+	for (count = 0; count < 10; count++) {
+		if (s->mire[count] == NULL) break;
 	}
 
 	s->frame_ind++;
-	if (count==0)
-		return NULL;
+	if (count == 0) return NULL;
 
-	idx = s->frame_ind%count;
-	if (s->mire[idx]!=NULL)
-		return s->mire[idx];
+	idx = s->frame_ind % count;
+	if (s->mire[idx] != NULL) return s->mire[idx];
 	return s->mire[0];
 }
 
-static void v4w_preprocess(MSFilter * obj){
-	V4wState *s=(V4wState*)obj->data;
+static void v4w_preprocess(MSFilter *obj) {
+	V4wState *s = (V4wState *)obj->data;
 	if (!s->started) {
 		ms_message("V4W auto-started.");
-		v4w_start(obj,NULL);
-		s->autostarted=TRUE;
+		v4w_start(obj, NULL);
+		s->autostarted = TRUE;
 	}
-	s->running=TRUE;
-	if (s->capvideo==NULL)
-		s->fps=1;
+	s->running = TRUE;
+	if (s->capvideo == NULL) s->fps = 1;
 }
 
-static void v4w_postprocess(MSFilter * obj){
-	V4wState *s=(V4wState*)obj->data;
-	s->running=FALSE;
-	if (s->autostarted){
-		v4w_stop(obj,NULL);
+static void v4w_postprocess(MSFilter *obj) {
+	V4wState *s = (V4wState *)obj->data;
+	s->running = FALSE;
+	if (s->autostarted) {
+		v4w_stop(obj, NULL);
 	}
 }
 
-static void v4w_process(MSFilter * obj){
-	V4wState *s=(V4wState*)obj->data;
+static void v4w_process(MSFilter *obj) {
+	V4wState *s = (V4wState *)obj->data;
 	mblk_t *m;
 	uint32_t timestamp;
 	int cur_frame;
 
-	if (s->frame_count==-1){
-		s->start_time=obj->ticker->time;
-		s->frame_count=0;
+	if (s->frame_count == -1) {
+		s->start_time = obj->ticker->time;
+		s->frame_count = 0;
 	}
 
-
-	cur_frame=((obj->ticker->time-s->start_time)*s->fps/1000.0);
-	if (cur_frame>s->frame_count){
-		mblk_t *om=NULL;
+	cur_frame = ((obj->ticker->time - s->start_time) * s->fps / 1000.0);
+	if (cur_frame > s->frame_count) {
+		mblk_t *om = NULL;
 		ms_mutex_lock(&s->mutex);
 		/*keep the most recent frame if several frames have been captured */
-		if (s->capvideo!=NULL){
-			while((m=getq(&s->rq))!=NULL){
-				if (om!=NULL) freemsg(om);
-				om=m;
+		if (s->capvideo != NULL) {
+			while ((m = getq(&s->rq)) != NULL) {
+				if (om != NULL) freemsg(om);
+				om = m;
 			}
-			if (om!=NULL){
-				if (s->invert_rgb){
+			if (om != NULL) {
+				if (s->invert_rgb) {
 					MSVideoSize roi;
-					if (s->reverted==NULL){
-						s->reverted=allocb(om->b_wptr-om->b_rptr,0);
-						s->reverted->b_wptr=dblk_lim(s->reverted->b_datap);
+					if (s->reverted == NULL) {
+						s->reverted = allocb(om->b_wptr - om->b_rptr, 0);
+						s->reverted->b_wptr = dblk_lim(s->reverted->b_datap);
 					}
-					roi=s->vsize;
-					rgb24_copy_revert(s->reverted->b_rptr,roi.width*3,
-									om->b_rptr,roi.width*3,roi);
+					roi = s->vsize;
+					rgb24_copy_revert(s->reverted->b_rptr, roi.width * 3, om->b_rptr, roi.width * 3, roi);
 					freemsg(om);
-					om=dupb(s->reverted);
+					om = dupb(s->reverted);
 				}
 			}
-		}else {
+		} else {
 			mblk_t *nowebcam = v4w_make_nowebcam(obj, s);
-			if (nowebcam!=NULL){
-				om=dupmsg(nowebcam);
-				mblk_set_precious_flag(om,1);
+			if (nowebcam != NULL) {
+				om = dupmsg(nowebcam);
+				mblk_set_precious_flag(om, 1);
 			}
 		}
 		ms_mutex_unlock(&s->mutex);
-		if (om!=NULL){
-			timestamp=obj->ticker->time*90;/* rtp uses a 90000 Hz clockrate for video*/
-			mblk_set_timestamp_info(om,timestamp);
-			ms_queue_put(obj->outputs[0],om);
+		if (om != NULL) {
+			timestamp = obj->ticker->time * 90; /* rtp uses a 90000 Hz clockrate for video*/
+			mblk_set_timestamp_info(om, timestamp);
+			ms_queue_put(obj->outputs[0], om);
 		}
 		s->frame_count++;
 	}
 }
 
-static int v4w_set_fps(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
-	s->fps=*((float*)arg);
+static int v4w_set_fps(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
+	s->fps = *((float *)arg);
 	return 0;
 }
 
-static int v4w_get_pix_fmt(MSFilter *f,void *arg){
-	V4wState *s=(V4wState*)f->data;
+static int v4w_get_pix_fmt(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
 	if (!s->started) {
 		ms_message("V4W auto-started in v4w_get_pix_fmt()");
-		v4w_start(f,NULL);
-		s->autostarted=TRUE;
+		v4w_start(f, NULL);
+		s->autostarted = TRUE;
 	}
-	*((MSPixFmt*)arg) = (MSPixFmt)s->pix_fmt;
+	*((MSPixFmt *)arg) = (MSPixFmt)s->pix_fmt;
 	return 0;
 }
 
-static int v4w_set_vsize(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
-	s->vsize=*((MSVideoSize*)arg);
+static int v4w_set_vsize(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
+	s->vsize = *((MSVideoSize *)arg);
 	return 0;
 }
 
-static int v4w_get_vsize(MSFilter *f, void *arg){
-	V4wState *s=(V4wState*)f->data;
-	MSVideoSize *vs=(MSVideoSize*)arg;
-	vs->width=s->vsize.width;
-	vs->height=s->vsize.height;
+static int v4w_get_vsize(MSFilter *f, void *arg) {
+	V4wState *s = (V4wState *)f->data;
+	MSVideoSize *vs = (MSVideoSize *)arg;
+	vs->width = s->vsize.width;
+	vs->height = s->vsize.height;
 	return 0;
 }
 
-static MSFilterMethod methods[]={
-	{	MS_FILTER_SET_FPS	,	v4w_set_fps	},
-	{	MS_FILTER_GET_PIX_FMT	,	v4w_get_pix_fmt	},
-	{	MS_FILTER_SET_VIDEO_SIZE, v4w_set_vsize	},
-	{	MS_FILTER_GET_VIDEO_SIZE, v4w_get_vsize	},
-	{	MS_V4L_START			,	v4w_start		},
-	{	MS_V4L_STOP			,	v4w_stop		},
-	{	0								,	NULL			}
-};
+static MSFilterMethod methods[] = {{MS_FILTER_SET_FPS, v4w_set_fps},
+                                   {MS_FILTER_GET_PIX_FMT, v4w_get_pix_fmt},
+                                   {MS_FILTER_SET_VIDEO_SIZE, v4w_set_vsize},
+                                   {MS_FILTER_GET_VIDEO_SIZE, v4w_get_vsize},
+                                   {MS_V4L_START, v4w_start},
+                                   {MS_V4L_STOP, v4w_stop},
+                                   {0, NULL}};
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_v4w_desc={
-	MS_V4L_ID,
-	"MSV4w",
-	N_("A video4windows compatible source filter to stream pictures."),
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	1,
-	v4w_init,
-	v4w_preprocess,
-	v4w_process,
-	v4w_postprocess,
-	v4w_uninit,
-	methods
-};
+MSFilterDesc ms_v4w_desc = {MS_V4L_ID,
+                            "MSV4w",
+                            N_("A video4windows compatible source filter to stream pictures."),
+                            MS_FILTER_OTHER,
+                            NULL,
+                            0,
+                            1,
+                            v4w_init,
+                            v4w_preprocess,
+                            v4w_process,
+                            v4w_postprocess,
+                            v4w_uninit,
+                            methods};
 
 #else
 
-MSFilterDesc ms_v4w_desc={
-	.id=MS_V4L_ID,
-	.name="MSV4w",
-	.text=N_("A video4windows compatible source filter to stream pictures."),
-	.ninputs=0,
-	.noutputs=1,
-	.category=MS_FILTER_OTHER,
-	.init=v4w_init,
-	.preprocess=v4w_preprocess,
-	.process=v4w_process,
-	.postprocess=v4w_postprocess,
-	.uninit=v4w_uninit,
-	.methods=methods
-};
+MSFilterDesc ms_v4w_desc = {.id = MS_V4L_ID,
+                            .name = "MSV4w",
+                            .text = N_("A video4windows compatible source filter to stream pictures."),
+                            .ninputs = 0,
+                            .noutputs = 1,
+                            .category = MS_FILTER_OTHER,
+                            .init = v4w_init,
+                            .preprocess = v4w_preprocess,
+                            .process = v4w_process,
+                            .postprocess = v4w_postprocess,
+                            .uninit = v4w_uninit,
+                            .methods = methods};
 
 #endif
 

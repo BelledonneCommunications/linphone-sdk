@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2/msqrcodereader.h"
+#include <bctoolbox/defs.h>
+
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
-#include "mediastreamer2/msqrcodereader.h"
 
 #ifndef QRCODELINPHONE_JPG
 #define QRCODELINPHONE_JPG "qrcodesite"
@@ -41,9 +43,9 @@
 typedef struct struct_qrcode_callback_data {
 	int qrcode_found;
 	char *text;
-}qrcode_callback_data;
+} qrcode_callback_data;
 
-static void qrcode_found_cb(void *data, MSFilter *f, unsigned int event_id, void *arg) {
+static void qrcode_found_cb(void *data, BCTBX_UNUSED(MSFilter *f), unsigned int event_id, void *arg) {
 	if (event_id == MS_QRCODE_READER_QRCODE_FOUND) {
 		qrcode_callback_data *found = (qrcode_callback_data *)data;
 		found->qrcode_found = TRUE;
@@ -52,15 +54,16 @@ static void qrcode_found_cb(void *data, MSFilter *f, unsigned int event_id, void
 	}
 }
 
-static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect *capture_rect, bool_t with_reset, unsigned int number_of_run) {
+static void _decode_qr_code(
+    const char *_image_path, bool_t want_decode, MSRect *capture_rect, bool_t with_reset, unsigned int number_of_run) {
 	MSConnectionHelper h;
 	MSWebCam *camera;
-	char* image_path, *image_res_path;
+	char *image_path, *image_res_path;
 	MSFilter *nowebcam_qrcode = NULL;
 	MSFilter *zxing_qrcode = NULL;
 	MSFilter *void_sink = NULL;
 	qrcode_callback_data qrcode_cb_data;
-	MSFactory* _factory = NULL;
+	MSFactory *_factory = NULL;
 
 	qrcode_cb_data.qrcode_found = FALSE;
 	qrcode_cb_data.text = NULL;
@@ -75,7 +78,7 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	ms_tester_create_ticker();
 
 	// Get create nowebcam filter with qrcode image
-	camera = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory),"StaticImage: Static picture");
+	camera = ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "StaticImage: Static picture");
 	nowebcam_qrcode = ms_web_cam_create_reader(camera);
 	ms_filter_notify(nowebcam_qrcode, MS_STATIC_IMAGE_SET_IMAGE, image_res_path);
 	zxing_qrcode = ms_factory_create_filter(_factory, MS_QRCODE_READER_ID);
@@ -95,7 +98,7 @@ static void _decode_qr_code(const char *_image_path, bool_t want_decode, MSRect 
 	ms_connection_helper_link(&h, void_sink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, nowebcam_qrcode);
 
-	while(number_of_run-- > 0) {
+	while (number_of_run-- > 0) {
 		if (want_decode) {
 			BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &qrcode_cb_data.qrcode_found, TRUE, 2000));
 		} else {
@@ -167,22 +170,12 @@ static void decode_qr_code_once(void) {
 	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, FALSE, 2);
 }
 
-static test_t tests[] = {
-	TEST_NO_TAG("Decode qr code", decode_qr_code),
-	TEST_NO_TAG("Decode qr code from screen", decode_qr_code_screen),
-	TEST_NO_TAG("Decode inclined qr code from screen", decode_qr_code_inclined),
-	TEST_NO_TAG("Decode qr code with rect", decode_qr_code_rect),
-	TEST_NO_TAG("Cannot decode qr code", cannot_decode),
-	TEST_NO_TAG("Decode qr code twice", decode_qr_code_twice),
-	TEST_NO_TAG("Decode qr code once", decode_qr_code_once)
-};
+static test_t tests[] = {TEST_NO_TAG("Decode qr code", decode_qr_code),
+                         TEST_NO_TAG("Decode qr code from screen", decode_qr_code_screen),
+                         TEST_NO_TAG("Decode inclined qr code from screen", decode_qr_code_inclined),
+                         TEST_NO_TAG("Decode qr code with rect", decode_qr_code_rect),
+                         TEST_NO_TAG("Cannot decode qr code", cannot_decode),
+                         TEST_NO_TAG("Decode qr code twice", decode_qr_code_twice),
+                         TEST_NO_TAG("Decode qr code once", decode_qr_code_once)};
 
-test_suite_t qrcode_test_suite = {
-	"QRCode",
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	sizeof(tests) / sizeof(tests[0]),
-	tests
-};
+test_suite_t qrcode_test_suite = {"QRCode", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};

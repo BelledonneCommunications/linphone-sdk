@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -25,9 +25,9 @@
 Please take care of always add new IDs at the end in order to preserve the binary interface*/
 /*this id is used for type checking of methods, events with filters */
 /*it must be used also to create filters */
-typedef enum MSFilterId{
+typedef enum MSFilterId {
 	MS_FILTER_NOT_SET_ID,
-	MS_FILTER_PLUGIN_ID,	/* no type checking will be performed on plugins */
+	MS_FILTER_PLUGIN_ID, /* no type checking will be performed on plugins */
 	MS_FILTER_BASE_ID,
 	MS_ALSA_READ_ID,
 	MS_ALSA_WRITE_ID,

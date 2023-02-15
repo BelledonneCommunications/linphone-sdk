@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,44 +23,43 @@
 
 #include <mediastreamer2/msfilter.h>
 
-#define MS_DTMF_GEN_PUT		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char)
+#define MS_DTMF_GEN_PUT MS_FILTER_METHOD(MS_DTMF_GEN_ID, 0, const char)
 /** Plays dtmf tone given in argument with default duration*/
 
-#define MS_DTMF_GEN_PLAY		MS_FILTER_METHOD(MS_DTMF_GEN_ID,0,const char) /*alias to put*/
+#define MS_DTMF_GEN_PLAY MS_FILTER_METHOD(MS_DTMF_GEN_ID, 0, const char) /*alias to put*/
 
 /**Start playing a given dtmf, then it has to be stopped using MS_DTMF_GEN_STOP */
-#define MS_DTMF_GEN_START		MS_FILTER_METHOD(MS_DTMF_GEN_ID,1,const char)
+#define MS_DTMF_GEN_START MS_FILTER_METHOD(MS_DTMF_GEN_ID, 1, const char)
 
 /**Stop currently played dtmf*/
-#define MS_DTMF_GEN_STOP		MS_FILTER_METHOD_NO_ARG(MS_DTMF_GEN_ID,2)
-
+#define MS_DTMF_GEN_STOP MS_FILTER_METHOD_NO_ARG(MS_DTMF_GEN_ID, 2)
 
 /**
  * Structure describing a custom tone.
-**/
-struct _MSDtmfGenCustomTone{
-	char tone_name[8];	/**<Tone name for convenience*/
-	int duration;		/**<Duration of the tone in milliseconds*/
-	int frequencies[2];	/**<Frequencies of the tone to be played */
-	float amplitude;	/**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
-	int interval;		/**<Interval 'between tones' in milliseconds*/
-	int repeat_count;	/**<Number of times the tone is repeated.*/
+ **/
+struct _MSDtmfGenCustomTone {
+	char tone_name[8];  /**<Tone name for convenience*/
+	int duration;       /**<Duration of the tone in milliseconds*/
+	int frequencies[2]; /**<Frequencies of the tone to be played */
+	float amplitude;    /**<Amplitude of the tone, 1.0 being the 0dbm normalized level*/
+	int interval;       /**<Interval 'between tones' in milliseconds*/
+	int repeat_count;   /**<Number of times the tone is repeated.*/
 };
 
 typedef struct _MSDtmfGenCustomTone MSDtmfGenCustomTone;
 
 /**Play a custom tone according to the supplied tone description*/
-#define MS_DTMF_GEN_PLAY_CUSTOM	MS_FILTER_METHOD(MS_DTMF_GEN_ID,3,MSDtmfGenCustomTone)
+#define MS_DTMF_GEN_PLAY_CUSTOM MS_FILTER_METHOD(MS_DTMF_GEN_ID, 3, MSDtmfGenCustomTone)
 
 /**Sets default amplitude for dtmfs, expressed in the 0..1 range*/
-#define MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE MS_FILTER_METHOD(MS_DTMF_GEN_ID,4,float)
+#define MS_DTMF_GEN_SET_DEFAULT_AMPLITUDE MS_FILTER_METHOD(MS_DTMF_GEN_ID, 4, float)
 
-#define MS_DTMF_GEN_IS_PLAYING		MS_FILTER_METHOD(MS_DTMF_GEN_ID,5, bool_t)
+#define MS_DTMF_GEN_IS_PLAYING MS_FILTER_METHOD(MS_DTMF_GEN_ID, 5, bool_t)
 
 /**
  * Structure carried by MS_DTMF_GEN_EVENT
-**/
-struct _MSDtmfGenEvent{
+ **/
+struct _MSDtmfGenEvent {
 	uint64_t tone_start_time;
 	char tone_name[8];
 };
@@ -69,9 +68,9 @@ typedef struct _MSDtmfGenEvent MSDtmfGenEvent;
 
 /**
  * Event sent by the filter each time a tone or dtmf is generated.
-**/
-#define MS_DTMF_GEN_EVENT		MS_FILTER_EVENT(MS_DTMF_GEN_ID,0,MSDtmfGenEvent)
-#define MS_DTMF_GEN_END			MS_FILTER_EVENT_NO_ARG(MS_DTMF_GEN_ID,0)
+ **/
+#define MS_DTMF_GEN_EVENT MS_FILTER_EVENT(MS_DTMF_GEN_ID, 0, MSDtmfGenEvent)
+#define MS_DTMF_GEN_END MS_FILTER_EVENT_NO_ARG(MS_DTMF_GEN_ID, 0)
 
 extern MSFilterDesc ms_dtmf_gen_desc;
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "android_mediacodec.h"
 
 #include "media-codec-decoder.h"
@@ -28,7 +27,7 @@ using namespace std;
 
 namespace mediastreamer {
 
-MediaCodecDecoder::MediaCodecDecoder(const std::string &mime): H26xDecoder(mime) {
+MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) : H26xDecoder(mime) {
 	try {
 		_impl = AMediaCodec_createDecoderByType(mime.c_str());
 		if (_impl == nullptr) {
@@ -136,7 +135,8 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
 			AMediaFormat_getInt32(format, "width", &_curWidth);
 			AMediaFormat_getInt32(format, "height", &_curHeight);
-			ms_message("MediaCodecDecoder: new format %ix%i :\n%s", _curWidth, _curHeight, AMediaFormat_toString(format));
+			ms_message("MediaCodecDecoder: new format %ix%i :\n%s", _curWidth, _curHeight,
+			           AMediaFormat_toString(format));
 			AMediaFormat_delete(format);
 		}
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
@@ -146,13 +146,15 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		if (oBufidx == AMEDIACODEC_INFO_TRY_AGAIN_LATER) {
 			return noFrameAvailable;
 		} else {
-			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s", codecInfoToString(oBufidx).c_str());
+			ms_error("MediaCodecDecoder: error while dequeueing an output buffer: %s",
+			         codecInfoToString(oBufidx).c_str());
 			if (oBufidx == AMEDIA_ERROR_UNKNOWN) {
 				try {
 					resetImpl();
 					startImpl();
 				} catch (const runtime_error &e) {
-					ms_error("MediaCodecDecoder: decoding session couldn't been started. The session is definitively lost !");
+					ms_error("MediaCodecDecoder: decoding session couldn't been started. The session is definitively "
+					         "lost !");
 				}
 			}
 			return decodingFailure;
@@ -167,27 +169,27 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		status = decodingFailure;
 		goto end;
 	}
-	
-	if (_curWidth && _curHeight && (_curWidth != image.crop_rect.w || _curHeight != image.crop_rect.h)){
+
+	if (_curWidth && _curHeight && (_curWidth != image.crop_rect.w || _curHeight != image.crop_rect.h)) {
 		/*
-		 * Sometimes (not all devices), we observe an insconsistency between the width/height announced by the MediaCodec.getOutputFormat()
-		 * and the width/height announced by the getOutputImage().
-		 * In some cases this also results in an garbled decoded image, but sometimes not.
-		 * We print out the information, but no further action can be done here.
+		 * Sometimes (not all devices), we observe an insconsistency between the width/height announced by the
+		 * MediaCodec.getOutputFormat() and the width/height announced by the getOutputImage(). In some cases this also
+		 * results in an garbled decoded image, but sometimes not. We print out the information, but no further action
+		 * can be done here.
 		 */
-		ms_error("Mismatch between decoder new format and output image detected: %ix%i vs %ix%i",
-			 _curWidth, _curHeight, image.crop_rect.w, image.crop_rect.h);
+		ms_error("Mismatch between decoder new format and output image detected: %ix%i vs %ix%i", _curWidth, _curHeight,
+		         image.crop_rect.w, image.crop_rect.h);
 		_curWidth = image.crop_rect.w;
 		_curHeight = image.crop_rect.h;
 	}
 
 	MSPicture pic;
 	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
-	//ms_message("image.crop_rect.w=%i, image.crop_rect.h=%i, image.row_strides=%i,%i,%i image.pixel_strides=%i,%i,%i",
+	// ms_message("image.crop_rect.w=%i, image.crop_rect.h=%i, image.row_strides=%i,%i,%i image.pixel_strides=%i,%i,%i",
 	//	   image.crop_rect.w, image.crop_rect.h, image.row_strides[0], image.row_strides[1], image.row_strides[2],
 	//		image.pixel_strides[0], image.pixel_strides[1], image.pixel_strides[2]);
-	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
-										pic.planes, pic.strides, dst_pix_strides, dst_roi);
+	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect, pic.planes,
+	                                 pic.strides, dst_pix_strides, dst_roi);
 	AMediaImage_close(&image);
 
 end:
@@ -219,7 +221,8 @@ void MediaCodecDecoder::startImpl() {
 		throw runtime_error(errMsg.str());
 	}
 
-	ms_message("MediaCodecDecoder: decoder successfully started. In-force parameters:\n%s", AMediaFormat_toString(_format));
+	ms_message("MediaCodecDecoder: decoder successfully started. In-force parameters:\n%s",
+	           AMediaFormat_toString(_format));
 }
 
 void MediaCodecDecoder::stopImpl() noexcept {
@@ -233,7 +236,9 @@ void MediaCodecDecoder::resetImpl() noexcept {
 		ms_error("MediaCodecDecoder: decoder couldn't been reset. Throwing decoding session out");
 		AMediaCodec_delete(_impl);
 		_impl = AMediaCodec_createDecoderByType(_mime.c_str());
-		if (_impl == nullptr) ms_error("MediaCodecDecoder: couldn't recreate decoding session. The decoding session is definitively lost !");
+		if (_impl == nullptr)
+			ms_error(
+			    "MediaCodecDecoder: couldn't recreate decoding session. The decoding session is definitively lost !");
 	}
 }
 
@@ -242,7 +247,9 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 
 	ssize_t iBufidx = AMediaCodec_dequeueInputBuffer(_impl, _timeoutUs);
 	if (iBufidx < 0) {
-		ms_error("MediaCodecDecoder: %s.", iBufidx == -1 ? "no buffer available for queuing this frame ! Decoder is too slow" : "AMediaCodec_dequeueInputBuffer() had an exception");
+		ms_error("MediaCodecDecoder: %s.", iBufidx == -1
+		                                       ? "no buffer available for queuing this frame ! Decoder is too slow"
+		                                       : "AMediaCodec_dequeueInputBuffer() had an exception");
 		return false;
 	}
 
@@ -254,10 +261,12 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 		return false;
 	}
 
-	try{
+	try {
 		streamSize = H26xUtils::nalusToByteStream(encodedFrame, buf, bufsize);
-	}catch(const invalid_argument &e){
-		ms_error("MediaCodecDecoder: cannot convert the all the nal units content into the input buffer size : bufsize=%zu", bufsize);
+	} catch (const invalid_argument &e) {
+		ms_error(
+		    "MediaCodecDecoder: cannot convert the all the nal units content into the input buffer size : bufsize=%zu",
+		    bufsize);
 	}
 
 	uint32_t flags = isPs ? BufferFlag::CodecConfig : BufferFlag::None;
@@ -270,7 +279,8 @@ bool MediaCodecDecoder::feed(MSQueue *encodedFrame, uint64_t timestamp, bool isP
 }
 
 bool MediaCodecDecoder::isKeyFrame(const MSQueue *frame) const {
-	for (const mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu); nalu = ms_queue_next(frame, nalu)) {
+	for (const mblk_t *nalu = ms_queue_peek_first(frame); !ms_queue_end(frame, nalu);
+	     nalu = ms_queue_next(frame, nalu)) {
 		_naluHeader->parse(nalu->b_rptr);
 		if (_naluHeader->getAbsType().isKeyFramePart()) return true;
 	}

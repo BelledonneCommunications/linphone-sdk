@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,18 +17,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include <bctoolbox/defs.h>
 
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msrtt4103.h"
+#include "mediastreamer2/msticker.h"
 
 typedef struct _RealTimeTextSinkData {
 	int flags;
 	int prevseqno;
 	uint8_t inbuf[TS_INBUF_SIZE];
 	size_t inbufsize;
-	uint8_t* inbufpos;
+	uint8_t *inbufpos;
 	int pt_t140;
 	int pt_red;
 } RealTimeTextSinkData;
@@ -37,15 +38,22 @@ typedef struct _RealTimeTextSinkData {
  * How many bytes makes up one character.
  **/
 static int utf8_test(const uint8_t c) {
-	if (!(c & 0x80)) { return 1; }
-	else if (!(c & 0x40)) { return 0; }
-	else if (!(c & 0x20)) { return 2; }
-	else if (!(c & 0x10)) { return 3; }
-	else if (!(c & 0x08)) { return 4; }
-	else { return -1; }
+	if (!(c & 0x80)) {
+		return 1;
+	} else if (!(c & 0x40)) {
+		return 0;
+	} else if (!(c & 0x20)) {
+		return 2;
+	} else if (!(c & 0x10)) {
+		return 3;
+	} else if (!(c & 0x08)) {
+		return 4;
+	} else {
+		return -1;
+	}
 }
 
-static bool_t is_utf8_buf_ok(const uint8_t* b, const size_t s) {
+static bool_t is_utf8_buf_ok(const uint8_t *b, const size_t s) {
 	int i, t;
 	for (i = 0, t = 0; i < (int)s; i++, t--) {
 		if (t == 0) {
@@ -66,7 +74,7 @@ static bool_t is_utf8_buf_ok(const uint8_t* b, const size_t s) {
 }
 
 static int red_needed(int cur, int prev) {
-	int t = cur-prev;
+	int t = cur - prev;
 	if (t > 0) {
 		return t - 1;
 	} else if (t < -100) {
@@ -75,14 +83,14 @@ static int red_needed(int cur, int prev) {
 	return -1;
 }
 
-static void text_stream_hexdump(const uint8_t* data, const size_t s) {
+static void text_stream_hexdump(const uint8_t *data, const size_t s) {
 	char buf[1000];
-	const uint8_t* c = data;
+	const uint8_t *c = data;
 	int pos = 0;
 	int i = 0;
 
 	buf[0] = '\0';
-	while(c < data + s) {
+	while (c < data + s) {
 		pos += snprintf(&buf[pos], 1000 - pos, " ['%c']0x%X", *c > 20 ? *c : 'X', *c);
 		c++;
 		i++;
@@ -92,7 +100,7 @@ static void text_stream_hexdump(const uint8_t* data, const size_t s) {
 	ms_debug("%s", buf);
 }
 
-static void insert_lost_char(uint8_t *p){
+static void insert_lost_char(uint8_t *p) {
 	p[0] = 0xEF;
 	p[1] = 0xBF;
 	p[2] = 0xBD;
@@ -166,7 +174,7 @@ static void process_red_packet(RealTimeTextSinkData *stream, mblk_t *packet) {
 		pos += 4;
 	}
 
-	ms_debug("red redgen:%i",redgen);
+	ms_debug("red redgen:%i", redgen);
 	if ((int)payload[pos] != stream->pt_t140) {
 		ms_warning("invalid red packet");
 		return;
@@ -256,18 +264,18 @@ static uint32_t text_stream_getchar32(RealTimeTextSinkData *stream) {
 			return c;
 		case 2:
 			c = (c & 0x1F) << 6;
-			c += ((uint32_t) text_stream_getchar(stream) & 0x3F);
+			c += ((uint32_t)text_stream_getchar(stream) & 0x3F);
 			return c;
 		case 3:
 			c = (c & 0x0F) << 12;
-			c += (((uint32_t) text_stream_getchar(stream) & 0x3F) << 6);
-			c += ((uint32_t) text_stream_getchar(stream) & 0x3F);
+			c += (((uint32_t)text_stream_getchar(stream) & 0x3F) << 6);
+			c += ((uint32_t)text_stream_getchar(stream) & 0x3F);
 			return c;
 		case 4:
 			c = (c & 0x7) << 19;
-			c += (((uint32_t) text_stream_getchar(stream) & 0x3F) << 12);
-			c += (((uint32_t) text_stream_getchar(stream) & 0x3F) << 6);
-			c += ((uint32_t) text_stream_getchar(stream) & 0x3F);
+			c += (((uint32_t)text_stream_getchar(stream) & 0x3F) << 12);
+			c += (((uint32_t)text_stream_getchar(stream) & 0x3F) << 6);
+			c += ((uint32_t)text_stream_getchar(stream) & 0x3F);
 			return c;
 		default:
 			return 0;
@@ -281,8 +289,7 @@ static void ms_rtt_4103_sink_init(MSFilter *f) {
 	f->data = s;
 }
 
-static void ms_rtt_4103_sink_preprocess(MSFilter *f) {
-
+static void ms_rtt_4103_sink_preprocess(BCTBX_UNUSED(MSFilter *f)) {
 }
 
 static void ms_rtt_4103_sink_process(MSFilter *f) {
@@ -290,7 +297,7 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 	mblk_t *im;
 
 	ms_filter_lock(f);
-	while((im = ms_queue_get(f->inputs[0])) != NULL) {
+	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
 		read_text_packet(s, im);
 
 		while (text_stream_ischar(s)) {
@@ -310,8 +317,7 @@ static void ms_rtt_4103_sink_process(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-static void ms_rtt_4103_sink_postprocess(MSFilter *f) {
-
+static void ms_rtt_4103_sink_postprocess(BCTBX_UNUSED(MSFilter *f)) {
 }
 
 static void ms_rtt_4103_sink_uninit(MSFilter *f) {
@@ -336,7 +342,7 @@ static int ms_rtt_4103_sink_set_red_payload(MSFilter *f, void *red) {
 	return 0;
 }
 
-static int ms_rtt_4103_resync(MSFilter *f, void *arg){
+static int ms_rtt_4103_resync(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	RealTimeTextSinkData *s = (RealTimeTextSinkData *)f->data;
 	ms_filter_lock(f);
 	s->flags = 0;
@@ -346,27 +352,24 @@ static int ms_rtt_4103_resync(MSFilter *f, void *arg){
 }
 
 static MSFilterMethod ms_rtt_4103_sink_methods[] = {
-	{ MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_sink_set_t140_payload	},
-	{ MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER,		ms_rtt_4103_sink_set_red_payload	},
-	{ MS_RTT_4103_SINK_RESYNC,						 	ms_rtt_4103_resync					},
-	{ 0,												NULL								}
-};
+    {MS_RTT_4103_SINK_SET_T140_PAYLOAD_TYPE_NUMBER, ms_rtt_4103_sink_set_t140_payload},
+    {MS_RTT_4103_SINK_SET_RED_PAYLOAD_TYPE_NUMBER, ms_rtt_4103_sink_set_red_payload},
+    {MS_RTT_4103_SINK_RESYNC, ms_rtt_4103_resync},
+    {0, NULL}};
 
-MSFilterDesc ms_rtt_4103_sink_desc = {
-	MS_RTT_4103_SINK_ID,
-	"MSRTT4103Sink",
-	"A filter to receive real time text",
-	MS_FILTER_OTHER,
-	NULL,
-	1,
-	0,
-	ms_rtt_4103_sink_init,
-	ms_rtt_4103_sink_preprocess,
-	ms_rtt_4103_sink_process,
-	ms_rtt_4103_sink_postprocess,
-	ms_rtt_4103_sink_uninit,
-	ms_rtt_4103_sink_methods,
-	MS_FILTER_IS_PUMP
-};
+MSFilterDesc ms_rtt_4103_sink_desc = {MS_RTT_4103_SINK_ID,
+                                      "MSRTT4103Sink",
+                                      "A filter to receive real time text",
+                                      MS_FILTER_OTHER,
+                                      NULL,
+                                      1,
+                                      0,
+                                      ms_rtt_4103_sink_init,
+                                      ms_rtt_4103_sink_preprocess,
+                                      ms_rtt_4103_sink_process,
+                                      ms_rtt_4103_sink_postprocess,
+                                      ms_rtt_4103_sink_uninit,
+                                      ms_rtt_4103_sink_methods,
+                                      MS_FILTER_IS_PUMP};
 
 MS_FILTER_DESC_EXPORT(ms_rtt_4103_sink_desc)

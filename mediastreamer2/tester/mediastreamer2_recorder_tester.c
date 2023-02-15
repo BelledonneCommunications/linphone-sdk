@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,23 +18,22 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2_tester.h"
-#include "mediastreamer2/msmediarecorder.h"
 #include "mediastreamer2/mediastream.h"
+#include "mediastreamer2/msmediarecorder.h"
+#include "mediastreamer2_tester.h"
 
-static MSFactory* _factory = NULL;
+static MSFactory *_factory = NULL;
 
 typedef enum {
 	RECORDER_TEST_NONE = 0,
 	RECORDER_TEST_UNSUPPORTED_FORMAT = 1,
-    RECORDER_TEST_H264 = 2,
+	RECORDER_TEST_H264 = 2,
 } RecorderTestFlags;
 
-
 const char *get_filename_ext(const char *filename) {
-    const char *dot = strrchr(filename, '.');
-    if(!dot || dot == filename) return "";
-    return dot + 1;
+	const char *dot = strrchr(filename, '.');
+	if (!dot || dot == filename) return "";
+	return dot + 1;
 }
 
 static int tester_before_all(void) {
@@ -55,35 +54,35 @@ static void record_file(const char *filepath, RecorderTestFlags flags) {
 
 	BC_ASSERT_PTR_NOT_NULL(snd_card);
 	BC_ASSERT_PTR_NOT_NULL(web_cam);
-	//Put switch to decide what file format and codec to use
-    MSFileFormat file_format = MS_FILE_FORMAT_UNKNOWN;
-    char *codec = "";
-    const char *file_ext = get_filename_ext(filepath);
-    if (strcmp(file_ext, "wav") == 0) {
-        file_format = MS_FILE_FORMAT_WAVE;
-    } else if (strcmp(file_ext, "mkv") == 0) {
-        file_format = MS_FILE_FORMAT_MATROSKA;
-        if(flags & RECORDER_TEST_H264) {
-            codec = "h264";
-        } else {
-            codec = "vp8";
-        }
-    }
+	// Put switch to decide what file format and codec to use
+	MSFileFormat file_format = MS_FILE_FORMAT_UNKNOWN;
+	char *codec = "";
+	const char *file_ext = get_filename_ext(filepath);
+	if (strcmp(file_ext, "wav") == 0) {
+		file_format = MS_FILE_FORMAT_WAVE;
+	} else if (strcmp(file_ext, "mkv") == 0) {
+		file_format = MS_FILE_FORMAT_MATROSKA;
+		if (flags & RECORDER_TEST_H264) {
+			codec = "h264";
+		} else {
+			codec = "vp8";
+		}
+	}
 	file_recorder = ms_media_recorder_new(_factory, snd_card, web_cam, display_name, 0, file_format, codec);
 	BC_ASSERT_PTR_NOT_NULL(file_recorder);
-	if(file_recorder == NULL) return;
+	if (file_recorder == NULL) return;
 
 	BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderClosed, int, "%d");
 
 	succeed = ms_media_recorder_open(file_recorder, filepath, 0);
-	if(flags & RECORDER_TEST_UNSUPPORTED_FORMAT) {
+	if (flags & RECORDER_TEST_UNSUPPORTED_FORMAT) {
 		BC_ASSERT_FALSE(succeed);
 		BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderClosed, int, "%d");
 	} else {
 		BC_ASSERT_TRUE(succeed);
 		BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderPaused, int, "%d");
 	}
-	if(!succeed) {
+	if (!succeed) {
 		ms_media_recorder_free(file_recorder);
 		return;
 	}
@@ -92,44 +91,40 @@ static void record_file(const char *filepath, RecorderTestFlags flags) {
 	BC_ASSERT_TRUE(succeed);
 	BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderRunning, int, "%d");
 
-    ms_sleep(5);
+	ms_sleep(5);
 
 	ms_media_recorder_close(file_recorder);
 	BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderClosed, int, "%d");
-    //ms_media_recorder_remove_file(file_recorder, filepath);
+	// ms_media_recorder_remove_file(file_recorder, filepath);
 	ms_media_recorder_free(file_recorder);
 }
 
 static void record_wav(void) {
-    char* file = bc_tester_res("records/test_record_wav.wav");
-    RecorderTestFlags flags = ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
-    record_file(file, flags);
+	char *file = bc_tester_res("records/test_record_wav.wav");
+	RecorderTestFlags flags =
+	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
+	record_file(file, flags);
 }
 
 static void record_mkv_vp8(void) {
-    char* file = bc_tester_res("records/test_record_mkv_vp8.mkv");
-    RecorderTestFlags flags = ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
-    record_file(file, flags);
+	char *file = bc_tester_res("records/test_record_mkv_vp8.mkv");
+	RecorderTestFlags flags =
+	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
+	record_file(file, flags);
 }
 
 static void record_mkv_h264(void) {
-    char* file = bc_tester_res("records/test_record_mkv_h264.mkv");
-    RecorderTestFlags flags = ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
-    record_file(file, flags | RECORDER_TEST_H264);
+	char *file = bc_tester_res("records/test_record_mkv_h264.mkv");
+	RecorderTestFlags flags =
+	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
+	record_file(file, flags | RECORDER_TEST_H264);
 }
 
 static test_t tests[] = {
-	TEST_NO_TAG("Record .wav"                        , record_wav),
-    TEST_NO_TAG("Record .mkv vp8"                    , record_mkv_vp8),
-    TEST_NO_TAG("Record .mkv h264"                   , record_mkv_h264),
+    TEST_NO_TAG("Record .wav", record_wav),
+    TEST_NO_TAG("Record .mkv vp8", record_mkv_vp8),
+    TEST_NO_TAG("Record .mkv h264", record_mkv_h264),
 };
 
 test_suite_t recorder_test_suite = {
-	"Recorder",
-	tester_before_all,
-	tester_after_all,
-	NULL,
-	NULL,
-	sizeof(tests)/sizeof(test_t),
-	tests
-};
+    "Recorder", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests};

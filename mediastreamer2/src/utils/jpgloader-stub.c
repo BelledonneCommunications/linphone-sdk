@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
 #endif
 
 #include "mediastreamer2/msvideo.h"
 
-mblk_t *jpeg2yuv(uint8_t *jpgbuf, int bufsize, MSVideoSize *reqsize){
+mblk_t *jpeg2yuv(BCTBX_UNUSED(uint8_t *jpgbuf), BCTBX_UNUSED(int bufsize), BCTBX_UNUSED(MSVideoSize *reqsize)) {
 	ms_warning("jpeg2yuv() stubbed, no jpg decoder implementation compiled with mediastreamer2.");
 	return NULL;
 }

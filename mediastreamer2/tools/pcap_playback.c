@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -27,9 +27,9 @@
 #include "common.h"
 #include "mediastreamer2/msequalizer.h"
 #include "mediastreamer2/msfileplayer.h"
-#include "mediastreamer2/msvolume.h"
 #include "mediastreamer2/msfilerec.h"
 #include "mediastreamer2/mspcapfileplayer.h"
+#include "mediastreamer2/msvolume.h"
 #ifdef VIDEO_ENABLED
 #include "mediastreamer2/msv4l.h"
 #endif
@@ -53,7 +53,6 @@
 #endif
 
 static int cond = 1;
-
 
 typedef struct _MediastreamDatas {
 	int payload;
@@ -87,19 +86,18 @@ void clear_mediastreams(MediastreamDatas *args);
 // HELPER METHODS
 static void stop_handler(int signum);
 
-const char *usage = "pcap_playback --infile <pcapfile>\n"
-                    "--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
-		    		"--avpf [assume RTP/AVPF profile]\n"
-                    "[ --playback-card <name> ]\n"
-		    "[ --display-filter <name of the video display filter, for example: MSGLXVideo, MSX11Video> ]\n"
-		    "[ --outfile <name> ] limited to wav file for now\n"
-                    "[ --verbose (most verbose messages) ]\n"
-		    "This tool directly renders a pcap file to soundcard or screen (for video), using mediastreamer2 filters.\n"
-                    ;
+const char *usage =
+    "pcap_playback --infile <pcapfile>\n"
+    "--payload <payload type number or payload name like 'audio/pmcu/8000'>\n"
+    "--avpf [assume RTP/AVPF profile]\n"
+    "[ --playback-card <name> ]\n"
+    "[ --display-filter <name of the video display filter, for example: MSGLXVideo, MSX11Video> ]\n"
+    "[ --outfile <name> ] limited to wav file for now\n"
+    "[ --verbose (most verbose messages) ]\n"
+    "This tool directly renders a pcap file to soundcard or screen (for video), using mediastreamer2 filters.\n";
 
 #if !TARGET_OS_MAC
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	MediastreamDatas *args;
 	cond = 1;
 
@@ -120,9 +118,8 @@ int main(int argc, char *argv[])
 }
 #endif
 
-MediastreamDatas *init_default_args(void)
-{
-	MediastreamDatas *args = (MediastreamDatas *) ms_malloc0(sizeof(MediastreamDatas));
+MediastreamDatas *init_default_args(void) {
+	MediastreamDatas *args = (MediastreamDatas *)ms_malloc0(sizeof(MediastreamDatas));
 
 	args->payload = 0;
 	args->is_verbose = FALSE;
@@ -139,8 +136,7 @@ MediastreamDatas *init_default_args(void)
 	return args;
 }
 
-bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
-{
+bool_t parse_args(int argc, char **argv, MediastreamDatas *out) {
 	int i;
 
 	if (argc < 2) {
@@ -152,9 +148,9 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 			i++;
 			if (isdigit(argv[i][0])) {
 				out->payload = atoi(argv[i]);
-			}else {
-				out->payload=114;
-				out->pt=ms_tools_parse_custom_payload(argv[i]);
+			} else {
+				out->payload = 114;
+				out->pt = ms_tools_parse_custom_payload(argv[i]);
 			}
 		} else if (strcmp(argv[i], "--playback-card") == 0) {
 			i++;
@@ -172,11 +168,11 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 			out->is_verbose = TRUE;
 		} else if (strcmp(argv[i], "--help") == 0) {
 			return FALSE;
-		}else if (strcmp(argv[i],"--avpf")==0){
-			out->avpf=TRUE;
+		} else if (strcmp(argv[i], "--avpf") == 0) {
+			out->avpf = TRUE;
 		}
 	}
-	if (out->playback_card && out->outfile ) {
+	if (out->playback_card && out->outfile) {
 		ms_error("Cannot define both playback card and output file, select only one");
 		return FALSE;
 	}
@@ -184,36 +180,35 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out)
 }
 
 #ifdef VIDEO_ENABLED
-static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata)
-{
+static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata) {
 	if (event == MS_PLAYER_EOF) {
 		cond = 0;
 	}
 }
 
-static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int event, void *eventdata){
+static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int event, void *eventdata) {
 	MSVideoCodecRPSI *rpsi;
-	uint16_t picture_id=0;
-	switch(event){
+	uint16_t picture_id = 0;
+	switch (event) {
 		case MS_VIDEO_DECODER_SEND_RPSI:
-			rpsi=(MSVideoCodecRPSI*)eventdata;
+			rpsi = (MSVideoCodecRPSI *)eventdata;
 			if (rpsi->bit_string_len == 8) {
 				picture_id = *((uint8_t *)rpsi->bit_string);
 			} else if (rpsi->bit_string_len == 16) {
 				picture_id = ntohs(*((uint16_t *)rpsi->bit_string));
 			}
-			ms_message("Decoder would like to send RPSI for pic-id=%u",picture_id);
-		break;
+			ms_message("Decoder would like to send RPSI for pic-id=%u", picture_id);
+			break;
 		case MS_VIDEO_DECODER_SEND_SLI:
 			ms_message("Decoder would like to send SLI");
-		break;
+			break;
 	}
 }
 #endif
 
-static 	MSFactory *msFactory;
+static MSFactory *msFactory;
 
-static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to) {
+static void configure_resampler(MSFilter *resampler, MSFilter *from, MSFilter *to) {
 	int from_rate = 0, to_rate = 0;
 	int from_channels = 0, to_channels = 0;
 
@@ -242,7 +237,7 @@ static void configure_resampler(MSFilter *resampler,MSFilter *from, MSFilter *to
 	ms_filter_call_method(resampler, MS_FILTER_SET_NCHANNELS, &from_channels);
 	ms_filter_call_method(resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &to_channels);
 	ms_message("configuring %s:%p-->%s:%p from rate [%i] to rate [%i] and from channel [%i] to channel [%i]",
-		from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
+	           from->desc->name, from, to->desc->name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
 void setup_media_streams(MediastreamDatas *args) {
@@ -280,8 +275,7 @@ void setup_media_streams(MediastreamDatas *args) {
 	ms_factory_reset_statistics(msFactory);
 
 	signal(SIGINT, stop_handler);
-	if (args->pt==NULL)
-		args->pt = rtp_profile_get_payload(args->profile, args->payload);
+	if (args->pt == NULL) args->pt = rtp_profile_get_payload(args->profile, args->payload);
 	if (args->pt == NULL) {
 		printf("Error: no payload defined with number %i.", args->payload);
 		exit(-1);
@@ -294,29 +288,30 @@ void setup_media_streams(MediastreamDatas *args) {
 		MSVideoSize disp_size;
 		int tmp = 1;
 
-		if (display_name == NULL){
+		if (display_name == NULL) {
 #if defined(HAVE_GLX)
 			display_name = "MSGLXVideo";
 #elif defined(HAVE_XV)
 			display_name = "MSX11Video";
 #elif __APPLE__ && !TARGET_OS_IPHONE
-			display_name ="MSOSXGLDisplay";
+			display_name = "MSOSXGLDisplay";
 #else
 			display_name = "MSVideoOut";
 #endif
 		}
 		args->read = ms_factory_create_filter(msFactory, MS_PCAP_FILE_PLAYER_ID);
 		args->write = ms_factory_create_filter_from_name(msFactory, display_name);
-		if (args->write == NULL){
-			fprintf(stderr, "Could not instanciate display filter '%s'. Maybe it is not included in the build ?", display_name);
+		if (args->write == NULL) {
+			fprintf(stderr, "Could not instanciate display filter '%s'. Maybe it is not included in the build ?",
+			        display_name);
 			exit(-1);
 		}
 		args->decoder = ms_factory_create_decoder(msFactory, args->pt->mime_type);
-		if (args->decoder==NULL){
-			fprintf(stderr,"No decoder available for %s.\n",args->pt->mime_type);
+		if (args->decoder == NULL) {
+			fprintf(stderr, "No decoder available for %s.\n", args->pt->mime_type);
 			exit(-1);
 		}
-		if (ms_filter_call_method(args->decoder,MS_VIDEO_DECODER_ENABLE_AVPF,&args->avpf)==0){
+		if (ms_filter_call_method(args->decoder, MS_VIDEO_DECODER_ENABLE_AVPF, &args->avpf) == 0) {
 			ms_filter_add_notify_callback(args->decoder, video_decoder_callback, NULL, TRUE);
 		}
 		ms_filter_call_method_noarg(args->read, MS_PLAYER_CLOSE);
@@ -325,7 +320,7 @@ void setup_media_streams(MediastreamDatas *args) {
 		ms_filter_call_method_noarg(args->read, MS_PLAYER_START);
 		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_LAYER, &layer);
 		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_TIMEREF, &timeref);
-		ms_filter_add_notify_callback(args->read, reader_notify_cb, NULL,FALSE);
+		ms_filter_add_notify_callback(args->read, reader_notify_cb, NULL, FALSE);
 
 		/*force the decoder to output YUV420P */
 		format = MS_YUV420P;
@@ -339,7 +334,7 @@ void setup_media_streams(MediastreamDatas *args) {
 		ms_filter_call_method(args->write, MS_FILTER_SET_PIX_FMT, &format);
 
 		params.name = "Video MSTicker";
-		params.prio  = MS_TICKER_PRIO_REALTIME;
+		params.prio = MS_TICKER_PRIO_REALTIME;
 		args->ticker = ms_ticker_new_with_params(&params);
 
 		ms_connection_helper_start(&h);
@@ -352,19 +347,18 @@ void setup_media_streams(MediastreamDatas *args) {
 #endif
 	} else {
 		MSSndCardManager *manager = ms_factory_get_snd_card_manager(msFactory);
-		MSSndCard *play =NULL;
+		MSSndCard *play = NULL;
 		if (args->outfile) {
-			args->write=ms_factory_create_filter(msFactory, MS_FILE_REC_ID);
+			args->write = ms_factory_create_filter(msFactory, MS_FILE_REC_ID);
 			if (ms_filter_call_method(args->write, MS_FILE_REC_OPEN, args->outfile)) {
-				ms_error("Cannot open file [%s] in write mode",args->outfile);
+				ms_error("Cannot open file [%s] in write mode", args->outfile);
 				exit(-1);
 			}
 
 		} else {
-			play = args->playback_card ==NULL ? ms_snd_card_manager_get_default_playback_card(manager) :
-		                  ms_snd_card_manager_get_card(manager, args->playback_card);
+			play = args->playback_card == NULL ? ms_snd_card_manager_get_default_playback_card(manager)
+			                                   : ms_snd_card_manager_get_card(manager, args->playback_card);
 			args->write = ms_snd_card_create_writer(play);
-
 		}
 		args->read = ms_factory_create_filter(msFactory, MS_PCAP_FILE_PLAYER_ID);
 		args->decoder = ms_factory_create_decoder(msFactory, args->pt->mime_type);
@@ -375,7 +369,7 @@ void setup_media_streams(MediastreamDatas *args) {
 		ms_filter_call_method(args->read, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_LAYER, &layer);
 		ms_filter_call_method(args->read, MS_PCAP_FILE_PLAYER_SET_TIMEREF, &timeref);
-		
+
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
 		ms_filter_call_method(args->decoder, MS_FILTER_SET_NCHANNELS, &args->pt->channels);
 		ms_filter_call_method(args->write, MS_FILTER_SET_SAMPLE_RATE, &args->pt->clock_rate);
@@ -388,7 +382,7 @@ void setup_media_streams(MediastreamDatas *args) {
 			ms_filter_call_method_noarg(args->write, MS_FILE_REC_START);
 		}
 		params.name = "Audio MSTicker";
-		params.prio  = MS_TICKER_PRIO_REALTIME;
+		params.prio = MS_TICKER_PRIO_REALTIME;
 		args->ticker = ms_ticker_new_with_params(&params);
 
 		ms_connection_helper_start(&h);
@@ -400,9 +394,7 @@ void setup_media_streams(MediastreamDatas *args) {
 	}
 }
 
-
-void run_non_interactive_loop(MediastreamDatas *args)
-{
+void run_non_interactive_loop(MediastreamDatas *args) {
 	while (cond) {
 		int n;
 		for (n = 0; n < 100; ++n) {
@@ -423,8 +415,7 @@ void run_non_interactive_loop(MediastreamDatas *args)
 	}
 }
 
-void clear_mediastreams(MediastreamDatas *args)
-{
+void clear_mediastreams(MediastreamDatas *args) {
 	MSConnectionHelper h;
 
 	ms_message("stopping all...\n");
@@ -445,8 +436,7 @@ void clear_mediastreams(MediastreamDatas *args)
 }
 
 // HELPER METHODS
-static void stop_handler(int signum)
-{
+static void stop_handler(int signum) {
 	cond--;
 	if (cond < 0) {
 		ms_error("Brutal exit (%d)\n", cond);

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bctoolbox/defs.h>
+
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msfilter.h"
-#include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msrtt4103.h"
+#include "mediastreamer2/msticker.h"
 
 typedef struct _RealTimeTextSourceData {
 	uint8_t buf[TS_NUMBER_OF_OUTBUF][TS_OUTBUF_SIZE];
@@ -34,7 +36,7 @@ typedef struct _RealTimeTextSourceData {
 } RealTimeTextSourceData;
 
 static uint32_t get_prev_time(const RealTimeTextSourceData *stream) {
-	return stream->timestamp[stream->pribuf ? stream->pribuf-1 : TS_REDGEN];
+	return stream->timestamp[stream->pribuf ? stream->pribuf - 1 : TS_REDGEN];
 }
 
 static int get_last_buf(const RealTimeTextSourceData *stream) {
@@ -48,7 +50,7 @@ static void use_next_buf(RealTimeTextSourceData *stream) {
 }
 
 static int get_next_buf(const RealTimeTextSourceData *stream, const int cur) {
-	if (cur == stream->pribuf){
+	if (cur == stream->pribuf) {
 		return -1;
 	}
 	return cur == TS_REDGEN ? 0 : cur + 1;
@@ -73,13 +75,13 @@ static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *
 			uint32_t diff = stream->timestamp[pri] - stream->timestamp[cur];
 			size_t size = stream->bufsize[cur];
 			uint32_t sub = htonl(get_red_subheader(t140, diff, size));
-			
+
 			memcpy(&payload[payloadsize], &sub, 4);
 			payloadsize += 4;
-			
+
 			cur = get_next_buf(stream, cur);
 		}
-		
+
 		memcpy(&payload[payloadsize], &t140, 1);
 		payloadsize += 1;
 
@@ -100,7 +102,7 @@ static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *
 		memcpy(&payload[payloadsize], &stream->buf[pri][0], stream->bufsize[pri]);
 		payloadsize += stream->bufsize[pri];
 	}
-	
+
 	packet = allocb(payloadsize, 0);
 	memcpy(packet->b_wptr, &payload, payloadsize);
 	packet->b_wptr += payloadsize;
@@ -111,7 +113,7 @@ static mblk_t *realtime_text_stream_generate_red_packet(RealTimeTextSourceData *
 
 static void ms_rtt_4103_source_putchar32(RealTimeTextSourceData *stream, uint32_t ic) {
 	int i = stream->pribuf;
-	uint8_t* c = &stream->buf[i][stream->bufsize[i]];
+	uint8_t *c = &stream->buf[i][stream->bufsize[i]];
 	if (ic < 0x80) {
 		if (stream->bufsize[i] < TS_OUTBUF_SIZE) {
 			c[0] = ic;
@@ -156,7 +158,7 @@ static bool_t is_data_to_send(const RealTimeTextSourceData *stream) {
 	}
 }
 
-static mblk_t* send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
+static mblk_t *send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
 	int i = stream->pribuf;
 	uint32_t prevtime = get_prev_time(stream);
 	mblk_t *m = NULL;
@@ -175,7 +177,7 @@ static mblk_t* send_data(RealTimeTextSourceData *stream, uint32_t timestamp) {
 			return send_data(stream, timestamp);
 		}
 	}
-	
+
 	return m;
 }
 
@@ -186,15 +188,14 @@ static void ms_rtt_4103_source_init(MSFilter *f) {
 	f->data = s;
 }
 
-static void ms_rtt_4103_source_preprocess(MSFilter *f) {
-	
+static void ms_rtt_4103_source_preprocess(BCTBX_UNUSED(MSFilter *f)) {
 }
 
 static void ms_rtt_4103_source_process(MSFilter *f) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
 	uint32_t timestamp = (uint32_t)f->ticker->time;
 	mblk_t *m;
-	
+
 	ms_filter_lock(f);
 	m = send_data(s, timestamp);
 	if (m) {
@@ -203,8 +204,7 @@ static void ms_rtt_4103_source_process(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-static void ms_rtt_4103_source_postprocess(MSFilter *f) {
-	
+static void ms_rtt_4103_source_postprocess(BCTBX_UNUSED(MSFilter *f)) {
 }
 
 static void ms_rtt_4103_source_uninit(MSFilter *f) {
@@ -213,73 +213,69 @@ static void ms_rtt_4103_source_uninit(MSFilter *f) {
 
 static int ms_rtt_4103_source_set_t140_payload(MSFilter *f, void *t140) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	
+
 	ms_filter_lock(f);
 	s->pt_t140 = *(int *)t140;
 	ms_debug("T140 payload number is %i", s->pt_t140);
 	ms_filter_unlock(f);
-	
+
 	return 0;
 }
 
 static int ms_rtt_4103_source_set_red_payload(MSFilter *f, void *red) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	
+
 	ms_filter_lock(f);
 	s->pt_red = *(int *)red;
 	ms_debug("RED payload number is %i", s->pt_red);
 	ms_filter_unlock(f);
-	
+
 	return 0;
 }
 
 static int ms_rtt_4103_source_put_char32(MSFilter *f, void *character) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	uint32_t char_to_send = *(uint32_t*) character;
-	
+	uint32_t char_to_send = *(uint32_t *)character;
+
 	ms_filter_lock(f);
 	ms_rtt_4103_source_putchar32(s, char_to_send);
-	ms_debug("Sending char 32: %lu", (long unsigned) char_to_send);
+	ms_debug("Sending char 32: %lu", (long unsigned)char_to_send);
 	ms_filter_unlock(f);
-	
+
 	return 0;
 }
 
 static int ms_rtt_4103_source_set_keep_alive_interval(MSFilter *f, void *interval) {
 	RealTimeTextSourceData *s = (RealTimeTextSourceData *)f->data;
-	
+
 	ms_filter_lock(f);
 	s->keepalive_interval = *(unsigned int *)interval;
 	ms_debug("Keep alive interval is %i", s->keepalive_interval);
 	ms_filter_unlock(f);
-	
+
 	return 0;
 }
 
 static MSFilterMethod ms_rtt_4103_source_methods[] = {
-	{ MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_source_set_t140_payload	},
-	{ MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER,	ms_rtt_4103_source_set_red_payload	},
-	{ MS_RTT_4103_SOURCE_PUT_CHAR32, 					ms_rtt_4103_source_put_char32		},
-	{ MS_RTT_4103_SOURCE_SET_KEEP_ALIVE_INTERVAL, ms_rtt_4103_source_set_keep_alive_interval},
-	{ 0,												NULL								}
-};
+    {MS_RTT_4103_SOURCE_SET_T140_PAYLOAD_TYPE_NUMBER, ms_rtt_4103_source_set_t140_payload},
+    {MS_RTT_4103_SOURCE_SET_RED_PAYLOAD_TYPE_NUMBER, ms_rtt_4103_source_set_red_payload},
+    {MS_RTT_4103_SOURCE_PUT_CHAR32, ms_rtt_4103_source_put_char32},
+    {MS_RTT_4103_SOURCE_SET_KEEP_ALIVE_INTERVAL, ms_rtt_4103_source_set_keep_alive_interval},
+    {0, NULL}};
 
-MSFilterDesc ms_rtt_4103_source_desc = {
-	MS_RTT_4103_SOURCE_ID,
-	"MSRTT4103Source",
-	"A filter to send real time text",
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	1,
-	ms_rtt_4103_source_init,
-	ms_rtt_4103_source_preprocess,
-	ms_rtt_4103_source_process,
-	ms_rtt_4103_source_postprocess,
-	ms_rtt_4103_source_uninit,
-	ms_rtt_4103_source_methods,
-	0
-};
+MSFilterDesc ms_rtt_4103_source_desc = {MS_RTT_4103_SOURCE_ID,
+                                        "MSRTT4103Source",
+                                        "A filter to send real time text",
+                                        MS_FILTER_OTHER,
+                                        NULL,
+                                        0,
+                                        1,
+                                        ms_rtt_4103_source_init,
+                                        ms_rtt_4103_source_preprocess,
+                                        ms_rtt_4103_source_process,
+                                        ms_rtt_4103_source_postprocess,
+                                        ms_rtt_4103_source_uninit,
+                                        ms_rtt_4103_source_methods,
+                                        0};
 
 MS_FILTER_DESC_EXPORT(ms_rtt_4103_source_desc)
-

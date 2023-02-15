@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -54,18 +54,17 @@ extern test_suite_t neon_test_suite;
 #endif
 
 #if TARGET_OS_MAC || TARGET_OS_IPHONE
-    int apple_main(int argc, char *argv[]);
+int apple_main(int argc, char *argv[]);
 #endif
 
-MSWebCam* mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr);
-MSWebCam * mediastreamer2_tester_get_mire(MSFactory *factory);
-void mediastreamer2_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
+MSWebCam *mediastreamer2_tester_get_mire_webcam(MSWebCamManager *mgr);
+MSWebCam *mediastreamer2_tester_get_mire(MSFactory *factory);
+void mediastreamer2_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args));
 void mediastreamer2_tester_uninit(void);
 int mediastreamer2_tester_set_log_file(const char *filename);
 
 #ifdef __cplusplus
 };
 #endif
-
 
 #endif /* _MEDIASTREAMER2_TESTER_H */

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef msqosanalyzer_hh
 #define msqosanalyzer_hh
 
@@ -28,79 +27,76 @@
 extern "C" {
 #endif
 
+/**************************************************************************/
+/*************************** Simple QoS analyzer **************************/
+/**************************************************************************/
+#define STATS_HISTORY 3
+#define ESTIM_HISTORY 30
+static const float unacceptable_loss_rate = 10;
+static const int big_jitter = 10;            /*ms */
+static const float significant_delay = 0.2f; /*seconds*/
 
-	/**************************************************************************/
-	/*************************** Simple QoS analyzer **************************/
-	/**************************************************************************/
-	#define STATS_HISTORY 3
-	#define ESTIM_HISTORY 30
-	static const float unacceptable_loss_rate=10;
-	static const int big_jitter=10; /*ms */
-	static const float significant_delay=0.2f; /*seconds*/
+typedef struct rtpstats {
+	float lost_percentage; /*percentage of lost packet since last report*/
+	float int_jitter;      /*interrarrival jitter */
+	float rt_prop;         /*round trip propagation*/
+} rtpstats_t;
 
-	typedef struct rtpstats{
-		float lost_percentage; /*percentage of lost packet since last report*/
-		float int_jitter; /*interrarrival jitter */
-		float rt_prop; /*round trip propagation*/
-	}rtpstats_t;
+typedef struct _MSSimpleQosAnalyzer {
+	MSQosAnalyzer parent;
+	RtpSession *session;
+	int clockrate;
+	rtpstats_t stats[STATS_HISTORY];
+	int curindex;
+	bool_t rt_prop_doubled;
+	bool_t pad[3];
+} MSSimpleQosAnalyzer;
 
-	typedef struct _MSSimpleQosAnalyzer{
-		MSQosAnalyzer parent;
-		RtpSession *session;
-		int clockrate;
-		rtpstats_t stats[STATS_HISTORY];
-		int curindex;
-		bool_t rt_prop_doubled;
-		bool_t pad[3];
-	}MSSimpleQosAnalyzer;
+/**************************************************************************/
+/************************* Stateful QoS analyzer **************************/
+/**************************************************************************/
+#define BW_HISTORY 10
 
+typedef struct {
+	time_t timestamp;
+	double bandwidth;
+	double loss_percent;
+	double rtt;
+} rtcpstatspoint_t;
 
-	/**************************************************************************/
-	/************************* Stateful QoS analyzer **************************/
-	/**************************************************************************/
-	#define BW_HISTORY 10
+typedef struct {
+	uint32_t seq_number;
+	float up_bandwidth;
+} bandwidthseqnum;
 
-	typedef struct {
-		time_t timestamp;
-		double bandwidth;
-		double loss_percent;
-		double rtt;
-	} rtcpstatspoint_t;
+typedef enum _MSStatefulQosAnalyzerBurstState {
+	MSStatefulQosAnalyzerBurstDisable,
+	MSStatefulQosAnalyzerBurstInProgress,
+	MSStatefulQosAnalyzerBurstEnable,
+} MSStatefulQosAnalyzerBurstState;
 
-	typedef struct {
-		uint32_t seq_number;
-		float up_bandwidth;
-	} bandwidthseqnum;
+typedef struct _MSStatefulQosAnalyzer {
+	MSQosAnalyzer parent;
+	RtpSession *session;
+	int curindex;
 
+	MSList *rtcpstatspoint;
+	rtcpstatspoint_t *latest;
+	double network_loss_rate;
+	double congestion_bandwidth;
 
-	typedef enum _MSStatefulQosAnalyzerBurstState{
-		MSStatefulQosAnalyzerBurstDisable,
-		MSStatefulQosAnalyzerBurstInProgress,
-		MSStatefulQosAnalyzerBurstEnable,
-	}MSStatefulQosAnalyzerBurstState;
+	MSStatefulQosAnalyzerBurstState burst_state;
+	struct timeval start_time;
 
-	typedef struct _MSStatefulQosAnalyzer{
-		MSQosAnalyzer parent;
-		RtpSession *session;
-		int curindex;
+	uint32_t upload_bandwidth_count; /*deprecated*/
+	double upload_bandwidth_sum;     /*deprecated*/
+	double upload_bandwidth_latest;
+	int upload_bandwidth_cur;
+	bandwidthseqnum upload_bandwidth[BW_HISTORY];
 
-		MSList *rtcpstatspoint;
-		rtcpstatspoint_t *latest;
-		double network_loss_rate;
-		double congestion_bandwidth;
-
-		MSStatefulQosAnalyzerBurstState burst_state;
-		struct timeval start_time;
-
-		uint32_t upload_bandwidth_count; /*deprecated*/
-		double upload_bandwidth_sum; /*deprecated*/
-		double upload_bandwidth_latest;
-		int upload_bandwidth_cur;
-		bandwidthseqnum upload_bandwidth[BW_HISTORY];
-
-		double burst_ratio;
-		double burst_duration_ms;
-	}MSStatefulQosAnalyzer;
+	double burst_ratio;
+	double burst_duration_ms;
+} MSStatefulQosAnalyzer;
 #ifdef __cplusplus
 }
 #endif

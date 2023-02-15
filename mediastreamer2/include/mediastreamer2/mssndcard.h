@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -37,8 +37,8 @@
  * @{
  */
 
-struct _MSSndCardManager{
-	MSFactory* factory;
+struct _MSSndCardManager {
+	MSFactory *factory;
 	MSList *cards;
 	MSList *descs;
 	char *paramString;
@@ -50,11 +50,7 @@ struct _MSSndCardManager{
  */
 typedef struct _MSSndCardManager MSSndCardManager;
 
-enum _MSSndCardMixerElem{
-	MS_SND_CARD_MASTER,
-	MS_SND_CARD_PLAYBACK,
-	MS_SND_CARD_CAPTURE
-};
+enum _MSSndCardMixerElem { MS_SND_CARD_MASTER, MS_SND_CARD_PLAYBACK, MS_SND_CARD_CAPTURE };
 
 /**
  * Structure for sound card mixer values.
@@ -62,10 +58,7 @@ enum _MSSndCardMixerElem{
  */
 typedef enum _MSSndCardMixerElem MSSndCardMixerElem;
 
-enum _MSSndCardCapture {
-	MS_SND_CARD_MIC,
-	MS_SND_CARD_LINE
-};
+enum _MSSndCardCapture { MS_SND_CARD_MIC, MS_SND_CARD_LINE };
 
 /**
  * Structure for sound card capture source values.
@@ -73,11 +66,7 @@ enum _MSSndCardCapture {
  */
 typedef enum _MSSndCardCapture MSSndCardCapture;
 
-enum _MSSndCardControlElem {
-	MS_SND_CARD_MASTER_MUTE,
-	MS_SND_CARD_PLAYBACK_MUTE,
-	MS_SND_CARD_CAPTURE_MUTE
-};
+enum _MSSndCardControlElem { MS_SND_CARD_MASTER_MUTE, MS_SND_CARD_PLAYBACK_MUTE, MS_SND_CARD_CAPTURE_MUTE };
 
 /**
  * Structure for sound card mixer values.
@@ -96,9 +85,9 @@ typedef void (*MSSndCardSetCaptureFunc)(struct _MSSndCard *obj, MSSndCardCapture
 typedef int (*MSSndCardGetLevelFunc)(struct _MSSndCard *obj, MSSndCardMixerElem e);
 typedef int (*MSSndCardSetControlFunc)(struct _MSSndCard *obj, MSSndCardControlElem e, int val);
 typedef int (*MSSndCardGetControlFunc)(struct _MSSndCard *obj, MSSndCardControlElem e);
-typedef struct _MSFilter * (*MSSndCardCreateReaderFunc)(struct _MSSndCard *obj);
-typedef struct _MSFilter * (*MSSndCardCreateWriterFunc)(struct _MSSndCard *obj);
-typedef struct _MSSndCard * (*MSSndCardDuplicateFunc)(struct _MSSndCard *obj);
+typedef struct _MSFilter *(*MSSndCardCreateReaderFunc)(struct _MSSndCard *obj);
+typedef struct _MSFilter *(*MSSndCardCreateWriterFunc)(struct _MSSndCard *obj);
+typedef struct _MSSndCard *(*MSSndCardDuplicateFunc)(struct _MSSndCard *obj);
 typedef void (*MSSndCardSetUsageHintFunc)(struct _MSSndCard *obj, bool_t is_going_to_be_used);
 typedef void (*MSSndCardUnloadFunc)(MSSndCardManager *obj);
 typedef void (*MSSndCardAudioSessionFunc)(struct _MSSndCard *obj, bool_t actived);
@@ -106,8 +95,7 @@ typedef void (*MSSndCardCallKitFunc)(struct _MSSndCard *obj, bool_t enabled);
 typedef void (*MSSndCardAudioRouteFunc)(struct _MSSndCard *obj);
 typedef void (*MSSndCardConfigureFunc)(struct _MSSndCard *obj);
 
-
-struct _MSSndCardDesc{
+struct _MSSndCardDesc {
 	const char *driver_type;
 	MSSndCardDetectFunc detect;
 	MSSndCardInitFunc init;
@@ -141,7 +129,7 @@ typedef struct _MSSndCardDesc MSSndCardDesc;
  */
 typedef struct _MSSndCard MSSndCard;
 
-enum _MSSndCardStreamType{
+enum _MSSndCardStreamType {
 	MS_SND_CARD_STREAM_VOICE,
 	MS_SND_CARD_STREAM_RING,
 	MS_SND_CARD_STREAM_MEDIA,
@@ -171,21 +159,21 @@ enum _MSSndCardDeviceType {
 /**
  * device type enum.
  * @var DeviceType
-**/
+ **/
 typedef enum _MSSndCardDeviceType MSSndCardDeviceType;
 
-#define MS_SND_CARD_CAP_DISABLED (0) /**<This soundcard is disabled.*/
-#define MS_SND_CARD_CAP_CAPTURE (1) /**<This sound card can capture sound */
-#define MS_SND_CARD_CAP_PLAYBACK (1<<1) /**<This sound card can playback sound */
-#define MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER (1<<2) /**<This sound card has built-in echo cancellation*/
-#define MS_SND_CARD_CAP_IS_SLOW (1<<3) /**<This sound card is very slow to start*/
+#define MS_SND_CARD_CAP_DISABLED (0)                    /**<This soundcard is disabled.*/
+#define MS_SND_CARD_CAP_CAPTURE (1)                     /**<This sound card can capture sound */
+#define MS_SND_CARD_CAP_PLAYBACK (1 << 1)               /**<This sound card can playback sound */
+#define MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER (1 << 2) /**<This sound card has built-in echo cancellation*/
+#define MS_SND_CARD_CAP_IS_SLOW (1 << 3)                /**<This sound card is very slow to start*/
 
-struct _MSSndCard{
+struct _MSSndCard {
 	MSSndCardDesc *desc;
-	MSSndCardManager* sndcardmanager;
+	MSSndCardManager *sndcardmanager;
 	char *name;
 	char *id;
-	int  internal_id;
+	int internal_id;
 	unsigned int capabilities;
 	MSSndCardDeviceType device_type;
 	void *data;
@@ -197,7 +185,7 @@ struct _MSSndCard{
 };
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -212,27 +200,27 @@ extern "C"{
  * Returns: MSSndCardManager if successfull, NULL otherwise.
  * @deprecated use ms_factory_get_snd_card_manager()
  */
-MS2_PUBLIC MS2_DEPRECATED MSSndCardManager * ms_snd_card_manager_get(void);
+MS2_PUBLIC MS2_DEPRECATED MSSndCardManager *ms_snd_card_manager_get(void);
 
 /**
  * Retrieve a factory from a sound card object.
  * @param c MSSndCard object.
  * Returns: MSFactory pointer.
  */
-MS2_PUBLIC MSFactory * ms_snd_card_get_factory(MSSndCard * c);
+MS2_PUBLIC MSFactory *ms_snd_card_get_factory(MSSndCard *c);
 
 /**
  * Create a sound card manager object.
  * You usually do not need this function, instead get the sound card manager from a factory
  * with ms_factory_get_snd_card_manager().
  */
-MS2_PUBLIC MSSndCardManager * ms_snd_card_manager_new(void);
+MS2_PUBLIC MSSndCardManager *ms_snd_card_manager_new(void);
 
 /**
  * Destroy a sound card manager object.
  * You usually do not need this function, the ms_factory_destroy() doing this job for you.
  */
-MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager* sndcardmanager);
+MS2_PUBLIC void ms_snd_card_manager_destroy(MSSndCardManager *sndcardmanager);
 
 /**
  * Set the sound card manager's parameter string
@@ -247,14 +235,15 @@ MS2_PUBLIC void ms_snd_card_manager_set_param_string(MSSndCardManager *m, const 
 /**
  * Retreive a sound card object based on it's id.
  * The id can be a regex string. In this case, the search will be done on "Driver_type : ID."
- * eg: "PulseAudio?( .*)?:.*Build in.*" will retrieve a card with an ID that contains "Build in" and use the PulseAudio Driver.
+ * eg: "PulseAudio?( .*)?:.*Build in.*" will retrieve a card with an ID that contains "Build in" and use the PulseAudio
+ * Driver.
  *
  * @param m    A sound card manager containing sound cards.
  * @param id   An id for card to search.
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_card(MSSndCardManager *m, const char *id);
 
 /**
  * Retreive a sound card object based on it's id and capabilities.
@@ -267,7 +256,8 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card(MSSndCardManager *m, const c
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, const char *id, unsigned int capabilities);
+MS2_PUBLIC MSSndCard *
+ms_snd_card_manager_get_card_with_capabilities(MSSndCardManager *m, const char *id, unsigned int capabilities);
 
 /**
  * Retreive the first sound card object in the card manager based on its type and driver type.
@@ -278,7 +268,8 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card_with_capabilities(MSSndCardM
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char * driver_type);
+MS2_PUBLIC MSSndCard *
+ms_snd_card_manager_get_card_by_type(MSSndCardManager *m, const MSSndCardDeviceType type, const char *driver_type);
 
 /**
  * Retreive a playback capable sound card object based on its name.
@@ -288,7 +279,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_card_by_type(MSSndCardManager *m,
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_playback_card(MSSndCardManager *m, const char *id);
 
 /**
  * Retreive all sound cards having the name provided as input.
@@ -298,7 +289,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_playback_card(MSSndCardManager *m
  *
  * Returns: MSSndCard list of cards if successfull, NULL otherwise.
  */
-MS2_PUBLIC bctbx_list_t * ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, const char *name);
+MS2_PUBLIC bctbx_list_t *ms_snd_card_manager_get_all_cards_with_name(MSSndCardManager *m, const char *name);
 
 /**
  * Retreive a capture capable sound card object based on its name.
@@ -308,7 +299,7 @@ MS2_PUBLIC bctbx_list_t * ms_snd_card_manager_get_all_cards_with_name(MSSndCardM
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_capture_card(MSSndCardManager *m, const char *id);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_capture_card(MSSndCardManager *m, const char *id);
 
 /**
  * Retreive the default sound card object.
@@ -317,7 +308,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_capture_card(MSSndCardManager *m,
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_default_card(MSSndCardManager *m);
 
 /**
  * Retreive the default capture sound card object.
@@ -326,7 +317,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_card(MSSndCardManager *m)
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_default_capture_card(MSSndCardManager *m);
 
 /**
  * Retreive the default playback sound card object.
@@ -335,7 +326,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_capture_card(MSSndCardMan
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m);
+MS2_PUBLIC MSSndCard *ms_snd_card_manager_get_default_playback_card(MSSndCardManager *m);
 
 /**
  * Retreive the list of sound card objects.
@@ -344,7 +335,7 @@ MS2_PUBLIC MSSndCard * ms_snd_card_manager_get_default_playback_card(MSSndCardMa
  *
  * Returns: MSList of cards if successfull, NULL otherwise.
  */
-MS2_PUBLIC const MSList * ms_snd_card_manager_get_list(MSSndCardManager *m);
+MS2_PUBLIC const MSList *ms_snd_card_manager_get_list(MSSndCardManager *m);
 
 /**
  * Add a sound card object in a sound card manager's list.
@@ -363,7 +354,7 @@ MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
  *
  */
 MS2_PUBLIC void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard *c);
-	
+
 /**
  * Set the sound card manager of a sound card.
  *
@@ -371,7 +362,7 @@ MS2_PUBLIC void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard 
  * @param c    A sound card object.
  *
  */
-MS2_PUBLIC void ms_snd_card_set_manager(MSSndCardManager*m, MSSndCard *c);
+MS2_PUBLIC void ms_snd_card_set_manager(MSSndCardManager *m, MSSndCard *c);
 
 /**
  * Prepend a list of sound card object to the sound card manager's list.
@@ -401,12 +392,13 @@ MS2_PUBLIC void ms_snd_card_manager_unregister_desc(MSSndCardManager *m, MSSndCa
 /**
  * Ask all registered MSSndCardDesc to re-detect their soundcards.
  * @param m The sound card manager.
-**/
+ **/
 MS2_PUBLIC void ms_snd_card_manager_reload(MSSndCardManager *m);
 
 /**
  Check if the manager  reload is requested.
- Specific for iOS: sometimes auido routes add/remove devices when there are no calls. In this case, the manager reload is requested to update  devices.
+ Specific for iOS: sometimes auido routes add/remove devices when there are no calls. In this case, the manager reload
+ is requested to update  devices.
  * @param m   Card Manager
  * Returns: true if the manager reload is requested.
  */
@@ -419,7 +411,7 @@ MS2_PUBLIC bool_t ms_snd_card_manager_reload_requested(MSSndCardManager *m);
  * @param checkCapabilities flag to check capabilities
  *
  * Returns: true if a duplicate has been found, false otherwise
-**/
+ **/
 MS2_PUBLIC bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard *card, bool_t checkCapabilities);
 
 /**
@@ -429,15 +421,15 @@ MS2_PUBLIC bool_t ms_snd_card_is_card_duplicate(MSSndCardManager *m, MSSndCard *
  * @param checkCapabilities flag to check capabilities
  *
  * Returns: The duplicate if it is found, NULL otherwise
-**/
-MS2_PUBLIC MSSndCard* ms_snd_card_get_card_duplicate(MSSndCardManager *m, MSSndCard *card, bool_t checkCapabilities);
+ **/
+MS2_PUBLIC MSSndCard *ms_snd_card_get_card_duplicate(MSSndCardManager *m, MSSndCard *card, bool_t checkCapabilities);
 
 /**
  * Prevent card type to be at the head fo the list
  * @param m    Card Manager
  * @param type Card type to remove from the head of list of cards
  *
-**/
+ **/
 MS2_PUBLIC void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSndCardDeviceType type);
 
 /**
@@ -446,8 +438,9 @@ MS2_PUBLIC void ms_snd_card_remove_type_from_list_head(MSSndCardManager *m, MSSn
  * @param card0   Card to be swapped
  * @param card1   Card to be swapped
  *
- * Returns: true if card0 and card1 are not null and both are found among the list of sound cards in the card manager, false otherwise
-**/
+ * Returns: true if card0 and card1 are not null and both are found among the list of sound cards in the card manager,
+ *false otherwise
+ **/
 MS2_PUBLIC bool_t ms_snd_card_manager_swap_cards(MSSndCardManager *m, MSSndCard *card0, MSSndCard *card1);
 
 /* This function is available for testing only, this should not be used in a real application! */
@@ -468,7 +461,7 @@ MS2_PUBLIC void ms_snd_card_manager_bypass_soundcard_detection(bool_t value);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC struct _MSFilter * ms_snd_card_create_reader(MSSndCard *obj);
+MS2_PUBLIC struct _MSFilter *ms_snd_card_create_reader(MSSndCard *obj);
 
 /**
  * Create an OUPUT filter based on the selected sound card.
@@ -477,7 +470,7 @@ MS2_PUBLIC struct _MSFilter * ms_snd_card_create_reader(MSSndCard *obj);
  *
  * Returns: A MSFilter if successfull, NULL otherwise.
  */
-MS2_PUBLIC struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
+MS2_PUBLIC struct _MSFilter *ms_snd_card_create_writer(MSSndCard *obj);
 
 /**
  * Create a new sound card object.
@@ -486,7 +479,7 @@ MS2_PUBLIC struct _MSFilter * ms_snd_card_create_writer(MSSndCard *obj);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
+MS2_PUBLIC MSSndCard *ms_snd_card_new(MSSndCardDesc *desc);
 
 /**
  * Create a new sound card object.
@@ -496,8 +489,8 @@ MS2_PUBLIC MSSndCard * ms_snd_card_new(MSSndCardDesc *desc);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-	
-MS2_PUBLIC MSSndCard * ms_snd_card_new_with_name(MSSndCardDesc *desc,const char* name);
+
+MS2_PUBLIC MSSndCard *ms_snd_card_new_with_name(MSSndCardDesc *desc, const char *name);
 /**
  * Destroy sound card object.
  *
@@ -515,7 +508,7 @@ MS2_PUBLIC void ms_snd_card_destroy(MSSndCard *obj);
  *
  * Returns: MSSndCard if successfull, NULL otherwise.
  */
-MS2_PUBLIC MSSndCard * ms_snd_card_dup(MSSndCard *card);
+MS2_PUBLIC MSSndCard *ms_snd_card_dup(MSSndCard *card);
 
 /**
  * Retreive a sound card's device type.
@@ -545,7 +538,7 @@ MS2_PUBLIC const char *ms_snd_card_get_driver_type(const MSSndCard *obj);
  *
  * Returns: a string if successfull, "bad type" otherwise.
  */
-MS2_PUBLIC const char * ms_snd_card_device_type_to_string(const MSSndCardDeviceType type);
+MS2_PUBLIC const char *ms_snd_card_device_type_to_string(const MSSndCardDeviceType type);
 
 /**
  * Retreive a sound card's name.
@@ -602,7 +595,7 @@ MS2_PUBLIC unsigned int ms_snd_card_get_capabilities(const MSSndCard *obj);
  * Typically, an echo shall not be found before the value returned by this function.
  * If this value is not known, then it should return 0.
  * @param obj    A sound card object.
-**/
+ **/
 MS2_PUBLIC int ms_snd_card_get_minimal_latency(MSSndCard *obj);
 
 /**
@@ -712,22 +705,23 @@ MS2_PUBLIC int ms_snd_card_get_preferred_sample_rate(const MSSndCard *obj);
  * set preferred sample rate. The underlying card will try to avoid any resampling for this samplerate.
  *
  * @param obj      A sound card object.
- * @param rate     sampling rate. 
+ * @param rate     sampling rate.
  *
  * Returns:  0 if successfull, <0 otherwise.
  */
-MS2_PUBLIC int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj,int rate);
+MS2_PUBLIC int ms_snd_card_set_preferred_sample_rate(MSSndCard *obj, int rate);
 
 /**
  * Enable application to tell that the soundcard is going to be used or will cease to be used.
  * This is recommended for cards which are known to be slow (see flag MS_SND_CARD_CAP_IS_SLOW ).
-**/
+ **/
 MS2_PUBLIC void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used);
 
 /**
  * Used by application to notify whether audio access is allowed for the process.
- * On most platform this function is useless, but in an iOS application using Callkit, the system decides when audio (through the AVAudioSession singleton) is open or closed.
- * Such application needs to explicitely notify mediastreamer2 with ms_snd_card_notify_audio_session_activated() about the state of the audio session.
+ * On most platform this function is useless, but in an iOS application using Callkit, the system decides when audio
+ * (through the AVAudioSession singleton) is open or closed. Such application needs to explicitely notify mediastreamer2
+ * with ms_snd_card_notify_audio_session_activated() about the state of the audio session.
  *
  * @param obj      A sound card object.
  * @param actived    TRUE if audio session is activated, FALSE otherwise.
@@ -736,16 +730,18 @@ MS2_PUBLIC void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_
 
 /**
  * Used by application to notify whether audio route is changed. On most platform this function is useless.
- * But  an iOS application needs to explicitely notify mediastreamer2 with ms_snd_card_notify_audio_route_changed() about the changment of audio route to ajust the sample rate for playback/record.
+ * But  an iOS application needs to explicitely notify mediastreamer2 with ms_snd_card_notify_audio_route_changed()
+ * about the changment of audio route to ajust the sample rate for playback/record.
  *
  * @param obj      A sound card object.
-*/
+ */
 MS2_PUBLIC void ms_snd_card_notify_audio_route_changed(MSSndCard *obj);
 
 /**
  * Used by application to tell the MSSndCard if rely on notifications of activation of audio session.
- * When yesno is set to FALSE, the MSSndCard will not rely on notifications of activation of audio session, and will assume that audio is always usable.
- * If set to TRUE, the mediastreamer2 will require explicit calls to ms_snd_card_notify_audio_session_activated().
+ * When yesno is set to FALSE, the MSSndCard will not rely on notifications of activation of audio session, and will
+ * assume that audio is always usable. If set to TRUE, the mediastreamer2 will require explicit calls to
+ * ms_snd_card_notify_audio_session_activated().
  *
  * @param obj      A sound card object.
  * @param yesno    TRUE if app notifies is activated, FALSE otherwise. The default value is FALSE.
@@ -760,12 +756,12 @@ MS2_PUBLIC void ms_snd_card_configure_audio_session(MSSndCard *obj);
 
 /**
  * Sets the stream type for this soundcard, default is VOICE
-**/
+ **/
 MS2_PUBLIC void ms_snd_card_set_stream_type(MSSndCard *obj, MSSndCardStreamType type);
 
 /**
  * Gets the stream type for this soundcard, default is VOICE
-**/
+ **/
 MS2_PUBLIC MSSndCardStreamType ms_snd_card_get_stream_type(MSSndCard *obj);
 
 /**
@@ -775,25 +771,24 @@ MS2_PUBLIC MSSndCardStreamType ms_snd_card_get_stream_type(MSSndCard *obj);
  *
  * Returns: a MSSndCard object, NULL if alsa support is not available.
  */
-MS2_PUBLIC MSSndCard * ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev);
-
+MS2_PUBLIC MSSndCard *ms_alsa_card_new_custom(const char *pcmdev, const char *mixdev);
 
 /**
  * Use supplied sample rate to open alsa devices (forced rate).
  * Has no interest except workarouding driver bugs.
  * Use -1 to revert to normal behavior.
-**/
+ **/
 MS2_PUBLIC void ms_alsa_card_set_forced_sample_rate(int samplerate);
 
 /**
  * Returns a string value of the given MSSndCardDeviceType enum
  */
-MS2_PUBLIC const char* ms_snd_card_device_type_to_string(MSSndCardDeviceType type);
+MS2_PUBLIC const char *ms_snd_card_device_type_to_string(MSSndCardDeviceType type);
 
 /**
  * Takes a ref on a MSSndCard
  */
-MS2_PUBLIC MSSndCard* ms_snd_card_ref(MSSndCard *sndCard);
+MS2_PUBLIC MSSndCard *ms_snd_card_ref(MSSndCard *sndCard);
 
 /**
  * Removes a ref from a MSSndCard
@@ -803,7 +798,7 @@ MS2_PUBLIC void ms_snd_card_unref(MSSndCard *sndCard);
 #ifdef __ANDROID__
 /**
  * Sort cards in order to put earpiece and speaker as first devices of every filter.
-**/
+ **/
 void ms_snd_card_sort(MSSndCardManager *m);
 #endif // __ANDROID__
 

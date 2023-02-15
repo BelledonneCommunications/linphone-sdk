@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,19 +26,20 @@
 
 namespace mediastreamer {
 
-	class DecoderFilter: public FilterBase {
-	public:
-		DecoderFilter(MSFilter *f): FilterBase(f) {}
+class DecoderFilter : public FilterBase {
+public:
+	DecoderFilter(MSFilter *f) : FilterBase(f) {
+	}
 
-		virtual MSVideoSize getVideoSize() const = 0;
-		virtual float getFps() const = 0;
-		virtual const MSFmtDescriptor *getOutputFmt() const = 0;
-		virtual void addFmtp(const char *fmtp) = 0;
+	virtual MSVideoSize getVideoSize() const = 0;
+	virtual float getFps() const = 0;
+	virtual const MSFmtDescriptor *getOutputFmt() const = 0;
+	virtual void addFmtp(const char *fmtp) = 0;
 
-		virtual void enableAvpf(bool enable) = 0;
-		virtual bool freezeOnErrorEnabled() const = 0;
-		virtual void enableFreezeOnError(bool enable) = 0;
-		virtual void resetFirstImage() = 0;
-	};
+	virtual void enableAvpf(bool enable) = 0;
+	virtual bool freezeOnErrorEnabled() const = 0;
+	virtual void enableFreezeOnError(bool enable) = 0;
+	virtual void resetFirstImage() = 0;
+};
 
 } // namespace mediastreamer

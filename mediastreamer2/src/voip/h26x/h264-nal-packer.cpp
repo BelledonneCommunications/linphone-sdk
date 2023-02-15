@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,6 @@ mblk_t *H264NalPacker::NaluAggregator::completeAggregation() {
 	reset();
 	return res;
 }
-
 
 mblk_t *H264NalPacker::NaluAggregator::concatNalus(mblk_t *m1, mblk_t *m2) {
 	mblk_t *l = allocb(2, 0);

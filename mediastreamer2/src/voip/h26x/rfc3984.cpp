@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@
 
 #include "mediastreamer2/rfc3984.h"
 
-
 //==================================================
 // C wrapper implementation
 //==================================================
@@ -34,7 +33,8 @@ struct _Rfc3984Context {
 	mediastreamer::H264NalUnpacker unpacker;
 	mediastreamer::H264FrameAnalyser analyser;
 
-	_Rfc3984Context(MSFactory *factory): packer(ms_factory_get_payload_max_size(factory)) {}
+	_Rfc3984Context(MSFactory *factory) : packer(ms_factory_get_payload_max_size(factory)) {
+	}
 };
 
 extern "C" {
@@ -52,7 +52,8 @@ void rfc3984_set_mode(Rfc3984Context *ctx, int mode) {
 		ms_error("invalid RFC3984 packetization mode [%d]", mode);
 		return;
 	}
-	ctx->packer.setPacketizationMode(mode == 0 ? mediastreamer::NalPacker::SingleNalUnitMode : mediastreamer::NalPacker::NonInterleavedMode);
+	ctx->packer.setPacketizationMode(mode == 0 ? mediastreamer::NalPacker::SingleNalUnitMode
+	                                           : mediastreamer::NalPacker::NonInterleavedMode);
 }
 
 void rfc3984_enable_stap_a(Rfc3984Context *ctx, bool_t yesno) {
@@ -73,7 +74,7 @@ unsigned int rfc3984_unpack2(Rfc3984Context *ctx, mblk_t *im, MSQueue *naluq) {
 	unsigned int status = ctx->unpacker.unpack(im, &q).toUInt();
 	if (status & Rfc3984FrameAvailable) {
 		status |= ctx->analyser.analyse(&q).toUInt();
-		while(mblk_t *m = ms_queue_get(&q)) {
+		while (mblk_t *m = ms_queue_get(&q)) {
 			ms_queue_put(naluq, m);
 		}
 	}

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "mediastreamer2/msjava.h"
-#include "mediastreamer2/mscommon.h"
+#include <bctoolbox/defs.h>
 
-static JavaVM *ms2_vm=NULL;
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msjava.h"
+
+static JavaVM *ms2_vm = NULL;
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -29,51 +31,51 @@ static JavaVM *ms2_vm=NULL;
 static pthread_key_t jnienv_key;
 
 /*
- * Do not forget that any log within this routine may cause re-attach of the thread to the jvm because the logs can callback the java application
- * (see LinphoneCoreFactory.setLogHandler() ).
-**/
-void _android_key_cleanup(void *data){
-	JNIEnv *env = (JNIEnv*) data;
+ * Do not forget that any log within this routine may cause re-attach of the thread to the jvm because the logs can
+ *callback the java application (see LinphoneCoreFactory.setLogHandler() ).
+ **/
+void _android_key_cleanup(void *data) {
+	JNIEnv *env = (JNIEnv *)data;
 
 	if (env != NULL) {
-		//ms_message("Thread end, detaching jvm from current thread");
+		// ms_message("Thread end, detaching jvm from current thread");
 		(*ms2_vm)->DetachCurrentThread(ms2_vm);
-		pthread_setspecific(jnienv_key,NULL);
+		pthread_setspecific(jnienv_key, NULL);
 	}
 }
 #endif
 
-void ms_set_jvm_from_env(JNIEnv *env){
-    (*env)->GetJavaVM(env, &ms2_vm);
+void ms_set_jvm_from_env(JNIEnv *env) {
+	(*env)->GetJavaVM(env, &ms2_vm);
 #ifndef _WIN32
-	pthread_key_create(&jnienv_key,_android_key_cleanup);
+	pthread_key_create(&jnienv_key, _android_key_cleanup);
 #endif
 }
 
-void ms_set_jvm(JavaVM *vm){
-	ms2_vm=vm;
+void ms_set_jvm(JavaVM *vm) {
+	ms2_vm = vm;
 #ifndef _WIN32
-	pthread_key_create(&jnienv_key,_android_key_cleanup);
+	pthread_key_create(&jnienv_key, _android_key_cleanup);
 #endif
 }
 
-JavaVM *ms_get_jvm(void){
+JavaVM *ms_get_jvm(void) {
 	return ms2_vm;
 }
 
-JNIEnv *ms_get_jni_env(void){
-	JNIEnv *env=NULL;
-	if (ms2_vm==NULL){
+JNIEnv *ms_get_jni_env(void) {
+	JNIEnv *env = NULL;
+	if (ms2_vm == NULL) {
 		ms_fatal("Calling ms_get_jni_env() while no jvm has been set using ms_set_jvm().");
-	}else{
+	} else {
 #ifndef _WIN32
-		env=(JNIEnv*)pthread_getspecific(jnienv_key);
-		if (env==NULL){
-			if ((*ms2_vm)->AttachCurrentThread(ms2_vm,&env,NULL)!=0){
+		env = (JNIEnv *)pthread_getspecific(jnienv_key);
+		if (env == NULL) {
+			if ((*ms2_vm)->AttachCurrentThread(ms2_vm, &env, NULL) != 0) {
 				ms_fatal("AttachCurrentThread() failed !");
 				return NULL;
 			}
-			pthread_setspecific(jnienv_key,env);
+			pthread_setspecific(jnienv_key, env);
 		}
 #else
 		ms_fatal("ms_get_jni_env() not implemented on windows.");
@@ -94,7 +96,7 @@ static void handle_jni_exception(JNIEnv *env) {
 
 int ms_get_android_sdk_version(void) {
 	static int sdk_version = 0;
-	if (sdk_version==0){
+	if (sdk_version == 0) {
 		/* Get Android SDK version. */
 		JNIEnv *env = ms_get_jni_env();
 		jclass version_class = (*env)->FindClass(env, "android/os/Build$VERSION");
@@ -106,24 +108,27 @@ int ms_get_android_sdk_version(void) {
 	return sdk_version;
 }
 
-static const char* GetStringUTFChars(JNIEnv* env, jstring string) {
+static const char *GetStringUTFChars(JNIEnv *env, jstring string) {
 	const char *cstring = string ? (*env)->GetStringUTFChars(env, string, NULL) : NULL;
 	return cstring;
 }
 
-static void ReleaseStringUTFChars(JNIEnv* env, jstring string, const char *cstring) {
+static void ReleaseStringUTFChars(JNIEnv *env, jstring string, const char *cstring) {
 	if (string) (*env)->ReleaseStringUTFChars(env, string, cstring);
 }
 
-char * ms_get_android_libraries_path(void) {
+char *ms_get_android_libraries_path(void) {
 	JNIEnv *env = ms_get_jni_env();
 	char *libs_directory = NULL;
-	jclass mediastreamerAndroidContextClass = (*env)->FindClass(env, "org/linphone/mediastream/MediastreamerAndroidContext");
+	jclass mediastreamerAndroidContextClass =
+	    (*env)->FindClass(env, "org/linphone/mediastream/MediastreamerAndroidContext");
 
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID getNativeLibDir = (*env)->GetStaticMethodID(env, mediastreamerAndroidContextClass, "getNativeLibrariesDirectory", "()Ljava/lang/String;");
+		jmethodID getNativeLibDir = (*env)->GetStaticMethodID(env, mediastreamerAndroidContextClass,
+		                                                      "getNativeLibrariesDirectory", "()Ljava/lang/String;");
 		if (getNativeLibDir != NULL) {
-			jobject nativeLibDir = (*env)->CallStaticObjectMethod(env, mediastreamerAndroidContextClass, getNativeLibDir);
+			jobject nativeLibDir =
+			    (*env)->CallStaticObjectMethod(env, mediastreamerAndroidContextClass, getNativeLibDir);
 			const char *libDir = GetStringUTFChars(env, nativeLibDir);
 			libs_directory = ms_strdup(libDir);
 			ms_message("Found native libraries path [%s]", libs_directory);
@@ -169,26 +174,26 @@ bctbx_list_t *ms_get_android_plugins_list(void) {
 	return plugins;
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_d(JNIEnv* env, jobject thiz, jstring jmsg) {
-	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_d(JNIEnv *env, BCTBX_UNUSED(jobject thiz), jstring jmsg) {
+	const char *msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
 	ms_debug("%s", msg);
 	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_i(JNIEnv* env, jobject thiz, jstring jmsg) {
-	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_i(JNIEnv *env, BCTBX_UNUSED(jobject thiz), jstring jmsg) {
+	const char *msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
 	ms_message("%s", msg);
 	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_w(JNIEnv* env, jobject thiz, jstring jmsg) {
-	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_w(JNIEnv *env, BCTBX_UNUSED(jobject thiz), jstring jmsg) {
+	const char *msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
 	ms_warning("%s", msg);
 	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
 }
 
-JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_e(JNIEnv* env, jobject thiz, jstring jmsg) {
-	const char* msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
+JNIEXPORT void JNICALL Java_org_linphone_mediastream_Log_e(JNIEnv *env, BCTBX_UNUSED(jobject thiz), jstring jmsg) {
+	const char *msg = jmsg ? (*env)->GetStringUTFChars(env, jmsg, NULL) : NULL;
 	ms_error("%s", msg);
 	if (msg) (*env)->ReleaseStringUTFChars(env, jmsg, msg);
 }

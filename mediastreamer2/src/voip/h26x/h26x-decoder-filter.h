@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,6 +22,8 @@
 
 #include <memory>
 
+#include <bctoolbox/defs.h>
+
 #include "mediastreamer2/msvideo.h"
 
 #include "h26x-decoder.h"
@@ -31,7 +33,7 @@
 
 namespace mediastreamer {
 
-class H26xDecoderFilter: public DecoderFilter {
+class H26xDecoderFilter : public DecoderFilter {
 public:
 	H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder);
 
@@ -42,11 +44,14 @@ public:
 	MSVideoSize getVideoSize() const override;
 	float getFps() const override;
 	const MSFmtDescriptor *getOutputFmt() const override;
-	void addFmtp(const char *fmtp)  override {}
+	void addFmtp(BCTBX_UNUSED(const char *fmtp)) override {
+	}
 
 	void enableAvpf(bool enable) override;
 
-	bool freezeOnErrorEnabled() const override {return _freezeOnError;}
+	bool freezeOnErrorEnabled() const override {
+		return _freezeOnError;
+	}
 	void enableFreezeOnError(bool enable) override;
 
 	void resetFirstImage() override;
@@ -64,4 +69,4 @@ protected:
 	static const unsigned int _timeoutUs = 0;
 };
 
-}
+} // namespace mediastreamer

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,6 @@
 
 #include <mediastreamer2/msfilter.h>
 
-#define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID,0,MSFilter)
-
+#define MS_ITC_SINK_CONNECT MS_FILTER_METHOD(MS_ITC_SINK_ID, 0, MSFilter)
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,11 +21,11 @@
 #ifndef msmediarecorder_h
 #define msmediarecorder_h
 
-#include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/msinterfaces.h>
+#include <mediastreamer2/msmediaplayer.h>
+#include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/msvideo.h>
 #include <mediastreamer2/mswebcam.h>
-#include <mediastreamer2/msmediaplayer.h>
 
 /**
  * Media file recorder
@@ -37,12 +37,11 @@ typedef struct _MSMediaRecorder MSMediaRecorder;
 
 // typedef void (*MSMediaRecorderYourCallback)(void *user_data);
 
- /**
+/**
  * End of Callbacks definitions */
 
-
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -56,7 +55,13 @@ extern "C"{
  * @param video_codec Video codec if MKV file (h264 or vp8)
  * @return A pointer on the created MSMediaRecorder
  */
-MS2_PUBLIC MSMediaRecorder *ms_media_recorder_new(MSFactory *factory, MSSndCard *snd_card, MSWebCam *web_cam, const char *video_display_name, void *window_id, MSFileFormat format, const char *video_codec);
+MS2_PUBLIC MSMediaRecorder *ms_media_recorder_new(MSFactory *factory,
+                                                  MSSndCard *snd_card,
+                                                  MSWebCam *web_cam,
+                                                  const char *video_display_name,
+                                                  void *window_id,
+                                                  MSFileFormat format,
+                                                  const char *video_codec);
 
 /**
  * Free a media Recorder
@@ -69,7 +74,7 @@ MS2_PUBLIC void ms_media_recorder_free(MSMediaRecorder *obj);
  * @param obj The recorder
  * @return The window ID
  */
-MS2_PUBLIC void * ms_media_recorder_get_window_id(const MSMediaRecorder *obj);
+MS2_PUBLIC void *ms_media_recorder_get_window_id(const MSMediaRecorder *obj);
 
 /**
  * Open a media file to write to
@@ -136,6 +141,5 @@ MS2_PUBLIC float ms_media_recorder_get_capture_volume(const MSMediaRecorder *obj
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

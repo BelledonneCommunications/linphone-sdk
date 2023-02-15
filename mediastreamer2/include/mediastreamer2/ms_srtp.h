@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,11 +21,11 @@
 #ifndef ms_srtp_h
 #define ms_srtp_h
 
-#include <ortp/rtpsession.h>
 #include "mediastreamer2/mscommon.h"
+#include <ortp/rtpsession.h>
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 /* defined in mediastream.h */
 #ifndef MS_MEDIA_STREAM_SESSIONS_DEFINED
@@ -37,36 +37,36 @@ typedef struct _MSMediaStreamSessions MSMediaStreamSessions;
  * @brief Enum describing algorithm used to exchange srtp keys.
  **/
 typedef enum _MSSrtpKeySource {
-	MSSrtpKeySourceUnknown = 0, /**< Source of this key is unknown, for retrocompatibility */
-	MSSrtpKeySourceSDES = 1, /**< The Srtp keys were exchanged using SDES */
-	MSSrtpKeySourceZRTP = 2, /**< The Srtp keys were exchanged using ZRTP */
-	MSSrtpKeySourceDTLS = 3, /**< The Srtp keys were exchanged using DTLS-SRTP */
-	MSSrtpKeySourceEKT = 4, /**< The Srtp keys were exchanged using EKT */
+	MSSrtpKeySourceUnknown = 0,       /**< Source of this key is unknown, for retrocompatibility */
+	MSSrtpKeySourceSDES = 1,          /**< The Srtp keys were exchanged using SDES */
+	MSSrtpKeySourceZRTP = 2,          /**< The Srtp keys were exchanged using ZRTP */
+	MSSrtpKeySourceDTLS = 3,          /**< The Srtp keys were exchanged using DTLS-SRTP */
+	MSSrtpKeySourceEKT = 4,           /**< The Srtp keys were exchanged using EKT */
 	MSSrtpKeySourceUnavailable = 0xFF /**< The Srtp keys are not set for all sessions yet (stream is not secure)*/
 } MSSrtpKeySource;
 
 /*
  * Crypto suite used configure encrypted stream*/
-typedef enum _MSCryptoSuite{
-        MS_CRYPTO_SUITE_INVALID=0,
-        MS_AES_128_SHA1_80,
-        MS_AES_128_SHA1_80_NO_AUTH,
-        MS_AES_128_SHA1_80_SRTP_NO_CIPHER,
-        MS_AES_128_SHA1_80_SRTCP_NO_CIPHER,
-        MS_AES_128_SHA1_80_NO_CIPHER,
-        MS_AES_256_SHA1_80,
-        MS_AES_CM_256_SHA1_80,
-        MS_AES_128_SHA1_32,
-        MS_AES_128_SHA1_32_NO_AUTH,
-        MS_AES_256_SHA1_32,
+typedef enum _MSCryptoSuite {
+	MS_CRYPTO_SUITE_INVALID = 0,
+	MS_AES_128_SHA1_80,
+	MS_AES_128_SHA1_80_NO_AUTH,
+	MS_AES_128_SHA1_80_SRTP_NO_CIPHER,
+	MS_AES_128_SHA1_80_SRTCP_NO_CIPHER,
+	MS_AES_128_SHA1_80_NO_CIPHER,
+	MS_AES_256_SHA1_80,
+	MS_AES_CM_256_SHA1_80,
+	MS_AES_128_SHA1_32,
+	MS_AES_128_SHA1_32_NO_AUTH,
+	MS_AES_256_SHA1_32,
 	MS_AEAD_AES_128_GCM,
 	MS_AEAD_AES_256_GCM
 } MSCryptoSuite;
 
-typedef struct _MSCryptoSuiteNameParams{
-        const char *name;
-        const char *params;
-}MSCryptoSuiteNameParams;
+typedef struct _MSCryptoSuiteNameParams {
+	const char *name;
+	const char *params;
+} MSCryptoSuiteNameParams;
 
 /* EKT as described in RFC 8870 */
 typedef enum _MSEKTCipherType {
@@ -75,25 +75,29 @@ typedef enum _MSEKTCipherType {
 } MSEKTCipherType;
 
 typedef enum _MSEKTMode {
-	MS_EKT_DISABLED=0, /**< EKT is not in operation */
-	MS_EKT_ENABLED, /**< EKT is used, we should be given an EKT and use it to produce EKT tag on sending and expect EKT tag on reception */
-	MS_EKT_TRANSFER /**< We are in transfer mode: we expect EKT tag at the end of the packet but cannot decrypt, just pass them */
+	MS_EKT_DISABLED = 0, /**< EKT is not in operation */
+	MS_EKT_ENABLED, /**< EKT is used, we should be given an EKT and use it to produce EKT tag on sending and expect EKT
+	                   tag on reception */
+	MS_EKT_TRANSFER /**< We are in transfer mode: we expect EKT tag at the end of the packet but cannot decrypt, just
+	                   pass them */
 } MSEKTMode;
 
-typedef struct _MSEKTParametersSet{
-	MSEKTCipherType ekt_cipher_type; /**< AESKW128 or AESKW256 */
-	MSCryptoSuite ekt_srtp_crypto_suite; /**< The SRTP crypto suite to be used to protect the RTP packets with the key encrypted with this EKT */
-	uint8_t ekt_key_value[32]; /**< The EKTKey that the recipient should use when generating EKTCiphertext values, actual size depends on ekt_cipher_type */
-	uint8_t ekt_master_salt[14]; /**< The SRTP master salt to be used with any master key encrypted with this EKT Key, actual size depends on ekt_srtp_crypto_suite */
-	uint16_t ekt_spi; /**< reference this EKTKey and SRTP master salt */
+typedef struct _MSEKTParametersSet {
+	MSEKTCipherType ekt_cipher_type;     /**< AESKW128 or AESKW256 */
+	MSCryptoSuite ekt_srtp_crypto_suite; /**< The SRTP crypto suite to be used to protect the RTP packets with the key
+	                                        encrypted with this EKT */
+	uint8_t ekt_key_value[32];   /**< The EKTKey that the recipient should use when generating EKTCiphertext values,
+	                                actual size depends on ekt_cipher_type */
+	uint8_t ekt_master_salt[14]; /**< The SRTP master salt to be used with any master key encrypted with this EKT Key,
+	                                actual size depends on ekt_srtp_crypto_suite */
+	uint16_t ekt_spi;            /**< reference this EKTKey and SRTP master salt */
 	uint32_t ekt_ttl; /**< The maximum amount of time, in seconds, that this EKTKey can be used.(on 24 bits) */
-}MSEKTParametersSet;
+} MSEKTParametersSet;
 
 MS2_PUBLIC MSCryptoSuite ms_crypto_suite_build_from_name_params(const MSCryptoSuiteNameParams *nameparams);
 MS2_PUBLIC int ms_crypto_suite_to_name_params(MSCryptoSuite cs, MSCryptoSuiteNameParams *nameparams);
 MS2_PUBLIC bool_t ms_crypto_suite_is_unencrypted(MSCryptoSuite cs);
 MS2_PUBLIC bool_t ms_crypto_suite_is_unauthenticated(MSCryptoSuite cs);
-
 
 /* defined in srtp.h*/
 typedef struct _MSSrtpCtx MSSrtpCtx;
@@ -125,7 +129,8 @@ MS2_PUBLIC bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
 
 /**
  * Set srtp receiver key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
+ * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the
+ * receiver side of the stream.
  *
  * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		suite		The srtp crypto suite to use
@@ -133,11 +138,15 @@ MS2_PUBLIC bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
  * @param[in]		source	algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessions *sessions,
+                                                              MSCryptoSuite suite,
+                                                              const char *key,
+                                                              MSSrtpKeySource source);
 
 /**
  * Set srtp receiver key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the receiver side of the stream.
+ * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the
+ * receiver side of the stream.
  *
  * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		suite		The srtp crypto suite to use
@@ -146,7 +155,11 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessi
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions,
+                                                          MSCryptoSuite suite,
+                                                          const uint8_t *key,
+                                                          size_t key_length,
+                                                          MSSrtpKeySource source);
 
 /**
  * Set srtp inner receiver key for the given media stream.
@@ -160,7 +173,12 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions 
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source, uint32_t ssrc);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions,
+                                                                MSCryptoSuite suite,
+                                                                const uint8_t *key,
+                                                                size_t key_length,
+                                                                MSSrtpKeySource source,
+                                                                uint32_t ssrc);
 
 /**
  * Set srtp inner receiver key for the given media stream.
@@ -173,11 +191,13 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSes
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source, uint32_t ssrc);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
+    MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source, uint32_t ssrc);
 
 /**
  * Set srtp sender key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
+ * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the
+ * sender side of the stream.
  *
  * @param[in/out]	sessions	The sessions associated to the current media stream
  * @param[in]		suite		The srtp crypto suite to use
@@ -185,11 +205,15 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(MSMediaStrea
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessions *sessions,
+                                                              MSCryptoSuite suite,
+                                                              const char *key,
+                                                              MSSrtpKeySource source);
 
 /**
  * Set srtp sender key for the given media stream.
- * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the sender side of the stream.
+ * If no srtp session exists on the stream it is created, if it already exists srtp policy is created/modified for the
+ * sender side of the stream.
  *
  * @param[in/out]	stream		The mediastream to operate on
  * @param[in]		suite		The srtp crypto suite to use
@@ -199,7 +223,11 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions *sessions,
+                                                          MSCryptoSuite suite,
+                                                          const uint8_t *key,
+                                                          size_t key_length,
+                                                          MSSrtpKeySource source);
 
 /**
  * Set srtp inner sender key for the given media stream.
@@ -214,7 +242,11 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions 
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const uint8_t *key, size_t key_length, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions,
+                                                                MSCryptoSuite suite,
+                                                                const uint8_t *key,
+                                                                size_t key_length,
+                                                                MSSrtpKeySource source);
 
 /**
  * Set srtp inner sender key for the given media stream.
@@ -228,13 +260,18 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSes
  * @param[in]		source		algorithm used to exchange this key
  * @return	0 on success, error code otherwise
  */
-MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *key, MSSrtpKeySource source);
+MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions,
+                                                                    MSCryptoSuite suite,
+                                                                    const char *key,
+                                                                    MSSrtpKeySource source);
 
 /**
  * Set the session EKT operation mode:
  *   - MS_EKT_DISABLED: No EKT, this is the default mode.
- *   - MS_EKT_ENABLED: We are expecting to get a EKT and use it to produce EKT tag on outgoing packet and parse EKT tag on incoming ones
- *   - MS_EKT_TRANSFER: We are a relay unable to decrypt the EKT tag but it will be present at the end of the packet and we need to relay it
+ *   - MS_EKT_ENABLED: We are expecting to get a EKT and use it to produce EKT tag on outgoing packet and parse EKT tag
+ * on incoming ones
+ *   - MS_EKT_TRANSFER: We are a relay unable to decrypt the EKT tag but it will be present at the end of the packet and
+ * we need to relay it
  *
  * @param[in/out]	stream		The mediastream to operate on
  * @param[in]		mode		One of disabled, enabled or transfer
@@ -245,11 +282,12 @@ MS2_PUBLIC int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 /**
  * Set Encrypted Key transport
  * Once set, sending stream on this session will regenerate a SRTP master key and dispatch it using the given EKT
- * EKT is stored in reception context to decrypt incoming ekt tag (more than one can be used in reception as peers mays not update all together)
+ * EKT is stored in reception context to decrypt incoming ekt tag (more than one can be used in reception as peers mays
+ * not update all together)
  *
  * @param[in/out]	stream		The mediastream to operate on
- * @param[in]		ekt		The parameter set holding all information needed to generate, dispatch and decrypt incoming Srtp master key
- *                                      Data is copied internally and caller can dispose of it at anytime after this call
+ * @param[in]		ekt		The parameter set holding all information needed to generate, dispatch and decrypt incoming
+ * Srtp master key Data is copied internally and caller can dispose of it at anytime after this call
  * @return	0 on success, error code otherwise
  */
 MS2_PUBLIC int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt);
@@ -260,7 +298,7 @@ MS2_PUBLIC int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions,
  * @param[in]		suite		The srtp crypto suite to use
  * @return	the string corresponding the crypto suite
  */
-MS2_PUBLIC const char * ms_crypto_suite_to_string(MSCryptoSuite suite);
+MS2_PUBLIC const char *ms_crypto_suite_to_string(MSCryptoSuite suite);
 
 /**
  * Free ressources used by SRTP context

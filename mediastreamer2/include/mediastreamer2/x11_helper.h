@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -30,15 +30,15 @@ typedef struct _x11_helper {
 } MSX11Helper;
 
 /* One time init */
-int ms_x11_helper_init(MSX11Helper* x11);
+int ms_x11_helper_init(MSX11Helper *x11);
 
-int ms_x11_helper_create_window(MSX11Helper* x11, int width, int height);
+int ms_x11_helper_create_window(MSX11Helper *x11, int width, int height);
 
-int ms_x11_helper_get_window_size(MSX11Helper* x11, int* width, int* height);
+int ms_x11_helper_get_window_size(MSX11Helper *x11, int *width, int *height);
 
-int ms_x11_helper_destroy_window(MSX11Helper* x11);
+int ms_x11_helper_destroy_window(MSX11Helper *x11);
 
-int ms_x11_helper_uninit(MSX11Helper* x11);
+int ms_x11_helper_uninit(MSX11Helper *x11);
 
 #endif
 

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "mediastreamer2/msfilter.h"
-
 
 /******************************************************************************
  * This file is mediastreamer2 filter template to be used to create new       *
@@ -33,7 +31,6 @@
  *     FILTER_TODO                                                            *
  *****************************************************************************/
 
-
 /**
  * Definition of the private data structure of the filter.
  */
@@ -42,7 +39,6 @@ typedef struct _MyFilterData {
 	/* FILTER_TODO: Fill the private data structure with the data fields
 	   that are required to run your filter. */
 } MyFilterData;
-
 
 /******************************************************************************
  * Methods to (de)initialize and run the filter                               *
@@ -110,7 +106,6 @@ static void my_filter_uninit(MSFilter *f) {
 	ms_free(d);
 }
 
-
 /******************************************************************************
  * Methods to configure the filter                                            *
  *****************************************************************************/
@@ -134,63 +129,46 @@ static int my_filter_get_sample_rate(MSFilter *f, void *arg) {
  *
  * The array must be NULL terminated.
  */
-static MSFilterMethod my_filter_methods[] = {
-	{	MS_FILTER_SET_SAMPLE_RATE,	my_filter_set_sample_rate	},
-	{	MS_FILTER_GET_SAMPLE_RATE,	my_filter_get_sample_rate	},
-	{	0,				NULL				}
-};
-
+static MSFilterMethod my_filter_methods[] = {{MS_FILTER_SET_SAMPLE_RATE, my_filter_set_sample_rate},
+                                             {MS_FILTER_GET_SAMPLE_RATE, my_filter_get_sample_rate},
+                                             {0, NULL}};
 
 /******************************************************************************
  * Definition of the filter                                                   *
  *****************************************************************************/
 
 /* MY_FILTER_ID is to be added in from allfilters.h */
-#define MY_FILTER_NAME		"MyFilter"
-#define MY_FILTER_DESCRIPTION	"An empty filter."
-#define MY_FILTER_CATEGORY	MS_FILTER_OTHER
-#define MY_FILTER_ENC_FMT	NULL
-#define MY_FILTER_NINPUTS	1
-#define MY_FILTER_NOUTPUTS	0
-#define MY_FILTER_FLAGS		0
+#define MY_FILTER_NAME "MyFilter"
+#define MY_FILTER_DESCRIPTION "An empty filter."
+#define MY_FILTER_CATEGORY MS_FILTER_OTHER
+#define MY_FILTER_ENC_FMT NULL
+#define MY_FILTER_NINPUTS 1
+#define MY_FILTER_NOUTPUTS 0
+#define MY_FILTER_FLAGS 0
 
 #ifndef _MSC_VER
 
-MSFilterDesc my_filter_desc = {
-	.id = MY_FILTER_ID,
-	.name = MY_FILTER_NAME,
-	.text = MY_FILTER_DESCRIPTION,
-	.category = MY_FILTER_CATEGORY,
-	.enc_fmt = MY_FILTER_ENC_FMT,
-	.ninputs = MY_FILTER_NINPUTS,
-	.noutputs = MY_FILTER_NOUTPUTS,
-	.init = my_filter_init,
-	.preprocess = my_filter_preprocess,
-	.process = my_filter_process,
-	.postprocess = my_filter_postprocess,
-	.uninit = my_filter_uninit,
-	.methods = my_filter_methods,
-	.flags = MY_FILTER_FLAGS
-};
+MSFilterDesc my_filter_desc = {.id = MY_FILTER_ID,
+                               .name = MY_FILTER_NAME,
+                               .text = MY_FILTER_DESCRIPTION,
+                               .category = MY_FILTER_CATEGORY,
+                               .enc_fmt = MY_FILTER_ENC_FMT,
+                               .ninputs = MY_FILTER_NINPUTS,
+                               .noutputs = MY_FILTER_NOUTPUTS,
+                               .init = my_filter_init,
+                               .preprocess = my_filter_preprocess,
+                               .process = my_filter_process,
+                               .postprocess = my_filter_postprocess,
+                               .uninit = my_filter_uninit,
+                               .methods = my_filter_methods,
+                               .flags = MY_FILTER_FLAGS};
 
 #else
 
-MSFilterDesc my_filter_desc = {
-	MY_FILTER_ID,
-	MY_FILTER_NAME,
-	MY_FILTER_DESCRIPTION,
-	MY_FILTER_CATEGORY,
-	MY_FILTER_ENC_FMT,
-	MY_FILTER_NINPUTS,
-	MY_FILTER_NOUTPUTS,
-	my_filter_init,
-	my_filter_preprocess,
-	my_filter_process,
-	my_filter_postprocess,
-	my_filter_uninit,
-	my_filter_methods,
-	MY_FILTER_FLAGS
-};
+MSFilterDesc my_filter_desc = {MY_FILTER_ID,         MY_FILTER_NAME,    MY_FILTER_DESCRIPTION, MY_FILTER_CATEGORY,
+                               MY_FILTER_ENC_FMT,    MY_FILTER_NINPUTS, MY_FILTER_NOUTPUTS,    my_filter_init,
+                               my_filter_preprocess, my_filter_process, my_filter_postprocess, my_filter_uninit,
+                               my_filter_methods,    MY_FILTER_FLAGS};
 
 #endif
 

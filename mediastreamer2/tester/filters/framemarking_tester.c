@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -32,7 +32,6 @@ struct FrameMarkingTesterState {
 
 typedef struct FrameMarkingTesterState FrameMarkingTesterState;
 
-
 static void framemarking_tester_init(MSFilter *f) {
 	FrameMarkingTesterState *s = ms_new0(FrameMarkingTesterState, 1);
 	s->cb = NULL;
@@ -47,7 +46,7 @@ static void framemarking_tester_uninit(MSFilter *f) {
 static void framemarking_tester_process(MSFilter *f) {
 	FrameMarkingTesterState *s = (FrameMarkingTesterState *)f->data;
 	mblk_t *m;
-	
+
 	m = ms_queue_get(f->inputs[0]);
 	do {
 		uint8_t marker = 0;
@@ -64,48 +63,42 @@ static void framemarking_tester_process(MSFilter *f) {
 
 static int framemarking_tester_set_callback(MSFilter *f, void *arg) {
 	FrameMarkingTesterState *s = (FrameMarkingTesterState *)f->data;
-	MSFrameMarkingTesterCbData *data = (MSFrameMarkingTesterCbData*) arg;
+	MSFrameMarkingTesterCbData *data = (MSFrameMarkingTesterCbData *)arg;
 	s->cb = data->cb;
 	s->user_data = data->user_data;
 	return 0;
 }
 
-MSFilterMethod framemarking_tester_methods[] = {
-	{ MS_FRAMEMARKING_TESTER_SET_CALLBACK, framemarking_tester_set_callback },
-	{ 0, NULL }
-};
+MSFilterMethod framemarking_tester_methods[] = {{MS_FRAMEMARKING_TESTER_SET_CALLBACK, framemarking_tester_set_callback},
+                                                {0, NULL}};
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_framemarking_tester_desc={
-	MS_FRAMEMARKING_TESTER_ID,
-	"MSFrameMarkingTester",
-	"A filter to test frame marking.",
-	MS_FILTER_OTHER,
-	NULL,
-	1,
-	0,
-	framemarking_tester_init,
-	NULL,
-	framemarking_tester_process,
-	NULL,
-	framemarking_tester_uninit,
-	framemarking_tester_methods
-};
+MSFilterDesc ms_framemarking_tester_desc = {MS_FRAMEMARKING_TESTER_ID,
+                                            "MSFrameMarkingTester",
+                                            "A filter to test frame marking.",
+                                            MS_FILTER_OTHER,
+                                            NULL,
+                                            1,
+                                            0,
+                                            framemarking_tester_init,
+                                            NULL,
+                                            framemarking_tester_process,
+                                            NULL,
+                                            framemarking_tester_uninit,
+                                            framemarking_tester_methods};
 
 #else
 
-MSFilterDesc ms_framemarking_tester_desc={
-	.id=MS_FRAMEMARKING_TESTER_ID,
-	.name="MSFrameMarkingTester",
-	.text="A filter to test frame marking.",
-	.category=MS_FILTER_OTHER,
-	.ninputs=1,
-	.noutputs=0,
-	.init=framemarking_tester_init,
-	.process=framemarking_tester_process,
-	.uninit=framemarking_tester_uninit,
-	.methods=framemarking_tester_methods
-};
+MSFilterDesc ms_framemarking_tester_desc = {.id = MS_FRAMEMARKING_TESTER_ID,
+                                            .name = "MSFrameMarkingTester",
+                                            .text = "A filter to test frame marking.",
+                                            .category = MS_FILTER_OTHER,
+                                            .ninputs = 1,
+                                            .noutputs = 0,
+                                            .init = framemarking_tester_init,
+                                            .process = framemarking_tester_process,
+                                            .uninit = framemarking_tester_uninit,
+                                            .methods = framemarking_tester_methods};
 
 #endif

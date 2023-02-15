@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,88 +18,86 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 
-#include "shader_util.h"
 #include "opengl_debug.h"
+#include "shader_util.h"
 
 #define LogInfo printf
 #define LogError printf
 
 /* Compile a shader from the provided source(s) */
-GLint glueCompileShader (const OpenGlFunctions *f, const GLchar *sources, GLuint shader) {
-  GLint logLength, status;
+GLint glueCompileShader(const OpenGlFunctions *f, const GLchar *sources, GLuint shader) {
+	GLint logLength, status;
 
-  f->glShaderSource(shader, 1, &sources, NULL);
-  f->glCompileShader(shader);
+	f->glShaderSource(shader, 1, &sources, NULL);
+	f->glCompileShader(shader);
 
-  f->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-  if (status == 0) {
-    LogError("Failed to compile shader:\n");
-    LogInfo("%s", sources);
-  }
+	f->glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status == 0) {
+		LogError("Failed to compile shader:\n");
+		LogInfo("%s", sources);
+	}
 
-  f->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-  if (logLength > 0) {
-    GLchar *log = (GLchar *)malloc(logLength);
-    f->glGetShaderInfoLog(shader, logLength, &logLength, log);
-    LogInfo("Shader compile log:\n%s", log);
-    free(log);
-  }
+	f->glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+	if (logLength > 0) {
+		GLchar *log = (GLchar *)malloc(logLength);
+		f->glGetShaderInfoLog(shader, logLength, &logLength, log);
+		LogInfo("Shader compile log:\n%s", log);
+		free(log);
+	}
 
-  glError(f);
+	glError(f);
 
-  return status;
+	return status;
 }
 
 /* Link a program with all currently attached shaders */
-GLint glueLinkProgram (const OpenGlFunctions *f, GLuint program) {
-  GLint logLength, status;
+GLint glueLinkProgram(const OpenGlFunctions *f, GLuint program) {
+	GLint logLength, status;
 
-  f->glLinkProgram(program);
-  f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-  if (logLength > 0) {
-    GLchar *log = (GLchar *)malloc(logLength);
-    f->glGetProgramInfoLog(program, logLength, &logLength, log);
-    LogInfo("Program link log:\n%s", log);
-    free(log);
-  }
+	f->glLinkProgram(program);
+	f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	if (logLength > 0) {
+		GLchar *log = (GLchar *)malloc(logLength);
+		f->glGetProgramInfoLog(program, logLength, &logLength, log);
+		LogInfo("Program link log:\n%s", log);
+		free(log);
+	}
 
-  f->glGetProgramiv(program, GL_LINK_STATUS, &status);
-  if (status == 0)
-    LogError("Failed to link program %d", program);
+	f->glGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == 0) LogError("Failed to link program %d", program);
 
-  glError(f);
+	glError(f);
 
-  return status;
+	return status;
 }
 
 /* Validate a program (for i.e. inconsistent samplers) */
-GLint glueValidateProgram (const OpenGlFunctions *f, GLuint program) {
-  GLint logLength, status;
+GLint glueValidateProgram(const OpenGlFunctions *f, GLuint program) {
+	GLint logLength, status;
 
-  f->glValidateProgram(program);
-  f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-  if (logLength > 0) {
-    GLchar *log = (GLchar *)malloc(logLength);
-    f->glGetProgramInfoLog(program, logLength, &logLength, log);
-    LogInfo("Program validate log:\n%s", log);
-    free(log);
-  }
+	f->glValidateProgram(program);
+	f->glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+	if (logLength > 0) {
+		GLchar *log = (GLchar *)malloc(logLength);
+		f->glGetProgramInfoLog(program, logLength, &logLength, log);
+		LogInfo("Program validate log:\n%s", log);
+		free(log);
+	}
 
-  f->glGetProgramiv(program, GL_VALIDATE_STATUS, &status);
-  if (status == 0)
-    LogError("Failed to validate program %d", program);
+	f->glGetProgramiv(program, GL_VALIDATE_STATUS, &status);
+	if (status == 0) LogError("Failed to validate program %d", program);
 
-  glError(f);
+	glError(f);
 
-  return status;
+	return status;
 }
 
 /* Return named uniform location after linking */
-GLint glueGetUniformLocation (const OpenGlFunctions *f, GLuint program, const GLchar *uniformName) {
-  return f->glGetUniformLocation(program, uniformName);
+GLint glueGetUniformLocation(const OpenGlFunctions *f, GLuint program, const GLchar *uniformName) {
+	return f->glGetUniformLocation(program, uniformName);
 }

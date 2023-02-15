@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,12 +24,13 @@ bool ms_android_is_record_audio_permission_granted() {
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID isPermissionGranted = env->GetStaticMethodID(mediastreamerAndroidContextClass, "isRecordAudioPermissionGranted", "()Z");
+		jmethodID isPermissionGranted =
+		    env->GetStaticMethodID(mediastreamerAndroidContextClass, "isRecordAudioPermissionGranted", "()Z");
 		if (isPermissionGranted != NULL) {
 			jboolean ret = env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, isPermissionGranted);
 			ms_message("[Android Audio Utils] is RECORD_AUDIO permission granted? %i", ret);
 			env->DeleteLocalRef(mediastreamerAndroidContextClass);
-			return (bool) ret;
+			return (bool)ret;
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
@@ -42,11 +43,12 @@ int ms_android_get_preferred_buffer_size() {
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID getBufferSize = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteBufferSize", "()I");
+		jmethodID getBufferSize =
+		    env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteBufferSize", "()I");
 		if (getBufferSize != NULL) {
-				jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getBufferSize);
-				DevicePreferredBufferSize = (int)ret;
-				ms_message("[Android Audio Utils] Using %i for buffer size value", DevicePreferredBufferSize);
+			jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getBufferSize);
+			DevicePreferredBufferSize = (int)ret;
+			ms_message("[Android Audio Utils] Using %i for buffer size value", DevicePreferredBufferSize);
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
@@ -58,13 +60,13 @@ int ms_android_get_preferred_buffer_size() {
 	return DevicePreferredBufferSize;
 }
 
-
 int ms_android_get_preferred_sample_rate() {
 	int DevicePreferredSampleRate = -1;
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID getSampleRate = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
+		jmethodID getSampleRate =
+		    env->GetStaticMethodID(mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
 		if (getSampleRate != NULL) {
 			jint ret = env->CallStaticIntMethod(mediastreamerAndroidContextClass, getSampleRate);
 			DevicePreferredSampleRate = (int)ret;
@@ -80,21 +82,22 @@ int ms_android_get_preferred_sample_rate() {
 	return DevicePreferredSampleRate;
 }
 
-jobjectArray ms_android_get_all_devices(JNIEnv *env, const char * dir) {
+jobjectArray ms_android_get_all_devices(JNIEnv *env, const char *dir) {
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 
 	jobjectArray audioDevices = NULL;
 
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID getAudioDevicesId = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getAudioDevices", "(Ljava/lang/String;)[Landroid/media/AudioDeviceInfo;");
+		jmethodID getAudioDevicesId = env->GetStaticMethodID(mediastreamerAndroidContextClass, "getAudioDevices",
+		                                                     "(Ljava/lang/String;)[Landroid/media/AudioDeviceInfo;");
 		if (getAudioDevicesId != NULL) {
 			jstring device_dir = env->NewStringUTF(dir);
-			audioDevices = reinterpret_cast<jobjectArray>(env->CallStaticObjectMethod(mediastreamerAndroidContextClass, getAudioDevicesId, device_dir));
+			audioDevices = reinterpret_cast<jobjectArray>(
+			    env->CallStaticObjectMethod(mediastreamerAndroidContextClass, getAudioDevicesId, device_dir));
 
 			if (audioDevices == NULL) {
 				ms_error("[Android Audio Utils] Failed to convert local ref to audio devices to global ref");
 			}
-
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
@@ -109,7 +112,7 @@ unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo) {
 	if (audioDeviceInfoClass != NULL) {
 		jmethodID getIDID = env->GetMethodID(audioDeviceInfoClass, "getId", "()I");
 		if (getIDID != NULL) {
-			id = (int) env->CallIntMethod(deviceInfo, getIDID);
+			id = (int)env->CallIntMethod(deviceInfo, getIDID);
 		}
 		env->DeleteLocalRef(audioDeviceInfoClass);
 	}
@@ -117,13 +120,13 @@ unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo) {
 	return id;
 }
 
-int ms_android_getJVIntField(JNIEnv *env, const char * className, const char * fieldName) {
+int ms_android_getJVIntField(JNIEnv *env, const char *className, const char *fieldName) {
 	int value = -1;
 	jclass JVClass = env->FindClass(className);
 	if (JVClass != NULL) {
 		jfieldID fieldID = env->GetStaticFieldID(JVClass, fieldName, "I");
 		if (fieldID != NULL) {
-			value = (int) env->GetStaticIntField(JVClass, fieldID);
+			value = (int)env->GetStaticIntField(JVClass, fieldID);
 		}
 		env->DeleteLocalRef(JVClass);
 	}
@@ -136,13 +139,14 @@ bool ms_android_is_audio_route_changes_disabled(JNIEnv *env) {
 
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
-		jmethodID audioRouteChangesDisabled = env->GetStaticMethodID(mediastreamerAndroidContextClass, "isAudioRouteChangesDisabled", "()Z");
+		jmethodID audioRouteChangesDisabled =
+		    env->GetStaticMethodID(mediastreamerAndroidContextClass, "isAudioRouteChangesDisabled", "()Z");
 		if (audioRouteChangesDisabled != NULL) {
-				disabled = (bool)env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, audioRouteChangesDisabled);
+			disabled = (bool)env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, audioRouteChangesDisabled);
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
-	
+
 	return disabled;
 }
 
@@ -154,21 +158,26 @@ void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDeviceType typ
 		bool changeDone = false;
 		if (ms_android_get_sdk_version(env) >= 31) {
 			if (deviceID == -1) {
-				jmethodID clearDevice = env->GetStaticMethodID(mediastreamerAndroidContextClass, "clearCommunicationDevice", "()V");
+				jmethodID clearDevice =
+				    env->GetStaticMethodID(mediastreamerAndroidContextClass, "clearCommunicationDevice", "()V");
 				if (clearDevice != NULL) {
 					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, clearDevice);
 					ms_message("[Android Audio Utils] Communication device cleared");
 					changeDone = true;
 				}
 			} else {
-				jmethodID changeDevice = env->GetStaticMethodID(mediastreamerAndroidContextClass, "setCommunicationDevice", "(I)Z");
+				jmethodID changeDevice =
+				    env->GetStaticMethodID(mediastreamerAndroidContextClass, "setCommunicationDevice", "(I)Z");
 				if (changeDevice != NULL) {
-					bool result = env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, changeDevice, deviceID);
+					bool result =
+					    env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, changeDevice, deviceID);
 					if (result) {
-						ms_message("[Android Audio Utils] Communication device changed to ID: %i (%s)", deviceID, ms_snd_card_device_type_to_string(type));
+						ms_message("[Android Audio Utils] Communication device changed to ID: %i (%s)", deviceID,
+						           ms_snd_card_device_type_to_string(type));
 						changeDone = true;
 					} else {
-						ms_error("[Android Audio Utils] Failed to change communication device to ID: %i (%s)", deviceID, ms_snd_card_device_type_to_string(type));
+						ms_error("[Android Audio Utils] Failed to change communication device to ID: %i (%s)", deviceID,
+						         ms_snd_card_device_type_to_string(type));
 					}
 				}
 			}
@@ -179,22 +188,23 @@ void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDeviceType typ
 			if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 				methodName = "enableSpeaker";
 			} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
-					type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) {
+			           type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) {
 				methodName = "startBluetooth";
-			} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE || 
-					type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET || 
-					type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) 
-			{
+			} else if (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE ||
+			           type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET ||
+			           type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) {
 				methodName = "enableEarpiece";
 			}
 
 			if (methodName.empty()) {
-				ms_error("[Android Audio Utils] Unable to find method to enable device type %s", ms_snd_card_device_type_to_string(type));
+				ms_error("[Android Audio Utils] Unable to find method to enable device type %s",
+				         ms_snd_card_device_type_to_string(type));
 			} else {
-				jmethodID changeDevice = env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
+				jmethodID changeDevice =
+				    env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
 				if (changeDevice != NULL) {
-						env->CallStaticVoidMethod(mediastreamerAndroidContextClass, changeDevice);
-						ms_message("[Android Audio Utils] changing device to %s ", ms_snd_card_device_type_to_string(type));
+					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, changeDevice);
+					ms_message("[Android Audio Utils] changing device to %s ", ms_snd_card_device_type_to_string(type));
 				}
 			}
 		}
@@ -215,12 +225,15 @@ void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable) {
 	if (methodName.empty()) {
 		ms_error("[Android Audio Utils] Unable to find method to toggle bluetooth enable");
 	} else {
-		jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+		jclass mediastreamerAndroidContextClass =
+		    env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 		if (mediastreamerAndroidContextClass != NULL) {
-			jmethodID toggleBTEnable = env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
+			jmethodID toggleBTEnable =
+			    env->GetStaticMethodID(mediastreamerAndroidContextClass, methodName.c_str(), "()V");
 			if (toggleBTEnable != NULL) {
-					env->CallStaticVoidMethod(mediastreamerAndroidContextClass, toggleBTEnable);
-					ms_debug("[Android Audio Utils] setting enable for bluetooth devices to %s", (enable) ? "true" : "false");
+				env->CallStaticVoidMethod(mediastreamerAndroidContextClass, toggleBTEnable);
+				ms_debug("[Android Audio Utils] setting enable for bluetooth devices to %s",
+				         (enable) ? "true" : "false");
 			}
 			env->DeleteLocalRef(mediastreamerAndroidContextClass);
 		}
@@ -229,12 +242,12 @@ void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable) {
 
 void ms_android_hack_volume(JNIEnv *env) {
 	if (ms_android_is_audio_route_changes_disabled(env)) return;
-	
+
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
 		jmethodID hackVolume = env->GetStaticMethodID(mediastreamerAndroidContextClass, "hackVolume", "()V");
 		if (hackVolume != NULL) {
-				env->CallStaticVoidMethod(mediastreamerAndroidContextClass, hackVolume);
+			env->CallStaticVoidMethod(mediastreamerAndroidContextClass, hackVolume);
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
@@ -261,7 +274,7 @@ static bool ms_android_is_device_type_speaker(JNIEnv *env, const char *audioDevi
 		if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BLE_SPEAKER")) {
 			return true;
 		}
-	} 
+	}
 	if (androidSDK >= 30) {
 		if (typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_BUILTIN_SPEAKER_SAFE")) {
 			return true;
@@ -272,13 +285,13 @@ static bool ms_android_is_device_type_speaker(JNIEnv *env, const char *audioDevi
 
 MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo) {
 	int typeID = -1;
-	const char * audioDeviceInfoClassName = "android/media/AudioDeviceInfo";
+	const char *audioDeviceInfoClassName = "android/media/AudioDeviceInfo";
 
 	jclass audioDeviceInfoClass = env->FindClass(audioDeviceInfoClassName);
 	if (audioDeviceInfoClass != NULL) {
 		jmethodID getTypeID = env->GetMethodID(audioDeviceInfoClass, "getType", "()I");
 		if (getTypeID != NULL) {
-			typeID = (int) env->CallIntMethod(deviceInfo, getTypeID);
+			typeID = (int)env->CallIntMethod(deviceInfo, getTypeID);
 		}
 		env->DeleteLocalRef(audioDeviceInfoClass);
 	}
@@ -304,14 +317,14 @@ MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo) 
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_TELEPHONY;
 	} else if (ms_android_is_device_type_headset(env, audioDeviceInfoClassName, typeID)) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET;
-	}  else if (ms_android_get_sdk_version(env) >= 28 && typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HEARING_AID")) {
+	} else if (ms_android_get_sdk_version(env) >= 28 &&
+	           typeID == ms_android_getJVIntField(env, audioDeviceInfoClassName, "TYPE_HEARING_AID")) {
 		deviceType = MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;
 	} else {
 		ms_error("[Android Audio Utils] Unknown device type for type ID %0d", typeID);
 	}
 
 	return deviceType;
-
 }
 
 unsigned int ms_android_get_device_capabilities(JNIEnv *env, jobject deviceInfo) {
@@ -339,12 +352,13 @@ unsigned int ms_android_get_device_capabilities(JNIEnv *env, jobject deviceInfo)
 	return cap;
 }
 
-char * ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo) {
+char *ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo) {
 	char *productName = NULL;
 
 	jclass audioDeviceInfoClass = env->FindClass("android/media/AudioDeviceInfo");
 	if (audioDeviceInfoClass != NULL) {
-		jmethodID getProductNameID = env->GetMethodID(audioDeviceInfoClass, "getProductName", "()Ljava/lang/CharSequence;");
+		jmethodID getProductNameID =
+		    env->GetMethodID(audioDeviceInfoClass, "getProductName", "()Ljava/lang/CharSequence;");
 		if (getProductNameID != NULL) {
 			jobject productNameChar = env->CallObjectMethod(deviceInfo, getProductNameID);
 			if (productNameChar != NULL) {
@@ -352,8 +366,9 @@ char * ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo) {
 				if (charSequenceClass != NULL) {
 					jmethodID toStringID = env->GetMethodID(charSequenceClass, "toString", "()Ljava/lang/String;");
 					if (toStringID != NULL) {
-						jstring productNameString = static_cast<jstring>(env->CallObjectMethod(productNameChar, toStringID));
-						char *cProductName = (char *) env->GetStringUTFChars(productNameString, nullptr);
+						jstring productNameString =
+						    static_cast<jstring>(env->CallObjectMethod(productNameChar, toStringID));
+						char *cProductName = (char *)env->GetStringUTFChars(productNameString, nullptr);
 						if (cProductName != NULL) {
 							productName = ms_strdup(cProductName);
 						}
@@ -377,7 +392,7 @@ int ms_android_get_sdk_version(JNIEnv *env) {
 		jfieldID fid = env->GetStaticFieldID(versionClass, "SDK_INT", "I");
 		if (fid != NULL) {
 			sdkVersion = env->GetStaticIntField(versionClass, fid);
-			ms_debug("SDK version [%i] detected",sdkVersion);
+			ms_debug("SDK version [%i] detected", sdkVersion);
 		}
 		env->DeleteLocalRef(versionClass);
 	}

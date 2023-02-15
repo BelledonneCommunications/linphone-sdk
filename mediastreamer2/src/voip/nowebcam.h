@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,9 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef nowebcam_h
 #define nowebcam_h
+
+#include "mediastreamer2/formats.h"
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msfactory.h"
 
 #ifdef __cplusplus
 extern "C" {

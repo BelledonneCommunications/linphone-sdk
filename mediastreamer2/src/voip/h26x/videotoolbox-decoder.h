@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 
 namespace mediastreamer {
 
-class VideoToolboxDecoder: public H26xDecoder {
+class VideoToolboxDecoder : public H26xDecoder {
 public:
 	VideoToolboxDecoder(const std::string &mime);
 	~VideoToolboxDecoder();
@@ -43,20 +43,29 @@ public:
 	bool feed(MSQueue *encodedFrame, uint64_t timestamp) override;
 	Status fetch(mblk_t *&frame) override;
 
-	void waitForKeyFrame() override {_freeze = true;}
+	void waitForKeyFrame() override {
+		_freeze = true;
+	}
 
 private:
 	class InvalidSessionError : public std::runtime_error {
 	public:
-		InvalidSessionError() : std::runtime_error(toString(kVTInvalidSessionErr)) {}
+		InvalidSessionError() : std::runtime_error(toString(kVTInvalidSessionErr)) {
+		}
 	};
 
 	class Frame {
 	public:
-		Frame(mblk_t *data = nullptr): _data(data) {}
-		Frame(const Frame &src): _data(src._data ? dupmsg(src._data) : nullptr) {}
-		~Frame() {if (_data) freemsg(_data);}
-		mblk_t *getData() const {return _data ? dupmsg(_data) : nullptr;}
+		Frame(mblk_t *data = nullptr) : _data(data) {
+		}
+		Frame(const Frame &src) : _data(src._data ? dupmsg(src._data) : nullptr) {
+		}
+		~Frame() {
+			if (_data) freemsg(_data);
+		}
+		mblk_t *getData() const {
+			return _data ? dupmsg(_data) : nullptr;
+		}
 
 	private:
 		mblk_t *_data = nullptr;
@@ -67,9 +76,13 @@ private:
 	void decodeFrame(MSQueue *encodedFrame, uint64_t timestamp);
 	void formatDescFromSpsPps();
 
-	static void outputCb(void *decompressionOutputRefCon, void *sourceFrameRefCon, OSStatus status,
-						 VTDecodeInfoFlags infoFlags, CVImageBufferRef imageBuffer,
-						 CMTime presentationTimeStamp, CMTime presentationDuration);
+	static void outputCb(void *decompressionOutputRefCon,
+	                     void *sourceFrameRefCon,
+	                     OSStatus status,
+	                     VTDecodeInfoFlags infoFlags,
+	                     CVImageBufferRef imageBuffer,
+	                     CMTime presentationTimeStamp,
+	                     CMTime presentationDuration);
 
 	VTDecompressionSessionRef _session = nullptr;
 	CMFormatDescriptionRef _formatDesc = nullptr;
@@ -83,4 +96,4 @@ private:
 	static const size_t _naluSizeLength = 4;
 };
 
-}
+} // namespace mediastreamer

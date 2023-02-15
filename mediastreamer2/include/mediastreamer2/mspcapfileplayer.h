@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,9 +28,9 @@
  * and directly get payload data using @MSPCAPFilePlayerLayerPayload. If you want to
  * send these packet over the network, you may want to keep the RTP header using
  * @MSPCAPFilePlayerLayerRTP.
-**/
+ **/
 typedef enum _MSPCAPFilePlayerLayer {
-	MSPCAPFilePlayerLayerRTP, /* skip IP, UDP, but keeps RTP header + underlying layers */
+	MSPCAPFilePlayerLayerRTP,     /* skip IP, UDP, but keeps RTP header + underlying layers */
 	MSPCAPFilePlayerLayerPayload, /* skip IP, UDP, RTP, but keeps RTP content */
 } MSPCAPFilePlayerLayer;
 
@@ -43,14 +43,14 @@ typedef enum _MSPCAPFilePlayerLayer {
  */
 typedef enum _MSPCAPFilePlayerTimeRef {
 	MSPCAPFilePlayerTimeRefRTP, /* use timestamps contained in RTP header to replay packets, written by the encoder */
-	MSPCAPFilePlayerTimeRefCapture, /* use time of packet capture to replay them, specially useful in case of receiver-based capture */
+	MSPCAPFilePlayerTimeRefCapture, /* use time of packet capture to replay them, specially useful in case of
+	                                   receiver-based capture */
 } MSPCAPFilePlayerTimeRef;
 
 /*methods*/
-#define MS_PCAP_FILE_PLAYER_SET_LAYER		MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID,0,MSPCAPFilePlayerLayer)
-#define MS_PCAP_FILE_PLAYER_SET_TIMEREF		MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID,1,MSPCAPFilePlayerTimeRef)
-#define MS_PCAP_FILE_PLAYER_SET_TO_PORT		MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID,2,unsigned)
-#define MS_PCAP_FILE_PLAYER_SET_TS_OFFSET	MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID,3,uint32_t)
+#define MS_PCAP_FILE_PLAYER_SET_LAYER MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID, 0, MSPCAPFilePlayerLayer)
+#define MS_PCAP_FILE_PLAYER_SET_TIMEREF MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID, 1, MSPCAPFilePlayerTimeRef)
+#define MS_PCAP_FILE_PLAYER_SET_TO_PORT MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID, 2, unsigned)
+#define MS_PCAP_FILE_PLAYER_SET_TS_OFFSET MS_FILTER_METHOD(MS_PCAP_FILE_PLAYER_ID, 3, uint32_t)
 
 #endif
-

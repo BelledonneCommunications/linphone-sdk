@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -45,19 +45,18 @@ public:
 
 } // namespace mediastreamer
 
-#define MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name) \
-static MSFilterMethod  MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = { \
-	{ MS_FILTER_REQ_VFU                       , EncodingFilterWrapper::onRequestVfuCall             }, \
-	{ MS_VIDEO_ENCODER_REQ_VFU                , EncodingFilterWrapper::onRequestVfuCall             }, \
-	{ MS_VIDEO_ENCODER_NOTIFY_PLI             , EncodingFilterWrapper::onNotifyPliCall              }, \
-	{ MS_VIDEO_ENCODER_NOTIFY_FIR             , EncodingFilterWrapper::onNotifyFirCall              }, \
-	{ MS_VIDEO_ENCODER_NOTIFY_SLI             , EncodingFilterWrapper::onNotifySliCall              }, \
-	{ MS_VIDEO_ENCODER_ENABLE_AVPF            , EncodingFilterWrapper::onEnableAvpfCall             }, \
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST , EncodingFilterWrapper::onGetVideoConfigurationsCall }, \
-	{ MS_VIDEO_ENCODER_GET_CONFIGURATION      , EncodingFilterWrapper::onGetConfigurationCall       }, \
-	{ MS_VIDEO_ENCODER_SET_CONFIGURATION      , EncodingFilterWrapper::onSetConfigurationCall       }, \
-	{ 0                                       , nullptr                                             } \
-}
+#define MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(base_name)                                                      \
+	static MSFilterMethod MS_FILTER_WRAPPER_METHODS_NAME(base_name)[] = {                                              \
+	    {MS_FILTER_REQ_VFU, EncodingFilterWrapper::onRequestVfuCall},                                                  \
+	    {MS_VIDEO_ENCODER_REQ_VFU, EncodingFilterWrapper::onRequestVfuCall},                                           \
+	    {MS_VIDEO_ENCODER_NOTIFY_PLI, EncodingFilterWrapper::onNotifyPliCall},                                         \
+	    {MS_VIDEO_ENCODER_NOTIFY_FIR, EncodingFilterWrapper::onNotifyFirCall},                                         \
+	    {MS_VIDEO_ENCODER_NOTIFY_SLI, EncodingFilterWrapper::onNotifySliCall},                                         \
+	    {MS_VIDEO_ENCODER_ENABLE_AVPF, EncodingFilterWrapper::onEnableAvpfCall},                                       \
+	    {MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, EncodingFilterWrapper::onGetVideoConfigurationsCall},                \
+	    {MS_VIDEO_ENCODER_GET_CONFIGURATION, EncodingFilterWrapper::onGetConfigurationCall},                           \
+	    {MS_VIDEO_ENCODER_SET_CONFIGURATION, EncodingFilterWrapper::onSetConfigurationCall},                           \
+	    {0, nullptr}}
 
-#define MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags) \
+#define MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags)                        \
 	MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, MS_FILTER_ENCODER, enc_fmt, 1, 1, flags)

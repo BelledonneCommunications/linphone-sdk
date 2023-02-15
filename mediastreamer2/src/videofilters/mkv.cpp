@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <bctoolbox/defs.h>
 
 #include <algorithm>
 #include <memory>
@@ -34,18 +35,18 @@ extern "C" {
 
 #define bool_t ms_bool_t
 
+#include "mediastreamer2/formats.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
-#include "waveheader.h"
-#include "mediastreamer2/formats.h"
 #include "mkv_reader.h"
+#include "waveheader.h"
 
 #ifdef VIDEO_ENABLED
-	#include "mediastreamer2/msvideo.h"
-	#include "vp8rtpfmt.h"
-	#include "h26x/h264-nal-packer.h"
-	#include "h26x/h264-nal-unpacker.h"
-	#include "h26x/h264-utils.h"
+#include "h26x/h264-nal-packer.h"
+#include "h26x/h264-nal-unpacker.h"
+#include "h26x/h264-utils.h"
+#include "mediastreamer2/msvideo.h"
+#include "vp8rtpfmt.h"
 #endif // ifdef VIDEO_ENABLED
 
 #undef bool_t
@@ -53,11 +54,10 @@ extern "C" {
 #define bool_t ambigous use ms_bool_t or matroska_bool_t
 
 #ifdef VIDEO_ENABLED
-	using namespace mediastreamer;
+using namespace mediastreamer;
 #endif // ifdef VIDEO_ENABLED
 
 static int recorder_close(MSFilter *f, void *arg);
-
 
 /*********************************************************************************************
  * Module interface                                                                          *
@@ -66,8 +66,19 @@ typedef void *(*ModuleNewFunc)(MSFactory *factory);
 typedef void (*ModuleFreeFunc)(void *obj);
 typedef void (*ModuleSetFunc)(void *obj, const MSFmtDescriptor *fmt);
 typedef int (*ModulePreProFunc)(void *obj, MSQueue *input, MSQueue *output);
-typedef mblk_t *(*ModuleProFunc)(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize);
-typedef void (*ModuleReverseFunc)(MSFactory* factory, void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize);
+typedef mblk_t *(*ModuleProFunc)(void *obj,
+                                 mblk_t *buffer,
+                                 ms_bool_t *isKeyFrame,
+                                 ms_bool_t *isVisible,
+                                 uint8_t **codecPrivateData,
+                                 size_t *codecPrivateSize);
+typedef void (*ModuleReverseFunc)(MSFactory *factory,
+                                  void *obj,
+                                  mblk_t *input,
+                                  MSQueue *output,
+                                  ms_bool_t isFirstFrame,
+                                  const uint8_t *codecPrivateData,
+                                  size_t codecPrivateSize);
 typedef void (*ModulePrivateDataFunc)(const void *obj, uint8_t **data, size_t *data_size);
 typedef void (*ModulePrivateDataLoadFunc)(void *obj, const uint8_t *data, size_t size);
 typedef ms_bool_t (*ModuleIsKeyFrameFunc)(const mblk_t *frame);
@@ -124,8 +135,8 @@ static H264Private *H264Private_clone(const H264Private *obj) {
 }
 
 static void _H264Private_uninit(H264Private *obj) {
-	if(obj->sps_list != NULL) bctbx_list_free_with_data(obj->sps_list, (bctbx_list_free_func)freemsg);
-	if(obj->pps_list != NULL) bctbx_list_free_with_data(obj->pps_list, (bctbx_list_free_func)freemsg);
+	if (obj->sps_list != NULL) bctbx_list_free_with_data(obj->sps_list, (bctbx_list_free_func)freemsg);
+	if (obj->pps_list != NULL) bctbx_list_free_with_data(obj->pps_list, (bctbx_list_free_func)freemsg);
 }
 
 static void H264Private_free(H264Private *obj) {
@@ -156,7 +167,7 @@ static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
 	bctbx_list_t *it;
 	const mblk_t *firstSPS;
 	unsigned int id = ms_h264_sps_get_id(sps);
-	for(it = bctbx_list_first_elem(obj->sps_list); it!=NULL; it=bctbx_list_next(it)) {
+	for (it = bctbx_list_first_elem(obj->sps_list); it != NULL; it = bctbx_list_next(it)) {
 		if (ms_h264_sps_get_id((mblk_t *)it->data) == id) break;
 	}
 	if (it == NULL) {
@@ -174,7 +185,7 @@ static void H264Private_addSPS(H264Private *obj, mblk_t *sps) {
 static void H264Private_addPPS(H264Private *obj, mblk_t *pps) {
 	bctbx_list_t *it;
 	unsigned int id = ms_h264_pps_get_id(pps);
-	for(it = bctbx_list_first_elem(obj->pps_list); it!=NULL; it=bctbx_list_next(it)) {
+	for (it = bctbx_list_first_elem(obj->pps_list); it != NULL; it = bctbx_list_next(it)) {
 		if (ms_h264_pps_get_id((mblk_t *)it->data) == id) break;
 	}
 	if (it == NULL) {
@@ -206,11 +217,11 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	*size = 7;
 	*size += (nbSPS + nbPPS) * 2;
 
-	for(it = obj->sps_list; it != NULL; it = it->next) {
+	for (it = obj->sps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		*size += msgdsize(buff);
 	}
-	for(it = obj->pps_list; it != NULL; it = it->next) {
+	for (it = obj->pps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		*size += msgdsize(buff);
 	}
@@ -223,7 +234,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	result[5] = nbSPS & 0x1F;
 
 	i = 6;
-	for(it = obj->sps_list; it != NULL; it = it->next) {
+	for (it = obj->sps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		size_t buff_size = msgdsize(buff);
 		uint16_t buff_size_be = htons((uint16_t)buff_size);
@@ -236,7 +247,7 @@ static void H264Private_serialize(const H264Private *obj, uint8_t **data, size_t
 	result[i] = nbPPS;
 	i++;
 
-	for(it = obj->pps_list; it != NULL; it = it->next) {
+	for (it = obj->pps_list; it != NULL; it = it->next) {
 		mblk_t *buff = (mblk_t *)(it->data);
 		size_t buff_size = msgdsize(buff);
 		uint16_t buff_size_be = htons((uint16_t)buff_size);
@@ -259,7 +270,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 
 	N = data[5] & 0x1F;
 	r_ptr = data + 6;
-	for(i = 0; i < N; i++) {
+	for (i = 0; i < N; i++) {
 		memcpy(&nalu_size, r_ptr, sizeof(uint16_t));
 		r_ptr += sizeof(uint16_t);
 		nalu_size = ntohs(nalu_size);
@@ -272,7 +283,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 
 	N = *r_ptr;
 	r_ptr += 1;
-	for(i = 0; i < N; i++) {
+	for (i = 0; i < N; i++) {
 		memcpy(&nalu_size, r_ptr, sizeof(uint16_t));
 		r_ptr += sizeof(uint16_t);
 		nalu_size = ntohs(nalu_size);
@@ -283,7 +294,7 @@ static void H264Private_load(H264Private *obj, const uint8_t *data) {
 		obj->pps_list = bctbx_list_append(obj->pps_list, nalu);
 	}
 
-	if(obj->sps_list != NULL) {
+	if (obj->sps_list != NULL) {
 		const mblk_t *firstSPS = (const mblk_t *)bctbx_list_nth_data(obj->sps_list, 0);
 		obj->profile = firstSPS->b_rptr[1];
 		obj->level = firstSPS->b_rptr[3];
@@ -310,8 +321,8 @@ static void h264_module_free(void *data) {
 	H264Module *obj = (H264Module *)data;
 	delete obj->packer;
 	delete obj->unpacker;
-	if(obj->codecPrivate != NULL) H264Private_free(obj->codecPrivate);
-	if(obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
+	if (obj->codecPrivate != NULL) H264Private_free(obj->codecPrivate);
+	if (obj->lastCodecPrivate != NULL) H264Private_free(obj->lastCodecPrivate);
 	bctbx_free(obj);
 }
 
@@ -321,12 +332,12 @@ static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output
 	mblk_t *inputBuffer = NULL;
 
 	ms_queue_init(&queue);
-	while((inputBuffer = ms_queue_get(input)) != NULL) {
+	while ((inputBuffer = ms_queue_get(input)) != NULL) {
 		obj->unpacker->unpack(inputBuffer, &queue);
-		if(!ms_queue_empty(&queue)) {
+		if (!ms_queue_empty(&queue)) {
 			mblk_t *frame = ms_queue_get(&queue);
 			mblk_t *end = frame;
-			while(!ms_queue_empty(&queue)) {
+			while (!ms_queue_empty(&queue)) {
 				end = concatb(end, ms_queue_get(&queue));
 			}
 			ms_queue_put(output, frame);
@@ -338,11 +349,14 @@ static int h264_module_preprocessing(void *data, MSQueue *input, MSQueue *output
 
 static ms_bool_t h264_is_key_frame(const mblk_t *frame) {
 	const mblk_t *curNalu = NULL;
-	for(curNalu = frame; curNalu != NULL && ms_h264_nalu_get_type(curNalu) != MSH264NaluTypeIDR; curNalu = curNalu->b_cont);
+	for (curNalu = frame; curNalu != NULL && ms_h264_nalu_get_type(curNalu) != MSH264NaluTypeIDR;
+	     curNalu = curNalu->b_cont)
+		;
 	return curNalu != NULL;
 }
 
-static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsList, bctbx_list_t **ppsList, ms_bool_t *isKeyFrame) {
+static void
+nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsList, bctbx_list_t **ppsList, ms_bool_t *isKeyFrame) {
 	mblk_t *curNalu = NULL;
 	mblk_t *size;
 	uint32_t timecode = mblk_get_timestamp_info(buffer);
@@ -352,14 +366,14 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsLis
 	*spsList = NULL;
 	*ppsList = NULL;
 
-	for(curNalu = buffer; curNalu != NULL;) {
+	for (curNalu = buffer; curNalu != NULL;) {
 		mblk_t *buff = curNalu;
 		MSH264NaluType type = ms_h264_nalu_get_type(buff);
 
 		curNalu = curNalu->b_cont;
 		buff->b_cont = NULL;
 
-		switch(type) {
+		switch (type) {
 			case MSH264NaluTypeSPS:
 				*spsList = bctbx_list_append(*spsList, copymsg(buff));
 				break;
@@ -383,20 +397,25 @@ static void nalus_to_frame(mblk_t *buffer, mblk_t **frame, bctbx_list_t **spsLis
 		concatb(size, buff);
 		buff = size;
 
-		if(*frame == NULL) {
+		if (*frame == NULL) {
 			*frame = buff;
 		} else {
 			concatb(*frame, buff);
 		}
 	}
 
-	if(*frame != NULL) {
+	if (*frame != NULL) {
 		msgpullup(*frame, (size_t)-1);
 		mblk_set_timestamp_info(*frame, timecode);
 	}
 }
 
-static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *h264_module_processing(void *data,
+                                      mblk_t *nalus,
+                                      ms_bool_t *isKeyFrame,
+                                      ms_bool_t *isVisible,
+                                      uint8_t **codecPrivateData,
+                                      size_t *codecPrivateSize) {
 	H264Module *obj = (H264Module *)data;
 	mblk_t *frame;
 	bctbx_list_t *spsList, *ppsList;
@@ -404,7 +423,7 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 	*codecPrivateData = NULL;
 	*codecPrivateSize = 0;
 	nalus_to_frame(nalus, &frame, &spsList, &ppsList, isKeyFrame);
-	if(spsList != NULL || ppsList != NULL) {
+	if (spsList != NULL || ppsList != NULL) {
 		bctbx_list_t *it;
 		H264Private *newCodecPrivate;
 
@@ -416,10 +435,10 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 		} else {
 			newCodecPrivate = H264Private_new();
 		}
-		for (it=bctbx_list_first_elem(spsList); it!=NULL; it=bctbx_list_next(it)) {
+		for (it = bctbx_list_first_elem(spsList); it != NULL; it = bctbx_list_next(it)) {
 			H264Private_addSPS(newCodecPrivate, (mblk_t *)bctbx_list_get_data(it));
 		}
-		for (it=bctbx_list_first_elem(ppsList); it!=NULL; it=bctbx_list_next(it)) {
+		for (it = bctbx_list_first_elem(ppsList); it != NULL; it = bctbx_list_next(it)) {
 			H264Private_addPPS(newCodecPrivate, (mblk_t *)bctbx_list_get_data(it));
 		}
 		if (obj->codecPrivate == NULL) {
@@ -440,14 +459,20 @@ static mblk_t *h264_module_processing(void *data, mblk_t *nalus, ms_bool_t *isKe
 			}
 		}
 		H264Private_acknowlege(newCodecPrivate);
-		if(spsList != NULL) bctbx_list_free_with_data(spsList, (bctbx_list_free_func)freemsg);
-		if(ppsList != NULL) bctbx_list_free_with_data(ppsList, (bctbx_list_free_func)freemsg);
+		if (spsList != NULL) bctbx_list_free_with_data(spsList, (bctbx_list_free_func)freemsg);
+		if (ppsList != NULL) bctbx_list_free_with_data(ppsList, (bctbx_list_free_func)freemsg);
 	}
 	*isVisible = TRUE;
 	return frame;
 }
 
-static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void h264_module_reverse(BCTBX_UNUSED(MSFactory *factory),
+                                void *data,
+                                mblk_t *input,
+                                MSQueue *output,
+                                ms_bool_t isFirstFrame,
+                                const uint8_t *codecPrivateData,
+                                BCTBX_UNUSED(size_t codecPrivateSize)) {
 	mblk_t *buffer = NULL, *bufferFrag = NULL;
 	H264Module *obj = (H264Module *)data;
 	MSQueue queue;
@@ -455,7 +480,7 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 	H264Private *codecPrivate = NULL, *selectedCodecPrivate = NULL;
 
 	ms_queue_init(&queue);
-	while(input->b_rptr != input->b_wptr) {
+	while (input->b_rptr != input->b_wptr) {
 		uint32_t naluSize;
 		mblk_t *nalu;
 		memcpy(&naluSize, input->b_rptr, sizeof(uint32_t));
@@ -465,35 +490,35 @@ static void h264_module_reverse(MSFactory* factory, void *data, mblk_t *input, M
 		memcpy(nalu->b_wptr, input->b_rptr, naluSize);
 		nalu->b_wptr += naluSize;
 		input->b_rptr += naluSize;
-		if(buffer == NULL) {
+		if (buffer == NULL) {
 			buffer = nalu;
 		} else {
 			concatb(buffer, nalu);
 		}
 	}
-	if(isFirstFrame) {
+	if (isFirstFrame) {
 		selectedCodecPrivate = obj->codecPrivate;
-	} else if(codecPrivateData != NULL) {
+	} else if (codecPrivateData != NULL) {
 		codecPrivate = H264Private_new();
 		H264Private_load(codecPrivate, codecPrivateData);
 		selectedCodecPrivate = codecPrivate;
 	}
-	if(selectedCodecPrivate != NULL) {
-		for(it = H264Private_getSPS(selectedCodecPrivate); it != NULL; it = it->next) {
+	if (selectedCodecPrivate != NULL) {
+		for (it = H264Private_getSPS(selectedCodecPrivate); it != NULL; it = it->next) {
 			mblk_t *sps = copymsg((mblk_t *)it->data);
 			ms_queue_put(&queue, sps);
 			ms_message("MKVPlayer: send SPS");
 		}
-		for(it = H264Private_getPPS(selectedCodecPrivate); it != NULL; it = it->next) {
+		for (it = H264Private_getPPS(selectedCodecPrivate); it != NULL; it = it->next) {
 			mblk_t *pps = copymsg((mblk_t *)it->data);
 			ms_queue_put(&queue, pps);
 			ms_message("MKVPlayer: send PPS");
 		}
 	}
 
-	if(codecPrivate != NULL) H264Private_free(codecPrivate);
+	if (codecPrivate != NULL) H264Private_free(codecPrivate);
 
-	for(bufferFrag = buffer; bufferFrag != NULL;) {
+	for (bufferFrag = buffer; bufferFrag != NULL;) {
 		mblk_t *curBuff = bufferFrag;
 		bufferFrag = bufferFrag->b_cont;
 		curBuff->b_cont = NULL;
@@ -512,26 +537,24 @@ static void h264_module_get_private_data(const void *o, uint8_t **data, size_t *
 	}
 }
 
-static void h264_module_load_private_data(void *o, const uint8_t *data, size_t size) {
+static void h264_module_load_private_data(void *o, const uint8_t *data, BCTBX_UNUSED(size_t size)) {
 	H264Module *obj = (H264Module *)o;
 	obj->codecPrivate = H264Private_new();
 	H264Private_load(obj->codecPrivate, data);
 }
 
 /* h264 module description */
-static const ModuleDesc h264_module_desc = {
-	"H264",
-	"V_MPEG4/ISO/AVC",
-	h264_module_new,
-	h264_module_free,
-	NULL,
-	h264_module_preprocessing,
-	h264_module_processing,
-	h264_module_reverse,
-	h264_module_get_private_data,
-	h264_module_load_private_data,
-	h264_is_key_frame
-};
+static const ModuleDesc h264_module_desc = {"H264",
+                                            "V_MPEG4/ISO/AVC",
+                                            h264_module_new,
+                                            h264_module_free,
+                                            NULL,
+                                            h264_module_preprocessing,
+                                            h264_module_processing,
+                                            h264_module_reverse,
+                                            h264_module_get_private_data,
+                                            h264_module_load_private_data,
+                                            h264_is_key_frame};
 
 /*********************************************************************************************
  * VP8 module                                                                               *
@@ -545,7 +568,7 @@ typedef struct _Vp8Module {
 	uint16_t cseq;
 } Vp8Module;
 
-static void *vp8_module_new(MSFactory *factory) {
+static void *vp8_module_new(BCTBX_UNUSED(MSFactory *factory)) {
 	Vp8Module *obj = (Vp8Module *)ms_new0(Vp8Module, 1);
 	vp8rtpfmt_unpacker_init(&obj->unpacker, NULL, FALSE, TRUE, FALSE);
 	vp8rtpfmt_packer_init(&obj->packer);
@@ -566,14 +589,25 @@ static int vp8_module_preprocess(void *obj, MSQueue *input, MSQueue *output) {
 	return vp8rtpfmt_unpacker_get_frame(unpacker, output, &infos);
 }
 
-static mblk_t *vp8_module_process(void *obj, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *vp8_module_process(BCTBX_UNUSED(void *obj),
+                                  mblk_t *buffer,
+                                  ms_bool_t *isKeyFrame,
+                                  ms_bool_t *isVisible,
+                                  BCTBX_UNUSED(uint8_t **codecPrivateData),
+                                  BCTBX_UNUSED(size_t *codecPrivateSize)) {
 	uint8_t first_byte = *buffer->b_rptr;
 	*isKeyFrame = !(first_byte & 0x01);
 	*isVisible = first_byte & 0x10;
 	return buffer;
 }
 
-static void vp8_module_reverse(MSFactory * f, void *obj, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
+static void vp8_module_reverse(MSFactory *f,
+                               void *obj,
+                               mblk_t *input,
+                               MSQueue *output,
+                               BCTBX_UNUSED(ms_bool_t isFirstFrame),
+                               BCTBX_UNUSED(const uint8_t *codecPrivateData),
+                               BCTBX_UNUSED(size_t codecPrivateSize)) {
 	Vp8Module *mod = (Vp8Module *)obj;
 	bctbx_list_t *packer_input = NULL;
 	Vp8RtpFmtPacket *packet = ms_new0(Vp8RtpFmtPacket, 1);
@@ -592,7 +626,7 @@ static void vp8_module_reverse(MSFactory * f, void *obj, mblk_t *input, MSQueue 
 	packer_input = bctbx_list_append(packer_input, packet);
 	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q, f);
 
-	while((m = ms_queue_get(&q))) {
+	while ((m = ms_queue_get(&q))) {
 		mblk_set_cseq(m, mod->cseq++);
 		ms_queue_put(output, m);
 	}
@@ -604,19 +638,17 @@ static ms_bool_t vp8_module_is_keyframe(const mblk_t *frame) {
 }
 
 /* VP8 module description */
-static const ModuleDesc vp8_module_desc = {
-	"VP8",
-	"V_VP8",
-	vp8_module_new,
-	vp8_module_free,
-	NULL,
-	vp8_module_preprocess,
-	vp8_module_process,
-	vp8_module_reverse,
-	NULL,
-	NULL,
-	vp8_module_is_keyframe
-};
+static const ModuleDesc vp8_module_desc = {"VP8",
+                                           "V_VP8",
+                                           vp8_module_new,
+                                           vp8_module_free,
+                                           NULL,
+                                           vp8_module_preprocess,
+                                           vp8_module_process,
+                                           vp8_module_reverse,
+                                           NULL,
+                                           NULL,
+                                           vp8_module_is_keyframe};
 
 #endif /* HAVE_VPX */
 
@@ -661,7 +693,7 @@ static void wav_private_load(WavPrivate *obj, const uint8_t *data, size_t size) 
 }
 
 /* µLaw module */
-static void *mu_law_module_new(MSFactory *factory) {
+static void *mu_law_module_new(BCTBX_UNUSED(MSFactory *factory)) {
 	return ms_new0(WavPrivate, 1);
 }
 
@@ -688,33 +720,29 @@ static void mu_law_module_load_private(void *o, const uint8_t *data, size_t size
 
 /* µLaw module description */
 #ifdef _MSC_VER
-static const ModuleDesc mu_law_module_desc = {
-	"pcmu",
-	"A_MS/ACM",
-	mu_law_module_new,
-	mu_law_module_free,
-	mu_law_module_set,
-	NULL,
-	NULL,
-	NULL,
-	mu_law_module_get_private_data,
-	mu_law_module_load_private,
-	NULL
-};
+static const ModuleDesc mu_law_module_desc = {"pcmu",
+                                              "A_MS/ACM",
+                                              mu_law_module_new,
+                                              mu_law_module_free,
+                                              mu_law_module_set,
+                                              NULL,
+                                              NULL,
+                                              NULL,
+                                              mu_law_module_get_private_data,
+                                              mu_law_module_load_private,
+                                              NULL};
 #else
-static const ModuleDesc mu_law_module_desc = {
-	.rfcName = "pcmu",
-	.codecId = "A_MS/ACM",
-	.new_module = mu_law_module_new,
-	.free_module = mu_law_module_free,
-	.set = mu_law_module_set,
-	.preprocess = NULL,
-	.process = NULL,
-	.reverse = NULL,
-	.get_private_data = mu_law_module_get_private_data,
-	.load_private_data = mu_law_module_load_private,
-	.is_key_frame = NULL
-};
+static const ModuleDesc mu_law_module_desc = {.rfcName = "pcmu",
+                                              .codecId = "A_MS/ACM",
+                                              .new_module = mu_law_module_new,
+                                              .free_module = mu_law_module_free,
+                                              .set = mu_law_module_set,
+                                              .preprocess = NULL,
+                                              .process = NULL,
+                                              .reverse = NULL,
+                                              .get_private_data = mu_law_module_get_private_data,
+                                              .load_private_data = mu_law_module_load_private,
+                                              .is_key_frame = NULL};
 #endif
 
 /*********************************************************************************************
@@ -750,12 +778,12 @@ static void opus_codec_private_serialize(const OpusCodecPrivate *obj, uint8_t **
 	memcpy((*data) + 8, obj, 11);
 }
 
-static void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, size_t size) {
+static void opus_codec_private_load(OpusCodecPrivate *obj, const uint8_t *data, BCTBX_UNUSED(size_t size)) {
 	memcpy(obj, data + 8, 11);
 }
 
 // OpusModule
-static void *opus_module_new(MSFactory *factory) {
+static void *opus_module_new(BCTBX_UNUSED(MSFactory *factory)) {
 	OpusCodecPrivate *obj = ms_new0(OpusCodecPrivate, 1);
 	opus_codec_private_init(obj);
 	return obj;
@@ -782,33 +810,29 @@ static void opus_module_load_private_data(void *o, const uint8_t *data, size_t s
 }
 
 #ifdef _MSC_VER
-static const ModuleDesc opus_module_desc = {
-	"opus",
-	"A_OPUS",
-	opus_module_new,
-	opus_module_free,
-	opus_module_set,
-	NULL,
-	NULL,
-	NULL,
-	opus_module_get_private_data,
-	opus_module_load_private_data,
-	NULL
-};
+static const ModuleDesc opus_module_desc = {"opus",
+                                            "A_OPUS",
+                                            opus_module_new,
+                                            opus_module_free,
+                                            opus_module_set,
+                                            NULL,
+                                            NULL,
+                                            NULL,
+                                            opus_module_get_private_data,
+                                            opus_module_load_private_data,
+                                            NULL};
 #else
-static const ModuleDesc opus_module_desc = {
-	.rfcName = "opus",
-	.codecId = "A_OPUS",
-	.new_module = opus_module_new,
-	.free_module = opus_module_free,
-	.set = opus_module_set,
-	.preprocess = NULL,
-	.process = NULL,
-	.reverse = NULL,
-	.get_private_data = opus_module_get_private_data,
-	.load_private_data = opus_module_load_private_data,
-	.is_key_frame = NULL
-};
+static const ModuleDesc opus_module_desc = {.rfcName = "opus",
+                                            .codecId = "A_OPUS",
+                                            .new_module = opus_module_new,
+                                            .free_module = opus_module_free,
+                                            .set = opus_module_set,
+                                            .preprocess = NULL,
+                                            .process = NULL,
+                                            .reverse = NULL,
+                                            .get_private_data = opus_module_get_private_data,
+                                            .load_private_data = opus_module_load_private_data,
+                                            .is_key_frame = NULL};
 #endif
 
 /*********************************************************************************************
@@ -817,25 +841,24 @@ static const ModuleDesc opus_module_desc = {
 
 static const ModuleDesc *moduleDescs[] = {
 #ifdef VIDEO_ENABLED
-	&h264_module_desc,
+    &h264_module_desc,
 #ifdef HAVE_VPX
-	&vp8_module_desc,
+    &vp8_module_desc,
 #endif /* HAVE_VPX */
 #endif // ifdef VIDEO_ENABLED
-	&mu_law_module_desc,
-	&opus_module_desc,
-	NULL
-};
+    &mu_law_module_desc, &opus_module_desc, NULL};
 
 static const ModuleDesc *find_module_desc_from_rfc_name(const char *rfcName) {
 	int i;
-	for(i = 0; moduleDescs[i] && strcasecmp(moduleDescs[i]->rfcName, rfcName) != 0; i++);
+	for (i = 0; moduleDescs[i] && strcasecmp(moduleDescs[i]->rfcName, rfcName) != 0; i++)
+		;
 	return moduleDescs[i];
 }
 
 static const ModuleDesc *find_module_desc_from_codec_id(const char *codecId) {
 	int i;
-	for(i = 0; moduleDescs[i] && strcmp(moduleDescs[i]->codecId, codecId) != 0; i++);
+	for (i = 0; moduleDescs[i] && strcmp(moduleDescs[i]->codecId, codecId) != 0; i++)
+		;
 	return moduleDescs[i];
 }
 
@@ -854,42 +877,47 @@ typedef struct {
 
 static Module *module_new(MSFactory *factory, const char *rfcName) {
 	const ModuleDesc *desc = find_module_desc_from_rfc_name(rfcName);
-	if(desc == NULL) {
+	if (desc == NULL) {
 		return NULL;
 	} else {
 		Module *module = (Module *)ms_new0(Module, 1);
 		module->desc = desc;
-		if(desc->new_module) module->data = desc->new_module(factory);
+		if (desc->new_module) module->data = desc->new_module(factory);
 		return module;
 	}
 }
 
 static void module_free(Module *module) {
-	if(module->desc->free_module) module->desc->free_module(module->data);
+	if (module->desc->free_module) module->desc->free_module(module->data);
 	ms_free(module);
 }
 
 static void module_set(Module *module, const MSFmtDescriptor *format) {
-	if(module->desc->set != NULL) {
+	if (module->desc->set != NULL) {
 		module->desc->set(module->data, format);
 	}
 }
 
 static int module_preprocess(Module *module, MSQueue *input, MSQueue *output) {
-	if(module->desc->preprocess != NULL) {
+	if (module->desc->preprocess != NULL) {
 		return module->desc->preprocess(module->data, input, output);
 	} else {
 		mblk_t *buffer;
-		while((buffer = ms_queue_get(input)) != NULL) {
+		while ((buffer = ms_queue_get(input)) != NULL) {
 			ms_queue_put(output, buffer);
 		}
 		return 0;
 	}
 }
 
-static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFrame, ms_bool_t *isVisible, uint8_t **codecPrivateData, size_t *codecPrivateSize) {
+static mblk_t *module_process(Module *module,
+                              mblk_t *buffer,
+                              ms_bool_t *isKeyFrame,
+                              ms_bool_t *isVisible,
+                              uint8_t **codecPrivateData,
+                              size_t *codecPrivateSize) {
 	mblk_t *frame;
-	if(module->desc->process != NULL) {
+	if (module->desc->process != NULL) {
 		frame = module->desc->process(module->data, buffer, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
 	} else {
 		frame = buffer;
@@ -900,8 +928,14 @@ static mblk_t *module_process(Module *module, mblk_t *buffer, ms_bool_t *isKeyFr
 	return frame;
 }
 
-static void module_reverse(MSFactory* f, Module *module, mblk_t *input, MSQueue *output, ms_bool_t isFirstFrame, const uint8_t *codecPrivateData, size_t codecPrivateSize) {
-	if(module->desc->reverse == NULL) {
+static void module_reverse(MSFactory *f,
+                           Module *module,
+                           mblk_t *input,
+                           MSQueue *output,
+                           ms_bool_t isFirstFrame,
+                           const uint8_t *codecPrivateData,
+                           size_t codecPrivateSize) {
+	if (module->desc->reverse == NULL) {
 		ms_queue_put(output, input);
 	} else {
 		module->desc->reverse(f, module->data, input, output, isFirstFrame, codecPrivateData, codecPrivateSize);
@@ -909,7 +943,7 @@ static void module_reverse(MSFactory* f, Module *module, mblk_t *input, MSQueue 
 }
 
 static void module_get_private_data(const Module *module, uint8_t **data, size_t *dataSize) {
-	if(module->desc->get_private_data) {
+	if (module->desc->get_private_data) {
 		module->desc->get_private_data(module->data, data, dataSize);
 	} else {
 		*data = NULL;
@@ -918,13 +952,13 @@ static void module_get_private_data(const Module *module, uint8_t **data, size_t
 }
 
 static void module_load_private_data(Module *module, const uint8_t *data, size_t size) {
-	if(module->desc->load_private_data) {
+	if (module->desc->load_private_data) {
 		module->desc->load_private_data(module->data, data, size);
 	}
 }
 
 static ms_bool_t module_is_key_frame(const Module *module, const mblk_t *frame) {
-	if(module->desc->is_key_frame) {
+	if (module->desc->is_key_frame) {
 		return module->desc->is_key_frame(frame);
 	} else {
 		return TRUE;
@@ -945,22 +979,22 @@ static const int MKV_DOCTYPE_VERSION = 4;
 static const int MKV_DOCTYPE_READ_VERSION = 2;
 
 extern "C" {
-	extern const nodemeta LangStr_Class[];
-	extern const nodemeta UrlPart_Class[];
-	extern const nodemeta BufStream_Class[];
-	extern const nodemeta MemStream_Class[];
-	extern const nodemeta Streams_Class[];
-	extern const nodemeta File_Class[];
-	extern const nodemeta Stdio_Class[];
-	extern const nodemeta Matroska_Class[];
-	extern const nodemeta EBMLElement_Class[];
-	extern const nodemeta EBMLMaster_Class[];
-	extern const nodemeta EBMLBinary_Class[];
-	extern const nodemeta EBMLString_Class[];
-	extern const nodemeta EBMLInteger_Class[];
-	extern const nodemeta EBMLCRC_Class[];
-	extern const nodemeta EBMLDate_Class[];
-	extern const nodemeta EBMLVoid_Class[];
+extern const nodemeta LangStr_Class[];
+extern const nodemeta UrlPart_Class[];
+extern const nodemeta BufStream_Class[];
+extern const nodemeta MemStream_Class[];
+extern const nodemeta Streams_Class[];
+extern const nodemeta File_Class[];
+extern const nodemeta Stdio_Class[];
+extern const nodemeta Matroska_Class[];
+extern const nodemeta EBMLElement_Class[];
+extern const nodemeta EBMLMaster_Class[];
+extern const nodemeta EBMLBinary_Class[];
+extern const nodemeta EBMLString_Class[];
+extern const nodemeta EBMLInteger_Class[];
+extern const nodemeta EBMLCRC_Class[];
+extern const nodemeta EBMLDate_Class[];
+extern const nodemeta EBMLVoid_Class[];
 }
 
 static void loadModules(nodemodule *modules) {
@@ -977,11 +1011,7 @@ static void loadModules(nodemodule *modules) {
 	NodeRegisterClassEx(modules, EBMLVoid_Class);
 }
 
-typedef enum {
-	MKV_OPEN_CREATE,
-	MKV_OPEN_APPEND,
-	MKV_OPEN_RO
-} MatroskaOpenMode;
+typedef enum { MKV_OPEN_CREATE, MKV_OPEN_APPEND, MKV_OPEN_RO } MatroskaOpenMode;
 
 typedef struct {
 	parsercontext *p;
@@ -993,7 +1023,6 @@ typedef struct {
 	filepos_t segmentInfoPosition;
 	int nbClusters;
 } Matroska;
-
 
 static void matroska_init(Matroska *obj) {
 	memset(obj, 0, sizeof(Matroska));
@@ -1017,15 +1046,15 @@ static int ebml_reading_profile(ebml_master *head) {
 	int64_t docTypeReadVersion;
 	const tchar_t *matroska_doc_type =
 #ifdef UNICODE
-		L"matroska";
+	    L"matroska";
 #else
-		"matroska";
+	    "matroska";
 #endif
 	const tchar_t *webm_doc_type =
 #ifdef UNICODE
-		L"webm";
+	    L"webm";
 #else
-		"webm";
+	    "webm";
 #endif
 
 	EBML_StringGet((ebml_string *)EBML_MasterGetChild(head, &EBML_ContextDocType), docType, sizeof(docType));
@@ -1033,22 +1062,22 @@ static int ebml_reading_profile(ebml_master *head) {
 
 	if (tcscmp(docType, matroska_doc_type) == 0) {
 		switch (docTypeReadVersion) {
-		case 1:
-			profile = PROFILE_MATROSKA_V1;
-			break;
-		case 2:
-			profile = PROFILE_MATROSKA_V2;
-			break;
-		case 3:
-			profile = PROFILE_MATROSKA_V3;
-			break;
-		case 4:
-			profile = PROFILE_MATROSKA_V4;
-			break;
-		default:
-			profile = -1;
+			case 1:
+				profile = PROFILE_MATROSKA_V1;
+				break;
+			case 2:
+				profile = PROFILE_MATROSKA_V2;
+				break;
+			case 3:
+				profile = PROFILE_MATROSKA_V3;
+				break;
+			case 4:
+				profile = PROFILE_MATROSKA_V4;
+				break;
+			default:
+				profile = -1;
 		}
-	} else if(tcscmp(docType, webm_doc_type)) {
+	} else if (tcscmp(docType, webm_doc_type)) {
 		profile = PROFILE_WEBM;
 	} else {
 		profile = -1;
@@ -1057,7 +1086,7 @@ static int ebml_reading_profile(ebml_master *head) {
 	return profile;
 }
 
-static ms_bool_t matroska_create_file(Matroska *obj, const char path[]) {
+static ms_bool_t matroska_create_file(Matroska *obj, BCTBX_UNUSED(const char path[])) {
 	obj->header = (ebml_master *)EBML_ElementCreate(obj->p, &EBML_ContextHead, TRUE, NULL);
 	obj->segment = (ebml_master *)EBML_ElementCreate(obj->p, &MATROSKA_ContextSegment, TRUE, NULL);
 	obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
@@ -1093,33 +1122,35 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	obj->segment = (ebml_master *)EBML_FindNextElement(obj->output, &readContext, &upperLevels, FALSE);
 	EBML_ElementReadData(obj->segment, obj->output, &readContext, FALSE, SCOPE_PARTIAL_DATA, 0);
 
-	for(elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt)) {
-		if(EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead)) {
+	for (elt = EBML_MasterChildren(obj->segment); elt != NULL; elt = EBML_MasterNext(elt)) {
+		if (EBML_ElementIsType(elt, &MATROSKA_ContextSeekHead)) {
 			matroska_seekpoint *seekPoint = NULL;
 			obj->metaSeek = (ebml_master *)elt;
 
-			for(seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL; seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint)) {
-				if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo)) {
+			for (seekPoint = (matroska_seekpoint *)EBML_MasterChildren(obj->metaSeek); seekPoint != NULL;
+			     seekPoint = (matroska_seekpoint *)EBML_MasterNext(seekPoint)) {
+				if (MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextInfo)) {
 					obj->infoMeta = seekPoint;
-				} else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks)) {
+				} else if (MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextTracks)) {
 					obj->tracksMeta = seekPoint;
-				} else if(MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues)) {
+				} else if (MATROSKA_MetaSeekIsClass(seekPoint, &MATROSKA_ContextCues)) {
 					obj->cuesMeta = seekPoint;
 				}
 			}
-		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextInfo)) {
+		} else if (EBML_ElementIsType(elt, &MATROSKA_ContextInfo)) {
 			obj->info = (ebml_master *)elt;
-			obj->timecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale));
+			obj->timecodeScale =
+			    EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale));
 			MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
-		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextTracks)) {
+		} else if (EBML_ElementIsType(elt, &MATROSKA_ContextTracks)) {
 			obj->tracks = (ebml_master *)elt;
 			MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
-		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextCues)) {
+		} else if (EBML_ElementIsType(elt, &MATROSKA_ContextCues)) {
 			obj->cues = (ebml_master *)elt;
 			MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
-		} else if(EBML_ElementIsType(elt, &MATROSKA_ContextCluster)) {
+		} else if (EBML_ElementIsType(elt, &MATROSKA_ContextCluster)) {
 			obj->cluster = (ebml_master *)elt;
-			if(obj->nbClusters == 0) {
+			if (obj->nbClusters == 0) {
 				obj->firstCluster = obj->cluster;
 			}
 			MATROSKA_LinkClusterBlocks((matroska_cluster *)obj->cluster, obj->info, obj->tracks, FALSE);
@@ -1128,17 +1159,18 @@ static ms_bool_t matroska_load_file(Matroska *obj) {
 	}
 
 	/* Create an empty MetaSeek table if no has been found and create
-		 the missing entries */
-	if(obj->metaSeek == NULL) obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
-	if(obj->infoMeta == NULL) {
+	     the missing entries */
+	if (obj->metaSeek == NULL)
+		obj->metaSeek = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextSeekHead, FALSE);
+	if (obj->infoMeta == NULL) {
 		obj->infoMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
 		MATROSKA_LinkMetaSeekElement(obj->infoMeta, (ebml_element *)obj->info);
 	}
-	if(obj->tracksMeta == NULL) {
+	if (obj->tracksMeta == NULL) {
 		obj->tracksMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
 		MATROSKA_LinkMetaSeekElement(obj->tracksMeta, (ebml_element *)obj->tracks);
 	}
-	if(obj->cuesMeta == NULL) {
+	if (obj->cuesMeta == NULL) {
 		obj->cuesMeta = (matroska_seekpoint *)EBML_MasterAddElt(obj->metaSeek, &MATROSKA_ContextSeek, TRUE);
 		MATROSKA_LinkMetaSeekElement(obj->cuesMeta, (ebml_element *)obj->cues);
 	}
@@ -1150,8 +1182,8 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 	const tchar_t *tpath;
 
 #if defined(_MSC_VER) && defined(UNICODE)
-	wchar_t wpath[MAX_PATH+1];
-	if (MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, MAX_PATH+1) == 0) {
+	wchar_t wpath[MAX_PATH + 1];
+	if (MultiByteToWideChar(CP_ACP, 0, path, -1, wpath, MAX_PATH + 1) == 0) {
 		ms_error("Could not convert %s into UTF-16", path);
 		return -1;
 	}
@@ -1160,30 +1192,30 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 	tpath = path;
 #endif
 
-	switch(mode) {
+	switch (mode) {
 		case MKV_OPEN_CREATE:
-			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
+			if ((obj->output = StreamOpen(obj->p, tpath, SFLAG_WRONLY | SFLAG_CREATE)) == NULL) {
 				err = -2;
 				break;
 			}
-			if(!matroska_create_file(obj, path)) {
+			if (!matroska_create_file(obj, path)) {
 				err = -3;
 			}
 			break;
 
 		case MKV_OPEN_APPEND:
-			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_REOPEN)) == NULL) {
+			if ((obj->output = StreamOpen(obj->p, tpath, SFLAG_REOPEN)) == NULL) {
 				err = -2;
 				break;
 			}
-			if(!matroska_load_file(obj)) {
+			if (!matroska_load_file(obj)) {
 				err = -3;
 				break;
 			}
-			if(obj->cues == NULL) {
+			if (obj->cues == NULL) {
 				obj->cues = (ebml_master *)EBML_ElementCreate(obj->p, &MATROSKA_ContextCues, FALSE, NULL);
 			}
-			if(obj->cluster == NULL) {
+			if (obj->cluster == NULL) {
 				Stream_Seek(obj->output, 0, SEEK_END);
 			} else {
 				Stream_Seek(obj->output, EBML_ElementPositionEnd((ebml_element *)obj->cluster), SEEK_SET);
@@ -1191,11 +1223,11 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 			break;
 
 		case MKV_OPEN_RO:
-			if((obj->output = StreamOpen(obj->p, tpath, SFLAG_RDONLY)) == NULL) {
+			if ((obj->output = StreamOpen(obj->p, tpath, SFLAG_RDONLY)) == NULL) {
 				err = -2;
 				break;
 			}
-			if(!matroska_load_file(obj)) {
+			if (!matroska_load_file(obj)) {
 				err = -3;
 				break;
 			}
@@ -1209,13 +1241,13 @@ static int matroska_open_file(Matroska *obj, const char *path, MatroskaOpenMode 
 }
 
 static void matroska_close_file(Matroska *obj) {
-	if(obj->output != NULL) {
+	if (obj->output != NULL) {
 		StreamClose(obj->output);
 	}
-	if(obj->header != NULL) {
+	if (obj->header != NULL) {
 		Node_Release((node *)obj->header);
 	}
-	if(obj->segment != NULL) {
+	if (obj->segment != NULL) {
 		Node_Release((node *)obj->segment);
 	}
 	obj->output = NULL;
@@ -1240,7 +1272,8 @@ static void matroska_close_file(Matroska *obj) {
 
 static void matroska_set_doctype_version(Matroska *obj, int doctypeVersion, int doctypeReadVersion) {
 	EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeVersion), doctypeVersion);
-	EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeReadVersion), doctypeReadVersion);
+	EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->header, &EBML_ContextDocTypeReadVersion),
+	                     doctypeReadVersion);
 }
 
 static void matroska_write_ebml_header(Matroska *obj) {
@@ -1248,10 +1281,11 @@ static void matroska_write_ebml_header(Matroska *obj) {
 }
 
 static int matroska_set_segment_info(Matroska *obj, const char writingApp[], const char muxingApp[], double duration) {
-	if(obj->timecodeScale == -1) {
+	if (obj->timecodeScale == -1) {
 		return -1;
 	} else {
-		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale), obj->timecodeScale);
+		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextTimecodeScale),
+		                     obj->timecodeScale);
 		EBML_StringSetValue((ebml_string *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextMuxingApp), muxingApp);
 		EBML_StringSetValue((ebml_string *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextWritingApp), writingApp);
 		EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(obj->info, &MATROSKA_ContextDuration), duration);
@@ -1284,7 +1318,7 @@ static size_t matroska_write_zeros(Matroska *obj, size_t nbZeros) {
 	uint8_t *data = (uint8_t *)ms_new0(uint8_t, nbZeros);
 	size_t written = 0;
 
-	if(data == NULL) {
+	if (data == NULL) {
 		return 0;
 	}
 	Stream_Write(obj->output, data, nbZeros, &written);
@@ -1297,7 +1331,7 @@ static void matroska_mark_segment_info_position(Matroska *obj) {
 }
 
 static int matroska_go_to_segment_info_mark(Matroska *obj) {
-	if(obj->segmentInfoPosition == -1) {
+	if (obj->segmentInfoPosition == -1) {
 		return -1;
 	}
 	Stream_Seek(obj->output, obj->segmentInfoPosition, SEEK_SET);
@@ -1337,12 +1371,12 @@ static void ebml_master_sort(ebml_master *master_elt) {
 	bctbx_list_t *it = NULL;
 	ebml_element *elt = NULL;
 
-	for(elt = EBML_MasterChildren(master_elt); elt != NULL; elt = EBML_MasterNext(elt)) {
+	for (elt = EBML_MasterChildren(master_elt); elt != NULL; elt = EBML_MasterNext(elt)) {
 		elts = bctbx_list_insert_sorted(elts, elt, (bctbx_compare_func)ebml_element_cmp_position);
 	}
 	EBML_MasterClear(master_elt);
 
-	for(it = elts; it != NULL; it = bctbx_list_next(it)) {
+	for (it = elts; it != NULL; it = bctbx_list_next(it)) {
 		EBML_MasterAppend(master_elt, (ebml_element *)it->data);
 	}
 	bctbx_list_free(elts);
@@ -1353,15 +1387,16 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 	bctbx_list_t *it = NULL;
 	ebml_element *elt1 = NULL, *elt2 = NULL;
 
-	for(elt1 = EBML_MasterChildren(master), elt2 = EBML_MasterNext(elt1); elt2 != NULL; elt1 = EBML_MasterNext(elt1), elt2 = EBML_MasterNext(elt2)) {
+	for (elt1 = EBML_MasterChildren(master), elt2 = EBML_MasterNext(elt1); elt2 != NULL;
+	     elt1 = EBML_MasterNext(elt1), elt2 = EBML_MasterNext(elt2)) {
 		filepos_t elt1_end_pos = EBML_ElementPositionEnd(elt1);
 		filepos_t elt2_pos = EBML_ElementPosition(elt2);
 		int interval = (int)(elt2_pos - elt1_end_pos);
-		if(interval < 0) {
+		if (interval < 0) {
 			return -1; // Elements are neither contigus or distinct.
-		} else if(interval == 0) {
+		} else if (interval == 0) {
 			// Nothing to do. Elements are contigus.
-		} else if(interval > 0 && interval < 2) {
+		} else if (interval > 0 && interval < 2) {
 			return -2; // Not enough space to write a void element.
 		} else {
 			ebml_element *voidElt = EBML_ElementCreate(master, &EBML_ContextEbmlVoid, TRUE, NULL);
@@ -1372,7 +1407,7 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 		}
 	}
 
-	for(it = voids; it != NULL; it = bctbx_list_next(it)) {
+	for (it = voids; it != NULL; it = bctbx_list_next(it)) {
 		EBML_MasterAppend(master, (ebml_element *)it->data);
 	}
 	bctbx_list_free(voids);
@@ -1381,8 +1416,8 @@ static int ebml_master_fill_blanks(stream *output, ebml_master *master) {
 
 static void ebml_master_delete_empty_elements(ebml_master *master) {
 	ebml_element *child = NULL;
-	for(child = EBML_MasterChildren(master); child != NULL; child = EBML_MasterNext(child)) {
-		if(EBML_ElementDataSize(child, WRITE_DEFAULT_ELEMENT) <= 0) {
+	for (child = EBML_MasterChildren(master); child != NULL; child = EBML_MasterNext(child)) {
+		if (EBML_ElementDataSize(child, WRITE_DEFAULT_ELEMENT) <= 0) {
 			EBML_MasterRemove(master, child);
 			NodeDelete((node *)child);
 		}
@@ -1394,7 +1429,7 @@ static int matroska_close_segment(Matroska *obj) {
 	EBML_ElementUpdateSize(obj->segment, WRITE_DEFAULT_ELEMENT, FALSE);
 	ebml_master_delete_empty_elements(obj->segment);
 	ebml_master_sort(obj->segment);
-	if(ebml_master_fill_blanks(obj->output, obj->segment) < 0) {
+	if (ebml_master_fill_blanks(obj->output, obj->segment) < 0) {
 		return -1;
 	}
 	updateElementHeader((ebml_element *)obj->segment, obj->output);
@@ -1404,34 +1439,30 @@ static int matroska_close_segment(Matroska *obj) {
 
 static ebml_master *matroska_find_track_entry(const Matroska *obj, int trackNum) {
 	ebml_element *trackEntry = NULL;
-	for(
-		trackEntry = EBML_MasterChildren(obj->tracks);
-		trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
-		trackEntry = EBML_MasterNext(trackEntry)
-	);
+	for (trackEntry = EBML_MasterChildren(obj->tracks);
+	     trackEntry != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(
+	                               (ebml_master *)trackEntry, &MATROSKA_ContextTrackNumber)) != trackNum;
+	     trackEntry = EBML_MasterNext(trackEntry))
+		;
 	return (ebml_master *)trackEntry;
 }
 
 static int matroska_get_codec_private(const Matroska *obj, int trackNum, const uint8_t **data, size_t *length) {
 	ebml_master *trackEntry = matroska_find_track_entry(obj, trackNum);
 	ebml_binary *codecPrivate;
-	if(trackEntry == NULL)
-		return -1;
+	if (trackEntry == NULL) return -1;
 	codecPrivate = (ebml_binary *)EBML_MasterFindChild(trackEntry, &MATROSKA_ContextCodecPrivate);
-	if(codecPrivate == NULL)
-		return -2;
+	if (codecPrivate == NULL) return -2;
 
 	*length = (size_t)EBML_ElementDataSize((ebml_element *)codecPrivate, FALSE);
-	*data =  EBML_BinaryGetData(codecPrivate);
-	if(*data == NULL)
-		return -3;
-	else
-		return 0;
+	*data = EBML_BinaryGetData(codecPrivate);
+	if (*data == NULL) return -3;
+	else return 0;
 }
 
 static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode) {
 	obj->cluster = (ebml_master *)EBML_MasterAddElt(obj->segment, &MATROSKA_ContextCluster, TRUE);
-	if(obj->nbClusters == 0) {
+	if (obj->nbClusters == 0) {
 		obj->firstCluster = obj->cluster;
 	}
 	EBML_ElementSetSizeLength((ebml_element *)obj->cluster, 8);
@@ -1442,12 +1473,12 @@ static void matroska_start_cluster(Matroska *obj, timecode_t clusterTimecode) {
 
 static void matroska_close_cluster(Matroska *obj) {
 	ebml_element *block = NULL;
-	if(obj->cluster == NULL) {
+	if (obj->cluster == NULL) {
 		return;
 	} else {
 		block = EBML_MasterFindChild(obj->cluster, &MATROSKA_ContextSimpleBlock);
 	}
-	if(block == NULL) {
+	if (block == NULL) {
 		ebml_element *voidElt = EBML_ElementCreate(obj->p, &EBML_ContextEbmlVoid, FALSE, NULL);
 		EBML_MasterAppend(obj->segment, voidElt);
 		EBML_VoidSetFullSize(voidElt, EBML_ElementFullSize((ebml_element *)obj->cluster, WRITE_DEFAULT_ELEMENT));
@@ -1471,21 +1502,21 @@ static timecode_t matroska_current_cluster_timecode(const Matroska *obj) {
 
 static ebml_master *matroska_find_track(const Matroska *obj, int trackNum) {
 	ebml_element *elt = NULL;
-	for(
-		elt = EBML_MasterChildren(obj->tracks);
-		elt != NULL && EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
-		elt = EBML_MasterNext(elt)
-	);
+	for (elt = EBML_MasterChildren(obj->tracks);
+	     elt != NULL &&
+	     EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(elt, &MATROSKA_ContextTrackNumber)) != trackNum;
+	     elt = EBML_MasterNext(elt))
+		;
 	return (ebml_master *)elt;
 }
 
 static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[]) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track != NULL) {
+	if (track != NULL) {
 		return -1;
 	} else {
 		track = (ebml_master *)EBML_MasterAddElt(obj->tracks, &MATROSKA_ContextTrackEntry, FALSE);
-		if(track == NULL) {
+		if (track == NULL) {
 			return -2;
 		}
 		EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackNumber), trackNum);
@@ -1504,10 +1535,10 @@ static int matroska_add_track(Matroska *obj, int trackNum, const char codecID[])
 
 static int matroska_del_track(Matroska *obj, int trackNum) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track == NULL) {
+	if (track == NULL) {
 		return -1;
 	} else {
-		if(EBML_MasterRemove(obj->tracks, (ebml_element *)track) != ERR_NONE) {
+		if (EBML_MasterRemove(obj->tracks, (ebml_element *)track) != ERR_NONE) {
 			return -2;
 		} else {
 			NodeDelete((node *)track);
@@ -1518,11 +1549,11 @@ static int matroska_del_track(Matroska *obj, int trackNum) {
 
 static int matroska_track_set_codec_private(Matroska *obj, int trackNum, const uint8_t *data, size_t dataSize) {
 	ebml_master *track = matroska_find_track(obj, trackNum);
-	if(track == NULL) {
+	if (track == NULL) {
 		return -1;
 	} else {
 		ebml_binary *codecPrivate = (ebml_binary *)EBML_MasterGetChild(track, &MATROSKA_ContextCodecPrivate);
-		if(EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE) {
+		if (EBML_BinarySetData(codecPrivate, data, dataSize) != ERR_NONE) {
 			return -2;
 		} else {
 			return 0;
@@ -1534,23 +1565,30 @@ static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescr
 	ebml_master *track = matroska_find_track(obj, trackNum);
 	ebml_master *videoInfo;
 	ebml_master *audioInfo;
-	if(track == NULL) {
+	if (track == NULL) {
 		return -1;
 	} else {
-		switch(fmt->type) {
+		switch (fmt->type) {
 			case MSVideo:
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), TRACK_TYPE_VIDEO);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType),
+				                     TRACK_TYPE_VIDEO);
 				videoInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextVideo);
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextFlagInterlaced), 0);
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth), fmt->vsize.width);
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight), fmt->vsize.height);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextFlagInterlaced),
+				                     0);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelWidth),
+				                     fmt->vsize.width);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(videoInfo, &MATROSKA_ContextPixelHeight),
+				                     fmt->vsize.height);
 				break;
 
 			case MSAudio:
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType), TRACK_TYPE_AUDIO);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(track, &MATROSKA_ContextTrackType),
+				                     TRACK_TYPE_AUDIO);
 				audioInfo = (ebml_master *)EBML_MasterGetChild(track, &MATROSKA_ContextAudio);
-				EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency), fmt->rate);
-				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels), fmt->nchannels);
+				EBML_FloatSetValue((ebml_float *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextSamplingFrequency),
+				                   fmt->rate);
+				EBML_IntegerSetValue((ebml_integer *)EBML_MasterGetChild(audioInfo, &MATROSKA_ContextChannels),
+				                     fmt->nchannels);
 				break;
 			default:
 				ms_error("matroska_track_set_info: format type '%s' not handled.", ms_format_type_to_string(fmt->type));
@@ -1562,23 +1600,23 @@ static int matroska_track_set_info(Matroska *obj, int trackNum, const MSFmtDescr
 
 static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum) {
 	ebml_element *elt1 = NULL;
-	for(elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1)) {
-		if(EBML_ElementIsType(elt1, &MATROSKA_ContextCluster)) {
+	for (elt1 = EBML_MasterChildren(obj->segment); elt1 != NULL; elt1 = EBML_MasterNext(elt1)) {
+		if (EBML_ElementIsType(elt1, &MATROSKA_ContextCluster)) {
 			ebml_element *cluster = elt1, *elt2 = NULL;
-			for(elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2)) {
-				if(EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock)) {
+			for (elt2 = EBML_MasterChildren(cluster); elt2 != NULL; elt2 = EBML_MasterNext(elt2)) {
+				if (EBML_ElementIsType(elt2, &MATROSKA_ContextSimpleBlock)) {
 					matroska_block *block = (matroska_block *)elt2;
-					if(MATROSKA_BlockTrackNum(block) == trackNum) {
+					if (MATROSKA_BlockTrackNum(block) == trackNum) {
 						break;
 					}
 				}
 			}
-			if(elt2 != NULL) {
+			if (elt2 != NULL) {
 				break;
 			}
 		}
 	}
-	if(elt1 == NULL) {
+	if (elt1 == NULL) {
 		return FALSE;
 	} else {
 		return TRUE;
@@ -1587,7 +1625,7 @@ static ms_bool_t matroska_track_check_block_presence(Matroska *obj, int trackNum
 
 static int matroska_add_cue(Matroska *obj, matroska_block *block) {
 	matroska_cuepoint *cue = (matroska_cuepoint *)EBML_MasterAddElt(obj->cues, &MATROSKA_ContextCuePoint, TRUE);
-	if(cue == NULL) {
+	if (cue == NULL) {
 		return -1;
 	} else {
 		MATROSKA_LinkCuePointBlock(cue, block);
@@ -1608,7 +1646,7 @@ static void matroska_write_tracks(Matroska *obj) {
 }
 
 static int matroska_write_cues(Matroska *obj) {
-	if(EBML_MasterChildren(obj->cues) != NULL) {
+	if (EBML_MasterChildren(obj->cues) != NULL) {
 		EBML_ElementRender((ebml_element *)obj->cues, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 		MATROSKA_MetaSeekUpdate(obj->cuesMeta);
 		return 0;
@@ -1629,15 +1667,21 @@ timecode_t matroska_get_current_cluster_timestamp(const Matroska *obj) {
 	return (timecode_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 }
 
-static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame *m_frame, uint16_t trackNum, ms_bool_t isKeyFrame, ms_bool_t isVisible, const uint8_t *codecPrivateData, size_t codecPrivateDataSize) {
+static matroska_block *matroska_write_block(Matroska *obj,
+                                            const matroska_frame *m_frame,
+                                            uint16_t trackNum,
+                                            ms_bool_t isKeyFrame,
+                                            BCTBX_UNUSED(ms_bool_t isVisible),
+                                            const uint8_t *codecPrivateData,
+                                            size_t codecPrivateDataSize) {
 	matroska_block *block = NULL;
 	ebml_master *blockGroup = NULL;
 	timecode_t clusterTimecode;
 
-	if(obj->timecodeScale == -1) {
+	if (obj->timecodeScale == -1) {
 		block = NULL;
 	} else {
-		if(codecPrivateData == NULL) {
+		if (codecPrivateData == NULL) {
 			block = (matroska_block *)EBML_MasterAddElt(obj->cluster, &MATROSKA_ContextSimpleBlock, FALSE);
 		} else {
 			ebml_binary *codecPrivateElt = NULL;
@@ -1651,9 +1695,10 @@ static matroska_block *matroska_write_block(Matroska *obj, const matroska_frame 
 		MATROSKA_LinkBlockWriteSegmentInfo(block, obj->info);
 		MATROSKA_BlockSetKeyframe(block, isKeyFrame);
 		MATROSKA_BlockSetDiscardable(block, FALSE);
-		clusterTimecode = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
+		clusterTimecode =
+		    EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild(obj->cluster, &MATROSKA_ContextTimecode));
 		MATROSKA_BlockAppendFrame(block, m_frame, clusterTimecode * obj->timecodeScale);
-		if(codecPrivateData == NULL) {
+		if (codecPrivateData == NULL) {
 			EBML_ElementRender((ebml_element *)block, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
 		} else {
 			EBML_ElementRender((ebml_element *)blockGroup, obj->output, WRITE_DEFAULT_ELEMENT, FALSE, FALSE, NULL);
@@ -1675,14 +1720,14 @@ static void muxer_init(Muxer *obj, uint16_t ninputs) {
 	uint16_t i;
 	obj->nqueues = ninputs;
 	obj->queues = (MSQueue *)ms_new0(MSQueue, ninputs);
-	for(i = 0; i < ninputs; i++) {
+	for (i = 0; i < ninputs; i++) {
 		ms_queue_init(&obj->queues[i]);
 	}
 }
 
 static void muxer_empty_internal_queues(Muxer *obj) {
 	uint16_t i;
-	for(i = 0; i < obj->nqueues; i++) {
+	for (i = 0; i < obj->nqueues; i++) {
 		ms_queue_flush(&obj->queues[i]);
 	}
 }
@@ -1700,20 +1745,20 @@ static mblk_t *muxer_get_buffer(Muxer *obj, uint16_t *pin) {
 	uint16_t i;
 	MSQueue *minQueue = NULL;
 
-	for(i = 0; i < obj->nqueues; i++) {
-		if(!ms_queue_empty(&obj->queues[i])) {
-			if(minQueue == NULL) {
+	for (i = 0; i < obj->nqueues; i++) {
+		if (!ms_queue_empty(&obj->queues[i])) {
+			if (minQueue == NULL) {
 				minQueue = &obj->queues[i];
 			} else {
 				uint32_t t1 = mblk_get_timestamp_info(qfirst(&minQueue->q));
 				uint32_t t2 = mblk_get_timestamp_info(qfirst(&(&obj->queues[i])->q));
-				if(t2 < t1) {
+				if (t2 < t1) {
 					minQueue = &obj->queues[i];
 				}
 			}
 		}
 	}
-	if(minQueue == NULL) {
+	if (minQueue == NULL) {
 		return NULL;
 	} else {
 		*pin = (uint16_t)(minQueue - obj->queues);
@@ -1759,17 +1804,17 @@ static void time_corrector_set_ticker(TimeCorrector *obj, const MSTicker *ticker
 static void time_corrector_reset(TimeCorrector *obj) {
 	int i;
 	obj->globalOffsetIsSet = FALSE;
-	for(i = 0; i < obj->nPins; i++) {
+	for (i = 0; i < obj->nPins; i++) {
 		obj->offsetIsSet[i] = FALSE;
 	}
 }
 
 static void time_corrector_proceed(TimeCorrector *obj, mblk_t *buffer, int pin) {
-	if(!obj->globalOffsetIsSet) {
+	if (!obj->globalOffsetIsSet) {
 		obj->globalOffset = obj->globalOrigin - obj->ticker->time;
 		obj->globalOffsetIsSet = TRUE;
 	}
-	if(!obj->offsetIsSet[pin]) {
+	if (!obj->offsetIsSet[pin]) {
 		uint64_t origin = obj->ticker->time + obj->globalOffset;
 		obj->offsetList[pin] = origin - mblk_get_timestamp_info(buffer);
 		obj->offsetIsSet[pin] = TRUE;
@@ -1799,17 +1844,18 @@ static TimeLoopCanceler *time_loop_canceler_new(void) {
 }
 
 static uint32_t time_loop_canceler_apply(TimeLoopCanceler *obj, uint32_t timestamp) {
-	if(obj->offset < 0) {
+	if (obj->offset < 0) {
 		obj->offset = timestamp;
 	}
-	if(obj->prevTimestamp >= 0) {
+	if (obj->prevTimestamp >= 0) {
 		int64_t delta = (int64_t)timestamp - obj->prevTimestamp;
-		if(delta < 0 && -delta >= (int64_t)1 << 31) {
+		if (delta < 0 && -delta >= (int64_t)1 << 31) {
 			obj->module++;
 		}
 	}
 	obj->prevTimestamp = timestamp;
-	return (uint32_t)((uint64_t)timestamp + (uint64_t)0x00000000ffffffff * (uint64_t)obj->module - (uint64_t)obj->offset);
+	return (uint32_t)((uint64_t)timestamp + (uint64_t)0x00000000ffffffff * (uint64_t)obj->module -
+	                  (uint64_t)obj->offset);
 }
 
 /*********************************************************************************************
@@ -1846,7 +1892,7 @@ static void recorder_init(MSFilter *f) {
 	obj->inputDescsList = (const MSFmtDescriptor **)ms_new0(const MSFmtDescriptor *, f->desc->ninputs);
 	obj->modulesList = (Module **)ms_new0(Module *, f->desc->ninputs);
 	obj->timeLoopCancelers = (TimeLoopCanceler **)ms_new0(TimeLoopCanceler *, f->desc->ninputs);
-	obj->lastFirTime = (uint64_t) - 1;
+	obj->lastFirTime = (uint64_t)-1;
 	time_corrector_init(&obj->timeCorrector, f->desc->ninputs);
 
 	f->data = obj;
@@ -1856,15 +1902,15 @@ static void recorder_uninit(MSFilter *f) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int i;
 
-	if(obj->state != MSRecorderClosed) {
+	if (obj->state != MSRecorderClosed) {
 		recorder_close(f, NULL);
 	}
 	muxer_uninit(&obj->muxer);
 	matroska_uninit(&obj->file);
-	for(i = 0; i < f->desc->ninputs; i++) {
-		if(obj->modulesList[i] != NULL) module_free(obj->modulesList[i]);
-		if(f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
-		if(obj->timeLoopCancelers[i] != NULL) ms_free(obj->timeLoopCancelers[i]);
+	for (i = 0; i < f->desc->ninputs; i++) {
+		if (obj->modulesList[i] != NULL) module_free(obj->modulesList[i]);
+		if (f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
+		if (obj->timeLoopCancelers[i] != NULL) ms_free(obj->timeLoopCancelers[i]);
 	}
 	time_corrector_uninit(&obj->timeCorrector);
 	ms_free(obj->timeLoopCancelers);
@@ -1897,21 +1943,24 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 	mblk_t *frame = NULL;
 	matroska_frame m_frame;
 
-	frame = module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
+	frame =
+	    module_process(obj->modulesList[pin], buffer, &isKeyFrame, &isVisible, &codecPrivateData, &codecPrivateSize);
 	m_frame.Timecode = ((int64_t)mblk_get_timestamp_info(frame)) * 1000000LL;
 	m_frame.Size = (uint32_t)msgdsize(frame);
 	m_frame.Data = frame->b_rptr;
 
-	if(matroska_clusters_count(&obj->file) == 0) {
+	if (matroska_clusters_count(&obj->file) == 0) {
 		matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
 	} else {
-		if((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) || (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
+		if ((obj->inputDescsList[pin]->type == MSVideo && isKeyFrame) ||
+		    (obj->duration - matroska_current_cluster_timecode(&obj->file) >= CLUSTER_MAX_DURATION)) {
 			matroska_close_cluster(&obj->file);
 			matroska_start_cluster(&obj->file, mblk_get_timestamp_info(frame));
 		}
 	}
 
-	block = matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
+	block =
+	    matroska_write_block(&obj->file, &m_frame, pin + 1, isKeyFrame, isVisible, codecPrivateData, codecPrivateSize);
 	freemsg(frame);
 	if (codecPrivateData != NULL) bctbx_free(codecPrivateData);
 
@@ -1919,7 +1968,8 @@ static matroska_block *write_frame(MKVRecorder *obj, mblk_t *buffer, uint16_t pi
 }
 
 static void changeClockRate(mblk_t *buffer, unsigned int oldClockRate, unsigned int newClockRate) {
-	mblk_set_timestamp_info(buffer, (uint64_t)mblk_get_timestamp_info(buffer) * (uint64_t)newClockRate / (uint64_t)oldClockRate);
+	mblk_set_timestamp_info(buffer, (uint64_t)mblk_get_timestamp_info(buffer) * (uint64_t)newClockRate /
+	                                    (uint64_t)oldClockRate);
 }
 
 static int recorder_open_file(MSFilter *f, void *arg) {
@@ -1927,26 +1977,26 @@ static int recorder_open_file(MSFilter *f, void *arg) {
 	const char *filename = (const char *)arg;
 
 	ms_filter_lock(f);
-	if(obj->state != MSRecorderClosed) {
+	if (obj->state != MSRecorderClosed) {
 		ms_error("MKVRecorder: %s is alread open", filename);
 		goto fail;
 	}
 #ifdef WIN32
-	if(_access(filename, 0) == 0) {
+	if (_access(filename, 0) == 0) {
 #else
-	if(access(filename, F_OK) == 0) {
+	if (access(filename, F_OK) == 0) {
 #endif
 		obj->openMode = MKV_OPEN_APPEND;
 	} else {
 		obj->openMode = MKV_OPEN_CREATE;
 	}
 
-	ms_message("MKVRecorder: opening file %s in %s mode", filename, obj->openMode == MKV_OPEN_APPEND ? "append" : "create");
-	if(matroska_open_file(&obj->file, filename, obj->openMode) != 0) {
+	ms_message("MKVRecorder: opening file %s in %s mode", filename,
+	           obj->openMode == MKV_OPEN_APPEND ? "append" : "create");
+	if (matroska_open_file(&obj->file, filename, obj->openMode) != 0) {
 		ms_error("MKVRecorder: fail to open %s", filename);
 		goto fail;
 	}
-
 
 	obj->state = MSRecorderPaused;
 	ms_filter_unlock(f);
@@ -1958,28 +2008,29 @@ fail:
 }
 
 static void recorder_request_fir(MSFilter *f, MKVRecorder *obj) {
-	if(obj->lastFirTime == (uint64_t)-1 || obj->lastFirTime + 2000 < f->ticker->time) {
+	if (obj->lastFirTime == (uint64_t)-1 || obj->lastFirTime + 2000 < f->ticker->time) {
 		obj->lastFirTime = f->ticker->time;
 		ms_filter_notify_no_arg(f, MS_RECORDER_NEEDS_FIR);
 	}
 }
 
-static int recorder_start(MSFilter *f, void *arg) {
+static int recorder_start(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int i;
 
 	ms_filter_lock(f);
-	if(obj->state == MSRecorderClosed) {
+	if (obj->state == MSRecorderClosed) {
 		ms_error("MKVRecorder: fail to start recording. The file has not been opened");
 		goto fail;
 	}
-	if(!obj->tracksInitialized) {
-		if(obj->openMode == MKV_OPEN_CREATE) {
-			for(i = 0; i < f->desc->ninputs; i++) {
-				if(obj->inputDescsList[i] != NULL) {
+	if (!obj->tracksInitialized) {
+		if (obj->openMode == MKV_OPEN_CREATE) {
+			for (i = 0; i < f->desc->ninputs; i++) {
+				if (obj->inputDescsList[i] != NULL) {
 					obj->modulesList[i] = module_new(f->factory, obj->inputDescsList[i]->encoding);
-					if(obj->modulesList[i] == NULL) {
-						ms_error("Could not start the MKV recorder: %s is not supported", obj->inputDescsList[i]->encoding);
+					if (obj->modulesList[i] == NULL) {
+						ms_error("Could not start the MKV recorder: %s is not supported",
+						         obj->inputDescsList[i]->encoding);
 						goto fail;
 					}
 					module_set(obj->modulesList[i], obj->inputDescsList[i]);
@@ -1995,13 +2046,13 @@ static int recorder_start(MSFilter *f, void *arg) {
 			matroska_mark_segment_info_position(&obj->file);
 			matroska_write_zeros(&obj->file, 1024);
 		} else {
-			for(i = 0; i < f->desc->ninputs; i++) {
-				if(obj->inputDescsList[i] != NULL) {
+			for (i = 0; i < f->desc->ninputs; i++) {
+				if (obj->inputDescsList[i] != NULL) {
 					const uint8_t *data = NULL;
 					size_t length;
 					obj->modulesList[i] = module_new(f->factory, obj->inputDescsList[i]->encoding);
 					module_set(obj->modulesList[i], obj->inputDescsList[i]);
-					if(matroska_get_codec_private(&obj->file, i + 1, &data, &length) == 0) {
+					if (matroska_get_codec_private(&obj->file, i + 1, &data, &length) == 0) {
 						module_load_private_data(obj->modulesList[i], data, length);
 					}
 					obj->timeLoopCancelers[i] = time_loop_canceler_new();
@@ -2020,8 +2071,8 @@ static int recorder_start(MSFilter *f, void *arg) {
 	return 0;
 
 fail:
-	for(i = 0; i < f->desc->ninputs; i++) {
-		if(obj->modulesList[i]) {
+	for (i = 0; i < f->desc->ninputs; i++) {
+		if (obj->modulesList[i]) {
 			module_free(obj->modulesList[i]);
 			obj->modulesList[i] = NULL;
 		}
@@ -2030,10 +2081,10 @@ fail:
 	return -1;
 }
 
-static int recorder_stop(MSFilter *f, void *arg) {
+static int recorder_stop(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	ms_filter_lock(f);
-	switch(obj->state) {
+	switch (obj->state) {
 		case MSRecorderClosed:
 			ms_error("MKVRecorder: fail to stop recording. The file has not been opened");
 			goto fail;
@@ -2059,36 +2110,37 @@ static void recorder_process(MSFilter *f) {
 	uint16_t i;
 
 	ms_filter_lock(f);
-	if(obj->state != MSRecorderRunning) {
-		for(i = 0; i < f->desc->ninputs; i++) {
-			if(f->inputs[i] != NULL) {
+	if (obj->state != MSRecorderRunning) {
+		for (i = 0; i < f->desc->ninputs; i++) {
+			if (f->inputs[i] != NULL) {
 				ms_queue_flush(f->inputs[i]);
 			}
 		}
 	} else {
 		uint16_t pin;
 		mblk_t *buffer = NULL;
-		for(i = 0; i < f->desc->ninputs; i++) {
-			if(f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
+		for (i = 0; i < f->desc->ninputs; i++) {
+			if (f->inputs[i] != NULL && obj->inputDescsList[i] == NULL) {
 				ms_queue_flush(f->inputs[i]);
-			} else if(f->inputs[i] != NULL && obj->inputDescsList[i] != NULL) {
+			} else if (f->inputs[i] != NULL && obj->inputDescsList[i] != NULL) {
 				MSQueue frames, frames_ms;
 				ms_queue_init(&frames);
 				ms_queue_init(&frames_ms);
 
-				if((module_preprocess(obj->modulesList[i], f->inputs[i], &frames) < 0) && obj->needKeyFrame) {
+				if ((module_preprocess(obj->modulesList[i], f->inputs[i], &frames) < 0) && obj->needKeyFrame) {
 					ms_warning("MKVRecorder: preprocess error, waiting for an I-frame");
 					recorder_request_fir(f, obj);
 				}
-				while((buffer = ms_queue_get(&frames)) != NULL) {
-					mblk_set_timestamp_info(buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
+				while ((buffer = ms_queue_get(&frames)) != NULL) {
+					mblk_set_timestamp_info(
+					    buffer, time_loop_canceler_apply(obj->timeLoopCancelers[i], mblk_get_timestamp_info(buffer)));
 					changeClockRate(buffer, obj->inputDescsList[i]->rate, 1000);
 					ms_queue_put(&frames_ms, buffer);
 				}
 
-				if(obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame) {
-					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
-						if(module_is_key_frame(obj->modulesList[i], buffer)) {
+				if (obj->inputDescsList[i]->type == MSVideo && obj->needKeyFrame) {
+					while ((buffer = ms_queue_get(&frames_ms)) != NULL) {
+						if (module_is_key_frame(obj->modulesList[i], buffer)) {
 							ms_message("MKVRecorder: first I-frame received");
 							break;
 						} else {
@@ -2097,22 +2149,22 @@ static void recorder_process(MSFilter *f) {
 							freemsg(buffer);
 						}
 					}
-					if(buffer != NULL) {
+					if (buffer != NULL) {
 						do {
 							time_corrector_proceed(&obj->timeCorrector, buffer, i);
 							muxer_put_buffer(&obj->muxer, buffer, i);
-						} while((buffer = ms_queue_get(&frames_ms)) != NULL);
+						} while ((buffer = ms_queue_get(&frames_ms)) != NULL);
 						obj->needKeyFrame = FALSE;
 					}
 				} else {
-					while((buffer = ms_queue_get(&frames_ms)) != NULL) {
+					while ((buffer = ms_queue_get(&frames_ms)) != NULL) {
 						time_corrector_proceed(&obj->timeCorrector, buffer, i);
 						muxer_put_buffer(&obj->muxer, buffer, i);
 					}
 				}
 			}
 		}
-		while((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL) {
+		while ((buffer = muxer_get_buffer(&obj->muxer, &pin)) != NULL) {
 			matroska_block *block;
 			timecode_t bufferTimecode;
 
@@ -2120,10 +2172,10 @@ static void recorder_process(MSFilter *f) {
 
 			block = write_frame(obj, buffer, pin);
 
-			if(obj->inputDescsList[pin]->type == MSVideo && block != NULL) {
+			if (obj->inputDescsList[pin]->type == MSVideo && block != NULL) {
 				matroska_add_cue(&obj->file, block);
 			}
-			if(bufferTimecode > obj->duration) {
+			if (bufferTimecode > obj->duration) {
 				obj->duration = bufferTimecode;
 			}
 		}
@@ -2131,28 +2183,28 @@ static void recorder_process(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
-static int recorder_close(MSFilter *f, void *arg) {
+static int recorder_close(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVRecorder *obj = (MKVRecorder *)f->data;
 	int i;
 
 	ms_filter_lock(f);
 	ms_message("MKVRecorder: closing file");
-	if(obj->state == MSRecorderClosed) {
+	if (obj->state == MSRecorderClosed) {
 		ms_warning("MKVRecorder: no file has been opened");
 		goto end;
 	}
 
-	for(i = 0; i < f->desc->ninputs; i++) {
-		if(obj->inputDescsList[i] != NULL) {
-			if(matroska_track_check_block_presence(&obj->file, i + 1)) {
+	for (i = 0; i < f->desc->ninputs; i++) {
+		if (obj->inputDescsList[i] != NULL) {
+			if (matroska_track_check_block_presence(&obj->file, i + 1)) {
 				uint8_t *codecPrivateData = NULL;
 				size_t codecPrivateDataSize = 0;
 				module_get_private_data(obj->modulesList[i], &codecPrivateData, &codecPrivateDataSize);
 				matroska_track_set_info(&obj->file, i + 1, obj->inputDescsList[i]);
-				if(codecPrivateDataSize > 0) {
+				if (codecPrivateDataSize > 0) {
 					matroska_track_set_codec_private(&obj->file, i + 1, codecPrivateData, codecPrivateDataSize);
 				}
-				if(codecPrivateData) ms_free(codecPrivateData);
+				if (codecPrivateData) ms_free(codecPrivateData);
 			} else {
 				matroska_del_track(&obj->file, i + 1);
 			}
@@ -2160,11 +2212,11 @@ static int recorder_close(MSFilter *f, void *arg) {
 	}
 
 	matroska_close_cluster(&obj->file);
-	if(matroska_write_cues(&obj->file) != 0) {
+	if (matroska_write_cues(&obj->file) != 0) {
 		ms_warning("MKVRecorder: no cues written");
 	}
 
-	if(obj->openMode == MKV_OPEN_CREATE) {
+	if (obj->openMode == MKV_OPEN_CREATE) {
 		matroska_go_to_segment_info_mark(&obj->file);
 	} else {
 		matroska_go_to_segment_info_begin(&obj->file);
@@ -2179,9 +2231,9 @@ static int recorder_close(MSFilter *f, void *arg) {
 	matroska_close_segment(&obj->file);
 
 	matroska_close_file(&obj->file);
-	for(i = 0; i < f->desc->ninputs; i++) {
-		if(f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
-		if(obj->modulesList[i]) {
+	for (i = 0; i < f->desc->ninputs; i++) {
+		if (f->inputs[i] != NULL) ms_queue_flush(f->inputs[i]);
+		if (obj->modulesList[i]) {
 			module_free(obj->modulesList[i]);
 			obj->modulesList[i] = NULL;
 		}
@@ -2203,40 +2255,41 @@ static int recorder_set_input_fmt(MSFilter *f, void *arg) {
 	const MSPinFormat *pinFmt = (const MSPinFormat *)arg;
 
 	ms_filter_lock(f);
-	if(pinFmt->pin >= f->desc->ninputs) {
+	if (pinFmt->pin >= f->desc->ninputs) {
 		ms_error("MKVRecorder: could not set pin #%d. Invalid pin number", pinFmt->pin);
 		goto fail;
 	}
 
-	if(data->state != MSRecorderClosed) {
-		if(data->tracksInitialized) {
-			if(pinFmt->fmt == NULL) {
+	if (data->state != MSRecorderClosed) {
+		if (data->tracksInitialized) {
+			if (pinFmt->fmt == NULL) {
 				ms_error("MKVRecorder: could not disable pin #%d. The file is opened", pinFmt->pin);
 				goto fail;
 			}
-			if(data->inputDescsList[pinFmt->pin] == NULL) {
+			if (data->inputDescsList[pinFmt->pin] == NULL) {
 				ms_error("MKVRecorder: could not set pin #%d video size. That pin is not enabled", pinFmt->pin);
 				goto fail;
 			}
-			if(pinFmt->fmt->type != MSVideo ||
-			        strcmp(pinFmt->fmt->encoding, data->inputDescsList[pinFmt->pin]->encoding) != 0 ||
-			        pinFmt->fmt->rate != data->inputDescsList[pinFmt->pin]->rate) {
-				ms_error("MKVRecorder: could not set pin #%d video size. The specified format is not compatible with the current format. current={%s}, new={%s}",
-				         pinFmt->pin,
-				         ms_fmt_descriptor_to_string(data->inputDescsList[pinFmt->pin]),
+			if (pinFmt->fmt->type != MSVideo ||
+			    strcmp(pinFmt->fmt->encoding, data->inputDescsList[pinFmt->pin]->encoding) != 0 ||
+			    pinFmt->fmt->rate != data->inputDescsList[pinFmt->pin]->rate) {
+				ms_error("MKVRecorder: could not set pin #%d video size. The specified format is not compatible with "
+				         "the current format. current={%s}, new={%s}",
+				         pinFmt->pin, ms_fmt_descriptor_to_string(data->inputDescsList[pinFmt->pin]),
 				         ms_fmt_descriptor_to_string(pinFmt->fmt));
 				goto fail;
 			}
 		}
 
 		data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
-		ms_message("MKVRecorder: pin #%d video size set on %dx%d", pinFmt->pin, pinFmt->fmt->vsize.width, pinFmt->fmt->vsize.height);
+		ms_message("MKVRecorder: pin #%d video size set on %dx%d", pinFmt->pin, pinFmt->fmt->vsize.width,
+		           pinFmt->fmt->vsize.height);
 	} else {
-		if(pinFmt->fmt && find_module_desc_from_rfc_name(pinFmt->fmt->encoding) == NULL) {
+		if (pinFmt->fmt && find_module_desc_from_rfc_name(pinFmt->fmt->encoding) == NULL) {
 			ms_error("MKVRecorder: could not set pin #%d. %s is not supported", pinFmt->pin, pinFmt->fmt->encoding);
 			goto fail;
 		}
-		if(pinFmt->fmt == NULL) {
+		if (pinFmt->fmt == NULL) {
 			data->inputDescsList[pinFmt->pin] = pinFmt->fmt;
 			ms_message("MKVRecorder: pin #%d set as disabled", pinFmt->pin);
 		} else {
@@ -2260,59 +2313,51 @@ static int recorder_get_state(MSFilter *f, void *data) {
 	return 0;
 }
 
-static MSFilterMethod recorder_methods[] = {
-	{	MS_RECORDER_OPEN            ,	recorder_open_file         },
-	{	MS_RECORDER_CLOSE           ,	recorder_close             },
-	{	MS_RECORDER_START           ,	recorder_start             },
-	{	MS_RECORDER_PAUSE           ,	recorder_stop              },
-	{	MS_FILTER_SET_INPUT_FMT     ,   recorder_set_input_fmt     },
-	{	MS_RECORDER_GET_STATE	    ,	recorder_get_state         },
-	{	0                           ,   NULL                       }
-};
-
+static MSFilterMethod recorder_methods[] = {{MS_RECORDER_OPEN, recorder_open_file},
+                                            {MS_RECORDER_CLOSE, recorder_close},
+                                            {MS_RECORDER_START, recorder_start},
+                                            {MS_RECORDER_PAUSE, recorder_stop},
+                                            {MS_FILTER_SET_INPUT_FMT, recorder_set_input_fmt},
+                                            {MS_RECORDER_GET_STATE, recorder_get_state},
+                                            {0, NULL}};
 
 extern "C" {
 
 #ifdef _MSC_VER
-MSFilterDesc ms_mkv_recorder_desc = {
-	MS_MKV_RECORDER_ID,
-	"MSMKVRecorder",
-	"MKV file recorder",
-	MS_FILTER_OTHER,
-	NULL,
-	2,
-	0,
-	recorder_init,
-	recorder_preprocess,
-	recorder_process,
-	recorder_postprocess,
-	recorder_uninit,
-	recorder_methods,
-	0
-};
+MSFilterDesc ms_mkv_recorder_desc = {MS_MKV_RECORDER_ID,
+                                     "MSMKVRecorder",
+                                     "MKV file recorder",
+                                     MS_FILTER_OTHER,
+                                     NULL,
+                                     2,
+                                     0,
+                                     recorder_init,
+                                     recorder_preprocess,
+                                     recorder_process,
+                                     recorder_postprocess,
+                                     recorder_uninit,
+                                     recorder_methods,
+                                     0};
 #else
-MSFilterDesc ms_mkv_recorder_desc = {
-	.id = MS_MKV_RECORDER_ID,
-	.name = "MSMKVRecorder",
-	.text = "MKV file recorder",
-	.category = MS_FILTER_OTHER,
-	.enc_fmt = NULL,
-	.ninputs = 2,
-	.noutputs = 0,
-	.init = recorder_init,
-	.preprocess = recorder_preprocess,
-	.process = recorder_process,
-	.postprocess = recorder_postprocess,
-	.uninit = recorder_uninit,
-	.methods = recorder_methods,
-	.flags = 0
-};
+MSFilterDesc ms_mkv_recorder_desc = {.id = MS_MKV_RECORDER_ID,
+                                     .name = "MSMKVRecorder",
+                                     .text = "MKV file recorder",
+                                     .category = MS_FILTER_OTHER,
+                                     .enc_fmt = NULL,
+                                     .ninputs = 2,
+                                     .noutputs = 0,
+                                     .init = recorder_init,
+                                     .preprocess = recorder_preprocess,
+                                     .process = recorder_process,
+                                     .postprocess = recorder_postprocess,
+                                     .uninit = recorder_uninit,
+                                     .methods = recorder_methods,
+                                     .flags = 0};
 #endif
 
 } // extern "C"
 
 MS_FILTER_DESC_EXPORT(ms_mkv_recorder_desc)
-
 
 /*********************************************************************************************
  * MKV Player Filter                                                                         *
@@ -2330,7 +2375,7 @@ static MKVBlockQueue *mkv_block_queue_new(void) {
 }
 
 static void mkv_block_queue_flush(MKVBlockQueue *obj) {
-	obj->queue = bctbx_list_free_with_data(obj->queue, [](void *block){delete static_cast<MKVBlock *>(block);});
+	obj->queue = bctbx_list_free_with_data(obj->queue, [](void *block) { delete static_cast<MKVBlock *>(block); });
 	obj->min_timestamp = -1;
 }
 
@@ -2341,18 +2386,18 @@ static void mkv_block_queue_free(MKVBlockQueue *obj) {
 
 static void mkv_block_queue_push(MKVBlockQueue *obj, MKVBlock *block) {
 	obj->queue = bctbx_list_append(obj->queue, block);
-	if(obj->min_timestamp < 0 || (int64_t)block->mTimestamp < obj->min_timestamp) {
+	if (obj->min_timestamp < 0 || (int64_t)block->mTimestamp < obj->min_timestamp) {
 		obj->min_timestamp = (int64_t)block->mTimestamp;
 	}
 }
 
 static MKVBlock *mkv_block_queue_pull(MKVBlockQueue *obj) {
-	if(obj->queue == NULL) {
+	if (obj->queue == NULL) {
 		return NULL;
 	} else {
 		MKVBlock *block = (MKVBlock *)bctbx_list_nth_data(obj->queue, 0);
 		obj->queue = bctbx_list_remove(obj->queue, block);
-		if(obj->queue == NULL) {
+		if (obj->queue == NULL) {
 			obj->min_timestamp = -1;
 		}
 		return block;
@@ -2382,7 +2427,7 @@ static MKVBlockGroupMaker *mkv_block_group_maker_new(MKVTrackReader *t_reader) {
 
 static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_flush(obj->queue);
-	if(obj->waiting_block) delete obj->waiting_block;
+	if (obj->waiting_block) delete obj->waiting_block;
 	obj->waiting_block = NULL;
 	obj->prev_timestamp = 0;
 	obj->prev_min_ts = 0;
@@ -2390,7 +2435,7 @@ static void mkv_block_group_maker_reset(MKVBlockGroupMaker *obj) {
 
 static void mkv_block_group_maker_free(MKVBlockGroupMaker *obj) {
 	mkv_block_queue_free(obj->queue);
-	if(obj->waiting_block) delete obj->waiting_block;
+	if (obj->waiting_block) delete obj->waiting_block;
 	ms_free(obj);
 }
 
@@ -2399,20 +2444,20 @@ static void mkv_block_group_maker_get_next_group(MKVBlockGroupMaker *obj, MKVBlo
 		std::unique_ptr<MKVBlock> block{};
 		bool _eot;
 		obj->track_reader->nextBlock(block, _eot);
-		if(_eot) {
+		if (_eot) {
 			*eot = TRUE;
-			if(obj->waiting_block) mkv_block_queue_push(out_queue, obj->waiting_block);
+			if (obj->waiting_block) mkv_block_queue_push(out_queue, obj->waiting_block);
 			obj->waiting_block = NULL;
 			return;
 		}
-		if(obj->waiting_block == NULL) {
+		if (obj->waiting_block == NULL) {
 			obj->prev_timestamp = block->mTimestamp;
 			obj->waiting_block = block.release();
 		} else {
 			mkv_block_queue_push(out_queue, obj->waiting_block);
 			obj->waiting_block = block.release();
 		}
-	} while(obj->waiting_block == NULL || obj->waiting_block->mTimestamp < obj->prev_timestamp);
+	} while (obj->waiting_block == NULL || obj->waiting_block->mTimestamp < obj->prev_timestamp);
 	obj->prev_timestamp = obj->waiting_block->mTimestamp;
 
 	out_queue->dts = obj->prev_min_ts;
@@ -2435,29 +2480,31 @@ static MKVTrackPlayer *mkv_track_player_new(MSFactory *factory, MKVReader *reade
 	MKVTrackPlayer *obj;
 	const char *codec_name = codec_id_to_rfc_name(track->mCodecId.c_str());
 
-	if(codec_name == NULL) {
+	if (codec_name == NULL) {
 		ms_error("Cannot create MKVTrackPlayer. %s codec is not supported", track->mCodecId.c_str());
 		return NULL;
 	}
 	obj = ms_new0(MKVTrackPlayer, 1);
 	obj->track = track;
-	if(track->mType == MKV_TRACK_TYPE_VIDEO) {
+	if (track->mType == MKV_TRACK_TYPE_VIDEO) {
 		MKVVideoTrack *v_track = (MKVVideoTrack *)track;
 		MSVideoSize vsize;
 		vsize.width = v_track->mWidth;
 		vsize.height = v_track->mHeight;
-		obj->output_pin_desc = ms_factory_get_video_format(factory, codec_name, vsize, (float)v_track->mFrameRate, NULL);
+		obj->output_pin_desc =
+		    ms_factory_get_video_format(factory, codec_name, vsize, (float)v_track->mFrameRate, NULL);
 
-	} else if(track->mType == MKV_TRACK_TYPE_AUDIO) {
+	} else if (track->mType == MKV_TRACK_TYPE_AUDIO) {
 		MKVAudioTrack *a_track = (MKVAudioTrack *)track;
-		obj->output_pin_desc = ms_factory_get_audio_format(factory, codec_name, a_track->mSamplingFreq, a_track->mChannels, NULL);
+		obj->output_pin_desc =
+		    ms_factory_get_audio_format(factory, codec_name, a_track->mSamplingFreq, a_track->mChannels, NULL);
 	} else {
 		ms_error("MKVTrackPlayer: unsupported track type: %d", track->mType);
 		ms_free(obj);
 		return NULL;
 	}
 	obj->module = module_new(factory, codec_name);
-	if(!obj->track->mCodecPrivate.empty()) {
+	if (!obj->track->mCodecPrivate.empty()) {
 		module_load_private_data(obj->module, track->mCodecPrivate.data(), track->mCodecPrivate.size());
 	}
 	obj->first_frame = TRUE;
@@ -2481,7 +2528,7 @@ static void mkv_track_player_send_block(MSFactory *f, MKVTrackPlayer *obj, const
 	mblk_set_timestamp_info(tmp, block->mTimestamp);
 	changeClockRate(tmp, 1000, obj->output_pin_desc->rate);
 	module_reverse(f, obj->module, tmp, output, obj->first_frame, block->mCodecState.data(), block->mCodecState.size());
-	if(obj->first_frame) {
+	if (obj->first_frame) {
 		obj->first_frame = FALSE;
 	}
 }
@@ -2504,7 +2551,7 @@ typedef struct {
 
 static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 	int i;
-	if(obj->state == MSPlayerClosed) {
+	if (obj->state == MSPlayerClosed) {
 		ms_error("MKVPlayer: cannot seek. No file open");
 		return FALSE;
 	}
@@ -2515,7 +2562,7 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 
 	if (position == 0) {
 		obj->time = 0;
-		for(i = 0; i < 2; i++) {
+		for (i = 0; i < 2; i++) {
 			if (obj->players[i]) obj->players[i]->track_reader->reset();
 		}
 	} else {
@@ -2527,7 +2574,7 @@ static ms_bool_t mkv_player_seek_ms(MKVPlayer *obj, int position) {
 		obj->time = newpos;
 	}
 
-	for(i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		if (obj->players[i]) mkv_track_player_flush(obj->players[i]);
 	}
 
@@ -2550,11 +2597,11 @@ static void player_uninit(MSFilter *f) {
 	int i;
 
 	ms_filter_lock(f);
-	if(obj->state != MSPlayerClosed) {
+	if (obj->state != MSPlayerClosed) {
 		delete obj->reader;
 	}
-	for(i = 0; i < 2; i++) {
-		if(obj->players[i]) {
+	for (i = 0; i < 2; i++) {
+		if (obj->players[i]) {
 			mkv_track_player_free(obj->players[i]);
 		}
 	}
@@ -2570,7 +2617,7 @@ static int player_open_file(MSFilter *f, void *arg) {
 	const MKVTrack *track = NULL;
 
 	ms_filter_lock(f);
-	if(obj->state != MSPlayerClosed) {
+	if (obj->state != MSPlayerClosed) {
 		ms_error("MKVPlayer: fail to open %s. A file is already opened", filename);
 		goto fail;
 	}
@@ -2582,24 +2629,24 @@ static int player_open_file(MSFilter *f, void *arg) {
 		ms_error("mkvplayer: %s could not be opened in read-only mode", filename);
 		goto fail;
 	}
-	for(i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		const char *typeString[2] = {"video", "audio"};
 		track = obj->reader->getDefaultTrack(typeList[i]);
-		if(track == NULL) {
+		if (track == NULL) {
 			ms_warning("MKVPlayer: no default %s track. Looking for first %s track", typeString[i], typeString[i]);
 			track = obj->reader->getFirstTrack(typeList[i]);
-			if(track == NULL) {
+			if (track == NULL) {
 				ms_warning("MKVPlayer: no %s track found", typeString[i]);
 			}
 		}
-		if(track) {
+		if (track) {
 			obj->players[i] = mkv_track_player_new(f->factory, obj->reader, track);
-			if(obj->players[i] == NULL) {
+			if (obj->players[i] == NULL) {
 				ms_warning("MKVPlayer: could not instanciate MKVTrackPlayer for track #%d", track->mNum);
 			}
 		}
 	}
-	if(obj->players[0] == NULL && obj->players[1] == NULL) {
+	if (obj->players[0] == NULL && obj->players[1] == NULL) {
 		ms_error("MKVPlayer: no track found");
 		goto fail;
 	}
@@ -2619,9 +2666,9 @@ static void player_process(MSFilter *f) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
 
-	if(obj->state != MSPlayerPlaying) goto end;
+	if (obj->state != MSPlayerPlaying) goto end;
 
-	if(obj->time_before_next_loop > 0) {
+	if (obj->time_before_next_loop > 0) {
 		obj->time_before_next_loop -= f->ticker->interval;
 		goto end;
 	} else {
@@ -2630,23 +2677,23 @@ static void player_process(MSFilter *f) {
 
 	obj->time += f->ticker->interval;
 
-	if(obj->position_changed) {
-		if(f->outputs[0] && strcasecmp(obj->players[0]->output_pin_desc->encoding, "h264") == 0) {
+	if (obj->position_changed) {
+		if (f->outputs[0] && strcasecmp(obj->players[0]->output_pin_desc->encoding, "h264") == 0) {
 			// Send an empty buffer to notify the video decoder that it should reset itself
 			ms_queue_put(f->outputs[0], allocb(0, 0));
 		}
 		obj->position_changed = FALSE;
 	}
 
-	for(i = 0; i < 2; i++) {
+	for (i = 0; i < 2; i++) {
 		MKVTrackPlayer *t_player = obj->players[i];
-		if(t_player && f->outputs[i]) {
-			if(mkv_block_queue_is_empty(t_player->block_queue)) {
+		if (t_player && f->outputs[i]) {
+			if (mkv_block_queue_is_empty(t_player->block_queue)) {
 				mkv_block_group_maker_get_next_group(t_player->group_maker, t_player->block_queue, &t_player->eot);
 			}
-			while(!t_player->eot && t_player->block_queue->dts <= obj->time) {
+			while (!t_player->eot && t_player->block_queue->dts <= obj->time) {
 				MKVBlock *block;
-				while((block = mkv_block_queue_pull(t_player->block_queue))) {
+				while ((block = mkv_block_queue_pull(t_player->block_queue))) {
 					mkv_track_player_send_block(f->factory, t_player, block, f->outputs[i]);
 					delete block;
 				}
@@ -2655,11 +2702,11 @@ static void player_process(MSFilter *f) {
 		}
 	}
 
-	if((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot)
-	        && (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
+	if ((!obj->players[0] || !f->outputs[0] || obj->players[0]->eot) &&
+	    (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
 
 		ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
-		if(obj->loop_pause_interval < 0) {
+		if (obj->loop_pause_interval < 0) {
 			obj->state = MSPlayerPaused;
 		} else {
 			obj->time_before_next_loop = obj->loop_pause_interval;
@@ -2671,14 +2718,14 @@ end:
 	ms_filter_unlock(f);
 }
 
-static int player_close(MSFilter *f, void *arg) {
+static int player_close(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	int i;
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state != MSPlayerClosed) {
+	if (obj->state != MSPlayerClosed) {
 		delete obj->reader;
-		for(i = 0; i < f->desc->noutputs; i++) {
-			if(obj->players[i]) mkv_track_player_free(obj->players[i]);
+		for (i = 0; i < f->desc->noutputs; i++) {
+			if (obj->players[i]) mkv_track_player_free(obj->players[i]);
 			obj->players[i] = NULL;
 		}
 		obj->time = 0;
@@ -2698,10 +2745,10 @@ static int player_seek_ms(MSFilter *f, void *arg) {
 	return res;
 }
 
-static int player_start(MSFilter *f, void *arg) {
+static int player_start(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerClosed) {
+	if (obj->state == MSPlayerClosed) {
 		goto fail;
 	}
 	obj->state = MSPlayerPlaying;
@@ -2713,10 +2760,10 @@ fail:
 	return -1;
 }
 
-static int player_stop(MSFilter *f, void *arg) {
+static int player_stop(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerPlaying) {
+	if (obj->state == MSPlayerPlaying) {
 		obj->state = MSPlayerPaused;
 	}
 	ms_filter_unlock(f);
@@ -2727,15 +2774,15 @@ static int player_get_output_fmt(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	MSPinFormat *pinFmt = (MSPinFormat *)arg;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerClosed) {
+	if (obj->state == MSPlayerClosed) {
 		ms_error("MKVPlayer: cannot get pin format when player is closed");
 		goto fail;
 	}
-	if(pinFmt->pin >= f->desc->noutputs) {
+	if (pinFmt->pin >= f->desc->noutputs) {
 		ms_error("MKVPlayer: pin #%d does not exist", pinFmt->pin);
 		goto fail;
 	}
-	if(obj->players[pinFmt->pin]) {
+	if (obj->players[pinFmt->pin]) {
 		pinFmt->fmt = obj->players[pinFmt->pin]->output_pin_desc;
 	} else {
 		pinFmt->fmt = NULL;
@@ -2768,7 +2815,7 @@ static int player_set_loop(MSFilter *f, void *arg) {
 static int player_get_duration(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerClosed) {
+	if (obj->state == MSPlayerClosed) {
 		ms_error("MKVPlayer: cannot get duration. No file is open");
 		goto fail;
 	}
@@ -2784,7 +2831,7 @@ fail:
 static int player_get_current_position(MSFilter *f, void *arg) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
-	if(obj->state == MSPlayerClosed) {
+	if (obj->state == MSPlayerClosed) {
 		ms_error("MKVPlayer: cannot get current duration. No file is open");
 		goto fail;
 	}
@@ -2797,57 +2844,39 @@ fail:
 	return -1;
 }
 
-static MSFilterMethod player_methods[] = {
-	{	MS_FILTER_GET_OUTPUT_FMT         ,	player_get_output_fmt        },
-	{	MS_PLAYER_OPEN                   ,	player_open_file             },
-	{	MS_PLAYER_CLOSE                  ,	player_close                 },
-	{	MS_PLAYER_SEEK_MS                ,	player_seek_ms               },
-	{	MS_PLAYER_START                  ,	player_start                 },
-	{	MS_PLAYER_PAUSE                  ,	player_stop                  },
-	{	MS_PLAYER_GET_STATE              ,	player_get_state             },
-	{	MS_PLAYER_SET_LOOP               ,	player_set_loop              },
-	{	MS_PLAYER_GET_DURATION           ,	player_get_duration          },
-	{	MS_PLAYER_GET_CURRENT_POSITION   ,	player_get_current_position  },
-	{	0                                ,	NULL                         }
-};
-
+static MSFilterMethod player_methods[] = {{MS_FILTER_GET_OUTPUT_FMT, player_get_output_fmt},
+                                          {MS_PLAYER_OPEN, player_open_file},
+                                          {MS_PLAYER_CLOSE, player_close},
+                                          {MS_PLAYER_SEEK_MS, player_seek_ms},
+                                          {MS_PLAYER_START, player_start},
+                                          {MS_PLAYER_PAUSE, player_stop},
+                                          {MS_PLAYER_GET_STATE, player_get_state},
+                                          {MS_PLAYER_SET_LOOP, player_set_loop},
+                                          {MS_PLAYER_GET_DURATION, player_get_duration},
+                                          {MS_PLAYER_GET_CURRENT_POSITION, player_get_current_position},
+                                          {0, NULL}};
 
 extern "C" {
 
 #ifdef _MSC_VER
 MSFilterDesc ms_mkv_player_desc = {
-	MS_MKV_PLAYER_ID,
-	"MSMKVPlayer",
-	"MKV file player",
-	MS_FILTER_OTHER,
-	NULL,
-	0,
-	2,
-	player_init,
-	NULL,
-	player_process,
-	NULL,
-	player_uninit,
-	player_methods,
-	0
-};
+    MS_MKV_PLAYER_ID, "MSMKVPlayer", "MKV file player", MS_FILTER_OTHER, NULL, 0, 2, player_init, NULL,
+    player_process,   NULL,          player_uninit,     player_methods,  0};
 #else
-MSFilterDesc ms_mkv_player_desc = {
-	.id = MS_MKV_PLAYER_ID,
-	.name = "MSMKVPlayer",
-	.text = "MKV file player",
-	.category = MS_FILTER_OTHER,
-	.enc_fmt = NULL,
-	.ninputs = 0,
-	.noutputs = 2,
-	.init = player_init,
-	.preprocess = NULL,
-	.process = player_process,
-	.postprocess = NULL,
-	.uninit = player_uninit,
-	.methods = player_methods,
-	.flags = 0
-};
+MSFilterDesc ms_mkv_player_desc = {.id = MS_MKV_PLAYER_ID,
+                                   .name = "MSMKVPlayer",
+                                   .text = "MKV file player",
+                                   .category = MS_FILTER_OTHER,
+                                   .enc_fmt = NULL,
+                                   .ninputs = 0,
+                                   .noutputs = 2,
+                                   .init = player_init,
+                                   .preprocess = NULL,
+                                   .process = player_process,
+                                   .postprocess = NULL,
+                                   .uninit = player_uninit,
+                                   .methods = player_methods,
+                                   .flags = 0};
 #endif
 
 } // extern "C"

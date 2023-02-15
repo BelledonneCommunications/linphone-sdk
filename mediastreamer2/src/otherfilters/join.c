@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,51 +24,45 @@
 
 #include "mediastreamer2/msfilter.h"
 
-static void join_process(MSFilter *f){
+static void join_process(MSFilter *f) {
 	mblk_t *im;
-	if (f->inputs[0]!=NULL)
-	{
-		while((im=ms_queue_get(f->inputs[0]))!=NULL){
-			ms_queue_put(f->outputs[0],im);
+	if (f->inputs[0] != NULL) {
+		while ((im = ms_queue_get(f->inputs[0])) != NULL) {
+			ms_queue_put(f->outputs[0], im);
 		}
 	}
-	if (f->inputs[1]!=NULL)
-	{
-		while((im=ms_queue_get(f->inputs[1]))!=NULL){
-			ms_queue_put(f->outputs[0],im);
+	if (f->inputs[1] != NULL) {
+		while ((im = ms_queue_get(f->inputs[1])) != NULL) {
+			ms_queue_put(f->outputs[0], im);
 		}
 	}
 }
 
 #ifdef _MSC_VER
 
-MSFilterDesc ms_join_desc={
-	MS_JOIN_ID,
-	"MSJoin",
-	N_("A filter that send several inputs to one output."),
-	MS_FILTER_OTHER,
-	NULL,
-	2,
-	1,
-    NULL,
-	NULL,
-	join_process,
-	NULL,
-	NULL,
-    NULL
-};
+MSFilterDesc ms_join_desc = {MS_JOIN_ID,
+                             "MSJoin",
+                             N_("A filter that send several inputs to one output."),
+                             MS_FILTER_OTHER,
+                             NULL,
+                             2,
+                             1,
+                             NULL,
+                             NULL,
+                             join_process,
+                             NULL,
+                             NULL,
+                             NULL};
 
 #else
 
-MSFilterDesc ms_join_desc={
-	.id=MS_JOIN_ID,
-	.name="MSJoin",
-	.text=N_("A filter that send several inputs to one output."),
-	.category=MS_FILTER_OTHER,
-	.ninputs=2,
-	.noutputs=1,
-	.process=join_process
-};
+MSFilterDesc ms_join_desc = {.id = MS_JOIN_ID,
+                             .name = "MSJoin",
+                             .text = N_("A filter that send several inputs to one output."),
+                             .category = MS_FILTER_OTHER,
+                             .ninputs = 2,
+                             .noutputs = 1,
+                             .process = join_process};
 
 #endif
 

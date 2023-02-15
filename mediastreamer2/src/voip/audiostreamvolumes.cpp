@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,8 +20,8 @@
 
 #include <map>
 
-#include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/mediastream.h>
+#include <mediastreamer2/mscommon.h>
 #include <mediastreamer2/msvolume.h>
 
 using VolumeMap = std::map<uint32_t, int>;
@@ -32,27 +32,27 @@ extern "C" AudioStreamVolumes *audio_stream_volumes_new() {
 }
 
 extern "C" void audio_stream_volumes_delete(AudioStreamVolumes *volumes) {
-	delete ((VolumeMap*) volumes);
+	delete ((VolumeMap *)volumes);
 }
 
 extern "C" void audio_stream_volumes_insert(AudioStreamVolumes *volumes, uint32_t ssrc, int volume) {
-	(*((VolumeMap*) volumes))[ssrc] = volume;
+	(*((VolumeMap *)volumes))[ssrc] = volume;
 }
 
 extern "C" void audio_stream_volumes_erase(AudioStreamVolumes *volumes, uint32_t ssrc) {
-	((VolumeMap*) volumes)->erase(ssrc);
+	((VolumeMap *)volumes)->erase(ssrc);
 }
 
 extern "C" void audio_stream_volumes_clear(AudioStreamVolumes *volumes) {
-	((VolumeMap*) volumes)->clear();
+	((VolumeMap *)volumes)->clear();
 }
 
 extern "C" int audio_stream_volumes_size(AudioStreamVolumes *volumes) {
-	return (int) ((VolumeMap*) volumes)->size();
+	return (int)((VolumeMap *)volumes)->size();
 }
 
 extern "C" int audio_stream_volumes_find(AudioStreamVolumes *volumes, uint32_t ssrc) {
-	auto map = (VolumeMap *) volumes;
+	auto map = (VolumeMap *)volumes;
 	auto search = map->find(ssrc);
 	if (search != map->end()) {
 		return search->second;
@@ -62,8 +62,8 @@ extern "C" int audio_stream_volumes_find(AudioStreamVolumes *volumes, uint32_t s
 }
 
 extern "C" int audio_stream_volumes_append(AudioStreamVolumes *volumes, AudioStreamVolumes *append) {
-	auto volumesMap = (VolumeMap *) volumes;
-	auto appendMap = (VolumeMap *) append;
+	auto volumesMap = (VolumeMap *)volumes;
+	auto appendMap = (VolumeMap *)append;
 
 	for (auto &values : *appendMap) {
 		(*volumesMap)[values.first] = values.second;
@@ -73,16 +73,15 @@ extern "C" int audio_stream_volumes_append(AudioStreamVolumes *volumes, AudioStr
 }
 
 extern "C" void audio_stream_volumes_reset_values(AudioStreamVolumes *volumes) {
-	for (auto &values : *((VolumeMap *) volumes)) {
-		if (values.second != MS_VOLUME_DB_MUTED)
-			values.second = MS_VOLUME_DB_LOWEST;
+	for (auto &values : *((VolumeMap *)volumes)) {
+		if (values.second != MS_VOLUME_DB_MUTED) values.second = MS_VOLUME_DB_LOWEST;
 	}
 }
 
 extern "C" uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 	int max_db_over_member = MS_VOLUME_DB_LOWEST;
-	auto map = (VolumeMap *) volumes;
-	uint32_t best=0;
+	auto map = (VolumeMap *)volumes;
+	uint32_t best = 0;
 
 	for (auto &values : *(map)) {
 		if (values.second > audio_threshold_min_db && values.second > max_db_over_member) {
@@ -90,12 +89,12 @@ extern "C" uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 			best = values.first;
 		}
 	}
-	
+
 	return best;
 }
 
 extern "C" bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes) {
-	auto map = (VolumeMap *) volumes;
+	auto map = (VolumeMap *)volumes;
 	for (auto &values : *map) {
 		if (values.second > audio_threshold_min_db) {
 			return true;
@@ -104,11 +103,11 @@ extern "C" bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes) 
 	return false;
 }
 
-extern "C" void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *volumes, rtp_audio_level_t *audio_levels) {
+extern "C" void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *volumes,
+                                                           rtp_audio_level_t *audio_levels) {
 	int i = 0;
-	for (auto &values : *((VolumeMap *) volumes)) {
+	for (auto &values : *((VolumeMap *)volumes)) {
 		audio_levels[i].csrc = values.first;
 		audio_levels[i++].dbov = ms_volume_dbm0_to_dbov((float)values.second);
 	}
 }
-

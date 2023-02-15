@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 #include <stdarg.h>
 
 #if defined(_MSC_VER)
-#define MS2_PUBLIC	__declspec(dllexport)
+#define MS2_PUBLIC __declspec(dllexport)
 #else
 #define MS2_PUBLIC
 #endif
@@ -36,10 +36,7 @@ typedef enum _upnp_igd_print_level {
 	UPNP_IGD_ERROR
 } upnp_igd_print_level;
 
-typedef enum _upnp_igd_ip_protocol {
-	UPNP_IGD_IP_PROTOCOL_UDP = 0,
-	UPNP_IGD_IP_PROTOCOL_TCP
-} upnp_igd_ip_protocol;
+typedef enum _upnp_igd_ip_protocol { UPNP_IGD_IP_PROTOCOL_UDP = 0, UPNP_IGD_IP_PROTOCOL_TCP } upnp_igd_ip_protocol;
 
 typedef enum _upnp_igd_event {
 	UPNP_IGD_EXTERNAL_IPADDRESS_CHANGED = 0,
@@ -56,13 +53,13 @@ typedef enum _upnp_igd_event {
 typedef struct _upnp_igd_port_mapping {
 	upnp_igd_ip_protocol protocol;
 
-	const char* local_host;
+	const char *local_host;
 	int local_port;
 
-	const char* remote_host;
+	const char *remote_host;
 	int remote_port;
 
-	const char* description;
+	const char *description;
 
 	void *cookie;
 	int retvalue;
@@ -73,10 +70,13 @@ typedef void (*upnp_igd_print_function)(void *cookie, upnp_igd_print_level level
 
 typedef struct _upnp_igd_context upnp_igd_context;
 
-MS2_PUBLIC upnp_igd_context* upnp_igd_create(upnp_igd_callback_function cb_fct, upnp_igd_print_function print_fct, const char* address, void *cookie);
-MS2_PUBLIC int upnp_igd_start(upnp_igd_context*igd_ctxt);
+MS2_PUBLIC upnp_igd_context *upnp_igd_create(upnp_igd_callback_function cb_fct,
+                                             upnp_igd_print_function print_fct,
+                                             const char *address,
+                                             void *cookie);
+MS2_PUBLIC int upnp_igd_start(upnp_igd_context *igd_ctxt);
 int upnp_igd_is_started(upnp_igd_context *igd_ctxt);
-int upnp_igd_stop(upnp_igd_context*igd_ctxt);
+int upnp_igd_stop(upnp_igd_context *igd_ctxt);
 MS2_PUBLIC void upnp_igd_destroy(upnp_igd_context *igd_ctxt);
 MS2_PUBLIC char *upnp_igd_get_local_ipaddress(upnp_igd_context *igd_ctxt);
 MS2_PUBLIC const char *upnp_igd_get_device_id(upnp_igd_context *igd_ctxt);

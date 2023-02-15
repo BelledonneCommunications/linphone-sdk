@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,25 +19,25 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "mediastreamer-config.h"
 #include "gitversion.h"
+#include "mediastreamer-config.h"
 #else
-#   ifndef MEDIASTREAMER_VERSION
-#   define MEDIASTREAMER_VERSION "unknown"
-#   endif
-#	ifndef GIT_VERSION
-#	define GIT_VERSION "unknown"
-#	endif
+#ifndef MEDIASTREAMER_VERSION
+#define MEDIASTREAMER_VERSION "unknown"
+#endif
+#ifndef GIT_VERSION
+#define GIT_VERSION "unknown"
+#endif
 #endif
 
-#include "mediastreamer2/mscommon.h"
-#include "mediastreamer2/mscodecutils.h"
-#include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/ms_srtp.h"
+#include "mediastreamer2/mscodecutils.h"
+#include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msfilter.h"
 #include "private.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 extern void __register_ffmpeg_encoders_if_possible(MSFactory *factory);
@@ -52,20 +52,19 @@ extern void libmsandroidtexturedisplay_init(MSFactory *factory);
 extern void _register_videotoolbox_if_supported(MSFactory *factory);
 #endif
 
-#include "voipdescs.h"
 #include "mediastreamer2/mssndcard.h"
 #include "mediastreamer2/msvideopresets.h"
 #include "mediastreamer2/mswebcam.h"
+#include "voipdescs.h"
 
 #ifdef __APPLE__
-   #include "TargetConditionals.h"
+#include "TargetConditionals.h"
 #endif
 
 #ifdef __ANDROID__
-#include <android/log.h>
 #include "android_mediacodec.h"
+#include <android/log.h>
 #endif
-
 
 #ifdef MS2_FILTERS
 
@@ -117,57 +116,56 @@ extern MSSndCardDesc android_native_snd_opensles_card_desc;
 
 #endif /* MS2_FILTERS */
 
-static MSSndCardDesc * ms_snd_card_descs[]={
+static MSSndCardDesc *ms_snd_card_descs[] = {
 #ifdef MS2_FILTERS
 
 #ifdef __PULSEAUDIO_ENABLED__
-        &pulse_card_desc,
+    &pulse_card_desc,
 #endif
 
 #ifdef __ALSA_ENABLED__
-	&alsa_card_desc,
+    &alsa_card_desc,
 #endif
 
 #ifdef __QSA_ENABLED__
-	&ms_qsa_card_desc,
+    &ms_qsa_card_desc,
 #endif
 
 #ifdef HAVE_SYS_SOUNDCARD_H
-	&oss_card_desc,
+    &oss_card_desc,
 #endif
 
 #ifdef __ARTS_ENABLED__
-	&arts_card_desc,
+    &arts_card_desc,
 #endif
 
 #ifdef __DIRECTSOUND_ENABLED__
-	&winsndds_card_desc,
+    &winsndds_card_desc,
 #endif
 
 #ifdef __PORTAUDIO_ENABLED__
-	&pasnd_card_desc,
+    &pasnd_card_desc,
 #endif
 
 #ifdef __MACSND_ENABLED__
-	&ca_card_desc,
+    &ca_card_desc,
 #endif
 
 #if TARGET_OS_IPHONE
-	&au_card_desc,
+    &au_card_desc,
 #endif
 
 #ifdef __MAC_AQ_ENABLED__
-	&aq_card_desc,
+    &aq_card_desc,
 #endif
 
 #ifdef __ANDROID__
-	&android_native_snd_card_desc,
-	&android_native_snd_opensles_card_desc,
-	&msandroid_sound_card_desc,
+    &android_native_snd_card_desc,
+    &android_native_snd_opensles_card_desc,
+    &msandroid_sound_card_desc,
 #endif
 #endif /* MS2_FILTERS */
-NULL
-};
+    NULL};
 
 #ifdef VIDEO_ENABLED
 
@@ -219,45 +217,43 @@ extern MSWebCamDesc ms_bb10_camera_desc;
 
 #endif /* MS2_FILTERS */
 
-static MSWebCamDesc * ms_web_cam_descs[]={
+static MSWebCamDesc *ms_web_cam_descs[] = {
 #ifdef MS2_FILTERS
-#if defined (__ANDROID__)
-	&ms_android_video_capture_desc,
+#if defined(__ANDROID__)
+    &ms_android_video_capture_desc,
 #endif
 #ifdef HAVE_LINUX_VIDEODEV2_H
-	&v4l2_card_desc,
+    &v4l2_card_desc,
 #endif
 #ifdef HAVE_LINUX_VIDEODEV_H
-	&v4l_desc,
+    &v4l_desc,
 #endif
 #if defined(_WIN32)
-	&ms_mfoundationcap_desc,
+    &ms_mfoundationcap_desc,
 #endif
 #if defined(_WIN32) && defined(HAVE_VFW)
-	&ms_vfw_cam_desc,
+    &ms_vfw_cam_desc,
 #endif
-#if defined(__MINGW32__) || defined (HAVE_DIRECTSHOW)
-	&ms_dshow_cam_desc,
+#if defined(__MINGW32__) || defined(HAVE_DIRECTSHOW)
+    &ms_dshow_cam_desc,
 #endif
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR && !TARGET_OS_EMBEDDED
-	&ms_v4m_cam_desc,
+    &ms_v4m_cam_desc,
 #endif
 #ifdef __QNX__
-	&ms_bb10_camera_desc,
+    &ms_bb10_camera_desc,
 #endif
-#if TARGET_OS_IPHONE &&  !TARGET_IPHONE_SIMULATOR
-	&ms_v4ios_cam_desc,
+#if TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
+    &ms_v4ios_cam_desc,
 #endif
-	&ms_mire_webcam_desc,
-	&static_image_desc,
+    &ms_mire_webcam_desc,
+    &static_image_desc,
 #endif /*MS2_FILTERS */
-	NULL
-};
+    NULL};
 
 #endif
 
-
-void ms_factory_init_voip(MSFactory *obj){
+void ms_factory_init_voip(MSFactory *obj) {
 	MSSndCardManager *cm;
 	int i;
 
@@ -288,29 +284,29 @@ void ms_factory_init_voip(MSFactory *obj){
 		}
 	}
 #endif
-	
+
 	/* register builtin VoIP MSFilter's */
-	for (i=0;ms_voip_filter_descs[i]!=NULL;i++){
-		ms_factory_register_filter(obj,ms_voip_filter_descs[i]);
+	for (i = 0; ms_voip_filter_descs[i] != NULL; i++) {
+		ms_factory_register_filter(obj, ms_voip_filter_descs[i]);
 	}
 
-	cm=ms_snd_card_manager_new();
+	cm = ms_snd_card_manager_new();
 	ms_message("Registering all soundcard handlers");
-	cm->factory=obj;
+	cm->factory = obj;
 	obj->sndcardmanager = cm;
-	for (i=0;ms_snd_card_descs[i]!=NULL;i++){
-		ms_snd_card_manager_register_desc(cm,ms_snd_card_descs[i]);
+	for (i = 0; ms_snd_card_descs[i] != NULL; i++) {
+		ms_snd_card_manager_register_desc(cm, ms_snd_card_descs[i]);
 	}
 
 	{
 		MSWebCamManager *wm;
-		wm=ms_web_cam_manager_new();
+		wm = ms_web_cam_manager_new();
 		wm->factory = obj;
 		obj->wbcmanager = wm;
 #ifdef VIDEO_ENABLED
 		ms_message("Registering all webcam handlers");
-		for (i=0;ms_web_cam_descs[i]!=NULL;i++){
-			ms_web_cam_manager_register_desc(wm,ms_web_cam_descs[i]);
+		for (i = 0; ms_web_cam_descs[i] != NULL; i++) {
+			ms_web_cam_manager_register_desc(wm, ms_web_cam_descs[i]);
 		}
 #endif
 	}
@@ -320,11 +316,11 @@ void ms_factory_init_voip(MSFactory *obj){
 		MSVideoPresetsManager *vpm = ms_video_presets_manager_new(obj);
 		register_video_preset_high_fps(vpm);
 	}
-	//register all ms2 implemented offer/answer
-	ms_factory_register_offer_answer_provider(obj,&h264_offer_answer_provider);
+	// register all ms2 implemented offer/answer
+	ms_factory_register_offer_answer_provider(obj, &h264_offer_answer_provider);
 #endif
 
-#if defined(__ANDROID__) && defined (VIDEO_ENABLED)
+#if defined(__ANDROID__) && defined(VIDEO_ENABLED)
 	{
 		if (!libmsandroiddisplay_init(obj)) {
 			libmsandroiddisplaybad_init(obj);
@@ -333,13 +329,13 @@ void ms_factory_init_voip(MSFactory *obj){
 		libmsandroidtexturedisplay_init(obj);
 	}
 #endif
-	obj->voip_initd=TRUE;
+	obj->voip_initd = TRUE;
 	obj->voip_uninit_func = ms_factory_uninit_voip;
 	ms_message("ms_factory_init_voip() done");
 }
 
-void ms_factory_uninit_voip(MSFactory *obj){
-	if (obj->voip_initd){
+void ms_factory_uninit_voip(MSFactory *obj) {
+	if (obj->voip_initd) {
 		ms_snd_card_manager_destroy(obj->sndcardmanager);
 		obj->sndcardmanager = NULL;
 #ifdef VIDEO_ENABLED
@@ -353,7 +349,7 @@ void ms_factory_uninit_voip(MSFactory *obj){
 	}
 }
 
-MSFactory *ms_factory_new_with_voip(void){
+MSFactory *ms_factory_new_with_voip(void) {
 	MSFactory *f = ms_factory_new();
 	ms_factory_init_voip(f);
 	ms_factory_init_plugins(f);
@@ -369,23 +365,24 @@ MSFactory *ms_factory_new_with_voip_and_directories(const char *plugins_dir, con
 	return f;
 }
 
-
-PayloadType * ms_offer_answer_context_match_payload(MSOfferAnswerContext *context, const MSList *local_payloads, const PayloadType *remote_payload, const MSList *remote_payloads, bool_t is_reading){
+PayloadType *ms_offer_answer_context_match_payload(MSOfferAnswerContext *context,
+                                                   const MSList *local_payloads,
+                                                   const PayloadType *remote_payload,
+                                                   const MSList *remote_payloads,
+                                                   bool_t is_reading) {
 	return context->match_payload(context, local_payloads, remote_payload, remote_payloads, is_reading);
 }
 
- MSOfferAnswerContext *ms_offer_answer_create_simple_context(MSPayloadMatcherFunc func){
-	 MSOfferAnswerContext *ctx = ms_new0(MSOfferAnswerContext,1);
-	 ctx->match_payload = func;
-	 ctx->destroy = (void (*)(MSOfferAnswerContext *)) ms_free;
-	 return ctx;
+MSOfferAnswerContext *ms_offer_answer_create_simple_context(MSPayloadMatcherFunc func) {
+	MSOfferAnswerContext *ctx = ms_new0(MSOfferAnswerContext, 1);
+	ctx->match_payload = func;
+	ctx->destroy = (void (*)(MSOfferAnswerContext *))ms_free;
+	return ctx;
 }
 
-void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
-	if (ctx->destroy)
-		ctx->destroy(ctx);
+void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx) {
+	if (ctx->destroy) ctx->destroy(ctx);
 }
-
 
 #ifdef _MSC_VER
 #pragma warning(disable : 4996)
@@ -393,23 +390,22 @@ void ms_offer_answer_context_destroy(MSOfferAnswerContext *ctx){
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-static int ms_voip_ref=0;
-void ms_voip_init(){
-	if (ms_voip_ref++ >0 ) {
-		ms_message ("Skipping ms_voip_init, because [%i] ref",ms_voip_ref);
+static int ms_voip_ref = 0;
+void ms_voip_init() {
+	if (ms_voip_ref++ > 0) {
+		ms_message("Skipping ms_voip_init, because [%i] ref", ms_voip_ref);
 		return;
 	}
 	ms_factory_init_voip(ms_factory_get_fallback());
 }
 
-void ms_voip_exit(){
-	if (--ms_voip_ref >0 ) {
-		ms_message ("Skipping ms_voip_exit, still [%i] ref",ms_voip_ref);
+void ms_voip_exit() {
+	if (--ms_voip_ref > 0) {
+		ms_message("Skipping ms_voip_exit, still [%i] ref", ms_voip_ref);
 		return;
 	}
 	ms_factory_uninit_voip(ms_factory_get_fallback());
 }
-
 
 #ifdef __cplusplus
 }

@@ -47,9 +47,10 @@
  Copyright (C) 2017
 */
 
-#define glError(f) { \
-    GLenum err = f->glGetError(); \
-    if (err != GL_NO_ERROR) { \
-        printf("glError: %04x caught at %s:%u\n", err, __FILE__, __LINE__); \
-    } \
-}
+#define glError(f)                                                                                                     \
+	{                                                                                                                  \
+		GLenum err = f->glGetError();                                                                                  \
+		if (err != GL_NO_ERROR) {                                                                                      \
+			printf("glError: %04x caught at %s:%u\n", err, __FILE__, __LINE__);                                        \
+		}                                                                                                              \
+	}

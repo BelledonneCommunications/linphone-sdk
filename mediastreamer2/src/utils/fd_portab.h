@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -28,41 +28,41 @@
  * or you may encouter linker problem on WIN32.
  */
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #ifdef _WIN32
-#	include <io.h>
-#	ifndef R_OK
-#		define R_OK 0x2
-#	endif
-#	ifndef W_OK
-#		define W_OK 0x6
-#	endif
-#   ifndef F_OK
-#       define F_OK 0x0
-#   endif
+#include <io.h>
+#ifndef R_OK
+#define R_OK 0x2
+#endif
+#ifndef W_OK
+#define W_OK 0x6
+#endif
+#ifndef F_OK
+#define F_OK 0x0
+#endif
 
-#	ifndef S_IRUSR
-#	define S_IRUSR S_IREAD
-#	endif
+#ifndef S_IRUSR
+#define S_IRUSR S_IREAD
+#endif
 
-#	ifndef S_IWUSR
-#	define S_IWUSR S_IWRITE
-#	endif
+#ifndef S_IWUSR
+#define S_IWUSR S_IWRITE
+#endif
 
-#	define open _open
-#	define read _read
-#	define write _write
-#	define close _close
-#	define access _access
-#	define lseek _lseek
+#define open _open
+#define read _read
+#define write _write
+#define close _close
+#define access _access
+#define lseek _lseek
 #else /*_WIN32*/
 
-#	ifndef O_BINARY
-#	define O_BINARY 0
-#	endif
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
 
 #endif /*!_WIN32*/
 

@@ -7,7 +7,7 @@
  *
  * Copyright (C) 2005 Steve Underwood
  *
- *  Despite my general liking of the GPL, I place my own contributions 
+ *  Despite my general liking of the GPL, I place my own contributions
  *  to this code in the public domain for the benefit of all mankind -
  *  even the slimy ones who might try to proprietize my work and use it
  *  to my detriment.
@@ -20,7 +20,6 @@
  *
  * $Id: g722.h 48959 2006-12-25 06:42:15Z rizzo $
  */
-
 
 /*! \file */
 
@@ -40,31 +39,27 @@ codec is considerably faster, and still fully compatible with wideband terminals
 ???.
 */
 
-enum
-{
-	G722_SAMPLE_RATE_8000 = 0x0001,
-	G722_PACKED = 0x0002
-};
+enum { G722_SAMPLE_RATE_8000 = 0x0001, G722_PACKED = 0x0002 };
 
 #ifndef INT16_MAX
-#define INT16_MAX       32767
+#define INT16_MAX 32767
 #endif
 #ifndef INT16_MIN
-#define INT16_MIN       (-32768)
+#define INT16_MIN (-32768)
 #endif
 
 struct g722_encode_state {
 	// TRUE if the operating in the special ITU test mode, with the band split filters disabled.
 	int itu_test_mode;
-	
+
 	// TRUE if the G.722 data is packed
 	int packed;
-    
+
 	// TRUE if encode from 8k samples/second
-    int eight_k;
+	int eight_k;
 
 	// 6 for 48000kbps, 7 for 56000kbps, or 8 for 64000kbps.
-    int bits_per_sample;
+	int bits_per_sample;
 
 	// Signal history for the QMF
 	int x[24];
@@ -97,11 +92,11 @@ struct g722_decode_state {
 	// TRUE if the operating in the special ITU test mode, with the band split filters disabled.
 	int itu_test_mode;
 
-    // TRUE if the G.722 data is packed
+	// TRUE if the G.722 data is packed
 	int packed;
 
 	// TRUE if decode to 8k samples/second
-    int eight_k;
+	int eight_k;
 
 	// 6 for 48000kbps, 7 for 56000kbps, or 8 for 64000kbps.
 	int bits_per_sample;
@@ -124,7 +119,7 @@ struct g722_decode_state {
 		int nb;
 		int det;
 	} band[2];
-    
+
 	unsigned int in_buffer;
 	int in_bits;
 	unsigned int out_buffer;

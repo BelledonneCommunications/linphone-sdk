@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -29,9 +29,10 @@ namespace mediastreamer {
 
 class FilterBase {
 public:
-	class MethodCallFailed: public std::exception {};
+	class MethodCallFailed : public std::exception {};
 
-	FilterBase(MSFilter *f): _f(f) {}
+	FilterBase(MSFilter *f) : _f(f) {
+	}
 	virtual ~FilterBase() = default;
 
 	virtual void preprocess() = 0;
@@ -39,15 +40,29 @@ public:
 	virtual void postprocess() = 0;
 
 protected:
-	MSFactory *getFactory() const {return _f->factory;}
-	MSQueue *getInput(int idx) const {return _f->inputs[idx];}
-	MSQueue *getOutput(int idx) const {return _f->outputs[idx];}
-	uint64_t getTime() const {return _f->ticker->time;}
+	MSFactory *getFactory() const {
+		return _f->factory;
+	}
+	MSQueue *getInput(int idx) const {
+		return _f->inputs[idx];
+	}
+	MSQueue *getOutput(int idx) const {
+		return _f->outputs[idx];
+	}
+	uint64_t getTime() const {
+		return _f->ticker->time;
+	}
 
-	void notify(unsigned int id) {ms_filter_notify_no_arg(_f, id);}
+	void notify(unsigned int id) {
+		ms_filter_notify_no_arg(_f, id);
+	}
 
-	void lock() const {ms_filter_lock(_f);}
-	void unlock() const {ms_filter_unlock(_f);}
+	void lock() const {
+		ms_filter_lock(_f);
+	}
+	void unlock() const {
+		ms_filter_unlock(_f);
+	}
 
 private:
 	MSFilter *_f = nullptr;

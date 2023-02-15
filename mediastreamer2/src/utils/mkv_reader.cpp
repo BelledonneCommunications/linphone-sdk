@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,14 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdint.h>
 #include <algorithm>
 #include <array>
 #include <cwchar>
+#include <limits>
 #include <list>
 #include <memory>
+#include <stdint.h>
 #include <vector>
-#include <limits>
 
 #define bool_t mkv_bool_t
 extern "C" {
@@ -39,7 +39,7 @@ extern "C" {
 
 #include "mkv_reader.h"
 
-#define EBML_MasterForEachChild(it, e, c) for(it=EBML_MasterFindChild(e, c); it; it=EBML_MasterNextChild(e, it))
+#define EBML_MasterForEachChild(it, e, c) for (it = EBML_MasterFindChild(e, c); it; it = EBML_MasterNextChild(e, it))
 
 extern "C" {
 extern const nodemeta LangStr_Class[];
@@ -85,9 +85,9 @@ static std::vector<tchar_t> cppStringToMkvString(const std::string &str) {
 #ifdef UNICODE
 	mkvString.resize(str.size() + 1);
 #ifdef _WIN32
-	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, mkvString.data(), int(mkvString.size()-1));
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, mkvString.data(), int(mkvString.size() - 1));
 #else
-	mbstowcs(mkvString.data(), str.c_str(), mkvString.size()-1);
+	mbstowcs(mkvString.data(), str.c_str(), mkvString.size() - 1);
 	mkvString.resize(wcslen(mkvString.data()));
 #endif
 #else
@@ -103,7 +103,7 @@ MKVParserCtx::MKVParserCtx() {
 		ParserContext_Init(&mParserCtx, nullptr, nullptr, nullptr);
 		loadModules();
 		auto err = MATROSKA_Init((nodecontext *)&mParserCtx);
-		if(err != ERR_NONE) {
+		if (err != ERR_NONE) {
 			throw runtime_error("Parser opening failed. Could not initialize Matroska parser. err=" + to_string(err));
 		}
 	} catch (...) {
@@ -135,17 +135,21 @@ void MKVParserCtx::loadModules() noexcept {
 int MKVSegmentInfo::parse(const ebml_element *seg_info_elt) noexcept {
 	std::array<tchar_t, 256> tmp{};
 
-	if(!EBML_MasterCheckMandatory((ebml_master *)seg_info_elt, FALSE)) {
+	if (!EBML_MasterCheckMandatory((ebml_master *)seg_info_elt, FALSE)) {
 		ms_error("MKVParser: fail to parse segment info. Missing elements");
 		return -1;
 	}
-	mDuration = EBML_FloatValue((ebml_float *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextDuration));
-	mTimecodeScale = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)seg_info_elt, &MATROSKA_ContextTimecodeScale));
+	mDuration =
+	    EBML_FloatValue((ebml_float *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextDuration));
+	mTimecodeScale = EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)seg_info_elt, &MATROSKA_ContextTimecodeScale));
 
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextMuxingApp), tmp.data(), tmp.size());
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextMuxingApp),
+	               tmp.data(), tmp.size());
 	mMuxingApp = mkvStringToCppString(tmp);
 
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextWritingApp), tmp.data(), tmp.size());
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild((ebml_master *)seg_info_elt, &MATROSKA_ContextWritingApp),
+	               tmp.data(), tmp.size());
 	mWritingApp = mkvStringToCppString(tmp);
 
 	return 0;
@@ -167,7 +171,8 @@ std::unique_ptr<MKVTrack> MKVTrack::parseTrack(const ebml_element *track_elt) no
 			track = move(atrack);
 			break;
 		}
-		default: break;
+		default:
+			break;
 	}
 	return track;
 }
@@ -176,47 +181,69 @@ void MKVTrack::parse(const ebml_element *track_elt) noexcept {
 	mNum = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackNumber));
 	mUID = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackUID));
 	mType = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextTrackType));
-	mEnabled = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagEnabled)) == 0 ? FALSE : TRUE;
-	mDef = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagDefault)) == 0 ? FALSE : TRUE;
-	mForced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagForced)) == 0 ? FALSE : TRUE;
-	mLacing = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagLacing)) == 0 ? FALSE : TRUE;
-	mMinCache = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMinCache));
-	mMaxBlockAdditionId = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMaxBlockAdditionID));
+	mEnabled = EBML_IntegerValue(
+	               (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagEnabled)) == 0
+	               ? FALSE
+	               : TRUE;
+	mDef = EBML_IntegerValue(
+	           (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagDefault)) == 0
+	           ? FALSE
+	           : TRUE;
+	mForced = EBML_IntegerValue(
+	              (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagForced)) == 0
+	              ? FALSE
+	              : TRUE;
+	mLacing = EBML_IntegerValue(
+	              (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextFlagLacing)) == 0
+	              ? FALSE
+	              : TRUE;
+	mMinCache = (int)EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMinCache));
+	mMaxBlockAdditionId = (int)EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextMaxBlockAdditionID));
 
 	std::array<tchar_t, 256> codec_id{};
-	EBML_StringGet((ebml_string *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecID), codec_id.data(), codec_id.size());
+	EBML_StringGet((ebml_string *)EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecID), codec_id.data(),
+	               codec_id.size());
 	mCodecId = mkvStringToCppString(codec_id);
 
 	auto codec_private_elt = EBML_MasterFindChild(track_elt, &MATROSKA_ContextCodecPrivate);
-	if(codec_private_elt) {
+	if (codec_private_elt) {
 		auto data_size = EBML_ElementDataSize(codec_private_elt, FALSE);
 		auto data = EBML_BinaryGetData((ebml_binary *)codec_private_elt);
 		mCodecPrivate.assign(data, data + data_size);
 	}
-	mSeekPreroll = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextSeekPreRoll));
+	mSeekPreroll = (int)EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)track_elt, &MATROSKA_ContextSeekPreRoll));
 }
 
 void MKVVideoTrack::parse(const ebml_element *track_elt) noexcept {
 	auto video_info_elt = EBML_MasterFindChild(track_elt, &MATROSKA_ContextVideo);
-	if(video_info_elt == nullptr) return;
+	if (video_info_elt == nullptr) return;
 
 	MKVTrack::parse(track_elt);
 
-	mInterlaced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)video_info_elt, &MATROSKA_ContextFlagInterlaced)) == 0 ? FALSE : TRUE;
+	mInterlaced = EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)video_info_elt,
+	                                                                    &MATROSKA_ContextFlagInterlaced)) == 0
+	                  ? FALSE
+	                  : TRUE;
 	mWidth = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelWidth));
-	mHeight = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelHeight));
+	mHeight =
+	    (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextPixelHeight));
 	auto elt = EBML_MasterFindChild(video_info_elt, &MATROSKA_ContextFrameRate);
 	mFrameRate = elt ? EBML_FloatValue((ebml_float *)elt) : 0.0;
 }
 
 void MKVAudioTrack::parse(const ebml_element *track_elt) noexcept {
 	auto audio_info_elt = EBML_MasterFindChild(track_elt, &MATROSKA_ContextAudio);
-	if(audio_info_elt==NULL) return;
+	if (audio_info_elt == NULL) return;
 
 	MKVTrack::parse(track_elt);
 
-	mSamplingFreq = (int)EBML_FloatValue((ebml_float *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextSamplingFrequency));
-	mChannels = (uint8_t)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextChannels));
+	mSamplingFreq = (int)EBML_FloatValue(
+	    (ebml_float *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextSamplingFrequency));
+	mChannels = (uint8_t)EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)audio_info_elt, &MATROSKA_ContextChannels));
 }
 
 void MKVReader::open(const std::string &filename) {
@@ -225,10 +252,10 @@ void MKVReader::open(const std::string &filename) {
 
 		auto fname = cppStringToMkvString(filename);
 		mFile.reset(StreamOpen(mParserCtx.get(), fname.data(), SFLAG_RDONLY));
-		if(mFile == NULL) {
+		if (mFile == NULL) {
 			throw runtime_error("Parser opening failed. Could not open " + filename);
 		}
-		if(parseHeaders() < 0) {
+		if (parseHeaders() < 0) {
 			throw runtime_error("MKVParser: error while parsing EBML header");
 		}
 	} catch (...) {
@@ -253,15 +280,13 @@ void MKVReader::close() noexcept {
 
 const MKVTrack *MKVReader::getDefaultTrack(int track_type) const noexcept {
 	auto it = find_if(mTracks.cbegin(), mTracks.cend(),
-		[track_type](const auto &track) {return track->mType == track_type && track->mDef;}
-	);
+	                  [track_type](const auto &track) { return track->mType == track_type && track->mDef; });
 	return it != mTracks.cend() ? it->get() : nullptr;
 }
 
 const MKVTrack *MKVReader::getFirstTrack(int track_type) const noexcept {
 	auto it = find_if(mTracks.cbegin(), mTracks.cend(),
-		[track_type](const auto &track) {return track->mType == track_type;}
-	);
+	                  [track_type](const auto &track) { return track->mType == track_type; });
 	return it != mTracks.cend() ? it->get() : nullptr;
 }
 
@@ -269,19 +294,17 @@ MKVTrackReader *MKVReader::getTrackReader(int track_num) noexcept {
 	int upper_levels = 0;
 	int i = -1;
 
-	auto it = find_if(mTracks.cbegin(), mTracks.cend(),
-		[track_num, &i](const auto &track){
-			++i;
-			return track->mNum == track_num;
-		}
-	);
-	if(it == mTracks.cend()) return nullptr;
+	auto it = find_if(mTracks.cbegin(), mTracks.cend(), [track_num, &i](const auto &track) {
+		++i;
+		return track->mNum == track_num;
+	});
+	if (it == mTracks.cend()) return nullptr;
 
 	const auto &trackElt = mTracksElt.at(i);
 
 	auto file_stream = Stream_Duplicate(mFile.get(), SFLAG_RDONLY);
-	if(!file_stream) return nullptr;
-	
+	if (!file_stream) return nullptr;
+
 	auto track_reader = new MKVTrackReader{};
 	track_reader->mRoot = this;
 	track_reader->mTrackNum = track_num;
@@ -291,8 +314,10 @@ MKVTrackReader *MKVReader::getTrackReader(int track_num) noexcept {
 	track_reader->mParser.EndPosition = mLastClusterEnd;
 	track_reader->mParser.UpContext = NULL;
 	Stream_Seek(track_reader->mFile.get(), mFirstClusterPos, SEEK_SET);
-	track_reader->mCurrentCluster.reset(EBML_FindNextElement(track_reader->mFile.get(), &track_reader->mParser, &upper_levels, FALSE));
-	EBML_ElementReadData(track_reader->mCurrentCluster.get(), track_reader->mFile.get(), &track_reader->mParser, FALSE, SCOPE_PARTIAL_DATA, FALSE);
+	track_reader->mCurrentCluster.reset(
+	    EBML_FindNextElement(track_reader->mFile.get(), &track_reader->mParser, &upper_levels, FALSE));
+	EBML_ElementReadData(track_reader->mCurrentCluster.get(), track_reader->mFile.get(), &track_reader->mParser, FALSE,
+	                     SCOPE_PARTIAL_DATA, FALSE);
 	mReaders.emplace_back(track_reader);
 	return track_reader;
 }
@@ -303,30 +328,33 @@ int MKVReader::seek(int pos_ms) noexcept {
 	if (mCues) {
 		EBML_MasterForEachChild(cue_point, mCues.get(), &MATROSKA_ContextCuePoint) {
 			MATROSKA_LinkCueSegmentInfo((matroska_cuepoint *)cue_point, (ebml_master *)mInfoElt.get());
-			if(MATROSKA_CueTimecode((matroska_cuepoint *)cue_point) >= (timecode_t)pos_ms * 1000000LL) break;
+			if (MATROSKA_CueTimecode((matroska_cuepoint *)cue_point) >= (timecode_t)pos_ms * 1000000LL) break;
 		}
 	}
 
-	if(cue_point) {
+	if (cue_point) {
 		filepos_t pos = INVALID_FILEPOS_T;
 		ebml_element *track_position;
-		for (const auto &r : mReaders) {r->mNeedSeeking = true;}
-		for(track_position=EBML_MasterFindChild((ebml_master *)cue_point, &MATROSKA_ContextCueTrackPositions);
-			track_position!=NULL;
-			track_position = EBML_MasterFindNextElt((ebml_master *)cue_point, track_position, FALSE, FALSE)) {
-			int track_num = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueTrack));
+		for (const auto &r : mReaders) {
+			r->mNeedSeeking = true;
+		}
+		for (track_position = EBML_MasterFindChild((ebml_master *)cue_point, &MATROSKA_ContextCueTrackPositions);
+		     track_position != NULL;
+		     track_position = EBML_MasterFindNextElt((ebml_master *)cue_point, track_position, FALSE, FALSE)) {
+			int track_num = (int)EBML_IntegerValue(
+			    (ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueTrack));
 			auto it = find_if(mReaders.cbegin(), mReaders.cend(),
-				[track_num](const unique_ptr<MKVTrackReader> &r){return r->mTrackNum == track_num;}
-			);
-			if(it != mReaders.cend()) {
+			                  [track_num](const unique_ptr<MKVTrackReader> &r) { return r->mTrackNum == track_num; });
+			if (it != mReaders.cend()) {
 				const auto &t_reader = *it;
-				pos = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position, &MATROSKA_ContextCueClusterPosition));
+				pos = EBML_IntegerValue((ebml_integer *)EBML_MasterFindChild((ebml_master *)track_position,
+				                                                             &MATROSKA_ContextCueClusterPosition));
 				pos += mFirstLevel1Pos;
 				t_reader->seek(pos);
 			}
 		}
-		for(const auto &t_reader : mReaders) {
-			if(t_reader->mNeedSeeking) t_reader->seek(pos);
+		for (const auto &t_reader : mReaders) {
+			if (t_reader->mNeedSeeking) t_reader->seek(pos);
 		}
 		return (int)(MATROSKA_CueTimecode((matroska_cuepoint *)cue_point) / 1000000LL);
 	} else {
@@ -351,9 +379,9 @@ int MKVReader::parseHeaders() noexcept {
 	bool_t level1_found = FALSE;
 	const tchar_t *matroska_doc_type =
 #ifdef UNICODE
-		L"matroska";
+	    L"matroska";
 #else
-		"matroska";
+	    "matroska";
 #endif
 
 	pctx.Context = &MATROSKA_ContextStream;
@@ -363,37 +391,39 @@ int MKVReader::parseHeaders() noexcept {
 
 	Stream_Seek(mFile.get(), 0, SEEK_SET);
 	level0.reset(EBML_FindNextElement(mFile.get(), &pctx, &upper_level, FALSE));
-	if(level0 == NULL) {
+	if (level0 == NULL) {
 		ms_error("MKVParser: file is empty");
 		return -1;
 	}
-	if(!EBML_ElementIsType(level0.get(), &EBML_ContextHead)) {
+	if (!EBML_ElementIsType(level0.get(), &EBML_ContextHead)) {
 		ms_error("MKVParser: first element is not an EBML header");
 		return -1;
 	}
 	err = EBML_ElementReadData(level0.get(), mFile.get(), &pctx, FALSE, SCOPE_ALL_DATA, FALSE);
-	if(err != ERR_NONE) {
+	if (err != ERR_NONE) {
 		ms_error("MKVParser: could not parse EBML header. err=%d", (int)err);
 		return -1;
 	}
-	if(!EBML_MasterCheckMandatory((ebml_master *)level0.get(), FALSE)) {
+	if (!EBML_MasterCheckMandatory((ebml_master *)level0.get(), FALSE)) {
 		ms_error("MKVParser: missing elements in the EBML header");
 		return -1;
 	}
-	EBML_StringGet((ebml_string *)EBML_MasterGetChild((ebml_master *)level0.get(), &EBML_ContextDocType), doc_type, sizeof(doc_type));
+	EBML_StringGet((ebml_string *)EBML_MasterGetChild((ebml_master *)level0.get(), &EBML_ContextDocType), doc_type,
+	               sizeof(doc_type));
 	err = tcscmp(doc_type, matroska_doc_type);
-	if(err != 0) {
+	if (err != 0) {
 		ms_error("MKVParser: not a matroska file");
 		return -1;
 	}
-	doc_type_version = (int)EBML_IntegerValue((ebml_integer *)EBML_MasterGetChild((ebml_master *)level0.get(), &EBML_ContextDocTypeVersion));
+	doc_type_version = (int)EBML_IntegerValue(
+	    (ebml_integer *)EBML_MasterGetChild((ebml_master *)level0.get(), &EBML_ContextDocTypeVersion));
 
 	level0.reset(EBML_FindNextElement(mFile.get(), &pctx, &upper_level, FALSE));
-	if(level0 == NULL) {
+	if (level0 == NULL) {
 		ms_error("MKVParser: no matroska element");
 		return -1;
 	}
-	if(!EBML_ElementIsType(level0.get(), &MATROSKA_ContextSegment)) {
+	if (!EBML_ElementIsType(level0.get(), &MATROSKA_ContextSegment)) {
 		ms_error("MKVParser: second element is not a segment");
 		return -1;
 	}
@@ -402,50 +432,50 @@ int MKVReader::parseHeaders() noexcept {
 	seg_pctx.Profile = doc_type_version;
 	seg_pctx.UpContext = &pctx;
 	upper_level = 0;
-	while((level1.reset(EBML_FindNextElement(mFile.get(), &seg_pctx, &upper_level, FALSE)), level1)
-			&& upper_level == 0) {
-		if(!level1_found) {
+	while ((level1.reset(EBML_FindNextElement(mFile.get(), &seg_pctx, &upper_level, FALSE)), level1) &&
+	       upper_level == 0) {
+		if (!level1_found) {
 			mFirstLevel1Pos = EBML_ElementPosition(level1.get());
 			level1_found = TRUE;
 		}
-		if(EBML_ElementIsType(level1.get(), &MATROSKA_ContextInfo)) {
+		if (EBML_ElementIsType(level1.get(), &MATROSKA_ContextInfo)) {
 			err = EBML_ElementReadData(level1.get(), mFile.get(), &seg_pctx, FALSE, SCOPE_ALL_DATA, FALSE);
-			if(err != ERR_NONE) {
+			if (err != ERR_NONE) {
 				ms_error("MKVParser: fail to read segment information");
 				return -1;
 			}
 			mInfo = make_unique<MKVSegmentInfo>();
-			if(mInfo->parse(level1.get()) < 0) {
+			if (mInfo->parse(level1.get()) < 0) {
 				ms_error("MKVParser: fail to parse segment information");
 				return -1;
 			}
 			mInfoElt = move(level1);
-		} else if(EBML_ElementIsType(level1.get(), &MATROSKA_ContextTracks)) {
+		} else if (EBML_ElementIsType(level1.get(), &MATROSKA_ContextTracks)) {
 			ebml_element *track;
 			err = EBML_ElementReadData(level1.get(), mFile.get(), &seg_pctx, FALSE, SCOPE_ALL_DATA, FALSE);
-			if(err != ERR_NONE) {
+			if (err != ERR_NONE) {
 				ms_error("MKVParser: fail to read tracks information");
 				return -1;
 			}
-			if(parseTracks(level1.get()) < 0) {
+			if (parseTracks(level1.get()) < 0) {
 				ms_error("MKVParser: fail to parse tracks information");
 				return -1;
 			}
 			EBML_MasterForEachChild(track, level1.get(), &MATROSKA_ContextTrackEntry) {
 				mTracksElt.emplace_back(EBML_ElementCopy(track, NULL));
 			}
-		} else if(EBML_ElementIsType(level1.get(), &MATROSKA_ContextCluster)) {
-			if(!cluster_found) {
+		} else if (EBML_ElementIsType(level1.get(), &MATROSKA_ContextCluster)) {
+			if (!cluster_found) {
 				mFirstClusterPos = EBML_ElementPosition(level1.get());
 				cluster_found = TRUE;
 			}
 			mLastClusterEnd = EBML_ElementPositionEnd(level1.get());
 			EBML_ElementSkipData(level1.get(), mFile.get(), &seg_pctx, NULL, FALSE);
-		} else if(EBML_ElementIsType(level1.get(), &MATROSKA_ContextCues)) {
+		} else if (EBML_ElementIsType(level1.get(), &MATROSKA_ContextCues)) {
 			err = EBML_ElementReadData(level1.get(), mFile.get(), &seg_pctx, FALSE, SCOPE_ALL_DATA, FALSE);
-			if(err != ERR_NONE) {
+			if (err != ERR_NONE) {
 				ms_error("MKVParser: fail to read the table of cues");
-			} else if(!EBML_MasterCheckMandatory((ebml_master *)level1.get(), FALSE)) {
+			} else if (!EBML_MasterCheckMandatory((ebml_master *)level1.get(), FALSE)) {
 				ms_error("MKVParser: fail to parse the table of cues");
 			} else {
 				mCues = move(level1);
@@ -454,7 +484,7 @@ int MKVReader::parseHeaders() noexcept {
 			EBML_ElementSkipData(level1.get(), mFile.get(), &seg_pctx, NULL, FALSE);
 		}
 	}
-	if(!cluster_found) return -1;
+	if (!cluster_found) return -1;
 	return 0;
 }
 
@@ -463,7 +493,7 @@ int MKVReader::parseTracks(const ebml_element *tracks_elt) noexcept {
 
 	mTracks.clear();
 
-	if(!EBML_MasterCheckMandatory((ebml_master *)tracks_elt, FALSE)) {
+	if (!EBML_MasterCheckMandatory((ebml_master *)tracks_elt, FALSE)) {
 		ms_error("MKVParser: fail to parse tracks info. Missing elements");
 		return -1;
 	}
@@ -487,10 +517,13 @@ filepos_t MKVReader::findClusterPosition(int pos_ms) noexcept {
 			continue;
 		}
 		int upper_level2 = 0;
-		ebml_parser_context cluster_parser_context = {&MATROSKA_ContextCluster, nullptr, EBML_ElementPositionEnd(cluster.get()), 0};
+		ebml_parser_context cluster_parser_context = {&MATROSKA_ContextCluster, nullptr,
+		                                              EBML_ElementPositionEnd(cluster.get()), 0};
 		EbmlElementPtr timecode_elt{};
-		while ((timecode_elt.reset(EBML_FindNextElement(f.get(), &cluster_parser_context, &upper_level2, FALSE)), timecode_elt)
-			&& !EBML_ElementIsType(timecode_elt.get(), &MATROSKA_ContextTimecode));
+		while ((timecode_elt.reset(EBML_FindNextElement(f.get(), &cluster_parser_context, &upper_level2, FALSE)),
+		        timecode_elt) &&
+		       !EBML_ElementIsType(timecode_elt.get(), &MATROSKA_ContextTimecode))
+			;
 		if (timecode_elt == nullptr) return INVALID_FILEPOS_T;
 
 		EBML_ElementReadData(timecode_elt.get(), f.get(), &cluster_parser_context, FALSE, SCOPE_ALL_DATA, 0);
@@ -513,48 +546,47 @@ void MKVTrackReader::nextBlock(std::unique_ptr<MKVBlock> &block, bool &end_of_tr
 	int upper_levels = 0;
 
 	block = nullptr;
-	
-	if(mCurrentCluster == NULL) {
+
+	if (mCurrentCluster == NULL) {
 		end_of_track = true;
 		return;
-	}else
-		end_of_track = false;
+	} else end_of_track = false;
 
 	do {
 		do {
 			do {
-				if(mCurrentFrameElt==NULL) {
+				if (mCurrentFrameElt == NULL) {
 					mCurrentFrameElt = EBML_MasterChildren(mCurrentCluster.get());
 				} else {
 					mCurrentFrameElt = EBML_MasterNext(mCurrentFrameElt);
 				}
-			} while(mCurrentFrameElt
-					&& !EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextSimpleBlock)
-					&& !EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextBlockGroup));
+			} while (mCurrentFrameElt && !EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextSimpleBlock) &&
+			         !EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextBlockGroup));
 
-			if(mCurrentFrameElt==NULL) {
+			if (mCurrentFrameElt == NULL) {
 				Stream_Seek(mFile.get(), EBML_ElementPositionEnd(mCurrentCluster.get()), SEEK_SET);
 				mCurrentCluster.reset(EBML_FindNextElement(mFile.get(), &mParser, &upper_levels, FALSE));
-				if(mCurrentCluster) {
-					EBML_ElementReadData(mCurrentCluster.get(), mFile.get(), &mParser, FALSE, SCOPE_PARTIAL_DATA, FALSE);
+				if (mCurrentCluster) {
+					EBML_ElementReadData(mCurrentCluster.get(), mFile.get(), &mParser, FALSE, SCOPE_PARTIAL_DATA,
+					                     FALSE);
 				}
 			}
-		} while(mCurrentCluster && mCurrentFrameElt == NULL);
+		} while (mCurrentCluster && mCurrentFrameElt == NULL);
 
-		if(mCurrentCluster == NULL) {
+		if (mCurrentCluster == NULL) {
 			end_of_track = true;
 			return;
 		}
 		block_elt = frameToBlock(mCurrentFrameElt);
-	} while(MATROSKA_BlockTrackNum(block_elt) != mTrackNum);
+	} while (MATROSKA_BlockTrackNum(block_elt) != mTrackNum);
 
 	MATROSKA_LinkBlockReadSegmentInfo(block_elt, (ebml_master *)mRoot->mInfoElt.get(), TRUE);
 	MATROSKA_LinkBlockReadTrack(block_elt, (ebml_master *)mTrackElt, TRUE);
 	MATROSKA_BlockReadData(block_elt, mFile.get());
 	block = make_unique<MKVBlock>();
-	if(EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextBlockGroup)) {
+	if (EBML_ElementIsType(mCurrentFrameElt, &MATROSKA_ContextBlockGroup)) {
 		ebml_element *codec_state_elt = EBML_MasterFindChild(mCurrentFrameElt, &MATROSKA_ContextCodecState);
-		if(codec_state_elt) {
+		if (codec_state_elt) {
 			auto codec_state_size = EBML_ElementDataSize(codec_state_elt, FALSE);
 			auto codec_state_data = EBML_BinaryGetData((ebml_binary *)codec_state_elt);
 			block->mCodecState.assign(codec_state_data, codec_state_data + codec_state_size);
@@ -613,8 +645,8 @@ int MKVTrackReader::seek(filepos_t clusterPos, int pos_ms) noexcept {
 	} else {
 		auto timecodeElt = EBML_MasterFindChild(mCurrentCluster.get(), &MATROSKA_ContextTimecode);
 		return (timecodeElt)
-			? int(EBML_IntegerValue((ebml_integer *)timecodeElt) * mRoot->mInfo->mTimecodeScale / 1000000)
-			: -1;
+		           ? int(EBML_IntegerValue((ebml_integer *)timecodeElt) * mRoot->mInfo->mTimecodeScale / 1000000)
+		           : -1;
 	}
 }
 

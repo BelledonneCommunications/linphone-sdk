@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2010-2022 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2 
+ * This file is part of mediastreamer2
  * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,13 +24,13 @@
 #include "opengl_functions.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 /* Shader Utilities */
-GLint glueCompileShader (const OpenGlFunctions *f, const GLchar *sources, GLuint shader);
-GLint glueLinkProgram (const OpenGlFunctions *f, GLuint program);
-GLint glueValidateProgram (const OpenGlFunctions *f, GLuint program);
-GLint glueGetUniformLocation (const OpenGlFunctions *f, GLuint program, const GLchar *name);
+GLint glueCompileShader(const OpenGlFunctions *f, const GLchar *sources, GLuint shader);
+GLint glueLinkProgram(const OpenGlFunctions *f, GLuint program);
+GLint glueValidateProgram(const OpenGlFunctions *f, GLuint program);
+GLint glueGetUniformLocation(const OpenGlFunctions *f, GLuint program, const GLchar *name);
 
 #ifdef __cplusplus
 }
