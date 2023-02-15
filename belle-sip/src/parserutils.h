@@ -22,27 +22,27 @@
 
 #include "port.h"
 
-static BELLESIP_INLINE int belle_sip_strcasecmp(const char*a, const char* b) {
+static BELLESIP_INLINE int belle_sip_strcasecmp(const char *a, const char *b) {
 	if (!a || !b) return 0;
-	return strcasecmp(a,b) == 0;
+	return strcasecmp(a, b) == 0;
 }
 
-#define IS_TOKEN(token) \
-		belle_sip_strcasecmp(#token,(const char*)INPUT->toStringTT(INPUT,LT(1),LT(strlen(#token)))->chars)
+#define IS_TOKEN(token)                                                                                                \
+	belle_sip_strcasecmp(#token, (const char *)INPUT->toStringTT(INPUT, LT(1), LT(strlen(#token)))->chars)
 
+#define IS_HEADER_NAMED(name, compressed_name) (IS_TOKEN(compressed_name) || IS_TOKEN(name))
 
-#define IS_HEADER_NAMED(name,compressed_name) (IS_TOKEN(compressed_name) || IS_TOKEN(name))
+#define STRCASECMP_HEADER_NAMED(name, compressed_name, value)                                                          \
+	(strcasecmp(compressed_name, (const char *)value) == 0 || strcasecmp(name, (const char *)value) == 0)
 
-#define STRCASECMP_HEADER_NAMED(name,compressed_name,value) \
-		(strcasecmp(compressed_name,(const char*)value) == 0 || strcasecmp(name,(const char*)value) == 0 )
+#define ANTLR3_LOG_EXCEPTION()                                                                                         \
+	belle_sip_message("[\%s] reason [\%s] at line[\%u] position[\%d]", (const char *)EXCEPTION->name,                  \
+	                  (const char *)EXCEPTION->message, EXCEPTION->line, EXCEPTION->charPositionInLine);
 
-#define ANTLR3_LOG_EXCEPTION() belle_sip_message("[\%s] reason [\%s] at line[\%u] position[\%d]",(const char*)EXCEPTION->name,(const char*)EXCEPTION->message,EXCEPTION->line,EXCEPTION->charPositionInLine);
+BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t *header, belle_sip_header_t *next);
 
-
-BELLESIP_EXPORT void belle_sip_header_set_next(belle_sip_header_t* header,belle_sip_header_t* next);
-
-belle_sip_param_pair_t* belle_sip_param_pair_new(const char* name,const char* value);
-char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
+belle_sip_param_pair_t *belle_sip_param_pair_new(const char *name, const char *value);
+char *_belle_sip_str_dup_and_unquote_string(const char *quoted_string);
 
 /**
  * quoted-string  =  SWS DQUOTE *(qdtext / quoted-pair ) DQUOTE
@@ -53,7 +53,7 @@ char* _belle_sip_str_dup_and_unquote_string(const char* quoted_string);
 
 remove any \
  * */
-BELLESIP_EXPORT char* belle_sip_string_to_backslash_less_unescaped_string(const char* buff);
-BELLESIP_EXPORT char* belle_sip_display_name_to_backslashed_escaped_string(const char* buff);
+BELLESIP_EXPORT char *belle_sip_string_to_backslash_less_unescaped_string(const char *buff);
+BELLESIP_EXPORT char *belle_sip_display_name_to_backslashed_escaped_string(const char *buff);
 
 #endif

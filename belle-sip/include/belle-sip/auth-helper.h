@@ -20,9 +20,11 @@
 #ifndef AUTHENTICATION_HELPER_H_
 #define AUTHENTICATION_HELPER_H_
 
-#include "belle-sip/defs.h"
-#include "belle-sip/belle-sip.h"
 #include "bctoolbox/crypto.h"
+#include "belle-sip/belle-sip.h"
+#include "belle-sip/defs.h"
+#include "belle-sip/headers.h"
+#include "belle-sip/listener.h"
 
 #define MAX_LENGTH_BYTE 32
 #define MAX_RESPONSE_SIZE 65
@@ -35,7 +37,8 @@ BELLE_SIP_BEGIN_DECLS
  * @param authentication source to be used as input
  * @return belle_sip_header_authorization_t*
  */
-BELLESIP_EXPORT belle_sip_header_authorization_t* belle_sip_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication);
+BELLESIP_EXPORT belle_sip_header_authorization_t *
+belle_sip_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t *authentication);
 
 /**
  * Create an www_authenticate header from an authorization header, all common parameters are copyed.
@@ -43,15 +46,16 @@ BELLESIP_EXPORT belle_sip_header_authorization_t* belle_sip_auth_helper_create_a
  * @param authorization source to be used as input
  * @return belle_sip_header_www_authenticate_t*
  */
-BELLESIP_EXPORT belle_sip_header_www_authenticate_t* belle_sip_auth_helper_create_www_authenticate(const belle_sip_header_authorization_t* authorization);
+BELLESIP_EXPORT belle_sip_header_www_authenticate_t *
+belle_sip_auth_helper_create_www_authenticate(const belle_sip_header_authorization_t *authorization);
 /**
  * Create an http authorization header from an www_authenticate header, all common parameters are copyed.
  * copy params: scheme, realm, nonce, algorithm, opaque
  * @param authentication source to be used as input
  * @return belle_http_header_authorization_t*
  */
-BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t* authentication);
-
+BELLESIP_EXPORT belle_http_header_authorization_t *
+belle_http_auth_helper_create_authorization(const belle_sip_header_www_authenticate_t *authentication);
 
 /**
  * Create an proxy_authorization header from an www_authenticate header, all common parameters are copyed.
@@ -59,13 +63,14 @@ BELLESIP_EXPORT belle_http_header_authorization_t* belle_http_auth_helper_create
  * @param authentication source to be used as input
  * @return belle_sip_header_authorization_t*
  */
-BELLESIP_EXPORT belle_sip_header_proxy_authorization_t* belle_sip_auth_helper_create_proxy_authorization(const belle_sip_header_proxy_authenticate_t* proxy_authentication);
+BELLESIP_EXPORT belle_sip_header_proxy_authorization_t *
+belle_sip_auth_helper_create_proxy_authorization(const belle_sip_header_proxy_authenticate_t *proxy_authentication);
 
 /**
  * return size which depends on algorithm
  * @return 0 if failed
  */
-BELLESIP_EXPORT int belle_sip_auth_define_size(const char* algo);
+BELLESIP_EXPORT int belle_sip_auth_define_size(const char *algo);
 
 /**
  * compute and set response value according to parameters
@@ -75,82 +80,87 @@ BELLESIP_EXPORT int belle_sip_auth_define_size(const char* algo);
  *
  * @return 0 if succeed
  */
-BELLESIP_EXPORT int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t* authorization
-												,const char* method
-												,const char* ha1);
+BELLESIP_EXPORT int belle_sip_auth_helper_fill_authorization(belle_sip_header_authorization_t *authorization,
+                                                             const char *method,
+                                                             const char *ha1);
 
 /**
  * compute and set response value according to parameters
  * @return 0 if succeed
  */
-BELLESIP_EXPORT int belle_sip_auth_helper_fill_proxy_authorization(belle_sip_header_proxy_authorization_t* proxy_authorization
-												,const char* method
-												,const char* ha1);
+BELLESIP_EXPORT int belle_sip_auth_helper_fill_proxy_authorization(
+    belle_sip_header_proxy_authorization_t *proxy_authorization, const char *method, const char *ha1);
 
 /*
  * compute HA1 (NULL terminated)
  * HA1=MD5(userid:realm:passwd)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1(const char* userid,const char* realm,const char* password, char ha1[33]);
+BELLESIP_EXPORT int
+belle_sip_auth_helper_compute_ha1(const char *userid, const char *realm, const char *password, char ha1[33]);
 /*
  * compute HA1 (NULL terminated)
  * HA1=MD5(userid:realm:passwd) or SHA-256(userid:realm:passwd)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1_for_algorithm(const char* userid,const char* realm,const char* password, char *ha1, size_t size, const char* algo);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha1_for_algorithm(
+    const char *userid, const char *realm, const char *password, char *ha1, size_t size, const char *algo);
 /*
  * compute HA2 (NULL terminated)
  * HA2=MD5(method:uri)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2(const char* method,const char* uri, char ha2[33]);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2(const char *method, const char *uri, char ha2[33]);
 
 /*
  * compute HA2 (NULL terminated)
  * HA2=MD5(method:uri) or SHA-256(method:uri)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2_for_algorithm(const char* method,const char* uri, char *ha2, size_t size, const char* algo);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_ha2_for_algorithm(
+    const char *method, const char *uri, char *ha2, size_t size, const char *algo);
 /*
  * compute response(NULL terminated)
  * res=MD5(ha1:nonce:ha2)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_response(const char* ha1,const char* nonce, const char* ha2, char response[33]);
+BELLESIP_EXPORT int
+belle_sip_auth_helper_compute_response(const char *ha1, const char *nonce, const char *ha2, char response[33]);
 
 /*
  * compute response(NULL terminated)
  * res=MD5(ha1:nonce:ha2) or SHA-256(ha1:nonce:ha2)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_for_algorithm(const char* ha1,const char* nonce, const char* ha2, char *response, size_t size, const char* algo);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_for_algorithm(
+    const char *ha1, const char *nonce, const char *ha2, char *response, size_t size, const char *algo);
 /*
  * compute response(NULL terminated)
  * res=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(	const char* ha1
-													, const char* nonce
-													, unsigned int nonce_count
-													, const char* cnonce
-													, const char* qop
-													, const char* ha2
-													, char response[33]);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth(const char *ha1,
+                                                                    const char *nonce,
+                                                                    unsigned int nonce_count,
+                                                                    const char *cnonce,
+                                                                    const char *qop,
+                                                                    const char *ha2,
+                                                                    char response[33]);
 
 /*
  * compute response(NULL terminated)
  * res=MD5(HA1:nonce:nonce_count:cnonce:qop:HA2) or SHA-256(HA1:nonce:nonce_count:cnonce:qop:HA2)
  * return 0 in case of success
  * */
-BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char* ha1
-                                                                  , const char* nonce
-                                                                  , unsigned int nonce_count
-                                                                  , const char* cnonce
-                                                                  , const char* qop
-                                                                  , const char* ha2
-                                                                  , char *response
-                                                                  , size_t size, const char* algo);
+BELLESIP_EXPORT int belle_sip_auth_helper_compute_response_qop_auth_for_algorithm(const char *ha1,
+                                                                                  const char *nonce,
+                                                                                  unsigned int nonce_count,
+                                                                                  const char *cnonce,
+                                                                                  const char *qop,
+                                                                                  const char *ha2,
+                                                                                  char *response,
+                                                                                  size_t size,
+                                                                                  const char *algo);
 /*TLS client certificate auth*/
 
 /**
@@ -170,10 +180,10 @@ BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_sip_tls_set_verify_error_cb(void *
 /**
  * Format of certificate buffer
  **/
-typedef enum  belle_sip_certificate_raw_format {
+typedef enum belle_sip_certificate_raw_format {
 	BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM, /** PEM format*/
-	BELLE_SIP_CERTIFICATE_RAW_FORMAT_DER /** ASN.1 raw format*/
-}belle_sip_certificate_raw_format_t;
+	BELLE_SIP_CERTIFICATE_RAW_FORMAT_DER  /** ASN.1 raw format*/
+} belle_sip_certificate_raw_format_t;
 
 /**
  * Parse a buffer containing either a certificate chain order in PEM format or a single DER cert
@@ -182,7 +192,8 @@ typedef enum  belle_sip_certificate_raw_format {
  * @param format either PEM or DER
  * @return  belle_sip_certificates_chain_t or NULL if cannot be decoded
  */
-BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse(const char* buff, size_t size,belle_sip_certificate_raw_format_t format);
+BELLESIP_EXPORT belle_sip_certificates_chain_t *
+belle_sip_certificates_chain_parse(const char *buff, size_t size, belle_sip_certificate_raw_format_t format);
 
 /**
  * Parse a buffer containing either a private or public rsa key in PEM format
@@ -191,7 +202,7 @@ BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_par
  * @param passwd password (optionnal)
  * @return list of belle_sip_signing_key_t or NULL if cannot be decoded
  */
-BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char* buff, size_t size,const char* passwd);
+BELLESIP_EXPORT belle_sip_signing_key_t *belle_sip_signing_key_parse(const char *buff, size_t size, const char *passwd);
 
 /**
  * Parse a pather containing either a certificate chain order in PEM format or a single DER cert
@@ -199,19 +210,27 @@ BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse(const char*
  * @param format either PEM or DER
  * @return  belle_sip_certificates_chain_t or NUL if cannot be decoded
  */
-BELLESIP_EXPORT belle_sip_certificates_chain_t* belle_sip_certificates_chain_parse_file(const char* path, belle_sip_certificate_raw_format_t format);
+BELLESIP_EXPORT belle_sip_certificates_chain_t *
+belle_sip_certificates_chain_parse_file(const char *path, belle_sip_certificate_raw_format_t format);
 
 /**
- * Parse a directory for *.pem file containing a certificate and private key in PEM format or a single DER cert with subject CNAME as given
+ * Parse a directory for *.pem file containing a certificate and private key in PEM format or a single DER cert with
+ * subject CNAME as given
  *
  * @param[in]	path			directory to parse
  * @param[in]	subject			subject CNAME to look for
- * @param[out]	certificate		result certificate, NULL if not found. Is allocated by this function, caller must do a belle_sip_object_unref on it after use
- * @param[out]	pkey			result private key, NULL if not found. Is allocated by this function, caller must do a belle_sip_object_unref on it after use
+ * @param[out]	certificate		result certificate, NULL if not found. Is allocated by this function, caller must do a
+ * belle_sip_object_unref on it after use
+ * @param[out]	pkey			result private key, NULL if not found. Is allocated by this function, caller must do a
+ * belle_sip_object_unref on it after use
  * @param[in]	format			either PEM or DER
  * @return  0 if we found a certificate and key matching given subject common name
  */
-BELLESIP_EXPORT int belle_sip_get_certificate_and_pkey_in_dir(const char *path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey, belle_sip_certificate_raw_format_t format);
+BELLESIP_EXPORT int belle_sip_get_certificate_and_pkey_in_dir(const char *path,
+                                                              const char *subject,
+                                                              belle_sip_certificates_chain_t **certificate,
+                                                              belle_sip_signing_key_t **pkey,
+                                                              belle_sip_certificate_raw_format_t format);
 
 /**
  * Generate a self signed certificate and key and save them in a file if a path is given, file will be <subject>.pem
@@ -222,7 +241,10 @@ BELLESIP_EXPORT int belle_sip_get_certificate_and_pkey_in_dir(const char *path, 
  * @param[out]	key			the generated key. Must be destroyed using belle_sip_signing_key_destroy
  * @return 0 on success
  */
-BELLESIP_EXPORT int belle_sip_generate_self_signed_certificate(const char* path, const char *subject, belle_sip_certificates_chain_t **certificate, belle_sip_signing_key_t **pkey);
+BELLESIP_EXPORT int belle_sip_generate_self_signed_certificate(const char *path,
+                                                               const char *subject,
+                                                               belle_sip_certificates_chain_t **certificate,
+                                                               belle_sip_signing_key_t **pkey);
 
 /**
  * Convert a certificate into a its PEM format string
@@ -245,7 +267,8 @@ BELLESIP_EXPORT char *belle_sip_signing_key_get_pem(belle_sip_signing_key_t *key
  * Note: only SHA1 signing algo is supported for now
  *
  * @param[in]	certificate		The certificate used to generate the fingerprint
- * @return		The generated fingerprint formatted according to RFC4572 section 5. Is a null terminated string, must be freed by caller
+ * @return		The generated fingerprint formatted according to RFC4572 section 5. Is a null terminated string, must be
+ * freed by caller
  */
 BELLESIP_EXPORT char *belle_sip_certificates_chain_get_fingerprint(belle_sip_certificates_chain_t *certificate);
 
@@ -255,17 +278,19 @@ BELLESIP_EXPORT char *belle_sip_certificates_chain_get_fingerprint(belle_sip_cer
  * @param passwd password (optionnal)
  * @return list of belle_sip_signing_key_t or NUL iff cannot be decoded
  */
-BELLESIP_EXPORT belle_sip_signing_key_t* belle_sip_signing_key_parse_file(const char* path, const char* passwd);
+BELLESIP_EXPORT belle_sip_signing_key_t *belle_sip_signing_key_parse_file(const char *path, const char *passwd);
 
-#define BELLE_TLS_VERIFY_NONE		(0)
+#define BELLE_TLS_VERIFY_NONE (0)
 #define BELLE_TLS_VERIFY_CN_MISMATCH (1)
 #define BELLE_TLS_VERIFY_ANY_REASON (0xff)
 /* Set of functions deprecated on 2016/02/02 use the belle_tls_crypto_config_XXX ones */
 BELLESIP_DEPRECATED BELLESIP_EXPORT belle_tls_verify_policy_t *belle_tls_verify_policy_new(void);
-BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj, const char *path);
-BELLESIP_DEPRECATED BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj, int flags);
-BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj);
-
+BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_tls_verify_policy_set_root_ca(belle_tls_verify_policy_t *obj,
+                                                                            const char *path);
+BELLESIP_DEPRECATED BELLESIP_EXPORT void belle_tls_verify_policy_set_exceptions(belle_tls_verify_policy_t *obj,
+                                                                                int flags);
+BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int
+belle_tls_verify_policy_get_exceptions(const belle_tls_verify_policy_t *obj);
 
 /**
  * Create a new crypto configuration object
@@ -274,7 +299,8 @@ BELLESIP_DEPRECATED BELLESIP_EXPORT unsigned int belle_tls_verify_policy_get_exc
  * - a path to the trusted root certificates
  * - a way to override certificate verification exceptions
  * - a ssl configuration structure provided directly to the underlying crypto library (mbedtls 2 or above),
- * @return an empty belle_tls_crypto_config object, trusted certificate path is initialised to the default system path without any warranty
+ * @return an empty belle_tls_crypto_config object, trusted certificate path is initialised to the default system path
+ * without any warranty
  */
 BELLESIP_EXPORT belle_tls_crypto_config_t *belle_tls_crypto_config_new(void);
 
@@ -319,33 +345,36 @@ BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_exceptions(belle_tls_cry
  */
 BELLESIP_EXPORT unsigned int belle_tls_crypto_config_get_verify_exceptions(const belle_tls_crypto_config_t *obj);
 
-
 /**
  * Callback prototype to override certificate check at upper level.
  * @param user_data the user pointer passed to belle_tls_crypto_config_set_verify_callback()
  * @param cert the x509 certificate
  * @param depth depth of certificate in the certificate chain (the callback is called for each certificate of the chain
- * @param flags i/o parameter containing the error flags reported by the crypto library (BCTBX_CERTIFICATE_VERIFY_* flags).
- * 		The application may freely alterate the flags on output, in order to bypass verifications or add new error flags.
- * 		The flags MUST be set or unset with bctbx_x509_certificate_set_flag() bctbx_x509_certificate_unset_flag()
-**/
-typedef void (*belle_tls_crypto_config_verify_callback_t)(void *user_data, bctbx_x509_certificate_t *cert , int depth, uint32_t *flags);
+ * @param flags i/o parameter containing the error flags reported by the crypto library (BCTBX_CERTIFICATE_VERIFY_*
+ *flags). The application may freely alterate the flags on output, in order to bypass verifications or add new error
+ *flags. The flags MUST be set or unset with bctbx_x509_certificate_set_flag() bctbx_x509_certificate_unset_flag()
+ **/
+typedef void (*belle_tls_crypto_config_verify_callback_t)(void *user_data,
+                                                          bctbx_x509_certificate_t *cert,
+                                                          int depth,
+                                                          uint32_t *flags);
 
 /**
  * Set a callback function to call during each TLS handshake in order to override certificate verification.
  * @param obj the crypto config object
  * @param cb the application callback
  * @param cb_data an application data pointer that will be passed to callback when invoked.
-**/
-BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_verify_callback_t cb, void *cb_data);
-
+ **/
+BELLESIP_EXPORT void belle_tls_crypto_config_set_verify_callback(belle_tls_crypto_config_t *obj,
+                                                                 belle_tls_crypto_config_verify_callback_t cb,
+                                                                 void *cb_data);
 
 /**
  * Callback prototype to check remote certificate once hanshake is completed (post-check).
  * @param user_data the user pointer passed to belle_tls_crypto_config_set_postcheck_callback()
  * @param cert the peer x509 certificate
  * @return 0 if all is good, -1 otherwise
-**/
+ **/
 typedef int (*belle_tls_crypto_config_postcheck_callback_t)(void *user_data, const bctbx_x509_certificate_t *cert);
 
 /**
@@ -353,14 +382,17 @@ typedef int (*belle_tls_crypto_config_postcheck_callback_t)(void *user_data, con
  * @param obj the crypto config object
  * @param cb the application callback
  * @param cb_data an application data pointer that will be passed to callback when invoked.
-**/
-BELLESIP_EXPORT void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *obj, belle_tls_crypto_config_postcheck_callback_t cb, void *cb_data);
+ **/
+BELLESIP_EXPORT void belle_tls_crypto_config_set_postcheck_callback(belle_tls_crypto_config_t *obj,
+                                                                    belle_tls_crypto_config_postcheck_callback_t cb,
+                                                                    void *cb_data);
 
 /**
  * Set the pointer to an externally provided ssl configuration for the crypto library
  * @param[in/out]	obj			The crypto configuration object to set
- * @param[in]		ssl_config	A pointer to an opaque structure which will be provided directly to the crypto library used in bctoolbox. Use with extra care.
- * 								This ssl_config structure is responsability of the caller and will not be freed at the connection's end.
+ * @param[in]		ssl_config	A pointer to an opaque structure which will be provided directly to the crypto library
+ * used in bctoolbox. Use with extra care. This ssl_config structure is responsability of the caller and will not be
+ * freed at the connection's end.
  */
 BELLESIP_EXPORT void belle_tls_crypto_config_set_ssl_config(belle_tls_crypto_config_t *obj, void *ssl_config);
 

@@ -27,21 +27,21 @@ using namespace belledonnecomm;
 
 extern "C" int tunnel_client_is_dual(void *tunnelClient) {
 	TunnelClientI *tc = static_cast<TunnelClientI *>(tunnelClient);
-	DualTunnelClient * dtc = dynamic_cast<DualTunnelClient *>(tc);
+	DualTunnelClient *dtc = dynamic_cast<DualTunnelClient *>(tc);
 	return dtc != NULL;
 }
 
-extern "C" void * tunnel_client_create_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
+extern "C" void *tunnel_client_create_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
 	TunnelClient *tc = static_cast<TunnelClient *>(tunnelclient);
 	return tc->createSocket(minLocalPort, maxLocalPort);
 }
 
-extern "C" void * tunnel_client_create_send_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
+extern "C" void *tunnel_client_create_send_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
 	DualTunnelClient *tc = static_cast<DualTunnelClient *>(tunnelclient);
 	return tc->createSocket(TunnelSendOnly, minLocalPort, maxLocalPort);
 }
 
-extern "C" void * tunnel_client_create_recv_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
+extern "C" void *tunnel_client_create_recv_only_socket(void *tunnelclient, int minLocalPort, int maxLocalPort) {
 	DualTunnelClient *tc = static_cast<DualTunnelClient *>(tunnelclient);
 	return tc->createSocket(TunnelRecvOnly, minLocalPort, maxLocalPort);
 }
@@ -63,12 +63,14 @@ extern "C" int tunnel_socket_has_data(void *tunnelsocket) {
 	return ts->hasData();
 }
 
-extern "C" int tunnel_socket_sendto(void *tunnelsocket, const void *buffer, size_t bufsize, const struct sockaddr *dest, socklen_t socklen) {
+extern "C" int tunnel_socket_sendto(
+    void *tunnelsocket, const void *buffer, size_t bufsize, const struct sockaddr *dest, socklen_t socklen) {
 	TunnelSocket *ts = static_cast<TunnelSocket *>(tunnelsocket);
 	return ts->sendto(buffer, bufsize, dest, socklen);
 }
 
-extern "C" int tunnel_socket_recvfrom(void *tunnelsocket, void *buffer, size_t bufsize, struct sockaddr *src, socklen_t socklen) {
+extern "C" int
+tunnel_socket_recvfrom(void *tunnelsocket, void *buffer, size_t bufsize, struct sockaddr *src, socklen_t socklen) {
 	TunnelSocket *ts = static_cast<TunnelSocket *>(tunnelsocket);
 	return ts->recvfrom(buffer, bufsize, src, socklen);
 }

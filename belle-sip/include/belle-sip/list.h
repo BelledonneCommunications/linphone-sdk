@@ -26,7 +26,7 @@ typedef struct _bctbx_list belle_sip_list_t;
 
 #define belle_sip_list_new bctbx_list_new
 #define belle_sip_list_append bctbx_list_append
-#define belle_sip_list_prepend  bctbx_list_prepend
+#define belle_sip_list_prepend bctbx_list_prepend
 #define belle_sip_list_prepend_link bctbx_list_prepend_link
 #define belle_sip_list_last_elem bctbx_list_last_elem
 #define belle_sip_list_free bctbx_list_free

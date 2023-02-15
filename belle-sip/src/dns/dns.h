@@ -28,28 +28,27 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include <stddef.h>		/* size_t offsetof() */
-#include <stdio.h>		/* FILE */
+#include <stddef.h> /* size_t offsetof() */
+#include <stdio.h>  /* FILE */
 
-#include <string.h>		/* strlen(3) */
+#include <string.h> /* strlen(3) */
 
-#include <time.h>		/* time_t */
+#include <time.h> /* time_t */
 
 #if _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <sys/param.h>		/* BYTE_ORDER BIG_ENDIAN _BIG_ENDIAN */
-#include <sys/types.h>		/* socklen_t */
-#include <sys/socket.h>		/* struct socket */
+#include <sys/param.h>  /* BYTE_ORDER BIG_ENDIAN _BIG_ENDIAN */
+#include <sys/socket.h> /* struct socket */
+#include <sys/types.h>  /* socklen_t */
 
-#include <poll.h>		/* POLLIN POLLOUT */
+#include <poll.h> /* POLLIN POLLOUT */
 
-#include <netinet/in.h>		/* struct in_addr struct in6_addr */
+#include <netinet/in.h> /* struct in_addr struct in6_addr */
 
-#include <netdb.h>		/* struct addrinfo */
+#include <netdb.h> /* struct addrinfo */
 #endif
-
 
 /*
  * V I S I B I L I T Y
@@ -59,7 +58,6 @@
 #ifndef DNS_PUBLIC
 #define DNS_PUBLIC
 #endif
-
 
 /*
  * V E R S I O N
@@ -77,17 +75,15 @@
 
 #define DNS_VENDOR "william@25thandClement.com"
 
-#define DNS_V_REL  0x20160608
-#define DNS_V_ABI  0x20160608
-#define DNS_V_API  0x20160608
-
+#define DNS_V_REL 0x20160608
+#define DNS_V_ABI 0x20160608
+#define DNS_V_API 0x20160608
 
 DNS_PUBLIC const char *dns_vendor(void);
 
 DNS_PUBLIC int dns_v_rel(void);
 DNS_PUBLIC int dns_v_abi(void);
 DNS_PUBLIC int dns_v_api(void);
-
 
 /*
  * E R R O R S
@@ -132,7 +128,6 @@ DNS_PUBLIC int *dns_debug_p(void);
 
 #define dns_debug (*dns_debug_p()) /* was extern int dns_debug before 20160523 API */
 
-
 /*
  * C O M P I L E R  A N N O T A T I O N S
  *
@@ -156,8 +151,7 @@ DNS_PUBLIC int *dns_debug_p(void);
 #define DNS_PRAGMA_QUIET _Pragma("clang diagnostic ignored \"-Winitializer-overrides\"")
 #define DNS_PRAGMA_POP _Pragma("clang diagnostic pop")
 
-#define dns_quietinit(...) \
-	DNS_PRAGMA_PUSH DNS_PRAGMA_QUIET __VA_ARGS__ DNS_PRAGMA_POP
+#define dns_quietinit(...) DNS_PRAGMA_PUSH DNS_PRAGMA_QUIET __VA_ARGS__ DNS_PRAGMA_POP
 #else // For GCC, -Woverride-init warning is disabled by the build system for dns.c only
 #define DNS_PRAGMA_PUSH
 #define DNS_PRAGMA_QUIET
@@ -171,7 +165,6 @@ DNS_PUBLIC int *dns_debug_p(void);
 #define DNS_PRAGMA_EXTENSION
 #endif
 
-
 /*
  * E V E N T S  I N T E R F A C E S
  *
@@ -180,7 +173,7 @@ DNS_PUBLIC int *dns_debug_p(void);
 #if defined(POLLIN)
 #define DNS_POLLIN POLLIN
 #else
-#define DNS_POLLIN  1
+#define DNS_POLLIN 1
 #endif
 
 #if defined(POLLOUT)
@@ -189,21 +182,16 @@ DNS_PUBLIC int *dns_debug_p(void);
 #define DNS_POLLOUT 2
 #endif
 
-
 /*
  * See Application Interface below for configuring libevent bitmasks instead
  * of poll(2) bitmasks.
  */
-#define DNS_EVREAD  2
+#define DNS_EVREAD 2
 #define DNS_EVWRITE 4
 
+#define DNS_POLL2EV(set) (((set)&DNS_POLLIN) ? DNS_EVREAD : 0) | (((set)&DNS_POLLOUT) ? DNS_EVWRITE : 0)
 
-#define DNS_POLL2EV(set) \
-	(((set) & DNS_POLLIN)? DNS_EVREAD : 0) | (((set) & DNS_POLLOUT)? DNS_EVWRITE : 0)
-
-#define DNS_EV2POLL(set) \
-	(((set) & DNS_EVREAD)? DNS_POLLIN : 0) | (((set) & DNS_EVWRITE)? DNS_POLLOUT : 0)
-
+#define DNS_EV2POLL(set) (((set)&DNS_EVREAD) ? DNS_POLLIN : 0) | (((set)&DNS_EVWRITE) ? DNS_POLLOUT : 0)
 
 /*
  * E N U M E R A T I O N  I N T E R F A C E S
@@ -211,74 +199,69 @@ DNS_PUBLIC int *dns_debug_p(void);
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 enum dns_section {
-	DNS_S_QD		= 0x01,
-#define DNS_S_QUESTION		DNS_S_QD
+	DNS_S_QD = 0x01,
+#define DNS_S_QUESTION DNS_S_QD
 
-	DNS_S_AN		= 0x02,
-#define DNS_S_ANSWER		DNS_S_AN
+	DNS_S_AN = 0x02,
+#define DNS_S_ANSWER DNS_S_AN
 
-	DNS_S_NS		= 0x04,
-#define DNS_S_AUTHORITY		DNS_S_NS
+	DNS_S_NS = 0x04,
+#define DNS_S_AUTHORITY DNS_S_NS
 
-	DNS_S_AR		= 0x08,
-#define DNS_S_ADDITIONAL	DNS_S_AR
+	DNS_S_AR = 0x08,
+#define DNS_S_ADDITIONAL DNS_S_AR
 
-	DNS_S_ALL		= 0x0f
+	DNS_S_ALL = 0x0f
 }; /* enum dns_section */
 
-
 enum dns_class {
-	DNS_C_IN	= 1,
+	DNS_C_IN = 1,
 
-	DNS_C_ANY	= 255
+	DNS_C_ANY = 255
 }; /* enum dns_class */
 
-
 enum dns_type {
-	DNS_T_A		= 1,
-	DNS_T_NS	= 2,
-	DNS_T_CNAME	= 5,
-	DNS_T_SOA	= 6,
-	DNS_T_PTR	= 12,
-	DNS_T_MX	= 15,
-	DNS_T_TXT	= 16,
-	DNS_T_AAAA	= 28,
-	DNS_T_SRV	= 33,
-	DNS_T_OPT	= 41,
-	DNS_T_SSHFP	= 44,
-	DNS_T_SPF	= 99,
-	DNS_T_AXFR      = 252,
+	DNS_T_A = 1,
+	DNS_T_NS = 2,
+	DNS_T_CNAME = 5,
+	DNS_T_SOA = 6,
+	DNS_T_PTR = 12,
+	DNS_T_MX = 15,
+	DNS_T_TXT = 16,
+	DNS_T_AAAA = 28,
+	DNS_T_SRV = 33,
+	DNS_T_OPT = 41,
+	DNS_T_SSHFP = 44,
+	DNS_T_SPF = 99,
+	DNS_T_AXFR = 252,
 
-	DNS_T_ALL	= 255
+	DNS_T_ALL = 255
 }; /* enum dns_type */
 
-
 enum dns_opcode {
-	DNS_OP_QUERY	= 0,
-	DNS_OP_IQUERY	= 1,
-	DNS_OP_STATUS	= 2,
-	DNS_OP_NOTIFY	= 4,
-	DNS_OP_UPDATE	= 5,
+	DNS_OP_QUERY = 0,
+	DNS_OP_IQUERY = 1,
+	DNS_OP_STATUS = 2,
+	DNS_OP_NOTIFY = 4,
+	DNS_OP_UPDATE = 5,
 }; /* dns_opcode */
 
-
 enum dns_rcode {
-	DNS_RC_NOERROR	= 0,
-	DNS_RC_FORMERR	= 1,
-	DNS_RC_SERVFAIL	= 2,
-	DNS_RC_NXDOMAIN	= 3,
-	DNS_RC_NOTIMP	= 4,
-	DNS_RC_REFUSED	= 5,
-	DNS_RC_YXDOMAIN	= 6,
-	DNS_RC_YXRRSET	= 7,
-	DNS_RC_NXRRSET	= 8,
-	DNS_RC_NOTAUTH	= 9,
-	DNS_RC_NOTZONE	= 10,
+	DNS_RC_NOERROR = 0,
+	DNS_RC_FORMERR = 1,
+	DNS_RC_SERVFAIL = 2,
+	DNS_RC_NXDOMAIN = 3,
+	DNS_RC_NOTIMP = 4,
+	DNS_RC_REFUSED = 5,
+	DNS_RC_YXDOMAIN = 6,
+	DNS_RC_YXRRSET = 7,
+	DNS_RC_NXRRSET = 8,
+	DNS_RC_NOTAUTH = 9,
+	DNS_RC_NOTZONE = 10,
 
 	/* EDNS(0) extended RCODEs */
 	DNS_RC_BADVERS = 16,
 }; /* dns_rcode */
-
 
 /*
  * NOTE: These string functions need a small buffer in case the literal
@@ -288,24 +271,23 @@ enum dns_rcode {
 #define DNS_STRMAXLEN 47 /* "QUESTION|ANSWER|AUTHORITY|ADDITIONAL" */
 
 DNS_PUBLIC const char *dns_strsection(enum dns_section, void *, size_t);
-#define dns_strsection3(a, b, c) \
-				dns_strsection((a), (b), (c))
-#define dns_strsection1(a)	dns_strsection((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
-#define dns_strsection(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strsection, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#define dns_strsection3(a, b, c) dns_strsection((a), (b), (c))
+#define dns_strsection1(a) dns_strsection((a), (char[DNS_STRMAXLEN + 1]){0}, DNS_STRMAXLEN + 1)
+#define dns_strsection(...) DNS_PP_CALL(DNS_PP_XPASTE(dns_strsection, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
 
 DNS_PUBLIC enum dns_section dns_isection(const char *);
 
 DNS_PUBLIC const char *dns_strclass(enum dns_class, void *, size_t);
-#define dns_strclass3(a, b, c)	dns_strclass((a), (b), (c))
-#define dns_strclass1(a)	dns_strclass((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
-#define dns_strclass(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strclass, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#define dns_strclass3(a, b, c) dns_strclass((a), (b), (c))
+#define dns_strclass1(a) dns_strclass((a), (char[DNS_STRMAXLEN + 1]){0}, DNS_STRMAXLEN + 1)
+#define dns_strclass(...) DNS_PP_CALL(DNS_PP_XPASTE(dns_strclass, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
 
 DNS_PUBLIC enum dns_class dns_iclass(const char *);
 
 DNS_PUBLIC const char *dns_strtype(enum dns_type, void *, size_t);
-#define dns_strtype3(a, b, c)	dns_strtype((a), (b), (c))
-#define dns_strtype1(a)		dns_strtype((a), (char [DNS_STRMAXLEN + 1]){ 0 }, DNS_STRMAXLEN + 1)
-#define dns_strtype(...)	DNS_PP_CALL(DNS_PP_XPASTE(dns_strtype, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#define dns_strtype3(a, b, c) dns_strtype((a), (b), (c))
+#define dns_strtype1(a) dns_strtype((a), (char[DNS_STRMAXLEN + 1]){0}, DNS_STRMAXLEN + 1)
+#define dns_strtype(...) DNS_PP_CALL(DNS_PP_XPASTE(dns_strtype, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
 
 DNS_PUBLIC enum dns_type dns_itype(const char *);
 
@@ -317,7 +299,6 @@ DNS_PUBLIC const char *dns_strrcode(enum dns_rcode);
 
 DNS_PUBLIC enum dns_rcode dns_ircode(const char *);
 
-
 /*
  * A T O M I C  I N T E R F A C E S
  *
@@ -326,7 +307,6 @@ DNS_PUBLIC enum dns_rcode dns_ircode(const char *);
 typedef unsigned long dns_atomic_t;
 
 typedef unsigned long dns_refcount_t; /* must be same value type as dns_atomic_t */
-
 
 /*
  * C R Y P T O  I N T E R F A C E S
@@ -339,52 +319,50 @@ DNS_PUBLIC dns_random_f **dns_random_p(void);
 
 #define dns_random (*dns_random_p()) /* was extern unsigned (*dns_random)(void) before 20160523 API */
 
-
 /*
  * P A C K E T  I N T E R F A C E
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 struct dns_header {
-		unsigned qid:16;
+	unsigned qid : 16;
 
 #if (defined BYTE_ORDER && BYTE_ORDER == BIG_ENDIAN) || (defined __sun && defined _BIG_ENDIAN)
-		unsigned qr:1;
-		unsigned opcode:4;
-		unsigned aa:1;
-		unsigned tc:1;
-		unsigned rd:1;
+	unsigned qr : 1;
+	unsigned opcode : 4;
+	unsigned aa : 1;
+	unsigned tc : 1;
+	unsigned rd : 1;
 
-		unsigned ra:1;
-		unsigned unused:3;
-		unsigned rcode:4;
+	unsigned ra : 1;
+	unsigned unused : 3;
+	unsigned rcode : 4;
 #else
-		unsigned rd:1;
-		unsigned tc:1;
-		unsigned aa:1;
-		unsigned opcode:4;
-		unsigned qr:1;
+	unsigned rd : 1;
+	unsigned tc : 1;
+	unsigned aa : 1;
+	unsigned opcode : 4;
+	unsigned qr : 1;
 
-		unsigned rcode:4;
-		unsigned unused:3;
-		unsigned ra:1;
+	unsigned rcode : 4;
+	unsigned unused : 3;
+	unsigned ra : 1;
 #endif
 
-		unsigned qdcount:16;
-		unsigned ancount:16;
-		unsigned nscount:16;
-		unsigned arcount:16;
+	unsigned qdcount : 16;
+	unsigned ancount : 16;
+	unsigned nscount : 16;
+	unsigned arcount : 16;
 }; /* struct dns_header */
 
-#define dns_header(p)	(&(p)->header)
-
+#define dns_header(p) (&(p)->header)
 
 #ifndef DNS_P_QBUFSIZ
-#define DNS_P_QBUFSIZ	dns_p_calcsize(256 + 4)
+#define DNS_P_QBUFSIZ dns_p_calcsize(256 + 4)
 #endif
 
 #ifndef DNS_P_DICTSIZE
-#define DNS_P_DICTSIZE	16
+#define DNS_P_DICTSIZE 16
 #endif
 
 struct dns_packet {
@@ -402,11 +380,13 @@ struct dns_packet {
 		} opt;
 	} memo;
 
-	struct { struct dns_packet *cqe_next, *cqe_prev; } cqe;
+	struct {
+		struct dns_packet *cqe_next, *cqe_prev;
+	} cqe;
 
 	size_t size, end;
 
-	int:16; /* tcp padding */
+	int : 16; /* tcp padding */
 
 	DNS_PRAGMA_EXTENSION union {
 		struct dns_header header;
@@ -414,12 +394,17 @@ struct dns_packet {
 	};
 }; /* struct dns_packet */
 
-#define dns_p_calcsize(n)	(offsetof(struct dns_packet, data) + DNS_PP_MAX(12, (n)))
+#define dns_p_calcsize(n) (offsetof(struct dns_packet, data) + DNS_PP_MAX(12, (n)))
 
-#define dns_p_sizeof(P)		dns_p_calcsize((P)->end)
+#define dns_p_sizeof(P) dns_p_calcsize((P)->end)
 
 /** takes size of maximum desired payload */
-#define dns_p_new(n)		(dns_p_init((struct dns_packet *)&(union { unsigned char b[dns_p_calcsize((n))]; struct dns_packet p; }){ { 0 } }, dns_p_calcsize((n))))
+#define dns_p_new(n)                                                                                                   \
+	(dns_p_init((struct dns_packet *)&(union {                                                                         \
+		            unsigned char b[dns_p_calcsize((n))];                                                              \
+		            struct dns_packet p;                                                                               \
+	            }){{0}},                                                                                               \
+	            dns_p_calcsize((n))))
 
 /** takes size of entire packet structure as allocated */
 DNS_PUBLIC struct dns_packet *dns_p_init(struct dns_packet *, size_t);
@@ -431,39 +416,40 @@ DNS_PUBLIC int dns_p_grow(struct dns_packet **);
 
 DNS_PUBLIC struct dns_packet *dns_p_copy(struct dns_packet *, const struct dns_packet *);
 
-#define dns_p_opcode(P)		(dns_header(P)->opcode)
+#define dns_p_opcode(P) (dns_header(P)->opcode)
 
 DNS_PUBLIC enum dns_rcode dns_p_rcode(struct dns_packet *);
 
 DNS_PUBLIC unsigned dns_p_count(struct dns_packet *, enum dns_section);
 
-DNS_PUBLIC int dns_p_push(struct dns_packet *, enum dns_section, const void *, size_t, enum dns_type, enum dns_class, unsigned, const void *);
+DNS_PUBLIC int dns_p_push(
+    struct dns_packet *, enum dns_section, const void *, size_t, enum dns_type, enum dns_class, unsigned, const void *);
 
 DNS_PUBLIC void dns_p_dictadd(struct dns_packet *, unsigned short);
 
-DNS_PUBLIC struct dns_packet *dns_p_merge(struct dns_packet *, enum dns_section, struct dns_packet *, enum dns_section, int *);
+DNS_PUBLIC struct dns_packet *
+dns_p_merge(struct dns_packet *, enum dns_section, struct dns_packet *, enum dns_section, int *);
 
 DNS_PUBLIC void dns_p_dump(struct dns_packet *, FILE *);
 
 DNS_PUBLIC int dns_p_study(struct dns_packet *);
-
 
 /*
  * D O M A I N  N A M E  I N T E R F A C E S
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#define DNS_D_MAXLABEL	63	/* + 1 '\0' */
-#define DNS_D_MAXNAME	255	/* + 1 '\0' */
+#define DNS_D_MAXLABEL 63 /* + 1 '\0' */
+#define DNS_D_MAXNAME 255 /* + 1 '\0' */
 
-#define DNS_D_ANCHOR	1	/* anchor domain w/ root "." */
-#define DNS_D_CLEAVE	2	/* cleave sub-domain */
-#define DNS_D_TRIM	4	/* remove superfluous dots */
+#define DNS_D_ANCHOR 1 /* anchor domain w/ root "." */
+#define DNS_D_CLEAVE 2 /* cleave sub-domain */
+#define DNS_D_TRIM 4   /* remove superfluous dots */
 
-#define dns_d_new3(a, b, f)	dns_d_init(&(char[DNS_D_MAXNAME + 1]){ 0 }, DNS_D_MAXNAME + 1, (a), (b), (f))
-#define dns_d_new2(a, f)	dns_d_new3((a), strlen((a)), (f))
-#define dns_d_new1(a)		dns_d_new3((a), strlen((a)), DNS_D_ANCHOR)
-#define dns_d_new(...)		DNS_PP_CALL(DNS_PP_XPASTE(dns_d_new, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
+#define dns_d_new3(a, b, f) dns_d_init(&(char[DNS_D_MAXNAME + 1]){0}, DNS_D_MAXNAME + 1, (a), (b), (f))
+#define dns_d_new2(a, f) dns_d_new3((a), strlen((a)), (f))
+#define dns_d_new1(a) dns_d_new3((a), strlen((a)), DNS_D_ANCHOR)
+#define dns_d_new(...) DNS_PP_CALL(DNS_PP_XPASTE(dns_d_new, DNS_PP_NARG(__VA_ARGS__)), __VA_ARGS__)
 
 DNS_PUBLIC char *dns_d_init(void *, size_t, const void *, size_t, int);
 
@@ -480,7 +466,6 @@ DNS_PUBLIC unsigned short dns_d_skip(unsigned short, struct dns_packet *);
 DNS_PUBLIC int dns_d_push(struct dns_packet *, const void *, size_t);
 
 DNS_PUBLIC size_t dns_d_cname(void *, size_t, const void *, size_t, struct dns_packet *, int *error);
-
 
 /*
  * R E S O U R C E  R E C O R D  I N T E R F A C E S
@@ -505,7 +490,6 @@ struct dns_rr {
 	} rd;
 }; /* struct dns_rr */
 
-
 DNS_PUBLIC int dns_rr_copy(struct dns_packet *, struct dns_rr *, struct dns_packet *);
 
 DNS_PUBLIC int dns_rr_parse(struct dns_rr *, unsigned short, struct dns_packet *);
@@ -516,9 +500,7 @@ DNS_PUBLIC int dns_rr_cmp(struct dns_rr *, struct dns_packet *, struct dns_rr *,
 
 DNS_PUBLIC size_t dns_rr_print(void *, size_t, struct dns_rr *, struct dns_packet *, int *);
 
-
-#define dns_rr_i_new(P, ...) \
-	dns_rr_i_init(&dns_quietinit((struct dns_rr_i){ 0, __VA_ARGS__ }), (P))
+#define dns_rr_i_new(P, ...) dns_rr_i_init(&dns_quietinit((struct dns_rr_i){0, __VA_ARGS__}), (P))
 
 struct dns_rr_i {
 	enum dns_section section;
@@ -549,15 +531,15 @@ DNS_PUBLIC int dns_rr_i_shuffle(struct dns_rr *, struct dns_rr *, struct dns_rr_
 
 DNS_PUBLIC struct dns_rr_i *dns_rr_i_init(struct dns_rr_i *, struct dns_packet *);
 
-#define dns_rr_i_save(i)	((i)->saved = (i)->state)
-#define dns_rr_i_rewind(i)	((i)->state = (i)->saved)
-#define dns_rr_i_count(i)	((i)->state.count)
+#define dns_rr_i_save(i) ((i)->saved = (i)->state)
+#define dns_rr_i_rewind(i) ((i)->state = (i)->saved)
+#define dns_rr_i_count(i) ((i)->state.count)
 
 DNS_PUBLIC unsigned dns_rr_grep(struct dns_rr *, unsigned, struct dns_rr_i *, struct dns_packet *, int *);
 
-#define dns_rr_foreach(rr, P, ...)	\
-	for (struct dns_rr_i DNS_PP_XPASTE(i, __LINE__) = *dns_rr_i_new((P), __VA_ARGS__); dns_rr_grep((rr), 1, &DNS_PP_XPASTE(i, __LINE__), (P), &(int){ 0 }); )
-
+#define dns_rr_foreach(rr, P, ...)                                                                                     \
+	for (struct dns_rr_i DNS_PP_XPASTE(i, __LINE__) = *dns_rr_i_new((P), __VA_ARGS__);                                 \
+	     dns_rr_grep((rr), 1, &DNS_PP_XPASTE(i, __LINE__), (P), &(int){0});)
 
 /*
  * A  R E S O U R C E  R E C O R D
@@ -577,7 +559,6 @@ DNS_PUBLIC size_t dns_a_print(void *, size_t, struct dns_a *);
 
 DNS_PUBLIC size_t dns_a_arpa(void *, size_t, const struct dns_a *);
 
-
 /*
  * AAAA  R E S O U R C E  R E C O R D
  */
@@ -595,7 +576,6 @@ DNS_PUBLIC int dns_aaaa_cmp(const struct dns_aaaa *, const struct dns_aaaa *);
 DNS_PUBLIC size_t dns_aaaa_print(void *, size_t, struct dns_aaaa *);
 
 DNS_PUBLIC size_t dns_aaaa_arpa(void *, size_t, const struct dns_aaaa *);
-
 
 /*
  * MX  R E S O U R C E  R E C O R D
@@ -616,7 +596,6 @@ DNS_PUBLIC size_t dns_mx_print(void *, size_t, struct dns_mx *);
 
 DNS_PUBLIC size_t dns_mx_cname(void *, size_t, struct dns_mx *);
 
-
 /*
  * NS  R E S O U R C E  R E C O R D
  */
@@ -634,7 +613,6 @@ DNS_PUBLIC int dns_ns_cmp(const struct dns_ns *, const struct dns_ns *);
 DNS_PUBLIC size_t dns_ns_print(void *, size_t, struct dns_ns *);
 
 DNS_PUBLIC size_t dns_ns_cname(void *, size_t, struct dns_ns *);
-
 
 /*
  * CNAME  R E S O U R C E  R E C O R D
@@ -654,7 +632,6 @@ DNS_PUBLIC size_t dns_cname_print(void *, size_t, struct dns_cname *);
 
 DNS_PUBLIC size_t dns_cname_cname(void *, size_t, struct dns_cname *);
 
-
 /*
  * SOA  R E S O U R C E  R E C O R D
  */
@@ -672,7 +649,6 @@ DNS_PUBLIC int dns_soa_push(struct dns_packet *, struct dns_soa *);
 DNS_PUBLIC int dns_soa_cmp(const struct dns_soa *, const struct dns_soa *);
 
 DNS_PUBLIC size_t dns_soa_print(void *, size_t, struct dns_soa *);
-
 
 /*
  * PTR  R E S O U R C E  R E C O R D
@@ -693,7 +669,6 @@ DNS_PUBLIC size_t dns_ptr_print(void *, size_t, struct dns_ptr *);
 DNS_PUBLIC size_t dns_ptr_cname(void *, size_t, struct dns_ptr *);
 
 DNS_PUBLIC size_t dns_ptr_qname(void *, size_t, int, void *);
-
 
 /*
  * SRV  R E S O U R C E  R E C O R D
@@ -716,7 +691,6 @@ DNS_PUBLIC size_t dns_srv_print(void *, size_t, struct dns_srv *);
 
 DNS_PUBLIC size_t dns_srv_cname(void *, size_t, struct dns_srv *);
 
-
 /*
  * OPT  R E S O U R C E  R E C O R D
  */
@@ -725,7 +699,7 @@ DNS_PUBLIC size_t dns_srv_cname(void *, size_t, struct dns_srv *);
 #define DNS_OPT_MINDATA 256
 #endif
 
-#define DNS_OPT_DNSSEC  0x8000
+#define DNS_OPT_DNSSEC 0x8000
 
 struct dns_opt {
 	enum dns_rcode rcode;
@@ -734,14 +708,15 @@ struct dns_opt {
 
 	union {
 		unsigned short maxsize; /* deprecated as confusing */
-		unsigned short maxudp; /* maximum UDP payload size */
+		unsigned short maxudp;  /* maximum UDP payload size */
 	};
 
 	size_t size, len;
 	unsigned char data[DNS_OPT_MINDATA];
 }; /* struct dns_opt */
 
-#define DNS_OPT_INIT(opt) { .size = sizeof (*opt) - offsetof(struct dns_opt, data) }
+#define DNS_OPT_INIT(opt)                                                                                              \
+	{ .size = sizeof(*opt) - offsetof(struct dns_opt, data) }
 
 DNS_PUBLIC struct dns_opt *dns_opt_init(struct dns_opt *, size_t);
 
@@ -758,7 +733,6 @@ DNS_PUBLIC unsigned int dns_opt_ttl(const struct dns_opt *);
 DNS_PUBLIC unsigned short dns_opt_class(const struct dns_opt *);
 
 DNS_PUBLIC dns_error_t dns_opt_data_push(struct dns_opt *, unsigned char, unsigned short, const void *);
-
 
 /*
  * SSHFP  R E S O U R C E  R E C O R D
@@ -787,13 +761,12 @@ DNS_PUBLIC int dns_sshfp_cmp(const struct dns_sshfp *, const struct dns_sshfp *)
 
 DNS_PUBLIC size_t dns_sshfp_print(void *, size_t, struct dns_sshfp *);
 
-
 /*
  * TXT  R E S O U R C E  R E C O R D
  */
 
 #ifndef DNS_TXT_MINDATA
-#define DNS_TXT_MINDATA	1024
+#define DNS_TXT_MINDATA 1024
 #endif
 
 struct dns_txt {
@@ -810,7 +783,6 @@ DNS_PUBLIC int dns_txt_push(struct dns_packet *, struct dns_txt *);
 DNS_PUBLIC int dns_txt_cmp(const struct dns_txt *, const struct dns_txt *);
 
 DNS_PUBLIC size_t dns_txt_print(void *, size_t, struct dns_txt *);
-
 
 /*
  * ANY  R E S O U R C E  R E C O R D
@@ -830,7 +802,10 @@ union dns_any {
 	struct dns_txt txt, spf, rdata;
 }; /* union dns_any */
 
-#define DNS_ANY_INIT(any) { .rdata = { .size = sizeof *(any) - offsetof(struct dns_txt, data) } }
+#define DNS_ANY_INIT(any)                                                                                              \
+	{                                                                                                                  \
+		.rdata = {.size = sizeof *(any)-offsetof(struct dns_txt, data) }                                               \
+	}
 
 DNS_PUBLIC union dns_any *dns_any_init(union dns_any *, size_t);
 
@@ -843,7 +818,6 @@ DNS_PUBLIC int dns_any_cmp(const union dns_any *, enum dns_type, const union dns
 DNS_PUBLIC size_t dns_any_print(void *, size_t, union dns_any *, enum dns_type);
 
 DNS_PUBLIC size_t dns_any_cname(void *, size_t, union dns_any *, enum dns_type);
-
 
 /*
  * H O S T S  I N T E R F A C E
@@ -873,7 +847,6 @@ DNS_PUBLIC int dns_hosts_dump(struct dns_hosts *, FILE *);
 DNS_PUBLIC int dns_hosts_insert(struct dns_hosts *, int, const void *, const void *, _Bool);
 
 DNS_PUBLIC struct dns_packet *dns_hosts_query(struct dns_hosts *, struct dns_packet *, int *);
-
 
 /*
  * R E S O L V . C O N F  I N T E R F A C E
@@ -972,11 +945,9 @@ DNS_PUBLIC int dns_nssconf_dump(struct dns_resolv_conf *, FILE *);
 
 DNS_PUBLIC int dns_resconf_setiface(struct dns_resolv_conf *, const char *, unsigned short);
 
-
 typedef unsigned long dns_resconf_i_t;
 
 DNS_PUBLIC size_t dns_resconf_search(void *, size_t, const void *, size_t, struct dns_resolv_conf *, dns_resconf_i_t *);
-
 
 /*
  * H I N T  S E R V E R  I N T E R F A C E
@@ -1007,20 +978,18 @@ DNS_PUBLIC struct dns_packet *dns_hints_query(struct dns_hints *, struct dns_pac
 
 DNS_PUBLIC int dns_hints_dump(struct dns_hints *, FILE *);
 
-
 struct dns_hints_i {
 	const char *zone;
 
 	struct {
 		unsigned next;
-        	unsigned seed;
+		unsigned seed;
 	} state;
 }; /* struct dns_hints_i */
 
-#define dns_hints_i_new(...)	(&(struct dns_hints_i){ __VA_ARGS__ })
+#define dns_hints_i_new(...) (&(struct dns_hints_i){__VA_ARGS__})
 
 DNS_PUBLIC unsigned dns_hints_grep(struct sockaddr **, socklen_t *, unsigned, struct dns_hints_i *, struct dns_hints *);
-
 
 /*
  * C A C H E  I N T E R F A C E
@@ -1053,11 +1022,9 @@ struct dns_cache {
 	} _;
 }; /* struct dns_cache */
 
-
 DNS_PUBLIC struct dns_cache *dns_cache_init(struct dns_cache *);
 
 DNS_PUBLIC void dns_cache_close(struct dns_cache *);
-
 
 /*
  * A P P L I C A T I O N  I N T E R F A C E
@@ -1067,9 +1034,11 @@ DNS_PUBLIC void dns_cache_close(struct dns_cache *);
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#define DNS_OPTS_INITIALIZER_ { 0, 0 }, 0
-#define DNS_OPTS_INITIALIZER  { DNS_OPTS_INITIALIZER_ }
-#define DNS_OPTS_INIT(...)    { DNS_OPTS_INITIALIZER_, __VA_ARGS__ }
+#define DNS_OPTS_INITIALIZER_ {0, 0}, 0
+#define DNS_OPTS_INITIALIZER                                                                                           \
+	{ DNS_OPTS_INITIALIZER_ }
+#define DNS_OPTS_INIT(...)                                                                                             \
+	{ DNS_OPTS_INITIALIZER_, __VA_ARGS__ }
 
 #define dns_opts(...) (&dns_quietinit((struct dns_options)DNS_OPTS_INIT(__VA_ARGS__)))
 
@@ -1093,7 +1062,6 @@ struct dns_options {
 	int udp_uses_connect;
 }; /* struct dns_options */
 
-
 /*
  * S T A T S  I N T E R F A C E S
  *
@@ -1108,7 +1076,6 @@ struct dns_stat {
 		} sent, rcvd;
 	} udp, tcp;
 }; /* struct dns_stat */
-
 
 /*
  * S O C K E T  I N T E R F A C E
@@ -1145,7 +1112,6 @@ DNS_PUBLIC int dns_so_poll(struct dns_socket *, int);
 
 DNS_PUBLIC const struct dns_stat *dns_so_stat(struct dns_socket *);
 
-
 /*
  * R E S O L V E R  I N T E R F A C E
  *
@@ -1153,7 +1119,12 @@ DNS_PUBLIC const struct dns_stat *dns_so_stat(struct dns_socket *);
 
 struct dns_resolver;
 
-DNS_PUBLIC struct dns_resolver *dns_res_open(struct dns_resolv_conf *, struct dns_hosts *hosts, struct dns_hints *, struct dns_cache *, const struct dns_options *, int *);
+DNS_PUBLIC struct dns_resolver *dns_res_open(struct dns_resolv_conf *,
+                                             struct dns_hosts *hosts,
+                                             struct dns_hints *,
+                                             struct dns_cache *,
+                                             const struct dns_options *,
+                                             int *);
 
 DNS_PUBLIC struct dns_resolver *dns_res_stub(const struct dns_options *, int *);
 
@@ -1187,7 +1158,8 @@ DNS_PUBLIC time_t dns_res_timeout(struct dns_resolver *);
 
 DNS_PUBLIC int dns_res_poll(struct dns_resolver *, int);
 
-DNS_PUBLIC struct dns_packet *dns_res_query(struct dns_resolver *, const char *, enum dns_type, enum dns_class, int, int *);
+DNS_PUBLIC struct dns_packet *
+dns_res_query(struct dns_resolver *, const char *, enum dns_type, enum dns_class, int, int *);
 
 DNS_PUBLIC const struct dns_stat *dns_res_stat(struct dns_resolver *);
 
@@ -1197,7 +1169,6 @@ DNS_PUBLIC void dns_res_enable_search(struct dns_resolver *, unsigned char enabl
 
 DNS_PUBLIC int dns_res_was_asymetric(struct dns_resolver *);
 
-
 /*
  * A D D R I N F O  I N T E R F A C E
  *
@@ -1205,7 +1176,8 @@ DNS_PUBLIC int dns_res_was_asymetric(struct dns_resolver *);
 
 struct dns_addrinfo;
 
-DNS_PUBLIC struct dns_addrinfo *dns_ai_open(const char *, const char *, enum dns_type, const struct addrinfo *, struct dns_resolver *, int *);
+DNS_PUBLIC struct dns_addrinfo *
+dns_ai_open(const char *, const char *, enum dns_type, const struct addrinfo *, struct dns_resolver *, int *);
 
 DNS_PUBLIC void dns_ai_close(struct dns_addrinfo *);
 
@@ -1227,7 +1199,6 @@ DNS_PUBLIC int dns_ai_poll(struct dns_addrinfo *, int);
 
 DNS_PUBLIC const struct dns_stat *dns_ai_stat(struct dns_addrinfo *);
 
-
 /*
  * U T I L I T Y  I N T E R F A C E S
  *
@@ -1237,30 +1208,29 @@ DNS_PUBLIC size_t dns_strlcpy(char *, const char *, size_t);
 
 DNS_PUBLIC size_t dns_strlcat(char *, const char *, size_t);
 
-
 /*
  * M A C R O  M A G I C S
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#define DNS_PP_MIN(a, b) (((a) < (b))? (a) : (b))
-#define DNS_PP_MAX(a, b) (((a) > (b))? (a) : (b))
-#define DNS_PP_NARG_(a, b, c, d, e, f, g, h, i, j, k, N,...) N
-#define DNS_PP_NARG(...)	DNS_PP_NARG_(__VA_ARGS__, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define DNS_PP_CALL(F, ...)	F(__VA_ARGS__)
-#define DNS_PP_PASTE(x, y)	x##y
-#define DNS_PP_XPASTE(x, y)	DNS_PP_PASTE(x, y)
-#define DNS_PP_STRINGIFY_(s)	#s
-#define DNS_PP_STRINGIFY(s)	DNS_PP_STRINGIFY_(s)
-#define DNS_PP_D1  0
-#define DNS_PP_D2  1
-#define DNS_PP_D3  2
-#define DNS_PP_D4  3
-#define DNS_PP_D5  4
-#define DNS_PP_D6  5
-#define DNS_PP_D7  6
-#define DNS_PP_D8  7
-#define DNS_PP_D9  8
+#define DNS_PP_MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define DNS_PP_MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define DNS_PP_NARG_(a, b, c, d, e, f, g, h, i, j, k, N, ...) N
+#define DNS_PP_NARG(...) DNS_PP_NARG_(__VA_ARGS__, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#define DNS_PP_CALL(F, ...) F(__VA_ARGS__)
+#define DNS_PP_PASTE(x, y) x##y
+#define DNS_PP_XPASTE(x, y) DNS_PP_PASTE(x, y)
+#define DNS_PP_STRINGIFY_(s) #s
+#define DNS_PP_STRINGIFY(s) DNS_PP_STRINGIFY_(s)
+#define DNS_PP_D1 0
+#define DNS_PP_D2 1
+#define DNS_PP_D3 2
+#define DNS_PP_D4 3
+#define DNS_PP_D5 4
+#define DNS_PP_D6 5
+#define DNS_PP_D7 6
+#define DNS_PP_D8 7
+#define DNS_PP_D9 8
 #define DNS_PP_D10 9
 #define DNS_PP_D11 10
 #define DNS_PP_DEC(N) DNS_PP_XPASTE(DNS_PP_D, N)

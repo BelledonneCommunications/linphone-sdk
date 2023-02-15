@@ -24,9 +24,7 @@
 
 #include "belle-sip/belle-sip.h"
 
-
 #define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,15 +48,15 @@ extern test_suite_t refresher_test_suite;
 extern test_suite_t http_test_suite;
 extern test_suite_t object_test_suite;
 
-extern const char* belle_sip_tester_client_cert;
-extern const char* belle_sip_tester_client_cert_fingerprint;
-extern const char* belle_sip_tester_private_key;
-extern const char* belle_sip_tester_private_key_passwd;
+extern const char *belle_sip_tester_client_cert;
+extern const char *belle_sip_tester_client_cert_fingerprint;
+extern const char *belle_sip_tester_private_key;
+extern const char *belle_sip_tester_private_key_passwd;
 
 int belle_sip_tester_ipv6_available(void);
-const char * belle_sip_tester_get_root_ca_path(void);
+const char *belle_sip_tester_get_root_ca_path(void);
 void belle_sip_tester_set_root_ca_path(const char *root_ca_path);
-void belle_sip_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
+void belle_sip_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args));
 void belle_sip_tester_uninit(void);
 void belle_sip_tester_before_each(void);
 void belle_sip_tester_after_each(void);
@@ -68,6 +66,5 @@ void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack);
 #ifdef __cplusplus
 };
 #endif
-
 
 #endif /* _BELLE_SIP_TESTER_H */

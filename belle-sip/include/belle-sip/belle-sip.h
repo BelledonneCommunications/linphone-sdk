@@ -20,38 +20,36 @@
 #ifndef BELLE_SIP_H
 #define BELLE_SIP_H
 
-#include "belle-sip/types.h"
-#include "belle-sip/utils.h"
-#include "belle-sip/list.h"
-#include "belle-sip/listener.h"
-#include "belle-sip/mainloop.h"
-#include "belle-sip/sip-uri.h"
-#include "belle-sip/headers.h"
-#include "belle-sip/parameters.h"
-#include "belle-sip/message.h"
-#include "belle-sip/refresher.h"
-#include "belle-sip/transaction.h"
-#include "belle-sip/dialog.h"
-#include "belle-sip/sipstack.h"
-#include "belle-sip/resolver.h"
-#include "belle-sip/listeningpoint.h"
-#include "belle-sip/provider.h"
 #include "belle-sip/auth-helper.h"
-#include "belle-sip/generic-uri.h"
-#include "belle-sip/http-listener.h"
-#include "belle-sip/http-provider.h"
-#include "belle-sip/http-listener.h"
-#include "belle-sip/http-message.h"
 #include "belle-sip/belle-sdp.h"
 #include "belle-sip/bodyhandler.h"
+#include "belle-sip/dialog.h"
+#include "belle-sip/generic-uri.h"
+#include "belle-sip/headers.h"
+#include "belle-sip/http-listener.h"
+#include "belle-sip/http-message.h"
+#include "belle-sip/http-provider.h"
+#include "belle-sip/list.h"
+#include "belle-sip/listener.h"
+#include "belle-sip/listeningpoint.h"
+#include "belle-sip/mainloop.h"
 #include "belle-sip/mdns_register.h"
+#include "belle-sip/message.h"
+#include "belle-sip/parameters.h"
+#include "belle-sip/provider.h"
+#include "belle-sip/refresher.h"
+#include "belle-sip/resolver.h"
+#include "belle-sip/sip-uri.h"
+#include "belle-sip/sipstack.h"
+#include "belle-sip/transaction.h"
+#include "belle-sip/types.h"
+#include "belle-sip/utils.h"
 
 #ifdef __ANDROID__
 #include "belle-sip/wakelock.h"
 #endif
 
-
-#define BELLE_SIP_POINTER_TO_INT(p)	((int)(intptr_t)(p))
-#define BELLE_SIP_INT_TO_POINTER(i)	((void*)(intptr_t)(i))
+#define BELLE_SIP_POINTER_TO_INT(p) ((int)(intptr_t)(p))
+#define BELLE_SIP_INT_TO_POINTER(i) ((void *)(intptr_t)(i))
 
 #endif

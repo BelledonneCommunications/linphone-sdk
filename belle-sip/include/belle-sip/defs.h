@@ -21,8 +21,8 @@
 #define BELLE_SIP_DEFS_H
 
 #ifdef __cplusplus
-#define BELLE_SIP_BEGIN_DECLS		extern "C"{
-#define BELLE_SIP_END_DECLS		}
+#define BELLE_SIP_BEGIN_DECLS extern "C" {
+#define BELLE_SIP_END_DECLS }
 #else
 #define BELLE_SIP_BEGIN_DECLS
 #define BELLE_SIP_END_DECLS
@@ -44,24 +44,23 @@ typedef unsigned __int64 uint64_t;
 #endif
 
 #ifdef _MSC_VER
-	#ifdef BELLESIP_STATIC
-		#define BELLESIP_EXPORT
-	#else
-		#ifdef BELLESIP_EXPORTS
-			#define BELLESIP_EXPORT __declspec(dllexport)
-		#else
-			#define BELLESIP_EXPORT __declspec(dllimport)
-		#endif
-	#endif
+#ifdef BELLESIP_STATIC
+#define BELLESIP_EXPORT
 #else
-	#define BELLESIP_EXPORT
+#ifdef BELLESIP_EXPORTS
+#define BELLESIP_EXPORT __declspec(dllexport)
+#else
+#define BELLESIP_EXPORT __declspec(dllimport)
+#endif
+#endif
+#else
+#define BELLESIP_EXPORT
 #endif
 
 #define BELLESIP_UNUSED(a) (void)a;
 
 #undef TRUE
 #define TRUE 1
-
 
 #undef FALSE
 #define FALSE 0

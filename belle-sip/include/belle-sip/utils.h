@@ -20,11 +20,11 @@
 #ifndef BELLE_SIP_UTILS_H
 #define BELLE_SIP_UTILS_H
 
+#include "belle-sip/defs.h"
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
-#include "belle-sip/defs.h"
 
 #include "bctoolbox/logging.h"
 #include "bctoolbox/vconnect.h"
@@ -46,32 +46,26 @@ BELLE_SIP_END_DECLS
 /***************/
 
 #define BELLE_SIP_LOG_FATAL BCTBX_LOG_FATAL
-#define	BELLE_SIP_LOG_ERROR BCTBX_LOG_ERROR
-#define	BELLE_SIP_LOG_WARNING BCTBX_LOG_WARNING
-#define	BELLE_SIP_LOG_MESSAGE BCTBX_LOG_MESSAGE
-#define	BELLE_SIP_LOG_DEBUG	BCTBX_LOG_DEBUG
-#define	BELLE_SIP_LOG_END BCTBX_LOG_END
-#define  belle_sip_log_level BctbxLogLevel
+#define BELLE_SIP_LOG_ERROR BCTBX_LOG_ERROR
+#define BELLE_SIP_LOG_WARNING BCTBX_LOG_WARNING
+#define BELLE_SIP_LOG_MESSAGE BCTBX_LOG_MESSAGE
+#define BELLE_SIP_LOG_DEBUG BCTBX_LOG_DEBUG
+#define BELLE_SIP_LOG_END BCTBX_LOG_END
+#define belle_sip_log_level BctbxLogLevel
 
 #define belle_sip_log_function_t BctbxLogFunc
 
-
-typedef enum {
-	BELLE_SIP_NOT_IMPLEMENTED = -2,
-	BELLE_SIP_BUFFER_OVERFLOW = -1,
-	BELLE_SIP_OK = 0
-} belle_sip_error_code;
-
+typedef enum { BELLE_SIP_NOT_IMPLEMENTED = -2, BELLE_SIP_BUFFER_OVERFLOW = -1, BELLE_SIP_OK = 0 } belle_sip_error_code;
 
 #ifdef __GNUC__
-#define BELLE_SIP_CHECK_FORMAT_ARGS(m,n) __attribute__((format(printf,m,n)))
+#define BELLE_SIP_CHECK_FORMAT_ARGS(m, n) __attribute__((format(printf, m, n)))
 #else
-#define BELLE_SIP_CHECK_FORMAT_ARGS(m,n)
+#define BELLE_SIP_CHECK_FORMAT_ARGS(m, n)
 #endif
 
 BELLE_SIP_BEGIN_DECLS
 
-#define belle_sip_log_level_enabled(level) bctbx_log_level_enabled(BELLE_SIP_LOG_DOMAIN,level)
+#define belle_sip_log_level_enabled(level) bctbx_log_level_enabled(BELLE_SIP_LOG_DOMAIN, level)
 
 #ifdef BELLE_SIP_DEBUG_MODE
 #define belle_sip_deb(...) bctbx_debug(...)
@@ -97,41 +91,42 @@ BELLE_SIP_BEGIN_DECLS
 #define belle_sip_logv bctbx_logv
 #endif
 
-
-BELLESIP_EXPORT void  belle_sip_set_log_handler(belle_sip_log_function_t func);
-
+BELLESIP_EXPORT void belle_sip_set_log_handler(belle_sip_log_function_t func);
 
 #define belle_sip_strdup_printf bctbx_strdup_printf
 #define belle_sip_strcat_vprintf bctbx_strcat_vprintf
 #define belle_sip_strcat_printf bctbx_strcat_printf
 
-BELLESIP_EXPORT belle_sip_error_code BELLE_SIP_CHECK_FORMAT_ARGS(4,5) belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
-BELLESIP_EXPORT belle_sip_error_code belle_sip_snprintf_valist(char *buff, size_t buff_size, size_t *offset, const char *fmt, va_list args);
+BELLESIP_EXPORT belle_sip_error_code BELLE_SIP_CHECK_FORMAT_ARGS(4, 5)
+    belle_sip_snprintf(char *buff, size_t buff_size, size_t *offset, const char *fmt, ...);
+BELLESIP_EXPORT belle_sip_error_code
+belle_sip_snprintf_valist(char *buff, size_t buff_size, size_t *offset, const char *fmt, va_list args);
 
-#define belle_sip_set_log_level(level) bctbx_set_log_level(BELLE_SIP_LOG_DOMAIN,level);
+#define belle_sip_set_log_level(level) bctbx_set_log_level(BELLE_SIP_LOG_DOMAIN, level);
 
-BELLESIP_EXPORT char * belle_sip_random_token(char *ret, size_t size);
-BELLESIP_EXPORT char * belle_sip_random_token_with_charset(char *ret, size_t size, const char * charset, size_t charset_length);
+BELLESIP_EXPORT char *belle_sip_random_token(char *ret, size_t size);
+BELLESIP_EXPORT char *
+belle_sip_random_token_with_charset(char *ret, size_t size, const char *charset, size_t charset_length);
 
-BELLESIP_EXPORT unsigned char * belle_sip_random_bytes(unsigned char *ret, size_t size);
+BELLESIP_EXPORT unsigned char *belle_sip_random_bytes(unsigned char *ret, size_t size);
 
 BELLESIP_EXPORT uint32_t belle_sip_random(void);
 
-BELLESIP_EXPORT char * belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char *ret, size_t size);
+BELLESIP_EXPORT char *belle_sip_octets_to_text(const unsigned char *hash, size_t hash_len, char *ret, size_t size);
 
-BELLESIP_EXPORT char * belle_sip_create_tag(char *ret, size_t size);
+BELLESIP_EXPORT char *belle_sip_create_tag(char *ret, size_t size);
 
-BELLESIP_EXPORT const char* belle_sip_version_to_string(void);
+BELLESIP_EXPORT const char *belle_sip_version_to_string(void);
 
 /**
  * Returns string without surrounding quotes if any, else just call belle_sip_strdup().
-**/
+ **/
 BELLESIP_EXPORT char *belle_sip_unquote_strdup(const char *str);
 
 BELLESIP_EXPORT uint64_t belle_sip_time_ms(void);
 
 /** Connect API */
-BELLESIP_EXPORT void belle_sip_set_socket_api(bctbx_vsocket_api_t* my_api);
+BELLESIP_EXPORT void belle_sip_set_socket_api(bctbx_vsocket_api_t *my_api);
 
 #if defined(_WIN32)
 
@@ -142,23 +137,23 @@ typedef SOCKET belle_sip_socket_t;
 typedef HANDLE belle_sip_fd_t;
 #else
 
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 typedef int belle_sip_socket_t;
 typedef int belle_sip_fd_t;
 
 #endif
 
-
 typedef void (*belle_sip_background_task_end_callback_t)(void *);
-BELLESIP_EXPORT unsigned long belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data);
+BELLESIP_EXPORT unsigned long
+belle_sip_begin_background_task(const char *name, belle_sip_background_task_end_callback_t cb, void *data);
 BELLESIP_EXPORT void belle_sip_end_background_task(unsigned long id);
 
-BELLESIP_EXPORT	char* belle_sip_uri_to_escaped_username(const char* buff);
-BELLESIP_EXPORT char* belle_sip_username_unescape_unnecessary_characters(const char* buff);
-BELLESIP_EXPORT char* belle_sip_to_unescaped_string(const char* buff);
+BELLESIP_EXPORT char *belle_sip_uri_to_escaped_username(const char *buff);
+BELLESIP_EXPORT char *belle_sip_username_unescape_unnecessary_characters(const char *buff);
+BELLESIP_EXPORT char *belle_sip_to_unescaped_string(const char *buff);
 
 BELLE_SIP_END_DECLS
 

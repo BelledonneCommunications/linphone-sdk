@@ -17,12 +17,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include <stdio.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #ifdef _WIN32
 #define strcasecmp _stricmp
 #else
@@ -30,50 +29,50 @@
 #endif
 #include <string.h>
 
-#include "belle-sip/belle-sip.h"
 #include "belle-sip/belle-sdp.h"
+#include "belle-sip/belle-sip.h"
 #include <bctoolbox/vfs.h>
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 	char *str;
 	struct stat st;
 	int fd;
 	int i;
-	const char *filename=NULL;
-	const char *protocol="sip";
+	const char *filename = NULL;
+	const char *protocol = "sip";
 
-	if (argc<2){
-		fprintf(stderr,"Usage:\n%s [--protocol sip|http|sdp] <text file containing messages>\n",argv[0]);
+	if (argc < 2) {
+		fprintf(stderr, "Usage:\n%s [--protocol sip|http|sdp] <text file containing messages>\n", argv[0]);
 		return -1;
 	}
-	for(i=1;i<argc;++i){
-		if (strcmp(argv[i],"--protocol")==0){
+	for (i = 1; i < argc; ++i) {
+		if (strcmp(argv[i], "--protocol") == 0) {
 			i++;
-			if (i<argc){
-				protocol=argv[i];
-			}else{
-				fprintf(stderr,"Missing argument for --protocol\n");
+			if (i < argc) {
+				protocol = argv[i];
+			} else {
+				fprintf(stderr, "Missing argument for --protocol\n");
 				return -1;
 			}
-		}else filename=argv[i];
+		} else filename = argv[i];
 	}
-	if (!filename){
-		fprintf(stderr,"No filename specified\n");
-				return -1;
+	if (!filename) {
+		fprintf(stderr, "No filename specified\n");
+		return -1;
 	}
-	if (stat(filename,&st)==-1){
-		fprintf(stderr,"Could not stat %s: %s\n",filename,strerror(errno));
+	if (stat(filename, &st) == -1) {
+		fprintf(stderr, "Could not stat %s: %s\n", filename, strerror(errno));
 		return -1;
 	}
 
-	fd=open(filename,O_RDONLY);
-	if (fd==-1){
-		fprintf(stderr,"Could not open %s: %s\n",filename,strerror(errno));
+	fd = open(filename, O_RDONLY);
+	if (fd == -1) {
+		fprintf(stderr, "Could not open %s: %s\n", filename, strerror(errno));
 		return -1;
 	}
-	str=belle_sip_malloc0(st.st_size+1);
-	if (read(fd,str,st.st_size)==-1){
-		fprintf(stderr,"Could not read %s: %s\n",filename,strerror(errno));
+	str = belle_sip_malloc0(st.st_size + 1);
+	if (read(fd, str, st.st_size) == -1) {
+		fprintf(stderr, "Could not read %s: %s\n", filename, strerror(errno));
 		belle_sip_free(str);
 		close(fd);
 		return -1;
@@ -81,27 +80,28 @@ int main(int argc, char *argv[]){
 	close(fd);
 	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
 
-	for (i=0;i<(int)st.st_size;){
+	for (i = 0; i < (int)st.st_size;) {
 		size_t nbread;
-		if (strcasecmp(protocol,"sip")==0 || strcasecmp(protocol,"http")==0){
+		if (strcasecmp(protocol, "sip") == 0 || strcasecmp(protocol, "http") == 0) {
 			belle_sip_message_t *msg;
-			uint64_t begin,end;
-			begin=belle_sip_time_ms();
-			msg=belle_sip_message_parse_raw(str+i,st.st_size-i,&nbread);
-			end=belle_sip_time_ms();
-			if (msg){
-				printf("Successfully parsed %s message of %i bytes in %i ms.\n",protocol,(int)nbread, (int)(end-begin));
-			}else{
-				fprintf(stderr,"Failed to parse message.\n");
+			uint64_t begin, end;
+			begin = belle_sip_time_ms();
+			msg = belle_sip_message_parse_raw(str + i, st.st_size - i, &nbread);
+			end = belle_sip_time_ms();
+			if (msg) {
+				printf("Successfully parsed %s message of %i bytes in %i ms.\n", protocol, (int)nbread,
+				       (int)(end - begin));
+			} else {
+				fprintf(stderr, "Failed to parse message.\n");
 				break;
 			}
-			i+=(int)nbread;
-		}else if (strcasecmp(protocol,"sdp")==0){
-			belle_sdp_session_description_t *sdp=belle_sdp_session_description_parse(str);
-			if (sdp){
-				printf("Successfully parsed %s message of %i bytes.\n",protocol,(int)strlen(str));
-			}else{
-				fprintf(stderr,"Failed to parse SDP message.\n");
+			i += (int)nbread;
+		} else if (strcasecmp(protocol, "sdp") == 0) {
+			belle_sdp_session_description_t *sdp = belle_sdp_session_description_parse(str);
+			if (sdp) {
+				printf("Successfully parsed %s message of %i bytes.\n", protocol, (int)strlen(str));
+			} else {
+				fprintf(stderr, "Failed to parse SDP message.\n");
 			}
 			break;
 		}

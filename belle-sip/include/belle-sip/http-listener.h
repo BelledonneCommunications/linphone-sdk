@@ -20,7 +20,9 @@
 #ifndef belle_http_listener_h
 #define belle_http_listener_h
 
-struct belle_http_response_event{
+#include "belle-sip/listener.h"
+
+struct belle_http_response_event {
 	belle_sip_object_t *source;
 	belle_http_request_t *request;
 	belle_http_response_t *response;
@@ -28,33 +30,34 @@ struct belle_http_response_event{
 
 typedef struct belle_http_response_event belle_http_response_event_t;
 
-
-#define BELLE_HTTP_INTERFACE_FUNCS(argT) \
-	void (*process_response_headers)(argT *user_ctx, const belle_http_response_event_t *event); \
-	void (*process_response)(argT *user_ctx, const belle_http_response_event_t *event); \
-	void (*process_io_error)(argT *user_ctx, const belle_sip_io_error_event_t *event); \
-	void (*process_timeout)(argT *user_ctx, const belle_sip_timeout_event_t *event); \
-	void (*process_auth_requested)(argT *user_ctx, belle_sip_auth_event_t *event);
+#define BELLE_HTTP_INTERFACE_FUNCS(argT)                                                                               \
+	void (*process_response_headers)(argT * user_ctx, const belle_http_response_event_t *event);                       \
+	void (*process_response)(argT * user_ctx, const belle_http_response_event_t *event);                               \
+	void (*process_io_error)(argT * user_ctx, const belle_sip_io_error_event_t *event);                                \
+	void (*process_timeout)(argT * user_ctx, const belle_sip_timeout_event_t *event);                                  \
+	void (*process_auth_requested)(argT * user_ctx, belle_sip_auth_event_t * event);
 
 BELLE_SIP_DECLARE_INTERFACE_BEGIN(belle_http_request_listener_t)
-	BELLE_HTTP_INTERFACE_FUNCS(belle_http_request_listener_t)
+BELLE_HTTP_INTERFACE_FUNCS(belle_http_request_listener_t)
 BELLE_SIP_DECLARE_INTERFACE_END
 
-struct belle_http_request_listener_callbacks{
+struct belle_http_request_listener_callbacks {
 	BELLE_HTTP_INTERFACE_FUNCS(void)
 	void (*listener_destroyed)(void *user_ctx);
 };
 
 typedef struct belle_http_request_listener_callbacks belle_http_request_listener_callbacks_t;
 
-#define BELLE_HTTP_REQUEST_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj,belle_http_request_listener_t)
+#define BELLE_HTTP_REQUEST_LISTENER(obj) BELLE_SIP_INTERFACE_CAST(obj, belle_http_request_listener_t)
 
 BELLE_SIP_BEGIN_DECLS
 /**
  * Creates an object implementing the belle_http_request_listener_t interface.
  * This object passes the events to the callbacks, providing also the user context.
-**/
-BELLESIP_EXPORT belle_http_request_listener_t *belle_http_request_listener_create_from_callbacks(const belle_http_request_listener_callbacks_t *callbacks, void *user_ctx);
+ **/
+BELLESIP_EXPORT belle_http_request_listener_t *
+belle_http_request_listener_create_from_callbacks(const belle_http_request_listener_callbacks_t *callbacks,
+                                                  void *user_ctx);
 
 BELLE_SIP_END_DECLS
 

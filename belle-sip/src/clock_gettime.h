@@ -27,8 +27,7 @@ typedef enum {
 	BC_CLOCK_THREAD_CPUTIME_ID
 } bc_clockid_t;
 
-
-int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp) ;
+int bc_clock_gettime(bc_clockid_t clk_id, struct timespec *tp);
 #endif
 
 #endif /* CLOCK_GETTIME_H_ */

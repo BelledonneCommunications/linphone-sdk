@@ -17,23 +17,23 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-extern belle_sip_stack_t * stack;
+extern belle_sip_stack_t *stack;
 extern belle_sip_provider_t *prov;
 extern const char *test_domain;
 extern int register_before_all(void);
 extern int register_after_all(void);
-extern belle_sip_request_t* register_user(belle_sip_stack_t * stack
-		,belle_sip_provider_t *prov
-		,const char *transport
-		,int use_transaction
-		,const char* username,const char* outbound) ;
-extern belle_sip_client_transaction_t* register_user_with_transaction(belle_sip_stack_t * stack
-		,belle_sip_provider_t *prov
-		,const char *transport
-		,const char* username
-		,const char* outbound_proxy);
-extern void unregister_user(belle_sip_stack_t * stack
-					,belle_sip_provider_t *prov
-					,belle_sip_request_t* initial_request
-					,int use_transaction);
+extern belle_sip_request_t *register_user(belle_sip_stack_t *stack,
+                                          belle_sip_provider_t *prov,
+                                          const char *transport,
+                                          int use_transaction,
+                                          const char *username,
+                                          const char *outbound);
+extern belle_sip_client_transaction_t *register_user_with_transaction(belle_sip_stack_t *stack,
+                                                                      belle_sip_provider_t *prov,
+                                                                      const char *transport,
+                                                                      const char *username,
+                                                                      const char *outbound_proxy);
+extern void unregister_user(belle_sip_stack_t *stack,
+                            belle_sip_provider_t *prov,
+                            belle_sip_request_t *initial_request,
+                            int use_transaction);

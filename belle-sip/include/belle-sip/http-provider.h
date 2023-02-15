@@ -22,32 +22,37 @@
 
 BELLE_SIP_BEGIN_DECLS
 
-#define BELLE_SIP_HTTP_PROVIDER(obj)	BELLE_SIP_CAST(obj,belle_http_provider_t)
+#define BELLE_SIP_HTTP_PROVIDER(obj) BELLE_SIP_CAST(obj, belle_http_provider_t)
 /**
  * Set the certificate verify policy for the TLS connection
  * @return 0 on succes
  * @deprecated Use belle_http_provider_set_tls_crypto_config() instead
  */
-BELLESIP_DEPRECATED BELLESIP_EXPORT int belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
+BELLESIP_DEPRECATED BELLESIP_EXPORT int
+belle_http_provider_set_tls_verify_policy(belle_http_provider_t *obj, belle_tls_verify_policy_t *verify_ctx);
 
 /**
  * Set the certificate crypto configuration used by this TLS connection
  * @return 0 on succes
  */
-BELLESIP_EXPORT int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_tls_crypto_config_t *crypto_config);
+BELLESIP_EXPORT int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj,
+                                                              belle_tls_crypto_config_t *crypto_config);
 
 /**
  * Can be used to simulate network recv error, for tests.
  * @param obj
  * @param recv_error if <=0, will cause channel error to be reported
-**/
+ **/
 BELLESIP_EXPORT void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error);
 
-BELLESIP_EXPORT int belle_http_provider_send_request(belle_http_provider_t *obj, belle_http_request_t *req, belle_http_request_listener_t *listener);
+BELLESIP_EXPORT int belle_http_provider_send_request(belle_http_provider_t *obj,
+                                                     belle_http_request_t *req,
+                                                     belle_http_request_listener_t *listener);
 
 BELLESIP_EXPORT void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_request_t *req);
 
-BELLESIP_EXPORT belle_sip_list_t** belle_http_provider_get_channels(belle_http_provider_t *obj, const char *transport_name);
+BELLESIP_EXPORT belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj,
+                                                                    const char *transport_name);
 
 BELLE_SIP_END_DECLS
 

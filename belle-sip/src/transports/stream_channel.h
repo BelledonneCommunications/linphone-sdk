@@ -24,14 +24,13 @@
 #endif
 
 #if TARGET_OS_IPHONE
-#include <CoreFoundation/CFStream.h>
 #include <CFNetwork/CFSocketStream.h>
+#include <CoreFoundation/CFStream.h>
 #endif
 
-#include "channel.h"
+#include "belle_sip_internal.h"
 
-
-struct belle_sip_stream_channel{
+struct belle_sip_stream_channel {
 	belle_sip_channel_t base;
 #if TARGET_OS_IPHONE
 	CFReadStreamRef read_stream;
@@ -39,21 +38,39 @@ struct belle_sip_stream_channel{
 #endif
 };
 
-BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t,belle_sip_channel_t)
+BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_stream_channel_t, belle_sip_channel_t)
 BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 
-void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj, belle_sip_stack_t *stack, const char *bindip, int localport,const char *peer_cname, const char *dest, int port, int no_srv);
+void belle_sip_stream_channel_init_client(belle_sip_stream_channel_t *obj,
+                                          belle_sip_stack_t *stack,
+                                          const char *bindip,
+                                          int localport,
+                                          const char *peer_cname,
+                                          const char *dest,
+                                          int port,
+                                          int no_srv);
 
-BELLESIP_EXPORT belle_sip_channel_t * belle_sip_stream_channel_new_client(belle_sip_stack_t *stack, const char *bindip, int localport, const char *peer_cname, const char *name, int port, int no_srv);
-belle_sip_channel_t * belle_sip_stream_channel_new_child(belle_sip_stack_t *stack, belle_sip_socket_t sock, struct sockaddr *remote_addr, socklen_t slen);
+BELLESIP_EXPORT belle_sip_channel_t *belle_sip_stream_channel_new_client(belle_sip_stack_t *stack,
+                                                                         const char *bindip,
+                                                                         int localport,
+                                                                         const char *peer_cname,
+                                                                         const char *name,
+                                                                         int port,
+                                                                         int no_srv);
+belle_sip_channel_t *belle_sip_stream_channel_new_child(belle_sip_stack_t *stack,
+                                                        belle_sip_socket_t sock,
+                                                        struct sockaddr *remote_addr,
+                                                        socklen_t slen);
 
 void stream_channel_close(belle_sip_stream_channel_t *obj);
 int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinfo *ai);
 /*return 0 if succeed*/
-int finalize_stream_connection(belle_sip_stream_channel_t *obj, unsigned int revents, struct sockaddr *addr, socklen_t* slen);
+int finalize_stream_connection(belle_sip_stream_channel_t *obj,
+                               unsigned int revents,
+                               struct sockaddr *addr,
+                               socklen_t *slen);
 int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen);
 int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen);
-
 
 /*for testing purpose*/
 BELLESIP_EXPORT void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream);

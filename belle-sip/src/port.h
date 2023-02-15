@@ -22,16 +22,18 @@
 
 #include <sys/stat.h>
 
+#include "belle-sip/utils.h"
+
 #ifndef _WIN32
-#include <stdint.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netdb.h>
 #include <netinet/tcp.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <strings.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #else
 
@@ -73,16 +75,17 @@
 #endif
 
 #if defined(_WIN32) || defined(__QNX__)
-/* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define AI_V4MAPPED. */
-#	ifndef AI_V4MAPPED
-#	define AI_V4MAPPED 0x00000800
-#	endif
-#	ifndef AI_ALL
-#	define AI_ALL 0x00000100
-#	endif
-#	ifndef IPV6_V6ONLY
-#	define IPV6_V6ONLY 27
-#	endif
+/* Mingw32 does not define AI_V4MAPPED, however it is supported starting from Windows Vista. QNX also does not define
+ * AI_V4MAPPED. */
+#ifndef AI_V4MAPPED
+#define AI_V4MAPPED 0x00000800
+#endif
+#ifndef AI_ALL
+#define AI_ALL 0x00000100
+#endif
+#ifndef IPV6_V6ONLY
+#define IPV6_V6ONLY 27
+#endif
 #endif
 
 /*
@@ -91,7 +94,7 @@
 
 BELLESIP_EXPORT int belle_sip_init_sockets(void);
 BELLESIP_EXPORT void belle_sip_uninit_sockets(void);
-int belle_sip_socket_set_nonblocking (belle_sip_socket_t sock);
+int belle_sip_socket_set_nonblocking(belle_sip_socket_t sock);
 int belle_sip_socket_set_dscp(belle_sip_socket_t sock, int ai_family, int dscp);
 int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
 
@@ -99,21 +102,20 @@ int belle_sip_socket_enable_dual_stack(belle_sip_socket_t sock);
 
 typedef HANDLE belle_sip_thread_t;
 
-#define belle_sip_thread_self_id()		(unsigned long)GetCurrentThreadId()
-#define belle_sip_thread_get_id(thread)			(unsigned long)GetThreadId(thread)
+#define belle_sip_thread_self_id() (unsigned long)GetCurrentThreadId()
+#define belle_sip_thread_get_id(thread) (unsigned long)GetThreadId(thread)
 
 typedef intptr_t belle_sip_thread_key_t;
-int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void*) );
-int belle_sip_thread_setspecific(belle_sip_thread_key_t key,const void *value);
-const void* belle_sip_thread_getspecific(belle_sip_thread_key_t key);
+int belle_sip_thread_key_create(belle_sip_thread_key_t *key, void (*destructor)(void *));
+int belle_sip_thread_setspecific(belle_sip_thread_key_t key, const void *value);
+const void *belle_sip_thread_getspecific(belle_sip_thread_key_t key);
 int belle_sip_thread_key_delete(belle_sip_thread_key_t key);
 
-
-static BELLESIP_INLINE void belle_sip_close_socket(belle_sip_socket_t s){
+static BELLESIP_INLINE void belle_sip_close_socket(belle_sip_socket_t s) {
 	closesocket(s);
 }
 
-static BELLESIP_INLINE int get_socket_error(void){
+static BELLESIP_INLINE int get_socket_error(void) {
 	return WSAGetLastError();
 }
 
@@ -134,7 +136,7 @@ typedef SRWLOCK belle_sip_mutex_t;
 #endif
 
 int belle_sip_thread_join(belle_sip_thread_t thread, void **retptr);
-int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void * (*routine)(void*), void *arg);
+int belle_sip_thread_create(belle_sip_thread_t *thread, void *attr, void *(*routine)(void *), void *arg);
 int belle_sip_mutex_init(belle_sip_mutex_t *m, void *attr_unused);
 int belle_sip_mutex_lock(belle_sip_mutex_t *mutex);
 int belle_sip_mutex_unlock(belle_sip_mutex_t *mutex);
@@ -153,7 +155,6 @@ typedef pthread_mutex_t belle_sip_mutex_t;
 #define belle_sip_mutex_unlock pthread_mutex_unlock
 #define belle_sip_mutex_destroy pthread_mutex_destroy
 
-
 #endif
 
 #ifndef BELLE_SIP_WINDOWS_DESKTOP
@@ -162,29 +163,29 @@ BELLESIP_EXPORT void belle_sip_sleep(unsigned int ms);
 #define belle_sip_sleep Sleep
 #endif
 
-#define usleep(us) belle_sip_sleep((us)/1000)
-static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p){
-	*(long*)p=inet_addr(ip);
+#define usleep(us) belle_sip_sleep((us) / 1000)
+static BELLESIP_INLINE int inet_aton(const char *ip, struct in_addr *p) {
+	*(long *)p = inet_addr(ip);
 	return 0;
 }
 
 #else
 
 typedef pthread_t belle_sip_thread_t;
-#define belle_sip_thread_self_id()			(unsigned long)pthread_self()
-#define belle_sip_thread_get_id(thread)			(unsigned long)thread
+#define belle_sip_thread_self_id() (unsigned long)pthread_self()
+#define belle_sip_thread_get_id(thread) (unsigned long)thread
 
 typedef pthread_key_t belle_sip_thread_key_t;
-#define belle_sip_thread_key_create(key,destructor)		pthread_key_create(key,destructor)
-#define belle_sip_thread_setspecific(key,value)			pthread_setspecific(key,value)
-#define belle_sip_thread_getspecific(key)			pthread_getspecific(key)
-#define belle_sip_thread_key_delete(key)				pthread_key_delete(key)
+#define belle_sip_thread_key_create(key, destructor) pthread_key_create(key, destructor)
+#define belle_sip_thread_setspecific(key, value) pthread_setspecific(key, value)
+#define belle_sip_thread_getspecific(key) pthread_getspecific(key)
+#define belle_sip_thread_key_delete(key) pthread_key_delete(key)
 
-static BELLESIP_INLINE void belle_sip_close_socket(belle_sip_socket_t s){
+static BELLESIP_INLINE void belle_sip_close_socket(belle_sip_socket_t s) {
 	close(s);
 }
 
-static BELLESIP_INLINE int get_socket_error(void){
+static BELLESIP_INLINE int get_socket_error(void) {
 	return errno;
 }
 #define belle_sip_get_socket_error_string() strerror(errno)
@@ -194,6 +195,6 @@ static BELLESIP_INLINE int get_socket_error(void){
 
 #define BELLESIP_EWOULDBLOCK BCTBX_EWOULDBLOCK
 #define BELLESIP_EINPROGRESS BCTBX_EINPROGRESS
-#define belle_sip_error_code_is_would_block(err) ((err)==BELLESIP_EWOULDBLOCK || (err)==BELLESIP_EINPROGRESS)
+#define belle_sip_error_code_is_would_block(err) ((err) == BELLESIP_EWOULDBLOCK || (err) == BELLESIP_EINPROGRESS)
 
 #endif

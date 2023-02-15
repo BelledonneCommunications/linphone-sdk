@@ -21,18 +21,18 @@
 
 #include "belle-sip/belle-sip.h"
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 	char *str;
-	if (argc!=2){
-		fprintf(stderr,"Usage:\n%s <type name>\n",argv[0]);
+	if (argc != 2) {
+		fprintf(stderr, "Usage:\n%s <type name>\n", argv[0]);
 		return -1;
 	}
-	str=belle_sip_object_describe_type_from_name(argv[1]);
-	if (str){
-		printf("%s\n",str);
+	str = belle_sip_object_describe_type_from_name(argv[1]);
+	if (str) {
+		printf("%s\n", str);
 		belle_sip_free(str);
-	}else{
-		fprintf(stderr,"Unknown type %s\n",argv[1]);
+	} else {
+		fprintf(stderr, "Unknown type %s\n", argv[1]);
 		return -1;
 	}
 	return 0;

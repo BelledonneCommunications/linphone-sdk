@@ -24,15 +24,14 @@
 #include <dns_sd.h>
 
 #ifndef _WIN32
-#include <unistd.h>
 #include <poll.h>
+#include <unistd.h>
 
 typedef struct pollfd belle_sip_pollfd_t;
 
 static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration) {
 	int err = poll(pfd, count, duration);
-	if (err == -1 && errno != EINTR)
-		belle_sip_error("poll() error: %s",strerror(errno));
+	if (err == -1 && errno != EINTR) belle_sip_error("poll() error: %s", strerror(errno));
 
 	return err;
 }
@@ -44,8 +43,7 @@ typedef WSAPOLLFD belle_sip_pollfd_t;
 
 static int belle_sip_poll(belle_sip_pollfd_t *pfd, int count, int duration) {
 	int err = WSAPoll(pfd, count, duration);
-	if (err == SOCKET_ERROR)
-		belle_sip_error("WSAPoll() error: %d", WSAGetLastError());
+	if (err == SOCKET_ERROR) belle_sip_error("WSAPoll() error: %d", WSAGetLastError());
 
 	return err;
 }
@@ -72,7 +70,7 @@ belle_sip_mdns_register_t *belle_sip_mdns_register_create(belle_sip_mdns_registe
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_mdns_register_t);
 BELLE_SIP_INSTANCIATE_VPTR(belle_sip_mdns_register_t, belle_sip_object_t, NULL, NULL, NULL, FALSE);
 
-static char * srv_prefix_from_service_and_transport(const char *service, const char *transport) {
+static char *srv_prefix_from_service_and_transport(const char *service, const char *transport) {
 	if (service == NULL) service = "sip";
 	if (strcasecmp(transport, "udp") == 0) {
 		return belle_sip_strdup_printf("_%s._udp.", service);
@@ -84,13 +82,13 @@ static char * srv_prefix_from_service_and_transport(const char *service, const c
 	return belle_sip_strdup_printf("_%s._udp.", service);
 }
 
-static void belle_sip_mdns_register_reply(DNSServiceRef service_ref
-										, DNSServiceFlags flags
-										, DNSServiceErrorType error_code
-										, const char *name
-										, const char *type
-										, const char *domain
-										, void *data) {
+static void belle_sip_mdns_register_reply(DNSServiceRef service_ref,
+                                          DNSServiceFlags flags,
+                                          DNSServiceErrorType error_code,
+                                          const char *name,
+                                          const char *type,
+                                          const char *domain,
+                                          void *data) {
 	belle_sip_mdns_register_t *reg = (belle_sip_mdns_register_t *)data;
 	int error = 0;
 
@@ -110,7 +108,7 @@ void *mdns_register_poll(void *data) {
 	pollfd.events = POLLIN;
 
 	reg->running = TRUE;
-	while(reg->running) {
+	while (reg->running) {
 		int err = belle_sip_poll(&pollfd, 1, 1000);
 
 		if (err > 0) {
@@ -130,7 +128,16 @@ int belle_sip_mdns_register_available(void) {
 #endif
 }
 
-belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char *name, int port, int prio, int weight, int ttl,  belle_sip_mdns_register_callback_t cb, void *data) {
+belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service,
+                                                   const char *transport,
+                                                   const char *domain,
+                                                   const char *name,
+                                                   int port,
+                                                   int prio,
+                                                   int weight,
+                                                   int ttl,
+                                                   belle_sip_mdns_register_callback_t cb,
+                                                   void *data) {
 #ifdef HAVE_MDNS
 	belle_sip_mdns_register_t *reg = belle_sip_mdns_register_create(cb, data);
 	DNSServiceErrorType error;
@@ -152,18 +159,8 @@ belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const ch
 
 	prefix = srv_prefix_from_service_and_transport(service, transport);
 
-	error = DNSServiceRegister(&reg->service_ref
-							, 0
-							, 0
-							, name
-							, prefix
-							, domain
-							, NULL
-							, port
-							, TXTRecordGetLength(&txt_ref)
-							, TXTRecordGetBytesPtr(&txt_ref)
-							, belle_sip_mdns_register_reply
-							, reg);
+	error = DNSServiceRegister(&reg->service_ref, 0, 0, name, prefix, domain, NULL, port, TXTRecordGetLength(&txt_ref),
+	                           TXTRecordGetBytesPtr(&txt_ref), belle_sip_mdns_register_reply, reg);
 
 	belle_sip_free(prefix);
 	TXTRecordDeallocate(&txt_ref);

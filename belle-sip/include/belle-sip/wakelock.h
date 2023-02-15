@@ -20,8 +20,8 @@
 #ifndef WAKE_LOCK_H
 #define WAKE_LOCK_H
 
-#include <jni.h>
 #include "belle-sip/defs.h"
+#include <jni.h>
 
 BELLE_SIP_BEGIN_DECLS
 

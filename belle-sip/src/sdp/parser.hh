@@ -17,23 +17,24 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <belr/grammarbuilder.h>
 #include <belr/abnf.h>
+#include <belr/grammarbuilder.h>
 
 using namespace std;
 
 namespace bellesip {
-    namespace SDP {
-        class Parser {
-            public:
-                static Parser *getInstance();
-                void * parse(const string &input, const string &rule);
-            private:
-                static Parser *instance;
-                Parser();
-                ~Parser();
-                shared_ptr<belr::Grammar> loadGrammar();
-                shared_ptr<belr::Parser<void*>> _parser;
-        };
-    }
-}
+namespace SDP {
+class Parser {
+public:
+	static Parser *getInstance();
+	void *parse(const string &input, const string &rule);
+
+private:
+	static Parser *instance;
+	Parser();
+	~Parser();
+	shared_ptr<belr::Grammar> loadGrammar();
+	shared_ptr<belr::Parser<void *>> _parser;
+};
+} // namespace SDP
+} // namespace bellesip

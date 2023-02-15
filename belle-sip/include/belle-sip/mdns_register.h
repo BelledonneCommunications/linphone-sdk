@@ -21,7 +21,7 @@
 #define BELLE_SIP_MDNS_REGISTER_H
 
 typedef struct belle_sip_mdns_register belle_sip_mdns_register_t;
-#define BELLE_SIP_MDNS_REGISTER(obj) BELLE_SIP_CAST(obj,belle_sip_mdns_register_t)
+#define BELLE_SIP_MDNS_REGISTER(obj) BELLE_SIP_CAST(obj, belle_sip_mdns_register_t)
 
 /**
  * Callback prototype for asynchronous multicast DNS registration (advertisement).
@@ -31,14 +31,13 @@ typedef void (*belle_sip_mdns_register_callback_t)(void *data, int error);
 BELLE_SIP_BEGIN_DECLS
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /**
  * Tells if multicast DNS is available.
  * @return true if it is available, false otherwise.
-**/
+ **/
 BELLESIP_EXPORT int belle_sip_mdns_register_available(void);
 
 /**
@@ -46,21 +45,33 @@ BELLESIP_EXPORT int belle_sip_mdns_register_available(void);
  * @param service the queried service ("sip", "stun", "turn"...).
  * @param transport the queried transport ("udp", "tcp", "tls").
  * @param domain the local domain name in which the service will be registered.
- * @param name the name of the mdns service, if NULL it is the computer's name. Only useful for multiple registrations to avoid conflicts.
+ * @param name the name of the mdns service, if NULL it is the computer's name. Only useful for multiple registrations
+ *to avoid conflicts.
  * @param port the port of the service.
  * @param priority the priority of the service, lower value means more preferred.
- * @param weight a relative weight for services within the same local domain that have the same priority, higher value means more preferred.
+ * @param weight a relative weight for services within the same local domain that have the same priority, higher value
+ *means more preferred.
  * @param ttl the time to live of the resulted srv
  * @param cb a callback function that will be called to notify the results.
  * @param data a user pointer passed through the callback as first argument.
- * @return a #belle_sip_register_t that can be used to cancel the registration if needed. The context must have been ref'd with belle_sip_object_ref().
-**/
-BELLESIP_EXPORT belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service, const char *transport, const char *domain, const char* name, int port, int prio, int weight, int ttl,  belle_sip_mdns_register_callback_t cb, void *data);
+ * @return a #belle_sip_register_t that can be used to cancel the registration if needed. The context must have been
+ *ref'd with belle_sip_object_ref().
+ **/
+BELLESIP_EXPORT belle_sip_mdns_register_t *belle_sip_mdns_register(const char *service,
+                                                                   const char *transport,
+                                                                   const char *domain,
+                                                                   const char *name,
+                                                                   int port,
+                                                                   int prio,
+                                                                   int weight,
+                                                                   int ttl,
+                                                                   belle_sip_mdns_register_callback_t cb,
+                                                                   void *data);
 
 /**
  * Cancels the mdns registration.
  * @param context the belle_sip_mdns_register_t used to register the service.
-**/
+ **/
 BELLESIP_EXPORT void belle_sip_mdns_unregister(belle_sip_mdns_register_t *context);
 
 #ifdef __cplusplus

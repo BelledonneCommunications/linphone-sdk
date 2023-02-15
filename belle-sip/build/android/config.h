@@ -55,7 +55,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+ */
 #define LT_OBJDIR ".libs/"
 
 /* Define to 1 if your C compiler doesn't accept -c and -o together. */
@@ -92,4 +92,3 @@
 #define HAVE_ANTLR_STRING_STREAM_NEW 1
 
 #define ENABLE_SERVER_SOCKETS 1
-
