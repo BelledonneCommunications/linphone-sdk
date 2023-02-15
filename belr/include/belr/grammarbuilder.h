@@ -24,26 +24,26 @@
 
 // =============================================================================
 
-namespace belr{
+namespace belr {
 class ABNFAlternation;
 
-class ABNFBuilder{
+class ABNFBuilder {
 public:
 	virtual ~ABNFBuilder() = default;
 
-	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar)=0;
-	virtual std::ostream & describe(std::ostream &) const = 0;
+	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) = 0;
+	virtual std::ostream &describe(std::ostream &) const = 0;
 };
 
-class ABNFRule : public ABNFBuilder{
+class ABNFRule : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setName(const std::string &name);
 	void setDefinedAs(const std::string &defined_as);
 	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
-	bool isExtension()const;
-	const std::string &getName()const{
+	bool isExtension() const;
+	const std::string &getName() const {
 		return mName;
 	}
 
@@ -55,11 +55,11 @@ private:
 	std::string mDefinedAs;
 };
 
-class ABNFRuleList : public ABNFBuilder{
+class ABNFRuleList : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
-	void addRule(const std::shared_ptr<ABNFRule> & rule);
+	virtual std::ostream &describe(std::ostream &ostr) const override;
+	void addRule(const std::shared_ptr<ABNFRule> &rule);
 
 	static std::shared_ptr<ABNFRuleList> create();
 
@@ -67,10 +67,10 @@ private:
 	std::list<std::shared_ptr<ABNFRule>> mRules;
 };
 
-class ABNFNumval : public ABNFBuilder{
+class ABNFNumval : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setDecVal(const std::string &decval);
 	void setHexVal(const std::string &hexval);
 	void setBinVal(const std::string &binval);
@@ -83,15 +83,15 @@ private:
 	bool mIsRange = false;
 };
 
-class ABNFElement : public ABNFBuilder{
+class ABNFElement : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setElement(const std::shared_ptr<ABNFBuilder> &e);
 	void setRulename(const std::string &rulename);
 	void setCharVal(const std::string &charval);
 	void setProseVal(const std::string &prose);
-	bool isDefined()const;
+	bool isDefined() const;
 	static std::shared_ptr<ABNFElement> create();
 
 private:
@@ -100,10 +100,10 @@ private:
 	std::string mCharVal;
 };
 
-class ABNFGroup : public ABNFBuilder{
+class ABNFGroup : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
 
 	static std::shared_ptr<ABNFGroup> create();
@@ -112,10 +112,10 @@ private:
 	std::shared_ptr<ABNFAlternation> mAlternation;
 };
 
-class ABNFRepetition : public ABNFBuilder{
+class ABNFRepetition : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setRepeat(const std::string &r);
 	void setMin(int min);
 	void setMax(int max);
@@ -132,10 +132,10 @@ private:
 	std::shared_ptr<ABNFElement> mElement;
 };
 
-class ABNFOption : public ABNFBuilder{
+class ABNFOption : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void setAlternation(const std::shared_ptr<ABNFAlternation> &a);
 
 	static std::shared_ptr<ABNFOption> create();
@@ -144,10 +144,10 @@ private:
 	std::shared_ptr<ABNFAlternation> mAlternation;
 };
 
-class ABNFConcatenation : public ABNFBuilder{
+class ABNFConcatenation : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void addRepetition(const std::shared_ptr<ABNFRepetition> &r);
 
 	static std::shared_ptr<ABNFConcatenation> create();
@@ -156,10 +156,10 @@ private:
 	std::list<std::shared_ptr<ABNFRepetition>> mRepetitions;
 };
 
-class ABNFAlternation : public ABNFBuilder{
+class ABNFAlternation : public ABNFBuilder {
 public:
 	virtual std::shared_ptr<Recognizer> buildRecognizer(const std::shared_ptr<Grammar> &grammar) override;
-	virtual std::ostream & describe(std::ostream &ostr) const override;
+	virtual std::ostream &describe(std::ostream &ostr) const override;
 	void addConcatenation(const std::shared_ptr<ABNFConcatenation> &c);
 	std::shared_ptr<Recognizer> buildRecognizerNoOptim(const std::shared_ptr<Grammar> &grammar);
 
@@ -171,12 +171,12 @@ private:
 
 /**
  * The ABNFGrammarBuilder builds a Grammar object from an ABNF grammar defined in a text file.
-**/
-class ABNFGrammarBuilder{
+ **/
+class ABNFGrammarBuilder {
 public:
 	/**
 	 * Initialize the builder.
-	**/
+	 **/
 	BELR_PUBLIC ABNFGrammarBuilder();
 	/**
 	 * Create a grammar from an ABNF grammar defined in the string pointed by abnf.
@@ -187,8 +187,9 @@ public:
 	 * @param abnf the string that contains the abnf grammar.
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, nullptr if an error occured.
-	**/
-	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnf(const std::string &abnf, const std::shared_ptr<Grammar> &grammar=nullptr);
+	 **/
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnf(const std::string &abnf,
+	                                                    const std::shared_ptr<Grammar> &grammar = nullptr);
 	/**
 	 * Create a grammar from an ABNF grammar defined in the text file pointed by path.
 	 * An optional Grammar argument corresponding to a grammar to include can be passed.
@@ -198,8 +199,9 @@ public:
 	 * @param path the path from where to load the abnf definition.
 	 * @param grammar an optional grammar to include.
 	 * @return the Grammar object corresponding to the text definition loaded, nullptr if an error occured.
-	**/
-	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnfFile(const std::string &path, const std::shared_ptr<Grammar> &grammar=nullptr);
+	 **/
+	BELR_PUBLIC std::shared_ptr<Grammar> createFromAbnfFile(const std::string &path,
+	                                                        const std::shared_ptr<Grammar> &grammar = nullptr);
 
 private:
 	Parser<std::shared_ptr<ABNFBuilder>> mParser;
@@ -208,23 +210,23 @@ private:
 /**
  * The GrammarLoader creates Grammar objects from binary files lookup and loaded from a pre-defined set of paths.
  * The binary files have to be created from the ABNF grammar files using the belr-compiler tool.
-**/
-class GrammarLoader{
+ **/
+class GrammarLoader {
 public:
 	/**
 	 * Obtain the GrammarLoader singleton.
-	**/
+	 **/
 	BELR_PUBLIC static GrammarLoader &get();
 	/**
 	 * Clear all specific lookup paths previously set in the GrammarLoader.
 	 * The system paths are not erased.
-	**/
+	 **/
 	BELR_PUBLIC void clear();
 	/**
 	 * Add a specific path to lookup for grammar binary files.
 	 * Any specific paths added by this method is actually prepended to the list of paths.
 	 * @param path a path
-	**/
+	 **/
 	BELR_PUBLIC void addPath(const std::string &path);
 	/**
 	 * Build a grammar loaded from a binary file whose name is 'fileName' argument.
@@ -233,11 +235,12 @@ public:
 	 * - ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/belr/grammars
 	 * - ${CMAKE_INSTALL_DATADIR}/belr/grammars
 	 * @param fileName the file name of grammar
-	**/
+	 **/
 	BELR_PUBLIC std::shared_ptr<Grammar> load(const std::string &fileName);
+
 private:
 	GrammarLoader();
-	GrammarLoader(const GrammarLoader & other); //forbids copy constructor
+	GrammarLoader(const GrammarLoader &other); // forbids copy constructor
 	std::string lookup(const std::string &fileName, const std::list<std::string> &dirs);
 	std::list<std::string> mSystemPaths;
 	std::list<std::string> mAppPaths;
@@ -245,6 +248,6 @@ private:
 	static GrammarLoader *sInstance;
 };
 
-}//end of namespace
+} // namespace belr
 
 #endif

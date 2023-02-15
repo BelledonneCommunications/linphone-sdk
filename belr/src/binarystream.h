@@ -23,87 +23,85 @@
 #include <fstream>
 #include <memory>
 
-namespace belr{
-	
+namespace belr {
+
 class Grammar;
 
 /**
  * The BinaryInputStream is used internally to read grammars from a binary file.
-**/
-class BinaryInputStream : public std::ifstream{
+ **/
+class BinaryInputStream : public std::ifstream {
 public:
 	unsigned char readUChar();
 	int readInt();
 	std::string readString();
 };
 
-
-inline BinaryInputStream &operator>>(BinaryInputStream &istr, unsigned char &val){
+inline BinaryInputStream &operator>>(BinaryInputStream &istr, unsigned char &val) {
 	val = istr.readUChar();
 	return istr;
 }
 
-inline BinaryInputStream &operator>>(BinaryInputStream &istr, int &val){
+inline BinaryInputStream &operator>>(BinaryInputStream &istr, int &val) {
 	val = istr.readInt();
 	return istr;
 }
 
-inline BinaryInputStream &operator>>(BinaryInputStream &istr, unsigned int &val){
+inline BinaryInputStream &operator>>(BinaryInputStream &istr, unsigned int &val) {
 	val = (unsigned int)istr.readInt();
 	return istr;
 }
 
-inline BinaryInputStream &operator>>(BinaryInputStream &istr, std::string &val){
+inline BinaryInputStream &operator>>(BinaryInputStream &istr, std::string &val) {
 	val = istr.readString();
 	return istr;
 }
 
 /**
  * The BinaryOutputStream is used internally to serialize grammars into a binary file.
-**/
-class BinaryOutputStream : public std::ofstream{
+ **/
+class BinaryOutputStream : public std::ofstream {
 public:
 	void writeUChar(unsigned char val);
 	void writeInt(int val);
 	void writeString(const std::string &val);
 };
 
-
-inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, unsigned char val){
+inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, unsigned char val) {
 	ostr.writeUChar(val);
 	return ostr;
 }
 
-inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, int val){
+inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, int val) {
 	ostr.writeInt(val);
 	return ostr;
 }
 
-inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, unsigned int val){
+inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, unsigned int val) {
 	ostr.writeInt((int)val);
 	return ostr;
 }
 
-inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, const std::string& val){
+inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, const std::string &val) {
 	ostr.writeString(val);
 	return ostr;
 }
 
-inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, const char * val){
+inline BinaryOutputStream &operator<<(BinaryOutputStream &ostr, const char *val) {
 	ostr.writeString(val);
 	return ostr;
 }
 
 class Recognizer;
 
-class BinaryGrammarBuilder : public BinaryInputStream{
+class BinaryGrammarBuilder : public BinaryInputStream {
 public:
 	BinaryGrammarBuilder(Grammar &grammar);
 	std::shared_ptr<Recognizer> getRule(const std::string &name);
+
 private:
 	Grammar &mGrammar;
 };
 
-
-}//end of namespace
+} // namespace belr
 #endif

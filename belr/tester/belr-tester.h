@@ -20,26 +20,24 @@
 #ifndef belr_tester_hpp
 #define belr_tester_hpp
 
-#include <bctoolbox/tester.h>
-#include "belr/grammarbuilder.h"
 #include "belr/abnf.h"
 #include "belr/belr.h"
+#include "belr/grammarbuilder.h"
+#include <bctoolbox/tester.h>
 
-
+#include <chrono>
 #include <fstream>
-#include <string>
+#include <iostream>
 #include <memory>
 #include <sstream>
-#include <iostream>
+#include <string>
 #include <vector>
-#include <chrono>
 
-
-namespace belr{
+namespace belr {
 std::string bcTesterFile(const std::string &name);
 std::string bcTesterRes(const std::string &name);
 std::string openFile(const std::string &name);
-}
+} // namespace belr
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,14 +46,11 @@ extern "C" {
 extern test_suite_t grammar_suite;
 extern test_suite_t parser_suite;
 
-
-void belr_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args));
+void belr_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args));
 void belr_tester_uninit(void);
 
 #ifdef __cplusplus
 };
 #endif
-
-
 
 #endif

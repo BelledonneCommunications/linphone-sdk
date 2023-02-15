@@ -24,16 +24,17 @@
 
 // =============================================================================
 
-namespace belr{
+namespace belr {
 
 /**
  * Grammar containing core definitions of ABNF.
  * This is required for almost all IETF text based protocols.
-**/
-class CoreRules : public Grammar{
+ **/
+class CoreRules : public Grammar {
 public:
-	///Initialize a CoreRules grammar object.
+	/// Initialize a CoreRules grammar object.
 	BELR_PUBLIC CoreRules();
+
 private:
 	void alpha();
 	void bit();
@@ -53,11 +54,10 @@ private:
 	void wsp();
 };
 
-
-
-class ABNFGrammar : public Grammar{
+class ABNFGrammar : public Grammar {
 public:
 	ABNFGrammar();
+
 private:
 	void comment();
 	void c_nl();
@@ -86,6 +86,5 @@ private:
 	void crlf_or_lf();
 };
 
-
-}
+} // namespace belr
 #endif

@@ -17,33 +17,32 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belr/grammarbuilder.h"
 #include "belr/abnf.h"
+#include "belr/grammarbuilder.h"
 
 using namespace std;
 using namespace belr;
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]) {
 	string file, ofile;
 
-	if (argc<3){
-		cerr<<argv[0]<<" <grammar file to load> <output filename>"<<endl;
+	if (argc < 3) {
+		cerr << argv[0] << " <grammar file to load> <output filename>" << endl;
 		return -1;
 	}
 	file = argv[1];
 	ofile = argv[2];
-	//Create a GrammarBuilder:
+	// Create a GrammarBuilder:
 	ABNFGrammarBuilder builder;
-	//construct the grammar from the grammar file, the core rules are included since required by most RFCs.
+	// construct the grammar from the grammar file, the core rules are included since required by most RFCs.
 	shared_ptr<Grammar> grammar = builder.createFromAbnfFile(file, make_shared<CoreRules>());
 
-	if (!grammar){
-		cerr<<"Fail to create grammar."<<endl;
+	if (!grammar) {
+		cerr << "Fail to create grammar." << endl;
 		return -1;
 	}
-	if (grammar->save(ofile) != 0){
+	if (grammar->save(ofile) != 0) {
 		return -1;
 	}
 	return 0;
 }
-

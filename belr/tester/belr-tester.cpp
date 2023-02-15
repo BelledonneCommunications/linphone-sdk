@@ -22,18 +22,18 @@
 #include <fstream>
 #include <sstream>
 
-using namespace::std;
+using namespace ::std;
 
-namespace belr{
+namespace belr {
 
-std::string bcTesterFile(const std::string &name){
+std::string bcTesterFile(const std::string &name) {
 	char *file = bc_tester_file(name.c_str());
 	std::string ret(file);
 	bc_free(file);
 	return ret;
 }
 
-std::string bcTesterRes(const std::string &name){
+std::string bcTesterRes(const std::string &name) {
 	char *file = bc_tester_res(name.c_str());
 	std::string ret(file);
 	bc_free(file);
@@ -50,12 +50,11 @@ std::string openFile(const std::string &name) {
 
 	std::stringstream tmpStream;
 	tmpStream << istr.rdbuf();
-	return tmpStream.str();;
+	return tmpStream.str();
+	;
 }
 
-
-}
-
+} // namespace belr
 
 int main(int argc, char *argv[]) {
 	int i;
@@ -67,20 +66,20 @@ int main(int argc, char *argv[]) {
 	std::string resDir = string(dirname) + "/../share/belr-tester/res/";
 	std::string testResource = resDir + "sipgrammar.txt";
 	bctbx_free(dirname);
-	if (bctbx_file_exist(testResource.c_str()) == 0){
+	if (bctbx_file_exist(testResource.c_str()) == 0) {
 		bc_tester_set_resource_dir_prefix(resDir.c_str());
 		printf("Resource dir set to %s\n", resDir.c_str());
-	}else{
+	} else {
 		bc_tester_set_resource_dir_prefix("./res");
 	}
 	bc_tester_set_writable_dir_prefix("./");
 
-	for(i = 1; i < argc; ++i) {
+	for (i = 1; i < argc; ++i) {
 		int ret = bc_tester_parse_args(argc, argv, i);
-		if (ret>0) {
+		if (ret > 0) {
 			i += ret - 1;
 			continue;
-		} else if (ret<0) {
+		} else if (ret < 0) {
 			bc_tester_helper(argv[0], "");
 		}
 		return ret;
@@ -97,7 +96,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 #else
 	va_list cap;
-	va_copy(cap,args);
+	va_copy(cap, args);
 	/* Otherwise, we must use stdio to avoid log formatting (for autocompletion etc.) */
 	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, cap);
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
@@ -105,17 +104,14 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 #endif
 }
 
-void belr_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
+void belr_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, ".");
 
 	bc_tester_add_suite(&grammar_suite);
 	bc_tester_add_suite(&parser_suite);
-
-
 }
 
 void belr_tester_uninit(void) {
 	bc_tester_uninit();
 }
-

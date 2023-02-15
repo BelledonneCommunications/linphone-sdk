@@ -17,75 +17,80 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.h"
-#include "binarystream.h"
-#include "belr/parser.h"
+#include <bctoolbox/defs.h>
+
 #include "belr/belr.h"
+#include "belr/parser.h"
+#include "binarystream.h"
+#include "common.h"
 
 using namespace std;
 
-namespace belr{
+namespace belr {
 
-void fatal(const char *message){
+void fatal(const char *message) {
 	bctbx_fatal("%s", message);
 }
 
 /* Dummy ParserContext, actually used for optimization phase, to let invoke the feed() function without
  * instanciating anything.*/
-class DummyParserContext : public ParserContextBase{
+class DummyParserContext : public ParserContextBase {
 public:
-	virtual void beginParse(ParserLocalContext &ctx, const std::shared_ptr<Recognizer> &rec) override{
+	virtual void beginParse(BCTBX_UNUSED(ParserLocalContext &ctx),
+	                        BCTBX_UNUSED(const std::shared_ptr<Recognizer> &rec)) override {
 	}
-	virtual void endParse(const ParserLocalContext &ctx, const std::string &input, size_t begin, size_t count) override{
+	virtual void endParse(BCTBX_UNUSED(const ParserLocalContext &ctx),
+	                      BCTBX_UNUSED(const std::string &input),
+	                      BCTBX_UNUSED(size_t begin),
+	                      BCTBX_UNUSED(size_t count)) override {
 	}
-	virtual std::shared_ptr<HandlerContextBase> branch() override{
+	virtual std::shared_ptr<HandlerContextBase> branch() override {
 		return nullptr;
 	}
-	virtual void merge(const std::shared_ptr<HandlerContextBase> &other) override{
+	virtual void merge(BCTBX_UNUSED(const std::shared_ptr<HandlerContextBase> &other)) override {
 	}
-	virtual void removeBranch(const std::shared_ptr<HandlerContextBase> &other) override{
+	virtual void removeBranch(BCTBX_UNUSED(const std::shared_ptr<HandlerContextBase> &other)) override {
 	}
 };
 
-
 // =============================================================================
 
-TransitionMap::TransitionMap(){
-	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i)
-		mPossibleChars[i]=false;
+TransitionMap::TransitionMap() {
+	for (size_t i = 0; i < sizeof(mPossibleChars) / sizeof(bool); ++i)
+		mPossibleChars[i] = false;
 }
 
-bool TransitionMap::intersect(const TransitionMap* other){
-	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i){
+bool TransitionMap::intersect(const TransitionMap *other) {
+	for (size_t i = 0; i < sizeof(mPossibleChars) / sizeof(bool); ++i) {
 		if (mPossibleChars[i] && other->mPossibleChars[i]) return true;
 	}
 	return false;
 }
 
-bool TransitionMap::intersect(const TransitionMap *other, TransitionMap *result){
-	bool ret=false;
-	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i){
-		bool tmp=mPossibleChars[i] && other->mPossibleChars[i];
-		result->mPossibleChars[i]=tmp;
-		if (tmp) ret=true;
+bool TransitionMap::intersect(const TransitionMap *other, TransitionMap *result) {
+	bool ret = false;
+	for (size_t i = 0; i < sizeof(mPossibleChars) / sizeof(bool); ++i) {
+		bool tmp = mPossibleChars[i] && other->mPossibleChars[i];
+		result->mPossibleChars[i] = tmp;
+		if (tmp) ret = true;
 	}
 	return ret;
 }
 
-void TransitionMap::merge(const TransitionMap* other){
-	for(size_t i=0;i<sizeof(mPossibleChars)/sizeof(bool);++i){
-		if (other->mPossibleChars[i]) mPossibleChars[i]=true;
+void TransitionMap::merge(const TransitionMap *other) {
+	for (size_t i = 0; i < sizeof(mPossibleChars) / sizeof(bool); ++i) {
+		if (other->mPossibleChars[i]) mPossibleChars[i] = true;
 	}
 }
 
-void Recognizer::setName(const std::string& name){
-	static unsigned int id_base=0;
-	mName=name;
+void Recognizer::setName(const std::string &name) {
+	static unsigned int id_base = 0;
+	mName = name;
 	/* every recognizer that is given a name is given also a unique id*/
-	mId=++id_base;
+	mId = ++id_base;
 }
 
-void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
+void Recognizer::serialize(BinaryOutputStream &fstr, bool topLevel) {
 	RecognizerTypeId tid = CharRecognizerId;
 	if (typeid(*this) == typeid(CharRecognizer)) tid = CharRecognizerId;
 	else if (typeid(*this) == typeid(Selector)) tid = SelectorId;
@@ -100,356 +105,346 @@ void Recognizer::serialize(BinaryOutputStream& fstr, bool topLevel){
 
 	unsigned char type_byte = (unsigned char)tid;
 
-	if (tid == PointerId){
+	if (tid == PointerId) {
 		/*
 		 * It is useless to serialize a RecognizerPointer, which is only a trick to break loops in recognizer chains.
 		 * Instead we follow the pointer and serialize the pointed recognizer.
-		**/
-		dynamic_cast<RecognizerPointer*>(this)->getPointed()->serialize(fstr, topLevel);
+		 **/
+		dynamic_cast<RecognizerPointer *>(this)->getPointed()->serialize(fstr, topLevel);
 		return;
 	}
 
 	if (topLevel || mName.empty()) {
-		//write the type
-		fstr<<type_byte;
-		fstr<<mName;
-		//then invoked derived class serialization
+		// write the type
+		fstr << type_byte;
+		fstr << mName;
+		// then invoked derived class serialization
 		_serialize(fstr);
-	}else{
+	} else {
 		/* If we are not a top level, and mName is defined, we are referencing another rule of the grammar.
 		 * There is then no need to recurse.*/
 		type_byte = (unsigned char)RuleRefId;
-		fstr<<type_byte;
-		fstr<<mName;
+		fstr << type_byte;
+		fstr << mName;
 	}
 }
 
-Recognizer::Recognizer(BinaryGrammarBuilder& istr){
+Recognizer::Recognizer(BinaryGrammarBuilder &istr) {
 	// read the recognizer name:
 	string name;
 	istr >> name;
 	if (!name.empty()) setName(name);
 }
 
-
-std::shared_ptr<Recognizer> Recognizer::build(BinaryGrammarBuilder &istr){
+std::shared_ptr<Recognizer> Recognizer::build(BinaryGrammarBuilder &istr) {
 	shared_ptr<Recognizer> ret;
 	unsigned char byte;
 	RecognizerTypeId tid;
-	//read the type byte
-	istr>>byte;
-	tid = (RecognizerTypeId) byte;
-	switch(tid){
+	// read the type byte
+	istr >> byte;
+	tid = (RecognizerTypeId)byte;
+	switch (tid) {
 		case CharRecognizerId:
 			ret = make_shared<CharRecognizer>(istr);
-		break;
+			break;
 		case SelectorId:
 			ret = make_shared<Selector>(istr);
-		break;
+			break;
 		case ExclusiveSelectorId:
 			ret = make_shared<ExclusiveSelector>(istr);
-		break;
+			break;
 		case LoopId:
 			ret = make_shared<Loop>(istr);
-		break;
+			break;
 		case SequenceId:
 			ret = make_shared<Sequence>(istr);
-		break;
+			break;
 		case CharRangeId:
 			ret = make_shared<CharRange>(istr);
-		break;
+			break;
 		case LiteralId:
 			ret = make_shared<Literal>(istr);
-		break;
-		case RuleRefId:
-		{
+			break;
+		case RuleRefId: {
 			string name;
-			istr>>name;
+			istr >> name;
 			ret = istr.getRule(name);
-		}
-		break;
+		} break;
 		case PointerId:
-		break;
+			break;
 		case AliasId:
 			ret = make_shared<RecognizerAlias>(istr);
-		break;
+			break;
 	}
-	if (!ret){
-		BCTBX_SLOGE<<"Unsupported recognizer id "<<(int)byte<<" at pos "<< istr.tellg();
-	}else{
-		//if (!ret->getName().empty()){
+	if (!ret) {
+		BCTBX_SLOGE << "Unsupported recognizer id " << (int)byte << " at pos " << istr.tellg();
+	} else {
+		// if (!ret->getName().empty()){
 		//	BCTBX_SLOGD<<"Built recognizer "<<ret->getName();
-		//}
+		// }
 	}
 	return ret;
 }
 
-const string &Recognizer::getName()const{
+const string &Recognizer::getName() const {
 	return mName;
 }
 
-size_t Recognizer::feed(ParserContextBase &ctx, const string &input, size_t pos){
+size_t Recognizer::feed(ParserContextBase &ctx, const string &input, size_t pos) {
 	size_t match;
 
 #ifdef BELR_DEBUG
-	BCTBX_SLOGD<<<"Trying to match: "<<mName;
+	BCTBX_SLOGD < < < "Trying to match: " << mName;
 #endif
 
 	ParserLocalContext hctx;
 	ctx.beginParse(hctx, shared_from_this());
-	match=_feed(ctx, input, pos);
-	if (match!=string::npos && match>0){
-		#ifdef BELR_DEBUG
-			if (mName.size()>0){
-				string matched=input.substr(pos,match);
-				BCTBX_SLOGD<<"Matched recognizer '"<<mName<<"' with sequence '"<<matched<<"'.";
-			}
-		#endif
+	match = _feed(ctx, input, pos);
+	if (match != string::npos && match > 0) {
+#ifdef BELR_DEBUG
+		if (mName.size() > 0) {
+			string matched = input.substr(pos, match);
+			BCTBX_SLOGD << "Matched recognizer '" << mName << "' with sequence '" << matched << "'.";
+		}
+#endif
 	}
 	ctx.endParse(hctx, input, pos, match);
 
 	return match;
 }
 
-bool Recognizer::getTransitionMap(TransitionMap* mask){
-	bool ret=_getTransitionMap(mask);
-	if (0 /*!mName.empty()*/){
-		BCTBX_SLOGD<<"TransitionMap after "<<mName;
+bool Recognizer::getTransitionMap(TransitionMap *mask) {
+	bool ret = _getTransitionMap(mask);
+	if (0 /*!mName.empty()*/) {
+		BCTBX_SLOGD << "TransitionMap after " << mName;
 		ostringstream mapss;
-		for(int i=0;i<256;++i){
-			if (mask->mPossibleChars[i]) mapss<<(char)i;
+		for (int i = 0; i < 256; ++i) {
+			if (mask->mPossibleChars[i]) mapss << (char)i;
 		}
-		BCTBX_SLOGD<<mapss.str();
+		BCTBX_SLOGD << mapss.str();
 	}
 	return ret;
 }
 
-
-bool Recognizer::_getTransitionMap(TransitionMap* mask){
+bool Recognizer::_getTransitionMap(TransitionMap *mask) {
 	string input;
-	input.resize(2,'\0');
-	for(int i=0;i<256;++i){
-		input[0]=i;
+	input.resize(2, '\0');
+	for (int i = 0; i < 256; ++i) {
+		input[0] = i;
 		DummyParserContext pctx;
-		if (feed(pctx,input,0)==1)
-			mask->mPossibleChars[i]=true;
+		if (feed(pctx, input, 0) == 1) mask->mPossibleChars[i] = true;
 	}
 	return true;
 }
 
-void Recognizer::optimize(){
+void Recognizer::optimize() {
 	optimize(0);
 }
 
-void Recognizer::optimize(int recursionLevel){
-	if (recursionLevel!=0 && mId!=0) return; /*stop on rule except at level 0*/
+void Recognizer::optimize(int recursionLevel) {
+	if (recursionLevel != 0 && mId != 0) return; /*stop on rule except at level 0*/
 	_optimize(++recursionLevel);
 }
 
-
-CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive) : mToRecognize(to_recognize), mCaseSensitive(caseSensitive){
-	if (::tolower(to_recognize)==::toupper(to_recognize)){
+CharRecognizer::CharRecognizer(int to_recognize, bool caseSensitive)
+    : mToRecognize(to_recognize), mCaseSensitive(caseSensitive) {
+	if (::tolower(to_recognize) == ::toupper(to_recognize)) {
 		/*not a case caseSensitive character*/
-		mCaseSensitive=true;/*no need to perform a case insensitive match*/
-	}else if (!caseSensitive){
-		mToRecognize=::tolower(mToRecognize);
+		mCaseSensitive = true; /*no need to perform a case insensitive match*/
+	} else if (!caseSensitive) {
+		mToRecognize = ::tolower(mToRecognize);
 	}
 }
 
-size_t CharRecognizer::_feed(ParserContextBase &ctx, const string &input, size_t pos){
+size_t CharRecognizer::_feed(BCTBX_UNUSED(ParserContextBase &ctx), const string &input, size_t pos) {
 	int c = (unsigned char)input[pos];
-	if (mCaseSensitive){
+	if (mCaseSensitive) {
 		return c == mToRecognize ? 1 : string::npos;
 	}
 	return ::tolower(c) == mToRecognize ? 1 : string::npos;
 }
 
-void CharRecognizer::_optimize(int recursionLevel){
-
+void CharRecognizer::_optimize(BCTBX_UNUSED(int recursionLevel)) {
 }
 
-void CharRecognizer::_serialize(BinaryOutputStream &fstr){
+void CharRecognizer::_serialize(BinaryOutputStream &fstr) {
 	unsigned char charToRecognize = (unsigned char)mToRecognize;
-	fstr<<charToRecognize;
-	fstr<<(unsigned char)mCaseSensitive;
+	fstr << charToRecognize;
+	fstr << (unsigned char)mCaseSensitive;
 }
 
-
-CharRecognizer::CharRecognizer(BinaryGrammarBuilder &istr) : Recognizer(istr){
+CharRecognizer::CharRecognizer(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	unsigned char toRecognize;
-	istr>>toRecognize;
+	istr >> toRecognize;
 	mToRecognize = toRecognize;
 
 	unsigned char tmp;
-	istr>>tmp;
+	istr >> tmp;
 	mCaseSensitive = !!tmp;
 }
 
-shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r){
+shared_ptr<Selector> Selector::addRecognizer(const shared_ptr<Recognizer> &r) {
 	mElements.push_back(r);
-	return static_pointer_cast<Selector> (shared_from_this());
+	return static_pointer_cast<Selector>(shared_from_this());
 }
 
-bool Selector::_getTransitionMap(TransitionMap* mask){
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+bool Selector::_getTransitionMap(TransitionMap *mask) {
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		(*it)->getTransitionMap(mask);
 	}
 	return true;
 }
 
-size_t Selector::_feedExclusive(ParserContextBase &ctx, const string &input, size_t pos){
-	size_t matched=0;
+size_t Selector::_feedExclusive(ParserContextBase &ctx, const string &input, size_t pos) {
+	size_t matched = 0;
 
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-		matched=(*it)->feed(ctx, input, pos);
-		if (matched!=string::npos && matched>0) {
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
+		matched = (*it)->feed(ctx, input, pos);
+		if (matched != string::npos && matched > 0) {
 			return matched;
 		}
 	}
 	return string::npos;
 }
 
-size_t Selector::_feed(ParserContextBase &ctx, const string &input, size_t pos){
+size_t Selector::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
 	if (mIsExclusive) return _feedExclusive(ctx, input, pos);
 
-	size_t matched=0;
-	size_t bestmatch=0;
+	size_t matched = 0;
+	size_t bestmatch = 0;
 	shared_ptr<HandlerContextBase> bestBranch;
 
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		shared_ptr<HandlerContextBase> br;
 		br = ctx.branch();
-		matched=(*it)->feed(ctx, input, pos);
-		if (matched!=string::npos && matched>bestmatch) {
-			bestmatch=matched;
+		matched = (*it)->feed(ctx, input, pos);
+		if (matched != string::npos && matched > bestmatch) {
+			bestmatch = matched;
 			if (bestBranch) ctx.removeBranch(bestBranch);
-			bestBranch=br;
-		}else{
+			bestBranch = br;
+		} else {
 			ctx.removeBranch(br);
 		}
 	}
-	if (bestmatch==0) return string::npos;
-	if (bestmatch!=string::npos){
+	if (bestmatch == 0) return string::npos;
+	if (bestmatch != string::npos) {
 		ctx.merge(bestBranch);
 	}
 	return bestmatch;
 }
 
-void Selector::_serialize(BinaryOutputStream &fstr){
-	fstr<<(unsigned char) mIsExclusive;
-	fstr<<(int)mElements.size();
+void Selector::_serialize(BinaryOutputStream &fstr) {
+	fstr << (unsigned char)mIsExclusive;
+	fstr << (int)mElements.size();
 
-	for(auto it = mElements.begin(); it != mElements.end(); ++it){
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		(*it)->serialize(fstr);
 	}
 }
 
-Selector::Selector(BinaryGrammarBuilder& istr) : Recognizer(istr){
+Selector::Selector(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	unsigned char tmp;
-	istr>>tmp;
+	istr >> tmp;
 	mIsExclusive = !!tmp;
 
 	int count;
-	istr>>count;
-	for (int i = 0 ; i < count ; ++i){
+	istr >> count;
+	for (int i = 0; i < count; ++i) {
 		auto rec = Recognizer::build(istr);
 		if (rec) mElements.push_back(rec);
 		else break;
 	}
 }
 
-
 /* The purpose of the optimization is to determine if a selector is exclusive, ie that only a single branch can match.
  * This is done by examining if the character transitions to jump to each branch (sub-recognizers) do intersect.
- * If no, it means that the first branch that will match during the parsing will necessarily be the good one, so that there is no need to 
- * examine others.
+ * If no, it means that the first branch that will match during the parsing will necessarily be the good one, so that
+ * there is no need to examine others.
  */
-void Selector::_optimize(int recursionLevel){
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+void Selector::_optimize(int recursionLevel) {
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		(*it)->optimize(recursionLevel);
 	}
-	TransitionMap *all=nullptr;
-	bool intersectionFound=false;
-	for (auto it=mElements.begin(); it!=mElements.end() && !intersectionFound; ++it){
-		TransitionMap *cur=new TransitionMap();
+	TransitionMap *all = nullptr;
+	bool intersectionFound = false;
+	for (auto it = mElements.begin(); it != mElements.end() && !intersectionFound; ++it) {
+		TransitionMap *cur = new TransitionMap();
 		(*it)->getTransitionMap(cur);
-		if (all){
-			if (cur->intersect(all)){
-				intersectionFound=true;
+		if (all) {
+			if (cur->intersect(all)) {
+				intersectionFound = true;
 			}
 			all->merge(cur);
 			delete cur;
-		}else all=cur;
+		} else all = cur;
 	}
 	if (all) delete all;
-	if (!intersectionFound){
-		mIsExclusive=true;
+	if (!intersectionFound) {
+		mIsExclusive = true;
 	}
 }
 
-Selector::Selector(bool isExclusive) : mIsExclusive(isExclusive){
+Selector::Selector(bool isExclusive) : mIsExclusive(isExclusive) {
 }
 
-ExclusiveSelector::ExclusiveSelector() : Selector(true){
+ExclusiveSelector::ExclusiveSelector() : Selector(true) {
 }
 
-ExclusiveSelector::ExclusiveSelector(BinaryGrammarBuilder &istr) : Selector(istr){
+ExclusiveSelector::ExclusiveSelector(BinaryGrammarBuilder &istr) : Selector(istr) {
 }
 
-size_t ExclusiveSelector::_feed(ParserContextBase &ctx, const string &input, size_t pos){
+size_t ExclusiveSelector::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
 	return Selector::_feedExclusive(ctx, input, pos);
 }
 
-
-shared_ptr<Sequence> Sequence::addRecognizer(const shared_ptr<Recognizer> &element){
+shared_ptr<Sequence> Sequence::addRecognizer(const shared_ptr<Recognizer> &element) {
 	mElements.push_back(element);
-	return static_pointer_cast<Sequence>( shared_from_this());
+	return static_pointer_cast<Sequence>(shared_from_this());
 }
 
-bool Sequence::_getTransitionMap(TransitionMap* mask){
-	bool isComplete=false;
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
+bool Sequence::_getTransitionMap(TransitionMap *mask) {
+	bool isComplete = false;
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		if ((*it)->getTransitionMap(mask)) {
-			isComplete=true;
+			isComplete = true;
 			break;
 		}
 	}
 	return isComplete;
 }
 
+size_t Sequence::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
+	size_t matched = 0;
+	size_t total = 0;
 
-size_t Sequence::_feed(ParserContextBase &ctx, const string &input, size_t pos){
-	size_t matched=0;
-	size_t total=0;
-
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it){
-		matched=(*it)->feed(ctx, input, pos);
-		if (matched==string::npos){
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
+		matched = (*it)->feed(ctx, input, pos);
+		if (matched == string::npos) {
 			return string::npos;
 		}
-		pos+=matched;
-		total+=matched;
+		pos += matched;
+		total += matched;
 	}
 	return total;
 }
 
-void Sequence::_optimize(int recursionLevel){
-	for (auto it=mElements.begin(); it!=mElements.end(); ++it)
+void Sequence::_optimize(int recursionLevel) {
+	for (auto it = mElements.begin(); it != mElements.end(); ++it)
 		(*it)->optimize(recursionLevel);
 }
 
-void Sequence::_serialize(BinaryOutputStream &fstr){
-	fstr<<(int) mElements.size();
-	for (auto it = mElements.begin(); it != mElements.end(); ++it){
+void Sequence::_serialize(BinaryOutputStream &fstr) {
+	fstr << (int)mElements.size();
+	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		(*it)->serialize(fstr);
 	}
 }
 
-Sequence::Sequence(BinaryGrammarBuilder& istr) : Recognizer(istr){
+Sequence::Sequence(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	int count;
-	istr>>count;
+	istr >> count;
 
-	for (int i = 0 ; i < count ; ++i){
+	for (int i = 0; i < count; ++i) {
 		shared_ptr<Recognizer> rec;
 		rec = Recognizer::build(istr);
 		if (rec) mElements.push_back(rec);
@@ -457,322 +452,311 @@ Sequence::Sequence(BinaryGrammarBuilder& istr) : Recognizer(istr){
 	}
 }
 
-
-shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max){
-	mMin=min;
-	mMax=max;
-	mRecognizer=element;
+shared_ptr<Loop> Loop::setRecognizer(const shared_ptr<Recognizer> &element, int min, int max) {
+	mMin = min;
+	mMax = max;
+	mRecognizer = element;
 	return static_pointer_cast<Loop>(shared_from_this());
 }
 
-size_t Loop::_feed(ParserContextBase &ctx, const string &input, size_t pos){
-	size_t matched=0;
-	size_t total=0;
+size_t Loop::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
+	size_t matched = 0;
+	size_t total = 0;
 	int repeat;
 
-	for(repeat=0;(mMax!=-1 ? repeat<mMax : true) && input[pos]!='\0';repeat++){
-		matched=mRecognizer->feed(ctx, input, pos);
-		if (matched==string::npos) break;
-		total+=matched;
-		pos+=matched;
+	for (repeat = 0; (mMax != -1 ? repeat < mMax : true) && input[pos] != '\0'; repeat++) {
+		matched = mRecognizer->feed(ctx, input, pos);
+		if (matched == string::npos) break;
+		total += matched;
+		pos += matched;
 	}
-	if (repeat<mMin) return string::npos;
+	if (repeat < mMin) return string::npos;
 	return total;
 }
 
-bool Loop::_getTransitionMap(TransitionMap* mask){
+bool Loop::_getTransitionMap(TransitionMap *mask) {
 	mRecognizer->getTransitionMap(mask);
-	return mMin!=0; //we must say to upper layer that this loop recognizer is allowed to be optional by returning FALSE
+	return mMin !=
+	       0; // we must say to upper layer that this loop recognizer is allowed to be optional by returning FALSE
 }
 
-void Loop::_serialize(BinaryOutputStream &fstr){
-	fstr<<mMin;
-	fstr<<mMax;
+void Loop::_serialize(BinaryOutputStream &fstr) {
+	fstr << mMin;
+	fstr << mMax;
 	mRecognizer->serialize(fstr);
 }
 
-Loop::Loop(BinaryGrammarBuilder & istr) : Recognizer(istr){
-	istr>>mMin;
-	istr>>mMax;
+Loop::Loop(BinaryGrammarBuilder &istr) : Recognizer(istr) {
+	istr >> mMin;
+	istr >> mMax;
 	mRecognizer = Recognizer::build(istr);
 }
 
-void Loop::_optimize(int recursionLevel){
+void Loop::_optimize(int recursionLevel) {
 	mRecognizer->optimize(recursionLevel);
 }
 
-
-CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end){
+CharRange::CharRange(int begin, int end) : mBegin(begin), mEnd(end) {
 }
 
-size_t CharRange::_feed(ParserContextBase &ctx, const string &input, size_t pos){
+size_t CharRange::_feed(BCTBX_UNUSED(ParserContextBase &ctx), const string &input, size_t pos) {
 	int c = (unsigned char)input[pos];
 	if (c >= mBegin && c <= mEnd) return 1;
 	return string::npos;
 }
 
-void CharRange::_optimize(int recursionLevel){
-
+void CharRange::_optimize(BCTBX_UNUSED(int recursionLevel)) {
 }
 
-void CharRange::_serialize(BinaryOutputStream& fstr){
+void CharRange::_serialize(BinaryOutputStream &fstr) {
 	unsigned char begin, end;
 	begin = (unsigned char)mBegin;
 	end = (unsigned char)mEnd;
-	fstr<<begin;
-	fstr<<end;
+	fstr << begin;
+	fstr << end;
 }
 
-CharRange::CharRange(BinaryGrammarBuilder& istr) : Recognizer(istr){
+CharRange::CharRange(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	unsigned char begin, end;
-	istr>>begin;
-	istr>>end;
+	istr >> begin;
+	istr >> end;
 	mBegin = begin;
 	mEnd = end;
 }
 
-
-
-shared_ptr<CharRecognizer> Foundation::charRecognizer(int character, bool caseSensitive){
+shared_ptr<CharRecognizer> Foundation::charRecognizer(int character, bool caseSensitive) {
 	return make_shared<CharRecognizer>(character, caseSensitive);
 }
 
-shared_ptr<Selector> Foundation::selector(bool isExclusive){
+shared_ptr<Selector> Foundation::selector(bool isExclusive) {
 	return isExclusive ? make_shared<ExclusiveSelector>() : make_shared<Selector>();
 }
 
-shared_ptr<Sequence> Foundation::sequence(){
+shared_ptr<Sequence> Foundation::sequence() {
 	return make_shared<Sequence>();
 }
 
-shared_ptr<Loop> Foundation::loop(){
+shared_ptr<Loop> Foundation::loop() {
 	return make_shared<Loop>();
 }
 
-Literal::Literal(const string& lit) : mLiteral(tolower(lit)), mLiteralSize(mLiteral.size()) {
-
+Literal::Literal(const string &lit) : mLiteral(tolower(lit)), mLiteralSize(mLiteral.size()) {
 }
 
-size_t Literal::_feed(ParserContextBase &ctx, const string& input, size_t pos){
+size_t Literal::_feed(BCTBX_UNUSED(ParserContextBase &ctx), const string &input, size_t pos) {
 	size_t i;
-	for(i=0;i<mLiteralSize;++i){
-		if (::tolower(input[pos+i])!=mLiteral[i]) return string::npos;
+	for (i = 0; i < mLiteralSize; ++i) {
+		if (::tolower(input[pos + i]) != mLiteral[i]) return string::npos;
 	}
 	return mLiteralSize;
 }
 
-void Literal::_serialize(BinaryOutputStream &fstr){
-	fstr<<mLiteral;
+void Literal::_serialize(BinaryOutputStream &fstr) {
+	fstr << mLiteral;
 }
 
-Literal::Literal(BinaryGrammarBuilder &istr) : Recognizer(istr){
+Literal::Literal(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	istr >> mLiteral;
 	mLiteralSize = mLiteral.size();
 }
 
-void Literal::_optimize(int recursionLevel){
-
+void Literal::_optimize(BCTBX_UNUSED(int recursionLevel)) {
 }
 
-bool Literal::_getTransitionMap(TransitionMap* mask){
-	mask->mPossibleChars[::tolower(mLiteral[0])]=true;
-	mask->mPossibleChars[::toupper(mLiteral[0])]=true;
+bool Literal::_getTransitionMap(TransitionMap *mask) {
+	mask->mPossibleChars[::tolower(mLiteral[0])] = true;
+	mask->mPossibleChars[::toupper(mLiteral[0])] = true;
 	return true;
 }
 
-shared_ptr<Recognizer> Utils::literal(const string & lt){
+shared_ptr<Recognizer> Utils::literal(const string &lt) {
 	return make_shared<Literal>(lt);
 }
 
-shared_ptr<Recognizer> Utils::char_range(int begin, int end){
+shared_ptr<Recognizer> Utils::char_range(int begin, int end) {
 	return make_shared<CharRange>(begin, end);
 }
 
-shared_ptr<Recognizer> RecognizerPointer::getPointed(){
+shared_ptr<Recognizer> RecognizerPointer::getPointed() {
 	return mRecognizer;
 }
 
-size_t RecognizerPointer::_feed(ParserContextBase &ctx, const string &input, size_t pos){
-	if (mRecognizer){
+size_t RecognizerPointer::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
+	if (mRecognizer) {
 		return mRecognizer->feed(ctx, input, pos);
-	}else{
+	} else {
 		bctbx_fatal("RecognizerPointer with name '%s' is undefined", mName.c_str());
 	}
 	return string::npos;
 }
 
-void RecognizerPointer::_serialize(BinaryOutputStream &fstr){
+void RecognizerPointer::_serialize(BCTBX_UNUSED(BinaryOutputStream &fstr)) {
 	bctbx_fatal("The RecognizerPointer is not supposed to be serialized.");
 }
 
-//RecognizerPointer::RecognizerPointer(BinaryGrammarBuilder& istr) : Recognizer(istr){
+// RecognizerPointer::RecognizerPointer(BinaryGrammarBuilder& istr) : Recognizer(istr){
 //	//nothing to do
-//}
+// }
 
-
-void RecognizerPointer::setPointed(const shared_ptr<Recognizer> &r){
-	mRecognizer=r;
+void RecognizerPointer::setPointed(const shared_ptr<Recognizer> &r) {
+	mRecognizer = r;
 }
 
-void RecognizerPointer::_optimize(int recursionLevel){
+void RecognizerPointer::_optimize(BCTBX_UNUSED(int recursionLevel)) {
 	/*do not call optimize() on the pointed value to avoid a loop.
 	 * The grammar will do it for all rules anyway*/
 }
 
-
-shared_ptr<Recognizer> RecognizerAlias::getPointed(){
+shared_ptr<Recognizer> RecognizerAlias::getPointed() {
 	return mRecognizer;
 }
 
-size_t RecognizerAlias::_feed(ParserContextBase &ctx, const string &input, size_t pos){
-	if (mRecognizer){
+size_t RecognizerAlias::_feed(ParserContextBase &ctx, const string &input, size_t pos) {
+	if (mRecognizer) {
 		return mRecognizer->feed(ctx, input, pos);
-	}else{
+	} else {
 		bctbx_fatal("RecognizerAlias with name '%s' is undefined", mName.c_str());
 	}
 	return string::npos;
 }
 
-void RecognizerAlias::_serialize(BinaryOutputStream &fstr){
+void RecognizerAlias::_serialize(BinaryOutputStream &fstr) {
 	mRecognizer->serialize(fstr);
 }
 
-RecognizerAlias::RecognizerAlias(BinaryGrammarBuilder& istr) : Recognizer(istr){
+RecognizerAlias::RecognizerAlias(BinaryGrammarBuilder &istr) : Recognizer(istr) {
 	mRecognizer = Recognizer::build(istr);
 }
 
-
-void RecognizerAlias::setPointed(const shared_ptr<Recognizer> &r){
-	mRecognizer=r;
+void RecognizerAlias::setPointed(const shared_ptr<Recognizer> &r) {
+	mRecognizer = r;
 }
 
-void RecognizerAlias::_optimize(int recursionLevel){
+void RecognizerAlias::_optimize(BCTBX_UNUSED(int recursionLevel)) {
 	/*do not call optimize() on the pointed value to avoid a loop.
 	 * The grammar will do it for all rules anyway*/
 }
 
-
-Grammar::Grammar(const string& name) : mName(name){
-
+Grammar::Grammar(const string &name) : mName(name) {
 }
 
 Grammar::~Grammar() {
-	for(auto it = mRecognizerPointers.begin(); it != mRecognizerPointers.end(); ++it) {
+	for (auto it = mRecognizerPointers.begin(); it != mRecognizerPointers.end(); ++it) {
 		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>(*it);
 		pointer->setPointed(nullptr);
 	}
 }
 
-void Grammar::addRule(const string &argname, const shared_ptr<Recognizer> &rule){
-	string name=tolower(argname);
+void Grammar::addRule(const string &argname, const shared_ptr<Recognizer> &rule) {
+	string name = tolower(argname);
 	rule->setName(name);
-	auto it=mRules.find(name);
-	if (it!=mRules.end()){
-		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>((*it).second);
-		if (pointer){
+	auto it = mRules.find(name);
+	if (it != mRules.end()) {
+		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>((*it).second);
+		if (pointer) {
 			pointer->setPointed(rule);
-		}else{
+		} else {
 			bctbx_fatal("Rule '%s' is being redefined !", name.c_str());
 		}
 	}
 	/*in any case the map should contain real recognizers (not just pointers) */
-	mRules[name]=rule;
+	mRules[name] = rule;
 }
 
-void Grammar::extendRule(const string &argname, const shared_ptr<Recognizer> &rule){
-	string name=tolower(argname);
+void Grammar::extendRule(const string &argname, const shared_ptr<Recognizer> &rule) {
+	string name = tolower(argname);
 	rule->setName("");
-	auto it=mRules.find(name);
-	if (it!=mRules.end()){
-		shared_ptr<Selector> sel=dynamic_pointer_cast<Selector>((*it).second);
-		if (sel){
+	auto it = mRules.find(name);
+	if (it != mRules.end()) {
+		shared_ptr<Selector> sel = dynamic_pointer_cast<Selector>((*it).second);
+		if (sel) {
 			sel->addRecognizer(rule);
-		}else{
+		} else {
 			bctbx_fatal("rule '%s' cannot be extended because it was not defined with a Selector.", name.c_str());
 		}
-	}else{
+	} else {
 		bctbx_fatal("rule '%s' cannot be extended because it is not defined.", name.c_str());
 	}
 }
 
-shared_ptr<Recognizer> Grammar::findRule(const string &argname){
-	string name=tolower(argname);
-	auto it=mRules.find(name);
-	if (it!=mRules.end()){
+shared_ptr<Recognizer> Grammar::findRule(const string &argname) {
+	string name = tolower(argname);
+	auto it = mRules.find(name);
+	if (it != mRules.end()) {
 		return (*it).second;
 	}
 	return nullptr;
 }
 
-shared_ptr<Recognizer> Grammar::getRule(const string &argname){
-	shared_ptr<Recognizer> ret=findRule(argname);
+shared_ptr<Recognizer> Grammar::getRule(const string &argname) {
+	shared_ptr<Recognizer> ret = findRule(argname);
 
-	if (ret){
-		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>(ret);
-		if (pointer){
-			if (pointer->getPointed()){/*if pointer is defined return the pointed value directly*/
+	if (ret) {
+		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>(ret);
+		if (pointer) {
+			if (pointer->getPointed()) { /*if pointer is defined return the pointed value directly*/
 				return pointer->getPointed();
-			}else{
+			} else {
 				return pointer;
 			}
 		}
 		return ret;
-	}else{/*the rule doesn't exist yet: return a pointer*/
+	} else { /*the rule doesn't exist yet: return a pointer*/
 		shared_ptr<RecognizerPointer> recognizerPointer = make_shared<RecognizerPointer>();
-		ret=recognizerPointer;
-		string name=tolower(argname);
-		ret->setName(string("@")+name);
-		mRules[name]=ret;
+		ret = recognizerPointer;
+		string name = tolower(argname);
+		ret->setName(string("@") + name);
+		mRules[name] = ret;
 		mRecognizerPointers.push_back(recognizerPointer);
 	}
 	return ret;
 }
 
-void Grammar::include(const shared_ptr<Grammar>& grammar){
-	for(auto it=grammar->mRules.begin();it!=grammar->mRules.end();++it){
-		if (mRules.find((*it).first)!=mRules.end()){
-			BCTBX_SLOGE<<"Rule '"<<(*it).first<<"' is being redefined while including grammar '"<<grammar->mName<<"' into '"<<mName<<"'";
+void Grammar::include(const shared_ptr<Grammar> &grammar) {
+	for (auto it = grammar->mRules.begin(); it != grammar->mRules.end(); ++it) {
+		if (mRules.find((*it).first) != mRules.end()) {
+			BCTBX_SLOGE << "Rule '" << (*it).first << "' is being redefined while including grammar '" << grammar->mName
+			            << "' into '" << mName << "'";
 		}
-		mRules[(*it).first]=(*it).second;
+		mRules[(*it).first] = (*it).second;
 	}
 }
 
-bool Grammar::isComplete()const{
-	bool ret=true;
-	for(auto it=mRules.begin(); it!=mRules.end(); ++it){
-		shared_ptr<RecognizerPointer> pointer=dynamic_pointer_cast<RecognizerPointer>((*it).second);
-		if (pointer && !pointer->getPointed()){
-			BCTBX_SLOGE<<"Rule '"<<(*it).first<<"' is not defined.";
-			ret=false;
+bool Grammar::isComplete() const {
+	bool ret = true;
+	for (auto it = mRules.begin(); it != mRules.end(); ++it) {
+		shared_ptr<RecognizerPointer> pointer = dynamic_pointer_cast<RecognizerPointer>((*it).second);
+		if (pointer && !pointer->getPointed()) {
+			BCTBX_SLOGE << "Rule '" << (*it).first << "' is not defined.";
+			ret = false;
 		}
 	}
 	return ret;
 }
 
-void Grammar::optimize(){
-	for(auto it=mRules.begin(); it!=mRules.end(); ++it){
+void Grammar::optimize() {
+	for (auto it = mRules.begin(); it != mRules.end(); ++it) {
 		(*it).second->optimize();
 	}
 }
 
-
-int Grammar::getNumRules() const{
+int Grammar::getNumRules() const {
 	return (int)mRules.size();
 }
 
-int Grammar::save(const std::string &filename){
+int Grammar::save(const std::string &filename) {
 	BinaryOutputStream of;
-	of.open(filename,ofstream::out|ofstream::trunc|ofstream::binary);
-	if (of.fail()){
-		BCTBX_SLOGE<<"Could not open "<<filename;
+	of.open(filename, ofstream::out | ofstream::trunc | ofstream::binary);
+	if (of.fail()) {
+		BCTBX_SLOGE << "Could not open " << filename;
 		return -1;
 	}
-	//magic string
-	of<<"#!belr";
-	//grammar name:
-	of<<mName;
-	//iterate over rules
-	for (auto it = mRules.begin(); it != mRules.end(); ++it){
+	// magic string
+	of << "#!belr";
+	// grammar name:
+	of << mName;
+	// iterate over rules
+	for (auto it = mRules.begin(); it != mRules.end(); ++it) {
 		(*it).second->serialize(of, true);
 	}
 
@@ -780,60 +764,59 @@ int Grammar::save(const std::string &filename){
 	return 0;
 }
 
-int Grammar::load(const std::string &filename){
+int Grammar::load(const std::string &filename) {
 	BinaryGrammarBuilder ifs(*this);
 	int err = 0;
 
-	ifs.open(filename, ifstream::in|ifstream::binary);
-	if (ifs.fail()){
-		BCTBX_SLOGE<<"Could not open "<<filename;
+	ifs.open(filename, ifstream::in | ifstream::binary);
+	if (ifs.fail()) {
+		BCTBX_SLOGE << "Could not open " << filename;
 		return -1;
 	}
 	/*extract the magic string*/
 	string magic;
-	ifs>>magic;
-	if (magic != "#!belr"){
+	ifs >> magic;
+	if (magic != "#!belr") {
 		ifs.close();
-		BCTBX_SLOGE<<filename<< " is not a belr grammar binary file.";
+		BCTBX_SLOGE << filename << " is not a belr grammar binary file.";
 		return -1;
 	}
 
 	/*extract the name of the grammar*/
-	ifs>>mName;
-	//load rules
-	while(true){
+	ifs >> mName;
+	// load rules
+	while (true) {
 		/*check if we are going to reach end of file at next read operation*/
 		ifs.get();
 		if (ifs.eof()) break;
 		ifs.unget();
 
 		shared_ptr<Recognizer> rule = Recognizer::build(ifs);
-		if (!rule){
+		if (!rule) {
 			bctbx_error("Fail to parse recognizer.");
 			err = -1;
 			break;
 		}
-		if (rule->getName().empty()){
+		if (rule->getName().empty()) {
 			bctbx_error("Top level rule has no name");
 			err = -1;
 			break;
 		}
-		BCTBX_SLOGD<<"Added rule "<< rule->getName();
+		BCTBX_SLOGD << "Added rule " << rule->getName();
 		addRule(rule->getName(), rule);
 	}
 	ifs.close();
-	if (!isComplete()){
+	if (!isComplete()) {
 		bctbx_error("Grammar is not complete");
 		err = -1;
 	}
 	return err;
 }
 
-
-string tolower(const string &str){
+string tolower(const string &str) {
 	string ret(str);
-	transform(ret.begin(),ret.end(), ret.begin(), ::tolower);
+	transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
 	return ret;
 }
 
-}//end of namespace
+} // namespace belr
