@@ -21,29 +21,29 @@
 #define COMPILER_H
 
 #ifdef __has_feature
-	#if __has_feature(address_sanitizer)
-		#define BCTBX_ASAN_ENABLED
-	#endif // if __has_feature(address_sanitizer)
+#if __has_feature(address_sanitizer)
+#define BCTBX_ASAN_ENABLED
+#endif // if __has_feature(address_sanitizer)
 #elif defined(__SANITIZE_ADDRESS__)
-	#define BCTBX_ASAN_ENABLED
+#define BCTBX_ASAN_ENABLED
 #endif // ifdef __has_feature
 
 #ifdef BCTBX_ASAN_ENABLED
-	#define BCTBX_DISABLE_ASAN __attribute__((no_sanitize_address))
+#define BCTBX_DISABLE_ASAN __attribute__((no_sanitize_address))
 #else
-	#define BCTBX_DISABLE_ASAN
+#define BCTBX_DISABLE_ASAN
 #endif // ifdef BCTBX_ASAN_ENABLED
 
 #ifdef __has_attribute
-	#if __has_attribute(no_sanitize)
-		#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize("undefined")))
-	#else
-		#define BCTBX_DISABLE_UBSAN
-	#endif // __has_attribute(no_sanitize)
-#elif defined(__GNUC__) && !defined(__MINGW32__) && GCC_VERSION >= 40900
-	#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize_undefined))
+#if __has_attribute(no_sanitize)
+#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize("undefined")))
 #else
-	#define BCTBX_DISABLE_UBSAN
+#define BCTBX_DISABLE_UBSAN
+#endif // __has_attribute(no_sanitize)
+#elif defined(__GNUC__) && !defined(__MINGW32__) && GCC_VERSION >= 40900
+#define BCTBX_DISABLE_UBSAN __attribute__((no_sanitize_undefined))
+#else
+#define BCTBX_DISABLE_UBSAN
 #endif // ifdef __has_attribute
 
 #endif // ifdef COMPILER_H

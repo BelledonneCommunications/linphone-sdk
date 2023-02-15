@@ -26,15 +26,13 @@
  * List of available key agreement algorithm
  */
 uint32_t bctbx_key_agreement_algo_list(void) {
-	uint32_t ret = BCTBX_DHM_2048|BCTBX_DHM_3072; /* provided by mbedtls */
+	uint32_t ret = BCTBX_DHM_2048 | BCTBX_DHM_3072; /* provided by mbedtls */
 #ifdef HAVE_DECAF
 	/* decaf always provide X448 and X25519 */
-	ret |= BCTBX_ECDH_X25519
-	|BCTBX_ECDH_X448;
+	ret |= BCTBX_ECDH_X25519 | BCTBX_ECDH_X448;
 #endif /* HAVE_DECAF */
 	return ret;
 }
-
 
 /*****************************************************************************/
 /***** AES GCM encrypt/decrypt chunk by chunk, needed for file encryption ****/
@@ -55,7 +53,7 @@ int bctbx_aes_gcm_encryptFile(void **cryptoContext, unsigned char *key, size_t l
 
 	if (*cryptoContext == NULL) { /* first call to the function, allocate a crypto context and initialise it */
 		/* key contains 192bits of key || 64 bits of Initialisation Vector, no additional data */
-		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key+24, 8, BCTBX_GCM_ENCRYPT);
+		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key + 24, 8, BCTBX_GCM_ENCRYPT);
 		if (gcmContext == NULL) {
 			return -1;
 		}
@@ -95,7 +93,7 @@ int bctbx_aes_gcm_decryptFile(void **cryptoContext, unsigned char *key, size_t l
 	if (*cryptoContext == NULL) { /* first call to the function, allocate a crypto context and initialise it */
 
 		/* key contains 192bits of key || 64 bits of Initialisation Vector, no additional data */
-		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key+24, 8, BCTBX_GCM_DECRYPT);
+		gcmContext = bctbx_aes_gcm_context_new(key, 24, NULL, 0, key + 24, 8, BCTBX_GCM_DECRYPT);
 		if (gcmContext == NULL) {
 			return -1;
 		}
@@ -106,7 +104,8 @@ int bctbx_aes_gcm_decryptFile(void **cryptoContext, unsigned char *key, size_t l
 
 	if (cipher != NULL) {
 		bctbx_aes_gcm_process_chunk(gcmContext, (const uint8_t *)cipher, length, (uint8_t *)plain);
-	} else { /* cipher is NULL, finish the stream, if plain is not null and we have a length, compute the authentication tag*/
+	} else { /* cipher is NULL, finish the stream, if plain is not null and we have a length, compute the authentication
+		        tag*/
 		if (plain != NULL && length > 0) {
 			bctbx_aes_gcm_finish(gcmContext, (uint8_t *)plain, length);
 		} else {

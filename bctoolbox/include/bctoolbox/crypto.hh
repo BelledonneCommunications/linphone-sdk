@@ -20,11 +20,11 @@
 #ifndef BCTBX_CRYPTO_HH
 #define BCTBX_CRYPTO_HH
 
-#include <vector>
+#include "crypto.h"
+#include <list>
 #include <memory>
 #include <string>
-#include <list>
-#include "crypto.h"
+#include <vector>
 
 namespace bctoolbox {
 /**
@@ -38,49 +38,48 @@ namespace bctoolbox {
  * Any call (including creation), may throw an exception if some error are detected on the random source
  */
 class RNG {
-	public:
-		/**
-		 * fill a buffer with random numbers
-		 * @param[in,out]	buffer 	The buffer to be filled with random (callers responsability to allocate memory)
-		 * @param[in]		size	size in bytes of the random generated, buffer must be at least of this size
-		 **/
-		void randomize(uint8_t *buffer, const size_t size);
+public:
+	/**
+	 * fill a buffer with random numbers
+	 * @param[in,out]	buffer 	The buffer to be filled with random (callers responsability to allocate memory)
+	 * @param[in]		size	size in bytes of the random generated, buffer must be at least of this size
+	 **/
+	void randomize(uint8_t *buffer, const size_t size);
 
-		/**
-		 * return a random vector of given size
-		 * @param[in]		size	size in bytes of the random generated
-		 **/
-		std::vector<uint8_t> randomize(const size_t size);
+	/**
+	 * return a random vector of given size
+	 * @param[in]		size	size in bytes of the random generated
+	 **/
+	std::vector<uint8_t> randomize(const size_t size);
 
+	/**
+	 * generates a 32 bits random unsigned number
+	 **/
+	uint32_t randomize();
 
-		/**
-		 * generates a 32 bits random unsigned number
-		 **/
-		uint32_t randomize();
+	/**
+	 * fill a buffer with random numbers
+	 * @param[in,out]	buffer 	The buffer to be filled with random (callers responsability to allocate memory)
+	 * @param[in]		size	size in bytes of the random generated, buffer must be at least of this size
+	 *
+	 * @note This function uses a shared RNG context, do not use it to generate sensitive material
+	 **/
+	static void cRandomize(uint8_t *buffer, size_t size);
+	/**
+	 * generates a 32 bits random unsigned number
+	 *
+	 * @note This function uses a shared RNG context, do not use it to generate sensitive material
+	 **/
+	static uint32_t cRandomize();
 
-		/**
-		 * fill a buffer with random numbers
-		 * @param[in,out]	buffer 	The buffer to be filled with random (callers responsability to allocate memory)
-		 * @param[in]		size	size in bytes of the random generated, buffer must be at least of this size
-		 *
-		 * @note This function uses a shared RNG context, do not use it to generate sensitive material
-		 **/
-		static void cRandomize(uint8_t *buffer, size_t size);
-		/**
-		 * generates a 32 bits random unsigned number
-		 *
-		 * @note This function uses a shared RNG context, do not use it to generate sensitive material
-		 **/
-		static uint32_t cRandomize();
+	RNG();
+	~RNG();
 
-		RNG();
-		~RNG();
-	private:
-		struct Impl;
-		std::unique_ptr<Impl> pImpl;
-		static std::unique_ptr<Impl> pImplClass;
-}; //class RNG
-
+private:
+	struct Impl;
+	std::unique_ptr<Impl> pImpl;
+	static std::unique_ptr<Impl> pImplClass;
+}; // class RNG
 
 /*****************************************************************************/
 /***                      Hash related function                            ***/
@@ -90,7 +89,9 @@ class RNG {
  */
 struct SHA1 {
 	/// maximum output size for SHA1 is 20 bytes
-	static constexpr size_t ssize() {return 20;}
+	static constexpr size_t ssize() {
+		return 20;
+	}
 };
 
 /**
@@ -98,7 +99,9 @@ struct SHA1 {
  */
 struct SHA256 {
 	/// maximum output size for SHA256 is 32 bytes
-	static constexpr size_t ssize() {return 32;}
+	static constexpr size_t ssize() {
+		return 32;
+	}
 };
 
 /**
@@ -106,7 +109,9 @@ struct SHA256 {
  */
 struct SHA384 {
 	/// maximum output size for SHA384 is 48 bytes
-	static constexpr size_t ssize() {return 48;}
+	static constexpr size_t ssize() {
+		return 48;
+	}
 };
 
 /**
@@ -114,9 +119,10 @@ struct SHA384 {
  */
 struct SHA512 {
 	/// maximum output size for SHA512 is 64 bytes
-	static constexpr size_t ssize() {return 64;}
+	static constexpr size_t ssize() {
+		return 64;
+	}
 };
-
 
 /**
  * @brief templated HMAC
@@ -132,10 +138,14 @@ struct SHA512 {
 template <typename hashAlgo>
 std::vector<uint8_t> HMAC(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 /* declare template specialisations */
-template <> std::vector<uint8_t>  HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
-template <> std::vector<uint8_t>  HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
-template <> std::vector<uint8_t>  HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
-template <> std::vector<uint8_t>  HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <>
+std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <>
+std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <>
+std::vector<uint8_t> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
+template <>
+std::vector<uint8_t> HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input);
 
 /**
  * @brief HKDF as described in RFC5869
@@ -167,17 +177,44 @@ template <> std::vector<uint8_t>  HMAC<SHA512>(const std::vector<uint8_t> &key, 
  *
  */
 template <typename hashAlgo>
-std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t okmSize);
+std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt,
+                          const std::vector<uint8_t> &ikm,
+                          const std::vector<uint8_t> &info,
+                          size_t okmSize);
 template <typename hashAlgo>
-std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t okmSize);
+std::vector<uint8_t>
+HKDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t okmSize);
 /* declare template specialisations */
-template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
-template <> std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
-template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
-template <> std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
-template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, size_t outputSize);
-template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t outputSize);
-
+template <>
+std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::vector<uint8_t> &info,
+                                  size_t outputSize);
+template <>
+std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::string &info,
+                                  size_t outputSize);
+template <>
+std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::vector<uint8_t> &info,
+                                  size_t outputSize);
+template <>
+std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::string &info,
+                                  size_t outputSize);
+template <>
+std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::vector<uint8_t> &info,
+                                  size_t outputSize);
+template <>
+std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
+                                  const std::vector<uint8_t> &ikm,
+                                  const std::string &info,
+                                  size_t outputSize);
 
 /************************ AEAD interface *************************************/
 // AEAD function defines
@@ -186,9 +223,13 @@ template <> std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt, 
  */
 struct AES256GCM128 {
 	/// key size is 32 bytes
-	static constexpr size_t keySize(void) {return 32;};
+	static constexpr size_t keySize(void) {
+		return 32;
+	};
 	/// tag size is 16 bytes
-	static constexpr size_t tagSize(void) {return 16;};
+	static constexpr size_t tagSize(void) {
+		return 16;
+	};
 };
 
 /**
@@ -202,8 +243,11 @@ struct AES256GCM128 {
  * @return	the cipher text
  */
 template <typename AEADAlgo>
-std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::vector<uint8_t> &tag);
+std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key,
+                                 const std::vector<uint8_t> IV,
+                                 const std::vector<uint8_t> &plain,
+                                 const std::vector<uint8_t> &AD,
+                                 std::vector<uint8_t> &tag);
 
 /**
  * @brief Authenticate and Decrypt using scheme given as template parameter
@@ -218,24 +262,36 @@ std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key, const std::vec
  * @return true if authentication tag match and decryption was successful
  */
 template <typename AEADAlgo>
-bool AEADDecrypt(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
+bool AEADDecrypt(const std::vector<uint8_t> &key,
+                 const std::vector<uint8_t> &IV,
+                 const std::vector<uint8_t> &cipher,
+                 const std::vector<uint8_t> &AD,
+                 const std::vector<uint8_t> &tag,
+                 std::vector<uint8_t> &plain);
 
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <> std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> IV, const std::vector<uint8_t> &plain, const std::vector<uint8_t> &AD,
-		std::vector<uint8_t> &tag);
+template <>
+std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key,
+                                               const std::vector<uint8_t> IV,
+                                               const std::vector<uint8_t> &plain,
+                                               const std::vector<uint8_t> &AD,
+                                               std::vector<uint8_t> &tag);
 
-template <> bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &IV, const std::vector<uint8_t> &cipher, const std::vector<uint8_t> &AD,
-		const std::vector<uint8_t> &tag, std::vector<uint8_t> &plain);
+template <>
+bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key,
+                               const std::vector<uint8_t> &IV,
+                               const std::vector<uint8_t> &cipher,
+                               const std::vector<uint8_t> &AD,
+                               const std::vector<uint8_t> &tag,
+                               std::vector<uint8_t> &plain);
 
 /************************** AES Key Wrap Algorithm ***************************/
-enum class AesId {AES128, AES192, AES256};
+enum class AesId { AES128, AES192, AES256 };
 
 /**
- * @brief AES Key Wrap with Padding Algorithm described by the RFC 5649 Section 4.1 : https://datatracker.ietf.org/doc/html/rfc5649#section-4.1
- *		  Implementation of the alternative description of the algorithm
- *		  Used to encrypt the AES keys
- *		  Works with AES-128, AES-192 and AES-256
+ * @brief AES Key Wrap with Padding Algorithm described by the RFC 5649 Section 4.1 :
+ *https://datatracker.ietf.org/doc/html/rfc5649#section-4.1 Implementation of the alternative description of the
+ *algorithm Used to encrypt the AES keys Works with AES-128, AES-192 and AES-256
  *
  * @param[in]   plaintext	AES key that we want to encrypt OR a plaintext
  * @param[in]   key			Key-encryption key (KEK)
@@ -244,13 +300,15 @@ enum class AesId {AES128, AES192, AES256};
  *
  * @return 0 if no problem, BCTBX_ERROR_INVALID_INPUT_DATA otherwise
  */
-int AES_key_wrap(const std::vector<uint8_t> &plaintext, const std::vector<uint8_t> &key, std::vector<uint8_t> &ciphertext, AesId id);
+int AES_key_wrap(const std::vector<uint8_t> &plaintext,
+                 const std::vector<uint8_t> &key,
+                 std::vector<uint8_t> &ciphertext,
+                 AesId id);
 
 /**
- * @brief AES Key Unwrap with Padding Algorithm described by the RFC 5649 Section 4.2 : https://datatracker.ietf.org/doc/html/rfc5649#section-4.2
- *		  Implementation of the alternative description of the algorithm
- *		  Used to decrypt the AES keys
- *		  Works with AES-128, AES-192 and AES-256
+ * @brief AES Key Unwrap with Padding Algorithm described by the RFC 5649 Section 4.2 :
+ *https://datatracker.ietf.org/doc/html/rfc5649#section-4.2 Implementation of the alternative description of the
+ *algorithm Used to decrypt the AES keys Works with AES-128, AES-192 and AES-256
  *
  * @param[in]   ciphertext	AES key that we want to decrypt OR a ciphertext
  * @param[in]   key			Key-encryption key (KEK)
@@ -259,10 +317,10 @@ int AES_key_wrap(const std::vector<uint8_t> &plaintext, const std::vector<uint8_
  *
  * @return 0 if no problem, {BCTBX_ERROR_INVALID_INPUT_DATA, BCTBX_ERROR_UNSPECIFIED_ERROR} otherwise
  */
-int AES_key_unwrap(const std::vector<uint8_t> &ciphertext, const std::vector<uint8_t> &key, std::vector<uint8_t> &plaintext, AesId id);
-
+int AES_key_unwrap(const std::vector<uint8_t> &ciphertext,
+                   const std::vector<uint8_t> &key,
+                   std::vector<uint8_t> &plaintext,
+                   AesId id);
 
 } // namespace bctoolbox
 #endif // BCTBX_CRYPTO_HH
-
-

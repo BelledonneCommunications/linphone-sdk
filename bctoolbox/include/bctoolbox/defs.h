@@ -30,5 +30,12 @@
 #endif // __GNUC__
 #endif // BCTBX_NO_BREAK
 
+#ifndef BCTBX_UNUSED
+#if defined(__GNUC__) || defined(__clang__)
+#define BCTBX_UNUSED(x) x __attribute__((__unused__))
+#else
+#define BCTBX_UNUSED(x) x
+#endif // defined(__GNUC__) || defined(__clang__)
+#endif // BCTBX_UNUSED
 
 #endif /* BCTBX_DEFS_H_ */

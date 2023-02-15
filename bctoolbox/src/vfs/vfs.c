@@ -21,15 +21,14 @@
 #include "config.h"
 #endif
 
-#include "bctoolbox/vfs.h"
 #include "bctoolbox/crypto.h"
-#include "bctoolbox/vfs_standard.h"
-#include "bctoolbox/port.h"
 #include "bctoolbox/logging.h"
-#include <sys/types.h>
-#include <stdarg.h>
+#include "bctoolbox/port.h"
+#include "bctoolbox/vfs.h"
+#include "bctoolbox/vfs_standard.h"
 #include <errno.h>
-
+#include <stdarg.h>
+#include <sys/types.h>
 
 static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile);
 
@@ -39,21 +38,21 @@ static bctbx_vfs_t *pDefaultVfs = &bcStandardVfs; /* bcStandardVfs is defined in
 /**
  * Create flags (int) from mode(char*).
  * @param mode Can be r, r+, w+, w
- * @return flags (integer).	 
+ * @return flags (integer).
  */
-static int set_flags(const char* mode) {
-	int flags = 0 ;                 /* flags to pass to open() call */
+static int set_flags(const char *mode) {
+	int flags = 0; /* flags to pass to open() call */
 	if (strcmp(mode, "r") == 0) {
-  		flags =  O_RDONLY;
+		flags = O_RDONLY;
 	} else if ((strcmp(mode, "r+") == 0) || (strcmp(mode, "w+") == 0)) {
-		flags =  O_RDWR;
-	} else if(strcmp(mode, "w") == 0) {
-  		flags =  O_WRONLY;
+		flags = O_RDWR;
+	} else if (strcmp(mode, "w") == 0) {
+		flags = O_WRONLY;
 	}
 	return flags | O_CREAT;
 }
 
-ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count, off_t offset) {
+ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset) {
 	ssize_t ret;
 
 	if (pFile != NULL) {
@@ -75,7 +74,7 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t* pFile, const void *buf, size_t count,
 	return BCTBX_VFS_ERROR;
 }
 
-ssize_t bctbx_file_write2(bctbx_vfs_file_t* pFile, const void *buf, size_t count) {
+ssize_t bctbx_file_write2(bctbx_vfs_file_t *pFile, const void *buf, size_t count) {
 	ssize_t ret = bctbx_file_write(pFile, buf, count, pFile->offset);
 	if (ret != BCTBX_VFS_ERROR) {
 		bctbx_file_seek(pFile, ret, SEEK_CUR);
@@ -83,13 +82,13 @@ ssize_t bctbx_file_write2(bctbx_vfs_file_t* pFile, const void *buf, size_t count
 	return ret;
 }
 
-static int file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t* pFile, const char *fName, const int oflags) {
+static int file_open(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, const int oflags) {
 	int ret = BCTBX_VFS_ERROR;
-	if (pVfs && pFile ) {
+	if (pVfs && pFile) {
 		ret = pVfs->pFuncOpen(pVfs, pFile, fName, oflags);
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_open: Error file handle");
-		} else if (ret < 0 ) {
+		} else if (ret < 0) {
 			bctbx_error("bctbx_file_open: Error open %s", strerror(-(ret)));
 			ret = BCTBX_VFS_ERROR;
 		}
@@ -97,9 +96,9 @@ static int file_open(bctbx_vfs_t* pVfs, bctbx_vfs_file_t* pFile, const char *fNa
 	return ret;
 }
 
-bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const char *mode) {
+bctbx_vfs_file_t *bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const char *mode) {
 	int ret;
-	bctbx_vfs_file_t* p_ret = (bctbx_vfs_file_t*)bctbx_malloc(sizeof(bctbx_vfs_file_t));
+	bctbx_vfs_file_t *p_ret = (bctbx_vfs_file_t *)bctbx_malloc(sizeof(bctbx_vfs_file_t));
 	int oflags = set_flags(mode);
 	if (p_ret) {
 		memset(p_ret, 0, sizeof(bctbx_vfs_file_t));
@@ -111,7 +110,7 @@ bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const ch
 	return NULL;
 }
 
-bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const int openFlags) {
+bctbx_vfs_file_t *bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const int openFlags) {
 	int ret;
 	bctbx_vfs_file_t *p_ret = (bctbx_vfs_file_t *)bctbx_malloc(sizeof(bctbx_vfs_file_t));
 
@@ -130,7 +129,8 @@ static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile) {
 		return 0;
 	}
 	size_t fSize = pFile->fSize; // save the size so we could restore it if something goes wrong
-	pFile->fSize = 0; // set it to 0 now so when we call write it won't enter in an infinite loop(as write will call flush)
+	pFile->fSize =
+	    0; // set it to 0 now so when we call write it won't enter in an infinite loop(as write will call flush)
 	ssize_t r = bctbx_file_write(pFile, pFile->fPage, fSize, pFile->fPageOffset);
 	if (r < 0) { // something went wrong, restore the page size
 		pFile->fSize = fSize;
@@ -149,8 +149,7 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 		/*check if error : in this case pErrSvd is initialized*/
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_read: error bctbx_vfs_file_t");
-		}
-		else if (ret < 0) {
+		} else if (ret < 0) {
 			bctbx_error("bctbx_file_read: Error read %s", strerror(-(ret)));
 			ret = BCTBX_VFS_ERROR;
 		}
@@ -202,31 +201,29 @@ int bctbx_file_sync(bctbx_vfs_file_t *pFile) {
 	return ret;
 }
 
-
 int64_t bctbx_file_size(bctbx_vfs_file_t *pFile) {
 	int64_t ret = BCTBX_VFS_ERROR;
-	if (pFile){
+	if (pFile) {
 		if (bctbx_file_flush(pFile) < 0) {
 			return BCTBX_VFS_ERROR;
 		}
 
 		ret = pFile->pMethods->pFuncFileSize(pFile);
 		if (ret < 0) bctbx_error("bctbx_file_size: Error file size %s", strerror((int)-(ret)));
-	} 
+	}
 	return ret;
 }
 
-
 int bctbx_file_truncate(bctbx_vfs_file_t *pFile, int64_t size) {
 	int ret = BCTBX_VFS_ERROR;
-	if (pFile){
+	if (pFile) {
 		if (bctbx_file_flush(pFile) < 0) {
 			return BCTBX_VFS_ERROR;
 		}
 
 		ret = pFile->pMethods->pFuncTruncate(pFile, size);
 		if (ret < 0) bctbx_error("bctbx_file_truncate: Error truncate  %s", strerror((int)-(ret)));
-	} 
+	}
 	return ret;
 }
 
@@ -249,7 +246,7 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 
 		// Shall we write in cache or in the file
 		if (count + pFile->fSize < BCTBX_VFS_PRINTF_PAGE_SIZE) { // Data fits in current page
-			memcpy(pFile->fPage+pFile->fSize, ret, count);
+			memcpy(pFile->fPage + pFile->fSize, ret, count);
 			if (pFile->fSize == 0) {
 				pFile->fPageOffset = pFile->offset;
 			}
@@ -258,18 +255,21 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 			pFile->fSize += count;
 			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return (ssize_t)count;
-		} else if (pFile->fSize > 0){ // There is a cache but the new data won't fit in : write the cache and the new data
-			char *buf = bctbx_malloc(count+pFile->fSize); // allocate a temporary buffer, to store the current cache and the data to be written
+		} else if (pFile->fSize >
+		           0) { // There is a cache but the new data won't fit in : write the cache and the new data
+			char *buf = bctbx_malloc(
+			    count +
+			    pFile->fSize); // allocate a temporary buffer, to store the current cache and the data to be written
 			if (buf == NULL) {
 				bctbx_free(ret);
 				return BCTBX_VFS_ERROR;
 			}
 			memcpy(buf, pFile->fPage, pFile->fSize); // concatenate the cache and new data
-			memcpy(buf+pFile->fSize, ret, count);
+			memcpy(buf + pFile->fSize, ret, count);
 			bctbx_free(ret);
 			r = bctbx_file_write(pFile, buf, pFile->fSize + count, pFile->fPageOffset); // write all
 			bctbx_free(buf);
-			if (r<0) {
+			if (r < 0) {
 				return r;
 			}
 			pFile->fSize = 0; // f cache is now empty
@@ -358,29 +358,33 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 		return BCTBX_VFS_ERROR;
 	}
 
-
 	sizeofline = 0;
 
 	// If we have a cached page and the current offset is in this page
-	if ((pFile->gSize > 0) && (pFile->gPageOffset<=pFile->offset) && (pFile->gPageOffset + (off_t)pFile->gSize > pFile->offset)) {
+	if ((pFile->gSize > 0) && (pFile->gPageOffset <= pFile->offset) &&
+	    (pFile->gPageOffset + (off_t)pFile->gSize > pFile->offset)) {
 		// look for a new line in the cache
 		const char *c = pFile->gPage + (pFile->offset - pFile->gPageOffset);
 		pNextLine = findNextLine(c);
 		if (pNextLine) {
 			/* Got a line! Comments use \n to describe EOL while it can be \r too */
 			sizeofline = (int)(pNextLine - c + 1); // 1 one so it actually includes the \n char
-			pFile->offset += sizeofline; // offset to next beginning of line
-			if ((pNextLine[0] == '\r') && (pNextLine[1] == '\n')) { // take into account the \r\n case, this case can pass underdetected if page ends in between, not a problem we will just get an extra empty line
+			pFile->offset += sizeofline;           // offset to next beginning of line
+			if ((pNextLine[0] == '\r') &&
+			    (pNextLine[1] == '\n')) { // take into account the \r\n case, this case can pass underdetected if page
+				                          // ends in between, not a problem we will just get an extra empty line
 				pFile->offset += 1;
 			}
-			memcpy(s,c,sizeofline-1); // copy all before the \n
-			s[sizeofline-1] = '\0'; // add a \0 at the end where the \n was
+			memcpy(s, c, sizeofline - 1); // copy all before the \n
+			s[sizeofline - 1] = '\0';     // add a \0 at the end where the \n was
 			return sizeofline; // return size including the termination, so an empty line returns 1 (0 is for EOF)
-		} else { // No end of line found, did we reach the EOF?
-			if (pFile->gPage[pFile->gSize-1] == 0x04) { // 0x04 is EOT in ASCII, put in cache to signal the end of file
-				sizeofline = (int)(pFile->gSize - (pFile->offset - pFile->gPageOffset) -1); // size does not include the EOT char(which is part of the page size). so -1
+		} else {               // No end of line found, did we reach the EOF?
+			if (pFile->gPage[pFile->gSize - 1] ==
+			    0x04) { // 0x04 is EOT in ASCII, put in cache to signal the end of file
+				sizeofline = (int)(pFile->gSize - (pFile->offset - pFile->gPageOffset) -
+				                   1); // size does not include the EOT char(which is part of the page size). so -1
 				pFile->offset += sizeofline; // offset now points on the EOT char
-				memcpy(s,c,sizeofline); // copy everything before the EOT
+				memcpy(s, c, sizeofline);    // copy everything before the EOT
 				s[sizeofline] = '\0';
 				return sizeofline; // Can be 0 if we were already pointing on EOT when we enter this call
 			}
@@ -388,7 +392,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 	}
 
 	// not in cache, read it from file
-	s[max_len-1] = '\0';
+	s[max_len - 1] = '\0';
 	/* Read returns 0 if end of file is found */
 	ret = bctbx_file_read(pFile, s, max_len - 1, pFile->offset);
 	if (ret > 0) {
@@ -398,13 +402,15 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 			memcpy(pFile->gPage, s, readSize);
 			pFile->gPageOffset = pFile->offset;
 			pFile->gSize = readSize;
-			if (ret<max_len - 1) { // read did not return as much as asked, we reached EOF
+			if (ret < max_len - 1) {           // read did not return as much as asked, we reached EOF
 				pFile->gPage[readSize] = 0x04; // 0x04 is ASCII for EOT, use it to store the EOF in the buffer
-				pFile->gSize += 1; // the EOT is part of the cached page
+				pFile->gSize += 1;             // the EOT is part of the cached page
 			}
 			pFile->gPage[pFile->gSize] = '\0';
 		} else {
-			bctbx_warning("bctbx_get_nxtline given a max size value %d bigger than cache size (%d), please adjust one or the other", max_len, BCTBX_VFS_GETLINE_PAGE_SIZE);
+			bctbx_warning("bctbx_get_nxtline given a max size value %d bigger than cache size (%d), please adjust one "
+			              "or the other",
+			              max_len, BCTBX_VFS_GETLINE_PAGE_SIZE);
 		}
 		pNextLine = findNextLine(s);
 		if (pNextLine) {
@@ -412,7 +418,7 @@ static int bctbx_generic_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int max_l
 			sizeofline = (int)(pNextLine - s + 1);
 			/* offset to next beginning of line*/
 			pFile->offset += sizeofline;
-			if ((pNextLine[0] == '\r') && (pNextLine[1] == '\n')) {/*take into account the \r\n" case*/
+			if ((pNextLine[0] == '\r') && (pNextLine[1] == '\n')) { /*take into account the \r\n" case*/
 				pFile->offset += 1;
 			}
 			*pNextLine = '\0';
@@ -444,7 +450,7 @@ int bctbx_file_get_nxtline(bctbx_vfs_file_t *pFile, char *s, int maxlen) {
 }
 
 bool_t bctbx_file_is_encrypted(bctbx_vfs_file_t *pFile) {
-	if (pFile && pFile->pMethods && pFile->pMethods->pFuncIsEncrypted){
+	if (pFile && pFile->pMethods && pFile->pMethods->pFuncIsEncrypted) {
 		return pFile->pMethods->pFuncIsEncrypted(pFile);
 	}
 	return FALSE;
@@ -454,11 +460,10 @@ void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs) {
 	pDefaultVfs = my_vfs;
 }
 
-bctbx_vfs_t* bctbx_vfs_get_default(void) {
-	return pDefaultVfs;	
+bctbx_vfs_t *bctbx_vfs_get_default(void) {
+	return pDefaultVfs;
 }
 
-bctbx_vfs_t* bctbx_vfs_get_standard(void) {
+bctbx_vfs_t *bctbx_vfs_get_standard(void) {
 	return &bcStandardVfs;
 }
-

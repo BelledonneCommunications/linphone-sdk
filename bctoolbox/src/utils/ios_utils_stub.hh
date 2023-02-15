@@ -25,9 +25,9 @@ namespace bctoolbox {
 
 class IOSUtilsStub : public IOSUtilsInterface {
 public:
-    unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) override;
-    void endBackgroundTask(unsigned long id) override;
-    bool isApplicationStateActive() override;
+	unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) override;
+	void endBackgroundTask(unsigned long id) override;
+	bool isApplicationStateActive() override;
 };
 
-} //namespace bctoolbox
+} // namespace bctoolbox

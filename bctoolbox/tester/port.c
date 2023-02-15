@@ -17,11 +17,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <inttypes.h>
-#include "bctoolbox_tester.h"
 #include "bctoolbox/port.h"
 #include "bctoolbox/vfs.h"
+#include "bctoolbox_tester.h"
+#include <inttypes.h>
+#include <stdio.h>
 
 static void bytes_to_from_hexa_strings(void) {
 	const uint8_t a55aBytes[2] = {0xa5, 0x5a};
@@ -86,7 +86,7 @@ static void bytes_to_from_hexa_strings(void) {
 
 static void time_functions(void) {
 	bctoolboxTimeSpec testTs;
-	bctoolboxTimeSpec y2k,monday6Feb2017;
+	bctoolboxTimeSpec y2k, monday6Feb2017;
 	y2k.tv_sec = 946684800;
 	y2k.tv_nsec = 123456789;
 	monday6Feb2017.tv_sec = 1486347823;
@@ -95,15 +95,15 @@ static void time_functions(void) {
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	BC_ASSERT_EQUAL(bctbx_timespec_compare(&y2k, &testTs), 0, int, "%d");
 	bctbx_timespec_add(&testTs, 604800);
-	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec+604800, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec + 604800, int64_t, "%" PRIi64);
 	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
-	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)<0);
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs) < 0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	bctbx_timespec_add(&testTs, -604800);
-	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec-604800, int64_t, "%" PRIi64);
+	BC_ASSERT_EQUAL(testTs.tv_sec, y2k.tv_sec - 604800, int64_t, "%" PRIi64);
 	BC_ASSERT_EQUAL(testTs.tv_nsec, y2k.tv_nsec, int64_t, "%" PRIi64);
-	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs)>0);
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&y2k, &testTs) > 0);
 
 	memcpy(&testTs, &y2k, sizeof(bctoolboxTimeSpec));
 	bctbx_timespec_add(&testTs, -946684801);
@@ -114,7 +114,7 @@ static void time_functions(void) {
 	 * there is no easy way to ensure we get the correct time, just check it is at least not the time from last boot,
 	 * check it is greater than the current time as this test was written(6feb2017) */
 	bctbx_get_utc_cur_time(&testTs);
-	BC_ASSERT_TRUE(bctbx_timespec_compare(&testTs, &monday6Feb2017)>0);
+	BC_ASSERT_TRUE(bctbx_timespec_compare(&testTs, &monday6Feb2017) > 0);
 
 	BC_ASSERT_EQUAL(bctbx_time_string_to_sec(NULL), 0, uint32_t, "%d");
 	BC_ASSERT_EQUAL(bctbx_time_string_to_sec(""), 0, uint32_t, "%d");
@@ -122,58 +122,57 @@ static void time_functions(void) {
 	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("1500"), 1500, uint32_t, "%d");
 	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2500s"), 2500, uint32_t, "%d");
 	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("10m"), 600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("5h"), 5*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2d"), 2*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("3W"), 3*7*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("6M"), 6*30*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y"), 7*365*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y6M2W"), (7*365+6*30+2*7)*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2m30"), 2*60+30, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d1M"), (15+1*30)*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d5z"), 15*24*3600, uint32_t, "%d");
-	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15dM12h"), (15*24+12)*3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("5h"), 5 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2d"), 2 * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("3W"), 3 * 7 * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("6M"), 6 * 30 * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y"), 7 * 365 * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("7Y6M2W"), (7 * 365 + 6 * 30 + 2 * 7) * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("2m30"), 2 * 60 + 30, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d1M"), (15 + 1 * 30) * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15d5z"), 15 * 24 * 3600, uint32_t, "%d");
+	BC_ASSERT_EQUAL(bctbx_time_string_to_sec("15dM12h"), (15 * 24 + 12) * 3600, uint32_t, "%d");
 }
 
 static void bctbx_addrinfo_sort_test(void) {
-	struct addrinfo * res1 = bctbx_name_to_addrinfo(AF_INET6, SOCK_DGRAM, "sip3.linphone.org", 27256);
-	struct addrinfo * res2 = bctbx_ip_address_to_addrinfo(AF_INET6, SOCK_DGRAM, "91.121.209.194", 27256);
-	struct addrinfo * res3 = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_DGRAM, "91.121.209.194", 27256);
-	bool_t searching_for_v6=TRUE;
-	struct addrinfo * ai =  NULL;
+	struct addrinfo *res1 = bctbx_name_to_addrinfo(AF_INET6, SOCK_DGRAM, "sip3.linphone.org", 27256);
+	struct addrinfo *res2 = bctbx_ip_address_to_addrinfo(AF_INET6, SOCK_DGRAM, "91.121.209.194", 27256);
+	struct addrinfo *res3 = bctbx_ip_address_to_addrinfo(AF_INET, SOCK_DGRAM, "91.121.209.194", 27256);
+	bool_t searching_for_v6 = TRUE;
+	struct addrinfo *ai = NULL;
 	char printable_ip[256];
-	struct addrinfo * res = res3;
-	
-	for ( ai=res2 ; ai !=NULL; ai=ai->ai_next) {
-		if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)(ai->ai_addr))->sin6_addr)) {
-			res->ai_next=ai;
+	struct addrinfo *res = res3;
+
+	for (ai = res2; ai != NULL; ai = ai->ai_next) {
+		if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr)) {
+			res->ai_next = ai;
 			break;
 		}
 	}
-	res->ai_next->ai_next=res1;
-	res->ai_next->ai_next->ai_next=NULL;
-	
-	//So now, res as ipv4 first, then v4 mapped, then v6
-	for ( ai=res ; ai !=NULL; ai=ai->ai_next) {
+	res->ai_next->ai_next = res1;
+	res->ai_next->ai_next->ai_next = NULL;
+
+	// So now, res as ipv4 first, then v4 mapped, then v6
+	for (ai = res; ai != NULL; ai = ai->ai_next) {
 		bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, sizeof(printable_ip));
 		bctbx_message("bctbx_getaddrinfo origin address:%s", printable_ip);
 	}
-	
-	//now apply bctbx_addrinfo_sort
-	
-	for ( ai=bctbx_addrinfo_sort(res) ; ai !=NULL; ai=ai->ai_next) {
+
+	// now apply bctbx_addrinfo_sort
+
+	for (ai = bctbx_addrinfo_sort(res); ai != NULL; ai = ai->ai_next) {
 		if (ai->ai_family == AF_INET6) {
 			if (!searching_for_v6) {
-				BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)(ai->ai_addr))->sin6_addr));
+				BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr));
 			}
-			if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6*)(ai->ai_addr))->sin6_addr)) {
+			if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr)) {
 				searching_for_v6 = FALSE; // stating from now, all subsequent IP shall be pure V6
 			}
 		}
 		bctbx_addrinfo_to_printable_ip_address(ai, printable_ip, sizeof(printable_ip));
 		bctbx_message("bctbx_getaddrinfo sorted address:%s", printable_ip);
-		
 	}
-	
+
 	bctbx_freeaddrinfo(res);
 }
 
@@ -182,7 +181,8 @@ static void bctbx_directory_utils_test(void) {
 	char *tmpDirPath = bctbx_strdup_printf("%s/tmp_dir/", bc_tester_get_writable_dir_prefix());
 	// Check the directory does not exists
 	bool_t tmpDirExists = bctbx_directory_exists(tmpDirPath);
-	BC_ASSERT_FALSE(tmpDirExists); // This directory must not exists when performing this test, if it does, it means the test failed before, delete it manually
+	BC_ASSERT_FALSE(tmpDirExists); // This directory must not exists when performing this test, if it does, it means the
+	                               // test failed before, delete it manually
 	if (tmpDirExists) return;
 
 	// Create it
@@ -207,7 +207,7 @@ static void bctbx_directory_utils_test(void) {
 	char *filename1 = bctbx_strdup_printf("%s/filename1.txt", tmpDirPath);
 	char *filename2 = bctbx_strdup_printf("%s/.filename2.txt", tmpDirPath);
 	char *filename3 = bctbx_strdup_printf("%s/filename3", tmpDirPath2);
-	bctbx_vfs_t* stdVfs = bctbx_vfs_get_standard();
+	bctbx_vfs_t *stdVfs = bctbx_vfs_get_standard();
 
 	bctbx_vfs_file_t *fp = bctbx_file_open(stdVfs, filename1, "w");
 	bctbx_file_close(fp);
@@ -238,11 +238,8 @@ static void bctbx_directory_utils_test(void) {
 }
 
 static test_t utils_tests[] = {
-	TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings),
-	TEST_NO_TAG("Time", time_functions),
-	TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test),
-	TEST_NO_TAG("Directory utils", bctbx_directory_utils_test)
-};
+    TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings), TEST_NO_TAG("Time", time_functions),
+    TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test), TEST_NO_TAG("Directory utils", bctbx_directory_utils_test)};
 
-test_suite_t utils_test_suite = {"Utils", NULL, NULL, NULL, NULL,
-							   sizeof(utils_tests) / sizeof(utils_tests[0]), utils_tests};
+test_suite_t utils_test_suite = {"Utils",    NULL, NULL, NULL, NULL, sizeof(utils_tests) / sizeof(utils_tests[0]),
+                                 utils_tests};

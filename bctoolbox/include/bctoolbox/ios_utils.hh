@@ -25,36 +25,35 @@ namespace bctoolbox {
 
 class IOSUtilsInterface {
 public:
-    virtual unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) = 0;
-    virtual void endBackgroundTask(unsigned long id) = 0;
-    virtual bool isApplicationStateActive() = 0;
-    
-    virtual ~IOSUtilsInterface() = default;
+	virtual unsigned long beginBackgroundTask(const char *name, std::function<void()> cb) = 0;
+	virtual void endBackgroundTask(unsigned long id) = 0;
+	virtual bool isApplicationStateActive() = 0;
+
+	virtual ~IOSUtilsInterface() = default;
 };
 
 class IOSUtils {
 public:
-    unsigned long beginBackgroundTask(const char *name, std::function<void()> cb);
-    void endBackgroundTask(unsigned long id);
-    bool isApplicationStateActive();
-    bool isApp();
-    int getOSMajorVersion() const;
-    static IOSUtils& getUtils();
-    
-    IOSUtils(const IOSUtils&) = delete;
-    IOSUtils& operator=(const IOSUtils&) = delete;
-    ~IOSUtils();
+	unsigned long beginBackgroundTask(const char *name, std::function<void()> cb);
+	void endBackgroundTask(unsigned long id);
+	bool isApplicationStateActive();
+	bool isApp();
+	int getOSMajorVersion() const;
+	static IOSUtils &getUtils();
+
+	IOSUtils(const IOSUtils &) = delete;
+	IOSUtils &operator=(const IOSUtils &) = delete;
+	~IOSUtils();
 
 private:
-    void *mHandle;
-    IOSUtilsInterface *mUtils;
-    bool mIsApp;
-    static std::unique_ptr<IOSUtils> sInstance;
-    IOSUtils();
+	void *mHandle;
+	IOSUtilsInterface *mUtils;
+	bool mIsApp;
+	static std::unique_ptr<IOSUtils> sInstance;
+	IOSUtils();
 
-    
-    void openDynamicLib();
-    void *loadSymbol(const char *symbol);
+	void openDynamicLib();
+	void *loadSymbol(const char *symbol);
 };
-    
-} //namespace bctoolbox
+
+} // namespace bctoolbox

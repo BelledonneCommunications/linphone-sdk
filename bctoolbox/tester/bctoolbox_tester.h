@@ -46,5 +46,4 @@ extern test_suite_t vfs_test_suite;
 };
 #endif
 
-
 #endif /* _BCTOOLBOX_TESTER_H */

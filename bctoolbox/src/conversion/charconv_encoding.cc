@@ -22,7 +22,7 @@
 #endif
 
 #ifdef __APPLE__
-   #include "TargetConditionals.h"
+#include "TargetConditionals.h"
 #endif
 
 #include "bctoolbox/charconv.h"
@@ -30,20 +30,19 @@
 #include "bctoolbox/port.h"
 
 namespace {
-        std::string defaultEncoding = "";
+std::string defaultEncoding = "";
 }
 
-void bctbx_set_default_encoding (const char *encoding) {
-        defaultEncoding = encoding;
+void bctbx_set_default_encoding(const char *encoding) {
+	defaultEncoding = encoding;
 }
 
-const char *bctbx_get_default_encoding (void) {
-        if (!defaultEncoding.empty())
-                return defaultEncoding.c_str();
+const char *bctbx_get_default_encoding(void) {
+	if (!defaultEncoding.empty()) return defaultEncoding.c_str();
 
 #if defined(__ANDROID__) || TARGET_OS_IPHONE
-        return "UTF-8";
+	return "UTF-8";
 #else
-        return "locale";
+	return "locale";
 #endif
 }

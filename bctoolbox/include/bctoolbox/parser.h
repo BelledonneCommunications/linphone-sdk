@@ -23,16 +23,17 @@
 #include "bctoolbox/port.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 /**
  * A 256 entries table where each entries defines if character corresponding to its index is allowed  or not (value = 0)
  * for instance noescape_rules[':'] = 1 means that  ':' should not be escaped
  */
-typedef  unsigned char bctbx_noescape_rules_t[256+1]; /*last entry (BCTBX_NOESCAPE_RULES_USER_INDEX) is reserved for user purpose. Might be usefull to set if array was initialed of not */
-	
-#define BCTBX_NOESCAPE_RULES_USER_INDEX (sizeof(bctbx_noescape_rules_t) -1)
+typedef unsigned char
+    bctbx_noescape_rules_t[256 + 1]; /*last entry (BCTBX_NOESCAPE_RULES_USER_INDEX) is reserved for user purpose. Might
+                                        be usefull to set if array was initialed of not */
+
+#define BCTBX_NOESCAPE_RULES_USER_INDEX (sizeof(bctbx_noescape_rules_t) - 1)
 /**
  * Allocate a new string with unauthorized characters escaped (I.E replaced by % HEX HEX) if any.
  * sample:
@@ -45,24 +46,25 @@ typedef  unsigned char bctbx_noescape_rules_t[256+1]; /*last entry (BCTBX_NOESCA
 
  * @return a newly allocated null terminated string
  */
-BCTBX_PUBLIC char* bctbx_escape(const char* buff, const bctbx_noescape_rules_t noescape_rules);
+BCTBX_PUBLIC char *bctbx_escape(const char *buff, const bctbx_noescape_rules_t noescape_rules);
 
 /**
  * Add a list of allowed charaters to a noescape rule.
  * @param  noescape_rules rule to be modified.
- * @param  allowed string representing allowed char. Sample:  ";-/" 
+ * @param  allowed string representing allowed char. Sample:  ";-/"
  */
 BCTBX_PUBLIC void bctbx_noescape_rules_add_list(bctbx_noescape_rules_t noescape_rules, const char *allowed);
 
 /**
- * Add a range of allowed charaters to noescape rule. bctbx_noescape_rules_add_range(noescape_rules, '0','9') is the same as bctbx_noescape_rules_add_list(noescape_rules,"0123456789")
+ * Add a range of allowed charaters to noescape rule. bctbx_noescape_rules_add_range(noescape_rules, '0','9') is the
+ * same as bctbx_noescape_rules_add_list(noescape_rules,"0123456789")
  * @param noescape_rules rule to be modified.
  * @param first allowed char.
  * @param last allowed char.
  */
 BCTBX_PUBLIC void bctbx_noescape_rules_add_range(bctbx_noescape_rules_t noescape_rules, char first, char last);
 /**
- * Add ['0'..'9'], ['a'..'z'] ['A'..'z'] to no escape rule. 
+ * Add ['0'..'9'], ['a'..'z'] ['A'..'z'] to no escape rule.
  */
 BCTBX_PUBLIC void bctbx_noescape_rules_add_alfanums(bctbx_noescape_rules_t noescape_rules);
 
@@ -71,7 +73,7 @@ BCTBX_PUBLIC void bctbx_noescape_rules_add_alfanums(bctbx_noescape_rules_t noesc
  * @param  buff  NULL terminated input buffer.
  * @return a newly allocated null terminated string with unescated values.
  */
-BCTBX_PUBLIC char* bctbx_unescaped_string(const char* buff);
+BCTBX_PUBLIC char *bctbx_unescaped_string(const char *buff);
 
 /**
  * Does the same as bctbx_unescaped_string() except it does it only for characters in unescape_rules
@@ -79,8 +81,9 @@ BCTBX_PUBLIC char* bctbx_unescaped_string(const char* buff);
  * @param  unescape_rules bctbx_noescape_rules_t characters to unescape, other will be kept escaped
  * @return a newly allocated null terminated string with unescated values.
  */
-BCTBX_PUBLIC char* bctbx_unescaped_string_only_chars_in_rules(const char* buff, const bctbx_noescape_rules_t unescape_rules);
-	
+BCTBX_PUBLIC char *bctbx_unescaped_string_only_chars_in_rules(const char *buff,
+                                                              const bctbx_noescape_rules_t unescape_rules);
+
 /**
  *Convert a single input "a" into unscaped output if need.
  * a = "%c3%a7" into "ç" with return value = 3
@@ -89,14 +92,10 @@ BCTBX_PUBLIC char* bctbx_unescaped_string_only_chars_in_rules(const char* buff, 
  * @param out outbut buffer for conversion
  * @return number of byte wrote into out
  */
-BCTBX_PUBLIC size_t bctbx_get_char (const char *a, char *out);
-	
+BCTBX_PUBLIC size_t bctbx_get_char(const char *a, char *out);
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /*BCTBX_PARSER_H_*/
-
-
-
-

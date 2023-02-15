@@ -18,10 +18,10 @@
  */
 
 #include "vfs_encryption_module_aes256gcm_sha256.hh"
+#include "bctoolbox/crypto.h" // bctbx_clean
+#include "bctoolbox/crypto.hh"
 #include <algorithm>
 #include <functional>
-#include "bctoolbox/crypto.hh"
-#include "bctoolbox/crypto.h" // bctbx_clean
 
 #include "bctoolbox/logging.h"
 using namespace bctoolbox;
@@ -44,27 +44,26 @@ static constexpr size_t fileHeaderSize = fileSaltSize + fileAuthTagSize;
 /**
  * The master Key is expected to be 32 bytes
  */
-static constexpr size_t masterKeySize=32;
-
+static constexpr size_t masterKeySize = 32;
 
 /** constructor called at file creation */
-VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256() :
-	mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
-	mFileSalt(mRNG->randomize(fileSaltSize)) // generate a random file Salt
+VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256()
+    : mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
+      mFileSalt(mRNG->randomize(fileSaltSize))  // generate a random file Salt
 {
 }
 
 /** constructor called when opening an existing file */
-VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256(const std::vector<uint8_t> &fileHeader) :
-	mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
-	mFileSalt(std::vector<uint8_t>(fileSaltSize))
-{
+VfsEM_AES256GCM_SHA256::VfsEM_AES256GCM_SHA256(const std::vector<uint8_t> &fileHeader)
+    : mRNG(std::make_shared<bctoolbox::RNG>()), // start the local RNG
+      mFileSalt(std::vector<uint8_t>(fileSaltSize)) {
 	if (fileHeader.size() != fileHeaderSize) {
-		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module expect a fileHeader of size "<<fileHeaderSize<<" bytes but "<<fileHeader.size()<<" are provided";
+		throw EVFS_EXCEPTION << "The AES256GCM128-SHA256 encryption module expect a fileHeader of size "
+		                     << fileHeaderSize << " bytes but " << fileHeader.size() << " are provided";
 	}
 	// File header Data is 32 bytes of integrity data, 16 bytes of global salt
-	std::copy(fileHeader.cbegin(), fileHeader.cbegin()+fileAuthTagSize, mFileHeaderIntegrity.begin());
-	std::copy(fileHeader.cbegin()+fileAuthTagSize, fileHeader.cend(), mFileSalt.begin());
+	std::copy(fileHeader.cbegin(), fileHeader.cbegin() + fileAuthTagSize, mFileHeaderIntegrity.begin());
+	std::copy(fileHeader.cbegin() + fileAuthTagSize, fileHeader.cend(), mFileSalt.begin());
 }
 
 /** destructor ensure proper cleaning of any key material **/
@@ -75,10 +74,11 @@ VfsEM_AES256GCM_SHA256::~VfsEM_AES256GCM_SHA256() {
 
 const std::vector<uint8_t> VfsEM_AES256GCM_SHA256::getModuleFileHeader(const VfsEncryption &fileContext) const {
 	if (sFileHeaderHMACKey.empty()) {
-		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
+		throw EVFS_EXCEPTION
+		    << "The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
 	}
-	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
-	// so it is useless to authenticate it
+	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the
+	// key feed to HMAC authenticating the file header so it is useless to authenticate it
 	auto tag = HMAC<SHA256>(sFileHeaderHMACKey, fileContext.rawHeaderGet());
 
 	// Append the actual file salt value to the tag
@@ -89,7 +89,8 @@ const std::vector<uint8_t> VfsEM_AES256GCM_SHA256::getModuleFileHeader(const Vfs
 
 void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> &secret) {
 	if (secret.size() != masterKeySize) {
-		throw EVFS_EXCEPTION<<"The AES256GCM128 SHA256 encryption module expect a secret material of size "<<masterKeySize<<" bytes but "<<secret.size()<<" are provided";
+		throw EVFS_EXCEPTION << "The AES256GCM128 SHA256 encryption module expect a secret material of size "
+		                     << masterKeySize << " bytes but " << secret.size() << " are provided";
 	}
 	sMasterKey = secret;
 
@@ -107,16 +108,17 @@ void VfsEM_AES256GCM_SHA256::setModuleSecretMaterial(const std::vector<uint8_t> 
  */
 std::vector<uint8_t> VfsEM_AES256GCM_SHA256::deriveChunkKey(uint32_t chunkIndex) {
 	std::vector<uint8_t> chunkSalt{mFileSalt};
-	chunkSalt.push_back((chunkIndex>>24)&0xFF);
-	chunkSalt.push_back((chunkIndex>>16)&0xFF);
-	chunkSalt.push_back((chunkIndex>>8)&0xFF);
-	chunkSalt.push_back(chunkIndex&0xFF);
+	chunkSalt.push_back((chunkIndex >> 24) & 0xFF);
+	chunkSalt.push_back((chunkIndex >> 16) & 0xFF);
+	chunkSalt.push_back((chunkIndex >> 8) & 0xFF);
+	chunkSalt.push_back(chunkIndex & 0xFF);
 	return bctoolbox::HKDF<SHA256>(chunkSalt, sMasterKey, "EVFS chunk", AES256GCM128::keySize());
 }
 
-std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) {
+std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIndex,
+                                                          const std::vector<uint8_t> &rawChunk) {
 	if (sMasterKey.empty()) {
-		throw EVFS_EXCEPTION<<"No encryption Master key set, cannot decrypt";
+		throw EVFS_EXCEPTION << "No encryption Master key set, cannot decrypt";
 	}
 
 	// derive the key : HKDF (fileHeaderSalt || Chunk Index, Master key, "EVFS chunk")
@@ -124,17 +126,17 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 
 	// parse the header: tag, IV, encryption Counter
 	std::vector<uint8_t> tag(AES256GCM128::tagSize());
-	std::copy(rawChunk.cbegin(), rawChunk.cbegin()+chunkAuthTagSize, tag.begin());
+	std::copy(rawChunk.cbegin(), rawChunk.cbegin() + chunkAuthTagSize, tag.begin());
 	std::vector<uint8_t> IV(rawChunk.cbegin() + chunkAuthTagSize, rawChunk.cbegin() + chunkAuthTagSize + chunkIVSize);
 	std::vector<uint8_t> AD{}; // No associated data
 
 	// extract cipher
-	std::vector<uint8_t> cipher(rawChunk.cbegin()+chunkHeaderSize, rawChunk.cend());
+	std::vector<uint8_t> cipher(rawChunk.cbegin() + chunkHeaderSize, rawChunk.cend());
 
 	// decrypt and auth
 	std::vector<uint8_t> plain;
 	if (AEADDecrypt<AES256GCM128>(key, IV, cipher, AD, tag, plain) == false) {
-		throw EVFS_EXCEPTION<<"Authentication failure during chunk decryption";
+		throw EVFS_EXCEPTION << "Authentication failure during chunk decryption";
 	}
 
 	// cleaning
@@ -145,14 +147,17 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::decryptChunk(const uint32_t chunkIn
 
 // This module does not reuse any part of its chunk header during encryption
 // So re-encryption is the same than initial encryption
-void VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) {
+void VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex,
+                                          std::vector<uint8_t> &rawChunk,
+                                          const std::vector<uint8_t> &plainData) {
 
 	rawChunk = encryptChunk(chunkIndex, plainData);
 }
 
-std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) {
+std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIndex,
+                                                          const std::vector<uint8_t> &plainData) {
 	if (sMasterKey.empty()) {
-		throw EVFS_EXCEPTION<<"No encryption Master key set, cannot encrypt";
+		throw EVFS_EXCEPTION << "No encryption Master key set, cannot encrypt";
 	}
 	// generate a random IV
 	auto IV = mRNG->randomize(chunkIVSize);
@@ -165,9 +170,9 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
 	std::vector<uint8_t> rawChunk = AEADEncrypt<AES256GCM128>(key, IV, plainData, AD, tag);
 
 	// insert header:
-	std::vector<uint8_t> chunkHeader(chunkHeaderSize,0);
+	std::vector<uint8_t> chunkHeader(chunkHeaderSize, 0);
 	std::copy(tag.cbegin(), tag.cend(), chunkHeader.begin());
-	std::copy(IV.cbegin(), IV.cend(), chunkHeader.begin()+tag.size());
+	std::copy(IV.cbegin(), IV.cend(), chunkHeader.begin() + tag.size());
 	rawChunk.insert(rawChunk.begin(), chunkHeader.cbegin(), chunkHeader.cend());
 
 	// cleaning
@@ -184,10 +189,11 @@ std::vector<uint8_t> VfsEM_AES256GCM_SHA256::encryptChunk(const uint32_t chunkIn
  */
 bool VfsEM_AES256GCM_SHA256::checkIntegrity(const VfsEncryption &fileContext) {
 	if (sFileHeaderHMACKey.empty()) {
-		throw EVFS_EXCEPTION<<"The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
+		throw EVFS_EXCEPTION
+		    << "The AES256GCM128-SHA256 encryption module cannot generate its file header without master key";
 	}
-	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the key feed to HMAC authenticating the file header
-	// so it is useless to authenticate it
+	// Only the actual file header is to authenticate, the module file header holds the global salt used to derive the
+	// key feed to HMAC authenticating the file header so it is useless to authenticate it
 	auto tag = HMAC<SHA256>(sFileHeaderHMACKey, fileContext.rawHeaderGet());
 
 	return (std::equal(tag.cbegin(), tag.cend(), mFileHeaderIntegrity.cbegin()));
@@ -195,7 +201,7 @@ bool VfsEM_AES256GCM_SHA256::checkIntegrity(const VfsEncryption &fileContext) {
 /**
  * This function exists as static and non static
  */
-size_t VfsEM_AES256GCM_SHA256::moduleFileHeaderSize() noexcept{
+size_t VfsEM_AES256GCM_SHA256::moduleFileHeaderSize() noexcept {
 	return fileHeaderSize;
 }
 

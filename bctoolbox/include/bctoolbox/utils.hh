@@ -21,51 +21,54 @@
 #define BCTBX_UTILS_H
 
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "bctoolbox/port.h"
 
 namespace bctoolbox {
 
-	namespace Utils {
-		BCTBX_PUBLIC std::vector<std::string> split (const std::string &str, const std::string &delimiter);
+namespace Utils {
+BCTBX_PUBLIC std::vector<std::string> split(const std::string &str, const std::string &delimiter);
 
-		BCTBX_PUBLIC inline std::vector<std::string> split (const std::string &str, char delimiter) {
-			return split(str, std::string(1, delimiter));
-		}
+BCTBX_PUBLIC inline std::vector<std::string> split(const std::string &str, char delimiter) {
+	return split(str, std::string(1, delimiter));
+}
 
-		template<typename T>
-		inline const T &getEmptyConstRefObject () {
-			static const T object{};
-			return object; 
-		}
+template <typename T>
+inline const T &getEmptyConstRefObject() {
+	static const T object{};
+	return object;
+}
 
-		BCTBX_PUBLIC std::string fold (const std::string &str);
-		BCTBX_PUBLIC std::string unfold (const std::string &str);
-		
-		// Replace all "from" by "to" in source. Use 'recursive' to avoid replacing what has been replaced.
-		BCTBX_PUBLIC void replace(std::string& source, const std::string& from, const std::string& to, const bool& recursive = true);
-		
-		// Return the current state of memory as a string. This is currently implemented only for Windows.
-		BCTBX_PUBLIC std::string getMemoryReportAsString();
-		
+BCTBX_PUBLIC std::string fold(const std::string &str);
+BCTBX_PUBLIC std::string unfold(const std::string &str);
+
+// Replace all "from" by "to" in source. Use 'recursive' to avoid replacing what has been replaced.
+BCTBX_PUBLIC void
+replace(std::string &source, const std::string &from, const std::string &to, const bool &recursive = true);
+
+// Return the current state of memory as a string. This is currently implemented only for Windows.
+BCTBX_PUBLIC std::string getMemoryReportAsString();
+
 // Replace const_cast in order to be adapted from types. Be carefull when using it.
-		template <typename From>
-		class auto_cast {
-		public:
-			explicit constexpr auto_cast(From const& t) noexcept : val { t }{}
-		
-			template <typename To>
-			constexpr operator To() const noexcept(noexcept(const_cast<To>(std::declval<From>()))) {
-				return const_cast<To>(val);
-			}
-		private:
-			From const& val;
-		};
-	
+template <typename From>
+class auto_cast {
+public:
+	explicit constexpr auto_cast(From const &t) noexcept : val{t} {
 	}
 
-}
+	template <typename To>
+	constexpr operator To() const noexcept(noexcept(const_cast<To>(std::declval<From>()))) {
+		return const_cast<To>(val);
+	}
+
+private:
+	From const &val;
+};
+
+} // namespace Utils
+
+} // namespace bctoolbox
 
 #endif /* BCTBX_UTILS_H */

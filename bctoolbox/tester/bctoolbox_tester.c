@@ -31,18 +31,17 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 #else
 	va_list cap;
-	va_copy(cap,args);
+	va_copy(cap, args);
 	vfprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, fmt, cap);
 	fprintf(lev == BCTBX_LOG_ERROR ? stderr : stdout, "\n");
 	va_end(cap);
 #endif
 
-	bctbx_logv(log_domain,lev, fmt, args);
+	bctbx_logv(log_domain, lev, fmt, args);
 }
 
-
-void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list args)) {
-	bc_tester_init(log_handler,BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
+void bctoolbox_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {
+	bc_tester_init(log_handler, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
 	bc_tester_add_suite(&containers_test_suite);
 	bc_tester_add_suite(&utils_test_suite);
 #if (HAVE_MBEDTLS | HAVE_POLARSSL)
@@ -51,7 +50,7 @@ void bctoolbox_tester_init(void(*ftester_printf)(int level, const char *fmt, va_
 #endif
 	bc_tester_add_suite(&parser_test_suite);
 #ifdef __APPLE__
-    bc_tester_add_suite(&ios_utils_test_suite);
+	bc_tester_add_suite(&ios_utils_test_suite);
 #endif
 	bc_tester_add_suite(&param_string_test_suite);
 	bc_tester_add_suite(&vfs_test_suite);
@@ -66,8 +65,8 @@ void bctoolbox_tester_before_each() {
 
 int bctoolbox_tester_set_log_file(const char *filename) {
 	int res = 0;
-	char* dir = bctbx_dirname(filename);
-	char* base = bctbx_basename(filename);
+	char *dir = bctbx_dirname(filename);
+	char *base = bctbx_basename(filename);
 	bctbx_message("Redirecting traces to file [%s]", filename);
 	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
 	if (filehandler == NULL) {
@@ -82,36 +81,34 @@ end:
 	return res;
 }
 
-
 #if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
 
-static const char* bctoolbox_helper =
-		"\t\t\t--verbose\n"
-		"\t\t\t--silent\n"
-		"\t\t\t--log-file <output log file path>\n";
+static const char *bctoolbox_helper = "\t\t\t--verbose\n"
+                                      "\t\t\t--silent\n"
+                                      "\t\t\t--log-file <output log file path>\n";
 
-int main (int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
 	int i;
 	int ret;
 
 	bctbx_init_logger(TRUE);
 	bctoolbox_tester_init(NULL);
 
-	for(i=1;i<argc;++i){
-		if (strcmp(argv[i],"--verbose")==0){
+	for (i = 1; i < argc; ++i) {
+		if (strcmp(argv[i], "--verbose") == 0) {
 			bctbx_set_log_level(log_domain, BCTBX_LOG_DEBUG);
-			bctbx_set_log_level(BCTBX_LOG_DOMAIN,BCTBX_LOG_DEBUG);
-		} else if (strcmp(argv[i],"--silent")==0){
+			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
+		} else if (strcmp(argv[i], "--silent") == 0) {
 			bctbx_set_log_level(log_domain, BCTBX_LOG_FATAL);
-		} else if (strcmp(argv[i],"--log-file")==0){
+		} else if (strcmp(argv[i], "--log-file") == 0) {
 			CHECK_ARG("--log-file", ++i, argc);
 			if (bctoolbox_tester_set_log_file(argv[i]) < 0) return -2;
-		}else {
+		} else {
 			int ret = bc_tester_parse_args(argc, argv, i);
-			if (ret>0) {
+			if (ret > 0) {
 				i += ret - 1;
 				continue;
-			} else if (ret<0) {
+			} else if (ret < 0) {
 				bc_tester_helper(argv[0], bctoolbox_helper);
 			}
 			return ret;

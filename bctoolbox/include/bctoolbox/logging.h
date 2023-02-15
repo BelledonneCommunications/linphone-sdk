@@ -21,46 +21,45 @@
  * \file logging.h
  * \brief Logging API.
  *
-**/
+ **/
 
 #ifndef BCTBX_LOGGING_H
 #define BCTBX_LOGGING_H
 
-#include <bctoolbox/port.h>
 #include "bctoolbox/list.h"
-
+#include <bctoolbox/port.h>
 
 /**
- * The BCTBX_LOG_DOMAIN macro should be defined with a preprocessor directive (ex: -DBCTBX_LOG_DOMAIN="my-component") in every
- * software entity (application, library, sub-parts of software etc) using the bctoolbox log facility, so that all invocations of the
- * bctbx_message(), bctbx_warning(), bctbx_error(), bctbx_fatal() outputs their log within the domain title of the software part there are compiled in.
- * It SHALL not be defined in any public header, otherwise it will conflict with upper layer using the logging facility for their own domain.
- * As a special exception, bctoolbox defines the log domain to be "bctbx" if no preprocessor directive defines it.
- * As a result, bctboolbox owns logs will be output into the "bctbx" domain.
-**/
+ * The BCTBX_LOG_DOMAIN macro should be defined with a preprocessor directive (ex: -DBCTBX_LOG_DOMAIN="my-component") in
+ *every software entity (application, library, sub-parts of software etc) using the bctoolbox log facility, so that all
+ *invocations of the bctbx_message(), bctbx_warning(), bctbx_error(), bctbx_fatal() outputs their log within the domain
+ *title of the software part there are compiled in. It SHALL not be defined in any public header, otherwise it will
+ *conflict with upper layer using the logging facility for their own domain. As a special exception, bctoolbox defines
+ *the log domain to be "bctbx" if no preprocessor directive defines it. As a result, bctboolbox owns logs will be output
+ *into the "bctbx" domain.
+ **/
 #ifndef BCTBX_LOG_DOMAIN
 #define BCTBX_LOG_DOMAIN "bctbx"
 #endif
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 typedef enum {
-	BCTBX_LOG_DEBUG=1,
-	BCTBX_LOG_TRACE=1<<1,
-	BCTBX_LOG_MESSAGE=1<<2,
-	BCTBX_LOG_WARNING=1<<3,
-	BCTBX_LOG_ERROR=1<<4,
-	BCTBX_LOG_FATAL=1<<5,
-	BCTBX_LOG_LOGLEV_END=1<<6
+	BCTBX_LOG_DEBUG = 1,
+	BCTBX_LOG_TRACE = 1 << 1,
+	BCTBX_LOG_MESSAGE = 1 << 2,
+	BCTBX_LOG_WARNING = 1 << 3,
+	BCTBX_LOG_ERROR = 1 << 4,
+	BCTBX_LOG_FATAL = 1 << 5,
+	BCTBX_LOG_LOGLEV_END = 1 << 6
 } BctbxLogLevel;
 
 typedef struct _bctbx_log_handler_t bctbx_log_handler_t;
 
 typedef void (*BctbxLogFunc)(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
-typedef void (*BctbxLogHandlerFunc)(void *info,const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
+typedef void (*BctbxLogHandlerFunc)(void *info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 typedef void (*BctbxLogHandlerDestroyFunc)(bctbx_log_handler_t *handler);
 
 /*
@@ -84,11 +83,13 @@ BCTBX_PUBLIC void bctbx_logv_file_destroy(bctbx_log_handler_t *handler);
 /*
  Function to create a log handler
  @param[in] BctbxLogHandlerFunc func : the function to call to handle a new line of log
- @param[in] BctbxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info field
+ @param[in] BctbxLogHandlerDestroyFunc destroy : the function to call to free this handler particuler its user_info
+ field
  @param[in] void* user_info : complementary information to handle the logs if needed
  @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void* user_data);
+BCTBX_PUBLIC bctbx_log_handler_t *
+bctbx_create_log_handler(BctbxLogHandlerFunc func, BctbxLogHandlerDestroyFunc destroy, void *user_data);
 
 /*
  Function to create a file log handler
@@ -98,7 +99,7 @@ BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_log_handler(BctbxLogHandlerFunc f
  @param[in] FILE* f : the file where to write the logs
  @return a new bctbx_log_handler_t
 */
-BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_size, const char* path, const char* name);
+BCTBX_PUBLIC bctbx_log_handler_t *bctbx_create_file_log_handler(uint64_t max_size, const char *path, const char *name);
 
 /**
  * @brief Request reopening of the log file.
@@ -108,12 +109,12 @@ BCTBX_PUBLIC bctbx_log_handler_t* bctbx_create_file_log_handler(uint64_t max_siz
 BCTBX_PUBLIC void bctbx_file_log_handler_reopen(bctbx_log_handler_t *file_log_handler);
 
 /* set domain the handler is limited to. NULL for ALL*/
-BCTBX_PUBLIC void bctbx_log_handler_set_domain(bctbx_log_handler_t * log_handler,const char *domain);
-BCTBX_PUBLIC void bctbx_log_handler_set_user_data(bctbx_log_handler_t*, void* user_data);
-BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t* log_handler);
+BCTBX_PUBLIC void bctbx_log_handler_set_domain(bctbx_log_handler_t *log_handler, const char *domain);
+BCTBX_PUBLIC void bctbx_log_handler_set_user_data(bctbx_log_handler_t *, void *user_data);
+BCTBX_PUBLIC void *bctbx_log_handler_get_user_data(const bctbx_log_handler_t *log_handler);
 
-BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t* handler);
-BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t* handler);
+BCTBX_PUBLIC void bctbx_add_log_handler(bctbx_log_handler_t *handler);
+BCTBX_PUBLIC void bctbx_remove_log_handler(bctbx_log_handler_t *handler);
 
 /*
  * Set a callback function to render logs for the default handler.
@@ -123,14 +124,15 @@ BCTBX_PUBLIC void bctbx_set_log_handler(BctbxLogFunc func);
  * Same as bctbx_set_log_handler but only for a domain. NULL for all.
  * Be careful that if domain is specified, the default log handler will no longer output logs for other domains.
  */
-BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char* domain);
+BCTBX_PUBLIC void bctbx_set_log_handler_for_domain(BctbxLogFunc func, const char *domain);
 /*Convenient function that creates a static log handler logging into supplied FILE argument.
  Despite it is not recommended to use it in libraries, it can be useful for simple test programs.*/
-BCTBX_PUBLIC void bctbx_set_log_file(FILE* f);
-BCTBX_PUBLIC bctbx_list_t* bctbx_get_log_handlers(void);
+BCTBX_PUBLIC void bctbx_set_log_file(FILE *f);
+BCTBX_PUBLIC bctbx_list_t *bctbx_get_log_handlers(void);
 
 BCTBX_PUBLIC void bctbx_logv_out(const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
-BCTBX_PUBLIC void bctbx_logv_file(void* user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
+BCTBX_PUBLIC void
+bctbx_logv_file(void *user_info, const char *domain, BctbxLogLevel level, const char *fmt, va_list args);
 
 /*
  * Returns 1 if the log level 'level' is enabled for the calling thread, otherwise 0.
@@ -148,7 +150,7 @@ BCTBX_PUBLIC void bctbx_logv_flush(void);
 
 /**
  * Activate all log level greater or equal than specified level argument.
-**/
+ **/
 BCTBX_PUBLIC void bctbx_set_log_level(const char *domain, BctbxLogLevel level);
 
 BCTBX_PUBLIC void bctbx_set_log_level_mask(const char *domain, int levelmask);
@@ -162,7 +164,7 @@ BCTBX_PUBLIC void bctbx_set_thread_log_level(const char *domain, BctbxLogLevel l
 
 /**
  * Clears the specific log level set for the calling thread by bctbx_set_thread_log_level().
- * After calling this function, the global (not per thread) log level will apply to 
+ * After calling this function, the global (not per thread) log level will apply to
  * logs printed by this thread.
  */
 BCTBX_PUBLIC void bctbx_clear_thread_log_level(const char *domain);
@@ -175,21 +177,20 @@ BCTBX_PUBLIC void bctbx_clear_thread_log_level(const char *domain);
 BCTBX_PUBLIC void bctbx_set_log_thread_id(unsigned long thread_id);
 
 #ifdef __GNUC__
-#define CHECK_FORMAT_ARGS(m,n) __attribute__((format(printf,m,n)))
+#define CHECK_FORMAT_ARGS(m, n) __attribute__((format(printf, m, n)))
 #else
-#define CHECK_FORMAT_ARGS(m,n)
+#define CHECK_FORMAT_ARGS(m, n)
 #endif
 #ifdef __clang__
 /*in case of compile with -g static inline can produce this type of warning*/
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 #ifdef BCTBX_DEBUG_MODE
-static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_debug(const char *fmt,...)
-{
-  va_list args;
-  va_start (args, fmt);
-  bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG, fmt, args);
-  va_end (args);
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1, 2) bctbx_debug(const char *fmt, ...) {
+	va_list args;
+	va_start(args, fmt);
+	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG, fmt, args);
+	va_end(args);
 }
 #else
 
@@ -205,104 +206,94 @@ static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_debug(const char *fmt,...)
 
 #else
 
-static BCTBX_INLINE void bctbx_log(const char* domain, BctbxLogLevel lev, const char *fmt,...) {
+static BCTBX_INLINE void bctbx_log(const char *domain, BctbxLogLevel lev, const char *fmt, ...) {
 	va_list args;
-	va_start (args, fmt);
+	va_start(args, fmt);
 	bctbx_logv(domain, lev, fmt, args);
-	va_end (args);
+	va_end(args);
 }
 
-static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_message(const char *fmt,...)
-{
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1, 2) bctbx_message(const char *fmt, ...) {
 	va_list args;
-	va_start (args, fmt);
+	va_start(args, fmt);
 	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE, fmt, args);
-	va_end (args);
+	va_end(args);
 }
 
-static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_warning(const char *fmt,...)
-{
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1, 2) bctbx_warning(const char *fmt, ...) {
 	va_list args;
-	va_start (args, fmt);
+	va_start(args, fmt);
 	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING, fmt, args);
-	va_end (args);
+	va_end(args);
 }
 
 #endif
 
-static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_error(const char *fmt,...)
-{
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1, 2) bctbx_error(const char *fmt, ...) {
 	va_list args;
-	va_start (args, fmt);
+	va_start(args, fmt);
 	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR, fmt, args);
-	va_end (args);
+	va_end(args);
 }
 
-static BCTBX_INLINE void CHECK_FORMAT_ARGS(1,2) bctbx_fatal(const char *fmt,...)
-{
+static BCTBX_INLINE void CHECK_FORMAT_ARGS(1, 2) bctbx_fatal(const char *fmt, ...) {
 	va_list args;
-	va_start (args, fmt);
+	va_start(args, fmt);
 	bctbx_logv(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL, fmt, args);
-	va_end (args);
+	va_end(args);
 }
-
 
 #ifdef __QNX__
 void bctbx_qnx_log_handler(const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 #endif
 
-
 #ifdef __cplusplus
 }
 
-#include <string>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
+#include <string>
 
 #if !defined(_WIN32) && !defined(__QNX__)
 #include <syslog.h>
 #endif
 
 namespace bctoolbox {
-	namespace log {
+namespace log {
 
-		// Here we define our application severity levels.
-		enum level { normal, trace, debug, info, warning, error, fatal };
+// Here we define our application severity levels.
+enum level { normal, trace, debug, info, warning, error, fatal };
 
-		// The formatting logic for the severity level
-		template <typename CharT, typename TraitsT>
-		inline std::basic_ostream<CharT, TraitsT> &operator<<(std::basic_ostream<CharT, TraitsT> &strm,
-															  const bctoolbox::log::level &lvl) {
-			static const char *const str[] = {"normal", "trace", "debug", "info", "warning", "error", "fatal"};
-			if (static_cast<std::size_t>(lvl) < (sizeof(str) / sizeof(*str)))
-				strm << str[lvl];
-			else
-				strm << static_cast<int>(lvl);
-			return strm;
-		}
+// The formatting logic for the severity level
+template <typename CharT, typename TraitsT>
+inline std::basic_ostream<CharT, TraitsT> &operator<<(std::basic_ostream<CharT, TraitsT> &strm,
+                                                      const bctoolbox::log::level &lvl) {
+	static const char *const str[] = {"normal", "trace", "debug", "info", "warning", "error", "fatal"};
+	if (static_cast<std::size_t>(lvl) < (sizeof(str) / sizeof(*str))) strm << str[lvl];
+	else strm << static_cast<int>(lvl);
+	return strm;
+}
 
-		template <typename CharT, typename TraitsT>
-		inline std::basic_istream<CharT, TraitsT> &operator>>(std::basic_istream<CharT, TraitsT> &strm,
-															  bctoolbox::log::level &lvl) {
-			static const char *const str[] = {"normal", "trace", "debug", "info", "warning", "error", "fatal"};
+template <typename CharT, typename TraitsT>
+inline std::basic_istream<CharT, TraitsT> &operator>>(std::basic_istream<CharT, TraitsT> &strm,
+                                                      bctoolbox::log::level &lvl) {
+	static const char *const str[] = {"normal", "trace", "debug", "info", "warning", "error", "fatal"};
 
-			std::string s;
-			strm >> s;
-			for (unsigned int n = 0; n < (sizeof(str) / sizeof(*str)); ++n) {
-				if (s == str[n]) {
-					lvl = static_cast<bctoolbox::log::level>(n);
-					return strm;
-				}
-			}
-			// Parse error
-			strm.setstate(std::ios_base::failbit);
+	std::string s;
+	strm >> s;
+	for (unsigned int n = 0; n < (sizeof(str) / sizeof(*str)); ++n) {
+		if (s == str[n]) {
+			lvl = static_cast<bctoolbox::log::level>(n);
 			return strm;
 		}
 	}
+	// Parse error
+	strm.setstate(std::ios_base::failbit);
+	return strm;
 }
-
-
+} // namespace log
+} // namespace bctoolbox
 
 #include <ostream>
 
@@ -310,7 +301,7 @@ class pumpstream {
 public:
 	/* This constructor assumes that "domain" remains valid, which is a reasonable assumption because the pumpstream
 	 * is used through macros (below) where the usage is within single line of code. */
-	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain), mLevel(level){
+	pumpstream(const char *domain, BctbxLogLevel level) : mDomain(domain), mLevel(level) {
 #ifndef BCTBX_DEBUG_MODE
 		/* If debug mode is not enabled, the pumpstream shall do nothing if level requested is BCTBX_LOG_DEBUG.
 		 * bctbx_log_level_enabled() does not even need to be called. */
@@ -323,37 +314,40 @@ public:
 	}
 
 	~pumpstream() {
-		if (mIslogLevelEnabled)
-			bctbx_log(mDomain, mLevel, "%s", mOstringstream.str().c_str());
+		if (mIslogLevelEnabled) bctbx_log(mDomain, mLevel, "%s", mOstringstream.str().c_str());
 	}
 
-	template <typename _Tp> friend pumpstream& operator<<(pumpstream& __os, _Tp&& __x);
-	template <typename _Tp> friend pumpstream& operator<<(pumpstream&& __os, _Tp&& __x);
-	friend pumpstream& operator<<(pumpstream& __os, std::ostream& (*pf)(std::ostream&));
+	template <typename _Tp>
+	friend pumpstream &operator<<(pumpstream &__os, _Tp &&__x);
+	template <typename _Tp>
+	friend pumpstream &operator<<(pumpstream &&__os, _Tp &&__x);
+	friend pumpstream &operator<<(pumpstream &__os, std::ostream &(*pf)(std::ostream &));
 
 private:
 	std::ostringstream mOstringstream{};
 	bool mIslogLevelEnabled = false;
-	const char* mDomain;
+	const char *mDomain;
 	const BctbxLogLevel mLevel;
 };
 
-inline pumpstream& operator<<(pumpstream& pumpStream, std::ostream& (*pf)(std::ostream&)) {
-	if(pumpStream.mIslogLevelEnabled) {
+inline pumpstream &operator<<(pumpstream &pumpStream, std::ostream &(*pf)(std::ostream &)) {
+	if (pumpStream.mIslogLevelEnabled) {
 		pumpStream.mOstringstream << pf;
 	}
-    return pumpStream;
+	return pumpStream;
 }
 
-template <typename T> inline pumpstream& operator<<(pumpstream& pumpStream, T&& x) {
-    if(pumpStream.mIslogLevelEnabled) {
+template <typename T>
+inline pumpstream &operator<<(pumpstream &pumpStream, T &&x) {
+	if (pumpStream.mIslogLevelEnabled) {
 		pumpStream.mOstringstream << std::forward<T>(x);
 	}
 	return pumpStream;
 }
 
-template <typename T> inline pumpstream& operator<<(pumpstream&& pumpStream, T&& x) {
-    if(pumpStream.mIslogLevelEnabled) {
+template <typename T>
+inline pumpstream &operator<<(pumpstream &&pumpStream, T &&x) {
+	if (pumpStream.mIslogLevelEnabled) {
 		pumpStream.mOstringstream << std::forward<T>(x);
 	}
 	return pumpStream;

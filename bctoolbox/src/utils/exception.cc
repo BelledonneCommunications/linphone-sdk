@@ -18,15 +18,15 @@
  */
 
 #ifdef HAVE_CONFIG_H
-	#include "config.h"
+#include "config.h"
 #endif // ifdef HAVE_CONFIG_H
 
 #ifdef HAVE_EXECINFO
-	#include <execinfo.h>
-	#include <dlfcn.h>
-	#include <cxxabi.h>
-	#include <libgen.h>
-	#include <iomanip>
+#include <cxxabi.h>
+#include <dlfcn.h>
+#include <execinfo.h>
+#include <iomanip>
+#include <libgen.h>
 #endif
 
 #include "bctoolbox/exception.hh"
@@ -54,8 +54,7 @@ BctbxException::BctbxException(const std::string &message) : mSize(0) {
 #else
 	mSize = 0;
 #endif
-	if (!message.empty())
-		mOs << message;
+	if (!message.empty()) mOs << message;
 #ifdef HAVE_EXECINFO
 #if __clang
 	if (get_terminate() != uncaught_handler)
@@ -80,20 +79,19 @@ void BctbxException::printStackTrace() const {
 void BctbxException::printStackTrace(std::ostream &os) const {
 #ifdef HAVE_EXECINFO
 	char **bt = backtrace_symbols(mArray, mSize);
-	int position=0;
+	int position = 0;
 	for (unsigned int i = 1; i < mSize; ++i) {
 		Dl_info info;
 		char *demangled = NULL;
 		int status = -1;
 		if (dladdr(mArray[i], &info) && info.dli_sname) {
 			demangled = abi::__cxa_demangle(info.dli_sname, NULL, 0, &status);
-			os << position++ << setw(20) << basename((char*)info.dli_fname) << setw(16) << info.dli_saddr ;
+			os << position++ << setw(20) << basename((char *)info.dli_fname) << setw(16) << info.dli_saddr;
 			os << " ";
 			if (demangled) {
 				os << demangled;
 				free(demangled);
-			}
-			else{
+			} else {
 				os << info.dli_sname;
 			}
 		} else {
@@ -111,7 +109,7 @@ const char *BctbxException::what() const noexcept {
 	return str().c_str();
 }
 
-const std::string& BctbxException::str() const {
+const std::string &BctbxException::str() const {
 	mMessage = mOs.str();
 	return mMessage;
 }

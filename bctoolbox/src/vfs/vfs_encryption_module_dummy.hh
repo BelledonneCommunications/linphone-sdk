@@ -24,92 +24,92 @@
 
 namespace bctoolbox {
 class VfsEncryptionModuleDummy : public VfsEncryptionModule {
-	private:
-		/**
-		 * Store the file header and secret
-		 */
-		std::vector<uint8_t> mFileHeader;
-		std::vector<uint8_t> mFileHeaderIntegrity;
-		std::vector<uint8_t> mSecret;
+private:
+	/**
+	 * Store the file header and secret
+	 */
+	std::vector<uint8_t> mFileHeader;
+	std::vector<uint8_t> mFileHeaderIntegrity;
+	std::vector<uint8_t> mSecret;
 
-		/**
-		 * Compute the integrity tag in the given chunk
-		 */
-		std::vector<uint8_t> chunkIntegrityTag(const std::vector<uint8_t> &chunk) const;
+	/**
+	 * Compute the integrity tag in the given chunk
+	 */
+	std::vector<uint8_t> chunkIntegrityTag(const std::vector<uint8_t> &chunk) const;
 
-		/**
-		 * Get the chunk index from the given chunk
-		 */
-		uint32_t getChunkIndex(const std::vector<uint8_t> &chunk) const;
+	/**
+	 * Get the chunk index from the given chunk
+	 */
+	uint32_t getChunkIndex(const std::vector<uint8_t> &chunk) const;
 
-		/**
-		 * Get global IV. Part of IV common to all chunks
-		 * The last 8 bytes of the file header
-		 */
-		std::vector<uint8_t> globalIV() const;
-	public:
-		/**
-		 * @return the size in bytes of file header module data
-		 */
-		static size_t moduleFileHeaderSize() noexcept;
+	/**
+	 * Get global IV. Part of IV common to all chunks
+	 * The last 8 bytes of the file header
+	 */
+	std::vector<uint8_t> globalIV() const;
 
-		/**
-		 * @return the size in bytes of the chunk header
-		 */
-		size_t getChunkHeaderSize() const noexcept override;
+public:
+	/**
+	 * @return the size in bytes of file header module data
+	 */
+	static size_t moduleFileHeaderSize() noexcept;
 
-		/**
-		 * @return the size in bytes of file header module data
-		 */
-		size_t getModuleFileHeaderSize() const noexcept override;
+	/**
+	 * @return the size in bytes of the chunk header
+	 */
+	size_t getChunkHeaderSize() const noexcept override;
 
-		/**
-		 * @return the EncryptionSuite provided by this module
-		 */
-		EncryptionSuite getEncryptionSuite() const noexcept override {
-		       return EncryptionSuite::dummy;
-		}
+	/**
+	 * @return the size in bytes of file header module data
+	 */
+	size_t getModuleFileHeaderSize() const noexcept override;
 
-		/**
-		 * @return the secret material size
-		 */
-		size_t getSecretMaterialSize() const noexcept override;
+	/**
+	 * @return the EncryptionSuite provided by this module
+	 */
+	EncryptionSuite getEncryptionSuite() const noexcept override {
+		return EncryptionSuite::dummy;
+	}
 
-		/**
-		 * Decrypt a chunk of data
-		 * @param[in] a vector which size shall be chunkHeaderSize + chunkSize holding the raw data read from disk
-		 * @return the decrypted data chunk
-		 */
-		std::vector<uint8_t> decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) override ;
+	/**
+	 * @return the secret material size
+	 */
+	size_t getSecretMaterialSize() const noexcept override;
 
-		void encryptChunk(const uint32_t chunkIndex, std::vector<uint8_t> &rawChunk, const std::vector<uint8_t> &plainData) override;
-		std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) override;
+	/**
+	 * Decrypt a chunk of data
+	 * @param[in] a vector which size shall be chunkHeaderSize + chunkSize holding the raw data read from disk
+	 * @return the decrypted data chunk
+	 */
+	std::vector<uint8_t> decryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &rawChunk) override;
 
-		const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const override ;
+	void encryptChunk(const uint32_t chunkIndex,
+	                  std::vector<uint8_t> &rawChunk,
+	                  const std::vector<uint8_t> &plainData) override;
+	std::vector<uint8_t> encryptChunk(const uint32_t chunkIndex, const std::vector<uint8_t> &plainData) override;
 
-		void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override ;
+	const std::vector<uint8_t> getModuleFileHeader(const VfsEncryption &fileContext) const override;
 
-		/**
-		 * Check the integrity over the whole file
-		 * @param[in]	fileContext 	a way to access the file content
-		 *
-		 * @return 	true if the integrity check successfully passed, false otherwise
-		 */
-		bool checkIntegrity(const VfsEncryption &fileContext) override;
+	void setModuleSecretMaterial(const std::vector<uint8_t> &secret) override;
 
+	/**
+	 * Check the integrity over the whole file
+	 * @param[in]	fileContext 	a way to access the file content
+	 *
+	 * @return 	true if the integrity check successfully passed, false otherwise
+	 */
+	bool checkIntegrity(const VfsEncryption &fileContext) override;
 
-		/**
-		 * constructors
-		 */
-		// At file creation
-		VfsEncryptionModuleDummy();
-		// Opening an existing file
-		VfsEncryptionModuleDummy(const std::vector<uint8_t> &moduleFileHeader);
+	/**
+	 * constructors
+	 */
+	// At file creation
+	VfsEncryptionModuleDummy();
+	// Opening an existing file
+	VfsEncryptionModuleDummy(const std::vector<uint8_t> &moduleFileHeader);
 
-		~VfsEncryptionModuleDummy() {};
+	~VfsEncryptionModuleDummy(){};
 };
 
 } // namespace bctoolbox
 #endif // BCTBX_VFS_ENCRYPTION_MODULE_DUMMY
-
-

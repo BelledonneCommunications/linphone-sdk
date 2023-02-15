@@ -21,14 +21,13 @@
 #include "config.h"
 #endif
 
-#include "bctoolbox/vfs.h"
-#include "bctoolbox/port.h"
+#include "bctoolbox/defs.h"
 #include "bctoolbox/logging.h"
-#include <sys/types.h>
-#include <stdarg.h>
+#include "bctoolbox/port.h"
+#include "bctoolbox/vfs.h"
 #include <errno.h>
-
-
+#include <stdarg.h>
+#include <sys/types.h>
 
 /**
  * Opens the file with filename fName, associate it to the file handle pointed
@@ -40,18 +39,17 @@
  * @param  openFlags    Flags to use when opening the file.
  * @return         		BCTBX_VFS_ERROR if an error occurs, BCTBX_VFS_OK otherwise.
  */
-static  int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
-
+static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 
 /* User data for the standard vfs */
 typedef struct bctbx_vfs_standard_t bctbx_vfs_standard_t;
 struct bctbx_vfs_standard_t {
-	int fd;                         /* File descriptor */
+	int fd; /* File descriptor */
 };
 
 bctbx_vfs_t bcStandardVfs = {
-	"bctbx_vfs",		/* vfsName */
-	bcOpen,			/*xOpen */
+    "bctbx_vfs", /* vfsName */
+    bcOpen,      /*xOpen */
 };
 
 /**
@@ -63,7 +61,7 @@ bctbx_vfs_t bcStandardVfs = {
  */
 static int bcClose(bctbx_vfs_file_t *pFile) {
 	int ret;
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 	ret = close(ctx->fd);
 	if (!ret) {
@@ -82,16 +80,16 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
  * @return   BCTBX_VFS_OK on success, BCTBX_VFS_ERROR otherwise
  */
 static int bcSync(bctbx_vfs_file_t *pFile) {
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
-	#if _WIN32
+#if _WIN32
 	int ret;
 	ret = FlushFileBuffers((HANDLE)_get_osfhandle(ctx->fd));
-	return (ret!=0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
-	#else
+	return (ret != 0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
+#else
 	int rc = fsync(ctx->fd);
-	return (rc==0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
-	#endif
+	return (rc == 0 ? BCTBX_VFS_OK : BCTBX_VFS_ERROR);
+#endif
 }
 
 /**
@@ -106,8 +104,8 @@ static int bcSync(bctbx_vfs_file_t *pFile) {
  *                if the error was something else BCTBX_VFS_ERROR otherwise
  */
 static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
-	ssize_t nRead;                      /* Return value from read() */
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	ssize_t nRead; /* Return value from read() */
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 
 	if (lseek(ctx->fd, offset, SEEK_SET) < 0) {
@@ -134,9 +132,9 @@ static ssize_t bcRead(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t of
  * @return         number of bytes written (can be 0), negative value errno if an error occurred.
  */
 static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset) {
-	ssize_t nWrite = 0;                 /* Return value from write() */
+	ssize_t nWrite = 0; /* Return value from write() */
 
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 
 	if ((lseek(ctx->fd, offset, SEEK_SET)) < 0) {
@@ -158,9 +156,9 @@ static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, o
  * @return -errno if an error occurred, file size otherwise (can be 0).
  */
 static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
-	int rc;                         /* Return code from fstat() call */
-	struct stat sStat;              /* Output of fstat() call */
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	int rc;            /* Return code from fstat() call */
+	struct stat sStat; /* Output of fstat() call */
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 
 	rc = fstat(ctx->fd, &sStat);
@@ -170,25 +168,24 @@ static int64_t bcFileSize(bctbx_vfs_file_t *pFile) {
 	return sStat.st_size;
 }
 
-
 /*
  ** Truncate a file
  * @param pFile File handle pointer.
  * @param new_size Extends the file with null bytes if it is superiori to the file's size
  *                 truncates the file otherwise.
  * @return -errno if an error occurred, 0 otherwise.
-  */
-static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
+ */
+static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size) {
 
 	int ret;
-	if (pFile==NULL || pFile->pUserData==NULL) return BCTBX_VFS_ERROR;
+	if (pFile == NULL || pFile->pUserData == NULL) return BCTBX_VFS_ERROR;
 	bctbx_vfs_standard_t *ctx = (bctbx_vfs_standard_t *)pFile->pUserData;
 
-	#if _WIN32
+#if _WIN32
 	ret = _chsize(ctx->fd, (long)new_size);
-	#else
+#else
 	ret = ftruncate(ctx->fd, new_size);
-	#endif
+#endif
 
 	if (ret < 0) {
 		return -errno;
@@ -196,21 +193,17 @@ static int bcTruncate(bctbx_vfs_file_t *pFile, int64_t new_size){
 	return 0;
 }
 
-
-static const  bctbx_io_methods_t bcio = {
-	bcClose,		/* pFuncClose */
-	bcRead,			/* pFuncRead */
-	bcWrite,		/* pFuncWrite */
-	bcTruncate,		/* pFuncTruncate */
-	bcFileSize,		/* pFuncFileSize */
-	bcSync,
-	NULL,			/* use the generic implementation of getnxt line */
-	NULL			/* pFuncIsEncrypted -> no function so we will return false */
+static const bctbx_io_methods_t bcio = {
+    bcClose,          /* pFuncClose */
+    bcRead,           /* pFuncRead */
+    bcWrite,          /* pFuncWrite */
+    bcTruncate,       /* pFuncTruncate */
+    bcFileSize,       /* pFuncFileSize */
+    bcSync,     NULL, /* use the generic implementation of getnxt line */
+    NULL              /* pFuncIsEncrypted -> no function so we will return false */
 };
 
-
-
-static int bcOpen(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags) {
+static int bcOpen(BCTBX_UNUSED(bctbx_vfs_t *pVfs), bctbx_vfs_file_t *pFile, const char *fName, int openFlags) {
 	if (pFile == NULL || fName == NULL) {
 		return BCTBX_VFS_ERROR;
 	}

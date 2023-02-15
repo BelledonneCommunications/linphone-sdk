@@ -20,13 +20,12 @@
 #ifndef BCTBX_VFS_STANDARD_H
 #define BCTBX_VFS_STANDARD_H
 
-#include "bctoolbox/vfs.h"
 #include "bctoolbox/port.h"
+#include "bctoolbox/vfs.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
-
 
 /**
  * Virtual File sytem provided

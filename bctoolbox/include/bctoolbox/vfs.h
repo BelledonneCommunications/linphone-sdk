@@ -24,15 +24,13 @@
 
 #include <bctoolbox/port.h>
 
-
 #if !defined(_WIN32_WCE)
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #if _MSC_VER
 #include <io.h>
 #endif
 #endif /*_WIN32_WCE*/
-
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -50,17 +48,16 @@
 
 #endif /*!_WIN32*/
 
-#define BCTBX_VFS_OK           0   /* Successful result */
+#define BCTBX_VFS_OK 0 /* Successful result */
 
-#define BCTBX_VFS_ERROR       -255   /* Some kind of disk I/O error occurred */
+#define BCTBX_VFS_ERROR -255 /* Some kind of disk I/O error occurred */
 
-#define BCTBX_VFS_PRINTF_PAGE_SIZE 4096 /* Size of the page hold in memory by fprintf */
+#define BCTBX_VFS_PRINTF_PAGE_SIZE 4096   /* Size of the page hold in memory by fprintf */
 #define BCTBX_VFS_GETLINE_PAGE_SIZE 17385 /* Size of the page hold in memory by getnextline */
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
-
 
 /**
  * Methods associated with the bctbx_vfs_t.
@@ -72,42 +69,42 @@ typedef struct bctbx_io_methods_t bctbx_io_methods_t;
  */
 typedef struct bctbx_vfs_file_t bctbx_vfs_file_t;
 struct bctbx_vfs_file_t {
-	const struct bctbx_io_methods_t *pMethods;  /* Methods for an open file: all Developpers must supply this field at open step*/
-	/*the fields below are used by the default implementation. Developpers are not required to supply them, but may use them if they find
-	 * them useful*/
-	void* pUserData; 				/* Developpers can store private data under this pointer */
-	off_t offset;					/* File offset used by bctbx_file_fprintf and bctbx_file_get_nxtline */
+	const struct bctbx_io_methods_t
+	    *pMethods; /* Methods for an open file: all Developpers must supply this field at open step*/
+	/*the fields below are used by the default implementation. Developpers are not required to supply them, but may use
+	 * them if they find them useful*/
+	void *pUserData; /* Developpers can store private data under this pointer */
+	off_t offset;    /* File offset used by bctbx_file_fprintf and bctbx_file_get_nxtline */
 	/* fprintf cache */
-	char fPage[BCTBX_VFS_PRINTF_PAGE_SIZE];		/* Buffer storing the current page cached by fprintf */
-	off_t fPageOffset;				/* The original offset of the cached page */
-	size_t fSize;					/* number of bytes in cache */
+	char fPage[BCTBX_VFS_PRINTF_PAGE_SIZE]; /* Buffer storing the current page cached by fprintf */
+	off_t fPageOffset;                      /* The original offset of the cached page */
+	size_t fSize;                           /* number of bytes in cache */
 	/* get_nxtline cache */
-	char gPage[BCTBX_VFS_GETLINE_PAGE_SIZE+1];	/* Buffer storing the current page cachec by get_nxtline +1 to hold the \0 */
-	off_t gPageOffset;				/* The offset of the cached page */
-	size_t gSize;					/* actual size of the data in cache */
+	char gPage[BCTBX_VFS_GETLINE_PAGE_SIZE +
+	           1];     /* Buffer storing the current page cachec by get_nxtline +1 to hold the \0 */
+	off_t gPageOffset; /* The offset of the cached page */
+	size_t gSize;      /* actual size of the data in cache */
 };
-
 
 /**
  */
 struct bctbx_io_methods_t {
 	int (*pFuncClose)(bctbx_vfs_file_t *pFile);
-	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void* buf, size_t count, off_t offset);
-	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void* buf, size_t count, off_t offset);
+	ssize_t (*pFuncRead)(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset);
+	ssize_t (*pFuncWrite)(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset);
 	int (*pFuncTruncate)(bctbx_vfs_file_t *pFile, int64_t size);
 	int64_t (*pFuncFileSize)(bctbx_vfs_file_t *pFile);
 	int (*pFuncSync)(bctbx_vfs_file_t *pFile);
-	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char* s, int count);
+	int (*pFuncGetLineFromFd)(bctbx_vfs_file_t *pFile, char *s, int count);
 	bool_t (*pFuncIsEncrypted)(bctbx_vfs_file_t *pFile);
 };
-
 
 /**
  * VFS definition
  */
 typedef struct bctbx_vfs_t bctbx_vfs_t;
 struct bctbx_vfs_t {
-	const char *vfsName;       /* Virtual file system name */
+	const char *vfsName; /* Virtual file system name */
 	int (*pFuncOpen)(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fName, int openFlags);
 };
 
@@ -149,8 +146,7 @@ BCTBX_PUBLIC int bctbx_file_close(bctbx_vfs_file_t *pFile);
  * @param  mode  File access mode (char*).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.
  */
-BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const char *mode);
-
+BCTBX_PUBLIC bctbx_vfs_file_t *bctbx_file_open(bctbx_vfs_t *pVfs, const char *fName, const char *mode);
 
 /**
  * Allocates a bctbx_vfs_file_t file handle pointer. Opens the file fName
@@ -160,8 +156,7 @@ BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open(bctbx_vfs_t *pVfs, const char *fN
  * @param  openFlags  	File access flags(integer).
  * @return  pointer to  bctbx_vfs_file_t on success, NULL otherwise.
  */
-BCTBX_PUBLIC bctbx_vfs_file_t* bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const int openFlags);
-
+BCTBX_PUBLIC bctbx_vfs_file_t *bctbx_file_open2(bctbx_vfs_t *pVfs, const char *fName, const int openFlags);
 
 /**
  * Returns the file size.
@@ -251,24 +246,21 @@ BCTBX_PUBLIC bool_t bctbx_file_is_encrypted(bctbx_vfs_file_t *pFile);
  */
 BCTBX_PUBLIC void bctbx_vfs_set_default(bctbx_vfs_t *my_vfs);
 
-
 /**
  * Returns the value of the global variable pDefault,
  * pointing to the default vfs used.
  * @return Pointer to bctbx_vfs_t set to operate as default VFS.
  */
-BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_default(void);
+BCTBX_PUBLIC bctbx_vfs_t *bctbx_vfs_get_default(void);
 
 /**
  * Return pointer to standard VFS impletentation.
  * @return  pointer to bcVfs
  */
-BCTBX_PUBLIC bctbx_vfs_t* bctbx_vfs_get_standard(void);
-
+BCTBX_PUBLIC bctbx_vfs_t *bctbx_vfs_get_standard(void);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* BCTBX_VFS_H */

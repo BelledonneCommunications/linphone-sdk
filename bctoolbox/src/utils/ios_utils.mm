@@ -24,6 +24,7 @@
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 
+#include "bctoolbox/defs.h"
 #include "bctoolbox/ios_utils.hh"
 #include "bctoolbox/exception.hh"
 #include "bctoolbox/logging.h"
@@ -122,11 +123,11 @@ int IOSUtils::getOSMajorVersion() const{
 }
 
 
-unsigned long IOSUtilsStub::beginBackgroundTask(const char *name, std::function<void()> cb) {
+unsigned long IOSUtilsStub::beginBackgroundTask(BCTBX_UNUSED(const char *name), BCTBX_UNUSED(std::function<void()> cb)) {
     return 0;
 }
 
-void IOSUtilsStub::endBackgroundTask(unsigned long id) {}
+void IOSUtilsStub::endBackgroundTask(BCTBX_UNUSED(unsigned long id)) {}
 
 bool IOSUtilsStub::isApplicationStateActive() {
     return false;

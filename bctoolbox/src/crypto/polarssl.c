@@ -25,18 +25,18 @@
 #include "utils.h"
 #include <bctoolbox/crypto.h>
 
-#include <polarssl/ssl.h>
-#include <polarssl/error.h>
-#include <polarssl/pem.h>
 #include "polarssl/base64.h"
-#include <polarssl/x509.h>
-#include <polarssl/entropy.h>
 #include <polarssl/ctr_drbg.h>
+#include <polarssl/entropy.h>
+#include <polarssl/error.h>
+#include <polarssl/gcm.h>
 #include <polarssl/md5.h>
+#include <polarssl/pem.h>
 #include <polarssl/sha1.h>
 #include <polarssl/sha256.h>
 #include <polarssl/sha512.h>
-#include <polarssl/gcm.h>
+#include <polarssl/ssl.h>
+#include <polarssl/x509.h>
 
 #include "bctoolbox/logging.h"
 
@@ -53,7 +53,8 @@
  */
 void bctbx_clean(void *buffer, size_t size) {
 	volatile uint8_t *p = buffer;
-	while(size--) *p++ = 0;
+	while (size--)
+		*p++ = 0;
 }
 
 static int bctbx_ssl_sendrecv_callback_return_remap(int32_t ret_code) {
@@ -74,14 +75,14 @@ bctbx_type_implementation_t bctbx_ssl_get_implementation_type(void) {
 }
 
 void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
-	if (error_code>0) {
+	if (error_code > 0) {
 		snprintf(buffer, buffer_length, "%s", "Invalid Error code");
-		return ;
+		return;
 	}
 
 	/* polarssl error code are all negatived and bas smaller than 0x0000F000 */
 	/* bctoolbox defined error codes are all in format -0x7XXXXXXX */
-	if (-error_code<0x00010000) { /* it's a polarssl error code */
+	if (-error_code < 0x00010000) { /* it's a polarssl error code */
 		error_strerror(error_code, buffer, buffer_length);
 		return;
 	}
@@ -90,7 +91,8 @@ void bctbx_strerror(int32_t error_code, char *buffer, size_t buffer_length) {
 	return;
 }
 
-int32_t bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
+int32_t
+bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	int ret = base64_encode(output, output_length, input, input_length);
 	if (ret == POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL) {
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
@@ -98,7 +100,8 @@ int32_t bctbx_base64_encode(unsigned char *output, size_t *output_length, const 
 	return ret;
 }
 
-int32_t bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
+int32_t
+bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	int ret = base64_decode(output, output_length, input, input_length);
 	if (ret == POLARSSL_ERR_BASE64_BUFFER_TOO_SMALL) {
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
@@ -123,7 +126,7 @@ bctbx_rng_context_t *bctbx_rng_context_new(void) {
 	return ctx;
 }
 
-int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char*output, size_t output_length) {
+int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char *output, size_t output_length) {
 	return ctr_drbg_random(&(context->ctr_drbg), output, output_length);
 }
 
@@ -152,20 +155,24 @@ char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
 	char *pem_key;
 	if (key == NULL) return NULL;
 	pem_key = (char *)bctbx_malloc0(4096);
-	pk_write_key_pem( (pk_context *)key, (unsigned char *)pem_key, 4096);
+	pk_write_key_pem((pk_context *)key, (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
 
-int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key, const char *buffer, size_t buffer_length, const unsigned char *password, size_t password_length) {
+int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key,
+                                const char *buffer,
+                                size_t buffer_length,
+                                const unsigned char *password,
+                                size_t password_length) {
 	int err;
-	err=pk_parse_key((pk_context *)key, (const unsigned char *)buffer, buffer_length+1, password, password_length);
-	if(err==0 && !pk_can_do((pk_context *)key, POLARSSL_PK_RSA)) {
-		err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	err = pk_parse_key((pk_context *)key, (const unsigned char *)buffer, buffer_length + 1, password, password_length);
+	if (err == 0 && !pk_can_do((pk_context *)key, POLARSSL_PK_RSA)) {
+		err = POLARSSL_ERR_PK_TYPE_MISMATCH;
 	}
-	if (err<0) {
+	if (err < 0) {
 		char tmp[128];
-		error_strerror(err,tmp,sizeof(tmp));
-		bctbx_error("cannot parse public key because [%s]",tmp);
+		error_strerror(err, tmp, sizeof(tmp));
+		bctbx_error("cannot parse public key because [%s]", tmp);
 		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
 	}
 	return 0;
@@ -173,31 +180,29 @@ int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key, const char *buffer, si
 
 int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path, const char *password) {
 	int err;
-	err=pk_parse_keyfile((pk_context *)key, path, password);
-	if(err==0 && !pk_can_do((pk_context *)key,POLARSSL_PK_RSA)) {
-		err=POLARSSL_ERR_PK_TYPE_MISMATCH;
+	err = pk_parse_keyfile((pk_context *)key, path, password);
+	if (err == 0 && !pk_can_do((pk_context *)key, POLARSSL_PK_RSA)) {
+		err = POLARSSL_ERR_PK_TYPE_MISMATCH;
 	}
-	if (err<0) {
+	if (err < 0) {
 		char tmp[128];
-		error_strerror(err,tmp,sizeof(tmp));
-		bctbx_error("cannot parse public key because [%s]",tmp);
+		error_strerror(err, tmp, sizeof(tmp));
+		bctbx_error("cannot parse public key because [%s]", tmp);
 		return BCTBX_ERROR_UNABLE_TO_PARSE_KEY;
 	}
 	return 0;
 }
 
-
-
 /*** Certificate ***/
 char *bctbx_x509_certificates_chain_get_pem(const bctbx_x509_certificate_t *cert) {
 	char *pem_certificate = NULL;
-	size_t olen=0;
+	size_t olen = 0;
 
 	pem_certificate = (char *)bctbx_malloc0(4096);
-	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", ((x509_crt *)cert)->raw.p, ((x509_crt *)cert)->raw.len, (unsigned char*)pem_certificate, 4096, &olen );
+	pem_write_buffer("-----BEGIN CERTIFICATE-----\n", "-----END CERTIFICATE-----\n", ((x509_crt *)cert)->raw.p,
+	                 ((x509_crt *)cert)->raw.len, (unsigned char *)pem_certificate, 4096, &olen);
 	return pem_certificate;
 }
-
 
 bctbx_x509_certificate_t *bctbx_x509_certificate_new(void) {
 	x509_crt *cert = bctbx_malloc0(sizeof(x509_crt));
@@ -210,7 +215,10 @@ void bctbx_x509_certificate_free(bctbx_x509_certificate_t *cert) {
 	bctbx_free(cert);
 }
 
-int32_t bctbx_x509_certificate_get_info_string(char *buf, size_t size, const char *prefix, const bctbx_x509_certificate_t *cert) {
+int32_t bctbx_x509_certificate_get_info_string(char *buf,
+                                               size_t size,
+                                               const char *prefix,
+                                               const bctbx_x509_certificate_t *cert) {
 	return x509_crt_info(buf, size, prefix, (x509_crt *)cert);
 }
 
@@ -223,21 +231,22 @@ int32_t bctbx_x509_certificate_parse_path(bctbx_x509_certificate_t *cert, const 
 }
 
 int32_t bctbx_x509_certificate_parse(bctbx_x509_certificate_t *cert, const char *buffer, size_t buffer_length) {
-	return x509_crt_parse((x509_crt *)cert, (const unsigned char *)buffer, buffer_length+1);
+	return x509_crt_parse((x509_crt *)cert, (const unsigned char *)buffer, buffer_length + 1);
 }
 
 int32_t bctbx_x509_certificate_get_der_length(bctbx_x509_certificate_t *cert) {
-	if (cert!=NULL) {
+	if (cert != NULL) {
 		return ((x509_crt *)cert)->raw.len;
 	}
 	return 0;
 }
 
 int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *cert, unsigned char *buffer, size_t buffer_length) {
-	if (cert==NULL) {
+	if (cert == NULL) {
 		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
-	if (((x509_crt *)cert)->raw.len>buffer_length-1) { /* check buffer size is ok, +1 for the NULL termination added at the end */
+	if (((x509_crt *)cert)->raw.len >
+	    buffer_length - 1) { /* check buffer size is ok, +1 for the NULL termination added at the end */
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 	memcpy(buffer, ((x509_crt *)cert)->raw.p, ((x509_crt *)cert)->raw.len);
@@ -247,19 +256,23 @@ int32_t bctbx_x509_certificate_get_der(bctbx_x509_certificate_t *cert, unsigned 
 }
 
 int32_t bctbx_x509_certificate_get_subject_dn(const bctbx_x509_certificate_t *cert, char *dn, size_t dn_length) {
-	if (cert==NULL) {
+	if (cert == NULL) {
 		return BCTBX_ERROR_INVALID_CERTIFICATE;
 	}
 
 	return x509_dn_gets(dn, dn_length, &(((x509_crt *)cert)->subject));
 }
 
-bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert){
+bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t *cert) {
 	bctbx_error("bctbx_x509_certificate_get_subjects(): not implemented for polarssl.");
 	return NULL;
 }
 
-int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x509_certificate_t *certificate, bctbx_signing_key_t *pkey, char * pem, size_t pem_length) {
+int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
+                                                   bctbx_x509_certificate_t *certificate,
+                                                   bctbx_signing_key_t *pkey,
+                                                   char *pem,
+                                                   size_t pem_length) {
 	entropy_context entropy;
 	ctr_drbg_context ctr_drbg;
 	int ret;
@@ -271,69 +284,70 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x5
 
 	/* subject may be a sip URL or linphone-dtls-default-identity, add CN= before it to make a valid name */
 	memcpy(formatted_subject, "CN=", 3);
-	memcpy(formatted_subject+3, subject, strlen(subject)+1); /* +1 to get the \0 termination */
+	memcpy(formatted_subject + 3, subject, strlen(subject) + 1); /* +1 to get the \0 termination */
 
-	entropy_init( &entropy );
-	if( ( ret = ctr_drbg_init( &ctr_drbg, entropy_func, &entropy, NULL, 0 ) )   != 0 )
-	{
+	entropy_init(&entropy);
+	if ((ret = ctr_drbg_init(&ctr_drbg, entropy_func, &entropy, NULL, 0)) != 0) {
 		bctbx_error("Certificate generation can't init ctr_drbg: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
 	/* generate 3072 bits RSA public/private key */
-	if ( (ret = pk_init_ctx( (pk_context *)pkey, pk_info_from_type( POLARSSL_PK_RSA ) )) != 0) {
+	if ((ret = pk_init_ctx((pk_context *)pkey, pk_info_from_type(POLARSSL_PK_RSA))) != 0) {
 		bctbx_error("Certificate generation can't init pk_ctx: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	if ( ( ret = rsa_gen_key( pk_rsa( *(pk_context *)pkey ), ctr_drbg_random, &ctr_drbg, 3072, 65537 ) ) != 0) {
+	if ((ret = rsa_gen_key(pk_rsa(*(pk_context *)pkey), ctr_drbg_random, &ctr_drbg, 3072, 65537)) != 0) {
 		bctbx_error("Certificate generation can't generate rsa key: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
 	/* if there is no pem pointer, don't save the key in pem format */
-	if (pem!=NULL) {
+	if (pem != NULL) {
 		pk_write_key_pem((pk_context *)pkey, (unsigned char *)file_buffer, 4096);
 		file_buffer_len = strlen(file_buffer);
 	}
 
 	/* generate the certificate */
-	x509write_crt_init( &crt );
-	x509write_crt_set_md_alg( &crt, POLARSSL_MD_SHA256 );
+	x509write_crt_init(&crt);
+	x509write_crt_set_md_alg(&crt, POLARSSL_MD_SHA256);
 
-	mpi_init( &serial );
+	mpi_init(&serial);
 
-	if ( (ret = mpi_read_string( &serial, 10, "1" ) ) != 0 ) {
+	if ((ret = mpi_read_string(&serial, 10, "1")) != 0) {
 		bctbx_error("Certificate generation can't read serial mpi: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	x509write_crt_set_subject_key( &crt, (pk_context *)pkey);
-	x509write_crt_set_issuer_key( &crt, (pk_context *)pkey);
+	x509write_crt_set_subject_key(&crt, (pk_context *)pkey);
+	x509write_crt_set_issuer_key(&crt, (pk_context *)pkey);
 
-	if ( (ret = x509write_crt_set_subject_name( &crt, formatted_subject) ) != 0) {
+	if ((ret = x509write_crt_set_subject_name(&crt, formatted_subject)) != 0) {
 		bctbx_error("Certificate generation can't set subject name: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	if ( (ret = x509write_crt_set_issuer_name( &crt, formatted_subject) ) != 0) {
+	if ((ret = x509write_crt_set_issuer_name(&crt, formatted_subject)) != 0) {
 		bctbx_error("Certificate generation can't set issuer name: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	if ( (ret = x509write_crt_set_serial( &crt, &serial ) ) != 0) {
+	if ((ret = x509write_crt_set_serial(&crt, &serial)) != 0) {
 		bctbx_error("Certificate generation can't set serial: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 	mpi_free(&serial);
 
-	if ( (ret = x509write_crt_set_validity( &crt, "20010101000000", "20300101000000" ) ) != 0) {
+	if ((ret = x509write_crt_set_validity(&crt, "20010101000000", "20300101000000")) != 0) {
 		bctbx_error("Certificate generation can't set validity: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_GENERATION_FAIL;
 	}
 
-	/* store anyway certificate in pem format in a string even if we do not have file to write as we need it to get it in a x509_crt structure */
-	if ( (ret = x509write_crt_pem( &crt, (unsigned char *)file_buffer+file_buffer_len, 4096, ctr_drbg_random, &ctr_drbg ) ) != 0) {
+	/* store anyway certificate in pem format in a string even if we do not have file to write as we need it to get it
+	 * in a x509_crt structure */
+	if ((ret = x509write_crt_pem(&crt, (unsigned char *)file_buffer + file_buffer_len, 4096, ctr_drbg_random,
+	                             &ctr_drbg)) != 0) {
 		bctbx_error("Certificate generation can't write crt pem: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_WRITE_PEM;
 	}
@@ -347,14 +361,16 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x5
 
 	/* copy the key+cert in pem format into the given buffer */
 	if (pem != NULL) {
-		if (strlen(file_buffer)+1>pem_length) {
-			bctbx_error("Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes", (long)pem_length, (long)strlen(file_buffer));
+		if (strlen(file_buffer) + 1 > pem_length) {
+			bctbx_error(
+			    "Certificate generation can't copy the certificate to pem buffer: too short [%ld] but need [%ld] bytes",
+			    (long)pem_length, (long)strlen(file_buffer));
 			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 		}
 		strncpy(pem, file_buffer, pem_length);
 	}
 
-	if ( (ret = x509_crt_parse((x509_crt *)certificate, (unsigned char *)file_buffer, strlen(file_buffer)) ) != 0) {
+	if ((ret = x509_crt_parse((x509_crt *)certificate, (unsigned char *)file_buffer, strlen(file_buffer))) != 0) {
 		bctbx_error("Certificate generation can't parse crt pem: -%x", -ret);
 		return BCTBX_ERROR_CERTIFICATE_PARSE_PEM;
 	}
@@ -362,8 +378,8 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject, bctbx_x5
 	return 0;
 }
 
-
-int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_certificate_t *certificate, bctbx_md_type_t *hash_algorithm) {
+int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_certificate_t *certificate,
+                                                           bctbx_md_type_t *hash_algorithm) {
 
 	x509_crt *crt;
 	if (certificate == NULL) return BCTBX_ERROR_INVALID_CERTIFICATE;
@@ -373,39 +389,41 @@ int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_cert
 	switch (crt->sig_md) {
 		case POLARSSL_MD_SHA1:
 			*hash_algorithm = BCTBX_MD_SHA1;
-		break;
+			break;
 
 		case POLARSSL_MD_SHA224:
 			*hash_algorithm = BCTBX_MD_SHA224;
-		break;
+			break;
 
 		case POLARSSL_MD_SHA256:
 			*hash_algorithm = BCTBX_MD_SHA256;
-		break;
+			break;
 
 		case POLARSSL_MD_SHA384:
 			*hash_algorithm = BCTBX_MD_SHA384;
-		break;
+			break;
 
 		case POLARSSL_MD_SHA512:
 			*hash_algorithm = BCTBX_MD_SHA512;
-		break;
+			break;
 
 		default:
 			*hash_algorithm = BCTBX_MD_UNDEFINED;
 			return BCTBX_ERROR_UNSUPPORTED_HASH_FUNCTION;
-		break;
+			break;
 	}
 
 	return 0;
-
 }
 
 /* maximum length of returned buffer will be 7(SHA-512 string)+3*hash_length(64)+null char = 200 bytes */
-int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *certificate, char *fingerprint, size_t fingerprint_length, bctbx_md_type_t hash_algorithm) {
-	unsigned char buffer[64]={0}; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
+int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *certificate,
+                                               char *fingerprint,
+                                               size_t fingerprint_length,
+                                               bctbx_md_type_t hash_algorithm) {
+	unsigned char buffer[64] = {0}; /* buffer is max length of returned hash, which is 64 in case we use sha-512 */
 	size_t hash_length = 0;
-	const char *hash_alg_string=NULL;
+	const char *hash_alg_string = NULL;
 	size_t fingerprint_size = 0;
 	x509_crt *crt;
 	md_type_t hash_id;
@@ -435,60 +453,65 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 			break;
 	}
 
-	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by certificate signature */
+	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by
+	 * certificate signature */
 	switch (hash_id) {
 		case POLARSSL_MD_SHA1:
 			sha1(crt->raw.p, crt->raw.len, buffer);
 			hash_length = 20;
-			hash_alg_string="SHA-1";
-		break;
+			hash_alg_string = "SHA-1";
+			break;
 
 		case POLARSSL_MD_SHA224:
-			sha256(crt->raw.p, crt->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
+			sha256(crt->raw.p, crt->raw.len, buffer,
+			       1); /* last argument is a boolean, indicate to output sha-224 and not sha-256 */
 			hash_length = 28;
-			hash_alg_string="SHA-224";
-		break;
+			hash_alg_string = "SHA-224";
+			break;
 
 		case POLARSSL_MD_SHA256:
 			sha256(crt->raw.p, crt->raw.len, buffer, 0);
 			hash_length = 32;
-			hash_alg_string="SHA-256";
-		break;
+			hash_alg_string = "SHA-256";
+			break;
 
 		case POLARSSL_MD_SHA384:
-			sha512(crt->raw.p, crt->raw.len, buffer, 1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
+			sha512(crt->raw.p, crt->raw.len, buffer,
+			       1); /* last argument is a boolean, indicate to output sha-384 and not sha-512 */
 			hash_length = 48;
-			hash_alg_string="SHA-384";
-		break;
+			hash_alg_string = "SHA-384";
+			break;
 
 		case POLARSSL_MD_SHA512:
-            sha512(crt->raw.p, crt->raw.len, buffer, 0);
+			sha512(crt->raw.p, crt->raw.len, buffer, 0);
 			hash_length = 64;
-			hash_alg_string="SHA-512";
-		break;
+			hash_alg_string = "SHA-512";
+			break;
 
 		default:
 			return BCTBX_ERROR_UNSUPPORTED_HASH_FUNCTION;
-		break;
+			break;
 	}
 
-	if (hash_length>0) {
+	if (hash_length > 0) {
 		size_t i;
 		int fingerprint_index = strlen(hash_alg_string);
-		char prefix=' ';
+		char prefix = ' ';
 
-		fingerprint_size=fingerprint_index+3*hash_length+1;
-		/* fingerprint will be : hash_alg_string+' '+HEX : separated values: length is strlen(hash_alg_string)+3*hash_lenght + 1 for null termination */
-		if (fingerprint_length<fingerprint_size) {
+		fingerprint_size = fingerprint_index + 3 * hash_length + 1;
+		/* fingerprint will be : hash_alg_string+' '+HEX : separated values: length is
+		 * strlen(hash_alg_string)+3*hash_lenght + 1 for null termination */
+		if (fingerprint_length < fingerprint_size) {
 			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 		}
 
 		snprintf(fingerprint, fingerprint_size, "%s", hash_alg_string);
-		for (i=0; i<hash_length; i++, fingerprint_index+=3) {
-			snprintf((char*)fingerprint+fingerprint_index, fingerprint_size-fingerprint_index, "%c%02X", prefix,buffer[i]);
-			prefix=':';
+		for (i = 0; i < hash_length; i++, fingerprint_index += 3) {
+			snprintf((char *)fingerprint + fingerprint_index, fingerprint_size - fingerprint_index, "%c%02X", prefix,
+			         buffer[i]);
+			prefix = ':';
 		}
-		*(fingerprint+fingerprint_index) = '\0';
+		*(fingerprint + fingerprint_index) = '\0';
 	}
 
 	return (int32_t)fingerprint_size;
@@ -496,27 +519,27 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 
 #define BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH 128
 int32_t bctbx_x509_certificate_flags_to_string(char *buffer, size_t buffer_size, uint32_t flags) {
-	size_t i=0;
+	size_t i = 0;
 	char outputString[BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH];
 
 	if (flags & BADCERT_EXPIRED)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "expired ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "expired ");
 	if (flags & BADCERT_REVOKED)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "revoked ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "revoked ");
 	if (flags & BADCERT_CN_MISMATCH)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "CN-mismatch ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "CN-mismatch ");
 	if (flags & BADCERT_NOT_TRUSTED)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "not-trusted ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "not-trusted ");
 	if (flags & BADCERT_MISSING)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "missing ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "missing ");
 	if (flags & BADCRL_NOT_TRUSTED)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-not-trusted ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "crl-not-trusted ");
 	if (flags & BADCRL_EXPIRED)
-		i+=snprintf(outputString+i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH-i, "crl-expired ");
+		i += snprintf(outputString + i, BCTBX_MAX_CERTIFICATE_FLAGS_STRING_LENGTH - i, "crl-expired ");
 
 	outputString[i] = '\0'; /* null terminate the string */
 
-	if (i+1>buffer_size) {
+	if (i + 1 > buffer_size) {
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 
@@ -526,76 +549,54 @@ int32_t bctbx_x509_certificate_flags_to_string(char *buffer, size_t buffer_size,
 }
 
 int32_t bctbx_x509_certificate_set_flag(uint32_t *flags, uint32_t flags_to_set) {
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
-		*flags |= BADCERT_EXPIRED;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
-		*flags |= BADCERT_REVOKED;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
-		*flags |= BADCERT_CN_MISMATCH;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
-		*flags |= BADCERT_NOT_TRUSTED;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING)
-		*flags |= BADCERT_MISSING;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
-		*flags |= BADCRL_NOT_TRUSTED;
-	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
-		*flags |= BADCRL_EXPIRED;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED) *flags |= BADCERT_EXPIRED;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED) *flags |= BADCERT_REVOKED;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH) *flags |= BADCERT_CN_MISMATCH;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED) *flags |= BADCERT_NOT_TRUSTED;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING) *flags |= BADCERT_MISSING;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED) *flags |= BADCRL_NOT_TRUSTED;
+	if (flags_to_set & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED) *flags |= BADCRL_EXPIRED;
 
 	return 0;
 }
 
 uint32_t bctbx_x509_certificate_remap_flag(uint32_t flags) {
 	uint32_t ret = 0;
-	if (flags & BADCERT_EXPIRED)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED;
-	if (flags & BADCERT_REVOKED)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED;
-	if (flags & BADCERT_CN_MISMATCH)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH;
-	if (flags & BADCERT_NOT_TRUSTED)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED;
-	if (flags & BADCERT_MISSING)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING;
-	if (flags & BADCRL_NOT_TRUSTED)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED;
-	if (flags & BADCRL_EXPIRED)
-		ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED;
+	if (flags & BADCERT_EXPIRED) ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED;
+	if (flags & BADCERT_REVOKED) ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED;
+	if (flags & BADCERT_CN_MISMATCH) ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH;
+	if (flags & BADCERT_NOT_TRUSTED) ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED;
+	if (flags & BADCERT_MISSING) ret |= BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING;
+	if (flags & BADCRL_NOT_TRUSTED) ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED;
+	if (flags & BADCRL_EXPIRED) ret |= BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED;
 
 	return ret;
 }
 
 int32_t bctbx_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_unset) {
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED)
-		*flags &= ~BADCERT_EXPIRED;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED)
-		*flags &= ~BADCERT_REVOKED;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH)
-		*flags &= ~BADCERT_CN_MISMATCH;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED)
-		*flags &= ~BADCERT_NOT_TRUSTED;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING)
-		*flags &= ~BADCERT_MISSING;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED)
-		*flags &= ~BADCRL_NOT_TRUSTED;
-	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED)
-		*flags &= ~BADCRL_EXPIRED;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_EXPIRED) *flags &= ~BADCERT_EXPIRED;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_REVOKED) *flags &= ~BADCERT_REVOKED;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_CN_MISMATCH) *flags &= ~BADCERT_CN_MISMATCH;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_NOT_TRUSTED) *flags &= ~BADCERT_NOT_TRUSTED;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCERT_MISSING) *flags &= ~BADCERT_MISSING;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_NOT_TRUSTED) *flags &= ~BADCRL_NOT_TRUSTED;
+	if (flags_to_unset & BCTBX_CERTIFICATE_VERIFY_BADCRL_EXPIRED) *flags &= ~BADCRL_EXPIRED;
 
 	return 0;
 }
 /*** Diffie-Hellman-Merkle  ***/
 /* initialise de DHM context according to requested algorithm */
-bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength)
-{
+bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength) {
 	dhm_context *polarsslDhmContext;
 
 	/* create the context */
 	bctbx_DHMContext_t *context = (bctbx_DHMContext_t *)malloc(sizeof(bctbx_DHMContext_t));
-	memset (context, 0, sizeof(bctbx_DHMContext_t));
+	memset(context, 0, sizeof(bctbx_DHMContext_t));
 
 	/* create the polarssl context for DHM */
-	polarsslDhmContext=(dhm_context *)malloc(sizeof(dhm_context));
+	polarsslDhmContext = (dhm_context *)malloc(sizeof(dhm_context));
 	memset(polarsslDhmContext, 0, sizeof(dhm_context));
-	context->cryptoModuleData=(void *)polarsslDhmContext;
+	context->cryptoModuleData = (void *)polarsslDhmContext;
 
 	/* initialise pointer to NULL to ensure safe call to free() when destroying context */
 	context->secret = NULL;
@@ -604,26 +605,26 @@ bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength
 	context->peer = NULL;
 
 	/* set parameters in the context */
-	context->algo=DHMAlgo;
+	context->algo = DHMAlgo;
 	context->secretLength = secretLength;
 	switch (DHMAlgo) {
 		case BCTBX_DHM_2048:
 			/* set P and G in the polarssl context */
 			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_2048_P) != 0) ||
-			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_2048_G) != 0)) {
+			    (mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_2048_G) != 0)) {
 				return NULL;
 			}
-			context->primeLength=256;
-			polarsslDhmContext->len=256;
+			context->primeLength = 256;
+			polarsslDhmContext->len = 256;
 			break;
 		case BCTBX_DHM_3072:
 			/* set P and G in the polarssl context */
 			if ((mpi_read_string(&(polarsslDhmContext->P), 16, POLARSSL_DHM_RFC3526_MODP_3072_P) != 0) ||
-			(mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_3072_G) != 0)) {
+			    (mpi_read_string(&(polarsslDhmContext->G), 16, POLARSSL_DHM_RFC3526_MODP_3072_G) != 0)) {
 				return NULL;
 			}
-			context->primeLength=384;
-			polarsslDhmContext->len=384;
+			context->primeLength = 384;
+			polarsslDhmContext->len = 384;
 			break;
 		default:
 			free(context);
@@ -635,19 +636,23 @@ bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength
 }
 
 /* generate the random secret and compute the public value */
-void bctbx_DHMCreatePublic(bctbx_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+void bctbx_DHMCreatePublic(bctbx_DHMContext_t *context,
+                           int (*rngFunction)(void *, uint8_t *, size_t),
+                           void *rngContext) {
 	/* get the polarssl context */
 	dhm_context *polarsslContext = (dhm_context *)context->cryptoModuleData;
 
 	/* allocate output buffer */
-	context->self = (uint8_t *)malloc(context->primeLength*sizeof(uint8_t));
+	context->self = (uint8_t *)malloc(context->primeLength * sizeof(uint8_t));
 
-	dhm_make_public(polarsslContext, context->secretLength, context->self, context->primeLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
-
+	dhm_make_public(polarsslContext, context->secretLength, context->self, context->primeLength,
+	                (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
 }
 
 /* compute secret - the ->peer field of context must have been set before calling this function */
-void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngFunction)(void *, uint8_t *, size_t), void *rngContext) {
+void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context,
+                            int (*rngFunction)(void *, uint8_t *, size_t),
+                            void *rngContext) {
 	size_t keyLength;
 	uint8_t sharedSecretBuffer[384]; /* longest shared secret available in these mode */
 
@@ -655,19 +660,22 @@ void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context, int (*rngFunction)(void
 	dhm_read_public((dhm_context *)(context->cryptoModuleData), context->peer, context->primeLength);
 
 	/* compute the secret key */
-	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the expected key length */
-	context->key = (uint8_t *)malloc(keyLength*sizeof(uint8_t)); /* allocate and reset the key buffer */
-	memset(context->key,0, keyLength);
+	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the
+	                                     expected key length */
+	context->key = (uint8_t *)malloc(keyLength * sizeof(uint8_t)); /* allocate and reset the key buffer */
+	memset(context->key, 0, keyLength);
 
-	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), sharedSecretBuffer, &keyLength, (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
-	/* now copy the resulting secret in the correct place in buffer(result may actually miss some front zero bytes, real length of output is now in keyLength but we want primeLength bytes) */
-	memcpy(context->key+(context->primeLength-keyLength), sharedSecretBuffer, keyLength);
+	dhm_calc_secret((dhm_context *)(context->cryptoModuleData), sharedSecretBuffer, &keyLength,
+	                (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
+	/* now copy the resulting secret in the correct place in buffer(result may actually miss some front zero bytes, real
+	 * length of output is now in keyLength but we want primeLength bytes) */
+	memcpy(context->key + (context->primeLength - keyLength), sharedSecretBuffer, keyLength);
 	memset(sharedSecretBuffer, 0, 384); /* purge secret from temporary buffer */
 }
 
 /* clean DHM context */
 void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
-	if (context!= NULL) {
+	if (context != NULL) {
 		/* key and secret must be erased from memory and not just freed */
 		if (context->secret != NULL) {
 			memset(context->secret, 0, context->secretLength);
@@ -692,12 +700,20 @@ void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
 struct bctbx_ssl_context_struct {
 	ssl_context ssl_ctx;
 	char *cn;
-	int(*callback_cli_cert_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
-													callback params are user_data, ssl_context, certificate distinguished name, name length */
-	void *callback_cli_cert_data; /**< data passed to the client cert callback */
-	int(*callback_send_function)(void *, const unsigned char *, size_t); /* callbacks args are: callback data, data buffer to be send, size of data buffer */
-	int(*callback_recv_function)(void *, unsigned char *, size_t); /* args: callback data, data buffer to be read, size of data buffer */
-	void *callback_sendrecv_data; /**< data passed to send/recv callbacks */
+	int (*callback_cli_cert_function)(void *,
+	                                  bctbx_ssl_context_t *,
+	                                  unsigned char *,
+	                                  size_t); /**< pointer to the callback called to update client certificate during
+	 handshake callback params are user_data, ssl_context, certificate distinguished name, name length */
+	void *callback_cli_cert_data;              /**< data passed to the client cert callback */
+	int (*callback_send_function)(
+	    void *,
+	    const unsigned char *,
+	    size_t); /* callbacks args are: callback data, data buffer to be send, size of data buffer */
+	int (*callback_recv_function)(void *,
+	                              unsigned char *,
+	                              size_t); /* args: callback data, data buffer to be read, size of data buffer */
+	void *callback_sendrecv_data;          /**< data passed to send/recv callbacks */
 };
 
 bctbx_ssl_context_t *bctbx_ssl_context_new(void) {
@@ -749,27 +765,25 @@ int32_t bctbx_ssl_read(bctbx_ssl_context_t *ssl_ctx, unsigned char *buf, size_t 
 int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 
 	int ret = 0;
-	while( ssl_ctx->ssl_ctx.state != SSL_HANDSHAKE_OVER )
-	{
+	while (ssl_ctx->ssl_ctx.state != SSL_HANDSHAKE_OVER) {
 		ret = ssl_handshake_step(&(ssl_ctx->ssl_ctx));
-		if( ret != 0 ) {
+		if (ret != 0) {
 			break;
 		}
 
 		/* insert the callback function for client certificate request */
 		if (ssl_ctx->callback_cli_cert_function != NULL) { /* check we have a callback function */
-			/* when in state SSL_CLIENT_CERTIFICATE - which means, next call to ssl_handshake_step will send the client certificate to server -
-			 * and the client_auth flag is set - which means the server requested a client certificate - */
+			/* when in state SSL_CLIENT_CERTIFICATE - which means, next call to ssl_handshake_step will send the client
+			 * certificate to server - and the client_auth flag is set - which means the server requested a client
+			 * certificate - */
 			if (ssl_ctx->ssl_ctx.state == SSL_CLIENT_CERTIFICATE && ssl_ctx->ssl_ctx.client_auth > 0) {
-				/* note: polarssl 1.3 is unable to retrieve certificate dn during handshake from server certificate request
-				 * so the dn params in the callback are set to NULL and 0(dn string length) */
-				if (ssl_ctx->callback_cli_cert_function(ssl_ctx->callback_cli_cert_data, ssl_ctx, NULL, 0)!=0) {
-					if((ret=ssl_send_fatal_handshake_failure(&(ssl_ctx->ssl_ctx))) != 0 )
-						return( ret );
+				/* note: polarssl 1.3 is unable to retrieve certificate dn during handshake from server certificate
+				 * request so the dn params in the callback are set to NULL and 0(dn string length) */
+				if (ssl_ctx->callback_cli_cert_function(ssl_ctx->callback_cli_cert_data, ssl_ctx, NULL, 0) != 0) {
+					if ((ret = ssl_send_fatal_handshake_failure(&(ssl_ctx->ssl_ctx))) != 0) return (ret);
 				}
 			}
 		}
-
 	}
 
 	/* remap some output codes */
@@ -779,11 +793,12 @@ int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 		ret = BCTBX_ERROR_NET_WANT_WRITE;
 	}
 
-	return(ret);
+	return (ret);
 }
 
-int32_t bctbx_ssl_set_hs_own_cert(bctbx_ssl_context_t *ssl_ctx, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key) {
-	return ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , (x509_crt *)cert , (pk_context *)key);
+int32_t
+bctbx_ssl_set_hs_own_cert(bctbx_ssl_context_t *ssl_ctx, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key) {
+	return ssl_set_own_cert(&(ssl_ctx->ssl_ctx), (x509_crt *)cert, (pk_context *)key);
 }
 
 int bctbx_ssl_send_callback(void *data, const unsigned char *buffer, size_t buffer_length) {
@@ -806,11 +821,16 @@ int bctbx_ssl_recv_callback(void *data, unsigned char *buffer, size_t buffer_len
 	return bctbx_ssl_sendrecv_callback_return_remap(ret);
 }
 
-void bctbx_ssl_set_io_callbacks(bctbx_ssl_context_t *ssl_ctx, void *callback_data,
-		int(*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data buffer to be send, size of data buffer */
-		int(*callback_recv_function)(void *, unsigned char *, size_t)){ /* args: callback data, data buffer to be read, size of data buffer */
+void bctbx_ssl_set_io_callbacks(
+    bctbx_ssl_context_t *ssl_ctx,
+    void *callback_data,
+    int (*callback_send_function)(void *, const unsigned char *, size_t), /* callbacks args are: callback data, data
+                                                                             buffer to be send, size of data buffer */
+    int (*callback_recv_function)(void *,
+                                  unsigned char *,
+                                  size_t)) { /* args: callback data, data buffer to be read, size of data buffer */
 
-	if (ssl_ctx==NULL) {
+	if (ssl_ctx == NULL) {
 		return;
 	}
 
@@ -825,18 +845,18 @@ const bctbx_x509_certificate_t *bctbx_ssl_get_peer_certificate(bctbx_ssl_context
 	return (const bctbx_x509_certificate_t *)ssl_get_peer_cert(&(ssl_ctx->ssl_ctx));
 }
 
-const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx){
+const char *bctbx_ssl_get_ciphersuite(bctbx_ssl_context_t *ssl_ctx) {
 	return ssl_get_ciphersuite(&(ssl_ctx->ssl_ctx));
 }
 
-int bctbx_ssl_get_ciphersuite_id(const char *ciphersuite){
+int bctbx_ssl_get_ciphersuite_id(const char *ciphersuite) {
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
-const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx){
+const char *bctbx_ssl_get_version(bctbx_ssl_context_t *ssl_ctx) {
 	return ssl_get_version(&(ssl_ctx->ssl_ctx));
 }
 
-int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname){
+int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostname) {
 	if (ssl_ctx->cn) bctbx_free(ssl_ctx->cn);
 	if (hostname) ssl_ctx->cn = bctbx_strdup(hostname);
 	else ssl_ctx->cn = NULL;
@@ -846,14 +866,15 @@ int32_t bctbx_ssl_set_hostname(bctbx_ssl_context_t *ssl_ctx, const char *hostnam
 
 /** DTLS SRTP functions **/
 /* used for DTLS SRTP but not implemented on polarssl, available on mbedtls only */
-void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) { };
+void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu){};
 
 #ifdef HAVE_DTLS_SRTP
 uint8_t bctbx_dtls_srtp_supported(void) {
 	return 1;
 }
 
-static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_polarssl2bctoolbox(enum DTLS_SRTP_protection_profiles polarssl_profile) {
+static bctbx_dtls_srtp_profile_t
+bctbx_srtp_profile_polarssl2bctoolbox(enum DTLS_SRTP_protection_profiles polarssl_profile) {
 	switch (polarssl_profile) {
 		case SRTP_AES128_CM_HMAC_SHA1_80:
 			return BCTBX_SRTP_AES128_CM_HMAC_SHA1_80;
@@ -868,7 +889,8 @@ static bctbx_dtls_srtp_profile_t bctbx_srtp_profile_polarssl2bctoolbox(enum DTLS
 	}
 }
 
-static enum DTLS_SRTP_protection_profiles bctbx_srtp_profile_bctoolbox2polarssl(bctbx_dtls_srtp_profile_t bctbx_profile) {
+static enum DTLS_SRTP_protection_profiles
+bctbx_srtp_profile_bctoolbox2polarssl(bctbx_dtls_srtp_profile_t bctbx_profile) {
 	switch (bctbx_profile) {
 		case BCTBX_SRTP_AES128_CM_HMAC_SHA1_80:
 			return SRTP_AES128_CM_HMAC_SHA1_80;
@@ -884,21 +906,20 @@ static enum DTLS_SRTP_protection_profiles bctbx_srtp_profile_bctoolbox2polarssl(
 }
 
 bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
-	if (ssl_ctx==NULL) {
+	if (ssl_ctx == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
 	return bctbx_srtp_profile_polarssl2bctoolbox(ssl_get_dtls_srtp_protection_profile(&(ssl_ctx->ssl_ctx)));
 };
 
-
 int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char *output, size_t *output_length) {
-	if (ssl_ctx==NULL) {
+	if (ssl_ctx == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
 	/* check output buffer size */
-	if (*output_length<ssl_ctx->ssl_ctx.dtls_srtp_keys_len) {
+	if (*output_length < ssl_ctx->ssl_ctx.dtls_srtp_keys_len) {
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 
@@ -907,7 +928,7 @@ int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char 
 
 	return 0;
 }
-#else /* HAVE_DTLS_SRTP */
+#else  /* HAVE_DTLS_SRTP */
 /* dummy DTLS api when not available */
 uint8_t bctbx_dtls_srtp_supported(void) {
 	return 0;
@@ -927,22 +948,25 @@ int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, char 
 
 /** config **/
 struct bctbx_ssl_config_struct {
-	int8_t endpoint; /**< BCTBX_SSL_IS_CLIENT or BCTBX_SSL_IS_SERVER */
-	int8_t authmode; /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
+	int8_t endpoint;  /**< BCTBX_SSL_IS_CLIENT or BCTBX_SSL_IS_SERVER */
+	int8_t authmode;  /**< BCTBX_SSL_VERIFY_NONE, BCTBX_SSL_VERIFY_OPTIONAL, BCTBX_SSL_VERIFY_REQUIRED */
 	int8_t transport; /**< BCTBX_SSL_TRANSPORT_STREAM(TLS) or BCTBX_SSL_TRANSPORT_DATAGRAM(DTLS) */
-	int(*rng_function)(void *, unsigned char *, size_t); /**< pointer to a random number generator function */
-	void *rng_context; /**< pointer to a the random number generator context */
-	int(*callback_verify_function)(void *, x509_crt *, int, int *); /**< pointer to the verify callback function */
-	void *callback_verify_data; /**< data passed to the verify callback */
-	x509_crt *ca_chain; /**< trusted CA chain */
+	int (*rng_function)(void *, unsigned char *, size_t); /**< pointer to a random number generator function */
+	void *rng_context;                                    /**< pointer to a the random number generator context */
+	int (*callback_verify_function)(void *, x509_crt *, int, int *); /**< pointer to the verify callback function */
+	void *callback_verify_data;                                      /**< data passed to the verify callback */
+	x509_crt *ca_chain;                                              /**< trusted CA chain */
 	x509_crt *own_cert;
 	pk_context *own_cert_pk;
-	int(*callback_cli_cert_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t); /**< pointer to the callback called to update client certificate during handshake
-													callback params are user_data, ssl_context, certificate distinguished name, name length */
-	void *callback_cli_cert_data; /**< data passed to the client cert callback */
+	int (*callback_cli_cert_function)(void *,
+	                                  bctbx_ssl_context_t *,
+	                                  unsigned char *,
+	                                  size_t); /**< pointer to the callback called to update client certificate during
+	 handshake callback params are user_data, ssl_context, certificate distinguished name, name length */
+	void *callback_cli_cert_data;              /**< data passed to the client cert callback */
 #ifdef HAVE_DTLS_SRTP
 	enum DTLS_SRTP_protection_profiles dtls_srtp_profiles[4]; /**< Store a maximum of 4 DTLS SRTP profiles to use */
-	int dtls_srtp_profiles_number; /**< Number of DTLS SRTP profiles in use */
+	int dtls_srtp_profiles_number;                            /**< Number of DTLS SRTP profiles in use */
 #endif
 };
 
@@ -958,7 +982,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	ssl_config->transport = BCTBX_SSL_UNSET;
 	ssl_config->rng_function = NULL;
 	ssl_config->rng_context = NULL;
-	ssl_config->callback_verify_function= NULL;
+	ssl_config->callback_verify_function = NULL;
 	ssl_config->callback_verify_data = NULL;
 	ssl_config->callback_cli_cert_function = NULL;
 	ssl_config->callback_cli_cert_data = NULL;
@@ -966,7 +990,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	ssl_config->own_cert = NULL;
 	ssl_config->own_cert_pk = NULL;
 #ifdef HAVE_DTLS_SRTP
-	for (i=0; i<4; i++) {
+	for (i = 0; i < 4; i++) {
 		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
 	}
 	ssl_config->dtls_srtp_profiles_number = 0;
@@ -1022,20 +1046,20 @@ int32_t bctbx_ssl_config_set_endpoint(bctbx_ssl_config_t *ssl_config, int endpoi
 	return 0;
 }
 
-int32_t bctbx_ssl_config_set_transport (bctbx_ssl_config_t *ssl_config, int transport) {
+int32_t bctbx_ssl_config_set_transport(bctbx_ssl_config_t *ssl_config, int transport) {
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
 
 /* useful only for versions of polarssl which have SSL_TRANSPORT_XXX defined */
 #ifdef SSL_TRANSPORT_DATAGRAM
-		if (transport == BCTBX_SSL_TRANSPORT_STREAM) {
-			ssl_config->transport = SSL_TRANSPORT_STREAM;
-		} else if (transport == BCTBX_SSL_TRANSPORT_DATAGRAM) {
-			ssl_config->transport = SSL_TRANSPORT_DATAGRAM;
-		} else {
-			return BCTBX_ERROR_INVALID_SSL_TRANSPORT;
-		}
+	if (transport == BCTBX_SSL_TRANSPORT_STREAM) {
+		ssl_config->transport = SSL_TRANSPORT_STREAM;
+	} else if (transport == BCTBX_SSL_TRANSPORT_DATAGRAM) {
+		ssl_config->transport = SSL_TRANSPORT_DATAGRAM;
+	} else {
+		return BCTBX_ERROR_INVALID_SSL_TRANSPORT;
+	}
 #endif
 	return 0;
 }
@@ -1070,7 +1094,9 @@ int32_t bctbx_ssl_config_set_authmode(bctbx_ssl_config_t *ssl_config, int authmo
 	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctbx_ssl_config_set_rng(bctbx_ssl_config_t *ssl_config, int(*rng_function)(void *, unsigned char *, size_t), void *rng_context) {
+int32_t bctbx_ssl_config_set_rng(bctbx_ssl_config_t *ssl_config,
+                                 int (*rng_function)(void *, unsigned char *, size_t),
+                                 void *rng_context) {
 	if (ssl_config != NULL) {
 		ssl_config->rng_function = rng_function;
 		ssl_config->rng_context = rng_context;
@@ -1078,15 +1104,21 @@ int32_t bctbx_ssl_config_set_rng(bctbx_ssl_config_t *ssl_config, int(*rng_functi
 	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctbx_ssl_config_set_callback_verify(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_x509_certificate_t *, int, uint32_t *), void *callback_data) {
+int32_t
+bctbx_ssl_config_set_callback_verify(bctbx_ssl_config_t *ssl_config,
+                                     int (*callback_function)(void *, bctbx_x509_certificate_t *, int, uint32_t *),
+                                     void *callback_data) {
 	if (ssl_config != NULL) {
-		ssl_config->callback_verify_function = (int(*)(void *, x509_crt *, int, int *))callback_function;
+		ssl_config->callback_verify_function = (int (*)(void *, x509_crt *, int, int *))callback_function;
 		ssl_config->callback_verify_data = callback_data;
 	}
 	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config, int(*callback_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t), void *callback_data) {
+int32_t
+bctbx_ssl_config_set_callback_cli_cert(bctbx_ssl_config_t *ssl_config,
+                                       int (*callback_function)(void *, bctbx_ssl_context_t *, unsigned char *, size_t),
+                                       void *callback_data) {
 	if (ssl_config != NULL) {
 		ssl_config->callback_cli_cert_function = callback_function;
 		ssl_config->callback_cli_cert_data = callback_data;
@@ -1101,7 +1133,9 @@ int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_config, bctbx_x509
 	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509_certificate_t *cert, bctbx_signing_key_t *key) {
+int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
+                                      bctbx_x509_certificate_t *cert,
+                                      bctbx_signing_key_t *key) {
 	if (ssl_config != NULL) {
 		ssl_config->own_cert = (x509_crt *)cert;
 		ssl_config->own_cert_pk = (pk_context *)key;
@@ -1109,10 +1143,11 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config, bctbx_x509
 	return BCTBX_ERROR_INVALID_SSL_CONFIG;
 }
 
-
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
-int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
+int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config,
+                                                           const bctbx_dtls_srtp_profile_t *profiles,
+                                                           size_t profiles_number) {
 	size_t i;
 
 	if (ssl_config == NULL) {
@@ -1120,10 +1155,10 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 	}
 
 	/* convert the profiles array into a polarssl profiles array */
-	for (i=0; i<profiles_number && i<4; i++) { /* 4 profiles defined max */
+	for (i = 0; i < profiles_number && i < 4; i++) { /* 4 profiles defined max */
 		ssl_config->dtls_srtp_profiles[i] = bctbx_srtp_profile_bctoolbox2polarssl(profiles[i]);
 	}
-	for (;i<4; i++) { /* make sure to have harmless values in the rest of the array */
+	for (; i < 4; i++) { /* make sure to have harmless values in the rest of the array */
 		ssl_config->dtls_srtp_profiles[i] = SRTP_UNSET_PROFILE;
 	}
 
@@ -1132,8 +1167,10 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 	return 0;
 }
 
-#else /* HAVE_DTLS_SRTP */
-int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config, const bctbx_dtls_srtp_profile_t *profiles, size_t profiles_number) {
+#else  /* HAVE_DTLS_SRTP */
+int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config,
+                                                           const bctbx_dtls_srtp_profile_t *profiles,
+                                                           size_t profiles_number) {
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 #endif /* HAVE_DTLS_SRTP */
@@ -1182,15 +1219,17 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 	}
 
 	if (ssl_config->own_cert != NULL && ssl_config->own_cert_pk != NULL) {
-		ssl_set_own_cert(&(ssl_ctx->ssl_ctx) , ssl_config->own_cert , ssl_config->own_cert_pk);
+		ssl_set_own_cert(&(ssl_ctx->ssl_ctx), ssl_config->own_cert, ssl_config->own_cert_pk);
 	}
 
 #ifdef HAVE_DTLS_SRTP
 	if (ssl_config->dtls_srtp_profiles_number > 0) {
-		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles, ssl_config->dtls_srtp_profiles_number );
+		ssl_set_dtls_srtp_protection_profiles(&(ssl_ctx->ssl_ctx), ssl_config->dtls_srtp_profiles,
+		                                      ssl_config->dtls_srtp_profiles_number);
 	}
 
-	/* We do not use DTLS SRTP cookie, so we must set to NULL the callbacks. Cookies are used to prevent DoS attack but our server is on only when during a brief period so we do not need this */
+	/* We do not use DTLS SRTP cookie, so we must set to NULL the callbacks. Cookies are used to prevent DoS attack but
+	 * our server is on only when during a brief period so we do not need this */
 	ssl_set_dtls_cookies(&(ssl_ctx->ssl_ctx), NULL, NULL, NULL);
 #endif
 
@@ -1206,22 +1245,23 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
  * @param[in] 	keyLength	HMAC key length in bytes
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 48 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes.
+ * 48 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
 void bctbx_hmacSha512(const uint8_t *key,
-		size_t keyLength,
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t hmacLength,
-		uint8_t *output)
-{
+                      size_t keyLength,
+                      const uint8_t *input,
+                      size_t inputLength,
+                      uint8_t hmacLength,
+                      uint8_t *output) {
 	uint8_t hmacOutput[64];
-	sha512_hmac(key, keyLength, input, inputLength, hmacOutput, 0); /* last param to one to select SHA512 and not SHA384 */
+	sha512_hmac(key, keyLength, input, inputLength, hmacOutput,
+	            0); /* last param to one to select SHA512 and not SHA384 */
 
 	/* check output length, can't be>64 */
-	if (hmacLength>64) {
+	if (hmacLength > 64) {
 		memcpy(output, hmacOutput, 64);
 	} else {
 		memcpy(output, hmacOutput, hmacLength);
@@ -1234,22 +1274,23 @@ void bctbx_hmacSha512(const uint8_t *key,
  * @param[in] 	keyLength	HMAC key length in bytes
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 48 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes.
+ * 48 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
 void bctbx_hmacSha384(const uint8_t *key,
-		size_t keyLength,
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t hmacLength,
-		uint8_t *output)
-{
+                      size_t keyLength,
+                      const uint8_t *input,
+                      size_t inputLength,
+                      uint8_t hmacLength,
+                      uint8_t *output) {
 	uint8_t hmacOutput[48];
-	sha512_hmac(key, keyLength, input, inputLength, hmacOutput, 1); /* last param to one to select SHA384 and not SHA512 */
+	sha512_hmac(key, keyLength, input, inputLength, hmacOutput,
+	            1); /* last param to one to select SHA384 and not SHA512 */
 
 	/* check output length, can't be>48 */
-	if (hmacLength>48) {
+	if (hmacLength > 48) {
 		memcpy(output, hmacOutput, 48);
 	} else {
 		memcpy(output, hmacOutput, hmacLength);
@@ -1262,22 +1303,23 @@ void bctbx_hmacSha384(const uint8_t *key,
  * @param[in] 	keyLength	HMAC key length in bytes
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes.
+ * 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
 void bctbx_hmacSha256(const uint8_t *key,
-		size_t keyLength,
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t hmacLength,
-		uint8_t *output)
-{
+                      size_t keyLength,
+                      const uint8_t *input,
+                      size_t inputLength,
+                      uint8_t hmacLength,
+                      uint8_t *output) {
 	uint8_t hmacOutput[32];
-	sha256_hmac(key, keyLength, input, inputLength, hmacOutput, 0); /* last param to zero to select SHA256 and not SHA224 */
+	sha256_hmac(key, keyLength, input, inputLength, hmacOutput,
+	            0); /* last param to zero to select SHA256 and not SHA224 */
 
 	/* check output length, can't be>32 */
-	if (hmacLength>32) {
+	if (hmacLength > 32) {
 		memcpy(output, hmacOutput, 32);
 	} else {
 		memcpy(output, hmacOutput, hmacLength);
@@ -1288,20 +1330,17 @@ void bctbx_hmacSha256(const uint8_t *key,
  * @brief SHA512 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 64 bytes maximum
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 64
+ * bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
-void bctbx_sha512(const uint8_t *input,
-		size_t inputLength,
-		uint8_t hashLength,
-		uint8_t *output)
-{
+void bctbx_sha512(const uint8_t *input, size_t inputLength, uint8_t hashLength, uint8_t *output) {
 	uint8_t hashOutput[64];
 	sha512(input, inputLength, hashOutput, 0); /* last param to zero to select SHA512 and not SHA384 */
 
 	/* check output length, can't be>64 */
-	if (hashLength>64) {
+	if (hashLength > 64) {
 		memcpy(output, hashOutput, 64);
 	} else {
 		memcpy(output, hashOutput, hashLength);
@@ -1312,20 +1351,17 @@ void bctbx_sha512(const uint8_t *input,
  * @brief SHA384 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 48 bytes maximum
+ * @param[in]	hashLength	Length of output required in bytes, Output is truncated to the hashLength left bytes. 48
+ * bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
-void bctbx_sha384(const uint8_t *input,
-		size_t inputLength,
-		uint8_t hashLength,
-		uint8_t *output)
-{
+void bctbx_sha384(const uint8_t *input, size_t inputLength, uint8_t hashLength, uint8_t *output) {
 	uint8_t hashOutput[48];
 	sha512(input, inputLength, hashOutput, 1); /* last param to one to select SHA384 and not SHA512 */
 
 	/* check output length, can't be>48 */
-	if (hashLength>48) {
+	if (hashLength > 48) {
 		memcpy(output, hashOutput, 48);
 	} else {
 		memcpy(output, hashOutput, hashLength);
@@ -1336,20 +1372,17 @@ void bctbx_sha384(const uint8_t *input,
  * @brief SHA256 wrapper
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length in bytes
- * @param[in]	hmacLength	Length of output required in bytes, SHA256 output is truncated to the hashLength left bytes. 32 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, SHA256 output is truncated to the hashLength left bytes.
+ * 32 bytes maximum
  * @param[out]	output		Output data buffer.
  *
  */
-void bctbx_sha256(const uint8_t *input,
-		size_t inputLength,
-		uint8_t hashLength,
-		uint8_t *output)
-{
+void bctbx_sha256(const uint8_t *input, size_t inputLength, uint8_t hashLength, uint8_t *output) {
 	uint8_t hashOutput[32];
 	sha256(input, inputLength, hashOutput, 0); /* last param to zero to select SHA256 and not SHA224 */
 
 	/* check output length, can't be>32 */
-	if (hashLength>32) {
+	if (hashLength > 32) {
 		memcpy(output, hashOutput, 32);
 	} else {
 		memcpy(output, hashOutput, hashLength);
@@ -1362,22 +1395,22 @@ void bctbx_sha256(const uint8_t *input,
  * @param[in] 	keyLength	HMAC key length
  * @param[in]	input 		Input data buffer
  * @param[in]   inputLength	Input data length
- * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes. 20 bytes maximum
+ * @param[in]	hmacLength	Length of output required in bytes, HMAC output is truncated to the hmacLength left bytes.
+ * 20 bytes maximum
  * @param[out]	output		Output data buffer
  *
  */
 void bctbx_hmacSha1(const uint8_t *key,
-		size_t keyLength,
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t hmacLength,
-		uint8_t *output)
-{
+                    size_t keyLength,
+                    const uint8_t *input,
+                    size_t inputLength,
+                    uint8_t hmacLength,
+                    uint8_t *output) {
 	uint8_t hmacOutput[20];
 	sha1_hmac(key, keyLength, input, inputLength, hmacOutput);
 
 	/* check output length, can't be>20 */
-	if (hmacLength>20) {
+	if (hmacLength > 20) {
 		memcpy(output, hmacOutput, 20);
 	} else {
 		memcpy(output, hmacOutput, hmacLength);
@@ -1392,10 +1425,7 @@ void bctbx_hmacSha1(const uint8_t *key,
  * @param[out]	output		Output data buffer.
  *
  */
-void bctbx_md5(const uint8_t *input,
-		size_t inputLength,
-		uint8_t output[16])
-{
+void bctbx_md5(const uint8_t *input, size_t inputLength, uint8_t output[16]) {
 	md5(input, inputLength, output);
 }
 
@@ -1418,19 +1448,25 @@ void bctbx_md5(const uint8_t *input,
  * @param[in]	tagLength					Requested length for the generated tag
  * @param[out]	output						Buffer holding the output, shall be at least the length of plainText buffer
  */
-int32_t bctbx_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
-		const uint8_t *plainText, size_t plainTextLength,
-		const uint8_t *authenticatedData, size_t authenticatedDataLength,
-		const uint8_t *initializationVector, size_t initializationVectorLength,
-		uint8_t *tag, size_t tagLength,
-		uint8_t *output) {
+int32_t bctbx_aes_gcm_encrypt_and_tag(const uint8_t *key,
+                                      size_t keyLength,
+                                      const uint8_t *plainText,
+                                      size_t plainTextLength,
+                                      const uint8_t *authenticatedData,
+                                      size_t authenticatedDataLength,
+                                      const uint8_t *initializationVector,
+                                      size_t initializationVectorLength,
+                                      uint8_t *tag,
+                                      size_t tagLength,
+                                      uint8_t *output) {
 	gcm_context gcmContext;
 	int ret;
 
-	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength * 8);
 	if (ret != 0) return ret;
 
-	ret = gcm_crypt_and_tag(&gcmContext, GCM_ENCRYPT, plainTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, plainText, output, tagLength, tag);
+	ret = gcm_crypt_and_tag(&gcmContext, GCM_ENCRYPT, plainTextLength, initializationVector, initializationVectorLength,
+	                        authenticatedData, authenticatedDataLength, plainText, output, tagLength, tag);
 	gcm_free(&gcmContext);
 
 	return ret;
@@ -1453,19 +1489,25 @@ int32_t bctbx_aes_gcm_encrypt_and_tag(const uint8_t *key, size_t keyLength,
  *
  * @return 0 on succes, BCTBX_ERROR_AUTHENTICATION_FAILED if tag doesn't match or polarssl error code
  */
-int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
-		const uint8_t *cipherText, size_t cipherTextLength,
-		const uint8_t *authenticatedData, size_t authenticatedDataLength,
-		const uint8_t *initializationVector, size_t initializationVectorLength,
-		const uint8_t *tag, size_t tagLength,
-		uint8_t *output) {
+int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key,
+                                       size_t keyLength,
+                                       const uint8_t *cipherText,
+                                       size_t cipherTextLength,
+                                       const uint8_t *authenticatedData,
+                                       size_t authenticatedDataLength,
+                                       const uint8_t *initializationVector,
+                                       size_t initializationVectorLength,
+                                       const uint8_t *tag,
+                                       size_t tagLength,
+                                       uint8_t *output) {
 	gcm_context gcmContext;
 	int ret;
 
-	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	ret = gcm_init(&gcmContext, POLARSSL_CIPHER_ID_AES, key, keyLength * 8);
 	if (ret != 0) return ret;
 
-	ret = gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
+	ret = gcm_auth_decrypt(&gcmContext, cipherTextLength, initializationVector, initializationVectorLength,
+	                       authenticatedData, authenticatedDataLength, tag, tagLength, cipherText, output);
 	gcm_free(&gcmContext);
 
 	if (ret == POLARSSL_ERR_GCM_AUTH_FAILED) {
@@ -1474,7 +1516,6 @@ int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
 
 	return ret;
 }
-
 
 /**
  * @Brief create and initialise an AES-GCM encryption context
@@ -1489,10 +1530,13 @@ int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key, size_t keyLength,
  *
  * @return 0 on success, crypto library error code otherwise
  */
-bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t keyLength,
-		const uint8_t *authenticatedData, size_t authenticatedDataLength,
-		const uint8_t *initializationVector, size_t initializationVectorLength,
-		uint8_t mode) {
+bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key,
+                                                   size_t keyLength,
+                                                   const uint8_t *authenticatedData,
+                                                   size_t authenticatedDataLength,
+                                                   const uint8_t *initializationVector,
+                                                   size_t initializationVectorLength,
+                                                   uint8_t mode) {
 
 	int ret = 0;
 	int polarssl_mode;
@@ -1500,20 +1544,21 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t ke
 
 	if (mode == BCTBX_GCM_ENCRYPT) {
 		polarssl_mode = GCM_ENCRYPT;
-	} else if ( mode == BCTBX_GCM_DECRYPT) {
+	} else if (mode == BCTBX_GCM_DECRYPT) {
 		polarssl_mode = GCM_DECRYPT;
 	} else {
 		return NULL;
 	}
 
 	ctx = bctbx_malloc0(sizeof(gcm_context));
-	ret = gcm_init(ctx, POLARSSL_CIPHER_ID_AES, key, keyLength*8);
+	ret = gcm_init(ctx, POLARSSL_CIPHER_ID_AES, key, keyLength * 8);
 	if (ret != 0) {
 		bctbx_free(ctx);
 		return NULL;
 	}
 
-	ret = gcm_starts(ctx, polarssl_mode, initializationVector, initializationVectorLength, authenticatedData, authenticatedDataLength);
+	ret = gcm_starts(ctx, polarssl_mode, initializationVector, initializationVectorLength, authenticatedData,
+	                 authenticatedDataLength);
 	if (ret != 0) {
 		bctbx_free(ctx);
 		return NULL;
@@ -1533,8 +1578,9 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key, size_t ke
  * @return 0 on success, crypto library error code otherwise
  */
 int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *context,
-		const uint8_t *input, size_t inputLength,
-		uint8_t *output) {
+                                    const uint8_t *input,
+                                    size_t inputLength,
+                                    uint8_t *output) {
 	return gcm_update((gcm_context *)context, inputLength, input, output);
 }
 
@@ -1547,8 +1593,7 @@ int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *context,
  *
  * @return 0 on success, crypto library error code otherwise
  */
-int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context,
-		uint8_t *tag, size_t tagLength) {
+int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context, uint8_t *tag, size_t tagLength) {
 	int ret;
 
 	ret = gcm_finish((gcm_context *)context, tag, tagLength);
@@ -1570,25 +1615,21 @@ int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context,
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes128CfbEncrypt(const uint8_t key[16],
-		const uint8_t IV[16],
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t *output)
-{
+void bctbx_aes128CfbEncrypt(
+    const uint8_t key[16], const uint8_t IV[16], const uint8_t *input, size_t inputLength, uint8_t *output) {
 	uint8_t IVbuffer[16];
-	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
+	size_t iv_offset = 0; /* is not used by us but needed and updated by polarssl */
 	aes_context context;
-	memset (&context, 0, sizeof(aes_context));
+	memset(&context, 0, sizeof(aes_context));
 
 	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
-	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memcpy(IVbuffer, IV, 16 * sizeof(uint8_t));
 
 	/* initialise the aes context and key */
 	aes_setkey_enc(&context, key, 128);
 
 	/* encrypt */
-	aes_crypt_cfb128 (&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+	aes_crypt_cfb128(&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }
 
 /*
@@ -1602,25 +1643,22 @@ void bctbx_aes128CfbEncrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes128CfbDecrypt(const uint8_t key[16],
-		const uint8_t IV[16],
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t *output)
-{
+void bctbx_aes128CfbDecrypt(
+    const uint8_t key[16], const uint8_t IV[16], const uint8_t *input, size_t inputLength, uint8_t *output) {
 	uint8_t IVbuffer[16];
-	size_t iv_offset=0; /* is not used by us but needed and updated by polarssl */
+	size_t iv_offset = 0; /* is not used by us but needed and updated by polarssl */
 	aes_context context;
-	memset (&context, 0, sizeof(aes_context));
+	memset(&context, 0, sizeof(aes_context));
 
 	/* make a local copy of IV which is modified by the polar ssl AES-CFB function */
-	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
+	memcpy(IVbuffer, IV, 16 * sizeof(uint8_t));
 
-	/* initialise the aes context and key - use the aes_setkey_enc function as requested by the documentation of aes_crypt_cfb128 function */
+	/* initialise the aes context and key - use the aes_setkey_enc function as requested by the documentation of
+	 * aes_crypt_cfb128 function */
 	aes_setkey_enc(&context, key, 128);
 
 	/* encrypt */
-	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+	aes_crypt_cfb128(&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }
 
 /*
@@ -1634,22 +1672,18 @@ void bctbx_aes128CfbDecrypt(const uint8_t key[16],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes256CfbEncrypt(const uint8_t key[32],
-		const uint8_t IV[16],
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t *output)
-{
+void bctbx_aes256CfbEncrypt(
+    const uint8_t key[32], const uint8_t IV[16], const uint8_t *input, size_t inputLength, uint8_t *output) {
 	uint8_t IVbuffer[16];
-	size_t iv_offset=0;
+	size_t iv_offset = 0;
 	aes_context context;
 
-	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
-	memset (&context, 0, sizeof(aes_context));
+	memcpy(IVbuffer, IV, 16 * sizeof(uint8_t));
+	memset(&context, 0, sizeof(aes_context));
 	aes_setkey_enc(&context, key, 256);
 
 	/* encrypt */
-	aes_crypt_cfb128 (&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+	aes_crypt_cfb128(&context, AES_ENCRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }
 
 /*
@@ -1663,20 +1697,16 @@ void bctbx_aes256CfbEncrypt(const uint8_t key[32],
  * @param[out]	output		Output data buffer
  *
  */
-void bctbx_aes256CfbDecrypt(const uint8_t key[32],
-		const uint8_t IV[16],
-		const uint8_t *input,
-		size_t inputLength,
-		uint8_t *output)
-{
+void bctbx_aes256CfbDecrypt(
+    const uint8_t key[32], const uint8_t IV[16], const uint8_t *input, size_t inputLength, uint8_t *output) {
 	uint8_t IVbuffer[16];
-	size_t iv_offset=0;
+	size_t iv_offset = 0;
 	aes_context context;
 
-	memcpy(IVbuffer, IV, 16*sizeof(uint8_t));
-	memset (&context, 0, sizeof(aes_context));
+	memcpy(IVbuffer, IV, 16 * sizeof(uint8_t));
+	memset(&context, 0, sizeof(aes_context));
 	aes_setkey_enc(&context, key, 256);
 
 	/* decrypt */
-	aes_crypt_cfb128 (&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
+	aes_crypt_cfb128(&context, AES_DECRYPT, inputLength, &iv_offset, IVbuffer, input, output);
 }
