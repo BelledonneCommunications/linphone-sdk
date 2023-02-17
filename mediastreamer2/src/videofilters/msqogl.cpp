@@ -191,7 +191,7 @@ static int qogl_set_video_size (MSFilter *f, void *arg) {
 
 // Create a window id (BufferRenderer and return it)
 static int qogl_create_window_id(MSFilter *f, void *arg) {
-	(void)f;
+	UNUSED(f);
 	BufferRenderer * renderer = new BufferRenderer();
 	qInfo() << "[MSQOGL] Creating requested renderer " << renderer;
 	*(QQuickFramebufferObject::Renderer**)arg=dynamic_cast<QQuickFramebufferObject::Renderer*>(renderer);
@@ -200,7 +200,7 @@ static int qogl_create_window_id(MSFilter *f, void *arg) {
 
 // if arg is NULL, stop rendering by removing renderer
 static int qogl_set_native_window_id (MSFilter *f, void *arg) {
-	(void)f;
+	UNUSED(f);
 	FilterData *data;
 	
 	ms_filter_lock(f);
