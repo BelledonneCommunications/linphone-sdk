@@ -336,84 +336,6 @@ static void ECDH(void) {
 	bctbx_DestroyECDHContext(bob);
 }
 
-/* just check compatibility of ECDH exchange between mbedtls implementation and decaf one */
-/* mbedtls works with all buffer in big endian, while rfc 7748 specify little endian encoding, so all buffer in or out
- * of mbedtls_mpi_read/write must be reversed */
-static void ECDH25519compat(void) {
-
-#ifdef HAVE_MBEDTLS
-	int i;
-	bctbx_ECDHContext_t *alice = NULL;
-	bctbx_rng_context_t *RNG;
-	mbedtls_ecdh_context *bob = NULL;
-	uint8_t tmpBuffer[32];
-	uint8_t bobPublic[32];
-	uint8_t bobShared[32];
-
-	if (!bctbx_crypto_have_ecc()) {
-		bctbx_warning("test skipped as we don't have Elliptic Curve Cryptography in bctoolbox");
-		return;
-	}
-
-	/* Init the RNG */
-	RNG = bctbx_rng_context_new();
-
-	/* Create Alice and Bob contexts */
-	alice = bctbx_CreateECDHContext(BCTBX_ECDH_X25519);
-
-	bob = (mbedtls_ecdh_context *)bctbx_malloc(sizeof(mbedtls_ecdh_context));
-	mbedtls_ecdh_init(bob);
-	mbedtls_ecp_group_load(&(bob->grp), MBEDTLS_ECP_DP_CURVE25519);
-
-	/* Generate keys pairs */
-	bctbx_ECDHCreateKeyPair(alice, (int (*)(void *, uint8_t *, size_t))bctbx_rng_get, RNG);
-	mbedtls_ecdh_gen_public(&(bob->grp), &(bob->d), &(bob->Q), (int (*)(void *, unsigned char *, size_t))bctbx_rng_get,
-	                        RNG);
-	mbedtls_mpi_write_binary(&(bob->Q.X), tmpBuffer, 32);
-	/* tmpBuffer is in big endian, but we need it in little endian, reverse it */
-	for (i = 0; i < 32; i++) {
-		bobPublic[i] = tmpBuffer[31 - i];
-	}
-
-	/* exchange public keys */
-	alice->peerPublic = (uint8_t *)malloc(alice->pointCoordinateLength * sizeof(uint8_t));
-	memcpy(alice->peerPublic, bobPublic, alice->pointCoordinateLength);
-
-	/* compute shared secrets */
-	bctbx_ECDHComputeSecret(alice, NULL, NULL);
-
-	mbedtls_mpi_lset(&(bob->Qp.Z), 1);
-	/* alice->selfPublic is in little endian, but mbedtls expect it in big, reverse it */
-	for (i = 0; i < 32; i++) {
-		tmpBuffer[i] = alice->selfPublic[31 - i];
-	}
-
-	mbedtls_mpi_read_binary(&(bob->Qp.X), tmpBuffer, 32);
-	/* generate shared secret */
-	mbedtls_ecdh_compute_shared(&(bob->grp), &(bob->z), &(bob->Qp), &(bob->d),
-	                            (int (*)(void *, unsigned char *, size_t))bctbx_rng_get, RNG);
-	/* copy it in the output buffer */
-	mbedtls_mpi_write_binary(&(bob->z), tmpBuffer, 32);
-	/* reverse it as we need it in little endian */
-	for (i = 0; i < 32; i++) {
-		bobShared[i] = tmpBuffer[31 - i];
-	}
-
-	/* compare the secrets */
-	BC_ASSERT_TRUE(memcmp(alice->sharedSecret, bobShared, alice->pointCoordinateLength) == 0);
-
-	/* clear contexts */
-	bctbx_DestroyECDHContext(alice);
-	mbedtls_ecdh_free(bob);
-	free(bob);
-
-	/* clear contexts */
-	bctbx_rng_context_free(RNG);
-#else  /* HAVE_MBEDTLS */
-	bctbx_warning("test skipped as we don't have mbedtls in bctoolbox");
-#endif /* HAVE_MBEDTLS */
-}
-
 static char const *importantMessage1 =
     "The most obvious mechanical phenomenon in electrical and magnetical experiments is the mutual action by which "
     "bodies in certain states set each other in motion while still at a sensible distance from each other. The first "
@@ -980,6 +902,48 @@ static void rng_test(void) {
 #endif // HAVE_MBEDTLS
 }
 
+static int cInterfaceAESGCMTest(const std::vector<uint8_t> &key,
+                                const std::vector<uint8_t> &AD,
+                                const std::vector<uint8_t> &IV,
+                                const std::vector<uint8_t> &pattern_plain,
+                                const std::vector<uint8_t> &pattern_cipher,
+                                const std::vector<uint8_t> &pattern_tag) {
+	int ret = 0;
+	uint8_t cCipher[256]; // 256 is the maximum size of patterns
+	uint8_t cTag[16];
+
+	memset(cCipher, 0, 256);
+	memset(cTag, 0, 16);
+	bctbx_aes_gcm_context_t *ctx = bctbx_aes_gcm_context_new(key.data(), key.size(), AD.data(), AD.size(), IV.data(),
+	                                                         IV.size(), BCTBX_GCM_ENCRYPT);
+	ret = BC_ASSERT_PTR_NOT_NULL(ctx);
+	ret &= BC_ASSERT_TRUE(bctbx_aes_gcm_process_chunk(ctx, pattern_plain.data(), pattern_plain.size(), cCipher) == 0);
+	ret &= BC_ASSERT_TRUE(bctbx_aes_gcm_finish(ctx, cTag, 16) == 0);
+	ret &= BC_ASSERT_TRUE(memcmp(cCipher, pattern_cipher.data(), pattern_cipher.size()) == 0);
+	ret &= BC_ASSERT_TRUE(memcmp(cTag, pattern_tag.data(), pattern_tag.size()) == 0);
+
+	return ret;
+}
+
+static int AESGCMTest(const std::vector<uint8_t> &key,
+                      const std::vector<uint8_t> &AD,
+                      const std::vector<uint8_t> &IV,
+                      const std::vector<uint8_t> &pattern_plain,
+                      const std::vector<uint8_t> &pattern_cipher,
+                      const std::vector<uint8_t> &pattern_tag) {
+	int ret = 0;
+	std::vector<uint8_t> cipher{};
+	std::vector<uint8_t> tag{};
+	std::vector<uint8_t> plain{};
+
+	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+	ret = BC_ASSERT_TRUE(cipher == pattern_cipher);
+	ret &= BC_ASSERT_TRUE(tag == pattern_tag);
+	ret &= BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+	ret &= BC_ASSERT_TRUE(plain == pattern_plain);
+
+	return ret;
+}
 static void AEAD(void) {
 	std::vector<uint8_t> cipher{};
 	std::vector<uint8_t> tag{};
@@ -1000,11 +964,8 @@ static void AEAD(void) {
 	std::vector<uint8_t> AD{};
 	AD.clear();
 
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.2 */
 	key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1014,8 +975,8 @@ static void AEAD(void) {
 	pattern_plain.clear();
 	pattern_cipher.clear();
 	pattern_tag = {0x2d, 0x45, 0x55, 0x2d, 0x85, 0x75, 0x92, 0x2b, 0x3c, 0xa3, 0xcc, 0x53, 0x84, 0x42, 0xfa, 0x26};
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(tag == pattern_tag);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.3 */
 	key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1027,14 +988,8 @@ static void AEAD(void) {
 	pattern_cipher.assign(
 	    {0xce, 0xa7, 0x40, 0x3d, 0x4d, 0x60, 0x6b, 0x6e, 0x07, 0x4e, 0xc5, 0xd3, 0xba, 0xf3, 0x9d, 0x18});
 	pattern_tag = {0xae, 0x9b, 0x17, 0x71, 0xdb, 0xa9, 0xcf, 0x62, 0xb3, 0x9b, 0xe0, 0x17, 0x94, 0x03, 0x30, 0xb4};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.4 */
 	key = {0xfb, 0x76, 0x15, 0xb2, 0x3d, 0x80, 0x89, 0x1d, 0xd4, 0x70, 0x98, 0x0b, 0xc7, 0x95, 0x84, 0xc8,
@@ -1046,14 +1001,8 @@ static void AEAD(void) {
 	pattern_cipher.assign(
 	    {0x5d, 0xf5, 0xd1, 0xfa, 0xbc, 0xbb, 0xdd, 0x05, 0x15, 0x38, 0x25, 0x24, 0x44, 0x17, 0x87, 0x04});
 	pattern_tag = {0x4c, 0x43, 0xcc, 0xe5, 0xa5, 0x74, 0xd8, 0xa8, 0x8b, 0x43, 0xd4, 0x35, 0x3b, 0xd6, 0x0f, 0x9f};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.5 */
 	key = {0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
@@ -1066,14 +1015,8 @@ static void AEAD(void) {
 	pattern_cipher.assign({0x59, 0x1b, 0x1f, 0xf2, 0x72, 0xb4, 0x32, 0x04, 0x86, 0x8f, 0xfc, 0x7b,
 	                       0xc7, 0xd5, 0x21, 0x99, 0x35, 0x26, 0xb6, 0xfa, 0x32, 0x24, 0x7c, 0x3c});
 	pattern_tag = {0x7d, 0xe1, 0x2a, 0x56, 0x70, 0xe5, 0x70, 0xd8, 0xca, 0xe6, 0x24, 0xa1, 0x6d, 0xf0, 0x9c, 0x08};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.6 */
 	key = {0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
@@ -1102,18 +1045,12 @@ static void AEAD(void) {
 	                       0x7b, 0xc7, 0xd5, 0x21, 0x99, 0x35, 0x26, 0xb6, 0xfa, 0x32, 0x24,
 	                       0x7c, 0x3c, 0x40, 0x57, 0xf3, 0xea, 0xe7, 0x54, 0x8c, 0xef});
 	pattern_tag = {0xa1, 0xde, 0x55, 0x36, 0xe9, 0x7e, 0xdd, 0xdc, 0xcd, 0x26, 0xee, 0xb1, 0xb5, 0xff, 0x7b, 0x32};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
 	std::vector<uint8_t> repeatAD{};
 	for (auto i = 0; i < 256; i++) {
 		repeatAD.insert(repeatAD.end(), AD.cbegin(), AD.cend());
 	}
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, repeatAD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, repeatAD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, repeatAD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, repeatAD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.7 */
 	key = {0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
@@ -1154,14 +1091,8 @@ static void AEAD(void) {
 	     0x70, 0xa7, 0xb8, 0x56, 0xb7, 0x74, 0xb1, 0xba, 0x26, 0x85, 0xb3, 0x68, 0x09, 0x14, 0x29, 0xfc, 0xcb, 0x8d,
 	     0xcd, 0xde, 0x09, 0xe4});
 	pattern_tag = {0x87, 0xec, 0x83, 0x7a, 0xbf, 0x53, 0x28, 0x55, 0xb2, 0xce, 0xa1, 0x69, 0xd6, 0x94, 0x3f, 0xcd};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.8 */
 	key = {0xfb, 0x76, 0x15, 0xb2, 0x3d, 0x80, 0x89, 0x1d, 0xd4, 0x70, 0x98, 0x0b, 0xc7, 0x95, 0x84, 0xc8,
@@ -1171,14 +1102,8 @@ static void AEAD(void) {
 	pattern_plain.assign({0xa9});
 	pattern_cipher.assign({0x0a});
 	pattern_tag = {0xbe, 0x98, 0x7d, 0x00, 0x9a, 0x4b, 0x34, 0x9a, 0xa8, 0x0c, 0xb9, 0xc4, 0xeb, 0xc1, 0xe9, 0xf4};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.9 */
 	key = {0xf8, 0xd4, 0x76, 0xcf, 0xd6, 0x46, 0xea, 0x6c, 0x23, 0x84, 0xcb, 0x1c, 0x27, 0xd6, 0x19, 0x5d,
@@ -1191,14 +1116,8 @@ static void AEAD(void) {
 	pattern_cipher.assign({0xce, 0x20, 0x27, 0xb4, 0x7a, 0x84, 0x32, 0x52, 0x01, 0x34,
 	                       0x65, 0x83, 0x4d, 0x75, 0xfd, 0x0f, 0x07, 0x29, 0x75, 0x2e});
 	pattern_tag = {0xac, 0xd8, 0x83, 0x38, 0x37, 0xab, 0x0e, 0xde, 0x84, 0xf4, 0x74, 0x8d, 0xa8, 0x89, 0x9c, 0x15};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.10 */
 	key = {0xdb, 0xbc, 0x85, 0x66, 0xd6, 0xf5, 0xb1, 0x58, 0xda, 0x99, 0xa2, 0xff, 0x2e, 0x01, 0xdd, 0xa6,
@@ -1210,14 +1129,8 @@ static void AEAD(void) {
 	pattern_cipher.assign(
 	    {0xdc, 0x03, 0xe5, 0x24, 0x83, 0x0d, 0x30, 0xf8, 0x8e, 0x19, 0x7f, 0x3a, 0xca, 0xce, 0x66, 0xef});
 	pattern_tag = {0x99, 0x84, 0xef, 0xf6, 0x90, 0x57, 0x55, 0xd1, 0x83, 0x6f, 0x2d, 0xb0, 0x40, 0x89, 0x63, 0x4c};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.11 */
 	key = {0x0e, 0x05, 0x93, 0x5d, 0xf0, 0xc6, 0x93, 0x74, 0x18, 0x92, 0xb7, 0x6f, 0xaf, 0x67, 0x13, 0x3a,
@@ -1230,14 +1143,8 @@ static void AEAD(void) {
 	pattern_cipher.assign({0x6b, 0xe6, 0x5e, 0x56, 0x06, 0x6c, 0x40, 0x56, 0x73, 0x8c,
 	                       0x03, 0xfe, 0x23, 0x20, 0x97, 0x4b, 0xa3, 0xf6, 0x5e, 0x09});
 	pattern_tag = {0x61, 0x08, 0xdc, 0x41, 0x7b, 0xf3, 0x2f, 0x7f, 0xb7, 0x55, 0x4a, 0xe5, 0x2f, 0x08, 0x8f, 0x87};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 
 	/* Test D3.12 */
 	key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1255,14 +1162,8 @@ static void AEAD(void) {
 	                       0x44, 0xe7, 0xf9, 0x81, 0x97, 0x35, 0x63, 0xce, 0x55, 0x6a, 0xe5, 0x08, 0x59, 0xee,
 	                       0x09, 0xb1, 0x4d, 0x31, 0xa0, 0x53, 0x98, 0x6f, 0x9a, 0xc8, 0x9b});
 	pattern_tag = {0x9c, 0xd0, 0xdb, 0x93, 0x6e, 0x26, 0xd4, 0x4b, 0xe9, 0x74, 0xba, 0x86, 0x82, 0x85, 0xa2, 0xe1};
-	cipher.resize(pattern_plain.size());
-	plain.resize(pattern_plain.size());
-
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	BC_ASSERT_TRUE(cipher == pattern_cipher);
-	BC_ASSERT_TRUE(tag == pattern_tag);
-	BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	BC_ASSERT_TRUE(plain == pattern_plain);
+	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 }
 
 static void key_wrap_test() {
@@ -1333,7 +1234,6 @@ static void key_wrap_test() {
 static test_t crypto_tests[] = {
     TEST_NO_TAG("Diffie-Hellman Key exchange", DHM),
     TEST_NO_TAG("Elliptic Curve Diffie-Hellman Key exchange", ECDH),
-    TEST_NO_TAG("ECDH25519 decaf-mbedtls", ECDH25519compat),
     TEST_NO_TAG("EdDSA sign and verify", EdDSA),
     TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),
     TEST_NO_TAG("Sign message and exchange key using the same base secret", sign_and_key_exchange),

@@ -144,7 +144,7 @@ void bc_tester_set_process_events_func(void (*func)(void)) {
 	process_events = func;
 }
 
-void bc_tester_process_events() {
+void bc_tester_process_events(void) {
 	if (process_events) process_events();
 }
 

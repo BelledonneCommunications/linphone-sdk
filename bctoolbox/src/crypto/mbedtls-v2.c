@@ -113,25 +113,14 @@ bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned
 }
 
 /*** signing key ***/
-struct bctbx_signing_key_struct {
-	mbedtls_pk_context ctx;            /**< the actual pk context*/
-	mbedtls_entropy_context entropy;   /**< entropy context - store it to be able to free it */
-	mbedtls_ctr_drbg_context ctr_drbg; /**< rng context */
-};
-
 bctbx_signing_key_t *bctbx_signing_key_new(void) {
-	bctbx_signing_key_t *key = bctbx_malloc0(sizeof(bctbx_signing_key_t));
-	mbedtls_pk_init(&(key->ctx));
-	mbedtls_entropy_init(&(key->entropy));
-	mbedtls_ctr_drbg_init(&(key->ctr_drbg));
-	mbedtls_ctr_drbg_seed(&(key->ctr_drbg), mbedtls_entropy_func, &(key->entropy), NULL, 0);
-	return key;
+	mbedtls_pk_context *key = bctbx_malloc0(sizeof(mbedtls_pk_context));
+	mbedtls_pk_init(key);
+	return (bctbx_signing_key_t *)key;
 }
 
 void bctbx_signing_key_free(bctbx_signing_key_t *key) {
-	mbedtls_pk_free(&(key->ctx));
-	mbedtls_ctr_drbg_free(&(key->ctr_drbg));
-	mbedtls_entropy_free(&(key->entropy));
+	mbedtls_pk_free((mbedtls_pk_context *)key);
 	bctbx_free(key);
 }
 
@@ -139,7 +128,7 @@ char *bctbx_signing_key_get_pem(bctbx_signing_key_t *key) {
 	char *pem_key;
 	if (key == NULL) return NULL;
 	pem_key = (char *)bctbx_malloc0(4096);
-	mbedtls_pk_write_key_pem(&(key->ctx), (unsigned char *)pem_key, 4096);
+	mbedtls_pk_write_key_pem((mbedtls_pk_context *)key, (unsigned char *)pem_key, 4096);
 	return pem_key;
 }
 
@@ -150,8 +139,8 @@ int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key,
                                 size_t password_length) {
 	int err;
 
-	err = mbedtls_pk_parse_key(&(key->ctx), (const unsigned char *)buffer, buffer_length, password, password_length,
-	                           mbedtls_ctr_drbg_random, &(key->ctr_drbg));
+	err = mbedtls_pk_parse_key((mbedtls_pk_context *)key, (const unsigned char *)buffer, buffer_length, password,
+	                           password_length);
 
 	if (err < 0) {
 		char tmp[128];
@@ -165,7 +154,7 @@ int32_t bctbx_signing_key_parse(bctbx_signing_key_t *key,
 int32_t bctbx_signing_key_parse_file(bctbx_signing_key_t *key, const char *path, const char *password) {
 	int err;
 
-	err = mbedtls_pk_parse_keyfile(&(key->ctx), path, password, mbedtls_ctr_drbg_random, &(key->ctr_drbg));
+	err = mbedtls_pk_parse_keyfile((mbedtls_pk_context *)key, path, password);
 
 	if (err < 0) {
 		char tmp[128];
@@ -251,9 +240,10 @@ bctbx_list_t *bctbx_x509_certificate_get_subjects(const bctbx_x509_certificate_t
 	bctbx_list_t *ret = NULL;
 
 	if (cert != NULL) {
-		mbedtls_x509_crt *mbedtls_cert = (mbedtls_x509_crt *)cert;
+		mbedtls_x509_crt *mbedtls_cert =
+		    (mbedtls_x509_crt *)cert; // bctbx_x509_certificate_t is just a cast of mbedtls_x509_crt
 		/* parse subjectAltName if any */
-		if (mbedtls_x509_crt_has_ext_type(mbedtls_cert, MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) != 0) {
+		if (mbedtls_cert->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) {
 			const mbedtls_x509_sequence *cur = &(mbedtls_cert->subject_alt_names);
 			while (cur != NULL) {
 				ret = bctbx_list_append(ret, bctbx_strndup((const char *)cur->buf.p, (int)cur->buf.len));
@@ -389,13 +379,12 @@ int32_t bctbx_x509_certificate_generate_selfsigned(const char *subject,
 int32_t bctbx_x509_certificate_get_signature_hash_function(const bctbx_x509_certificate_t *certificate,
                                                            bctbx_md_type_t *hash_algorithm) {
 
+	mbedtls_x509_crt *crt;
 	if (certificate == NULL) return BCTBX_ERROR_INVALID_CERTIFICATE;
 
-	mbedtls_md_type_t mdt;
-	mbedtls_pk_type_t pk;
-	mbedtls_oid_get_sig_alg(&(((mbedtls_x509_crt *)certificate)->sig_oid), &mdt, &pk);
+	crt = (mbedtls_x509_crt *)certificate;
 
-	switch (mdt) {
+	switch (crt->sig_md) {
 		case MBEDTLS_MD_SHA1:
 			*hash_algorithm = BCTBX_MD_SHA1;
 			break;
@@ -458,10 +447,8 @@ int32_t bctbx_x509_certificate_get_fingerprint(const bctbx_x509_certificate_t *c
 			hash_id = MBEDTLS_MD_SHA512;
 			break;
 		default: /* nothing specified, use the hash algo used in the certificate signature */
-		{
-			mbedtls_pk_type_t pk;
-			mbedtls_oid_get_sig_alg(&(crt->sig_oid), &hash_id, &pk);
-		} break;
+			hash_id = crt->sig_md;
+			break;
 	}
 
 	/* fingerprint is a hash of the DER formated certificate (found in crt->raw.p) using the same hash function used by
@@ -671,18 +658,15 @@ int32_t bctbx_x509_certificate_unset_flag(uint32_t *flags, uint32_t flags_to_uns
 /*** Diffie-Hellman-Merkle ***/
 /* initialise de DHM context according to requested algorithm */
 bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength) {
-	if ((DHMAlgo != BCTBX_DHM_2048) && (DHMAlgo != BCTBX_DHM_3072)) {
-		bctbx_error("bctbx_CreateDHMContext with unsupported algo: 0x%x", DHMAlgo);
-		return NULL;
-	}
 	mbedtls_dhm_context *mbedtlsDhmContext;
 
 	/* create the context */
-	bctbx_DHMContext_t *context = (bctbx_DHMContext_t *)bctbx_malloc0(sizeof(bctbx_DHMContext_t));
+	bctbx_DHMContext_t *context = (bctbx_DHMContext_t *)malloc(sizeof(bctbx_DHMContext_t));
+	memset(context, 0, sizeof(bctbx_DHMContext_t));
 
 	/* create the mbedtls context for DHM */
-	mbedtlsDhmContext = (mbedtls_dhm_context *)bctbx_malloc0(sizeof(mbedtls_dhm_context));
-	mbedtls_dhm_init(mbedtlsDhmContext);
+	mbedtlsDhmContext = (mbedtls_dhm_context *)malloc(sizeof(mbedtls_dhm_context));
+	memset(mbedtlsDhmContext, 0, sizeof(mbedtls_dhm_context));
 	context->cryptoModuleData = (void *)mbedtlsDhmContext;
 
 	/* initialise pointer to NULL to ensure safe call to free() when destroying context */
@@ -694,53 +678,29 @@ bctbx_DHMContext_t *bctbx_CreateDHMContext(uint8_t DHMAlgo, uint8_t secretLength
 	/* set parameters in the context */
 	context->algo = DHMAlgo;
 	context->secretLength = secretLength;
-
-	const unsigned char dhm_p2048[] = MBEDTLS_DHM_RFC3526_MODP_2048_P_BIN;
-	const unsigned char dhm_g2048[] = MBEDTLS_DHM_RFC3526_MODP_2048_G_BIN;
-	const unsigned char dhm_p3072[] = MBEDTLS_DHM_RFC3526_MODP_3072_P_BIN;
-	const unsigned char dhm_g3072[] = MBEDTLS_DHM_RFC3526_MODP_3072_G_BIN;
-	const unsigned char *dhm_p = NULL;
-	const unsigned char *dhm_g = NULL;
-	size_t dhm_p_size = 0;
-	size_t dhm_g_size = 0;
 	switch (DHMAlgo) {
-		case BCTBX_DHM_2048: {
-			dhm_p = dhm_p2048;
-			dhm_p_size = sizeof(dhm_p2048);
-			dhm_g = dhm_g2048;
-			dhm_g_size = sizeof(dhm_g2048);
+		case BCTBX_DHM_2048:
+			/* set P and G in the mbedtls context */
+			if ((mbedtls_mpi_read_string(&(mbedtlsDhmContext->P), 16, MBEDTLS_DHM_RFC3526_MODP_2048_P) != 0) ||
+			    (mbedtls_mpi_read_string(&(mbedtlsDhmContext->G), 16, MBEDTLS_DHM_RFC3526_MODP_2048_G) != 0)) {
+				return NULL;
+			}
 			context->primeLength = 256;
-		} break;
-		default:
-		case BCTBX_DHM_3072: {
-			dhm_p = dhm_p3072;
-			dhm_p_size = sizeof(dhm_p3072);
-			dhm_g = dhm_g3072;
-			dhm_g_size = sizeof(dhm_g3072);
+			mbedtlsDhmContext->len = 256;
+			break;
+		case BCTBX_DHM_3072:
+			/* set P and G in the mbedtls context */
+			if ((mbedtls_mpi_read_string(&(mbedtlsDhmContext->P), 16, MBEDTLS_DHM_RFC3526_MODP_3072_P) != 0) ||
+			    (mbedtls_mpi_read_string(&(mbedtlsDhmContext->G), 16, MBEDTLS_DHM_RFC3526_MODP_3072_G) != 0)) {
+				return NULL;
+			}
 			context->primeLength = 384;
-		} break;
-	}
-
-	/* set P and G in the mbedtls context */
-	bool_t fail = FALSE;
-	mbedtls_mpi P, G;
-	mbedtls_mpi_init(&P);
-	mbedtls_mpi_init(&G);
-	if ((mbedtls_mpi_read_binary(&P, dhm_p, dhm_p_size) != 0) ||
-	    (mbedtls_mpi_read_binary(&G, dhm_g, dhm_g_size) != 0)) {
-		fail = TRUE;
-		bctbx_error("bctbx_CreateDHMContext cannot read DHM group parameters");
-	} else if (mbedtls_dhm_set_group(mbedtlsDhmContext, &P, &G) != 0) {
-		fail = TRUE;
-		bctbx_error("bctbx_CreateDHMContext cannot set DHM group parameters");
-	}
-	mbedtls_mpi_free(&P);
-	mbedtls_mpi_free(&G);
-	if (fail == TRUE) {
-		mbedtls_dhm_free(mbedtlsDhmContext);
-		bctbx_free(mbedtlsDhmContext);
-		bctbx_free(context);
-		return NULL;
+			mbedtlsDhmContext->len = 384;
+			break;
+		default:
+			free(context);
+			return NULL;
+			break;
 	}
 
 	return context;
@@ -754,7 +714,7 @@ void bctbx_DHMCreatePublic(bctbx_DHMContext_t *context,
 	mbedtls_dhm_context *mbedtlsContext = (mbedtls_dhm_context *)context->cryptoModuleData;
 
 	/* allocate output buffer */
-	context->self = (uint8_t *)bctbx_malloc0(context->primeLength * sizeof(uint8_t));
+	context->self = (uint8_t *)malloc(context->primeLength * sizeof(uint8_t));
 
 	mbedtls_dhm_make_public(mbedtlsContext, context->secretLength, context->self, context->primeLength,
 	                        (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
@@ -773,7 +733,8 @@ void bctbx_DHMComputeSecret(bctbx_DHMContext_t *context,
 	/* compute the secret key */
 	keyLength = context->primeLength; /* undocumented but this value seems to be in/out, so we must set it to the
 	                                     expected key length */
-	context->key = (uint8_t *)bctbx_malloc0(keyLength * sizeof(uint8_t)); /* allocate and reset the key buffer */
+	context->key = (uint8_t *)malloc(keyLength * sizeof(uint8_t)); /* allocate and reset the key buffer */
+	memset(context->key, 0, keyLength);
 	mbedtls_dhm_calc_secret((mbedtls_dhm_context *)(context->cryptoModuleData), sharedSecretBuffer, 384, &keyLength,
 	                        (int (*)(void *, unsigned char *, size_t))rngFunction, rngContext);
 	/* now copy the resulting secret in the correct place in buffer(result may actually miss some front zero bytes, real
@@ -788,19 +749,19 @@ void bctbx_DestroyDHMContext(bctbx_DHMContext_t *context) {
 		/* key and secret must be erased from memory and not just freed */
 		if (context->secret != NULL) {
 			bctbx_clean(context->secret, context->secretLength);
-			bctbx_free(context->secret);
+			free(context->secret);
 		}
-		bctbx_free(context->self);
+		free(context->self);
 		if (context->key != NULL) {
 			bctbx_clean(context->key, context->primeLength);
-			bctbx_free(context->key);
+			free(context->key);
 		}
-		bctbx_free(context->peer);
+		free(context->peer);
 
 		mbedtls_dhm_free((mbedtls_dhm_context *)context->cryptoModuleData);
-		bctbx_free(context->cryptoModuleData);
+		free(context->cryptoModuleData);
 
-		bctbx_free(context);
+		free(context);
 	}
 }
 
@@ -1022,7 +983,7 @@ bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_c
 
 	mbedtls_dtls_srtp_info dtls_srtp_negotiation_result;
 	mbedtls_ssl_get_dtls_srtp_negotiation_result(&(ssl_ctx->ssl_ctx), &dtls_srtp_negotiation_result);
-	return bctbx_srtp_profile_mbedtls2bctoolbox(dtls_srtp_negotiation_result.MBEDTLS_PRIVATE(chosen_dtls_srtp_profile));
+	return bctbx_srtp_profile_mbedtls2bctoolbox(dtls_srtp_negotiation_result.chosen_dtls_srtp_profile);
 };
 
 #else /* HAVE_DTLS_SRTP */
@@ -1082,9 +1043,6 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 	ssl_config->callback_cli_cert_function = NULL;
 	ssl_config->callback_cli_cert_data = NULL;
 
-#ifdef HAVE_DTLS_SRTP
-	ssl_config->dtls_srtp_mbedtls_profiles[0] = MBEDTLS_TLS_SRTP_UNSET;
-#endif /* HAVE_DTLS_SRTP */
 	return ssl_config;
 }
 
@@ -1333,33 +1291,22 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
 
 /* This callback is executed during the DTLS handshake, extract the master secret and randoms needed to generate the
  * DTLS-SRTP keys The generation itself is performed after the handshake */
-static void bctbx_ssl_dtls_srtp_key_derivation(
-    void *key_ctx,
-    mbedtls_ssl_key_export_type
-        type, /* shall always be MBEDTLS_SSL_KEY_EXPORT_TLS12_MASTER_SECRET for now, not available in TLSv1.3 */
-    const unsigned char *secret,
-    size_t secret_len,
-    const unsigned char client_random[32],
-    const unsigned char server_random[32],
-    mbedtls_tls_prf_types tls_prf_type) {
-
-	/* We're only interested in the TLS 1.2 master secret */
-	if (type != MBEDTLS_SSL_KEY_EXPORT_TLS12_MASTER_SECRET) {
-		bctbx_error("DTLS-SRTP key derivation callback given a secret not derived from TLS12: %x", (int)type);
-		return;
-	}
+static int bctbx_ssl_dtls_srtp_key_derivation(void *key_ctx,
+                                              const unsigned char *ms,
+                                              BCTBX_UNUSED(const unsigned char *kb),
+                                              BCTBX_UNUSED(size_t maclen),
+                                              BCTBX_UNUSED(size_t keylen),
+                                              BCTBX_UNUSED(size_t ivlen), // these params are useless for our purpose
+                                              const unsigned char client_random[32],
+                                              const unsigned char server_random[32],
+                                              mbedtls_tls_prf_types tls_prf_type) {
 
 	bctbx_dtls_srtp_keys_t *keys = (bctbx_dtls_srtp_keys_t *)key_ctx;
-	if (secret_len != sizeof(keys->master_secret)) {
-		bctbx_error("DTLS-SRTP key derivation callback generate a secret of size %ld but we're expecting %ld bytes",
-		            secret_len, sizeof(keys->master_secret));
-		return;
-	}
-
-	memcpy(keys->master_secret, secret, sizeof(keys->master_secret)); // copy the master secret
-	memcpy(keys->randoms, client_random, 32);                         // the client and server random
+	memcpy(keys->master_secret, ms, sizeof(keys->master_secret)); // copy the master secret
+	memcpy(keys->randoms, client_random, 32);                     // the client and server random
 	memcpy(keys->randoms + 32, server_random, 32);
 	keys->tls_prf_type = tls_prf_type; // the prf id
+	return (0);
 }
 
 int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_config, uint8_t *output, size_t *output_length) {
@@ -1402,6 +1349,10 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 		ssl_config->dtls_srtp_mbedtls_profiles[i] = MBEDTLS_TLS_SRTP_UNSET;
 	}
 
+	/* set the callback to compute the key material */
+	mbedtls_ssl_conf_export_keys_ext_cb(ssl_config->ssl_config, bctbx_ssl_dtls_srtp_key_derivation,
+	                                    &(ssl_config->dtls_srtp_keys));
+
 	return mbedtls_ssl_conf_dtls_srtp_protection_profiles(
 	    ssl_config->ssl_config, ssl_config->dtls_srtp_mbedtls_profiles); // no profile number, list is UNSET terminated
 }
@@ -1439,20 +1390,12 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 
 #ifdef HAVE_DTLS_SRTP
 	/* We do not use DTLS SRTP cookie, so we must set to NULL the callbacks. Cookies are used to prevent DoS attack but
-	 * our server is on only during a brief period so we do not need this */
+	 * our server is on only when during a brief period so we do not need this */
 	mbedtls_ssl_conf_dtls_cookies(ssl_config->ssl_config, NULL, NULL, NULL);
 #endif /* HAVE_DTLS_SRTP */
 
 	ret = mbedtls_ssl_setup(&(ssl_ctx->ssl_ctx), ssl_config->ssl_config);
 	if (ret != 0) return ret;
-
-#ifdef HAVE_DTLS_SRTP
-	/* set the callback to compute the DTLS-SRTP key material if needed */
-	if (ssl_config->dtls_srtp_mbedtls_profiles[0] != MBEDTLS_TLS_SRTP_UNSET) {
-		mbedtls_ssl_set_export_keys_cb(&(ssl_ctx->ssl_ctx), bctbx_ssl_dtls_srtp_key_derivation,
-		                               &(ssl_config->dtls_srtp_keys));
-	}
-#endif /* HAVE_DTLS_SRTP */
 
 	/* for DTLS handshake, we must set a timer callback */
 	mbedtls_ssl_set_timer_cb(&(ssl_ctx->ssl_ctx), &(ssl_ctx->timer), mbedtls_timing_set_delay,
@@ -1784,15 +1727,8 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key,
 		return NULL;
 	}
 
-	ret = mbedtls_gcm_starts(ctx, mbedtls_mode, initializationVector, initializationVectorLength);
-	if (ret != 0) {
-		bctbx_free(ctx);
-		return NULL;
-	}
-
-	if (authenticatedDataLength > 0) {
-		ret = mbedtls_gcm_update_ad(ctx, authenticatedData, authenticatedDataLength);
-	}
+	ret = mbedtls_gcm_starts(ctx, mbedtls_mode, initializationVector, initializationVectorLength, authenticatedData,
+	                         authenticatedDataLength);
 	if (ret != 0) {
 		bctbx_free(ctx);
 		return NULL;
@@ -1815,30 +1751,22 @@ int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *context,
                                     const uint8_t *input,
                                     size_t inputLength,
                                     uint8_t *output) {
-
-	/* Note: Mbedtls2 is not able to bufferize a part of the input to output 16bytes blocs
-	 * So the buffering is done in liblinphone for file decryption
-	 * Mbedtls3 claim it supports the buffering but it is true only when
-	 * using alternative implementation of GCM, the main one present in mbedtls is the same : only the last call
-	 * to mbedtls_gcm_update can have a length not multiple of 16 bytes */
-	size_t outputLength = inputLength;
-	return mbedtls_gcm_update((mbedtls_gcm_context *)context, input, inputLength, output, inputLength, &outputLength);
+	return mbedtls_gcm_update((mbedtls_gcm_context *)context, inputLength, input, output);
 }
 
 /**
  * @Brief Conclude a AES-GCM encryption stream, generate tag if requested, free resources
  *
  * @param[in/out]	context			a context already initialized using bctbx_aes_gcm_context_new
- * @param[out]		tag			a buffer to hold the authentication tag. Can be NULL if tagLength is 0
+ * @param[out]		tag				a buffer to hold the authentication tag. Can be NULL if tagLength is 0
  * @param[in]		tagLength		length of reqested authentication tag, max 16
  *
  * @return 0 on success, crypto library error code otherwise
  */
 int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context, uint8_t *tag, size_t tagLength) {
 	int ret;
-	size_t output_len = 0;
 
-	ret = mbedtls_gcm_finish((mbedtls_gcm_context *)context, NULL, 0, &output_len, tag, tagLength);
+	ret = mbedtls_gcm_finish((mbedtls_gcm_context *)context, tag, tagLength);
 	mbedtls_gcm_free((mbedtls_gcm_context *)context);
 
 	bctbx_free(context);

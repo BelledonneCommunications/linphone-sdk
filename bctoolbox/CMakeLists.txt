@@ -81,10 +81,19 @@ if(ENABLE_MBEDTLS)
 	else()
 		message(STATUS "MBEDTLS Enabled search disabled")
 		set (MBEDTLS_FOUND On)
-		set (DTLS_SRTP_AVAILABLE On) # we using internal Mbedtls lib, we always have DTLS-SRTP
+		set (DTLS_SRTP_AVAILABLE On) # we using internal Mbedtls lib, we always have DTLS-SRTP and use v3
+		set (MBEDTLS_VERSION_3 On)
 	endif()
 	if(MBEDTLS_FOUND)
-		message(STATUS "Using mbedTLS")
+		if (MBEDTLS_VERSION_3)
+			message(STATUS "Using mbedTLS v3")
+		else()
+			if (MBEDTLS_VERSION_2)
+				message(STATUS "Using mbedTLS v2")
+			else()
+				message(STATUS "Mbedtls version incompatible(requires v2 or v3), build will probably fail")
+			endif()
+		endif()
 		set(HAVE_MBEDTLS 1)
 		set(MBEDTLS_TARGETS
 			mbedtls

@@ -74,15 +74,18 @@ if(WIN32)
 endif()
 if(MBEDTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
-	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/ecc.cc)
-endif()
-if(MBEDTLS_FOUND)
-	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES
+		crypto/ecc.cc
 		crypto/mbedtls.cc
 		vfs/vfs_encrypted.cc
 		vfs/vfs_encryption_module_dummy.cc
 		vfs/vfs_encryption_module_aes256gcm_sha256.cc)
+endif()
+if(MBEDTLS_VERSION_3)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
+endif()
+if(MBEDTLS_VERSION_2)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls-v2.c)
 endif()
 if(ENABLE_TESTS_COMPONENT)
 	set(BCTOOLBOX_C_TESTER_SOURCE_FILES tester.c)

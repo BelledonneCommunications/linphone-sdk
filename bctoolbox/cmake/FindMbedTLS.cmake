@@ -57,12 +57,22 @@ list(APPEND CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MB
 # check we have a mbedTLS version 2 or above(all functions are prefixed mbedtls_)
 if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
 	check_symbol_exists(mbedtls_ssl_init "mbedtls/ssl.h" MBEDTLS_V2)
-  if(NOT MBEDTLS_V2)
-    message ("MESSAGE: NO MBEDTLS_V2")
-    message ("MESSAGE: MBEDTLS_LIBRARY=" ${MBEDTLS_LIBRARY})
-    message ("MESSAGE: MBEDX509_LIBRARY=" ${MBEDX509_LIBRARY})
-    message ("MESSAGE: MBEDCRYPTO_LIBRARY=" ${MBEDCRYPTO_LIBRARY})
-  endif()
+	if(NOT MBEDTLS_V2)
+		message ("MESSAGE: NO MBEDTLS_V2")
+		message ("MESSAGE: MBEDTLS_LIBRARY=" ${MBEDTLS_LIBRARY})
+		message ("MESSAGE: MBEDX509_LIBRARY=" ${MBEDX509_LIBRARY})
+		message ("MESSAGE: MBEDCRYPTO_LIBRARY=" ${MBEDCRYPTO_LIBRARY})
+		set (MBEDTLS_VERSION_1 On)
+	else()
+		# Are we mbdetls 2 or 3?
+		# from version 3 and on, version number is given in include/mbedtls/build_info.h.
+		# This file does not exists before version 3
+		if (EXISTS "${MBEDTLS_INCLUDE_DIRS}/mbedtls/build_info.h")
+			set (MBEDTLS_VERSION_3 On)
+		else()
+			set (MBEDTLS_VERSION_2 On)
+		endif()
+	endif()
 
 endif()
 
