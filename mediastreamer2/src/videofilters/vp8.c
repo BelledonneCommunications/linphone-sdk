@@ -181,12 +181,9 @@ static void enc_init_impl(MSFilter *f) {
 	}
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
-#elif TARGET_OS_OSX
-	// On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4.
-	// Value belows is a tradeoff between scalability and realtime
-	s->cfg.g_threads = MAX(ms_factory_get_cpu_count(f->factory) - 2, 1);
 #else
-	s->cfg.g_threads = ms_factory_get_cpu_count(f->factory);
+	// We don't need more than 4 threads for encoder and we have to free thread space for decoders. This limitation is due to the inefficiency of spinlocks used by the libvpx.
+	s->cfg.g_threads= MIN(MAX(ms_factory_get_cpu_count(f->factory)-2,1),4);
 #endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
@@ -946,18 +943,13 @@ static void dec_init(MSFilter *f) {
 	s->first_image_decoded = FALSE;
 	s->avpf_enabled = FALSE;
 	s->freeze_on_error = TRUE;
-#if TARGET_OS_OSX
 	/**
-	 * On macosx 10.14 realtime processing is not ensured on dual core machine with ms_factory_get_cpu_count() <= 4.
-	 * Value belows is a tradeoff between scalability and realtime.
+	 * Default encoder has 4 max threads but for decoder, we don't need more than 1 thread.
+	 * Having more will spot too many threads in video conference.
 	 * The loss of performance is correlated to the number of threads allocated for the decoding.
 	 * It appears to be due to the inefficiency of spinlocks used by the libvpx.
 	 */
-	s->max_threads = MAX(ms_factory_get_cpu_count(f->factory) - 2, 1);
-#else
-	s->max_threads = ms_factory_get_cpu_count(f->factory);
-#endif
-
+	s->max_threads = 1;
 	ms_cond_init(&s->thread_cond, NULL);
 	ms_queue_init(&s->entry_q);
 	ms_queue_init(&s->exit_q);
