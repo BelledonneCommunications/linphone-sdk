@@ -16,7 +16,7 @@ changes made to these components.
 
 ### Changed
 - Update ZLib to 1.2.13
-
+- Enum relocations dictionnary is now automatically computed, causing an API change in C++, Swift & Java wrappers!
 
 ## [5.2.0] - 2022-11-14
 
