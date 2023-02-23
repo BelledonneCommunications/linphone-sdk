@@ -55,15 +55,20 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 
 	if (_lastTs != ts) {
 		/*a new frame is arriving, in case the marker bit was not set in previous frame, output it now,
-		 *	 unless it is a FU-A packet (workaround for buggy implementations)*/
+		 *	 unless it is a FU-A packet (workaround for buggy implementations).
+		 * The marker bit may be absent because of a packet loss (then the frame is corrupted),
+		 * or because the remote implementation is not compliant, for example when sending SPS and PPS with
+		 * timestamp different than the following IDR frame.
+		 */
 		_lastTs = ts;
 		if (!_fuAggregator->isAggregating() && !ms_queue_empty(&_q)) {
 			Status status;
 			status.frameAvailable = true;
-			status.frameCorrupted = true;
+			status.frameCorrupted |= (cseq != _refCSeq + 1);
 			ret = outputFrame(out, status);
-			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u)",
-			           mblk_get_cseq(ms_queue_peek_last(out)));
+			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u, frame corrupted: %s)",
+			           mblk_get_cseq(ms_queue_peek_last(out)),
+						status.frameCorrupted ? "yes" : "no" );
 		}
 	}
 
