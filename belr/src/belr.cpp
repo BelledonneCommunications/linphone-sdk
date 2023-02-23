@@ -17,6 +17,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * To troubleshoot parsing, un comment the two following defines to get _very_ verbose logs.
+ */
+
+// #define BCTBX_DEBUG_MODE 1
+// #define BELR_DEBUG 1
+
 #include <bctoolbox/defs.h>
 
 #include "belr/belr.h"
@@ -194,7 +201,7 @@ size_t Recognizer::feed(ParserContextBase &ctx, const string &input, size_t pos)
 	size_t match;
 
 #ifdef BELR_DEBUG
-	BCTBX_SLOGD < < < "Trying to match: " << mName;
+	BCTBX_SLOGD << "Trying to match: " << mName;
 #endif
 
 	ParserLocalContext hctx;
@@ -311,14 +318,15 @@ size_t Selector::_feed(ParserContextBase &ctx, const string &input, size_t pos) 
 	if (mIsExclusive) return _feedExclusive(ctx, input, pos);
 
 	size_t matched = 0;
-	size_t bestmatch = 0;
+	size_t bestmatch = string::npos;
 	shared_ptr<HandlerContextBase> bestBranch;
 
 	for (auto it = mElements.begin(); it != mElements.end(); ++it) {
 		shared_ptr<HandlerContextBase> br;
 		br = ctx.branch();
 		matched = (*it)->feed(ctx, input, pos);
-		if (matched != string::npos && matched > bestmatch) {
+		/* Matching 0 characters is considered as a valid match (string::npos is returned in case of no match) */
+		if (matched != string::npos && (matched > bestmatch || bestmatch == string::npos)) {
 			bestmatch = matched;
 			if (bestBranch) ctx.removeBranch(bestBranch);
 			bestBranch = br;
@@ -326,7 +334,6 @@ size_t Selector::_feed(ParserContextBase &ctx, const string &input, size_t pos) 
 			ctx.removeBranch(br);
 		}
 	}
-	if (bestmatch == 0) return string::npos;
 	if (bestmatch != string::npos) {
 		ctx.merge(bestBranch);
 	}
