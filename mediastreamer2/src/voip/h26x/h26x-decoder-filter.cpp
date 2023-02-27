@@ -36,10 +36,13 @@ H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder)
 void H26xDecoderFilter::preprocess() {
 	_firstImageDecoded = false;
 	if (_codec) _codec->waitForKeyFrame();
+	_regulator = ms_stream_regulator_new(getTicker(), 90000);
 }
 
 void H26xDecoderFilter::process() {
 	bool requestPli = false;
+	int decodedFramesCount = 0;
+	int regulatorPendingCount = 0;
 	MSQueue frame;
 
 	if (_codec == nullptr) {
@@ -78,15 +81,50 @@ void H26xDecoderFilter::process() {
 		ms_queue_flush(&frame);
 	}
 
-	mblk_t *om;
+	mblk_t *om = nullptr;
 	VideoDecoder::Status status;
+
+	MSQueue q;
+	ms_queue_init(&q);
+
+	if (_useRegulator) {
+		regulatorPendingCount = ms_stream_regulator_get_pending_buffers_count(_regulator);
+		// if (regulatorPendingCount > 0) ms_message("H26xDecoder: %i frames pending in StreamRegulator",
+		// regulatorPendingCount);
+	}
+
 	while ((status = _codec->fetch(om)) != VideoDecoder::Status::noFrameAvailable) {
 		if (status == VideoDecoder::decodingFailure) {
 			ms_error("H26xDecoder: decoding failure");
 			requestPli = true;
 			continue;
 		}
+		decodedFramesCount++;
+		ms_queue_put(&q, om);
+		om = nullptr;
+	}
+	if (decodedFramesCount >= 10) {
+		if (!_useRegulator) {
+			ms_warning("H26xDecoder: [%i] frames decoded in a row - non real-time MediaCodec decoding detected. "
+			           "Will now switch to StreamRegulator to smooth frame rendering based on presentation timestamps.",
+			           decodedFramesCount);
+			_useRegulator = true;
+		} else if (regulatorPendingCount > 0) {
+			ms_warning(
+			    "H26xDecoder: [%i] frames pending in regulator but new frames are decoded. Resynchonisation needed.",
+			    regulatorPendingCount);
+			ms_stream_regulator_reset(_regulator);
+		}
+	}
+	if (_useRegulator) {
+		/* splice frames into the regulator's queue. */
+		while ((om = ms_queue_get(&q)) != nullptr) {
+			ms_stream_regulator_push(_regulator, om);
+		}
+	}
 
+	while ((_useRegulator && (om = ms_stream_regulator_get(_regulator)) != nullptr) ||
+	       (!_useRegulator && (om = ms_queue_get(&q)) != nullptr)) {
 		MSPicture pic;
 		ms_yuv_buf_init_from_mblk(&pic, om);
 		_vsize.width = pic.w;
@@ -100,6 +138,7 @@ void H26xDecoderFilter::process() {
 
 		ms_average_fps_update(&_fps, getTime());
 		ms_queue_put(getOutput(0), om);
+		om = nullptr;
 	}
 
 	if (requestPli) {
@@ -109,6 +148,7 @@ void H26xDecoderFilter::process() {
 
 void H26xDecoderFilter::postprocess() {
 	_unpacker->reset();
+	ms_stream_regulator_free(_regulator);
 }
 
 void H26xDecoderFilter::resetFirstImage() {

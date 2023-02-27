@@ -64,6 +64,13 @@ void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt);
 mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj);
 
 /**
+ * @brief Return the number of pending buffers.
+ * @param obj MSStreamRegulator
+ * @return the number of pending buffers.
+ */
+int ms_stream_regulator_get_pending_buffers_count(const MSStreamRegulator *obj);
+
+/**
  * @brief Reset the stream regulator
  * All waiting buffer are destroyed
  * @param obj MSStreamRegulator

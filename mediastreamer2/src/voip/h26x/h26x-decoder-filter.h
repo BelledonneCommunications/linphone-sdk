@@ -28,6 +28,7 @@
 
 #include "h26x-decoder.h"
 #include "nal-unpacker.h"
+#include "stream_regulator.h"
 
 #include "filter-interface/decoder-filter.h"
 
@@ -59,12 +60,14 @@ public:
 protected:
 	MSVideoSize _vsize;
 	MSAverageFPS _fps;
+	MSStreamRegulator *_regulator = nullptr;
 	bool _avpfEnabled = false;
 	bool _freezeOnError = true;
+	bool _firstImageDecoded = false;
+	bool _useRegulator = false;
 
 	std::unique_ptr<NalUnpacker> _unpacker;
 	std::unique_ptr<H26xDecoder> _codec;
-	bool _firstImageDecoded = false;
 
 	static const unsigned int _timeoutUs = 0;
 };

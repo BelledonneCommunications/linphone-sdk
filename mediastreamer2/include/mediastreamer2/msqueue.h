@@ -81,6 +81,10 @@ static MS2_INLINE bool_t ms_queue_empty(const MSQueue *q) {
 	return qempty(&q->q);
 }
 
+static MS2_INLINE int ms_queue_size(const MSQueue *q) {
+	return q->q.q_mcount;
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -182,15 +182,18 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		_curWidth = image.crop_rect.w;
 		_curHeight = image.crop_rect.h;
 	}
-	ms_message("MediaCodecDecoder: got output image with presentation timestamp [%llu].", (unsigned long long) image.timestamp);
+	// ms_message("MediaCodecDecoder: got output image with presentation timestamp [%llu] ms.", (unsigned long long)
+	// image.timestamp/1000000ULL);
 
 	MSPicture pic;
 	frame = ms_yuv_buf_allocator_get(_bufAllocator, &pic, image.crop_rect.w, image.crop_rect.h);
 	// ms_message("image.crop_rect.w=%i, image.crop_rect.h=%i, image.row_strides=%i,%i,%i image.pixel_strides=%i,%i,%i",
 	//	   image.crop_rect.w, image.crop_rect.h, image.row_strides[0], image.row_strides[1], image.row_strides[2],
 	//		image.pixel_strides[0], image.pixel_strides[1], image.pixel_strides[2]);
+
 	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect, pic.planes,
 	                                 pic.strides, dst_pix_strides, dst_roi);
+	mblk_set_timestamp_info(frame, (uint32_t)((image.timestamp / 1000000LL) * 90LL));
 	AMediaImage_close(&image);
 
 end:

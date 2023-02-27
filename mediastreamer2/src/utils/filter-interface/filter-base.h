@@ -52,6 +52,9 @@ protected:
 	uint64_t getTime() const {
 		return _f->ticker->time;
 	}
+	MSTicker *getTicker() const {
+		return _f->ticker;
+	}
 
 	void notify(unsigned int id) {
 		ms_filter_notify_no_arg(_f, id);

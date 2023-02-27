@@ -23,9 +23,9 @@
 struct _MSStreamRegulator {
 	MSTicker *ticker;
 	int64_t clock_rate;
-	int64_t t_origin;
-	bool_t origin_set;
+	int64_t t_offset;
 	MSQueue queue;
+	bool_t origin_set;
 };
 
 MSStreamRegulator *ms_stream_regulator_new(MSTicker *ticker, int64_t clock_rate) {
@@ -45,17 +45,23 @@ void ms_stream_regulator_push(MSStreamRegulator *obj, mblk_t *pkt) {
 	ms_queue_put(&obj->queue, pkt);
 }
 
+int ms_stream_regulator_get_pending_buffers_count(const MSStreamRegulator *obj) {
+	return ms_queue_size(&obj->queue);
+}
+
 mblk_t *ms_stream_regulator_get(MSStreamRegulator *obj) {
 	if (ms_queue_empty(&obj->queue)) return NULL;
 	if (!obj->origin_set) {
 		mblk_t *pkt = ms_queue_get(&obj->queue);
-		obj->t_origin = obj->ticker->time - (int64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
+		obj->t_offset = obj->ticker->time - (int64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
 		obj->origin_set = TRUE;
 		return pkt;
 	} else {
 		mblk_t *pkt = ms_queue_peek_first(&obj->queue);
 		uint64_t timestamp = (uint64_t)(mblk_get_timestamp_info(pkt)) * 1000LL / obj->clock_rate;
-		if (timestamp <= obj->ticker->time - obj->t_origin) {
+		int64_t diff_ms = obj->ticker->time - (timestamp + obj->t_offset);
+		// ms_message("ms_stream_regulator_get(): diff_ms = %lli ", (long long int) diff_ms);
+		if (diff_ms > 0) {
 			return ms_queue_get(&obj->queue);
 		} else {
 			return NULL;
