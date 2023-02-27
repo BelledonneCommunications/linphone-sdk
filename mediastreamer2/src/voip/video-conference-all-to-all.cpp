@@ -28,10 +28,12 @@ namespace ms2 {
 VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConferenceParams *params) {
 	const MSFmtDescriptor *fmt;
 	MSVideoSize vsize = {0};
+	MSTickerParams tickerParams;
+	memset(&tickerParams, 0, sizeof(tickerParams));
+	tickerParams.name = "Video conference(all to all)";
+	tickerParams.prio = __ms_get_default_prio(TRUE);
 
-	mTicker = ms_ticker_new();
-	ms_ticker_set_name(mTicker, "Video conference(all to all) MSTicker");
-	ms_ticker_set_priority(mTicker, __ms_get_default_prio(TRUE));
+	mTicker = ms_ticker_new_with_params(&tickerParams);
 	mMixer = ms_factory_create_filter(f, MS_VIDEO_ROUTER_ID);
 	mVoidSource = ms_factory_create_filter(f, MS_VOID_SOURCE_ID);
 	mVoidOutput = ms_factory_create_filter(f, MS_VOID_SINK_ID);

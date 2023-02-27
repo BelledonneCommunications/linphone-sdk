@@ -25,6 +25,7 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/msticker.h"
+#include "private.h"
 
 #ifdef _MSC_VER
 #include <mmreg.h>
@@ -288,7 +289,9 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		ms_error("Cannot start playing. No file has been opened");
 		return FALSE;
 	}
+
 	if (obj->graph_state < GraphReady) {
+		MSTickerParams params = {0};
 		ms_media_player_prepare(obj);
 		if (!_link_all(obj)) {
 			ms_error("Could not build playing graph");
@@ -300,8 +303,9 @@ bool_t ms_media_player_start(MSMediaPlayer *obj) {
 		if (obj->snd_card) {
 			ms_snd_card_notify_audio_session_activated(obj->snd_card, TRUE);
 		}
-		obj->ticker = ms_ticker_new();
-		ms_ticker_set_name(obj->ticker, "Player");
+		params.name = "Player";
+		params.prio = __ms_get_default_prio(TRUE);
+		obj->ticker = ms_ticker_new_with_params(&params);
 		ms_ticker_attach(obj->ticker, obj->player);
 		obj->graph_state = GraphReady;
 	}

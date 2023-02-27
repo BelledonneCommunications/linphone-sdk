@@ -103,8 +103,10 @@ MSMediaRecorder *ms_media_recorder_new(MSFactory *factory,
                                        MSFileFormat format,
                                        const char *video_codec) {
 	MSMediaRecorder *obj = (MSMediaRecorder *)ms_new0(MSMediaRecorder, 1);
-	obj->ticker = ms_ticker_new();
-	ms_ticker_set_name(obj->ticker, "Recorder");
+	MSTickerParams params = {0};
+	params.name = "Recorder";
+	params.prio = MS_TICKER_PRIO_NORMAL;
+	obj->ticker = ms_ticker_new_with_params(&params);
 	obj->snd_card = ms_snd_card_ref(snd_card);
 	obj->web_cam = web_cam;
 	if (video_display_name != NULL && strlen(video_display_name) > 0) {

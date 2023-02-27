@@ -146,13 +146,15 @@ MS2_PUBLIC MSTicker *ms_ticker_new_with_params(const MSTickerParams *params);
 
 /**
  * Set a name to the ticker (used for logging)
+ * @deprecated prefer using ms_ticker_new_with_params() to set the name from the start.
  **/
-MS2_PUBLIC void ms_ticker_set_name(MSTicker *ticker, const char *name);
+MS2_PUBLIC MS2_DEPRECATED void ms_ticker_set_name(MSTicker *ticker, const char *name);
 
 /**
  * Deprecated: Set priority to the ticker
+ * @deprecated prefer using ms_ticker_new_with_params() to set the priority from the start.
  **/
-MS2_PUBLIC void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
+MS2_PUBLIC MS2_DEPRECATED void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio);
 
 /**
  * Attach a chain of filters to a ticker.

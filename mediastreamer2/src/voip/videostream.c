@@ -2131,6 +2131,7 @@ static void configure_video_preview_source(VideoPreview *stream) {
 }
 void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	MSConnectionHelper ch;
+	MSTickerParams ticker_params = {0};
 
 	stream->source = ms_web_cam_create_reader(device);
 	stream->cam = device;
@@ -2208,8 +2209,9 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 	}
 
 	/* create the ticker */
-	stream->ms.sessions.ticker = ms_ticker_new();
-	ms_ticker_set_name(stream->ms.sessions.ticker, "Video MSTicker");
+	ticker_params.name = "Preview";
+	ticker_params.prio = __ms_get_default_prio(TRUE);
+	stream->ms.sessions.ticker = ms_ticker_new_with_params(&ticker_params);
 	ms_ticker_attach(stream->ms.sessions.ticker, stream->source);
 	stream->ms.state = MSStreamStarted;
 }
