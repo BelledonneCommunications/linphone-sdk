@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2021 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -114,7 +114,7 @@ set(FRAMEWORK_SYMBOLS "
 
 set(SOURCE_FILES ${FRAMEWORK_SOURCE_FILES})
 source_group(framework FILES ${FRAMEWORK_SOURCE_FILES})
-if(ENABLE_BASIC)
+if(ENABLE_BCUNIT_BASIC)
 	list(APPEND SOURCE_FILES ${BASIC_SOURCE_FILES})
 	source_group(basic FILES ${BASIC_SOURCE_FILES})
 	set(BASIC_SYMBOLS "
@@ -127,7 +127,7 @@ if(ENABLE_BASIC)
 	CU_set_trace_handler
 	")
 endif()
-if(ENABLE_AUTOMATED)
+if(ENABLE_BCUNIT_AUTOMATED)
 	list(APPEND SOURCE_FILES ${AUTOMATED_SOURCE_FILES})
 	source_group(automated FILES ${AUTOMATED_SOURCE_FILES})
 	set(AUTOMATED_SYMBOLS "
@@ -138,14 +138,14 @@ if(ENABLE_AUTOMATED)
 	CU_set_output_filename
 	")
 endif()
-if(ENABLE_CONSOLE)
+if(ENABLE_BCUNIT_CONSOLE)
 	list(APPEND SOURCE_FILES ${CONSOLE_SOURCE_FILES})
 	source_group(console FILES ${CONSOLE_SOURCE_FILES})
 	set(CONSOLE_SYMBOLS "
 	CU_console_run_tests
 	")
 endif()
-if(ENABLE_CURSES)
+if(ENABLE_BCUNIT_CURSES)
 	list(APPEND SOURCE_FILES ${CURSES_SOURCE_FILES})
 	source_group(curses FILES ${CURSES_SOURCE_FILES})
 endif()
@@ -155,55 +155,41 @@ if(WIN32)
 endif()
 
 
-if(ENABLE_STATIC)
-	add_library(bcunit-static STATIC ${SOURCE_FILES})
-	set_target_properties(bcunit-static PROPERTIES OUTPUT_NAME bcunit)
-	if(ANDROID)
-		target_link_libraries(bcunit-static INTERFACE "log")
-	endif()
-	if(CURSES_LIBRARIES)
-		target_link_libraries(bcunit-static INTERFACE ${CURSES_LIBRARIES})
-	endif()
-	target_include_directories(bcunit-static PUBLIC
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers>
-		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/BCUnit/Headers>
-	)
-	install(TARGETS bcunit-static EXPORT BcUnitTargets
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
+add_library(bcunit ${SOURCE_FILES})
+target_include_directories(bcunit PUBLIC
+	$<INSTALL_INTERFACE:include>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/BCUnit/Headers>
+)
+set_target_properties(bcunit PROPERTIES VERSION 1.0.1)
+
+if(ANDROID)
+	target_link_libraries(bcunit PUBLIC "log")
 endif()
-if(ENABLE_SHARED)
-	add_library(bcunit SHARED ${SOURCE_FILES})
-	set_target_properties(bcunit PROPERTIES VERSION 1.0.1)
-	target_compile_definitions(bcunit INTERFACE "$<BUILD_INTERFACE:IN_BCUNIT_SOURCES>")
-	target_include_directories(bcunit PUBLIC
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/BCUnit/Headers>
-		$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/BCUnit/Headers>
-	)
-	if(CURSES_LIBRARIES)
-		target_link_libraries(bcunit ${CURSES_LIBRARIES})
+if(CURSES_LIBRARIES)
+	target_link_libraries(bcunit INTERFACE ${CURSES_LIBRARIES})
+endif()
+target_compile_definitions(bcunit INTERFACE "$<BUILD_INTERFACE:BCUNIT_USE_BUILD_INTERFACE>")
+
+
+install(TARGETS bcunit EXPORT BcUnitTargets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+if(MSVC AND BUILD_SHARED_LIBS)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+		install(FILES $<TARGET_PDB_FILE:bcunit>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
 	endif()
-	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:bcunit>
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
-	endif()
-	install(TARGETS bcunit EXPORT BcUnitTargets
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 endif()
 
 
-if(ENABLE_TEST)
+if(ENABLE_BCUNIT_TEST)
 	add_library(bcunit_test STATIC ${FRAMEWORK_SOURCE_FILES})
 	target_compile_definitions(bcunit_test PUBLIC MEMTRACE BCUNIT_BUILD_TESTS BCUNIT_DO_NOT_DEFINE_UNLESS_BUILDING_TESTS)
 	target_include_directories(bcunit_test PUBLIC Test)
