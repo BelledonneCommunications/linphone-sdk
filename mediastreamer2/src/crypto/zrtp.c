@@ -1129,7 +1129,10 @@ int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx) {
 }
 //#endif /* HAVE_GOCLEAR */
 
-#else  /* HAVE_ZRTP */
+#else /* HAVE_ZRTP */
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 
 MSZrtpContext *ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams *params) {
 	ms_message("ZRTP is disabled");
@@ -1142,29 +1145,40 @@ MSZrtpContext *ms_zrtp_multistream_new(MSMediaStreamSessions *sessions, MSZrtpCo
 }
 
 void ms_zrtp_enable_go_clear(MSZrtpContext *ctx, bool_t enable){};
+
 int ms_zrtp_channel_start(MSZrtpContext *ctx) {
 	return 0;
 }
+
 bool_t ms_zrtp_available() {
 	return FALSE;
 }
+
 void ms_zrtp_sas_verified(MSZrtpContext *ctx) {
 }
+
 void ms_zrtp_sas_reset_verified(MSZrtpContext *ctx) {
 }
+
 MSZrtpPeerStatus ms_zrtp_get_peer_status(void *db, const char *peerUri, bctbx_mutex_t *dbMutex) {
 	return MS_ZRTP_PEER_STATUS_UNKNOWN;
 }
+
 void ms_zrtp_context_destroy(MSZrtpContext *ctx) {
 }
+
 void ms_zrtp_reset_transmition_timer(MSZrtpContext *ctx){};
+
 int ms_zrtp_transport_modifier_new(MSZrtpContext *ctx, RtpTransportModifier **rtpt, RtpTransportModifier **rtcpt) {
 	return 0;
 }
+
 void ms_zrtp_transport_modifier_destroy(RtpTransportModifier *tp) {
 }
+
 void ms_zrtp_set_stream_sessions(MSZrtpContext *zrtp_context, MSMediaStreamSessions *stream_sessions) {
 }
+
 int ms_zrtp_getHelloHash(MSZrtpContext *ctx, uint8_t *output, size_t outputLength) {
 	return 0;
 }
@@ -1198,6 +1212,8 @@ int ms_zrtp_confirm_go_clear(MSZrtpContext *ctx) {
 int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx) {
 	return 0;
 }
+#pragma GCC diagnostic pop
+
 #endif /* HAVE_ZRTP */
 
 #define STRING_COMPARE_RETURN(string, value)                                                                           \
