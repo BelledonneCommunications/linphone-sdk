@@ -240,7 +240,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_definitions(
 		-DHAVE_COMPILER_TLS
-		-DUSE_FIXED_NAMESERVERS
 	)
 endif()
 
