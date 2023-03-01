@@ -33,6 +33,8 @@ option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
+set(CMAKE_CXX_STANDARD 17)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -45,7 +47,8 @@ include(CheckSymbolExists)
 include(CMakePushCheckState)
 
 if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+	add_definitions(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
 find_package(belr REQUIRED CONFIG)
@@ -89,7 +92,6 @@ if(MSVC)
 		list(APPEND STRICT_OPTIONS_CPP "/WX")
 	endif()
 else()
-	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
 	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations")
 	list(APPEND STRICT_OPTIONS_C "-Wdeclaration-after-statement" "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
