@@ -884,6 +884,7 @@ int32_t bctbx_ssl_handshake(bctbx_ssl_context_t *ssl_ctx) {
 					if ((ret = mbedtls_ssl_send_alert_message(&(ssl_ctx->ssl_ctx), MBEDTLS_SSL_ALERT_LEVEL_FATAL,
 					                                          MBEDTLS_SSL_ALERT_MSG_HANDSHAKE_FAILURE)) != 0)
 						return (ret);
+					return BCTBX_ERROR_NO_CLIENT_CERTIFICATE;
 				}
 				bctbx_list_free_with_data(names, bctbx_free);
 			}
