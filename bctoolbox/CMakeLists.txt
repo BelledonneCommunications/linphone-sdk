@@ -53,7 +53,7 @@ option(ENABLE_DEFAULT_LOG_HANDLER "A default log handler will be initialized, if
 # * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
 
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS NO)
 
 include(CheckLibraryExists)
