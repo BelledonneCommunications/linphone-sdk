@@ -20,13 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_SHARED)
-	set(PROJECT_LIBS bctoolbox bctoolbox-tester)
-else()
-	set(PROJECT_LIBS bctoolbox-static bctoolbox-tester-static)
-endif()
-
-if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT ANDROID)
 	set(TESTER_SOURCES
 		bctoolbox_tester.c
 		bctoolbox_tester.h
@@ -47,22 +41,22 @@ if(ENABLE_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
-	add_executable(bctoolbox_tester_exe ${TESTER_SOURCES})
+	add_executable(bctoolbox-tester-exe ${TESTER_SOURCES})
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(bctoolbox_tester_exe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(bctoolbox-tester-exe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	set_target_properties(bctoolbox_tester_exe PROPERTIES OUTPUT_NAME bctoolbox_tester)
-	target_link_libraries(bctoolbox_tester_exe PRIVATE ${PROJECT_LIBS})
+	set_target_properties(bctoolbox-tester-exe PROPERTIES OUTPUT_NAME bctoolbox-tester)
+	target_link_libraries(bctoolbox-tester-exe PRIVATE bctoolbox bctoolbox-tester)
 	if(MBEDTLS_FOUND)
-		target_link_libraries(bctoolbox_tester_exe PRIVATE ${MBEDTLS_TARGETS})
+		target_link_libraries(bctoolbox-tester-exe PRIVATE ${MBEDTLS_LIBRARIES})
 	endif()
 	if(DECAF_FOUND)
-		target_link_libraries(bctoolbox_tester_exe PRIVATE ${DECAF_TARGETNAME})
+		target_link_libraries(bctoolbox-tester-exe PRIVATE ${DECAF_LIBRARIES})
 	endif()
-	set_target_properties(bctoolbox_tester_exe PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
+	set_target_properties(bctoolbox-tester-exe PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
 	add_test(NAME bctoolbox_tester COMMAND bctoolbox_tester --verbose)
 	if(NOT IOS)
-		install(TARGETS bctoolbox_tester_exe
+		install(TARGETS bctoolbox-tester-exe
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

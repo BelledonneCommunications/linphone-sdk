@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -108,203 +108,161 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 	set_source_files_properties(utils/regex.cc PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
 endif()
 
-if(ENABLE_STATIC)
-	add_library(bctoolbox-static STATIC ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_PRIVATE_HEADER_FILES})
-	target_link_libraries(bctoolbox-static INTERFACE ${CMAKE_THREAD_LIBS_INIT})
-	if(APPLE)
-		target_link_libraries(bctoolbox-static INTERFACE "-framework Foundation" "-framework AVFoundation")
-		target_include_directories(bctoolbox-static SYSTEM PRIVATE ${ICONV_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox-static INTERFACE ${ICONV_LIBRARIES})
+
+add_library(bctoolbox ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_PRIVATE_HEADER_FILES})
+set_target_properties(bctoolbox PROPERTIES LINKER_LANGUAGE "CXX")
+target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(bctoolbox PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>
+)
+if(NOT BUILD_SHARED_LIBS)
+	set_target_properties(bctoolbox PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+endif()
+
+if(APPLE)
+	if (IOS)
+		target_link_libraries(bctoolbox PRIVATE "-framework UIKit" "-framework Foundation" "-framework AVFoundation")
+	else()
+		target_link_libraries(bctoolbox PRIVATE "-framework Foundation" "-framework AVFoundation")
 	endif()
-	if(WIN32)
-		target_link_libraries(bctoolbox-static INTERFACE "Winmm" "Ws2_32")
+	target_include_directories(bctoolbox SYSTEM PRIVATE ${ICONV_INCLUDE_DIRS})
+	target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
+
+	if(IOS)
+		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
+	else()
+		set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 	endif()
-	set_target_properties(bctoolbox-static PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(bctoolbox-static PROPERTIES OUTPUT_NAME bctoolbox)
-	if(HAVE_LIBRT)
-		target_link_libraries(bctoolbox-static INTERFACE rt)
+	set_target_properties(bctoolbox PROPERTIES
+		FRAMEWORK TRUE
+		MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
+		MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
+		PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
+	)
+endif()
+
+if(WIN32)
+	set_target_properties(bctoolbox PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+	if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+		target_link_libraries(bctoolbox PRIVATE "Winmm" "Ws2_32")
 	endif()
-	if(HAVE_LIBDL)
-		target_link_libraries(bctoolbox-static INTERFACE dl)
-	endif()
-	if(ANDROID)
-		target_link_libraries(bctoolbox-static INTERFACE log)
-	endif()
-	if(ENABLE_TESTS_COMPONENT)
-		add_library(bctoolbox-tester-static STATIC ${BCTOOLBOX_TESTER_SOURCE_FILES})
-		set_target_properties(bctoolbox-tester-static PROPERTIES OUTPUT_NAME bctoolbox-tester)
-		target_link_libraries(bctoolbox-tester-static INTERFACE bctoolbox-static)
+	target_compile_definitions(bctoolbox PRIVATE "BCTBX_EXPORTS")
+	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore") # Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
+		get_target_property(BC_LINK_FLAGS bctoolbox LINK_FLAGS)
+		if(NOT BC_LINK_FLAGS)
+			set(BC_LINK_FLAGS "")
+		endif()
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+			list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlibd /nodefaultlib:msvcrtd vccorlibd.lib msvcrtd.lib")
+		else()
+			list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlib /nodefaultlib:msvcrt vccorlib.lib msvcrt.lib")
+		endif()
+		set_target_properties(bctoolbox PROPERTIES VS_WINRT_EXTENSIONS TRUE)
+		add_compile_options(-ZW -EHsc)
+		set_target_properties(bctoolbox PROPERTIES LINK_FLAGS "${BC_LINK_FLAGS}")
 	endif()
 endif()
-if(ENABLE_SHARED)
-	add_library(bctoolbox SHARED ${BCTOOLBOX_SOURCE_FILES} ${BCTOOLBOX_HEADER_FILES} ${BCTOOLBOX_PRIVATE_HEADER_FILES})
-	target_link_libraries(bctoolbox PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+if(MSVC AND BUILD_SHARED_LIBS)
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+		install(FILES $<TARGET_PDB_FILE:bctoolbox>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+	endif()
+endif()
+
+if(HAVE_LIBRT)
+	target_link_libraries(bctoolbox PRIVATE rt)
+endif()
+
+if(HAVE_LIBDL)
+	target_link_libraries(bctoolbox PRIVATE dl)
+endif()
+
+if(ANDROID)
+	target_link_libraries(bctoolbox PRIVATE log)
+else()
+	# Do not version shared library on Android
+	set_target_properties(bctoolbox PROPERTIES SOVERSION ${BCTOOLBOX_SO_VERSION})	
+endif()
+
+
+if(ENABLE_TESTS_COMPONENT)
+	add_library(bctoolbox-tester ${BCTOOLBOX_TESTER_SOURCE_FILES})
+	set_target_properties(bctoolbox-tester PROPERTIES LINKER_LANGUAGE "CXX")
+	target_link_libraries(bctoolbox-tester PUBLIC bctoolbox PRIVATE ${BCUNIT_LIBRARIES})
+	target_include_directories(bctoolbox-tester PUBLIC
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+		$<BUILD_INTERFACE:${BCUNIT_INCLUDE_DIRS}>
+		$<INSTALL_INTERFACE:include>
+	)
 	if(APPLE)
-		if(IOS)
-			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		else()
-			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
-		set_target_properties(bctoolbox PROPERTIES
+		set_target_properties(bctoolbox-tester PROPERTIES
 			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
+			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
 			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
 		)
 	endif()
-	if(APPLE)
-		if (IOS)
-			target_link_libraries(bctoolbox PRIVATE "-framework UIKit" "-framework Foundation" "-framework AVFoundation")
-		else()
-			target_link_libraries(bctoolbox PRIVATE "-framework Foundation" "-framework AVFoundation")
-		endif()
-		target_include_directories(bctoolbox SYSTEM PRIVATE ${ICONV_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
-	endif()
 	if(WIN32)
-		set_target_properties(bctoolbox PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-		if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-			target_link_libraries(bctoolbox PRIVATE "Winmm" "Ws2_32")
-		endif()
-		target_compile_definitions(bctoolbox PRIVATE "-DBCTBX_EXPORTS")
-		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")#Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
-			get_target_property(BC_LINK_FLAGS bctoolbox LINK_FLAGS)
-			if(NOT BC_LINK_FLAGS)
-				set(BC_LINK_FLAGS "")
-			endif()
-			if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-				list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlibd /nodefaultlib:msvcrtd vccorlibd.lib msvcrtd.lib")
-			else()
-				list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlib /nodefaultlib:msvcrt vccorlib.lib msvcrt.lib")
-			endif()
-			set_target_properties(bctoolbox PROPERTIES VS_WINRT_EXTENSIONS TRUE)
-			add_definitions(-ZW -EHsc)
-			set_target_properties(bctoolbox PROPERTIES LINK_FLAGS "${BC_LINK_FLAGS}")
-		endif()
+		target_compile_definitions(bctoolbox-tester PRIVATE "BCTBX_EXPORTS")
 	endif()
-	set_target_properties(bctoolbox PROPERTIES LINKER_LANGUAGE "CXX")
 	if(NOT ANDROID)
 		# Do not version shared library on Android
-		set_target_properties(bctoolbox PROPERTIES SOVERSION ${BCTOOLBOX_SO_VERSION})
+		set_target_properties(bctoolbox-tester PROPERTIES SOVERSION ${BCTOOLBOXTESTER_SO_VERSION})
 	endif()
-	if(MSVC)
+	if(MSVC AND BUILD_SHARED_LIBS)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:bctoolbox>
+			install(FILES $<TARGET_PDB_FILE:bctoolbox-tester>
 				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
 	endif()
-	if(HAVE_LIBRT)
-		target_link_libraries(bctoolbox PRIVATE rt)
-	endif()
-	if(HAVE_LIBDL)
-		target_link_libraries(bctoolbox PRIVATE dl)
-	endif()
-	if(ANDROID)
-		target_link_libraries(bctoolbox PRIVATE log)
-	endif()
-	if(ENABLE_TESTS_COMPONENT)
-		add_library(bctoolbox-tester SHARED ${BCTOOLBOX_TESTER_SOURCE_FILES})
-		set_target_properties(bctoolbox-tester PROPERTIES LINKER_LANGUAGE "CXX")
-		target_link_libraries(bctoolbox-tester PUBLIC bctoolbox PRIVATE ${BCUNIT_TARGETNAME})
-		if(WIN32)
-			target_compile_definitions(bctoolbox-tester PRIVATE "-DBCTBX_EXPORTS")
-		endif()
-		if(NOT ANDROID)
-			# Do not version shared library on Android
-			set_target_properties(bctoolbox-tester PROPERTIES SOVERSION ${BCTOOLBOXTESTER_SO_VERSION})
-		endif()
-		if(MSVC)
-			if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-				install(FILES $<TARGET_PDB_FILE:bctoolbox-tester>
-					DESTINATION ${CMAKE_INSTALL_BINDIR}
-					PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-				)
-			endif()
-		endif()
-	endif()
 endif()
 
-if(ENABLE_STATIC)
-	target_include_directories(bctoolbox-static PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
+if(APPLE AND IOS)
+	add_library(bctoolbox-ios SHARED ${BCTOOLBOX_IOS_SOURCE_FILES})
+	target_link_libraries(bctoolbox-ios PRIVATE bctoolbox)
+	set_target_properties(bctoolbox-ios PROPERTIES
+		FRAMEWORK TRUE
+		MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox-ios
+		MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
+		LINK_FLAGS "-framework UIKit -framework Foundation -framework CoreFoundation"
 	)
-endif()
-
-if(ENABLE_SHARED)
-	target_include_directories(bctoolbox PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-	)
-endif()
-
-if(APPLE)
-	if(IOS)
-		add_library(bctoolbox-ios SHARED ${BCTOOLBOX_IOS_SOURCE_FILES})
-		target_link_libraries(bctoolbox-ios PRIVATE bctoolbox)
-		set_target_properties(bctoolbox-ios PROPERTIES
-			FRAMEWORK TRUE
-			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox-ios
-			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
-			LINK_FLAGS "-framework UIKit -framework Foundation -framework CoreFoundation"
-		)
-	endif()
 endif()
 
 if(MBEDTLS_FOUND)
-	if(ENABLE_STATIC)
-		target_link_libraries(bctoolbox-static INTERFACE ${MBEDTLS_TARGETS})
-	endif()
-	if(ENABLE_SHARED)
-		target_link_libraries(bctoolbox PRIVATE ${MBEDTLS_TARGETS})
-	endif()
+	target_include_directories(bctoolbox PRIVATE ${MBEDTLS_INCLUDE_DIRS})
+	target_link_libraries(bctoolbox PRIVATE ${MBEDTLS_LIBRARIES})
 endif()
 if(DECAF_FOUND)
-	if(ENABLE_STATIC)
-		target_include_directories(bctoolbox-static PRIVATE ${DECAF_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox-static PUBLIC decaf-static)
-	endif()
-	if(ENABLE_SHARED)
-		target_include_directories(bctoolbox PRIVATE ${DECAF_INCLUDE_DIRS})
-		target_link_libraries(bctoolbox PRIVATE ${DECAF_TARGETNAME})
-	endif()
+	target_include_directories(bctoolbox PRIVATE ${DECAF_INCLUDE_DIRS})
+	target_link_libraries(bctoolbox PRIVATE ${DECAF_LIBRARIES})
 endif()
 
+install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	COMPONENT core
+)
 if(ENABLE_TESTS_COMPONENT)
-	if(ENABLE_STATIC)
-		target_link_libraries(bctoolbox-tester-static PUBLIC bctoolbox-static ${BCUNIT_TARGETNAME})
-	endif()
-	if(ENABLE_SHARED)
-		if(APPLE)
-			set_target_properties(bctoolbox-tester PROPERTIES
-				FRAMEWORK TRUE
-				MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.bctoolbox-tester
-				MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
-				PUBLIC_HEADER "${BCTOOLBOX_HEADER_FILES}"
-			)
-		endif()
-	endif()
-endif()
-
-
-if(ENABLE_STATIC)
-	install(TARGETS bctoolbox-static EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS bctoolbox-tester EXPORT ${EXPORT_TARGETS_NAME}Targets
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		COMPONENT core
+		COMPONENT tester
 	)
-	if(ENABLE_TESTS_COMPONENT)
-		install(TARGETS bctoolbox-tester-static EXPORT ${EXPORT_TARGETS_NAME}Targets
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			COMPONENT tester
-		)
-	endif()
 endif()
-if(ENABLE_SHARED)
-	install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
+
+if(APPLE AND IOS)
+	install(TARGETS bctoolbox-ios EXPORT ${EXPORT_TARGETS_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -312,39 +270,11 @@ if(ENABLE_SHARED)
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 		COMPONENT core
 	)
-	if(ENABLE_TESTS_COMPONENT)
-		install(TARGETS bctoolbox-tester EXPORT ${EXPORT_TARGETS_NAME}Targets
-			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			FRAMEWORK DESTINATION Frameworks
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			COMPONENT tester
-		)
-	endif()
-endif()
-
-if(APPLE)
-	if(IOS)
-		install(TARGETS bctoolbox-ios EXPORT ${EXPORT_TARGETS_NAME}Targets
-			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			FRAMEWORK DESTINATION Frameworks
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			COMPONENT core
-		)
-	endif()
 endif()
 
 if(MSVC)
 	# Disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this).
-	if(ENABLE_SHARED)
-		target_compile_options(bctoolbox PRIVATE "/wd4996")
-	endif()
-	if(ENABLE_STATIC)
-		target_compile_options(bctoolbox-static PRIVATE "/wd4996")
-	endif()
+	target_compile_options(bctoolbox PRIVATE "/wd4996")
 	if(ENABLE_TESTS_COMPONENT)
 		target_compile_options(bctoolbox-tester PRIVATE "/wd4996")
 	endif()

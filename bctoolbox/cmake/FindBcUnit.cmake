@@ -1,5 +1,5 @@
 ############################################################################
-# FindDecaf.cmake
+# FindBcUnit.cmake
 # Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,31 +20,24 @@
 #
 ############################################################################
 #
-# - Find the decaf include files and library
+# - Find the bcunit include files and library
 #
-#  DECAF_FOUND - system has lib decaf
-#  DECAF_INCLUDE_DIRS - the decaf include directory
-#  DECAF_LIBRARIES - The library needed to use decaf
+#  BCUNIT_FOUND - system has lib bcunit
+#  BCUNIT_INCLUDE_DIRS - the bcunit include directory
+#  BCUNIT_LIBRARIES - The library needed to use bcunit
 
-if(TARGET decaf)
-	set(DECAF_TARGET decaf)
-elseif(TARGET decaf-static)
-	set(DECAF_TARGET decaf-static)
-endif()
+if(TARGET bcunit)
 
-if(DECAF_TARGET)
-
-	# We are building decaf
-	set(DECAF_LIBRARIES ${DECAF_TARGET})
-	get_target_property(DECAF_INCLUDE_DIRS ${DECAF_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
+	set(BCUNIT_LIBRARIES bcunit)
+	get_target_property(BCUNIT_INCLUDE_DIRS bcunit INTERFACE_INCLUDE_DIRECTORIES)
 
 
 	include(FindPackageHandleStandardArgs)
-	find_package_handle_standard_args(Decaf
+	find_package_handle_standard_args(BcUnit
 		DEFAULT_MSG
-		DECAF_INCLUDE_DIRS DECAF_LIBRARIES
+		BCUNIT_INCLUDE_DIRS BCUNIT_LIBRARIES
 	)
 
-	mark_as_advanced(DECAF_INCLUDE_DIRS DECAF_LIBRARIES)
+	mark_as_advanced(BCUNIT_INCLUDE_DIRS BCUNIT_LIBRARIES)
 
 endif()

@@ -20,13 +20,7 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.2)
-
-# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
-# version is higer or equal to 3.13.
-if(NOT CMAKE_VERSION VERSION_LESS 3.13)
-	cmake_policy(SET CMP0077 NEW)
-endif()
+cmake_minimum_required(VERSION 3.22)
 
 project(bctoolbox VERSION 5.3.0)
 
@@ -37,9 +31,8 @@ set(BCTOOLBOX_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(BCTOOLBOX_SO_VERSION 1)
 set(BCTOOLBOXTESTER_SO_VERSION 1)
 
+
 option(ENABLE_DEBUG_LOGS "Turn on or off debug level logs." NO)
-option(ENABLE_SHARED "Build shared library." ON)
-option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_MBEDTLS "Enable mbedtls support" ON)
 option(ENABLE_DECAF "Enable Elliptic Curve Cryptography support" ON)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
@@ -47,9 +40,6 @@ option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_TESTS "Enable compilation of tests" ON)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 option(ENABLE_DEFAULT_LOG_HANDLER "A default log handler will be initialized, if OFF no logging will be done before you initialize one." ON)
-
-# Hidden non-cache options:
-# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
 
 
 set(CMAKE_CXX_STANDARD 17)
@@ -75,15 +65,7 @@ endif()
 
 if(ENABLE_MBEDTLS)
 	message(STATUS "MBEDTLS Enabled")
-	if(NOT DISABLE_MBEDTLS_SEARCH)
-		message(STATUS "MBEDTLS Enabled search enabled")
-		find_package(MbedTLS)
-	else()
-		message(STATUS "MBEDTLS Enabled search disabled")
-		set (MBEDTLS_FOUND On)
-		set (DTLS_SRTP_AVAILABLE On) # we using internal Mbedtls lib, we always have DTLS-SRTP and use v3
-		set (MBEDTLS_VERSION_3 On)
-	endif()
+	find_package(MbedTLS)
 	if(MBEDTLS_FOUND)
 		if (MBEDTLS_VERSION_3)
 			message(STATUS "Using mbedTLS v3")
@@ -95,16 +77,14 @@ if(ENABLE_MBEDTLS)
 			endif()
 		endif()
 		set(HAVE_MBEDTLS 1)
-		set(MBEDTLS_TARGETS
-			mbedtls
-			mbedx509
-			mbedcrypto
-		)
 	endif()
 endif()
 
 if(ENABLE_DECAF)
-	find_package(Decaf CONFIG)
+	find_package(Decaf)
+	if(NOT DECAF_FOUND)
+		find_package(Decaf CONFIG)
+	endif()
 	if(DECAF_FOUND)
 		message(STATUS "Using Decaf")
 		set(HAVE_DECAF 1)
@@ -118,8 +98,9 @@ else()
 	message(STATUS "DTLS SRTP not available")
 endif()
 
-if (ENABLE_TESTS_COMPONENT)
-	if (NOT DISABLE_BC_PACKAGE_SEARCH)
+if(ENABLE_TESTS_COMPONENT)
+	find_package(BcUnit)
+	if (NOT BCUNIT_FOUND)
 		find_package(BcUnit CONFIG REQUIRED)
 		cmake_push_check_state(RESET)
 		list(APPEND CMAKE_REQUIRED_INCLUDES ${BCUNIT_INCLUDE_DIRS})
@@ -153,7 +134,7 @@ include_directories(
 )
 
 set(BCTOOLBOX_CPPFLAGS )
-if(ENABLE_STATIC)
+if(NOT BUILD_SHARED_LIBS)
 	set(BCTBX_STATIC 1)
 	list(APPEND BCTOOLBOX_CPPFLAGS "-DBCTBX_STATIC")
 endif()
@@ -183,7 +164,7 @@ add_definitions("-DHAVE_CONFIG_H")
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS AND ENABLE_TESTS_COMPONENT)
+if(ENABLE_UNIT_TESTS AND ENABLE_TESTS_COMPONENT)
 	add_subdirectory(tester)
 endif()
 if(ENABLE_PACKAGE_SOURCE)

@@ -36,16 +36,16 @@
 #include <unistd.h>
 #endif
 
-#ifndef IN_BCUNIT_SOURCES
-#include <BCUnit/Automated.h>
-#include <BCUnit/Basic.h>
-#include <BCUnit/MyMem.h>
-#include <BCUnit/Util.h>
-#else
+#ifdef BCUNIT_USE_BUILD_INTERFACE
 #include "Automated.h"
 #include "Basic.h"
 #include "MyMem.h"
 #include "Util.h"
+#else
+#include <BCUnit/Automated.h>
+#include <BCUnit/Basic.h>
+#include <BCUnit/MyMem.h>
+#include <BCUnit/Util.h>
 #endif
 
 #ifdef _WIN32
