@@ -496,39 +496,6 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_tls_channel_t) {
 }
 BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
-static int
-belle_sip_client_certificate_request_callback(void *data, bctbx_ssl_context_t *ssl_ctx, const bctbx_list_t *names) {
-	belle_sip_tls_channel_t *channel = (belle_sip_tls_channel_t *)data;
-
-	/* ask certificate */
-	BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(
-	    channel->base.base.full_listeners, belle_sip_channel_listener_t, on_auth_requested, &channel->base.base,
-	    (names == NULL) ? NULL : (char *)names->data); // forward only the first name of the list, this functionnality
-	                                                   // is not used for now anyway
-
-	/* if we got one, set it in the ssl handshake context */
-	if (channel->client_cert_chain && channel->client_cert_key) {
-		int err;
-		char tmp[512] = {0};
-
-		bctbx_x509_certificate_get_info_string(tmp, sizeof(tmp) - 1, "", channel->client_cert_chain->cert);
-		belle_sip_message("Channel [%p]  found client  certificate:\n%s", channel, tmp);
-
-		if ((err = bctbx_ssl_set_hs_own_cert(channel->sslctx, channel->client_cert_chain->cert,
-		                                     channel->client_cert_key->key))) {
-			bctbx_strerror(err, tmp, sizeof(tmp) - 1);
-			belle_sip_error("Channel [%p] cannot set retrieved ssl own certificate [%s]", channel, tmp);
-			return -1; /* we were not able to set the client certificate, something is going wrong, this will abort the
-			              handshake*/
-		}
-		return 0;
-	}
-
-	belle_sip_warning("Channel [%p] cannot get client certificate to answer server request", channel);
-
-	return 0; /* we couldn't find any certificate, just keep on going, server may decide to abort the handshake */
-}
-
 static int tls_handle_postcheck(belle_sip_tls_channel_t *channel) {
 	if (channel->crypto_config && channel->crypto_config->postcheck_cb) {
 		const bctbx_x509_certificate_t *cert = bctbx_ssl_get_peer_certificate(channel->sslctx);
@@ -900,6 +867,29 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	if (crypto_config->ssl_config == NULL) {
 		bctbx_ssl_config_defaults(obj->sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
 		bctbx_ssl_config_set_authmode(obj->sslcfg, BCTBX_SSL_VERIFY_REQUIRED);
+		/* set up client certificate */
+		/* if we do not have one, request it */
+		if (!(obj->client_cert_chain && obj->client_cert_key)) {
+			BELLE_SIP_INVOKE_LISTENERS_ARG1_ARG2(obj->base.base.full_listeners, belle_sip_channel_listener_t,
+			                                     on_auth_requested, &obj->base.base, NULL);
+		}
+		/* now if we do have one set it in the ssl config */
+		if (obj->client_cert_chain && obj->client_cert_key) {
+			char tmp[512] = {0};
+
+			bctbx_x509_certificate_get_info_string(tmp, sizeof(tmp) - 1, "", obj->client_cert_chain->cert);
+			belle_sip_message("Channel [%p]  found client  certificate:\n%s", obj, tmp);
+
+			int ret =
+			    bctbx_ssl_config_set_own_cert(obj->sslcfg, obj->client_cert_chain->cert, obj->client_cert_key->key);
+			if (ret < 0) {
+				belle_sip_error(
+				    "Unable to set own certificate in config for SSL context at TLS channel creation ret [-0x%x]",
+				    -ret);
+				belle_sip_object_unref(obj);
+				return -1;
+			}
+		}
 	} else { /* an SSL config is provided, use it*/
 		int ret = bctbx_ssl_config_set_crypto_library_config(obj->sslcfg, crypto_config->ssl_config);
 		if (ret < 0) {
@@ -918,7 +908,6 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 		bctbx_ssl_config_set_ca_chain(obj->sslcfg, obj->root_ca);
 	}
 	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
-	bctbx_ssl_config_set_callback_cli_cert(obj->sslcfg, belle_sip_client_certificate_request_callback, obj);
 
 	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
 	bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
