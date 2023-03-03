@@ -17,30 +17,8 @@ Pod::Spec.new do |s|
   s.user_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.module_name   = 'linphonesw' # name of the swift package
   s.swift_version = '4.0'
+  s.source_files = "@LINPHONESDK_NAME@/apple-darwin/share/linphonesw/*.swift"
+  s.framework = 'linphone', 'belle-sip', 'bctoolbox'
 
-  s.subspec 'all-frameworks' do |sp|
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/**"
-  end
-
-  s.subspec 'basic-frameworks' do |sp|
-    sp.dependency '@LINPHONESDK_NAME@/app-extension'
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/{@LINPHONE_OTHER_FRAMEWORKS@}"
-  end
-
-  s.subspec 'app-extension' do |sp|
-    sp.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/{@LINPHONE_APP_EXT_FRAMEWORKS@}"
-  end
-
-  s.subspec 'app-extension-swift' do |sp|
-    sp.source_files = "@LINPHONESDK_NAME@/apple-darwin/share/linphonesw/*.swift"
-    sp.dependency "@LINPHONESDK_NAME@/app-extension"
-    sp.framework = 'linphone', 'belle-sip', 'bctoolbox'
-  end
-
-  s.subspec 'swift' do |sp|
-    sp.dependency "@LINPHONESDK_NAME@/basic-frameworks"
-    sp.dependency "@LINPHONESDK_NAME@/app-extension-swift"
-    sp.framework = 'bctoolbox-ios'
-  end
 
 end
