@@ -43,8 +43,6 @@ include:
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
 #  - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-centos7.yml'
-  #- '.gitlab-ci-files/linux-desktop/linux-desktop-debian8.yml'
-  - '.gitlab-ci-files/linux-desktop/linux-desktop-debian9.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
 

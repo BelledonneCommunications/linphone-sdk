@@ -10,7 +10,7 @@ debian-doc-upload:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
-    - debian9-ninja-gcc
+    - debian10-ninja-gcc
 
   script:
 
@@ -52,7 +52,7 @@ bzrtp-doc-upload:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
-    - debian9-ninja-gcc
+    - debian10-ninja-gcc
 
   script:
 
@@ -92,7 +92,7 @@ lime-doc-upload:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
   needs:
-    - debian9-ninja-gcc
+    - debian10-ninja-gcc
 
   script:
     #git -C executes the git command in specified directory

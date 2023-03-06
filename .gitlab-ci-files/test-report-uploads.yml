@@ -265,22 +265,6 @@ libl-centos8-test-upload:
     PLATFORM: "linux-centos8"
     TESTER: "liblinphone"
 
-#libl-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-liblinphone-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "liblinphone"
-
-libl-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - liblinphone-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
-    TESTER: "liblinphone"
-
 libl-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -339,14 +323,6 @@ bct-centos8-test-upload:
     PLATFORM: "linux-centos8"
     TESTER: "bctoolbox"
 
-bct-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bctoolbox-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
-    TESTER: "bctoolbox"
-
 bct-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -387,22 +363,6 @@ bellesip-centos8-test-upload:
     PLATFORM: "linux-centos8"
     TESTER: "bellesip"
 
-#bct-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-bellesip-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "bellesip"
-
-bellesip-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bellesip-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
-    TESTER: "bellesip"
-
 bellesip-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -436,22 +396,6 @@ ms2-arch-test-upload:
     TESTER: "mediastreamer"
 
 #commented as long as ms2 testers aren't running everywhere
-
-#ms2-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-mediastreamer-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "mediastreamer"
-
-#ms2-debian9-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-mediastreamer-debian9
-#  variables:
-#    PLATFORM: "linux-debian9"
-#    TESTER: "mediastreamer"
 
 #ms2-debian10-test-upload:
 #  extends: .test-report-upload-linux-scheduled
@@ -494,22 +438,6 @@ belr-centos8-test-upload:
     PLATFORM: "linux-centos8"
     TESTER: "belr"
 
-#belr-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-belr-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "belr"
-
-belr-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belr-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
-    TESTER: "belr"
-
 belr-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -550,22 +478,6 @@ belcard-centos8-test-upload:
     PLATFORM: "linux-centos8"
     TESTER: "belcard"
 
-#belcard-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-belcard-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "belcard"
-
-belcard-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belcard-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
-    TESTER: "belcard"
-
 belcard-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -604,22 +516,6 @@ bzrtp-centos8-test-upload:
     - bzrtp-centos8-test
   variables:
     PLATFORM: "linux-centos8"
-    TESTER: "bzrtp"
-
-#bzrtp-debian8-test-upload:
-#  extends: .test-report-upload-linux-scheduled
-#  needs:
-#    - test-bzrtp-debian8
-#  variables:
-#    PLATFORM: "linux-debian8"
-#    TESTER: "bzrtp"
-
-bzrtp-debian9-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bzrtp-debian9-test
-  variables:
-    PLATFORM: "linux-debian9"
     TESTER: "bzrtp"
 
 bzrtp-debian10-test-upload:
