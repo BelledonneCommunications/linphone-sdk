@@ -1,6 +1,6 @@
 ############################################################################
-# FindSpeex.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# FindCpuFeatures.cmake
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,38 +20,34 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the Android cpufeatures include file and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  CPUFEATURES_FOUND - system has libcpufeatures
+#  CPUFEATURES_INCLUDE_DIRS - The libcpufeatures include directory
+#  CPUFEATURES_LIBRARIES - The libraries needed to use libcpufeatures
 
-if(TARGET speex)
+if(TARGET cpufeatures)
 
-	set(SPEEX_LIBRARIES speex)
-	get_target_property(SPEEX_INCLUDE_DIRS speex INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_SPEEX_SPEEX_H 1)
+	set(CPUFEATURES_LIBRARIES cpufeatures)
+	get_target_property(CPUFEATURES_INCLUDE_DIRS cpufeatures INTERFACE_INCLUDE_DIRECTORIES)
 
 else()
-
-	find_path(SPEEX_INCLUDE_DIRS
-		NAMES speex/speex.h
-		PATH_SUFFIXES include
+	
+	find_library(CPUFEATURES_LIBRARIES
+		NAMES cpufeatures
 	)
-	if(SPEEX_INCLUDE_DIRS)
-		set(HAVE_SPEEX_SPEEX_H 1)
-	endif()
-
-	find_library(SPEEX_LIBRARIES
-		NAMES speex
+	find_path(CPUFEATURES_INCLUDE_DIRS
+		NAMES cpu-features.h
+		PATH_SUFFIXES include
 	)
 
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
+find_package_handle_standard_args(CpuFeatures
 	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
+	CPUFEATURES_INCLUDE_DIRS
+	CPUFEATURES_LIBRARIES
 )
 
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)
+mark_as_advanced(CPUFEATURES_INCLUDE_DIRS CPUFEATURES_LIBRARIES)

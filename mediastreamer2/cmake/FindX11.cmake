@@ -34,10 +34,17 @@ if(X11_INCLUDE_DIRS)
 	set(HAVE_X11_XLIB_H 1)
 endif()
 
-find_library(X11_LIBRARIES
+find_library(X11_LIBRARY
 	NAMES X11
 	PATH_SUFFIXES lib
 )
+
+find_library(XEXT_LIBRARY
+	NAMES Xext
+	PATH_SUFFIXES lib
+)
+
+list(APPEND X11_LIBRARIES ${X11_LIBRARY} ${XEXT_LIBRARY})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(X11

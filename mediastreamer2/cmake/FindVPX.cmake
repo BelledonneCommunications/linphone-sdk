@@ -1,6 +1,6 @@
 ############################################################################
-# FindVPX.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindVPX.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,31 +26,41 @@
 #  VPX_INCLUDE_DIRS - the VPX include directory
 #  VPX_LIBRARIES - The libraries needed to use VPX
 
-set(_VPX_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+if(TARGET vpx)
 
-find_path(VPX_INCLUDE_DIRS
-	NAMES vpx/vpx_encoder.h
-	HINTS _VPX_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(VPX_INCLUDE_DIRS)
+	set(VPX_LIBRARIES libvpx)
+	get_target_property(VPX_INCLUDE_DIRS libvpx INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_VPX_VPX_ENCODER_H 1)
-endif()
 
-if( CMAKE_SIZEOF_VOID_P EQUAL 8)
-	find_library(VPX_LIBRARIES
-		NAMES vpx vpxmd
-		HINTS _VPX_ROOT_PATHS
-		PATH_SUFFIXES bin lib lib/x64
-	)
 else()
-    find_library(VPX_LIBRARIES
-            NAMES vpx vpxmd
-            HINTS _VPX_ROOT_PATHS
-            PATH_SUFFIXES bin lib lib/Win32
-    )
+
+	set(_VPX_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(VPX_INCLUDE_DIRS
+		NAMES vpx/vpx_encoder.h
+		HINTS _VPX_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(VPX_INCLUDE_DIRS)
+		set(HAVE_VPX_VPX_ENCODER_H 1)
+	endif()
+
+	if( CMAKE_SIZEOF_VOID_P EQUAL 8)
+		find_library(VPX_LIBRARIES
+			NAMES vpx vpxmd
+			HINTS _VPX_ROOT_PATHS
+			PATH_SUFFIXES bin lib lib/x64
+		)
+	else()
+	    find_library(VPX_LIBRARIES
+	            NAMES vpx vpxmd
+	            HINTS _VPX_ROOT_PATHS
+	            PATH_SUFFIXES bin lib lib/Win32
+	    )
+	endif()
+
 endif()
 
 

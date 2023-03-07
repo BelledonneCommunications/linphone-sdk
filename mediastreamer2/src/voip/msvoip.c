@@ -76,7 +76,7 @@ extern MSSndCardDesc alsa_card_desc;
 extern MSSndCardDesc ms_qsa_card_desc;
 #endif
 
-#ifdef HAVE_SYS_SOUNDCARD_H
+#ifdef __OSS_ENABLED__
 extern MSSndCardDesc oss_card_desc;
 #endif
 
@@ -131,7 +131,7 @@ static MSSndCardDesc *ms_snd_card_descs[] = {
     &ms_qsa_card_desc,
 #endif
 
-#ifdef HAVE_SYS_SOUNDCARD_H
+#ifdef __OSS_ENABLED__
     &oss_card_desc,
 #endif
 

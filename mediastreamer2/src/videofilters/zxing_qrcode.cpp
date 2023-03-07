@@ -40,7 +40,11 @@
 #endif
 
 #define ZX_USE_UTF8
+#if ZXING_USE_BUILD_INTERFACE
+#include <ReadBarcode.h>
+#else
 #include <ZXing/ReadBarcode.h>
+#endif
 
 #if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop

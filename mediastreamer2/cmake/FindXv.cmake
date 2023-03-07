@@ -29,8 +29,6 @@
 include(CheckIncludeFile)
 include(CheckSymbolExists)
 
-find_package(X11 REQUIRED)
-
 set(_XV_ROOT_PATHS
 	${CMAKE_INSTALL_PREFIX}
 )
@@ -55,9 +53,6 @@ if(XV_H_INCLUDE_DIR AND XVLIB_H_INCLUDE_DIR)
 	set(XV_INCLUDE_DIRS ${XV_H_INCLUDE_DIR} ${XVLIB_H_INCLUDE_DIR})
 endif()
 
-set(XV_INCLUDE_DIRS ${XV_INCLUDE_DIRS} ${X11_INCLUDE_DIRS})
-list(REMOVE_DUPLICATES XV_INCLUDE_DIRS)
-
 find_library(XV_LIBRARIES
 	NAMES Xv
 	HINTS _XV_ROOT_PATHS
@@ -71,9 +66,6 @@ if(XV_LIBRARIES)
 	check_symbol_exists(XvCreateImage "X11/Xlib.h;X11/extensions/Xv.h;X11/extensions/Xvlib.h" HAVE_XV_CREATE_IMAGE)
 	cmake_pop_check_state()
 endif()
-
-set(XV_LIBRARIES ${XV_LIBRARIES} ${X11_LIBRARIES})
-list(REMOVE_DUPLICATES XV_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Xv

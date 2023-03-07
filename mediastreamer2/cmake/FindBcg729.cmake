@@ -1,6 +1,6 @@
 ############################################################################
-# FindSpeex.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# FindBcg729.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,38 +20,23 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the bcg729 include file and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  BCG729_FOUND - system has bcg729
+#  BCG729_INCLUDE_DIRS - the bcg729 include directory
+#  BCG729_LIBRARIES - The libraries needed to use bcg729
 
-if(TARGET speex)
+if(TARGET bcg729)
 
-	set(SPEEX_LIBRARIES speex)
-	get_target_property(SPEEX_INCLUDE_DIRS speex INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_SPEEX_SPEEX_H 1)
+	set(BCG729_LIBRARIES bcg729)
+	get_target_property(BCG729_INCLUDE_DIRS bcg729 INTERFACE_INCLUDE_DIRECTORIES)
 
-else()
-
-	find_path(SPEEX_INCLUDE_DIRS
-		NAMES speex/speex.h
-		PATH_SUFFIXES include
+	include(FindPackageHandleStandardArgs)
+	find_package_handle_standard_args(Bcg729
+		DEFAULT_MSG
+		BCG729_INCLUDE_DIRS BCG729_LIBRARIES
 	)
-	if(SPEEX_INCLUDE_DIRS)
-		set(HAVE_SPEEX_SPEEX_H 1)
-	endif()
 
-	find_library(SPEEX_LIBRARIES
-		NAMES speex
-	)
+	mark_as_advanced(BCG729_INCLUDE_DIRS BCG729_LIBRARIES)
 
 endif()
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
-	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
-)
-
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)

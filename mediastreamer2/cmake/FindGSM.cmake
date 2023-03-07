@@ -1,6 +1,6 @@
 ############################################################################
 # FindGSM.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,24 +26,35 @@
 #  GSM_INCLUDE_DIRS - the gsm include directory
 #  GSM_LIBRARIES - The libraries needed to use gsm
 
-set(_GSM_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+if(TARGET gsm)
 
-find_path(GSM_INCLUDE_DIRS
-	NAMES gsm/gsm.h
-	HINTS _GSM_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(GSM_INCLUDE_DIRS)
+	set(GSM_LIBRARIES gsm)
+	get_target_property(GSM_INCLUDE_DIRS gsm INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_GSM_GSM_H 1)
-endif()
+	set(GSM_USE_BUILD_INTERFACE TRUE)
 
-find_library(GSM_LIBRARIES
-	NAMES gsm
-	HINTS _GSM_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
+else()
+
+	set(_GSM_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(GSM_INCLUDE_DIRS
+		NAMES gsm/gsm.h
+		HINTS _GSM_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(GSM_INCLUDE_DIRS)
+		set(HAVE_GSM_GSM_H 1)
+	endif()
+
+	find_library(GSM_LIBRARIES
+		NAMES gsm
+		HINTS _GSM_ROOT_PATHS
+		PATH_SUFFIXES bin lib
+	)
+
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GSM

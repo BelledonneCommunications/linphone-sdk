@@ -27,7 +27,7 @@
 #include "mediastreamer2/msticker.h"
 #include "ortp/rtp.h"
 
-#if defined(MS2_WINDOWS_PHONE)
+#if defined(MS2_WINDOWS_PHONE) || defined(OPUS_USE_BUILD_INTERFACE)
 #include <opus.h>
 #else
 #include <opus/opus.h>

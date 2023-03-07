@@ -30,7 +30,7 @@ typedef enum {
 	RECORDER_TEST_H264 = 2,
 } RecorderTestFlags;
 
-const char *get_filename_ext(const char *filename) {
+static const char *get_filename_ext(const char *filename) {
 	const char *dot = strrchr(filename, '.');
 	if (!dot || dot == filename) return "";
 	return dot + 1;

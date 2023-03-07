@@ -1,5 +1,5 @@
 ############################################################################
-# Copyright (c) 2010-2022 Belledonne Communications SARL.
+# Copyright (c) 2010-2023 Belledonne Communications SARL.
 #
 # This file is part of mediastreamer2 
 # (see https://gitlab.linphone.org/BC/public/mediastreamer2).
@@ -22,7 +22,7 @@
 
 find_library(LIBM NAMES m)
 
-find_program(AWK_PROGRAM awk CMAKE_FIND_ROOT_PATH_BOTH)
+find_program(AWK_PROGRAM awk)
 if(NOT AWK_PROGRAM)
 	message(FATAL_ERROR "You need the awk program to build mediastreamer2.")
 endif()
@@ -48,7 +48,7 @@ if(ANDROID)
 	list(APPEND BASE_SOURCE_FILES_C utils/msjava.c)
 endif()
 
-bc_git_version(ms2 ${PROJECT_VERSION})
+bc_git_version(mediastreamer2 ${PROJECT_VERSION})
 
 add_definitions(
 	-D_TRUE_TIME
@@ -56,7 +56,7 @@ add_definitions(
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
 )
-if(DISABLE_SRTP_SEARCH)
+if(TARGET srtp2)
 	# Set -DSRTP_INTERNAL in order to include srtp.h instead of srtp2/srtp.h
 	add_compile_definitions(SRTP_INTERNAL)
 endif()
@@ -202,12 +202,19 @@ if(BCG729_FOUND AND ENABLE_G729)
 endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/gsm.c)
+	set_source_files_properties("audiofilters/gsm.c" PROPERTIES INCLUDE_DIRECTORIES "${GSM_INCLUDE_DIRS}")
+	if(GSM_USE_BUILD_INTERFACE)
+		set_source_files_properties("audiofilters/gsm.c" PROPERTIES COMPILE_DEFINITIONS "GSM_USE_BUILD_INTERFACE")
+	endif()
 endif()
 if(BV16_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/bv16.c)
 endif()
 if(OPUS_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msopus.c)
+	if(OPUS_USE_BUILD_INTERFACE)
+		set_source_files_properties("audiofilters/msopus.c" PROPERTIES COMPILE_DEFINITIONS "OPUS_USE_BUILD_INTERFACE")
+	endif()
 endif()
 if(ENABLE_RESAMPLE)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msresample.c)
@@ -365,6 +372,10 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/zxing_qrcode.cpp
 		)
+		set_source_files_properties("videofilters/zxing_qrcode.cpp" PROPERTIES INCLUDE_DIRECTORIES "${ZXING_INCLUDE_DIRS}")
+		if(ZXING_USE_BUILD_INTERFACE)
+			set_source_files_properties("videofilters/zxing_qrcode.cpp" PROPERTIES COMPILE_DEFINITIONS "ZXING_USE_BUILD_INTERFACE")
+		endif()
 	endif()
 	if(WIN32)
 		list(APPEND VOIP_SOURCE_FILES_CXX
@@ -423,6 +434,7 @@ if(BCMATROSKA2_FOUND)
 		utils/mkv_reader.cpp
 		videofilters/mkv.cpp
 	)
+	set_source_files_properties("utils/mkv_reader.cpp" "videofilters/mkv.cpp" PROPERTIES INCLUDE_DIRECTORIES "${BCMATROSKA2_INCLUDE_DIRS}")
 endif()
 
 if(PCAP_FOUND)
@@ -436,14 +448,14 @@ endif()
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
 set(SOURCE_FILES_ALL ${BASE_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_ALL})
 
-add_custom_target(ms2-basedescs-header
+add_custom_target(mediastreamer2-basedescs-header
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DTYPE=base -DSOURCE_FILES="${BASE_SOURCE_FILES_C}"
 		-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_descs_header.cmake"
 	BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/basedescs.h")
 
-add_custom_target(ms2-voipdescs-header
+add_custom_target(mediastreamer2-voipdescs-header
 	COMMAND ${CMAKE_COMMAND} -DAWK_PROGRAM=${AWK_PROGRAM} -DAWK_SCRIPTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../"
 		-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 		-DTYPE=voip -DSOURCE_FILES="${VOIP_SOURCE_FILES_ALL}"
@@ -458,28 +470,28 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
 	if(NOT SED_PROGRAM)
 		message(FATAL_ERROR "You need the sed program to build mediastreamer2.")
 	endif()
-	add_custom_target(ms2-fragment-shader-header
+	add_custom_target(mediastreamer2-fragment-shader-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="YCbCr_to_RGB.frag"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/YCbCr_to_RGB.frag.h"
 	)
-	add_custom_target(ms2-vertex-shader-header
+	add_custom_target(mediastreamer2-vertex-shader-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="screen_transform.vert"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/screen_transform.vert.h"
 	)
-	add_custom_target(ms2-yuv2rgb-fs-header
+	add_custom_target(mediastreamer2-yuv2rgb-fs-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="yuv2rgb.fs"
 			-P "${CMAKE_CURRENT_SOURCE_DIR}/generate_yuv2rgb_header.cmake"
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/yuv2rgb.fs.h"
 	)
-	add_custom_target(ms2-yuv2rgb-vs-header
+	add_custom_target(mediastreamer2-yuv2rgb-vs-header
 		COMMAND ${CMAKE_COMMAND} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DSED_PROGRAM=${SED_PROGRAM}
 			-DINPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
 			-DSOURCE_FILE="yuv2rgb.vs"
@@ -517,38 +529,46 @@ if(VOIP_SOURCE_FILES_ASM)
 	enable_language(ASM)
 endif()
 
-set(MS2_DEPENDENCIES ms2-git-version ms2-basedescs-header ms2-voipdescs-header)
+set(MS2_DEPENDENCIES mediastreamer2-git-version mediastreamer2-basedescs-header mediastreamer2-voipdescs-header)
 if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
-	list(APPEND MS2_DEPENDENCIES ms2-vertex-shader-header ms2-fragment-shader-header ms2-yuv2rgb-fs-header ms2-yuv2rgb-vs-header)
+	list(APPEND MS2_DEPENDENCIES mediastreamer2-vertex-shader-header mediastreamer2-fragment-shader-header mediastreamer2-yuv2rgb-fs-header mediastreamer2-yuv2rgb-vs-header)
 endif()
 
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(ENABLE_STATIC)
-	add_library(mediastreamer-static STATIC ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
-	set_target_properties(mediastreamer-static PROPERTIES OUTPUT_NAME mediastreamer)
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
-	add_dependencies(mediastreamer-static ${MS2_DEPENDENCIES})
-	target_include_directories(mediastreamer-static PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer-static PRIVATE ${LINK_LIBS})
-	if(bzrtp_FOUND)
-		target_link_libraries(mediastreamer-static PRIVATE bzrtp)
-	endif()
 
-	install(TARGETS mediastreamer-static EXPORT ${EXPORT_TARGETS_NAME}Targets
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
+add_library(mediastreamer2 ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
+set_target_properties(mediastreamer2 PROPERTIES MS2_PLUGINS "${MS2_PLUGINS_LOCATION}")
+set_target_properties(mediastreamer2 PROPERTIES LINKER_LANGUAGE CXX)
+if(LINK_FLAGS_STR)
+	set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
-if(ENABLE_SHARED)
-	add_library(mediastreamer SHARED ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
-	set_target_properties(mediastreamer PROPERTIES LINKER_LANGUAGE CXX)
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+add_dependencies(mediastreamer2 ${MS2_DEPENDENCIES})
+target_include_directories(mediastreamer2 INTERFACE
+	$<INSTALL_INTERFACE:include/>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+	PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
+)
+target_link_libraries(mediastreamer2 PRIVATE ${LINK_LIBS})
+if(X11_FOUND)
+	target_link_libraries(mediastreamer2 INTERFACE ${X11_LIBRARIES})
+endif()
+if(XV_FOUND)
+	target_link_libraries(mediastreamer2 INTERFACE ${XV_LIBRARIES})
+endif()
+if(BZRTP_FOUND)
+	target_link_libraries(mediastreamer2 PRIVATE ${BZRTP_LIBRARIES})
+endif()
+if(ENABLE_OSS)
+	target_compile_definitions(mediastreamer2 PRIVATE __OSS_ENABLED__)
+endif()
+if(BV16_FOUND)
+	if(BV16_USE_BUILD_INTERFACE)
+		target_compile_definitions(mediastreamer2 PRIVATE BV16_USE_BUILD_INTERFACE)
 	endif()
-	add_dependencies(mediastreamer ${MS2_DEPENDENCIES})
+endif()
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -556,11 +576,7 @@ if(ENABLE_SHARED)
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
-		# According to Apple documentation (https://developer.apple.com/library/content/documentation/MacOSX/Conceptual/BPFrameworks/Tasks/IncludingFrameworks.html),
-		# framework header files must be included in application code using the #include directive using the followin patern: #include <Framework_name/Header_filename.h>,
-		# so name the framework mediastreamer2 instead of mediastreamer.
-		set_target_properties(mediastreamer PROPERTIES OUTPUT_NAME mediastreamer2)
-		set_target_properties(mediastreamer PROPERTIES
+		set_target_properties(mediastreamer2 PROPERTIES
 			FRAMEWORK TRUE
 			FRAMEWORK_VERSION ${MS2_FRAMEWORK_VERSION}
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer2
@@ -570,15 +586,17 @@ if(ENABLE_SHARED)
 		if(ENABLE_QT_GL AND QT5_PACKAGES)
 			foreach (package ${QT5_PACKAGES})
 				if(Qt5${package}_FOUND)
-					add_custom_command(TARGET mediastreamer POST_BUILD COMMAND install_name_tool -change "${Qt${package}_ROOT_LOCATION}Qt${package}.framework/Versions/5/Qt${package}" "@rpath/Qt${package}.framework/Versions/5/Qt${package}" $<TARGET_FILE:mediastreamer>)
+					add_custom_command(TARGET mediastreamer2 POST_BUILD COMMAND install_name_tool -change "${Qt${package}_ROOT_LOCATION}Qt${package}.framework/Versions/5/Qt${package}" "@rpath/Qt${package}.framework/Versions/5/Qt${package}" $<TARGET_FILE:mediastreamer2>)
 				endif()
 			endforeach()
 		endif()
 	endif()
 	if(ANDROID)
 		if(ENABLE_VPX)
-			set_target_properties(mediastreamer PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+			set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
 		endif()
+		# Do not version shared library on Android
+		set_target_properties(mediastreamer2 PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
 	else()
 
 
@@ -610,7 +628,7 @@ if(ENABLE_SHARED)
 				if (LINUX_OS_PRETTY_NAME MATCHES ".*Debian.*11.*")
 		 			message("Building for Debian 11, temporarily allow multiple definitions at link time to workaround issue with libtirpc of pulseaudio")
 					#Use target_link_libraries if we need to stick with CMake < 3.13
-					target_link_options(mediastreamer PUBLIC "LINKER:--allow-multiple-definition,-warn-common,--no-fatal-warnings")
+					target_link_options(mediastreamer2 PUBLIC "LINKER:--allow-multiple-definition,-warn-common,--no-fatal-warnings")
 				else()
 					message("NOT Building for Debian 11")
 				endif()
@@ -619,24 +637,13 @@ if(ENABLE_SHARED)
 
 
 
-		# Do not version shared library on Android
-		set_target_properties(mediastreamer PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
-	endif()
-	target_include_directories(mediastreamer INTERFACE
-		$<INSTALL_INTERFACE:include/>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
-		PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
-	)
-	target_link_libraries(mediastreamer PRIVATE ${LINK_LIBS})
-	if(bzrtp_FOUND)
-		target_link_libraries(mediastreamer PRIVATE bzrtp)
 	endif()
 	if(IOS)
-		target_link_libraries(mediastreamer INTERFACE "-framework Foundation" "-framework AVFoundation")
+		target_link_libraries(mediastreamer2 INTERFACE "-framework Foundation" "-framework AVFoundation")
 	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:mediastreamer>
+			install(FILES $<TARGET_PDB_FILE:mediastreamer2>
 				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
@@ -645,47 +652,42 @@ if(ENABLE_SHARED)
 	if(ENABLE_LIBYUV)
 		if( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.3)
 			message(STATUS "Mediastreamer2 : Build with position independent code")
-			set_property(TARGET mediastreamer PROPERTY POSITION_INDEPENDENT_CODE ON)
+			set_property(TARGET mediastreamer2 PROPERTY POSITION_INDEPENDENT_CODE ON)
 		endif()
 	endif()
-	install(TARGETS mediastreamer EXPORT ${EXPORT_TARGETS_NAME}Targets
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 
 endif()
 
+install(TARGETS mediastreamer2 EXPORT ${EXPORT_TARGETS_NAME}Targets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
 #Qt Plugin
 if(ENABLE_QT_GL)
-	if(ENABLE_STATIC)
-		add_library(msqogl-static STATIC ${QT_VOIP_SOURCE_FILES_CXX})
-		set_target_properties(msqogl-static PROPERTIES OUTPUT_NAME msqogl)
-		set_target_properties(msqogl-static PROPERTIES LINKER_LANGUAGE CXX)
-		install(TARGETS msqogl-static
-			ARCHIVE DESTINATION "${MS2_PLUGINS_LOCATION}"
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
-	if(ENABLE_SHARED)
+	if(BUILD_SHARED_LIBS)
 		if(NOT IOS)
 			add_library(msqogl MODULE ${QT_VOIP_SOURCE_FILES_CXX})
 		else()
 			add_library(msqogl SHARED ${QT_VOIP_SOURCE_FILES_CXX})
 		endif()
-		add_dependencies(msqogl mediastreamer)
-		target_link_libraries(msqogl PRIVATE mediastreamer bctoolbox ortp)
-		set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
+	else()
+		add_library(msqogl ${QT_VOIP_SOURCE_FILES_CXX})
+	endif()
+	add_dependencies(msqogl mediastreamer2)
+	target_include_directories(msqogl INTERFACE
+		$<INSTALL_INTERFACE:include/>
+		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
+		PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS}
+	)
+	set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
+	target_link_libraries(msqogl PRIVATE mediastreamer2 bctoolbox ortp)
+	target_link_libraries(msqogl PRIVATE ${QT_LINK_LIBS})
 
-		target_include_directories(msqogl INTERFACE
-			$<INSTALL_INTERFACE:include/>
-			$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
-			PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS}
-		)
-		target_link_libraries(msqogl PRIVATE ${QT_LINK_LIBS})
-
+	if(BUILD_SHARED_LIBS)
 		if(APPLE)
 			if(IOS)
 				set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -717,15 +719,15 @@ if(ENABLE_QT_GL)
 				set_target_properties(msqogl PROPERTIES PREFIX "lib")
 			endif()
 		endif()
-		install(TARGETS msqogl
-				RUNTIME DESTINATION ${MS2_PLUGINS_LOCATION}
-				LIBRARY DESTINATION ${MS2_PLUGINS_LOCATION}
-				ARCHIVE DESTINATION ${MS2_PLUGINS_LOCATION}
-				FRAMEWORK DESTINATION Frameworks
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
 	endif()
 
+	install(TARGETS msqogl
+			RUNTIME DESTINATION ${MS2_PLUGINS_LOCATION}
+			LIBRARY DESTINATION ${MS2_PLUGINS_LOCATION}
+			ARCHIVE DESTINATION ${MS2_PLUGINS_LOCATION}
+			FRAMEWORK DESTINATION Frameworks
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
 endif()
 
 

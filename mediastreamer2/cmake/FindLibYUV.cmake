@@ -1,6 +1,6 @@
 ############################################################################
-# FindTurboJpeg.txt
-# Copyright (C) 2016-2020  Belledonne Communications, Grenoble France
+# FindLibYUV.cmake
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 # This file is part of mediastreamer2.
 ############################################################################
 #
@@ -25,28 +25,37 @@
 #  LIBYUV_INCLUDE_DIRS - the LibYUV include directory
 #  LIBYUV_LIBRARIES - The libraries needed to use LibYUV
 
+if(TARGET yuv)
 
-set(_LIBYUV_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(LIBYUV_INCLUDE_DIRS
-	NAMES libyuv.h
-	HINTS _LIBYUV_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(LIBYUV_INCLUDE_DIRS)
+	set(LIBYUV_LIBRARIES yuv)
+	get_target_property(LIBYUV_INCLUDE_DIRS yuv INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_LIBYUV_H 1)
+
+else()
+
+	set(_LIBYUV_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(LIBYUV_INCLUDE_DIRS
+		NAMES libyuv.h
+		HINTS _LIBYUV_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(LIBYUV_INCLUDE_DIRS)
+		set(HAVE_LIBYUV_H 1)
+	endif()
+
+	find_library(LIBYUV_LIBRARIES
+		NAMES yuv
+		HINTS _LIBYUV_ROOT_PATHS
+		PATH_SUFFIXES bin lib lib/Win32
+	)
+
 endif()
 
-find_library(LIBYUV_LIBRARIES
-	NAMES yuv
-	HINTS _LIBYUV_ROOT_PATHS
-	PATH_SUFFIXES bin lib lib/Win32
-)
-
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(LIBYUV
+find_package_handle_standard_args(LibYUV
 	DEFAULT_MSG
 	LIBYUV_INCLUDE_DIRS LIBYUV_LIBRARIES HAVE_LIBYUV_H
 )

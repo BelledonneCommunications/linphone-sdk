@@ -608,6 +608,7 @@ ff_create_swscale_context(int src_w, int src_h, MSPixFmt src_fmt, int dst_w, int
 	MSFFScalerContext *ctx = ms_new0(MSFFScalerContext, 1);
 	ctx->src_h = src_h;
 #if MS_HAS_ARM
+	#pragma unused(flags)
 	ff_flags |= SWS_FAST_BILINEAR;
 #else
 	if (flags & MS_SCALER_METHOD_BILINEAR) ff_flags |= SWS_BILINEAR;

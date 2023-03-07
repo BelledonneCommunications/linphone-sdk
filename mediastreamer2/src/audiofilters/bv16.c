@@ -18,17 +18,21 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef BV16_USE_BUILD_INTERFACE
+#include <bvcommon/typedef.h>
+#include <bv16/bv16cnst.h>
+#include <bvcommon/bvcommon.h>
+#include <bv16/bv16strct.h>
+#include <bv16/bv16.h>
+#include <bv16/bitpack.h>
+#else
 #include <bv16-floatingpoint/bvcommon/typedef.h>
-
 #include <bv16-floatingpoint/bv16/bv16cnst.h>
-
 #include <bv16-floatingpoint/bvcommon/bvcommon.h>
-
 #include <bv16-floatingpoint/bv16/bv16strct.h>
-
 #include <bv16-floatingpoint/bv16/bv16.h>
-
 #include <bv16-floatingpoint/bv16/bitpack.h>
+#endif
 
 #include <bctoolbox/defs.h>
 

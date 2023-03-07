@@ -1,6 +1,6 @@
 ############################################################################
 # Mediastreamer2Config.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -35,16 +35,11 @@ include(CMakeFindDependencyMacro)
 
 include("${CMAKE_CURRENT_LIST_DIR}/Mediastreamer2Targets.cmake")
 
-if(@ENABLE_SHARED@)
-	set(MEDIASTREAMER2_TARGETNAME mediastreamer)
+set(MEDIASTREAMER2_TARGETNAME mediastreamer2)
+if(@BUILD_SHARED_LIBS@)
 	set(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME})
 else()
-	set(MEDIASTREAMER2_TARGETNAME mediastreamer-static)
-	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-		set(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME})
-	else()
-		get_target_property(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME} LOCATION)
-	endif()
+	get_target_property(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME} LOCATION)
 	get_target_property(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME} INTERFACE_LINK_LIBRARIES)
 endif()
 

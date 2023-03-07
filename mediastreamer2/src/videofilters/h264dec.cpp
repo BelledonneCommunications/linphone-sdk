@@ -369,6 +369,7 @@ static int dec_add_fmtp(MSFilter *f, void *arg) {
 }
 
 static int reset_first_image(MSFilter *f, void *data) {
+	(void)data; // Prevent unused parameter warning
 	DecData *d = (DecData *)f->data;
 	d->first_image_decoded = FALSE;
 	return 0;

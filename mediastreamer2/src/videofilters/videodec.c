@@ -108,6 +108,8 @@ static void dec_mjpeg_init(MSFilter *f) {
 static void dec_snow_init(MSFilter *f) {
 #if HAVE_ACVODEC_SNOW
 	dec_init(f, CODEC_ID_SNOW);
+#else
+	(void)f; // Prevent unused paramater warning
 #endif
 }
 static void dec_uninit(MSFilter *f) {
@@ -170,11 +172,14 @@ static void dec_preprocess(MSFilter *f) {
 			}
 #if HAVE_AVCODEC_SNOW
 		}
+#else
+		(void)f; // Prevent unused parameter warning
 #endif
 	}
 }
 
 static void dec_postprocess(MSFilter *f) {
+	(void)f; // Prevent unused paramater warning
 }
 
 static mblk_t *skip_rfc2190_header(mblk_t *inm) {
@@ -498,6 +503,7 @@ static void MakeTables(int q, u_char *lqt, u_char *cqt) {
 }
 
 static mblk_t *read_rfc2435_header(DecState *s, mblk_t *inm) {
+	(void)s; // Prevent unused parameter warning
 	if (msgdsize(inm) >= sizeof(struct jpeghdr)) {
 		struct jpeghdr *hdr = (struct jpeghdr *)inm->b_rptr;
 		uint32_t off = ntohl(*(uint32_t *)inm->b_rptr);
@@ -678,6 +684,7 @@ static void dec_process(MSFilter *f) {
 }
 
 static int reset_first_image(MSFilter *f, void *data) {
+	(void)data; // Prevent unused parameter warning
 	DecState *s = (DecState *)f->data;
 	s->first_image_decoded = FALSE;
 	return 0;

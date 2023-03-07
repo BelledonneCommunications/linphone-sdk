@@ -1,6 +1,6 @@
 ############################################################################
-# FindSpeex.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# FindBcMatroska2.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,38 +20,24 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the bcmatroska2 include files and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  BCMATROSKA2_FOUND - system has lib bcmatroska2
+#  BCMATROSKA2_INCLUDE_DIRS - the bcmatroska2 include directory
+#  BCMATROSKA2_LIBRARIES - The library needed to use bcmatroska2
 
-if(TARGET speex)
+if(TARGET bcmatroska2)
 
-	set(SPEEX_LIBRARIES speex)
-	get_target_property(SPEEX_INCLUDE_DIRS speex INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_SPEEX_SPEEX_H 1)
+	set(BCMATROSKA2_LIBRARIES bcmatroska2)
+	get_target_property(BCMATROSKA2_INCLUDE_DIRS bcmatroska2 INTERFACE_INCLUDE_DIRECTORIES)
 
-else()
 
-	find_path(SPEEX_INCLUDE_DIRS
-		NAMES speex/speex.h
-		PATH_SUFFIXES include
+	include(FindPackageHandleStandardArgs)
+	find_package_handle_standard_args(BcMatroska2
+		DEFAULT_MSG
+		BCMATROSKA2_INCLUDE_DIRS BCMATROSKA2_LIBRARIES
 	)
-	if(SPEEX_INCLUDE_DIRS)
-		set(HAVE_SPEEX_SPEEX_H 1)
-	endif()
 
-	find_library(SPEEX_LIBRARIES
-		NAMES speex
-	)
+	mark_as_advanced(BCMATROSKA2_INCLUDE_DIRS BCMATROSKA2_LIBRARIES)
 
 endif()
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
-	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
-)
-
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)

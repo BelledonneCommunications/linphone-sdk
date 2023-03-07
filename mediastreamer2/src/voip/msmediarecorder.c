@@ -89,7 +89,7 @@ static bool_t _link_all(MSMediaRecorder *obj);
 static void _unlink_all(MSMediaRecorder *obj);
 static void _recorder_callback(void *ud, MSFilter *f, unsigned int id, void *arg);
 
-const char *get_filename_ext(const char *filename) {
+static const char *get_filename_ext(const char *filename) {
 	const char *dot = strrchr(filename, '.');
 	if (!dot || dot == filename) return "";
 	return dot + 1;

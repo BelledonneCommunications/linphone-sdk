@@ -1,6 +1,6 @@
 ############################################################################
-# FindSRTP.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindSRTP.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,40 +26,70 @@
 #  SRTP_INCLUDE_DIRS - the SRTP include directory
 #  SRTP_LIBRARIES - The libraries needed to use SRTP
 
-set(_SRTP_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+if(TARGET srtp2)
 
-find_path(SRTP2_INCLUDE_DIRS
-	NAMES srtp2/srtp.h
-	HINTS _SRTP_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-
-if(SRTP2_INCLUDE_DIRS)
+	set(SRTP_LIBRARIES srtp2)
+	get_target_property(SRTP_INCLUDE_DIRS srtp2 INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_SRTP_SRTP_H 1)
-	set(SRTP_INCLUDE_DIRS ${SRTP2_INCLUDE_DIRS})
 	set(SRTP_VERSION 2)
-	find_library(SRTP_LIBRARIES
-		NAMES srtp2
-		HINTS ${_SRTP_ROOT_PATHS}
-		PATH_SUFFIXES bin lib
-	)
+
 else()
-	find_path(SRTP_INCLUDE_DIRS
-		NAMES srtp/srtp.h
+
+	set(_SRTP_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(SRTP2_INCLUDE_DIRS
+		NAMES srtp2/srtp.h
 		HINTS _SRTP_ROOT_PATHS
 		PATH_SUFFIXES include
 	)
-	if(SRTP_INCLUDE_DIRS)
+
+	if(SRTP2_INCLUDE_DIRS)
 		set(HAVE_SRTP_SRTP_H 1)
-		set(SRTP_VERSION 1)
+		set(SRTP_INCLUDE_DIRS ${SRTP2_INCLUDE_DIRS})
+		set(SRTP_VERSION 2)
+		find_library(SRTP_LIBRARIES
+			NAMES srtp2
+			HINTS ${_SRTP_ROOT_PATHS}
+			PATH_SUFFIXES bin lib
+		)
+	else()
+		find_path(SRTP_INCLUDE_DIRS
+			NAMES srtp/srtp.h
+			HINTS _SRTP_ROOT_PATHS
+			PATH_SUFFIXES include
+		)
+		if(SRTP_INCLUDE_DIRS)
+			set(HAVE_SRTP_SRTP_H 1)
+			set(SRTP_VERSION 1)
+		endif()
+		find_library(SRTP_LIBRARIES
+		NAMES srtp
+		HINTS ${_SRTP_ROOT_PATHS}
+		PATH_SUFFIXES bin lib
+	)
 	endif()
-	find_library(SRTP_LIBRARIES
-	NAMES srtp
-	HINTS ${_SRTP_ROOT_PATHS}
-	PATH_SUFFIXES bin lib
-)
+
+
+	if(SRTP_FOUND)
+		add_library(srtp2 SHARED IMPORTED)
+
+		if(NOT WIN32)
+			set(lib_location_property "IMPORTED_LOCATION")
+		else()
+			# The .lib location must be in IMPORTED_IMPLIB specific property.
+			# On Windows, IMPORTED_LOCATION property is to
+			# hold the location of the DLL file, but it isn’t
+			# mandatory somehow.
+			set(lib_location_property "IMPORTED_IMPLIB")
+		endif()
+		set_target_properties(srtp2 PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${SRTP_INCLUDE_DIRS}"
+			${lib_location_property} "${SRTP_LIBRARIES}"
+		)
+	endif()
+
 endif()
 
 
@@ -69,21 +99,3 @@ find_package_handle_standard_args(SRTP
 	VERSION_VAR SRTP_VERSION
 )
 mark_as_advanced(SRTP_INCLUDE_DIRS SRTP_LIBRARIES HAVE_SRTP_SRTP_H SRTP_VERSION)
-
-if(SRTP_FOUND)
-	add_library(srtp2 SHARED IMPORTED)
-
-	if(NOT WIN32)
-		set(lib_location_property "IMPORTED_LOCATION")
-	else()
-		# The .lib location must be in IMPORTED_IMPLIB specific property.
-		# On Windows, IMPORTED_LOCATION property is to
-		# hold the location of the DLL file, but it isn’t
-		# mandatory somehow.
-		set(lib_location_property "IMPORTED_IMPLIB")
-	endif()
-	set_target_properties(srtp2 PROPERTIES
-		INTERFACE_INCLUDE_DIRECTORIES "${SRTP_INCLUDE_DIRS}"
-		${lib_location_property} "${SRTP_LIBRARIES}"
-	)
-endif()

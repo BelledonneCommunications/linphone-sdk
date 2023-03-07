@@ -1,6 +1,6 @@
 ############################################################################
 # FindOpus.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,21 +26,32 @@
 #  OPUS_INCLUDE_DIRS - the opus include directory
 #  OPUS_LIBRARIES - The libraries needed to use opus
 
-find_path(OPUS_INCLUDE_DIRS
-	NAMES opus/opus.h
-	PATH_SUFFIXES include
-)
-if(OPUS_INCLUDE_DIRS)
+if(TARGET opus)
+
+	set(OPUS_LIBRARIES opus)
+	get_target_property(OPUS_INCLUDE_DIRS opus INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_OPUS_OPUS_H 1)
-endif()
+	set(OPUS_USE_BUILD_INTERFACE TRUE)
 
-find_library(OPUS_LIBRARIES NAMES opus)
+else()
 
-if(OPUS_LIBRARIES)
-	find_library(LIBM NAMES m)
-	if(LIBM)
-		list(APPEND OPUS_LIBRARIES ${LIBM})
+	find_path(OPUS_INCLUDE_DIRS
+		NAMES opus/opus.h
+		PATH_SUFFIXES include
+	)
+	if(OPUS_INCLUDE_DIRS)
+		set(HAVE_OPUS_OPUS_H 1)
 	endif()
+
+	find_library(OPUS_LIBRARIES NAMES opus)
+
+	if(OPUS_LIBRARIES)
+		find_library(LIBM NAMES m)
+		if(LIBM)
+			list(APPEND OPUS_LIBRARIES ${LIBM})
+		endif()
+	endif()
+
 endif()
 
 include(FindPackageHandleStandardArgs)

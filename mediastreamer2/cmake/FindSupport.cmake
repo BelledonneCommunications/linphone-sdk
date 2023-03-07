@@ -1,6 +1,6 @@
 ############################################################################
-# FindSpeex.txt
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# FindSupport.cmake
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,38 +20,27 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# - Find the Android support include file and library
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+#  SUPPORT_FOUND - system has libsupport
+#  SUPPORT_LIBRARIES - The libraries needed to use libsupport
 
-if(TARGET speex)
+if(TARGET support)
 
-	set(SPEEX_LIBRARIES speex)
-	get_target_property(SPEEX_INCLUDE_DIRS speex INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_SPEEX_SPEEX_H 1)
+	set(SUPPORT_LIBRARIES support)
 
 else()
 
-	find_path(SPEEX_INCLUDE_DIRS
-		NAMES speex/speex.h
-		PATH_SUFFIXES include
-	)
-	if(SPEEX_INCLUDE_DIRS)
-		set(HAVE_SPEEX_SPEEX_H 1)
-	endif()
-
-	find_library(SPEEX_LIBRARIES
-		NAMES speex
+	find_library(SUPPORT_LIBRARIES
+		NAMES support
 	)
 
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Speex
+find_package_handle_standard_args(Support
 	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
+	SUPPORT_LIBRARIES
 )
 
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)
+mark_as_advanced(SUPPORT_LIBRARIES)

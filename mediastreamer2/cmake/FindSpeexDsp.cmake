@@ -1,6 +1,6 @@
 ############################################################################
 # FindSpeexDsp.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,17 +26,27 @@
 #  SPEEXDSP_INCLUDE_DIRS - the speexdsp include directory
 #  SPEEXDSP_LIBRARIES - The libraries needed to use speexdsp
 
-find_path(SPEEXDSP_INCLUDE_DIRS
-	NAMES speex/speex_resampler.h
-	PATH_SUFFIXES include
-)
-if(SPEEXDSP_INCLUDE_DIRS)
-	set(HAVE_SPEEX_SPEEX_RESAMPLER_H 1)
-endif()
+if(TARGET speexdsp)
 
-find_library(SPEEXDSP_LIBRARIES
-	NAMES speexdsp
-)
+	set(SPEEXDSP_LIBRARIES speexdsp)
+	get_target_property(SPEEXDSP_INCLUDE_DIRS speexdsp INTERFACE_INCLUDE_DIRECTORIES)
+	set(HAVE_SPEEX_SPEEX_RESAMPLER_H 1)
+
+else()
+
+	find_path(SPEEXDSP_INCLUDE_DIRS
+		NAMES speex/speex_resampler.h
+		PATH_SUFFIXES include
+	)
+	if(SPEEXDSP_INCLUDE_DIRS)
+		set(HAVE_SPEEX_SPEEX_RESAMPLER_H 1)
+	endif()
+
+	find_library(SPEEXDSP_LIBRARIES
+		NAMES speexdsp
+	)
+
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SpeexDsp

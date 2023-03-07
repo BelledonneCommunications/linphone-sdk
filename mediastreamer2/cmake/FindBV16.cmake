@@ -1,6 +1,6 @@
 ############################################################################
-# FindBroadVoice16.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindBV16.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,18 +26,29 @@
 #  BV16_INCLUDE_DIRS - the bv16 include directory
 #  BV16_LIBRARIES - The libraries needed to use bv16
 
-find_path(BV16_INCLUDE_DIRS
-	NAMES bv16-floatingpoint/bv16/bv16.h
-	PATH_SUFFIXES include
-)
-if(BV16_INCLUDE_DIRS)
+if(TARGET bv16)
+
+	set(BV16_LIBRARIES bv16)
+	get_target_property(BV16_INCLUDE_DIRS bv16 INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_BV16_BV16_H 1)
+	set(BV16_USE_BUILD_INTERFACE 1)
+
+else()
+
+	find_path(BV16_INCLUDE_DIRS
+		NAMES bv16-floatingpoint/bv16/bv16.h
+		PATH_SUFFIXES include
+	)
+	if(BV16_INCLUDE_DIRS)
+		set(HAVE_BV16_BV16_H 1)
+	endif()
+
+	find_library(BV16_LIBRARIES NAMES bv16)
+
 endif()
 
-find_library(BV16_LIBRARIES NAMES bv16)
-
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(bv16
+find_package_handle_standard_args(BV16
 	DEFAULT_MSG
 	BV16_INCLUDE_DIRS BV16_LIBRARIES HAVE_BV16_BV16_H
 )

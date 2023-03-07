@@ -187,6 +187,7 @@ static int enc_add_fmtp(MSFilter *f, void *arg) {
 }
 
 static int enc_req_vfu(MSFilter *f, void *unused) {
+	(void)unused; // Prevent unused parameter warning
 	EncState *s = (EncState *)f->data;
 	s->req_vfu = TRUE;
 	return 0;
@@ -604,6 +605,7 @@ static void mjpeg_fragment_and_send(MSFilter *f,
 	/* Initialize JPEG header
 	 */
 	// jpghdr.tspec = typespec;
+	(void)typespec; // Prevent unused parameter warning
 	jpghdr.off = 0;
 	jpghdr.type = type | ((dri != 0) ? RTP_JPEG_RESTART : 0);
 	jpghdr.q = q;
