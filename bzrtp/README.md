@@ -90,10 +90,8 @@ Build options
 
 * `CMAKE_INSTALL_PREFIX=<string>` : install prefix
 * `CMAKE_PREFIX_PATH=<string>`    : column-separated list of prefixes where to search for dependencies
-* `ENABLE_SHARED=NO`              : do not build the shared library
-* `ENABLE_STATIC=NO`              : do not build the static library
 * `ENABLE_STRICT=NO`              : build without the strict compilation flags
-* `ENABLE_TESTS=YES`              : build non-regression tests
+* `ENABLE_UNIT_TESTS=YES`              : build non-regression tests
 * `ENABLE_DOC=NO`                 : generates API documentation
 * `ENABLE_PACKAGE_SOURCE=NO`      : create package source target for source archive making
 

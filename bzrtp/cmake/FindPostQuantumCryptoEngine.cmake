@@ -1,6 +1,6 @@
 ############################################################################
-# BZRTPConfig.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# FindPostQuantumCryptoEngine.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,21 +20,24 @@
 #
 ############################################################################
 #
-# Config file for the bzrtp package.
-# It defines the following variables:
+# - Find the postquantumcryptoengine include files and library
 #
-#  BZRTP_FOUND - system has bzrtp
-#  BZRTP_INCLUDE_DIRS - the bzrtp include directory
-#  BZRTP_LIBRARIES - The libraries needed to use bzrtp
-#  BZRTP_CPPFLAGS - The compilation flags needed to use bzrtp
-@PACKAGE_INIT@
+#  POSTQUANTUMCRYPTOENGINE_FOUND - system has lib postquantumcryptoengine
+#  POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS - the postquantumcryptoengine include directory
+#  POSTQUANTUMCRYPTOENGINE_LIBRARIES - The library needed to use postquantumcryptoengine
 
-include("${CMAKE_CURRENT_LIST_DIR}/BZRTPTargets.cmake")
+if(TARGET postquantumcryptoengine)
 
-# We must propagate the dependency on liboqs for static build
-if (@postquantumcryptoengine_FOUND@)
-	include(CMakeFindDependencyMacro)
-	find_dependency(postquantumcryptoengine)
+	set(POSTQUANTUMCRYPTOENGINE_LIBRARIES postquantumcryptoengine)
+	get_target_property(POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS postquantumcryptoengine INTERFACE_INCLUDE_DIRECTORIES)
+
+
+	include(FindPackageHandleStandardArgs)
+	find_package_handle_standard_args(PostQuantumCryptoEngine
+		DEFAULT_MSG
+		POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS POSTQUANTUMCRYPTOENGINE_LIBRARIES
+	)
+
+	mark_as_advanced(POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS POSTQUANTUMCRYPTOENGINE_LIBRARIES)
+
 endif()
-
-check_required_components(bzrtp)

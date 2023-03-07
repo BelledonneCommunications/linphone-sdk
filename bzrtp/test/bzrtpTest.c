@@ -86,7 +86,7 @@ void bzrtp_tester_init(void(*ftester_printf)(int level, const char *fmt, va_list
 	bc_tester_set_verbose_func(verbose_arg_func);
 	bc_tester_set_logfile_func(logfile_arg_func);
 	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, NULL);
+	bc_tester_init(ftester_printf, BCTBX_LOG_MESSAGE, BCTBX_LOG_ERROR, "patternZIDAlice.sqlite");
 
 	bc_tester_add_suite(&crypto_utils_test_suite);
 	bc_tester_add_suite(&packet_parser_test_suite);

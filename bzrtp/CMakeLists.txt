@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,21 +20,13 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
-
-# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
-# version is higer or equal to 3.13.
-if(NOT CMAKE_VERSION VERSION_LESS 3.13)
-    cmake_policy(SET CMP0077 NEW)
-endif()
+cmake_minimum_required(VERSION 3.22)
 
 project(bzrtp VERSION 5.3.0 LANGUAGES C CXX)
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
-option(ENABLE_TESTS "Enable compilation of unit tests." NO)
+option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 option(ENABLE_GOCLEAR "Enable the possibility to send and receive GoClear" YES)
@@ -62,9 +54,13 @@ include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
-if(NOT DISABLE_BC_PACKAGE_SEARCH)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
 	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
-	if (ENABLE_PQCRYPTO)
+endif()
+if(ENABLE_PQCRYPTO)
+	find_package(PostQuantumCryptoEngine)
+	if(NOT POSTQUANTUMCRYPTOENGINE_FOUND)
 		find_package(postquantumcryptoengine CONFIG REQUIRED)
 	endif()
 endif()
@@ -83,7 +79,7 @@ if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
 endif()
 
 set(BZRTP_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
-if(ENABLE_STATIC)
+if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BZRTP_CPPFLAGS "-DBZRTP_STATIC")
 endif()
 if(BZRTP_CPPFLAGS)
@@ -113,11 +109,11 @@ if (postquantumcryptoengine_FOUND)
 	message(STATUS "Building with Post Quantum Key Agreements")
 endif()
 
-set(EXPORT_TARGETS_NAME "bzrtp")
+set(EXPORT_TARGETS_NAME "BZRTP")
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_TESTS)
+if(ENABLE_UNIT_TESTS AND NOT ANDROID)
 	enable_testing()
 	add_subdirectory(test)
 endif()
@@ -131,12 +127,6 @@ write_basic_package_version_file(
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-		FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
-	)
-endif()
 
 configure_package_config_file(cmake/BZRTPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
@@ -159,7 +149,7 @@ if(ENABLE_DOC)
 	find_package(Doxygen)
 	if (DOXYGEN_FOUND)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-		add_custom_target(doc ALL
+		add_custom_target(bzrtp-doc ALL
 			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMENT "Generating API documentation with Doxygen" VERBATIM)

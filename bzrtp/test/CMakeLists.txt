@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -38,36 +38,30 @@ add_definitions(
 bc_apply_compile_flags(BZRTP_TEST_C_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BZRTP_TEST_CXX_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_executable(bzrtpTest ${BZRTP_TEST_C_SOURCES} ${BZRTP_TEST_CXX_SOURCES})
-set_target_properties(bzrtpTest PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
-set_target_properties(bzrtpTest PROPERTIES LINKER_LANGUAGE CXX)
+add_executable(bzrtp-tester ${BZRTP_TEST_C_SOURCES} ${BZRTP_TEST_CXX_SOURCES})
+set_target_properties(bzrtp-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS}")
+set_target_properties(bzrtp-tester PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(bzrtpTest PRIVATE bctoolbox bctoolbox-tester)
+target_link_libraries(bzrtp-tester PRIVATE bctoolbox bctoolbox-tester)
 
-if(ENABLE_STATIC)
-	target_link_libraries(bzrtpTest PRIVATE bzrtp)
-else()
-	target_link_libraries(bzrtpTest PRIVATE bzrtp)
-endif()
+target_link_libraries(bzrtp-tester PRIVATE bzrtp)
 if(SQLITE3_FOUND)
-	target_include_directories(bzrtpTest PRIVATE ${SQLITE3_INCLUDE_DIRS})
-	target_link_libraries(bzrtpTest PRIVATE ${SQLITE3_LIBRARIES})
+	target_include_directories(bzrtp-tester PRIVATE ${SQLITE3_INCLUDE_DIRS})
+	target_link_libraries(bzrtp-tester PRIVATE ${SQLITE3_LIBRARIES})
 endif()
 if(XML2_FOUND)
-  	target_include_directories(bzrtpTest PRIVATE ${XML2_INCLUDE_DIRS})
-	target_link_libraries(bzrtpTest PRIVATE ${XML2_LIBRARIES})
+  	target_include_directories(bzrtp-tester PRIVATE ${XML2_INCLUDE_DIRS})
+	target_link_libraries(bzrtp-tester PRIVATE ${XML2_LIBRARIES})
 endif()
 
-if(HAVE_SQRT)
-	target_link_libraries(bzrtpTest PRIVATE m)
+if(HAVE_SQRT AND NOT WIN32)
+	target_link_libraries(bzrtp-tester PRIVATE m)
 endif()
 
-unset(PATTERN_FILES_IN_TEST_DIR CACHE)
-find_file(PATTERN_FILES_IN_TEST_DIR
-       patternZIDAlice.sqlite ${CMAKE_CURRENT_BINARY_DIR}
+install(TARGETS bzrtp-tester
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
-if (NOT PATTERN_FILES_IN_TEST_DIR)
-       file(COPY patternZIDAlice.sqlite DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-endif()
-
-add_test(NAME bzrtpTest COMMAND bzrtpTest --resource-dir .)
+install(FILES patternZIDAlice.sqlite DESTINATION "${CMAKE_INSTALL_DATADIR}/bzrtp-tester")
