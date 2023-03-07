@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_SHARED)
-	set(BELR_LIBRARIES_FOR_TESTER belr)
-else()
-	set(BELR_LIBRARIES_FOR_TESTER belr)
-endif()
+set(BELR_LIBRARIES_FOR_TESTER belr)
 
 set(GRAMMAR_FILES
 	res/basicgrammar.txt
@@ -47,18 +43,18 @@ string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_executable(belr_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
-set_target_properties(belr_tester PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(belr_tester PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
+add_executable(belr-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
+set_target_properties(belr-tester PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(belr-tester PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
 
-target_link_libraries(belr_tester ${BELR_LIBRARIES_FOR_TESTER} bctoolbox bctoolbox-tester)
+target_link_libraries(belr-tester ${BELR_LIBRARIES_FOR_TESTER} bctoolbox bctoolbox-tester)
 
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
 
 if(NOT IOS)
-	install(TARGETS belr_tester
+	install(TARGETS belr-tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

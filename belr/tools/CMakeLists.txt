@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_SHARED)
-	set(BELR_LIBRARIES_FOR_TOOLS belr)
-else()
-	set(BELR_LIBRARIES_FOR_TOOLS belr)
-endif()
+set(BELR_LIBRARIES_FOR_TOOLS belr)
 
 foreach(EXECUTABLE belr-parse belr-demo belr-compiler)
 	set(SOURCE_FILES_CXX ${EXECUTABLE}.cc)

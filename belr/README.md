@@ -128,8 +128,6 @@ Build options
 
 * `CMAKE_INSTALL_PREFIX=<string>`: install prefix
 * `CMAKE_PREFIX_PATH=<string>`: column-separated list of prefixes where to search for dependencies
-* `ENABLE_SHARED=NO`: do not build the shared library
-* `ENABLE_STATIC=NO`: do not build the static library
 * `ENABLE_STRICT=NO`: build without strict compilation flags (-Wall -Werror)
 * `ENABLE_TOOLS=NO`: do not build tools (belr-demo, belr-parse)
 

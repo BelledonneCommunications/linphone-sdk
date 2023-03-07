@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -43,17 +43,15 @@ if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	list(APPEND LIBS ws2_32 Iphlpapi)
 endif()
 
-if(ENABLE_STATIC)
-	add_library(belr STATIC ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
-	set_target_properties(belr PROPERTIES OUTPUT_NAME belr)
-	target_link_libraries(belr PUBLIC ${LIBS})
-	target_include_directories(belr INTERFACE
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-	)
-endif()
-if(ENABLE_SHARED)
-	add_library(belr SHARED ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
+add_library(belr ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
+set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
+target_include_directories(belr INTERFACE
+	$<INSTALL_INTERFACE:include>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+)
+target_link_libraries(belr PUBLIC ${LIBS})
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -68,12 +66,6 @@ if(ENABLE_SHARED)
 			PUBLIC_HEADER "${BELR_HEADER_FILES}"
 		)
 	endif()
-	set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
-	target_include_directories(belr INTERFACE
-		$<INSTALL_INTERFACE:include>
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-	)
-	target_link_libraries(belr PUBLIC ${LIBS})
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES $<TARGET_PDB_FILE:belr>
