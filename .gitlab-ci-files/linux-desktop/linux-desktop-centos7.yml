@@ -164,16 +164,16 @@ liblinphone-centos7-test-mr:
   extends: .test-liblinphone-mr
   <<: *docker_image_needs_platform_devtoolset_libl
 
-#liblinphone-centos7-test-mr-tunnel-pq:
-#  extends:
-#    - .test-liblinphone-tunnel-pq-mr
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
-#  needs:
-#    - centos7-ninja-gcc-tunnel-pq
-#  variables:
-#    PLATFORM: linux-centos7
-#  before_script:
-#    - source /opt/rh/devtoolset-8/enable
+liblinphone-centos7-test-mr-tunnel-pq:
+  extends:
+    - .test-liblinphone-tunnel-pq-mr
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
+  needs:
+    - centos7-ninja-gcc-tunnel-pq
+  variables:
+    PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
 
 liblinphone-centos7-test-force:
   extends: .test-liblinphone

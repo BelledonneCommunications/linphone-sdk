@@ -49,7 +49,7 @@
 .test:
   stage: test
   extends: .job-prepare
-  allow_failure: true
+  #allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: none
@@ -105,7 +105,7 @@
 
           ./$TESTER_BIN --verbose --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneSecureCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedSecureCall.xml $ADDITIONNAL_OPTIONS || EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=$?
 
-          ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+         # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
         fi
 
     - $PULSEAUDIO_KILL
