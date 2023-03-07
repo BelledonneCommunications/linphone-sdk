@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -48,20 +48,22 @@ set(VCARD_GRAMMAR_FILES
 bc_apply_compile_flags(BELCARD_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BELCARD_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-if(ENABLE_STATIC)
-	add_library(belcard STATIC ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX})
-	set_target_properties(belcard PROPERTIES OUTPUT_NAME belcard)
-	target_link_libraries(belcard PRIVATE belr bctoolbox)
-endif()
-if(ENABLE_SHARED)
-	add_library(belcard SHARED ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX} ${VCARD_GRAMMAR_FILES})
+add_library(belcard ${BELCARD_HEADER_FILES} ${BELCARD_SOURCE_FILES_C} ${BELCARD_SOURCE_FILES_CXX} ${VCARD_GRAMMAR_FILES})
+set_target_properties(belcard PROPERTIES VERSION ${BELCARD_SO_VERSION})
+target_include_directories(belcard INTERFACE
+  $<INSTALL_INTERFACE:include>
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+)
+target_link_libraries(belcard PUBLIC belr PRIVATE bctoolbox)
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		else()
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(belcard PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belcard
@@ -70,11 +72,6 @@ if(ENABLE_SHARED)
 			PUBLIC_HEADER "${BELCARD_HEADER_FILES}"
 		)
 	endif()
-	set_target_properties(belcard PROPERTIES VERSION ${BELCARD_SO_VERSION})
-	target_include_directories(belcard INTERFACE
-	  $<INSTALL_INTERFACE:include>
-	)
-	target_link_libraries(belcard PRIVATE belr bctoolbox)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES $<TARGET_PDB_FILE:belcard>

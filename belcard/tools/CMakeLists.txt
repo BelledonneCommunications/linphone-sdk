@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_SHARED)
-	set(BELCARD_LIBRARIES_FOR_TOOLS belcard)
-else()
-	set(BELCARD_LIBRARIES_FOR_TOOLS belcard)
-endif()
+set(BELCARD_LIBRARIES_FOR_TOOLS belcard)
 
 foreach(EXECTUABLE belcard-folder belcard-unfolder belcard-parser)
 	set(SOURCE_FILES_CXX ${EXECTUABLE}.cpp)

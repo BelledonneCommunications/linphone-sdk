@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_SHARED)
-	set(BELCARD_LIBRARIES_FOR_TESTER belcard)
-else()
-	set(BELCARD_LIBRARIES_FOR_TESTER belcard)
-endif()
+set(BELCARD_LIBRARIES_FOR_TESTER belcard)
 
 set(VCARD_FILES
 	vcards/foldtest.vcf
@@ -51,17 +47,17 @@ set(SOURCE_FILES_CXX
 
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_executable(belcard_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
-set_target_properties(belcard_tester PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(belcard_tester PRIVATE ${BCTOOLBOX_INCLUDE_DIRS})
-target_link_libraries(belcard_tester belcard bctoolbox bctoolbox-tester)
+add_executable(belcard-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
+set_target_properties(belcard-tester PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(belcard-tester PRIVATE ${BCTOOLBOX_INCLUDE_DIRS})
+target_link_libraries(belcard-tester belcard belr bctoolbox bctoolbox-tester)
 
 if(NOT IOS)
-	install(TARGETS belcard_tester
+	install(TARGETS belcard-tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
-install(FILES ${VCARD_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belcard_tester/vcards")
+install(FILES ${VCARD_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belcard-tester/vcards")

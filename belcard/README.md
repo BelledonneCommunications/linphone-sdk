@@ -26,8 +26,6 @@ Options
 - `CMAKE_INSTALL_PREFIX=<string>` : installation prefix
 - `CMAKE_PREFIX_PATH=<string>`    : prefix where depedencies are installed
 - `ENABLE_UNIT_TESTS=NO`          : do not compile non-regression tests
-- `ENABLE_SHARED=NO`              : do not build the shared library.
-- `ENABLE_STATIC=NO`              : do not build the static library.
 - `ENABLE_STRICT=NO`              : do not build with strict complier flags e.g. `-Wall -Werror`
 
 

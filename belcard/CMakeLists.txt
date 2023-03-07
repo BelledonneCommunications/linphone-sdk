@@ -1,7 +1,6 @@
-
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,13 +20,12 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.22)
+
 project(BELCARD VERSION 5.3.0 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
 
-option(ENABLE_SHARED "Build shared library." ON)
-option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
@@ -51,9 +49,15 @@ if(MSVC)
 	add_definitions(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
-find_package(belr REQUIRED CONFIG)
+find_package(Belr)
+if(NOT BELR_FOUND)
+	find_package(belr REQUIRED CONFIG)
+endif()
 
-find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
+endif()
 
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
@@ -74,7 +78,7 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENE
 add_definitions("-DHAVE_CONFIG_H")
 
 set(BELCARD_CPPFLAGS ${BCTOOLBOX_CPPFLAGS} ${BELR_CPPFLAGS})
-if(ENABLE_STATIC)
+if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BELCARD_CPPFLAGS "-DBELCARD_STATIC")
 endif()
 if(BELCARD_CPPFLAGS)
@@ -128,10 +132,6 @@ include(CMakePackageConfigHelpers)
 set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 set(INCLUDE_INSTALL_DIR "include")
 
-export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
-)
-
 configure_package_config_file(cmake/BelcardConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
   	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
@@ -147,6 +147,6 @@ install(FILES
 	DESTINATION ${ConfigPackageLocation}
 )
 
-if (ENABLE_PACKAGE_SOURCE)
+if(ENABLE_PACKAGE_SOURCE)
 	add_subdirectory(build)
 endif()
