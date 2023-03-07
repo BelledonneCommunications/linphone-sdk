@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,11 +20,7 @@
 #
 ############################################################################
 
-if(ENABLE_STATIC)
-	set(PROJECT_LIBS bellesip-static)
-else()
-	set(PROJECT_LIBS bellesip)
-endif()
+set(PROJECT_LIBS belle-sip)
 
 list(APPEND PROJECT_LIBS bctoolbox)
 
@@ -68,24 +64,24 @@ bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	add_library(belle_sip_tester_static STATIC ${SOURCE_FILES_C})
-#	target_include_directories(belle_sip_tester_static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle_sip_tester_static bctoolbox bctoolbox-tester ${PROJECT_LIBS})
+	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C})
+#	target_include_directories(belle-sip-tester-static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
+	target_link_libraries(belle-sip-tester-static bctoolbox bctoolbox-tester ${PROJECT_LIBS})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
 		belle_sip_tester_windows.h
 	)
-	add_library(belle_sip_tester_runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
-	target_link_libraries(belle_sip_tester_runtime belle_sip_tester_static)
-	set_target_properties(belle_sip_tester_runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
-	set_target_properties(belle_sip_tester_runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
-	set_target_properties(belle_sip_tester_runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
-	set_target_properties(belle_sip_tester_runtime PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	set_target_properties(belle_sip_tester_runtime PROPERTIES C_STANDARD 99)
+	add_library(belle-sip-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
+	target_link_libraries(belle-sip-tester-runtime belle-sip-tester-static)
+	set_target_properties(belle-sip-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
+	set_target_properties(belle-sip-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
+	set_target_properties(belle-sip-tester-runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
+	set_target_properties(belle-sip-tester-runtime PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle-sip-tester-runtime PROPERTIES C_STANDARD 99)
 
 
-	install(TARGETS belle_sip_tester_runtime
+	install(TARGETS belle-sip-tester-runtime
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -104,21 +100,21 @@ else()
 		set(USE_BUNDLE MACOSX_BUNDLE)
 	endif()
 
-	add_executable(belle_sip_tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
-	set_target_properties(belle_sip_tester PROPERTIES LINKER_LANGUAGE CXX)
-	set_target_properties(belle_sip_tester PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	set_target_properties(belle_sip_tester PROPERTIES C_STANDARD 99)
+	add_executable(belle-sip-tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	set_target_properties(belle-sip-tester PROPERTIES LINKER_LANGUAGE CXX)
+	set_target_properties(belle-sip-tester PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle-sip-tester PROPERTIES C_STANDARD 99)
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(belle-sip-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
 	if(WIN32)
-		target_link_libraries(belle_sip_tester PRIVATE "Ws2_32")
+		target_link_libraries(belle-sip-tester PRIVATE "Ws2_32")
 	endif()
-	target_link_libraries(belle_sip_tester PRIVATE ${PROJECT_LIBS} bctoolbox-tester)
-	add_test(NAME belle_sip_tester COMMAND belle_sip_tester --verbose)
+	target_link_libraries(belle-sip-tester PRIVATE ${PROJECT_LIBS} bctoolbox-tester)
+	add_test(NAME belle-sip-tester COMMAND belle-sip-tester --verbose)
 	if(NOT IOS)
-		install(TARGETS belle_sip_tester
+		install(TARGETS belle-sip-tester
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -129,41 +125,41 @@ else()
 
 	set(OBJECT_DESCRIBE_SOURCES describe.c)
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-	add_executable(belle_sip_object_describe ${USE_BUNDLE} ${OBJECT_DESCRIBE_SOURCES})
-	set_target_properties(belle_sip_object_describe PROPERTIES LINKER_LANGUAGE CXX)
+	add_executable(belle-sip-object-describe ${USE_BUNDLE} ${OBJECT_DESCRIBE_SOURCES})
+	set_target_properties(belle-sip-object-describe PROPERTIES LINKER_LANGUAGE CXX)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle_sip_object_describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(belle-sip-object-describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_object_describe ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-object-describe ${PROJECT_LIBS})
 
 	set(OBJECT_RESOLVE_SOURCES resolve.c)
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-	add_executable(belle_sip_resolve ${USE_BUNDLE} ${OBJECT_RESOLVE_SOURCES})
-	set_target_properties(belle_sip_resolve PROPERTIES LINKER_LANGUAGE CXX)
+	add_executable(belle-sip-resolve ${USE_BUNDLE} ${OBJECT_RESOLVE_SOURCES})
+	set_target_properties(belle-sip-resolve PROPERTIES LINKER_LANGUAGE CXX)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle_sip_resolve PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(belle-sip-resolve PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_resolve ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-resolve ${PROJECT_LIBS})
 
 	set(PARSE_SOURCES parse.c)
 
 	bc_apply_compile_flags(PARSE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-	add_executable(belle_sip_parse ${USE_BUNDLE} ${PARSE_SOURCES})
-	set_target_properties(belle_sip_parse PROPERTIES LINKER_LANGUAGE CXX)
+	add_executable(belle-sip-parse ${USE_BUNDLE} ${PARSE_SOURCES})
+	set_target_properties(belle-sip-parse PROPERTIES LINKER_LANGUAGE CXX)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle_sip_parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(belle-sip-parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_parse ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-parse ${PROJECT_LIBS})
 
 	set(GET_SOURCES get.c)
 
 	bc_apply_compile_flags(GET_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-	add_executable(belle_sip_http_get ${USE_BUNDLE} ${GET_SOURCES})
-	set_target_properties(belle_sip_http_get PROPERTIES LINKER_LANGUAGE CXX)
+	add_executable(belle-sip-http-get ${USE_BUNDLE} ${GET_SOURCES})
+	set_target_properties(belle-sip-http-get PROPERTIES LINKER_LANGUAGE CXX)
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle_sip_http_get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+		set_target_properties(belle-sip-http-get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle_sip_http_get ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-http-get ${PROJECT_LIBS})
 
 endif()
 

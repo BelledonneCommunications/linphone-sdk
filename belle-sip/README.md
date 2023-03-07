@@ -69,10 +69,8 @@ Build options
 
 * `CMAKE_INSTALL_PREFIX=<string>` : install prefix.
 * `CMAKE_PREFIX_PATH=<string>`    : column-separated list of prefixes where to find dependencies.
-* `ENABLE_TESTS=NO`               : disable non-regression tests.
 * `ENABLE_STRICT=NO`              : build without strict build options like `-Wall -Werror`
-* `ENABLE_SHARED=NO`              : do not build the shared library
-* `ENABLE_STATIC=NO`              : do not build the static library
+* `ENABLE_UNIT_TESTS=NO`               : disable non-regression tests.
 
 
 Note for packagers

@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -201,80 +201,51 @@ endif()
 set(BELLESIP_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar")
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-if(ENABLE_STATIC)
-	add_library(bellesip-static STATIC ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES} ${GRAMMAR_FILES})
-	set_target_properties(bellesip-static PROPERTIES OUTPUT_NAME bellesip)
-	set_target_properties(bellesip-static PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	target_include_directories(bellesip-static INTERFACE ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
-	target_link_libraries(bellesip-static PRIVATE ${LIBS})
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(bellesip-static PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
-	require_c99(bellesip-static)
-	install(TARGETS bellesip-static EXPORT ${EXPORT_TARGETS_NAME}Targets
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
+add_library(belle-sip ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES} ${GRAMMAR_FILES})
+require_c99(belle-sip)
+set_target_properties(belle-sip PROPERTIES OUTPUT_NAME belle-sip)
+set_target_properties(belle-sip PROPERTIES SOVERSION ${BELLESIP_SO_VERSION})
+set_target_properties(belle-sip PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(belle-sip PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+target_include_directories(belle-sip INTERFACE ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
+target_link_libraries(belle-sip PRIVATE ${LIBS})
+if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
+	set_target_properties(belle-sip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 endif()
-if(ENABLE_SHARED)
-	add_library(bellesip SHARED ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES} ${GRAMMAR_FILES})
-	set_target_properties(bellesip PROPERTIES SOVERSION ${BELLESIP_SO_VERSION})
-	set_target_properties(bellesip PROPERTIES LINKER_LANGUAGE CXX)
-	set_target_properties(bellesip PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
-	target_include_directories(bellesip INTERFACE ${PUBLIC_INCLUDE_DIRS} PRIVATE ${PRIVATE_INCLUDE_DIRS})
-	target_link_libraries(bellesip PRIVATE ${LIBS})
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		else()
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
-		set_target_properties(bellesip PROPERTIES
+		set_target_properties(belle-sip PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belle-sip
 			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			RESOURCE "${BELLESIP_RESOURCES}"
 			PUBLIC_HEADER "${BELLE_SIP_HEADER_FILES}"
 		)
-		SET_TARGET_PROPERTIES(bellesip PROPERTIES OUTPUT_NAME belle-sip)
 	endif()
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(bellesip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
-	require_c99(bellesip)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:bellesip>
+			install(FILES $<TARGET_PDB_FILE:belle-sip>
 				DESTINATION ${CMAKE_INSTALL_BINDIR}
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
-
-	endif()
-	if(APPLE)
-		install(TARGETS bellesip EXPORT ${EXPORT_TARGETS_NAME}Targets
-			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			FRAMEWORK DESTINATION Frameworks
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-	else()
-		install(TARGETS bellesip EXPORT ${EXPORT_TARGETS_NAME}Targets
-			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
 	endif()
 endif()
+
+install(TARGETS belle-sip EXPORT ${EXPORT_TARGETS_NAME}Targets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
 
 install(FILES ${GRAMMAR_FILES}
 	DESTINATION "${CMAKE_INSTALL_DATADIR}/belr/grammars"
 )
-
-#to avoid // build to generate code twice in // leading compilation issues. Might probably be done in a better way
-if (ENABLE_SHARED AND ENABLE_STATIC)
-	add_dependencies(bellesip-static bellesip)
-endif()
-

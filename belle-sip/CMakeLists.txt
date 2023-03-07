@@ -1,5 +1,5 @@
 # CMakeLists.txt
-# Copyright (C) 2010-2021  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,13 +20,7 @@
 ############################################################################
 
 
-cmake_minimum_required(VERSION 3.1)
-
-# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
-# version is higer or equal to 3.13.
-if(NOT CMAKE_VERSION VERSION_LESS 3.13)
-    cmake_policy(SET CMP0077 NEW)
-endif()
+cmake_minimum_required(VERSION 3.22)
 
 project(belle-sip VERSION 5.3.0 LANGUAGES C CXX)
 
@@ -41,18 +35,12 @@ set(VERSION "${PACKAGE_VERSION}")
 set(BELLESIP_SO_VERSION 1) # set for 4.4.0 release.
 
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_RTP_MAP_ALWAYS_IN_SDP "Always include rtpmap in SDP." OFF)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
-option(ENABLE_TESTS "Enable compilation of tests" ON)
+option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
 option(ENABLE_MDNS "Enable multicast DNS" OFF)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
-
-# Hidden non-cache options:
-# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
-
 
 
 include(CheckLibraryExists)
@@ -93,9 +81,15 @@ cmake_pop_check_state()
 
 find_package(Threads)
 
-find_package(ZLIB)
+find_package(IntegratedZLIB)
+if(INTEGRATEDZLIB_FOUND)
+	set(ZLIB_FOUND TRUE)
+else()
+	find_package(ZLIB)
+endif()
 
-if(NOT DISABLE_BC_PACKAGE_SEARCH)
+find_package(Belr)
+if(NOT BELR_FOUND)
 	find_package(belr REQUIRED CONFIG)
 endif()
 
@@ -103,16 +97,13 @@ if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
 
-if(NOT DISABLE_BC_PACKAGE_SEARCH)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
 	find_package(bctoolbox 0.5.0 REQUIRED OPTIONAL_COMPONENTS tester)
 endif()
 
 if(ENABLE_TUNNEL)
-	if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-		include("${EP_tunnel_CONFIG_DIR}/TunnelConfig.cmake")
-	else()
-		find_package(Tunnel)
-	endif()
+	find_package(Tunnel)
 	if(TUNNEL_FOUND)
 		set(HAVE_TUNNEL 1)
 	else()
@@ -222,7 +213,7 @@ endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
 set(BELLESIP_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
-if(ENABLE_STATIC)
+if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BELLESIP_CPPFLAGS "-DBELLESIP_STATIC")
 endif()
 if(BELLESIP_CPPFLAGS)
@@ -244,18 +235,14 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 endif()
 
 
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	set(EXPORT_TARGETS_NAME "LinphoneBuilder")
-else()
-	set(EXPORT_TARGETS_NAME "BelleSIP")
-endif()
+set(EXPORT_TARGETS_NAME "BelleSIP")
 
 
 add_subdirectory(include)
 add_subdirectory(src)
 
 
-if(ENABLE_TESTS)
+if(ENABLE_UNIT_TESTS AND NOT ANDROID)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
@@ -270,12 +257,6 @@ write_basic_package_version_file(
 	VERSION ${PACKAGE_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-
-if(LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-		FILE "${CMAKE_CURRENT_BINARY_DIR}/BelleSIPTargets.cmake"
-	)
-endif()
 
 configure_package_config_file(cmake/BelleSIPConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
