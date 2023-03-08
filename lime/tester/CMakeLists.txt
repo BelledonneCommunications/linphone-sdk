@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -22,15 +22,14 @@
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-find_package(BelleSIP REQUIRED CONFIG)
+find_package(BelleSIP)
+if(NOT BELLESIP_FOUND)
+	find_package(BelleSIP REQUIRED CONFIG)
+endif()
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-if(ENABLE_SHARED)
-	set(LIME_LIBRARIES_FOR_TESTER lime)
-else()
-	set(LIME_LIBRARIES_FOR_TESTER lime-static)
-endif()
+set(LIME_LIBRARIES_FOR_TESTER lime)
 set(HEADER_FILES_CXX lime-tester.hpp lime-tester-utils.hpp)
 set(SOURCE_FILES_CXX
 	lime-tester.cpp
@@ -63,7 +62,7 @@ if(ANDROID OR IOS)
 		set_target_properties(limetester PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER com.belledonne-communications.limetester
-			MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_SOURCE_DIR}/build/osx/Info.plist.in"
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${HEADER_FILES_CXX}"
 		)
 	endif()
@@ -79,25 +78,25 @@ if(ANDROID OR IOS)
 		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 	)
 else()
-	add_executable(lime_tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX} ${SOURCE_FILES_C} )
-	set_target_properties(lime_tester PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(lime_tester PRIVATE bctoolbox bctoolbox-tester ${BELLESIP_TARGETNAME} ${LIME_LIBRARIES_FOR_TESTER} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
+	add_executable(lime-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX} ${SOURCE_FILES_C} )
+	set_target_properties(lime-tester PROPERTIES LINKER_LANGUAGE CXX)
+	target_link_libraries(lime-tester PRIVATE bctoolbox bctoolbox-tester ${BELLESIP_TARGETNAME} ${LIME_LIBRARIES_FOR_TESTER} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
 
 	# Some tests suite need a local X3DH server running in default config, so run them suite by suite to at least be able to pass some if no server can be found
-	add_test(NAME crypto COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Crypto")
-	add_test(NAME double_ratchet COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
-	add_test(NAME hello_world COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Hello World")
-	add_test(NAME lime COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "lime")
-	add_test(NAME multidomains COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Multidomains")
-	add_test(NAME server COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Lime server")
+	add_test(NAME crypto COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Crypto")
+	add_test(NAME double_ratchet COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "double ratchet")
+	add_test(NAME hello_world COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Hello World")
+	add_test(NAME lime COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "lime")
+	add_test(NAME multidomains COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Multidomains")
+	add_test(NAME server COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Lime server")
 	if (ENABLE_C_INTERFACE)
-		add_test(NAME C_ffi COMMAND lime_tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "FFI")
+		add_test(NAME C_ffi COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "FFI")
 	endif()
 
 	if(ENABLE_PROFILING)
-		set_target_properties(lime_tester PROPERTIES LINK_FLAGS "-pg")
+		set_target_properties(lime-tester PROPERTIES LINK_FLAGS "-pg")
 	endif()
-	install(TARGETS lime_tester
+	install(TARGETS lime-tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

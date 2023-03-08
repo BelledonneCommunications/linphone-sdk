@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019  Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,22 +19,16 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+
 include(GNUInstallDirs)
 include(CheckSymbolExists)
 include(CheckLibraryExists)
 include(CMakePushCheckState)
 include(CMakePackageConfigHelpers)
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.22)
 
-# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
-# version is higer or equal to 3.13.
-if (NOT CMAKE_VERSION VERSION_LESS 3.13)
-	cmake_policy(SET CMP0077 NEW)
-endif ()
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_CURVE25519 "Enable support of Curve 25519." YES)
 option(ENABLE_CURVE448 "Enable support of Curve 448(goldilock)." YES)
@@ -45,9 +39,6 @@ option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 
-# Hidden non-cache options:
-# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
-# * DISABLE_SOCI_PACKAGE_SEARCH: skip find_package() for Soci.
 
 set (LANGUAGES_LIST CXX)
 if (ENABLE_C_INTERFACE)
@@ -70,19 +61,12 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-if (NOT DISABLE_BC_PACKAGE_SEARCH)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
 	find_package(bctoolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
 endif ()
 
-if (NOT DISABLE_SOCI_PACKAGE_SEARCH)
-	find_package(Soci REQUIRED)
-else()
-	set(SOCI_FOUND YES)
-	set(SOCI_LIBRARIES soci_core)
-	if (APPLE OR ANDROID)
-		set(SOCI_sqlite3_PLUGIN soci_sqlite3)
-	endif()
-endif()
+find_package(Soci REQUIRED)
 
 include_directories(
 	include/
@@ -178,12 +162,6 @@ endif()
 
 set(ConfigPackageLocation "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
 
-if (LINPHONE_BUILDER_GROUP_EXTERNAL_SOURCE_PATH_BUILDERS)
-	export(EXPORT ${EXPORT_TARGETS_NAME}Targets
-			FILE "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Targets.cmake"
-			)
-endif ()
-
 configure_package_config_file(cmake/LimeConfig.cmake.in
 	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
   	INSTALL_DESTINATION ${ConfigPackageLocation}
@@ -204,7 +182,7 @@ if(ENABLE_DOC)
 	find_package(Doxygen)
 	if (DOXYGEN_FOUND)
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-		add_custom_target(doc ALL
+		add_custom_target(lime-doc ALL
 			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 			COMMENT "Generating API documentation with Doxygen" VERBATIM)

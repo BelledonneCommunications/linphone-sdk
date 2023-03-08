@@ -101,8 +101,6 @@ Options
 - `CMAKE_INSTALL_PREFIX=<string>` : installation prefix
 - `CMAKE_PREFIX_PATH=<string>`    : prefix where depedencies are installed
 - `ENABLE_UNIT_TESTS`             : compile non-regression tests (default YES)
-- `ENABLE_SHARED`                 : build the shared library (default YES)
-- `ENABLE_STATIC`                 : build the static library (default YES)
 - `ENABLE_STRICT`                 : build with strict complier flags e.g. `-Wall -Werror` (default YES)
 - `ENABLE_CURVE25519`             : Enable support of Curve 25519 (default YES)
 - `ENABLE_CURVE448`               : Enable support of Curve 448 (default YES)

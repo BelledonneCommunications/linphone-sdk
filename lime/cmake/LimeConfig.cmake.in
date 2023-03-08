@@ -1,6 +1,6 @@
 ############################################################################
 # LimeConfig.cmake
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -34,7 +34,7 @@ set(LIME_TARGETNAME lime)
 
 include("${CMAKE_CURRENT_LIST_DIR}/${LIME_TARGETNAME}Targets.cmake")
 
-if(@ENABLE_SHARED@)
+if(@BUILD_SHARED_LIBS@)
 	set(LIME_LIBRARIES ${LIME_TARGETNAME})
 else()
 	set(LIME_TARGETNAME lime-static)

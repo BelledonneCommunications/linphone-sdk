@@ -29,7 +29,7 @@ set (LIMETESTER_SOURCE_FILES_JAVA
 	org/linphone/limeTester/LimeTester.java
 )
 
-set (LIME_JAR_FILE ${CMAKE_BINARY_DIR}/src/java/Lime.jar)
+set (LIME_JAR_FILE ${PROJECT_BINARY_DIR}/src/java/Lime.jar)
 message(STATUS "Included Lime Jar file ${LIME_JAR_FILE}")
 
 add_jar(LimeTester ${LIMETESTER_SOURCE_FILES_JAVA} INCLUDE_JARS ${LIME_JAR_FILE})
