@@ -12,27 +12,38 @@ RUN yum -y update  ca-certificates && \
     yum install -y nano sudo which && \
     yum clean all
 
+# Install CMake from the tar.gz as we need a newer version than the one being packaged
+ENV CMAKE3_HOME /opt/cmake3
+RUN mkdir $CMAKE3_HOME && \
+    curl --fail --silent --show-error \
+         --location https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.tar.gz | \
+    tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
+
 # Install development tools
-RUN yum install -y at bison ccache clang cmake3 doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm && \
-    yum clean all && \
-    ln -s /usr/bin/ccmake3 /usr/bin/ccmake && \
-    ln -s /usr/bin/cmake3 /usr/bin/cmake && \
-    ln -s /usr/bin/cpack3 /usr/bin/cpack && \
-    ln -s /usr/bin/ctest3 /usr/bin/ctest
+RUN yum install -y at bison ccache clang doxygen gcc-c++ gdb gettext-devel git graphviz libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm && \
+    yum clean all
 
 # Install Developer Toolset 8 (for a newer gcc) and LLVM Toolset 7 (for newer clang)
 RUN yum install -y centos-release-scl && \
     yum-config-manager --enable rhel-server-rhscl-7-rpms && \
     yum install -y devtoolset-8 llvm-toolset-7
 
-# Install linphone & flexisp dependencies development packages
-RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients openssl-devel opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
+# Install linphone & flexisip dependencies development packages
+RUN yum install -y alsa-lib-devel ffmpeg-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
     yum clean all
 
 # Install linphone runtime dependencies
 RUN yum install -y mesa-dri-drivers && \
     yum clean all && \
     dbus-uuidgen > /var/lib/dbus/machine-id
+
+# Install openssl from source because we need a newer version than the one available in the package
+RUN curl --fail --silent --show-error --location https://www.openssl.org/source/openssl-1.1.1t.tar.gz | \
+    tar --extract --gzip --file - && ls -l && \
+    cd openssl-1.1* && \
+    ./config --prefix=/usr/local --openssldir=/etc/ssl && \
+    make && make install && \
+    cd .. && rm -rf openssl-1.1*
 
 # Configure user bc
 RUN useradd -ms /bin/bash bc && \
@@ -46,8 +57,7 @@ RUN echo 'source /opt/rh/devtoolset-8/enable' >> /home/bc/.shrc
 # This tells /bin/sh to load '~/.shrc' on starting
 ENV ENV=~/.shrc
 
-
-ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
+ENV PATH=$PATH:$CMAKE3_HOME/bin/:/opt/com.belledonne-communications/linphone/bin
 
 # Switch for 'bc' user
 USER bc

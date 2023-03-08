@@ -1,0 +1,10 @@
+#!/bin/sh
+
+export INCLUDE="@EP_ENV_INCLUDE@"
+export LIB="@EP_ENV_LIB@"
+export LIBPATH="@EP_ENV_LIBPATH@"
+
+mkdir -p "@EP_BUILD_DIR@"
+cd @EP_BUILD_DIR@
+cp -Rf @EP_SOURCE_DIR@/* .
+"@EP_CONFIGURE_COMMAND@" @EP_CONFIGURE_OPTIONS@ "--prefix=@CMAKE_INSTALL_PREFIX@" "--target=@EP_TARGET@"

@@ -66,7 +66,7 @@ arch-latest-ninja-gcc-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: arch-latest-ninja-gcc
 
 arch-latest-ninja-gcc-pqc:
@@ -75,7 +75,7 @@ arch-latest-ninja-gcc-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: arch-latest-ninja-gcc
 
 
@@ -98,7 +98,7 @@ arch-latest-ninja-clang-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: arch-latest-ninja-clang
 
 arch-latest-ninja-clang-pqc:
@@ -106,7 +106,7 @@ arch-latest-ninja-clang-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: arch-latest-ninja-clang
 
 

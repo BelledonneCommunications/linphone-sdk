@@ -1,0 +1,72 @@
+FROM debian:bookworm
+
+# Configure locale
+RUN apt-get update && \
+    apt-get install -y locales && \
+    apt-get clean && \
+    echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+ENV SHELL=/bin/bash
+
+# Install common general tools
+RUN apt-get update && \
+    apt-get install -y nano sudo vim && \
+    apt-get clean
+
+# Install development tools
+RUN apt-get update && \
+	apt-get install -y bison build-essential ccache cmake doxygen fdisk g++ gawk gcc gfortran git graphviz intltool libtool libncurses-dev lsb-release make nasm ninja-build openssh-client patch python-is-python3 qemu-user-static rsync tar texinfo unzip wget xz-utils yasm && \
+    apt-get clean
+
+# Configure user bc
+RUN useradd -ms /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd && \
+    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+ENV PATH=$PATH:/opt/com.belledonne-communications/linphone/bin
+
+# Switch for 'bc' user
+USER bc
+WORKDIR /home/bc
+
+# Install python3 modules.
+# This must be done as 'bc' user because some python modules are installed into /usr/local/lib when pip is invoked
+# as root, and rpmbuild prevent python from seaching its modules in this prefix. Using 'bc' user make the python
+# modules to be installed into /home/bc/.local/lib.
+# Need to install setuptools version 57.5.0 otherwize newer versions break compability with 2to3 module used by pystache
+
+# Need to install python3 pip modules with a virtualenv. Python or Debian does not allow to install packages via pip when the environment is externally managed (PEP 668), and pipx use is not allowed for libraries
+
+RUN sudo apt-get install -y python3-full python3-pip && sudo python3 -m venv /opt/bc/pip-packages/ && sudo apt-get clean -y && \
+    sudo /opt/bc/pip-packages/bin/pip install setuptools==57.5.0 && \
+    sudo /opt/bc/pip-packages/bin/pip install six pystache graphviz jsonschema jinja2
+
+ENV PATH=/opt/bc/pip-packages/bin:$PATH:/home/bc/.local/bin
+
+# Create the this directory for the rootfs to be mounted as a volume.
+RUN mkdir -p /home/bc/rpi_rootfs
+
+# Here is how to generate the rootfs
+# This is not possible during the 'docker build' stage because it needs to mount a filesystem
+# Therefore we provide a script to be run inside the container
+ADD --chmod=755 raspios-create-rootfs.sh /home/bc/raspios-create-rootfs.sh
+
+# Download Raspberry PI cross-compilation toolchains
+RUN wget "https://kumisystems.dl.sourceforge.net/project/raspberry-pi-cross-compilers/Raspberry Pi GCC Cross-Compiler Toolchains/Bullseye/GCC 10.3.0/Raspberry Pi 1%2C Zero/cross-gcc-10.3.0-pi_0-1.tar.gz" && \
+	wget "https://master.dl.sourceforge.net/project/raspberry-pi-cross-compilers/Raspberry Pi GCC Cross-Compiler Toolchains/Bullseye/GCC 10.3.0/Raspberry Pi 2%2C 3/cross-gcc-10.3.0-pi_2-3.tar.gz" && \
+	wget "https://netcologne.dl.sourceforge.net/project/raspberry-pi-cross-compilers/Raspberry Pi GCC Cross-Compiler Toolchains/Bullseye/GCC 10.3.0/Raspberry Pi 3A%2B%2C 3B%2B%2C 4/cross-gcc-10.3.0-pi_3%2B.tar.gz" && \
+	tar -xzf cross-gcc-10.3.0-pi_0-1.tar.gz && \
+	tar -xzf cross-gcc-10.3.0-pi_2-3.tar.gz && \
+	tar -xzf cross-gcc-10.3.0-pi_3+.tar.gz && \
+	rm cross-gcc-10.3.0-pi_0-1.tar.gz && \
+	rm cross-gcc-10.3.0-pi_2-3.tar.gz && \
+	rm cross-gcc-10.3.0-pi_3+.tar.gz
+
+ENV RASPIOS_SYSROOT_PATH=/home/bc/rpi_rootfs/rootfs
+ENV RASPBERRY_PI_0_1_TOOLCHAIN_PATH=/home/bc/cross-pi-gcc-10.3.0-0
+ENV RASPBERRY_PI_2_3_TOOLCHAIN_PATH=/home/bc/cross-pi-gcc-10.3.0-1
+ENV RASPBERRY_PI_3PLUS_TOOLCHAIN_PATH=/home/bc/cross-pi-gcc-10.3.0-2
+
+CMD bash

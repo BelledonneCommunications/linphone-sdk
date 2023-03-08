@@ -1,6 +1,6 @@
 ############################################################################
 # GenerateSDK.cmake
-# Copyright (C) 2010-2020 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,9 +20,9 @@
 #
 ############################################################################
 
+include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
-list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
-include(LinphoneSdkUtils)
+
 find_program(7Z_PROGRAM 7z.exe)
 if(7Z_PROGRAM)
 	if(NOT ENABLE_EMBEDDED_OPENH264)
@@ -30,9 +30,8 @@ if(7Z_PROGRAM)
 	else()
 		set(7Z_MORE_CONFIG "")
 	endif()
-	message(STATUS "Zipping ${LINPHONESDK_FOLDERS}")
 	execute_process(
-		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATFORM}-${LINPHONESDK_VERSION}.zip" ${LINPHONESDK_FOLDERS} ${7Z_MORE_CONFIG}
+		COMMAND ${7Z_PROGRAM} "a" "-r" "linphone-sdk-${LINPHONESDK_PLATFORM}-${LINPHONESDK_VERSION}.zip" "${LINPHONESDK_FOLDER}" ${7Z_MORE_CONFIG}
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 else()

@@ -33,8 +33,8 @@ debian-doc-upload:
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
+    - rsync -rlv build/default/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/c/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c
+    - rsync -rlv build/default/linphone-sdk/desktop/share/doc/liblinphone-$LIBLINPHONE_VERSION*/cpp/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/c++
 
 #################################################
 # Bzrtp doc upload
@@ -74,7 +74,7 @@ bzrtp-doc-upload:
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/bzrtp-$BZRTP_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
+    - rsync -rlv build/default/linphone-sdk/desktop/share/doc/bzrtp-$BZRTP_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/bzrtp/$BZRTP_VERSION
 
 #################################################
 # Lime doc upload
@@ -113,4 +113,4 @@ lime-doc-upload:
     # Create the directories if they do not exist
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
-    - rsync -rlv build-desktop/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
+    - rsync -rlv build/default/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION

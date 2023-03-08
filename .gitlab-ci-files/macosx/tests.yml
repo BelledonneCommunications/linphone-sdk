@@ -11,24 +11,24 @@ macosx-liblinphone-test:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/mac/linphone-sdk/Desktop"
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
 
   script:
     #Where am I when the zip is extracted ?
     - pwd
     #using -o for overwrite
-    - SDK_ARCHIVE_NAME=$(cat ${CI_PROJECT_DIR}/build-desktop/sdk_archive_name.txt)
-    - echo ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME
-    - ls -la ${CI_PROJECT_DIR}/build-desktop/
-    - unzip -o ${CI_PROJECT_DIR}/build-desktop/$SDK_ARCHIVE_NAME -d ${CI_PROJECT_DIR}/build-desktop
+    - SDK_ARCHIVE_NAME=$(cat ${CI_PROJECT_DIR}/build/mac/sdk_archive_name.txt)
+    - echo ${CI_PROJECT_DIR}/build/mac/$SDK_ARCHIVE_NAME
+    - ls -la ${CI_PROJECT_DIR}/build/mac/
+    - unzip -o ${CI_PROJECT_DIR}/build/mac/$SDK_ARCHIVE_NAME -d ${CI_PROJECT_DIR}/build/mac
     - cd $PATH_TO_TESTER
     - ls -la
     - echo ${CI_PROJECT_DIR}
-    - echo ${CI_PROJECT_DIR}/liblinphone/tester/tester_hosts
+    - echo ${CI_PROJECT_DIR}/build/mac/linphone-sdk/Desktop/share/liblinphone-tester/tester_hosts
     # Force core dump generation
     - ulimit -c unlimited
-    - ./bin/liblinphone_tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
+    - ./bin/liblinphone-tester --verbose --parallel $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt
 
   after_script:
     - pwd
@@ -73,7 +73,7 @@ macosx-liblinphone-test:
     - cp BCUnitAutomated* ${CI_PROJECT_DIR}/results
     - cp $LOG_PATTERN* ${CI_PROJECT_DIR}/results
     # cleaning the extracted files
-    - rm -rf ${CI_PROJECT_DIR}/build-desktop/
+    - rm -rf ${CI_PROJECT_DIR}/build/mac/
   artifacts:
     paths:
       - results/*

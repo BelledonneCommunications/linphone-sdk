@@ -50,7 +50,7 @@ ubuntu1804-makefile-clang-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu1804-makefile-clang
 
 #################################################
@@ -81,12 +81,12 @@ ubuntu1804-ninja-gcc-pqc:
     - if: $SKIP_LINUX
       when: never
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu1804-ninja-gcc
 
 ubuntu1804-ninja-gcc-smallsdk:
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO -DENABLE_QRCODE=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF -DENABLE_QRCODE=OFF
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
@@ -94,7 +94,7 @@ ubuntu1804-ninja-gcc-smallsdk:
 
 ubuntu1804-ninja-gcc-tunnel-pq:
   variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
   extends: ubuntu1804-ninja-gcc
 
 #################################################

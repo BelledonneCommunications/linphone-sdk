@@ -1,6 +1,6 @@
 ############################################################################
 # GenerateSDK.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,9 +20,7 @@
 #
 ############################################################################
 
-
-list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
-include(LinphoneSdkUtils)
+include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 
 # Create the zip file of the SDK
@@ -38,27 +36,19 @@ else()
 	set(LINPHONESDK_NAME "linphone-sdk-novideo")
 endif()
 
+
+# Create the zip file of the SDK
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${LINPHONESDK_NAME}/apple-darwin/Tools"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
-
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONESDK_NAME}/apple-darwin/Tools"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "${LINPHONESDK_NAME}/apple-darwin/Tools"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-)
-
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove" "-f" "${LINPHONESDK_NAME}-ios-${LINPHONESDK_VERSION}.zip"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
 	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "${LINPHONESDK_NAME}/apple-darwin"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 # Generate podspec file
@@ -67,9 +57,10 @@ linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS
 string(REPLACE ";" " " VALID_ARCHS "${VALID_ARCHS}")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 
-set(LINPHONESDK_FRAMEWORK_FOLDER "XCFrameworks")
 if(ENABLE_FAT_BINARY)
 	set(LINPHONESDK_FRAMEWORK_FOLDER "Frameworks")
+else()
+	set(LINPHONESDK_FRAMEWORK_FOLDER "XCFrameworks")
 endif()
 
 configure_file("${LINPHONESDK_DIR}/cmake/IOS/linphone-sdk.podspec.cmake" "${LINPHONESDK_BUILD_DIR}/${LINPHONESDK_NAME}.podspec" @ONLY)

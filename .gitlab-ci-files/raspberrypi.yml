@@ -1,0 +1,68 @@
+#################################################
+# BUILD
+#################################################
+
+.raspberrypi:
+
+  stage: build
+  extends: .linux-prepare
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON
+    CMAKE_PRESET: raspberrypi-0-1
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null
+  script:
+    # rootfs is not created here but mounted as a volume
+    # - /home/bc/raspios-create-rootfs.sh
+    - echo $RASPIOS_SYSROOT_PATH
+    - echo $RASPBERRY_PI_TOOLCHAIN_PATH
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
+    - echo $CMAKE_OPTIONS
+    - echo $CMAKE_SANITIZER_OPTIONS
+    - cmake --preset=$CMAKE_PRESET -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build --preset=$CMAKE_PRESET --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $(git describe) > build/$CMAKE_PRESET/gitdescribe.txt
+  artifacts:
+    paths:
+      - build/$CMAKE_PRESET/gitdescribe.txt
+      - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/bin/*
+      - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/lib/*
+      - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/include/*
+      - build/$CMAKE_PRESET/linphone-sdk/$CMAKE_PRESET/share/*
+    expire_in: 1 week
+
+
+raspberrypi-0-1-ninja:
+
+  tags: [ "docker-raspberrypi" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:$RASPIOS_IMAGE_VERSION
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_PRESET: raspberrypi-0-1
+    RASPBERRY_PI_TOOLCHAIN_PATH: /home/bc/cross-pi-gcc-10.3.0-0
+  extends: .raspberrypi
+
+
+raspberrypi-2-3-ninja:
+
+  tags: [ "docker-raspberrypi" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:$RASPIOS_IMAGE_VERSION
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_PRESET: raspberrypi-2-3
+    RASPBERRY_PI_TOOLCHAIN_PATH: /home/bc/cross-pi-gcc-10.3.0-1
+  extends: .raspberrypi
+
+
+raspberrypi-3plus-ninja:
+
+  tags: [ "docker-raspberrypi" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:$RASPIOS_IMAGE_VERSION
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CMAKE_PRESET: raspberrypi-3+
+    RASPBERRY_PI_TOOLCHAIN_PATH: /home/bc/cross-pi-gcc-10.3.0-2
+  extends: .raspberrypi

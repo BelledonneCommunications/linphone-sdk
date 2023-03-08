@@ -13,6 +13,7 @@ tester/Windows/**/obj
 tester/Windows/**/bin
 tester/Windows/**/Generated*
 tester/Windows/LinphoneTester_uwp/packages
+CMakeUserPresets.json
 
 # Cache
 .direnv

@@ -57,8 +57,20 @@ debian11-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-    CMAKE_OPTIONS: -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
+
+
+debian11-ninja-gcc-sequential:
+
+  tags: [ "docker" ]
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: gcc
+    CXX: g++
+    CMAKE_OPTIONS: -DBUILD_SHARED_LIBS=ON -DENABLE_STRICT=OFF
+  extends: .linux-desktop-sequential
 
 
 debian11-ninja-gcc-novideo:
@@ -66,7 +78,7 @@ debian11-ninja-gcc-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 debian11-ninja-gcc-pqc:
@@ -74,7 +86,7 @@ debian11-ninja-gcc-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 debian11-ninja-gcc-smallsdk:
@@ -82,7 +94,7 @@ debian11-ninja-gcc-smallsdk:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 
@@ -97,23 +109,23 @@ debian11-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-    CMAKE_OPTIONS: -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
 
 debian11-ninja-clang-sanitizer:
   variables:
-    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON -DCMAKE_BUILD_TYPE=Debug
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
   extends: debian11-ninja-clang
 
 debian11-ninja-clang-novideo:
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-clang
 
 debian11-ninja-clang-pqc:
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian11-ninja-clang
 
 #################################################

@@ -22,7 +22,6 @@
     - BELCARD_VERSION=$(git -C belcard describe)
     - BELR_VERSION=$(git -C belr describe)
     - BZRTP_VERSION=$(git -C bzrtp describe)
-    - CMAKE_BUILDER_VERSION=$(git -C cmake-builder describe)
     - BCUNIT_VERSION=$(git -C bcunit describe)
     - BELLESIP_VERSION=$(git -C belle-sip describe)
     - LIME_VERSION=$(git -C lime describe)
@@ -30,7 +29,7 @@
     - MS2_VERSION=$(git -C mediastreamer2 describe)
 
     #We get the SDK version from earlier jobs instead of using git describe so the URL generated in the tester job will be the same in the upload job, no matter the platform used and the git version delta
-    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build*/gitdescribe.txt)
+    - SDK_VERSION=$(cat ${CI_PROJECT_DIR}/build/*/gitdescribe.txt)
     - echo $SDK_VERSION
     - git describe
 
@@ -70,7 +69,6 @@
     - echo BELCARD_VERSION=$BELCARD_VERSION | tee -a environment.properties
     - echo BELR_VERSION=$BELR_VERSION | tee -a environment.properties
     - echo BZRTP_VERSION=$BZRTP_VERSION | tee -a environment.properties
-    - echo CMAKE_BUILDER_VERSION=$CMAKE_BUILDER_VERSION | tee -a environment.properties
     - echo BCUNIT_VERSION=$BCUNIT_VERSION | tee -a environment.properties
     - echo BELLESIP_VERSION=$BELLESIP_VERSION | tee -a environment.properties
     - echo LIME_VERSION=$LIME_VERSION | tee -a environment.properties
@@ -289,14 +287,14 @@ libl-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
 
-libl-ios-test-upload:
-  extends: .test-report-upload-ios-scheduled
-  needs:
-    - liblinphone-iOS-test
-  variables:
-    PLATFORM: "ios"
-    TESTER: "liblinphone"
-    XML_FILENAME_START_PATTERN: "TEST"
+# libl-ios-test-upload:
+#   extends: .test-report-upload-ios-scheduled
+#   needs:
+#     - liblinphone-iOS-test
+#   variables:
+#     PLATFORM: "ios"
+#     TESTER: "liblinphone"
+#     XML_FILENAME_START_PATTERN: "TEST"
 
 libl-macosx-schedule-test-upload:
   extends: .test-report-upload-macos-scheduled

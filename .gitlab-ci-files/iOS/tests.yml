@@ -19,7 +19,7 @@ liblinphone-iOS-test:
 
   script:
     - if timeout --signal=SIGINT 1 xcrun simctl list; then echo "show all devices"; else killall -9 com.apple.CoreSimulator.CoreSimulatorService; echo "restart core service"; fi
-    - cd build-ios/
+    - cd build/ios/
     - unzip linphone-sdk-*.zip -d .
     - cd ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester
     - echo ${CI_PROJECT_DIR}/tester/IOS/LinphoneTester

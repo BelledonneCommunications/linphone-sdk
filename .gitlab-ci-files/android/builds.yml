@@ -20,36 +20,37 @@
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
 
   script:
-    - mkdir -p build
-    - cd build
     - echo $CMAKE_GENERATOR
     - echo $ANDROID_ARCHS
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --preset=android-sdk -G "$CMAKE_GENERATOR" -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - cmake --build --preset=android-sdk -- $ADDITIONAL_BUILD_OPTIONS
+    # Get SDK version from cached cmake variables
+    - cd build/android
+    - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
+    - cat linphonesdkversion.txt
     - echo $(git describe) > gitdescribe.txt
-    - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversionandroid.txt
 
   artifacts:
     paths:
-      - build/gitdescribe.txt
-      - build/linphonesdkversionandroid.txt
-      - build/linphone-sdk/bin/outputs/aar/*.aar
-      - build/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
-      - build/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
-      - build/linphone-sdk/bin/distributions/linphone-sdk-*.zip
-      - build/linphone-sdk/bin/docs/javadoc/*
+      - build/android/gitdescribe.txt
+      - build/android/linphonesdkversion.txt
+      - build/android/linphone-sdk/bin/outputs/aar/*.aar
+      - build/android/linphone-sdk/bin/libs/linphone-sdk-android-javadoc.jar
+      - build/android/linphone-sdk/bin/libs/linphone-sdk-android-sources.jar
+      - build/android/linphone-sdk/bin/distributions/linphone-sdk-*.zip
+      - build/android/linphone-sdk/bin/docs/javadoc/*
 
-      #Needed for tester
-      - build/libs-debug/*
+      # Needed for tester
+      - build/android/libs-debug/*
       - linphone/tester/*
 
-      #Needed of uploads
-      - build/build.gradle
-      - build/upload.gradle
-      - build/gradle.properties
-      - build/LinphoneSdkManifest.xml
+      # Needed of uploads
+      - build/android/build.gradle
+      - build/android/upload.gradle
+      - build/android/gradle.properties
+      - build/android/LinphoneSdkManifest.xml
     when: always
     expire_in: 2 days
 
@@ -81,7 +82,7 @@ android-makefile-r25-g729-ldap:
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_G729=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON -DENABLE_LDAP=ON
   extends: android-ninja-r25
 
 android-ninja-r25-minimal-size:
@@ -92,7 +93,7 @@ android-ninja-r25-minimal-size:
     - if: $DEPLOY_RUN_ANDROID
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_VCARD=NO -DENABLE_MKV=NO -DENABLE_CAMERA2=NO -DENABLE_ASSETS=NO -DENABLE_LIME_X3DH=NO -DENABLE_QRCODE=NO -DENABLE_JPEG=NO -DENABLE_ZLIB=NO -DENABLE_SQLITE=NO -DENABLE_XML2=NO -DENABLE_ZRTP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
   extends: android-ninja-r25
 
 
@@ -111,7 +112,7 @@ android-ninja-r25-no-video:
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: .android
 
 #android-ninja-r25-macos:
@@ -128,7 +129,7 @@ android-ninja-r25-smallsdk:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF
   extends: android-ninja-r25
 
 android-ninja-r25-allcodecs:
@@ -136,13 +137,13 @@ android-ninja-r25-allcodecs:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_G729=YES
+    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_G729=ON
 
   extends: android-ninja-r25
 
 #android-ninja-r25-sanitizer:
 #  variables:
-#    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES
+#    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON
 #  extends: android-ninja-r25
 #
 android-ninja-r25-pqc:
@@ -150,5 +151,5 @@ android-ninja-r25-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: android-ninja-r25

@@ -26,7 +26,7 @@ The software products developed in the context of the Linphone project are dual 
 ### Common to all target platforms
 
 The following tools must be installed on the build machine:
- - Cmake >= 3.11
+ - Cmake >= 3.22
  - python >= 3.6
  - pip (or pip3 if the build machine has both python2 and python3)
  - yasm
@@ -55,7 +55,7 @@ Follow MSYS2 instructions on their ["Getting Started" page](https://www.msys2.or
 
 Both MinGW32 and MinGW64 are supported.
 
-When building the SDK and if you set `-DLINPHONE_BUILDER_WINDOWS_TOOLS_CHECK=ON`, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2`, `intltool` and `graphviz` (if needed)
+When building the SDK and if you set `-DENABLE_WINDOWS_TOOLS_CHECK=ON`, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2`, `intltool` and `graphviz` (if needed)
 
 In this order, add `C:\msys64\mingw<N>\bin`, `C:\msys64\` and `C:\msys64\usr\bin` in your PATH environement variable from Windows advanced settings. Binaries from the msys folder (not from mingw32/64) doesn't fully support Windows Path and thus, they are to be avoided.
 *<N> is the version of MinGW32/64*
@@ -75,36 +75,29 @@ A build with the Ninja generator (`-G "Ninja"` ) is prefered for speed-up build 
 
 The generic steps to build the SDK are:
 
- 1. Create and go inside a directory where the SDK will be built:
- `mkdir build && cd build`
- 2. Execute CMake to configure the project:
- `cmake <SOME OPTIONS> ..`
+ 1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command) and eventually some additional options:
+ `cmake --preset=<PRESET> <SOME OPTIONS>`
  3. Build the SDK:
- `cmake --build . `
+ `cmake --build --preset=<PRESET>`
  or
- `cmake --build . --parallel <number of jobs>` (which is faster).
+ `cmake --build --preset=<PRESET> --parallel <number of jobs>` (which is faster).
 
 The options below define the target of the compilation, and hence are required most of the time:
-- `LINPHONESDK_PLATFORM`: The platform for which you want to build the Linphone SDK. It must be one of: `Android`, `IOS`, Raspberry or Desktop (default value).
 - `CMAKE_BUILD_TYPE`: By default it is set to `RelWithDebInfo` to build in release mode keeping the debug information. You might want to set it to `Debug` to ease the debugging. On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
 
-These generic steps work for all platforms, but a few specifics behaviors are good to know and are described
-in the next subsections.
+These generic steps work are the base for building, but a few specifics behaviors are good to know and are described in the next subsections.
 
 ### iOS
 
 Requirement:
  - Xcode >= 10
- - Cmake >= 3.18.2
 
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until Cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
 
-`cmake .. -G Xcode -DLINPHONESDK_PLATFORM=IOS` or `cmake .. -G Ninja -DLINPHONESDK_PLATFORM=IOS`
+`cmake --preset=ios -G Xcode` or `cmake --preset=ios -G Ninja`
 
-If using the Xcode generator, the build type must be specified for compilation step with `--config`:
-`cmake --build . --config <cfg>`, where `<cfg>` is one of `Debug`, `Release`, `RelWithDebInfo` or `MinSizeRel`.
-If nothing is specified, the SDK will be built in Debug mode.
+If the generator is not specified, Xcode will be used by default.
 
 Please note that the Xcode backend is very slow: about one hour of build time, compared to approximately 15 mn for Ninja.
 
@@ -154,10 +147,10 @@ Next command lines must be typed in the docker shell:
 mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
 
 # Configure the build
-cmake .. -DLINPHONESDK_PLATFORM=Android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+cmake --preset=android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
 
 # Build
-make -j <njobs>
+cmake --build --preset=android --parallel <number of jobs>
 
 # Quit build environment
 exit
@@ -170,10 +163,29 @@ The freshly built SDK is located in `<linphone-sdk>/build`.
 Requirement:
  - Xcode >= 12
 
+Configure the project with:
+
+`cmake --preset=macos`
+
+And build it with:
+
+`cmake --build --preset=macos`
+
+As for the iOS build, you can alternatively build with Ninja instead of Xcode by specifying it during the configuration step:
+
+`cmake --preset=macos -G Ninja`
+
 ### Windows
 
- `cmake --build .` works on Windows as for all platforms.
- However it may be convenient to build from Visual Studio, which you can do:
+Configure the project with:
+
+`cmake --preset=windows`
+
+As for all other platforms, you can then build with:
+
+`cmake --build --preset=windows`
+
+However it may be convenient to build from Visual Studio, which you can do:
  - open `linphone-sdk.sln` with Visual Studio
  - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to Cmake (see customization options below).
  - use `Build solution` to build.
@@ -182,9 +194,8 @@ Requirement:
 
 You can use linphone-sdk in your Windows UWP app with the UWP mode.
 Win32 application can use the Windows Store mode in order to be publishable in Windows Stores.
-The Windows Bridge mode is built by using `-DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake`. It is only for x86 build. You will find all libraries in linphone-sdk/desktop. Add `-DENABLE_CSHARP_WRAPPER=ON` to generate the C# wrapper.
-The UWP mode is built by setting the option `-DLINPHONESDK_PLATFORM=UWP`. If `-DLINPHONESDK_UWP_ARCHS` is not used, x86 and x64 will be build. 
-All libraries will be in linphone-sdk/uwp-x86 or linphone-sdk/uwp-x64
+The Windows Bridge mode is built by using the `windows-store` preset instead of the `windows` one.
+The UWP mode is built by using the `uwp` preset instead of the `windows` one. If `-DLINPHONESDK_UWP_ARCHS` is not used, x86 and x64 will be build. 
 
 Then, you can inject directly all your libraries that you need or package the SDK in a Nuget package.
 
@@ -197,7 +208,7 @@ See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
 ## Upgrading your SDK
 
-Simply re-invoking `cmake --build .` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
+Simply re-invoking `cmake --build --preset=<PRESET>` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
 
 ## Customizing the build
 
@@ -208,8 +219,11 @@ Otherwise, you can use the `cmake-gui` or `ccmake` commands to configure all the
 The following options control the cpu architectures built for a target platform:
 - `LINPHONESDK_ANDROID_ARCHS`: A comma-separated list of the architectures for which you want to build the Android Linphone SDK for.
 - `LINPHONESDK_IOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an iOS build.
-- `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK.
+- `LINPHONESDK_IOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK when building for iOS.
 - `LINPHONESDK_MACOS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for a MacOS build. Currently supported : x86_64, arm64
+- `LINPHONESDK_MACOS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK when building for macos.
+- `LINPHONESDK_WINDOWS_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for a windows build.
+- `LINPHONESDK_WINDOWS_BASE_URL`: The base of the URL that will be used to download the zip file of the SDK when building for windows.
 - `LINPHONESDK_UWP_ARCHS`: Same as `LINPHONESDK_ANDROID_ARCHS` but for an UWP build and Nuget.
 
 These ON/OFF options control the enablement of important features of the SDK, which have an effect on the size of produced size object code:
@@ -235,7 +249,7 @@ To generate the a SDK with GPL third parties, use the `-DENABLE_GPL_THIRD_PARTIE
 ## Note regarding third party components subject to license
 
 The Linphone SDK can be compiled with third parties code that are subject to patent license, especially: AMR, SILK and H264 codecs.
-To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_CODECS` option (**disabled by default**).
+To build a SDK with any of these features you need to enable the `ENABLE_NON_FREE_FEATURES` option (**disabled by default**).
 Before embedding these features in your final application, **make sure to have the right to do so**.
 
 For more information, please visit [our dedicated wiki page](https://wiki.linphone.org/xwiki/wiki/public/view/Linphone/Third%20party%20components%20/)

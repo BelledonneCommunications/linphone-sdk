@@ -68,17 +68,19 @@ include:
   - '.gitlab-ci-files/yocto-qemuarm64.yml'
   - '.gitlab-ci-files/yocto-qemux86-64.yml'
 
+  - '.gitlab-ci-files/raspberrypi.yml'
+
   - '.gitlab-ci-files/macosx/builds.yml'
   - '.gitlab-ci-files/macosx/tests.yml'
   - '.gitlab-ci-files/macosx/uploads.yml'
 
   - '.gitlab-ci-files/windows/builds.yml'
   - '.gitlab-ci-files/windows/tests.yml'
-  - '.gitlab-ci-files/windows/packages.yml'
+  # - '.gitlab-ci-files/windows/packages.yml'
   - '.gitlab-ci-files/windows/uploads.yml'
 
-  - '.gitlab-ci-files/xamarin/packages.yml'
-  - '.gitlab-ci-files/xamarin/uploads.yml'
+  # - '.gitlab-ci-files/xamarin/packages.yml'
+  # - '.gitlab-ci-files/xamarin/uploads.yml'
 
   - '.gitlab-ci-files/test-report-uploads.yml'
 

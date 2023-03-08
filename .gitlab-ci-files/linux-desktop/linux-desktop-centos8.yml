@@ -69,7 +69,7 @@ centos8-ninja-gcc-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: centos8-ninja-gcc
 
 centos8-ninja-gcc-pqc:
@@ -79,7 +79,7 @@ centos8-ninja-gcc-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: centos8-ninja-gcc
 
 centos8-ninja-clang:
@@ -101,7 +101,7 @@ centos8-ninja-clang-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: centos8-ninja-clang
 
 centos8-ninja-clang-pqc:
@@ -109,7 +109,7 @@ centos8-ninja-clang-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: centos8-ninja-clang
 
 #################################################
@@ -169,11 +169,11 @@ ortp-centos8-test:
 #  needs:
 #    - centos8-ninja-gcc
 #  variables:
-#    TESTER_BIN: "mediastreamer2_tester"
+#    TESTER_BIN: "mediastreamer2-tester"
 #    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
 #    PULSEAUDIO_KILL: "pulseaudio --kill"
 #    LOG_PATTERN: "logMediastreamerAllPar"
-#    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+#    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
 #    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
 #    PLATFORM: linux-centos8
 

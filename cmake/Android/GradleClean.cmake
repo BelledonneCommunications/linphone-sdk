@@ -1,6 +1,6 @@
 ############################################################################
 # GradleClean.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,16 +20,15 @@
 #
 ############################################################################
 
-configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/build.gradle.cmake" "${LINPHONESDK_BUILD_DIR}/build.gradle" @ONLY)
-configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/upload.gradle.cmake" "${LINPHONESDK_BUILD_DIR}/upload.gradle" @ONLY)
-configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/gradle.properties.cmake" "${LINPHONESDK_BUILD_DIR}/gradle.properties" @ONLY)
-configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.cmake" "${LINPHONESDK_BUILD_DIR}/LinphoneSdkManifest.xml" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/build.gradle.cmake" "build.gradle" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/upload.gradle.cmake" "upload.gradle" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/gradle.properties.cmake" "gradle.properties" @ONLY)
+configure_file("${LINPHONESDK_DIR}/cmake/Android/gradle/LinphoneSdkManifest.xml.cmake" "LinphoneSdkManifest.xml" @ONLY)
 
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "clean"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-	RESULT_VARIABLE _gradle_clean_result
+	RESULT_VARIABLE _GRADLE_CLEAN_RESULT
 )
-if(_gradle_clean_result)
+if(_GRADLE_CLEAN_RESULT)
 	message(FATAL_ERROR "Gradle clean failed")
 endif()

@@ -6,8 +6,9 @@
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
   variables:
+    BUILD_DIR: build/win
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
-    LINPHONESDK_PLATFORM: Desktop
+    CMAKE_PRESET: windows-sdk
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
     CMAKE_GENERATOR: "Visual Studio 15 2017"
@@ -24,15 +25,13 @@
 
     - echo $env:Path
 
-    - If ( Test-Path -Path "build-desktop" ) {Remove-Item -recurse -force -path "build-desktop" }
+    - If ( Test-Path -Path "build" ) {Remove-Item -recurse -force -path "build" }
 
-    - mkdir build-desktop
-    - cd build-desktop
     #we launch the msvc-cl wrapper located in python scripts folder
     #this wrapper relays only needed calls to the real compiler
     #cache stats display
     - C:\PROGRA~1\Python37\Scripts\cl -s
-    - Write-Output $CMAKE_ARCHITECTURE
+    - Write-Output $BUILD_DIR
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
     - Write-Output $MAKEFILE_JOBS
     - Write-Output $CMAKE_C_COMPILER
@@ -40,10 +39,9 @@
     - Write-Output $CMAKE_RC_COMPILER
     - Write-Output $DEFAULT_CMAKE_OPTIONS
     - Write-Output $CMAKE_OPTIONS
-    - Write-Output $CMAKE_ARCHITECTURE
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
     - Write-Output $CMAKE_GENERATOR
-    - Write-Output $LINPHONESDK_PLATFORM
+    - Write-Output $CMAKE_PRESET
     - Write-Output $MINGW_TYPE
     - Write-Output $CLI_OUTPUT_INFO_NINJA
     - Write-Output $Write-Output
@@ -66,7 +64,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "& cmake .. -G '$CMAKE_GENERATOR' -DLINPHONESDK_PLATFORM=$LINPHONESDK_PLATFORM -DENABLE_CSHARP_WRAPPER=YES -DCMAKE_BUILD_TYPE=RelWithDebInfo $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $CMAKE_ARCHITECTURE $SCHEDULE_CMAKE_OPTIONS"
+    - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -G '$CMAKE_GENERATOR' $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
 
     - echo $LastExitCode
 
@@ -86,7 +84,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "cmake --build . --target $BUILD_TARGET --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
+    - Invoke-Expression "cmake --build --preset=$CMAKE_PRESET --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
 
     - if ($EXITS_ON_ERROR_MSVC) { Invoke-Expression "$EXITS_ON_ERROR_MSVC" } else { Write-Output "EXITS_ON_ERROR_MSVC is null" }
 
@@ -103,17 +101,14 @@
     - if ($LAUNCH_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$LAUNCH_SEARCH_STATUS_SCRIPT" -ErrorAction stop } else { Write-Output "LAUNCH_SEARCH_STATUS_SCRIPT is null" }
 
     - C:\PROGRA~1\Python37\Scripts\cl -s
-    - cd linphone-sdk
-    - mkdir $OUTPUT_ZIP_FOLDER
-    - Copy-Item -Path "*.zip" -Destination "$CI_PROJECT_DIR/build-desktop/linphone-sdk/$OUTPUT_ZIP_FOLDER" -Recurse
 
 ################
   artifacts:
     paths:
-      - build-desktop\ninja_buildlog.txt
-      - build-desktop\linphone-sdk\*
-      - build-desktop\ninja_buildlog.txt
-      - build-desktop\invertSearch.ps1
+      - $BUILD_DIR\linphone-sdk\*
+      - $BUILD_DIR\*.zip
+      - ninja_buildlog.txt
+      - invertSearch.ps1
     when: always
     expire_in: 1 week
 
@@ -125,10 +120,9 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     MINGW_TYPE: mingw32
-    LINPHONESDK_PLATFORM: Desktop
     CMAKE_GENERATOR: Ninja
+    CMAKE_PRESET: windows-ninja-sdk
     CLI_OUTPUT_INFO_NINJA: Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
-    BUILD_TARGET: sdk
     NINJA_BUILD_PARALLEL_LEVEL: -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS
     PARALLEL_OPTIONS: "--parallel $MAKEFILE_JOBS"
     NINJA_OPTIMIZATION: "| find /V \"inclusion du fichier\" > ninja_buildlog.txt; cmd /c \"exit /b 0\""
@@ -144,11 +138,10 @@
   extends: .windows-vs2017
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
-    LINPHONESDK_PLATFORM: Desktop
+    CMAKE_PRESET: windows-sdk
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
     CMAKE_GENERATOR: "Visual Studio 15 2017"
-    BUILD_TARGET: ALL_BUILD
     PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
     EXITS_ON_ERROR_MSVC: 'if (-not ($$LastExitCode -eq 0)) {throw "Error: Build failed"}'
 
@@ -174,6 +167,7 @@ vs2017-ninja-win64-windows:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits
     MINGW_TYPE: mingw64
     OUTPUT_ZIP_FOLDER: win64
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON
@@ -184,7 +178,7 @@ vs2017-ninja-win64-windows-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PQCRYPTO=ON
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
 vs2017-ninja-win32-windows:
   extends: .windows-vs2017-ninja
@@ -194,6 +188,7 @@ vs2017-ninja-win32-windows:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits
 
 ######################################################
 # NIGHTLY
@@ -218,8 +213,9 @@ vs2017-uwp-scheduled-windows:
         - .gitlab-ci-files/job-packages.yml
         - cmake/NuGet/Windows/**/*
   variables:
-    LINPHONESDK_PLATFORM: UWP
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO 
+    BUILD_DIR: build/uwp
+    CMAKE_PRESET: uwp-sdk
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF 
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
     CMAKE_GENERATOR: "Visual Studio 15 2017"
@@ -230,7 +226,7 @@ vs2017-uwp-scheduled-windows-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_LDAP=NO -DENABLE_PQCRYPTO=YES -DENABLE_EXAMPLE_PLUGIN=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=OFF -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON
 
 vs2017-win32-scheduled-windows:
   extends: .windows-vs2017-scheduled
@@ -243,8 +239,7 @@ vs2017-win32-scheduled-windows:
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
-    CMAKE_ARCHITECTURE : -A Win32
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
     OUTPUT_ZIP_FOLDER: win32
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
@@ -255,7 +250,7 @@ vs2017-win32-scheduled-windows-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES -DENABLE_LDAP=NO -DENABLE_DOC=YES -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON
 
 vs2017-win32store-scheduled-windows:
   extends: .windows-vs2017-scheduled
@@ -267,7 +262,9 @@ vs2017-win32store-scheduled-windows:
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
-    CMAKE_OPTIONS: -DCMAKE_TOOLCHAIN_FILE=../cmake-builder/toolchains/toolchain-windows-store.cmake  -DENABLE_UNIT_TESTS=YES -DENABLE_FFMPEG=YES -DENABLE_OPENH264=YES -DENABLE_NON_FREE_CODECS=YES
+    BUILD_DIR: build/winstore
+    CMAKE_PRESET: windows-store-sdk
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_FFMPEG=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
     OUTPUT_ZIP_FOLDER: win32store
 
 win32-vs2017-novideo-windows:
@@ -279,4 +276,4 @@ win32-vs2017-novideo-windows:
     - if: $DEPLOY_RUN_WINDOWS
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_VIDEO=OFF

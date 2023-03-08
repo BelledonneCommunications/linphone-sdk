@@ -1,6 +1,6 @@
 ############################################################################
 # CopyLibs.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,20 +20,18 @@
 #
 ############################################################################
 
-list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
-include(LinphoneSdkUtils)
+include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 
-linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_ANDROID_ARCHS}" _archs)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_ANDROID_ARCHS}" _ANDROID_ARCHS)
 
 
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "libs"
 	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "libs-debug"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
-foreach(_arch ${_archs})
+foreach(_arch ${_ANDROID_ARCHS})
 	if(_arch STREQUAL "arm")
 		set(_libarch "armeabi")
 		set(_asan_libarch "arm")
@@ -61,7 +59,6 @@ foreach(_arch ${_archs})
 	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "libs/${_libarch}"
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "libs-debug/${_libarch}"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	)
 
 	file(GLOB _libs "linphone-sdk/android-${_arch}/lib/lib*.so")
@@ -70,24 +67,21 @@ foreach(_arch ${_archs})
 		execute_process(
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_lib}" "libs/${_libarch}/"
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_lib}" "libs-debug/${_libarch}/"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endforeach()
 	foreach(_plugin ${_plugins})
 		execute_process(
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_plugin}" "libs/${_libarch}/"
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_plugin}" "libs-debug/${_libarch}/"
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endforeach()
 
 	if(CMAKE_BUILD_TYPE STREQUAL "ASAN")
-		configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs/${_libarch}/wrap.sh)
-		configure_file(${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in ${LINPHONESDK_BUILD_DIR}/libs-debug/${_libarch}/wrap.sh)
+		configure_file("${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in" "libs/${_libarch}/wrap.sh")
+		configure_file("${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in" "libs-debug/${_libarch}/wrap.sh")
 	endif()
 
 	execute_process(
-		COMMAND "sh" "WORK/android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		COMMAND "sh" "../android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
 	)
 endforeach()

@@ -16,9 +16,9 @@ macosx-upload:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
     - !reference [.choose_upload_dir, script]
-    - rsync -rlv --ignore-existing build-desktop/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
+    - rsync -rlv --ignore-existing build/mac/linphone-sdk-*.zip $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/macosx/sdk
     - pod repo remove linphone-sdk-macosx || true
     - pod repo add linphone-sdk-macosx git@gitlab.linphone.org:BC/public/podspec-macos.git master
-    - pod repo push linphone-sdk-macosx build-desktop/linphone-sdk.podspec --skip-import-validation --verbose
+    - pod repo push linphone-sdk-macosx build/mac/linphone-sdk.podspec --skip-import-validation --verbose
     - cd ~/.cocoapods/repos/linphone-sdk-macosx && git push origin master && cd -
     - pod repo remove linphone-sdk-macosx

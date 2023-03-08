@@ -14,31 +14,113 @@
   script:
     - export CC=$CC
     - export CXX=$CXX
-    - mkdir -p build-desktop
-    - cd build-desktop
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
     - echo $CMAKE_SANITIZER_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DLINPHONESDK_PLATFORM=Desktop $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - cmake --preset=default -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build . --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    - echo $(git describe) > gitdescribe.txt
+    - cmake --build --preset=default --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $(git describe) > build/default/gitdescribe.txt
   artifacts:
     paths:
-      - build-desktop/gitdescribe.txt
-      - build-desktop/linphone-sdk/desktop/bin/*
-      - build-desktop/linphone-sdk/desktop/lib/*
-      - build-desktop/linphone-sdk/desktop/lib64/*
-      - build-desktop/linphone-sdk/desktop/include/*
-      - build-desktop/linphone-sdk/desktop/share/*
-      - build-desktop/WORK/desktop/Build/bctoolbox/tester/*
-      - build-desktop/WORK/desktop/Build/bzrtp/test/*
-      #Lime data folder isn't installed at  the right place !
-      #We have to find it and add it manually...
-      - lime/tester/*
-      - liblinphone/tester/*
-      - build-desktop/WORK/desktop/Build/postquantumcryptoengine/tester/*
+      - build/default/gitdescribe.txt
+      - build/default/linphone-sdk/desktop/bin/*
+      - build/default/linphone-sdk/desktop/lib/*
+      - build/default/linphone-sdk/desktop/lib64/*
+      - build/default/linphone-sdk/desktop/include/*
+      - build/default/linphone-sdk/desktop/share/*
+    expire_in: 1 week
+
+
+.linux-desktop-sequential:
+
+  stage: build
+  extends: .linux-prepare
+  variables:
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null
+  script:
+    - export CC=$CC
+    - export CXX=$CXX
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
+    - echo $CMAKE_OPTIONS
+    - echo $CMAKE_SANITIZER_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
+    - mkdir -p build/linphone-sdk/desktop
+    - export LINPHONESDK_INSTALL_PREFIX=`pwd`/build/linphone-sdk/desktop
+    - cd bcunit
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../bctoolbox
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../ortp
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../bzrtp
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../bcg729
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../bcmatroska2
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../mediastreamer2
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX -DENABLE_QRCODE=OFF -DENABLE_STRICT=OFF
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../mswebrtc
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../belr
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../belle-sip
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../belcard
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../../liblinphone
+    - mkdir -p build
+    - cd build
+    - cmake .. -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS -DCMAKE_INSTALL_PREFIX=$LINPHONESDK_INSTALL_PREFIX -DCMAKE_PREFIX_PATH=$LINPHONESDK_INSTALL_PREFIX -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF
+    - cmake --build . --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cd ../..
+    - echo $(git describe) > build/gitdescribe.txt
+  artifacts:
+    paths:
+      - build/gitdescribe.txt
+      - build/linphone-sdk/desktop/bin/*
+      - build/linphone-sdk/desktop/lib/*
+      - build/linphone-sdk/desktop/include/*
+      - build/linphone-sdk/desktop/share/*
     expire_in: 1 week
 
 
@@ -143,7 +225,7 @@
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
     - if [[ -n $(find . -type f -name 'core*') ]]; then find . -type f -name 'core*' | xargs -d '\n' -L1 gdb $TESTER_BIN; fi || true
-    - COMMIT=$(cat ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt)
+    - COMMIT=$(cat ${CI_PROJECT_DIR}/build/default/gitdescribe.txt)
     - echo $COMMIT
     #generation of html file to redirect on test results page
 
@@ -188,7 +270,7 @@
   artifacts:
     paths:
       - results/*
-      - ${CI_PROJECT_DIR}/build-desktop/gitdescribe.txt
+      - ${CI_PROJECT_DIR}/build/default/gitdescribe.txt
     when: always
     reports:
       junit:
@@ -198,9 +280,9 @@
 .test-bctoolbox:
   extends: .test
   variables:
-    TESTER_BIN: "bctoolbox_tester"
+    TESTER_BIN: "bctoolbox-tester"
     LOG_PATTERN: "logBctoolboxAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     TESTER: "bctoolbox"
 
 .test-bctoolbox-mr:
@@ -216,9 +298,9 @@
 .test-ortp:
   extends: .test
   variables:
-    TESTER_BIN: "ortp_tester"
+    TESTER_BIN: "ortp-tester"
     LOG_PATTERN: "logOrtpAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/"
     TESTER: "ortp"
 
@@ -237,7 +319,7 @@
   variables:
     TESTER_BIN: "pqcrypto-tester"
     LOG_PATTERN: "logPostQuantumCryptoEngineAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/postquantumcryptoengine/tester"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     TESTER: "postquantumcryptoengine"
 
 
@@ -251,9 +333,9 @@
 .test-bellesip:
   extends: .test
   variables:
-    TESTER_BIN: "belle_sip_tester"
+    TESTER_BIN: "belle-sip-tester"
     LOG_PATTERN: "logBellesipAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/"
     TESTER: "bellesip"
 
@@ -275,9 +357,9 @@
 .test-belr:
   extends: .test
   variables:
-    TESTER_BIN: "belr_tester"
+    TESTER_BIN: "belr-tester"
     LOG_PATTERN: "logBelrAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     RESOURCES_DIR: "--resource-dir ../share/belr-tester/res"
     TESTER: "belr"
   # only:
@@ -294,9 +376,9 @@
 .test-belcard:
   extends: .test
   variables:
-    TESTER_BIN: "belcard_tester"
+    TESTER_BIN: "belcard-tester"
     LOG_PATTERN: "logBelcardAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     TESTER: "belcard"
   # only:
   #   changes:
@@ -313,12 +395,9 @@
 .test-bzrtp:
   extends: .test
   variables:
-    TESTER_BIN: "bzrtpTest"
+    TESTER_BIN: "bzrtp-tester"
     LOG_PATTERN: "logBzrtpAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bzrtp/test"
-    #We must tell it that the ressources it wants are in its own folder
-    #different behaviour from other testers
-    RESOURCES_DIR: "--resource-dir ."
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     TESTER: "bzrtp"
 
 .test-bzrtp-mr:
@@ -332,11 +411,11 @@
   tags: [ "docker-test-liblinphone" ]
   extends: .test
   variables:
-    TESTER_BIN: "mediastreamer2_tester"
+    TESTER_BIN: "mediastreamer2-tester"
     PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
     PULSEAUDIO_KILL: "pulseaudio --kill"
     LOG_PATTERN: "logMediastreamerAllPar"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "mediastreamer"
 
@@ -352,12 +431,12 @@
   extends: .test
   allow_failure: true
   variables:
-    TESTER_BIN: "liblinphone_tester"
+    TESTER_BIN: "liblinphone-tester"
     XVFB: "Xvfb :99"
     PULSEAUDIO: ""
     EXPORT_DISPLAY: "export DISPLAY=:99"
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
-    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/linphone-sdk/desktop/bin"
+    PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
     SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
     TESTER: "liblinphone"

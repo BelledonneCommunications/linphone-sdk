@@ -1,6 +1,6 @@
 ############################################################################
-# Lipo.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# GenerateFrameworks.cmake
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,23 +20,11 @@
 #
 ############################################################################
 
-list(APPEND CMAKE_MODULE_PATH "${LINPHONESDK_DIR}/cmake")
-include(LinphoneSdkUtils)
+include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 
-linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" _archs)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" _IOS_ARCHS)
 
-if(LINPHONESDK_IOS_PLATFORM STREQUAL "Iphone")
-	list(REMOVE_ITEM _archs "x86_64")
-else()
-	list(FIND _archs "arm64" _found)
-	if(_found GREATER -1)
-		list(APPEND _archs "arm64-simulator")
-		if(LINPHONESDK_IOS_PLATFORM STREQUAL "Simulator")
-			list(REMOVE_ITEM _archs "arm64")
-		endif()
-	endif()
-endif()
 
 if(ENABLE_VIDEO)
 	set(LINPHONESDK_NAME "linphone-sdk")
@@ -47,129 +35,95 @@ endif()
 
 # Create the apple-darwin directory that will contain the merged content of all architectures
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${LINPHONESDK_NAME}/apple-darwin"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-)
-
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONESDK_NAME}/apple-darwin"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}"
 )
 
 
 # Copy and merge content of all architectures in the apple-darwin directory
-list(GET _archs 0 _first_arch)
+list(GET _IOS_ARCHS 0 _FIRST_ARCH)
 
-# When using the generator Xcode (Xcode 10.3 and cmake 3.15) to build the SDK, it has too much processing on Info.plist :
-#	 (for armv7 and x86_64) builtin-infoPlistUtility ... -expandbuildsettings -format binary -platform iphoneos
-#  (for arm64) builtin-infoPlistUtility ... -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64
-#
-# This causes the Info.plist parameter UIRequiredDeviceCapabilities to be set to -requiredArchitecture for arm64.
-# Lipo target select the first Info.plist with is most of the time arm64.
-# Consequence is that even the multi arch framework will have Info.plist parameter UIRequiredDeviceCapabilities set to arm64.
-# Last consequence is that Apple store will remove framework masked as arm64 from amv7 binaries leading to a crash at startup.
-# Try to fix it in the future. Today, please use the Info.plist of armv7 whenever possible.
-foreach(_arch ${_archs})
-	if(_arch STREQUAL "armv7")
-		set(_first_arch "armv7")
-	endif()
-endforeach()
 
 if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
 	message("Generating jazzy doc for swift module, we need archs x86_64 to generate jazzy doc!")
 	execute_process(
 		COMMAND "jazzy" "-x" "-scheme,linphonesw" "--readme" "${LINPHONESDK_DIR}/liblinphone/README.md"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/WORK/ios-x86_64/Build/linphone/"
-		)
-	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "WORK/ios-x86_64/Build/linphone/docs" "docs"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "docs" "${LINPHONESDK_BUILD_DIR}/docs"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/../ios-x86_64/liblinphone/"
 		)
 
 	if(NOT ENABLE_SWIFT_WRAPPER_COMPILATION)
 		message("Not ENABLE_SWIFT_WRAPPER_COMPILATION, remove linphonesw.frameworks......")
-		foreach(_arch ${_archs})
-			file(REMOVE_RECURSE "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/linphonesw.framework")
+		foreach(_ARCH IN LISTS _IOS_ARCHS)
+			file(REMOVE_RECURSE "../linphone-sdk/${_ARCH}/Frameworks/linphonesw.framework")
 		endforeach()
 	endif()
 endif()
 
 if(ENABLE_FAT_BINARY)
 	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks" "${LINPHONESDK_NAME}/apple-darwin/Frameworks"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "../linphone-sdk/ios-${_FIRST_ARCH}/Frameworks" "${LINPHONESDK_NAME}/apple-darwin/Frameworks"
 	)
 endif()
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/liblinphone_tester" "${LINPHONESDK_NAME}/apple-darwin/Resources/liblinphone_tester"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-)
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonesw" "${LINPHONESDK_NAME}/apple-darwin/share/linphonesw"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
-)
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_first_arch}-apple-darwin.ios/share/linphonecs" "${LINPHONESDK_NAME}/apple-darwin/share/linphonecs"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "../linphone-sdk/ios-${_FIRST_ARCH}/share/liblinphone_tester" "${LINPHONESDK_NAME}/apple-darwin/Resources/liblinphone_tester"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "../linphone-sdk/ios-${_FIRST_ARCH}/share/linphonesw" "${LINPHONESDK_NAME}/apple-darwin/share/linphonesw"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "../linphone-sdk/ios-${_FIRST_ARCH}/share/linphonecs" "${LINPHONESDK_NAME}/apple-darwin/share/linphonecs"
 )
 
-file(GLOB _frameworks "linphone-sdk/${_first_arch}-apple-darwin.ios/Frameworks/*.framework")
+file(GLOB _FRAMEWORKS "../linphone-sdk/ios-${_FIRST_ARCH}/Frameworks/*.framework")
 
 if(NOT ENABLE_FAT_BINARY)
-	list(FIND _archs "x86_64" _86_64_found)
-	list(FIND _archs "arm64-simulator" _arm64_simulator_found)
+	list(FIND _IOS_ARCHS "x86_64-simulator" _X86_64_SIMULATOR_FOUND)
+	list(FIND _IOS_ARCHS "arm64-simulator" _ARM64_SIMULATOR_FOUND)
 
-	if((_86_64_found GREATER -1) AND (_arm64_simulator_found GREATER -1))
-		# We have to lipo both x86_64 and arm64-simulator as -create-xcframework doesn't do it itself.
+	if((_X86_64_SIMULATOR_FOUND GREATER -1) AND (_ARM64_SIMULATOR_FOUND GREATER -1))
+		# We have to lipo both x86_64-simulator and arm64-simulator as -create-xcframework doesn't do it itself.
 		# See: https://developer.apple.com/forums/thread/666335
-		message(STATUS "Mixing x86_64 and arm64-simulator before creating XCFrameworks")
+		message(STATUS "Mixing x86_64-simulator and arm64-simulator before creating XCFrameworks")
 
-		foreach(_framework ${_frameworks})
-			get_filename_component(_framework_name "${_framework}" NAME_WE)
+		foreach(_FRAMEWORK IN LISTS _FRAMEWORKS)
+			get_filename_component(_FRAMEWORK_NAME "${_FRAMEWORK}" NAME_WE)
 			execute_process(
-				COMMAND "lipo" "-create" "-output" "linphone-sdk/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "linphone-sdk/x86_64-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}" "linphone-sdk/arm64-simulator-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}"
-				WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+				COMMAND "lipo" "-create" "-output" "../linphone-sdk/ios-x86_64-simulator/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}" "../linphone-sdk/ios-x86_64-simulator/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}" "../linphone-sdk/ios-arm64-simulator/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}"
 			)
 		endforeach()
 
-		# Remove then arm64-simulator as x86_64 contains it
-		list(REMOVE_ITEM _archs "arm64-simulator")
+		# Remove then arm64-simulator as x86_64-simulator contains it
+		list(REMOVE_ITEM _IOS_ARCHS "arm64-simulator")
 	endif()
 endif()
 
-foreach(_framework ${_frameworks})
-	get_filename_component(_framework_name "${_framework}" NAME_WE)
-	set(_all_arch_frameworks)
-	foreach(_arch ${_archs})
-		if (ENABLE_FAT_BINARY)
-			list(APPEND _all_arch_frameworks "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/${_framework_name}.framework/${_framework_name}")
+foreach(_FRAMEWORK IN LISTS _FRAMEWORKS)
+	get_filename_component(_FRAMEWORK_NAME "${_FRAMEWORK}" NAME_WE)
+	set(_ALL_ARCH_FRAMEWORKS)
+	foreach(_ARCH IN LISTS _IOS_ARCHS)
+		if(ENABLE_FAT_BINARY)
+			list(APPEND _ALL_ARCH_FRAMEWORKS "../linphone-sdk/ios-${_ARCH}/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}")
 		else()
-			list(APPEND _all_arch_frameworks "-framework")
-			list(APPEND _all_arch_frameworks "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/${_framework_name}.framework")
+			list(APPEND _ALL_ARCH_FRAMEWORKS "-framework")
+			list(APPEND _ALL_ARCH_FRAMEWORKS "../linphone-sdk/ios-${_ARCH}/Frameworks/${_FRAMEWORK_NAME}.framework")
 		endif()
 	endforeach()
 	if(ENABLE_SWIFT_WRAPPER AND ENABLE_SWIFT_WRAPPER_COMPILATION)
-		if(_framework_name STREQUAL "linphonesw")
-			foreach(_arch ${_archs})
+		if(_FRAMEWORK_NAME STREQUAL "linphonesw")
+			foreach(_ARCH IN LISTS _IOS_ARCHS)
 				execute_process(
-					COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphone-sdk/${_arch}-apple-darwin.ios/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule"
-					WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+					COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "../linphone-sdk/ios-${_ARCH}/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/linphonesw.framework/Modules/linphonesw.swiftmodule"
 				)
 			endforeach()
 		endif()
 	endif()
-	string(REPLACE ";" " " _arch_string "${_archs}")
+	string(REPLACE ";" " " _ARCH_STRING "${_IOS_ARCHS}")
 	if(ENABLE_FAT_BINARY)
-		message (STATUS "Mixing ${_framework_name} for archs [${_arch_string}]")
+		message (STATUS "Mixing ${_FRAMEWORK_NAME} for archs [${_ARCH_STRING}]")
 		execute_process(
-			COMMAND "lipo" "-create" "-output" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/${_framework_name}.framework/${_framework_name}" ${_all_arch_frameworks}
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			COMMAND "lipo" "-create" "-output" "${LINPHONESDK_NAME}/apple-darwin/Frameworks/${_FRAMEWORK_NAME}.framework/${_FRAMEWORK_NAME}" ${_ALL_ARCH_FRAMEWORKS}
 		)
 	else()
-		message (STATUS "Creating XCFramework for ${_framework_name} for archs [${_arch_string}]")
+		message (STATUS "Creating XCFramework for ${_FRAMEWORK_NAME} for archs [${_ARCH_STRING}]")
 		execute_process(
-			COMMAND "xcodebuild" "-create-xcframework" "-output" "${LINPHONESDK_NAME}/apple-darwin/XCFrameworks/${_framework_name}.xcframework" ${_all_arch_frameworks}
-			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
+			COMMAND "xcodebuild" "-create-xcframework" "-output" "${LINPHONESDK_NAME}/apple-darwin/XCFrameworks/${_FRAMEWORK_NAME}.xcframework" ${_ALL_ARCH_FRAMEWORKS}
 		)
 	endif()
 endforeach()

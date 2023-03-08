@@ -59,7 +59,7 @@ debian10-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-    CMAKE_OPTIONS: -DENABLE_LDAP=NO -DENABLE_DOC=YES
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF -DENABLE_DOC=ON
   extends: .linux-desktop
 
 
@@ -69,7 +69,7 @@ debian10-ninja-gcc-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
 
@@ -80,7 +80,7 @@ debian10-ninja-gcc-smallsdk:
     - if: $NIGHTLY_MASTER
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
 debian10-ninja-gcc-pqc:
@@ -89,7 +89,7 @@ debian10-ninja-gcc-pqc:
     - if: $NIGHTLY_MASTER
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
 
@@ -105,13 +105,13 @@ debian10-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-    CMAKE_OPTIONS: -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
 
 debian10-ninja-clang-sanitizer:
   variables:
     #We use debug build type here to workaround an issue where sanitizer in ReleaseDebugInfo is taking more than one hour to complete
-    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=YES -DCMAKE_BUILD_TYPE=Debug
+    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON -DCMAKE_BUILD_TYPE=Debug
     #Until we fix belle-sip/belr parser taking at build time as much ram as a AAA game
     #If we dont limit this, this job is getting killed by kernel oom_killer
     ADDITIONAL_BUILD_OPTIONS: "-j 4"
@@ -122,7 +122,7 @@ debian10-ninja-clang-novideo:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-clang
 
 debian10-ninja-clang-pqc:
@@ -130,7 +130,7 @@ debian10-ninja-clang-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian10-ninja-clang
 
 #################################################

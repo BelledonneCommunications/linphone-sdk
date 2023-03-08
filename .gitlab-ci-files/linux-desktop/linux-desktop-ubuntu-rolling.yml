@@ -68,7 +68,7 @@ ubuntu-rolling-makefile-gcc:
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
 #  extends: ubuntu-rolling-ninja-gcc
 
 
@@ -89,7 +89,7 @@ ubuntu-rolling-ninja-clang-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ubuntu-rolling-ninja-clang
 
 #ubuntu-rolling-ninja-clang-novideo:
@@ -97,7 +97,7 @@ ubuntu-rolling-ninja-clang-pqc:
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+#    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
 #  extends: ubuntu-rolling-ninja-clang
 
 #################################################

@@ -1,6 +1,6 @@
 ############################################################################
 # GenerateSDK.cmake
-# Copyright (C) 2010-2018 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,28 +20,24 @@
 #
 ############################################################################
 
-if(CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
 	execute_process(
 		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleRelease"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
-elseif(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	execute_process(
 		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
 	execute_process(
 		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 else()
 	execute_process(
 		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assemble"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		RESULT_VARIABLE _gradle_assemble_result
 	)
 endif()
@@ -51,11 +47,9 @@ endif()
 
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publish"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-q" "sdkZip"
-	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 	RESULT_VARIABLE _gradle_sdkzip_result
 )
 if(_gradle_sdkzip_result)

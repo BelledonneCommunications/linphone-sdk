@@ -20,29 +20,28 @@
 
   script:
     - !reference [.set-max-jobs-unix, script]
+    - if [ -d "build" ]; then rm -rf build; fi;
     - echo $IOS_DEPLOY_URL
-    - if [ -d "build-ios" ]; then rm -rf build-ios; fi;
-    - mkdir build-ios
-    - cd build-ios
     - echo $CMAKE_GENERATOR
     - echo $ARCHS_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake .. -G "$CMAKE_GENERATOR" -DCMAKE_VERBOSE_BUILD=ON -DLINPHONESDK_PLATFORM=IOS -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - cmake --preset=ios-sdk -G "$CMAKE_GENERATOR" -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
-    - cmake --build . $ADDITIONAL_BUILD_CONFIGURATIONS --target sdk -- $ADDITIONAL_BUILD_OPTIONS
-    # get SDK version from cached cmake variables
-    - cmake --log-level=ERROR -L ../CMakeLists.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
+    - cmake --build --preset=ios-sdk $ADDITIONAL_BUILD_CONFIGURATIONS -- $ADDITIONAL_BUILD_OPTIONS
+    # Get SDK version from cached cmake variables
+    - cd build/ios
+    - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
     - echo $(git describe) > gitdescribe.txt
 
   artifacts:
     paths:
-      - build-ios/gitdescribe.txt
-      - build-ios/linphonesdkversion.txt
-      - build-ios/linphone-sdk-*.zip
-      - build-ios/*.podspec
-      - build-ios/docs
+      - build/ios/gitdescribe.txt
+      - build/ios/linphonesdkversion.txt
+      - build/ios/linphone-sdk-*.zip
+      - build/ios/*.podspec
+      - build/ios/docs
       - tester/IOS/LinphoneTester/Podfile
 
     when: always
@@ -62,7 +61,7 @@ ios-makefile:
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=NO
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=OFF
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -94,7 +93,7 @@ ios-ninja-allcodecs:
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
-    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_CODECS=ON
+    CMAKE_OPTIONS: -DENABLE_CODEC2=ON -DENABLE_G729=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_GPL_THIRD_PARTIES=ON
   extends: .ios
 
 
@@ -106,7 +105,7 @@ ios-ninja-g729:
     - if: $NIGHTLY_RELEASE
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_G729=ON
+    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON
   extends: ios-ninja
 
 
@@ -117,7 +116,7 @@ ios-ninja-novideo:
     - if: $NIGHTLY_RELEASE
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: ios-ninja
 
 
@@ -128,7 +127,7 @@ ios-ninja-smallsdk:
     - if: $NIGHTLY_RELEASE
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO
+    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF
   extends: ios-ninja
 
 
@@ -137,7 +136,7 @@ ios-ninja-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ios-ninja
 
 
@@ -157,7 +156,7 @@ ios-xcode:
   variables:
     CMAKE_GENERATOR: Xcode
     # ENABLE_CSHARP_WRAPPER for the Xamarin package
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_CSHARP_WRAPPER=YES -DENABLE_DOC=YES -DENABLE_JAZZY_DOC=YES -DENABLE_UNIT_TESTS=YES -DENABLE_EXAMPLE_PLUGIN=ON
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_CSHARP_WRAPPER=ON -DENABLE_DOC=ON -DENABLE_JAZZY_DOC=ON -DENABLE_UNIT_TESTS=ON -DENABLE_EXAMPLE_PLUGIN=ON
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo -j $MAX_NUMBER_TASK
     ARCHS_OPTIONS: "arm64,x86_64"
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
@@ -188,7 +187,7 @@ ios-xcode-novideo:
 
   variables:
     CMAKE_GENERATOR: Xcode
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_VIDEO=NO
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_VIDEO=OFF
     ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo -j $MAX_NUMBER_TASK
     ARCHS_OPTIONS: "arm64,x86_64"
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
@@ -215,7 +214,7 @@ ios-xcode-pqc:
     - if: $NIGHTLY_MASTER
 
   variables:
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=YES -DENABLE_PQC=YES
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
   # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
