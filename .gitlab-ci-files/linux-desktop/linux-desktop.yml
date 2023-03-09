@@ -49,7 +49,7 @@
 .test:
   stage: test
   extends: .job-prepare
-  #allow_failure: true
+  allow_failure: false
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: none
