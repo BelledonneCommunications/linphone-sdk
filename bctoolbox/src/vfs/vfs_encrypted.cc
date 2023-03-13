@@ -812,6 +812,14 @@ static int bcClose(bctbx_vfs_file_t *pFile) {
 	int ret = BCTBX_VFS_OK;
 	if (pFile && pFile->pUserData) {
 		VfsEncryption *ctx = static_cast<VfsEncryption *>(pFile->pUserData);
+		auto filename = ctx->filenameGet();
+		if ((filename.size() > 8) && (filename.compare(filename.size() - 8, 8, std::string{"-journal"}) == 0)) {
+			// This is a journal file use debug trace level
+			BCTBX_SLOGD << "[EVFS] close " << filename;
+		} else {
+			BCTBX_SLOGI << "[EVFS] close " << filename;
+		}
+
 		delete (ctx); // that will close the file
 		pFile->pUserData = NULL;
 	}
@@ -957,7 +965,15 @@ static int bcOpen(BCTBX_UNUSED(bctbx_vfs_t *pVfs), bctbx_vfs_file_t *pFile, cons
 
 		pFile->pMethods = &bcio;
 
-		ctx = new VfsEncryption(stdFp, fName, openFlags, accessMode);
+		std::string filename{fName};
+		ctx = new VfsEncryption(stdFp, filename, openFlags, accessMode);
+
+		if ((filename.size() > 8) && (filename.compare(filename.size() - 8, 8, std::string{"-journal"}) == 0)) {
+			// This is a journal file use debug trace level
+			BCTBX_SLOGD << "[EVFS](" << encryptionSuiteString(ctx->encryptionSuiteGet()) << ") open " << filename;
+		} else {
+			BCTBX_SLOGI << "[EVFS](" << encryptionSuiteString(ctx->encryptionSuiteGet()) << ") open " << filename;
+		}
 
 		/* store the encryption context in the vfs UserData */
 		pFile->pUserData = static_cast<void *>(ctx);

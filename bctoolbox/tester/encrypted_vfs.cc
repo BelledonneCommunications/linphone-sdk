@@ -25,43 +25,47 @@
 
 using namespace bctoolbox;
 
+// default chunk size in tests is 16
+static size_t bctbx_vfs_tester_chunk_size = 16;
+
 /* A callback to position the key material and algorithm suite to use */
-static EncryptedVfsOpenCb set_dummy_encryption_info([](VfsEncryption &settings) {
+static void set_dummy_encryption_info(VfsEncryption &settings, size_t chunk_size) {
 	const std::vector<uint8_t> keyMaterial{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	                                       0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 	settings.encryptionSuiteSet(EncryptionSuite::dummy);
 	settings.secretMaterialSet(keyMaterial);
-	settings.chunkSizeSet(16);
-});
+	settings.chunkSizeSet(bctbx_vfs_tester_chunk_size);
+};
 
-static EncryptedVfsOpenCb set_plain_encryption_info([](VfsEncryption &settings) {
+static void set_plain_encryption_info(VfsEncryption &settings) {
 	settings.encryptionSuiteSet(EncryptionSuite::plain);
-});
+};
 
-static EncryptedVfsOpenCb set_aes256_encryption_info([](VfsEncryption &settings) {
+static void set_aes256_encryption_info(VfsEncryption &settings, size_t chunk_size) {
 	const std::vector<uint8_t> keyMaterial{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b,
 	                                       0x0c, 0x0d, 0x0e, 0x0f, 0xf0, 0x11, 0x12, 0x13, 0x54, 0x55, 0x56,
 	                                       0xa7, 0xa8, 0xa9, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0xef};
 	settings.encryptionSuiteSet(EncryptionSuite::aes256gcm128_sha256);
 	settings.secretMaterialSet(keyMaterial);
-	settings.chunkSizeSet(16);
-});
+	settings.chunkSizeSet(bctbx_vfs_tester_chunk_size);
+};
 
-static EncryptedVfsOpenCb set_encryption_info([](VfsEncryption &settings) {
+EncryptedVfsOpenCb set_encryption_info = [](VfsEncryption &settings) {
 	auto filename = settings.filenameGet();
 
 	if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::plain)) != std::string::npos) {
 		set_plain_encryption_info(settings);
 	} else if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::aes256gcm128_sha256)) !=
 	           std::string::npos) {
-		set_aes256_encryption_info(settings);
+		set_aes256_encryption_info(settings, bctbx_vfs_tester_chunk_size);
 	} else if (filename.find(bctoolbox::encryptionSuiteString(bctoolbox::EncryptionSuite::dummy)) !=
 	           std::string::npos) {
-		set_dummy_encryption_info(settings);
+		set_dummy_encryption_info(settings, bctbx_vfs_tester_chunk_size);
 	} else {
 		throw BCTBX_EXCEPTION << "Try to set unknown encryption suite";
 	}
-});
+};
+
 /* a message to write in files */
 static const uint8_t message[256] = {
     0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12,
@@ -256,6 +260,70 @@ void basic_encryption_test() {
 	basic_encryption_test(EncryptionSuite::aes256gcm128_sha256, true);
 
 	VfsEncryption::openCallbackSet(nullptr);
+}
+
+// perform a bunch of fprintf(keep the bloc at 4Kb)
+// close the file while cache still holds data
+// re-open and check we have the correct content
+void fprintf_encryption_test(bctoolbox::EncryptionSuite suite, int charsNb) {
+	/* get the encrypted file path */
+	char *path = bc_tester_file("fprintf.");
+	std::string filePath{path};
+	filePath.append(bctoolbox::encryptionSuiteString(suite)).append(".evfs");
+	bctbx_free(path);
+
+	/* remove file if it was already there */
+	remove(filePath.data());
+
+	/* create the file */
+	bctbx_vfs_file_t *fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDWR | O_CREAT);
+	BC_ASSERT_PTR_NOT_NULL(fp);
+
+	size_t inSize = 0;
+	char inBuf[BCTBX_VFS_PRINTF_PAGE_SIZE * 3];
+	char outBuf[BCTBX_VFS_PRINTF_PAGE_SIZE * 3];
+	char line[BCTBX_VFS_PRINTF_PAGE_SIZE + 3];
+	/* Write until the FPRINT cache is full, the first page will written */
+	while (inSize < BCTBX_VFS_PRINTF_PAGE_SIZE) {
+		sprintf(line,
+		        "this is a line used to fill the first page in the fprintf cache, it is the write number %04x, make it "
+		        "long so we have fewer fprintf to do to fill the cache, then we should one by one write %d chars\n",
+		        inSize, charsNb);
+		memcpy(inBuf + inSize, line, strlen(line)); // build a buffer image of what we are writing in the file
+		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s", line) > 0);
+		inSize += strlen(line);
+	}
+	// write in a second page, it will be written at file's close(unless it is bigger than BCTBX_VFS_PRINTF_PAGE_SIZE)
+	memset(line, 0x24, charsNb);
+	line[charsNb] = '\0';
+	memset(inBuf + inSize, 0x24, charsNb); // keep updated the buffer image of what we are writing in the file
+	BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s", line) > 0);
+	inSize += charsNb;
+	bctbx_file_close(fp);
+	fp = NULL;
+
+	// reopen, read all and compare to the inBuf stored
+	fp = bctbx_file_open2(&bcEncryptedVfs, filePath.data(), O_RDONLY);
+	BC_ASSERT_EQUAL(bctbx_file_read(fp, outBuf, inSize, 0), inSize, ssize_t, "%ld");
+	BC_ASSERT_TRUE(memcmp(outBuf, inBuf, inSize) == 0);
+
+	bctbx_file_close(fp);
+
+	/* cleaning */
+	remove(filePath.data());
+}
+
+void fprintf_encryption_test() {
+	/* set the encrypted vfs callback */
+	bctbx_vfs_tester_chunk_size = 4096; // this is the default value
+	VfsEncryption::openCallbackSet(set_encryption_info);
+
+	for (int i = 1; i < BCTBX_VFS_PRINTF_PAGE_SIZE + 1; i++) {
+		fprintf_encryption_test(EncryptionSuite::aes256gcm128_sha256, i);
+	}
+
+	VfsEncryption::openCallbackSet(nullptr);
+	bctbx_vfs_tester_chunk_size = 16; // reset it for the other tests
 }
 
 /**
@@ -472,9 +540,10 @@ void recovery_test() {
 	VfsEncryption::openCallbackSet(nullptr);
 }
 
-static test_t encrypted_vfs_tests[] = {
-    TEST_NO_TAG("basic", basic_encryption_test), TEST_NO_TAG("Authentication failure", auth_fail_test),
-    TEST_NO_TAG("migration", migration_test), TEST_NO_TAG("recovery", recovery_test)};
+static test_t encrypted_vfs_tests[] = {TEST_NO_TAG("basic", basic_encryption_test),
+                                       TEST_NO_TAG("Authentication failure", auth_fail_test),
+                                       TEST_NO_TAG("migration", migration_test), TEST_NO_TAG("recovery", recovery_test),
+                                       TEST_NO_TAG("fprintf", fprintf_encryption_test)};
 
 test_suite_t encrypted_vfs_test_suite = {
     "Encrypted vfs",    NULL, NULL, NULL, NULL, sizeof(encrypted_vfs_tests) / sizeof(encrypted_vfs_tests[0]),

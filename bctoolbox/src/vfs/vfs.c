@@ -267,14 +267,17 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 			memcpy(buf, pFile->fPage, pFile->fSize); // concatenate the cache and new data
 			memcpy(buf + pFile->fSize, ret, count);
 			bctbx_free(ret);
-			r = bctbx_file_write(pFile, buf, pFile->fSize + count, pFile->fPageOffset); // write all
+
+			// We are flushing the cache along the new data to write
+			size_t fSizeBkp = pFile->fSize; // save the size so we could restore it if something goes wrong
+			pFile->fSize = 0;               // cache empty: so the write try to flush it as we are already doing it
+			r = bctbx_file_write(pFile, buf, fSizeBkp + count, pFile->fPageOffset); // write all
 			bctbx_free(buf);
 			if (r < 0) {
+				pFile->fSize = fSizeBkp;
 				return r;
 			}
-			pFile->fSize = 0; // f cache is now empty
 			pFile->offset += (off_t)count;
-			pFile->gSize = 0; // cancel get cache, as it might be dirty now
 			return (ssize_t)count;
 		}
 		// no cache and more than one page to write, just write it
