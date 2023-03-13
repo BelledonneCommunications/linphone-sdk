@@ -1,6 +1,6 @@
 ############################################################################
-# FindCodec2.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindOrtp.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,28 +20,24 @@
 #
 ############################################################################
 #
-# - Find the codec2 include file and library
+# - Find the ortp include files and library
 #
-#  CODEC2_FOUND - system has codec2
-#  CODEC2_INCLUDE_DIRS - the codec2 include directory
-#  CODEC2_LIBRARIES - The libraries needed to use codec2
+#  ORTP_FOUND - system has lib ortp
+#  ORTP_INCLUDE_DIRS - the ortp include directory
+#  ORTP_LIBRARIES - The library needed to use ortp
 
-include(CMakePushCheckState)
+if(TARGET ortp)
 
-find_path(CODEC2_INCLUDE_DIRS
-	NAMES codec2/codec2.h
-	PATH_SUFFIXES include
-)
-if(CODEC2_INCLUDE_DIRS)
-	set(HAVE_CODEC2_CODEC2_H 1)
+	set(ORTP_LIBRARIES ortp)
+	get_target_property(ORTP_INCLUDE_DIRS ortp INTERFACE_INCLUDE_DIRECTORIES)
+
+
+	include(FindPackageHandleStandardArgs)
+	find_package_handle_standard_args(Ortp
+		DEFAULT_MSG
+		ORTP_INCLUDE_DIRS ORTP_LIBRARIES
+	)
+
+	mark_as_advanced(ORTP_INCLUDE_DIRS ORTP_LIBRARIES)
+
 endif()
-
-find_library(CODEC2_LIBRARIES NAMES codec2)
-
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Codec2
-	DEFAULT_MSG
-	CODEC2_INCLUDE_DIRS CODEC2_LIBRARIES HAVE_CODEC2_CODEC2_H
-)
-
-mark_as_advanced(CODEC2_INCLUDE_DIRS CODEC2_LIBRARIES HAVE_CODEC2_CODEC2_H)

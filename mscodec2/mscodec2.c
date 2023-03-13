@@ -20,7 +20,11 @@
            Johan Pascal
  */
 
+#ifdef CODEC2_USE_BUILD_INTERFACE
+#include "codec2.h"
+#else
 #include "codec2/codec2.h"
+#endif
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/mscodecutils.h"
 

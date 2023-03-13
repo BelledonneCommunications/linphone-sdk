@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,12 +21,11 @@
 ############################################################################
 
 cmake_minimum_required(VERSION 3.0)
+
 project(MSCODEC2 VERSION 0.1 LANGUAGES C)
 
 
 set(MSCODEC2_VERSION "${PROJECT_VERSION}")
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 
 
 include(GNUInstallDirs)
@@ -36,11 +35,20 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(Mediastreamer2 CONFIG REQUIRED)
-find_package(bctoolbox CONFIG REQUIRED)
-find_package(ortp CONFIG REQUIRED)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox CONFIG REQUIRED)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp CONFIG REQUIRED)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 CONFIG REQUIRED)
+endif()
 
 find_package(Codec2 REQUIRED)
 
@@ -56,24 +64,20 @@ set(SOURCE_FILES mscodec2.c)
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
-if(ENABLE_STATIC)
-	add_library(mscodec2-static STATIC ${SOURCE_FILES})
-	set_target_properties(mscodec2-static PROPERTIES OUTPUT_NAME mscodec2)
-	target_link_libraries(mscodec2-static ${LIBS})
-	install(TARGETS mscodec2-static
-		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
-	if(NOT IOS)
-		add_library(mscodec2 MODULE ${SOURCE_FILES})
-	else()
+if(BUILD_SHARED_LIBS)
+	if(IOS)
 		add_library(mscodec2 SHARED ${SOURCE_FILES})
+	else()
+		add_library(mscodec2 MODULE ${SOURCE_FILES})
 	endif()
-	target_link_libraries(mscodec2 ${LIBS})
+else()
+	add_library(mscodec2 STATIC ${SOURCE_FILES})
+endif()
+target_link_libraries(mscodec2 ${LIBS})
+if(CODEC2_USE_BUILD_INTERFACE)
+	target_compile_definitions(mscodec2 PRIVATE CODEC2_USE_BUILD_INTERFACE)
+endif()
+if(BUILD_SHARED_LIBS)
 	if(IOS)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
@@ -92,11 +96,13 @@ if(ENABLE_SHARED)
 		endif()
 		set_target_properties(mscodec2 PROPERTIES PREFIX "lib")
 	endif()
-	install(TARGETS mscodec2
-		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 endif()
+
+
+install(TARGETS mscodec2
+	RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
