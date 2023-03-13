@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -39,22 +39,18 @@ endif()
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
-if(ENABLE_STATIC)
-	add_library(msopenh264-static STATIC ${SOURCE_FILES})
-	set_target_properties(msopenh264-static PROPERTIES OUTPUT_NAME msopenh264)
-	target_link_libraries(msopenh264-static ${LIBS})
-	install(TARGETS msopenh264-static
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
-	if(NOT APPLE)
-		add_library(msopenh264 MODULE ${SOURCE_FILES})
-	else()
+if(BUILD_SHARED_LIBS)
+	if(APPLE)
 		add_library(msopenh264 SHARED ${SOURCE_FILES})
+	else()
+		add_library(msopenh264 MODULE ${SOURCE_FILES})
 	endif()
-	target_link_libraries(msopenh264 ${LIBS})
+else()
+	add_library(msopenh264 STATIC ${SOURCE_FILES})
+endif()
+target_link_libraries(msopenh264 ${LIBS})
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -62,7 +58,7 @@ if(ENABLE_SHARED)
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(msopenh264 PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msopenh264
@@ -82,11 +78,13 @@ if(ENABLE_SHARED)
 		endif()
 	
 	endif()
-	install(TARGETS msopenh264
-		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 endif()
+
+
+install(TARGETS msopenh264
+	RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)

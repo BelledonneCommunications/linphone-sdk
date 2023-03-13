@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -34,9 +34,7 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
-option(ENABLE_DECODER "Enable the openh264 decoder" Yes)
+option(ENABLE_DECODER "Enable the openh264 decoder" ON)
 
 include(GNUInstallDirs)
 
@@ -50,9 +48,18 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CheckIncludeFileCXX)
 check_include_file_cxx("stdbool.h" HAVE_STDBOOL_H)
 
-find_package(Mediastreamer2 CONFIG REQUIRED)
-find_package(ortp CONFIG REQUIRED)
-find_package(bctoolbox CONFIG REQUIRED)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox CONFIG REQUIRED)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp CONFIG REQUIRED)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 CONFIG REQUIRED)
+endif()
 
 find_package(OpenH264 REQUIRED)
 
