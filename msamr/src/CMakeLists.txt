@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -38,22 +38,26 @@ endif()
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
-if(ENABLE_STATIC)
-	add_library(msamr-static STATIC ${SOURCE_FILES})
-	set_target_properties(msamr-static PROPERTIES OUTPUT_NAME msamr)
-	target_link_libraries(msamr-static ${LIBS})
-	install(TARGETS msamr-static
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
-	if(NOT IOS)
-		add_library(msamr MODULE ${SOURCE_FILES})
-	else()
+if(BUILD_SHARED_LIBS)
+	if(IOS)
 		add_library(msamr SHARED ${SOURCE_FILES})
+	else()
+		add_library(msamr MODULE ${SOURCE_FILES})
 	endif()
-	target_link_libraries(msamr ${LIBS})
+else()
+	add_library(msamr STATIC ${SOURCE_FILES})
+endif()
+target_link_libraries(msamr ${LIBS})
+if(OPENCOREAMRNB_USE_BUILD_INTERFACE)
+	target_compile_definitions(msamr PRIVATE OPENCOREAMRNB_USE_BUILD_INTERFACE)
+endif()
+if(OPENCOREAMRWB_USE_BUILD_INTERFACE)
+	target_compile_definitions(msamr PRIVATE OPENCOREAMRWB_USE_BUILD_INTERFACE)
+endif()
+if(VOAMRWBENC_USE_BUILD_INTERFACE)
+	target_compile_definitions(msamr PRIVATE VOAMRWBENC_USE_BUILD_INTERFACE)
+endif()
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -78,11 +82,13 @@ if(ENABLE_SHARED)
 		set_target_properties(msamr PROPERTIES PREFIX "lib")
 	endif()
 	
-	install(TARGETS msamr
-		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 endif()
+
+
+install(TARGETS msamr
+	RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)

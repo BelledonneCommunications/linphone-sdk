@@ -27,8 +27,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ms_bufferizer_fill_current_metas(b,m)
 #endif
 
+#ifdef OPENCOREAMRNB_USE_BUILD_INTERFACE
+#include <amrnb/interf_dec.h>
+#include <amrnb/interf_enc.h>
+#else
 #include <opencore-amrnb/interf_dec.h>
 #include <opencore-amrnb/interf_enc.h>
+#endif
 
 #ifdef _MSC_VER
 #include <stdint.h>

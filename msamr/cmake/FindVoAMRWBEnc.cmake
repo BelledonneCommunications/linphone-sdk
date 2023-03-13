@@ -1,6 +1,6 @@
 ############################################################################
 # FindVoAMRWBEnc.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,24 +26,35 @@
 #  VOAMRWBENC_INCLUDE_DIRS - the vo-amrwbenc include directory
 #  VOAMRWBENC_LIBRARIES - The libraries needed to use vo-amrwbenc
 
-set(_VOAMRWBENC_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+if(TARGET vo-amrwbenc)
 
-find_path(VOAMRWBENC_INCLUDE_DIRS
-	NAMES vo-amrwbenc/enc_if.h
-	HINTS _VOAMRWBENC_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(VOAMRWBENC_INCLUDE_DIRS)
+	set(VOAMRWBENC_LIBRARIES vo-amrwbenc)
+	get_target_property(VOAMRWBENC_INCLUDE_DIRS vo-amrwbenc INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_VOAMRWBENC_ENC_IF_H 1)
-endif()
+	set(VOAMRWBENC_USE_BUILD_INTERFACE 1)
 
-find_library(VOAMRWBENC_LIBRARIES
-	NAMES vo-amrwbenc
-	HINTS _VOAMRWBENC_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
+else()
+
+	set(_VOAMRWBENC_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(VOAMRWBENC_INCLUDE_DIRS
+		NAMES vo-amrwbenc/enc_if.h
+		HINTS _VOAMRWBENC_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(VOAMRWBENC_INCLUDE_DIRS)
+		set(HAVE_VOAMRWBENC_ENC_IF_H 1)
+	endif()
+
+	find_library(VOAMRWBENC_LIBRARIES
+		NAMES vo-amrwbenc
+		HINTS _VOAMRWBENC_ROOT_PATHS
+		PATH_SUFFIXES bin lib
+	)
+
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VoAMRWBEnc

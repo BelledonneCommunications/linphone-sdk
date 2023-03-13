@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,8 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.22)
+
 project(msamr VERSION 1.1.3 LANGUAGES C)
 
 
@@ -34,8 +35,6 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_NARROWBAND "Enable AMR narrowband." YES)
 option(ENABLE_WIDEBAND "Enable AMR wideband." NO)
 
@@ -48,9 +47,18 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-find_package(bctoolbox CONFIG REQUIRED)
-find_package(ortp CONFIG REQUIRED)
-find_package(Mediastreamer2 CONFIG REQUIRED)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox CONFIG REQUIRED)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp CONFIG REQUIRED)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 CONFIG REQUIRED)
+endif()
 
 if(ENABLE_NARROWBAND)
 	find_package(OpenCoreAMRNB REQUIRED)

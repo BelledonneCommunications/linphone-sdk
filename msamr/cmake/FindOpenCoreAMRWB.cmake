@@ -1,6 +1,6 @@
 ############################################################################
 # FindOpenCoreAMRWB.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,24 +26,35 @@
 #  OPENCOREAMRWB_INCLUDE_DIRS - the opencoreamrwb include directory
 #  OPENCOREAMRWB_LIBRARIES - The libraries needed to use opencoreamrwb
 
-set(_OPENCOREAMRWB_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+if(TARGET opencore-amrwb)
 
-find_path(OPENCOREAMRWB_INCLUDE_DIRS
-	NAMES opencore-amrwb/dec_if.h
-	HINTS _OPENCOREAMRWB_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(OPENCOREAMRWB_INCLUDE_DIRS)
+	set(OPENCOREAMRWB_LIBRARIES opencore-amrwb)
+	get_target_property(OPENCOREAMRWB_INCLUDE_DIRS opencore-amrwb INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_OPENCOREAMRWB_DEC_IF_H 1)
-endif()
+	set(OPENCOREAMRWB_USE_BUILD_INTERFACE 1)
 
-find_library(OPENCOREAMRWB_LIBRARIES
-	NAMES opencore-amrwb
-	HINTS _OPENCOREAMRWB_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
+else()
+
+	set(_OPENCOREAMRWB_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(OPENCOREAMRWB_INCLUDE_DIRS
+		NAMES opencore-amrwb/dec_if.h
+		HINTS _OPENCOREAMRWB_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(OPENCOREAMRWB_INCLUDE_DIRS)
+		set(HAVE_OPENCOREAMRWB_DEC_IF_H 1)
+	endif()
+
+	find_library(OPENCOREAMRWB_LIBRARIES
+		NAMES opencore-amrwb
+		HINTS _OPENCOREAMRWB_ROOT_PATHS
+		PATH_SUFFIXES bin lib
+	)
+
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenCoreAMRWB

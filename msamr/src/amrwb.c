@@ -29,8 +29,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define ms_bufferizer_fill_current_metas(b,m)
 #endif
 
+#ifdef OPENCOREAMRWB_USE_BUILD_INTERFACE
+#include <amrwb/dec_if.h>
+#else
 #include <opencore-amrwb/dec_if.h>
+#endif
+#ifdef VOAMRWBENC_USE_BUILD_INTERFACE
+#include <enc_if.h>
+#else
 #include <vo-amrwbenc/enc_if.h>
+#endif
 
 #ifdef _MSC_VER
 #include <stdint.h>

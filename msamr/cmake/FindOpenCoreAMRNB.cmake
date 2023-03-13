@@ -1,6 +1,6 @@
 ############################################################################
 # FindOpenCoreAMRNB.cmake
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -26,24 +26,36 @@
 #  OPENCOREAMRNB_INCLUDE_DIRS - the opencoreamrnb include directory
 #  OPENCOREAMRNB_LIBRARIES - The libraries needed to use opencoreamrnb
 
-set(_OPENCOREAMRNB_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
 
-find_path(OPENCOREAMRNB_INCLUDE_DIRS
-	NAMES opencore-amrnb/interf_dec.h
-	HINTS _OPENCOREAMRNB_ROOT_PATHS
-	PATH_SUFFIXES include
-)
-if(OPENCOREAMRNB_INCLUDE_DIRS)
+if(TARGET opencore-amrnb)
+
+	set(OPENCOREAMRNB_LIBRARIES opencore-amrnb)
+	get_target_property(OPENCOREAMRNB_INCLUDE_DIRS opencore-amrnb INTERFACE_INCLUDE_DIRECTORIES)
 	set(HAVE_OPENCOREAMRNB_INTERF_DEC_H 1)
-endif()
+	set(OPENCOREAMRNB_USE_BUILD_INTERFACE 1)
 
-find_library(OPENCOREAMRNB_LIBRARIES
-	NAMES opencore-amrnb
-	HINTS _OPENCOREAMRNB_ROOT_PATHS
-	PATH_SUFFIXES bin lib
-)
+else()
+
+	set(_OPENCOREAMRNB_ROOT_PATHS
+		${CMAKE_INSTALL_PREFIX}
+	)
+
+	find_path(OPENCOREAMRNB_INCLUDE_DIRS
+		NAMES opencore-amrnb/interf_dec.h
+		HINTS _OPENCOREAMRNB_ROOT_PATHS
+		PATH_SUFFIXES include
+	)
+	if(OPENCOREAMRNB_INCLUDE_DIRS)
+		set(HAVE_OPENCOREAMRNB_INTERF_DEC_H 1)
+	endif()
+
+	find_library(OPENCOREAMRNB_LIBRARIES
+		NAMES opencore-amrnb
+		HINTS _OPENCOREAMRNB_ROOT_PATHS
+		PATH_SUFFIXES bin lib
+	)
+
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenCoreAMRNB
