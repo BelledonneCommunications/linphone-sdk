@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,7 +20,8 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.22)
+
 project(mswebrtc VERSION 1.1.1 LANGUAGES C CXX)
 
 
@@ -34,8 +35,6 @@ set(PACKAGE_URL "")
 set(VERSION "${PACKAGE_VERSION}")
 
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_AEC "Enable the WebRTC echo canceller support." YES)
 option(ENABLE_AECM "Enable the WebRTC echo canceller for mobile support." YES)
 option(ENABLE_ISAC "Enable the ISAC audio codec support." YES)
@@ -60,9 +59,20 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(Mediastreamer2 REQUIRED CONFIG)
-find_package(ortp REQUIRED CONFIG)
-find_package(bctoolbox REQUIRED CONFIG)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox REQUIRED CONFIG)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp REQUIRED CONFIG)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 REQUIRED CONFIG)
+endif()
 
 find_library(LIBM NAMES m)
 
@@ -410,24 +420,18 @@ endif()
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
-if(ENABLE_STATIC)
-	add_library(mswebrtc-static STATIC ${SOURCE_FILES})
-	set_target_properties(mswebrtc-static PROPERTIES OUTPUT_NAME mswebrtc)
-	set_target_properties(mswebrtc-static PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(mswebrtc-static ${LIBS})
-	install(TARGETS mswebrtc-static
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
-	if(NOT IOS)
-		add_library(mswebrtc MODULE ${SOURCE_FILES})
-	else()
+if(BUILD_SHARED_LIBS)
+	if(IOS)
 		add_library(mswebrtc SHARED ${SOURCE_FILES})
+	else()
+		add_library(mswebrtc MODULE ${SOURCE_FILES})
 	endif()
-	target_link_libraries(mswebrtc PRIVATE mediastreamer ortp bctoolbox ${LIBS})
-	set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
+else()
+	add_library(mswebrtc STATIC ${SOURCE_FILES})
+endif()
+target_link_libraries(mswebrtc PRIVATE mediastreamer2 ortp bctoolbox ${LIBS})
+set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -441,7 +445,7 @@ if(ENABLE_SHARED)
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
 
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 	endif()
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
@@ -454,14 +458,16 @@ if(ENABLE_SHARED)
 			set_target_properties(mswebrtc PROPERTIES PREFIX "lib")
 		endif()
 	endif()
-	install(TARGETS mswebrtc
-			RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-			LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-			ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
-			FRAMEWORK DESTINATION Frameworks
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
 endif()
+
+install(TARGETS mswebrtc
+		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
+		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+		FRAMEWORK DESTINATION Frameworks
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
 
 add_subdirectory(build)
 
