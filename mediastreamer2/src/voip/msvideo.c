@@ -643,94 +643,6 @@ MSScalerDesc ffmpeg_scaler = {ff_create_swscale_context, ff_sws_scale, ff_sws_fr
 
 #endif
 
-#if 0
-
-/*
-We use openmax-dl (from ARM) to optimize some scaling routines.
-*/
-
-#include "omxIP.h"
-
-typedef struct AndroidScalerCtx{
-	MSFFScalerContext base;
-	OMXIPColorSpace cs;
-	OMXSize src_size;
-	OMXSize dst_size;
-	bool_t use_omx;
-}AndroidScalerCtx;
-
-/* for android we use ffmpeg's scaler except for YUV420P-->RGB565, for which we prefer
- another arm neon optimized routine */
-
-static MSScalerContext *android_create_scaler_context(int src_w, int src_h, MSPixFmt src_fmt,
-                                          int dst_w, int dst_h, MSPixFmt dst_fmt, int flags){
-	AndroidScalerCtx *ctx=ms_new0(AndroidScalerCtx,1);
-	if (src_fmt==MS_YUV420P && dst_fmt==MS_RGB565){
-		ctx->use_omx=TRUE;
-		ctx->cs=OMX_IP_BGR565;
-		ctx->src_size.width=src_w;
-		ctx->src_size.height=src_h;
-		ctx->dst_size.width=dst_w;
-		ctx->dst_size.height=dst_h;
-	}else{
-		unsigned int ff_flags=0;
-		ctx->base.src_h=src_h;
-		if (flags & MS_SCALER_METHOD_BILINEAR)
-			ff_flags|=SWS_BILINEAR;
-		else if (flags & MS_SCALER_METHOD_NEIGHBOUR)
-			ff_flags|=SWS_BILINEAR;
-		ctx->base.ctx=sws_getContext (src_w,src_h,ms_pix_fmt_to_ffmpeg (src_fmt),
-	                                       dst_w,dst_h,ms_pix_fmt_to_ffmpeg (dst_fmt),ff_flags,NULL,NULL,NULL);
-		if (ctx->base.ctx==NULL){
-			ms_free(ctx);
-			ctx=NULL;
-		}
-	}
-	return (MSScalerContext *)ctx;
-}
-
-static int android_scaler_process(MSScalerContext *ctx, uint8_t *src[], int src_strides[], uint8_t *dst[], int dst_strides[]){
-	AndroidScalerCtx *actx=(AndroidScalerCtx*)ctx;
-	if (actx->use_omx){
-		int ret;
-		OMX_U8 *osrc[3];
-		OMX_INT osrc_strides[3];
-		OMX_INT xrr_max;
-		OMX_INT yrr_max;
-
-		osrc[0]=src[0];
-		osrc[1]=src[1];
-		osrc[2]=src[2];
-		osrc_strides[0]=src_strides[0];
-		osrc_strides[1]=src_strides[1];
-		osrc_strides[2]=src_strides[2];
-
-		xrr_max = (OMX_INT) ((( (OMX_F32) ((actx->src_size.width&~1)-1) / ((actx->dst_size.width&~1)-1))) * (1<<16) +0.5);
-		yrr_max = (OMX_INT) ((( (OMX_F32) ((actx->src_size.height&~1)-1) / ((actx->dst_size.height&~1)-1))) * (1<< 16) +0.5);
-
-		ret=omxIPCS_YCbCr420RszCscRotBGR_U8_P3C3R((const OMX_U8**)osrc,osrc_strides,actx->src_size,dst[0],dst_strides[0],actx->dst_size,actx->cs,
-				OMX_IP_BILINEAR, OMX_IP_DISABLE, xrr_max,yrr_max);
-		if (ret!=OMX_Sts_NoErr){
-			ms_error("omxIPCS_YCbCr420RszCscRotBGR_U8_P3C3R() failed : %i",ret);
-			return -1;
-		}
-		return 0;
-	}
-	return ff_sws_scale(ctx,src,src_strides,dst,dst_strides);
-}
-
-static void android_scaler_free(MSScalerContext *ctx){
-	ff_sws_free(ctx);
-}
-
-static MSScalerDesc android_scaler={
-	android_create_scaler_context,
-	android_scaler_process,
-	android_scaler_free
-};
-
-#endif
-
 #ifdef __ANDROID__
 #include "cpu-features.h"
 #endif
@@ -763,12 +675,7 @@ void ms_video_set_scaler_impl(MSScalerDesc *desc) {
 
 MSScalerDesc *ms_video_get_scaler_impl(void) {
 	if (scaler_impl) return scaler_impl;
-#if defined(__ANDROID__) && defined(MS_HAS_ARM) && !defined(__aarch64__)
-	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM &&
-	    (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
-		scaler_impl = &ms_android_scaler;
-	}
-#elif defined(HAVE_LIBYUV_H)
+#if defined(HAVE_LIBYUV_H)
 	scaler_impl = &yuv_scaler;
 #elif !defined(NO_FFMPEG)
 	scaler_impl = &ffmpeg_scaler;

@@ -29,7 +29,6 @@
 #include "mediastreamer2/mscommon.h"
 #include "nowebcam.h"
 #include "mediastreamer2/msfilter.h"
-#include "scaler.h"
 #include "bctoolbox/ios_utils.hh"
 
 #import <Foundation/Foundation.h>

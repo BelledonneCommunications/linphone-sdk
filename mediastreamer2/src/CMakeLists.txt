@@ -289,7 +289,6 @@ if(ENABLE_VIDEO)
 				utils/opengles_display.h
 				utils/shader_util.c
 				utils/shader_util.h
-				voip/scaler.c
 			)
 			list(APPEND VOIP_SOURCE_FILES_OBJC
 				videofilters/iosdisplay.mm
@@ -323,7 +322,6 @@ if(ENABLE_VIDEO)
 			utils/opengles_display.h
 			utils/shader_util.c
 			utils/shader_util.h
-			voip/scaler.c
 		)
 		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 			list(APPEND VOIP_SOURCE_FILES_ASM
@@ -505,7 +503,6 @@ endif()
 if(ENABLE_VIDEO AND ANDROID AND CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
 	set(NEON_SOURCE_FILES
 		voip/msvideo_neon.c
-		voip/scaler.c
 	)
 endif()
 
