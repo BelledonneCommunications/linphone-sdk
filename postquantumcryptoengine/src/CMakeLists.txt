@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -37,26 +37,23 @@ set(POSTQUANTUMCRYPTOENGINE_SOURCE_FILES ${POSTQUANTUMCRYPTOENGINE_CXX_SOURCE_FI
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_C_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_CXX_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-if(ENABLE_STATIC)
-	add_library(postquantumcryptoengine STATIC ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
-	set_target_properties(postquantumcryptoengine PROPERTIES POSITION_INDEPENDENT_CODE On)
-	if(WIN32)
-		target_link_libraries(postquantumcryptoengine INTERFACE "Winmm" "Ws2_32")
-	endif()
-	#set_target_properties(postquantumcryptoengine PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(postquantumcryptoengine PROPERTIES OUTPUT_NAME postquantumcryptoengine)
-	if(ANDROID)
-		target_link_libraries(postquantumcryptoengine INTERFACE log)
-	endif()
-	target_include_directories(postquantumcryptoengine PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-	)
-	target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox)
-	target_link_libraries(postquantumcryptoengine PRIVATE OQS::oqs)
+add_library(postquantumcryptoengine ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox ${LIBOQS_LIBRARIES})
+target_include_directories(postquantumcryptoengine PUBLIC
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+	$<INSTALL_INTERFACE:include>
+)
+if(ANDROID)
+	target_link_libraries(postquantumcryptoengine INTERFACE log)
 endif()
-if(ENABLE_SHARED)
-	add_library(postquantumcryptoengine SHARED ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
+if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	target_link_libraries(postquantumcryptoengine INTERFACE "Winmm" "Ws2_32")
+endif()
+if(LIBOQS_USE_BUILD_INTERFACE)
+	target_compile_definitions(postquantumcryptoengine PRIVATE "LIBOQS_USE_BUILD_INTERFACE")
+endif()
+
+if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		if(IOS)
 			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -66,9 +63,6 @@ if(ENABLE_SHARED)
 	endif()
 	if(WIN32)
 		set_target_properties(postquantumcryptoengine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-		if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-			target_link_libraries(postquantumcryptoengine PRIVATE "Winmm" "Ws2_32")
-		endif()
 		target_compile_definitions(postquantumcryptoengine PRIVATE "-DPQCE_EXPORTS")
 		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")#Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
 			get_target_property(BC_LINK_FLAGS postquantumcryptoengine LINK_FLAGS)
@@ -98,35 +92,18 @@ if(ENABLE_SHARED)
 			)
 		endif()
 	endif()
-	if(ANDROID)
-		target_link_libraries(postquantumcryptoengine PRIVATE log)
-	endif()
-	target_include_directories(postquantumcryptoengine PUBLIC
-		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
-	)
-	target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox)
-	target_link_libraries(postquantumcryptoengine PRIVATE OQS::oqs)
+else()
+	set_target_properties(postquantumcryptoengine PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if(ENABLE_STATIC)
-	install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		COMPONENT core
-	)
-endif()
-
-if(ENABLE_SHARED)
-	install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		COMPONENT core
-	)
-endif()
+install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	COMPONENT core
+)
 
 if(MSVC)
 	# Disable "was deprecated" warnings of windows compiler (typically using strcpy_s instead of strcpy and stupid things like this).

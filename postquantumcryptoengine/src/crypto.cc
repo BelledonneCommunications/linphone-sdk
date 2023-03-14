@@ -24,7 +24,11 @@
 #include "bctoolbox/crypto.hh"
 #include "postquantumcryptoengine/crypto.hh"
 
+#ifdef LIBOQS_USE_BUILD_INTERFACE
+#include <oqs.h>
+#else
 #include <oqs/oqs.h>
+#endif
 
 #include <algorithm>
 

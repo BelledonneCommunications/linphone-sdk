@@ -36,10 +36,8 @@ set(POSTQUANTUMCRYPTOENGINE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
 set(POSTQUANTUMCRYPTOENGINE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(POSTQUANTUMCRYPTOENGINE_SO_VERSION 1)
 
-option(ENABLE_SHARED "Build shared library." ON)
-option(ENABLE_STATIC "Build static library." OFF)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
-option(ENABLE_TESTS "Enable compilation of tests" ON)
+option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS NO)
@@ -53,11 +51,15 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-if(NOT DISABLE_BC_PACKAGE_SEARCH)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
 	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
 endif()
 
-find_package(liboqs REQUIRED CONFIG)
+find_package(LibOqs)
+if(NOT LIBOQS_FOUND)
+	find_package(liboqs REQUIRED CONFIG)
+endif()
 
 include_directories(
 	include
@@ -66,7 +68,7 @@ include_directories(
 )
 
 set(POSTQUANTUMCRYPTOENGINE_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
-if(ENABLE_STATIC)
+if(NOT BUILD_SHARED_LIBS)
 	set(PQCE_STATIC 1)
 endif()
 if(POSTQUANTUMCRYPTOENGINE_CPPFLAGS)
@@ -88,7 +90,7 @@ add_definitions("-DHAVE_CONFIG_H")
 add_subdirectory(include)
 add_subdirectory(src)
 
-if(ENABLE_TESTS)
+if(ENABLE_UNIT_TESTS)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
