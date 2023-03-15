@@ -95,10 +95,8 @@ macosx-m1-multiarch-makefile-pqc:
 
 
 macosx-ninja:
-
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
-
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
@@ -117,7 +115,7 @@ macosx-m1-ninja-pqc:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
   rules:
-    - if: $NIGHTLY_MASTER
+    - if: (($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null) || $NIGHTLY_MASTER
   extends: macosx-m1-multiarch-ninja
 
 macosx-ninja-novideo:
