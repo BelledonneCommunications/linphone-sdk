@@ -64,8 +64,8 @@
     - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch
+    - find $CI_PROJECT_DIR -name '.git' -exec bash -c 'git config --global --add safe.directory ${0%/.git}' {} \;
     - git describe --debug || true
-    - git config --global --add safe.directory /builds/BC/public/linphone-sdk
     - git -C liblinphone describe --debug || true
 
   after_script:
