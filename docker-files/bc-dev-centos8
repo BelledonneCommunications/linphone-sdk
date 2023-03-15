@@ -7,7 +7,7 @@ ENV SHELL=/bin/bash
 
 # Changes reposiories as they have been moved since Centos8 end of life (see https://techglimpse.com/failed-metadata-repo-appstream-centos-8/)
 # TODO create rockylinux image and deprecate this one)
-RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && dnf makecache
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.epel.cloud|g' /etc/yum.repos.d/CentOS-* && dnf makecache
 
 # Configure additional repositories and install common general tools
 RUN dnf install --refresh -y https://download.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm  && dnf install -y https://download1.rpmfusion.org/free/el/rpmfusion-free-release-8.noarch.rpm && dnf install -y https://download1.rpmfusion.org/nonfree/el/rpmfusion-nonfree-release-8.noarch.rpm && rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro && rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm && \
