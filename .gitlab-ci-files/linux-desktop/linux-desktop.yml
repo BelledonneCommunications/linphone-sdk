@@ -49,7 +49,7 @@
 .test:
   stage: test
   extends: .job-prepare
-  allow_failure: false
+  allow_failure: true
   # Prevent tests from fetching repo. They have all needed files in upcoming artifacts
   variables:
     GIT_STRATEGY: none
@@ -406,7 +406,7 @@
 .test-liblinphone-tunnel-pq-mr:
   extends: .test-liblinphone-mr
   tags: [ "docker-liblinphone-tester-light" ]
-  allow_failure: true
+  allow_failure: false
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"

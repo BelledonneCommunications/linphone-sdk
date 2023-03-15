@@ -17,6 +17,7 @@ changes made to these components.
 ### Changed
 - Update ZLib to 1.2.13
 - Enum relocations dictionnary is now automatically computed, causing an API change in C++, Swift & Java wrappers!
+- Update macOS deployment target version to 10.14 and iOS deployment target version to iOS12
 
 ## [5.2.0] - 2022-11-14
 

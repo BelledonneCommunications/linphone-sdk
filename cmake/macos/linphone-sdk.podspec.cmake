@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
 @LINPHONESDK_LICENSE@LICENSE
     }
   s.author       = { 'Belledonne Communications SARL' => 'linphone-desktop@belledonne-communications.com' }
-  s.platform     = :osx, "10.13"
+  s.platform     = :osx, "10.14"
   s.source       = { :http => "@LINPHONESDK_MACOS_BASE_URL@/@LINPHONESDK_NAME@-macos-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "@LINPHONESDK_NAME@/@INSTALL_FOLDER@/@LINPHONESDK_FRAMEWORK_FOLDER@/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
