@@ -20,13 +20,8 @@
 include(LinphoneSdkPlatformCommon)
 include(LinphoneSdkCheckBuildToolsDesktop)
 
-#set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
-#set(LINPHONESDK_MACOS_ARCHS "arm64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64]")
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
-    set(LINPHONESDK_MACOS_ARCHS "arm64, x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64, x86_64]")
-else()
-    set(LINPHONESDK_MACOS_ARCHS "x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [x86_64]")
-endif()
+set(LINPHONESDK_MACOS_ARCHS "arm64, x86_64" CACHE STRING "MacOS architectures to build for: comma-separated list of values in [arm64, x86_64]")
+
 message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR is ${CMAKE_HOST_SYSTEM_PROCESSOR}. Selected architectures are [${LINPHONESDK_MACOS_ARCHS}]")
 message(STATUS "CMAKE_APPLE_SILICON_PROCESSOR : ${CMAKE_APPLE_SILICON_PROCESSOR}")
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _archs)
