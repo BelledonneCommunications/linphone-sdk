@@ -115,7 +115,7 @@ MSMediaPlayer *
 ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	ms_mutex_init(&obj->cb_access, NULL);
-	obj->snd_card = ms_snd_card_ref(snd_card);
+	if (snd_card) obj->snd_card = ms_snd_card_ref(snd_card);
 	if (video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
 		obj->window_id = window_id;
@@ -133,7 +133,7 @@ ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_d
 
 void ms_media_player_free(MSMediaPlayer *obj) {
 	ms_media_player_close(obj);
-	ms_snd_card_unref(obj->snd_card);
+	if (obj->snd_card) ms_snd_card_unref(obj->snd_card);
 #ifdef ANDROID
 	if (obj->window_id) {
 		JNIEnv *env = ms_get_jni_env();
@@ -237,6 +237,15 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 	obj->filename = ms_strdup(filepath);
 
 	return TRUE;
+}
+
+bool_t ms_media_player_has_video_track(MSMediaPlayer *obj) {
+	if (obj->is_open && obj->format == MS_FILE_FORMAT_MATROSKA) {
+		obj->video_pin_fmt.pin = 0;
+		ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->video_pin_fmt);
+		return obj->video_pin_fmt.fmt != NULL;
+	}
+	return FALSE;
 }
 
 bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj) {

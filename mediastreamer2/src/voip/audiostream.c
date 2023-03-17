@@ -1698,6 +1698,31 @@ static MSFilter *get_recorder(AudioStream *stream) {
 	}
 	return stream->recorder;
 }
+/*
+ * When we open an already existing mkv file in append mode,
+ * if the file has no video track but is going to have one, it crashes.
+ * Workaround by deleting the audio-only file.
+ */
+static void audio_stream_workaround_mkv_crash(AudioStream *st) {
+	if (st->videostream && st->av_recorder.recorder->desc->id == MS_MKV_RECORDER_ID &&
+	    bctbx_file_exist(st->recorder_file) == 0) {
+		MSFilter *f = ms_factory_create_filter(st->ms.factory, MS_MKV_PLAYER_ID);
+		MSPinFormat pinfmt = {0}; /* video pin is zero */
+		if (!f) return;
+		ms_filter_call_method(f, MS_PLAYER_OPEN, st->recorder_file);
+		ms_filter_call_method(f, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
+		ms_filter_call_method_noarg(f, MS_PLAYER_CLOSE);
+		ms_filter_destroy(f);
+		if (!pinfmt.fmt) {
+			/* we have no video track */
+			ms_warning("File [%s] is going to be open in append mode to record video, "
+			           "but had no video track before. This is not supported, file has to be deleted first, all audio "
+			           "is lost.",
+			           st->recorder_file);
+			unlink(st->recorder_file);
+		}
+	}
+}
 
 int audio_stream_mixed_record_start(AudioStream *st) {
 	if (st->recorder && st->recorder_file) {
@@ -1707,6 +1732,7 @@ int audio_stream_mixed_record_start(AudioStream *st) {
 		MSFilter *recorder = get_recorder(st);
 
 		if (recorder == NULL) return -1;
+		audio_stream_workaround_mkv_crash(st);
 		ms_filter_call_method(recorder, MS_RECORDER_GET_STATE, &state);
 		if (state == MSRecorderClosed) {
 			if (ms_filter_call_method(recorder, MS_RECORDER_OPEN, st->recorder_file) == -1) return -1;
@@ -2226,12 +2252,29 @@ static void configure_av_recorder(AudioStream *stream) {
 }
 
 void audio_stream_link_video(AudioStream *stream, VideoStream *video) {
+	bool_t reopen = FALSE;
 	stream->videostream = video;
 	video->audiostream = stream;
+
+	if (stream->av_recorder.recorder) {
+		MSRecorderState state;
+		ms_filter_call_method(stream->av_recorder.recorder, MS_RECORDER_GET_STATE, &state);
+		if (state != MSRecorderClosed) {
+			ms_message("AudioStream[%p]: a video stream is being linked while recorder is open. "
+			           "It has to be closed re-opened from scratch.",
+			           stream);
+			audio_stream_mixed_record_stop(stream);
+			reopen = TRUE;
+		}
+	}
+
 	if (stream->av_recorder.video_input && video->recorder_output) {
 		ms_message("audio_stream_link_video() connecting itc filters");
 		ms_filter_call_method(video->recorder_output, MS_ITC_SINK_CONNECT, stream->av_recorder.video_input);
 		configure_av_recorder(stream);
+	}
+	if (reopen) {
+		audio_stream_mixed_record_start(stream);
 	}
 }
 

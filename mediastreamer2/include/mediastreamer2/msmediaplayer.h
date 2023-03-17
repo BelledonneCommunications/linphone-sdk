@@ -189,6 +189,13 @@ MS2_PUBLIC MSFileFormat ms_media_player_get_file_format(const MSMediaPlayer *obj
 MS2_PUBLIC bool_t ms_media_player_get_is_video_available(MSMediaPlayer *obj);
 
 /**
+ * Returns whether the file has a video track.
+ * @param obj The player
+ * @return TRUE if file has a video track, FALSE otherwise
+ */
+MS2_PUBLIC bool_t ms_media_player_has_video_track(MSMediaPlayer *obj);
+
+/**
  * Set the volume gain of the player.
  * @param player #LinphonePlayer object @notnil
  * @param gain Percentage of the gain. Valid values are in [ 0.0 : 1.0 ].
