@@ -18,6 +18,9 @@ changes made to these components.
 - Update ZLib to 1.2.13
 - Enum relocations dictionnary is now automatically computed, causing an API change in C++, Swift & Java wrappers!
 - Update macOS deployment target version to 10.14 and iOS deployment target version to iOS12
+- Update to mbdetls 3.3
+- TLS Client certificate request authentication callback removed (due to mbedtls update).
+  Application using TLS client certificate must provide it before any TLS connexion needing it.
 
 ## [5.2.0] - 2022-11-14
 
