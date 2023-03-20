@@ -186,6 +186,43 @@ static void multimap_find_custom_cchar(void) {
 	bctbx_iterator_cchar_delete(it);
 }
 
+static void list_updates(void) {
+	bctbx_list_t *list = NULL;
+	bctbx_list_t *prep_list = NULL;
+	bctbx_list_t *add_list = NULL;
+	int sequence[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+	// For testing added elements
+	list = bctbx_list_append(list, &sequence[4]);
+	list = bctbx_list_append(list, &sequence[5]);
+
+	// For testing prepended elements
+	list = bctbx_list_prepend(list, &sequence[3]);
+
+	prep_list = bctbx_list_append(prep_list, &sequence[0]);
+	prep_list = bctbx_list_append(prep_list, &sequence[1]);
+	prep_list = bctbx_list_append(prep_list, &sequence[2]);
+
+	add_list = bctbx_list_prepend(add_list, &sequence[6]);
+	add_list = bctbx_list_append(add_list, &sequence[7]);
+	add_list = bctbx_list_append(add_list, &sequence[8]);
+
+	// For testing prepended list
+	prep_list = bctbx_list_prepend_link(list, prep_list);
+
+	// For testing added list
+	list = bctbx_list_append_link(prep_list, add_list);
+
+	// Check sequence: order and count must be correct.
+	bctbx_list_t *list_it = list;
+	int count = 0;
+	while (list_it != NULL) {
+		BC_ASSERT_EQUAL(*(int *)bctbx_list_get_data(list_it), count++, int, "%d");
+		list_it = bctbx_list_next(list_it);
+	}
+	BC_ASSERT_EQUAL(count, 9, int, "%d");
+	bctbx_list_free(list);
+}
+
 static test_t container_tests[] = {
     TEST_NO_TAG("mmap insert", multimap_insert),
     TEST_NO_TAG("mmap erase", multimap_erase),
@@ -193,6 +230,7 @@ static test_t container_tests[] = {
     TEST_NO_TAG("mmap insert cchar", multimap_insert_cchar),
     TEST_NO_TAG("mmap erase cchar", multimap_erase_cchar),
     TEST_NO_TAG("mmap find custom cchar", multimap_find_custom_cchar),
+    TEST_NO_TAG("list updates", list_updates),
 };
 
 test_suite_t containers_test_suite = {
