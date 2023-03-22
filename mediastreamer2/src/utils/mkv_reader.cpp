@@ -162,13 +162,13 @@ std::unique_ptr<MKVTrack> MKVTrack::parseTrack(const ebml_element *track_elt) no
 		case TRACK_TYPE_VIDEO: {
 			auto vtrack = make_unique<MKVVideoTrack>();
 			vtrack->parse(track_elt);
-			track = move(vtrack);
+			track = std::move(vtrack);
 			break;
 		}
 		case TRACK_TYPE_AUDIO: {
 			auto atrack = make_unique<MKVAudioTrack>();
 			atrack->parse(track_elt);
-			track = move(atrack);
+			track = std::move(atrack);
 			break;
 		}
 		default:
@@ -449,7 +449,7 @@ int MKVReader::parseHeaders() noexcept {
 				ms_error("MKVParser: fail to parse segment information");
 				return -1;
 			}
-			mInfoElt = move(level1);
+			mInfoElt = std::move(level1);
 		} else if (EBML_ElementIsType(level1.get(), &MATROSKA_ContextTracks)) {
 			ebml_element *track;
 			err = EBML_ElementReadData(level1.get(), mFile.get(), &seg_pctx, FALSE, SCOPE_ALL_DATA, FALSE);
@@ -478,7 +478,7 @@ int MKVReader::parseHeaders() noexcept {
 			} else if (!EBML_MasterCheckMandatory((ebml_master *)level1.get(), FALSE)) {
 				ms_error("MKVParser: fail to parse the table of cues");
 			} else {
-				mCues = move(level1);
+				mCues = std::move(level1);
 			}
 		} else {
 			EBML_ElementSkipData(level1.get(), mFile.get(), &seg_pctx, NULL, FALSE);

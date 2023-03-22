@@ -87,13 +87,11 @@ static void text_stream_hexdump(const uint8_t *data, const size_t s) {
 	char buf[1000];
 	const uint8_t *c = data;
 	int pos = 0;
-	int i = 0;
 
 	buf[0] = '\0';
 	while (c < data + s) {
 		pos += snprintf(&buf[pos], 1000 - pos, " ['%c']0x%X", *c > 20 ? *c : 'X', *c);
 		c++;
-		i++;
 	}
 
 	buf[pos] = '\0';
