@@ -208,7 +208,6 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				});
 
 	try {
-		auto bobCount=0;
 		for (auto batches=0; batches<batch_number; batches++) {
 			for (auto i=0; i<batch_size; i++) {
 				auto patternIndex = messageCount % lime_tester::messages_pattern.size();
@@ -242,7 +241,6 @@ static void lime_exchange_messages(std::shared_ptr<std::string> &aliceDeviceId, 
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 				// bob decrypt
-				bobCount++;
 				std::vector<uint8_t> receivedMessage{};
 				// in that context we cannot know the expected decrypt return value, just check it is not fail
 				BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
