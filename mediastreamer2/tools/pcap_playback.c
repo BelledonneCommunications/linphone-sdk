@@ -181,12 +181,14 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out) {
 
 #ifdef VIDEO_ENABLED
 static void reader_notify_cb(void *user_data, MSFilter *f, unsigned int event, void *eventdata) {
+#pragma unused(user_data, f, eventdata)
 	if (event == MS_PLAYER_EOF) {
 		cond = 0;
 	}
 }
 
 static void video_decoder_callback(void *user_data, MSFilter *f, unsigned int event, void *eventdata) {
+#pragma unused(user_data, f)
 	MSVideoCodecRPSI *rpsi;
 	uint16_t picture_id = 0;
 	switch (event) {
@@ -395,6 +397,7 @@ void setup_media_streams(MediastreamDatas *args) {
 }
 
 void run_non_interactive_loop(MediastreamDatas *args) {
+#pragma unused(args)
 	while (cond) {
 		int n;
 		for (n = 0; n < 100; ++n) {
@@ -437,6 +440,7 @@ void clear_mediastreams(MediastreamDatas *args) {
 
 // HELPER METHODS
 static void stop_handler(int signum) {
+#pragma unused(signum)
 	cond--;
 	if (cond < 0) {
 		ms_error("Brutal exit (%d)\n", cond);

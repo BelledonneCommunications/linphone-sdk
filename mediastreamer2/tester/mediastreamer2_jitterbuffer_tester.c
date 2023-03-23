@@ -136,6 +136,7 @@ static int congestion_count = 0;
 static int running_streams = 0;
 
 static void end_of_pcap(MSPCAPSender *s, void *user_data) {
+#pragma unused(user_data, s)
 	running_streams--;
 }
 

@@ -110,7 +110,11 @@ static int player_open(MSFilter *f, void *arg) {
 	if (d->fd != -1) {
 		player_close(f, NULL);
 	}
+#ifdef __APPLE__
+	if ((fd = open(file, O_RDONLY)) == -1) {
+#else
 	if ((fd = open(file, O_RDONLY | O_BINARY)) == -1) {
+#endif
 		ms_warning("MSPCAPFilePlayer[%p]: failed to open %s: %s", f, file, strerror(errno));
 		return -1;
 	}
@@ -139,13 +143,15 @@ static int player_open(MSFilter *f, void *arg) {
 	}
 }
 
-static int player_start(MSFilter *f, void *arg) {
+static int player_start(MSFilter *f, void *args) {
+#pragma unused(args)
 	PlayerData *d = (PlayerData *)f->data;
 	if (d->state == MSPlayerPaused) d->state = MSPlayerPlaying;
 	return 0;
 }
 
-static int player_pause(MSFilter *f, void *arg) {
+static int player_pause(MSFilter *f, void *args) {
+#pragma unused(args)
 	PlayerData *d = (PlayerData *)f->data;
 	ms_filter_lock(f);
 	if (d->state == MSPlayerPlaying) {
@@ -155,7 +161,8 @@ static int player_pause(MSFilter *f, void *arg) {
 	return 0;
 }
 
-static int player_close(MSFilter *f, void *arg) {
+static int player_close(MSFilter *f, void *args) {
+#pragma unused(args)
 	PlayerData *d = (PlayerData *)f->data;
 	if (d->pcap) {
 		pcap_close(d->pcap);
