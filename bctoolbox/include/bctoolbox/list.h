@@ -40,9 +40,9 @@ typedef void *(*bctbx_list_copy_func)(void *);
 
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_new(void *data);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_append(bctbx_list_t *elem, void *data);
-BCTBX_PUBLIC bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem, bctbx_list_t *new_elem);
+BCTBX_PUBLIC BCTBX_DEPRECATED bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_prepend(bctbx_list_t *elem, void *data);
-BCTBX_PUBLIC bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem);
+BCTBX_PUBLIC BCTBX_DEPRECATED bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_last_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_first_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_free(bctbx_list_t *elem);
@@ -54,6 +54,7 @@ BCTBX_PUBLIC bctbx_list_t *bctbx_list_pop_front(bctbx_list_t *list, void **front
 BCTBX_PUBLIC size_t bctbx_list_size(const bctbx_list_t *first);
 BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t *list, bctbx_list_iterate_func func);
 BCTBX_PUBLIC void bctbx_list_for_each2(const bctbx_list_t *list, bctbx_list_iterate2_func func, void *user_data);
+
 /**
  * Removes the element pointed by elem from the list. The element itself is not freed, allowing
  * to be chained in another list for example.

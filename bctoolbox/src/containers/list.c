@@ -48,32 +48,24 @@ bctbx_list_t *bctbx_list_next(const bctbx_list_t *elem) {
 void *bctbx_list_get_data(const bctbx_list_t *elem) {
 	return elem->data;
 }
-bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem, bctbx_list_t *new_elem) {
-	bctbx_list_t *it = elem;
-	if (elem == NULL) return new_elem;
-	if (new_elem == NULL) return elem;
-	while (it->next != NULL)
-		it = bctbx_list_next(it);
-	it->next = new_elem;
-	new_elem->prev = it;
-	return elem;
+bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem,bctbx_list_t *new_elem) {
+	return bctbx_list_concat(elem, new_elem);
 }
 
 bctbx_list_t *bctbx_list_append(bctbx_list_t *elem, void *data) {
-	bctbx_list_t *new_elem = bctbx_list_new(data);
-	return bctbx_list_append_link(elem, new_elem);
+	bctbx_list_t *new_elem=bctbx_list_new(data);
+	return bctbx_list_concat(elem,new_elem);
 }
-
 
 bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem) {
 	if (elem!=NULL) {// NULL => NE => NLE => E => LE => NULL (where N=New, L=Last, E=Elem)
-		new_elem = bctbx_list_append_link(new_elem, elem);
+		new_elem = bctbx_list_concat(new_elem, elem);
 	}
 	return new_elem;
 }
 
 bctbx_list_t *bctbx_list_prepend(bctbx_list_t *elem, void *data) {
-	return bctbx_list_prepend_link(elem, bctbx_list_new(data));
+	return bctbx_list_concat(bctbx_list_new(data), elem);
 }
 
 bctbx_list_t *bctbx_list_last_elem(const bctbx_list_t *l) {
