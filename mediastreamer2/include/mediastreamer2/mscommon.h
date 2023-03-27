@@ -194,7 +194,7 @@ MS2_PUBLIC MS2_DEPRECATED MSList *ms_list_append(MSList *list, void *data);
  * @param list list where data should be added. If NULL, a new list will be created.
  * @param new_elem element to append
  * @return first element of the list
- * @deprecated Use bctbx_list_append_link() instead
+ * @deprecated Use bctbx_list_concat() instead
  **/
 MS2_PUBLIC MS2_DEPRECATED MSList *ms_list_append_link(MSList *list, MSList *new_elem);
 

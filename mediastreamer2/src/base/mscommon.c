@@ -60,7 +60,7 @@ MSList *ms_list_new(void *data) {
 }
 
 MSList *ms_list_append_link(MSList *elem, MSList *new_elem) {
-	return bctbx_list_append_link(elem, new_elem);
+	return bctbx_list_concat(elem, new_elem);
 }
 
 MSList *ms_list_append(MSList *elem, void *data) {
