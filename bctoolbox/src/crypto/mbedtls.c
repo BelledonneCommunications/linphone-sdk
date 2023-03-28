@@ -1351,7 +1351,7 @@ static void bctbx_ssl_dtls_srtp_key_derivation(
 
 	bctbx_dtls_srtp_keys_t *keys = (bctbx_dtls_srtp_keys_t *)key_ctx;
 	if (secret_len != sizeof(keys->master_secret)) {
-		bctbx_error("DTLS-SRTP key derivation callback generate a secret of size %ld but we're expecting %ld bytes",
+		bctbx_error("DTLS-SRTP key derivation callback generate a secret of size %zu but we're expecting %zu bytes",
 		            secret_len, sizeof(keys->master_secret));
 		return;
 	}
