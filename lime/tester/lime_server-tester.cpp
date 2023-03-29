@@ -455,7 +455,8 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 			aliceManager->encrypt(*aliceDeviceId2, make_shared<const std::string>("friends"), recipients, message, cipherMessage, callback);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 			receivedMessage.clear();
-			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *aliceDeviceId2, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+			// alice2 is a local device for alice, so it is trusted
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "friends", *aliceDeviceId2, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::trusted);
 			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 			BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2*i+1]);
 

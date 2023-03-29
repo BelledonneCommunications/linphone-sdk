@@ -115,8 +115,9 @@ namespace lime {
 	 */
 	using limeX3DHServerPostData = std::function<void(const std::string &url, const std::string &from, const std::vector<uint8_t> &message, const limeX3DHServerResponseProcess &reponseProcess)>;
 
-	/* Forward declare the class managing one lime user*/
+	/* Forward declare the class managing one lime user and class managing database */
 	class LimeGeneric;
+	class Db;
 
 	/** @brief Manage several Lime objects(one is needed for each local user).
 	 *
@@ -128,8 +129,7 @@ namespace lime {
 		private :
 			std::unordered_map<std::string, std::shared_ptr<LimeGeneric>> m_users_cache; // cache of already opened Lime Session, identified by user Id (GRUU)
 			std::mutex m_users_mutex; // m_users_cache mutex
-			std::string m_db_access; // DB access information forwarded to SOCI to correctly access database
-			std::shared_ptr<std::recursive_mutex> m_db_mutex; // database access mutex
+			std::shared_ptr<lime::Db> m_localStorage; // DB access information forwarded to SOCI to correctly access database
 			limeX3DHServerPostData m_X3DH_post_data; // send data to the X3DH key server
 			void load_user(std::shared_ptr<LimeGeneric> &user, const std::string &localDeviceId, const bool allStatus=false); // helper function, get from m_users_cache of local Storage the requested Lime object
 
