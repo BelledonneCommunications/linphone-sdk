@@ -1,4 +1,4 @@
-FROM debian:stretch
+FROM debian:11
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 
@@ -20,18 +20,15 @@ ENV ANDROID_NDK r25
 ENV ANDROID_SDK 25.2.5
 ENV ANDROID_HOME /opt/android-sdk-linux
 
-# Backports required for JDK 11
-RUN echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
-
 # Install common general tools
 RUN apt-get update && \
-    apt-get install -y curl nano sudo unzip vim wget && \
+    apt-get install -y curl nano sudo unzip vim wget rsync && \
     apt-get clean
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y ccache doxygen git make nasm ninja-build openjdk-8-jdk-headless openssh-client pkg-config yasm && \
-    apt-get -t stretch-backports install -y openjdk-11-jdk-headless && \
+    apt-get install -y ccache doxygen git make nasm ninja-build openssh-client pkg-config yasm && \
+    apt-get install -y openjdk-11-jdk-headless && \
     apt-get clean
 
 # Install python3 and python modules /!\ There is a build issue with pystache 0.6.0, hence the ==0.5.4
@@ -85,5 +82,5 @@ RUN useradd -ms /bin/bash bc && \
 
 USER bc
 WORKDIR /home/bc
-ENV PS1='\[\e[34m\]\u@bc-dev-android-r23>\[\e[0m\] '
+ENV PS1='\[\e[34m\]\u@bc-dev-android-r25>\[\e[0m\] '
 CMD bash

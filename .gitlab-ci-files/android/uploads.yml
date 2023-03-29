@@ -63,6 +63,11 @@ android-doc-upload:
     - git config --global user.email "gitlab@belledonne-communications.com"
     - git config --global user.name "Gitlab"
 
+    #debug empty value on updated arch
+    - find $CI_PROJECT_DIR -name '.git' -exec bash -c 'git config --global --add safe.directory ${0%/.git}' {} \;
+    - git describe --debug || true
+    - git -C liblinphone describe --debug || true
+
     #Only get major and minor version (ex: 4.4) for documentation directory
 
     #git -C executes the git command in specified directory

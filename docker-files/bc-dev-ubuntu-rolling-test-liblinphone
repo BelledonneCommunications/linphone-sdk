@@ -1,4 +1,4 @@
-ARG FROM_IMAGE_TAG=20210217_python3
+ARG FROM_IMAGE_TAG=2023_03_20_add_mbedtls3_dependencies
 
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$FROM_IMAGE_TAG
 

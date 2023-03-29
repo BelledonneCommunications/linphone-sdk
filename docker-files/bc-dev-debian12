@@ -53,7 +53,7 @@ RUN sudo apt-get install -y python3-full python3-pip && sudo python3 -m venv /op
     sudo /opt/bc/pip-packages/bin/pip install setuptools==57.5.0 && \
     sudo /opt/bc/pip-packages/bin/pip install six pystache graphviz jsonschema jinja2
 
-ENV PATH=$PATH:/home/bc/.local/bin:/opt/bc/pip-packages/bin
+ENV PATH=/opt/bc/pip-packages/bin:$PATH:/home/bc/.local/bin
 
 COPY --chown=bc rpmmacros /home/bc/.rpmmacros
 
