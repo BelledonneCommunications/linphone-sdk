@@ -575,7 +575,7 @@ int ms_volume_linear_to_dbov(float linear) {
 }
 
 int ms_volume_dbm0_to_dbov(float dbm0) {
-	return (int)dbm0 + 3;
+	return dbm0 > -3.0 ? -3 : (int)dbm0 + 3;
 }
 
 float ms_volume_dbov_to_dbm0(int dbov) {
