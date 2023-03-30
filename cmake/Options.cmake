@@ -118,6 +118,7 @@ linphonesdk_option("Qt GL" "Enable Qt OpenGL rendering support." OFF)
 linphonesdk_dependent_option("V4L" "Ability to capture and display video using libv4l2 (needs ENABLE_VIDEO=ON)." ON "ENABLE_VIDEO;LINUX_OR_BSD" OFF)
 linphonesdk_dependent_option("VPX" "Build mediastreamer2 with VPX codec." ON "ENABLE_VIDEO" OFF)
 linphonesdk_dependent_option("MSWinRTVideo" "Build mswinrtvid mediastreamer plugin (Deprecated)." OFF "ENABLE_VIDEO;UWP" OFF)
+linphonesdk_dependent_option("AV1" "Build mediastreamer2 with AV1 support through libaom and dav1d (needs ENABLE_VIDEO=ON)." ON "ENABLE_VIDEO" OFF)
 
 # Activation of other software features
 linphonesdk_option("Advanced IM" "Enable advanced instant messaging such as group chat." ON)

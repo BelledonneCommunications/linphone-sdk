@@ -1,4 +1,8 @@
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:2022_10_13_update_docker_image
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-php:20230706_add_deps_for_av1
+###############################################################################
+
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20230706_add_deps_for_av1
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 

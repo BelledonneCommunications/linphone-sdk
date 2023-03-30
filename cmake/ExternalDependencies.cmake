@@ -21,6 +21,7 @@
 ############################################################################
 
 include(ExternalProject)
+include(GNUInstallDirs)
 
 
 ############################################################################
@@ -28,11 +29,16 @@ include(ExternalProject)
 # dependencies on the system
 ############################################################################
 
+cmake_dependent_option(BUILD_AOM "Build aom library source code from submodule instead of searching it in system libraries" ON "ENABLE_AV1" OFF)
+
 cmake_dependent_option(BUILD_BV16 "Build bv16 library source code from submodule instead of searching it in system libraries." ON "ENABLE_BV16" OFF)
 cmake_dependent_option(BUILD_BV16_SHARED_LIBS "Choose to build shared or static bv16 library." ${BUILD_SHARED_LIBS} "BUILD_BV16" OFF)
 
 cmake_dependent_option(BUILD_CODEC2 "Build codec2 library source code from submodule instead of searching it in system libraries." ON "ENABLE_CODEC2" OFF)
 cmake_dependent_option(BUILD_CODEC2_SHARED_LIBS "Choose to build shared or static codec2 library." ${BUILD_SHARED_LIBS} "BUILD_CODEC2" OFF)
+
+cmake_dependent_option(BUILD_DAV1D "Build dav1d library source code from submodule instead of searching it in system libraries" ON "ENABLE_AV1" OFF)
+cmake_dependent_option(BUILD_DAV1D_SHARED_LIBS "Choose to build shared or static dav1d library." OFF "BUILD_DAV1D" OFF)
 
 cmake_dependent_option(BUILD_DECAF "Build decaf library source code from submodule instead of searching it in system libraries." ON "ENABLE_DECAF" OFF)
 cmake_dependent_option(BUILD_DECAF_SHARED_LIBS "Choose to build shared or static decaf library." ${BUILD_SHARED_LIBS} "BUILD_DECAF" OFF)
@@ -229,6 +235,45 @@ if(ANDROID)
 	add_support()
 endif()
 
+if(BUILD_AOM)
+	function(add_aom)
+		# Use an ExternalProject here instead of adding the subdirectory because aom has a weird way of defining options
+		# and some of them are set in cache with a default value not corresponding to reality that conflicts with other projects.
+
+		if(CCACHE_PROGRAM)
+			set(ENABLE_CCACHE ON)
+		else()
+			set(ENABLE_CCACHE OFF)
+		endif()
+
+		if(WIN32)
+			set(AOM_LOCATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/aom.lib")
+		else()
+			set(AOM_LOCATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/libaom.a")
+		endif()
+		set(AOM_BYPRODUCTS ${AOM_LOCATION})
+
+		ExternalProject_Add(libaom
+			SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/aom"
+			BINARY_DIR "${PROJECT_BINARY_DIR}/external/aom"
+			CMAKE_ARGS
+			"-DCMAKE_BUILD_TYPE=Release" "-DCMAKE_CROSSCOMPILING=${CMAKE_CROSSCOMPILING}" "-DCMAKE_NO_SYSTEM_FROM_IMPORTED=${CMAKE_NO_SYSTEM_FROM_IMPORTED}"
+			"-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}" "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}" "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}"
+			"-DCMAKE_OSX_SYSROOT=${CMAKE_OSX_SYSROOT}" "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DCMAKE_INSTALL_DEFAULT_LIBDIR=lib"
+			"-DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}" "-DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}" "-DCMAKE_POSITION_INDEPENDENT_CODE=ON"
+			"-DENABLE_CCACHE=${ENABLE_CCACHE}" "-DENABLE_DOCS=OFF" "-DENABLE_EXAMPLES=OFF" "-DENABLE_TESTS=OFF" "-DENABLE_TOOLS=OFF" "-DCONFIG_AV1_DECODER=0"
+			"-DCONFIG_REALTIME_ONLY=1"
+			BUILD_BYPRODUCTS ${AOM_BYPRODUCTS}
+		)
+
+		file(MAKE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
+		add_library(aom UNKNOWN IMPORTED)
+		set_target_properties(aom PROPERTIES IMPORTED_LOCATION ${AOM_LOCATION} INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/include")
+		add_dependencies(aom libaom)
+	endfunction()
+	add_aom()
+endif()
+
 if(BUILD_BV16)
 	function(add_bv16)
 		set(BUILD_SHARED_LIBS ${BUILD_BV16_SHARED_LIBS})
@@ -251,6 +296,101 @@ if(BUILD_CODEC2)
 		add_dependencies(sdk codec2)
 	endfunction()
 	add_codec2()
+endif()
+
+if(BUILD_DAV1D)
+	function(add_dav1d)
+		set(EP_BUILD_DIR "${PROJECT_BINARY_DIR}/external/dav1d")
+		get_relative_source_path("${PROJECT_SOURCE_DIR}/external/dav1d" "${EP_BUILD_DIR}" "EP_SOURCE_DIR_RELATIVE_TO_BUILD_DIR")
+
+		set(EP_BUILD_TYPE "release")
+		set(EP_PROGRAM_PATH "$PATH")
+
+		set(EP_ADDITIONAL_OPTIONS "-Denable_tools=false -Denable_tests=false")
+		if(NOT BUILD_DAV1D_SHARED_LIBS)
+			set(EP_ADDITIONAL_OPTIONS "${EP_ADDITIONAL_OPTIONS} --default-library=static")
+		endif()
+
+		if(ANDROID)
+			set(EP_PROGRAM_PATH "${EP_PROGRAM_PATH}:${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin/")
+
+			if(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7-a")
+				set(EP_ADDITIONAL_OPTIONS "${EP_ADDITIONAL_OPTIONS} --cross-file ${PROJECT_SOURCE_DIR}/external/dav1d/package/crossfiles/arm-android.meson")
+			elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+				set(EP_ADDITIONAL_OPTIONS "${EP_ADDITIONAL_OPTIONS} --cross-file ${PROJECT_SOURCE_DIR}/external/dav1d/package/crossfiles/aarch64-android.meson")
+			endif()
+		elseif(APPLE)
+			# If we are cross compiling generate the corresponding file to use with meson
+			if(IOS OR NOT CMAKE_SYSTEM_PROCESSOR STREQUAL CMAKE_HOST_SYSTEM_PROCESSOR)
+				string(TOLOWER "${CMAKE_SYSTEM_NAME}" EP_SYSTEM_NAME)
+
+				if(CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+					set(EP_SYSTEM_ENDIAN "big")
+				else()
+					set(EP_SYSTEM_ENDIAN "little")
+				endif()
+
+				if(NOT IOS AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+					set(EP_SYSTEM_PROCESSOR "aarch64")
+				else()
+					set(EP_SYSTEM_PROCESSOR "${CMAKE_SYSTEM_PROCESSOR}")
+				endif()
+
+				if(IOS)
+					if(PLATFORM STREQUAL "Simulator")
+						set(EP_OSX_DEPLOYMENT_TARGET "-miphonesimulator-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+					else()
+						set(EP_OSX_DEPLOYMENT_TARGET "-mios-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+					endif()
+
+					string(REGEX MATCH "^(arm*|aarch64)" ARM_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+					if(ARM_ARCH AND NOT ${XCODE_VERSION} VERSION_LESS 7)
+						set(EP_ADDITIONAL_FLAGS ", '-fembed-bitcode'")
+					endif()
+				else()
+					set(EP_OSX_DEPLOYMENT_TARGET "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+				endif()
+
+				configure_file("cmake/Meson/crossfile-apple.meson.cmake" ${PROJECT_BINARY_DIR}/EP_dav1d_crossfile.meson)
+				set(EP_ADDITIONAL_OPTIONS "${EP_ADDITIONAL_OPTIONS} --cross-file ${PROJECT_BINARY_DIR}/EP_dav1d_crossfile.meson")
+			endif()
+		endif()
+
+		configure_file("cmake/Meson/configure.sh.cmake" "${PROJECT_BINARY_DIR}/EP_dav1d_configure.sh")
+		configure_file("cmake/Meson/build.sh.cmake" "${PROJECT_BINARY_DIR}/EP_dav1d_build.sh")
+		configure_file("cmake/Meson/install.sh.cmake" "${PROJECT_BINARY_DIR}/EP_dav1d_install.sh")
+
+		if(BUILD_DAV1D_SHARED_LIBS)
+			if(APPLE)
+				set(EP_LIBRARY_NAME "libdav1d.dylib")
+			elseif(WIN32)
+				set(EP_LIBRARY_NAME "dav1d_dll.lib")
+			else()
+				set(EP_LIBRARY_NAME "libdav1d.so")
+			endif()
+		else()
+			set(EP_LIBRARY_NAME "libdav1d.a")
+		endif()
+
+		file(MAKE_DIRECTORY "${EP_BUILD_DIR}")
+
+		ExternalProject_Add(dav1d
+			SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/dav1d"
+			CONFIGURE_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_dav1d_configure.sh"
+			BUILD_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_dav1d_build.sh"
+			INSTALL_COMMAND "sh" "${PROJECT_BINARY_DIR}/EP_dav1d_install.sh"
+			LOG_BUILD TRUE
+			LOG_INSTALL TRUE
+			LOG_OUTPUT_ON_FAILURE TRUE
+			BUILD_BYPRODUCTS "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${EP_LIBRARY_NAME}"
+		)
+
+		file(MAKE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
+		add_library(libdav1d UNKNOWN IMPORTED)
+		set_target_properties(libdav1d PROPERTIES IMPORTED_LOCATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${EP_LIBRARY_NAME}" INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/include")
+		add_dependencies(libdav1d dav1d)
+	endfunction()
+	add_dav1d()
 endif()
 
 if(BUILD_DECAF)
@@ -418,7 +558,7 @@ if(BUILD_FFMPEG)
 				endif()
 			endif()
 		endif()
-		include(GNUInstallDirs)
+
 		if(WIN32)
 			list(APPEND EP_CROSS_COMPILATION_OPTIONS
 				"--prefix=${CMAKE_INSTALL_PREFIX}"

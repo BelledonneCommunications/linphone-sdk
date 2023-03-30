@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:20230706_add_deps_for_av1
+###############################################################################
+
 FROM ubuntu:18.04
 
 ARG QT_VERSION=5.15.2
@@ -43,7 +47,7 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch python3-pip python3-pystache python-six yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch perl python3-pip python3-pystache python-six yasm && \
     apt-get clean
 
 # Install linphone & flexisip dependencies development packages
@@ -66,13 +70,18 @@ RUN useradd -ms /bin/bash bc && \
 RUN sudo sed -i '/^mozilla\/DST_Root_CA_X3/s/^/!/' /etc/ca-certificates.conf
 RUN sudo update-ca-certificates -f
 
-
 # Install newest cmake. Documented at https://gist.github.com/bmegli/4049b7394f9cfa016c24ed67e5041930
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.25.3/cmake-3.25.3.tar.gz && \
 	tar -zvxf cmake-3.25.3.tar.gz && \
 	cd cmake-3.25.3 && ./bootstrap && make -j8 && \
 	sudo apt-get install checkinstall && sudo checkinstall --pkgname=cmake --pkgversion="3.25-custom" --default && hash -r && \
 	cd .. && sudo rm -rf cmake-3.25.3 && rm -rf cmake-3.25.3.tar.gz
+
+# Install nasm from source as we need a newer version than the one being packaged
+RUN curl --fail --silent --show-error --location https://www.nasm.us/pub/nasm/releasebuilds/2.16.01/nasm-2.16.01.tar.gz | \
+    tar --extract --gzip --file - && cd nasm-2.16.01 && \
+    ./configure --prefix=/usr/local && make && make install && \
+    cd .. && rm -rf nasm-2.16.01
 	
 ###########				QT
 
@@ -91,8 +100,11 @@ RUN sudo pip3 install ez_setup
 ## For mbedtls build
 RUN sudo pip3 install jsonschema jinja2
 
+## Install meson through pip to have a newer version
+RUN sudo pip3 install meson
+
 ## Install Qt download tool
-RUN sudo pip3 install aqtinstall
+RUN sudo pip3 install py7zr aqtinstall
 RUN sudo python3 -m aqt install $QT_VERSION linux desktop -O /opt/Qt -m $QT_MODULES
 
 RUN sudo chown -R bc:bc /opt/Qt/

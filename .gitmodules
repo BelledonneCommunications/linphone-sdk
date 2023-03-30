@@ -139,3 +139,9 @@
 [submodule "postquantumcryptoengine"]
 	path = postquantumcryptoengine
 	url = ../postquantumcryptoengine.git
+[submodule "external/dav1d"]
+	path = external/dav1d
+	url = https://gitlab.linphone.org/BC/public/external/dav1d.git
+[submodule "external/aom"]
+	path = external/aom
+	url = https://gitlab.linphone.org/BC/public/external/aom.git

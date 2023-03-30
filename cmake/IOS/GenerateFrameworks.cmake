@@ -59,7 +59,7 @@ if(ENABLE_FAT_BINARY)
 	)
 endif()
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${LINPHONESDK_NAME}/ios-${_FIRST_ARCH}/share/liblinphone_tester" "${CMAKE_INSTALL_PREFIX}/Resources/liblinphone_tester"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${LINPHONESDK_NAME}/ios-${_FIRST_ARCH}/share/liblinphone-tester" "${CMAKE_INSTALL_PREFIX}/Resources/liblinphone-tester"
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${LINPHONESDK_NAME}/ios-${_FIRST_ARCH}/share/linphonesw" "${CMAKE_INSTALL_PREFIX}/share/linphonesw"
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${LINPHONESDK_NAME}/ios-${_FIRST_ARCH}/share/linphonecs" "${CMAKE_INSTALL_PREFIX}/share/linphonecs"
 )

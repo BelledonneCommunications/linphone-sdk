@@ -5,7 +5,7 @@
 Linphone-SDK is a project that bundles Liblinphone and its dependencies as git submodules, in the purpose of simplifying
 the compilation and packaging of the whole Liblinphone suite, comprising Mediastreamer2, Belle-sip, oRTP and many others.
 Its compilation produces a SDK suitable to create applications running on top of these components.
-The submodules that are not developped or maintained by the Linphone team are grouped in the external/ directory.
+The submodules that are not developed or maintained by the Linphone team are grouped in the external/ directory.
 The currently supported platforms are Android, iOS, Desktop (Linux, Windows, Mac OS X) and UWP (Universal Windows Platform).
 
 ## License
@@ -35,6 +35,11 @@ The following tools must be installed on the build machine:
  - Pystache (use `pip install pystache` or `pip3 install pystache`)
  - six (use `pip install six` or `pip3 install six`)
 
+If you are building the AV1 codec, which is enabled by default (`ENABLE_AV1=Off` to disable), you will also need:
+ - Meson
+ - Ninja
+ - Perl
+
 ### Retrieve the dependencies
 
 Linphone-SDK's git repository comprises git submodules. It must be cloned with the `--recursive` option. After updating or switching branches, never forget to checkout and update the submodules with:
@@ -55,7 +60,7 @@ Follow MSYS2 instructions on their ["Getting Started" page](https://www.msys2.or
 
 Both MinGW32 and MinGW64 are supported.
 
-When building the SDK and if you set `-DENABLE_WINDOWS_TOOLS_CHECK=ON`, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `patch`, `pkg-config`, `gettext`, `glib2`, `intltool` and `graphviz` (if needed)
+When building the SDK and if you set `-DENABLE_WINDOWS_TOOLS_CHECK=ON`, it will install automatically from MSYS2 : `toolchain`, `python`, `doxygen`, `perl`, `yasm`, `gawk`, `bzip2`, `nasm`, `sed`, `intltool`, `graphviz`, `meson` and `ninja` (if needed)
 
 In this order, add `C:\msys64\mingw<N>\bin`, `C:\msys64\` and `C:\msys64\usr\bin` in your PATH environement variable from Windows advanced settings. Binaries from the msys folder (not from mingw32/64) doesn't fully support Windows Path and thus, they are to be avoided.
 *<N> is the version of MinGW32/64*
@@ -71,7 +76,7 @@ For Visual Studio 2017 :
 
 ## Build
 
-A build with the Ninja generator (`-G "Ninja"` ) is prefered for speed-up build times.
+A build with the Ninja generator (`-G "Ninja"` ) is preferred for speed-up build times.
 
 The generic steps to build the SDK are:
 

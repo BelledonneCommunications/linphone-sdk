@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20230706_add_deps_for_av1
+###############################################################################
+
 FROM archlinux:latest
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
@@ -21,9 +25,8 @@ RUN pacman --noconfirm --noprogressbar -Syu && \
 
 # Install development tools
 RUN pacman --noconfirm --noprogressbar -Syu && \
-    pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make nasm ninja openssh patch pkgconf python-pip python-six yasm && \
-    pacman -Scc && \
-    pip install pystache jsonschema jinja2
+    pacman --noconfirm --noprogressbar -S at autoconf automake bison ccache clang cmake doxygen elfutils gcc gdb git graphviz intltool libtool lsb-release make meson nasm ninja openssh patch perl pkgconf python-pip python-pystache python-six python-jsonschema python-jinja yasm && \
+    pacman -Scc
 
 # Install linphone & flexisip dependencies development packages
 RUN pacman --noconfirm --noprogressbar -Syu && \

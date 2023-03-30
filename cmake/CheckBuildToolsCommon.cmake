@@ -103,6 +103,20 @@ if(WIN32)
 				message(STATUS "Windows tools for LDAP already checked: posix regex (libsystre)")
 			endif()
 		endif()
+
+		if(ENABLE_AV1)
+			set(CHECK_WINDOWS_AV1_TOOLS_STATUS "1" CACHE INTERNAL "for internal use only; do not modify")
+			if (NOT CHECK_WINDOWS_AV1_TOOLS_STATUS EQUAL 0)
+				message(STATUS "Installing windows tools for AV1 : meson, ninja")
+				execute_process(
+						COMMAND "${MSYS2_PROGRAM}" "-${MINGW_TYPE}" "-here" "-full-path" "-defterm" "-shell" "sh" "-l" "-c" "pacman -Sy base-devel ${MINGW_PACKAGE_PREFIX}meson ${MINGW_PACKAGE_PREFIX}ninja --noconfirm --needed"
+						RESULT_VARIABLE EXECUTE_STATUS
+				)
+				set(CHECK_WINDOWS_AV1_TOOLS_STATUS ${EXECUTE_STATUS} CACHE INTERNAL "for internal use only; do not modify" FORCE)
+			else()
+				message(STATUS "Windows tools for AV1 already checked: meson, ninja")
+			endif()
+		endif()
 	endif()
 endif()
 
@@ -184,6 +198,13 @@ if(ENABLE_OPENH264)
 		endif()
 	endif()
 endif()
-if(ENABLE_VPX)
+
+if(ENABLE_VPX OR ENABLE_AV1)
 	linphone_sdk_check_is_installed(yasm)
+endif()
+
+if(ENABLE_AV1)
+	linphone_sdk_check_is_installed(perl)
+	linphone_sdk_check_is_installed(meson)
+	linphone_sdk_check_is_installed(ninja)
 endif()

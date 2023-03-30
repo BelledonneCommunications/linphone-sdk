@@ -267,6 +267,7 @@
         "BUILD_XERCESC_SHARED_LIBS": "OFF",
         "BUILD_ZXINGCPP_SHARED_LIBS": "OFF",
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
+        "ENABLE_AV1": "OFF",
         "ENABLE_FLOAT_API": "OFF",
         "ENABLE_FIXED_POINT": "ON",
         "ENABLE_STRICT": "OFF",

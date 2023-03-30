@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:20230706_add_deps_for_av1
+###############################################################################
+
 FROM debian:bookworm
 
 # Configure locale
@@ -17,7 +21,7 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-	apt-get install -y bison build-essential ccache cmake doxygen fdisk g++ gawk gcc gfortran git graphviz intltool libtool libncurses-dev lsb-release make nasm ninja-build openssh-client patch python-is-python3 qemu-user-static rsync tar texinfo unzip wget xz-utils yasm && \
+	apt-get install -y bison build-essential ccache cmake doxygen fdisk g++ gawk gcc gfortran git graphviz intltool libtool libncurses-dev lsb-release make meson nasm ninja-build openssh-client patch perl python-is-python3 qemu-user-static rsync tar texinfo unzip wget xz-utils yasm && \
     apt-get clean
 
 # Configure user bc

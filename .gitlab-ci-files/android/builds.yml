@@ -59,9 +59,9 @@
 # Makefile
 #################################################
 
-android-ninja-r25:
+android-ninja-r25b:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25:$ANDROID_R25_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:$ANDROID_R25B_IMAGE_VERSION
   variables:
     CMAKE_GENERATOR: Ninja
     #Only used to overwrite value set by .set_parallel_level.yml
@@ -71,7 +71,7 @@ android-ninja-r25:
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   extends: .android
 
-android-makefile-r25-g729-ldap:
+android-makefile-r25b-g729-ldap:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -83,9 +83,9 @@ android-makefile-r25-g729-ldap:
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON -DENABLE_LDAP=ON
-  extends: android-ninja-r25
+  extends: android-ninja-r25b
 
-android-ninja-r25-minimal-size:
+android-ninja-r25b-minimal-size:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -94,16 +94,16 @@ android-ninja-r25-minimal-size:
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
-  extends: android-ninja-r25
+  extends: android-ninja-r25b
 
 
 #################################################
 # Ninja
 #################################################
 
-android-ninja-r25-no-video:
+android-ninja-r25b-no-video:
 
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25:$ANDROID_R25_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:$ANDROID_R25B_IMAGE_VERSION
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -115,7 +115,7 @@ android-ninja-r25-no-video:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: .android
 
-#android-ninja-r25-macos:
+#android-ninja-r25b-macos:
 #  tags: [ "macosx" ]
 # rules:
 #   - if: $NIGHTLY_MASTER
@@ -124,32 +124,32 @@ android-ninja-r25-no-video:
 #    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 #  extends: .android
 
-android-ninja-r25-smallsdk:
+android-ninja-r25b-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF
-  extends: android-ninja-r25
+  extends: android-ninja-r25b
 
-android-ninja-r25-allcodecs:
+android-ninja-r25b-allcodecs:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_G729=ON
 
-  extends: android-ninja-r25
+  extends: android-ninja-r25b
 
-#android-ninja-r25-sanitizer:
+#android-ninja-r25b-sanitizer:
 #  variables:
 #    CMAKE_SANITIZER_OPTIONS: -DENABLE_SANITIZER=ON
-#  extends: android-ninja-r25
+#  extends: android-ninja-r25b
 #
-android-ninja-r25-pqc:
+android-ninja-r25b-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
-  extends: android-ninja-r25
+  extends: android-ninja-r25b

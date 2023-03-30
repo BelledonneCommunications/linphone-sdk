@@ -1,3 +1,7 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:20230706_add_deps_for_av1
+###############################################################################
+
 FROM centos:8
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
@@ -27,7 +31,7 @@ RUN mkdir $CMAKE3_HOME && \
     tar --extract --gzip --no-same-owner --file - --strip-components=1 --directory $CMAKE3_HOME
 
 # Install development tools
-RUN dnf updateinfo -y && dnf install --refresh -y at bison ccache clang doxygen gcc-c++ gdb gettext-devel git libtool make nasm ninja-build patch redhat-lsb-core rpm-build yasm
+RUN dnf updateinfo -y && dnf install --refresh -y at bison ccache clang doxygen gcc-c++ gdb gettext-devel git libtool make meson nasm ninja-build patch perl redhat-lsb-core rpm-build yasm
 
 # Install python3 and python modules
 RUN dnf install -y python3 python3-pip && \
