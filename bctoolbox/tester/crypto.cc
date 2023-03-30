@@ -652,15 +652,15 @@ static void hash_test(void) {
 	BC_ASSERT_TRUE(memcmp(outputBuffer, hmac_sha512_pattern.data(), 64) == 0);
 
 #ifdef HAVE_MBEDTLS
-	/* C++ api */
-	BC_ASSERT_TRUE(std::equal(hmac_sha1_pattern.cbegin(), hmac_sha1_pattern.cend(),
-	                          bctoolbox::HMAC<SHA1>(hmac_sha1_key, hmac_sha1_data).cbegin()));
-	BC_ASSERT_TRUE(std::equal(hmac_sha256_pattern.cbegin(), hmac_sha256_pattern.cend(),
-	                          bctoolbox::HMAC<SHA256>(hmac_sha_key, hmac_sha_data).cbegin()));
-	BC_ASSERT_TRUE(std::equal(hmac_sha384_pattern.cbegin(), hmac_sha384_pattern.cend(),
-	                          bctoolbox::HMAC<SHA384>(hmac_sha_key, hmac_sha_data).cbegin()));
-	BC_ASSERT_TRUE(std::equal(hmac_sha384_pattern.cbegin(), hmac_sha384_pattern.cend(),
-	                          bctoolbox::HMAC<SHA384>(hmac_sha_key, hmac_sha_data).cbegin()));
+	{
+		/* C++ api */
+		auto sha1 = bctoolbox::HMAC<SHA1>(hmac_sha1_key, hmac_sha1_data);
+		auto sha256 = bctoolbox::HMAC<SHA256>(hmac_sha_key, hmac_sha_data);
+		auto sha384 = bctoolbox::HMAC<SHA384>(hmac_sha_key, hmac_sha_data);
+		BC_ASSERT_TRUE(std::equal(hmac_sha1_pattern.cbegin(), hmac_sha1_pattern.cend(), sha1.cbegin()));
+		BC_ASSERT_TRUE(std::equal(hmac_sha256_pattern.cbegin(), hmac_sha256_pattern.cend(), sha256.cbegin()));
+		BC_ASSERT_TRUE(std::equal(hmac_sha384_pattern.cbegin(), hmac_sha384_pattern.cend(), sha384.cbegin()));
+	}
 
 	/* HKDF test patterns from RFC5869 for SHA256 and generated for SHA512 using https://github.com/casebeer/python-hkdf
 	 */

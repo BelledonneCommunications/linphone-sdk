@@ -366,7 +366,7 @@ std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
 /* AEAD template must be specialized */
 template <typename AEADAlgo>
 std::vector<uint8_t> AEADEncrypt(BCTBX_UNUSED(const std::vector<uint8_t> &key),
-                                 BCTBX_UNUSED(const std::vector<uint8_t> IV),
+                                 BCTBX_UNUSED(const std::vector<uint8_t> &IV),
                                  BCTBX_UNUSED(const std::vector<uint8_t> &plain),
                                  BCTBX_UNUSED(const std::vector<uint8_t> &AD),
                                  BCTBX_UNUSED(std::vector<uint8_t> &tag)) {
@@ -392,7 +392,7 @@ bool AEADDecrypt(BCTBX_UNUSED(const std::vector<uint8_t> &key),
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
 template <>
 std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key,
-                                               const std::vector<uint8_t> IV,
+                                               const std::vector<uint8_t> &IV,
                                                const std::vector<uint8_t> &plain,
                                                const std::vector<uint8_t> &AD,
                                                std::vector<uint8_t> &tag) {

@@ -29,16 +29,21 @@
 #include "bctoolbox/logging.h"
 #include "bctoolbox/port.h"
 
+#include <string>
+
 namespace {
-std::string defaultEncoding = "";
+std::string &defaultEncodingPrivate() {
+	static std::string defaultEncoding;
+	return defaultEncoding;
 }
+} // namespace
 
 void bctbx_set_default_encoding(const char *encoding) {
-	defaultEncoding = encoding;
+	defaultEncodingPrivate() = encoding;
 }
 
 const char *bctbx_get_default_encoding(void) {
-	if (!defaultEncoding.empty()) return defaultEncoding.c_str();
+	if (!defaultEncodingPrivate().empty()) return defaultEncodingPrivate().c_str();
 
 #if defined(__ANDROID__) || TARGET_OS_IPHONE
 	return "UTF-8";

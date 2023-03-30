@@ -244,7 +244,7 @@ struct AES256GCM128 {
  */
 template <typename AEADAlgo>
 std::vector<uint8_t> AEADEncrypt(const std::vector<uint8_t> &key,
-                                 const std::vector<uint8_t> IV,
+                                 const std::vector<uint8_t> &IV,
                                  const std::vector<uint8_t> &plain,
                                  const std::vector<uint8_t> &AD,
                                  std::vector<uint8_t> &tag);
@@ -272,7 +272,7 @@ bool AEADDecrypt(const std::vector<uint8_t> &key,
 /* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
 template <>
 std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key,
-                                               const std::vector<uint8_t> IV,
+                                               const std::vector<uint8_t> &IV,
                                                const std::vector<uint8_t> &plain,
                                                const std::vector<uint8_t> &AD,
                                                std::vector<uint8_t> &tag);

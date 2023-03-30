@@ -46,7 +46,7 @@ BCTBX_PUBLIC std::string unfold(const std::string &str);
 
 // Replace all "from" by "to" in source. Use 'recursive' to avoid replacing what has been replaced.
 BCTBX_PUBLIC void
-replace(std::string &source, const std::string &from, const std::string &to, const bool &recursive = true);
+replace(std::string &source, const std::string &from, const std::string &to, const bool recursive = true);
 
 // Return the current state of memory as a string. This is currently implemented only for Windows.
 BCTBX_PUBLIC std::string getMemoryReportAsString();

@@ -99,7 +99,7 @@ public:
 	/**
 	 * at file opening a callback ask for crypto material, it is class property, set it using this class method
 	 */
-	static void openCallbackSet(EncryptedVfsOpenCb cb) noexcept;
+	static void openCallbackSet(const EncryptedVfsOpenCb &cb) noexcept;
 	static EncryptedVfsOpenCb openCallbackGet() noexcept;
 
 	/* Object properties and methods */

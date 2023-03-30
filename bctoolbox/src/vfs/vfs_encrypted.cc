@@ -69,7 +69,7 @@ static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const Encry
 }
 // is called when an encrypted file header is parsed
 static std::shared_ptr<VfsEncryptionModule> make_VfsEncryptionModule(const uint16_t suite,
-                                                                     const std::vector<uint8_t> moduleFileHeader) {
+                                                                     const std::vector<uint8_t> &moduleFileHeader) {
 	switch (suite) {
 		/* all supported scheme must be listed here */
 		case static_cast<uint16_t>(EncryptionSuite::dummy):
@@ -112,8 +112,7 @@ const std::string bctoolbox::encryptionSuiteString(const EncryptionSuite suite) 
  *
  * base header size is 29 bytes
  */
-static const std::vector<uint8_t> BCENCRYPTEDFS = {0x62, 0x63, 0x45, 0x6e, 0x63, 0x72, 0x79,
-                                                   0x70, 0x74, 0x65, 0x64, 0x46, 0x73};
+static const std::array BCENCRYPTEDFS = {0x62, 0x63, 0x45, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x65, 0x64, 0x46, 0x73};
 static constexpr uint16_t BcEncFS_v0100 = 0x0100;
 /* header cannot be less than this size, even for an empty file */
 static constexpr int64_t baseFileHeaderSize = 29;
@@ -295,7 +294,7 @@ void VfsEncryption::chunkSizeSet(const size_t size) {
 /**
  * Set a callback called during file opening to get the encryption material and suite
  */
-void VfsEncryption::openCallbackSet(EncryptedVfsOpenCb cb) noexcept {
+void VfsEncryption::openCallbackSet(const EncryptedVfsOpenCb &cb) noexcept {
 	VfsEncryption::s_openCallback = cb;
 }
 
@@ -497,7 +496,7 @@ void VfsEncryption::writeHeader(bctbx_vfs_file_t *fp) {
 	if (m_module == nullptr) {
 		throw EVFS_EXCEPTION << "Encrypted VFS: cannot write file Header when no encryption module is selected";
 	}
-	std::vector<uint8_t> header{BCENCRYPTEDFS}; // starts with the magic number
+	std::vector<uint8_t> header(std::cbegin(BCENCRYPTEDFS), std::cend(BCENCRYPTEDFS)); // starts with the magic number
 	header.reserve(baseFileHeaderSize + m_module->getModuleFileHeaderSize());
 
 	// add version number
