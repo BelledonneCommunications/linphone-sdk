@@ -200,18 +200,15 @@
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build-desktop/WORK/desktop/Build/bctoolbox/tester"
     TESTER: "bctoolbox"
 
-# .test-bctoolbox-mr:
-#   extends: .test-bctoolbox
-#   only:
-#     refs:
-#       - branches
-#       - tags
-#     changes:
-#       - bctoolbox
-#     variables:
-#       - $ENABLE_TESTS_IN_MR
-#   except:
-#    - schedules
+.test-bctoolbox-mr:
+  extends: .test-bctoolbox
+    #  only:
+    #changes:
+    #  - bctoolbox
+  allow_failure: false
+  #Only launches mr tests on mr, excepted for wip and draft
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-ortp:
   extends: .test
@@ -241,12 +238,12 @@
     TESTER: "postquantumcryptoengine"
 
 
-# .test-pqc-mr:
-#  extends: .test-pqc
-#  allow_failure: false
-#  #Only launches mr tests on mr, excepted for wip and draft
-#  rules:
-#    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+.test-pqc-mr:
+ extends: .test-pqc
+ allow_failure: false
+ #Only launches mr tests on mr, excepted for wip and draft
+ rules:
+   - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-bellesip:
   extends: .test
@@ -284,18 +281,12 @@
   #   changes:
   #     - belr
 
-# .test-belr-mr:
-#   extends: .test-belr
-#   only:
-#     refs:
-#       - branches
-#       - tags
-#     changes:
-#       - belr
-#     variables:
-#       - $ENABLE_TESTS_IN_MR
-#   except:
-#    - schedules
+.test-belr-mr:
+  extends: .test-belr
+  #Only launches mr tests on mr, excepted for wip and draft
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-belcard:
   extends: .test
@@ -309,18 +300,12 @@
   #     - belcard
 
 
-# .test-belcard-mr:
-#   extends: .test-belcard
-#   only:
-#     refs:
-#       - branches
-#       - tags
-#     changes:
-#       - belcard
-#     variables:
-#       - $ENABLE_TESTS_IN_MR
-#   except:
-#    - schedules
+.test-belcard-mr:
+  extends: .test-belcard
+  #Only launches mr tests on mr, excepted for wip and draft
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-bzrtp:
   extends: .test
@@ -333,18 +318,12 @@
     RESOURCES_DIR: "--resource-dir ."
     TESTER: "bzrtp"
 
-# .test-bzrtp-mr:
-#   extends: .test-bzrtp
-#   only:
-#     refs:
-#       - branches
-#       - tags
-#     changes:
-#       - bzrtp
-#     variables:
-#       - $ENABLE_TESTS_IN_MR
-#   except:
-#    - schedules
+.test-bzrtp-mr:
+  extends: .test-bzrtp
+  #Only launches mr tests on mr, excepted for wip and draft
+  allow_failure: false
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
 
 .test-mediastreamer:
   tags: [ "docker-test-liblinphone" ]

@@ -65,6 +65,10 @@ bctoolbox-centos7-test:
   extends: .test-bctoolbox
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
+bctoolbox-centos7-test-mr:
+  extends: .test-bctoolbox-mr
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
+
 pqc-centos7-test:
   extends: .test-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
@@ -81,25 +85,25 @@ belr-centos7-test:
   extends: .test-belr
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# belr-centos7-test-mr:
-#   extends: .test-belr-mr
-#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+belr-centos7-test-mr:
+  extends: .test-belr-mr
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 belcard-centos7-test:
   extends: .test-belcard
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# belcard-centos7-test-mr:
-#   extends: .test-belcard-mr
-#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+belcard-centos7-test-mr:
+  extends: .test-belcard-mr
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 bzrtp-centos7-test:
   extends: .test-bzrtp
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
-# bzrtp-centos7-test-mr:
-#   extends: .test-bzrtp-mr
-#   <<: *docker_image_needs_platform_runner_tag_dev_toolset
+bzrtp-centos7-test-mr:
+  extends: .test-bzrtp-mr
+  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 ortp-centos7-test:
   extends: .test-ortp
