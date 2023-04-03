@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,51 +20,35 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
-project(MSWASAPI CXX)
+cmake_minimum_required(VERSION 3.22)
 
+project(MSWASAPI VERSION "1.1.1" LANGUAGES CXX)
 
-set(MSWASAPI_MAJOR_VERSION "1")
-set(MSWASAPI_MINOR_VERSION "1")
-set(MSWASAPI_MICRO_VERSION "1")
-set(MSWASAPI_VERSION "${MSWASAPI_MAJOR_VERSION}.${MSWASAPI_MINOR_VERSION}.${MSWASAPI_MICRO_VERSION}")
 set(MSWASAPI_SO_VERSION "0")
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 
 
-macro(apply_compile_flags SOURCE_FILES)
-	if(${SOURCE_FILES})
-		set(options "")
-		foreach(a ${ARGV})
-			if(STRICT_OPTIONS_${a})
-				string(REPLACE ";" " " options_${a} "${STRICT_OPTIONS_${a}}")
-				set(options "${options} ${options_${a}}")
-			endif()
-		endforeach()
-		if(options)
-			set_source_files_properties(${${SOURCE_FILES}} PROPERTIES COMPILE_FLAGS "${options}")
-		endif()
-	endif()
-endmacro()
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-
-find_package(Mediastreamer2 CONFIG REQUIRED)
-find_package(ortp CONFIG REQUIRED)
-find_package(bctoolbox CONFIG REQUIRED COMPONENTS core)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox CONFIG REQUIRED COMPONENTS core)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp CONFIG REQUIRED)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 CONFIG REQUIRED)
+endif()
 
 include_directories(
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 	${ORTP_INCLUDE_DIRS}
 	${BCTOOLBOX_CORE_INCLUDE_DIRS}
 )
-
-set(STRICT_OPTIONS_CPP )
-if(ENABLE_STRICT)
-	list(APPEND STRICT_OPTIONS_CPP "/WX")
-endif()
 
 set(SOURCE_FILES
 	mswasapi.cpp
@@ -74,48 +58,43 @@ set(SOURCE_FILES
 	mswasapi_writer.cpp
 	mswasapi_writer.h
 )
-apply_compile_flags(SOURCE_FILES "CPP")
 set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "WindowsPhone")
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
 
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
-
-if(ENABLE_STATIC)
-	add_library(mswasapi-static STATIC ${SOURCE_FILES})
-	set_target_properties(mswasapi-static PROPERTIES OUTPUT_NAME mswasapi)
-	target_link_libraries(mswasapi-static ${LIBS})
-	install(TARGETS mswasapi-static
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
+if(BUILD_SHARED_LIBS)
 	add_library(mswasapi MODULE ${SOURCE_FILES})
-	set_target_properties(mswasapi PROPERTIES PREFIX "lib")
-	target_link_libraries(mswasapi ${LIBS})
-	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-		set_target_properties(mswasapi PROPERTIES VS_WINRT_COMPONENT TRUE)
+else()
+	add_library(mswasapi STATIC ${SOURCE_FILES})
+endif()
+if(ENABLE_STRICT)
+	target_compile_options(mswasapi PRIVATE "/WX")
+endif()
+set_target_properties(mswasapi PROPERTIES PREFIX "lib")
+target_link_libraries(mswasapi ${LIBS})
+if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	set_target_properties(mswasapi PROPERTIES VS_WINRT_COMPONENT TRUE)
+endif()
+if(MSVC)
+	if(ENABLE_MICROSOFT_STORE_APP)
+		message(STATUS "Build mswasapi for Microsoft Store")
+		add_definitions("-DENABLE_MICROSOFT_STORE_APP")
+	else()
+		message(STATUS "Build mswasapi for Desktop")
 	endif()
-	if(MSVC)
-		if( ENABLE_MICROSOFT_STORE_APP )
-			message(STATUS "Build mswasapi for Microsoft Store")
-			add_definitions("-DENABLE_MICROSOFT_STORE_APP")
-		else()
-			message(STATUS "Build mswasapi for Desktop")
-		endif()
-	endif()
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-		install(FILES $<TARGET_PDB_FILE:mswasapi>
-			DESTINATION "${MS2_PLUGINS_DIR}"
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
-	install(TARGETS mswasapi
-		RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-		LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-		ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+	install(FILES $<TARGET_PDB_FILE:mswasapi>
+		DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
+
+install(TARGETS mswasapi
+	RUNTIME DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
+	LIBRARY DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
+	ARCHIVE DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
