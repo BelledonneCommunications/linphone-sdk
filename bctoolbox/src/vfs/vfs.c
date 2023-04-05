@@ -37,19 +37,40 @@ static bctbx_vfs_t *pDefaultVfs = &bcStandardVfs; /* bcStandardVfs is defined in
 
 /**
  * Create flags (int) from mode(char*).
- * @param mode Can be r, r+, w+, w
+ * @param mode Can be r, r+, w+, w, a, a+
  * @return flags (integer).
  */
 static int set_flags(const char *mode) {
 	int flags = 0; /* flags to pass to open() call */
-	if (strcmp(mode, "r") == 0) {
-		flags = O_RDONLY;
-	} else if ((strcmp(mode, "r+") == 0) || (strcmp(mode, "w+") == 0)) {
-		flags = O_RDWR;
-	} else if (strcmp(mode, "w") == 0) {
-		flags = O_WRONLY;
+	char clean_mode[4] = {0};
+	size_t i;
+	/* drop 'b' mode, no longer useful but we need to be compatible */
+	for (i = 0; i < sizeof(clean_mode) - 1 && *mode != '\0'; ++i) {
+		if (*mode != 'b') {
+			clean_mode[i] = *mode;
+			++mode;
+		}
 	}
-	return flags | O_CREAT;
+
+	if (strcmp(clean_mode, "r") == 0) {
+		flags = O_RDONLY;
+	} else if (strcmp(clean_mode, "r+") == 0) {
+		flags = O_RDWR;
+	} else if (strcmp(clean_mode, "w") == 0) {
+		flags = O_WRONLY | O_CREAT | O_TRUNC;
+	} else if ((strcmp(clean_mode, "w+") == 0)) {
+		flags = O_RDWR | O_CREAT;
+	} else if (strcmp(clean_mode, "a") == 0) {
+		flags = O_WRONLY | O_APPEND;
+	} else if ((strcmp(clean_mode, "a+") == 0)) {
+		flags = O_RDWR | O_APPEND;
+	} else {
+		bctbx_fatal("bctbx_vfs_open(): unsupported open mode '%s'", clean_mode);
+	}
+#ifdef _WIN32
+	flags |= _O_BINARY;
+#endif
+	return flags;
 }
 
 ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count, off_t offset) {
@@ -89,7 +110,7 @@ static int file_open(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fNa
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_open: Error file handle");
 		} else if (ret < 0) {
-			bctbx_error("bctbx_file_open: Error open %s", strerror(-(ret)));
+			bctbx_error("bctbx_file_open: Error opening '%s': %s", fName, strerror(-(ret)));
 			ret = BCTBX_VFS_ERROR;
 		}
 	}
