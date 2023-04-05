@@ -152,7 +152,7 @@ static void lime_server_resource_limit_reached_test(const lime::CurveId curve, c
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 500, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed, ++expected_failure,lime_tester::wait_for_timeout));
@@ -162,29 +162,38 @@ static void lime_server_resource_limit_reached_test(const lime::CurveId curve, c
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// call the update, set the serverLimit 200 and upload an other 100
-		aliceManager->update(callback, 200, 100);
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, 2);
+		aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		aliceManager->update(*aliceDeviceId, callback, 200, 100);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 200, int, "%d");
 
 		// call the update, set the serverLimit 300 and upload an other 100 -> it shall fail but we have 300 OPks in DB
-		aliceManager->update(callback, 300, 100);
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, 2);
+		aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		aliceManager->update(*aliceDeviceId, callback, 300, 100);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_failed, ++expected_failure,lime_tester::wait_for_timeout));
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 300, int, "%d");
 
 		// update again, with correct values, server already holds 200 keys, so the only effect would be to set the failed 100 OPks status to dispatched as they are not on server
-		aliceManager->update(callback, 125, 25);
+		aliceManager=nullptr; // destroy manager before modifying DB
+		lime_tester::forwardTime(dbFilenameAlice, 2);
+		aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		aliceManager->update(*aliceDeviceId, callback, 125, 25);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 300, int, "%d");
 
 		// forward time by OPK_limboTime_days
 		aliceManager=nullptr; // destroy manager before modifying DB
 		lime_tester::forwardTime(dbFilenameAlice, lime::settings::OPk_limboTime_days+1);
-		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		aliceManager = std::make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 		// update one last time, with correct values, server already holds 200 keys
 		// so the only effect would be to remove the OPk keys status was set to dispatch before we forward the time
 		// We now hold 200 keys
-		aliceManager->update(callback, 125, 25);
+		aliceManager->update(*aliceDeviceId, callback, 125, 25);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 200, int, "%d");
 

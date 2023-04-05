@@ -83,6 +83,8 @@ namespace settings {
 	constexpr uint16_t OPk_serverLowLimit = 100;
 	/// in days, How long shall we keep an OPk in localStorage once we've noticed X3DH server dispatched it
 	constexpr unsigned int OPk_limboTime_days=SPK_lifeTime_days+SPK_limboTime_days;
+	/// in seconds, how often should we perform an update (check if we should publish new OPk, cleaning DB routine etc...)
+	constexpr unsigned int OPk_updatePeriod=86400; // 1 day
 
 } // namespace settings
 

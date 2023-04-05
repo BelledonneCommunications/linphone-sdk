@@ -402,6 +402,7 @@ int lime_ffi_stale_sessions(lime_manager_t manager,  const char *localDeviceId, 
  *  Is performed for all users founds in local storage
  *
  * @param[in]	manager		pointer to the opaque structure used to interact with lime
+ * @param[in]	localDeviceId	Identify the local user account, it must be unique and is also be used as Id on the X3DH key server, it shall be the GRUU
  * @param[in]	callback		Performing encryption may involve the X3DH server and is thus asynchronous, when the operation is completed,
  * 					this callback will be called giving the exit status and an error message in case of failure.
  * @param[in]	callbackUserData	this pointer will be forwarded to the callback as first parameter
@@ -410,7 +411,7 @@ int lime_ffi_stale_sessions(lime_manager_t manager,  const char *localDeviceId, 
  *
  * @return LIME_FFI_SUCCESS or a negative error code
  */
-int lime_ffi_update(lime_manager_t manager, const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+int lime_ffi_update(lime_manager_t manager, const char *localDeviceId, const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 
 /**
  * @brief Set the X3DH key server URL for this identified user

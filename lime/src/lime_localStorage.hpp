@@ -53,7 +53,8 @@ namespace lime {
 		void delete_LimeUser(const std::string &deviceId);
 		void clean_DRSessions();
 		void clean_SPk();
-		void get_allLocalDevices(std::vector<std::string> &deviceIds);
+		bool is_updateRequested(const std::string &deviceId);
+		void set_updateTs(const std::string &deviceId);
 		void set_peerDeviceStatus(const std::string &peerDeviceId, const std::vector<uint8_t> &Ik, lime::PeerDeviceStatus status);
 		void set_peerDeviceStatus(const std::string &peerDeviceId, lime::PeerDeviceStatus status);
 		lime::PeerDeviceStatus get_peerDeviceStatus(const std::string &peerDeviceId);

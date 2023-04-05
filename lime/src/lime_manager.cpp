@@ -143,49 +143,50 @@ namespace lime {
 
 
 	/* This version use default settings */
-	void LimeManager::update(const limeCallback &callback) {
-		update(callback, lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);
+	void LimeManager::update(const std::string &localDeviceId, const limeCallback &callback) {
+		update(localDeviceId, callback, lime::settings::OPk_serverLowLimit, lime::settings::OPk_batchSize);
 	}
-	void LimeManager::update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
-		/* DR sessions and old stale SPk cleaning */
+	void LimeManager::update(const std::string &localDeviceId, const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
+		// Check if the last update was performed more than OPk_updatePeriod seconds ago
+		if (!m_localStorage->is_updateRequested(localDeviceId)) {
+			if (callback) callback(lime::CallbackReturn::success, "No update needed");
+			return;
+		}
+
+		LIME_LOGI<<"Update user "<<localDeviceId;
+
+		/* DR sessions and old stale SPk cleaning - This cleaning is performed for all local users as it is easier this way */
 		m_localStorage->clean_DRSessions();
 		m_localStorage->clean_SPk();
 
-		// get all users from localStorage
-		std::vector<std::string> deviceIds{};
-		m_localStorage->get_allLocalDevices(deviceIds);
+		// Load user object
+		std::shared_ptr<LimeGeneric> user;
+		LimeManager::load_user(user, localDeviceId);
 
-		//This counter will trace number of callbacks, to trace how many operation did end.
-		// we expect two callback per local user account: one for update SPk, one for get OPk number on server
-		auto callbackCount = make_shared<size_t>(deviceIds.size()*2);
+		// we expect two callback: one for update SPk, one for get OPk number on server
+		auto callbackCount = make_shared<size_t>(2);
 		auto globalReturnCode = make_shared<lime::CallbackReturn>(lime::CallbackReturn::success);
+		auto localStorage = m_localStorage;
 
 		// this callback will get all callbacks from update OPk and SPk on all users, when everyone is done, call the callback given to LimeManager::update
-		limeCallback managerUpdateCallback([callbackCount, globalReturnCode, callback](lime::CallbackReturn returnCode, std::string errorMessage) {
+		limeCallback managerUpdateCallback([callbackCount, globalReturnCode, callback, localStorage, localDeviceId](lime::CallbackReturn returnCode, std::string errorMessage) {
 			(*callbackCount)--;
 			if (returnCode == lime::CallbackReturn::fail) {
 				*globalReturnCode = lime::CallbackReturn::fail; // if one fail, return fail at the end of it
 			}
 
 			if (*callbackCount == 0) {
+				// update the timestamp
+				localStorage->set_updateTs(localDeviceId);
 				if (callback) callback(*globalReturnCode, "");
 			}
 		});
 
+		// send a request to X3DH server to check how many OPk are left on server, upload more if needed
+		user->update_OPk(managerUpdateCallback, OPkServerLowLimit, OPkBatchSize);
 
-		// for each user
-		for (auto deviceId : deviceIds) {
-			LIME_LOGI<<"Lime update user "<<deviceId;
-			//load user
-			std::shared_ptr<LimeGeneric> user;
-			LimeManager::load_user(user, deviceId);
-
-			// send a request to X3DH server to check how many OPk are left on server, upload more if needed
-			user->update_OPk(managerUpdateCallback, OPkServerLowLimit, OPkBatchSize);
-
-			// update the SPk(if needed)
-			user->update_SPk(managerUpdateCallback);
-		}
+		// update the SPk(if needed)
+		user->update_SPk(managerUpdateCallback);
 	}
 
 	void LimeManager::get_selfIdentityKey(const std::string &localDeviceId, std::vector<uint8_t> &Ik) {

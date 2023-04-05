@@ -420,14 +420,14 @@ int lime_ffi_stale_sessions(lime_manager_t manager, const char *localDeviceId, c
 	return LIME_FFI_SUCCESS;
 }
 
-int lime_ffi_update(lime_manager_t manager,  const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
+int lime_ffi_update(lime_manager_t manager,  const char *localDeviceId, const lime_ffi_Callback callback, void *callbackUserData, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) {
 	// just intercept the lime callback, convert the arguments to the correct types, add the userData and forward it to the C side
 	limeCallback cb([callback, callbackUserData](const lime::CallbackReturn status, const std::string message){
 				callback(callbackUserData, lime2ffi_CallbackReturn(status), message.data());
 			});
 
 	try {
-		manager->context->update(cb, OPkServerLowLimit, OPkBatchSize);
+		manager->context->update(std::string(localDeviceId), cb, OPkServerLowLimit, OPkBatchSize);
 	} catch (BctbxException const &e) {
 		LIME_LOGE<<"FFI failed during update: "<<e.str();
 		return LIME_FFI_INTERNAL_ERROR;

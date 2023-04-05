@@ -1372,6 +1372,117 @@ static void lime_getSelfIk() {
 #endif
 }
 
+static void lime_db_migration() {
+	// Write a db version 1
+	std::string dbFilename("lime_db_migration-v1.sqlite3");
+	remove(dbFilename.data());
+	soci::session	sql;
+	try{
+		sql.open("sqlite3", dbFilename);
+		sql<<"PRAGMA foreign_keys = ON;"; // make sure this connection enable foreign keys
+		soci::transaction tr(sql);
+		// CREATE OR IGNORE TABLE db_module_version(
+		sql<<"CREATE TABLE IF NOT EXISTS db_module_version("
+			"name VARCHAR(16) PRIMARY KEY,"
+			"version UNSIGNED INTEGER NOT NULL"
+			")";
+		auto dbVersion = 1;
+		sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", soci::use(dbVersion);
+		sql<<"CREATE TABLE DR_sessions( \
+				Did INTEGER NOT NULL DEFAULT 0, \
+				Uid INTEGER NOT NULL DEFAULT 0, \
+				sessionId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				Ns UNSIGNED INTEGER NOT NULL, \
+				Nr UNSIGNED INTEGER NOT NULL, \
+				PN UNSIGNED INTEGER NOT NULL, \
+				DHr BLOB NOT NULL, \
+				DHs BLOB NOT NULL, \
+				RK BLOB NOT NULL, \
+				CKs BLOB NOT NULL, \
+				CKr BLOB NOT NULL, \
+				AD BLOB NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				X3DHInit BLOB DEFAULT NULL, \
+				FOREIGN KEY(Did) REFERENCES lime_PeerDevices(Did) ON UPDATE CASCADE ON DELETE CASCADE, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+		sql<<"CREATE TABLE DR_MSk_DHr( \
+				DHid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				sessionId INTEGER NOT NULL DEFAULT 0, \
+				DHr BLOB NOT NULL, \
+				received UNSIGNED INTEGER NOT NULL DEFAULT 0, \
+				FOREIGN KEY(sessionId) REFERENCES DR_sessions(sessionId) ON UPDATE CASCADE ON DELETE CASCADE);";
+		sql<<"CREATE TABLE DR_MSk_MK( \
+				DHid INTEGER NOT NULL, \
+				Nr INTEGER NOT NULL, \
+				MK BLOB NOT NULL, \
+				PRIMARY KEY( DHid , Nr ), \
+				FOREIGN KEY(DHid) REFERENCES DR_MSk_DHr(DHid) ON UPDATE CASCADE ON DELETE CASCADE);";
+		sql<<"CREATE TABLE lime_LocalUsers( \
+				Uid INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				UserId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				server TEXT NOT NULL, \
+				curveId INTEGER NOT NULL DEFAULT 0);";
+		sql<<"CREATE TABLE lime_PeerDevices( \
+				Did INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, \
+				DeviceId TEXT NOT NULL, \
+				Ik BLOB NOT NULL, \
+				Status UNSIGNED INTEGER DEFAULT 0);";
+		sql<<"CREATE TABLE X3DH_SPK( \
+				SPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				SPK BLOB NOT NULL, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				Uid INTEGER NOT NULL, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+		sql<<"CREATE TABLE X3DH_OPK( \
+				OPKid UNSIGNED INTEGER PRIMARY KEY NOT NULL, \
+				OPK BLOB NOT NULL, \
+				Uid INTEGER NOT NULL, \
+				Status INTEGER NOT NULL DEFAULT 1, \
+				timeStamp DATETIME DEFAULT CURRENT_TIMESTAMP, \
+				FOREIGN KEY(Uid) REFERENCES lime_LocalUsers(Uid) ON UPDATE CASCADE ON DELETE CASCADE);";
+		// Insert a dummy row in the table modified by the migration as some operation are permitted over empty tables but not ones with data
+		sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server, curveId) VALUES ('sip:notauser', '0x1234556', 'http://notalimeserver.com', 1);";
+
+		tr.commit(); // commit all the previous queries
+		sql.close();
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't create test version 1 DB");
+		return;
+	}
+
+	// Open a manager giving the same DB, it shall migrate the structure to version 2
+	try  {
+		// create Manager
+		std::unique_ptr<LimeManager> manager = std::make_unique<LimeManager>(dbFilename, X3DHServerPost);
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't open manager to perform DB migration");
+		return;
+	}
+
+	// Version 2 of db added a Timestamp
+	try  {
+		sql.open("sqlite3", dbFilename);
+		int userVersion=-1;
+		sql<<"SELECT version FROM db_module_version WHERE name='lime'", soci::into(userVersion);
+		BC_ASSERT_EQUAL(userVersion, 0x100, int, "%d");
+		int haveTs=0;
+		sql<<"SELECT COUNT(*) FROM pragma_table_info('lime_LocalUsers') WHERE name='updateTs'", soci::into(haveTs);
+		BC_ASSERT_EQUAL(haveTs, 1, int, "%d");
+	} catch (BctbxException &e) {
+		LIME_LOGE << e;
+		BC_FAIL("Can't check DB migration done");
+		return;
+	}
+	if (cleanDatabase) {
+		remove(dbFilename.data());
+	}
+}
+
 /**
  * Scenario:
  * - Create a user alice
@@ -1415,7 +1526,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As all the keys are still on server, it shall have no effect, check it then
-		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), lime_tester::OPkInitialBatchSize, int, "%d");
 
@@ -1450,7 +1561,8 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 
 		// call the update, set the serverLimit to initialBatch size and upload an other initial batch if needed
 		// As some keys were removed from server this time we shall generate and upload a new batch
-		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		lime_tester::forwardTime(dbFilenameAlice, 2); // Forward time by 2 days so the update actually do something
+		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// we uploaded a new batch but no key were removed from localStorage so we now have 2*batch size keys
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize, int, "%d");
@@ -1473,7 +1585,7 @@ static void lime_update_OPk_test(const lime::CurveId curve, const std::string &d
 		BC_ASSERT_EQUAL((int)lime_tester::get_OPks(dbFilenameAlice, *aliceDeviceId), 2*lime_tester::OPkInitialBatchSize - 1, int, "%d");
 
 		// call the update, set the serverLimit to 0, we don't want to upload more keys, but too old unused local OPk dispatched by server long ago shall be deleted
-		aliceManager->update(callback, 0, 0);
+		aliceManager->update(*aliceDeviceId, callback, 0, 0);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// check the local OPk missing on server for a long time has been deleted
@@ -1592,7 +1704,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 			aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 			// call the update, it shall create and upload a new SPk but keep the old ones
-			aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+			aliceManager->update(*aliceDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
 			BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 			SPkExpectedCount++;
 
@@ -1632,7 +1744,7 @@ static void lime_update_SPk_test(const lime::CurveId curve, const std::string &d
 		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
 
 		// call the update, it shall create and upload a new SPk but keep the old ones and delete one
-		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// there shall not be any rise in the number of SPk keys found in DB, check that
 		SPkCount=0;
@@ -1747,8 +1859,9 @@ static void lime_update_clean_MK_test(const lime::CurveId curve, const std::stri
 		/* update belle-sip stack processing possible incoming messages from server */
 		belle_sip_stack_sleep(bc_stack,0);
 
-		/* call the update function */
-		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		/* call the update function, forwardtime by 2 days before or the update is skipped */
+		lime_tester::forwardTime(dbFilenameBob, 2);
+		bobManager->update(*bobDeviceId, callback, 0, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success, lime_tester::wait_for_timeout));
 
 		/* Check that bob got 0 message key in local Storage */
@@ -1837,9 +1950,10 @@ static void lime_update_republish_test(const lime::CurveId curve, const std::str
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// Start a new manager using the backuped local base, so the user is present in local but no more on remote
 		aliceManager = nullptr;
+		lime_tester::forwardTime(dbFilenameAliceBackup, 2); // forward time otherwise the update won't do anything
 		aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAliceBackup, X3DHServerPost));
 		// Update: that shall set all current OPk as dispatched, create a new batch of default creation size and republish the user on server
-		aliceManager->update(callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDeviceId, callback, lime_tester::OPkInitialBatchSize, lime_tester::OPkInitialBatchSize);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 		// Bob encrypt a message to Alice, it will fetch keys from server
 		auto bobRecipients = make_shared<std::vector<RecipientData>>();
@@ -2150,6 +2264,7 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 
 	limeCallback callback([&counters](lime::CallbackReturn returnCode, std::string anythingToSay) {
 					if (returnCode == lime::CallbackReturn::success) {
+						LIME_LOGI<<"Lime operation success : "<<anythingToSay;
 						counters.operation_success++;
 					} else {
 						counters.operation_failed++;
@@ -2273,8 +2388,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		BC_ASSERT_EQUAL((int)bobSessionsId.size(), 2, int, "%d");
 
 		// run the update function
-		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
-		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(*bobDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -2301,8 +2416,8 @@ static void x3dh_multiple_DRsessions_test(const lime::CurveId curve, const std::
 		bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
 
 		// run the update function
-		aliceManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
-		bobManager->update(callback, 0, lime_tester::OPkInitialBatchSize);
+		aliceManager->update(*aliceDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
+		bobManager->update(*bobDevice1, callback, 0, lime_tester::OPkInitialBatchSize);
 		expected_success+=2;
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));
 
@@ -3862,7 +3977,7 @@ static void lime_multithread_update_thread(manager_thread_arg thread_arg) {
 			// wait for a random period betwwen 25 and 100 ms
 			std::this_thread::sleep_for(std::chrono::milliseconds(dis(gen)));
 			// Update
-			thread_arg.manager->update(callback, serverLimit, batchSize);
+			thread_arg.manager->update(thread_arg.userlist[thread_arg.userIndex], callback, serverLimit, batchSize);
 			expected_success++;
 			serverLimit+=rnd_serverLimit(gen); // improver server limit by a random 0 to 4
 			// make sure we process possible message incoming from X3DH server
@@ -3945,7 +4060,7 @@ static void lime_multithread_test(const lime::CurveId curve, const std::string &
 		}
 		activeThreads.clear();
 
-		// encrypt, three encryotion threads per user
+		// encrypt, three encryption threads per user
 		for (auto i=0; i<3; i++) {
 			for (const auto &arg : devArg) {
 				activeThreads.emplace_back(lime_multithread_encrypt_thread, arg);
@@ -4137,6 +4252,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Identity theft", lime_identity_theft),
 	TEST_NO_TAG("Multithread", lime_multithread),
 	TEST_NO_TAG("Session cancel", lime_session_cancel),
+	TEST_NO_TAG("DB Migration", lime_db_migration)
 };
 
 test_suite_t lime_lime_test_suite = {

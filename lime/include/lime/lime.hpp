@@ -243,14 +243,15 @@ namespace lime {
 			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
 
 			/**
-			 * @brief Update: shall be called once a day at least, performs checks, updates and cleaning operations
+			 * @brief Update: shall be called regularly, once a day at least, performs checks, updates and cleaning operations
+			 * The update is performed each OPk_updatePeriod (defined in lime::settings to be one day). If the function is called before
+			 * this interval is over, it just does nothing.
 			 *
-			 *  - check if we shall update a new SPk to X3DH server(SPk lifetime is set in settings)
+			 *  - check if we shall update a new SPk to X3DH server(SPk lifetime is set in lime::settings)
 			 *  - check if we need to upload OPks to X3DH server
 			 *  - remove old SPks, clean double ratchet sessions (remove staled, clean their stored keys for skipped messages)
 			 *
-			 *  Is performed for all users founds in local storage
-			 *
+			 * @param[in]	localDeviceId		Identify the local user acount to use, it must be unique and is also used as Id on the X3DH key server, it shall be the GRUU
 			 * @param[in]	callback		This operation may contact the X3DH server and is thus asynchronous, when server responds,
 			 * 					this callback will be called giving the exit status and an error message in case of failure.
 			 * @param[in]	OPkServerLowLimit	If server holds less OPk than this limit, generate and upload a batch of OPks
@@ -260,11 +261,11 @@ namespace lime {
 			 * The last two parameters are optional, if not used, set to defaults defined in lime::settings
 			 * (not done with param default value as the lime::settings shall not be available in public include)
 			 */
-			void update(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
+			void update(const std::string &localDeviceId, const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize);
 			/**
 			 * @overload void update(const limeCallback &callback)
 			 */
-			void update(const limeCallback &callback);
+			void update(const std::string &localDeviceId, const limeCallback &callback);
 
 			/**
 			 * @brief retrieve self Identity Key, an EdDSA formatted public key

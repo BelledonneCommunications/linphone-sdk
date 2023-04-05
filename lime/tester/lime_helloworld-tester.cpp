@@ -341,11 +341,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 		// The update take as optionnal parameters :
 		//  - lower bound for One-time Pre-key available on server
 		//  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
-		//
-		// Important : Avoid calling this function when connection to network is impossible
-		// try to first fetch any available message on server, process anything and then update
-		aliceManager->update(callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
-		bobManager->update(callback); // use default values for the limit and batch size
+		//  If called more often than once a day, it just does nothing
+		aliceManager->update(*aliceDeviceId, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
+		bobManager->update(*bobDeviceId, callback); // use default values for the limit and batch size
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete
@@ -585,8 +583,8 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 		//
 		// Important : Avoid calling this function when connection to network is impossible
 		// try to first fetch any available message on server, process anything and then update
-		aliceManager->update(callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
-		bobManager->update(callback); // use default values for the limit and batch size
+		aliceManager->update(*aliceDeviceId, callback, 10, 3); // if less than 10 keys are availables on server, upload a batch of 3, typical values shall be higher.
+		bobManager->update(*bobDeviceId, callback); // use default values for the limit and batch size
 		expected_success+=2;
 		/******* end of Users maintenance ****************************/
 		// wait for updates to complete

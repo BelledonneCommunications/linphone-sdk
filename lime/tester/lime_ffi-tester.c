@@ -453,18 +453,16 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 	/* Around once a day the update function shall be called on LimeManagers
 	 * it will perform localStorage cleanings
 	 * update of cryptographic material (Signed Pre-key and One-time Pre-keys)
+	 * if called more often than once a day it is ignored
 	 * The update take as optionnal parameters :
 	 *  - lower bound for One-time Pre-key available on server
 	 *  - One-time Pre-key batch size to be generated and uploaded if lower limit on server is reached
 	 *
-	 * Important : Avoid calling this function when connection to network is impossible
-	 * try to first fetch any available message on server, process anything and then update
-	 *
 	 * This update shall have no effect as Alice still have ffi_defaultInitialOPkBatchSize keys on X3DH server
 	 */
-	lime_ffi_update(aliceManager, statusCallback, NULL, ffi_defaultInitialOPkBatchSize, 3);  /* if less than ffi_defaultInitialOPkBatchSize keys are availables on server, upload a batch of 3, typical values shall be higher. */
+	lime_ffi_update(aliceManager, aliceDeviceId, statusCallback, NULL, ffi_defaultInitialOPkBatchSize, 3);  /* if less than ffi_defaultInitialOPkBatchSize keys are availables on server, upload a batch of 3, typical values shall be higher. */
 	/* That one instead shall upload 3 new OPks to server as we used one of Bob's keys */
-	lime_ffi_update(bobManager, statusCallback, NULL, ffi_defaultInitialOPkBatchSize, 3); /* if less than ffi_defaultInitialOPkBatchSize keys are availables on server, upload a batch of 3, typical values shall be higher. */
+	lime_ffi_update(bobManager, aliceDeviceId, statusCallback, NULL, ffi_defaultInitialOPkBatchSize, 3); /* if less than ffi_defaultInitialOPkBatchSize keys are availables on server, upload a batch of 3, typical values shall be higher. */
 	/* wait for updates to complete */
 	expected_success += 2;
 	BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));

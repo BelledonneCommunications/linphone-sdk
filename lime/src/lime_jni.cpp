@@ -402,16 +402,17 @@ struct jLimeManager {
 		return c2jPeerDeviceStatus(status);
 	}
 
-	void update(jni::JNIEnv &env, jni::Object<jStatusCallback> &jstatusObj, jni::jint jOPkServerLowLimit, jni::jint jOPkBatchSize) {
+	void update(jni::JNIEnv &env, const jni::String &jlocalDeviceId, jni::Object<jStatusCallback> &jstatusObj, jni::jint jOPkServerLowLimit, jni::jint jOPkBatchSize) {
 		JavaVM *c_vm;
 		env.GetJavaVM(&c_vm);
 
-		LIME_LOGD<<"JNI update";
+		LIME_LOGD<<"JNI update for "<<(jni::Make<std::string>(env, jlocalDeviceId));
 
 		// see create_user for details on this
 		auto jstatusObjRef = std::make_shared<jni::Global<jni::Object<jStatusCallback>, jni::EnvGettingDeleter>>(jni::NewGlobal<jni::EnvGettingDeleter>(env, jstatusObj));
 
-		m_manager->update([c_vm, jstatusObjRef] (const lime::CallbackReturn status, const std::string message)
+		m_manager->update(jni::Make<std::string>(env, jlocalDeviceId),
+				[c_vm, jstatusObjRef] (const lime::CallbackReturn status, const std::string message)
 				{
 					// get the env from VM
 					jni::JNIEnv& g_env { jni::GetEnv(*c_vm)};

@@ -502,11 +502,13 @@ size_t get_OPks(const std::string &dbFilename, const std::string &selfDeviceId) 
  */
 void forwardTime(const std::string &dbFilename, int days) noexcept {
 	try {
+		LIME_LOGI<<"Set timestamps back by "<<days<<" days";
 		soci::session sql("sqlite3", dbFilename); // open the DB
-		/* move back by days all timeStamp, we have some in DR_sessions and X3DH_SPk tables */
+		/* move back by days all timeStamp, we have some in DR_sessions, X3DH_SPk and LocalUsers tables */
 		sql<<"UPDATE DR_sessions SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 		sql<<"UPDATE X3DH_SPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
 		sql<<"UPDATE X3DH_OPK SET timeStamp = date (timeStamp, '-"<<days<<" day');";
+		sql<<"UPDATE Lime_LocalUsers SET updateTs = date (updateTs, '-"<<days<<" day');";
 	} catch (exception &e) { // swallow any error on DB
 		LIME_LOGE<<"Got an error forwarding time in DB: "<<e.what();
 	}

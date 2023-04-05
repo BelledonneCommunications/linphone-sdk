@@ -71,9 +71,9 @@ namespace settings {
 /******************************************************************************/
 	/** define a version number for the DB schema as an integer 0xMMmmpp
 	 *
-	 * current version is 0.0.1
+	 * current version is 0.1.0
 	 */
-	constexpr int DBuserVersion=0x000001;
+	constexpr int DBuserVersion=0x000100;
 	constexpr uint16_t DBInactiveUserBit = 0x0100;
 	constexpr uint16_t DBCurveIdByte = 0x00FF;
 	constexpr uint8_t DBInvalidIk = 0x00;
