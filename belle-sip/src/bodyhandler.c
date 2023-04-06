@@ -708,7 +708,7 @@ static void belle_sip_file_body_handler_begin_recv_transfer(belle_sip_body_handl
 	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
 
 	if (obj->filepath == NULL) return;
-	obj->file = bctbx_file_open(vfs, obj->filepath, "r+");
+	obj->file = bctbx_file_open(vfs, obj->filepath, "w");
 	if (!obj->file) {
 		bctbx_error("Can't open file %s", obj->filepath);
 	}
