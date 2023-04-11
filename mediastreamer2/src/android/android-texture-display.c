@@ -96,7 +96,6 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 
 	EGLBoolean result;
 	if (ad->gl_display) {
-
 		if (eglMakeCurrent(ad->gl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT) == EGL_FALSE) {
 			ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent in destructor", fflush);
 		}
@@ -295,7 +294,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ad->height = h;
 
 	if (ad->ogl) {
-		ms_error("[TextureView Display][Filter=%p] ogl_display already created !", f);
+		ms_error("[TextureView Display][Filter=%p] ogl_display already created!", f);
 	}
 	ad->ogl = ogl_display_new();
 	ogl_display_init(ad->ogl, NULL, w, h);
@@ -310,7 +309,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 
 	ms_filter_lock(f);
 
-	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context) {
+	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context || !ad->nativeWindowId) {
 		ms_filter_unlock(f);
 		return;
 	}
@@ -412,6 +411,9 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 	           ad->nativeWindowId);
 	if (id == 0) {
 		if (ad->nativeWindowId) {
+			ms_message("[TextureView Display][Filter=%p] New windowId is null but current isn't, scheduling it for "
+			           "destruction",
+			           f);
 			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
 			ad->nativeWindowId = NULL;
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl,
@@ -419,6 +421,7 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 		}
 	} else if (!(*env)->IsSameObject(env, ad->nativeWindowId, windowId)) {
 		if (ad->nativeWindowId) {
+			ms_message("[TextureView Display][Filter=%p] Scheduling current window to be destryed first", f);
 			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
 			ad->nativeWindowId = NULL;
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl,
@@ -426,8 +429,8 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 		}
 
 		ad->nativeWindowId = (*env)->NewGlobalRef(env, windowId);
-		ms_message("[TextureView Display][Filter=%p] Took global ref on %p, windowId is now %p", f, windowId,
-		           ad->nativeWindowId);
+		ms_message("[TextureView Display][Filter=%p] Took global ref on %p, windowId is now %p, scheduling creation", f,
+		           windowId, ad->nativeWindowId);
 		ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_init_opengl, (void *)f);
 	} else {
 		ms_message(
