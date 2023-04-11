@@ -423,27 +423,32 @@ SoundDeviceDescription *ms_devices_info_get_sound_device_description(MSDevicesIn
 	if (!d) {
 		ms_message("No information available for [%s/%s/%s],", manufacturer, model, platform);
 #ifdef __ANDROID__
-		if (ms2_android_get_sdk_version() >= 26) {
+		int sdk_version = ms2_android_get_sdk_version();
+		if (sdk_version >= 26) {
 			if (force_disable_builtin_aec) {
 				d = &genericSoundDeviceDescriptor;
-				ms_message(
-				    "Android >= 8 but AcousticEchoCanceler isn't available, using default sound device descriptor");
+				ms_message("Android >= 8 [API %i] but AcousticEchoCanceler isn't available, using default sound device "
+				           "descriptor",
+				           sdk_version);
 			} else {
 				d = &genericSoundDeviceDescriptorAboveAndroid8;
-				ms_message("Android >= 8, using sound device descriptor.with DEVICE_HAS_BUILTIN_AEC | "
-				           "DEVICE_HAS_BUILTIN_OPENSLES_AEC flags");
+				ms_message("Android >= 8 [API %i], using sound device descriptor.with DEVICE_HAS_BUILTIN_AEC | "
+				           "DEVICE_HAS_BUILTIN_OPENSLES_AEC flags",
+				           sdk_version);
 			}
 		} else {
 			d = &genericSoundDeviceDescriptor;
-			ms_message("Android < 8, using default sound device descriptor");
+			ms_message("Android < 8 [API %i], using default sound device descriptor", sdk_version);
 		}
 #else
 		d = &genericSoundDeviceDescriptor;
 #endif
 	} else {
-		ms_message("Found information for [%s/%s/%s] from internal table", manufacturer, model, platform);
+		ms_message("Found information for [%s/%s/%s] from internal table with flags [%u]", manufacturer, model,
+		           platform, d->flags);
 		exact_match = TRUE;
 	}
+
 	if (declares_builtin_aec) {
 		if (exact_match && (d->flags & DEVICE_HAS_BUILTIN_AEC_CRAPPY)) {
 			ms_warning("This device declares a builtin AEC but according to internal tables it is known to be "
@@ -453,13 +458,16 @@ SoundDeviceDescription *ms_devices_info_get_sound_device_description(MSDevicesIn
 			d->delay = 0;
 		}
 	}
+
 	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTTRACK)
 		ms_warning("Fasttrack playback mode is crappy on this device, not using it.");
 	if (d->flags & DEVICE_HAS_CRAPPY_ANDROID_FASTRECORD)
 		ms_warning("Fasttrack record mode is crappy on this device, not using it.");
 	if (d->flags & DEVICE_HAS_UNSTANDARD_LIBMEDIA) ms_warning("This device has unstandart libmedia.");
 	if (d->flags & DEVICE_HAS_CRAPPY_OPENGL) ms_warning("OpenGL is crappy, not using it.");
-	if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES) ms_warning("OpenSles is crappy, not using it.");
+	if (d->flags & DEVICE_HAS_CRAPPY_OPENSLES) ms_warning("OpenSLES is crappy, not using it.");
+	if (d->flags & DEVICE_HAS_CRAPPY_AAUDIO) ms_warning("AAudio is crappy, not using it.");
+
 	ms_message("Sound device information for [%s/%s/%s] is: builtin=[%s], delay=[%i] ms", manufacturer, model, platform,
 	           (d->flags & DEVICE_HAS_BUILTIN_AEC) ? "yes" : "no", d->delay);
 	return d;
