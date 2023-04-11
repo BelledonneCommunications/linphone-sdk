@@ -50,6 +50,7 @@ centos7-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
+    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON
   extends: .linux-desktop
 
 centos7-ninja-gcc-tunnel-pq:

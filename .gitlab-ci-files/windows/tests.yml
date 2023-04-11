@@ -34,8 +34,8 @@
     - procdump -ma -e -x . bin\liblinphone_tester.exe --parallel --verbose --show-account-manager-logs --log-file logLiblinphoneAllParThIpv6.txt --xml-file BCUnitAutomated-win
 
   after_script:
-    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - echo %CI_PROJECT_DIR%
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/
     - mkdir "%CI_PROJECT_DIR%/results"
     - copy /B BCUnitAutomated* "%CI_PROJECT_DIR%/results"
     - copy /B logLiblinphoneAllParThIpv6* "%CI_PROJECT_DIR%/results"
@@ -53,6 +53,7 @@
     # -y symbols path
     # -z coredump location
     # -netsyms yes : searches for system symbols on the web if they are not found locally. Not doing this randomly prevents from loading our symbols
+    - cd %CI_PROJECT_DIR%/build-desktop/linphone-sdk/desktop/bin
     - echo %cd%
     - dir
     - dir /b liblinphone_tester.exe_*
@@ -65,7 +66,7 @@
     when: always
     reports:
       junit:
-        - results/BCUnitAutomated-win-Results.xml
+        - results/BCUnitAutomated-win*-Results.xml
     expire_in: 4 week
 
 liblinphone-win32-msbuild-windows-test:

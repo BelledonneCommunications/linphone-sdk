@@ -99,7 +99,7 @@ macosx-ninja:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=ON -DENABLE_EXAMPLE_PLUGIN=ON
   extends: .macosx-desktop
 
 macosx-m1-multiarch-ninja:
@@ -113,7 +113,7 @@ macosx-m1-multiarch-ninja:
 
 macosx-m1-ninja-pqc:
   variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_EXAMPLE_PLUGIN=ON
   rules:
     - if: (($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_MACOSX == null) || $NIGHTLY_MASTER
   extends: macosx-m1-multiarch-ninja
