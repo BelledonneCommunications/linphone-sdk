@@ -30,23 +30,26 @@ endif()
 string(REGEX REPLACE "\\+[0-9a-f]+" "" NUPKG_VERSION ${LINPHONESDK_VERSION})
 
 string(TIMESTAMP CURRENT_YEAR "%Y")
-configure_file(
-	${CMAKE_CURRENT_SOURCE_DIR}/shared-nuspec-metadata.in.xml
-	${CMAKE_CURRENT_BINARY_DIR}/shared-nuspec-metadata.xml
-	@ONLY
-)
-file(READ ${CMAKE_CURRENT_BINARY_DIR}/shared-nuspec-metadata.xml SHARED_NUSPEC_METADATA)
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/nuget-description.txt LINPHONESDK_DESCRIPTION)
+
 # Icon copied from:
 # https://gitlab.linphone.org/BC/public/linphone-desktop/-/raw/08ca4791c0ccb5dd1693a878b975fd347a8cf490/linphone-app/assets/icons/hicolor/128x128/apps/icon.png
 set(NUGET_ICON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/icon.png)
 
-if(WIN32)
-    message(STATUS "NuGet target inferred to be Windows")
-    add_subdirectory(Windows)
-elseif(APPLE)
-    message(STATUS "NuGet target inferred to be Xamarin")
-    add_subdirectory(Xamarin)
-else()
-    message(FATAL_ERROR "I don't know how to generate a NuGet on the current platform")
+
+if(WIN32) # Because of lack of testing, we must keep the old Windows nuget
+
+	configure_file(
+		${CMAKE_CURRENT_SOURCE_DIR}/shared-nuspec-metadata.in.xml
+		${CMAKE_CURRENT_BINARY_DIR}/shared-nuspec-metadata.xml
+		@ONLY
+		)
+	file(READ ${CMAKE_CURRENT_BINARY_DIR}/shared-nuspec-metadata.xml SHARED_NUSPEC_METADATA)
+	file(READ ${CMAKE_CURRENT_SOURCE_DIR}/nuget-description.txt LINPHONESDK_DESCRIPTION)
+
+	message(STATUS "NuGet target inferred to be Windows")
+	add_subdirectory(Windows)
+
+else() # All platforms including Windows, but not fully tested
+    message(STATUS "NuGet for all platforms")
+    add_subdirectory(Dotnet)
 endif()
