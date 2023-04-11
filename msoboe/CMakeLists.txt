@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2021 Belledonne Communications, Grenoble France
+# Copyright (C) 2021-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,54 +20,32 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.22)
 
-#Builds oboe with android sdk 28 while others projects are builds with another version
-#(defined in cmake builer toolchain android file)
-#This systems ensures a retrocompatible build, and the activation of new features ONLY
-#on devices supporting it
-set(ANDROID_PLATFORM "android-28" CACHE STRING "" FORCE)
+# Builds oboe with android sdk 28 while other projects are built with another version
+# (defined in linphone-sdk toolchain android file)
+# This system ensures a retrocompatible build, and the activation of new features ONLY
+# on devices supporting it
+set(REQUIRED_NATIVE_API_LEVEL "28")
+set(PREVIOUS_ANDROID_PREFIX_PATH )
+foreach(_ITEM ${CMAKE_SYSTEM_PREFIX_PATH})
+	if(_ITEM MATCHES ".*-android/${ANDROID_NATIVE_API_LEVEL}")
+		set(PREVIOUS_ANDROID_PREFIX_PATH "${_ITEM}")
+	endif()
+endforeach()
+list(REMOVE_ITEM CMAKE_SYSTEM_PREFIX_PATH ${PREVIOUS_ANDROID_PREFIX_PATH})
+string(REPLACE "${ANDROID_NATIVE_API_LEVEL}" "${REQUIRED_NATIVE_API_LEVEL}" "REQUIRED_ANDROID_PREFIX_PATH" "${PREVIOUS_ANDROID_PREFIX_PATH}")
+list(PREPEND CMAKE_SYSTEM_PREFIX_PATH "${REQUIRED_ANDROID_PREFIX_PATH}")
+string(REPLACE "${ANDROID_NATIVE_API_LEVEL}" "${REQUIRED_NATIVE_API_LEVEL}" "CMAKE_C_COMPILER_TARGET" "${CMAKE_C_COMPILER_TARGET}")
+string(REPLACE "${ANDROID_NATIVE_API_LEVEL}" "${REQUIRED_NATIVE_API_LEVEL}" "CMAKE_CXX_COMPILER_TARGET" "${CMAKE_CXX_COMPILER_TARGET}")
+string(REPLACE "${ANDROID_NATIVE_API_LEVEL}" "${REQUIRED_NATIVE_API_LEVEL}" "CMAKE_ASM_COMPILER_TARGET" "${CMAKE_ASM_COMPILER_TARGET}")
+unset(PREVIOUS_ANDROID_PREFIX_PATH)
+unset(REQUIRED_ANDROID_PREFIX_PATH)
+unset(REQUIRED_NATIVE_API_LEVEL)
 
-#Needed to take priority over cache to redefine android sdk version with ANDROID_PLATFORM
-#Otherwize, the sdk version is replaced by the cmake builder toolchain android default one
-
-set(CMAKE_C_FLAGS "")
-set(CMAKE_CXX_FLAGS "")
-set(CMAKE_EXE_LINKER_FLAGS "")
-set(CMAKE_SHARED_LINKER_FLAGS "")
-set(CMAKE_MODULE_LINKER_FLAGS "")
-
-if(ENABLE_SANITIZER)
-	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-sanitizer instead for linphone-sdk 5.0 ! ")
-
-	set(sanitize_flags "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls -Wl,-llog")
-	set(sanitize_linker_flags "-fsanitize=address,undefined")
-
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
-
-	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${sanitize_linker_flags})
-	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
-endif()
-if(ENABLE_HW_SANITIZER)
-	message(WARNING "CODE DUPLICATION : duplication of sanitizer flags ! TODO use config-hwsanitizer instead for linphone-sdk 5.0 ! ")
-
-	set(sanitize_flags "-fsanitize=hwaddress -fno-omit-frame-pointer")
-	set(sanitize_linker_flags "-fsanitize=hwaddress")
-
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${sanitize_flags}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${sanitize_flags}")
-
-	set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} ${sanitize_linker_flags})
-	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${sanitize_linker_flags}")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${sanitize_linker_flags}")
-endif()
 
 project(MSOBOE VERSION 0.1 LANGUAGES CXX)
 
-option(ENABLE_SHARED "Build shared library." YES)
-option(ENABLE_STATIC "Build static library." NO)
 
 include(GNUInstallDirs)
 
@@ -76,19 +54,27 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 add_subdirectory(oboe)
 include_directories (oboe/include)
 
-find_package(Mediastreamer2 CONFIG REQUIRED)
-find_package(bctoolbox CONFIG REQUIRED)
-find_package(ortp CONFIG REQUIRED)
+find_package(BcToolbox)
+if(NOT BCTOOLBOX_FOUND)
+	find_package(bctoolbox CONFIG REQUIRED)
+endif()
+find_package(Ortp)
+if(NOT ORTP_FOUND)
+	find_package(ortp CONFIG REQUIRED)
+endif()
+find_package(Mediastreamer2)
+if(NOT MEDIASTREAMER2_FOUND)
+	find_package(Mediastreamer2 CONFIG REQUIRED)
+endif()
 
-set(OBOE_INCUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+set(OBOE_INCUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
 
 include_directories(
-	${CMAKE_CURRENT_BINARY_DIR}
 	${MEDIASTREAMER2_INCLUDE_DIRS}
 	${OBOE_INCUDE_DIRS}
 )
@@ -99,25 +85,17 @@ set(SOURCE_FILES msoboe.cpp msoboe_player.cpp msoboe_recorder.cpp)
 
 set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
-if(ENABLE_STATIC)
-	add_library(msoboe-static STATIC ${SOURCE_FILES})
-	set_target_properties(msoboe-static PROPERTIES OUTPUT_NAME msoboe)
-	target_link_libraries(msoboe-static ${LIBS})
-	install(TARGETS msoboe-static
-		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
-if(ENABLE_SHARED)
+if(BUILD_SHARED_LIBS)
 	add_library(msoboe MODULE ${SOURCE_FILES})
-	target_link_libraries(msoboe ${LIBS})
-	install(TARGETS msoboe
-		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
-		FRAMEWORK DESTINATION Frameworks
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
+else()
+	add_library(msoboe STATIC ${SOURCE_FILES})
 endif()
+target_link_libraries(msoboe ${LIBS})
+
+install(TARGETS msoboe
+	RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
+	LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
+	ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+	FRAMEWORK DESTINATION Frameworks
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
