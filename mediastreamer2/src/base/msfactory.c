@@ -629,8 +629,6 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir) {
 #endif
 	debug = (tmp != NULL && atoi(tmp) == 1);
 
-	snprintf(szDirPath, sizeof(szDirPath), "%s", dir);
-
 	// Start searching for .dll files in the current directory.
 	snprintf(szDirPath, sizeof(szDirPath), "%s\\libms*.dll", dir);
 #ifdef UNICODE
@@ -754,16 +752,9 @@ int ms_factory_load_plugins(MSFactory *factory, const char *dir) {
 	return num;
 }
 
-#ifndef _MSC_VER
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif // _MSC_VER
-void ms_factory_uninit_plugins(MSFactory *factory) {
+void ms_factory_uninit_plugins(BCTBX_UNUSED(MSFactory *factory)) {
 #if defined(_WIN32)
 	bctbx_list_t *elem;
-#endif
-
-#if defined(_WIN32)
 	for (elem = factory->ms_plugins_loaded_list; elem != NULL; elem = elem->next) {
 		HINSTANCE handle = (HINSTANCE)elem->data;
 		FreeLibrary(handle);
@@ -772,9 +763,6 @@ void ms_factory_uninit_plugins(MSFactory *factory) {
 	factory->ms_plugins_loaded_list = bctbx_list_free(factory->ms_plugins_loaded_list);
 #endif
 }
-#ifndef _MSC_VER
-#pragma GCC diagnostic pop
-#endif // _MSC_VER
 
 void ms_factory_init_plugins(MSFactory *obj) {
 	if (obj->plugins_dir == NULL) {
