@@ -445,9 +445,7 @@ typedef struct _MSMediaStreamIO {
 
 #define MS_MEDIA_STREAM_IO_INITIALIZER                                                                                 \
 	{                                                                                                                  \
-		{MSResourceInvalid}, {                                                                                         \
-			MSResourceInvalid                                                                                          \
-		}                                                                                                              \
+		{MSResourceInvalid}, { MSResourceInvalid }                                                                     \
 	}
 
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
@@ -511,6 +509,7 @@ struct _AudioStream {
 	MSAudioRoute audio_route;
 	bool_t play_dtmfs;
 	bool_t use_ec;
+	bool_t force_software_ec;
 	bool_t use_gc;
 	bool_t use_agc;
 
@@ -750,6 +749,12 @@ MS2_PUBLIC void audio_stream_set_echo_canceller_params(AudioStream *st, int tail
  * to be done before start
  *  */
 MS2_PUBLIC void audio_stream_enable_echo_canceller(AudioStream *st, bool_t enabled);
+
+/**
+ * Forces the use of a software echo canceller if available instead of hardwared/built-in one.
+ */
+MS2_PUBLIC void audio_stream_force_software_echo_canceller(AudioStream *st, bool_t force);
+
 /**
  * enable adaptive rate control
  * */

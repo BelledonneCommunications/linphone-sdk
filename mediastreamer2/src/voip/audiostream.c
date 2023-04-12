@@ -1177,13 +1177,15 @@ int audio_stream_start_from_io(AudioStream *stream,
 	/* be able to use the echo canceller wich may be limited (webrtc aecm max frequency is 16000 Hz) */
 	// First check if we need to use the echo canceller
 	// Overide feature if not requested or done at sound card level
-	if (((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) || has_builtin_ec) {
+	if (((stream->features & AUDIO_STREAM_FEATURE_EC) && !stream->use_ec) ||
+	    (has_builtin_ec && !stream->force_software_ec)) {
 		ms_message("Software echo cancellation disabled: use_ec=%i, has_builtin_ec=%i", stream->use_ec, has_builtin_ec);
 		stream->features &= ~AUDIO_STREAM_FEATURE_EC;
 	}
 
-	/*configure the echo canceller if required */
+	/* destroy the software echo canceller if required */
 	if ((stream->features & AUDIO_STREAM_FEATURE_EC) == 0 && stream->ec != NULL) {
+		ms_warning("Destroying software echo canceller filter");
 		ms_filter_destroy(stream->ec);
 		stream->ec = NULL;
 	}
@@ -1266,7 +1268,11 @@ int audio_stream_start_from_io(AudioStream *stream,
 
 	ms_filter_call_method(stream->soundread, MS_FILTER_SET_NCHANNELS, &nchannels);
 	if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
-		bool_t aec_enabled = TRUE;
+		bool_t aec_enabled =
+		    (stream->features & AUDIO_STREAM_FEATURE_EC) == 0; // Disable hardware echo canceller if software is enabled
+		if (!aec_enabled) {
+			ms_message("Disabling hardware echo canceller (if any)");
+		}
 		ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_AEC, &aec_enabled);
 	}
 	if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_ENABLE_VOICE_REC)) {
@@ -1862,6 +1868,10 @@ void audio_stream_set_relay_session_id(AudioStream *stream, const char *id) {
 
 void audio_stream_enable_echo_canceller(AudioStream *st, bool_t enabled) {
 	st->use_ec = enabled;
+}
+
+void audio_stream_force_software_echo_canceller(AudioStream *st, bool_t force) {
+	st->force_software_ec = force;
 }
 
 void audio_stream_set_echo_canceller_params(AudioStream *stream, int tail_len_ms, int delay_ms, int framesize) {
