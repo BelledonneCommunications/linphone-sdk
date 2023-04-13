@@ -1,0 +1,39 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+<!-- Desktop -->
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) or $([MSBuild]::IsOSUnixLike())">
+    <Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\any\**\*.*" >
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+<!-- Windows -->
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and $(Platform.Contains('x86'))">
+    <Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\win32\**\*.*" >
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows')) and $(Platform.Contains('x64'))">
+    <Content Include="$(MSBuildThisFileDirectory)..\contentFiles\any\win64\**\*.*" >
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+<!-- Android -->
+
+  <ItemGroup Condition="$(AndroidSupportedAbis.Contains('x86')) or $(AndroidSupportedAbis.Contains('arm64-v8a')) or $(RuntimeIdentifiers.Contains('android'))">
+    <AndroidAarLibrary Include="$(MSBuildThisFileDirectory)\..\runtimes\android\native\liblinphone-sdk.aar" />
+  </ItemGroup>
+
+<!-- IOS -->
+
+  <ItemGroup Condition="($(Platform.contains('iPhone')) OR $(RuntimeIdentifier.StartsWith('ios')))">
+@NATIVE_REFERENCES@
+  </ItemGroup>
+</Project>

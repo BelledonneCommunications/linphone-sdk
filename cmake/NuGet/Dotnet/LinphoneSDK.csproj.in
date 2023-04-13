@@ -1,0 +1,180 @@
+<!-- This imports a .NET Core Sdk and everything we need. -->
+<Project Sdk="Microsoft.NET.Sdk">
+
+<!-- Give the information to describe the future nuget package -->
+<PropertyGroup>
+	<PackageId>LinphoneSDK</PackageId>
+	<Title>LinphoneSDK</Title>
+	<PackageVersion>@NUPKG_VERSION@</PackageVersion>
+	<Authors>Belledonne Communications</Authors>
+	<Company>Belledonne Communications</Company>
+	<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+	<PackageProjectUrl>https://linphone.org/technical-corner/liblinphone</PackageProjectUrl>
+	<PackageIcon>icon.png</PackageIcon>
+	<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+	<Description>
+Liblinphone is a high-level SIP library providing audio/video call and instant messaging capabilities through a unified easy-to-use API.
+It is the cross-platform VoIP library upon which the Linphone application is built.
+
+This package provides libraries for the platforms Windows, MacOSX, Linux, Android and IOS.
+	</Description>
+	<PackageTags>SIP VoIP Voice Video Telephony</PackageTags>
+	<Copyright>Copyright 2010-@CURRENT_YEAR@ Belledonne Communications</Copyright>
+</PropertyGroup>
+
+<!-- Now tell MSBuild what to do -->
+<PropertyGroup>
+	<!-- We want the frameworks that will use the nuget to be
+	at leat compatible with the norm .NET 2.0 -->
+	<TargetFramework>netstandard2.0</TargetFramework>
+	<!-- Tell MSBuild the "Pack" command can generate a nuget. -->
+	<IsPackable>true</IsPackable>
+	<!-- We don't want to build anything here,
+	and thus we don't want to add any built artifact. -->
+	<IncludeBuildOutput>false</IncludeBuildOutput>
+	<!-- Tell where to put the source files in the Nuget. -->
+	<ContentTargetFolders>contentFiles</ContentTargetFolders>
+	<!-- The Sdk impicitly adding package references for NetStandard
+	or similar framework libraries, here we want the Nuget to be buildable
+	with any framework. -->
+	<DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+	<!-- We don't want to maintain something that will be part of the compile items,
+	and thus be packed. -->
+	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	<!-- Again, we want the nuget to be usable by any framework,
+	so we disable the generation of the target file. -->
+	<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+	<!-- Because of the above statement we don’t have an attribute value defined
+	and the C# compiler would create a
+	“CS8021: No value for RuntimeMetadataVersion found.” warning,
+	so we’re simply disabling it. -->
+	<NoWarn>CS8021</NoWarn>
+	<!-- Redondant with previous option, but doesn't hurt to be explicit
+	with MSBuild. -->
+	<NoBuild>true</NoBuild>
+	<!-- Tell Nuget to generate the package as part of a regular build too,
+	not just if someone executes the Pack target explicitly -->
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<!-- We need to specify a target (eg. netstandard2.0), but we don't want
+	it to be declared as a dependency-->
+	<SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+	<!-- We don't have any nuget dependancies -->
+	<ResolveNuGetPackages>false</ResolveNuGetPackages>  
+</PropertyGroup>
+
+
+<!-- We don't want any package reference messing up with the nuget -->
+<ItemGroup>
+    <PackageReference Remove="@(PackageReference)" />
+</ItemGroup>
+
+<!-- Add the icon.png in the nuget -->
+<ItemGroup>
+    <None Include="@NUGET_ICON_PATH@" Pack="true" PackagePath=""/>
+</ItemGroup>
+
+<ItemGroup>
+<!-- Add the wrapper so it will be compiled by the consumer.
+Be careful to not change the path orelse the runtime framework won't find it. -->
+	<Compile Include="@LINPHONESDK_CSHARP_WRAPPER_PATH@\LinphoneWrapper.cs">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\cs\any\</PackagePath>
+	</Compile>
+</ItemGroup>
+<!-- add the resources needed by desktop projects -->
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\belr\grammars\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\any\share\belr\grammars\</PackagePath>
+	</None>
+	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\sounds\linphone\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\any\share\sounds\linphone\</PackagePath>
+	</None>
+	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\images\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\any\share\images\</PackagePath>
+	</None>
+	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\Linphone\rootca.pem">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\any\share\Linphone\</PackagePath>
+	</None>
+</ItemGroup>
+<!-- add the plugins and lib needed by windows projects -->
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_WIN32_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN32_DESKTOP_PATH@\lib\mediastreamer\plugins\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\win32\lib\mediastreamer\plugins\</PackagePath>
+	</None>
+	<None Condition="Exists('@LINPHONESDK_WIN32_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN32_DESKTOP_PATH@\lib\Win32\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\win32\lib\Win32\</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_WIN64_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN64_DESKTOP_PATH@\lib\mediastreamer\plugins\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\win64\lib\mediastreamer\plugins\</PackagePath>
+	</None>
+	<None Condition="Exists('@LINPHONESDK_WIN64_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN64_DESKTOP_PATH@\lib\x64\**">
+		<Pack>true</Pack>
+		<PackagePath>$(ContentTargetFolders)\any\win64\lib\x64\</PackagePath>
+	</None>
+</ItemGroup>
+
+
+<!-- Add the natives libraries of our wonderful software,
+for each platform the packager will copy everything in the associate folder.
+Each empty or non existing folder will be ignored.
+The PackagePath will tell to the dotnet compiler where to find the libs.
+For new os target, please check the following page :
+https://learn.microsoft.com/en-us/dotnet/core/rid-catalog -->
+
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_WIN32_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN32_DESKTOP_PATH@\bin\*.dll">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\win-x86\native\</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_WIN64_DESKTOP_PATH@')" Include="@LINPHONESDK_WIN64_DESKTOP_PATH@\bin\*.dll">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\win-x64\native\</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_LINUX_SO_PATH@')" Include="@LINPHONESDK_LINUX_SO_PATH@\*.so">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\linux-x64\native\</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_OSX_FRAMEWORK_PATH@')" Include="@LINPHONESDK_OSX_FRAMEWORK_PATH@\**">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\osx-x64\native\</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_ANDROID_AAR_PATH@')" Include="@LINPHONESDK_ANDROID_AAR_PATH@\*.aar">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\android\native\liblinphone-sdk.aar</PackagePath>
+	</None>
+</ItemGroup>
+<ItemGroup>
+	<None Condition="Exists('@LINPHONESDK_IOS_XCFRAMEWORK_PATH@')" Include="@LINPHONESDK_IOS_XCFRAMEWORK_PATH@\**">
+		<Pack>true</Pack>
+		<PackagePath>runtimes\ios\native\</PackagePath>
+	</None>
+</ItemGroup>
+
+<ItemGroup>
+	<None Include="build\LinphoneSDK.targets">
+		<Pack>true</Pack>
+		<PackagePath>build\</PackagePath>
+	</None>
+</ItemGroup>
+<!-- To finish, we want the commands to build and manage artifacts to do nothing. -->
+<Target Name="Compile" />
+<Target Name="CopyFilesToOutputDirectory" />
+
+</Project>
