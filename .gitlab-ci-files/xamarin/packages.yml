@@ -28,9 +28,9 @@ xamarin-package:
    # The C# wrapper is used both by Android and iOS but it's arbitrarily compiled in the iOS build (it has to come from somewhere)
    - cmake ..
      -DLINPHONESDK_PACKAGER="Nuget"
-     -DLINPHONESDK_CSHARP_WRAPPER_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/share/linphonecs/LinphoneWrapper.cs"
-     -DLINPHONESDK_IOS_XCFRAMEWORKS_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/XCFrameworks"
-     -DLINPHONESDK_ANDROID_AAR_PATH="$CI_PROJECT_DIR/build/linphone-sdk/bin/outputs/aar/linphone-sdk-android-release.aar"
+     -DLINPHONESDK_CSHARP_WRAPPER_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/share/linphonecs"
+     -DLINPHONESDK_IOS_XCFRAMEWORK_PATH="$CI_PROJECT_DIR/linphone-sdk-xamarin/linphone-sdk/apple-darwin/XCFrameworks"
+     -DLINPHONESDK_ANDROID_AAR_PATH="$CI_PROJECT_DIR/build/linphone-sdk/bin/outputs/aar"
      -DCMAKE_INSTALL_PREFIX="$CI_PROJECT_DIR/results"
    - cmake --build .
 
