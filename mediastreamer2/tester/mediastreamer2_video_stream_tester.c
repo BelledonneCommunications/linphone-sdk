@@ -184,6 +184,8 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_decoder_send_request_pli;
 	int number_of_decoder_send_request_sli;
 	int number_of_decoder_send_request_rpsi;
+	
+	int number_of_display_error;
 
 	int number_of_jitter_update_nack;
 
@@ -282,6 +284,24 @@ static void video_stream_event_cb(void *user_pointer,
 	ms_message("Event [%s:%u] received on video stream [%p]", event_name, event_id, vs_tester);
 }
 
+static void video_stream_display_cb(void *user_pointer,
+                                  const unsigned int event_id,
+                                  BCTBX_UNUSED(const void *args)) {
+	video_stream_tester_t *vs_tester = (video_stream_tester_t *)user_pointer;
+	const char *event_name;
+	switch (event_id) {
+		case MS_VIDEO_DISPLAY_ERROR_OCCURRED:
+			event_name = "MS_VIDEO_DISPLAY_ERROR_OCCURRED";
+			vs_tester->stats.number_of_display_error++;
+			break;
+		default:
+			ms_warning("Unhandled event %i", event_id);
+			event_name = "UNKNOWN";
+			break;
+	}
+	ms_message("Event [%s:%u] received on video stream [%p]", event_name, event_id, vs_tester);
+}
+
 static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 	video_stream_tester_stats_t *st = (video_stream_tester_stats_t *)user_pointer;
 	OrtpEvent *ev = NULL;
@@ -347,6 +367,7 @@ static void create_video_stream(video_stream_tester_t *vst, int payload_type) {
 	vst->stats.q = ortp_ev_queue_new();
 	rtp_session_register_event_queue(vst->vs->ms.sessions.rtp_session, vst->stats.q);
 	video_stream_set_event_callback(vst->vs, video_stream_event_cb, vst);
+	video_stream_set_display_callback(vst->vs, video_stream_display_cb, vst);
 	if (vst->vconf) {
 		PayloadType *pt = rtp_profile_get_payload(&rtp_profile, payload_type);
 		if (BC_ASSERT_PTR_NOT_NULL(pt)) {

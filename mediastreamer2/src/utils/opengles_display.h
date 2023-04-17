@@ -139,6 +139,11 @@ MS2_PUBLIC void ogl_display_enable_mirroring_to_display(struct opengles_display 
 MS2_PUBLIC void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bool_t enabled);
 
 /**
+ * Notify errors to filter and reset the error queue. The queue contain only one kind of error in order to avoid duplicate notifications.
+ */
+MS2_PUBLIC void ogl_display_notify_errors(struct opengles_display * display, MSFilter * filter);
+
+/**
  * Create a new Window and store it into the EGLNativeWindowType generic structure
  */
 #ifdef MS2_WINDOWS_UWP

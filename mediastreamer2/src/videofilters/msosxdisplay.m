@@ -378,7 +378,7 @@ static void osx_gl_process(MSFilter* f) {
 		}else ogl_display_set_preview_yuv_to_display(thiz.glLayer->display_helper,NULL);
 		ms_queue_flush(f->inputs[1]);
 	}
-
+	ogl_display_notify_errors(thiz.glLayer->display_helper, f);
 	[loopPool drain];
 }
 

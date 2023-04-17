@@ -284,6 +284,7 @@ static void glxvideo_process(MSFilter *f) {
 	glXSwapBuffers(obj->display, obj->subwindow);
 
 end:
+	ogl_display_notify_errors(obj->glhelper, f);
 	ms_filter_unlock(f);
 	if (f->inputs[0] != NULL) ms_queue_flush(f->inputs[0]);
 	if (f->inputs[1] != NULL) ms_queue_flush(f->inputs[1]);

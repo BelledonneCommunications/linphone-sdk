@@ -1063,6 +1063,7 @@ typedef void (*VideoStreamEventCallback)(void *user_pointer,
                                          const MSFilter *f,
                                          const unsigned int event_id,
                                          const void *args);
+typedef void (*VideoStreamDisplayCallback)(void *user_pointer, const unsigned int event_id, const void *args);/* if coming from OpenGL and event_id==MS_VIDEO_DISPLAY_ERROR_OCCURRED, args is an int from eglGetError() : https://registry.khronos.org/EGL/sdk/docs/man/html/eglGetError.xhtml */
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
 typedef void (*VideoStreamCsrcChangedCb)(void *user_pointer, uint32_t new_csrc);
@@ -1108,6 +1109,8 @@ struct _VideoStream {
 	void *render_pointer;
 	VideoStreamEventCallback eventcb;
 	void *event_pointer;
+	VideoStreamDisplayCallback displaycb;
+	void *display_pointer;
 	char *display_name;
 	void *window_id;
 	void *preview_window_id;
@@ -1177,9 +1180,9 @@ static MS2_INLINE void video_stream_enable_adaptive_jittcomp(VideoStream *stream
 }
 MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRenderCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
-MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s,
-                                                             VideoStreamCameraNotWorkingCallback cb,
-                                                             void *user_pointer);
+MS2_PUBLIC void video_stream_set_display_callback(VideoStream *s, VideoStreamDisplayCallback cb, void *user_pointer);
+
+MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC void video_stream_set_label(VideoStream *s, const char *label);
 MS2_PUBLIC void video_stream_set_content(VideoStream *s, MSVideoContent content);
@@ -1580,6 +1583,7 @@ typedef VideoStream VideoPreview;
 
 MS2_PUBLIC VideoPreview *video_preview_new(MSFactory *factory);
 #define video_preview_set_event_callback(p, c, u) video_stream_set_event_callback(p, c, u)
+#define video_preview_set_display_callback(p, c, u) video_stream_set_display_callback(p, c, u)
 #define video_preview_set_size(p, s) video_stream_set_sent_video_size(p, s)
 #define video_preview_set_display_filter_name(p, dt) video_stream_set_display_filter_name(p, dt)
 #define video_preview_create_native_window_id(p) video_stream_create_native_preview_window_id(p)

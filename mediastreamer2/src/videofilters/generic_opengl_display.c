@@ -306,6 +306,7 @@ static int ogl_call_render(MSFilter *f, void *arg) {
 	    (context_info->window || (!context_info->window && context_info->width && context_info->height))) {
 		ogl_display_render(data->display, 0, data->mode);
 	}
+	ogl_display_notify_errors(data->display, f);
 	ms_mutex_unlock(&gLock);
 	if (f != NULL) ms_filter_unlock(f);
 	return 0;

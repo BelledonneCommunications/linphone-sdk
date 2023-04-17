@@ -267,6 +267,7 @@ static void iosdisplay_process(MSFilter *f) {
 	if (f->inputs[1] != NULL) {
 		ms_queue_flush(f->inputs[1]);
 	}
+	ogl_display_notify_errors(thiz->display_helper, f);
 }
 
 static void iosdisplay_uninit(MSFilter *f) {

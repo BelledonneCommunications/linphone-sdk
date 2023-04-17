@@ -126,9 +126,29 @@ struct opengles_display {
 	EGLContext mEglContext;
 	EGLConfig mEglConfig; // No need to be cleaned
 	EGLSurface mRenderSurface;
+	
+	//Callbacks
+	GLenum mLastError;	// 0 if none else best error coming from eglGetError()
+	bool_t mSendUnrecoverableError;	// When a Window ID becomes unavailable and need to be restarted, a restart callback has been called. This boolean avoid to call the callback multiple times.
 };
 
 // -----------------------------------------------------------------------------
+
+static void error_mngmt_set(struct opengles_display * display, GLenum error){
+	unsigned int lastError = display->mLastError;//avoid mLastError to be reset while checking priorities
+	if(lastError == 0){
+		display->mLastError = error;
+	}else{
+	// Low priority
+		if( error == EGL_BAD_MATCH || error == EGL_BAD_ATTRIBUTE || error == EGL_BAD_PARAMETER) return;
+	// Simple priority
+		if( lastError == EGL_CONTEXT_LOST || lastError == EGL_BAD_NATIVE_WINDOW || lastError == EGL_BAD_SURFACE || lastError == EGL_BAD_NATIVE_PIXMAP) return;
+	// Level 1
+		if( error == EGL_BAD_ALLOC && lastError == EGL_BAD_ACCESS) return;
+		
+		display->mLastError = error;
+	}
+}
 
 static void clean_GL_errors(const OpenGlFunctions *f) {
 	if (f->glInitialized)
@@ -162,11 +182,14 @@ static void check_GL_errors(const OpenGlFunctions *f, const char *context) {
 		}
 	}
 }
-static void check_EGL_errors(const OpenGlFunctions *f, const char *context) {
-	if (f->eglInitialized) {
+
+static void check_EGL_errors(struct opengles_display * display, const char *context) {
+	if (display->functions->eglInitialized) {
 		GLenum error;
-		if ((error = f->eglGetError()) != EGL_SUCCESS) {
-			ms_error("[ogl_display] EGL error: '%s' -> %x\n", context, error);
+		if ((error = display->functions->eglGetError()) != EGL_SUCCESS) {
+			ms_error("[ogl_display] EGL error: '%s' -> %x%s\n", context, error, error!=EGL_CONTEXT_LOST ? "(notify not implemented)" : "");
+//TODO: We know exactly what do to with EGL_CONTEXT_LOST so we can stop sending notifications. For other errors, we don't want to spam notifications on each call of ogl_display_notify_errors().
+			error_mngmt_set(display, error);
 		}
 	}
 }
@@ -718,8 +741,7 @@ static void ogl_display_render_type(struct opengles_display *gldisp,
 }
 
 // -----------------------------------------------------------------------------
-
-struct opengles_display *ogl_display_new(void) {
+struct opengles_display *ogl_display_new() {
 	struct opengles_display *result = (struct opengles_display *)malloc(sizeof(struct opengles_display));
 	if (result == 0) {
 		ms_error("[ogl_display] Could not allocate OpenGL display structure");
@@ -746,6 +768,7 @@ struct opengles_display *ogl_display_new(void) {
 	result->shadersLoaded = FALSE;
 	result->arrayBufferHandle = 0;
 	result->vertexArrayObjectHandle = 0;
+	result->mSendUnrecoverableError = FALSE;
 
 	ms_mutex_init(&result->yuv_mutex, NULL);
 	ms_message("[ogl_display] %s : %p\n", __FUNCTION__, result);
@@ -759,19 +782,19 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 			gldisp->functions->eglMakeCurrent(
 			    gldisp->mEglDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE,
 			    EGL_NO_CONTEXT); // Allow OpenGL to Release memory without delay as the current is no more binded
-			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglMakeCurrent");
+			check_EGL_errors(gldisp, "ogl_display_clean: eglMakeCurrent");
 		}
 		if (gldisp->mRenderSurface != EGL_NO_SURFACE) {
 			if (gldisp->functions->eglInitialized) {
 				gldisp->functions->eglDestroySurface(gldisp->mEglDisplay, gldisp->mRenderSurface);
-				check_EGL_errors(gldisp->functions, "ogl_display_clean: eglDestroySurface");
+				check_EGL_errors(gldisp, "ogl_display_clean: eglDestroySurface");
 			}
 			gldisp->mRenderSurface = EGL_NO_SURFACE;
 		}
 		if (gldisp->mEglContext != EGL_NO_CONTEXT) {
 			// if( gldisp->functions->eglInitialized){
 			//	gldisp->functions->eglDestroyContext(gldisp->mEglDisplay, gldisp->mEglContext);// This lead to crash on
-			// future eglMakeCurrent. Bug? Let eglReleaseThread to do it. 	check_EGL_errors(gldisp->functions,
+			// future eglMakeCurrent. Bug? Let eglReleaseThread to do it. 	check_EGL_errors(gldisp,
 			//"ogl_display_clean: eglDestroyContext");
 			// }
 			gldisp->mEglContext = EGL_NO_CONTEXT;
@@ -779,13 +802,13 @@ void ogl_display_clean(struct opengles_display *gldisp) {
 		// if( gldisp->functions->eglInitialized){
 		//	gldisp->functions->eglTerminate(gldisp->mEglDisplay);// Do not call terminate. It will delete all other
 		// context/rendering surface that can be still in used. Let eglReleaseThread to do it. Reminder : mEglDisplay is
-		// the same for all. 	check_EGL_errors(gldisp->functions, "ogl_display_clean: eglTerminate");
+		// the same for all. 	check_EGL_errors(gldisp, "ogl_display_clean: eglTerminate");
 		// }
 		if (gldisp->functions->eglInitialized) {
 			gldisp->functions->eglReleaseThread(); // Release all OpenGL resources
-			check_EGL_errors(gldisp->functions, "ogl_display_clean: eglReleaseThread");
+			check_EGL_errors(gldisp, "ogl_display_clean: eglReleaseThread");
 			gldisp->functions->glFinish(); // Synchronize the clean
-			check_EGL_errors(gldisp->functions, "ogl_display_clean: glFinish");
+			check_EGL_errors(gldisp, "ogl_display_clean: glFinish");
 		}
 		gldisp->mEglDisplay = EGL_NO_DISPLAY;
 	}
@@ -1154,7 +1177,7 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	// This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
 	gldisp->mEglDisplay =
 	    f->eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 		ms_error("[ogl_display] Failed to get EGL display (D3D11 10.0+).");
 	}
@@ -1207,7 +1230,7 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	// gldisp->mEglDisplay = f->eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_KHR, EGL_DEFAULT_DISPLAY,
 	// defaultDisplayAttributes);
 	gldisp->mEglDisplay = f->eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 		ms_error("[ogl_display] Failed to get EGL display.");
 	}
@@ -1218,15 +1241,15 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	}
 #endif
 
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	ms_message("OpenEGL client API: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_CLIENT_APIS));
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	ms_message("OpenEGL vendor: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VENDOR));
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	ms_message("OpenEGL version: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_VERSION));
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	ms_message("OpenEGL extensions: %s", f->eglQueryString(gldisp->mEglDisplay, EGL_EXTENSIONS));
-	check_EGL_errors(f, "ogl_create_surface");
+	check_EGL_errors(gldisp, "ogl_create_surface");
 	if (gldisp->mEglDisplay == EGL_NO_DISPLAY) {
 		return;
 	}
@@ -1237,7 +1260,7 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	if (f->eglChooseConfig(gldisp->mEglDisplay, configAttributes, &gldisp->mEglConfig, 1, &numConfigs) == EGL_FALSE ||
 	    numConfigs == 0) {
 		ms_error("[ogl_display] Failed to choose first EGLConfig");
-		check_EGL_errors(f, "ogl_create_surface");
+		check_EGL_errors(gldisp, "ogl_create_surface");
 		return;
 	}
 
@@ -1250,12 +1273,12 @@ ogl_create_surface_default(struct opengles_display *gldisp, const OpenGlFunction
 	}
 	if (gldisp->mEglContext == EGL_NO_CONTEXT) {
 		ms_error("[ogl_display] Failed to create EGL context");
-		check_EGL_errors(f, "ogl_create_surface");
+		check_EGL_errors(gldisp, "ogl_create_surface");
 	}
 	gldisp->mRenderSurface = f->eglCreateWindowSurface(gldisp->mEglDisplay, gldisp->mEglConfig, window, NULL);
 	if (gldisp->mRenderSurface == EGL_NO_SURFACE) {
 		ms_error("[ogl_display] Failed to create EGL Render Surface");
-		check_EGL_errors(f, "ogl_create_surface");
+		check_EGL_errors(gldisp, "ogl_create_surface");
 	}
 }
 
@@ -1273,7 +1296,7 @@ void ogl_create_surface(struct opengles_display *gldisp, const OpenGlFunctions *
 		if (gldisp->mEglDisplay == EGL_NO_DISPLAY || gldisp->mEglContext == EGL_NO_CONTEXT ||
 		    gldisp->mRenderSurface == EGL_NO_SURFACE) {
 			ms_error("[ogl_display] Display/Context/Surface couldn't be set");
-			check_EGL_errors(f, "ogl_create_surface");
+			check_EGL_errors(gldisp, "ogl_create_surface");
 		}
 	}
 }
@@ -1325,7 +1348,8 @@ void ogl_display_init(struct opengles_display *gldisp, const OpenGlFunctions *f,
 		ms_error("[ogl_display] %s called with null struct opengles_display", __FUNCTION__);
 		return;
 	}
-
+	gldisp->mSendUnrecoverableError = FALSE;
+	gldisp->mLastError = 0;
 	// Create default functions if necessary. (No opengl functions given.)
 	if (!gldisp->default_functions) {
 		gldisp->default_functions = ms_new0(OpenGlFunctions, 1);
@@ -1446,7 +1470,6 @@ void ogl_display_render(struct opengles_display *gldisp, int orientation, MSVide
 		return;
 	check_GL_errors(f, "ogl_display_render");
 	clean_GL_errors(f);
-
 #ifdef ENABLE_OPENGL_PROFILING
 	f->glFinish();
 	f->glBeginQuery(GL_TIME_ELAPSED, gl_time_query);
@@ -1530,6 +1553,17 @@ void ogl_display_enable_mirroring_to_preview(struct opengles_display *gldisp, bo
 	ogl_display_enable_mirroring(gldisp, enabled, PREVIEW_IMAGE);
 }
 
+void ogl_display_notify_errors(struct opengles_display *display, MSFilter *filter) {
+	if(filter){
+		GLenum lastError = display->mLastError;// We ensure to get the last error one time in order to avoid changes while checking.
+		if( !display->mSendUnrecoverableError && lastError == EGL_CONTEXT_LOST){// TODO: This notification is only send one time for the life of the display. As this is the only one to take account (for now), we can ensure to not send other notifications till the restart.
+		// Some work has to be done to avoid sending multiple notifications for errors that are recoverable for the current display.
+			display->mSendUnrecoverableError = TRUE;
+			ms_filter_notify(filter, MS_VIDEO_DISPLAY_ERROR_OCCURRED, &lastError);
+		}
+		display->mLastError = 0;// Resetting lastError to 0 will let the error manager to fill new errors.
+	}
+}
 // -----------------------------------------------------------------------------
 
 #ifdef __ANDROID__

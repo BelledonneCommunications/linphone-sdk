@@ -347,7 +347,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 		ms_error("[TextureView Display][Filter=%p] eglSwapBuffers failure for windowId %p: %u", f, ad->nativeWindowId,
 		         result);
 	}
-
+	ogl_display_notify_errors(ad->ogl, f);
 	ms_filter_unlock(f);
 }
 
