@@ -285,10 +285,11 @@ void fprintf_encryption_test(bctoolbox::EncryptionSuite suite, int charsNb) {
 	char line[BCTBX_VFS_PRINTF_PAGE_SIZE + 3];
 	/* Write until the FPRINT cache is full, the first page will written */
 	while (inSize < BCTBX_VFS_PRINTF_PAGE_SIZE) {
-		sprintf(line,
-		        "this is a line used to fill the first page in the fprintf cache, it is the write number %04x, make it "
-		        "long so we have fewer fprintf to do to fill the cache, then we should one by one write %d chars\n",
-		        inSize, charsNb);
+		sprintf(
+		    line,
+		    "this is a line used to fill the first page in the fprintf cache, it is the write number %04lx, make it "
+		    "long so we have fewer fprintf to do to fill the cache, then we should one by one write %d chars\n",
+		    inSize, charsNb);
 		memcpy(inBuf + inSize, line, strlen(line)); // build a buffer image of what we are writing in the file
 		BC_ASSERT_TRUE(bctbx_file_fprintf(fp, 0, "%s", line) > 0);
 		inSize += strlen(line);
