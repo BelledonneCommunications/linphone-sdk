@@ -11,7 +11,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.0.2'
+        classpath 'com.android.tools.build:gradle:8.0.0'
     }
 }
 
@@ -62,13 +62,19 @@ task listPlugins() {
 project.tasks['preBuild'].dependsOn 'listPlugins'
 
 android {
+    namespace 'org.linphone.core'
+
+    compileOptions {
+        sourceCompatibility = 17
+        targetCompatibility = 17
+    }
+
     compileSdkVersion 31
-    buildToolsVersion '31.0.0'
     
     defaultConfig {
         minSdkVersion 23
         targetSdkVersion 31
-        versionCode 5100
+        versionCode 5300
         versionName "@LINPHONESDK_VERSION@"
         setProperty("archivesBaseName", "linphone-sdk-android")
         consumerProguardFiles "${buildDir}/proguard.txt"
@@ -136,7 +142,7 @@ android {
     java {
         toolchain {
             // Required for javadoc task...
-            languageVersion.set(JavaLanguageVersion.of(9)) // 9 is for using @hidden
+            languageVersion.set(JavaLanguageVersion.of(17))
         }
     }
 }
@@ -144,6 +150,7 @@ android {
 ///////////// Task /////////////
 
 task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
+    mustRunAfter "generateDebugRFile"
     source = srcDir
     excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
@@ -160,12 +167,12 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
 }
 
 task sourcesJar(type: Jar) {
-    classifier = 'sources'
+    archiveClassifier = 'sources'
     from android.sourceSets.main.java.srcDirs
 }
 
 task androidJavadocsJar(type: Jar, dependsOn: releaseJavadoc) {
-    classifier = 'javadoc'
+    archiveClassifier = 'javadoc'
     from releaseJavadoc.destinationDir
 }
 
@@ -173,10 +180,10 @@ task sdkZip(type: Zip) {
     from('linphone-sdk/bin/libs',
          'linphone-sdk/bin/outputs/aar')
     include '*'
-    archiveName "linphone-sdk-android-@LINPHONESDK_VERSION@.zip"
+    archiveFileName = "linphone-sdk-android-@LINPHONESDK_VERSION@.zip"
 }
 
-task copyProguard(type: Copy) {
+task copyProguard(type: Copy, dependsOn: sourcesJar) {
     from rootSdk + '/share/linphonej/'
     into "${buildDir}"
     include 'proguard.txt'

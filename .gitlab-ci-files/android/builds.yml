@@ -20,7 +20,6 @@
     - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
 
   script:
-    - sdkmanager
     - mkdir -p build
     - cd build
     - echo $CMAKE_GENERATOR
