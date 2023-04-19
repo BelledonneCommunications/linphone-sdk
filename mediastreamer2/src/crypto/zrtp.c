@@ -433,81 +433,6 @@ static int ms_zrtp_startSrtpSession(void *clientData, const bzrtpSrtpSecrets_t *
 	return 0;
 }
 
-/**
- * @brief This callback is called when context is ready to compute exported keys as in rfc6189 section 4.5.2
- * Computed keys are added to zid cache with sip URI of peer(found in client Data) to be used for LIME(IM ciphering)
- *
- * @param[in]	zidCacheData	Pointer to our ZidCacheContext structure used to retrieve ZID filename
- * @param[in]	clientData	Pointer to our ZrtpContext structure used to retrieve peer SIP URI
- * @param[in]	peerZid		Peer ZID to address correct node in zid cache
- * @param[in]	role		RESPONDER or INITIATOR, needed to compute the pair of keys for IM ciphering
- *
- * @return 	0 on success
- */
-static int ms_zrtp_addExportedKeysInZidCache(void *clientData, int zuid, uint8_t role) {
-	MSZrtpContext *userData = (MSZrtpContext *)clientData;
-	bzrtpContext_t *zrtpContext = userData->zrtpContext;
-	bctoolboxTimeSpec currentTime;
-	/* columns to be written in cache */
-	const char *colNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
-	uint8_t *colValues[7];
-	size_t colLength[] = {32, 32, 32, 32,
-	                      4,  4,  8}; /* data length: keys and session ID : 32 bytes, Indexes: 4 bytes(uint32_t),
-	                                     validity : 8 bytes(UTC time as int64_t) */
-	int i, ret;
-
-	/* allocate colValues */
-	for (i = 0; i < 7; i++) {
-		colValues[i] = (uint8_t *)ms_malloc(colLength[i] * sizeof(uint8_t));
-	}
-
-	/* First compute the exported keys */
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "ResponderKey" : "InitiatorKey"), 12, colValues[0],
-	                &colLength[0]); /* sndKey */
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "InitiatorKey" : "ResponderKey"), 12, colValues[1],
-	                &colLength[1]); /* rcvKey */
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "ResponderSId" : "InitiatorSId"), 12, colValues[2],
-	                &colLength[2]); /* snd Session Id*/
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "InitiatorSId" : "ResponderSId"), 12, colValues[3],
-	                &colLength[3]); /* rcv Session Id*/
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "ResponderIndex" : "InitiatorIndex"), 14,
-	                colValues[4], &colLength[4]); /* snd Index */
-	bzrtp_exportKey(zrtpContext, ((role == BZRTP_ROLE_RESPONDER) ? "InitiatorIndex" : "ResponderIndex"), 14,
-	                colValues[5], &colLength[5]); /* rcv Index */
-
-	/* insert validity */
-	if (userData->limeKeyTimeSpan == 0) { /* time span is 0: key is forever valid, just put 0 in cache */
-		memset(colValues[6], 0, 8);
-	} else { /* get current time and add time span */
-		bctbx_get_utc_cur_time(&currentTime);
-		bctbx_timespec_add(&currentTime, (int64_t)(userData->limeKeyTimeSpan));
-		/* store the int64_t in big endian in the cache(cache is not typed, all data seen as blob) */
-		colValues[6][0] = (currentTime.tv_sec >> 56) & 0xFF;
-		colValues[6][1] = (currentTime.tv_sec >> 48) & 0xFF;
-		colValues[6][2] = (currentTime.tv_sec >> 40) & 0xFF;
-		colValues[6][3] = (currentTime.tv_sec >> 32) & 0xFF;
-		colValues[6][4] = (currentTime.tv_sec >> 24) & 0xFF;
-		colValues[6][5] = (currentTime.tv_sec >> 16) & 0xFF;
-		colValues[6][6] = (currentTime.tv_sec >> 8) & 0xFF;
-		colValues[6][7] = (currentTime.tv_sec) & 0xFF;
-	}
-
-	/* colValues 4 and 5 hold index(uint32_t as 4 bytes in big endian), make sure the first bit on the MSB is set to 0
-	 * to avoid loop in the index */
-	colValues[4][0] &= 0x7F;
-	colValues[5][0] &= 0x7F;
-
-	/* then insert all in cache */
-	ret = bzrtp_cache_write_lock(userData->cacheDB, zuid, "lime", colNames, colValues, colLength, 7,
-	                             userData->cacheDBMutex);
-
-	for (i = 0; i < 7; i++) {
-		ms_free(colValues[i]);
-	}
-
-	return ret;
-}
-
 /*************************************************/
 /*** end of Callback functions implementations ***/
 
@@ -846,7 +771,6 @@ MSZrtpContext *ms_zrtp_context_new(MSMediaStreamSessions *sessions, MSZrtpParams
 	    params->peerUri) { /* to enable cache we need a self and peer uri and a pointer to the sqlite cache DB */
 		/*enabling cache*/
 		bzrtp_setZIDCache_lock(context, params->zidCacheDB, params->selfUri, params->peerUri, params->zidCacheDBMutex);
-		cbs.bzrtp_contextReadyForExportedKeys = ms_zrtp_addExportedKeysInZidCache;
 	}
 
 	/* set other callback functions */
@@ -1004,35 +928,6 @@ int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex) {
 	}
 }
 
-/**
- * @brief Perform migration from xml version to sqlite3 version of cache
- *	Warning: new version of cache associate a ZID to each local URI, the old one did not
- *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the
- *default URI
- * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using
- *ms_zrtp_cache_init function
- * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
- *
- * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled,
- *MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
- */
-int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {
-	int ret = bzrtp_cache_migration(cacheXmlPtr, cacheSqlite, selfURI);
-	switch (ret) {
-		case BZRTP_ERROR_CACHEDISABLED:
-			return MSZRTP_ERROR_CACHEDISABLED;
-		case BZRTP_ERROR_CACHEMIGRATIONFAILED:
-			return MSZRTP_ERROR_CACHEMIGRATIONFAILED;
-		case 0:
-			return 0;
-		default:
-			ms_warning("bzrtp_cache_migration function returned a non zero code %x, something went probably wrong",
-			           ret);
-			return MSZRTP_CACHE_ERROR;
-	}
-}
-
 uint8_t ms_zrtp_available_key_agreement(MSZrtpKeyAgreement algos[256]) {
 	uint8_t bzrtpAlgos[256];
 	uint8_t nbAlgos = bzrtp_available_key_agreement(bzrtpAlgos);
@@ -1115,7 +1010,7 @@ bool_t ms_zrtp_is_PQ_available(void) {
 	return bzrtp_is_PQ_available();
 }
 
-//#ifdef HAVE_GOCLEAR
+// #ifdef HAVE_GOCLEAR
 int ms_zrtp_send_go_clear(MSZrtpContext *ctx) {
 	return bzrtp_sendGoClear(ctx->zrtpContext, ctx->self_ssrc);
 }
@@ -1127,7 +1022,7 @@ int ms_zrtp_confirm_go_clear(MSZrtpContext *ctx) {
 int ms_zrtp_back_to_secure_mode(MSZrtpContext *ctx) {
 	return bzrtp_backToSecureMode(ctx->zrtpContext, ctx->self_ssrc);
 }
-//#endif /* HAVE_GOCLEAR */
+// #endif /* HAVE_GOCLEAR */
 
 #else /* HAVE_ZRTP */
 

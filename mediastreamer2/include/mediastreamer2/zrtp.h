@@ -290,21 +290,6 @@ MS2_PUBLIC bool_t ms_zrtp_is_PQ_available(void);
 MS2_PUBLIC int ms_zrtp_initCache(void *db, bctbx_mutex_t *dbMutex);
 
 /**
- * @brief Perform migration from xml version to sqlite3 version of cache
- *	Warning: new version of cache associate a ZID to each local URI, the old one did not
- *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the
- *default URI
- * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using
- *ms_zrtp_cache_init function
- * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
- *
- * @return	0 on success, MSZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled,
- *MSZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
- */
-MS2_PUBLIC int ms_zrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
-
-/**
  * @brief Send a GoClear message when the participant decides to change encryption mode
  *		The endpoint of the initiator (of the GoClear) stops sending SRTP packets and begin to send RTP packets on
  *ClearACK reception The endpoint of the responder (of the GoClear) stops sending SRTP packets on GoClear reception
