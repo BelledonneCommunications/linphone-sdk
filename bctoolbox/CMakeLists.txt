@@ -37,7 +37,7 @@ set(BCTOOLBOX_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(BCTOOLBOX_SO_VERSION 1)
 set(BCTOOLBOXTESTER_SO_VERSION 1)
 
-
+option(ENABLE_DEBUG_LOGS "Turn on or off debug level logs." NO)
 option(ENABLE_SHARED "Build shared library." ON)
 option(ENABLE_STATIC "Build static library." ON)
 option(ENABLE_MBEDTLS "Enable mbedtls support" ON)
@@ -156,6 +156,9 @@ set(BCTOOLBOX_CPPFLAGS )
 if(ENABLE_STATIC)
 	set(BCTBX_STATIC 1)
 	list(APPEND BCTOOLBOX_CPPFLAGS "-DBCTBX_STATIC")
+endif()
+if(ENABLE_DEBUG_LOGS)
+	add_definitions("-DBCTBX_DEBUG_MODE")
 endif()
 
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
