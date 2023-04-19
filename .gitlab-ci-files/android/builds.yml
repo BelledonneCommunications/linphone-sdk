@@ -46,6 +46,7 @@
       - linphone/tester/*
 
       #Needed of uploads
+      - build/build.gradle
       - build/upload.gradle
       - build/gradle.properties
       - build/LinphoneSdkManifest.xml
