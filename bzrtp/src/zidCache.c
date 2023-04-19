@@ -26,10 +26,6 @@
 
 #ifdef ZIDCACHE_ENABLED
 #include "sqlite3.h"
-#ifdef HAVE_LIBXML2
-#include <libxml/tree.h>
-#include <libxml/parser.h>
-#endif /* HAVE_LIBXML2 */
 
 #ifdef _WIN32
 #include <malloc.h>
@@ -97,7 +93,6 @@ static int bzrtp_cache_update_000001_to_000002(sqlite3 *db) {
  *
  * All values except zuid in the following tables are blob, actual integers are split and stored in big endian by callers
  * zrtp : zuid(as foreign key) | rs1 | rs2 | aux secret | pbx secret | pvs flag
- * lime : zuid(as foreign key) | sndKey | rcvKey | sndSId | rcvSId | snd Index | rcv Index | valid
  */
 static int bzrtp_initCache_impl(void *dbPointer) {
 	char* errmsg=NULL;
@@ -209,20 +204,6 @@ static int bzrtp_initCache_impl(void *dbPointer) {
 		return BZRTP_ZIDCACHE_UNABLETOUPDATE;
 	}
 
-	/* check/create the lime table */
-	ret=sqlite3_exec(db,"CREATE TABLE IF NOT EXISTS lime ("
-							"zuid		INTEGER NOT NULL DEFAULT 0 UNIQUE,"
-							"sndKey		BLOB DEFAULT NULL,"
-							"rcvKey		BLOB DEFAULT NULL,"
-							"sndSId		BLOB DEFAULT NULL,"
-							"rcvSId		BLOB DEFAULT NULL,"
-							"sndIndex	BLOB DEFAULT NULL,"
-							"rcvIndex	BLOB DEFAULT NULL,"
-							"valid		BLOB DEFAULT NULL,"
-							"FOREIGN KEY(zuid) REFERENCES ziduri(zuid) ON UPDATE CASCADE ON DELETE CASCADE"
-
-						");",
-			0,0,&errmsg);
 	if(ret != SQLITE_OK) {
 		sqlite3_free(errmsg);
 		return BZRTP_ZIDCACHE_UNABLETOUPDATE;
@@ -958,194 +939,6 @@ int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *tableName, cons
 	else {
 		return bzrtp_cache_read_impl(dbPointer, zuid, tableName, columns, values, lengths, columnsCount);
 	}
-}
-
-/**
- * @brief Perform migration from xml version to sqlite3 version of cache
- *	Warning: new version of cache associate a ZID to each local URI, the old one did not
- *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
- * @param[in]		cacheXml	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in/out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using bzrtp_cache_init function
- * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
- *
- * @return	0 on success, BZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, BZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
- */
-int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI) {
-#ifdef HAVE_LIBXML2
-	if (cacheXmlPtr) {
-		xmlDocPtr cacheXml = (xmlDocPtr)cacheXmlPtr;
-		xmlNodePtr cur;
-		xmlChar *selfZidHex=NULL;
-		uint8_t selfZID[12];
-		sqlite3 *db = (sqlite3 *)cacheSqlite;
-		sqlite3_stmt *sqlStmt = NULL;
-		int ret;
-
-		/* parse the cache to get the selfZID and insert it in sqlcache */
-		cur = xmlDocGetRootElement(cacheXml);
-		/* if we found a root element, parse its children node */
-		if (cur!=NULL)
-		{
-			cur = cur->xmlChildrenNode;
-		}
-		selfZidHex = NULL;
-		while (cur!=NULL) {
-			if ((!xmlStrcmp(cur->name, (const xmlChar *)"selfZID"))){ /* self ZID found, extract it */
-				selfZidHex = xmlNodeListGetString(cacheXml, cur->xmlChildrenNode, 1);
-				bctbx_str_to_uint8(selfZID, selfZidHex, 24);
-				break;
-			}
-			cur = cur->next;
-		}
-		/* did we found a self ZID? */
-		if (selfZidHex == NULL) {
-			bctbx_warning("ZRTP/LIME cache migration: Failed to parse selfZID");
-			return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-		}
-
-		/* insert the selfZID in cache, associate it to default local sip:uri in case we have more than one */
-		bctbx_message("ZRTP/LIME cache migration: found selfZID %.24s link it to default URI %s in SQL cache", selfZidHex, selfURI);
-		xmlFree(selfZidHex);
-
-		ret = sqlite3_prepare_v2(db, "INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);", -1, &sqlStmt, NULL);
-		if (ret != SQLITE_OK) {
-			bctbx_warning("ZRTP/LIME cache migration: Failed to insert selfZID");
-			return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-		}
-		sqlite3_bind_blob(sqlStmt, 1, selfZID, 12, SQLITE_TRANSIENT);
-		sqlite3_bind_text(sqlStmt, 2, selfURI,-1,SQLITE_TRANSIENT);
-		sqlite3_bind_text(sqlStmt, 3, "self",-1,SQLITE_TRANSIENT);
-
-		ret = sqlite3_step(sqlStmt);
-		if (ret!=SQLITE_DONE) {
-			bctbx_warning("ZRTP/LIME cache migration: Failed to insert selfZID");
-			return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-		}
-		sqlite3_finalize(sqlStmt);
-
-		/* loop over all the peer node in the xml cache and get from them : uri(can be more than one), ZID, rs1, rs2, pvs, sndKey, rcvKey, sndSId, rcvSId, sndIndex, rcvIndex, valid */
-		/* some of these may be missing(pvs, valid, rs2) but we'll consider them NULL */
-		/* aux and pbx secrets were not used, so don't even bother looking for them */
-		cur = xmlDocGetRootElement(cacheXml)->xmlChildrenNode;
-
-		while (cur!=NULL) { /* loop on all peer nodes */
-			if ((!xmlStrcmp(cur->name, (const xmlChar *)"peer"))) { /* found a peer node, check if there is a sipURI node in it (other nodes are just ignored) */
-				int i;
-				xmlNodePtr peerNodeChildren = cur->xmlChildrenNode;
-				xmlChar *nodeContent = NULL;
-				xmlChar *peerZIDString = NULL;
-				uint8_t peerZID[12];
-				uint8_t peerZIDFound=0;
-				xmlChar *peerUri[128]; /* array to contain all the peer uris found in one node */
-				/* hopefully they won't be more than 128(it would mean some peer has more than 128 accounts and we called all of them...) */
-				int peerUriIndex=0; /* index of previous array */
-				const char *zrtpColNames[] = {"rs1", "rs2", "pvs"};
-				uint8_t *zrtpColValues[] = {NULL, NULL, NULL};
-				size_t zrtpColExpectedLengths[] = {32,32,1};
-				size_t zrtpColLengths[] = {0,0,0};
-
-				const char *limeColNames[] = {"sndKey", "rcvKey", "sndSId", "rcvSId", "sndIndex", "rcvIndex", "valid"};
-				uint8_t *limeColValues[] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-				size_t limeColExpectedLengths[] = {32,32,32,32,4,4,8};
-				size_t limeColLengths[] = {0,0,0,0,0,0,0};
-
-				/* check all the children nodes to retrieve all information we may get */
-				while (peerNodeChildren!=NULL && peerUriIndex<128) {
-					if (!xmlStrcmp(peerNodeChildren->name, (const xmlChar *)"uri")) { /* found a peer an URI node, get the content */
-						peerUri[peerUriIndex] = xmlNodeListGetString(cacheXml, peerNodeChildren->xmlChildrenNode, 1);
-						peerUriIndex++;
-					}
-
-					if (!xmlStrcmp(peerNodeChildren->name, (const xmlChar *)"ZID")) {
-						peerZIDString = xmlNodeListGetString(cacheXml, peerNodeChildren->xmlChildrenNode, 1);
-						bctbx_str_to_uint8(peerZID, peerZIDString, 24);
-
-						peerZIDFound=1;
-					}
-
-					for (i=0; i<3; i++) {
-						if (!xmlStrcmp(peerNodeChildren->name, (const xmlChar *)zrtpColNames[i])) {
-							nodeContent = xmlNodeListGetString(cacheXml, peerNodeChildren->xmlChildrenNode, 1);
-							zrtpColValues[i] = (uint8_t *)bctbx_malloc(zrtpColExpectedLengths[i]);
-							bctbx_str_to_uint8(zrtpColValues[i], nodeContent, 2*zrtpColExpectedLengths[i]);
-							zrtpColLengths[i]=zrtpColExpectedLengths[i];
-						}
-					}
-
-					for (i=0; i<7; i++) {
-						if (!xmlStrcmp(peerNodeChildren->name, (const xmlChar *)limeColNames[i])) {
-							nodeContent = xmlNodeListGetString(cacheXml, peerNodeChildren->xmlChildrenNode, 1);
-							limeColValues[i] = (uint8_t *)bctbx_malloc(limeColExpectedLengths[i]);
-							bctbx_str_to_uint8(limeColValues[i], nodeContent, 2*limeColExpectedLengths[i]);
-							limeColLengths[i]=limeColExpectedLengths[i];
-						}
-					}
-
-					peerNodeChildren = peerNodeChildren->next;
-					xmlFree(nodeContent);
-					nodeContent=NULL;
-				}
-
-				if (peerUriIndex>0 && peerZIDFound==1) { /* we found at least an uri in this peer node, extract the keys all other informations */
-					/* retrieve all the informations */
-
-					/* loop over all the uri founds */
-					for (i=0; i<peerUriIndex; i++) {
-						char *stmt = NULL;
-						int zuid;
-						/* create the entry in the ziduri table (it will give us the zuid to be used to insert infos in lime and zrtp tables) */
-						/* we could use directly the bzrtp_cache_getZuid function, but avoid useless query by directly inserting the data */
-						stmt = sqlite3_mprintf("INSERT INTO ziduri (zid,selfuri,peeruri) VALUES(?,?,?);");
-						ret = sqlite3_prepare_v2(db, stmt, -1, &sqlStmt, NULL);
-						if (ret != SQLITE_OK) {
-							bctbx_warning("ZRTP/LIME cache migration: Failed to insert peer ZID %s", peerUri[i]);
-							return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-						}
-						sqlite3_free(stmt);
-
-						sqlite3_bind_blob(sqlStmt, 1, peerZID, 12, SQLITE_TRANSIENT);
-						sqlite3_bind_text(sqlStmt, 2, selfURI, -1, SQLITE_TRANSIENT);
-						sqlite3_bind_text(sqlStmt, 3, (const char *)(peerUri[i]), -1, SQLITE_TRANSIENT);
-
-						ret = sqlite3_step(sqlStmt);
-						if (ret!=SQLITE_DONE) {
-							bctbx_warning("ZRTP/LIME cache migration: Failed to insert peer ZID %s", peerUri[i]);
-							return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-						}
-						sqlite3_finalize(sqlStmt);
-						/* get the zuid created */
-						zuid = (int)sqlite3_last_insert_rowid(db);
-
-						bctbx_message("ZRTP/LIME cache migration: Inserted self %s peer %s ZID %s sucessfully with zuid %d\n", selfURI, peerUri[i], peerZIDString, zuid);
-						xmlFree(peerUri[i]);
-						peerUri[i]=NULL;
-
-						/* now insert data in the zrtp and lime table, keep going even if it fails */
-						if ((ret=bzrtp_cache_write_impl(db, zuid, "zrtp", zrtpColNames, zrtpColValues, zrtpColLengths, 3)) != 0) {
-							bctbx_error("ZRTP/LIME cache migration: could not insert data in zrtp table, return value %x", ret);
-						}
-						if ((ret=bzrtp_cache_write_impl(db, zuid, "lime", limeColNames, limeColValues, limeColLengths, 7)) != 0) {
-							bctbx_error("ZRTP/LIME cache migration: could not insert data in lime table, return value %x", ret);
-						}
-					}
-				}
-				bctbx_free(zrtpColValues[0]);
-				bctbx_free(zrtpColValues[1]);
-				bctbx_free(zrtpColValues[2]);
-				for (i=0; i<7; i++) {
-					bctbx_free(limeColValues[i]);
-				}
-				xmlFree(peerZIDString);
-			}
-			cur = cur->next;
-		}
-		return 0;
-	}
-	return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-#else /* HAVE_LIBXML2 */
-	bctbx_error("ZRTP/LIME cache migration: could not perform migration as LIBMXL2 is not linked to bzrtp.");
-	return BZRTP_ERROR_CACHEMIGRATIONFAILED;
-#endif /* HAVE_LIBXML2 */
 }
 
 /*

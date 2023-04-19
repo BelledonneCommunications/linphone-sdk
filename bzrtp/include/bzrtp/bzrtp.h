@@ -631,18 +631,6 @@ BZRTP_EXPORT BZRTP_DEPRECATED int bzrtp_cache_read(void *dbPointer, int zuid, co
  */
 BZRTP_EXPORT int bzrtp_cache_read_lock(void *dbPointer, int zuid, const char *tableName, const char **columns, uint8_t **values, size_t *lengths, uint8_t columnsCount, bctbx_mutex_t *zidCacheMutex);
 
-/**
- * @brief Perform migration from xml version to sqlite3 version of cache
- *	Warning: new version of cache associate a ZID to each local URI, the old one did not
- *		the migration function will associate any data in the cache to the sip URI given in parameter which shall be the default URI
- * @param[in]		cacheXmlPtr	a pointer to an xmlDocPtr structure containing the old cache to be migrated
- * @param[in,out]	cacheSqlite	a pointer to an sqlite3 structure containing a cache initialised using bzrtp_cache_init function
- * @param[in]		selfURI		default sip URI for this end point, NULL terminated char
- *
- * @return	0 on success, BZRTP_ERROR_CACHEDISABLED when bzrtp was not compiled with cache enabled, BZRTP_ERROR_CACHEMIGRATIONFAILED on error during migration
- */
-BZRTP_EXPORT int bzrtp_cache_migration(void *cacheXmlPtr, void *cacheSqlite, const char *selfURI);
-
 /*
  * @brief  Allow client to compute an exported according to RFC section 4.5.2
  *		Check the context is ready(we already have a master exported key and KDF context)

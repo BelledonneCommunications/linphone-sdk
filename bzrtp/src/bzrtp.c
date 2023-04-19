@@ -653,26 +653,11 @@ int bzrtp_exportKey(bzrtpContext_t *zrtpContext, char *label, size_t labelLength
 	/* check we have s0 or exportedKey and KDFContext in channel[0] - export keys is available only on channel 0 completion - see RFC 4.5.2 */
 	bzrtpChannelContext_t *zrtpChannelContext = zrtpContext->channelContext[0];
 
-	if (zrtpContext->peerBzrtpVersion == 0x010000) { /* keep compatibility with older implementation of bzrtp */
-#ifdef SUPPORT_EXPORTEDKEY_V010000
-		/* before version 1.1.0 (turned into an int MMmmpp -> 010100) exported keys wrongly derives from given label and s0 direclty instead of
-		deriving one Exported Key from S0 and then as many as needed from the exported key as specified in the RFC section 4.5.2 */
-		if (zrtpChannelContext->s0 == NULL || zrtpChannelContext->KDFContext == NULL) {
-			return BZRTP_ERROR_INVALIDCONTEXT;
-		}
-
-		/* We derive a maximum of hashLength bytes */
-		if (*derivedKeyLength > zrtpChannelContext->hashLength) {
-			*derivedKeyLength = zrtpChannelContext->hashLength;
-		}
-
-		bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)label, labelLength, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, (uint_t)(*derivedKeyLength), zrtpChannelContext->hmacFunction, derivedKey);
-#else /* SUPPORT_EXPORTEDKEY_V010000 */
+	if (zrtpContext->peerBzrtpVersion == 0x010000) { /* older implementation of bzrtp had a bug in key export, retrocompatibility is not supported anymore */
 		/* We do not support anymore backward compatibility, just do nothing but send an error message*/
 		if (zrtpContext->zrtpCallbacks.bzrtp_statusMessage!=NULL && zrtpContext->zrtpCallbacks.bzrtp_messageLevel>=BZRTP_MESSAGE_ERROR) { /* use error level as we explicitely compile with no support for older version */
 			zrtpContext->zrtpCallbacks.bzrtp_statusMessage(zrtpChannelContext->clientData, BZRTP_MESSAGE_ERROR, BZRTP_MESSAGE_PEERVERSIONOBSOLETE, "obsolete bzrtp version are not supported anymore");
 		}
-#endif /* SUPPORT_EXPORTEDKEY_V010000 */
 	} else { /* peer either use version 1.1 of BZRTP or another library, just stick to the RFC to create the export key */
 		if ((zrtpChannelContext->s0 == NULL && zrtpContext->exportedKey) || zrtpChannelContext->KDFContext == NULL) {
 			return BZRTP_ERROR_INVALIDCONTEXT;

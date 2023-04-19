@@ -36,7 +36,6 @@ option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TESTS "Enable compilation of unit tests." NO)
 option(ENABLE_DOC "Enable API documentation generation." NO)
-option(ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY "Enable support for Limev1 with older version of bzrtp(before v1.06)" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 option(ENABLE_GOCLEAR "Enable the possibility to send and receive GoClear" YES)
 option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorithms" NO)
@@ -72,8 +71,6 @@ endif()
 
 if(ENABLE_ZIDCACHE)
 	find_package(Sqlite3 REQUIRED)
-	# Also check if we have libxml2, as we need it for migration purpose
-	find_package(XML2)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -105,17 +102,10 @@ endif()
 
 if(ENABLE_ZIDCACHE)
 	add_definitions("-DZIDCACHE_ENABLED")
-	if(XML2_FOUND)
-		add_definitions("-DHAVE_LIBXML2")
-	endif()
 endif()
 
 if(ENABLE_GOCLEAR)
         add_definitions("-DGOCLEAR_ENABLED")
-endif()
-
-if (ENABLE_EXPORTEDKEY_V1_0_RETROCOMPATIBILITY)
-	add_definitions("-DSUPPORT_EXPORTEDKEY_V010000")
 endif()
 
 if (postquantumcryptoengine_FOUND)
