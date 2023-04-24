@@ -105,7 +105,8 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	}
 	/*stop the video graph*/
 	if (mSt->source) ms_ticker_detach(mSt->ms.sessions.ticker, mSt->source);
-	if (mSt->ms.rtprecv) ms_ticker_detach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
+	if (mSt->ms.rtprecv && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly)
+		ms_ticker_detach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
 	mIsRemote = isRemote;
 	mInCutPointPrev.pin = 0;
 	if (isRemote && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly) {
@@ -149,7 +150,8 @@ void VideoEndpoint::redoVideoStreamGraph() {
 		ms_filter_link(mOutCutPointPrev.filter, mOutCutPointPrev.pin, mOutCutPoint.filter, mOutCutPoint.pin);
 
 	if (mSt->source) ms_ticker_attach(mSt->ms.sessions.ticker, mSt->source);
-	if (mSt->ms.rtprecv) ms_ticker_attach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
+	if (mSt->ms.rtprecv && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly)
+		ms_ticker_attach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
 }
 
 } // namespace ms2
