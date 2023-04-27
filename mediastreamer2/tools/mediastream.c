@@ -726,7 +726,7 @@ void mediastream_fec_enable(MediastreamDatas *args, MSFactory *factory) {
 	                                                 rtp_session_get_local_rtcp_port(args->session) + 10, args->mtu);
 	rtp_session_set_remote_addr(args->fec_session, args->ip, args->remoteport + 10);
 	args->fec_session->fec_stream = NULL;
-	FecParameters *params = fec_params_new(args->L, args->D, 200000);
+	FecParams *params = fec_params_new(args->L, args->D, 200000);
 	args->fec_stream = fec_stream_new(args->session, args->fec_session, params);
 	args->session->fec_stream = args->fec_stream;
 	if (args->netsim.enabled) {
@@ -737,7 +737,7 @@ void mediastream_fec_enable(MediastreamDatas *args, MSFactory *factory) {
 
 void mediastream_fec_enable_bundle(MediastreamDatas *args, BCTBX_UNUSED(MSFactory *factory)) {
 
-	FecParameters *fec_params;
+	FecParams *fec_params;
 
 	args->fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_payload_type(args->fec_session, 10);

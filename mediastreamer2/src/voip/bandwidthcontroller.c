@@ -169,6 +169,7 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		resync_jitter_buffers(obj);
 		video_bandwidth_estimator_params.enabled = TRUE;
 	}
+
 	obj->currently_requested_stream_bandwidth = controlled_stream_bandwidth_requested;
 	ms_bandwidth_controller_send_tmmbr(obj, ms);
 	obj->download_video_bandwidth_available_estimated = 0;

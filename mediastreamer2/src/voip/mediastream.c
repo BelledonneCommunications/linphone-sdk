@@ -485,7 +485,6 @@ void media_stream_iterate(MediaStream *stream) {
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
 	}
-
 	if (stream->evq) {
 		OrtpEvent *ev = NULL;
 
@@ -904,9 +903,15 @@ static int update_bitrate_limit_from_tmmbr(MediaStream *obj, int br_limit) {
 	rtp_session_set_target_upload_bandwidth(obj->sessions.rtp_session, br_limit);
 	return br_limit;
 }
+// static void mediastream_update_fec_params(MediaStream *ms, uint64_t br_limit, MSVideoConfiguration *vconf) {
 
+// 	FecParams *fp = ms->fec_parameters;
+// 	float fec_bandwidth_ratio = ((float)br_limit - (float)vconf->required_bitrate) / (float)br_limit;
+// 	fec_params_update_from_ratio(fp, fec_bandwidth_ratio);
+// }
 void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr) {
 	int br_int;
+
 	ms_message("MediaStream[%p]: received a TMMBR for bitrate %llu kbits/s", ms,
 	           (unsigned long long)(tmmbr_mxtbr / 1000));
 
@@ -926,54 +931,22 @@ void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr) {
 	if (br_int == -1) return;
 
 #ifdef VIDEO_ENABLED
-	if (ms->type == MSVideo) {
-		const char *preset = video_stream_get_video_preset((VideoStream *)ms);
+	if (ms->type != MSVideo) return;
 
-		if (preset && strcmp(preset, "custom") == 0) {
-			MSVideoConfiguration *vconf_list = NULL;
-			MSVideoConfiguration current_vconf, vconf;
-			int new_bitrate_limit;
-
-			ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, &vconf_list);
-
-			if (vconf_list != NULL) {
-				ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
-
-				vconf = ms_video_find_best_configuration_for_size_and_bitrate(
-				    vconf_list, current_vconf.vsize, ms_factory_get_cpu_count(ms->factory), br_int);
-
-				new_bitrate_limit = br_int < vconf.bitrate_limit ? br_int : vconf.bitrate_limit;
-				ms_message("Changing video encoder's output bitrate to %i", new_bitrate_limit);
-				current_vconf.required_bitrate = new_bitrate_limit;
-
-				if (ms_filter_call_method(ms->encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &current_vconf) != 0) {
-					ms_warning("Failed to apply fps and bitrate constraint to %s", ms->encoder->desc->name);
-				}
-			}
-
-			return;
-		}
-
-		if (!ms->video_quality_controller) {
-			ms->video_quality_controller = ms_video_quality_controller_new((VideoStream *)ms);
-		}
-
-		ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, br_int);
+	if (!ms->video_quality_controller) {
+		ms->video_quality_controller = ms_video_quality_controller_new((VideoStream *)ms);
 	}
+	ms_video_quality_controller_update_from_tmmbr(ms->video_quality_controller, br_int);
+
 #endif
 }
 
 void media_stream_tmmbr_received(const OrtpEventData *evd, void *user_pointer) {
+
+	if (rtcp_RTPFB_get_type(evd->packet) != RTCP_RTPFB_TMMBR) return;
 	MediaStream *ms = (MediaStream *)user_pointer;
-	switch (rtcp_RTPFB_get_type(evd->packet)) {
-		case RTCP_RTPFB_TMMBR: {
-			uint64_t tmmbr_mxtbr = rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
-			media_stream_process_tmmbr(ms, tmmbr_mxtbr);
-			break;
-		}
-		default:
-			break;
-	}
+	uint64_t tmmbr_mxtbr = rtcp_RTPFB_tmmbr_get_max_bitrate(evd->packet);
+	media_stream_process_tmmbr(ms, tmmbr_mxtbr);
 }
 
 void media_stream_print_summary(MediaStream *ms) {
@@ -1002,15 +975,15 @@ uint32_t media_stream_get_recv_ssrc(const MediaStream *stream) {
 	return rtp_session_get_recv_ssrc(stream->sessions.rtp_session);
 }
 
-FecParameters *media_stream_extract_fec_params(PayloadType *fec_payload_type) {
+FecParams *media_stream_extract_fec_params(PayloadType *fec_payload_type) {
 
 	size_t max_size = 10;
-	char *buffer = ortp_malloc0(max_size * sizeof(char));
+	char buffer[10];
 	int rw = 0;
 	int L = 10;
 	int D = 0;
 
-	FecParameters *params = NULL;
+	FecParams *params = NULL;
 	if (fmtp_get_value(fec_payload_type->recv_fmtp, "repair-window", buffer, max_size)) {
 		rw = atoi(buffer);
 		ms_message("[flexfec] repair window set to %d according to fmtp", rw);
@@ -1030,36 +1003,38 @@ FecParameters *media_stream_extract_fec_params(PayloadType *fec_payload_type) {
 	} else {
 		ms_error("[flexfec] Impossible to read value of parameter D. A default value of 0 is given.");
 	}
-	if (buffer) ortp_free(buffer);
 	params = fec_params_new(L, D, rw);
 	return params;
 }
+void media_stream_create_fec_session(MediaStream *ms, RtpProfile *profile) {
+	if (ms->sessions.fec_session) return;
+	if (!ms->sessions.rtp_session->bundle) return;
+	PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
+	int payload_type_number = 0;
+	if (!fec_payload_type) return;
+
+	RtpSession *fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
+	rtp_session_set_scheduling_mode(fec_session, 0);
+	rtp_session_set_blocking_mode(fec_session, 0);
+	rtp_session_enable_rtcp(fec_session, TRUE);
+	rtp_session_set_rtcp_report_interval(fec_session, 2500);
+	rtp_session_enable_avpf_feature(fec_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+	rtp_session_set_profile(fec_session, profile);
+	payload_type_number = rtp_profile_get_payload_number_from_mime(profile, "flexfec");
+	rtp_session_set_payload_type(fec_session, payload_type_number);
+	fec_session->fec_stream = NULL;
+	rtp_bundle_add_fec_session(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session, fec_session);
+	ms->sessions.fec_session = fec_session;
+}
+
 void media_stream_handle_fec(MediaStream *ms, RtpProfile *profile) {
 
 	PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
-	int payload_type_number = 0;
-
-	if (!fec_payload_type) {
-		return;
-	}
-	RtpBundle *bundle = ms->sessions.rtp_session->bundle;
+	if (!fec_payload_type) return;
+	media_stream_create_fec_session(ms, profile);
 	rtp_session_set_jitter_compensation(ms->sessions.rtp_session, 200);
-	if (!ms->sessions.fec_session) {
-		ms->sessions.fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
-	}
-
-	rtp_session_set_scheduling_mode(ms->sessions.fec_session, 0);
-	rtp_session_set_blocking_mode(ms->sessions.fec_session, 0);
-	rtp_session_enable_avpf_feature(ms->sessions.fec_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
-	rtp_session_set_profile(ms->sessions.fec_session, profile);
-	payload_type_number = rtp_profile_get_payload_number_from_mime(profile, "flexfec");
-	rtp_session_set_payload_type(ms->sessions.fec_session, payload_type_number);
-	ms->sessions.fec_session->fec_stream = NULL;
-	rtp_bundle_add_fec_session(bundle, ms->sessions.rtp_session, ms->sessions.fec_session);
-
-	FecParameters *fec_params = media_stream_extract_fec_params(fec_payload_type);
-
-	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, fec_params);
+	ms->fec_parameters = media_stream_extract_fec_params(fec_payload_type);
+	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
 	fec_stream_init(ms->fec_stream);
 }
 

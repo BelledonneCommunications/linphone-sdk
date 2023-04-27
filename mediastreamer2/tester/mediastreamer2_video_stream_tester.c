@@ -207,7 +207,7 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_sent_SLI;
 	int number_of_sent_RPSI;
 	int number_of_sent_NACK;
-
+	int number_of_TMMBR;
 	int number_of_decoder_decoding_error;
 	int number_of_decoder_first_image_decoded;
 	int number_of_decoder_send_request_pli;
@@ -222,6 +222,7 @@ typedef struct _video_stream_tester_stats_t {
 
 	int number_of_framemarking_start;
 	int number_of_framemarking_end;
+
 } video_stream_tester_stats_t;
 
 typedef struct _video_stream_tester_t {
@@ -234,8 +235,33 @@ typedef struct _video_stream_tester_t {
 	MSWebCam *cam;
 	int payload_type;
 	RtpBundle *bundle;
+	MSBandwidthController *bandwidth_controller;
 	bool_t fallback_to_dummy_codec;
 } video_stream_tester_t;
+
+typedef struct _video_stream_tester_params_t {
+	bool_t avpf;
+	bool_t one_way;
+	OrtpNetworkSimulatorParams *network_params;
+	int payload_type;
+	bool_t nack;
+	bool_t fec;
+	bool_t bandwidth_controller;
+
+} video_stream_tester_params_t;
+static video_stream_tester_params_t set_video_stream_tester_params(video_stream_tester_params_t in) {
+	video_stream_tester_params_t out = {0};
+	out.avpf = in.avpf ? in.avpf : FALSE;
+	out.one_way = in.one_way ? in.one_way : FALSE;
+	out.network_params = in.network_params ? in.network_params : NULL;
+	out.payload_type = in.payload_type ? in.payload_type : VP8_PAYLOAD_TYPE;
+	out.nack = in.nack ? in.nack : FALSE;
+	out.fec = in.fec ? in.fec : FALSE;
+	out.bandwidth_controller = in.bandwidth_controller ? in.bandwidth_controller : FALSE;
+	return out;
+}
+
+#define VS_TESTER_SET_PARAMS(...) set_video_stream_tester_params((video_stream_tester_params_t){__VA_ARGS__})
 
 void video_stream_tester_set_local_ip(video_stream_tester_t *obj, const char *ip) {
 	char *new_ip = ip ? ms_strdup(ip) : NULL;
@@ -250,6 +276,7 @@ video_stream_tester_t *video_stream_tester_new(void) {
 	    ms_web_cam_manager_get_cam(ms_factory_get_web_cam_manager(_factory), "Mire: Mire (synthetic moving picture)");
 	vst->local_rtp = -1;  /*random*/
 	vst->local_rtcp = -1; /*random*/
+	vst->bandwidth_controller = ms_bandwidth_controller_new();
 #if TARGET_OS_OSX
 	vst->vconf = ms_new0(MSVideoConfiguration, 1);
 	vst->vconf->vsize = MS_VIDEO_SIZE_VGA;
@@ -264,13 +291,14 @@ video_stream_tester_t *video_stream_tester_create(const char *local_ip, int loca
 	if (local_ip) video_stream_tester_set_local_ip(vst, local_ip);
 	vst->local_rtp = local_rtp;
 	vst->local_rtcp = local_rtcp;
+
 	return vst;
 }
 
 void video_stream_tester_destroy(video_stream_tester_t *obj) {
 	if (obj->vconf) ms_free(obj->vconf);
 	if (obj->local_ip) ms_free(obj->local_ip);
-	if (obj->bundle) rtp_bundle_delete(obj->bundle);
+	if (obj->bandwidth_controller) ms_bandwidth_controller_destroy(obj->bandwidth_controller);
 	ms_free(obj);
 }
 
@@ -371,6 +399,9 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 								st->number_of_sent_NACK++;
 								ms_message("event_queue_cb: [%p] sending NACK %d", st, st->number_of_sent_NACK);
 								break;
+							case RTCP_RTPFB_TMMBR:
+								st->number_of_TMMBR++;
+								break;
 							default:
 								break;
 						}
@@ -415,41 +446,30 @@ static void destroy_video_stream(video_stream_tester_t *vst) {
 	video_stream_stop(vst->vs);
 	ortp_ev_queue_destroy(vst->stats.q);
 }
-static void video_stream_tester_bundle_fec(video_stream_tester_t *vst, int L, int D, int pt) {
+static void video_stream_tester_bundle_fec(video_stream_tester_t *vst, int L, int D) {
 
-	FecParameters *fec_params;
-	rtp_session_set_jitter_compensation(vst->vs->ms.sessions.rtp_session, 200);
-	vst->vs->ms.sessions.fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
-	rtp_session_set_payload_type(vst->vs->ms.sessions.fec_session, pt);
-	rtp_session_set_scheduling_mode(vst->vs->ms.sessions.fec_session, 0);
-	rtp_session_set_blocking_mode(vst->vs->ms.sessions.fec_session, 0);
-	fec_params = fec_params_new(L, D, 200000);
+	MediaStream *ms = &vst->vs->ms;
 
 	vst->bundle = rtp_bundle_new();
-	vst->vs->fec_stream =
-	    fec_stream_new(vst->vs->ms.sessions.rtp_session, vst->vs->ms.sessions.fec_session, fec_params);
-	rtp_bundle_add_session(vst->bundle, "video_fec", vst->vs->ms.sessions.rtp_session);
+	rtp_bundle_add_session(vst->bundle, "video_fec", ms->sessions.rtp_session);
 	rtp_bundle_set_primary_session(vst->bundle, "video_fec");
-	fec_stream_init(vst->vs->fec_stream);
+	media_stream_create_fec_session(ms, &rtp_profile);
+	ms->fec_parameters = fec_params_new(L, D, 200000);
+	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
+	fec_stream_init(ms->fec_stream);
+	rtp_session_set_jitter_compensation(ms->sessions.rtp_session, 200);
 }
-
-static void init_video_streams(video_stream_tester_t *vst1,
-                               video_stream_tester_t *vst2,
-                               bool_t avpf,
-                               bool_t one_way,
-                               OrtpNetworkSimulatorParams *params,
-                               int payload_type,
-                               bool_t nack,
-                               bool_t fec) {
+static void
+init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, video_stream_tester_params_t params) {
 	PayloadType *pt;
 
-	create_video_stream(vst1, payload_type);
-	create_video_stream(vst2, payload_type);
+	create_video_stream(vst1, params.payload_type);
+	create_video_stream(vst2, params.payload_type);
 
 	/* Enable/disable avpf. */
-	pt = rtp_profile_get_payload(&rtp_profile, payload_type);
+	pt = rtp_profile_get_payload(&rtp_profile, params.payload_type);
 	if (BC_ASSERT_PTR_NOT_NULL(pt)) {
-		if (avpf == TRUE) {
+		if (params.avpf == TRUE) {
 			payload_type_set_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 		} else {
 			payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
@@ -457,31 +477,37 @@ static void init_video_streams(video_stream_tester_t *vst1,
 	}
 
 	/* Configure network simulator. */
-	if ((params != NULL) && (params->enabled == TRUE)) {
-		rtp_session_enable_network_simulation(vst1->vs->ms.sessions.rtp_session, params);
-		rtp_session_enable_network_simulation(vst2->vs->ms.sessions.rtp_session, params);
+	if ((params.network_params != NULL) && (params.network_params->enabled == TRUE)) {
+		rtp_session_enable_network_simulation(vst1->vs->ms.sessions.rtp_session, params.network_params);
+		rtp_session_enable_network_simulation(vst2->vs->ms.sessions.rtp_session, params.network_params);
 	}
 
-	if (one_way == TRUE) {
+	if (params.one_way == TRUE) {
 		media_stream_set_direction(&vst1->vs->ms, MediaStreamRecvOnly);
 	}
 
-	if (nack == TRUE) {
+	if (params.nack == TRUE) {
 		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_GENERIC_NACK, TRUE);
 		rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_IMMEDIATE_NACK, TRUE);
 		video_stream_enable_retransmission_on_nack(vst1->vs, TRUE);
 		video_stream_enable_retransmission_on_nack(vst2->vs, TRUE);
 	}
-	if (fec == TRUE) {
-		video_stream_tester_bundle_fec(vst1, 5, 5, 10);
-		video_stream_tester_bundle_fec(vst2, 5, 5, 10);
+	if (params.fec == TRUE) {
+		video_stream_tester_bundle_fec(vst1, 5, 5);
+		video_stream_tester_bundle_fec(vst2, 5, 5);
+	}
+	if (params.bandwidth_controller == TRUE) {
+		// rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst1->vs), ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		// rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_TMMBR, TRUE);
+		ms_bandwidth_controller_add_stream(vst2->bandwidth_controller, &vst2->vs->ms);
+		ms_bandwidth_controller_add_stream(vst1->bandwidth_controller, &vst1->vs->ms);
 	}
 
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip,
-	                                   vst2->local_rtcp, payload_type, 50, vst1->cam),
+	                                   vst2->local_rtcp, params.payload_type, 50, vst1->cam),
 	                0, int, "%d");
 	BC_ASSERT_EQUAL(video_stream_start(vst2->vs, &rtp_profile, vst1->local_ip, vst1->local_rtp, vst1->local_ip,
-	                                   vst1->local_rtcp, payload_type, 50, vst2->cam),
+	                                   vst1->local_rtcp, params.payload_type, 50, vst2->cam),
 	                0, int, "%d");
 }
 
@@ -535,9 +561,7 @@ static void change_codec(video_stream_tester_t *vst1, video_stream_tester_t *vst
 static void basic_video_stream_base(int payload_type) {
 	video_stream_tester_t *marielle = video_stream_tester_new();
 	video_stream_tester_t *margaux = video_stream_tester_new();
-
-	init_video_streams(marielle, margaux, FALSE, FALSE, NULL, payload_type, FALSE, FALSE);
-
+	init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, FALSE, NULL, payload_type));
 	BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_SR,
 	                                                2, 15000, event_queue_cb, &marielle->stats, event_queue_cb,
 	                                                &margaux->stats));
@@ -581,7 +605,8 @@ static void basic_video_stream_dummy(void) {
 		// initialise a stream directly asking for the dummy codec, it shall pass
 		video_stream_tester_t *marielle = video_stream_tester_new();
 		video_stream_tester_t *margaux = video_stream_tester_new();
-		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, DUMMY_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux,
+		                   VS_TESTER_SET_PARAMS(FALSE, FALSE, NULL, DUMMY_PAYLOAD_TYPE, FALSE, FALSE));
 		ms_sleep(2);
 		uninit_video_streams(marielle, margaux);
 		video_stream_tester_destroy(margaux);
@@ -591,7 +616,8 @@ static void basic_video_stream_dummy(void) {
 		margaux = video_stream_tester_new();
 		marielle->fallback_to_dummy_codec = TRUE;
 		margaux->fallback_to_dummy_codec = TRUE;
-		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, UNSUPPORTED_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux,
+		                   VS_TESTER_SET_PARAMS(FALSE, FALSE, NULL, UNSUPPORTED_PAYLOAD_TYPE, FALSE, FALSE));
 		ms_sleep(2);
 		uninit_video_streams(marielle, margaux);
 		video_stream_tester_destroy(marielle);
@@ -625,8 +651,7 @@ static void basic_one_way_video_stream(void) {
 	bool_t supported = ms_factory_codec_supported(_factory, "vp8");
 
 	if (supported) {
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, VP8_PAYLOAD_TYPE, FALSE, FALSE);
-
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, TRUE));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &marielle->stats.number_of_RR, 2, 15000, event_queue_cb,
 		                                                &marielle->stats, event_queue_cb, &margaux->stats));
@@ -648,7 +673,7 @@ static void codec_change_for_video_stream(void) {
 	bool_t mp4v_supported = ms_factory_codec_supported(_factory, "mp4v-es");
 
 	if (vp8_supported) {
-		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, VP8_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE));
 		BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms,
 		                              &marielle->stats.number_of_decoder_first_image_decoded, 1, 2000));
 		BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms,
@@ -692,7 +717,7 @@ static void multicast_video_stream(void) {
 
 	if (supported) {
 		int dummy = 0;
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, VP8_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, TRUE));
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &margaux->stats.number_of_SR, 2, 15000, event_queue_cb,
@@ -737,7 +762,7 @@ static void avpf_video_stream_base(int payload_type) {
 		params.enabled = TRUE;
 		params.loss_rate = 5.;
 		params.rtp_only = TRUE;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params, payload_type));
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &marielle->stats.number_of_SR, 2, 15000, event_queue_cb,
@@ -841,7 +866,7 @@ static void avpf_rpsi_count(void) {
 	margaux->cam = mediastreamer2_tester_get_mire_webcam(ms_factory_get_web_cam_manager(_factory));
 
 	if (supported) {
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, VP8_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(
 		    &marielle->vs->ms, &margaux->vs->ms, &marielle->stats.number_of_decoder_first_image_decoded, 1, 10000,
 		    event_queue_cb, &marielle->stats, event_queue_cb, &margaux->stats));
@@ -889,7 +914,7 @@ static void video_stream_first_iframe_lost_base(int payload_type) {
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, FALSE, &params, payload_type));
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
 		/* Use 10% packet lost to be sure to have decoding errors. */
@@ -963,7 +988,7 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 		/* Make sure first Iframe is lost. */
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params, payload_type));
 		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
 		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
@@ -1026,7 +1051,7 @@ static void avpf_high_loss_video_stream_base(float rate, int payload_type) {
 	if (supported) {
 		params.enabled = TRUE;
 		params.loss_rate = rate;
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params, payload_type));
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &marielle->stats.number_of_SR, 10, 15000, event_queue_cb,
 		                                                &marielle->stats, event_queue_cb, &margaux->stats));
@@ -1087,8 +1112,7 @@ static void video_configuration_stream_base(MSVideoConfiguration *asked,
 		margaux->vconf->bitrate_limit = asked->bitrate_limit;
 		margaux->vconf->vsize = asked->vsize;
 		margaux->vconf->fps = asked->fps;
-
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, payload_type, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, TRUE));
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &marielle->stats.number_of_RR, 4, 30000, event_queue_cb,
@@ -1201,8 +1225,7 @@ static void video_stream_elph264_camera(void) {
 		margaux->vconf->bitrate_limit = asked.bitrate_limit;
 		margaux->vconf->vsize = asked.vsize;
 		margaux->vconf->fps = asked.fps;
-
-		init_video_streams(marielle, margaux, FALSE, TRUE, NULL, H264_PAYLOAD_TYPE, FALSE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, TRUE, NULL, H264_PAYLOAD_TYPE));
 
 		BC_ASSERT_TRUE(wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms,
 		                                                &marielle->stats.number_of_RR, 4, 30000, event_queue_cb,
@@ -1237,8 +1260,7 @@ static void video_stream_normal_loss_with_retransmission_on_nack(void) {
 		int dummy = 0;
 		params.enabled = TRUE;
 		params.loss_rate = 3.;
-
-		init_video_streams(marielle, margaux, TRUE, FALSE, &params, VP8_PAYLOAD_TYPE, TRUE, FALSE);
+		init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(TRUE, FALSE, &params, VP8_PAYLOAD_TYPE, TRUE));
 
 		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &initial_jitter_params);
 
@@ -1326,27 +1348,28 @@ static void video_stream_with_itcsink(void) {
 	video_stream_tester_destroy(pauline);
 }
 
-static void media_stream_test_2_videostreams(int payload_type) {
+static void init_fec_videostreams(int payload_type) {
 	video_stream_tester_t *marielle = video_stream_tester_new();
 	video_stream_tester_t *margaux = video_stream_tester_new();
 	OrtpNetworkSimulatorParams params = {0};
 	params.enabled = TRUE;
-	params.loss_rate = 5.;
+	params.loss_rate = 7.;
+	params.mode = OrtpNetworkSimulatorOutbound;
 	fec_stats *stats = NULL;
+	rtp_profile_set_payload(&rtp_profile, FLEXFEC_PAYLOAD_TYPE, &payload_type_flexfec);
 
-	init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type, FALSE, TRUE);
-	stats = fec_stream_get_stats(marielle->vs->fec_stream);
-	BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &stats->packets_recovered, 10, 20000));
+	init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, FALSE, &params, payload_type, FALSE, TRUE));
+	stats = fec_stream_get_stats(marielle->vs->ms.fec_stream);
+	BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &stats->packets_recovered, 15, 20000));
 
 	uninit_video_streams(marielle, margaux);
-
+	rtp_profile_clear_payload(&rtp_profile, FLEXFEC_PAYLOAD_TYPE);
 	video_stream_tester_destroy(margaux);
 	video_stream_tester_destroy(marielle);
 }
-
 static void fec_video_stream_vp8(void) {
 	if (ms_factory_codec_supported(_factory, "vp8")) {
-		media_stream_test_2_videostreams(VP8_PAYLOAD_TYPE);
+		init_fec_videostreams(VP8_PAYLOAD_TYPE);
 	} else {
 		ms_error("VP8 codec is not supported!");
 	}
@@ -1354,7 +1377,7 @@ static void fec_video_stream_vp8(void) {
 
 static void fec_video_stream_h264(void) {
 	if (ms_factory_codec_supported(_factory, "h264")) {
-		media_stream_test_2_videostreams(H264_PAYLOAD_TYPE);
+		init_fec_videostreams(H264_PAYLOAD_TYPE);
 	} else {
 		ms_error("H264 codec is not supported!");
 	}

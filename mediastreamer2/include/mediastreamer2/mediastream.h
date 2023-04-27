@@ -159,6 +159,7 @@ struct _MediaStream {
 	MSBandwidthController *bandwidth_controller;
 	MSVideoQualityController *video_quality_controller;
 	MediaStreamDir direction;
+	FecParams *fec_parameters;
 	FecStream *fec_stream;
 	bool_t local_mix_conference; /**< true when this client stream is part of a conference perfoming mix locally -
 	                                conference server uses transfer session to forward the RTP packet not just the
@@ -389,9 +390,9 @@ MS2_PUBLIC OrtpEvDispatcher *media_stream_get_event_dispatcher(const MediaStream
  */
 MS2_PUBLIC uint32_t media_stream_get_recv_ssrc(const MediaStream *stream);
 
-MS2_PUBLIC FecParameters *media_stream_extract_fec_params(PayloadType *fec_payload_type);
+MS2_PUBLIC FecParams *media_stream_extract_fec_params(PayloadType *fec_payload_type);
 MS2_PUBLIC void media_stream_handle_fec(MediaStream *stream, RtpProfile *profile);
-
+MS2_PUBLIC void media_stream_create_fec_session(MediaStream *ms, RtpProfile *profile);
 /**
  * Retrieve the send ssrc of the stream
  *

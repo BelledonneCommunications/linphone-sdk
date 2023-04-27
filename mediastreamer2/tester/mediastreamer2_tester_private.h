@@ -86,6 +86,7 @@ extern unsigned char ms_tester_tone_detected;
 #define SILK_PAYLOAD_TYPE 124
 #define SILK16_PAYLOAD_TYPE 125
 #define BV16_PAYLOAD_TYPE 127
+#define FLEXFEC_PAYLOAD_TYPE 97
 
 MSFactory *ms_tester_factory_new(void);
 

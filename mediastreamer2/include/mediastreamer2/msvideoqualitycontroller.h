@@ -42,7 +42,6 @@ typedef struct _MSVideoQualityController MSVideoQualityController;
 
 MS2_PUBLIC MSVideoQualityController *ms_video_quality_controller_new(struct _VideoStream *stream);
 MS2_PUBLIC void ms_video_quality_controller_destroy(MSVideoQualityController *obj);
-
 MS2_PUBLIC void ms_video_quality_controller_process_timer(MSVideoQualityController *obj);
 MS2_PUBLIC void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj, int tmmbr);
 
