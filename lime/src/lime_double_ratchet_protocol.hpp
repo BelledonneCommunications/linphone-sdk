@@ -111,7 +111,7 @@ namespace lime {
 #endif
 		/* These constants are needed only for tests purpose, otherwise their usage is internal only to double_ratchet_protocol.hpp */
 		/** Double ratchet protocol version number */
-		constexpr std::uint8_t DR_v01=0x01;
+		constexpr uint8_t DR_v01=0x01;
 
 		/** @brief DR message type byte bit mapping
 		 * @code{.unparsed}

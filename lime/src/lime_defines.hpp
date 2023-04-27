@@ -20,6 +20,8 @@
 #ifndef lime_defines_hpp
 #define lime_defines_hpp
 
+#include <string>
+
 namespace lime {
 /** @brief Hold constants definition used as settings in all components of the lime library
  *

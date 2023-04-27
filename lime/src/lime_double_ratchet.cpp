@@ -57,9 +57,9 @@ namespace lime {
 	}
 
 	/** constant used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
-	const std::array<std::uint8_t,1> hkdf_ck_info{{0x02}};
+	const std::array<uint8_t,1> hkdf_ck_info{{0x02}};
 	/** constant used as input of HKDF like function, see double ratchet spec section 5.2 - KDF_CK */
-	const std::array<std::uint8_t,1> hkdf_mk_info{{0x01}};
+	const std::array<uint8_t,1> hkdf_mk_info{{0x01}};
 
 	/**
 	 * @brief Key Derivation Function used in Symmetric key ratchet chain.

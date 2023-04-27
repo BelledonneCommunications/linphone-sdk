@@ -20,6 +20,7 @@
 #ifndef lime_settings_hpp
 #define lime_settings_hpp
 
+
 namespace lime {
 /** @brief Hold constants definition used as settings in all components of the lime library
  *
@@ -46,12 +47,12 @@ namespace settings {
 	static_assert(DRSessionSharedADSize<64, "Shared AD is generated through HKDF-Sha512 with only one round implemented so its size can't be more than Sha512 max output size");
 
 	/** Maximum number of Message we can skip(and store their keys) at reception of one message */
-	constexpr std::uint16_t maxMessageSkip=1024;
+	constexpr uint16_t maxMessageSkip=1024;
 
 	/** after a message key is stored, count how many messages we can receive from peer before deleting the key at next update
 	 * @note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
 	 */
-	constexpr std::uint16_t maxMessagesReceivedAfterSkip = 128;
+	constexpr uint16_t maxMessagesReceivedAfterSkip = 128;
 
 	/** @brief Maximum length of Sending chain
 	 *
@@ -59,7 +60,7 @@ namespace settings {
 	 * the DR session is set to stale and we must create another one to send messages
 	 * Can't be more than 2^16 as message number is send on 2 bytes
 	 */
-	constexpr std::uint16_t maxSendingChain=1000;
+	constexpr uint16_t maxSendingChain=1000;
 
 	/** Lifetime of a session once not active anymore, unit is day */
 	constexpr unsigned int DRSession_limboTime_days=30;

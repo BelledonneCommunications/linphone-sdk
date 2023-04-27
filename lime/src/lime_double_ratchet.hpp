@@ -62,7 +62,7 @@ namespace lime {
 	template <typename Curve>
 	struct ReceiverKeyChain {
 		X<Curve, lime::Xtype::publicKey> DHr; /**< peer public key identifying this chain */
-		std::unordered_map<std::uint16_t, DRMKey> messageKeys; /**< message keys indexed by Nr */
+		std::unordered_map<uint16_t, DRMKey> messageKeys; /**< message keys indexed by Nr */
 		/**
 		 * Start a new empty chain
 		 * @param[in]	key	the peer DH public key used on this chain
@@ -88,8 +88,8 @@ namespace lime {
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
 			DRChainKey m_CKr; // 32 bytes key chain for receiving
-			std::uint16_t m_Ns,m_Nr; // Message index in sending and receiving chain
-			std::uint16_t m_PN; // Number of messages in previous sending chain
+			uint16_t m_Ns,m_Nr; // Message index in sending and receiving chain
+			uint16_t m_PN; // Number of messages in previous sending chain
 			SharedADBuffer m_sharedAD; // Associated Data derived from self and peer device Identity key, set once at session creation, given by X3DH
 			std::vector<lime::ReceiverKeyChain<Curve>> m_mkskipped; // list of skipped message indexed by DH receiver public key and Nr, store MK generated during on-going decrypt, lookup is done directly in DB.
 
