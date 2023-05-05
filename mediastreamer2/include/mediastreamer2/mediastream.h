@@ -452,6 +452,7 @@ MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
 
 typedef void (*AudioStreamIsSpeakingCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_speaking);
 typedef void (*AudioStreamIsMutedCallback)(void *user_pointer, uint32_t speaker_ssrc, bool_t is_muted);
+typedef void (*AudioStreamActiveSpeakerCallback)(void *user_pointer, uint32_t speaker_ssrc);
 typedef void (*MSAudioRouteChangedCallback)(void *audioStream,
                                             bool_t needReloadSoundDevices,
                                             char *newInputPort,
@@ -522,11 +523,13 @@ struct _AudioStream {
 	struct _AudioStreamVolumes *participants_volumes;
 	int mixer_to_client_extension_id;
 	int client_to_mixer_extension_id;
-	uint32_t speaking_ssrc;
 	AudioStreamIsSpeakingCallback is_speaking_cb;
+	void *is_speaking_user_pointer;
 	AudioStreamIsMutedCallback is_muted_cb;
-	void *user_pointer;
-	bool_t is_speaking;
+	void *is_muted_user_pointer;
+	AudioStreamActiveSpeakerCallback active_speaker_cb;
+	void *active_speaker_user_pointer;
+	uint32_t active_speaker_ssrc;
 	MSAudioRouteChangedCallback audio_route_changed_cb;
 	void *audio_route_changed_cb_user_data;
 };
@@ -993,6 +996,8 @@ MS2_PUBLIC void audio_stream_set_client_to_mixer_extension_id(AudioStream *strea
 MS2_PUBLIC void
 audio_stream_set_is_speaking_callback(AudioStream *s, AudioStreamIsSpeakingCallback cb, void *user_pointer);
 MS2_PUBLIC void audio_stream_set_is_muted_callback(AudioStream *s, AudioStreamIsMutedCallback cb, void *user_pointer);
+MS2_PUBLIC void
+audio_stream_set_active_speaker_callback(AudioStream *s, AudioStreamActiveSpeakerCallback cb, void *user_pointer);
 
 /**
  * Retrieve the volume of the given participant.

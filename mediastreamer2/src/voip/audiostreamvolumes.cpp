@@ -25,7 +25,6 @@
 #include <mediastreamer2/msvolume.h>
 
 using VolumeMap = std::map<uint32_t, int>;
-static const int audio_threshold_min_db = -30;
 
 extern "C" AudioStreamVolumes *audio_stream_volumes_new() {
 	return (AudioStreamVolumes *)(new VolumeMap());
@@ -84,7 +83,7 @@ extern "C" uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 	uint32_t best = 0;
 
 	for (auto &values : *(map)) {
-		if (values.second > audio_threshold_min_db && values.second > max_db_over_member) {
+		if (values.second > MS_VOLUME_DB_MIN_THRESHOLD && values.second > max_db_over_member) {
 			max_db_over_member = values.second;
 			best = values.first;
 		}
@@ -96,7 +95,7 @@ extern "C" uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes) {
 extern "C" bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes) {
 	auto map = (VolumeMap *)volumes;
 	for (auto &values : *map) {
-		if (values.second > audio_threshold_min_db) {
+		if (values.second > MS_VOLUME_DB_MIN_THRESHOLD) {
 			return true;
 		}
 	}

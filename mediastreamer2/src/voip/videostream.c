@@ -1186,9 +1186,14 @@ static void csrc_event_cb(void *ud, BCTBX_UNUSED(MSFilter *f), unsigned int even
 		case MS_RTP_RECV_CSRC_CHANGED:
 			stream->new_csrc = *((uint32_t *)eventdata);
 
-			bool_t reset = TRUE;
-			ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
-			stream->wait_for_frame_decoded = TRUE;
+			if (stream->new_csrc == 0) {
+				if (stream->wait_for_frame_decoded) stream->wait_for_frame_decoded = FALSE;
+				stream->csrc_changed_cb(stream->csrc_changed_cb_user_data, 0);
+			} else {
+				bool_t reset = TRUE;
+				ms_filter_call_method(stream->ms.decoder, MS_VIDEO_DECODER_RESET_FIRST_IMAGE_NOTIFICATION, &reset);
+				stream->wait_for_frame_decoded = TRUE;
+			}
 			break;
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:
 			if (stream->wait_for_frame_decoded) {
@@ -1435,7 +1440,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		if (stream->csrc_changed_cb) {
 			bool_t enable = TRUE;
 			ms_filter_call_method(stream->ms.rtprecv, MS_RTP_RECV_ENABLE_CSRC_EVENTS, &enable);
-			ms_filter_add_notify_callback(stream->ms.rtprecv, csrc_event_cb, stream, TRUE);
+			ms_filter_add_notify_callback(stream->ms.rtprecv, csrc_event_cb, stream, FALSE);
 			ms_filter_add_notify_callback(stream->ms.decoder, csrc_event_cb, stream, FALSE);
 		}
 

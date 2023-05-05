@@ -890,58 +890,63 @@ static void ms_audio_flow_control_event_handler(void *user_data,
 
 void audio_stream_set_is_speaking_callback(AudioStream *s, AudioStreamIsSpeakingCallback cb, void *user_pointer) {
 	s->is_speaking_cb = cb;
-	s->user_pointer = user_pointer;
+	s->is_speaking_user_pointer = user_pointer;
 }
 
 void audio_stream_set_is_muted_callback(AudioStream *s, AudioStreamIsMutedCallback cb, void *user_pointer) {
 	s->is_muted_cb = cb;
-	s->user_pointer = user_pointer;
+	s->is_muted_user_pointer = user_pointer;
+}
+
+void audio_stream_set_active_speaker_callback(AudioStream *s, AudioStreamActiveSpeakerCallback cb, void *user_pointer) {
+	s->active_speaker_cb = cb;
+	s->active_speaker_user_pointer = user_pointer;
 }
 
 static void on_volumes_received(void *data, BCTBX_UNUSED(MSFilter *f), unsigned int event_id, void *event_arg) {
 	AudioStream *as = (AudioStream *)data;
 	rtp_audio_level_t *volumes = (rtp_audio_level_t *)event_arg;
-	int new_volume;
+	int volume, new_volume;
 
 	switch (event_id) {
 		case MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED:
 			for (int i = 0; i < RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL && volumes[i].csrc != 0; i++) {
 				new_volume = (int)ms_volume_dbov_to_dbm0(volumes[i].dbov);
+				volume = audio_stream_volumes_find(as->participants_volumes, volumes[i].csrc);
 
 				if (as->is_muted_cb) {
-					int volume = audio_stream_volumes_find(as->participants_volumes, volumes[i].csrc);
 					if (volume == AUDIOSTREAMVOLUMES_NOT_FOUND && new_volume == MS_VOLUME_DB_MUTED) {
 						// Notify if the first volume we receive is a mute
-						as->is_muted_cb(as->user_pointer, volumes[i].csrc, TRUE);
+						as->is_muted_cb(as->is_muted_user_pointer, volumes[i].csrc, TRUE);
 					} else if ((volume == MS_VOLUME_DB_MUTED && new_volume != MS_VOLUME_DB_MUTED) ||
 					           (volume != MS_VOLUME_DB_MUTED && new_volume == MS_VOLUME_DB_MUTED)) {
 						// Otherwise notify if the participant mutes or unmutes himself
-						as->is_muted_cb(as->user_pointer, volumes[i].csrc, new_volume == MS_VOLUME_DB_MUTED);
+						as->is_muted_cb(as->is_muted_user_pointer, volumes[i].csrc, new_volume == MS_VOLUME_DB_MUTED);
+					}
+				}
+
+				if (as->is_speaking_cb) {
+					if (volume == AUDIOSTREAMVOLUMES_NOT_FOUND && new_volume > MS_VOLUME_DB_MIN_THRESHOLD) {
+						// Notify if the first volume we receive is a participant speaking
+						as->is_speaking_cb(as->is_speaking_user_pointer, volumes[i].csrc, TRUE);
+					} else if ((volume <= MS_VOLUME_DB_MIN_THRESHOLD && new_volume > MS_VOLUME_DB_MIN_THRESHOLD) ||
+					           (volume > MS_VOLUME_DB_MIN_THRESHOLD && new_volume <= MS_VOLUME_DB_MIN_THRESHOLD)) {
+						// Otherwise notify only if the participant starts or stops speaking
+						as->is_speaking_cb(as->is_speaking_user_pointer, volumes[i].csrc,
+						                   new_volume > MS_VOLUME_DB_MIN_THRESHOLD);
 					}
 				}
 
 				audio_stream_volumes_insert(as->participants_volumes, volumes[i].csrc, new_volume);
 			}
 
-			if (!as->is_speaking_cb) break;
-
-			if (audio_stream_volumes_is_speaking(as->participants_volumes)) {
+			if (as->active_speaker_cb) {
 				uint32_t ssrc = audio_stream_volumes_get_best(as->participants_volumes);
-				if (as->speaking_ssrc != ssrc) {
-					as->is_speaking_cb(as->user_pointer, ssrc, TRUE);
-					as->is_speaking_cb(as->user_pointer, as->speaking_ssrc, FALSE);
-					ms_debug("IsSpeaking: notify participant device %ud start speaking and %ud stop speaking.", ssrc,
-					         as->speaking_ssrc);
-					as->speaking_ssrc = ssrc;
-				} else if (!as->is_speaking) {
-					as->is_speaking_cb(as->user_pointer, ssrc, TRUE);
-					ms_debug("IsSpeaking: notify participant device %ud start speaking.", as->speaking_ssrc);
+
+				if (ssrc != 0 && ssrc != as->active_speaker_ssrc) {
+					as->active_speaker_cb(as->active_speaker_user_pointer, ssrc);
+					as->active_speaker_ssrc = ssrc;
 				}
-				as->is_speaking = TRUE;
-			} else if (as->is_speaking) {
-				as->is_speaking_cb(as->user_pointer, as->speaking_ssrc, FALSE);
-				ms_debug("IsSpeaking: notify participant device %ud stop speaking.", as->speaking_ssrc);
-				as->is_speaking = FALSE;
 			}
 
 			break;
@@ -952,11 +957,11 @@ static void on_volumes_received(void *data, BCTBX_UNUSED(MSFilter *f), unsigned 
 				int volume = audio_stream_volumes_find(as->participants_volumes, volumes->csrc);
 				if (volume == AUDIOSTREAMVOLUMES_NOT_FOUND && new_volume == MS_VOLUME_DB_MUTED) {
 					// Notify if the first volume we receive is a mute
-					as->is_muted_cb(as->user_pointer, volumes->csrc, TRUE);
+					as->is_muted_cb(as->is_muted_user_pointer, volumes->csrc, TRUE);
 				} else if ((volume == MS_VOLUME_DB_MUTED && new_volume != MS_VOLUME_DB_MUTED) ||
 				           (volume != MS_VOLUME_DB_MUTED && new_volume == MS_VOLUME_DB_MUTED)) {
 					// Otherwise notify if the participant mutes or unmutes himself
-					as->is_muted_cb(as->user_pointer, volumes->csrc, new_volume == MS_VOLUME_DB_MUTED);
+					as->is_muted_cb(as->is_muted_user_pointer, volumes->csrc, new_volume == MS_VOLUME_DB_MUTED);
 				}
 			}
 
@@ -1826,6 +1831,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	stream->participants_volumes = audio_stream_volumes_new();
 	stream->mixer_to_client_extension_id = 0;
 	stream->client_to_mixer_extension_id = 0;
+	stream->active_speaker_ssrc = 0;
 
 	return stream;
 }

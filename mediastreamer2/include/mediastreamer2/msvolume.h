@@ -83,6 +83,8 @@
 
 #define MS_VOLUME_DB_MUTED (-130) /*-130 because in dBov -127 is digital silence*/
 
+#define MS_VOLUME_DB_MIN_THRESHOLD (-30) /*value at which we consider the participant is speaking*/
+
 extern MSFilterDesc ms_volume_desc;
 
 #ifdef __cplusplus
