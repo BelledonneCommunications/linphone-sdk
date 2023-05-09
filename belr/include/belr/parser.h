@@ -26,6 +26,12 @@
 #include <sstream>
 #include <vector>
 
+#define BELR_USE_ATOMIC 1
+
+#if BELR_USE_ATOMIC
+#include <atomic>
+#endif
+
 #include "bctoolbox/defs.h"
 
 #include "belr.h"
@@ -156,6 +162,9 @@ private:
 	const Parser<_parserElementT> &mParser;
 	std::string mRulename;
 	std::shared_ptr<HandlerContext<_parserElementT>> mCachedContext;
+#if BELR_USE_ATOMIC
+	std::atomic_flag mCacheLocked = ATOMIC_FLAG_INIT;
+#endif
 };
 
 template <typename _createElementFn, typename _parserElementT>
@@ -496,17 +505,37 @@ CollectorBase<_parserElementT> *ParserHandlerBase<_parserElementT>::getCollector
 
 template <typename _parserElementT>
 void ParserHandlerBase<_parserElementT>::releaseContext(const std::shared_ptr<HandlerContext<_parserElementT>> &ctx) {
+#if BELR_USE_ATOMIC
+	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false){
 	mCachedContext = ctx;
+		mCacheLocked.clear(std::memory_order_relaxed);
+	}
+#else
+	mCachedContext=ctx;
+#endif
 }
 
 template <typename _parserElementT>
 std::shared_ptr<HandlerContext<_parserElementT>> ParserHandlerBase<_parserElementT>::createContext() {
+#if BELR_USE_ATOMIC
+	std::shared_ptr<HandlerContext<_parserElementT>> ret;
+	if (mCacheLocked.test_and_set(std::memory_order_relaxed) == false){
+		if (mCachedContext){
+			ret = mCachedContext;
+			mCachedContext.reset();
+		}
+		mCacheLocked.clear(std::memory_order_relaxed);
+	}
+	if (!ret) ret = std::make_shared<HandlerContext<_parserElementT>>(this);
+	return ret;
+#else
 	if (mCachedContext) {
 		std::shared_ptr<HandlerContext<_parserElementT>> ret = mCachedContext;
 		mCachedContext.reset();
 		return ret;
 	}
 	return std::make_shared<HandlerContext<_parserElementT>>(this);
+#endif
 }
 
 //
