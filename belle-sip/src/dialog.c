@@ -213,6 +213,34 @@ static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, bell
 	return BELLE_SIP_CONTINUE;
 }
 
+/*
+ * Special function to handle the case where a dialog is established by an incoming NOTIFY
+ * (received prior to the SUBSCRIBE 200 OK. See https://www.rfc-editor.org/rfc/rfc6665.html#section-4.4.1
+ */
+int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_request_t *req){
+	belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(req, belle_sip_header_contact_t);
+	belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
+	belle_sip_header_cseq_t *cseq = belle_sip_message_get_header_by_type(req, belle_sip_header_cseq_t);
+	const char *from_tag = belle_sip_header_from_get_tag(from);
+	const belle_sip_list_t *elem;
+
+	if (!ct) {
+		belle_sip_error("Missing contact header in request [%p], cannot set remote target for dialog [%p]", req, obj);
+		return -1;
+	}
+
+	obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
+	for(elem = belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE); elem != NULL; elem = elem->next){
+		obj->route_set = belle_sip_list_append(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
+												(belle_sip_header_address_t*)elem->data)));
+	}
+	obj->remote_cseq = belle_sip_header_cseq_get_seq_number(cseq);
+	obj->remote_target = (belle_sip_header_address_t*)belle_sip_object_ref(ct);
+	obj->remote_tag = belle_sip_strdup(from_tag);
+	set_state(obj, BELLE_SIP_DIALOG_CONFIRMED);
+	return 0;
+}
+
 int belle_sip_dialog_establish_full(belle_sip_dialog_t *obj, belle_sip_request_t *req, belle_sip_response_t *resp) {
 	belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(resp, belle_sip_header_contact_t);
 	belle_sip_header_to_t *to = belle_sip_message_get_header_by_type(resp, belle_sip_header_to_t);
@@ -657,7 +685,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
-			if (code == 481 && (is_invite || is_subscribe)) {
+			if (code==481 && (is_invite || is_subscribe || is_notify)) {
 				/*Dialog is terminated in such case*/
 				delete_dialog = TRUE;
 				break;

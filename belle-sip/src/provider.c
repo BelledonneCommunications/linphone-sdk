@@ -179,6 +179,7 @@ static void belle_sip_provider_dispatch_request(belle_sip_provider_t *prov, bell
 			if (sub) {
 				belle_sip_message("Found matching subscribe for NOTIFY [%p], creating dialog", req);
 				ev.dialog = belle_sip_provider_create_dialog_internal(prov, BELLE_SIP_TRANSACTION(sub), FALSE);
+				if (ev.dialog) belle_sip_dialog_establish_from_notify(ev.dialog, req);
 			}
 		}
 
