@@ -254,6 +254,7 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize,  const 
  * @param[in]		manager			pointer to the opaque structure used to interact with lime
  * @param[in]		localDeviceId		used to identify which local acount to use and also as the identified source of the message, shall be the GRUU
  * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
+ * @param[in]		recipientUserIdSize	the size of the previous buffer(this is used as Associated Data, so it could be actually anything)
  * @param[in,out]	recipients		a list of RecipientData holding:
  *	 					- the recipient device Id(GRUU)
  * 						- an allocated buffer large enough to store the DRmessage which must then be routed to that recipient
@@ -273,7 +274,8 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize,  const 
  * @return LIME_FFI_SUCCESS or a negative error code
  */
 int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
-		const char *recipientUserId, lime_ffi_RecipientData_t *const recipients, const size_t recipientsSize,
+		const uint8_t *const recipientUserId, const size_t recipientUserIdSize,
+		lime_ffi_RecipientData_t *const recipients, const size_t recipientsSize,
 		const uint8_t *const plainMessage, const size_t plainMessageSize,
 		uint8_t *const cipherMessage, size_t *cipherMessageSize,
 		const lime_ffi_Callback callback, void *callbackUserData,
@@ -289,6 +291,7 @@ int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
  * @param[in]		localDeviceId		used to identify which local acount to use and also as the recipient device ID of the message, shall be the GRUU
  * @param[in]		recipientUserId		the Id of intended recipient, shall be a sip:uri of user or conference, is used as associated data to ensure no-one can mess with intended recipient
  * 						it is not necessarily the sip:uri base of the GRUU as this could be a message from alice first device intended to bob being decrypted on alice second device
+ * @param[in]		recipientUserIdSize	the size of the previous buffer(this is used as Associated Data, so it could be actually anything)
  * @param[in]		senderDeviceId		Identify sender Device. This field shall be extracted from signaling data in transport protocol, is used to rebuild the authenticated data associated to the encrypted message
  * @param[in]		DRmessage		Double Ratchet message targeted to current device
  * @param[in]		DRmessageSize		DRmessage buffer size
@@ -305,7 +308,8 @@ int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
  * @return	fail if we cannot decrypt the message, unknown when it is the first message we ever receive from the sender device, untrusted for known but untrusted sender device, or trusted if it is
  */
 enum lime_ffi_PeerDeviceStatus lime_ffi_decrypt(lime_manager_t manager, const char *localDeviceId,
-		const char *recipientUserId, const char *senderDeviceId,
+		const uint8_t *const recipientUserId, const size_t recipientUserIdSize,
+		const char *senderDeviceId,
 		const uint8_t *const DRmessage, const size_t DRmessageSize,
 		const uint8_t *const cipherMessage, const size_t cipherMessageSize,
 		uint8_t *const plainMessage, size_t *plainMessageSize);

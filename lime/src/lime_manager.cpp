@@ -110,27 +110,31 @@ namespace lime {
 
 	}
 
-	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
+	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
 
 		// call the encryption function
-		user->encrypt(recipientUserId, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
+		user->encrypt(associatedData, recipients, plainMessage, encryptionPolicy, cipherMessage, callback);
+	}
+	void LimeManager::encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, const lime::EncryptionPolicy encryptionPolicy) {
+		auto associatedData = std::make_shared<const vector<uint8_t>>(recipientUserId->cbegin(), recipientUserId->cend());
+		encrypt(localDeviceId, associatedData, recipients, plainMessage, cipherMessage, callback, encryptionPolicy);
 	}
 
-	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::vector<uint8_t> &associatedData, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
 
 		// call the decryption function
-		return user->decrypt(recipientUserId, senderDeviceId, DRmessage, cipherMessage, plainMessage);
+		return user->decrypt(associatedData, senderDeviceId, DRmessage, cipherMessage, plainMessage);
 	}
 
 	// convenience definition, have a decrypt without cipherMessage input for the case we don't have it(DR message encryption policy)
-	// just use an create an empty cipherMessage to be able to call Lime::decrypt which needs the cipherMessage even if empty for code simplicity
-	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
+	// just create an empty cipherMessage to be able to call Lime::decrypt which needs the cipherMessage even if empty for code simplicity
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::vector<uint8_t> &associatedData, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
 		// Load user object
 		std::shared_ptr<LimeGeneric> user;
 		LimeManager::load_user(user, localDeviceId);
@@ -138,7 +142,15 @@ namespace lime {
 		const std::vector<uint8_t> emptyCipherMessage(0);
 
 		// call the decryption function
-		return user->decrypt(recipientUserId, senderDeviceId, DRmessage, emptyCipherMessage, plainMessage);
+		return user->decrypt(associatedData, senderDeviceId, DRmessage, emptyCipherMessage, plainMessage);
+	}
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+		std::vector<uint8_t> associatedData(recipientUserId.cbegin(), recipientUserId.cend());
+		return decrypt(localDeviceId, associatedData, senderDeviceId, DRmessage, cipherMessage, plainMessage);
+	}
+	lime::PeerDeviceStatus LimeManager::decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage) {
+		std::vector<uint8_t> associatedData(recipientUserId.cbegin(), recipientUserId.cend());
+		return decrypt(localDeviceId, associatedData, senderDeviceId, DRmessage, plainMessage);
 	}
 
 

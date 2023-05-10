@@ -295,6 +295,8 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 	char dbFilenameBob[512];
 	sprintf(dbFilenameAlice, "%s.alice.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
 	sprintf(dbFilenameBob, "%s.bob.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
+	uint8_t bobUserId[] = {'b','o','b'};
+	size_t bobUserIdSize = 3;
 
 	remove(dbFilenameAlice); /* delete the database file if already exists */
 	remove(dbFilenameBob); /* delete the database file if already exists */
@@ -396,7 +398,7 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 	userData->cipherMessageSize = cipherMessageSize;
 
 	/* encrypt, the plain message here is char * but passed as a uint8_t *, it can hold any binary content(including '\0') its size is given by a separate parameter */
-	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients, 1, (const uint8_t *const)message_pattern[0], message_patternSize, cipherMessage, &cipherMessageSize, statusCallbackPostMessage, userData, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, bobUserId, bobUserIdSize, recipients, 1, (const uint8_t *const)message_pattern[0], message_patternSize, cipherMessage, &cipherMessageSize, statusCallbackPostMessage, userData, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
 
 	/* in real sending situation, the local instance of pointers are destroyed by exiting the function where they've been declared
 	 * and where we called the encrypt function. (The lime_ffi_manager_t shall instead never be destroyed until the application terminates)
@@ -437,7 +439,7 @@ static void ffi_helloworld_test(const enum lime_ffi_CurveId curve, const char *d
 		 * but they already exchanged their identity keys so they Bob's device trust Alice's one since the first incoming message
 		 */
 		uint8_t *decryptedMessage = malloc(decryptedMessageSize);
-		BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager, bobDeviceId, "bob", aliceDeviceId, bobReceivedDRmessage, bobReceivedDRmessageSize, bobReceivedCipherMessage, bobReceivedCipherMessageSize, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_trusted);
+		BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager, bobDeviceId, bobUserId, bobUserIdSize, aliceDeviceId, bobReceivedDRmessage, bobReceivedDRmessageSize, bobReceivedCipherMessage, bobReceivedCipherMessageSize, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_trusted);
 
 		/* check we got the original message back */
 		BC_ASSERT_EQUAL((int)message_patternSize, (int)decryptedMessageSize, int, "%d");
@@ -558,7 +560,8 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	sprintf(dbFilenameAlice, "%s.alice.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
 	sprintf(dbFilenameBob1, "%s.bob1.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
 	sprintf(dbFilenameBob2, "%s.bob2.%s.sqlite3", dbBaseFilename, (curve == lime_ffi_CurveId_c25519)?"C25519":"C448");
-
+	uint8_t bobUserId[] = {'b','o','b'};
+	size_t bobUserIdSize = 3;
 	remove(dbFilenameAlice); /* delete the database file if already exists */
 	remove(dbFilenameBob1); /* delete the database file if already exists */
 	remove(dbFilenameBob2); /* delete the database file if already exists */
@@ -656,8 +659,8 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	uint8_t *cipherMessage2 = malloc(cipherMessageSize2);
 
 	/* here we do not need user data for the status callback as we get directly the output buffer in the same function */
-	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
-	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients2, 2, (const uint8_t *const)message_pattern[1], message_patternSize2, cipherMessage2, &cipherMessageSize2, statusCallback, NULL, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, bobUserId, bobUserIdSize, recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, bobUserId, bobUserIdSize, recipients2, 2, (const uint8_t *const)message_pattern[1], message_patternSize2, cipherMessage2, &cipherMessageSize2, statusCallback, NULL, lime_ffi_EncryptionPolicy_cipherMessage), LIME_FFI_SUCCESS, int, "%d");
 
 	expected_success +=2;
 	BC_ASSERT_TRUE(wait_for(stack, &success_counter, expected_success, ffi_wait_for_timeout));
@@ -689,7 +692,7 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	/* Bob device 1 decrypts first message */
 	size_t decryptedMessageSize = (cipherMessageSize1>recipients1[0].DRmessageSize)?cipherMessageSize1:recipients1[0].DRmessageSize; /* actual ciphered message is either in cipherMessage or DRmessage, just allocated a buffer the size of the largest one of the two.*/
 	uint8_t *decryptedMessage = malloc(decryptedMessageSize);
-	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, "bob", aliceDeviceId, recipients1[0].DRmessage, recipients1[0].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, bobUserId, bobUserIdSize, aliceDeviceId, recipients1[0].DRmessage, recipients1[0].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
 	/* check we got the original message back */
 	BC_ASSERT_EQUAL((int)message_patternSize1, (int)decryptedMessageSize, int, "%d");
 	BC_ASSERT_TRUE(strncmp(message_pattern[0], (char *)decryptedMessage, (message_patternSize1<decryptedMessageSize)?message_patternSize1:decryptedMessageSize)==0);
@@ -698,7 +701,7 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	/* Bob device 1 decrypts second message */
 	decryptedMessageSize = (cipherMessageSize2>recipients2[0].DRmessageSize)?cipherMessageSize2:recipients2[0].DRmessageSize;
 	decryptedMessage = malloc(decryptedMessageSize);
-	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, "bob", aliceDeviceId, recipients2[0].DRmessage, recipients2[0].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager1, bobDeviceId1, bobUserId, bobUserIdSize, aliceDeviceId, recipients2[0].DRmessage, recipients2[0].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
 	/* check we got the original message back */
 	BC_ASSERT_EQUAL((int)message_patternSize2, (int)decryptedMessageSize, int, "%d");
 	BC_ASSERT_TRUE(strncmp(message_pattern[1], (char *)decryptedMessage, (message_patternSize2<decryptedMessageSize)?message_patternSize2:decryptedMessageSize)==0);
@@ -708,7 +711,7 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	/* Bob device 2 decrypts second message */
 	decryptedMessageSize = (cipherMessageSize2>recipients2[1].DRmessageSize)?cipherMessageSize2:recipients2[1].DRmessageSize;
 	decryptedMessage = malloc(decryptedMessageSize);
-	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, "bob", aliceDeviceId, recipients2[1].DRmessage, recipients2[1].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, bobUserId, bobUserIdSize, aliceDeviceId, recipients2[1].DRmessage, recipients2[1].DRmessageSize, cipherMessage2, cipherMessageSize2, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_unknown);
 	/* check we got the original message back */
 	BC_ASSERT_EQUAL((int)message_patternSize2, (int)decryptedMessageSize, int, "%d");
 	BC_ASSERT_TRUE(strncmp(message_pattern[1], (char *)decryptedMessage, (message_patternSize2<decryptedMessageSize)?message_patternSize2:decryptedMessageSize)==0);
@@ -717,7 +720,7 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	/* Bob device 2 decrypts first message */
 	decryptedMessageSize = (cipherMessageSize1>recipients1[1].DRmessageSize)?cipherMessageSize1:recipients1[1].DRmessageSize;
 	decryptedMessage = malloc(decryptedMessageSize);
-	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, "bob", aliceDeviceId, recipients1[1].DRmessage, recipients1[1].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
+	BC_ASSERT_TRUE(lime_ffi_decrypt(bobManager2, bobDeviceId2, bobUserId, bobUserIdSize, aliceDeviceId, recipients1[1].DRmessage, recipients1[1].DRmessageSize, cipherMessage1, cipherMessageSize1, decryptedMessage, &decryptedMessageSize) == lime_ffi_PeerDeviceStatus_untrusted);
 	/* check we got the original message back */
 	BC_ASSERT_EQUAL((int)message_patternSize1, (int)decryptedMessageSize, int, "%d");
 	BC_ASSERT_TRUE(strncmp(message_pattern[0], (char *)decryptedMessage, (message_patternSize1<decryptedMessageSize)?message_patternSize1:decryptedMessageSize)==0);
@@ -754,7 +757,7 @@ static void ffi_basic_test(const enum lime_ffi_CurveId curve, const char *dbBase
 	recipients1 = allocatedRecipientBuffers(DRmessageSize, recipientsDeviceId, 2);
 	cipherMessage1 = malloc(cipherMessageSize1);
 
-	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, "bob", recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
+	BC_ASSERT_EQUAL(lime_ffi_encrypt(aliceManager, aliceDeviceId, bobUserId, bobUserIdSize, recipients1, 2, (const uint8_t *const)message_pattern[0], message_patternSize1, cipherMessage1, &cipherMessageSize1, statusCallback, NULL, lime_ffi_EncryptionPolicy_DRMessage), LIME_FFI_SUCCESS, int, "%d");
 	BC_ASSERT_TRUE(wait_for(stack, &success_counter, ++expected_success, ffi_wait_for_timeout));
 	/* check peer status output, they shall both be set to unknown */
 	BC_ASSERT_EQUAL(recipients1[0].peerStatus, lime_ffi_PeerDeviceStatus_unknown, int, "%d" );

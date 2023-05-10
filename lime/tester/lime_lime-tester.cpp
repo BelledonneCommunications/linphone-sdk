@@ -2918,15 +2918,19 @@ static void lime_identity_theft(void) {
  *
  * At each message check that the X3DH init is present or not in the DR header
  * if continuousSession is set to false, delete and recreate LimeManager before each new operation to force relying on local Storage
+ * if useAD=true, encrypt and decrypt operation are performed using the uint8_t buffer and not the string expecting recipientDeviceId
  * Note: no asynchronous operation will start before the previous is over(callback returns)
  */
-static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true, bool useAD=false) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
 	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
-
+	auto aliceUserId = std::make_shared<std::vector<uint8_t>>();
+	aliceUserId->assign({'\0','a','l','i','c','e'});
+	auto bobUserId = std::make_shared<std::vector<uint8_t>>();
+	bobUserId->assign({'b','o','b'});
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
 
@@ -2971,7 +2975,11 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		auto message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		auto cipherMessage = make_shared<std::vector<uint8_t>>();
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		if (useAD) {
+			aliceManager->encrypt(*aliceDevice1, bobUserId, recipients, message, cipherMessage, callback);
+		} else {
+			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -2994,7 +3002,11 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		recipients->emplace_back(*bobDevice2);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 
-		aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		if (useAD) {
+			aliceManager->encrypt(*aliceDevice1, bobUserId, recipients, message, cipherMessage, callback);
+		} else {
+			aliceManager->encrypt(*aliceDevice1, make_shared<const std::string>("bob"), recipients, message, cipherMessage, callback);
+		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// loop on cipher message and decrypt with bob Manager
@@ -3018,19 +3030,31 @@ static void x3dh_basic_test(const lime::CurveId curve, const std::string &dbBase
 		recipients->emplace_back(*bobDevice2);
 		message = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 
-		bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+		if (useAD) {
+			bobManager->encrypt(*bobDevice1, aliceUserId, recipients, message, cipherMessage, callback);
+		} else {
+			bobManager->encrypt(*bobDevice1, make_shared<const std::string>("alice"), recipients, message, cipherMessage, callback);
+		}
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,++expected_success,lime_tester::wait_for_timeout));
 
 		// decrypt it
 		std::vector<uint8_t> receivedMessage{};
 		BC_ASSERT_FALSE(lime_tester::DR_message_holdsX3DHInit((*recipients)[0].DRmessage)); // alice.d1 to bob.d1 already set up the DR Session, we shall not have any  X3DH message here
-		BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		if (useAD) {
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, *aliceUserId, *bobDevice1, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		} else {
+			BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDevice1, "alice", *bobDevice1, (*recipients)[0].DRmessage, *cipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted);
+		}
 		std::string receivedMessageStringAlice{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringAlice == lime_tester::messages_pattern[2]);
 
 		receivedMessage.clear();
 		BC_ASSERT_TRUE(lime_tester::DR_message_holdsX3DHInit((*recipients)[1].DRmessage)); // bob.d1 to bob.d2 is a new session, we must have a X3DH message here
-		BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, "alice", *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		if (useAD) {
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, *aliceUserId, *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		} else {
+			BC_ASSERT_TRUE(bobManager->decrypt(*bobDevice2, "alice", *bobDevice1, (*recipients)[1].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
+		}
 		std::string receivedMessageStringBob{receivedMessage.begin(), receivedMessage.end()};
 		BC_ASSERT_TRUE(receivedMessageStringBob == lime_tester::messages_pattern[2]);
 
@@ -3109,10 +3133,12 @@ static void x3dh_basic(void) {
 #ifdef EC25519_ENABLED
 	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data());
 	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data(), true, true);
 #endif
 #ifdef EC448_ENABLED
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), true, true);
 #endif
 }
 

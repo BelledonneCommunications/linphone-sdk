@@ -265,7 +265,8 @@ int lime_ffi_encryptOutBuffersMaximumSize(const size_t plainMessageSize, const e
 }
 
 int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
-		const char *recipientUserId, lime_ffi_RecipientData_t *const recipients, const size_t recipientsSize,
+		const uint8_t *const recipientUserId, const size_t recipientUserIdSize,
+		lime_ffi_RecipientData_t *const recipients, const size_t recipientsSize,
 		const uint8_t *const plainMessage, const size_t plainMessageSize,
 		uint8_t *const cipherMessage, size_t *cipherMessageSize,
 		const lime_ffi_Callback callback, void *callbackUserData,
@@ -324,7 +325,7 @@ int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
 
 	/* encrypts */
 	try {
-		manager->context->encrypt(std::string(localDeviceId), make_shared<std::string>(recipientUserId), l_recipients, make_shared<std::vector<uint8_t>>(plainMessage, plainMessage+plainMessageSize), l_cipherMessage, cb, ffi2lime_EncryptionPolicy(encryptionPolicy));
+		manager->context->encrypt(std::string(localDeviceId), make_shared<std::vector<uint8_t>>(recipientUserId, recipientUserId+recipientUserIdSize), l_recipients, make_shared<std::vector<uint8_t>>(plainMessage, plainMessage+plainMessageSize), l_cipherMessage, cb, ffi2lime_EncryptionPolicy(encryptionPolicy));
 	} catch (BctbxException const &e) {
 		LIME_LOGE<<"FFI failed to encrypt: "<<e.str();
 		return LIME_FFI_INTERNAL_ERROR;
@@ -337,14 +338,15 @@ int lime_ffi_encrypt(lime_manager_t manager, const char *localDeviceId,
 }
 
 enum lime_ffi_PeerDeviceStatus lime_ffi_decrypt(lime_manager_t manager, const char *localDeviceId,
-		const char *recipientUserId, const char *senderDeviceId,
+		const uint8_t *const recipientUserId, const size_t recipientUserIdSize,
+		const char *senderDeviceId,
 		const uint8_t *const DRmessage, const size_t DRmessageSize,
 		const uint8_t *const cipherMessage, const size_t cipherMessageSize,
 		uint8_t *const plainMessage, size_t *plainMessageSize) {
 
 	try {
 		std::vector<uint8_t> l_plainMessage{};
-		auto ret = manager->context->decrypt(std::string(localDeviceId), std::string(recipientUserId), std::string(senderDeviceId), std::vector<uint8_t>(DRmessage, DRmessage+DRmessageSize), std::vector<uint8_t>(cipherMessage, cipherMessage+cipherMessageSize), l_plainMessage);
+		auto ret = manager->context->decrypt(std::string(localDeviceId), std::vector<uint8_t>(recipientUserId, recipientUserId+recipientUserIdSize), std::string(senderDeviceId), std::vector<uint8_t>(DRmessage, DRmessage+DRmessageSize), std::vector<uint8_t>(cipherMessage, cipherMessage+cipherMessageSize), l_plainMessage);
 
 		if (l_plainMessage.size()<=*plainMessageSize) {
 			std::copy_n(l_plainMessage.data(), l_plainMessage.size(), plainMessage);

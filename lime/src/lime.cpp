@@ -164,7 +164,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	void Lime<Curve>::encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
+	void Lime<Curve>::encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) {
 		LIME_LOGI<<"encrypt from "<<m_selfDeviceId<<" to "<<recipients->size()<<" recipients";
 		/* Check if we have all the Double Ratchet sessions ready or shall we go for an X3DH */
 
@@ -246,7 +246,7 @@ namespace lime {
 	}
 
 	template <typename Curve>
-	lime::PeerDeviceStatus Lime<Curve>::decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
+	lime::PeerDeviceStatus Lime<Curve>::decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) {
 		std::lock_guard<std::mutex> lock(m_mutex);
 		// before trying to decrypt, we must check if the sender device is known in the local Storage and if we trust it
 		// a successful decryption will insert it in local storage so we must check first if it is there in order to detect new devices
@@ -255,7 +255,7 @@ namespace lime {
 		// If decryption succeed, we will return this status but it has no effect on the decryption process
 		auto senderDeviceStatus = m_localStorage->get_peerDeviceStatus(senderDeviceId);
 
-		LIME_LOGI<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId;
+		LIME_LOGI<<m_selfDeviceId<<" decrypts from "<<senderDeviceId;
 		// do we have any session (loaded or not) matching that senderDeviceId ?
 		auto sessionElem = m_DR_sessions_cache.find(senderDeviceId);
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
@@ -275,7 +275,7 @@ namespace lime {
 		std::vector<std::shared_ptr<DR<Curve>>> DRSessions{};
 		// load in DRSessions all the session found in cache for this peer device, except the one with id db_sessionIdInCache(is ignored if 0) as we already tried it
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
-		LIME_LOGI<<"decrypt from "<<senderDeviceId<<" to "<<recipientUserId<<" : found "<<DRSessions.size()<<" sessions in DB";
+		LIME_LOGI<<m_selfDeviceId<<" decrypts from "<<senderDeviceId<<" : found "<<DRSessions.size()<<" sessions in DB";
 		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
 			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession); // store it in cache

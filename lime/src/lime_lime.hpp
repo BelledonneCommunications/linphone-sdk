@@ -73,7 +73,7 @@ namespace lime {
 		 * 					It is advised to capture a copy of cipherMessage and recipients shared_ptr in this callback so they can access
 		 * 					the output of encryption as it won't be part of the callback parameters.
 		*/
-		virtual void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
+		virtual void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) = 0;
 
 		/**
 		 * @brief Decrypt the given message
@@ -87,7 +87,7 @@ namespace lime {
 		 *
 		 * @return	true if the decryption is successfull, false otherwise
 		*/
-		virtual lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
+		virtual lime::PeerDeviceStatus decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 
 
 

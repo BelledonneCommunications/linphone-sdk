@@ -109,8 +109,8 @@ namespace lime {
 			void update_SPk(const limeCallback &callback) override;
 			void update_OPk(const limeCallback &callback, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize) override;
 			void get_Ik(std::vector<uint8_t> &Ik) override;
-			void encrypt(std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
-			lime::PeerDeviceStatus decrypt(const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
+			void encrypt(std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback) override;
+			lime::PeerDeviceStatus decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) override;
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override;
 			std::string get_x3dhServerUrl() override;
 			void stale_sessions(const std::string &peerDeviceId) override;
@@ -126,7 +126,7 @@ namespace lime {
 		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
 		const limeCallback callback;
 		/// Recipient username. Needed for encryption: get a shared ref to keep params alive
-		std::shared_ptr<const std::string> recipientUserId;
+		std::shared_ptr<const std::vector<uint8_t>> recipientUserId;
 		/// Recipient data vector. Needed for encryption: get a shared ref to keep params alive
 		std::shared_ptr<std::vector<RecipientData>> recipients;
 		/// plaintext. Needed for encryption: get a shared ref to keep params alive
@@ -154,7 +154,7 @@ namespace lime {
 
 		/// created at encrypt(getPeerBundle)
 		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
-				std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
+				std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,
 				lime::EncryptionPolicy policy)
 			: limeObj{thiz}, callback{callbackRef},

@@ -219,6 +219,11 @@ namespace lime {
 			 * 						default is optimized upload size mode.
 			 */
 			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
+			/**
+			 * @overload encrypt(const std::string &localDeviceId, std::shared_ptr<const std::string> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize)
+			 * in this variant the associatedData used in the DR session is not the recipientUserId but a uint8_t buffer
+			 */
+			void encrypt(const std::string &localDeviceId, std::shared_ptr<const std::vector<uint8_t>> associatedData, std::shared_ptr<std::vector<RecipientData>> recipients, std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage, const limeCallback &callback, lime::EncryptionPolicy encryptionPolicy=lime::EncryptionPolicy::optimizeUploadSize);
 
 			/**
 			 * @brief Decrypt the given message
@@ -241,6 +246,17 @@ namespace lime {
 			 * convenience form to be called when no cipher message is received
 			 */
 			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
+			/**
+			 * @overload decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage)
+			 * variant using a buffer as associated Data and not directly the recipientUserId
+			 */
+			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::vector<uint8_t> &associatedData, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage);
+			/**
+			 * @overload decrypt(const std::string &localDeviceId, const std::string &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage)
+			 * variant using a buffer as associated Data and not directly the recipientUserId
+			 * convenience form to be called when no cipher message is received
+			 */
+			lime::PeerDeviceStatus decrypt(const std::string &localDeviceId, const std::vector<uint8_t> &associatedData, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &plainMessage);
 
 			/**
 			 * @brief Update: shall be called regularly, once a day at least, performs checks, updates and cleaning operations
