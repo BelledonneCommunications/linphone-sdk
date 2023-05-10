@@ -1012,7 +1012,12 @@ bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
 		if (afps->mean_inter_frame == 0) {
 			afps->mean_inter_frame = frame_interval;
 		} else {
-			afps->mean_inter_frame = (0.8f * afps->mean_inter_frame) + (0.2f * frame_interval);
+
+			if (frame_interval >= 1.0) {
+				afps->mean_inter_frame = 1.0;
+			} else {
+				afps->mean_inter_frame = (0.8f * afps->mean_inter_frame) + (0.2f * frame_interval);
+			}
 		}
 	} else {
 		afps->last_print_time = current_time;
