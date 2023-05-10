@@ -22,6 +22,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Needed to check current do not disturb policy -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- Required to be able to monitor WiFi signal strength -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- End of SDK required permissions -->
 	
 </manifest>
