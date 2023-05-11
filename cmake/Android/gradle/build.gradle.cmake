@@ -158,6 +158,7 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     classpath += configurations.javadocDeps
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
+    options.setOverview(rootSdk + '/share/linphonej/java/src/main/javadoc/overview.html')
 
     afterEvaluate {
         classpath += files(android.libraryVariants.collect { variant ->
