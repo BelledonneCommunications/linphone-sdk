@@ -93,7 +93,7 @@ static int enc_get_vsize(MSFilter *f, void *data) {
 	return 0;
 }
 
-static int enc_add_attr(MSFilter *f, void *data) {
+static int enc_add_attr(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *data)) {
 	/*const char *attr=(const char*)data;
 	EncState *s=(EncState*)f->data;*/
 	return 0;
@@ -429,7 +429,7 @@ static bool_t dec_init_theora(DecState *s, ogg_packet *op) {
 	return FALSE;
 }
 /* remove payload header and agregates fragmented packets */
-static mblk_t *dec_unpacketize(MSFilter *f, DecState *s, mblk_t *im, int *tdt) {
+static mblk_t *dec_unpacketize(BCTBX_UNUSED(MSFilter *f), DecState *s, mblk_t *im, int *tdt) {
 	uint8_t ft;
 	*tdt = payload_header_get_tdt((uint8_t *)im->b_rptr);
 	ft = payload_header_get_ft((uint8_t *)im->b_rptr);
