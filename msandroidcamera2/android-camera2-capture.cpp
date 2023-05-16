@@ -343,6 +343,7 @@ static void android_camera2_capture_destroy_preview(AndroidCamera2Context *d) {
 		d->nativeWindow = nullptr;
     	ms_message("[Camera2 Capture] Preview window destroyed");
 	}
+
 	if (d->surface) {
 		JNIEnv *env = ms_get_jni_env();
 		env->DeleteGlobalRef(d->surface);
@@ -694,6 +695,13 @@ static void android_camera2_capture_uninit(MSFilter *f) {
 
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
+	}
+
+	if (d->nativeWindowId != 0) {
+		JNIEnv *env = ms_get_jni_env();
+		env->DeleteGlobalRef(d->nativeWindowId);
+		d->nativeWindowId = 0;
+		ms_message("[Camera2 Capture] native window global ref released");
 	}
 
 	ms_mutex_lock(&d->mutex);
