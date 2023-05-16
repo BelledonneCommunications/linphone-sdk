@@ -75,7 +75,6 @@ elseif(LINPHONESDK_PLATFORM STREQUAL "UWP")
 	set(UWP TRUE)
 endif()
 
-
 include("cmake/Options.cmake")
 
 if(ENABLE_SANITIZER)
@@ -90,6 +89,10 @@ include("cmake/CheckBuildTools${LINPHONESDK_PLATFORM}.cmake")
 
 if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL "Flexisip")
 
+	if(ENABLE_EKT_SERVER_PLUGIN)
+		include("cmake/EktServer.cmake")
+	endif()
+
 	if(ENABLE_TUNNEL)
 		include("cmake/TunnelClone.cmake")
 	endif()
@@ -102,7 +105,6 @@ else()
 	include("cmake/Tasks${LINPHONESDK_BUILD_TYPE}.cmake")
 
 endif()
-
 
 # Give a feature summary
 include(FeatureSummary)
