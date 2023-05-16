@@ -45,15 +45,20 @@ static int tester_after_all(void) {
 	ms_factory_destroy(_factory);
 	return 0;
 }
+
 static void record_file(const char *filepath, RecorderTestFlags flags) {
 	bool_t succeed;
 	MSMediaRecorder *file_recorder = NULL;
 	MSSndCard *snd_card = ms_snd_card_manager_get_default_capture_card(ms_factory_get_snd_card_manager(_factory));
-	MSWebCam *web_cam = ms_web_cam_manager_get_default_cam(ms_factory_get_web_cam_manager(_factory));
+#ifdef VIDEO_ENABLED
+	MSWebCam *web_cam = mediastreamer2_tester_get_mire(_factory);
+	BC_ASSERT_PTR_NOT_NULL(web_cam);
+#else
+	MSWebCam *web_cam = NULL;
+#endif
 	const char *display_name = ms_factory_get_default_video_renderer(_factory);
 
 	BC_ASSERT_PTR_NOT_NULL(snd_card);
-	BC_ASSERT_PTR_NOT_NULL(web_cam);
 	// Put switch to decide what file format and codec to use
 	MSFileFormat file_format = MS_FILE_FORMAT_UNKNOWN;
 	char *codec = "";
@@ -95,29 +100,37 @@ static void record_file(const char *filepath, RecorderTestFlags flags) {
 
 	ms_media_recorder_close(file_recorder);
 	BC_ASSERT_EQUAL(ms_media_recorder_get_state(file_recorder), MSRecorderClosed, int, "%d");
-	// ms_media_recorder_remove_file(file_recorder, filepath);
+	ms_media_recorder_remove_file(file_recorder, filepath);
 	ms_media_recorder_free(file_recorder);
 }
 
 static void record_wav(void) {
-	char *file = bc_tester_res("records/test_record_wav.wav");
+	char *file = bc_tester_file("test_record_wav.wav");
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
 }
 
 static void record_mkv_vp8(void) {
-	char *file = bc_tester_res("records/test_record_mkv_vp8.mkv");
+#ifdef VIDEO_ENABLED
+	char *file = bc_tester_file("test_record_mkv_vp8.mkv");
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
+#endif
 }
 
 static void record_mkv_h264(void) {
-	char *file = bc_tester_res("records/test_record_mkv_h264.mkv");
-	RecorderTestFlags flags =
-	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
-	record_file(file, flags | RECORDER_TEST_H264);
+#ifdef VIDEO_ENABLED
+	if (ms_factory_codec_supported(_factory, "h264")) {
+		char *file = bc_tester_file("test_record_mkv_h264.mkv");
+		RecorderTestFlags flags =
+		    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
+		record_file(file, flags | RECORDER_TEST_H264);
+	} else {
+		ms_error("H264 codec is not supported! Skip test");
+	}
+#endif
 }
 
 static test_t tests[] = {

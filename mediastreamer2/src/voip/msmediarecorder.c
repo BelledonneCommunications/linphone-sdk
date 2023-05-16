@@ -306,15 +306,25 @@ static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
 					ms_filter_add_notify_callback(obj->recorder, _recorder_callback, obj, TRUE);
 					float fps = 30;
 					ms_filter_call_method(obj->video_source, MS_FILTER_SET_FPS, &fps);
-					ms_filter_call_method(obj->video_encoder, MS_FILTER_SET_FPS, &fps);
 					MSVideoSize video_size = MS_VIDEO_SIZE_VGA;
 					ms_filter_call_method(obj->video_source, MS_FILTER_SET_VIDEO_SIZE, &video_size);
 					ms_filter_call_method(obj->video_source, MS_FILTER_GET_VIDEO_SIZE, &video_size);
-					ms_filter_call_method(obj->video_encoder, MS_FILTER_SET_VIDEO_SIZE, &video_size);
+					if (ms_filter_implements_interface(obj->video_encoder, MSFilterVideoEncoderInterface)) {
+						MSVideoConfiguration vconf;
+						ms_filter_call_method(obj->video_encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
+						vconf.vsize = video_size;
+						vconf.fps = fps;
+						vconf.required_bitrate = 400000;
+						vconf.bitrate_limit = 500000;
+						ms_filter_call_method(obj->video_encoder, MS_VIDEO_ENCODER_SET_CONFIGURATION, &vconf);
+					} else {
+						ms_filter_call_method(obj->video_encoder, MS_FILTER_SET_VIDEO_SIZE, &video_size);
+						ms_filter_call_method(obj->video_encoder, MS_FILTER_SET_FPS, &fps);
+					}
+					ms_message("Configuring MKV recorder with video format %s",
+					           ms_fmt_descriptor_to_string(obj->video_pin_fmt.fmt));
+					ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &obj->video_pin_fmt);
 				}
-				ms_message("Configuring MKV recorder with video format %s",
-				           ms_fmt_descriptor_to_string(obj->video_pin_fmt.fmt));
-				ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &obj->video_pin_fmt);
 			}
 			break;
 		default:

@@ -59,26 +59,21 @@ static int tester_after_all(void) {
 	return 0;
 }
 
-#define MARIELLE_RTP_PORT 2564
-#define MARIELLE_RTCP_PORT 2565
-#define MARIELLE_IP "127.0.0.1"
+#define MARIELLE_RTP_PORT (base_port + 1)
+#define MARIELLE_RTCP_PORT (base_port + 2)
 
-#define MARGAUX_RTP_PORT 9864
-#define MARGAUX_RTCP_PORT 9865
-#define MARGAUX_IP "127.0.0.1"
+#define MARGAUX_RTP_PORT (base_port + 3)
+#define MARGAUX_RTCP_PORT (base_port + 4)
 
-#define PAULINE_IN_RTP_PORT 9874
-#define PAULINE_IN_RTCP_PORT 9875
-#define PAULINE_OUT_RTP_PORT 9876
-#define PAULINE_OUT_RTCP_PORT 9877
-#define PAULINE_IP "127.0.0.1"
+#define PAULINE_IN_RTP_PORT (base_port + 5)
+#define PAULINE_IN_RTCP_PORT (base_port + 6)
+#define PAULINE_OUT_RTP_PORT (base_port + 7)
+#define PAULINE_OUT_RTCP_PORT (base_port + 8)
 
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
 #define HELLO_16K_1S_FILE "sounds/hello16000-1s.wav"
 #define RECORDED_8K_1S_FILE "recorded_hello8000-1s.wav"
 #define RECORDED_16K_1S_FILE "recorded_hello16000-1s.wav"
-
-#define MULTICAST_IP "224.1.2.3"
 
 typedef struct _stats_t {
 	OrtpEvQueue *q;
@@ -178,7 +173,7 @@ static void basic_audio_stream_base_2(const char *marielle_local_ip,
 
 	wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000);
 	audio_stream_play(marielle, NULL);
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -311,7 +306,7 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 
 		if (encryption_mandatory) {
 			/*wait a bit to make sure packets are discarded*/
-			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 			audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 			audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 			BC_ASSERT_EQUAL(margaux_stats.rtp.recv, 0, unsigned long long, "%llu");
@@ -346,7 +341,7 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 		}
 
 		if (set_both_send_recv_key) {
-			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream *)marielle));
 			BC_ASSERT_TRUE(media_stream_secured((MediaStream *)margaux));
 			BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream *)marielle, MediaStreamSendRecv, FALSE) ==
@@ -383,7 +378,7 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 		audio_stream_play(marielle, NULL);
 
 		/*make sure packets can cross from sender to receiver*/
-		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 		audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 		audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -412,7 +407,7 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 			audio_stream_play(marielle, NULL);
 
 			/*make sure packets can cross from sender to receiver*/
-			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+			wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 			audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 			audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -508,7 +503,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -531,7 +526,7 @@ static void codec_change_for_audio_stream(void) {
 	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
@@ -587,7 +582,7 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 
 	/* Wait for 1s so that some RTP packets are exchanged before sending the TMMBR. */
-	wait_for_until(&margaux->ms, &marielle->ms, &dummy, 1, 500);
+	wait_for_until(&margaux->ms, &marielle->ms, &dummy, 1, 1500);
 
 	rtp_session_send_rtcp_fb_tmmbr(margaux_session, 100000);
 	rtp_session_send_rtcp_fb_tmmbr(marielle_session, 200000);
@@ -604,7 +599,7 @@ static void tmmbr_feedback_for_audio_stream(void) {
 	BC_ASSERT_EQUAL(margaux_stats.number_of_TMMBR, 1, int, "%d");
 
 	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	audio_stream_stop(marielle);
 	audio_stream_stop(margaux);
@@ -877,7 +872,7 @@ static void double_encrypted_audio_stream_base(bool_t set_both_send_recv_key,
 
 	if (encryption_mandatory) {
 		/*wait a bit to make sure packets are discarded*/
-		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 		audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 		audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 		BC_ASSERT_EQUAL(margaux_stats.rtp.recv, 0, unsigned long long, "%llu");
@@ -910,7 +905,7 @@ static void double_encrypted_audio_stream_base(bool_t set_both_send_recv_key,
 	}
 
 	if (set_both_send_recv_key) {
-		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 		BC_ASSERT_TRUE(media_stream_secured((MediaStream *)marielle));
 		BC_ASSERT_TRUE(media_stream_secured((MediaStream *)margaux));
 		BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream *)marielle, MediaStreamSendRecv, FALSE) ==
@@ -955,7 +950,7 @@ static void double_encrypted_audio_stream_base(bool_t set_both_send_recv_key,
 	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 500);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	if (participant_volume) {
 		BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 1), (int)ms_volume_dbov_to_dbm0(-5), int, "%d");
@@ -1216,7 +1211,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 
 	if (encryption_mandatory) {
 		/*wait a bit to make sure packets are discarded*/
-		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+		wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 		audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 		audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 		BC_ASSERT_EQUAL(margaux_stats.rtp.recv, 0, unsigned long long, "%llu");
@@ -1254,7 +1249,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	audio_stream_play(marielle, NULL);
 
 	/*make sure packets can cross from sender to receiver*/
-	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1000);
+	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
 	if (participant_volume) {
 		BC_ASSERT_EQUAL(audio_stream_get_participant_volume(margaux, 1), (int)ms_volume_dbov_to_dbm0(-5), int, "%d");

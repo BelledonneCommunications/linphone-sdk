@@ -54,26 +54,22 @@ static int tester_after_all(void) {
 	return 0;
 }
 
-#define MARIELLE_RTP_PORT 2564
-#define MARIELLE_RTCP_PORT 2565
-#define MARIELLE_IP "127.0.0.1"
+#define MARIELLE_RTP_PORT (base_port + 11)
+#define MARIELLE_RTCP_PORT (base_port + 12)
 
-#define MARGAUX_RTP_PORT 9864
-#define MARGAUX_RTCP_PORT 9865
-#define MARGAUX_IP "127.0.0.1"
+#define MARGAUX_RTP_PORT (base_port + 13)
+#define MARGAUX_RTCP_PORT (base_port + 14)
 
-#define PAULINE_RTP_PORT 9868
-#define PAULINE_RTCP_PORT 9869
-#define PAULINE_IP "127.0.0.1"
+#define PAULINE_RTP_PORT (base_port + 15)
+#define PAULINE_RTCP_PORT (base_port + 16)
 
 /* Relay gets three pairs of port one for each correspondant */
-#define RELAY_MARIELLE_RTP_PORT 9874
-#define RELAY_MARIELLE_RTCP_PORT 9875
-#define RELAY_MARGAUX_RTP_PORT 9876
-#define RELAY_MARGAUX_RTCP_PORT 9877
-#define RELAY_PAULINE_RTP_PORT 9878
-#define RELAY_PAULINE_RTCP_PORT 9879
-#define RELAY_IP "127.0.0.1"
+#define RELAY_MARIELLE_RTP_PORT (base_port + 17)
+#define RELAY_MARIELLE_RTCP_PORT (base_port + 18)
+#define RELAY_MARGAUX_RTP_PORT (base_port + 19)
+#define RELAY_MARGAUX_RTCP_PORT (base_port + 20)
+#define RELAY_PAULINE_RTP_PORT (base_port + 21)
+#define RELAY_PAULINE_RTCP_PORT (base_port + 22)
 
 /* identify streams in bundle */
 /* short ID header extension fit in 2 bytes, which means they can be added in the padding space left by audio level

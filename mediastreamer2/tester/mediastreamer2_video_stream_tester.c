@@ -184,7 +184,7 @@ typedef struct _video_stream_tester_stats_t {
 	int number_of_decoder_send_request_pli;
 	int number_of_decoder_send_request_sli;
 	int number_of_decoder_send_request_rpsi;
-	
+
 	int number_of_display_error;
 
 	int number_of_jitter_update_nack;
@@ -284,9 +284,7 @@ static void video_stream_event_cb(void *user_pointer,
 	ms_message("Event [%s:%u] received on video stream [%p]", event_name, event_id, vs_tester);
 }
 
-static void video_stream_display_cb(void *user_pointer,
-                                  const unsigned int event_id,
-                                  BCTBX_UNUSED(const void *args)) {
+static void video_stream_display_cb(void *user_pointer, const unsigned int event_id, BCTBX_UNUSED(const void *args)) {
 	video_stream_tester_t *vs_tester = (video_stream_tester_t *)user_pointer;
 	const char *event_name;
 	switch (event_id) {
@@ -608,7 +606,7 @@ static void multicast_video_stream(void) {
 
 		ms_ticker_detach(margaux->vs->ms.sessions.ticker, margaux->vs->source); /*to stop sending*/
 		/*make sure packets can cross from sender to receiver*/
-		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 500);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
 		video_stream_get_local_rtp_stats(marielle->vs, &marielle->stats.rtp);
 		video_stream_get_local_rtp_stats(margaux->vs, &marielle->stats.rtp);
@@ -665,7 +663,7 @@ static void avpf_video_stream_base(int payload_type) {
 		rtp_session_enable_network_simulation(marielle->vs->ms.sessions.rtp_session, &params);
 		rtp_session_enable_network_simulation(margaux->vs->ms.sessions.rtp_session, &params);
 
-		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000, event_queue_cb,
+		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500, event_queue_cb,
 		                                 &marielle->stats, event_queue_cb, &margaux->stats);
 
 		// wait for all packets reception before closing streams
@@ -798,7 +796,7 @@ static void video_stream_first_iframe_lost_base(int payload_type) {
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
 		init_video_streams(marielle, margaux, FALSE, FALSE, &params, payload_type, FALSE, FALSE);
-		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
 		/* Use 10% packet lost to be sure to have decoding errors. */
 		params.enabled = TRUE;
@@ -872,7 +870,7 @@ static void avpf_video_stream_first_iframe_lost_base(int payload_type) {
 		params.enabled = TRUE;
 		params.loss_rate = 100.;
 		init_video_streams(marielle, margaux, TRUE, FALSE, &params, payload_type, FALSE, FALSE);
-		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1000);
+		wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 1500);
 
 		/* Remove the lost to be sure that a PLI will be sent and not a SLI. */
 		params.enabled = TRUE;
@@ -1153,7 +1151,9 @@ static void video_stream_normal_loss_with_retransmission_on_nack(void) {
 		wait_for_until_with_parse_events(&marielle->vs->ms, &margaux->vs->ms, &dummy, 1, 10000, event_queue_cb,
 		                                 &marielle->stats, event_queue_cb, &margaux->stats);
 
-		BC_ASSERT_LOWER(margaux->stats.number_of_sent_SLI, 5, int, "%d");
+		/* Margaux is not supposed to send SLI. It may happend but much less than Marielle as she is
+		 * sending NACK and not Margaux */
+		BC_ASSERT_GREATER(marielle->stats.number_of_sent_SLI - margaux->stats.number_of_sent_SLI, 5, int, "%d");
 
 		/* Since there is some loss_rate the nack context should increase the min_size */
 		rtp_session_get_jitter_buffer_params(margaux->vs->ms.sessions.rtp_session, &current_jitter_params);

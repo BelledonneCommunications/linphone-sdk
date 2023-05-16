@@ -96,6 +96,8 @@ void mediastreamer2_tester_init(void (*ftester_printf)(int level, const char *fm
 	if (ftester_printf == NULL) ftester_printf = log_handler;
 	bc_tester_init(ftester_printf, ORTP_MESSAGE, ORTP_ERROR, "sounds");
 
+	ms_tester_set_random_port(); // this allow several tester to run simultaneously on the same machine
+
 	bc_tester_add_suite(&basic_audio_test_suite);
 	bc_tester_add_suite(&sound_card_test_suite);
 	bc_tester_add_suite(&adaptive_test_suite);

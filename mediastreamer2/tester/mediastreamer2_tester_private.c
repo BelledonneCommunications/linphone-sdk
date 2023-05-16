@@ -56,6 +56,8 @@ MSFilter *ms_tester_videocapture = NULL;
 char *ms_tester_codec_mime = "pcmu";
 unsigned char ms_tester_tone_detected;
 
+int base_port = 1024;
+
 static MSTicker *create_ticker(void) {
 	MSTickerParams params;
 	params.name = "Tester MSTicker";
@@ -74,6 +76,11 @@ void ms_tester_destroy_ticker(void) {
 		ms_ticker_destroy(ms_tester_ticker);
 		ms_tester_ticker = NULL;
 	}
+}
+
+void ms_tester_set_random_port(void) {
+	// This allow multiple tester to be run on the same machine
+	base_port = (bctbx_random() % (0xffff - 8096 - 32)) + 8096;
 }
 
 #define CREATE_FILTER(mask, filter, factory, id)                                                                       \

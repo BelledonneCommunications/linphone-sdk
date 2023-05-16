@@ -47,17 +47,11 @@ static OrtpEvQueue *receiverv_q = NULL;
 
 #endif
 
-int RECEIVER_RTP_PORT;
-
-#define RECEIVER_IP "127.0.0.1"
+#define RECEIVER_RTP_PORT (base_port + 9);
+#define SENDER_RTP_PORT (base_port + 10);
 
 #define PIANO_FILE "sounds/hello16000.wav"
 #define RECORD_FILE "adaptive_jitter.wav"
-
-static void set_random_ports(void) {
-	/*This allow multiple tester to be run on the same machine*/
-	RECEIVER_RTP_PORT = rand() % (0xffff - 1024) + 1024;
-}
 
 int drifting_ticker(BCTBX_UNUSED(void *data), BCTBX_UNUSED(uint64_t virt_ticker_time)) {
 	ortpTimeSpec ts;
@@ -75,7 +69,6 @@ static int tester_before_all(void) {
 	// ms_filter_enable_statistics(TRUE);
 	ms_factory_enable_statistics(_factory, TRUE);
 	profile = ms_tester_create_rtp_profile();
-	set_random_ports();
 	ms_factory_create_event_queue(_factory);
 	return 0;
 }
@@ -481,14 +474,13 @@ void congestion_adaptation(OrtpJitterBufferAlgorithm algo) {
 	int pause_time = 0;
 	char *hello_file = bc_tester_res(PIANO_FILE);
 	unsigned init_time = 0;
-	int sender_port = rand() % (0xffff - 1024) + 1024;
 	OrtpNetworkSimulatorParams netsim = {0};
 
 	netsim.enabled = TRUE;
 	netsim.max_buffer_size = 40000 * 5; // 5 secs of buffering allowed
 
 	congestion_count = 0;
-	sender = audio_stream_new(_factory, sender_port, 0, FALSE);
+	sender = audio_stream_new(_factory, SENDER_RTP_PORT, 0, FALSE);
 	receiver = audio_stream_new(_factory, RECEIVER_RTP_PORT, 0, FALSE);
 
 	rtp_session_enable_congestion_detection(receiver->ms.sessions.rtp_session, TRUE);

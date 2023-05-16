@@ -110,6 +110,23 @@ bool_t wait_for_until_with_parse_events(MediaStream *ms1,
                                         void *ptr2);
 bool_t wait_for(MediaStream *ms1, MediaStream *ms2, int *counter, int value);
 
+/* define local IP and ports used by all tests requiring it */
+#define MARIELLE_IP "127.0.0.1"
+#define MARGAUX_IP "127.0.0.1"
+#define PAULINE_IP "127.0.0.1"
+#define RELAY_IP "127.0.0.1"
+#define MULTICAST_IP "224.1.2.3"
+
+#define RECEIVER_IP "127.0.0.1"
+
+/* This base port is randomly choosen at tester launch so several testerc*/
+extern int base_port;
+void ms_tester_set_random_port(void);
+/* Then the following suites uses range (from base port)
+ * - audio stream : 0-8
+ * - jitter_buffer: 9-10
+ * - double encryption 11 - 23
+ */
 #ifdef __cplusplus
 }
 #endif
