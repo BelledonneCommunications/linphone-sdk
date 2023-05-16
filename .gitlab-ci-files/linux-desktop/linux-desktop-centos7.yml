@@ -54,9 +54,9 @@ centos7-ninja-gcc:
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON
   extends: .linux-desktop
 
-centos7-ninja-gcc-tunnel-pq:
+centos7-ninja-gcc-tunnel-pq-h264:
   variables:
-    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
+    CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_CODECS=ON
   extends: centos7-ninja-gcc
 
 #################################################
@@ -75,13 +75,13 @@ pqc-centos7-test:
   extends: .test-pqc
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
   needs:
-    - centos7-ninja-gcc-tunnel-pq
+    - centos7-ninja-gcc-tunnel-pq-h264
 
 # pqc-centos7-test-mr:
 #  extends: .test-pqc-mr
 #  <<: *docker_image_needs_platform_runner_tag_dev_toolset
 #  needs:
-#    - centos7-ninja-gcc-tunnel-pq
+#    - centos7-ninja-gcc-tunnel-pq-h264
 
 belr-centos7-test:
   extends: .test-belr
@@ -151,6 +151,16 @@ mediastreamer-centos7-test:
 #   extends: .test-mediastreamer-mr
 #   <<: *docker_image_needs_platform_devtoolset_ms
 
+mediastreamer-centos7-test-h264-mr:
+  extends: .test-mediastreamer-mr
+  needs:
+    - centos7-ninja-gcc-tunnel-pq-h264
+  variables:
+    PLATFORM: linux-centos7
+  before_script:
+    - source /opt/rh/devtoolset-8/enable
+
+
 .factorize_liblinphone_centos7: &docker_image_needs_platform_devtoolset_libl
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   needs:
@@ -169,7 +179,7 @@ liblinphone-centos7-test-tunnel-pq:
     - .test-liblinphone-tunnel-pq
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   needs:
-    - centos7-ninja-gcc-tunnel-pq
+    - centos7-ninja-gcc-tunnel-pq-h264
   variables:
     PLATFORM: linux-centos7
   before_script:
@@ -184,7 +194,7 @@ liblinphone-centos7-test-mr-tunnel-pq:
     - .test-liblinphone-tunnel-pq-mr
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos7-test-liblinphone:$CENTOS_7_TEST_LIBLIN_IMAGE_VERSION
   needs:
-    - centos7-ninja-gcc-tunnel-pq
+    - centos7-ninja-gcc-tunnel-pq-h264
   variables:
     PLATFORM: linux-centos7
   before_script:
