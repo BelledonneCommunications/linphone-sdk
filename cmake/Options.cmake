@@ -158,7 +158,7 @@ linphonesdk_option("PCAP" "PCAP support." OFF)
 linphonesdk_option("Relative prefix" "liblinphone and mediastreamer will look for their respective ressources relatively to their location." OFF)
 linphonesdk_option("RTP Map always in SDP" "Always include rtpmap in SDP." OFF)
 linphonesdk_option("Tunnel" "Enable build of tunnel." OFF)
-linphonesdk_dependent_option("Ekt Server Plugin" "Enable build of the EKT server plugin." OFF "BUILD_LIBLINPHONE" OFF)
+linphonesdk_dependent_option("Ekt Server Plugin" "Enable build of the EKT server plugin (needs ENABLE_CXX_WRAPPER)." OFF "BUILD_LIBLINPHONE" OFF "ENABLE_CXX_WRAPPER" OFF)
 linphonesdk_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." ON)
 
 # Activation of encryption related features

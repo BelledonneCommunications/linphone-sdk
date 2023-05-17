@@ -1,6 +1,6 @@
 ############################################################################
-# EktServer.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# FindLinphone.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,26 +19,36 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# Find the liblinphone++ library.
+#
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  liblinphone++ - If the liblinphone++ library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  LibLinphoneCxx_FOUND - The liblinphone++ library has been found
+#  LibLinphoneCxx_TARGET - The name of the CMake target for the liblinphone++ library
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
-linphone_sdk_check_git()
+set(_LibLinphoneCxx_REQUIRED_VARS LibLinphoneCxx_TARGET)
+set(_LibLinphoneCxx_CACHE_VARS ${_LibLinphoneCxx_REQUIRED_VARS})
 
-set(EKT_SERVER_REVISION "1806015f62b4c4c3f617f631ccf47881c1eee1bf")
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch" "--all"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
-	)
-else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/ekt-server.git" "ekt-server"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
+if(TARGET liblinphone++)
+	set(LibLinphoneCxx_TARGET liblinphone++)
 endif()
 
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${EKT_SERVER_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LibLinphoneCxx
+		REQUIRED_VARS ${_LibLinphoneCxx_REQUIRED_VARS}
+		HANDLE_COMPONENTS
 )
+mark_as_advanced(${_LibLinphoneCxx_CACHE_VARS})

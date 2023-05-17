@@ -237,11 +237,12 @@
           EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_OVER_TUNNEL_AND_PQ=0;
 
-          ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
+          ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" --suite "Local conference tester (End to end encryption)" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
 
           ./$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+
         fi
 
     - $PULSEAUDIO_KILL

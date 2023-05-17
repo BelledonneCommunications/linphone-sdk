@@ -9,10 +9,10 @@ leak:eventapi_tester.c
 leak:external_domain_tester.c
 leak:group_chat_ephemeral_tester.c
 leak:group_chat_tester.c
-leak:local_chat_imdn_tester.cpp
-leak:local_ephemeral_chat_tester.cpp
-leak:local_ice_conference_tester.cpp
-leak:local_secure_chat_tester.cpp
+leak:local-chat-imdn-tester.cpp
+leak:local-ephemeral-chat-tester.cpp
+leak:local-ice-conference-tester.cpp
+leak:local-secure-chat-tester.cpp
 
 # Same but with tests (in case the file contains multiple suites but some are not leaking)
 
@@ -77,3 +77,7 @@ leak:group_chat_lime_x3dh_unique_one_to_one_chat_room_reply_forward_message_with
 leak:group_chat_lime_x3dh_chat_room_reaction_message
 leak:group_chat_lime_x3dh_chat_room_reaction_message_with_core_restart
 leak:group_chat_lime_x3dh_chat_room_multiple_reactions_from_same_identity_but_different_gruu
+
+# EKT manager
+leak:create_simple_end_to_end_encrypted_conference_with_server_restart
+leak:create_simple_end_to_end_encrypted_conference_with_client_restart
