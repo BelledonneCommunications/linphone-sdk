@@ -82,6 +82,26 @@ private:
 }; // class RNG
 
 /*****************************************************************************/
+/***                     Base 64 Encoding & Decoding                       ***/
+/*****************************************************************************/
+
+/**
+ * @brief Encode a vector in a base 64 string
+ *
+ * @param[in] input The input vector
+ * @return The base 64 output string
+ */
+std::string encodeBase64(const std::vector<uint8_t> &input);
+
+/**
+ * @brief Decode a base 64 string in a vector
+ *
+ * @param[in] input The base 64 input string
+ * @return The outpur vector
+ */
+std::vector<uint8_t> decodeBase64(const std::string &input);
+
+/*****************************************************************************/
 /***                      Hash related function                            ***/
 /*****************************************************************************/
 /**

@@ -564,6 +564,102 @@ static void sign_and_key_exchange(void) {
 	bctbx_rng_context_free(RNG);
 }
 
+static void base64_test(void) {
+	std::string resString;
+	std::string expectedString = "";
+	std::vector<uint8_t> pattern{};
+	std::vector<uint8_t> resVector{};
+
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f'};
+	expectedString = "Zg==";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f', 'o'};
+	expectedString = "Zm8=";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f', 'o', 'o'};
+	expectedString = "Zm9v";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f', 'o', 'o', 'b'};
+	expectedString = "Zm9vYg==";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f', 'o', 'o', 'b', 'a'};
+	expectedString = "Zm9vYmE=";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	pattern = {'f', 'o', 'o', 'b', 'a', 'r'};
+	expectedString = "Zm9vYmFy";
+	resString = encodeBase64(pattern);
+	BC_ASSERT_TRUE(resString.compare(expectedString) == 0);
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector == pattern);
+
+	pattern.clear();
+	expectedString.clear();
+	resString.clear();
+	resVector.clear();
+
+	resString = ";semicolonisinvalidinBase64";
+	resVector = decodeBase64(resString);
+	BC_ASSERT_TRUE(resVector.empty());
+
+	resString.clear();
+	resVector.clear();
+}
+
 static void hash_test(void) {
 	/* SHA patterns */
 	char const *sha_input = "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlm"
@@ -1237,11 +1333,12 @@ static test_t crypto_tests[] = {
     TEST_NO_TAG("EdDSA sign and verify", EdDSA),
     TEST_NO_TAG("Ed25519 to X25519 key conversion", ed25519_to_x25519_keyconversion),
     TEST_NO_TAG("Sign message and exchange key using the same base secret", sign_and_key_exchange),
+    TEST_NO_TAG("Base 64", base64_test),
     TEST_NO_TAG("Hash functions", hash_test),
     TEST_NO_TAG("RNG", rng_test),
     TEST_NO_TAG("AEAD", AEAD),
     TEST_NO_TAG("Key wrap", key_wrap_test),
 };
 
-test_suite_t crypto_test_suite = {"Crypto",    NULL, NULL, NULL, NULL, sizeof(crypto_tests) / sizeof(crypto_tests[0]),
+test_suite_t crypto_test_suite = {"Crypto",     NULL, NULL, NULL, NULL, sizeof(crypto_tests) / sizeof(crypto_tests[0]),
                                   crypto_tests, 0};

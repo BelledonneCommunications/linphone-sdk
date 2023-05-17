@@ -143,7 +143,7 @@ unsigned long __bctbx_thread_self(void);
 //  On UWP, we have : 1001
 //  On Desktop : we have : 1101
 //  Uncomment line below to check combination
-//#define BCTBX_CHECK_FAMILY
+// #define BCTBX_CHECK_FAMILY
 #ifdef BCTBX_CHECK_FAMILY
 #if defined(WINAPI_PARTITION_PC_APP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_PC_APP)
 #define FAMILY1
@@ -617,6 +617,12 @@ BCTBX_PUBLIC uint32_t bctbx_time_string_to_sec(const char *timeString);
  * @return a 32 bits unsigned random. DO NOT USE THIS RANDOM SOURCE FOR ANY CRYPTOGRAPHIC OPERATION
  */
 BCTBX_PUBLIC unsigned int bctbx_random(void);
+/**
+ * Generate a non cryptographically usable alea
+ *
+ * @return a random buffer. DO NOT USE THIS RANDOM SOURCE FOR ANY CRYPTOGRAPHIC OPERATION
+ */
+BCTBX_PUBLIC void bctbx_random_bytes(unsigned char *ret, size_t size);
 
 BCTBX_PUBLIC ssize_t bctbx_send(bctbx_socket_t socket, const void *buffer, size_t length, int flags);
 BCTBX_PUBLIC ssize_t bctbx_sendto(bctbx_socket_t socket,

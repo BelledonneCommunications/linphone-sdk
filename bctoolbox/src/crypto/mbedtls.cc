@@ -20,6 +20,7 @@
 #include "config.h"
 #endif
 
+#include <mbedtls/base64.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/error.h>
@@ -43,6 +44,10 @@
  * its header is declared in port.h */
 extern "C" unsigned int bctbx_random(void) {
 	return bctoolbox::RNG::cRandomize();
+}
+
+extern "C" void bctbx_random_bytes(unsigned char *ret, size_t size) {
+	bctoolbox::RNG::cRandomize(ret, size);
 }
 
 namespace bctoolbox {
@@ -133,6 +138,47 @@ uint32_t RNG::cRandomize() {
 	uint8_t buffer[4];
 	cRandomize(buffer, 4);
 	return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
+}
+
+std::string encodeBase64(const std::vector<uint8_t> &input) {
+	size_t byteWritten = 0;
+	size_t outputLength = 0;
+	auto inputBuffer = input.data();
+	size_t inputLength = input.size();
+	mbedtls_base64_encode(nullptr, outputLength, &byteWritten, inputBuffer,
+	                      inputLength); // set encodedLength to the correct value
+	outputLength = byteWritten;
+	if (outputLength == 0) return std::string();
+	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate encoded buffer with correct length
+	int ret =
+	    mbedtls_base64_encode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real encoding
+	if (ret != 0) {
+		delete[] outputBuffer;
+		return std::string();
+	}
+	std::string output((char *)outputBuffer);
+	delete[] outputBuffer;
+	return output;
+}
+
+std::vector<uint8_t> decodeBase64(const std::string &input) {
+	size_t byteWritten = 0;
+	size_t outputLength = 0;
+	const unsigned char *inputBuffer = (const unsigned char *)input.data();
+	size_t inputLength = input.size();
+	mbedtls_base64_decode(nullptr, outputLength, &byteWritten, inputBuffer,
+	                      inputLength); // set decodedLength to the correct value
+	outputLength = byteWritten;
+	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate decoded buffer with correct length
+	int ret =
+	    mbedtls_base64_decode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real decoding
+	if (ret != 0) {
+		delete[] outputBuffer;
+		return std::vector<uint8_t>();
+	}
+	std::vector<uint8_t> output(outputBuffer, outputBuffer + outputLength);
+	delete[] outputBuffer;
+	return output;
 }
 
 /*****************************************************************************/

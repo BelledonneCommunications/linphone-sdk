@@ -46,6 +46,14 @@ public:
 	operator T *() {
 		return mPointer;
 	};
+
+	const T *operator->() const {
+		return mPointer;
+	};
+
+	operator const T *() const {
+		return mPointer;
+	};
 };
 
 /* A pointer that IS responsible for the destruction of its pointee.
