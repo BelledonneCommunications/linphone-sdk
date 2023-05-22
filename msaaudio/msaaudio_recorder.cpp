@@ -177,9 +177,13 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ictx->session_id = AAudioStream_getSessionId(ictx->stream);
 		ms_message("[AAudio Recorder] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
 		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
-			JNIEnv *env = ms_get_jni_env();
-			ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
-			ms_message("[AAudio Recorder] Hardware echo canceller enabled");
+			if (ictx->aec == NULL) {
+				JNIEnv *env = ms_get_jni_env();
+				ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
+				ms_message("[AAudio Recorder] Hardware echo canceller enabled");
+			} else {
+				ms_error("[AAudio Recorder] Hardware echo canceller object already created and not released!");
+			}
 		} else {
 			ms_warning("[AAudio Recorder] Session ID is AAUDIO_SESSION_ID_NONE, can't enable hardware echo canceller");
 		}
@@ -196,6 +200,13 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 			ms_error("[AAudio Recorder] Recorder stream stop failed: %i / %s", result, AAudio_convertResultToText(result));
 		} else {
 			ms_message("[AAudio Recorder] Recorder stream stopped");
+		}
+
+		if (ictx->aec) {
+			JNIEnv *env = ms_get_jni_env();
+			ms_android_delete_hardware_echo_canceller(env, ictx->aec);
+			ictx->aec = NULL;
+			ms_message("[AAudio Recorder] Hardware echo canceller deleted");
 		}
 
 		result = AAudioStream_close(ictx->stream);
@@ -219,6 +230,8 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	ictx->mFilter = obj;
 	ictx->read_samples = 0;
 
+	ms_mutex_lock(&ictx->stream_mutex);
+
 	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
 		ms_message("[AAudio Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
 		ictx->bluetoothScoStarted = true;
@@ -226,14 +239,18 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, ictx->bluetoothScoStarted);
 	}
-	
+
 	aaudio_recorder_init(ictx);
 
+	ms_mutex_lock(&ictx->mutex);
 	if (ictx->mTickerSynchronizer == NULL) {
 		MSFilter *obj = ictx->mFilter;
 		ictx->mTickerSynchronizer = ms_ticker_synchronizer_new();
 		ms_ticker_set_synchronizer(obj->ticker, ictx->mTickerSynchronizer);
 	}
+	ms_mutex_unlock(&ictx->mutex);
+
+	ms_mutex_unlock(&ictx->stream_mutex);
 }
 
 static void android_snd_read_process(MSFilter *obj) {
@@ -294,27 +311,22 @@ static void android_snd_read_process(MSFilter *obj) {
 
 static void android_snd_read_postprocess(MSFilter *obj) {
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
+
 	aaudio_recorder_close(ictx);
 
-	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	ms_mutex_lock(&ictx->mutex);
+
+	ms_ticker_set_synchronizer(obj->ticker, NULL);
 	if (ictx->mTickerSynchronizer != NULL) {
 		ms_ticker_synchronizer_destroy(ictx->mTickerSynchronizer);
 		ictx->mTickerSynchronizer = NULL;
 	}
 
-	JNIEnv *env = ms_get_jni_env();
-
-	if (ictx->aec) {
-		ms_android_delete_hardware_echo_canceller(env, ictx->aec);
-		ictx->aec = NULL;
-		ms_message("[AAudio Recorder] Hardware echo canceller deleted");
-	}
-	
 	if (ictx->bluetoothScoStarted) {
 		ms_message("[AAudio Recorder] We previously started SCO in Android's AudioManager, stopping it now");
 		ictx->bluetoothScoStarted = false;
 		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
+		JNIEnv *env = ms_get_jni_env();	
 		ms_android_set_bt_enable(env, FALSE);
 	}
 
@@ -322,12 +334,13 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 }
 
 static void android_snd_read_uninit(MSFilter *obj) {
-
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(obj->data);
+
 	if (ictx->soundCard) {
 		ms_snd_card_unref(ictx->soundCard);
 		ictx->soundCard = NULL;
 	}
+
 	delete ictx;
 }
 
@@ -363,6 +376,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	// Change device ID only if the new value is different from the previous one
 	if (ictx->soundCard->internal_id != card->internal_id) {
 		ms_mutex_lock(&ictx->stream_mutex);
+
 		if (ictx->soundCard) {
 			ms_snd_card_unref(ictx->soundCard);
 			ictx->soundCard = NULL;
@@ -382,6 +396,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 			ms_android_set_bt_enable(env, bluetoothSoundDevice);
 			ictx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
+		
 		ms_mutex_unlock(&ictx->stream_mutex);
 	}
 	return 0;
