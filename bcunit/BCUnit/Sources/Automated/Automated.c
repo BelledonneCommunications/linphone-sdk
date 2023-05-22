@@ -270,6 +270,7 @@ static CU_ErrorCode initialize_result_file(const char* szFilename)
 static char* to_xml_safe(const char* szSource) {
   size_t szXmlSafe_len = CU_translated_strlen(szSource) + 1;
   char* szXmlSafe = (char *)CU_MALLOC(szXmlSafe_len);
+  memset(szXmlSafe, 0, szXmlSafe_len);
   CU_translate_special_characters(szSource, szXmlSafe, szXmlSafe_len); // ignored return
   return szXmlSafe;
 }
