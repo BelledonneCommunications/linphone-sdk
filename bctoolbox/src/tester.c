@@ -578,7 +578,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 		offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
 		for (i = 0; i < nb_test_suites; i++) {
 			if (suite_junit_xml_results[i] != NULL) {
-				offset += bctbx_file_fprintf(bctbx_file, offset, suite_junit_xml_results[i]);
+				offset += bctbx_file_fprintf(bctbx_file, offset, "%s", suite_junit_xml_results[i]);
 				bctbx_free(suite_junit_xml_results[i]);
 			}
 		}
