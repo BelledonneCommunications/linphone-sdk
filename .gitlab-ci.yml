@@ -36,6 +36,8 @@ workflow:
     - if: $CI_PIPELINE_SOURCE == "schedule"
 
 include:
+  - '.gitlab-ci-files/rules.yml'
+
   - '.gitlab-ci-files/.docker-images.yml'
   - '.gitlab-ci-files/.set_parallel_level.yml'
   - '.gitlab-ci-files/.choose_upload_dir.yml'

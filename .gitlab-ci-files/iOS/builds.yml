@@ -56,6 +56,7 @@
 
 ios-makefile:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
@@ -86,6 +87,7 @@ ios-ninja:
 
 ios-ninja-allcodecs:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
@@ -99,6 +101,7 @@ ios-ninja-allcodecs:
 ios-ninja-g729:
 
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
@@ -109,6 +112,7 @@ ios-ninja-g729:
 
 ios-ninja-novideo:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
@@ -119,6 +123,7 @@ ios-ninja-novideo:
 
 ios-ninja-smallsdk:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
 
@@ -129,6 +134,7 @@ ios-ninja-smallsdk:
 
 ios-ninja-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
@@ -140,6 +146,7 @@ ios-ninja-pqc:
 #################################################
 ios-xcode:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
@@ -173,6 +180,7 @@ ios-xcode:
 
 ios-xcode-novideo:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_IOS
@@ -203,6 +211,7 @@ ios-xcode-novideo:
 
 ios-xcode-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
 
   variables:

@@ -19,6 +19,7 @@ centos8-makefile-gcc:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -34,6 +35,7 @@ centos8-makefile-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -64,6 +66,7 @@ centos8-ninja-gcc-novideo:
 
   tags: [ "docker" ]
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -73,6 +76,7 @@ centos8-ninja-gcc-pqc:
 
   tags: [ "docker" ]
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES
@@ -82,6 +86,7 @@ centos8-ninja-clang:
 
   tags: [ "docker" ]
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
@@ -93,6 +98,7 @@ centos8-ninja-clang:
 centos8-ninja-clang-novideo:
 
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO
@@ -100,6 +106,7 @@ centos8-ninja-clang-novideo:
 
 centos8-ninja-clang-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES

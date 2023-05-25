@@ -35,6 +35,7 @@ ubuntu1804-makefile-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:$UBUNTU_1804_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -46,7 +47,8 @@ ubuntu1804-makefile-clang:
 
 ubuntu1804-makefile-clang-pqc:
   rules:
-   - if: $NIGHTLY_MASTER
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=ON
   extends: ubuntu1804-makefile-clang
@@ -73,6 +75,7 @@ ubuntu1804-ninja-gcc:
 
 ubuntu1804-ninja-gcc-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $ENABLE_LINUX_TESTS
     - if: $SKIP_LINUX

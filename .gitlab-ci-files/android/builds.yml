@@ -72,6 +72,7 @@ android-ninja-r25:
 
 android-makefile-r25-g729-ldap:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
@@ -85,6 +86,7 @@ android-makefile-r25-g729-ldap:
 
 android-ninja-r25-minimal-size:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
@@ -102,6 +104,7 @@ android-ninja-r25-no-video:
 
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25:$ANDROID_R25_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $NIGHTLY_RELEASE
     - if: $DEPLOY_RUN_ANDROID
@@ -121,8 +124,8 @@ android-ninja-r25-no-video:
 #  extends: .android
 
 android-ninja-r25-smallsdk:
-
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO
@@ -130,6 +133,7 @@ android-ninja-r25-smallsdk:
 
 android-ninja-r25-allcodecs:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_CODECS=YES -DENABLE_G729=YES
@@ -143,6 +147,7 @@ android-ninja-r25-allcodecs:
 #
 android-ninja-r25-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_PQCRYPTO=YES

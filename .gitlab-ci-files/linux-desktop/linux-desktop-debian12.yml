@@ -19,6 +19,7 @@ debian12-makefile-gcc:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -33,6 +34,7 @@ debian12-makefile-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -61,6 +63,7 @@ debian12-ninja-gcc:
 
 debian12-ninja-gcc-novideo:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
@@ -68,6 +71,7 @@ debian12-ninja-gcc-novideo:
 
 debian12-ninja-gcc-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
@@ -75,6 +79,7 @@ debian12-ninja-gcc-pqc:
 
 debian12-ninja-gcc-smallsdk:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_ADVANCED_IM=NO -DENABLE_DB_STORAGE=NO -DENABLE_FLEXIAPI=NO -DENABLE_LDAP=NO
@@ -86,6 +91,7 @@ debian12-ninja-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja

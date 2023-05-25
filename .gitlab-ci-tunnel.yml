@@ -29,6 +29,8 @@ variables:
     when: runner_system_failure
 
 include:
+  - '.gitlab-ci-files/rules.yml'
+
   - '.gitlab-ci-files/.docker-images.yml'
   - '.gitlab-ci-files/.set_parallel_level.yml'
 

@@ -19,6 +19,7 @@ ubuntu-rolling-makefile-gcc:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
     - if: $DOCKER_UPDATE
   variables:
@@ -79,11 +80,13 @@ ubuntu-rolling-ninja-clang:
     CC: clang
     CXX: clang++
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
   extends: .linux-desktop
 
 ubuntu-rolling-ninja-clang-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES

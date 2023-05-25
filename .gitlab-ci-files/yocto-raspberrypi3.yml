@@ -3,7 +3,8 @@ debian11-yocto-raspberrypi3:
   tags: ["docker"]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:kirkstone-raspberrypi3
   rules:
-   - if: $NIGHTLY_MASTER
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $NIGHTLY_MASTER
   script:
     - export WORKSPACE_PATH="$CI_PROJECT_DIR"
     # Update to latest version of meta-bc for current branch (see docker file from meta-bc)

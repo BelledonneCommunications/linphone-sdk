@@ -19,6 +19,7 @@ debian10-makefile-gcc:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -34,6 +35,7 @@ debian10-makefile-clang:
   tags: [ "docker" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -64,6 +66,7 @@ debian10-ninja-gcc:
 debian10-ninja-gcc-novideo:
 
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
@@ -73,6 +76,7 @@ debian10-ninja-gcc-novideo:
 debian10-ninja-gcc-smallsdk:
 
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
 
   variables:
@@ -81,6 +85,7 @@ debian10-ninja-gcc-smallsdk:
 
 debian10-ninja-gcc-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
 
   variables:
@@ -93,6 +98,7 @@ debian10-ninja-clang:
 
   tags: [ "docker" ]
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
   variables:
@@ -113,6 +119,7 @@ debian10-ninja-clang-sanitizer:
 
 debian10-ninja-clang-novideo:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=NO -DENABLE_LDAP=NO
@@ -120,6 +127,7 @@ debian10-ninja-clang-novideo:
 
 debian10-ninja-clang-pqc:
   rules:
+    - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_PQCRYPTO=YES -DENABLE_LDAP=NO
