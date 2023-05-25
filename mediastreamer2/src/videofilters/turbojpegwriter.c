@@ -24,6 +24,7 @@
 
 #include "bctoolbox/utils.hh"
 #include "bctoolbox/vfs.h"
+#include "mediastreamer2/msasync.h"
 #include "mediastreamer2/msjpegwriter.h"
 #include "mediastreamer2/msvideo.h"
 #include "turbojpeg.h"
@@ -40,6 +41,8 @@ typedef struct {
 	char *tmpFilename;
 	tjhandle turboJpeg;
 	MSFilter *f;
+	MSWorkerThread *process_thread;
+	queue_t entry_q;
 } JpegWriter;
 
 static void close_file(JpegWriter *obj, bool_t doRenaming) {
@@ -81,11 +84,16 @@ static void jpg_init(MSFilter *f) {
 	if (s->turboJpeg == NULL) {
 		ms_error("TurboJpeg init error:%s", tjGetErrorStr());
 	}
+	s->process_thread = ms_worker_thread_new("MSJpegWriter");
+	qinit(&s->entry_q);
 	f->data = s;
 }
 
 static void jpg_uninit(MSFilter *f) {
 	JpegWriter *s = (JpegWriter *)f->data;
+	ms_worker_thread_destroy(s->process_thread, TRUE);
+	s->process_thread = NULL;
+	flushq(&s->entry_q, 0);
 	s->f = NULL;
 	if (s->file != NULL) {
 		close_file(s, FALSE);
@@ -110,48 +118,72 @@ static int take_snapshot(MSFilter *f, void *arg) {
 }
 
 static void cleanup(JpegWriter *s, bool_t success) {
+	ms_filter_lock(s->f);
 	if (s->file) {
 		close_file(s, success);
 	}
+	ms_filter_unlock(s->f);
+}
+
+static void jpg_process_frame_task(void *obj) {
+	MSFilter *f = (MSFilter *)obj;
+	JpegWriter *s = (JpegWriter *)f->data;
+	int error;
+	MSPicture yuvbuf;
+	unsigned char *jpegBuffer = NULL;
+	unsigned long jpegSize = 0;
+	bool_t success = FALSE;
+	mblk_t *m = NULL;
+
+	ms_filter_lock(f);
+	m = getq(&s->entry_q);
+	ms_filter_unlock(f);
+
+	if (ms_yuv_buf_init_from_mblk(&yuvbuf, m) != 0) goto end;
+
+	error = tjCompressFromYUVPlanes(
+	    s->turboJpeg,
+	    // This auto cast has the purpose to support multiple versions of turboJPEG where parameter can be const.
+	    bctoolbox::Utils::auto_cast<unsigned char **>(yuvbuf.planes), yuvbuf.w, yuvbuf.strides, yuvbuf.h, TJSAMP_420,
+	    &jpegBuffer, &jpegSize, 100, TJFLAG_ACCURATEDCT);
+
+	if (error != 0) {
+		ms_error("tjCompressFromYUVPlanes() failed: %s", tjGetErrorStr());
+		if (jpegBuffer != NULL) tjFree(jpegBuffer);
+		goto end;
+	}
+
+	ms_filter_lock(f);
+	if (s->file != NULL && bctbx_file_write2(s->file, jpegBuffer, jpegSize) != BCTBX_VFS_ERROR) {
+		ms_message("Snapshot done with turbojpeg");
+		success = TRUE;
+	} else {
+		ms_error("Error writing snapshot.");
+	}
+	ms_filter_unlock(f);
+
+	tjFree(jpegBuffer);
+
+end:
+	freemsg(m);
+	cleanup(s, success);
 }
 
 static void jpg_process(MSFilter *f) {
-	bool_t success = FALSE;
 	JpegWriter *s = (JpegWriter *)f->data;
+
 	ms_filter_lock(f);
 	if (s->file != NULL && s->turboJpeg != NULL) {
-		int error;
-		MSPicture yuvbuf;
-		unsigned char *jpegBuffer = NULL;
-		unsigned long jpegSize = 0;
+		mblk_t *img = ms_queue_peek_last(f->inputs[0]);
 
-		mblk_t *m = ms_queue_peek_last(f->inputs[0]);
-
-		if (ms_yuv_buf_init_from_mblk(&yuvbuf, m) != 0) goto end;
-
-		error = tjCompressFromYUVPlanes(
-		    s->turboJpeg,
-		    // This auto cast has the purpose to support multiple versions of turboJPEG where parameter can be const.
-		    bctoolbox::Utils::auto_cast<unsigned char **>(yuvbuf.planes), yuvbuf.w, yuvbuf.strides, yuvbuf.h,
-		    TJSAMP_420, &jpegBuffer, &jpegSize, 100, TJFLAG_ACCURATEDCT);
-
-		if (error != 0) {
-			ms_error("tjCompressFromYUVPlanes() failed: %s", tjGetErrorStr());
-			if (jpegBuffer != NULL) tjFree(jpegBuffer);
-			goto end;
+		if (img != NULL) {
+			ms_queue_remove(f->inputs[0], img);
+			putq(&s->entry_q, img);
+			ms_worker_thread_add_task(s->process_thread, jpg_process_frame_task, (void *)f);
 		}
-		if (bctbx_file_write2(s->file, jpegBuffer, jpegSize) != BCTBX_VFS_ERROR) {
-			ms_message("Snapshot done with turbojpeg");
-			success = TRUE;
-		} else {
-			ms_error("Error writing snapshot.");
-		}
-
-		tjFree(jpegBuffer);
 	}
-end:
-	cleanup(s, success);
 	ms_filter_unlock(f);
+
 	ms_queue_flush(f->inputs[0]);
 }
 
