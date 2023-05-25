@@ -217,7 +217,7 @@ static int belle_sip_dialog_schedule_expiration(belle_sip_dialog_t *dialog, bell
  * Special function to handle the case where a dialog is established by an incoming NOTIFY
  * (received prior to the SUBSCRIBE 200 OK. See https://www.rfc-editor.org/rfc/rfc6665.html#section-4.4.1
  */
-int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_request_t *req){
+int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_request_t *req) {
 	belle_sip_header_contact_t *ct = belle_sip_message_get_header_by_type(req, belle_sip_header_contact_t);
 	belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
 	belle_sip_header_cseq_t *cseq = belle_sip_message_get_header_by_type(req, belle_sip_header_cseq_t);
@@ -230,12 +230,13 @@ int belle_sip_dialog_establish_from_notify(belle_sip_dialog_t *obj, belle_sip_re
 	}
 
 	obj->route_set = belle_sip_list_free_with_data(obj->route_set, belle_sip_object_unref);
-	for(elem = belle_sip_message_get_headers((belle_sip_message_t*)req,BELLE_SIP_RECORD_ROUTE); elem != NULL; elem = elem->next){
-		obj->route_set = belle_sip_list_append(obj->route_set,belle_sip_object_ref(belle_sip_header_route_create(
-												(belle_sip_header_address_t*)elem->data)));
+	for (elem = belle_sip_message_get_headers((belle_sip_message_t *)req, BELLE_SIP_RECORD_ROUTE); elem != NULL;
+	     elem = elem->next) {
+		obj->route_set = belle_sip_list_append(obj->route_set, belle_sip_object_ref(belle_sip_header_route_create(
+		                                                           (belle_sip_header_address_t *)elem->data)));
 	}
 	obj->remote_cseq = belle_sip_header_cseq_get_seq_number(cseq);
-	obj->remote_target = (belle_sip_header_address_t*)belle_sip_object_ref(ct);
+	obj->remote_target = (belle_sip_header_address_t *)belle_sip_object_ref(ct);
 	obj->remote_tag = belle_sip_strdup(from_tag);
 	set_state(obj, BELLE_SIP_DIALOG_CONFIRMED);
 	return 0;
@@ -685,7 +686,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 			}
 			break;
 		case BELLE_SIP_DIALOG_CONFIRMED:
-			if (code==481 && (is_invite || is_subscribe || is_notify)) {
+			if (code == 481 && (is_invite || is_subscribe || is_notify)) {
 				/*Dialog is terminated in such case*/
 				delete_dialog = TRUE;
 				break;
@@ -1315,33 +1316,12 @@ If an initial SUBSCRIBE is sent on a pre-existing dialog, a matching
    */
 
 int belle_sip_dialog_can_accept_request(const belle_sip_dialog_t *dialog, belle_sip_request_t *req) {
-	const char *method = belle_sip_request_get_method(req);
 	if (belle_sip_dialog_request_pending(dialog)) {
-		const char *last_transaction_request;
-		if (strcasecmp(method, "BYE") == 0) return TRUE; /*don't reject a BYE*/
-
-		last_transaction_request =
+		const char *method = belle_sip_request_get_method(req);
+		const char *last_transaction_request =
 		    belle_sip_request_get_method(belle_sip_transaction_get_request(dialog->last_transaction));
-		if (BELLE_SIP_OBJECT_IS_INSTANCE_OF(dialog->last_transaction, belle_sip_client_transaction_t)) {
-			if (strcmp(last_transaction_request, "SUBSCRIBE") == 0 && strcmp(method, "NOTIFY") == 0) {
-				/*stupid as it may sound, you have to accept a NOTIFY for a SUBSCRIBE for which no answer is received
-				 * yet.*/
-				return TRUE;
-			} else if (strcmp(last_transaction_request, "NOTIFY") == 0 && strcmp(method, "SUBSCRIBE") == 0) {
-				belle_sip_header_expires_t *expire =
-				    belle_sip_message_get_header_by_type((belle_sip_message_t *)req, belle_sip_header_expires_t);
-				if (expire && belle_sip_header_expires_get_expires(expire) == 0) {
-					/* Accept to receive an unSUBSCRIBE even if we have an outgoing pending NOTIFY */
-					return TRUE;
-				}
-			}
-		}
-		if (strcmp(last_transaction_request, "INVITE") == 0 &&
-		    (strcmp(method, "PRACK") == 0 || strcmp(method, "UPDATE") == 0)) {
-			/*PRACK /UPDATE needs to be sent or received during reINVITEs.*/
-			return TRUE;
-		}
-		return FALSE;
+		// Back to back INVITES must be processed in order and one at a time
+		return !((strcmp(last_transaction_request, "INVITE") == 0) && (strcmp(method, "INVITE") == 0));
 	} else {
 		return TRUE;
 	}
