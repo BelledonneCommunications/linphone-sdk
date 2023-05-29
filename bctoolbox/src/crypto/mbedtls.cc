@@ -35,8 +35,15 @@
 #include "bctoolbox/crypto.hh"
 #include "bctoolbox/defs.h"
 #include "bctoolbox/exception.hh"
+#include "bctoolbox/port.h"
 
 #include <array>
+
+/* bctbx_random returns a 32 bits random non suitable for cryptographic operation
+ * its header is declared in port.h */
+extern "C" unsigned int bctbx_random(void) {
+	return bctoolbox::RNG::cRandomize();
+}
 
 namespace bctoolbox {
 

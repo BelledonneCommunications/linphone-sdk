@@ -1100,6 +1100,8 @@ char *strtok_r(char *str, const char *delim, char **nextp) {
 }
 #endif
 
+/* if we have mbedtls, use it to provide randomness, otherwise do it here */
+#ifndef HAVE_MBEDTLS
 #if defined(_WIN32) && !defined(_MSC_VER)
 #include <wincrypt.h>
 static int bctbx_wincrypto_random(unsigned int *rand_number) {
@@ -1167,6 +1169,7 @@ unsigned int bctbx_random(void) {
 	return (unsigned int)random();
 #endif
 }
+#endif /* HAVE_MBEDTLS */
 
 bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 
