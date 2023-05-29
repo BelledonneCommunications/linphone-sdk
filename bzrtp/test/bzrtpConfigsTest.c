@@ -21,6 +21,7 @@
 #include <time.h>
 
 #include <bctoolbox/defs.h>
+#include <bctoolbox/port.h>
 
 #include "bzrtp/bzrtp.h"
 #include "zidCache.h"
@@ -149,7 +150,7 @@ static int sendData(void *clientData, const uint8_t *packetString, uint16_t pack
 	if (loosePacketPercentage > 0) {
 		totalPacketSent++; // Stats on packets sent only when we can loose packets
 		/* make sure we cannot loose 10 packets in a row from the same sender */
-		if ((continuousPacketLost<10) && ((float)((rand()%100 )) < loosePacketPercentage-((clientContext->id == ALICE)?fadingLostAlice:fadingLostBob))) { /* randomly discard packets */
+		if ((continuousPacketLost<10) && ((float)((bctbx_random()%100 )) < loosePacketPercentage-((clientContext->id == ALICE)?fadingLostAlice:fadingLostBob))) { /* randomly discard packets */
 			//bzrtp_message("%d Loose %.8s from %s - LC %d\n", msSTC, packetString+16, (clientContext->id==ALICE?"Alice":"Bob"), totalPacketLost);
 
 			if (clientContext->id == ALICE) {
