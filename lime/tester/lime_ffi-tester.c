@@ -22,6 +22,7 @@
 */
 
 #include <bctoolbox/tester.h>
+#include <bctoolbox/port.h>
 /* Variable defined to get the arguments of the test command line,
  * they are duplicate of pre-existing C++ buffers defined in lime_tester-utils.cpp
  * but it is easier to implement this way as code is more readable
@@ -54,7 +55,6 @@ static belle_http_provider_t *prov=NULL;
 
 static int http_before_all(void) {
 	char ca_root_path[256];
-	time_t t;
 
 	stack=belle_sip_stack_new(NULL);
 
@@ -67,8 +67,6 @@ static int http_before_all(void) {
 	belle_http_provider_set_tls_crypto_config(prov,crypto_config);
 	belle_sip_object_unref(crypto_config);
 
-	/* init the pseudo rng seed or will always get the same random device name */
-	srand((unsigned) time(&t));
 	return 0;
 }
 
@@ -116,7 +114,7 @@ static char *makeRandomDeviceName(const char *basename) {
 	size_t i;
 	strcpy(ret, basename);
 	for (i=strlen(basename); i<strlen(basename)+6; i++) {
-		ret[i] = ffi_charset[rand()%strlen(ffi_charset)];
+		ret[i] = ffi_charset[bctbx_random()%strlen(ffi_charset)];
 	}
 	ret[i] = '\0';
 	return ret;
