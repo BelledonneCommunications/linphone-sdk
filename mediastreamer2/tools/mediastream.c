@@ -692,9 +692,8 @@ static void video_stream_event_cb(void *user_pointer,
 			break;
 	}
 }
-static void video_stream_display_cb(BCTBX_UNUSED(void *user_pointer),
-                                  const unsigned int event_id,
-                                  BCTBX_UNUSED(const void *args)) {
+static void
+video_stream_display_cb(BCTBX_UNUSED(void *user_pointer), const unsigned int event_id, BCTBX_UNUSED(const void *args)) {
 	switch (event_id) {
 		case MS_VIDEO_DISPLAY_ERROR_OCCURRED:
 			ms_message("Video stream cannot be rendered");
@@ -860,7 +859,8 @@ void setup_media_streams(MediastreamDatas *args) {
 		//  -> input : 40 b64 encoded bytes
 		if (!args->srtp_local_master_key) {
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", rand(), rand(), rand(), rand());
+			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", bctbx_random(), bctbx_random(), bctbx_random(),
+			         bctbx_random());
 			args->srtp_local_master_key = (char *)malloc(41);
 			b64_encode((const char *)tmp, 30, args->srtp_local_master_key, 40);
 			args->srtp_local_master_key[40] = '\0';
@@ -868,7 +868,8 @@ void setup_media_streams(MediastreamDatas *args) {
 		}
 		if (!args->srtp_remote_master_key) {
 			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", rand(), rand(), rand(), rand());
+			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", bctbx_random(), bctbx_random(), bctbx_random(),
+			         bctbx_random());
 			args->srtp_remote_master_key = (char *)malloc(41);
 			b64_encode((const char *)tmp, 30, args->srtp_remote_master_key, 40);
 			args->srtp_remote_master_key[40] = '\0';
