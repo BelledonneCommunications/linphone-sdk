@@ -132,13 +132,17 @@ endmacro()
 function(bc_compute_full_version OUTPUT_VERSION)
 	find_program(GIT_EXECUTABLE git NAMES Git CMAKE_FIND_ROOT_PATH_BOTH)
 	if(GIT_EXECUTABLE)
+		# get GIT describe version
 		execute_process(
 			COMMAND "${GIT_EXECUTABLE}" "describe"
 			OUTPUT_VARIABLE GIT_DESCRIBE_VERSION
 			OUTPUT_STRIP_TRAILING_WHITESPACE
-			ERROR_QUIET
+			RESULT_VARIABLE GIT_DESCRIBE_STATUS
 			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 		)
+		if(NOT GIT_DESCRIBE_STATUS EQUAL 0)
+			message(FATAL_ERROR "fail to get GIT describe version")
+		endif()
 
 		# parse git describe version
 		if (NOT (GIT_DESCRIBE_VERSION MATCHES "^([0-9]+)[.]([0-9]+)[.]([0-9]+)(-alpha|-beta)?(-[0-9]+)?(-g[0-9a-f]+)?$"))
