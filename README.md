@@ -147,10 +147,10 @@ Next command lines must be typed in the docker shell:
 mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
 
 # Configure the build
-cmake --preset=android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+cmake --preset=android-sdk -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
 
 # Build
-cmake --build --preset=android --parallel <number of jobs>
+cmake --build --preset=android-sdk --parallel <number of jobs>
 
 # Quit build environment
 exit
