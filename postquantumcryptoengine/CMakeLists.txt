@@ -90,7 +90,7 @@ add_definitions("-DHAVE_CONFIG_H")
 add_subdirectory(include)
 add_subdirectory(src)
 
-if(ENABLE_UNIT_TESTS)
+if(ENABLE_UNIT_TESTS AND NOT ANDROID AND NOT IOS)
 	enable_testing()
 	add_subdirectory(tester)
 endif()
