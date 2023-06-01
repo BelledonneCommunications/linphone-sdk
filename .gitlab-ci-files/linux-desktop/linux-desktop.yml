@@ -187,7 +187,7 @@
           ./$TESTER_BIN --verbose --suite "Single Call" $RESOURCES_DIR --log-file logLiblinphoneSingleCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedSingleCall.xml $ADDITIONNAL_OPTIONS || EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=$?
 
           ./$TESTER_BIN --verbose --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneSecureCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedSecureCall.xml $ADDITIONNAL_OPTIONS || EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=$?
-          ./$TESTER_BIN --verbose --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneSecureCallOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
+          ./$TESTER_BIN --verbose --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
         fi
