@@ -80,11 +80,10 @@ endif()
 if(BUILD_SHARED_LIBS)
 	if(IOS)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 		set_target_properties(mscodec2 PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mscodec2
-  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+  			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 		) 
 	endif()
 	if(MSVC)
