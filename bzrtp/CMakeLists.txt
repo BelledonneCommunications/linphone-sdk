@@ -113,7 +113,7 @@ set(EXPORT_TARGETS_NAME "BZRTP")
 
 add_subdirectory(include)
 add_subdirectory(src)
-if(ENABLE_UNIT_TESTS AND NOT ANDROID)
+if(ENABLE_UNIT_TESTS AND NOT ANDROID AND NOT IOS)
 	enable_testing()
 	add_subdirectory(test)
 endif()
