@@ -126,7 +126,6 @@ linphonesdk_option("Relative prefix" "liblinphone and mediastreamer will look fo
 linphonesdk_option("RTP Map always in SDP" "Always include rtpmap in SDP." OFF)
 linphonesdk_option("Tunnel" "Enable build of tunnel." OFF)
 linphonesdk_option("Ekt Server Plugin" "Enable build of the EKT server plugin." OFF)
-linphonesdk_option("Update Check" "Enable update check." OFF)
 linphonesdk_option("VCARD" "Enable vCard 4 support in Linphone and Liblinphone." ON)
 
 # Activation of encryption related features
