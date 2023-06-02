@@ -181,11 +181,25 @@ if(ENABLE_DOC)
 	# Doxygen
 	find_package(Doxygen)
 	if (DOXYGEN_FOUND)
+		set(DOXYGEN_INPUT "")
+		file(GLOB DOC_INPUT_FILES
+			"${PROJECT_SOURCE_DIR}/include/[^.]*.h"
+			"${PROJECT_SOURCE_DIR}/include/[^.]*.hpp"
+			"${PROJECT_SOURCE_DIR}/src/[^.]*.hpp"
+			"${PROJECT_SOURCE_DIR}/src/[^.]*.cpp"
+		)
+		foreach (INPUT_FILE ${DOC_INPUT_FILES})
+			string(CONCAT DOXYGEN_INPUT ${DOXYGEN_INPUT} " \"${INPUT_FILE}\"")
+		endforeach ()
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+		add_custom_command(OUTPUT "${PROJECT_BINARY_DIR}/doc/html/index.html"
+			COMMAND "${DOXYGEN_EXECUTABLE}" "${PROJECT_BINARY_DIR}/Doxyfile"
+			DEPENDS "${PROJECT_BINARY_DIR}/Doxyfile" ${DOC_INPUT_FILES}
+		)
 		add_custom_target(lime-doc ALL
-			${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-			COMMENT "Generating API documentation with Doxygen" VERBATIM)
+			DEPENDS "${PROJECT_BINARY_DIR}/doc/html/index.html"
+			COMMENT "Generating API documentation with Doxygen" VERBATIM
+		)
 		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/doc/html/"
 			DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/lime-${LIME_VERSION}")
 	endif()
