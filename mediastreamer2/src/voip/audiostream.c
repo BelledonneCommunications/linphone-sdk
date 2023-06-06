@@ -1317,6 +1317,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 		if (stream->ms.target_bitrate > 0) {
 			ms_message("Setting audio encoder network bitrate to [%i] on stream [%p]", stream->ms.target_bitrate,
 			           stream);
+			media_stream_set_max_network_bitrate(&(stream->ms), stream->ms.target_bitrate);
 			ms_filter_call_method(stream->ms.encoder, MS_FILTER_SET_BITRATE, &stream->ms.target_bitrate);
 		}
 		rtp_session_set_target_upload_bandwidth(rtps, stream->ms.target_bitrate);

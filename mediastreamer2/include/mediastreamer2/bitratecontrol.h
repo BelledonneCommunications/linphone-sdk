@@ -41,6 +41,7 @@ struct _MSBandwidthController {
 	bctbx_list_t *controlled_streams; /*the most bandwidth consuming streams*/
 	MSBandwidthControllerStats stats;
 	float remote_video_bandwidth_available_estimated;
+	float remote_audio_bandwidth_available_estimated;
 	float maximum_bw_usage;
 	float currently_requested_stream_bandwidth; // According to congestion control and bandwith estimator only.
 	bool_t congestion_detected;
@@ -75,12 +76,6 @@ MS2_PUBLIC void ms_bandwidth_controller_reset_state(MSBandwidthController *obj);
 MS2_PUBLIC void ms_bandwidth_controller_destroy(MSBandwidthController *obj);
 
 MS2_PUBLIC void ms_bandwidth_controller_elect_controlled_streams(MSBandwidthController *obj);
-
-/**
- * Audio Bitrate controller object.
- * @deprecated
- **/
-typedef struct _MSAudioBitrateController MSAudioBitrateController;
 
 enum _MSRateControlActionType {
 	MSRateControlActionDoNothing,

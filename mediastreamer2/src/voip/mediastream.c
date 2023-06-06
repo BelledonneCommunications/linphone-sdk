@@ -837,11 +837,19 @@ void media_stream_process_tmmbr(MediaStream *ms, uint64_t tmmbr_mxtbr) {
 	int br_int;
 	ms_message("MediaStream[%p]: received a TMMBR for bitrate %llu kbits/s", ms,
 	           (unsigned long long)(tmmbr_mxtbr / 1000));
+
+	/* When audio estimator is on, the actual output will be increased so reduce the incoming TMMBR */
+	if (ms->type == MSAudio && media_stream_get_rtp_session(ms)->audio_bandwidth_estimator_enabled &&
+	    media_stream_get_rtp_session(ms)->rtp.audio_bw_estimator) {
+		tmmbr_mxtbr -=
+		    tmmbr_mxtbr / rtp_session_get_audio_bandwidth_estimator_duplicate_rate(media_stream_get_rtp_session(ms));
+	}
 	if (tmmbr_mxtbr < (uint64_t)INT_MAX) {
 		br_int = (int)tmmbr_mxtbr;
 	} else {
 		br_int = INT_MAX;
 	}
+
 	br_int = update_bitrate_limit_from_tmmbr(ms, br_int);
 	if (br_int == -1) return;
 

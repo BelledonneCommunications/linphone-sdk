@@ -318,6 +318,32 @@ static void iterate_adaptive_stream_float(
 		ms_usleep(20000);
 	}
 }
+static void iterate_adaptive_stream_bool(
+    stream_manager_t *marielle, stream_manager_t *margaux, int timeout_ms, bool_t *current, bool_t expected) {
+	int retry = 0;
+
+	MediaStream *marielle_ms, *margaux_ms;
+	if (marielle->type == MSAudio) {
+		marielle_ms = &marielle->audio_stream->ms;
+		margaux_ms = &margaux->audio_stream->ms;
+	} else {
+		marielle_ms = &marielle->video_stream->ms;
+		margaux_ms = &margaux->video_stream->ms;
+	}
+
+	while ((!current || *current != expected) && retry++ / 5 < timeout_ms / 100) {
+		media_stream_iterate(marielle_ms);
+		media_stream_iterate(margaux_ms);
+		// handle_queue_events(marielle);
+		if (retry % 50 == 0) {
+			ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec", marielle_ms,
+			           media_stream_get_down_bw(marielle_ms) / 1000, media_stream_get_up_bw(marielle_ms) / 1000);
+			ms_message("stream [%p] bandwidth usage: [d=%.1f,u=%.1f] kbit/sec", margaux_ms,
+			           media_stream_get_down_bw(margaux_ms) / 1000, media_stream_get_up_bw(margaux_ms) / 1000);
+		}
+		ms_usleep(20000);
+	}
+}
 
 static void
 stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux, BCTBX_UNUSED(bool_t destroy_files)) {
@@ -593,8 +619,8 @@ static void adaptive_vp8_lossy_congestion() {
 void video_bandwidth_estimation(float exp_bw_min, float exp_bw_max) {
 	stream_manager_t *marielle, *margaux;
 	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 256000, 1000000, 0, 50, 0, FALSE);
-	iterate_adaptive_stream_float(marielle, margaux, 600000,
-	                              &margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_min);
+	iterate_adaptive_stream_float(marielle, margaux, 30000,
+	                              &margaux->bw_controller->remote_video_bandwidth_available_estimated, 5 * exp_bw_min);
 	BC_ASSERT_GREATER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_min, float, "%f");
 	BC_ASSERT_LOWER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_max, float, "%f");
 	stop_adaptive_stream(marielle, margaux, TRUE);
@@ -602,6 +628,126 @@ void video_bandwidth_estimation(float exp_bw_min, float exp_bw_max) {
 
 static void video_bandwidth_estimator(void) {
 	video_bandwidth_estimation(810000, 1150000); // kbits/s
+}
+
+/** Scenario:
+ *  - Marielle is sending audio stream to Margaux, they both have
+ *        - audio_bandwith_estimator enabled (required on both side to activate duplicates sending)
+ *        - TMMBR enabled
+ *  - Margaux (receiver side) has bandwidth controller enabled (so it detects congestion and send TMMBR to Marielle)
+ *  - Marielle original target bitrate is 60kb/s but the network would allow only 24kb/s
+ *  - Congestion is detected on Margaux' side (it requires approx. 5 seconds), she sends a TMMBR to Marielle
+ *    with target bitrate at 0.7 the estimated bandwith (-> ends up around 15kb/s on IPV4)
+ *  - As Marielle is given a bitrate lower than the original one, she starts sending duplicate packet to enable bandwith
+ * measure by Margaux
+ *  - Once the congestion is detected to be over (around 20 more seconds), Margaux sends another TMMBR to
+ *    increase the target bitrate to 0.9 the estimated bandwidth (around 20kb/s on IPV4)
+ *  - Wait 20s and check the ABE is still ON but no false positive arises
+ *  - At this point the restricion on bandwidth is lifted, so Margaux' bandwidth estimator measure an available
+ * bandwidth much higher than the original requested (60kb/s)
+ *  - Margaux sends a TMMBR to restore the original bitrate
+ *  - Marielle stops sending duplicates for the audio bw estimator
+ */
+static void audio_bandwidth_estimator(void) {
+	int dummy = 0;
+	char *file = bc_tester_res(HELLO_16K_1S_FILE);
+	char *recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
+	/* streams use opus, enable feedback on this payload */
+	payload_type_set_flag(&payload_type_opus, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
+
+	/* create audio streams with bandwith controller, Marielle is sender */
+	stream_manager_t *marielle = stream_manager_new(MSAudio);
+	MediaStream *marielle_ms = &marielle->audio_stream->ms;
+	RtpSession *marielle_session = audio_stream_get_rtp_session(marielle->audio_stream);
+	rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+
+	stream_manager_t *margaux = stream_manager_new(MSAudio);
+	margaux->bw_controller = ms_bandwidth_controller_new(); // This will enable the bandwidth estimator on margaux side,
+	                                                        // it will select the only available stream, the audio one
+	MediaStream *margaux_ms = &margaux->audio_stream->ms;
+	RtpSession *margaux_session = audio_stream_get_rtp_session(margaux->audio_stream);
+	rtp_session_enable_avpf_feature(margaux_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
+
+	/* receiver specific settings: enable bandwith controller*/
+	ms_bandwidth_controller_add_stream(margaux->bw_controller, margaux_ms);
+	media_stream_set_direction(margaux_ms, MediaStreamRecvOnly); // Margaux is not sending anything
+	margaux->user_data = ms_strdup(recorded_file); // So the file is deleted when destroying the stream manager
+
+	/* enable audio bw estimator on marielle's side to activate the sending of packets duplicates */
+	OrtpAudioBandwidthEstimatorParams bweParams = {0};
+	bweParams.enabled = TRUE;
+	rtp_session_enable_audio_bandwidth_estimator(marielle_session, &bweParams);
+
+	const abe_stats_t *marielle_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(marielle_session);
+	const abe_stats_t *margaux_abe_stats = rtp_session_get_audio_bandwidth_estimator_stats(margaux_session);
+
+	/* Network simulator: limit Marielle's outbound to 24kb/s */
+	int pause_time = 0;
+	OrtpNetworkSimulatorParams networkParams = {0};
+	networkParams.enabled = TRUE;
+	networkParams.loss_rate = 0;
+	networkParams.max_bandwidth = 24000.f; // Max bandwidth simulated is 24 kb/s
+	networkParams.max_buffer_size = 72000;
+	networkParams.latency = 60;
+	networkParams.mode = OrtpNetworkSimulatorOutbound;
+	rtp_session_enable_network_simulation(marielle_ms->sessions.rtp_session, &networkParams);
+
+	/* Start audio streams */
+	audio_manager_start(marielle, OPUS_PAYLOAD_TYPE, margaux->local_rtp, 60000, file, NULL); // target 60 kb/s
+	ms_filter_call_method(marielle->audio_stream->soundread, MS_FILE_PLAYER_LOOP, &pause_time);
+	audio_manager_start(margaux, OPUS_PAYLOAD_TYPE, marielle->local_rtp, 0, NULL, recorded_file);
+	free(recorded_file);
+	free(file);
+	// When the stream starts, Marielle target bitrate is 60 kb/s
+	BC_ASSERT_EQUAL(marielle_ms->target_bitrate, 60000, int, "%d");
+	BC_ASSERT_EQUAL(marielle_abe_stats->sent_dup, 0, int, "%d");
+	BC_ASSERT_EQUAL(margaux_abe_stats->recv_dup, 0, int, "%d");
+
+	// the stream starts congested as target bitrate is set to 60kb/s but network simulator limit it to 24
+	// It shall take around 5 seconds to detect congestion on margaux' side and send a TMMBR to marielle
+	iterate_adaptive_stream_bool(marielle, margaux, 15000, &margaux->bw_controller->congestion_detected, TRUE);
+	BC_ASSERT_TRUE(margaux->bw_controller->congestion_detected);
+	// it can take up to 20 seconds for the congestion to be considered finished
+	// When the congestion is finished, the requested bandwidth goes up
+	iterate_adaptive_stream_bool(marielle, margaux, 25000, &margaux->bw_controller->congestion_detected, FALSE);
+	BC_ASSERT_FALSE(margaux->bw_controller->congestion_detected);
+	// Check Marielle target bitrate was lowered by the congestion detection (even after the end of it)
+	BC_ASSERT_LOWER(marielle_ms->target_bitrate, 30000, int, "%d");
+	BC_ASSERT_GREATER(marielle_abe_stats->sent_dup, 0, int, "%d");
+
+	// Wait 25 seconds, check no high bandwidth was detected but we get some duplicates
+	int margaux_recv_dup = margaux_abe_stats->recv_dup;
+	int margaux_recv_rtp = margaux_session->stats.packet_recv;
+	iterate_adaptive_stream(marielle, margaux, 25000, &dummy, 1);
+	BC_ASSERT_LOWER(marielle_ms->target_bitrate, 30000, int,
+	                "%d"); // target bitrate must be unchanged : ABE did not produced a false positive
+	// ABE duplicated paquets/RTP paquets received, should be around 1/10
+	BC_ASSERT_GREATER((float)(margaux_abe_stats->recv_dup - margaux_recv_dup) /
+	                      (float)(margaux_session->stats.packet_recv - margaux_recv_rtp),
+	                  0.075, float, "%f");
+
+	// remove the outbound limit on marielle's side, bandwidth estimator can figure that we can go back to the
+	// original target bitrate
+	networkParams.enabled = FALSE;
+	rtp_session_enable_network_simulation(marielle_ms->sessions.rtp_session, &networkParams);
+	// Wait for Marielle target bitrate to be back to the original target bitrate, it may take a while
+	iterate_adaptive_stream(marielle, margaux, 25000, &marielle_ms->target_bitrate, 59999);
+	BC_ASSERT_EQUAL(marielle_ms->target_bitrate, 60000, int, "%d");
+	BC_ASSERT_GREATER(margaux_abe_stats->recv_dup, 0, int, "%d");
+
+	// Now Marielle should stop sending duplicates packets
+	// Wait 10 seconds and check we didn't sent more than already did
+	int marielle_abe_dup_sent = marielle_abe_stats->sent_dup;
+	iterate_adaptive_stream(marielle, margaux, 10000, &dummy, 1);
+	BC_ASSERT_EQUAL(marielle_abe_stats->sent_dup, marielle_abe_dup_sent, int, "%d");
+	// ABE duplicated packet are swallowed before reaching the 'real' duplicated packet detector
+	BC_ASSERT_EQUAL(margaux_session->stats.packet_dup_recv, 0, int, "%d");
+
+	/* cleaning */
+	ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->audio_stream->ms));
+	ms_bandwidth_controller_destroy(margaux->bw_controller);
+	stream_manager_delete(marielle);
+	stream_manager_delete(margaux);
 }
 
 static test_t tests[] = {
@@ -623,6 +769,7 @@ static test_t tests[] = {
     TEST_NO_TAG("Network detection [VP8] - lossy congested", adaptive_vp8_lossy_congestion),
 #endif
     TEST_NO_TAG("Video bandwidth estimator", video_bandwidth_estimator),
+    TEST_NO_TAG("Audio bandwidth estimator", audio_bandwidth_estimator),
 };
 
 test_suite_t adaptive_test_suite = {
