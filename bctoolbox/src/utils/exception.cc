@@ -61,6 +61,8 @@ BctbxException::BctbxException(const std::string &message) : mSize(0) {
 #endif
 		set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
 #endif
+	/* Warn about exception as soon as it is created. Exceptions are not usual events. */
+	BCTBX_SLOGW << "BctbxException occurred: " << mOs.str();
 }
 
 BctbxException::BctbxException(const BctbxException &other) : mSize(other.mSize) {
@@ -101,7 +103,7 @@ void BctbxException::printStackTrace(std::ostream &os) const {
 	}
 	free(bt);
 #else
-	os << "stack trace not available on this platform";
+	os << "[stack trace not available on this platform]";
 #endif
 }
 
