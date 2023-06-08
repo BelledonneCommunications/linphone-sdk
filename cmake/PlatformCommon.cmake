@@ -28,7 +28,18 @@ foreach(SUBMODULE IN LISTS SUBMODULES_TO_HOOK)
 	endif()
 endforeach()
 
-
+# Enable color diagnostics
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24.0)
+	set(CMAKE_COLOR_DIAGNOSTICS ON)
+else()
+	if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
+	elseif(CMAKE_C_COMPILER_ID MATCHES "Clang")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+	endif()
+endif()
 
 if(LINPHONESDK_BUILD_TYPE STREQUAL "Default")
 	if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

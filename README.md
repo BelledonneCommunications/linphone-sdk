@@ -95,7 +95,7 @@ Requirement:
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until Cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
 
-`cmake --preset=ios -G Xcode` or `cmake --preset=ios -G Ninja`
+`cmake --preset=ios-sdk -G Xcode` or `cmake --preset=ios-sdk -G Ninja`
 
 If the generator is not specified, Xcode will be used by default.
 
@@ -165,25 +165,25 @@ Requirement:
 
 Configure the project with:
 
-`cmake --preset=macos`
+`cmake --preset=mac-sdk`
 
 And build it with:
 
-`cmake --build --preset=macos`
+`cmake --build --preset=mac-sdk`
 
 As for the iOS build, you can alternatively build with Ninja instead of Xcode by specifying it during the configuration step:
 
-`cmake --preset=macos -G Ninja`
+`cmake --preset=mac-sdk -G Ninja`
 
 ### Windows
 
 Configure the project with:
 
-`cmake --preset=windows`
+`cmake --preset=windows-sdk`
 
 As for all other platforms, you can then build with:
 
-`cmake --build --preset=windows`
+`cmake --build --preset=windows-sdk`
 
 However it may be convenient to build from Visual Studio, which you can do:
  - open `linphone-sdk.sln` with Visual Studio
