@@ -745,8 +745,9 @@ static void test_register_client_authenticated(void) {
 }
 
 static void test_register_client_bad_ciphersuites(void) {
-	/* If there is no mbedtls, this test will do nothing. */
-	if (bctbx_ssl_get_implementation_type() == BCTBX_MBEDTLS) {
+	/* If there is no mbedtls or openssl, this test will do nothing. */
+	int bctbx_implementation_backend = bctbx_ssl_get_implementation_type();
+	if (bctbx_implementation_backend == BCTBX_MBEDTLS || bctbx_implementation_backend == BCTBX_OPENSSL) {
 		belle_sip_request_t *reg;
 		authorized_request = NULL;
 		belle_sip_tls_listening_point_t *s =
@@ -756,12 +757,15 @@ static void test_register_client_bad_ciphersuites(void) {
 		belle_sip_listening_point_clean_channels((belle_sip_listening_point_t *)s);
 
 		void *config_ref = crypto_config->ssl_config;
-		int ciphersuites[2] = {bctbx_ssl_get_ciphersuite_id("TLS-RSA-WITH-AES-128-GCM-SHA256"), 0};
+		bctbx_list_t *ciphersuites = bctbx_list_new("TLS-RSA-WITH-AES-128-GCM-SHA256");
 
 		bctbx_ssl_config_t *sslcfg = bctbx_ssl_config_new();
 		bctbx_ssl_config_defaults(sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
 		bctbx_ssl_config_set_authmode(sslcfg, BCTBX_SSL_VERIFY_REQUIRED);
 		bctbx_ssl_config_set_ciphersuites(sslcfg, ciphersuites);
+
+		bctbx_list_free(ciphersuites);
+
 		crypto_config->ssl_config = bctbx_ssl_config_get_private_config(sslcfg);
 
 		/* This ciphersuite will be rejected by flexisip, so success_expected=0. See tls-ciphers in flexisip. */

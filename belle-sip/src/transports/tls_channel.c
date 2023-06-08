@@ -901,7 +901,6 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	}
 
 	bctbx_ssl_config_set_rng(obj->sslcfg, random_generator, obj->rng);
-	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
 	if ((crypto_config->root_ca_data &&
 	     belle_sip_tls_channel_load_root_ca_from_buffer(obj, crypto_config->root_ca_data) == 0) ||
 	    (crypto_config->root_ca && belle_sip_tls_channel_load_root_ca(obj, crypto_config->root_ca) == 0)) {
@@ -910,6 +909,7 @@ static int belle_sip_tls_channel_init_bctbx_ssl(belle_sip_tls_channel_t *obj) {
 	bctbx_ssl_config_set_callback_verify(obj->sslcfg, belle_sip_ssl_verify, crypto_config);
 
 	bctbx_ssl_context_setup(obj->sslctx, obj->sslcfg);
+	bctbx_ssl_set_io_callbacks(obj->sslctx, obj, tls_callback_write, tls_callback_read);
 	bctbx_ssl_set_hostname(obj->sslctx, super->base.peer_cname ? super->base.peer_cname : super->base.peer_name);
 	return 0;
 }
