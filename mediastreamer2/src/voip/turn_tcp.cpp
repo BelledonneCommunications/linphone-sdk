@@ -311,8 +311,8 @@ SslContext::SslContext(ortp_socket_t socket, std::string rootCertificatePath, st
 	}
 
 	bctbx_ssl_config_set_rng(mConfig, random_generator, rng);
-	bctbx_ssl_set_io_callbacks(mContext, &mSocket, tls_callback_write, tls_callback_read);
 	bctbx_ssl_context_setup(mContext, mConfig);
+	bctbx_ssl_set_io_callbacks(mContext, &mSocket, tls_callback_write, tls_callback_read);
 
 	if (!cn.empty()) {
 		bctbx_ssl_set_hostname(mContext, cn.c_str());
