@@ -37,7 +37,7 @@ option(ENABLE_MBEDTLS "Enable mbedtls support" ON)
 option(ENABLE_DECAF "Enable Elliptic Curve Cryptography support" ON)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
-option(ENABLE_TESTS "Enable compilation of tests" ON)
+option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
 option(ENABLE_DEFAULT_LOG_HANDLER "A default log handler will be initialized, if OFF no logging will be done before you initialize one." ON)
 

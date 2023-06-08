@@ -38,7 +38,7 @@ Options
 - `CMAKE_PREFIX_PATH=<string>`: search path prefix for dependencies e.g. mbedtls.
 - `ENABLE_MBEDTLS=NO`: do not look for mbedtls. Then, polarssl will be selected.
 - `ENABLE_STRICT=NO`: do not build with strict compilator flags e.g. `-Wall -Werror`.
-- `ENABLE_TESTS=NO`: do not build testing binaries.
+- `ENABLE_UNIT_TESTS=NO`: do not build testing binaries.
 - `ENABLE_TESTS_COMPONENT=NO`: do not build libbctoolbox-tester.
 
 
