@@ -115,3 +115,27 @@ function(ExcludeFromList resultVar excludePattern)
         endforeach()
 	set(${resultVar} ${result} PARENT_SCOPE)
 endfunction()
+
+function(linphone_sdk_add_dummy_library LIBRARY_NAME)
+	if(APPLE)
+		string(REGEX REPLACE "^lib" "" NOPREFIX_LIBRARY_NAME ${LIBRARY_NAME})
+		set(LIBRARY_NAME "lib${NOPREFIX_LIBRARY_NAME}")
+		if(NOT EXISTS "${CMAKE_INSTALL_PREFIX}/Frameworks/${LIBRARY_NAME}.framework")
+			message(STATUS "Generating dummy library ${LIBRARY_NAME}")
+		  configure_file("${CMAKE_CURRENT_LIST_DIR}/dummy_libraries/dummy.c.in" "${PROJECT_BINARY_DIR}/${LIBRARY_NAME}.c" @ONLY)
+			add_library(${NOPREFIX_LIBRARY_NAME} SHARED "${PROJECT_BINARY_DIR}/${LIBRARY_NAME}.c")
+			configure_file("${CMAKE_CURRENT_LIST_DIR}/dummy_libraries/Info.plist.in" "${PROJECT_BINARY_DIR}/Info_${NOPREFIX_LIBRARY_NAME}.plist" @ONLY)
+			set_target_properties(${NOPREFIX_LIBRARY_NAME} PROPERTIES
+				FRAMEWORK TRUE
+				MACOSX_FRAMEWORK_IDENTIFIER org.linphone.${NOPREFIX_LIBRARY_NAME}
+				MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_BINARY_DIR}/Info_${NOPREFIX_LIBRARY_NAME}.plist"
+			)
+			install(TARGETS ${NOPREFIX_LIBRARY_NAME}
+				LIBRARY DESTINATION "Frameworks"
+				ARCHIVE DESTINATION "Frameworks"
+				FRAMEWORK DESTINATION "Frameworks"
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+		endif()
+	endif()
+endfunction()
