@@ -569,6 +569,9 @@ ms_mutex_t mutex;
 		}
 		ms_message("AudioUnit destroyed");
 		_audio_unit_state = MSAudioUnitNotCreated;
+		if (_zombified){
+			_zombified = FALSE;
+		}
 	}
 }
 
@@ -928,7 +931,7 @@ static void au_audio_session_activated(MSSndCard *obj, bool_t activated) {
 		}
 	}else if (!activated){
 		if ([au_holder audio_unit_state] == MSAudioUnitStarted) {
-			[au_holder stop_audio_unit_with_param:TRUE];
+			[au_holder stop_audio_unit_with_param:FALSE];
 		}
 		if ([au_holder audio_unit_state] != MSAudioUnitNotCreated) {
 			/*Mark the AudioUnit as zombified. It is unlikely to work in the future and should be recreated
