@@ -94,7 +94,7 @@ namespace lime {
 
 			/* network related, implemented in lime_x3dh_protocol.cpp */
 			void postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
-			void process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept; // callback on server response
+			void process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody); // callback on server response
 			void cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData); // clean user data
 
 		public: /* Implement API defined in lime_lime.hpp in LimeGeneric abstract class */

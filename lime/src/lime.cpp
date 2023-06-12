@@ -334,7 +334,7 @@ namespace lime {
 	extern template std::shared_ptr<DR<C255>> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
 	extern template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData<C255>> userData, const std::vector<uint8_t> &message);
-	extern template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	extern template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
 	extern template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData<C255>> userData);
 
 	template class Lime<C255>;
@@ -360,7 +360,7 @@ namespace lime {
 	extern template std::shared_ptr<DR<C448>> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
 	extern template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData<C448>> userData, const std::vector<uint8_t> &message);
-	extern template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	extern template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
 	extern template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData<C448>> userData);
 
 	template class Lime<C448>;

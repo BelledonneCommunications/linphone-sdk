@@ -725,7 +725,11 @@ void Db::commit_transaction()
  */
 void Db::rollback_transaction()
 {
-	sql.rollback();
+	try {
+		sql.rollback();
+	} catch (exception const &e) {
+		LIME_LOGE<<"Lime session save transaction rollback failed, backend says: "<<e.what();
+	}
 }
 
 /* template instanciations for Curves 25519 and 448 */
@@ -751,7 +755,7 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 	try {
 		if (commit) {
 			// open transaction
-			m_localStorage->sql.begin();
+			m_localStorage->start_transaction();
 		}
 
 		// shall we try to insert or update?
@@ -902,13 +906,13 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 		}
 	} catch (exception const &e) {
 		if (commit) {
-			m_localStorage->sql.rollback();
+			m_localStorage->rollback_transaction();
 		}
 		throw BCTBX_EXCEPTION << "Lime save session in DB failed. DB backend says : "<<e.what();
 	}
 
 	if (commit) {
-		m_localStorage->sql.commit();
+		m_localStorage->commit_transaction();
 	}
 	return true;
 };

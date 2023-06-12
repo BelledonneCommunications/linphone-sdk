@@ -802,7 +802,7 @@ namespace lime {
 	 * @param[in]		responseBody	a vector holding the actual response from server to be processed
 	 */
 	template <typename Curve>
-	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept {
+	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
 		auto callback = userData->callback; // get callback
 
 		if (responseCode == 200) { // HTTP server is happy with our packet
@@ -865,7 +865,7 @@ namespace lime {
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
 						cleanUserData(userData);
 						return;
-					} catch (exception const &e) { // catch all and let flow it up
+					} catch (exception const &e) {
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
 						cleanUserData(userData);
 						return;
@@ -885,7 +885,18 @@ namespace lime {
 					}
 
 					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
-					encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
+					// We must not generate an exception here, so catch anything raising from encrypt
+					try {
+						encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
+					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
+						cleanUserData(userData);
+						return;
+					} catch (exception const &e) {
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
+						cleanUserData(userData);
+						return;
+					}
 
 					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
 					cleanUserData(userData);
@@ -990,13 +1001,13 @@ namespace lime {
 	/* Instanciate templated member functions */
 #ifdef EC25519_ENABLED
 	template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData<C255>> userData, const std::vector<uint8_t> &message);
-	template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
 	template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData<C255>> userData);
 #endif
 
 #ifdef EC448_ENABLED
 	template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData<C448>> userData, const std::vector<uint8_t> &message);
-	template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody) noexcept;
+	template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
 	template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData<C448>> userData);
 #endif
 } //namespace lime
