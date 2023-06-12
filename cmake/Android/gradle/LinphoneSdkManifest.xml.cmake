@@ -22,6 +22,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Needed to check current do not disturb policy -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- Needed to gain access to network temporarily when in background on a metered network if data saver is on when a push is being received -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- End of SDK required permissions -->
 	
 </manifest>
