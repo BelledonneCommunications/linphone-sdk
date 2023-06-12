@@ -30,6 +30,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/gcm.h>
 #include <mbedtls/md5.h>
+#include <mbedtls/net_sockets.h>
 #include <mbedtls/oid.h>
 #include <mbedtls/pem.h>
 #include <mbedtls/sha1.h>
@@ -37,14 +38,7 @@
 #include <mbedtls/sha512.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/timing.h>
-#include <mbedtls/version.h>
 #include <mbedtls/x509.h>
-
-#if MBEDTLS_VERSION_NUMBER >= 0x02040000 // v2.4.0
-#include <mbedtls/net_sockets.h>
-#else
-#include <mbedtls/net.h>
-#endif
 
 #include "bctoolbox/crypto.h"
 #include "bctoolbox/defs.h"
@@ -58,13 +52,7 @@
  * @param[in]		size	buffer size
  */
 void bctbx_clean(void *buffer, size_t size) {
-#if MBEDTLS_VERSION_NUMBER >= 0x020A0000 // v2.10.0
 	mbedtls_platform_zeroize(buffer, size);
-#else
-	volatile uint8_t *p = buffer;
-	while (size--)
-		*p++ = 0;
-#endif
 }
 
 /*** Error code translation ***/
@@ -833,6 +821,15 @@ const mbedtls_x509_crt_profile bctbx_x509_crt_profile_default = {
 };
 
 /** context **/
+
+#ifdef HAVE_DTLS_SRTP
+typedef struct bctbx_dtls_srtp_keys {
+	uint8_t master_secret[48];          // master secret generated during handshake
+	uint8_t randoms[64];                // client || server randoms, 32 bytes each
+	mbedtls_tls_prf_types tls_prf_type; // prf function identification
+} bctbx_dtls_srtp_keys_t;
+#endif /* HAVE_DTLS_SRTP */
+
 struct bctbx_ssl_context_struct {
 	mbedtls_ssl_context ssl_ctx;
 	int (*callback_cli_cert_function)(void *,
@@ -850,6 +847,10 @@ struct bctbx_ssl_context_struct {
 	                              size_t); /* args: callback data, data buffer to be read, size of data buffer */
 	void *callback_sendrecv_data;          /**< data passed to send/recv callbacks */
 	mbedtls_timing_delay_context timer;    /**< a timer is requested for DTLS */
+#ifdef HAVE_DTLS_SRTP
+	bctbx_dtls_srtp_keys_t dtls_srtp_keys; /**< Key material is stored during the handshake there and used after
+	                                          completion to generate the DTLS-SRTP shared secret */
+#endif
 };
 
 bctbx_ssl_context_t *bctbx_ssl_context_new(void) {
@@ -866,6 +867,12 @@ bctbx_ssl_context_t *bctbx_ssl_context_new(void) {
 void bctbx_ssl_context_free(bctbx_ssl_context_t *ssl_ctx) {
 	if (ssl_ctx == NULL) return;
 	mbedtls_ssl_free(&(ssl_ctx->ssl_ctx));
+
+#ifdef HAVE_DTLS_SRTP
+	bctbx_clean(ssl_ctx->dtls_srtp_keys.master_secret, sizeof(ssl_ctx->dtls_srtp_keys.master_secret));
+	bctbx_clean(ssl_ctx->dtls_srtp_keys.randoms, sizeof(ssl_ctx->dtls_srtp_keys.randoms));
+#endif /* HAVE_DTLS_SRTP */
+
 	bctbx_free(ssl_ctx);
 }
 
@@ -1044,14 +1051,6 @@ bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(BCTBX_UNUSE
 /** DTLS SRTP functions **/
 
 /** config **/
-#ifdef HAVE_DTLS_SRTP
-typedef struct bctbx_dtls_srtp_keys {
-	uint8_t master_secret[48];          // master secret generated during handshake
-	uint8_t randoms[64];                // client || server randoms, 32 bytes each
-	mbedtls_tls_prf_types tls_prf_type; // prf function identification
-} bctbx_dtls_srtp_keys_t;
-#endif /* HAVE_DTLS_SRTP */
-
 struct bctbx_ssl_config_struct {
 	mbedtls_ssl_config *ssl_config;         /**< actual config structure */
 	uint8_t ssl_config_externally_provided; /**< a flag, on when the ssl_config was provided by callers and not created
@@ -1068,9 +1067,8 @@ struct bctbx_ssl_config_struct {
 	                               1]; /**< list of supported DTLS-SRTP profiles, mbedtls won't hold the reference, so
 	                                      we must do it for the lifetime of the config structure. (size is +1 to add the
 	                                      list termination) */
-	bctbx_dtls_srtp_keys_t dtls_srtp_keys; /**< Key material is stored during the handshake there and used after
-	                                          completion to generate the DTLS-SRTP shared secret */
-#endif                                     /* HAVE_DTLS_SRTP */
+#endif                                 /* HAVE_DTLS_SRTP */
+	int *ciphersuites;                 /**< ciphersuites as mbedtls id's */
 };
 
 bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
@@ -1082,6 +1080,7 @@ bctbx_ssl_config_t *bctbx_ssl_config_new(void) {
 
 	ssl_config->callback_cli_cert_function = NULL;
 	ssl_config->callback_cli_cert_data = NULL;
+	ssl_config->ciphersuites = NULL;
 
 #ifdef HAVE_DTLS_SRTP
 	ssl_config->dtls_srtp_mbedtls_profiles[0] = MBEDTLS_TLS_SRTP_UNSET;
@@ -1124,10 +1123,9 @@ void bctbx_ssl_config_free(bctbx_ssl_config_t *ssl_config) {
 		bctbx_free(ssl_config->ssl_config);
 	}
 
-#ifdef HAVE_DTLS_SRTP
-	bctbx_clean(ssl_config->dtls_srtp_keys.master_secret, sizeof(ssl_config->dtls_srtp_keys.master_secret));
-	bctbx_clean(ssl_config->dtls_srtp_keys.randoms, sizeof(ssl_config->dtls_srtp_keys.randoms));
-#endif /* HAVE_DTLS_SRTP */
+	if (ssl_config->ciphersuites) {
+		bctbx_free(ssl_config->ciphersuites);
+	}
 
 	bctbx_free(ssl_config);
 }
@@ -1225,7 +1223,7 @@ int32_t bctbx_ssl_config_set_transport(bctbx_ssl_config_t *ssl_config, int trans
 	return 0;
 }
 
-int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const int *ciphersuites) {
+int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const bctbx_list_t *ciphersuites) {
 	if (ssl_config == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONFIG;
 	}
@@ -1234,7 +1232,18 @@ int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const 
 		return BCTBX_ERROR_INVALID_INPUT_DATA;
 	}
 
-	mbedtls_ssl_conf_ciphersuites(ssl_config->ssl_config, ciphersuites);
+	if (ssl_config->ciphersuites) {
+		bctbx_free(ssl_config->ciphersuites);
+	}
+	ssl_config->ciphersuites = bctbx_malloc0(bctbx_list_size(ciphersuites) + 1);
+	int *ciphersuite_iterator = ssl_config->ciphersuites;
+	do {
+		*ciphersuite_iterator++ = mbedtls_ssl_get_ciphersuite_id(bctbx_list_get_data(ciphersuites));
+	} while ((ciphersuites = bctbx_list_next(ciphersuites)) != NULL);
+
+	// Mbedtls: The ciphersuites array ciphersuites is not copied. It must remain valid for the lifetime of the SSL
+	// configuration conf.
+	mbedtls_ssl_conf_ciphersuites(ssl_config->ssl_config, ssl_config->ciphersuites);
 
 	return 0;
 }
@@ -1328,6 +1337,11 @@ int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
 	return mbedtls_ssl_conf_own_cert(ssl_config->ssl_config, (mbedtls_x509_crt *)cert, (mbedtls_pk_context *)key);
 }
 
+int32_t bctbx_ssl_config_set_groups(BCTBX_UNUSED(bctbx_ssl_config_t *ssl_config),
+                                    BCTBX_UNUSED(const bctbx_list_t *groups)) {
+	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
+}
+
 /** DTLS SRTP functions **/
 #ifdef HAVE_DTLS_SRTP
 /* key derivation code */
@@ -1363,17 +1377,17 @@ static void bctbx_ssl_dtls_srtp_key_derivation(
 	keys->tls_prf_type = tls_prf_type; // the prf id
 }
 
-int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_config, uint8_t *output, size_t *output_length) {
+int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx, uint8_t *output, size_t *output_length) {
 	int ret = 0;
-	if (ssl_config == NULL) {
+	if (ssl_ctx == NULL) {
 		return BCTBX_ERROR_INVALID_SSL_CONTEXT;
 	}
 
 	// ret = mbedtls_ssl_get_dtls_srtp_key_material(&(ssl_ctx->ssl_ctx), (unsigned char *)output, *output_length,
 	// output_length);
-	ret = mbedtls_ssl_tls_prf(ssl_config->dtls_srtp_keys.tls_prf_type, ssl_config->dtls_srtp_keys.master_secret,
-	                          sizeof(ssl_config->dtls_srtp_keys.master_secret), "EXTRACTOR-dtls_srtp",
-	                          ssl_config->dtls_srtp_keys.randoms, sizeof(ssl_config->dtls_srtp_keys.randoms), output,
+	ret = mbedtls_ssl_tls_prf(ssl_ctx->dtls_srtp_keys.tls_prf_type, ssl_ctx->dtls_srtp_keys.master_secret,
+	                          sizeof(ssl_ctx->dtls_srtp_keys.master_secret), "EXTRACTOR-dtls_srtp",
+	                          ssl_ctx->dtls_srtp_keys.randoms, sizeof(ssl_ctx->dtls_srtp_keys.randoms), output,
 	                          *output_length);
 
 	/* remap the output error code */
@@ -1453,7 +1467,7 @@ int32_t bctbx_ssl_context_setup(bctbx_ssl_context_t *ssl_ctx, bctbx_ssl_config_t
 	/* set the callback to compute the DTLS-SRTP key material if needed */
 	if (ssl_config->dtls_srtp_mbedtls_profiles[0] != MBEDTLS_TLS_SRTP_UNSET) {
 		mbedtls_ssl_set_export_keys_cb(&(ssl_ctx->ssl_ctx), bctbx_ssl_dtls_srtp_key_derivation,
-		                               &(ssl_config->dtls_srtp_keys));
+		                               &(ssl_ctx->dtls_srtp_keys));
 	}
 #endif /* HAVE_DTLS_SRTP */
 
@@ -1746,6 +1760,21 @@ int32_t bctbx_aes_gcm_decrypt_and_auth(const uint8_t *key,
 	return ret;
 }
 
+struct bctbx_aes_gcm_context_struct {
+	mbedtls_gcm_context *gcm_ctx;
+	uint8_t mode; // BCTBX_GCM_ENCRYPT or BCTBX_GCM_DECRYPT
+};
+
+void bctbx_aes_gcm_context_free(bctbx_aes_gcm_context_t *ctx) {
+	if (ctx) {
+		if (ctx->gcm_ctx) {
+			mbedtls_gcm_free(ctx->gcm_ctx);
+			bctbx_free(ctx->gcm_ctx);
+		}
+		bctbx_free(ctx);
+	}
+}
+
 /**
  * @Brief create and initialise an AES-GCM encryption context
  *
@@ -1769,7 +1798,7 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key,
 
 	int ret = 0;
 	int mbedtls_mode;
-	mbedtls_gcm_context *ctx = NULL;
+	bctbx_aes_gcm_context_t *ctx = bctbx_malloc0(sizeof(bctbx_aes_gcm_context_t));
 
 	if (mode == BCTBX_GCM_ENCRYPT) {
 		mbedtls_mode = MBEDTLS_GCM_ENCRYPT;
@@ -1779,29 +1808,30 @@ bctbx_aes_gcm_context_t *bctbx_aes_gcm_context_new(const uint8_t *key,
 		return NULL;
 	}
 
-	ctx = bctbx_malloc0(sizeof(mbedtls_gcm_context));
-	mbedtls_gcm_init(ctx);
-	ret = mbedtls_gcm_setkey(ctx, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)keyLength * 8);
+	ctx->mode = mode;
+	ctx->gcm_ctx = bctbx_malloc0(sizeof(mbedtls_gcm_context));
+	mbedtls_gcm_init(ctx->gcm_ctx);
+	ret = mbedtls_gcm_setkey(ctx->gcm_ctx, MBEDTLS_CIPHER_ID_AES, key, (unsigned int)keyLength * 8);
 	if (ret != 0) {
-		bctbx_free(ctx);
+		bctbx_aes_gcm_context_free(ctx);
 		return NULL;
 	}
 
-	ret = mbedtls_gcm_starts(ctx, mbedtls_mode, initializationVector, initializationVectorLength);
+	ret = mbedtls_gcm_starts(ctx->gcm_ctx, mbedtls_mode, initializationVector, initializationVectorLength);
 	if (ret != 0) {
-		bctbx_free(ctx);
+		bctbx_aes_gcm_context_free(ctx);
 		return NULL;
 	}
 
 	if (authenticatedDataLength > 0) {
-		ret = mbedtls_gcm_update_ad(ctx, authenticatedData, authenticatedDataLength);
+		ret = mbedtls_gcm_update_ad(ctx->gcm_ctx, authenticatedData, authenticatedDataLength);
 	}
 	if (ret != 0) {
-		bctbx_free(ctx);
+		bctbx_aes_gcm_context_free(ctx);
 		return NULL;
 	}
 
-	return (bctbx_aes_gcm_context_t *)ctx;
+	return ctx;
 }
 
 /**
@@ -1825,7 +1855,7 @@ int32_t bctbx_aes_gcm_process_chunk(bctbx_aes_gcm_context_t *context,
 	 * using alternative implementation of GCM, the main one present in mbedtls is the same : only the last call
 	 * to mbedtls_gcm_update can have a length not multiple of 16 bytes */
 	size_t outputLength = inputLength;
-	return mbedtls_gcm_update((mbedtls_gcm_context *)context, input, inputLength, output, inputLength, &outputLength);
+	return mbedtls_gcm_update(context->gcm_ctx, input, inputLength, output, inputLength, &outputLength);
 }
 
 /**
@@ -1841,10 +1871,18 @@ int32_t bctbx_aes_gcm_finish(bctbx_aes_gcm_context_t *context, uint8_t *tag, siz
 	int ret;
 	size_t output_len = 0;
 
-	ret = mbedtls_gcm_finish((mbedtls_gcm_context *)context, NULL, 0, &output_len, tag, tagLength);
-	mbedtls_gcm_free((mbedtls_gcm_context *)context);
+	if (context->mode == BCTBX_GCM_ENCRYPT) {
+		ret = mbedtls_gcm_finish(context->gcm_ctx, NULL, 0, &output_len, tag, tagLength);
+	} else {
+		uint8_t *computed_tag = bctbx_malloc0(tagLength);
 
-	bctbx_free(context);
+		ret = mbedtls_gcm_finish(context->gcm_ctx, NULL, 0, &output_len, computed_tag, tagLength);
+		ret = ret != 0 ? ret : memcmp(tag, computed_tag, tagLength);
+
+		bctbx_free(computed_tag);
+	}
+
+	bctbx_aes_gcm_context_free(context);
 
 	return ret;
 }

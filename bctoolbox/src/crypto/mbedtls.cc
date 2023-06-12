@@ -23,32 +23,15 @@
 #include <mbedtls/base64.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
-#include <mbedtls/error.h>
-#include <mbedtls/gcm.h>
+#include <mbedtls/hkdf.h>
 #include <mbedtls/md.h>
-#include <mbedtls/sha256.h>
-#include <mbedtls/sha512.h>
-#include <mbedtls/version.h>
-#if MBEDTLS_VERSION_NUMBER >= 0x020B0000 // v2.11.0
-#include <mbedtls/hkdf.h>                // HKDF implemented in version 2.11.0 of mbedtls
-#endif
 
 #include "bctoolbox/crypto.hh"
-#include "bctoolbox/defs.h"
 #include "bctoolbox/exception.hh"
 #include "bctoolbox/port.h"
 
 #include <array>
-
-/* bctbx_random returns a 32 bits random non suitable for cryptographic operation
- * its header is declared in port.h */
-extern "C" unsigned int bctbx_random(void) {
-	return bctoolbox::RNG::cRandomize();
-}
-
-extern "C" void bctbx_random_bytes(unsigned char *ret, size_t size) {
-	bctoolbox::RNG::cRandomize(ret, size);
-}
+#include <memory>
 
 namespace bctoolbox {
 
@@ -140,119 +123,9 @@ uint32_t RNG::cRandomize() {
 	return (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
 }
 
-std::string encodeBase64(const std::vector<uint8_t> &input) {
-	size_t byteWritten = 0;
-	size_t outputLength = 0;
-	auto inputBuffer = input.data();
-	size_t inputLength = input.size();
-	mbedtls_base64_encode(nullptr, outputLength, &byteWritten, inputBuffer,
-	                      inputLength); // set encodedLength to the correct value
-	outputLength = byteWritten;
-	if (outputLength == 0) return std::string();
-	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate encoded buffer with correct length
-	int ret =
-	    mbedtls_base64_encode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real encoding
-	if (ret != 0) {
-		delete[] outputBuffer;
-		return std::string();
-	}
-	std::string output((char *)outputBuffer);
-	delete[] outputBuffer;
-	return output;
-}
-
-std::vector<uint8_t> decodeBase64(const std::string &input) {
-	size_t byteWritten = 0;
-	size_t outputLength = 0;
-	const unsigned char *inputBuffer = (const unsigned char *)input.data();
-	size_t inputLength = input.size();
-	mbedtls_base64_decode(nullptr, outputLength, &byteWritten, inputBuffer,
-	                      inputLength); // set decodedLength to the correct value
-	outputLength = byteWritten;
-	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate decoded buffer with correct length
-	int ret =
-	    mbedtls_base64_decode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real decoding
-	if (ret != 0) {
-		delete[] outputBuffer;
-		return std::vector<uint8_t>();
-	}
-	std::vector<uint8_t> output(outputBuffer, outputBuffer + outputLength);
-	delete[] outputBuffer;
-	return output;
-}
-
 /*****************************************************************************/
 /***                      Hash related function                            ***/
 /*****************************************************************************/
-/* HMAC templates */
-/* HMAC must use a specialized template */
-template <typename hashAlgo>
-std::vector<uint8_t> HMAC(BCTBX_UNUSED(const std::vector<uint8_t> &key),
-                          BCTBX_UNUSED(const std::vector<uint8_t> &input)) {
-	/* if this template is instanciated the static_assert will fail but will give us an error message */
-	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC function template");
-	return std::vector<uint8_t>(0);
-}
-
-/* HMAC specialized template for SHA1 */
-template <>
-std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::vector<uint8_t> hmacOutput(SHA1::ssize());
-	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA1), key.data(), key.size(), input.data(), input.size(),
-	                hmacOutput.data());
-	return hmacOutput;
-}
-
-/* HMAC specialized template for SHA256 */
-template <>
-std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::vector<uint8_t> hmacOutput(SHA256::ssize());
-	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), key.data(), key.size(), input.data(), input.size(),
-	                hmacOutput.data());
-	return hmacOutput;
-}
-
-/* HMAC specialized template for SHA384 */
-template <>
-std::vector<uint8_t> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::vector<uint8_t> hmacOutput(SHA384::ssize());
-	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA384), key.data(), key.size(), input.data(), input.size(),
-	                hmacOutput.data());
-	return hmacOutput;
-}
-
-/* HMAC specialized template for SHA512 */
-template <>
-std::vector<uint8_t> HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
-	std::vector<uint8_t> hmacOutput(SHA512::ssize());
-	mbedtls_md_hmac(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), key.data(), key.size(), input.data(), input.size(),
-	                hmacOutput.data());
-	return hmacOutput;
-}
-
-/* HKDF templates */
-/* HKDF must use a specialized template */
-template <typename hashAlgo>
-std::vector<uint8_t> HKDF(BCTBX_UNUSED(const std::vector<uint8_t> &salt),
-                          BCTBX_UNUSED(const std::vector<uint8_t> &ikm),
-                          BCTBX_UNUSED(const std::vector<uint8_t> &info),
-                          BCTBX_UNUSED(size_t okmSize)) {
-	/* if this template is instanciated the static_assert will fail but will give us an error message */
-	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HKDF function template");
-	return std::vector<uint8_t>(0);
-}
-template <typename hashAlgo>
-std::vector<uint8_t> HKDF(BCTBX_UNUSED(const std::vector<uint8_t> &salt),
-                          BCTBX_UNUSED(const std::vector<uint8_t> &ikm),
-                          BCTBX_UNUSED(const std::string &info),
-                          BCTBX_UNUSED(size_t okmSize)) {
-	/* if this template is instanciated the static_assert will fail but will give us an error message */
-	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HKDF function template");
-
-	return std::vector<uint8_t>(0);
-}
-
-#if MBEDTLS_VERSION_NUMBER >= 0x020B0000 // v2.11.0 - HKDF provided by mbedtls
 /* HKDF specialized template for SHA256 */
 template <>
 std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
@@ -331,194 +204,9 @@ std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
 	return okm;
 };
 
-#else // MBEDTLS_VERSION_NUMBER >= 0x020B0000 - HKDF not provided by mbedtls
-
-/* generic implementation, of HKDF RFC-5869 - use this one if mbedtls does not provide it */
-template <typename hashAlgo, typename infoType>
-std::vector<uint8_t>
-HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, size_t outputSize) {
-	// extraction
-	auto prk = HMAC<hashAlgo>(salt, ikm);
-
-	// expansion round 0
-	std::vector<uint8_t> T(info.cbegin(), info.cend());
-	T.push_back(0x01);
-	auto output = HMAC<hashAlgo>(prk, T);
-	output.reserve(outputSize);
-
-	// successives expansion rounds
-	size_t index = std::min(outputSize, hashAlgo::ssize());
-	for (uint8_t i = 0x02; index < outputSize; i++) {
-		T.assign(output.cbegin() + (i - 2) * hashAlgo::ssize(), output.cbegin() + (i - 1) * hashAlgo::ssize());
-		T.insert(T.end(), info.cbegin(), info.cend());
-		T.push_back(i);
-		auto round = HMAC<hashAlgo>(prk, T);
-		output.insert(output.end(), round.cbegin(), round.cend());
-		index += hashAlgo::ssize();
-	}
-	bctbx_clean(prk.data(), prk.size());
-	bctbx_clean(T.data(), T.size());
-	output.resize(outputSize); // dump what is not needed (each round compute hashAlgo::ssize() bytes of data, we may
-	                           // need only a fraction of the last round)
-	return output;
-}
-
-/* HKDF specialized template for SHA256 */
-template <>
-std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::vector<uint8_t> &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA256, std::vector<uint8_t>>(salt, ikm, info, outputSize);
-};
-template <>
-std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::string &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA256, std::string>(salt, ikm, info, outputSize);
-};
-
-/* HKDF specialized template for SHA384 */
-template <>
-std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::vector<uint8_t> &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA384, std::vector<uint8_t>>(salt, ikm, info, outputSize);
-};
-template <>
-std::vector<uint8_t> HKDF<SHA384>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::string &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA384, std::string>(salt, ikm, info, outputSize);
-};
-
-/* HKDF specialized template for SHA512 */
-template <>
-std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::vector<uint8_t> &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA512, std::vector<uint8_t>>(salt, ikm, info, outputSize);
-};
-template <>
-std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
-                                  const std::vector<uint8_t> &ikm,
-                                  const std::string &info,
-                                  size_t outputSize) {
-	return HMAC_KDF<SHA512, std::string>(salt, ikm, info, outputSize);
-};
-
-#endif // MBEDTLS_VERSION_NUMBER >= 0x020B0000
-
 /*****************************************************************************/
-/***                      Authenticated Encryption                         ***/
+/***                      Key Wrap                                         ***/
 /*****************************************************************************/
-/* AEAD template must be specialized */
-template <typename AEADAlgo>
-std::vector<uint8_t> AEADEncrypt(BCTBX_UNUSED(const std::vector<uint8_t> &key),
-                                 BCTBX_UNUSED(const std::vector<uint8_t> &IV),
-                                 BCTBX_UNUSED(const std::vector<uint8_t> &plain),
-                                 BCTBX_UNUSED(const std::vector<uint8_t> &AD),
-                                 BCTBX_UNUSED(std::vector<uint8_t> &tag)) {
-	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type
-	 */
-	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEADEncrypt function template");
-	return std::vector<uint8_t>(0);
-}
-
-template <typename AEADAlgo>
-bool AEADDecrypt(BCTBX_UNUSED(const std::vector<uint8_t> &key),
-                 BCTBX_UNUSED(const std::vector<uint8_t> &IV),
-                 BCTBX_UNUSED(const std::vector<uint8_t> &cipher),
-                 BCTBX_UNUSED(const std::vector<uint8_t> &AD),
-                 BCTBX_UNUSED(const std::vector<uint8_t> &tag),
-                 BCTBX_UNUSED(std::vector<uint8_t> &plain)) {
-	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty type
-	 */
-	static_assert(sizeof(AEADAlgo) != sizeof(AEADAlgo), "You must specialize AEADEncrypt function template");
-	return false;
-}
-
-/* declare AEAD template specialisations : AES256-GCM with 128 bits auth tag*/
-template <>
-std::vector<uint8_t> AEADEncrypt<AES256GCM128>(const std::vector<uint8_t> &key,
-                                               const std::vector<uint8_t> &IV,
-                                               const std::vector<uint8_t> &plain,
-                                               const std::vector<uint8_t> &AD,
-                                               std::vector<uint8_t> &tag) {
-	// check key size (could have use array but Windows won't compile templates with constexpr functions result as
-	// parameter)
-	if (key.size() != AES256GCM128::keySize()) {
-		throw BCTBX_EXCEPTION << "AEADEncrypt: Bad input parameter, key is expected to be " << AES256GCM128::keySize()
-		                      << " bytes but " << key.size() << " provided";
-	}
-	tag.resize(AES256GCM128::tagSize());
-
-	mbedtls_gcm_context gcmContext;
-	mbedtls_gcm_init(&gcmContext);
-
-	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(),
-	                              (unsigned int)key.size() * 8); // key size in bits
-	if (ret != 0) {
-		mbedtls_gcm_free(&gcmContext);
-		throw BCTBX_EXCEPTION << "Unable to set key in AES_GCM context : return value " << ret;
-	}
-
-	std::vector<uint8_t> cipher(plain.size()); // cipher size is the same than plain
-	ret = mbedtls_gcm_crypt_and_tag(&gcmContext, MBEDTLS_GCM_ENCRYPT, plain.size(), IV.data(), IV.size(), AD.data(),
-	                                AD.size(), plain.data(), cipher.data(), tag.size(), tag.data());
-	mbedtls_gcm_free(&gcmContext);
-
-	if (ret != 0) {
-		throw BCTBX_EXCEPTION << "Error during AES_GCM encryption : return value " << ret;
-	}
-	return cipher;
-}
-
-template <>
-bool AEADDecrypt<AES256GCM128>(const std::vector<uint8_t> &key,
-                               const std::vector<uint8_t> &IV,
-                               const std::vector<uint8_t> &cipher,
-                               const std::vector<uint8_t> &AD,
-                               const std::vector<uint8_t> &tag,
-                               std::vector<uint8_t> &plain) {
-	// check key and tag size (could have use array but Windows won't compile templates with constexpr functions result
-	// as parameter)
-	if (key.size() != AES256GCM128::keySize()) {
-		throw BCTBX_EXCEPTION << "AEADDecrypt: Bad input parameter, key is expected to be " << AES256GCM128::keySize()
-		                      << " bytes but " << key.size() << " provided";
-	}
-	if (tag.size() != AES256GCM128::tagSize()) {
-		throw BCTBX_EXCEPTION << "AEADDecrypt: Bad input parameter, tag is expected to be " << AES256GCM128::tagSize()
-		                      << " bytes but " << tag.size() << " provided";
-	}
-
-	mbedtls_gcm_context gcmContext;
-	mbedtls_gcm_init(&gcmContext);
-	auto ret = mbedtls_gcm_setkey(&gcmContext, MBEDTLS_CIPHER_ID_AES, key.data(),
-	                              (unsigned int)key.size() * 8); // key size in bits
-	if (ret != 0) {
-		mbedtls_gcm_free(&gcmContext);
-		throw BCTBX_EXCEPTION << "Unable to set key in AES_GCM context : return value " << ret;
-	}
-
-	plain.resize(cipher.size()); // plain is the same size than cipher
-	ret = mbedtls_gcm_auth_decrypt(&gcmContext, cipher.size(), IV.data(), IV.size(), AD.data(), AD.size(), tag.data(),
-	                               tag.size(), cipher.data(), plain.data());
-	mbedtls_gcm_free(&gcmContext);
-
-	if (ret == 0) {
-		return true;
-	}
-	if (ret == MBEDTLS_ERR_GCM_AUTH_FAILED) {
-		return false;
-	}
-
-	throw BCTBX_EXCEPTION << "Error during AES_GCM decryption : return value " << ret;
-}
 
 int AES_key_wrap(const std::vector<uint8_t> &plaintext,
                  const std::vector<uint8_t> &key,
@@ -712,23 +400,45 @@ int AES_key_unwrap(const std::vector<uint8_t> &ciphertext,
 	return 0;
 }
 
+std::string encodeBase64(const std::vector<uint8_t> &input) {
+	size_t byteWritten = 0;
+	size_t outputLength = 0;
+	auto inputBuffer = input.data();
+	size_t inputLength = input.size();
+	mbedtls_base64_encode(nullptr, outputLength, &byteWritten, inputBuffer,
+	                      inputLength); // set encodedLength to the correct value
+	outputLength = byteWritten;
+	if (outputLength == 0) return std::string();
+	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate encoded buffer with correct length
+	int ret =
+	    mbedtls_base64_encode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real encoding
+	if (ret != 0) {
+		delete[] outputBuffer;
+		return std::string();
+	}
+	std::string output((char *)outputBuffer);
+	delete[] outputBuffer;
+	return output;
+}
+
+std::vector<uint8_t> decodeBase64(const std::string &input) {
+	size_t byteWritten = 0;
+	size_t outputLength = 0;
+	const unsigned char *inputBuffer = (const unsigned char *)input.data();
+	size_t inputLength = input.size();
+	mbedtls_base64_decode(nullptr, outputLength, &byteWritten, inputBuffer,
+	                      inputLength); // set decodedLength to the correct value
+	outputLength = byteWritten;
+	unsigned char *outputBuffer = new unsigned char[outputLength]; // allocate decoded buffer with correct length
+	int ret =
+	    mbedtls_base64_decode(outputBuffer, outputLength, &byteWritten, inputBuffer, inputLength); // real decoding
+	if (ret != 0) {
+		delete[] outputBuffer;
+		return std::vector<uint8_t>();
+	}
+	std::vector<uint8_t> output(outputBuffer, outputBuffer + outputLength);
+	delete[] outputBuffer;
+	return output;
+}
+
 } // namespace bctoolbox
-
-/*** Random Number Generation: C API ***/
-struct bctbx_rng_context_struct {
-	bctoolbox::RNG m_rng;
-};
-
-bctbx_rng_context_t *bctbx_rng_context_new(void) {
-	bctbx_rng_context_t *context = new bctbx_rng_context_struct();
-	return context;
-}
-
-int32_t bctbx_rng_get(bctbx_rng_context_t *context, unsigned char *output, size_t output_length) {
-	context->m_rng.randomize(output, output_length);
-	return 0; // always return 0, in case of problem an exception is raised by randomize
-}
-
-void bctbx_rng_context_free(bctbx_rng_context_t *context) {
-	delete context;
-}

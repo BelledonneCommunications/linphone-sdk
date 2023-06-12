@@ -12,6 +12,7 @@ Depends
 - **mbedtls[1]**: implementation of TLS interface of BcToolbox. For backward
   compatibility, support of mbedtlsv2 is also provided.
 - **bcunit[2]** for unitary test tools. (optional)
+- **openssl[3]** alternate TLS and crypto implementation. (optional)
 
 
 To compile
@@ -36,10 +37,11 @@ Options
 
 - `CMAKE_INSTALL_PREFIX=<string>`: install prefix.
 - `CMAKE_PREFIX_PATH=<string>`: search path prefix for dependencies e.g. mbedtls.
-- `ENABLE_MBEDTLS=NO`: do not look for mbedtls. Then, polarssl will be selected.
+- `ENABLE_MBEDTLS=NO`: do not look for mbedtls.
+- `ENABLE_OPENSSL=NO`: do not look for openssl.
 - `ENABLE_STRICT=NO`: do not build with strict compilator flags e.g. `-Wall -Werror`.
 - `ENABLE_UNIT_TESTS=NO`: do not build testing binaries.
-- `ENABLE_TESTS_COMPONENT=NO`: do not build libbctoolbox-tester.
+- `ENABLE_TESTS_COMPONENT=NO`: do not build libbctoolbox-tester.
 
 
 Notes
@@ -60,4 +62,5 @@ while you invoke cmake.
 
 - [1] <https://github.com/ARMmbed/mbedtls.git>
 - [2] git://git.linphone.org/bctoolbox.git or <http://www.linphone.org/releases/sources/bctoolbox/>
+- [3] <https://github.com/openssl/openssl.git>
 

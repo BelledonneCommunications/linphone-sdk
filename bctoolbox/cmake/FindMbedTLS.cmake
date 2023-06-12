@@ -94,7 +94,7 @@ else()
     	message("MESSAGE: MbedTLS_LIBRARY=" ${_MbedTLS_LIBRARY})
 	    message("MESSAGE: MbedX509_LIBRARY=" ${MbedX509_LIBRARY})
   	  message("MESSAGE: MbedCrypto_LIBRARY=" ${MbedCrypto_LIBRARY})
-			set(_MbedTLS_VERSION 1)
+			set(MbedTLS_VERSION 1)
 		else()
 			# Are we mbdetls 2 or 3?
 			# From version 3 and on, version number is given in include/mbedtls/build_info.h.

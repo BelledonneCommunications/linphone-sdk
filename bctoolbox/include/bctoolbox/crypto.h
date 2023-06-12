@@ -164,7 +164,7 @@ typedef enum bctbx_srtp_profile {
 	BCTBX_SRTP_NULL_HMAC_SHA1_32
 } bctbx_dtls_srtp_profile_t;
 
-typedef enum bctbx_type_implementation { BCTBX_MBEDTLS2, BCTBX_MBEDTLS } bctbx_type_implementation_t;
+typedef enum bctbx_type_implementation { BCTBX_MBEDTLS2, BCTBX_MBEDTLS, BCTBX_OPENSSL } bctbx_type_implementation_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -566,14 +566,21 @@ BCTBX_PUBLIC int32_t bctbx_ssl_config_set_ca_chain(bctbx_ssl_config_t *ssl_confi
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_own_cert(bctbx_ssl_config_t *ssl_config,
                                                    bctbx_x509_certificate_t *cert,
                                                    bctbx_signing_key_t *key);
-BCTBX_PUBLIC int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config, const int *ciphersuites);
+BCTBX_PUBLIC int32_t bctbx_ssl_config_set_ciphersuites(bctbx_ssl_config_t *ssl_config,
+                                                       const bctbx_list_t *ciphersuites);
+
+/**
+ * @brief Configure the groups used by the tls connection
+ * Examples are "P-256", "P-384", "X448", etc..
+ */
+BCTBX_PUBLIC int32_t bctbx_ssl_config_set_groups(bctbx_ssl_config_t *ssl_config, const bctbx_list_t *groups);
 
 /***** DTLS-SRTP functions *****/
 BCTBX_PUBLIC bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx);
 BCTBX_PUBLIC int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config,
                                                                         const bctbx_dtls_srtp_profile_t *profiles,
                                                                         size_t profiles_number);
-BCTBX_PUBLIC int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_ctx,
+BCTBX_PUBLIC int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_context_t *ssl_ctx,
                                                           uint8_t *output,
                                                           size_t *output_length);
 BCTBX_PUBLIC uint8_t bctbx_dtls_srtp_supported(void);

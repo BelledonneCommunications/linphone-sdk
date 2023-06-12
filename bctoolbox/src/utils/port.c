@@ -1094,7 +1094,7 @@ char *strtok_r(char *str, const char *delim, char **nextp) {
 #endif
 
 /* if we have mbedtls, use it to provide randomness, otherwise do it here */
-#ifndef HAVE_MBEDTLS
+#if !defined(HAVE_MBEDTLS) && !defined(HAVE_OPENSSL)
 #if defined(_WIN32) && !defined(_MSC_VER)
 #include <wincrypt.h>
 static int bctbx_wincrypto_random(unsigned int *rand_number) {
@@ -1162,7 +1162,7 @@ unsigned int bctbx_random(void) {
 	return (unsigned int)random();
 #endif
 }
-#endif /* HAVE_MBEDTLS */
+#endif /* !defined(HAVE_MBEDTLS) && !defined(HAVE_OPENSSL) */
 
 bool_t bctbx_is_multicast_addr(const struct sockaddr *addr) {
 
@@ -1906,7 +1906,7 @@ void bctbx_uint32_to_str(uint8_t output_string[9], uint32_t input_uint32) {
 	output_string[4] = bctbx_byte_to_char((uint8_t)((input_uint32 >> 12) & 0x0F));
 	output_string[5] = bctbx_byte_to_char((uint8_t)((input_uint32 >> 8) & 0x0F));
 	output_string[6] = bctbx_byte_to_char((uint8_t)((input_uint32 >> 4) & 0x0F));
-	output_string[7] = bctbx_byte_to_char((uint8_t)((input_uint32)&0x0F));
+	output_string[7] = bctbx_byte_to_char((uint8_t)((input_uint32) & 0x0F));
 	output_string[8] = '\0';
 }
 
@@ -1937,7 +1937,7 @@ void bctbx_uint64_to_str(uint8_t output_string[17], uint64_t input_uint64) {
 	output_string[12] = bctbx_byte_to_char((uint8_t)((input_uint64 >> 12) & 0x0F));
 	output_string[13] = bctbx_byte_to_char((uint8_t)((input_uint64 >> 8) & 0x0F));
 	output_string[14] = bctbx_byte_to_char((uint8_t)((input_uint64 >> 4) & 0x0F));
-	output_string[15] = bctbx_byte_to_char((uint8_t)((input_uint64)&0x0F));
+	output_string[15] = bctbx_byte_to_char((uint8_t)((input_uint64) & 0x0F));
 	output_string[16] = '\0';
 }
 

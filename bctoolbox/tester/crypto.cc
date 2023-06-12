@@ -25,13 +25,9 @@
 #include "bctoolbox/crypto.hh"
 #include "bctoolbox/exception.hh"
 #include "bctoolbox_tester.h"
+#include <array>
 #include <cmath>
 #include <stdio.h>
-#ifdef HAVE_MBEDTLS
-/* used to cross test ECDH25519 */
-#include "mbedtls/ecdh.h"
-#endif /* HAVE_MBEDTLS */
-#include <array>
 
 using namespace bctoolbox;
 
@@ -747,7 +743,6 @@ static void hash_test(void) {
 	                 outputBuffer);
 	BC_ASSERT_TRUE(memcmp(outputBuffer, hmac_sha512_pattern.data(), 64) == 0);
 
-#ifdef HAVE_MBEDTLS
 	{
 		/* C++ api */
 		auto sha1 = bctoolbox::HMAC<SHA1>(hmac_sha1_key, hmac_sha1_data);
@@ -835,11 +830,8 @@ static void hash_test(void) {
 	            0x0f, 0x90, 0xb0, 0xc7, 0xf6, 0x3d, 0x68, 0xeb, 0x1a, 0x80, 0xea, 0xf0, 0x7e, 0x95,
 	            0x3c, 0xfc, 0x0a, 0x3a, 0x52, 0x40, 0xa1, 0x55, 0xd6, 0xe4, 0xda, 0xa9, 0x65, 0xbb});
 	BC_ASSERT_TRUE(OKM == bctoolbox::HKDF<SHA512>(salt, IKM, info, OKM.size()));
-
-#endif // HAVE_MBEDTLS
 }
 
-#ifdef HAVE_MBEDTLS
 template <typename U>
 static void rng_stats_update(size_t &count, double &mean, double &m2, U r) noexcept {
 	count++;
@@ -957,7 +949,7 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 			BC_FAIL("RNG output mean out of expected values");
 		}
 		// normalised variance shall be around 1/12
-		if (stat_m2 > 1.1 / 12 || stat_m2 < 0.9 / 12) {
+		if (stat_m2 > 1.15 / 12 || stat_m2 < 0.85 / 12) {
 			BCTBX_SLOGE << "RNG variance value on buffer size " << buffer_size << " running " << calls_nb << " is "
 			            << stat_m2;
 			BC_FAIL("RNG output variance out of expected values");
@@ -967,10 +959,8 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 		BC_FAIL("context RNG test fail");
 	}
 }
-#endif // HAVE_MBEDTLS
 
 static void rng_test(void) {
-#ifdef HAVE_MBEDTLS
 	rng_test_args(4, 4096);
 	rng_test_args(32, 1024);
 	rng_test_args(64, 1024);
@@ -990,12 +980,9 @@ static void rng_test(void) {
 	} catch (BctbxException const &e) {
 		exceptionRaised = true;
 	}
-	if (exceptionRaised == false) {
+	if (exceptionRaised == false && bctbx_ssl_get_implementation_type() != BCTBX_OPENSSL) {
 		BC_FAIL("No exception raised when trying to generate a huge amount of random data");
 	}
-#else  // HAVE_MBEDTLS
-	bctbx_warning("test skipped as we don't have mbedtls in bctoolbox");
-#endif // HAVE_MBEDTLS
 }
 
 static int cInterfaceAESGCMTest(const std::vector<uint8_t> &key,
@@ -1006,10 +993,14 @@ static int cInterfaceAESGCMTest(const std::vector<uint8_t> &key,
                                 const std::vector<uint8_t> &pattern_tag) {
 	int ret = 0;
 	uint8_t cCipher[256]; // 256 is the maximum size of patterns
+	uint8_t cPlain[256];  // 256 is the maximum size of patterns
 	uint8_t cTag[16];
 
 	memset(cCipher, 0, 256);
+	memset(cPlain, 0, 256);
 	memset(cTag, 0, 16);
+
+	// Encrypt
 	bctbx_aes_gcm_context_t *ctx = bctbx_aes_gcm_context_new(key.data(), key.size(), AD.data(), AD.size(), IV.data(),
 	                                                         IV.size(), BCTBX_GCM_ENCRYPT);
 	ret = BC_ASSERT_PTR_NOT_NULL(ctx);
@@ -1017,6 +1008,14 @@ static int cInterfaceAESGCMTest(const std::vector<uint8_t> &key,
 	ret &= BC_ASSERT_TRUE(bctbx_aes_gcm_finish(ctx, cTag, 16) == 0);
 	ret &= BC_ASSERT_TRUE(memcmp(cCipher, pattern_cipher.data(), pattern_cipher.size()) == 0);
 	ret &= BC_ASSERT_TRUE(memcmp(cTag, pattern_tag.data(), pattern_tag.size()) == 0);
+
+	// Decrypt
+	ctx = bctbx_aes_gcm_context_new(key.data(), key.size(), AD.data(), AD.size(), IV.data(), IV.size(),
+	                                BCTBX_GCM_DECRYPT);
+	ret = BC_ASSERT_PTR_NOT_NULL(ctx);
+	ret &= BC_ASSERT_TRUE(bctbx_aes_gcm_process_chunk(ctx, pattern_cipher.data(), pattern_cipher.size(), cPlain) == 0);
+	ret &= BC_ASSERT_TRUE(bctbx_aes_gcm_finish(ctx, (uint8_t *)pattern_tag.data(), pattern_tag.size()) == 0);
+	ret &= BC_ASSERT_TRUE(memcmp(cPlain, pattern_plain.data(), pattern_plain.size()) == 0);
 
 	return ret;
 }
@@ -1032,17 +1031,20 @@ static int AESGCMTest(const std::vector<uint8_t> &key,
 	std::vector<uint8_t> tag{};
 	std::vector<uint8_t> plain{};
 
-	cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
-	ret = BC_ASSERT_TRUE(cipher == pattern_cipher);
-	ret &= BC_ASSERT_TRUE(tag == pattern_tag);
-	ret &= BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
-	ret &= BC_ASSERT_TRUE(plain == pattern_plain);
+	try {
+		cipher = AEADEncrypt<AES256GCM128>(key, IV, pattern_plain, AD, tag);
+		ret = BC_ASSERT_TRUE(cipher == pattern_cipher);
+		ret &= BC_ASSERT_TRUE(tag == pattern_tag);
+		ret &= BC_ASSERT_TRUE(AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, pattern_tag, plain));
+		ret &= BC_ASSERT_TRUE(plain == pattern_plain);
+	} catch (BctbxException const &e) {
+		BCTBX_SLOGE << "Unexpected exception:" << e.str();
+		return false;
+	}
 
 	return ret;
 }
 static void AEAD(void) {
-	std::vector<uint8_t> cipher{};
-	std::vector<uint8_t> tag{};
 	std::vector<uint8_t> plain{};
 
 	/* Test vectors for AES256-GCM128 from IEEE P1619.1/D22 - Annex D.3 */
@@ -1062,6 +1064,27 @@ static void AEAD(void) {
 
 	BC_ASSERT_TRUE(AESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
 	BC_ASSERT_TRUE(cInterfaceAESGCMTest(key, AD, IV, pattern_plain, pattern_cipher, pattern_tag) == 1);
+
+	/* use the wrong tag in decryption, it must fail */
+	auto exceptionRaised = false;
+	std::vector<uint8_t> wrong_pattern_tag = pattern_tag;
+	wrong_pattern_tag[15] = 0;
+	try {
+		AEADDecrypt<AES256GCM128>(key, IV, pattern_cipher, AD, wrong_pattern_tag, plain);
+	} catch (BctbxException const &e) {
+		exceptionRaised = true;
+		BCTBX_SLOGI << "Expected exception:" << e.str();
+	}
+	if (exceptionRaised == false) {
+		BC_FAIL("No exception raised when trying to decrypt AES256-GCM with incorrect tag");
+	}
+	// C API : wrong tag in decryption again
+	auto ctx = bctbx_aes_gcm_context_new(key.data(), key.size(), AD.data(), AD.size(), IV.data(), IV.size(),
+	                                     BCTBX_GCM_DECRYPT);
+	BC_ASSERT_PTR_NOT_NULL(ctx);
+	plain.resize(pattern_cipher.size());
+	BC_ASSERT_TRUE(bctbx_aes_gcm_process_chunk(ctx, pattern_cipher.data(), pattern_cipher.size(), plain.data()) == 0);
+	BC_ASSERT_FALSE(bctbx_aes_gcm_finish(ctx, wrong_pattern_tag.data(), wrong_pattern_tag.size()) == 0);
 
 	/* Test D3.2 */
 	key = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

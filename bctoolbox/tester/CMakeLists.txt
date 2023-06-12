@@ -31,7 +31,7 @@ if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT A
 		param_string.c
 		vfs.c
 	)
-	if(MbedTLS_FOUND)
+	if(MbedTLS_FOUND OR OPENSSL_FOUND)
 		list(APPEND TESTER_SOURCES
 			crypto.cc
 			encrypted_vfs.cc)

@@ -73,20 +73,25 @@ if(WIN32)
 	list(APPEND STRICT_OPTIONS_CXX "/EHa")
 	add_definitions(-EHa)
 endif()
-if(MbedTLS_FOUND)
+if(MbedTLS_FOUND OR OPENSSL_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES
+		crypto/crypto.cc
 		crypto/ecc.cc
-		crypto/mbedtls.cc
 		vfs/vfs_encrypted.cc
 		vfs/vfs_encryption_module_dummy.cc
 		vfs/vfs_encryption_module_aes256gcm_sha256.cc)
 endif()
-if(MbedTLS_VERSION GREATER_EQUAL 3)
-	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
-elseif(MbedTLS_VERSION EQUAL 2)
-	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls-v2.c)
+if(OPENSSL_FOUND)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/openssl.c)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/openssl.cc)
 endif()
+
+if(MbedTLS_FOUND)
+	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
+	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES crypto/mbedtls.cc)
+endif()
+
 if(ENABLE_TESTS_COMPONENT)
 	set(BCTOOLBOX_C_TESTER_SOURCE_FILES tester.c)
 endif()
@@ -235,6 +240,9 @@ endif()
 if(Decaf_FOUND)
 	target_link_libraries(bctoolbox PRIVATE ${Decaf_TARGET})
 endif()
+if (OPENSSL_FOUND)
+	target_link_libraries(bctoolbox PRIVATE OpenSSL::SSL)
+endif ()
 
 install(TARGETS bctoolbox EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
