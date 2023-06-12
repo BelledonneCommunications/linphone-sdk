@@ -616,6 +616,12 @@ void belle_sip_channel_parse_stream(belle_sip_channel_t *obj, int end_of_stream)
 				} else {
 					belle_sip_error("Could not parse [%s], on channel [%p] skipping to [%s]",
 					                obj->input_stream.read_ptr, obj, end_of_message);
+					if (obj->input_stream.msg) {
+						/* despite read_size is zero, belle_sip_message_parse_raw() might return an empty
+						 * belle_sip_message_t */
+						belle_sip_object_unref(obj->input_stream.msg);
+						obj->input_stream.msg = NULL;
+					}
 					obj->input_stream.read_ptr = end_of_message;
 					obj->input_stream.state = WAITING_MESSAGE_START;
 					continue;
