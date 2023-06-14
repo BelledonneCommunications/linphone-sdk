@@ -209,8 +209,9 @@ static int ms_wasapi_read_get_nchannels(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_read_set_nchannels(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
-	/* This is not supported: the Audio Client requires to use 2 channels. */
+	MSWASAPIReaderType r = MSWASAPI_READER(f->data);
 	int channelCount = 2;
+	r->setNChannels(*((int *)arg));// TODO: changing channel is not implemented. Note that Mediastreamer use only 1 or 2 channels.
 	ms_wasapi_read_get_nchannels(f, &channelCount);
 	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
 		return 0;
@@ -358,8 +359,9 @@ static int ms_wasapi_write_get_nchannels(MSFilter *f, void *arg) {
 }
 
 static int ms_wasapi_write_set_nchannels(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *arg)) {
-	/* This is not supported: the Audio Client requires to use 2 channels. */
+	MSWASAPIWriterType w = MSWASAPI_WRITER(f->data);
 	int channelCount = 2;
+	w->setNChannels(*((int *)arg));// TODO: changing channel is not implemented. Note that Mediastreamer use only 1 or 2 channels.
 	ms_wasapi_write_get_nchannels(f, &channelCount);
 	if(channelCount == *((int *)arg))// We are setting what the Audio Client managed : do not considered it as an error to avoid misleading debug logs.
 		return 0;

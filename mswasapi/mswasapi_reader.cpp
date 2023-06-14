@@ -324,6 +324,12 @@ error:
 	return;
 }
 
+void MSWASAPIReader::setNChannels(int channels) {
+	if(mNChannels != channels) {
+		ms_warning("MSWASAPIReader::setNChannels(): trying to change channel to %d but it is not implemented. Keep %d", channels, mNChannels);
+	}
+}
+
 void MSWASAPIReader::silence(MSFilter *f)
 {
 	mblk_t *om;

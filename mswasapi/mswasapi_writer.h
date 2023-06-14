@@ -51,6 +51,7 @@ public:
 
 	int getRate() { return mRate; }
 	int getNChannels() { return mNChannels; }
+	void setNChannels(int channels);
 	float getVolumeLevel();
 	void setVolumeLevel(float volume);
 

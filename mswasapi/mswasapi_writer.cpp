@@ -336,6 +336,12 @@ error:
 	return;
 }
 
+void MSWASAPIWriter::setNChannels(int channels) {
+	if(mNChannels != channels) {
+		ms_warning("MSWASAPIWriter::setNChannels(): trying to change channel to %d but it is not implemented. Keep %d", channels, mNChannels);
+	}
+}
+
 #ifdef MS2_WINDOWS_UNIVERSAL
 //
 //  ActivateCompleted()
