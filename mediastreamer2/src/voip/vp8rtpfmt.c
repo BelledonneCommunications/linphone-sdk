@@ -291,6 +291,10 @@ static bool_t parse_frame_header(Vp8RtpFmtFrame *frame) {
 	for (i = 1; i < nb_partitions; i++) {
 		const unsigned char *partition_sizes = data + first_partition_length_in_bytes;
 		const unsigned char *partition_size_ptr = partition_sizes + (i - 1) * 3;
+		if (partition_size_ptr + 2 >= data_end) {
+			ms_error("vp8rtpfmt.c: bad partition.");
+			return FALSE;
+		}
 		frame->partitions_info.partition_sizes[i] =
 		    partition_size_ptr[0] + (partition_size_ptr[1] << 8) + (partition_size_ptr[2] << 16);
 	}
