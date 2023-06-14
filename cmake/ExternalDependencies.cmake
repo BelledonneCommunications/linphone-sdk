@@ -72,6 +72,9 @@ cmake_dependent_option(BUILD_MBEDTLS "Build mbedtls library source code from sub
 cmake_dependent_option(BUILD_MBEDTLS_SHARED_LIBS "Choose to build shared or static mbedtls library." ${BUILD_SHARED_LIBS} "BUILD_MBEDTLS" OFF)
 cmake_dependent_option(BUILD_MBEDTLS_WITH_FATAL_WARNINGS "Allow configuration of MBEDLS_FATAL_WARNINGS option." OFF "BUILD_MBEDTLS" OFF)
 
+cmake_dependent_option(BUILD_OPENSSL "Build openssl library source code from submodule instead of searching it in system libraries." ON "ENABLE_OPENSSL" OFF)
+cmake_dependent_option(BUILD_OPENSSL_SHARED_LIBS "Choose to build shared or static openssl library." ${BUILD_SHARED_LIBS} "BUILD_OPENSSL" OFF)
+
 cmake_dependent_option(BUILD_OPENCORE_AMR "Build opencore-amr library source code from submodule instead of searching it in system libraries." ON "ENABLE_AMR" OFF)
 cmake_dependent_option(BUILD_OPENCORE_AMR_SHARED_LIBS "Choose to build shared or static opencore-amr library." ${BUILD_SHARED_LIBS} "BUILD_OPENCORE_AMR" OFF)
 
@@ -952,7 +955,149 @@ if(BUILD_MBEDTLS)
 	add_mbedtls()
 endif()
 
-# Depends on mbedtls so add it after
+if(BUILD_OPENSSL)
+	function(add_openssl)
+		if(BUILD_OPENSSL_SHARED_LIBS)
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "shared")
+			set(OPENSSL_LIBRARY_TYPE SHARED)
+			if(WIN32)
+				set(OPENSSL_SSL_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/ssl.lib")
+				set(OPENSSL_CRYPTO_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/crypto.lib")
+			elseif(APPLE)
+				set(OPENSSL_SSL_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libssl.dylib")
+				set(OPENSSL_CRYPTO_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libcrypto.dylib")
+			else()
+				set(OPENSSL_SSL_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libssl.so")
+				set(OPENSSL_CRYPTO_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libcrypto.so")
+			endif()
+		else()
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "no-shared")
+			set(OPENSSL_LIBRARY_TYPE STATIC)
+			if(WIN32)
+				set(OPENSSL_SSL_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/ssl.lib")
+				set(OPENSSL_CRYPTO_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/crypto.lib")
+			else()
+				set(OPENSSL_SSL_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libssl.a")
+				set(OPENSSL_CRYPTO_IMPORTED_LOCATION "${CMAKE_INSTALL_FULL_LIBDIR}/libcrypto.a")
+			endif()
+		endif()
+
+		if(APPLE)
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "-lm")
+		endif()
+
+		if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+			set(OPENSSL_TARGET_ARCH "arm64")
+		elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+			set(OPENSSL_TARGET_ARCH "x86_64")
+		endif()
+
+		if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "VC-WIN64A")
+		elseif(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "VC-WIN32")
+		elseif(APPLE)
+			if (IOS)
+				if(PLATFORM STREQUAL "OS")
+					list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "ios-xcrun" "-fembed-bitcode")
+				elseif(PLATFORM STREQUAL "Simulator")
+					list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "iossimulator-xcrun")
+				endif()
+				list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "-arch ${OPENSSL_TARGET_ARCH}")
+				list(APPEND OPENSSL_CONFIGURE_ARGUMENTS no-asm no-hw no-async)
+			else()
+				list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "darwin64-${OPENSSL_TARGET_ARCH}-cc")
+			endif()
+		elseif(ANDROID)
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "android-${OPENSSL_TARGET_ARCH}")
+		else()
+			list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "linux-${OPENSSL_TARGET_ARCH}")
+		endif()
+		include(GNUInstallDirs)
+		list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "--prefix=${CMAKE_INSTALL_PREFIX}")
+		list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "--openssldir=${CMAKE_INSTALL_PREFIX}")
+		list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "--libdir=lib")
+		list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "-L${CMAKE_INSTALL_FULL_LIBDIR}")
+		list(APPEND OPENSSL_CONFIGURE_ARGUMENTS "-I${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+
+		set(OPENSSL_SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/openssl")
+		set(OPENSSL_BINARY_DIR "${PROJECT_BINARY_DIR}/openssl-ep-prefix/src/openssl-ep-build")
+
+		if(WIN32)
+			set(OPENSSL_MAKE nmake)
+		else()
+			set(OPENSSL_MAKE make -C ${OPENSSL_BINARY_DIR} -j)
+		endif()
+
+		if (EXISTS ${OPENSSL_BINARY_DIR}/Makefile)
+			message(INFO "Skipping Openssl build configuration command because a makefile already exists: ${OPENSSL_BINARY_DIR}/Makefile")
+			set(OPENSSL_CONFIGURE_COMMAND echo "Openssl build already configured")
+		else ()
+			if(WIN32)
+				set(OPENSSL_CONFIGURE perl ${OPENSSL_SOURCE_DIR}/Configure)
+			else()
+				set(OPENSSL_CONFIGURE ${OPENSSL_SOURCE_DIR}/Configure)
+			endif()
+			set(OPENSSL_CONFIGURE_COMMAND ${OPENSSL_CONFIGURE} ${OPENSSL_CONFIGURE_ARGUMENTS})
+		endif()
+
+		ExternalProject_Add(openssl-ep
+			SOURCE_DIR "${OPENSSL_SOURCE_DIR}"
+			GIT_REPOSITORY "https://github.com/openssl/openssl.git"
+			GIT_TAG "openssl-3.0.12"
+			GIT_SHALLOW TRUE
+			GIT_PROGRESS TRUE
+			CONFIGURE_COMMAND ${OPENSSL_CONFIGURE_COMMAND}
+			BUILD_COMMAND ${OPENSSL_MAKE} build_sw
+			INSTALL_COMMAND ${OPENSSL_MAKE} install_sw
+			LOG_CONFIGURE TRUE
+			LOG_BUILD TRUE
+			LOG_INSTALL TRUE
+			LOG_OUTPUT_ON_FAILURE TRUE
+			BUILD_BYPRODUCTS ${OPENSSL_SSL_IMPORTED_LOCATION} ${OPENSSL_CRYPTO_IMPORTED_LOCATION}
+		)
+		include(CMakePackageConfigHelpers)
+		set(OPENSSL_INCLUDE_DIR ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+		set(OPENSSL_VERSION "3.0.12")
+		configure_package_config_file(
+				${PROJECT_SOURCE_DIR}/cmake/PackageConfig/OpenSSLConfig.cmake.in
+				${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/OpenSSLConfig.cmake
+				INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/OpenSSL
+				PATH_VARS OPENSSL_INCLUDE_DIR OPENSSL_CRYPTO_IMPORTED_LOCATION OPENSSL_SSL_IMPORTED_LOCATION
+		)
+		write_basic_package_version_file(
+				${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}/OpenSSLConfigVersion.cmake
+				VERSION ${OPENSSL_VERSION}
+				COMPATIBILITY SameMajorVersion
+		)
+		set(OpenSSL_ROOT "${CMAKE_FIND_PACKAGE_REDIRECTS_DIR}")
+		add_library(OpenSSL::Crypto ${OPENSSL_LIBRARY_TYPE} IMPORTED GLOBAL)
+		add_library(OpenSSL::SSL ${OPENSSL_LIBRARY_TYPE} IMPORTED GLOBAL)
+
+		# Some cmake distributions will error if the directory passed to INTERFACE_INCLUDE_DIRECTORIES is non-existent
+		file(MAKE_DIRECTORY "${OPENSSL_INCLUDE_DIR}")
+
+		set_target_properties(
+			OpenSSL::Crypto
+			PROPERTIES
+				IMPORTED_LOCATION ${OPENSSL_CRYPTO_IMPORTED_LOCATION}
+				INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+		)
+		set_target_properties(
+			OpenSSL::SSL
+			PROPERTIES
+				IMPORTED_LOCATION ${OPENSSL_SSL_IMPORTED_LOCATION}
+				INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+				IMPORTED_LINK_INTERFACE_LIBRARIES OpenSSL::Crypto
+		)
+
+		add_dependencies(OpenSSL::SSL openssl-ep)
+		add_dependencies(OpenSSL::Crypto openssl-ep)
+	endfunction()
+	add_openssl()
+endif()
+
+# Depends on mbedtls or openssl so add it after
 if(BUILD_LIBSRTP2)
 	function(add_srtp)
 		set(BUILD_SHARED_LIBS ${BUILD_LIBSRTP2_SHARED_LIBS})

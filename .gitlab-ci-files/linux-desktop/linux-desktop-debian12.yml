@@ -59,6 +59,9 @@ debian12-ninja-gcc:
 
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -86,6 +89,13 @@ debian12-ninja-gcc-smallsdk:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian12-ninja-gcc
 
+debian12-ninja-gcc-openssl:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+  variables:
+    CMAKE_OPTIONS: -DENABLE_OPENSSL=ON -DENABLE_MBEDTLS=OFF -DENABLE_LDAP=ON
+  extends: debian12-ninja-gcc
 
 debian12-ninja-clang:
   tags: [ "docker" ]
@@ -124,6 +134,13 @@ bctoolbox-debian12-test:
   needs:
     - debian12-ninja-gcc
   <<: *docker_image_platform_and_runner_tag
+
+bctoolbox-debian12-openssl-test-mr:
+  extends: .test-bctoolbox-mr
+  needs:
+    - debian12-ninja-gcc-openssl
+  <<: *docker_image_platform_and_runner_tag
+
 
 pqc-debian12-test:
   extends: .test-pqc
@@ -173,10 +190,10 @@ liblinphone-debian12-test:
   variables:
     PLATFORM: linux-debian12
 
-# liblinphone-debian12-test-mr:
-#   extends: .test-liblinphone-mr
-#   image: !reference [.debian12_test_libl_image_version, image]
-#   needs:
-#     - debian12-ninja-gcc
-#   variables:
-#     PLATFORM: linux-debian12
+liblinphone-debian12-openssl-test-mr:
+   image: !reference [.debian12_test_libl_image_version, image]
+   extends: .test-liblinphone-crypto-backend-mr
+   needs:
+     - debian12-ninja-gcc-openssl
+   variables:
+     PLATFORM: linux-debian12

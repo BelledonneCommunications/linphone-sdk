@@ -142,6 +142,7 @@
     GIT_STRATEGY: none
     GIT_SUBMODULE_STRATEGY: none
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
+    CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_LINUX_TESTS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
@@ -184,7 +185,14 @@
     - echo $LOG_PATTERN.txt
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
-          then ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+        then
+           if [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
+           then
+              ./$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+           else
+              EXIT_CRYPTO_BACKEND_TAG=0;
+              ./$TESTER_BIN --verbose --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+           fi
         else
 
           EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=0;
@@ -192,11 +200,11 @@
           EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_OVER_TUNNEL_AND_PQ=0;
 
-          ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated-Results.xml $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
+          ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
 
-          ./$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
+          ./$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
-         # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+         # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
         fi
 
     - $PULSEAUDIO_KILL
@@ -204,7 +212,18 @@
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
         then
-          exit $EXIT
+          if [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
+          then
+             exit $EXIT
+          else
+             echo "EXIT_CRYPTO_BACKEND_TAG=$EXIT_CRYPTO_BACKEND_TAG";
+             if [ $EXIT_CRYPTO_BACKEND_TAG != 0 ] ;
+             then
+               exit 1;
+             else
+               exit 0;
+             fi;
+          fi
         else
           echo "EXIT_OVER_TUNNEL_AND_PQ=$EXIT_OVER_TUNNEL_AND_PQ";
           echo "EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ";
@@ -268,9 +287,9 @@
     - cp -r BCUnitAutomated* ${CI_PROJECT_DIR}/results
 
     - |
-        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
-          then
-            cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results;
+        if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ] && [ $CRYPTO_BACKEND_TESTS_LIBLINPHONE = "false" ];
+        then
+          cp -r $LOG_PATTERN* ${CI_PROJECT_DIR}/results;
         else
           cp -r log* ${CI_PROJECT_DIR}/results;
         fi
@@ -453,6 +472,7 @@
     TESTER: "liblinphone"
     #false
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
+    CRYPTO_BACKEND_TESTS_LIBLINPHONE: "false"
 
 .test-liblinphone-tunnel-pq:
   extends: .test-liblinphone
@@ -460,6 +480,14 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
+    ADDITIONNAL_OPTIONS: ""
+
+.test-liblinphone-crypto-backend:
+  extends: .test-liblinphone
+  tags: [ "docker-liblinphone-tester-light" ]
+  variables:
+    #true
+    CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
     ADDITIONNAL_OPTIONS: ""
 
 .test-liblinphone-mr:
@@ -476,4 +504,13 @@
   variables:
     #true
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "true"
+    ADDITIONNAL_OPTIONS: ""
+
+.test-liblinphone-crypto-backend-mr:
+  extends: .test-liblinphone-mr
+  tags: [ "docker-liblinphone-tester-light" ]
+  allow_failure: false
+  variables:
+    #true
+    CRYPTO_BACKEND_TESTS_LIBLINPHONE: "true"
     ADDITIONNAL_OPTIONS: ""
