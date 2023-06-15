@@ -69,7 +69,7 @@ if(MSVC)
 else()
 	add_compile_options(-Wall -W -pedantic -Wshadow -ansi -std=c99)
 	# Do not show warnings when building this code
-	add_compile_options(-Wno-clobbered -Wno-format -Wno-unused-parameter -Wno-unused-variable -Wno-pedantic)
+	add_compile_options(-Wno-clobbered -Wno-format -Wno-format-security -Wno-unused-parameter -Wno-unused-variable -Wno-pedantic)
 endif()
 
 if(ENABLE_BCUNIT_MEMTRACE)
