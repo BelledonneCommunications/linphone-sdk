@@ -992,10 +992,10 @@ uint8_t bctbx_dtls_srtp_supported(void) {
 	return 0;
 }
 
-void bctbx_ssl_set_mtu(bctbx_ssl_context_t *ssl_ctx, uint16_t mtu) {
+void bctbx_ssl_set_mtu(BCTBX_UNUSED(bctbx_ssl_context_t *ssl_ctx), BCTBX_UNUSED(uint16_t mtu)) {
 }
 
-bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(bctbx_ssl_context_t *ssl_ctx) {
+bctbx_dtls_srtp_profile_t bctbx_ssl_get_dtls_srtp_protection_profile(BCTBX_UNUSED(bctbx_ssl_context_t *ssl_ctx)) {
 	return BCTBX_SRTP_UNDEFINED;
 }
 
@@ -1358,14 +1358,16 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 }
 
 #else  /* HAVE_DTLS_SRTP */
-int32_t bctbx_ssl_get_dtls_srtp_key_material(bctbx_ssl_config_t *ssl_ctx, uint8_t *output, size_t *output_length) {
+int32_t bctbx_ssl_get_dtls_srtp_key_material(BCTBX_UNUSED(bctbx_ssl_config_t *ssl_ctx),
+                                             BCTBX_UNUSED(uint8_t *output),
+                                             size_t *output_length) {
 	*output_length = 0;
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 
-int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *ssl_config,
-                                                           const bctbx_dtls_srtp_profile_t *profiles,
-                                                           size_t profiles_number) {
+int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(BCTBX_UNUSED(bctbx_ssl_config_t *ssl_config),
+                                                           BCTBX_UNUSED(const bctbx_dtls_srtp_profile_t *profiles),
+                                                           BCTBX_UNUSED(size_t profiles_number)) {
 	return BCTBX_ERROR_UNAVAILABLE_FUNCTION;
 }
 #endif /* HAVE_DTLS_SRTP */
