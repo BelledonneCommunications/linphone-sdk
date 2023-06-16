@@ -717,6 +717,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 	dns_res_enable_search(ctx->R, search_enabled);
 	/*belle_sip_message("resolver_process_data(): revents=%i",revents);*/
 	error = dns_res_check(ctx->R);
+
 	if (!error) {
 		struct dns_rr rr;
 		union dns_any any;
@@ -1729,6 +1730,13 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 	if (ttl < BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl) BELLE_SIP_RESOLVER_CONTEXT(data)->min_ttl = ttl;
 	if (srv_results) {
 		belle_sip_list_t *elem;
+
+		if (ctx->a_fallback_ctx) {
+			ctx->a_fallback_completed = TRUE; /* we don't need a/aaaa fallback anymore.*/
+			belle_sip_resolver_context_cancel(ctx->a_fallback_ctx);
+			belle_sip_object_unref(ctx->a_fallback_ctx);
+			ctx->a_fallback_ctx = NULL;
+		}
 		/* take a ref of each srv_results because the last A resolution may terminate synchronously
 		 and destroy the list before the loop terminate */
 		ctx->srv_results = belle_sip_list_copy(srv_results);
@@ -1742,12 +1750,6 @@ static void process_srv_results(void *data, const char *name, belle_sip_list_t *
 		srv_results = belle_sip_list_free_with_data(srv_results, belle_sip_object_unref);
 		/* Since we have SRV results, we can cancel the srv timeout, and cancel the fallback a/aaaa resolution */
 		belle_sip_source_cancel((belle_sip_source_t *)ctx);
-		if (ctx->a_fallback_ctx) {
-			ctx->a_fallback_completed = TRUE; /* we don't need a/aaaa fallback anymore.*/
-			belle_sip_resolver_context_cancel(ctx->a_fallback_ctx);
-			belle_sip_object_unref(ctx->a_fallback_ctx);
-			ctx->a_fallback_ctx = NULL;
-		}
 	} else {
 		/* No SRV result. Possibly notify the a/aaaa fallback if already arrived*/
 		ctx->srv_completed = TRUE;

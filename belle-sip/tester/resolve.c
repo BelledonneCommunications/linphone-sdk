@@ -39,6 +39,9 @@ static void resolver_callback(void *data, belle_sip_resolver_results_t *results)
 			printf("\t%s %s  (ttl:%u)\n", name, port, belle_sip_resolver_results_get_ttl(results));
 		}
 	}
+	if (ai_list == NULL) {
+		printf("\tno results.\n");
+	}
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
 }
 

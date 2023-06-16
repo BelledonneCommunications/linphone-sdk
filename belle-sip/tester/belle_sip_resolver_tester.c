@@ -22,9 +22,9 @@
 #include "belle_sip_tester.h"
 
 #define IPV4_SIP_DOMAIN "sip.linphone.org"
-#define IPV4_SIP_IP "91.121.209.194"
+#define IPV4_SIP_IP "51.89.71.129"
 #define IPV4_CNAME "stun.linphone.org"
-#define IPV4_CNAME_IP "54.37.202.229"
+#define IPV4_CNAME_IP "51.89.71.129"
 #define IPV4_SIP_BAD_DOMAIN "dummy.linphone.org"
 #define IPV4_MULTIRES_DOMAIN "yahoo.fr"
 
