@@ -1,6 +1,6 @@
 ############################################################################
-# TunnelClone.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# FindTunnel.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,29 +19,36 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# Find the tunnel library.
+#
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  tunnel - If the tunnel library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Tunnel_FOUND - The tunnel library has been found
+#  Tunnel_TARGET - The name of the CMake target for the tunnel library
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
+set(_Tunnel_REQUIRED_VARS Tunnel_TARGET)
+set(_Tunnel_CACHE_VARS ${_Tunnel_REQUIRED_VARS})
 
-linphone_sdk_check_git()
-
-
-set(TUNNEL_REVISION "9ae8701abf12331ecbe03d4aff10dc7fd32ca290")
-
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
-	)
-else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
+if(TARGET tunnel)
+	set(Tunnel_TARGET tunnel)
 endif()
 
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${TUNNEL_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Tunnel
+	REQUIRED_VARS ${_Tunnel_REQUIRED_VARS}
+	HANDLE_COMPONENTS
 )
+mark_as_advanced(${_Tunnel_CACHE_VARS})

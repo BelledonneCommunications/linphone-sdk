@@ -23,7 +23,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-include("bctoolbox/cmake/BcToolboxCMakeUtils.cmake")
+include("bctoolbox/cmake/BCToolboxCMakeUtils.cmake")
 include("cmake/LinphoneSdkUtils.cmake")
 
 # Unset PROJECT_VERSION for the case linphone-sdk is included from an other project
@@ -90,9 +90,8 @@ include("cmake/Platform${LINPHONESDK_PLATFORM}.cmake")
 if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL "Flexisip")
 
 	if(ENABLE_EKT_SERVER_PLUGIN)
-		include("cmake/EktServer.cmake")
+		include("cmake/EktServerClone.cmake")
 	endif()
-
 	if(ENABLE_TUNNEL)
 		include("cmake/TunnelClone.cmake")
 	endif()
@@ -101,8 +100,9 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 	enable_language(ASM)
 	enable_language(ASM_NASM)
 
+	list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
 	include("cmake/ExternalDependencies.cmake")
-	include("cmake/BcProjects.cmake")
+	include("cmake/BCProjects.cmake")
 
 else()
 

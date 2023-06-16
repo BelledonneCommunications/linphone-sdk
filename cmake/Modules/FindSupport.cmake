@@ -1,6 +1,6 @@
 ############################################################################
-# TunnelClone.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# FindSupport.cmake
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,29 +19,43 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# Find the Android support library.
+#
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  support - If the support library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Support_FOUND - The support library has been found
+#  Support_TARGET - The name of the CMake target for the support library
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
+if(TARGET support)
 
+	set(Support_TARGET support)
 
-linphone_sdk_check_git()
-
-
-set(TUNNEL_REVISION "9ae8701abf12331ecbe03d4aff10dc7fd32ca290")
-
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
-	)
 else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
+
+	find_library(_Support_LIBRARY NAMES support)
+
+	if(_Support_LIBRARY)
+			add_library(support UNKNOWN IMPORTED)
+			set_target_properties(support PROPERTIES
+				IMPORTED_LOCATION "${_Support_LIBRARY}"
+			)
+			set(Support_TARGET support)
+	endif()
+
 endif()
 
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${TUNNEL_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
-)
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Support REQUIRED_VARS Support_TARGET)
+mark_as_advanced(Support_TARGET)

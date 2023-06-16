@@ -1,6 +1,6 @@
 ############################################################################
-# EktServer.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# FindOrtp.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,26 +19,36 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# Find the ortp library.
+#
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  ortp - If the ortp library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Ortp_FOUND - The ortp library has been found
+#  Ortp_TARGET - The name of the CMake target for the ortp library
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
-linphone_sdk_check_git()
+set(_Ortp_REQUIRED_VARS Ortp_TARGET)
+set(_Ortp_CACHE_VARS ${_Ortp_REQUIRED_VARS})
 
-set(EKT_SERVER_REVISION "224219fb9c4d4b05ad9b6a284c7e5a0e05953e4b")
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch" "--all"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
-	)
-else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/ekt-server.git" "ekt-server"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
+if(TARGET ortp)
+	set(Ortp_TARGET ortp)
 endif()
 
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${EKT_SERVER_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Ortp
+	REQUIRED_VARS ${_Ortp_REQUIRED_VARS}
+	HANDLE_COMPONENTS
 )
+mark_as_advanced(${_Ortp_CACHE_VARS})

@@ -1,6 +1,6 @@
 ############################################################################
-# TunnelClone.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# FindBelCard.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -19,29 +19,36 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+#
+# Find the belcard library.
+#
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  belcard - If the belcard library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  BelCard_FOUND - The belcard library has been found
+#  BelCard_TARGET - The name of the CMake target for the belcard library
 
-include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
+set(_BelCard_REQUIRED_VARS BelCard_TARGET)
+set(_BelCard_CACHE_VARS ${_BelCard_REQUIRED_VARS})
 
-linphone_sdk_check_git()
-
-
-set(TUNNEL_REVISION "9ae8701abf12331ecbe03d4aff10dc7fd32ca290")
-
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel")
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
-	)
-else()
-	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
-	)
+if(TARGET belcard)
+	set(BelCard_TARGET belcard)
 endif()
 
-execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${TUNNEL_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(BelCard
+	REQUIRED_VARS ${_BelCard_REQUIRED_VARS}
+	HANDLE_COMPONENTS
 )
+mark_as_advanced(${_BelCard_CACHE_VARS})

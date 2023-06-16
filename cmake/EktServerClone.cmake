@@ -1,5 +1,5 @@
 ############################################################################
-# TunnelClone.cmake
+# EktServer.cmake
 # Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -22,26 +22,23 @@
 
 include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
-
 linphone_sdk_check_git()
 
+set(EKT_SERVER_REVISION "fe6114f1e3b1be7978ca497653562390ecdcd422")
 
-set(TUNNEL_REVISION "9ae8701abf12331ecbe03d4aff10dc7fd32ca290")
-
-
-if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel")
+if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server")
 	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "fetch"
-		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
+		COMMAND "${GIT_EXECUTABLE}" "fetch" "--all"
+		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
 	)
 else()
 	execute_process(
-		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/tunnel.git" "tunnel"
+		COMMAND "${GIT_EXECUTABLE}" "clone" "git@gitlab.linphone.org:BC/private/ekt-server.git" "ekt-server"
 		WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
 	)
 endif()
 
 execute_process(
-	COMMAND "${GIT_EXECUTABLE}" "checkout" "${TUNNEL_REVISION}"
-	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/tunnel"
+	COMMAND "${GIT_EXECUTABLE}" "checkout" "${EKT_SERVER_REVISION}"
+	WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server"
 )
