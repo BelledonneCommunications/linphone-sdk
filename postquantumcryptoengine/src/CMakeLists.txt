@@ -38,7 +38,7 @@ bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_C_SOURCE_FILES STRICT_OPTIONS_CPP
 bc_apply_compile_flags(POSTQUANTUMCRYPTOENGINE_CXX_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 add_library(postquantumcryptoengine ${POSTQUANTUMCRYPTOENGINE_SOURCE_FILES} ${POSTQUANTUMCRYPTOENGINE_HEADER_FILES})
-target_link_libraries(postquantumcryptoengine PRIVATE bctoolbox ${LIBOQS_LIBRARIES})
+target_link_libraries(postquantumcryptoengine PRIVATE ${BCToolbox_TARGET} ${liboqs_TARGET})
 target_include_directories(postquantumcryptoengine PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>
@@ -49,7 +49,7 @@ endif()
 if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	target_link_libraries(postquantumcryptoengine INTERFACE "Winmm" "Ws2_32")
 endif()
-if(LIBOQS_USE_BUILD_INTERFACE)
+if(liboqs_USE_BUILD_INTERFACE)
 	target_compile_definitions(postquantumcryptoengine PRIVATE "LIBOQS_USE_BUILD_INTERFACE")
 endif()
 
@@ -99,7 +99,7 @@ else()
 	set_target_properties(postquantumcryptoengine PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-install(TARGETS postquantumcryptoengine EXPORT ${EXPORT_TARGETS_NAME}Targets
+install(TARGETS postquantumcryptoengine EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

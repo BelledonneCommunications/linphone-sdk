@@ -1,6 +1,6 @@
 ############################################################################
-# postquantumcryptoengineConfig.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# PostQuantumCryptoEngineConfig.cmake
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,19 +21,36 @@
 ############################################################################
 #
 # Config file for the postquantumcryptoengine package.
-# It defines the following variables:
 #
-#  postquantumcryptoengine_FOUND - system has postquantumcryptoengine
-#  postquantumcryptoengine_INCLUDE_DIRS - the postquantumcryptoengine include directory
-#  postquantumcryptoengine_LIBRARIES - The libraries needed to use postquantumcryptoengine
-#  postquantumcryptoengine_CPPFLAGS - The compilation flags needed to use postquantumcryptoengine
-#  postquantumcryptoengine_LDFLAGS - The linking flags needed to use postquantumcryptoengine
+# Targets
+# ^^^^^^^
+#
+# The following targets are defined:
+#  postquantumcryptoengine - The postquantumcryptoengine library target
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This config file will set the following variables in your project:
+#
+#  PostQuantumCryptoEngine_FOUND - The postquantumcryptoengine library has been found
+#  PostQuantumCryptoEngine_TARGET - The name of the CMake target for the postquantumcryptoengine library
+
+
 @PACKAGE_INIT@
 
-include("${CMAKE_CURRENT_LIST_DIR}/postquantumcryptoengineTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/PostQuantumCryptoEngineTargets.cmake")
 
-# We must propagate the dependency on liboqs for static build
+set(PostQuantumCryptoEngine_TARGET postquantumcryptoengine)
+
+# We must propagate the public dependencies and the private dependencies for static build
 include(CMakeFindDependencyMacro)
-find_dependency(liboqs)
+if(@BUILD_SHARED_LIBS@)
+else()
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+	find_dependency(BCToolbox)
+	find_dependency(liboqs)
+endif()
 
-check_required_components(postquantumcryptoengine)
+check_required_components(PostQuantumCryptoEngine)

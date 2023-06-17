@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2022  Belledonne Communications, Grenoble France
+# Copyright (C) 2022-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,15 +20,9 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.22)
 
-# CMP0077 policy is required by Flexisip build. Remove it once the CMake required
-# version is higer or equal to 3.13.
-if(NOT CMAKE_VERSION VERSION_LESS 3.13)
-	cmake_policy(SET CMP0077 NEW)
-endif()
-
-project(postquantumcryptoengine VERSION 5.3.0)
+project(PostQuantumCryptoEngine VERSION 5.3.0)
 
 set(POSTQUANTUMCRYPTOENGINE_VERSION "${PROJECT_VERSION}")
 set(POSTQUANTUMCRYPTOENGINE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -44,21 +38,15 @@ set(CMAKE_CXX_EXTENSIONS NO)
 
 include(GNUInstallDirs)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
-endif()
-
-find_package(LibOqs)
-if(NOT LIBOQS_FOUND)
-	find_package(liboqs REQUIRED CONFIG)
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+bc_find_package(liboqs OQS::oqs oqs 0.7.2 REQUIRED)
+if(TARGET oqs)
+	set(liboqs_USE_BUILD_INTERFACE TRUE)
 endif()
 
 include_directories(
@@ -67,21 +55,11 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(POSTQUANTUMCRYPTOENGINE_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(NOT BUILD_SHARED_LIBS)
 	set(PQCE_STATIC 1)
 endif()
-if(POSTQUANTUMCRYPTOENGINE_CPPFLAGS)
-	list(REMOVE_DUPLICATES POSTQUANTUMCRYPTOENGINE_CPPFLAGS)
-	add_definitions(${POSTQUANTUMCRYPTOENGINE_CPPFLAGS})
-endif()
 
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
-if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
-	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
-endif()
-
-set(EXPORT_TARGETS_NAME "postquantumcryptoengine")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
@@ -96,26 +74,22 @@ if(ENABLE_UNIT_TESTS AND NOT ANDROID AND NOT IOS)
 endif()
 
 include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
-
-configure_package_config_file(cmake/postquantumcryptoengineConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file("${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
 	NO_SET_AND_CHECK_MACRO
 )
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${EXPORT_TARGETS_NAME}Targets.cmake"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+install(FILES
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
-install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
