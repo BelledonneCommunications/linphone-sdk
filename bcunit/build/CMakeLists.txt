@@ -21,7 +21,8 @@
 ############################################################################
 
 if(NOT CPACK_PACKAGE_NAME)
-	set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+	string(TOLOWER "${PROJECT_NAME}" LOWERCASE_PROJECT_NAME)
+	set(CPACK_PACKAGE_NAME "${LOWERCASE_PROJECT_NAME}")
 endif()
 
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "BCUnit unit test framework forked from CUnit by Belledonne Communications projects")

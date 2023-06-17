@@ -1,6 +1,6 @@
 /***************************************************************************
-* antlr3config.h.cmake
-* Copyright (C) 2014  Belledonne Communications, Grenoble France
+* config.h.cmake
+* Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 *
 ****************************************************************************
 *
@@ -20,11 +20,4 @@
 *
 ****************************************************************************/
 
-#cmakedefine PACKAGE "@PACKAGE@"
-#cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
-#cmakedefine PACKAGE_VERSION "@PACKAGE_VERSION@"
-#cmakedefine PACKAGE_STRING "@PACKAGE_STRING@"
-#cmakedefine PACKAGE_TARNAME "@PACKAGE_TARNAME@"
-#cmakedefine PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
-#cmakedefine PACKAGE_URL "@PACKAGE_URL@"
 #cmakedefine VERSION "@VERSION@"

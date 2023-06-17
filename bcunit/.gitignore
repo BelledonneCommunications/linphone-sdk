@@ -1,4 +1,3 @@
-*.in
 INSTALL
 configure
 depcomp
