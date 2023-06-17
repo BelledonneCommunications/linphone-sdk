@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2019 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,18 +20,17 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.11) # we need CMake 3.11 for defining 'package_source' target as custom target
-
-set(BCTOOLBOX_CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
-set(BCTOOLBOX_CMAKE_UTILS "${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
-include("${BCTOOLBOX_CMAKE_DIR}/BcToolboxCMakeUtils.cmake")
+set(BCToolbox_CMAKE_DIR "${PROJECT_SOURCE_DIR}/cmake")
+set(BCToolbox_CMAKE_UTILS "${BCToolbox_CMAKE_DIR}/BCToolboxCMakeUtils.cmake")
+include("${BCToolbox_CMAKE_UTILS}")
 
 if(NOT CPACK_PACKAGE_NAME)
-	set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+	string(TOLOWER "${PROJECT_NAME}" LOWERCASE_PROJECT_NAME)
+	set(CPACK_PACKAGE_NAME "${LOWERCASE_PROJECT_NAME}")
 endif()
 
 set(CPACK_SOURCE_IGNORE_FILES
-	"^${CMAKE_BINARY_DIR}"
+	"^${PROJECT_BINARY_DIR}"
 	"^${PROJECT_SOURCE_DIR}/.git*"
 )
 

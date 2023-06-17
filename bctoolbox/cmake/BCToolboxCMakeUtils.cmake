@@ -1,6 +1,6 @@
 ############################################################################
-# BcToolboxCMakeUtils.cmake
-# Copyright (C) 2010-2021 Belledonne Communications, Grenoble France
+# BCToolboxCMakeUtils.cmake
+# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -65,7 +65,7 @@ endmacro()
 macro(bc_git_version PROJECT_NAME PROJECT_VERSION)
 	find_package(Git)
 	add_custom_target(${PROJECT_NAME}-git-version
-		COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DPROJECT_NAME=${PROJECT_NAME} -DPROJECT_VERSION=${PROJECT_VERSION} -DWORK_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DTEMPLATE_DIR=${BCTOOLBOX_CMAKE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${BCTOOLBOX_CMAKE_DIR}/BcGitVersion.cmake
+		COMMAND ${CMAKE_COMMAND} -DGIT_EXECUTABLE=${GIT_EXECUTABLE} -DPROJECT_NAME=${PROJECT_NAME} -DPROJECT_VERSION=${PROJECT_VERSION} -DWORK_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DTEMPLATE_DIR=${BCToolbox_CMAKE_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${BCToolbox_CMAKE_DIR}/BCGitVersion.cmake
 		BYPRODUCTS "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h"
 	)
 endmacro()
@@ -292,17 +292,17 @@ function(bc_make_package_source_target)
 	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
 	        "-DPROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}"
 	        "-DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
-	        "-DBCTOOLBOX_CMAKE_UTILS=${BCTOOLBOX_CMAKE_UTILS}"
+	        "-DBCToolbox_CMAKE_UTILS=${BCToolbox_CMAKE_UTILS}"
 	        "-DSRC=${CMAKE_CURRENT_BINARY_DIR}/rpm/${specfile_name}.cmake"
 	        "-DDEST=${PROJECT_SOURCE_DIR}/${specfile_name}"
-	        -P "${BCTOOLBOX_CMAKE_DIR}/ConfigureSpecfile.cmake"
+	        -P "${BCToolbox_CMAKE_DIR}/ConfigureSpecfile.cmake"
 	    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	    BYPRODUCTS "${PROJECT_SOURCE_DIR}/${specfile_name}"
 	)
 
 	add_custom_target(package_source
 	    COMMAND ${CMAKE_COMMAND}
-	        "-DBCTOOLBOX_CMAKE_UTILS=${BCTOOLBOX_CMAKE_UTILS}"
+	        "-DBCToolbox_CMAKE_UTILS=${BCToolbox_CMAKE_UTILS}"
 	        "-DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}"
 	        "-DPROJECT_BINARY_DIR=${PROJECT_BINARY_DIR}"
 	        "-DPROJECT_VERSION=${PROJECT_VERSION}"
@@ -310,7 +310,7 @@ function(bc_make_package_source_target)
 	        "-DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}"
 	        "-DCPACK_PACKAGE_NAME=${CPACK_PACKAGE_NAME}"
 	        "-DEXCLUDE_PATTERNS='${CPACK_SOURCE_IGNORE_FILES}'"
-	        -P "${BCTOOLBOX_CMAKE_DIR}/MakeArchive.cmake"
+	        -P "${BCToolbox_CMAKE_DIR}/MakeArchive.cmake"
 	    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 	    DEPENDS ${specfile_target}
 	)
@@ -337,22 +337,25 @@ function(bc_make_release_file full_version file_url)
 	file(WRITE "${CMAKE_INSTALL_PREFIX}/RELEASE" "${LINPHONE_MAJOR_VERSION}.${LINPHONE_MINOR_VERSION}.${LINPHONE_MICRO_VERSION}${LINPHONE_BRANCH_VERSION}\t${file_url}")
 endfunction()
 
-# This macro exactly behaves as CMake find_package() except it doesn't try to find the
+# This macro behaves quite like the CMake find_package() except it doesn't try to find the
 # package if a target with the same name already exists. Otherwise, find_package()
 # is executed with the same arguments than bc_find_package().
 # Should the target exist, the following variable (where <pkgname> is string passed as
 # fist argument) are set in the current scope:
 # * <pkgname>_FOUND: systematically set to ON;
-# * <pkgname>_TARGETNAME: systematically set to <pkgname>.
-macro(bc_find_package name)
-	if(TARGET ${name})
-		string(TOUPPER ${name} NAME)
-		set(${name}_FOUND ON)
-		set(${NAME}_FOUND ON)
-		set(${name}_TARGETNAME ${name})
-		set(${NAME}_TARGETNAME ${name})
-	else()
-		find_package(${ARGV})
-	endif()
+# * <pkgname>_TARGET: systematically set to <pkgname>.
+macro(bc_find_package PACKAGE_NAME PACKAGE_TARGET_NAME TARGET_NAME)
+  if(TARGET ${TARGET_NAME})
+		set(${PACKAGE_NAME}_TARGET ${TARGET_NAME})
+		include(FindPackageHandleStandardArgs)
+		find_package_handle_standard_args(${PACKAGE_NAME} REQUIRED_VARS ${PACKAGE_NAME}_TARGET)
+		mark_as_advanced(${PACKAGE_NAME}_TARGET)
+  else()
+    find_package(${PACKAGE_NAME} ${ARGN})
+		if(${PACKAGE_NAME}_FOUND)
+			set(${PACKAGE_NAME}_TARGET ${PACKAGE_TARGET_NAME})
+		endif()
+  endif()
 endmacro()
+
 ##############################################################

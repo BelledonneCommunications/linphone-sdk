@@ -72,7 +72,7 @@ if(WIN32)
 	list(APPEND STRICT_OPTIONS_CXX "/EHa")
 	add_definitions(-EHa)
 endif()
-if(MBEDTLS_FOUND)
+if(MbedTLS_FOUND)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/crypto.c)
 	list(APPEND BCTOOLBOX_CXX_SOURCE_FILES
 		crypto/ecc.cc
@@ -81,10 +81,9 @@ if(MBEDTLS_FOUND)
 		vfs/vfs_encryption_module_dummy.cc
 		vfs/vfs_encryption_module_aes256gcm_sha256.cc)
 endif()
-if(MBEDTLS_VERSION_3)
+if(MbedTLS_VERSION GREATER_EQUAL 3)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls.c)
-endif()
-if(MBEDTLS_VERSION_2)
+elseif(MbedTLS_VERSION EQUAL 2)
 	list(APPEND BCTOOLBOX_C_SOURCE_FILES crypto/mbedtls-v2.c)
 endif()
 if(ENABLE_TESTS_COMPONENT)
@@ -121,13 +120,12 @@ if(NOT BUILD_SHARED_LIBS)
 endif()
 
 if(APPLE)
-	if (IOS)
+	if(IOS)
 		target_link_libraries(bctoolbox PRIVATE "-framework UIKit" "-framework Foundation" "-framework AVFoundation")
 	else()
 		target_link_libraries(bctoolbox PRIVATE "-framework Foundation" "-framework AVFoundation")
 	endif()
-	target_include_directories(bctoolbox SYSTEM PRIVATE ${ICONV_INCLUDE_DIRS})
-	target_link_libraries(bctoolbox PRIVATE ${ICONV_LIBRARIES})
+	target_link_libraries(bctoolbox PRIVATE Iconv::Iconv)
 
 	if(IOS)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -194,10 +192,9 @@ endif()
 if(ENABLE_TESTS_COMPONENT)
 	add_library(bctoolbox-tester ${BCTOOLBOX_TESTER_SOURCE_FILES})
 	set_target_properties(bctoolbox-tester PROPERTIES LINKER_LANGUAGE "CXX")
-	target_link_libraries(bctoolbox-tester PUBLIC bctoolbox PRIVATE ${BCUNIT_LIBRARIES})
+	target_link_libraries(bctoolbox-tester PUBLIC bctoolbox PRIVATE ${BCUnit_TARGET})
 	target_include_directories(bctoolbox-tester PUBLIC
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-		$<BUILD_INTERFACE:${BCUNIT_INCLUDE_DIRS}>
 		$<INSTALL_INTERFACE:include>
 	)
 	if(APPLE)
@@ -236,16 +233,14 @@ if(APPLE AND IOS)
 	)
 endif()
 
-if(MBEDTLS_FOUND)
-	target_include_directories(bctoolbox PRIVATE ${MBEDTLS_INCLUDE_DIRS})
-	target_link_libraries(bctoolbox PRIVATE ${MBEDTLS_LIBRARIES})
+if(MbedTLS_FOUND)
+	target_link_libraries(bctoolbox PRIVATE ${MbedTLS_TARGET} ${MbedX509_TARGET} ${MbedCrypto_TARGET})
 endif()
-if(DECAF_FOUND)
-	target_include_directories(bctoolbox PRIVATE ${DECAF_INCLUDE_DIRS})
-	target_link_libraries(bctoolbox PRIVATE ${DECAF_LIBRARIES})
+if(Decaf_FOUND)
+	target_link_libraries(bctoolbox PRIVATE ${Decaf_TARGET})
 endif()
 
-install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
+install(TARGETS bctoolbox EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -254,7 +249,7 @@ install(TARGETS bctoolbox EXPORT ${EXPORT_TARGETS_NAME}Targets
 	COMPONENT core
 )
 if(ENABLE_TESTS_COMPONENT)
-	install(TARGETS bctoolbox-tester EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS bctoolbox-tester EXPORT ${PROJECT_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -265,7 +260,7 @@ if(ENABLE_TESTS_COMPONENT)
 endif()
 
 if(APPLE AND IOS)
-	install(TARGETS bctoolbox-ios EXPORT ${EXPORT_TARGETS_NAME}Targets
+	install(TARGETS bctoolbox-ios EXPORT ${PROJECT_NAME}Targets
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

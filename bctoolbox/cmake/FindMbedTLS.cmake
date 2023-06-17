@@ -20,109 +20,121 @@
 #
 ############################################################################
 #
-# - Find the mbedTLS include file and library
+# Find the mbedtls library.
 #
-#  MBEDTLS_FOUND - system has mbedTLS
-#  MBEDTLS_INCLUDE_DIRS - the mbedTLS include directory
-#  MBEDTLS_LIBRARIES - The libraries needed to use mbedTLS
-#  DTLS_SRTP_AVAILABLE - whether DTLS-SRTP in available or not
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  mbedtls - If the mbedtls library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  MbedTLS_FOUND - The mbedtls library has been found
+#  MbedTLS_TARGET - The name of the CMake target for the mbedtls library
+#  MbedX509_TARGET - The name of the CMake target for the mbedx509 library
+#  MbedCrypto_TARGET - The name of the CMake target for the mbedcrypto library
+#  MbedTLS_VERSION - The version of the medtls library
+#  DTLS_SRTP_AVAILABLE - If the mbedtls library has DTLS-SRTP support
 
+
+include(FindPackageHandleStandardArgs)
+
+set(_MbedTLS_REQUIRED_VARS MbedTLS_TARGET MbedX509_TARGET MbedCrypto_TARGET MbedTLS_VERSION)
+set(_MbedTLS_CACHE_VARS
+	${_MbedTLS_REQUIRED_VARS} DTLS_SRTP_AVAILABLE
+)
 
 if(TARGET mbedtls)
 
+	set(MbedTLS_TARGET mbedtls)
+	set(MbedX509_TARGET mbedx509)
+	set(MbedCrypto_TARGET mbedcrypto)
+	set(MbedTLS_VERSION 3)
 	# We are building mbedTLS, we have DTLS-SRTP support
 	set(DTLS_SRTP_AVAILABLE ON)
-	set(MBEDTLS_VERSION_3 ON)
-	set(MBEDTLS_LIBRARIES mbedtls mbedx509 mbedcrypto)
-	get_target_property(MBEDTLS_INCLUDE_DIRS mbedtls INTERFACE_INCLUDE_DIRECTORIES)
 
 else()
 
 	include(CMakePushCheckState)
-	include(CheckIncludeFile)
-	include(CheckCSourceCompiles)
 	include(CheckSymbolExists)
 
-
-	find_path(MBEDTLS_INCLUDE_DIRS
+	find_path(_MbedTLS_INCLUDE_DIRS
 		NAMES mbedtls/ssl.h
 		PATH_SUFFIXES include
 	)
 
-	# find the three mbedtls library
-	find_library(MBEDTLS_LIBRARY
+	# Find the three mbedtls libraries
+	find_library(_MbedTLS_LIBRARY
 		NAMES mbedtls
 	)
 
-	find_library(MBEDX509_LIBRARY
+	find_library(_MbedX509_LIBRARY
 		NAMES mbedx509
 	)
 
-	find_library(MBEDCRYPTO_LIBRARY
+	find_library(_MbedCrypto_LIBRARY
 		NAMES mbedcrypto
 	)
 
 	cmake_push_check_state(RESET)
-	set(CMAKE_REQUIRED_INCLUDES ${MBEDTLS_INCLUDE_DIRS} ${CMAKE_REQUIRED_INCLUDES_${BUILD_TYPE}})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${MBEDTLS_LIBRARY} ${MBEDX509_LIBRARY} ${MBEDCRYPTO_LIBRARY})
+	set(CMAKE_REQUIRED_INCLUDES ${_MbedTLS_INCLUDE_DIRS} ${CMAKE_REQUIRED_INCLUDES_${BUILD_TYPE}})
+	list(APPEND CMAKE_REQUIRED_LIBRARIES ${_MbedTLS_LIBRARY} ${_MbedX509_LIBRARY} ${_MbedCrypto_LIBRARY})
 
-	# check we have a mbedTLS version 2 or above (all functions are prefixed mbedtls_)
-	if(MBEDTLS_LIBRARY AND MBEDX509_LIBRARY AND MBEDCRYPTO_LIBRARY)
-		check_symbol_exists(mbedtls_ssl_init "mbedtls/ssl.h" MBEDTLS_V2)
-	  if(NOT MBEDTLS_V2)
-  	  message("MESSAGE: NO MBEDTLS_V2")
-    	message("MESSAGE: MBEDTLS_LIBRARY=" ${MBEDTLS_LIBRARY})
-	    message("MESSAGE: MBEDX509_LIBRARY=" ${MBEDX509_LIBRARY})
-  	  message("MESSAGE: MBEDCRYPTO_LIBRARY=" ${MBEDCRYPTO_LIBRARY})
-			set(MBEDTLS_VERSION_1 ON)
+	# Check that we have a mbedTLS version 2 or above (all functions are prefixed mbedtls_)
+	if(_MbedTLS_LIBRARY AND _MbedX509_LIBRARY AND _MbedCrypto_LIBRARY)
+		check_symbol_exists(mbedtls_ssl_init "mbedtls/ssl.h" _MbedTLS_V2)
+	  if(NOT _MbedTLS_V2)
+  	  message("MESSAGE: NO MbedTLS_V2")
+    	message("MESSAGE: MbedTLS_LIBRARY=" ${_MbedTLS_LIBRARY})
+	    message("MESSAGE: MbedX509_LIBRARY=" ${MbedX509_LIBRARY})
+  	  message("MESSAGE: MbedCrypto_LIBRARY=" ${MbedCrypto_LIBRARY})
+			set(_MbedTLS_VERSION 1)
 		else()
 			# Are we mbdetls 2 or 3?
-			# from version 3 and on, version number is given in include/mbedtls/build_info.h.
-			# This file does not exists before version 3
-			if(EXISTS "${MBEDTLS_INCLUDE_DIRS}/mbedtls/build_info.h")
-				set(MBEDTLS_VERSION_3 ON)
+			# From version 3 and on, version number is given in include/mbedtls/build_info.h.
+			# This file does not exist before version 3
+			if(EXISTS "${_MbedTLS_INCLUDE_DIRS}/mbedtls/build_info.h")
+				set(MbedTLS_VERSION 3)
 			else()
-				set(MBEDTLS_VERSION_2 ON)
+				set(MbedTLS_VERSION 2)
 			endif()
 		endif()
 	endif()
 
 	check_symbol_exists(mbedtls_ssl_conf_dtls_srtp_protection_profiles "mbedtls/ssl.h" DTLS_SRTP_AVAILABLE)
 
+	cmake_pop_check_state()
+
 	# Define the imported target for the three mbedtls libraries
-	foreach(targetname "mbedtls" "mbedx509" "mbedcrypto")
-		string(TOUPPER ${targetname} varprefix)
-		add_library(${targetname} SHARED IMPORTED)
-		if (WIN32)
-			set_target_properties(${targetname} PROPERTIES
-				INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
-				IMPORTED_IMPLIB "${${varprefix}_LIBRARY}"
+	foreach(_VARPREFIX "MbedTLS" "MbedX509" "MbedCrypto")
+		string(TOLOWER ${_VARPREFIX} _TARGET)
+		add_library(${_TARGET} UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(${_TARGET} PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_MbedTLS_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_${_VARPREFIX}_LIBRARY}"
 			)
 		else()
-			set_target_properties(${targetname} PROPERTIES
-				INTERFACE_INCLUDE_DIRECTORIES "${${varprefix}_INCLUDE_DIRS}"
-				IMPORTED_LOCATION "${${varprefix}_LIBRARY}"
+			set_target_properties(${_TARGET} PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_MbedTLS_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_${_VARPREFIX}_LIBRARY}"
 			)
 		endif()
 	endforeach()
-	unset(varprefix)
 
-	cmake_pop_check_state()
+	set(MbedTLS_TARGET mbedtls)
+	set(MbedX509_TARGET mbedx509)
+	set(MbedCrypto_TARGET mbedcrypto)
 
 endif()
 
-
-# MBEDTLS_LIBRARIES only needs to contain the name of the targets
-set(MBEDTLS_LIBRARIES
-	mbedtls
-	mbedx509
-	mbedcrypto
-)
-
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(MbedTLS
-	DEFAULT_MSG
-	MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES
+	REQUIRED_VARS ${_MbedTLS_REQUIRED_VARS}
 )
-
-mark_as_advanced(MBEDTLS_INCLUDE_DIRS MBEDTLS_LIBRARIES DTLS_SRTP_AVAILABLE)
+mark_as_advanced(${_MbedTLS_CACHE_VARS})

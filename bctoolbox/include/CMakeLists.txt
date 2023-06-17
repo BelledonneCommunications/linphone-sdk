@@ -44,7 +44,7 @@ if(APPLE)
 	list(APPEND HEADER_FILES ios_utils.hh)
 endif()
 
-if(MBEDTLS_FOUND)
+if(MbedTLS_FOUND)
 	list(APPEND HEADER_FILES crypto.h)
 	list(APPEND HEADER_FILES crypto.hh)
 endif()

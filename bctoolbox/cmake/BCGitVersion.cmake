@@ -1,6 +1,6 @@
 ############################################################################
-# BcGitVersion.cmake
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# BCGitVersion.cmake
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #

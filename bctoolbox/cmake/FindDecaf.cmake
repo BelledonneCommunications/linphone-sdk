@@ -20,31 +20,62 @@
 #
 ############################################################################
 #
-# - Find the decaf include files and library
+# Find the decaf library.
 #
-#  DECAF_FOUND - system has lib decaf
-#  DECAF_INCLUDE_DIRS - the decaf include directory
-#  DECAF_LIBRARIES - The library needed to use decaf
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  decaf - If the decaf library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Decaf_FOUND - The decaf library has been found
+#  Decaf_TARGET - The name of the CMake target for the decaf library
 
-if(TARGET decaf)
-	set(DECAF_TARGET decaf)
-elseif(TARGET decaf-static)
-	set(DECAF_TARGET decaf-static)
-endif()
 
-if(DECAF_TARGET)
+if(TARGET decaf OR TARGET decaf-static)
 
-	# We are building decaf
-	set(DECAF_LIBRARIES ${DECAF_TARGET})
-	get_target_property(DECAF_INCLUDE_DIRS ${DECAF_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
-
+	if(TARGET decaf-static)
+		set(Decaf_TARGET decaf-static)
+	elseif(TARGET decaf)
+		set(Decaf_TARGET decaf)
+	endif()
 
 	include(FindPackageHandleStandardArgs)
 	find_package_handle_standard_args(Decaf
 		DEFAULT_MSG
-		DECAF_INCLUDE_DIRS DECAF_LIBRARIES
+		Decaf_TARGET
 	)
+	mark_as_advanced(Decaf_TARGET)
 
-	mark_as_advanced(DECAF_INCLUDE_DIRS DECAF_LIBRARIES)
+else()
+
+	set(_OPTIONS CONFIG)
+	if(Decaf_FIND_REQUIRED)
+		list(APPEND _OPTIONS REQUIRED)
+	endif()
+	if(Decaf_FIND_QUIETLY)
+		list(APPEND _OPTIONS QUIET)
+	endif()
+	if(Decaf_FIND_VERSION)
+		list(PREPEND _OPTIONS "${Decaf_FIND_VERSION}")
+	endif()
+	if(Decaf_FIND_EXACT)
+		list(APPEND _OPTIONS EXACT)
+	endif()
+
+	find_package(Decaf ${_OPTIONS})
+
+	if(TARGET decaf-static)
+		set(Decaf_TARGET decaf-static)
+	elseif(TARGET decaf)
+		set(Decaf_TARGET decaf)
+	endif()
 
 endif()

@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(bctoolbox VERSION 5.3.0)
+project(BCToolbox VERSION 5.3.0)
 
 set(BCTOOLBOX_VERSION "${PROJECT_VERSION}")
 set(BCTOOLBOX_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
@@ -38,7 +38,7 @@ option(ENABLE_DECAF "Enable Elliptic Curve Cryptography support" ON)
 option(ENABLE_STRICT "Pass strict flags to the compiler" ON)
 option(ENABLE_TESTS_COMPONENT "Enable compilation of tests helper library" ON)
 option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 option(ENABLE_DEFAULT_LOG_HANDLER "A default log handler will be initialized, if OFF no logging will be done before you initialize one." ON)
 
 
@@ -50,9 +50,9 @@ include(CheckSymbolExists)
 include(CheckCSourceCompiles)
 include(CMakePushCheckState)
 include(GNUInstallDirs)
-include(cmake/BcToolboxCMakeUtils.cmake)
+include("cmake/BCToolboxCMakeUtils.cmake")
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -66,15 +66,10 @@ endif()
 if(ENABLE_MBEDTLS)
 	message(STATUS "MBEDTLS Enabled")
 	find_package(MbedTLS)
-	if(MBEDTLS_FOUND)
-		if (MBEDTLS_VERSION_3)
-			message(STATUS "Using mbedTLS v3")
-		else()
-			if (MBEDTLS_VERSION_2)
-				message(STATUS "Using mbedTLS v2")
-			else()
-				message(STATUS "Mbedtls version incompatible(requires v2 or v3), build will probably fail")
-			endif()
+	if(MbedTLS_FOUND)
+		message(STATUS "Using mbedTLS v${MbedTLS_VERSION}")
+		if(MbedTLS_VERSION LESS 2)
+			message(WARNING "Mbedtls version incompatible (requires v2 or v3), build will probably fail")
 		endif()
 		set(HAVE_MBEDTLS 1)
 	endif()
@@ -82,10 +77,7 @@ endif()
 
 if(ENABLE_DECAF)
 	find_package(Decaf)
-	if(NOT DECAF_FOUND)
-		find_package(Decaf CONFIG)
-	endif()
-	if(DECAF_FOUND)
+	if(Decaf_FOUND)
 		message(STATUS "Using Decaf")
 		set(HAVE_DECAF 1)
 	endif()
@@ -99,23 +91,9 @@ else()
 endif()
 
 if(ENABLE_TESTS_COMPONENT)
-	find_package(BcUnit)
-	if (NOT BCUNIT_FOUND)
-		find_package(BcUnit CONFIG REQUIRED)
-		cmake_push_check_state(RESET)
-		list(APPEND CMAKE_REQUIRED_INCLUDES ${BCUNIT_INCLUDE_DIRS})
-		list(APPEND CMAKE_REQUIRED_LIBRARIES ${BCUNIT_LIBRARIES})
-		check_symbol_exists("CU_get_suite" "BCUnit/BCUnit.h" HAVE_CU_GET_SUITE)
-		check_symbol_exists("CU_curses_run_tests" "BCUnit/BCUnit.h" HAVE_CU_CURSES)
-		check_symbol_exists("CU_set_trace_handler" "BCUnit/Util.h" HAVE_CU_SET_TRACE_HANDLER)
-		cmake_pop_check_state()
-		set(TESTER_REQUIRES_PRIVATE "bcunit")
-	else ()
-		set(HAVE_CU_GET_SUITE ON)
-		set(HAVE_CU_SET_TRACE_HANDLER ON)
-		set(TESTER_REQUIRES_PRIVATE "bcunit")
-	endif ()
-endif ()
+	find_package(BCUnit 3.0.2 REQUIRED)
+	set(TESTER_REQUIRES_PRIVATE "${BCUnit_TARGET}")
+endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bctoolbox.pc.in ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/bctoolbox.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
@@ -143,11 +121,6 @@ if(ENABLE_DEBUG_LOGS)
 endif()
 
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
-if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
-	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
-endif()
-
-set(EXPORT_TARGETS_NAME "bctoolbox")
 
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
 check_library_exists("dl" "dladdr" "" HAVE_LIBDL)
@@ -158,8 +131,8 @@ else()
 	check_include_file("execinfo.h" HAVE_EXECINFO)
 endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/config.h" PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 
 add_subdirectory(include)
@@ -172,35 +145,39 @@ if(ENABLE_PACKAGE_SOURCE)
 endif()
 
 include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
-
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file("cmake/${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
+	PATH_VARS CMAKE_MODULES_INSTALL_DIR
+)
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
 	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-configure_package_config_file(cmake/BcToolboxConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
-	NO_SET_AND_CHECK_MACRO
-)
 
-configure_file(cmake/BcToolboxCMakeUtils.cmake "${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}CMakeUtils.cmake" COPYONLY)
-configure_file(cmake/BcGitVersion.cmake "${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake" COPYONLY)
-configure_file(cmake/gitversion.h.in "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in" COPYONLY)
+configure_file("cmake/BCToolboxCMakeUtils.cmake" "${CMAKE_CURRENT_BINARY_DIR}/BCToolboxCMakeUtils.cmake" COPYONLY)
+configure_file("cmake/BCGitVersion.cmake" "${CMAKE_CURRENT_BINARY_DIR}/BCGitVersion.cmake" COPYONLY)
+configure_file("cmake/gitversion.h.in" "${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in" COPYONLY)
 
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE "${EXPORT_TARGETS_NAME}Targets.cmake"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
 install(FILES
 	"cmake/MakeArchive.cmake"
 	"cmake/ConfigureSpecfile.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}CMakeUtils.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/BcGitVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BCToolboxCMakeUtils.cmake"
+	"${CMAKE_CURRENT_BINARY_DIR}/BCGitVersion.cmake"
 	"${CMAKE_CURRENT_BINARY_DIR}/gitversion.h.in"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
+
+if(MbedTLS_FOUND)
+	install(FILES "cmake/FindMbedTLS.cmake" DESTINATION ${CMAKE_MODULES_INSTALL_DIR})
+endif()
+if(Decaf_FOUND)
+	install(FILES "cmake/FindDecaf.cmake" DESTINATION ${CMAKE_MODULES_INSTALL_DIR})
+endif()

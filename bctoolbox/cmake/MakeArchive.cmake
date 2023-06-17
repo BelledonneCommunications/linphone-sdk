@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-include("${BCTOOLBOX_CMAKE_UTILS}")
+include("${BCToolbox_CMAKE_UTILS}")
 bc_compute_full_version(version)
 set(archive_name "${CPACK_PACKAGE_NAME}-${version}")
 set(archive_path "${PROJECT_BINARY_DIR}/${archive_name}.tar.gz")

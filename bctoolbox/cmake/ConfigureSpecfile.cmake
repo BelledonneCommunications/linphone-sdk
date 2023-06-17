@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-include("${BCTOOLBOX_CMAKE_UTILS}")
+include("${BCToolbox_CMAKE_UTILS}")
 
 set(FULL_VERSION )
 bc_compute_full_version(FULL_VERSION)

@@ -30,7 +30,7 @@ if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT A
 		param_string.c
 		vfs.c
 	)
-	if(MBEDTLS_FOUND)
+	if(MbedTLS_FOUND)
 		list(APPEND TESTER_SOURCES
 			crypto.cc
 			encrypted_vfs.cc)
@@ -47,11 +47,8 @@ if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT A
 	endif()
 	set_target_properties(bctoolbox-tester-exe PROPERTIES OUTPUT_NAME bctoolbox-tester)
 	target_link_libraries(bctoolbox-tester-exe PRIVATE bctoolbox bctoolbox-tester)
-	if(MBEDTLS_FOUND)
-		target_link_libraries(bctoolbox-tester-exe PRIVATE ${MBEDTLS_LIBRARIES})
-	endif()
-	if(DECAF_FOUND)
-		target_link_libraries(bctoolbox-tester-exe PRIVATE ${DECAF_LIBRARIES})
+	if(MbedTLS_FOUND)
+		target_link_libraries(bctoolbox-tester-exe PRIVATE ${MbedTLS_TARGET})
 	endif()
 	set_target_properties(bctoolbox-tester-exe PROPERTIES XCODE_ATTRIBUTE_WARNING_CFLAGS "")
 	add_test(NAME bctoolbox_tester COMMAND bctoolbox_tester --verbose)
