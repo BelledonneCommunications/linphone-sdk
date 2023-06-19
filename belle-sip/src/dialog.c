@@ -723,6 +723,7 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 					 * obj->needs_ack=FALSE;*/
 				}
 			} else if (strcmp(belle_sip_request_get_method(req), "BYE") == 0) {
+				int may_kill_last_transaction = FALSE;
 				/*15.1.1 UAC Behavior
 
 				   A BYE request is constructed as would any other request within a
@@ -741,12 +742,22 @@ int belle_sip_dialog_update(belle_sip_dialog_t *obj, belle_sip_transaction_t *tr
 				if (code >= 200 ||
 				    (code == 0 && belle_sip_transaction_get_state(transaction) == BELLE_SIP_TRANSACTION_TERMINATED)) {
 					obj->needs_ack = FALSE; /*no longuer need ACK*/
-					if (obj->terminate_on_bye) delete_dialog = TRUE;
-				} else if (!as_uas && code == 0) {
+					if (obj->terminate_on_bye) {
+						delete_dialog = TRUE;
+						may_kill_last_transaction = TRUE;
+					}
+				} else if ((!as_uas && code == 0)) {
 					/* A client BYE transaction is being started */
-					if (previous_transaction &&
-					    belle_sip_transaction_get_state(previous_transaction) != BELLE_SIP_TRANSACTION_TERMINATED) {
-						belle_sip_warning("Forcibly terminating previous transaction as BYE is being sent.");
+					may_kill_last_transaction = TRUE;
+				}
+				if (may_kill_last_transaction && previous_transaction) {
+					belle_sip_transaction_state_t previous_transaction_state =
+					    belle_sip_transaction_get_state(previous_transaction);
+					if (belle_sip_transaction_state_is_transient(previous_transaction_state)) {
+						belle_sip_warning(
+						    "Forcibly terminating previous transaction in state [%s] as BYE is being [%s].",
+						    belle_sip_transaction_state_to_string(previous_transaction_state),
+						    as_uas ? "received" : "sent");
 						/* Detach the dialog from the transaction, so that the dialog does not get updated for nothing
 						 * by the killed transaction. */
 						belle_sip_transaction_set_dialog(previous_transaction, NULL);
