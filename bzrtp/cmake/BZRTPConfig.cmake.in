@@ -1,6 +1,6 @@
 ############################################################################
 # BZRTPConfig.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,20 +21,43 @@
 ############################################################################
 #
 # Config file for the bzrtp package.
-# It defines the following variables:
 #
-#  BZRTP_FOUND - system has bzrtp
-#  BZRTP_INCLUDE_DIRS - the bzrtp include directory
-#  BZRTP_LIBRARIES - The libraries needed to use bzrtp
-#  BZRTP_CPPFLAGS - The compilation flags needed to use bzrtp
+# Targets
+# ^^^^^^^
+#
+# The following targets are defined:
+#  bzrtp - The bzrtp library target
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This config file will set the following variables in your project:
+#
+#  BZRTP_FOUND - The bzrtp library has been found
+#  BZRTP_TARGET - The name of the CMake target for the bzrtp library
+
+
 @PACKAGE_INIT@
 
 include("${CMAKE_CURRENT_LIST_DIR}/BZRTPTargets.cmake")
 
-# We must propagate the dependency on liboqs for static build
-if (@postquantumcryptoengine_FOUND@)
-	include(CMakeFindDependencyMacro)
-	find_dependency(postquantumcryptoengine)
+set(BZRTP_TARGET bzrtp)
+
+# We must propagate the public dependencies and the private dependencies for static build
+include(CMakeFindDependencyMacro)
+if(@SQLite3_FOUND@)
+	find_dependency(SQLite3)
+endif()
+if(@BUILD_SHARED_LIBS@)
+else()
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+	find_dependency(BCToolbox)
+	if(@PostQuantumCryptoEngine_FOUND@)
+		# We must propagate the dependency on postquantumcryptoengine for static build
+		include(CMakeFindDependencyMacro)
+		find_dependency(PostQuantumCryptoEngine)
+	endif()
 endif()
 
-check_required_components(bzrtp)
+check_required_components(BZRTP)

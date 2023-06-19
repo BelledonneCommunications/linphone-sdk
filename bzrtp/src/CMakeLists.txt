@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -40,29 +40,19 @@ bc_apply_compile_flags(BZRTP_C_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BZRTP_CPP_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 set(BZRTP_SOURCE_FILES ${BZRTP_C_SOURCE_FILES} ${BZRTP_CXX_SOURCE_FILES})
-set(INCLUDE_DIRS )
-set(LIBS )
-
-if(SQLITE3_FOUND)
-	list(APPEND INCLUDE_DIRS ${SQLITE3_INCLUDE_DIRS})
-	list(APPEND LIBS $<BUILD_INTERFACE:${SQLITE3_LIBRARIES}> $<INSTALL_INTERFACE:${SQLITE3_LIBRARIES}>)
-endif()
-
-if(XML2_FOUND)
-	list(APPEND INCLUDE_DIRS ${XML2_INCLUDE_DIRS})
-	list(APPEND LIBS $<BUILD_INTERFACE:${XML2_LIBRARIES}>  $<INSTALL_INTERFACE:${XML2_LIBRARIES}>)
-endif()
 
 add_library(bzrtp ${BZRTP_SOURCE_FILES})
 set_target_properties(bzrtp PROPERTIES VERSION 0)
 target_include_directories(bzrtp PUBLIC
 	$<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-	PRIVATE ${INCLUDE_DIRS}
 )
-target_link_libraries(bzrtp PRIVATE bctoolbox ${LIBS})
-if (postquantumcryptoengine_FOUND)
-	target_link_libraries(bzrtp PRIVATE postquantumcryptoengine)
+target_link_libraries(bzrtp PRIVATE ${BCToolbox_TARGET})
+if(SQLite3_FOUND)
+	target_link_libraries(bzrtp PUBLIC ${SQLite3_TARGET})
+endif()
+if(ENABLE_PQCRYPTO)
+	target_link_libraries(bzrtp PRIVATE ${PostQuantumCryptoEngine_TARGET})
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -77,7 +67,7 @@ if(BUILD_SHARED_LIBS)
 	endif()
 endif()
 
-install(TARGETS bzrtp EXPORT ${EXPORT_TARGETS_NAME}Targets
+install(TARGETS bzrtp EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

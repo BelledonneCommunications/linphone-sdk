@@ -25,5 +25,4 @@
 #cmakedefine HAVE_CU_CURSES
 
 #cmakedefine ZIDCACHE_ENABLED
-#cmakedefine HAVE_LIBXML2
 #cmakedefine GOCLEAR_ENABLED

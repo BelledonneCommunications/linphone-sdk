@@ -20,24 +20,52 @@
 #
 ############################################################################
 #
-# - Find the postquantumcryptoengine include files and library
+# Find the postquantumcryptoengine library.
 #
-#  POSTQUANTUMCRYPTOENGINE_FOUND - system has lib postquantumcryptoengine
-#  POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS - the postquantumcryptoengine include directory
-#  POSTQUANTUMCRYPTOENGINE_LIBRARIES - The library needed to use postquantumcryptoengine
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  postquantumcryptoengine - If the postquantumcryptoengine library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  PostQuantumCryptoEngine_FOUND - The postquantumcryptoengine library has been found
+#  PostQuantumCryptoEngine_TARGET - The name of the CMake target for the postquantumcryptoengine library
+
 
 if(TARGET postquantumcryptoengine)
 
-	set(POSTQUANTUMCRYPTOENGINE_LIBRARIES postquantumcryptoengine)
-	get_target_property(POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS postquantumcryptoengine INTERFACE_INCLUDE_DIRECTORIES)
-
-
 	include(FindPackageHandleStandardArgs)
+	set(PostQuantumCryptoEngine_TARGET postquantumcryptoengine)
+	set(_PostQuantumCryptoEngine_REQUIRED_VARS PostQuantumCryptoEngine_TARGET)
+	set(_PostQuantumCryptoEngine_CACHE_VARS ${_PostQuantumCryptoEngine_REQUIRED_VARS})
 	find_package_handle_standard_args(PostQuantumCryptoEngine
-		DEFAULT_MSG
-		POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS POSTQUANTUMCRYPTOENGINE_LIBRARIES
+		REQUIRED_VARS ${_PostQuantumCryptoEngine_REQUIRED_VARS}
 	)
+	mark_as_advanced(${_PostQuantumCryptoEngine_CACHE_VARS})
 
-	mark_as_advanced(POSTQUANTUMCRYPTOENGINE_INCLUDE_DIRS POSTQUANTUMCRYPTOENGINE_LIBRARIES)
+else()
+
+	set(_OPTIONS CONFIG)
+	if(PostQuantumCryptoEngine_FIND_REQUIRED)
+		list(APPEND _OPTIONS REQUIRED)
+	endif()
+	if(PostQuantumCryptoEngine_FIND_QUIETLY)
+		list(APPEND _OPTIONS QUIET)
+	endif()
+	if(PostQuantumCryptoEngine_FIND_VERSION)
+		list(PREPEND _OPTIONS "${PostQuantumCryptoEngine_FIND_VERSION}")
+	endif()
+	if(PostQuantumCryptoEngine_FIND_EXACT)
+		list(APPEND _OPTIONS EXACT)
+	endif()
+
+	find_package(PostQuantumCryptoEngine ${_OPTIONS})
 
 endif()

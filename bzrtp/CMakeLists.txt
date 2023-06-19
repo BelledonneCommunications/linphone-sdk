@@ -22,13 +22,13 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(bzrtp VERSION 5.3.0 LANGUAGES C CXX)
+project(BZRTP VERSION 5.3.0 LANGUAGES C CXX)
 
 option(ENABLE_ZIDCACHE "Turn on compilation of ZID cache, request sqlite" YES)
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." NO)
 option(ENABLE_DOC "Enable API documentation generation." NO)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 option(ENABLE_GOCLEAR "Enable the possibility to send and receive GoClear" YES)
 option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorithms" NO)
 
@@ -40,33 +40,18 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
-if(MSVC)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
-endif()
-
-# Hidden non-cache options:
-# * DISABLE_BC_PACKAGE_SEARCH: skip find_package() for every BC package (bctoolbox, ortp, etc.)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
 include(CheckLibraryExists)
 check_library_exists("m" "sqrt" "" HAVE_SQRT)
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester CONFIG)
-endif()
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 if(ENABLE_PQCRYPTO)
-	find_package(PostQuantumCryptoEngine)
-	if(NOT POSTQUANTUMCRYPTOENGINE_FOUND)
-		find_package(postquantumcryptoengine CONFIG REQUIRED)
-	endif()
+	find_package(PostQuantumCryptoEngine 5.3.0 REQUIRED)
 endif()
-
 if(ENABLE_ZIDCACHE)
-	find_package(Sqlite3 REQUIRED)
+	bc_find_package(SQLite3 SQLite::SQLite3 sqlite3 REQUIRED)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
@@ -74,9 +59,6 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENE
 add_definitions("-DHAVE_CONFIG_H")
 
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
-if(CMAKE_VERSION VERSION_LESS 3.1 AND NOT APPLE AND NOT MSVC)
-	list(APPEND STRICT_OPTIONS_CXX "-std=c++11")
-endif()
 
 set(BZRTP_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
 if(NOT BUILD_SHARED_LIBS)
@@ -92,10 +74,6 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
-endif()
-
 if(ENABLE_ZIDCACHE)
 	add_definitions("-DZIDCACHE_ENABLED")
 endif()
@@ -104,12 +82,10 @@ if(ENABLE_GOCLEAR)
         add_definitions("-DGOCLEAR_ENABLED")
 endif()
 
-if (postquantumcryptoengine_FOUND)
+if(ENABLE_PQCRYPTO)
 	add_definitions("-DHAVE_BCTBXPQ")
 	message(STATUS "Building with Post Quantum Key Agreements")
 endif()
-
-set(EXPORT_TARGETS_NAME "BZRTP")
 
 add_subdirectory(include)
 add_subdirectory(src)
@@ -117,32 +93,6 @@ if(ENABLE_UNIT_TESTS AND NOT ANDROID AND NOT IOS)
 	enable_testing()
 	add_subdirectory(test)
 endif()
-
-
-include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
-
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY AnyNewerVersion
-)
-
-configure_package_config_file(cmake/BZRTPConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
-	NO_SET_AND_CHECK_MACRO
-)
-
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
-)
-install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}ConfigVersion.cmake"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
-)
 
 if(ENABLE_DOC)
 	# Doxygen
@@ -171,6 +121,30 @@ if(ENABLE_DOC)
 	endif()
 endif()
 
-if (ENABLE_PACKAGE_SOURCE)
+if(ENABLE_PACKAGE_SOURCE)
 	add_subdirectory(build)
 endif()
+
+include(CMakePackageConfigHelpers)
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file("cmake/${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
+	NO_SET_AND_CHECK_MACRO
+)
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+install(FILES
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
+)
+if(ENABLE_PQCRYPTO)
+	install(FILES "cmake/FindPostQuantumCryptoEngine.cmake" DESTINATION ${CMAKE_MODULES_INSTALL_DIR})
+endif()
+
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
+)
