@@ -38,6 +38,8 @@ set(VERSION "${PACKAGE_VERSION}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS NO)
 
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 include(GNUInstallDirs)
 
 if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
@@ -50,8 +52,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BIN
 set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/config.h" PROPERTIES GENERATED ON)
 add_definitions(-DHAVE_CONFIG_H)
 
+find_package(BCToolbox 5.3.0 REQUIRED)
 find_package(Mediastreamer2 5.3.0 REQUIRED)
 find_package(LibLinphone 5.3.0 REQUIRED)
+find_package(LibLinphoneCxx 5.3.0 REQUIRED)
 
 include_directories(
 	include/

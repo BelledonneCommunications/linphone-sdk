@@ -20,6 +20,8 @@
 
 #include <linphone/core.h>
 
+#include "ekt-server-main.h"
+
 using namespace std;
 
 LINPHONE_BEGIN_NAMESPACE
@@ -35,6 +37,8 @@ extern "C" {
 #endif
 PLUGIN_EXPORT void libektserver_init(LinphoneCore *core) {
 	ms_message("EKT server plugin for core %s has been succesfully loaded", linphone_core_get_identity(core));
+	auto cppCore = linphone::Object::cPtrToSharedPtr<linphone::Core>(core);
+	cppCore->addListener(make_shared<EktServerPlugin::EktServerMain>());
 }
 
 #ifdef __cplusplus

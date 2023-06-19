@@ -22,7 +22,11 @@
 ############################################################################
 
 set(SOURCE_FILES
+	ekt-server-main.cpp
+	ekt-server-main.h
 	ektserver.cpp
+	server-ekt-manager.cpp
+	server-ekt-manager.h
 )
 
 set(INCLUDE_DIRS )
@@ -48,7 +52,8 @@ target_include_directories(ektserver PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>
 	PRIVATE ${INCLUDE_DIRS}
 )
-target_link_libraries(ektserver PUBLIC ${LibLinphone_TARGET} ${Mediastreamer2_TARGET} ${LIBS})
+
+target_link_libraries(ektserver PUBLIC ${LibLinphoneCxx_TARGET} ${LibLinphone_TARGET} ${Mediastreamer2_TARGET} ${BCToolbox_TARGET} ${LIBS})
 set_target_properties(ektserver PROPERTIES LINKER_LANGUAGE CXX)
 if(APPLE)
 	if(IOS)
