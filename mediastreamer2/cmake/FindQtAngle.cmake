@@ -1,6 +1,6 @@
 ############################################################################
-# FindQtAngle.txt
-# Copyright (C) 2017  Belledonne Communications, Grenoble France
+# FindQtAngle.cmake
+# Copyright (C) 2017-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,23 +20,19 @@
 #
 ############################################################################
 #
-# - Find the QtAngle include file and library
+# - Find the QtAngle include dir
 #
-#  QTANGLE_FOUND - system has QtAngle
-#  QTANGLE_INCLUDE_DIRS - the QtAngle include directory
+#  QtAngle_FOUND - system has QtAngle
+#  QtAngle_INCLUDE_DIRS - the QtAngle include directory
 
-find_path(QTANGLE_INCLUDE_DIRS
+find_path(QtAngle_INCLUDE_DIRS
 	NAMES QtANGLE/GLES3/gl3.h
 	PATH_SUFFIXES include
 )
-if(QTANGLE_INCLUDE_DIRS)
-	list(APPEND QTANGLE_INCLUDE_DIRS "${QTANGLE_INCLUDE_DIRS}/QtANGLE")
+if(QtAngle_INCLUDE_DIRS)
+	list(APPEND QtAngle_INCLUDE_DIRS "${QtAngle_INCLUDE_DIRS}/QtANGLE")
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(QTANGLE
-	DEFAULT_MSG
-	QTANGLE_INCLUDE_DIRS
-)
-
-mark_as_advanced(QTANGLE_INCLUDE_DIRS)
+find_package_handle_standard_args(QtAngle REQUIRED_VARS QtAngle_INCLUDE_DIRS)
+mark_as_advanced(QtAngle_INCLUDE_DIRS)

@@ -1,5 +1,5 @@
 ############################################################################
-# FindOrtp.cmake
+# FindBCG729.cmake
 # Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,24 +20,52 @@
 #
 ############################################################################
 #
-# - Find the ortp include files and library
+# Find the bcg729 library.
 #
-#  ORTP_FOUND - system has lib ortp
-#  ORTP_INCLUDE_DIRS - the ortp include directory
-#  ORTP_LIBRARIES - The library needed to use ortp
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  bcg729 - If the bcg729 library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  BCG729_FOUND - The bcg729 library has been found
+#  BCG729_TARGET - The name of the CMake target for the bcg729 library
 
-if(TARGET ortp)
 
-	set(ORTP_LIBRARIES ortp)
-	get_target_property(ORTP_INCLUDE_DIRS ortp INTERFACE_INCLUDE_DIRECTORIES)
-
+if(TARGET bcg729)
 
 	include(FindPackageHandleStandardArgs)
-	find_package_handle_standard_args(Ortp
-		DEFAULT_MSG
-		ORTP_INCLUDE_DIRS ORTP_LIBRARIES
+	set(BCG729_TARGET bcg729)
+	set(_BCG729_REQUIRED_VARS BCG729_TARGET)
+	set(_BCG729_CACHE_VARS ${_BCG729_REQUIRED_VARS})
+	find_package_handle_standard_args(BCG729
+		REQUIRED_VARS ${_BCG729_REQUIRED_VARS}
 	)
+	mark_as_advanced(${_BCG729_CACHE_VARS})
 
-	mark_as_advanced(ORTP_INCLUDE_DIRS ORTP_LIBRARIES)
+else()
+
+	set(_OPTIONS CONFIG)
+	if(BCG729_FIND_REQUIRED)
+		list(APPEND _OPTIONS REQUIRED)
+	endif()
+	if(BCG729_FIND_QUIETLY)
+		list(APPEND _OPTIONS QUIET)
+	endif()
+	if(BCG729_FIND_VERSION)
+		list(PREPEND _OPTIONS "${BCG729_FIND_VERSION}")
+	endif()
+	if(BCG729_FIND_EXACT)
+		list(APPEND _OPTIONS EXACT)
+	endif()
+
+	find_package(BCG729 ${_OPTIONS})
 
 endif()

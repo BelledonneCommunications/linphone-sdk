@@ -19,45 +19,71 @@
 #
 ############################################################################
 #
-# - Find the LibYUV include file and library
+# Find the yuv library.
 #
-#  LIBYUV_FOUND - system has LibYUV
-#  LIBYUV_INCLUDE_DIRS - the LibYUV include directory
-#  LIBYUV_LIBRARIES - The libraries needed to use LibYUV
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  yuv - If the yuv library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  LibYUV_FOUND - The yuv library has been found
+#  LibYUV_TARGET - The name of the CMake target for the yuv library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_LibYUV_REQUIRED_VARS LibYUV_TARGET HAVE_LIBYUV_H)
+set(_LibYUV_CACHE_VARS ${_LibYUV_REQUIRED_VARS})
 
 if(TARGET yuv)
 
-	set(LIBYUV_LIBRARIES yuv)
-	get_target_property(LIBYUV_INCLUDE_DIRS yuv INTERFACE_INCLUDE_DIRECTORIES)
+	set(LibYUV_TARGET yuv)
 	set(HAVE_LIBYUV_H 1)
 
 else()
 
-	set(_LIBYUV_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_LibYUV_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(LIBYUV_INCLUDE_DIRS
+	find_path(_LibYUV_INCLUDE_DIRS
 		NAMES libyuv.h
-		HINTS _LIBYUV_ROOT_PATHS
+		HINTS ${_LibYUV_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(LIBYUV_INCLUDE_DIRS)
-		set(HAVE_LIBYUV_H 1)
-	endif()
 
-	find_library(LIBYUV_LIBRARIES
+	find_library(_LibYUV_LIBRARY
 		NAMES yuv
-		HINTS _LIBYUV_ROOT_PATHS
+		HINTS ${_LibYUV_ROOT_PATHS}
 		PATH_SUFFIXES bin lib lib/Win32
 	)
 
+	if(_LibYUV_INCLUDE_DIRS AND _LibYUV_LIBRARY)
+		add_library(yuv UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(yuv PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_LibYUV_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_LibYUV_LIBRARY}"
+			)
+		else()
+			set_target_properties(yuv PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_LibYUV_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_LibYUV_LIBRARY}"
+			)
+		endif()
+		set(HAVE_LIBYUV_H 1)
+		set(LibYUV_TARGET yuv)
+	endif()
+
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(LibYUV
-	DEFAULT_MSG
-	LIBYUV_INCLUDE_DIRS LIBYUV_LIBRARIES HAVE_LIBYUV_H
+	REQUIRED_VARS ${_LibYUV_REQUIRED_VARS}
 )
-
-mark_as_advanced(LIBYUV_INCLUDE_DIRS LIBYUV_LIBRARIES HAVE_LIBYUV_H)
+mark_as_advanced(${_LibYUV_CACHE_VARS})

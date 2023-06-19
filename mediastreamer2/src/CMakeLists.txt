@@ -56,7 +56,7 @@ add_definitions(
 	-DMS2_INTERNAL
 	-DMS2_FILTERS
 )
-if(TARGET srtp2)
+if(SRTP_NOT_INSTALLED)
 	# Set -DSRTP_INTERNAL in order to include srtp.h instead of srtp2/srtp.h
 	add_compile_definitions(SRTP_INTERNAL)
 endif()
@@ -202,7 +202,6 @@ if(BCG729_FOUND AND ENABLE_G729)
 endif()
 if(GSM_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/gsm.c)
-	set_source_files_properties("audiofilters/gsm.c" PROPERTIES INCLUDE_DIRECTORIES "${GSM_INCLUDE_DIRS}")
 	if(GSM_USE_BUILD_INTERFACE)
 		set_source_files_properties("audiofilters/gsm.c" PROPERTIES COMPILE_DEFINITIONS "GSM_USE_BUILD_INTERFACE")
 	endif()
@@ -210,19 +209,19 @@ endif()
 if(BV16_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/bv16.c)
 endif()
-if(OPUS_FOUND)
+if(Opus_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msopus.c)
-	if(OPUS_USE_BUILD_INTERFACE)
+	if(Opus_USE_BUILD_INTERFACE)
 		set_source_files_properties("audiofilters/msopus.c" PROPERTIES COMPILE_DEFINITIONS "OPUS_USE_BUILD_INTERFACE")
 	endif()
 endif()
 if(ENABLE_RESAMPLE)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msresample.c)
 endif()
-if(SPEEX_FOUND)
+if(Speex_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/msspeex.c)
 endif()
-if(SPEEXDSP_FOUND)
+if(SpeexDSP_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/speexec.c)
 endif()
 
@@ -250,16 +249,16 @@ if(ENABLE_VIDEO)
 		voip/vp8rtpfmt.c
 		voip/vp8rtpfmt.h
 	)
-	if(FFMPEG_FOUND AND NOT TURBOJPEG_FOUND)
+	if(FFMpeg_FOUND AND NOT TurboJpeg_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/jpgloader-ffmpeg.c
 		)
-	elseif(TURBOJPEG_FOUND)
+	elseif(TurboJpeg_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/jpgloader-turbojpeg.c
 		)
 		list(APPEND VOIP_SOURCE_FILES_CXX
-			videofilters/msturbojpeg.cpp	#MJPEG using turbojpeg
+			videofilters/msturbojpeg.cpp	# MJPEG using turbojpeg
 		)
 	else()
 		list(APPEND VOIP_SOURCE_FILES_C
@@ -346,7 +345,7 @@ if(ENABLE_VIDEO)
 			videofilters/bb10_capture.cpp
 		)
 	endif()
-	if(FFMPEG_FOUND)
+	if(FFMpeg_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/ffmpeg-priv.c
 			utils/ffmpeg-priv.h
@@ -356,23 +355,23 @@ if(ENABLE_VIDEO)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/h264dec.cpp
 		)
-		if(NOT TURBOJPEG_FOUND)
+		if(NOT TurboJpeg_FOUND)
 			list(APPEND VOIP_SOURCE_FILES_C
 				videofilters/ffmpegjpegwriter.c
 			)
 		endif()
 	endif()
-	if(TURBOJPEG_FOUND)
+	if(TurboJpeg_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/turbojpegwriter.c
 		)
 	endif()
-	if(ZXING_FOUND)
+	if(ZXing_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_CXX
 			videofilters/zxing_qrcode.cpp
 		)
 		set_source_files_properties("videofilters/zxing_qrcode.cpp" PROPERTIES INCLUDE_DIRECTORIES "${ZXING_INCLUDE_DIRS}")
-		if(ZXING_USE_BUILD_INTERFACE)
+		if(ZXing_USE_BUILD_INTERFACE)
 			set_source_files_properties("videofilters/zxing_qrcode.cpp" PROPERTIES COMPILE_DEFINITIONS "ZXING_USE_BUILD_INTERFACE")
 		endif()
 	endif()
@@ -383,7 +382,7 @@ if(ENABLE_VIDEO)
 			utils/shader_util.c
 			videofilters/generic_opengl_display.c
 		)
-	elseif(OPENGL_FOUND OR QTANGLE_FOUND)
+	elseif(OPENGL_FOUND OR QtAngle_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
 			utils/opengles_display.c
@@ -391,7 +390,7 @@ if(ENABLE_VIDEO)
 			videofilters/generic_opengl_display.c
 		)
 	endif()
-	if(GLX_FOUND)
+	if(OpenGL_GLX_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
 			utils/opengl_functions.c
 			utils/opengles_display.c
@@ -402,7 +401,7 @@ if(ENABLE_VIDEO)
 	if(SDL_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/videoout.c)
 	endif()
-	if(THEORA_FOUND)
+	if(Theora_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/theora.c)
 	endif()
 	if(V4L_FOUND)
@@ -421,11 +420,11 @@ if(ENABLE_VIDEO)
 	if(X11_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C utils/x11_helper.c)
 	endif()
-	if(XV_FOUND)
+	if(X11_Xv_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C videofilters/x11video.c)
 	endif()
 endif()
-if(BCMATROSKA2_FOUND)
+if(BCMatroska2_FOUND)
 	list(APPEND VOIP_SOURCE_FILES_C
 		voip/rfc2429.h
 	)
@@ -433,7 +432,6 @@ if(BCMATROSKA2_FOUND)
 		utils/mkv_reader.cpp
 		videofilters/mkv.cpp
 	)
-	set_source_files_properties("utils/mkv_reader.cpp" "videofilters/mkv.cpp" PROPERTIES INCLUDE_DIRECTORIES "${BCMATROSKA2_INCLUDE_DIRS}")
 endif()
 
 if(PCAP_FOUND)
@@ -463,7 +461,7 @@ add_custom_target(mediastreamer2-voipdescs-header
 )
 
 
-if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
+if(APPLE OR ANDROID OR OPENGL_FOUND OR OpenGL_GLX_FOUND OR QtAngle_FOUND OR WIN32)
 	find_package(PythonInterp 3 REQUIRED)
 	find_program(SED_PROGRAM sed CMAKE_FIND_ROOT_PATH_BOTH)
 	if(NOT SED_PROGRAM)
@@ -529,7 +527,7 @@ if(VOIP_SOURCE_FILES_ASM)
 endif()
 
 set(MS2_DEPENDENCIES mediastreamer2-git-version mediastreamer2-basedescs-header mediastreamer2-voipdescs-header)
-if(APPLE OR ANDROID OR OPENGL_FOUND OR GLX_FOUND OR QTANGLE_FOUND OR WIN32)
+if(APPLE OR ANDROID OR OPENGL_FOUND OR OpenGL_GLX_FOUND OR QtAngle_FOUND OR WIN32)
 	list(APPEND MS2_DEPENDENCIES mediastreamer2-vertex-shader-header mediastreamer2-fragment-shader-header mediastreamer2-yuv2rgb-fs-header mediastreamer2-yuv2rgb-vs-header)
 endif()
 
@@ -537,7 +535,7 @@ endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
 add_library(mediastreamer2 ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
-set_target_properties(mediastreamer2 PROPERTIES MS2_PLUGINS "${MS2_PLUGINS_LOCATION}")
+set_target_properties(mediastreamer2 PROPERTIES MS2_PLUGINS_DIR "${MS2_PLUGINS_DIR}")
 set_target_properties(mediastreamer2 PROPERTIES LINKER_LANGUAGE CXX)
 if(LINK_FLAGS_STR)
 	set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -548,23 +546,27 @@ target_include_directories(mediastreamer2 INTERFACE
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
 	PRIVATE ${MEDIASTREAMER2_INCLUDE_DIRS}
 )
-target_link_libraries(mediastreamer2 PRIVATE ${LINK_LIBS})
+target_link_libraries(mediastreamer2 PUBLIC ${BCToolbox_TARGET} ${Ortp_TARGET} PRIVATE ${LINK_LIBS})
 if(X11_FOUND)
-	target_link_libraries(mediastreamer2 INTERFACE ${X11_LIBRARIES})
+	target_link_libraries(mediastreamer2 PRIVATE X11::X11)
 endif()
-if(XV_FOUND)
-	target_link_libraries(mediastreamer2 INTERFACE ${XV_LIBRARIES})
+if(X11_Xext_FOUND)
+	target_link_libraries(mediastreamer2 PRIVATE X11::Xext)
+endif()
+if(X11_Xv_FOUND)
+	target_link_libraries(mediastreamer2 PRIVATE X11::Xv)
 endif()
 if(BZRTP_FOUND)
-	target_link_libraries(mediastreamer2 PRIVATE ${BZRTP_LIBRARIES})
+	target_link_libraries(mediastreamer2 PRIVATE ${BZRTP_TARGET})
 endif()
 if(ENABLE_OSS)
 	target_compile_definitions(mediastreamer2 PRIVATE __OSS_ENABLED__)
 endif()
-if(BV16_FOUND)
-	if(BV16_USE_BUILD_INTERFACE)
-		target_compile_definitions(mediastreamer2 PRIVATE BV16_USE_BUILD_INTERFACE)
-	endif()
+if(BCMatroska2_FOUND)
+	target_link_libraries(mediastreamer2 PRIVATE ${BCMatroska2_TARGET})
+endif()
+if(BV16_FOUND AND BV16_USE_BUILD_INTERFACE)
+	target_compile_definitions(mediastreamer2 PRIVATE BV16_USE_BUILD_INTERFACE)
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -591,7 +593,7 @@ if(BUILD_SHARED_LIBS)
 		endif()
 	endif()
 	if(ANDROID)
-		if(ENABLE_VPX)
+		if(VPX_FOUND)
 			set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
 		endif()
 		# Do not version shared library on Android
@@ -657,7 +659,7 @@ if(BUILD_SHARED_LIBS)
 
 endif()
 
-install(TARGETS mediastreamer2 EXPORT ${EXPORT_TARGETS_NAME}Targets
+install(TARGETS mediastreamer2 EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -680,10 +682,10 @@ if(ENABLE_QT_GL)
 	target_include_directories(msqogl INTERFACE
 		$<INSTALL_INTERFACE:include/>
 		$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>
-		PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS}
+		PRIVATE ${QT_MEDIASTREAMER2_INCLUDE_DIRS}
 	)
 	set_target_properties(msqogl PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(msqogl PRIVATE mediastreamer2 bctoolbox ortp)
+	target_link_libraries(msqogl PRIVATE mediastreamer2 ${BCToolbox_TARGET} ${Ortp_TARGET})
 	target_link_libraries(msqogl PRIVATE ${QT_LINK_LIBS})
 
 	if(BUILD_SHARED_LIBS)
@@ -721,22 +723,22 @@ if(ENABLE_QT_GL)
 	endif()
 
 	install(TARGETS msqogl
-			RUNTIME DESTINATION ${MS2_PLUGINS_LOCATION}
-			LIBRARY DESTINATION ${MS2_PLUGINS_LOCATION}
-			ARCHIVE DESTINATION ${MS2_PLUGINS_LOCATION}
+			RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
+			LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
+			ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
 			FRAMEWORK DESTINATION Frameworks
 			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
 
 
-if(FFMPEG_FOUND AND NOT WIN32)
+if(FFMpeg_FOUND AND NOT WIN32)
 	set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
 		videofilters/videoenc.c
 		videofilters/videodec.c
 		videofilters/h264dec.cpp
 	)
-	if(NOT TURBOJPEG_FOUND)
+	if(NOT TurboJpeg_FOUND)
 		set(NO_DEPRECATED_DECLARATIONS_SOURCE_FILES
 			${NO_DEPRECATED_DECLARATIONS_SOURCE_FILES}
 			videofilters/ffmpegjpegwriter.c

@@ -21,40 +21,125 @@
 ############################################################################
 #
 # Config file for the mediastreamer2 package.
-# It defines the following variables:
 #
-#  MEDIASTREAMER2_FOUND - system has mediastreamer2
-#  MEDIASTREAMER2_INCLUDE_DIRS - the mediastreamer2 include directory
-#  MEDIASTREAMER2_LIBRARIES - The libraries needed to use mediastreamer2
-#  MEDIASTREAMER2_CPPFLAGS - The compilation flags needed to use mediastreamer2
-#  MEDIASTREAMER2_LDFLAGS - The linking flags needed to use mediastreamer2
+# Targets
+# ^^^^^^^
+#
+# The following targets are defined:
+#  mediastreamer2 - The mediastreamer2 library target
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This config file will set the following variables in your project:
+#
+#  Mediastreamer2_FOUND - The mediastreamer2 library has been found
+#  Mediastreamer2_TARGET - The name of the CMake target for the mediastreamer2 library
+#  Mediastreamer2_PLUGINS_DIR - The directory where to install mediastreamer2 plugins
+
 
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-
 include("${CMAKE_CURRENT_LIST_DIR}/Mediastreamer2Targets.cmake")
 
-set(MEDIASTREAMER2_TARGETNAME mediastreamer2)
+set(Mediastreamer2_TARGET mediastreamer2)
+set_and_check(Mediastreamer2_PLUGINS_DIR "@PACKAGE_MS2_PLUGINS_DIR@")
+
+# We must propagate the public dependencies and the private dependencies for static build
+include(CMakeFindDependencyMacro)
+find_dependency(Ortp)
+find_dependency(BCToolbox)
 if(@BUILD_SHARED_LIBS@)
-	set(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME})
 else()
-	get_target_property(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME} LOCATION)
-	get_target_property(MEDIASTREAMER2_LIBRARIES ${MEDIASTREAMER2_TARGETNAME} INTERFACE_LINK_LIBRARIES)
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+	if(@PCAP_FOUND@)
+		find_dependency(PCAP)
+	endif()
+	if(@SRTP_FOUND@)
+		find_dependency(SRTP)
+	endif()
+	if(@BZRTP_FOUND@)
+		find_dependency(BZRTP)
+	endif()
+	if(@SpanDSP_FOUND@)
+		find_dependency(SpanDSP)
+	endif()
+	if(@GSM_FOUND@)
+		find_dependency(GSM)
+	endif()
+	if(@BV16_FOUND@)
+		find_dependency(BV16)
+	endif()
+	if(@Opus_FOUND@)
+		find_dependency(Opus)
+	endif()
+	if(@Speex_FOUND@)
+		find_dependency(Speex)
+	endif()
+	if(@SpeexDSP_FOUND@)
+		find_dependency(SpeexDSP)
+	endif()
+	if(@ALSA_FOUND@)
+		find_dependency(ALSA)
+	endif()
+	if(@Arts_FOUND@)
+		find_dependency(Arts)
+	endif()
+	if(@PortAudio_FOUND@)
+		find_dependency(PortAudio)
+	endif()
+	if(@PulseAudio_FOUND@)
+		find_dependency(PulseAudio)
+	endif()
+	if(@QSA_FOUND@)
+		find_dependency(QSA)
+	endif()
+	if(@QnxAudioManager_FOUND@)
+		find_dependency(QnxAudioManager)
+	endif()
+	if(@FFMpeg_FOUND@)
+		find_dependency(FFMpeg)
+	endif()
+	if(@V4L_FOUND@)
+		find_dependency(V4L)
+	endif()
+	if(@X11_FOUND@)
+		find_dependency(X11)
+	endif()
+	if(@OPENGL_FOUND@)
+		find_dependency(OpenGL)
+	endif()
+	if(@GLEW_FOUND@)
+		find_dependency(GLEW)
+	endif()
+	if(@Theora_FOUND@)
+		find_dependency(Theora)
+	endif()
+	if(@VPX_FOUND@)
+		find_dependency(VPX)
+	endif()
+	if(@BCMatroska2_FOUND@)
+		find_dependency(BCMatroska2)
+	endif()
+	if(@Screen_FOUND@)
+		find_dependency(Screen)
+	endif()
+	if(@CamApi_FOUND@)
+		find_dependency(CamApi)
+	endif()
+	if(@BCG729_FOUND@)
+		find_dependency(BCG729)
+	endif()
+	if(@TurboJpeg_FOUND@)
+		find_dependency(TurboJpeg)
+	endif()
+	if(@LibYUV_FOUND@)
+		find_dependency(LibYUV)
+	endif()
+	if(@ZXing_FOUND@)
+		find_dependency(ZXing)
+	endif()
 endif()
 
-get_target_property(MEDIASTREAMER2_INCLUDE_DIRS ${MEDIASTREAMER2_TARGETNAME} INTERFACE_INCLUDE_DIRECTORIES)
-
-set(MEDIASTREAMER2_INCLUDE_DIRS "@PACKAGE_INCLUDE_INSTALL_DIR@")
-if(@ENABLE_VIDEO@)
-	list(APPEND MEDIASTREAMER2_INCLUDE_DIRS "@CMAKE_INSTALL_FULL_INCLUDEDIR@/OpenGL")
-endif()
-
-set(MEDIASTREAMER2_CPPFLAGS @MEDIASTREAMER2_CPPFLAGS@)
-set(MEDIASTREAMER2_LDFLAGS "@LINK_FLAGS_STR@")
-set(MEDIASTREAMER2_FOUND 1)
-
-get_target_property(MEDIASTREAMER2_FRAMEWORK_IDENTIFIER ${MEDIASTREAMER2_TARGETNAME} MACOSX_FRAMEWORK_IDENTIFIER)
-
-set(MEDIASTREAMER2_PLUGINS_LOCATION "@MS2_PLUGINS_LOCATION@")
-
+check_required_components(Mediastreamer2)

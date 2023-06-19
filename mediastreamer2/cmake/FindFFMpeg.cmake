@@ -20,130 +20,203 @@
 #
 ############################################################################
 #
-# - Find the ffmpeg include file and library
+# Find the ffmpeg libraries: avcodec, avutil and swscale.
 #
-#  FFMPEG_FOUND - system has ffmpeg
-#  FFMPEG_INCLUDE_DIRS - the ffmpeg include directory
-#  FFMPEG_LIBRARIES - The libraries needed to use ffmpeg
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  avcodec - If the avcodec library has been found
+#  avutil - If the avutil library has been found
+#  swscale - If the swscale library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  FFMpeg_FOUND - The ffmpeg libraries have been found
+#  FFMpeg_TARGETS - The list of the names of the CMake targets for the ffmpeg libraries
+#  FFMpeg_TARGET - The name of the CMake target for the ffmpeg library (only for Android)
+#  FFMpeg_avcodec_TARGET - The name of the CMake target for the avcodec library (when not on Android)
+#  FFMPEG_avutil_TARGET - The name of the CMake target for the avutil library (when not on Android)
+#  FFMPEG_swscale_TARGET - The name of the CMake target for the swscale library (when not on Android)
+#  HAVE_LIBAVCODEC_AVCODEC_H - If the libavcodec/avcodec.h header file is available
+#  HAVE_LIBSWSCALE_SWSCALE_H - If the libswscale/swscale.h header file is available
+#  HAVE_FUN_avcodec_get_context_defaults3 - If the avcodec library defines the avcodec_get_context_defaults3 symbol
+#  HAVE_FUN_avcodec_open2 - If the avcodec library defines the avcodec_open2 symbol
+#  HAVE_FUN_avcodec_encode_video2 - If the avcodec library defines the avcodec_encode_video2 symbol
+#  HAVE_FUN_av_frame_alloc - If the avutil library defines the av_frame_alloc symbol
+#  HAVE_FUN_av_frame_free - If the avutil library defines the av_frame_free symbol
+#  HAVE_FUN_av_frame_unref - If the avutil library defines the av_frame_unref symbol
 
-set(VARS FFMPEG_INCLUDE_DIRS FFMPEG_LIBRARIES LIBAVCODEC_INCLUDE_DIRS LIBAVUTIL_INCLUDE_DIRS LIBSWSCALE_INCLUDE_DIRS)
-message(DEBUG "FFMPEG VARS: ${VARS}")
-if(NOT ANDROID)
-	list(APPEND VARS LIBAVCODEC_LIBRARIES LIBAVUTIL_LIBRARIES LIBSWSCALE_LIBRARIES)
-	message(DEBUG "Not Android, appending libraries to FFMPEG VARS: ${VARS}")
+
+# The back to back user agent feature of Flexisip requires video.
+# ENABLE_VIDEO strongly requires FFMpeg.
+
+# For Arch Linux, FFMpeg 5 isn't supported with the actual code because of a definition issue in ffmpeg-private.h
+# The build is working with the package ffmpeg4.4, but we have to add its path to find_path calls
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_FFMpeg_REQUIRED_VARS FFMpeg_TARGETS)
+if(ANDROID)
+	list(APPEND _FFMpeg_REQUIRED_VARS FFMpeg_TARGET)
+else()
+	list(APPEND _FFMpeg_REQUIRED_VARS FFMpeg_avcodec_TARGET FFMpeg_avutil_TARGET FFMpeg_swscale_TARGET)
 endif()
-
+set(_FFMpeg_CACHE_VARS ${_FFMpeg_REQUIRED_VARS}
+	HAVE_LIBAVCODEC_AVCODEC_H
+	HAVE_LIBSWSCALE_SWSCALE_H
+	HAVE_FUN_avcodec_get_context_defaults3
+	HAVE_FUN_avcodec_open2
+	HAVE_FUN_avcodec_encode_video2
+	HAVE_FUN_av_frame_alloc
+	HAVE_FUN_av_frame_free
+	HAVE_FUN_av_frame_unref
+)
 
 if(TARGET ffmpeg)
 
-	set(LIBAVCODEC_LIBRARIES avcodec)
-	get_target_property(LIBAVCODEC_INCLUDE_DIRS avcodec INTERFACE_INCLUDE_DIRECTORIES)
-	set(LIBAVUTIL_LIBRARIES avutil)
-	get_target_property(LIBAVUTIL_INCLUDE_DIRS avutil INTERFACE_INCLUDE_DIRECTORIES)
-	set(LIBSWSCALE_LIBRARIES swscale)
-	get_target_property(LIBSWSCALE_INCLUDE_DIRS swscale INTERFACE_INCLUDE_DIRECTORIES)
-	set(FFMPEG_LIBRARIES ${LIBAVCODEC_LIBRARIES} ${LIBAVUTIL_LIBRARIES} ${LIBSWSCALE_LIBRARIES})
-	set(FFMPEG_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVUTIL_INCLUDE_DIRS} ${LIBSWSCALE_INCLUDE_DIRS})
-	list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
+	set(FFMpeg_avcodec_TARGET avcodec)
+	set(FFMpeg_avutil_TARGET avutil)
+	set(FFMpeg_swscale_TARGET swscale)
+	set(FFMpeg_TARGETS ${FFMpeg_avcodec_TARGET} ${FFMpeg_avutil_TARGET} ${FFMpeg_swscale_TARGET})
 	set(HAVE_LIBAVCODEC_AVCODEC_H 1)
-	set(HAVE_LIBAVUTIL_AVUTIL_H 1)
 	set(HAVE_LIBSWSCALE_SWSCALE_H 1)
 	set(HAVE_FUN_avcodec_get_context_defaults3 1)
 	set(HAVE_FUN_avcodec_open2 1)
 
 else()
 
-	include(CMakePushCheckState)
-	include(CheckSymbolExists)
-
-	# The back to back user agent feature of Flexisip requires video.
-	# ENABLE_VIDEO strongly requires FFMpeg.
-
-	# For Arch Linux, FFMpeg 5 isn't supported with the actual code because of a definition issue in ffmpeg-private.h
-	# The build is working with the package ffmpeg4.4, but we have to add its path to find_path calls
-
-	find_path(LIBAVCODEC_INCLUDE_DIRS
+	find_path(_FFMpeg_avcodec_INCLUDE_DIRS
 		NAMES libavcodec/avcodec.h
 		PATH_SUFFIXES include include/ffmpeg include/ffmpeg4.4
 	)
-	message(DEBUG "LIBAVCODEC_INCLUDE_DIRS: ${LIBAVCODEC_INCLUDE_DIRS}")
-	message(DEBUG "PACKAGENAME_ROOT: ${FFMPEG_ROOT}")
-	if(LIBAVCODEC_INCLUDE_DIRS)
-		set(HAVE_LIBAVCODEC_AVCODEC_H 1)
-	endif()
-	find_path(LIBAVUTIL_INCLUDE_DIRS
+	find_path(_FFMpeg_avutil_INCLUDE_DIRS
 		NAMES libavutil/avutil.h
 		PATH_SUFFIXES include include/ffmpeg include/ffmpeg4.4
 	)
-	message(DEBUG "LIBAVUTIL_INCLUDE_DIRS: ${LIBAVUTIL_INCLUDE_DIRS}")
-	if(LIBAVUTIL_INCLUDE_DIRS)
-		set(HAVE_LIBAVUTIL_AVUTIL_H 1)
-	endif()
-	find_path(LIBSWSCALE_INCLUDE_DIRS
+	find_path(_FFMpeg_swscale_INCLUDE_DIRS
 		NAMES libswscale/swscale.h
 		PATH_SUFFIXES include include/ffmpeg include/ffmpeg4.4
 	)
-	message(DEBUG "LIBSWSCALE_INCLUDE_DIRS: ${LIBSWSCALE_INCLUDE_DIRS}")
-	if(LIBSWSCALE_INCLUDE_DIRS)
+
+	if(_FFMpeg_avcodec_INCLUDE_DIRS AND _FFMpeg_avutil_INCLUDE_DIRS AND _FFMpeg_swscale_INCLUDE_DIRS)
+		set(HAVE_LIBAVCODEC_AVCODEC_H 1)
 		set(HAVE_LIBSWSCALE_SWSCALE_H 1)
-	endif()
 
-	if(ANDROID)
-		find_library(FFMPEG_LIBRARIES
-			NAMES ffmpeg-linphone
-		)
-	else()
-		find_library(LIBAVCODEC_LIBRARIES
-			NAMES avcodec
-			PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
-		)
-		message(DEBUG "LIBAVCODEC_LIBRARIES: ${LIBAVCODEC_LIBRARIES}")
-		find_library(LIBAVUTIL_LIBRARIES
-			NAMES avutil
-			PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
-		)
-		message(DEBUG "LIBAVUTIL_LIBRARIES: ${LIBAVUTIL_LIBRARIES}")
-		find_library(LIBSWSCALE_LIBRARIES
-			NAMES swscale
-			PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
-		)
-		message(DEBUG "LIBSWSCALE_LIBRARIES: ${LIBAVSWSCALE_LIBRARIES}")
-	endif()
-
-	find_package(Threads)
-	find_library(LIBM names m)
-
-	set(FFMPEG_INCLUDE_DIRS ${LIBAVCODEC_INCLUDE_DIRS} ${LIBAVUTIL_INCLUDE_DIRS} ${LIBSWSCALE_INCLUDE_DIRS})
-	message(DEBUG "FFMPEG_INCLUDE_DIRS: ${FFMPEG_INCLUDE_DIRS}")
-	if(NOT ANDROID)
-		set(FFMPEG_LIBRARIES ${LIBAVCODEC_LIBRARIES} ${LIBAVUTIL_LIBRARIES} ${LIBSWSCALE_LIBRARIES})
-		message(DEBUG "Not Android: FFMPEG_LIBRARIES: ${FFMPEG_LIBRARIES}")
-	endif()
-	list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
-	list(REMOVE_DUPLICATES FFMPEG_LIBRARIES)
-
-	if(FFMPEG_LIBRARIES)
-		cmake_push_check_state(RESET)
-		list(APPEND CMAKE_REQUIRED_INCLUDES ${FFMPEG_INCLUDE_DIRS})
-		list(APPEND CMAKE_REQUIRED_LIBRARIES ${FFMPEG_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-		if(MSVC)
-			list(APPEND CMAKE_REQUIRED_DEFINITIONS -Dinline=__inline)
+		if(ANDROID)
+			find_library(_FFMpeg_LIBRARY NAMES ffmpeg-linphone)
+			set(_FFMpeg_LIBRARIES ${_FFMpeg_LIBRARY})
+		else()
+			find_library(_FFMpeg_avcodec_LIBRARY
+				NAMES avcodec
+				PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
+			)
+			find_library(_FFMpeg_avutil_LIBRARY
+				NAMES avutil
+				PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
+			)
+			find_library(_FFMpeg_swscale_LIBRARY
+				NAMES swscale
+				PATH_SUFFIXES bin lib bin/ffmpeg4.4 lib/ffmpeg4.4
+			)
+			set(_FFMpeg_LIBRARIES ${_FFMpeg_avcodec_LIBRARY} ${_FFMpeg_avutil_LIBRARY} ${_FFMpeg_swscale_LIBRARY})
 		endif()
-		if(LIBM)
-			list(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBM})
+
+		if(_FFMpeg_LIBRARIES)
+			include(CMakePushCheckState)
+			include(CheckSymbolExists)
+
+			find_package(Threads)
+			find_library(LIBM names m)
+
+			set(_FFMpeg_INCLUDE_DIRS ${_FFMpeg_avcodec_INCLUDE_DIRS} ${_FFMpeg_avutil_INCLUDE_DIRS} ${_FFMpeg_swscale_INCLUDE_DIRS})
+			cmake_push_check_state(RESET)
+			list(APPEND CMAKE_REQUIRED_INCLUDES ${_FFMpeg_INCLUDE_DIRS})
+			list(APPEND CMAKE_REQUIRED_LIBRARIES ${_FFMpeg_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+			if(MSVC)
+				list(APPEND CMAKE_REQUIRED_DEFINITIONS -Dinline=__inline)
+			endif()
+			if(LIBM)
+				list(APPEND CMAKE_REQUIRED_LIBRARIES ${LIBM})
+			endif()
+			check_symbol_exists(avcodec_get_context_defaults3 "libavcodec/avcodec.h" HAVE_FUN_avcodec_get_context_defaults3)
+			check_symbol_exists(avcodec_open2 "libavcodec/avcodec.h" HAVE_FUN_avcodec_open2)
+			check_symbol_exists(avcodec_encode_video2 "libavcodec/avcodec.h" HAVE_FUN_avcodec_encode_video2)
+			check_symbol_exists(av_frame_alloc "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_alloc)
+			check_symbol_exists(av_frame_free "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_free)
+			check_symbol_exists(av_frame_unref "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_unref)
+			cmake_pop_check_state()
 		endif()
-		check_symbol_exists(avcodec_get_context_defaults3 "libavcodec/avcodec.h" HAVE_FUN_avcodec_get_context_defaults3)
-		check_symbol_exists(avcodec_open2 "libavcodec/avcodec.h" HAVE_FUN_avcodec_open2)
-		check_symbol_exists(avcodec_encode_video2 "libavcodec/avcodec.h" HAVE_FUN_avcodec_encode_video2)
-		check_symbol_exists(av_frame_alloc "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_alloc)
-		check_symbol_exists(av_frame_free "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_free)
-		check_symbol_exists(av_frame_unref "libavutil/avutil.h;libavutil/frame.h" HAVE_FUN_av_frame_unref)
-		cmake_pop_check_state()
+
+		if(ANDROID AND _FFMpeg_LIBRARY)
+			add_library(ffmpeg UNKNOWN IMPORTED)
+			set_target_properties(ffmpeg PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_avcodec_INCLUDE_DIRS}" "${_FFMpeg_avutil_INCLUDE_DIRS}" "${_FFMpeg_swscale_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_FFMpeg_LIBRARY}"
+			)
+			set(FFMpeg_TARGETS ffmpeg)
+		else()
+			set(FFMpeg_TARGETS )
+			if(_FFMpeg_avcodec_LIBRARY)
+				add_library(avcodec UNKNOWN IMPORTED)
+				if(WIN32)
+					set_target_properties(avcodec PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_avcodec_INCLUDE_DIRS}"
+						IMPORTED_IMPLIB "${_FFMpeg_avcodec_LIBRARY}"
+					)
+				else()
+					set_target_properties(avcodec PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_avcodec_INCLUDE_DIRS}"
+						IMPORTED_LOCATION "${_FFMpeg_avcodec_LIBRARY}"
+					)
+				endif()
+				set(FFMpeg_avcodec_TARGET avcodec)
+				list(APPEND FFMpeg_TARGETS avcodec)
+			endif()
+			if(_FFMpeg_avutil_LIBRARY)
+				add_library(avutil UNKNOWN IMPORTED)
+				if(WIN32)
+					set_target_properties(avutil PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_avutil_INCLUDE_DIRS}"
+						IMPORTED_IMPLIB "${_FFMpeg_avutil_LIBRARY}"
+					)
+				else()
+					set_target_properties(avutil PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_avutil_INCLUDE_DIRS}"
+						IMPORTED_LOCATION "${_FFMpeg_avutil_LIBRARY}"
+					)
+				endif()
+				set(FFMpeg_avutil_TARGET avutil)
+				list(APPEND FFMpeg_TARGETS avutil)
+			endif()
+			if(_FFMpeg_swscale_LIBRARY)
+				add_library(swscale UNKNOWN IMPORTED)
+				if(WIN32)
+					set_target_properties(swscale PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_swscale_INCLUDE_DIRS}"
+						IMPORTED_IMPLIB "${_FFMpeg_swscale_LIBRARY}"
+					)
+				else()
+					set_target_properties(swscale PROPERTIES
+						INTERFACE_INCLUDE_DIRECTORIES "${_FFMpeg_swscale_INCLUDE_DIRS}"
+						IMPORTED_LOCATION "${_FFMpeg_swscale_LIBRARY}"
+					)
+				endif()
+				set(FFMpeg_swscale_TARGET swscale)
+				list(APPEND FFMpeg_TARGETS swscale)
+			endif()
+		endif()
 	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(FFMpeg DEFAULT_MSG ${VARS})
-
-mark_as_advanced(${VARS})
+find_package_handle_standard_args(FFMpeg
+	REQUIRED_VARS ${_FFMpeg_REQUIRED_VARS}
+)
+mark_as_advanced(${_FFMpeg_CACHE_VARS})

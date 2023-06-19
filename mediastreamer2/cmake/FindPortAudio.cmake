@@ -1,6 +1,6 @@
 ############################################################################
-# FindPortAudio.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindPortAudio.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,46 +20,48 @@
 #
 ############################################################################
 #
-# - Find the portaudio include file and library
+# Find the portaudio library.
 #
-#  PORTAUDIO_FOUND - system has portaudio
-#  PORTAUDIO_INCLUDE_DIRS - the portaudio include directory
-#  PORTAUDIO_LIBRARIES - The libraries needed to use portaudio
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  portaudio - If the portaudio library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  PortAudio_FOUND - The portaudio library has been found
+#  PortAudio_TARGET - The name of the CMake target for the portaudio library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_PortAudio_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_PORTAUDIO_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(PORTAUDIO_INCLUDE_DIRS
+find_path(_PortAudio_INCLUDE_DIRS
 	NAMES portaudio.h
-	HINTS _PORTAUDIO_ROOT_PATHS
+	HINTS ${_PortAudio_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-if(PORTAUDIO_INCLUDE_DIRS)
-	set(HAVE_PORTAUDIO_H 1)
-endif()
-
-find_library(PORTAUDIO_LIBRARIES
+find_library(_PortAudio_LIBRARY
 	NAMES portaudio
-	HINTS _PORTAUDIO_ROOT_PATHS
+	HINTS ${_PortAudio_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
-if(PORTAUDIO_LIBRARIES)
-	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${PORTAUDIO_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${PORTAUDIO_LIBRARIES})
-	check_symbol_exists(Pa_Initialize portaudio.h HAVE_PA_INITIALIZE)
-	cmake_pop_check_state()
+if(_PortAudio_INCLUDE_DIRS AND _PortAudio_LIBRARY)
+		add_library(portaudio UNKNOWN IMPORTED)
+		set_target_properties(portaudio PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_PortAudio_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_PortAudio_LIBRARY}"
+		)
+
+		set(PortAudio_TARGET portaudio)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PortAudio
-	DEFAULT_MSG
-	PORTAUDIO_INCLUDE_DIRS PORTAUDIO_LIBRARIES HAVE_PORTAUDIO_H HAVE_PA_INITIALIZE
-)
+find_package_handle_standard_args(PortAudio REQUIRED_VARS PortAudio_TARGET)
 
-mark_as_advanced(PORTAUDIO_INCLUDE_DIRS PORTAUDIO_LIBRARIES HAVE_PORTAUDIO_H HAVE_PA_INITIALIZE)
+mark_as_advanced(PortAudio_TARGET)

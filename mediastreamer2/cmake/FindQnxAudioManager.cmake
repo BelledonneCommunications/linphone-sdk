@@ -1,6 +1,6 @@
 ############################################################################
-# FindQnxAudioManager.txt
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# FindQnxAudioManager.cmake
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,46 +20,47 @@
 #
 ############################################################################
 #
-# - Find the Qnx AudioManager include file and library
+# Find the audio_manager library.
 #
-#  QNXAUDIOMANAGER_FOUND - system has QNX Audio Manager
-#  QNXAUDIOMANAGER_INCLUDE_DIRS - the Audio Manager include directory
-#  QNXAUDIOMANAGER_LIBRARIES - The libraries needed to use Audio Manager
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  qnxaudiomanager - If the audio_manager library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  QnxAudioManager_FOUND - The audio_manager library has been found
+#  QnxAudioManager_TARGET - The name of the CMake target for the audio_manager library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_QnxAudioManager_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_QNXAUDIOMANAGER_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(QNXAUDIOMANAGER_INCLUDE_DIRS
+find_path(_QnxAudioManager_INCLUDE_DIRS
 	NAMES audio/audio_manager_routing.h
-	HINTS _QNXAUDIOMANAGER_ROOT_PATHS
+	HINTS ${_QnxAudioManager_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-if(QNXAUDIOMANAGER_INCLUDE_DIRS)
-	set(HAVE_QNX_AUDIOMANAGER_H 1)
-endif()
-
-find_library(QNXAUDIOMANAGER_LIBRARIES
+find_library(_QnxAudioManager_LIBRARY
 	NAMES audio_manager
-	HINTS _QNXAUDIOMANAGER_ROOT_PATHS
+	HINTS ${_QnxAudioManager_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
-if(QNXAUDIOMANAGER_LIBRARIES)
-	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${QNXAUDIOMANAGER_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${QNXAUDIOMANAGER_LIBRARIES})
-	check_symbol_exists(audio_manager_snd_pcm_open_name "audio/audio_manager_routing.h" HAVE_AUDIO_MANAGER_SND_PCM_OPEN)
-	cmake_pop_check_state()
+if(_QnxAudioManager_INCLUDE_DIRS AND _QnxAudioManager_LIBRARY)
+		add_library(qnxaudiomanager UNKNOWN IMPORTED)
+		set_target_properties(qnxaudiomanager PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_QnxAudioManager_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_QnxAudioManager_LIBRARY}"
+		)
+
+		set(QnxAudioManager_TARGET qnxaudiomanager)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(QNXAUDIOMANAGER
-	DEFAULT_MSG
-	QNXAUDIOMANAGER_INCLUDE_DIRS QNXAUDIOMANAGER_LIBRARIES HAVE_QNX_AUDIOMANAGER_H HAVE_AUDIO_MANAGER_SND_PCM_OPEN
-)
-
-mark_as_advanced(QNXAUDIOMANAGER_INCLUDE_DIRS QNXAUDIOMANAGER_LIBRARIES HAVE_QNX_AUDIOMANAGER_H HAVE_AUDIO_MANAGER_SND_PCM_OPEN)
+find_package_handle_standard_args(QnxAudioManager REQUIRED_VARS QnxAudioManager_TARGET)
+mark_as_advanced(QnxAudioManager_TARGET)

@@ -1,6 +1,6 @@
 ############################################################################
-# FindQSA.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindCamApi.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,40 +20,46 @@
 #
 ############################################################################
 #
-# - Find the libcamapi include file and library
+# Find the camapi library.
 #
-#  CAMAPI_FOUND - system has libcamapi
-#  CAMAPI_INCLUDE_DIRS - the libcamapi include directory
-#  CAMAPI_LIBRARIES - The libraries needed to use libcamapi
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  camapi - If the camapi library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  CamApi_FOUND - The camapi library has been found
+#  CamApi_TARGET - The name of the CMake target for the camapi library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_CamApi_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_CAMAPI_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(CAMAPI_INCLUDE_DIRS
+find_path(_CamApi_INCLUDE_DIRS
 	NAMES camera/camera_api.h
-	HINTS _CAMAPI_ROOT_PATHS
+	HINTS ${_CamApi_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-
-find_library(CAMAPI_LIBRARIES
+find_library(_CamApi_LIBRARY
 	NAMES camapi
-	HINTS _CAMAPI_ROOT_PATHS
+	HINTS ${_CamApi_ROOT_PATHS}
 	PATH_SUFFIXES lib
 )
 
-if(CAMAPI_LIBRARIES)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${CAMAPI_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${CAMAPI_LIBRARIES})
+if(_CamApi_INCLUDE_DIRS AND _CamApi_LIBRARY)
+		add_library(camapi UNKNOWN IMPORTED)
+		set_target_properties(camapi PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_CamApi_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_CamApi_LIBRARY}"
+		)
+		set(CamApi_TARGET camapi)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(CAMAPI
-	DEFAULT_MSG
-	CAMAPI_INCLUDE_DIRS CAMAPI_LIBRARIES
-)
-
-mark_as_advanced(CAMAPI_INCLUDE_DIRS CAMAPI_LIBRARIES)
+find_package_handle_standard_args(CamApi REQUIRED_VARS CamApi_TARGET)
+mark_as_advanced(CamApi_TARGET)

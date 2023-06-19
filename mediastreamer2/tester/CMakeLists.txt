@@ -21,18 +21,24 @@
 ############################################################################
 
 set(MS2_LIBS_FOR_TESTER mediastreamer2)
-if(XV_FOUND)
-	list(APPEND MS2_LIBS_FOR_TESTER Xext)
+if(X11_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER X11::X11)
+endif()
+if(X11_Xext_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER X11::Xext)
+endif()
+if(X11_Xv_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER X11::Xv)
 endif()
 
 if(WIN32)
-    #required for htons()
+    # Required for htons()
     list(APPEND MS2_LIBS_FOR_TESTER Ws2_32)
 endif()
 
-if(SPEEXDSP_FOUND)
-	#required for neon resampler tester
-	list(APPEND MS2_LIBS_FOR_TESTER ${SPEEXDSP_LIBRARIES})
+if(SpeexDSP_FOUND)
+	# Required for neon resampler tester
+	list(APPEND MS2_LIBS_FOR_TESTER ${SpeexDSP_TARGET})
 endif()
 
 set(SOUND_FILES
@@ -114,7 +120,7 @@ set(SOURCE_FILES_C
 	mediastreamer2_jitterbuffer_tester.c
 )
 
-if(SPEEXDSP_FOUND)
+if(SpeexDSP_FOUND)
 	list(APPEND SOURCE_FILES_C mediastreamer2_neon_tester.c)
 endif()
 
@@ -157,8 +163,7 @@ bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 
 	add_library(mediastreamer2-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
-	target_include_directories(mediastreamer2-tester-static PUBLIC ${BCTOOLBOX_INCLUDE_DIRS} ${ORTP_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2-tester-static ${MS2_LIBS_FOR_TESTER} bctoolbox bctoolbox-tester ortp)
+	target_link_libraries(mediastreamer2-tester-static ${MS2_LIBS_FOR_TESTER} ${BCToolbox_tester_TARGET} ${Ortp_TARGET})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		mediastreamer2_tester_windows.cpp
@@ -199,8 +204,7 @@ elseif(NOT ANDROID)
 		add_executable(mediastreamer2-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	endif()
 	set_target_properties(mediastreamer2-tester PROPERTIES LINKER_LANGUAGE CXX)
-	target_include_directories(mediastreamer2-tester PRIVATE ${BCTOOLBOX_TESTER_INCLUDE_DIRS} ${MEDIASTREAMER2_INCLUDE_DIRS})
-	target_link_libraries(mediastreamer2-tester ${MS2_LIBS_FOR_TESTER} bctoolbox bctoolbox-tester ortp)
+	target_link_libraries(mediastreamer2-tester ${MS2_LIBS_FOR_TESTER} ${BCToolbox_tester_TARGET} ${Ortp_TARGET})
 	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 	if(LINK_FLAGS_STR)
 		set_target_properties(mediastreamer2-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")

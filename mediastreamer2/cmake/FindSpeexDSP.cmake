@@ -1,5 +1,5 @@
 ############################################################################
-# FindArts.cmake
+# FindSpeexDSP.cmake
 # Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,14 +20,14 @@
 #
 ############################################################################
 #
-# Find the artsc library.
+# Find the speexdsp library.
 #
 # Targets
 # ^^^^^^^
 #
 # The following targets may be defined:
 #
-#  arts - If the artsc library has been found
+#  speexdsp - If the speexdsp library has been found
 #
 #
 # Result variables
@@ -35,35 +35,48 @@
 #
 # This module will set the following variables in your project:
 #
-#  Arts_FOUND - The artsc library has been found
-#  Arts_TARGET - The name of the CMake target for the artsc library
+#  SpeexDSP_FOUND - The speexdsp library has been found
+#  SpeexDSP_TARGET - The name of the CMake target for the speexdsp library
 
 
 include(FindPackageHandleStandardArgs)
 
-set(_Arts_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
+set(_SpeexDSP_REQUIRED_VARS SpeexDSP_TARGET)
+set(_SpeexDSP_CACHE_VARS ${_SpeexDSP_REQUIRED_VARS})
 
-find_path(_Arts_INCLUDE_DIRS
-	NAMES kde/artsc/artsc.h
-	HINTS ${_Arts_ROOT_PATHS}
-	PATH_SUFFIXES include
-)
+if(TARGET speexdsp)
 
-find_library(_Arts_LIBRARY
-	NAMES artsc
-	HINTS ${_Arts_ROOT_PATHS}
-	PATH_SUFFIXES lib
-)
+	set(SpeexDSP_TARGET speexdsp)
 
-if(_Arts_INCLUDE_DIRS AND _Arts_LIBRARY)
-	add_library(arts UNKNOWN IMPORTED)
-	set_target_properties(arts PROPERTIES
-		INTERFACE_INCLUDE_DIRECTORIES "${_Arts_INCLUDE_DIRS}"
-		IMPORTED_LOCATION "${_Arts_LIBRARY}"
+else()
+
+	find_path(_SpeexDSP_INCLUDE_DIRS
+		NAMES speex/speex_resampler.h
+		PATH_SUFFIXES include
 	)
 
-	set(Arts_TARGET arts)
+	find_library(_SpeexDSP_LIBRARY NAMES speexdsp)
+
+	if(_SpeexDSP_INCLUDE_DIRS AND _SpeexDSP_LIBRARY)
+		add_library(speexdsp UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(speexdsp PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_SpeexDSP_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_SpeexDSP_LIBRARY}"
+			)
+		else()
+			set_target_properties(speexdsp PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_SpeexDSP_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_SpeexDSP_LIBRARY}"
+			)
+		endif()
+
+		set(SpeexDSP_TARGET speexdsp)
+	endif()
+
 endif()
 
-find_package_handle_standard_args(Arts REQUIRED_VARS Arts_TARGET)
-mark_as_advanced(Arts_TARGET)
+find_package_handle_standard_args(SpeexDSP
+	REQUIRED_VARS ${_SpeexDSP_REQUIRED_VARS}
+)
+mark_as_advanced(${_SpeexDSP_CACHE_VARS})

@@ -1,6 +1,6 @@
 ############################################################################
-# FindPCAP.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindPCAP.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,35 +20,54 @@
 #
 ############################################################################
 #
-# - Find the pcap include file and library
+# Find the pcap library.
 #
-#  PCAP_FOUND - system has pcap
-#  PCAP_INCLUDE_DIRS - the pcap include directory
-#  PCAP_LIBRARIES - The libraries needed to use pcap
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  pcap - If the pcap library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  PCAP_FOUND - The pcap library has been found
+#  PCAP_TARGET - The name of the CMake target for the pcap library
 
-set(_PCAP_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
+set(_PCAP_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-find_path(PCAP_INCLUDE_DIRS
+find_path(_PCAP_INCLUDE_DIRS
 	NAMES pcap/pcap.h pcap.h
-	HINTS _PCAP_ROOT_PATHS
+	HINTS ${_PCAP_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-if(PCAP_INCLUDE_DIRS)
-	set(HAVE_PCAP_PCAP_H 1)
-endif()
-
-find_library(PCAP_LIBRARIES
+find_library(_PCAP_LIBRARY
 	NAMES pcap
-	HINTS _PCAP_ROOT_PATHS
+	HINTS ${_PCAP_ROOT_PATHS}
 	PATH_SUFFIXES lib
 )
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PCAP
-	DEFAULT_MSG
-	PCAP_INCLUDE_DIRS PCAP_LIBRARIES
-)
+if(_PCAP_INCLUDE_DIRS AND _PCAP_LIBRARY)
+		add_library(pcap UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(pcap PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_PCAP_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_PCAP_LIBRARY}"
+			)
+		else()
+			set_target_properties(pcap PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_PCAP_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_PCAP_LIBRARY}"
+			)
+		endif()
 
-mark_as_advanced(PCAP_INCLUDE_DIRS PCAP_LIBRARIES)
+		set(PCAP_TARGET pcap)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(PCAP REQUIRED_VARS PCAP_TARGET)
+mark_as_advanced(PCAP_TARGET)

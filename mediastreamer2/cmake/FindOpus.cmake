@@ -1,5 +1,5 @@
 ############################################################################
-# FindOpus.txt
+# FindOpus.cmake
 # Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,44 +20,73 @@
 #
 ############################################################################
 #
-# - Find the opus include file and library
+# Find the opus library.
 #
-#  OPUS_FOUND - system has opus
-#  OPUS_INCLUDE_DIRS - the opus include directory
-#  OPUS_LIBRARIES - The libraries needed to use opus
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  opus - If the opus library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Opus_FOUND - The opus library has been found
+#  Opus_TARGET - The name of the CMake target for the opus library
+#
+# This module may set the following variable:
+#
+#  Opus_USE_BUILD_INTERFACE - If the opus library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_Opus_REQUIRED_VARS Opus_TARGET)
+set(_Opus_CACHE_VARS ${_Opus_REQUIRED_VARS})
 
 if(TARGET opus)
 
-	set(OPUS_LIBRARIES opus)
-	get_target_property(OPUS_INCLUDE_DIRS opus INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_OPUS_OPUS_H 1)
-	set(OPUS_USE_BUILD_INTERFACE TRUE)
+	set(Opus_TARGET opus)
+	set(Opus_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	find_path(OPUS_INCLUDE_DIRS
+	find_path(_Opus_INCLUDE_DIRS
 		NAMES opus/opus.h
 		PATH_SUFFIXES include
 	)
-	if(OPUS_INCLUDE_DIRS)
-		set(HAVE_OPUS_OPUS_H 1)
+
+	find_library(_Opus_LIBRARY NAMES opus)
+	if(_Opus_LIBRARY)
+		find_library(_m_LIBRARY NAMES m)
 	endif()
 
-	find_library(OPUS_LIBRARIES NAMES opus)
-
-	if(OPUS_LIBRARIES)
-		find_library(LIBM NAMES m)
-		if(LIBM)
-			list(APPEND OPUS_LIBRARIES ${LIBM})
+	if(_Opus_INCLUDE_DIRS AND _Opus_LIBRARY)
+		add_library(opus UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(opus PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Opus_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Opus_LIBRARY}"
+				IMPORTED_LINK_INTERFACE_LIBRARIES "${_m_LIBRARY}"
+			)
+		else()
+			set_target_properties(opus PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Opus_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Opus_LIBRARY}"
+				IMPORTED_LINK_INTERFACE_LIBRARIES "${_m_LIBRARY}"
+			)
 		endif()
+
+		set(Opus_TARGET opus)
 	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Opus
-	DEFAULT_MSG
-	OPUS_INCLUDE_DIRS OPUS_LIBRARIES HAVE_OPUS_OPUS_H
+	REQUIRED_VARS ${_Opus_REQUIRED_VARS}
 )
-
-mark_as_advanced(OPUS_INCLUDE_DIRS OPUS_LIBRARIES HAVE_OPUS_OPUS_H)
+mark_as_advanced(${_Opus_CACHE_VARS})

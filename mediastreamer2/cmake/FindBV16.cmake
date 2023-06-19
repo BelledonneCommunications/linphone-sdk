@@ -20,37 +20,68 @@
 #
 ############################################################################
 #
-# - Find the bv16 include file and library
+# Find the bv16 library.
 #
-#  BV16_FOUND - system has bv16
-#  BV16_INCLUDE_DIRS - the bv16 include directory
-#  BV16_LIBRARIES - The libraries needed to use bv16
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  bv16 - If the bv16 library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  BV16_FOUND - The bv16 library has been found
+#  BV16_TARGET - The name of the CMake target for the bv16 library
+#
+# This module may set the following variable:
+#
+#  BV16_USE_BUILD_INTERFACE - If the bv16 library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_BV16_REQUIRED_VARS BV16_TARGET)
+set(_BV16_CACHE_VARS ${_BV16_REQUIRED_VARS})
 
 if(TARGET bv16)
 
-	set(BV16_LIBRARIES bv16)
-	get_target_property(BV16_INCLUDE_DIRS bv16 INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_BV16_BV16_H 1)
-	set(BV16_USE_BUILD_INTERFACE 1)
+	set(BV16_TARGET bv16)
+	set(BV16_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	find_path(BV16_INCLUDE_DIRS
+	find_path(_BV16_INCLUDE_DIRS
 		NAMES bv16-floatingpoint/bv16/bv16.h
 		PATH_SUFFIXES include
 	)
-	if(BV16_INCLUDE_DIRS)
-		set(HAVE_BV16_BV16_H 1)
-	endif()
 
-	find_library(BV16_LIBRARIES NAMES bv16)
+	find_library(_BV16_LIBRARY NAMES bv16)
+
+	if(_BV16_INCLUDE_DIRS AND _BV16_LIBRARY)
+		add_library(bv16 UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(bv16 PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_BV16_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_BV16_LIBRARY}"
+			)
+		else()
+			set_target_properties(bv16 PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_BV16_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_BV16_LIBRARY}"
+			)
+		endif()
+
+		set(BV16_TARGET bv16)
+	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(BV16
-	DEFAULT_MSG
-	BV16_INCLUDE_DIRS BV16_LIBRARIES HAVE_BV16_BV16_H
+	REQUIRED_VARS ${_BV16_REQUIRED_VARS}
 )
-
-mark_as_advanced(BV16_INCLUDE_DIRS BV16_LIBRARIES HAVE_BV16_BV16_H)
+mark_as_advanced(${_BV16_CACHE_VARS})

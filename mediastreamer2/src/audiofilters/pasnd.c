@@ -50,16 +50,16 @@ typedef struct PASndData {
 	SpeexPreprocessState *pst;
 } PASndData;
 
-int SpeakerCallback(const void *inputBuffer,
+int SpeakerCallback(BCTBX_UNUSED(const void *inputBuffer),
                     void *outputBuffer,
                     unsigned long framesPerBuffer,
-                    const PaStreamCallbackTimeInfo *timeInfo,
-                    PaStreamCallbackFlags statusFlags,
+                    BCTBX_UNUSED(const PaStreamCallbackTimeInfo *timeInfo),
+                    BCTBX_UNUSED(PaStreamCallbackFlags statusFlags),
                     void *userData) {
 	PASndData *device = (PASndData *)userData;
 	uint8_t *wtmpbuff = NULL;
 	int err;
-	int ovfl = (device->rate / 8000) * 320 * 6;
+	size_t ovfl = (device->rate / 8000) * 320 * 6;
 
 	memset(outputBuffer, 0, framesPerBuffer * 2);
 	if (!device->read_started && !device->write_started) {
@@ -75,20 +75,20 @@ int SpeakerCallback(const void *inputBuffer,
 	/* remove extra buffer when latency is increasing:
 	   this often happen with USB device */
 	if (device->bufferizer->size >= ovfl) {
-		ms_warning("Extra data for sound card (total:%i %ims)", device->bufferizer->size,
+		ms_warning("Extra data for sound card (total:%zu %zums)", device->bufferizer->size,
 		           (device->bufferizer->size * 20) / 320);
 		err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
 		err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
 		err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
 		err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
 		err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
-		ms_warning("Extra data for sound card removed (total:%i %ims)", device->bufferizer->size,
+		ms_warning("Extra data for sound card removed (total:%zu %zums)", device->bufferizer->size,
 		           (device->bufferizer->size * 20) / 320);
 	}
 
 	err = ms_bufferizer_read(device->bufferizer, wtmpbuff, framesPerBuffer * 2);
 	ms_mutex_unlock(&device->mutex);
-	if (err == framesPerBuffer * 2) {
+	if (err >= 0 && (unsigned long)err == framesPerBuffer * 2) {
 		memcpy(outputBuffer, wtmpbuff, framesPerBuffer * 2);
 	}
 
@@ -96,10 +96,10 @@ int SpeakerCallback(const void *inputBuffer,
 }
 
 int WaveInCallback(const void *inputBuffer,
-                   void *outputBuffer,
+                   BCTBX_UNUSED(void *outputBuffer),
                    unsigned long framesPerBuffer,
-                   const PaStreamCallbackTimeInfo *timeInfo,
-                   PaStreamCallbackFlags statusFlags,
+                   BCTBX_UNUSED(const PaStreamCallbackTimeInfo *timeInfo),
+                   BCTBX_UNUSED(PaStreamCallbackFlags statusFlags),
                    void *userData) {
 	PASndData *device = (PASndData *)userData;
 
@@ -131,7 +131,8 @@ int WaveInCallback(const void *inputBuffer,
 	return 0;
 }
 
-static int pasnd_open(PASndData *device, int devnumber, int bits, int stereo, int rate, int *minsz) {
+static int
+pasnd_open(PASndData *device, int devnumber, BCTBX_UNUSED(int bits), BCTBX_UNUSED(int stereo), int rate, int *minsz) {
 	PaStreamParameters outputParameters;
 	PaStreamParameters inputParameters;
 	PaError err;
@@ -218,7 +219,7 @@ static int pasnd_open(PASndData *device, int devnumber, int bits, int stereo, in
 	return 0;
 }
 
-static void pasnd_set_level(MSSndCard *card, MSSndCardMixerElem e, int percent) {
+static void pasnd_set_level(MSSndCard *card, MSSndCardMixerElem e, BCTBX_UNUSED(int percent)) {
 	PASndData *d = (PASndData *)card->data;
 
 	if (d->mixdev == NULL) return;
@@ -335,7 +336,7 @@ static void pasnd_detect(MSSndCardManager *m) {
 	const PaDeviceInfo *pdi;
 	char pcmdev[1024];
 	char mixdev[1024];
-	int i;
+	unsigned int i;
 
 	err = Pa_Initialize();
 	if (err != paNoError) {

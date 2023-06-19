@@ -1,6 +1,6 @@
 ############################################################################
-# FindSpanDSP.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindSpanDSP.cmake
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,29 +20,50 @@
 #
 ############################################################################
 #
-# - Find the spandsp include file and library
+# Find the spandsp library.
 #
-#  SPANDSP_FOUND - system has spandsp
-#  SPANDSP_INCLUDE_DIRS - the spandsp include directory
-#  SPANDSP_LIBRARIES - The libraries needed to use spandsp
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  spandsp - If the spandsp library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  SpanDSP_FOUND - The spandsp library has been found
+#  SpanDSP_TARGET - The name of the CMake target for the spandsp library
 
-find_path(SPANDSP_INCLUDE_DIRS
+find_path(_SpanDSP_INCLUDE_DIRS
 	NAMES spandsp.h
 	PATH_SUFFIXES include
 )
-if(SPANDSP_INCLUDE_DIRS)
-	set(HAVE_SPANDSP_H 1)
-endif()
-
-find_library(SPANDSP_LIBRARIES
+find_library(_SpanDSP_LIBRARY
 	NAMES spandsp
 	PATH_SUFFIXES bin lib
 )
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SpanDSP
-	DEFAULT_MSG
-	SPANDSP_INCLUDE_DIRS SPANDSP_LIBRARIES HAVE_SPANDSP_H
-)
+if(_SpanDSP_INCLUDE_DIRS AND _SpanDSP_LIBRARY)
+		add_library(spandsp UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(spandsp PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_SpanDSP_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_SpanDSP_LIBRARY}"
+			)
+		else()
+			set_target_properties(spandsp PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_SpanDSP_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_SpanDSP_LIBRARY}"
+			)
+		endif()
 
-mark_as_advanced(SPANDSP_INCLUDE_DIRS SPANDSP_LIBRARIES HAVE_SPANDSP_H)
+		set(SpanDSP_TARGET spandsp)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(SpanDSP REQUIRED_VARS SpanDSP_TARGET)
+mark_as_advanced(SpanDSP_TARGET)

@@ -1,6 +1,6 @@
 ############################################################################
-# FindPulseAudio.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindPulseAudio.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,46 +20,47 @@
 #
 ############################################################################
 #
-# - Find the pulseaudio include file and library
+# Find the pulseaudio library.
 #
-#  PULSEAUDIO_FOUND - system has pulseaudio
-#  PULSEAUDIO_INCLUDE_DIRS - the pulseaudio include directory
-#  PULSEAUDIO_LIBRARIES - The libraries needed to use pulseaudio
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  pulseaudio - If the pulse library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  PulseAudio_FOUND - The pulse library has been found
+#  PulseAudio_TARGET - The name of the CMake target for the pulse library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_PulseAudio_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_PULSEAUDIO_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(PULSEAUDIO_INCLUDE_DIRS
+find_path(_PulseAudio_INCLUDE_DIRS
 	NAMES pulse/pulseaudio.h
-	HINTS _PULSEAUDIO_ROOT_PATHS
+	HINTS ${_PulseAudio_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-if(PULSEAUDIO_INCLUDE_DIRS)
-	set(HAVE_PULSE_PULSEAUDIO_H 1)
-endif()
-
-find_library(PULSEAUDIO_LIBRARIES
+find_library(_PulseAudio_LIBRARY
 	NAMES pulse
-	HINTS _PULSEAUDIO_ROOT_PATHS
+	HINTS ${_PulseAudio_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
-if(PULSEAUDIO_LIBRARIES)
-	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${PULSEAUDIO_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${PULSEAUDIO_LIBRARIES})
-	check_symbol_exists(pa_mainloop_new "pulse/pulseaudio.h" HAVE_PA_MAINLOOP_NEW)
-	cmake_pop_check_state()
+if(_PulseAudio_INCLUDE_DIRS AND _PulseAudio_LIBRARY)
+		add_library(pulseaudio UNKNOWN IMPORTED)
+		set_target_properties(pulseaudio PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_PulseAudio_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_PulseAudio_LIBRARY}"
+		)
+
+		set(PulseAudio_TARGET pulseaudio)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(PulseAudio
-	DEFAULT_MSG
-	PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PULSE_PULSEAUDIO_H HAVE_PA_MAINLOOP_NEW
-)
-
-mark_as_advanced(PULSEAUDIO_INCLUDE_DIRS PULSEAUDIO_LIBRARIES HAVE_PULSE_PULSEAUDIO_H HAVE_PA_MAINLOOP_NEW)
+find_package_handle_standard_args(PulseAudio REQUIRED_VARS PulseAudio_TARGET)
+mark_as_advanced(PulseAudio_TARGET)

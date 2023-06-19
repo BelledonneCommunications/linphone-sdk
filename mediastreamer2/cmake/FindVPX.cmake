@@ -20,54 +20,78 @@
 #
 ############################################################################
 #
-# - Find the VPX include file and library
+# Find the vpx library.
 #
-#  VPX_FOUND - system has VPX
-#  VPX_INCLUDE_DIRS - the VPX include directory
-#  VPX_LIBRARIES - The libraries needed to use VPX
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  vpx - If the vpx library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  VPX_FOUND - The vpx library has been found
+#  VPX_TARGET - The name of the CMake target for the vpx library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_VPX_REQUIRED_VARS VPX_TARGET)
+set(_VPX_CACHE_VARS ${_VPX_REQUIRED_VARS})
 
 if(TARGET vpx)
 
-	set(VPX_LIBRARIES libvpx)
-	get_target_property(VPX_INCLUDE_DIRS libvpx INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_VPX_VPX_ENCODER_H 1)
+	set(VPX_TARGET libvpx)
 
 else()
 
-	set(_VPX_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_VPX_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(VPX_INCLUDE_DIRS
+	find_path(_VPX_INCLUDE_DIRS
 		NAMES vpx/vpx_encoder.h
-		HINTS _VPX_ROOT_PATHS
+		HINTS ${_VPX_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(VPX_INCLUDE_DIRS)
-		set(HAVE_VPX_VPX_ENCODER_H 1)
-	endif()
 
-	if( CMAKE_SIZEOF_VOID_P EQUAL 8)
-		find_library(VPX_LIBRARIES
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		find_library(_VPX_LIBRARY
 			NAMES vpx vpxmd
-			HINTS _VPX_ROOT_PATHS
+			HINTS ${_VPX_ROOT_PATHS}
 			PATH_SUFFIXES bin lib lib/x64
 		)
 	else()
-	    find_library(VPX_LIBRARIES
-	            NAMES vpx vpxmd
-	            HINTS _VPX_ROOT_PATHS
-	            PATH_SUFFIXES bin lib lib/Win32
-	    )
+		find_library(_VPX_LIBRARY
+			NAMES vpx vpxmd
+			HINTS ${_VPX_ROOT_PATHS}
+			PATH_SUFFIXES bin lib lib/Win32
+		)
+	endif()
+
+	if(_VPX_INCLUDE_DIRS AND _VPX_LIBRARY)
+		add_library(vpx UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(vpx PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_VPX_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_VPX_LIBRARY}"
+			)
+		else()
+			set_target_properties(vpx PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_VPX_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_VPX_LIBRARY}"
+			)
+		endif()
+
+		set(VPX_TARGET vpx)
 	endif()
 
 endif()
 
-
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VPX
-	DEFAULT_MSG
-	VPX_INCLUDE_DIRS VPX_LIBRARIES HAVE_VPX_VPX_ENCODER_H
+	REQUIRED_VARS ${_VPX_REQUIRED_VARS}
 )
-
-mark_as_advanced(VPX_INCLUDE_DIRS VPX_LIBRARIES HAVE_VPX_VPX_ENCODER_H)
+mark_as_advanced(${_VPX_CACHE_VARS})

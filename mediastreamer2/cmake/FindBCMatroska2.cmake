@@ -1,6 +1,6 @@
 ############################################################################
-# FindArts.cmake
-# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
+# FindBCMatroska2.cmake
+# Copyright (C) 2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,14 +20,14 @@
 #
 ############################################################################
 #
-# Find the artsc library.
+# Find the bcmatroska2 library.
 #
 # Targets
 # ^^^^^^^
 #
 # The following targets may be defined:
 #
-#  arts - If the artsc library has been found
+#  bcmatroska2 - If the bcmatroska2 library has been found
 #
 #
 # Result variables
@@ -35,35 +35,37 @@
 #
 # This module will set the following variables in your project:
 #
-#  Arts_FOUND - The artsc library has been found
-#  Arts_TARGET - The name of the CMake target for the artsc library
+#  BCMatroska2_FOUND - The bcmatroska2 library has been found
+#  BCMatroska2_TARGET - The name of the CMake target for the bcmatroska2 library
 
 
-include(FindPackageHandleStandardArgs)
+if(TARGET bcmatroska2)
 
-set(_Arts_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
-
-find_path(_Arts_INCLUDE_DIRS
-	NAMES kde/artsc/artsc.h
-	HINTS ${_Arts_ROOT_PATHS}
-	PATH_SUFFIXES include
-)
-
-find_library(_Arts_LIBRARY
-	NAMES artsc
-	HINTS ${_Arts_ROOT_PATHS}
-	PATH_SUFFIXES lib
-)
-
-if(_Arts_INCLUDE_DIRS AND _Arts_LIBRARY)
-	add_library(arts UNKNOWN IMPORTED)
-	set_target_properties(arts PROPERTIES
-		INTERFACE_INCLUDE_DIRECTORIES "${_Arts_INCLUDE_DIRS}"
-		IMPORTED_LOCATION "${_Arts_LIBRARY}"
+	include(FindPackageHandleStandardArgs)
+	set(BCMatroska2_TARGET bcmatroska2)
+	set(_BCMatroska2_REQUIRED_VARS BCMatroska2_TARGET)
+	set(_BCMatroska2_CACHE_VARS ${_BCMatroska2_REQUIRED_VARS})
+	find_package_handle_standard_args(BCMatroska2
+		REQUIRED_VARS ${_BCMatroska2_REQUIRED_VARS}
 	)
+	mark_as_advanced(${_BCMatroska2_CACHE_VARS})
 
-	set(Arts_TARGET arts)
+else()
+
+	set(_OPTIONS CONFIG)
+	if(BCMatroska2_FIND_REQUIRED)
+		list(APPEND _OPTIONS REQUIRED)
+	endif()
+	if(BCMatroska2_FIND_QUIETLY)
+		list(APPEND _OPTIONS QUIET)
+	endif()
+	if(BCMatroska2_FIND_VERSION)
+		list(PREPEND _OPTIONS "${BCMatroska2_FIND_VERSION}")
+	endif()
+	if(BCMatroska2_FIND_EXACT)
+		list(APPEND _OPTIONS EXACT)
+	endif()
+
+	find_package(BCMatroska2 ${_OPTIONS})
+
 endif()
-
-find_package_handle_standard_args(Arts REQUIRED_VARS Arts_TARGET)
-mark_as_advanced(Arts_TARGET)

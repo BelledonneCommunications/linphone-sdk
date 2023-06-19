@@ -1,5 +1,5 @@
 ############################################################################
-# FindSpeex.txt
+# FindSpeex.cmake
 # Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,38 +20,63 @@
 #
 ############################################################################
 #
-# - Find the speex include file and library
+# Find the speex library.
 #
-#  SPEEX_FOUND - system has speex
-#  SPEEX_INCLUDE_DIRS - the speex include directory
-#  SPEEX_LIBRARIES - The libraries needed to use speex
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  speex - If the speex library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Speex_FOUND - The speex library has been found
+#  Speex_TARGET - The name of the CMake target for the speex library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_Speex_REQUIRED_VARS Speex_TARGET)
+set(_Speex_CACHE_VARS ${_Speex_REQUIRED_VARS})
 
 if(TARGET speex)
 
-	set(SPEEX_LIBRARIES speex)
-	get_target_property(SPEEX_INCLUDE_DIRS speex INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_SPEEX_SPEEX_H 1)
+	set(Speex_TARGET speex)
 
 else()
 
-	find_path(SPEEX_INCLUDE_DIRS
+	find_path(_Speex_INCLUDE_DIRS
 		NAMES speex/speex.h
 		PATH_SUFFIXES include
 	)
-	if(SPEEX_INCLUDE_DIRS)
-		set(HAVE_SPEEX_SPEEX_H 1)
-	endif()
 
-	find_library(SPEEX_LIBRARIES
-		NAMES speex
-	)
+	find_library(_Speex_LIBRARY NAMES speex)
+
+	if(_Speex_INCLUDE_DIRS AND _Speex_LIBRARY)
+		add_library(speex UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(speex PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Speex_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Speex_LIBRARY}"
+			)
+		else()
+			set_target_properties(speex PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Speex_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Speex_LIBRARY}"
+			)
+		endif()
+
+		set(Speex_TARGET speex)
+	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Speex
-	DEFAULT_MSG
-	SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H
+	REQUIRED_VARS ${_Speex_REQUIRED_VARS}
 )
-
-mark_as_advanced(SPEEX_INCLUDE_DIRS SPEEX_LIBRARIES HAVE_SPEEX_SPEEX_H)
+mark_as_advanced(${_Speex_CACHE_VARS})

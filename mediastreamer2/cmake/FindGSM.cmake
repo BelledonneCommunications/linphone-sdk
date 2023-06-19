@@ -1,5 +1,5 @@
 ############################################################################
-# FindGSM.txt
+# FindGSM.cmake
 # Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
@@ -20,46 +20,75 @@
 #
 ############################################################################
 #
-# - Find the gsm include file and library
+# Find the gsm library.
 #
-#  GSM_FOUND - system has gsm
-#  GSM_INCLUDE_DIRS - the gsm include directory
-#  GSM_LIBRARIES - The libraries needed to use gsm
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  gsm - If the gsm library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  GSM_FOUND - The gsm library has been found
+#  GSM_TARGET - The name of the CMake target for the gsm library
+#
+# This module may set the following variable:
+#
+#  GSM_USE_BUILD_INTERFACE - If the gsm library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_GSM_REQUIRED_VARS GSM_TARGET)
+set(_GSM_CACHE_VARS ${_GSM_REQUIRED_VARS})
 
 if(TARGET gsm)
 
-	set(GSM_LIBRARIES gsm)
-	get_target_property(GSM_INCLUDE_DIRS gsm INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_GSM_GSM_H 1)
+	set(GSM_TARGET gsm)
 	set(GSM_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	set(_GSM_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_GSM_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(GSM_INCLUDE_DIRS
+	find_path(_GSM_INCLUDE_DIRS
 		NAMES gsm/gsm.h
-		HINTS _GSM_ROOT_PATHS
+		HINTS ${_GSM_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(GSM_INCLUDE_DIRS)
-		set(HAVE_GSM_GSM_H 1)
-	endif()
 
-	find_library(GSM_LIBRARIES
+	find_library(_GSM_LIBRARY
 		NAMES gsm
-		HINTS _GSM_ROOT_PATHS
+		HINTS ${_GSM_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
 
+	if(_GSM_INCLUDE_DIRS AND _GSM_LIBRARY)
+		add_library(gsm UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(gsm PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_GSM_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_GSM_LIBRARY}"
+			)
+		else()
+			set_target_properties(gsm PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_GSM_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_GSM_LIBRARY}"
+			)
+		endif()
+
+		set(GSM_TARGET gsm)
+	endif()
+
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(GSM
-	DEFAULT_MSG
-	GSM_INCLUDE_DIRS GSM_LIBRARIES HAVE_GSM_GSM_H
+	REQUIRED_VARS ${_GSM_REQUIRED_VARS}
 )
-
-mark_as_advanced(GSM_INCLUDE_DIRS GSM_LIBRARIES HAVE_GSM_GSM_H)
+mark_as_advanced(${_GSM_CACHE_VARS})

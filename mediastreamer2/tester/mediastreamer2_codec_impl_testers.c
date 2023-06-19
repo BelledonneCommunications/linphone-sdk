@@ -54,15 +54,14 @@ static int tester_after_all(void) {
 	return 0;
 }
 
-static void player_events_cb(void *userdata, MSFilter *player, unsigned int id, void *arg) {
-#pragma unused(player, arg)
+static void player_events_cb(void *userdata, BCTBX_UNUSED(MSFilter *player), unsigned int id, BCTBX_UNUSED(void *arg)) {
 	if (id == MS_PLAYER_EOF) {
 		*(bool_t *)userdata = TRUE;
 	}
 }
 
-static void decoder_events_cb(void *userdata, MSFilter *decoder, unsigned int id, void *arg) {
-#pragma unused(decoder, arg)
+static void
+decoder_events_cb(void *userdata, BCTBX_UNUSED(MSFilter *decoder), unsigned int id, BCTBX_UNUSED(void *arg)) {
 	_DecodingStats *stats = (_DecodingStats *)userdata;
 	switch (id) {
 		case MS_VIDEO_DECODER_FIRST_IMAGE_DECODED:

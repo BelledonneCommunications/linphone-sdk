@@ -47,8 +47,8 @@ static OrtpEvQueue *receiverv_q = NULL;
 
 #endif
 
-#define RECEIVER_RTP_PORT (base_port + 9);
-#define SENDER_RTP_PORT (base_port + 10);
+#define RECEIVER_RTP_PORT (base_port + 9)
+#define SENDER_RTP_PORT (base_port + 10)
 
 #define PIANO_FILE "sounds/hello16000.wav"
 #define RECORD_FILE "adaptive_jitter.wav"
@@ -126,8 +126,7 @@ void test_clean(const char *file, int clock_rate) {
 static int congestion_count = 0;
 static int running_streams = 0;
 
-static void end_of_pcap(MSPCAPSender *s, void *user_data) {
-#pragma unused(user_data, s)
+static void end_of_pcap(BCTBX_UNUSED(MSPCAPSender *s), BCTBX_UNUSED(void *user_data)) {
 	running_streams--;
 }
 

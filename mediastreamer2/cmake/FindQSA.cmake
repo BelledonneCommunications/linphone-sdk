@@ -1,6 +1,6 @@
 ############################################################################
-# FindQSA.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindQSA.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,46 +20,47 @@
 #
 ############################################################################
 #
-# - Find the QSA include file and library
+# Find the asound library.
 #
-#  QSA_FOUND - system has QSA
-#  QSA_INCLUDE_DIRS - the QSA include directory
-#  QSA_LIBRARIES - The libraries needed to use QSA
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  qsa - If the asound library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  QSA_FOUND - The asound library has been found
+#  QSA_TARGET - The name of the CMake target for the asound library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_QSA_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_QSA_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(QSA_INCLUDE_DIRS
+find_path(_QSA_INCLUDE_DIRS
 	NAMES sys/asoundlib.h
-	HINTS _QSA_ROOT_PATHS
+	HINTS ${_QSA_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-if(QSA_INCLUDE_DIRS)
-	set(HAVE_SYS_ASOUNDLIB_H 1)
-endif()
-
-find_library(QSA_LIBRARIES
+find_library(_QSA_LIBRARY
 	NAMES asound
-	HINTS _QSA_ROOT_PATHS
+	HINTS ${_QSA_ROOT_PATHS}
 	PATH_SUFFIXES bin lib
 )
 
-if(QSA_LIBRARIES)
-	cmake_push_check_state(RESET)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${QSA_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${QSA_LIBRARIES})
-	check_symbol_exists(snd_pcm_open "sys/asoundlib.h" HAVE_SND_PCM_OPEN)
-	cmake_pop_check_state()
+if(_QSA_INCLUDE_DIRS AND _QSA_LIBRARY)
+		add_library(qsa UNKNOWN IMPORTED)
+		set_target_properties(qsa PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_QSA_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_QSA_LIBRARY}"
+		)
+
+		set(QSA_TARGET qsa)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(QSA
-	DEFAULT_MSG
-	QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SYS_ASOUNDLIB_H HAVE_SND_PCM_OPEN
-)
-
-mark_as_advanced(QSA_INCLUDE_DIRS QSA_LIBRARIES HAVE_SYS_ASOUNDLIB_H HAVE_SND_PCM_OPEN)
+find_package_handle_standard_args(QSA REQUIRED_VARS QSA_TARGET)
+mark_as_advanced(QSA_TARGET)

@@ -1,6 +1,6 @@
 ############################################################################
-# FindQSA.txt
-# Copyright (C) 2014  Belledonne Communications, Grenoble France
+# FindScreen.cmake
+# Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,40 +20,46 @@
 #
 ############################################################################
 #
-# - Find the libscreen include file and library
+# Find the screen library.
 #
-#  SCREEN_FOUND - system has libscreen
-#  SCREEN_INCLUDE_DIRS - the libscreen include directory
-#  SCREEN_LIBRARIES - The libraries needed to use libscreen
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  screen - If the screen library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Screen_FOUND - The screen library has been found
+#  Screen_TARGET - The name of the CMake target for the screen library
 
-include(CheckSymbolExists)
-include(CMakePushCheckState)
+set(_Screen_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-set(_SCREEN_ROOT_PATHS
-	${CMAKE_INSTALL_PREFIX}
-)
-
-find_path(SCREEN_INCLUDE_DIRS
+find_path(_Screen_INCLUDE_DIRS
 	NAMES screen/screen.h
-	HINTS _SCREEN_ROOT_PATHS
+	HINTS ${_Screen_ROOT_PATHS}
 	PATH_SUFFIXES include
 )
-
-find_library(SCREEN_LIBRARIES
+find_library(_Screen_LIBRARY
 	NAMES screen
-	HINTS _SCREEN_ROOT_PATHS
+	HINTS ${_Screen_ROOT_PATHS}
 	PATH_SUFFIXES lib
 )
 
-if(SCREEN_LIBRARIES)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${SCREEN_INCLUDE_DIRS})
-	list(APPEND CMAKE_REQUIRED_LIBRARIES ${SCREEN_LIBRARIES})
+if(_Screen_INCLUDE_DIRS AND _Screen_LIBRARY)
+		add_library(screen UNKNOWN IMPORTED)
+		set_target_properties(screen PROPERTIES
+			INTERFACE_INCLUDE_DIRECTORIES "${_Screen_INCLUDE_DIRS}"
+			IMPORTED_LOCATION "${_Screen_LIBRARY}"
+		)
+		set(Screen_TARGET screen)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(SCREEN
-	DEFAULT_MSG
-	SCREEN_INCLUDE_DIRS SCREEN_LIBRARIES
-)
-
-mark_as_advanced(SCREEN_INCLUDE_DIRS SCREEN_LIBRARIES)
+find_package_handle_standard_args(Screen REQUIRED_VARS Screen_TARGET)
+mark_as_advanced(Screen_TARGET)

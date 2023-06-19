@@ -1,6 +1,6 @@
 ############################################################################
-# FindTheora.txt
-# Copyright (C) 2016  Belledonne Communications, Grenoble France
+# FindTheora.cmake
+# Copyright (C) 2016-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,29 +20,50 @@
 #
 ############################################################################
 #
-# - Find the theora include file and library
+# Find the theora library.
 #
-#  THEORA_FOUND - system has theora
-#  THEORA_INCLUDE_DIRS - the theora include directory
-#  THEORA_LIBRARIES - The libraries needed to use theora
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  theora - If the theora library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Theora_FOUND - The theora library has been found
+#  Theora_TARGET - The name of the CMake target for the theora library
 
-find_path(THEORA_INCLUDE_DIRS
+find_path(_Theora_INCLUDE_DIRS
 	NAMES theora/theora.h
 	PATH_SUFFIXES include
 )
-if(THEORA_INCLUDE_DIRS)
-	set(HAVE_THEORA_THEORA_H 1)
-endif()
-
-find_library(THEORA_LIBRARIES
+find_library(_Theora_LIBRARY
 	NAMES theora
 	PATH_SUFFIXES bin lib
 )
 
-include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Theora
-	DEFAULT_MSG
-	THEORA_INCLUDE_DIRS THEORA_LIBRARIES HAVE_THEORA_THEORA_H
-)
+if(_Theora_INCLUDE_DIRS AND _Theora_LIBRARY)
+		add_library(theora UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(theora PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Theora_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Theora_LIBRARY}"
+			)
+		else()
+			set_target_properties(theora PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Theora_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Theora_LIBRARY}"
+			)
+		endif()
 
-mark_as_advanced(THEORA_INCLUDE_DIRS THEORA_LIBRARIES HAVE_THEORA_THEORA_H)
+		set(Theora_TARGET theora)
+endif()
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(Theora REQUIRED_VARS Theora_TARGET)
+mark_as_advanced(Theora_TARGET)
