@@ -118,7 +118,7 @@ static void aliases_rules(void) {
 
 static void test_grammar_loader(void) {
 	GrammarLoader &loader = GrammarLoader::get();
-	loader.addPath("res");
+	loader.addPath(std::string(bc_tester_get_resource_dir_prefix()));
 	shared_ptr<Grammar> grammar = loader.load("belr-grammar-example.blr");
 	BC_ASSERT_PTR_NOT_NULL(grammar);
 }
