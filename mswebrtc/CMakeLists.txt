@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(mswebrtc VERSION 1.1.1 LANGUAGES C CXX)
+project(MSWebRTC VERSION 1.1.1 LANGUAGES C CXX)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
@@ -60,20 +60,8 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox REQUIRED CONFIG)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp REQUIRED CONFIG)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 REQUIRED CONFIG)
-endif()
+find_package(BCToolbox 5.3.0 REQUIRED)
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 
 find_library(LIBM NAMES m)
 
@@ -92,7 +80,7 @@ endif()
 if(ENABLE_VAD)
 	set(BUILD_VAD 1)
 endif()
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 set(WEBRTC_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/webrtc")
 set(WEBRTC_SRC_DIR "${WEBRTC_ROOT_DIR}/webrtc")
@@ -419,8 +407,6 @@ if(LIBM)
 	list(APPEND LIBS ${LIBM})
 endif()
 
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
-
 if(BUILD_SHARED_LIBS)
 	if(IOS)
 		add_library(mswebrtc SHARED ${SOURCE_FILES})
@@ -430,7 +416,7 @@ if(BUILD_SHARED_LIBS)
 else()
 	add_library(mswebrtc STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(mswebrtc PRIVATE mediastreamer2 ortp bctoolbox ${LIBS})
+target_link_libraries(mswebrtc PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
 set_target_properties(mswebrtc PROPERTIES LINKER_LANGUAGE CXX)
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
@@ -462,9 +448,9 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 install(TARGETS mswebrtc
-		RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-		LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-		ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+		RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+		LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )

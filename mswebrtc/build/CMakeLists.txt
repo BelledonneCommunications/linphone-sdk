@@ -21,7 +21,8 @@
 ############################################################################
 
 if(NOT CPACK_PACKAGE_NAME)
-	set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+	string(TOLOWER "${PROJECT_NAME}" LOWERCASE_PROJECT_NAME)
+	set(CPACK_PACKAGE_NAME "${LOWERCASE_PROJECT_NAME}")
 endif()
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../COPYING")
