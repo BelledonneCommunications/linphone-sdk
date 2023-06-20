@@ -55,48 +55,28 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
 add_subdirectory(oboe)
-include_directories (oboe/include)
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 
-set(OBOE_INCUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
-
-include_directories(
-	${MEDIASTREAMER2_INCLUDE_DIRS}
-	${OBOE_INCUDE_DIRS}
-)
-
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} oboe ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
 set(SOURCE_FILES msoboe.cpp msoboe_player.cpp msoboe_recorder.cpp)
-
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
 if(BUILD_SHARED_LIBS)
 	add_library(msoboe MODULE ${SOURCE_FILES})
 else()
 	add_library(msoboe STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(msoboe ${LIBS})
+target_include_directories(msoboe PRIVATE
+	oboe/include
+	include
+)
+target_link_libraries(msoboe PRIVATE ${Mediastreamer2_TARGET} oboe)
 
 install(TARGETS msoboe
-	RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-	LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-	ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+	RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	ARCHIVE DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 	FRAMEWORK DESTINATION Frameworks
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
