@@ -21,36 +21,36 @@
 ############################################################################
 #
 # Config file for the lime package.
-# It defines the following variables:
 #
-#  LIME_FOUND - system has lime
-#  LIME_INCLUDE_DIRS - the lime include directory
-#  LIME_LIBRARIES - The libraries needed to use lime
-#  LIME_CPPFLAGS - The compilation flags needed to use lime
+# Targets
+# ^^^^^^^
+#
+# The following targets are defined:
+#  lime - The lime library target
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This config file will set the following variables in your project:
+#
+#  Lime_FOUND - The lime library has been found
+#  Lime_TARGET - The name of the CMake target for the lime library
+
 
 @PACKAGE_INIT@
 
-set(LIME_TARGETNAME lime)
+include("${CMAKE_CURRENT_LIST_DIR}/LimeTargets.cmake")
 
-include("${CMAKE_CURRENT_LIST_DIR}/${LIME_TARGETNAME}Targets.cmake")
+set(Lime_TARGET lime)
 
+# We must propagate the public dependencies and the private dependencies for static build
+include(CMakeFindDependencyMacro)
 if(@BUILD_SHARED_LIBS@)
-	set(LIME_LIBRARIES ${LIME_TARGETNAME})
 else()
-	set(LIME_TARGETNAME lime-static)
-	if(TARGET ${LIME_TARGETNAME})
-		get_target_property(LIME_LIBRARIES ${LIME_TARGETNAME} LOCATION)
-		get_target_property(LIME_LINK_LIBRARIES ${LIME_TARGETNAME} INTERFACE_LINK_LIBRARIES)
-		if(LIME_LINK_LIBRARIES)
-			list(APPEND LIME_LIBRARIES ${LIME_LINK_LIBRARIES})
-		endif()
-	endif()
+	list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+	find_dependency(BCToolbox)
+	find_dependency(Soci)
 endif()
 
-get_target_property(LIME_INCLUDE_DIRS ${LIME_TARGETNAME} INTERFACE_INCLUDE_DIRECTORIES)
-if(NOT LIME_INCLUDE_DIRS)
-	set(LIME_INCLUDE_DIRS )
-endif()
-
-set(LIME_CPPFLAGS @LIME_CPPFLAGS@)
-set(LIME_FOUND 1)
+check_required_components(Lime)

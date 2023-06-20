@@ -20,11 +20,6 @@
 #
 ############################################################################
 
-include(GNUInstallDirs)
-include(CheckSymbolExists)
-include(CheckLibraryExists)
-include(CMakePushCheckState)
-include(CMakePackageConfigHelpers)
 
 cmake_minimum_required(VERSION 3.22)
 
@@ -37,50 +32,46 @@ option(ENABLE_DOC "Enable API documentation generation." NO)
 option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 
 
-set (LANGUAGES_LIST CXX)
-if (ENABLE_C_INTERFACE)
-	set (LANGUAGES_LIST ${LANGUAGES_LIST} C)
+set(LANGUAGES_LIST CXX)
+if(ENABLE_C_INTERFACE)
+	set(LANGUAGES_LIST ${LANGUAGES_LIST} C)
 endif()
-if (ENABLE_JNI)
-	set (LANGUAGES_LIST ${LANGUAGES_LIST} Java)
+if(ENABLE_JNI)
+	set(LANGUAGES_LIST ${LANGUAGES_LIST} Java)
 endif()
 
-project(lime VERSION 5.3.0 LANGUAGES ${LANGUAGES_LIST})
+project(Lime VERSION 5.3.0 LANGUAGES ${LANGUAGES_LIST})
 
 set(LIME_SO_VERSION "0")
 set(LIME_VERSION ${PROJECT_VERSION})
 
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(GNUInstallDirs)
+
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.5.1 REQUIRED OPTIONAL_COMPONENTS tester)
-endif ()
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-find_package(Soci REQUIRED)
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+find_package(Soci REQUIRED COMPONENTS sqlite3)
 
 include_directories(
 	include/
 	src/
 	${CMAKE_CURRENT_BINARY_DIR}
 )
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
-endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/config.h" PROPERTIES GENERATED ON)
 
-set(LIME_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
+set(LIME_CPPFLAGS )
 if(LIME_CPPFLAGS)
 	list(REMOVE_DUPLICATES LIME_CPPFLAGS)
 	add_definitions(${LIME_CPPFLAGS})
@@ -126,12 +117,12 @@ endif()
 
 set(EXPORT_TARGETS_NAME "lime")
 
-if (ENABLE_CURVE25519)
+if(ENABLE_CURVE25519)
 	add_definitions("-DEC25519_ENABLED")
 	message(STATUS "Support Curve 25519")
 endif()
 
-if (ENABLE_CURVE448)
+if(ENABLE_CURVE448)
 	add_definitions("-DEC448_ENABLED")
 	message(STATUS "Support Curve 448")
 endif()
@@ -143,10 +134,9 @@ endif()
 
 if(ENABLE_JNI)
 	message(STATUS "Provide JNI interface")
-	if (NOT ANDROID)
+	if(NOT ANDROID)
 		find_package(JNI REQUIRED)
-
-		if (JNI_FOUND)
+		if(JNI_FOUND)
 			message (STATUS "JNI_INCLUDE_DIRS=${JNI_INCLUDE_DIRS}")
 			message (STATUS "JNI_LIBRARIES=${JNI_LIBRARIES}")
 		endif()
@@ -156,25 +146,30 @@ endif()
 add_subdirectory(include)
 add_subdirectory(src)
 if(ENABLE_UNIT_TESTS)
-        enable_testing()
+	enable_testing()
 	add_subdirectory(tester)
 endif()
 
-set(ConfigPackageLocation "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
-
-configure_package_config_file(cmake/LimeConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-  	INSTALL_DESTINATION ${ConfigPackageLocation}
+include(CMakePackageConfigHelpers)
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file("cmake/${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
 	NO_SET_AND_CHECK_MACRO
 )
-
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
-	DESTINATION ${ConfigPackageLocation}
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
 )
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
+)
+install(FILES "cmake/FindSoci.cmake" DESTINATION ${CMAKE_MODULES_INSTALL_DIR})
+
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
 if(ENABLE_DOC)

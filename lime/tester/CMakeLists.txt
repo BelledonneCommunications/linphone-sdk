@@ -22,14 +22,10 @@
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-find_package(BelleSIP)
-if(NOT BELLESIP_FOUND)
-	find_package(BelleSIP REQUIRED CONFIG)
-endif()
+find_package(BelleSIP 5.3.0 REQUIRED)
 
 add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 
-set(LIME_LIBRARIES_FOR_TESTER lime)
 set(HEADER_FILES_CXX lime-tester.hpp lime-tester-utils.hpp)
 set(SOURCE_FILES_CXX
 	lime-tester.cpp
@@ -55,7 +51,7 @@ find_package (Threads REQUIRED)
 
 if(ANDROID OR IOS)
 	add_library(limetester SHARED ${HEADER_FILES_CXX} ${SOURCE_FILES_CXX} ${SOURCE_FILES_C} )
-	target_link_libraries(limetester PRIVATE bctoolbox bctoolbox-tester ${BELLESIP_TARGETNAME} ${LIME_LIBRARIES_FOR_TESTER} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(limetester PRIVATE ${BCToolbox_tester_TARGET} ${BelleSIP_TARGET} lime ${Soci_TARGET} ${Soci_sqlite3_TARGET} ${CMAKE_THREAD_LIBS_INIT})
 	if(IOS)
 		target_link_libraries(limetester PRIVATE sqlite3)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
@@ -80,7 +76,7 @@ if(ANDROID OR IOS)
 else()
 	add_executable(lime-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX} ${SOURCE_FILES_C} )
 	set_target_properties(lime-tester PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(lime-tester PRIVATE bctoolbox bctoolbox-tester ${BELLESIP_TARGETNAME} ${LIME_LIBRARIES_FOR_TESTER} ${SOCI_LIBRARIES} ${SOCI_sqlite3_PLUGIN} ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(lime-tester PRIVATE ${BCToolbox_tester_TARGET} ${BelleSIP_TARGET} lime ${Soci_TARGET} ${Soci_sqlite3_TARGET} ${CMAKE_THREAD_LIBS_INIT})
 
 	# Some tests suite need a local X3DH server running in default config, so run them suite by suite to at least be able to pass some if no server can be found
 	add_test(NAME crypto COMMAND lime-tester --verbose --resource-dir ${CMAKE_CURRENT_SOURCE_DIR} --suite "Crypto")
