@@ -23,7 +23,12 @@
     <!-- Needed to check current do not disturb policy -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <!-- Needed to gain access to network temporarily when in background on a metered network if data saver is on when a push is being received -->
+    <!-- Needed for Android 14
+    https://developer.android.com/about/versions/14/behavior-changes-14#fgs-types -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- End of SDK required permissions -->
 	
