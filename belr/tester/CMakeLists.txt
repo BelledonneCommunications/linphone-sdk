@@ -46,8 +46,7 @@ bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 add_executable(belr-tester ${SOURCE_FILES_CXX} ${HEADER_FILES_CXX})
 set_target_properties(belr-tester PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(belr-tester PUBLIC ${BCTOOLBOX_INCLUDE_DIRS})
-
-target_link_libraries(belr-tester ${BELR_LIBRARIES_FOR_TESTER} bctoolbox bctoolbox-tester)
+target_link_libraries(belr-tester PRIVATE belr ${BCToolbox_tester_TARGET})
 
 if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 	set_target_properties(belle_sip_tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")

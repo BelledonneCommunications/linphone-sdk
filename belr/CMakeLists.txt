@@ -23,18 +23,16 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BELR VERSION 5.3.0 LANGUAGES C CXX)
+project(Belr VERSION 5.3.0 LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")
 
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Turn on or off compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -47,16 +45,13 @@ include(CMakePushCheckState)
 include(CheckCXXCompilerFlag)
 
 if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 	add_definitions(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.0.5 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 
 set(LINK_FLAGS )
 
@@ -70,9 +65,6 @@ include_directories(
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 )
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
-endif()
 
 set(STRICT_OPTIONS_CPP )
 set(STRICT_OPTIONS_C )
@@ -106,7 +98,7 @@ if(STRICT_OPTIONS_C)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
-set(BELR_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
+set(BELR_CPPFLAGS )
 if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BELR_CPPFLAGS "-DBELR_STATIC")
 endif()
@@ -116,12 +108,10 @@ if(BELR_CPPFLAGS)
 endif()
 add_definitions("-DBELR_EXPORTS")
 
-set(EXPORT_TARGET_NAME "belr")
+set(BELR_GRAMMARS_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/belr/grammars")
+set(BELR_GRAMMARS_RELATIVE_DIR "${CMAKE_INSTALL_DATADIR}/belr/grammars")
 
-set(BELR_GRAMMARS_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/${EXPORT_TARGET_NAME}/grammars")
-set(BELR_GRAMMARS_RELATIVE_DIR "${CMAKE_INSTALL_DATADIR}/${EXPORT_TARGET_NAME}/grammars")
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 add_subdirectory(include)
 add_subdirectory(src)
@@ -133,24 +123,24 @@ if(ENABLE_TOOLS)
 endif()
 
 include(CMakePackageConfigHelpers)
-set(EXPORT_TARGET_NAME belr)
-set(ConfigPackageLocation "${CMAKE_INSTALL_LIBDIR}/cmake/${EXPORT_TARGET_NAME}")
-
-configure_package_config_file(cmake/BelrConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Config.cmake"
-	INSTALL_DESTINATION ${ConfigPackageLocation}
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+configure_package_config_file("${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
 	NO_SET_AND_CHECK_MACRO
 )
-
-install(EXPORT ${EXPORT_TARGET_NAME}Targets
-	FILE ${EXPORT_TARGET_NAME}Targets.cmake
-	DESTINATION ${ConfigPackageLocation}
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
+)
+install(FILES
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
-#Yes, an install directive is necessary. The INSTALL_DESTINATION parameter of configure_package_config_file() above does NOTHING.
-install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGET_NAME}Config.cmake"
-	DESTINATION ${ConfigPackageLocation}
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
 if (ENABLE_PACKAGE_SOURCE)

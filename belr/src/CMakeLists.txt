@@ -20,7 +20,7 @@
 #
 ############################################################################
 
-set(LIBS bctoolbox)
+set(LIBS )
 
 set(BELR_HEADER_FILES )
 set(BELR_SOURCE_FILES_C )
@@ -35,10 +35,6 @@ set(BELR_SOURCE_FILES_CXX
 bc_apply_compile_flags(BELR_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BELR_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
-add_definitions(
-	-DBCTBX_LOG_DOMAIN="belr"
-)
-
 if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	list(APPEND LIBS ws2_32 Iphlpapi)
 endif()
@@ -49,7 +45,8 @@ target_include_directories(belr INTERFACE
 	$<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
-target_link_libraries(belr PUBLIC ${LIBS})
+target_compile_definitions(belr PRIVATE "BCTBX_LOG_DOMAIN=\"belr\"")
+target_link_libraries(belr PUBLIC ${BCToolbox_TARGET} PRIVATE ${LIBS})
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
@@ -58,11 +55,10 @@ if(BUILD_SHARED_LIBS)
 		else()
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(belr PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belr
-			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${BELR_HEADER_FILES}"
 		)
 	endif()
@@ -76,7 +72,7 @@ if(BUILD_SHARED_LIBS)
 	endif()
 endif()
 
-install(TARGETS belr EXPORT ${EXPORT_TARGET_NAME}Targets
+install(TARGETS belr EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
