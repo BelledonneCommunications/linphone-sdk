@@ -37,6 +37,7 @@
 
 #include <jni.h>
 #include <math.h>
+#include <mutex>
 
 struct AndroidCamera2Device {
 	AndroidCamera2Device(char *id) : camId(id), orientation(0), back_facing(false) {
@@ -126,22 +127,64 @@ struct AndroidCamera2Context {
 	ACameraCaptureSession_stateCallbacks captureSessionStateCallbacks;
 };
 
+// We do this because the android_camera2_capture_device_on_disconnected and android_camera2_capture_device_on_error
+// callbacks are dispatched by another thread, and there are devices for which these callbacks are called when we stop
+// the capture, causing a race condition crash.
+struct SharedAndroidCamera2Context {
+	AndroidCamera2Context* acquireContextLocked() {
+		mutex.lock();
+		if (context == nullptr) {
+			ms_error("[Camera2 Capture] Context has already been released!");
+			return nullptr;
+		}
+		return context;
+	}
+
+	void unlock() {
+		mutex.unlock();
+	}
+
+	void releaseContextAndUnlock() {
+		ms_message("[Camera2 Capture] Releasing shared context pointer");
+		context = nullptr;
+		mutex.unlock();
+	}
+
+	void setContext(AndroidCamera2Context* c) {
+		mutex.lock();
+		if (context != nullptr) {
+			ms_error("[Camera2 Capture] A context has already been set, this shouldn't happen!");
+		} else {
+			ms_message("[Camera2 Capture] Shared context pointer has been set");
+		}
+		context = c;
+		mutex.unlock();
+	}
+
+	std::mutex mutex;
+	AndroidCamera2Context* context;
+};
+
+static SharedAndroidCamera2Context sharedContext = {};
+
 /* ************************************************************************* */
 
 static void android_camera2_capture_stop(AndroidCamera2Context *d);
 
 static void android_camera2_capture_device_on_disconnected(void *context, ACameraDevice *device) {
-    ms_message("[Camera2 Capture] Camera %s is diconnected", ACameraDevice_getId(device));
+    ms_message("[Camera2 Capture] Camera %s is disconnected", ACameraDevice_getId(device));
 
-	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
+	AndroidCamera2Context *d = sharedContext.acquireContextLocked();
 	if (d != nullptr) android_camera2_capture_stop(d);
+	sharedContext.unlock();
 }
 
 static void android_camera2_capture_device_on_error(void *context, ACameraDevice *device, int error) {
     ms_error("[Camera2 Capture] Error %d on camera %s", error, ACameraDevice_getId(device));
 
-	AndroidCamera2Context *d = (AndroidCamera2Context *)context;
+	AndroidCamera2Context *d = sharedContext.acquireContextLocked();
 	if (d != nullptr) android_camera2_capture_stop(d);
+	sharedContext.unlock();
 }
 
 static void android_camera2_capture_session_on_ready(void *context, ACameraCaptureSession *session) {
@@ -643,6 +686,7 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 static void android_camera2_capture_init(MSFilter *f) {
 	ms_message("[Camera2 Capture] Filter init");
 	AndroidCamera2Context* d = new AndroidCamera2Context(f);
+	sharedContext.setContext(d);
 	f->data = d;
 }
 
@@ -691,7 +735,8 @@ static void android_camera2_capture_postprocess(MSFilter *f) {
 static void android_camera2_capture_uninit(MSFilter *f) {
 	ms_message("[Camera2 Capture] Filter uninit");
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-	d->deviceStateCallbacks.context = nullptr;
+
+	sharedContext.acquireContextLocked();
 
 	if (d->capturing) {
 		android_camera2_capture_stop(d);
@@ -710,6 +755,8 @@ static void android_camera2_capture_uninit(MSFilter *f) {
 		d->frame = NULL;
 	}
 	ms_mutex_unlock(&d->mutex);
+
+	sharedContext.releaseContextAndUnlock();
 
 	delete d;
 }
