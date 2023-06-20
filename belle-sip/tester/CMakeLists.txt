@@ -20,11 +20,6 @@
 #
 ############################################################################
 
-set(PROJECT_LIBS belle-sip)
-
-list(APPEND PROJECT_LIBS belr bctoolbox)
-
-
 set(SOURCE_FILES_C
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
@@ -70,8 +65,7 @@ bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
-#	target_include_directories(belle-sip-tester-static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle-sip-tester-static belr bctoolbox bctoolbox-tester ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-tester-static PUBLIC ${BCToolbox_tester_TARGET} belle-sip)
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -117,7 +111,7 @@ else()
 	if(WIN32)
 		target_link_libraries(belle-sip-tester PRIVATE "Ws2_32")
 	endif()
-	target_link_libraries(belle-sip-tester PRIVATE ${PROJECT_LIBS} bctoolbox-tester)
+	target_link_libraries(belle-sip-tester PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
 	add_test(NAME belle-sip-tester COMMAND belle-sip-tester --verbose)
 	if(NOT IOS)
 		install(TARGETS belle-sip-tester
@@ -136,7 +130,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-object-describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle-sip-object-describe ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-object-describe PRIVATE ${BCToolbox_TARGET} belle-sip)
 
 	set(OBJECT_RESOLVE_SOURCES resolve.c)
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
@@ -145,7 +139,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-resolve PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle-sip-resolve ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-resolve PRIVATE ${BCToolbox_TARGET} belle-sip)
 
 	set(PARSE_SOURCES parse.c)
 
@@ -155,7 +149,7 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle-sip-parse ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-parse PRIVATE ${BCToolbox_TARGET} belle-sip)
 
 	set(GET_SOURCES get.c)
 
@@ -165,8 +159,8 @@ else()
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-http-get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
 	endif()
-	target_link_libraries(belle-sip-http-get ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-http-get PRIVATE ${BCToolbox_TARGET} belle-sip)
 
 endif()
 
-install(FILES ${OTHER_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belle_sip_tester")
+install(FILES ${OTHER_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belle-sip-tester")

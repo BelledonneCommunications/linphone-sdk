@@ -1,6 +1,6 @@
 ############################################################################
 # BelleSIPConfig.cmake
-# Copyright (C) 2015  Belledonne Communications, Grenoble France
+# Copyright (C) 2015-2023  Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -21,31 +21,41 @@
 ############################################################################
 #
 # Config file for the belle-sip package.
-# It defines the following variables:
 #
-#  BELLESIP_FOUND - system has belle-sip
-#  BELLESIP_INCLUDE_DIRS - the belle-sip include directory
-#  BELLESIP_LIBRARIES - The libraries needed to use belle-sip
-#  BELLESIP_CPPFLAGS - The compilation flags needed to use belle-sip
-#  BELLESIP_LDFLAGS - The linking flags needed to use belle-sip
+# Targets
+# ^^^^^^^
+#
+# The following targets are defined:
+#  belle-sip - The belle-sip library target
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This config file will set the following variables in your project:
+#
+#  BelleSIP_FOUND - The belle-sip library has been found
+#  BelleSIP_TARGET - The name of the CMake target for the belle-sip library
+
 
 @PACKAGE_INIT@
 
 include("${CMAKE_CURRENT_LIST_DIR}/BelleSIPTargets.cmake")
 
-set(BELLESIP_TARGETNAME belle-sip)
+set(BelleSIP_TARGET belle-sip)
+
+# We must propagate the public dependencies and the private dependencies for static build
+include(CMakeFindDependencyMacro)
+find_dependency(Belr)
+find_dependency(BCToolbox)
 if(@BUILD_SHARED_LIBS@)
-	set(BELLESIP_LIBRARIES ${BELLESIP_TARGETNAME})
 else()
-	get_target_property(BELLESIP_LIBRARIES ${BELLESIP_TARGETNAME} LOCATION)
-	get_target_property(BELLESIP_LINK_LIBRARIES ${BELLESIP_TARGETNAME} INTERFACE_LINK_LIBRARIES)
-	if(BELLESIP_LINK_LIBRARIES)
-		list(APPEND BELLESIP_LIBRARIES ${BELLESIP_LINK_LIBRARIES})
+	if(@ZLIB_FOUND@)
+		find_dependency(ZLIB)
+	endif()
+	if(@Tunnel_FOUND@)
+		find_dependency(Tunnel)
 	endif()
 endif()
 
-get_target_property(BELLESIP_INCLUDE_DIRS ${BELLESIP_TARGETNAME} INTERFACE_INCLUDE_DIRECTORIES)
-
-set(BELLESIP_CPPFLAGS @BELLESIP_CPPFLAGS@)
-set(BELLESIP_LDFLAGS "@LINK_FLAGS_STR@")
-set(BELLESIP_FOUND 1)
+check_required_components(BelleSIP)

@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(belle-sip VERSION 5.3.0 LANGUAGES C CXX)
+project(BelleSIP VERSION 5.3.0 LANGUAGES C CXX)
 
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
@@ -40,7 +40,7 @@ option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TUNNEL "Enable tunnel support" OFF)
 option(ENABLE_UNIT_TESTS "Enable compilation of tests" ON)
 option(ENABLE_MDNS "Enable multicast DNS" OFF)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 
 
 include(CheckLibraryExists)
@@ -56,11 +56,7 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
-if(MSVC)
-	list(APPEND CMAKE_REQUIRED_INCLUDES ${MSVC_INCLUDE_DIR})
-endif()
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 check_library_exists("dl" "dlopen" "" HAVE_LIBDL)
 check_library_exists("rt" "clock_gettime" "" HAVE_LIBRT)
@@ -81,38 +77,26 @@ cmake_pop_check_state()
 
 find_package(Threads)
 
-find_package(IntegratedZLIB)
-if(INTEGRATEDZLIB_FOUND)
-	set(ZLIB_FOUND TRUE)
-else()
-	find_package(ZLIB)
-endif()
+find_package(Belr 5.3.0 REQUIRED)
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 
-find_package(Belr)
-if(NOT BELR_FOUND)
-	find_package(belr REQUIRED CONFIG)
+bc_find_package(ZLIB ZLIB::ZLIB zlib)
+if(ZLIB_FOUND)
+	set(HAVE_ZLIB 1)
 endif()
 
 if(ENABLE_RTP_MAP_ALWAYS_IN_SDP)
 	set(BELLE_SDP_FORCE_RTP_MAP 1)
 endif()
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.5.0 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
-
 if(ENABLE_TUNNEL)
-	find_package(Tunnel)
-	if(TUNNEL_FOUND)
+	find_package(Tunnel 0.7.0)
+	if(Tunnel_FOUND)
 		set(HAVE_TUNNEL 1)
 	else()
 		message(WARNING "Could not find the tunnel library!")
 		set(ENABLE_TUNNEL OFF CACHE BOOL "Enable tunnel support" FORCE)
 	endif()
-endif()
-if(ZLIB_FOUND)
-	set(HAVE_ZLIB 1)
 endif()
 
 if (ENABLE_DNS_SERVICE)
@@ -134,7 +118,7 @@ if(ENABLE_MDNS)
 endif()
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 
 set(prefix ${CMAKE_INSTALL_PREFIX})
@@ -151,17 +135,8 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
-if(TUNNEL_FOUND)
-	include_directories(${TUNNEL_INCLUDE_DIRS})
-endif()
-if(ZLIB_FOUND)
-	include_directories(${ZLIB_INCLUDE_DIRS})
-endif()
 if(DNSSD_FOUND)
 	include_directories(${DNSSD_INCLUDE_DIRS})
-endif()
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
 endif()
 
 add_definitions("-DHAVE_CONFIG_H")
@@ -212,7 +187,7 @@ if(APPLE)
 endif()
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 
-set(BELLESIP_CPPFLAGS ${BCTOOLBOX_CPPFLAGS})
+set(BELLESIP_CPPFLAGS )
 if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BELLESIP_CPPFLAGS "-DBELLESIP_STATIC")
 endif()
@@ -235,9 +210,6 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 endif()
 
 
-set(EXPORT_TARGETS_NAME "BelleSIP")
-
-
 add_subdirectory(include)
 add_subdirectory(src)
 
@@ -249,31 +221,24 @@ endif()
 
 
 include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_LIBDIR}/cmake/BelleSIP")
-
-
-write_basic_package_version_file(
-	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
-	VERSION ${PACKAGE_VERSION}
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+configure_package_config_file("cmake/${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
+	NO_SET_AND_CHECK_MACRO
+)
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
 	COMPATIBILITY AnyNewerVersion
 )
-
-configure_package_config_file(cmake/BelleSIPConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
-  	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
-  	NO_SET_AND_CHECK_MACRO
-)
-
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE BelleSIPTargets.cmake
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
-)
-
-#Yes, an install directive is necessary. The INSTALL_DESTINATION parameter of configure_package_config_file() above does NOTHING.
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfig.cmake"
-	"${CMAKE_CURRENT_BINARY_DIR}/BelleSIPConfigVersion.cmake"
-	DESTINATION ${CONFIG_PACKAGE_LOCATION}
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
+)
+
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
 if (ENABLE_PACKAGE_SOURCE)
