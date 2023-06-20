@@ -22,18 +22,16 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BELCARD VERSION 5.3.0 LANGUAGES C CXX)
+project(BelCard VERSION 5.3.0 LANGUAGES C CXX)
 
 set(BELCARD_SO_VERSION "1")
 
 option(ENABLE_STRICT "Build with strict compile options." YES)
 option(ENABLE_TOOLS "Enable compilation of tools." YES)
 option(ENABLE_UNIT_TESTS "Enable compilation of unit tests." YES)
-option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making (CMake >= 3.11)" OFF)
+option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
@@ -49,15 +47,8 @@ if(MSVC)
 	add_definitions(-D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
-find_package(Belr)
-if(NOT BELR_FOUND)
-	find_package(belr REQUIRED CONFIG)
-endif()
-
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox 0.0.3 REQUIRED OPTIONAL_COMPONENTS tester)
-endif()
+find_package(Belr 5.3.0 REQUIRED)
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
@@ -69,15 +60,12 @@ include_directories(
 	src/
 	${CMAKE_CURRENT_BINARY_DIR}
 )
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
-endif()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/config.h" PROPERTIES GENERATED ON)
 add_definitions("-DHAVE_CONFIG_H")
 
-set(BELCARD_CPPFLAGS ${BCTOOLBOX_CPPFLAGS} ${BELR_CPPFLAGS})
+set(BELCARD_CPPFLAGS )
 if(NOT BUILD_SHARED_LIBS)
 	list(APPEND BELCARD_CPPFLAGS "-DBELCARD_STATIC")
 endif()
@@ -115,8 +103,6 @@ if(STRICT_OPTIONS_C)
 	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
 endif()
 
-set(EXPORT_TARGETS_NAME "belcard")
-
 add_subdirectory(include)
 add_subdirectory(src)
 
@@ -129,22 +115,24 @@ if(ENABLE_TOOLS)
 endif()
 
 include(CMakePackageConfigHelpers)
-set(CONFIG_PACKAGE_LOCATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
-set(INCLUDE_INSTALL_DIR "include")
-
-configure_package_config_file(cmake/BelcardConfig.cmake.in
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-  	INSTALL_DESTINATION ${CONFIG_PACKAGE_LOCATION}
+set(CMAKE_MODULES_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}/cmake")
+configure_package_config_file("${PROJECT_NAME}Config.cmake.in" "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	INSTALL_DESTINATION "${CMAKE_MODULES_INSTALL_DIR}"
 	NO_SET_AND_CHECK_MACRO
 )
-set(ConfigPackageLocation "share/${EXPORT_TARGETS_NAME}/cmake")
-install(EXPORT ${EXPORT_TARGETS_NAME}Targets
-	FILE ${EXPORT_TARGETS_NAME}Targets.cmake
-	DESTINATION ${ConfigPackageLocation}
+write_basic_package_version_file("${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	VERSION ${PROJECT_VERSION}
+	COMPATIBILITY AnyNewerVersion
 )
 install(FILES
-	"${CMAKE_CURRENT_BINARY_DIR}/${EXPORT_TARGETS_NAME}Config.cmake"
-	DESTINATION ${ConfigPackageLocation}
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
+)
+
+install(EXPORT ${PROJECT_NAME}Targets
+	FILE "${PROJECT_NAME}Targets.cmake"
+	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
 
 if(ENABLE_PACKAGE_SOURCE)

@@ -54,7 +54,7 @@ target_include_directories(belcard INTERFACE
   $<INSTALL_INTERFACE:include>
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
-target_link_libraries(belcard PUBLIC belr PRIVATE bctoolbox)
+target_link_libraries(belcard PUBLIC ${Belr_TARGET} PRIVATE ${BCToolbox_TARGET})
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
@@ -63,11 +63,10 @@ if(BUILD_SHARED_LIBS)
 		else()
 			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(belcard PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.belcard
-			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			RESOURCE ${VCARD_GRAMMAR_FILES}
 			PUBLIC_HEADER "${BELCARD_HEADER_FILES}"
 		)
@@ -82,7 +81,7 @@ if(BUILD_SHARED_LIBS)
 	endif()
 endif()
 
-install(TARGETS belcard EXPORT ${EXPORT_TARGETS_NAME}Targets
+install(TARGETS belcard EXPORT ${PROJECT_NAME}Targets
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
