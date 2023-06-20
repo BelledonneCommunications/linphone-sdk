@@ -1,6 +1,6 @@
 /***************************************************************************
 * config.h.cmake
-* Copyright (C) 2014  Belledonne Communications, Grenoble France
+* Copyright (C) 2014-2023  Belledonne Communications, Grenoble France
 *
 ****************************************************************************
 *
@@ -28,9 +28,3 @@
 #cmakedefine PACKAGE_BUGREPORT "@PACKAGE_BUGREPORT@"
 #cmakedefine PACKAGE_URL "@PACKAGE_URL@"
 #cmakedefine VERSION "@VERSION@"
-
-#cmakedefine HAVE_MEDIASTREAMER2_MSCOMMON_H
-
-#cmakedefine HAVE_OPENCOREAMRNB_INTERF_DEC_H
-#cmakedefine HAVE_OPENCOREAMRWB_DEC_IF_H
-#cmakedefine HAVE_VOAMRWBENC_ENC_IF_H

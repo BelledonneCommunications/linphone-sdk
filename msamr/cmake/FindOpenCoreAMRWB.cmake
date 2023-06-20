@@ -20,46 +20,75 @@
 #
 ############################################################################
 #
-# - Find the opencoreamrwb include file and library
+# Find the opencore-amrwb library.
 #
-#  OPENCOREAMRWB_FOUND - system has opencoreamrwb
-#  OPENCOREAMRWB_INCLUDE_DIRS - the opencoreamrwb include directory
-#  OPENCOREAMRWB_LIBRARIES - The libraries needed to use opencoreamrwb
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  opencore-amrwb - If the opencore-amrwb library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  OpenCoreAMRWB_FOUND - The opencore-amrwb library has been found
+#  OpenCoreAMRWB_TARGET - The name of the CMake target for the opencore-amrwb library
+#
+# This module may set the following variable:
+#
+#  OpenCoreAMRWB_USE_BUILD_INTERFACE - If the opencore-amrwb library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_OpenCoreAMRWB_REQUIRED_VARS OpenCoreAMRWB_TARGET)
+set(_OpenCoreAMRWB_CACHE_VARS ${_OpenCoreAMRWB_REQUIRED_VARS})
 
 if(TARGET opencore-amrwb)
 
-	set(OPENCOREAMRWB_LIBRARIES opencore-amrwb)
-	get_target_property(OPENCOREAMRWB_INCLUDE_DIRS opencore-amrwb INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_OPENCOREAMRWB_DEC_IF_H 1)
-	set(OPENCOREAMRWB_USE_BUILD_INTERFACE 1)
+	set(OpenCoreAMRWB_TARGET opencore-amrwb)
+	set(OpenCoreAMRWB_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	set(_OPENCOREAMRWB_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_OpenCoreAMRWB_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(OPENCOREAMRWB_INCLUDE_DIRS
+	find_path(_OpenCoreAMRWB_INCLUDE_DIRS
 		NAMES opencore-amrwb/dec_if.h
-		HINTS _OPENCOREAMRWB_ROOT_PATHS
+		HINTS ${_OpenCoreAMRWB_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(OPENCOREAMRWB_INCLUDE_DIRS)
-		set(HAVE_OPENCOREAMRWB_DEC_IF_H 1)
-	endif()
 
-	find_library(OPENCOREAMRWB_LIBRARIES
+	find_library(_OpenCoreAMRWB_LIBRARY
 		NAMES opencore-amrwb
-		HINTS _OPENCOREAMRWB_ROOT_PATHS
+		HINTS ${_OpenCoreAMRWB_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
 
+	if(_OpenCoreAMRWB_INCLUDE_DIRS AND _OpenCoreAMRWB_LIBRARY)
+		add_library(opencore-amrwb UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(opencore-amrwb PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_OpenCoreAMRWB_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_OpenCoreAMRWB_LIBRARY}"
+			)
+		else()
+			set_target_properties(opencore-amrwb PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_OpenCoreAMRWB_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_OpenCoreAMRWB_LIBRARY}"
+			)
+		endif()
+
+		set(OpenCoreAMRWB_TARGET opencore-amrwb)
+	endif()
+
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenCoreAMRWB
-	DEFAULT_MSG
-	OPENCOREAMRWB_INCLUDE_DIRS OPENCOREAMRWB_LIBRARIES HAVE_OPENCOREAMRWB_DEC_IF_H
+	REQUIRED_VARS ${_OpenCoreAMRWB_REQUIRED_VARS}
 )
-
-mark_as_advanced(OPENCOREAMRWB_INCLUDE_DIRS OPENCOREAMRWB_LIBRARIES HAVE_OPENCOREAMRWB_DEC_IF_H)
+mark_as_advanced(${_OpenCoreAMRWB_CACHE_VARS})

@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(msamr VERSION 1.1.3 LANGUAGES C)
+project(MSAMR VERSION 1.1.3 LANGUAGES C)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
@@ -46,21 +46,9 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 if(ENABLE_NARROWBAND)
 	find_package(OpenCoreAMRNB REQUIRED)
 endif()
@@ -70,32 +58,15 @@ if(ENABLE_WIDEBAND)
 endif()
 
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 
 
 include_directories(
-	${MEDIASTREAMER2_INCLUDE_DIRS}
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}/src
 )
-if(ENABLE_NARROWBAND)
-	include_directories(${OPENCOREAMRNB_INCLUDE_DIRS})
-	add_definitions("-DHAVE_AMRNB=1")
-endif()
-if(ENABLE_WIDEBAND)
-	include_directories(
-		${OPENCOREMARWB_INCLUDE_DIRS}
-		${VOAMRWBENC_INCLUDE_DIRS}
-	)
-	add_definitions("-DHAVE_AMRWB=1")
-endif()
-set(MSVC_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/MSVC")
-if(MSVC)
-	include_directories(${MSVC_INCLUDE_DIR})
-endif()
 
-add_definitions("-DHAVE_CONFIG_H")
 if(NOT MSVC)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-error=unknown-pragmas")
 	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
@@ -112,8 +83,9 @@ add_subdirectory(src)
 
 
 # CPack settings
+string(TOLOWER "${PROJECT_NAME}" LOWERCASE_PROJECT_NAME)
 set(CPACK_SOURCE_GENERATOR "TGZ")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PROJECT_VERSION}")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${LOWERCASE_PROJECT_NAME}-${PROJECT_VERSION}")
 set(CPACK_SOURCE_IGNORE_FILES
 	"^${CMAKE_BINARY_DIR}"
 	"/\\\\..+"

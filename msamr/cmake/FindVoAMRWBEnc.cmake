@@ -20,46 +20,75 @@
 #
 ############################################################################
 #
-# - Find the vo-amrwbenc include file and library
+# Find the vo-amrwbenc library.
 #
-#  VOAMRWBENC_FOUND - system has vo-amrwbenc
-#  VOAMRWBENC_INCLUDE_DIRS - the vo-amrwbenc include directory
-#  VOAMRWBENC_LIBRARIES - The libraries needed to use vo-amrwbenc
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  vo-amrwbenc - If the vo-amrwbenc library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  VoAMRWBEnc_FOUND - The vo-amrwbenc library has been found
+#  VoAMRWBEnc_TARGET - The name of the CMake target for the vo-amrwbenc library
+#
+# This module may set the following variable:
+#
+#  VoAMRWBEnc_USE_BUILD_INTERFACE - If the vo-amrwbenc library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_VoAMRWBEnc_REQUIRED_VARS VoAMRWBEnc_TARGET)
+set(_VoAMRWBEnc_CACHE_VARS ${_VoAMRWBEnc_REQUIRED_VARS})
 
 if(TARGET vo-amrwbenc)
 
-	set(VOAMRWBENC_LIBRARIES vo-amrwbenc)
-	get_target_property(VOAMRWBENC_INCLUDE_DIRS vo-amrwbenc INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_VOAMRWBENC_ENC_IF_H 1)
-	set(VOAMRWBENC_USE_BUILD_INTERFACE 1)
+	set(VoAMRWBEnc_TARGET vo-amrwbenc)
+	set(VoAMRWBEnc_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	set(_VOAMRWBENC_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_VoAMRWBEnc_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(VOAMRWBENC_INCLUDE_DIRS
-		NAMES vo-amrwbenc/enc_if.h
-		HINTS _VOAMRWBENC_ROOT_PATHS
+	find_path(_VoAMRWBEnc_INCLUDE_DIRS
+	NAMES vo-amrwbenc/enc_if.h
+		HINTS ${_VoAMRWBEnc_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(VOAMRWBENC_INCLUDE_DIRS)
-		set(HAVE_VOAMRWBENC_ENC_IF_H 1)
-	endif()
 
-	find_library(VOAMRWBENC_LIBRARIES
-		NAMES vo-amrwbenc
-		HINTS _VOAMRWBENC_ROOT_PATHS
+	find_library(_VoAMRWBEnc_LIBRARY
+	NAMES vo-amrwbenc
+		HINTS ${_VoAMRWBEnc_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
 
+	if(_VoAMRWBEnc_INCLUDE_DIRS AND _VoAMRWBEnc_LIBRARY)
+	add_library(vo-amrwbenc UNKNOWN IMPORTED)
+		if(WIN32)
+		set_target_properties(vo-amrwbenc PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_VoAMRWBEnc_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_VoAMRWBEnc_LIBRARY}"
+			)
+		else()
+		set_target_properties(vo-amrwbenc PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_VoAMRWBEnc_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_VoAMRWBEnc_LIBRARY}"
+			)
+		endif()
+
+	set(VoAMRWBEnc_TARGET vo-amrwbenc)
+	endif()
+
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(VoAMRWBEnc
-	DEFAULT_MSG
-	VOAMRWBENC_INCLUDE_DIRS VOAMRWBENC_LIBRARIES HAVE_VOAMRWBENC_ENC_IF_H
+	REQUIRED_VARS ${_VoAMRWBEnc_REQUIRED_VARS}
 )
-
-mark_as_advanced(VOAMRWBENC_INCLUDE_DIRS VOAMRWBENC_LIBRARIES HAVE_VOAMRWBENC_ENC_IF_H)
+mark_as_advanced(${_VoAMRWBEnc_CACHE_VARS})

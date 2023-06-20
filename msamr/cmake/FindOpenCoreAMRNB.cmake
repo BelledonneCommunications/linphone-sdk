@@ -20,47 +20,75 @@
 #
 ############################################################################
 #
-# - Find the opencoreamrnb include file and library
+# Find the opencore-amrnb library.
 #
-#  OPENCOREAMRNB_FOUND - system has opencoreamrnb
-#  OPENCOREAMRNB_INCLUDE_DIRS - the opencoreamrnb include directory
-#  OPENCOREAMRNB_LIBRARIES - The libraries needed to use opencoreamrnb
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  opencore-amrnb - If the opencore-amrnb library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  OpenCoreAMRNB_FOUND - The opencore-amrnb library has been found
+#  OpenCoreAMRNB_TARGET - The name of the CMake target for the opencore-amrnb library
+#
+# This module may set the following variable:
+#
+#  OpenCoreAMRNB_USE_BUILD_INTERFACE - If the opencore-amrnb library is used from its build directory
 
+
+include(FindPackageHandleStandardArgs)
+
+set(_OpenCoreAMRNB_REQUIRED_VARS OpenCoreAMRNB_TARGET)
+set(_OpenCoreAMRNB_CACHE_VARS ${_OpenCoreAMRNB_REQUIRED_VARS})
 
 if(TARGET opencore-amrnb)
 
-	set(OPENCOREAMRNB_LIBRARIES opencore-amrnb)
-	get_target_property(OPENCOREAMRNB_INCLUDE_DIRS opencore-amrnb INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_OPENCOREAMRNB_INTERF_DEC_H 1)
-	set(OPENCOREAMRNB_USE_BUILD_INTERFACE 1)
+	set(OpenCoreAMRNB_TARGET opencore-amrnb)
+	set(OpenCoreAMRNB_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	set(_OPENCOREAMRNB_ROOT_PATHS
-		${CMAKE_INSTALL_PREFIX}
-	)
+	set(_OpenCoreAMRNB_ROOT_PATHS ${CMAKE_INSTALL_PREFIX})
 
-	find_path(OPENCOREAMRNB_INCLUDE_DIRS
+	find_path(_OpenCoreAMRNB_INCLUDE_DIRS
 		NAMES opencore-amrnb/interf_dec.h
-		HINTS _OPENCOREAMRNB_ROOT_PATHS
+		HINTS ${_OpenCoreAMRNB_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(OPENCOREAMRNB_INCLUDE_DIRS)
-		set(HAVE_OPENCOREAMRNB_INTERF_DEC_H 1)
-	endif()
 
-	find_library(OPENCOREAMRNB_LIBRARIES
+	find_library(_OpenCoreAMRNB_LIBRARY
 		NAMES opencore-amrnb
-		HINTS _OPENCOREAMRNB_ROOT_PATHS
+		HINTS ${_OpenCoreAMRNB_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
 
+	if(_OpenCoreAMRNB_INCLUDE_DIRS AND _OpenCoreAMRNB_LIBRARY)
+		add_library(opencore-amrnb UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(opencore-amrnb PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_OpenCoreAMRNB_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_OpenCoreAMRNB_LIBRARY}"
+			)
+		else()
+			set_target_properties(opencore-amrnb PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_OpenCoreAMRNB_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_OpenCoreAMRNB_LIBRARY}"
+			)
+		endif()
+
+		set(OpenCoreAMRNB_TARGET opencore-amrnb)
+	endif()
+
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenCoreAMRNB
-	DEFAULT_MSG
-	OPENCOREAMRNB_INCLUDE_DIRS OPENCOREAMRNB_LIBRARIES HAVE_OPENCOREAMRNB_INTERF_DEC_H
+	REQUIRED_VARS ${_OpenCoreAMRNB_REQUIRED_VARS}
 )
-
-mark_as_advanced(OPENCOREAMRNB_INCLUDE_DIRS OPENCOREAMRNB_LIBRARIES HAVE_OPENCOREAMRNB_INTERF_DEC_H)
+mark_as_advanced(${_OpenCoreAMRNB_CACHE_VARS})
