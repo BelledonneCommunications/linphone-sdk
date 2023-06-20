@@ -20,71 +20,91 @@
 #
 ############################################################################
 #
-# - Find the openh264 include file and library
+# Find the openh264 library.
 #
-#  OPENH264_FOUND - system has openh264
-#  OPENH264_INCLUDE_DIRS - the openh264 include directory
-#  OPENH264_LIBRARIES - The libraries needed to use openh264
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  openh264 - If the openh264 library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  OpenH264_FOUND - The openh264 library has been found
+#  OpenH264_TARGET - The name of the CMake target for the openh264 library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_OpenH264_REQUIRED_VARS OpenH264_TARGET)
+set(_OpenH264_CACHE_VARS ${_OpenH264_REQUIRED_VARS})
 
 if(TARGET openh264)
 
-	set(OPENH264_LIBRARIES libopenh264)
-	get_target_property(OPENH264_INCLUDE_DIRS libopenh264 INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_WELS_CODEC_API_H 1)
-	set(HAVE_WELS_CREATE_DECODER TRUE)
+	set(OpenH264_TARGET libopenh264)
+	set(OpenH264_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	include(CMakePushCheckState)
-	include(CheckCXXSymbolExists)
-
-	set(_OPENH264_ROOT_PATHS
-		${WITH_OPENH264}
+	set(_OpenH264_ROOT_PATHS
+		${WITH_OpenH264}
 		${CMAKE_INSTALL_PREFIX}
 	)
 
-	find_path(OPENH264_INCLUDE_DIRS
+	find_path(_OpenH264_INCLUDE_DIRS
 		NAMES wels/codec_api.h
-		HINTS _OPENH264_ROOT_PATHS
+		HINTS ${_OpenH264_ROOT_PATHS}
 		PATH_SUFFIXES include
 	)
-	if(OPENH264_INCLUDE_DIRS)
-		set(HAVE_WELS_CODEC_API_H 1)
-	endif()
 
-	find_library(OPENH264_LIBRARIES
+	find_library(_OpenH264_LIBRARY
 		NAMES openh264_dll openh264
-		HINTS _OPENH264_ROOT_PATHS
+		HINTS ${_OpenH264_ROOT_PATHS}
 		PATH_SUFFIXES bin lib
 	)
 
-	if(OPENH264_LIBRARIES)
-		if( WIN32 OR ANDROID )#issue with check_cxx_symbol_exists on Windows (TODO: missing libraries in OPENH264_LIBRARIES?). If OPENH264_INCLUDE_DIRS, then decoder exists.
-			set(OPENH264_FOUND TRUE)
+	if(_OpenH264_INCLUDE_DIRS AND _OpenH264_LIBRARY)
+		if(WIN32 OR ANDROID) # Issue with check_cxx_symbol_exists on Windows (TODO: missing libraries in OPENH264_LIBRARIES?). If OPENH264_INCLUDE_DIRS, then decoder exists.
 			set(HAVE_WELS_CREATE_DECODER TRUE)
 		else()
-			# need pthread lib for check_cxx_symbol_exists
-			find_library(PTHREAD_LIBRARY
-				NAMES pthread
-			)
-			list(APPEND OPENH264_LIBRARIES ${PTHREAD_LIBRARY})
+			include(CMakePushCheckState)
+			include(CheckCXXSymbolExists)
+			# Need pthread lib for check_cxx_symbol_exists
+			set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+			find_package(Threads REQUIRED)
+			list(APPEND OPENH264_LIBRARIES Threads::Threads)
 			cmake_push_check_state(RESET)
-			list(APPEND CMAKE_REQUIRED_INCLUDES ${OPENH264_INCLUDE_DIRS})
-			list(APPEND CMAKE_REQUIRED_LIBRARIES ${OPENH264_LIBRARIES})
+			list(APPEND CMAKE_REQUIRED_INCLUDES ${_OpenH264_INCLUDE_DIRS})
+			list(APPEND CMAKE_REQUIRED_LIBRARIES ${_OpenH264_LIBRARY})
 			check_cxx_symbol_exists("WelsCreateDecoder" "wels/codec_api.h" HAVE_WELS_CREATE_DECODER)
 			cmake_pop_check_state()
-			if(HAVE_WELS_CREATE_DECODER)
-				set(OPENH264_FOUND TRUE)
+		endif()
+
+		if(HAVE_WELS_CREATE_DECODER)
+			add_library(openh264 UNKNOWN IMPORTED)
+			if(WIN32)
+			set_target_properties(openh264 PROPERTIES
+					INTERFACE_INCLUDE_DIRECTORIES "${_OpenH264_INCLUDE_DIRS}"
+					IMPORTED_IMPLIB "${_OpenH264_LIBRARY}"
+				)
+			else()
+			set_target_properties(openh264 PROPERTIES
+					INTERFACE_INCLUDE_DIRECTORIES "${_OpenH264_INCLUDE_DIRS}"
+					IMPORTED_LOCATION "${_OpenH264_LIBRARY}"
+				)
 			endif()
+			set(OpenH264_TARGET openh264)
 		endif()
 	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(OpenH264
-	DEFAULT_MSG
-	OPENH264_INCLUDE_DIRS OPENH264_LIBRARIES HAVE_WELS_CODEC_API_H HAVE_WELS_CREATE_DECODER
+	REQUIRED_VARS ${_OpenH264_REQUIRED_VARS}
 )
-
-mark_as_advanced(OPENH264_INCLUDE_DIRS OPENH264_LIBRARIES HAVE_WELS_CODEC_API_H HAVE_WELS_CREATE_DECODER)
+mark_as_advanced(${_OpenH264_CACHE_VARS})

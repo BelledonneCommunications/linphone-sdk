@@ -20,24 +20,11 @@
 #
 ############################################################################
 
-set(LIBS
-	${MEDIASTREAMER2_LIBRARIES}
-	${ORTP_LIBRARIES}
-	${OPENH264_LIBRARIES}
-	${BCTOOLBOX_CORE_LIBRARIES}
-)
-
 set(SOURCE_FILES
 	msopenh264.cpp
 	msopenh264dec.cpp
 	msopenh264enc.cpp
 )
-
-if(ENABLE_DECODER)
-	add_definitions(-DOPENH264_DECODER_ENABLED)
-endif()
-
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
@@ -48,7 +35,17 @@ if(BUILD_SHARED_LIBS)
 else()
 	add_library(msopenh264 STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(msopenh264 ${LIBS})
+target_compile_options(msopenh264 PRIVATE "-std=c++11")
+target_compile_definitions(msopenh264 PRIVATE "HAVE_CONFIG_H")
+if(ENABLE_DECODER)
+	target_compile_definitions(msopenh264 PRIVATE "DOPENH264_DECODER_ENABLED")
+endif()
+target_include_directories(msopenh264 PRIVATE
+	${CMAKE_CURRENT_SOURCE_DIR}
+	${PROJECT_BINARY_DIR}
+	${CMAKE_CURRENT_BINARY_DIR}
+)
+target_link_libraries(msopenh264 PRIVATE ${Mediastreamer2_TARGET} ${OpenH264_TARGET})
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
@@ -62,7 +59,7 @@ if(BUILD_SHARED_LIBS)
 		set_target_properties(msopenh264 PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msopenh264
-  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
 		) 
 	endif()
 	if(MSVC)
@@ -82,9 +79,9 @@ endif()
 
 
 install(TARGETS msopenh264
-	RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-	LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-	ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+	RUNTIME DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 	FRAMEWORK DESTINATION Frameworks
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
