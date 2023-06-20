@@ -44,7 +44,7 @@ unset(REQUIRED_ANDROID_PREFIX_PATH)
 unset(REQUIRED_NATIVE_API_LEVEL)
 
 
-project(MSAAUDIO VERSION 0.1 LANGUAGES CXX)
+project(MSAAudio VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
@@ -55,48 +55,26 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
-
-set(AAUDIO_INCUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
-
-include_directories(
-  ${PROJECT_BINARY_DIR}
-	${MEDIASTREAMER2_INCLUDE_DIRS}
-	${AAUDIO_INCUDE_DIRS}
-)
-
-
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} aaudio ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
 
 set(SOURCE_FILES msaaudio.cpp msaaudio_player.cpp msaaudio_recorder.cpp)
-
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
 if(BUILD_SHARED_LIBS)
 	add_library(msaaudio MODULE ${SOURCE_FILES})
 else()
 	add_library(msaaudio STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(msaaudio ${LIBS})
+target_include_directories(msaaudio PRIVATE
+	${PROJECT_BINARY_DIR}
+	${PROJECT_SOURCE_DIR}/include
+)
+target_link_libraries(msaaudio PRIVATE ${Mediastreamer2_TARGET} aaudio)
 
 install(TARGETS msaaudio
-	RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-	LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-	ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+	RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	ARCHIVE DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 	FRAMEWORK DESTINATION Frameworks
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
