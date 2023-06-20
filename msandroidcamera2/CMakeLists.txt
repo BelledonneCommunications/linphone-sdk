@@ -55,44 +55,23 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
-include_directories(
-  ${PROJECT_BINARY_DIR}
-	${MEDIASTREAMER2_INCLUDE_DIRS}
-)
-
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} android camera2ndk mediandk ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 
 set(SOURCE_FILES android-camera2-capture.cpp)
-
-# Inherited from ms2 cmake config file
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
 if(BUILD_SHARED_LIBS)
 	add_library(msandroidcamera2 MODULE ${SOURCE_FILES})
 else()
 	add_library(msandroidcamera2 STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(msandroidcamera2 ${LIBS})
+target_include_directories(msandroidcamera2 PRIVATE ${PROJECT_BINARY_DIR})
+target_link_libraries(msandroidcamera2 PRIVATE ${Mediastreamer2_TARGET} android camera2ndk mediandk)
+
 
 install(TARGETS msandroidcamera2
-	RUNTIME DESTINATION ${MS2_PLUGINS_DIR}
-	LIBRARY DESTINATION ${MS2_PLUGINS_DIR}
-	ARCHIVE DESTINATION ${MS2_PLUGINS_DIR}
+	RUNTIME DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	LIBRARY DESTINATION ${Mediastreamer2_PLUGINS_DIR}
+	ARCHIVE DESTINATION ${Mediastreamer2_PLUGINS_DIR}
 	FRAMEWORK DESTINATION Frameworks
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
