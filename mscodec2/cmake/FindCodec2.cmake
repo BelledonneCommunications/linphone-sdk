@@ -20,39 +20,68 @@
 #
 ############################################################################
 #
-# - Find the codec2 include file and library
+# Find the codec2 library.
 #
-#  CODEC2_FOUND - system has codec2
-#  CODEC2_INCLUDE_DIRS - the codec2 include directory
-#  CODEC2_LIBRARIES - The libraries needed to use codec2
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  codec2 - If the codec2 library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Codec2_FOUND - The codec2 library has been found
+#  Codec2_TARGET - The name of the CMake target for the codec2 library
+#
+# This module may set the following variable:
+#
+#  Codec2_USE_BUILD_INTERFACE - If the codec2 library is used from its build directory
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_Codec2_REQUIRED_VARS Codec2_TARGET)
+set(_Codec2_CACHE_VARS ${_Codec2_REQUIRED_VARS})
 
 if(TARGET codec2)
 
-	set(CODEC2_LIBRARIES codec2)
-	get_target_property(CODEC2_INCLUDE_DIRS codec2 INTERFACE_INCLUDE_DIRECTORIES)
-	set(HAVE_CODEC2_CODEC2_H 1)
-	set(CODEC2_USE_BUILD_INTERFACE 1)
+	set(Codec2_TARGET codec2)
+	set(Codec2_USE_BUILD_INTERFACE TRUE)
 
 else()
 
-	include(CMakePushCheckState)
-
-	find_path(CODEC2_INCLUDE_DIRS
+	find_path(_Codec2_INCLUDE_DIRS
 		NAMES codec2/codec2.h
 		PATH_SUFFIXES include
 	)
-	if(CODEC2_INCLUDE_DIRS)
-		set(HAVE_CODEC2_CODEC2_H 1)
-	endif()
 
-	find_library(CODEC2_LIBRARIES NAMES codec2)
+	find_library(_Codec2_LIBRARY NAMES codec2)
+
+	if(_Codec2_INCLUDE_DIRS AND _Codec2_LIBRARY)
+	add_library(codec2 UNKNOWN IMPORTED)
+		if(WIN32)
+		set_target_properties(codec2 PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Codec2_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Codec2_LIBRARY}"
+			)
+		else()
+		set_target_properties(codec2 PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Codec2_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Codec2_LIBRARY}"
+			)
+		endif()
+
+	set(Codec2_TARGET codec2)
+	endif()
 
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Codec2
-	DEFAULT_MSG
-	CODEC2_INCLUDE_DIRS CODEC2_LIBRARIES HAVE_CODEC2_CODEC2_H
+	REQUIRED_VARS ${_Codec2_REQUIRED_VARS}
 )
-
-mark_as_advanced(CODEC2_INCLUDE_DIRS CODEC2_LIBRARIES HAVE_CODEC2_CODEC2_H)
+mark_as_advanced(${_Codec2_CACHE_VARS})

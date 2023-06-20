@@ -20,9 +20,9 @@
 #
 ############################################################################
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.22)
 
-project(MSCODEC2 VERSION 0.1 LANGUAGES C)
+project(MSCodec2 VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
@@ -36,34 +36,12 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 	message(STATUS "Setting install rpath to ${CMAKE_INSTALL_RPATH}")
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 find_package(Codec2 REQUIRED)
 
-
-include_directories(
-	${MEDIASTREAMER2_INCLUDE_DIRS}
-	${CODEC2_INCLUDE_DIRS}
-)
-
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${CODEC2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES})
-
 set(SOURCE_FILES mscodec2.c)
-
-set(MS2_PLUGINS_DIR "${MEDIASTREAMER2_PLUGINS_LOCATION}")
 
 if(BUILD_SHARED_LIBS)
 	if(IOS)
@@ -74,8 +52,8 @@ if(BUILD_SHARED_LIBS)
 else()
 	add_library(mscodec2 STATIC ${SOURCE_FILES})
 endif()
-target_link_libraries(mscodec2 ${LIBS})
-if(CODEC2_USE_BUILD_INTERFACE)
+target_link_libraries(mscodec2 PUBLIC ${Mediastreamer2_TARGET} PRIVATE ${Codec2_TARGET})
+if(Codec2_USE_BUILD_INTERFACE)
 	target_compile_definitions(mscodec2 PRIVATE CODEC2_USE_BUILD_INTERFACE)
 endif()
 if(BUILD_SHARED_LIBS)
@@ -90,7 +68,7 @@ if(BUILD_SHARED_LIBS)
 	if(MSVC)
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 			install(FILES $<TARGET_PDB_FILE:mscodec2>
-				DESTINATION "${MS2_PLUGINS_DIR}"
+				DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 			)
 		endif()
@@ -100,9 +78,9 @@ endif()
 
 
 install(TARGETS mscodec2
-	RUNTIME DESTINATION "${MS2_PLUGINS_DIR}"
-	LIBRARY DESTINATION "${MS2_PLUGINS_DIR}"
-	ARCHIVE DESTINATION "${MS2_PLUGINS_DIR}"
+	RUNTIME DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 	FRAMEWORK DESTINATION Frameworks
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
