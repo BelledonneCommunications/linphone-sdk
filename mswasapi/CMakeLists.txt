@@ -31,26 +31,7 @@ set(MSWASAPI_SO_VERSION "0")
 option(ENABLE_STRICT "Build with strict compile options." YES)
 
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
-find_package(BcToolbox)
-if(NOT BCTOOLBOX_FOUND)
-	find_package(bctoolbox CONFIG REQUIRED COMPONENTS core)
-endif()
-find_package(Ortp)
-if(NOT ORTP_FOUND)
-	find_package(ortp CONFIG REQUIRED)
-endif()
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
-include_directories(
-	${MEDIASTREAMER2_INCLUDE_DIRS}
-	${ORTP_INCLUDE_DIRS}
-	${BCTOOLBOX_CORE_INCLUDE_DIRS}
-)
+find_package(Mediastreamer2 5.3.0 REQUIRED)
 
 set(SOURCE_FILES
 	mswasapi.cpp
@@ -60,7 +41,7 @@ set(SOURCE_FILES
 	mswasapi_writer.cpp
 	mswasapi_writer.h
 )
-set(LIBS ${MEDIASTREAMER2_LIBRARIES} ${ORTP_LIBRARIES} ${BCTOOLBOX_CORE_LIBRARIES} ws2_32)
+set(LIBS ws2_32)
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
@@ -74,7 +55,7 @@ if(ENABLE_STRICT)
 	target_compile_options(mswasapi PRIVATE "/WX")
 endif()
 set_target_properties(mswasapi PROPERTIES PREFIX "lib")
-target_link_libraries(mswasapi ${LIBS})
+target_link_libraries(mswasapi PRIVATE ${Mediastreamer2_TARGET} ${LIBS})
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	set_target_properties(mswasapi PROPERTIES VS_WINRT_COMPONENT TRUE)
 endif()
@@ -89,14 +70,14 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 	install(FILES $<TARGET_PDB_FILE:mswasapi>
-		DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
+		DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 endif()
 
 install(TARGETS mswasapi
-	RUNTIME DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
-	LIBRARY DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
-	ARCHIVE DESTINATION "${MEDIASTREAMER2_PLUGINS_LOCATION}"
+	RUNTIME DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	LIBRARY DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
+	ARCHIVE DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
