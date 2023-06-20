@@ -151,7 +151,6 @@ void on_filter_event(void *data, BCTBX_UNUSED(MSFilter *f), unsigned int event_i
 	VideoEndpoint *ep;
 
 	switch (event_id) {
-		case MS_VIDEO_SWITCHER_SEND_FIR:
 		case MS_VIDEO_ROUTER_SEND_FIR:
 			pin = *(int *)event_data;
 			ep = obj->getMemberAtInputPin(pin);
@@ -167,7 +166,6 @@ void on_filter_event(void *data, BCTBX_UNUSED(MSFilter *f), unsigned int event_i
 				ms_error("Filter generated an event for an unknown pin [%i]", pin);
 			}
 			break;
-		case MS_VIDEO_SWITCHER_SEND_PLI:
 		case MS_VIDEO_ROUTER_SEND_PLI:
 			pin = *(int *)event_data;
 			ep = obj->getMemberAtInputPin(pin);

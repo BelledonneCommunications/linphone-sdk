@@ -41,8 +41,8 @@ static bool_t is_vp8_key_frame(mblk_t *m) {
 }
 
 static bool_t is_h264_key_frame(BCTBX_UNUSED(mblk_t *frame)) {
-	/*TODO*/
-	return FALSE;
+	/*TODO - return TRUE for now so that transfer can start at any point of time.*/
+	return TRUE;
 }
 
 static bool_t is_key_frame_dummy(BCTBX_UNUSED(mblk_t *frame)) {

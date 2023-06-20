@@ -235,7 +235,6 @@ if(ENABLE_VIDEO)
 		videofilters/nowebcam.c
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
-		videofilters/videoswitcher.c
 		videofilters/videorouter.c
 		voip/layouts.c
 		voip/layouts.h

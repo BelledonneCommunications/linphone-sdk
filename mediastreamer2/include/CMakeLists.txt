@@ -83,7 +83,6 @@ set(HEADER_FILES
 	msasync.h
 	msudp.h
 	mspcapfileplayer.h
-	msvideoswitcher.h
 	msanalysedisplay.h
 	msmire.h
 	msvideorouter.h

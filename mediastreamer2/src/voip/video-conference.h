@@ -26,7 +26,6 @@
 
 #include "mediastreamer2/msconference.h"
 #include "mediastreamer2/msvideorouter.h"
-#include "mediastreamer2/msvideoswitcher.h"
 #include "private.h"
 
 namespace ms2 {
