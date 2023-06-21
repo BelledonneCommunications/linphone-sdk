@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (c) 2010-2022 Belledonne Communications SARL.
+# Copyright (c) 2010-2023 Belledonne Communications SARL.
 #
 ############################################################################
 #
@@ -46,23 +46,12 @@ if(NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 endif()
 
 find_library(LIBM NAMES m)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/config.h PROPERTIES GENERATED ON)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/config.h.cmake" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/config.h" PROPERTIES GENERATED ON)
 add_definitions(-DHAVE_CONFIG_H)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-find_package(Mediastreamer2)
-if(NOT MEDIASTREAMER2_FOUND)
-	find_package(Mediastreamer2 CONFIG REQUIRED)
-endif()
-
-find_package(Liblinphone)
-if(NOT LIBLINPHONE_FOUND)
-	find_package(Liblinphone CONFIG REQUIRED)
-endif()
-
-set(PLUGINS_DIR "${LINPHONE_PACKAGE_PLUGINS_DIR}")
+find_package(Mediastreamer2 5.3.0 REQUIRED)
+find_package(LibLinphone 5.3.0 REQUIRED)
 
 include_directories(
 	include/

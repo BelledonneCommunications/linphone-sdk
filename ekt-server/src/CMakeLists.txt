@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (c) 2010-2022 Belledonne Communications SARL.
+# Copyright (c) 2010-2023 Belledonne Communications SARL.
 #
 ############################################################################
 #
@@ -20,34 +20,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 ############################################################################
+
 set(SOURCE_FILES
 	ektserver.cpp
 )
 
 set(INCLUDE_DIRS )
-
-if(ENABLE_XML2)
-	list(APPEND INCLUDE_DIRS ${XML2_INCLUDE_DIRS})
-endif()
-
 set(LIBS )
 
 if(LIBM)
 	list(APPEND LIBS ${LIBM})
 endif()
 
-if(ENABLE_STATIC)
-	target_include_directories(ektserver PUBLIC
-		PRIVATE ${INCLUDE_DIRS}
-	)
-	set_target_properties(ektserver-static PROPERTIES OUTPUT_NAME ektserver)
-	set_target_properties(ektserver-static PROPERTIES LINKER_LANGUAGE CXX)
-	target_link_libraries(ektserver-static liblinphone mediastreamer ${LIBS})
-	install(TARGETS ektserver-static
-		ARCHIVE DESTINATION "${PLUGINS_DIR}"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	)
-endif()
 if(BUILD_SHARED_LIBS)
 	if(NOT IOS)
 		add_library(ektserver MODULE ${SOURCE_FILES})
@@ -56,7 +40,6 @@ if(BUILD_SHARED_LIBS)
 	endif()
 else()
 	add_library(ektserver STATIC ${SOURCE_FILES})
-
 endif()
 
 target_include_directories(ektserver PUBLIC
@@ -65,13 +48,12 @@ target_include_directories(ektserver PUBLIC
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/>
 	PRIVATE ${INCLUDE_DIRS}
 )
-
-target_link_libraries(ektserver PUBLIC liblinphone mediastreamer2 ${LIBS})
+target_link_libraries(ektserver PUBLIC ${LibLinphone_TARGET} ${Mediastreamer2_TARGET} ${LIBS})
 set_target_properties(ektserver PROPERTIES LINKER_LANGUAGE CXX)
 if(APPLE)
 	if(IOS)
 		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		set_target_properties(ektserver 	PROPERTIES
+		set_target_properties(ektserver PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.ektserver
 			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
@@ -92,9 +74,9 @@ if(MSVC)
 	endif()
 endif()
 install(TARGETS ektserver
-		RUNTIME DESTINATION ${PLUGINS_DIR}
-		LIBRARY DESTINATION ${PLUGINS_DIR}
-		ARCHIVE DESTINATION ${PLUGINS_DIR}
+		RUNTIME DESTINATION ${LibLinphone_PLUGINS_DIR}
+		LIBRARY DESTINATION ${LibLinphone_PLUGINS_DIR}
+		ARCHIVE DESTINATION ${LibLinphone_PLUGINS_DIR}
 		FRAMEWORK DESTINATION Frameworks
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
