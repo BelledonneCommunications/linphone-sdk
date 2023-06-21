@@ -1014,8 +1014,6 @@ static void receiver_process(MSFilter *f) {
 			freemsg(m);
 		}
 	}
-	/*every second compute recv bandwidth*/
-	if (f->ticker->time % 1000 == 0) rtp_session_compute_recv_bandwidth(d->session);
 }
 
 static int get_receiver_output_fmt(MSFilter *f, void *arg) {
