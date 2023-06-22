@@ -62,9 +62,7 @@ int drifting_ticker(BCTBX_UNUSED(void *data), BCTBX_UNUSED(uint64_t virt_ticker_
 static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
-	_factory = ms_factory_new();
-	ms_factory_init_voip(_factory);
-	ms_factory_init_plugins(_factory);
+	_factory = ms_tester_factory_new();
 
 	// ms_filter_enable_statistics(TRUE);
 	ms_factory_enable_statistics(_factory, TRUE);

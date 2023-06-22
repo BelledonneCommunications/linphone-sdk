@@ -49,6 +49,7 @@ extern MSFilter *ms_tester_soundwrite;
 extern MSFilter *ms_tester_soundread;
 extern MSFilter *ms_tester_videocapture;
 extern char *ms_tester_codec_mime;
+extern char *ms_tester_plugin_location;
 
 enum filter_mask_enum {
 	FILTER_MASK_FILEPLAY = (1 << 0),
@@ -82,6 +83,8 @@ extern unsigned char ms_tester_tone_detected;
 #define SILK_PAYLOAD_TYPE 124
 #define SILK16_PAYLOAD_TYPE 125
 #define BV16_PAYLOAD_TYPE 127
+
+MSFactory *ms_tester_factory_new(void);
 
 void ms_tester_create_ticker(void);
 void ms_tester_destroy_ticker(void);

@@ -35,7 +35,7 @@
 static MSFactory *msFactory = NULL;
 static int basic_audio_tester_before_all(void) {
 
-	msFactory = ms_factory_new_with_voip();
+	msFactory = ms_tester_factory_new();
 
 	ms_factory_enable_statistics(msFactory, TRUE);
 	ortp_init();

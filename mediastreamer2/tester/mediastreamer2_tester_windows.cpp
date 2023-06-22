@@ -320,7 +320,7 @@ void NativeTester::initMS2() {
 		bctbx_set_log_level(NULL, BCTBX_LOG_MESSAGE);
 		bctbx_log_handler_t *log_handler = bctbx_create_log_handler(ms2NativeOutputTraceHandler, NULL, NULL);
 		bctbx_add_log_handler(log_handler);
-		_factory = ms_factory_new_with_voip();
+		_factory = ms_tester_factory_new();
 	}
 }
 

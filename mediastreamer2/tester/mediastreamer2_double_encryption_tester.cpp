@@ -36,9 +36,7 @@ static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
 	// ms_init();
-	_factory = ms_factory_new();
-	ms_factory_init_voip(_factory);
-	ms_factory_init_plugins(_factory);
+	_factory = ms_tester_factory_new();
 
 	ms_factory_enable_statistics(_factory, TRUE);
 	ortp_init();

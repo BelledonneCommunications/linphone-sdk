@@ -30,13 +30,15 @@
 
 #include "h26x/h26x-utils.h"
 
+#include "mediastreamer2_tester_private.h"
+
 using namespace mediastreamer;
 using namespace std;
 
 static MSFactory *msFactory = nullptr;
 
 static int initMSFactory() {
-	msFactory = ms_factory_new_with_voip();
+	msFactory = ms_tester_factory_new();
 	return 0;
 }
 

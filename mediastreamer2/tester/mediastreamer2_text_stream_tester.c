@@ -37,7 +37,7 @@ static RtpProfile rtp_profile;
 
 static MSFactory *_factory = NULL;
 static int tester_init(void) {
-	_factory = ms_factory_new_with_voip();
+	_factory = ms_tester_factory_new();
 
 	ortp_init();
 	rtp_profile_set_payload(&rtp_profile, T140_PAYLOAD_TYPE, &payload_type_t140);

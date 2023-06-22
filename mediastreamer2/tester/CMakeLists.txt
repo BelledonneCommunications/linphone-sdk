@@ -120,6 +120,7 @@ endif()
 
 set(SOURCE_FILES_CXX
 	mediastreamer2_double_encryption_tester.cpp
+	mediastreamer2_tester_utils.cpp
 )
 set(SOURCE_FILES_OBJC )
 

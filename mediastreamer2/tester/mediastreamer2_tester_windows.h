@@ -22,6 +22,7 @@
 
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2_tester.h"
+#include "mediastreamer2_tester_private.h"
 
 namespace BelledonneCommunications {
 namespace Mediastreamer2 {

@@ -18,13 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <strings.h>
+
+#include <bctoolbox/tester.h>
+
 #include "mediastreamer-config.h"
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
-#include <bctoolbox/tester.h>
-#include <strings.h>
+#include "mediastreamer2_tester_private.h"
 
 typedef struct {
 	bool_t first_image_decoded;
@@ -42,7 +45,7 @@ typedef enum {
 static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
-	_factory = ms_factory_new_with_voip();
+	_factory = ms_tester_factory_new();
 	return 0;
 }
 

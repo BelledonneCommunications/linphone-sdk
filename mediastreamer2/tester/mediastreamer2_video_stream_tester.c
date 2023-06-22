@@ -141,7 +141,7 @@ static int tester_before_all(void) {
 	MSWebCamManager *cam_manager = NULL;
 	MSWebCam *mire = ms_web_cam_new(ms_mire_webcam_desc_get());
 
-	_factory = ms_factory_new_with_voip();
+	_factory = ms_tester_factory_new();
 
 	ms_factory_create_filter(_factory, TRUE);
 	ortp_init();

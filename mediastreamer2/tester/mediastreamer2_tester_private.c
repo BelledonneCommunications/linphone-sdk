@@ -54,9 +54,21 @@ MSFilter *ms_tester_soundwrite = NULL;
 MSFilter *ms_tester_soundread = NULL;
 MSFilter *ms_tester_videocapture = NULL;
 char *ms_tester_codec_mime = "pcmu";
+char *ms_tester_plugin_location = NULL;
 unsigned char ms_tester_tone_detected;
 
 int base_port = 1024;
+
+MSFactory *ms_tester_factory_new(void) {
+	MSFactory *factory = ms_factory_new();
+
+	if (ms_tester_plugin_location != NULL) ms_factory_set_plugins_dir(factory, ms_tester_plugin_location);
+
+	ms_factory_init_voip(factory);
+	ms_factory_init_plugins(factory);
+
+	return factory;
+}
 
 static MSTicker *create_ticker(void) {
 	MSTickerParams params;

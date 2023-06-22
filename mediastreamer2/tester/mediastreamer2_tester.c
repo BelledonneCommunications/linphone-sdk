@@ -18,10 +18,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2_tester.h"
+
 #include <bctoolbox/defs.h>
 
-#include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
+#include "mediastreamer2_tester_utils.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -145,6 +147,16 @@ int main(int argc, char *argv[]) {
 	silent_arg_func(NULL);
 	mediastreamer2_tester_init(NULL);
 
+#ifdef HAVE_CONFIG_H
+	// If the tester is not installed we configure it, so it can be launched without installing
+	if (!mediastreamer2_is_executable_installed(argv[0], "sounds/hello8000.wav")) {
+		bc_tester_set_resource_dir_prefix(MEDIASTREAMER_LOCAL_RESOURCE_LOCATION);
+		printf("Resource dir set to %s\n", MEDIASTREAMER_LOCAL_RESOURCE_LOCATION);
+
+		ms_tester_plugin_location = MEDIASTREAMER_LOCAL_PLUGINS_LOCATION;
+	}
+#endif
+
 	// this allows to launch tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {
 		long prefix_length = (long)(strstr(argv[0], ".libs") - argv[0] + 1);
@@ -154,8 +166,9 @@ int main(int argc, char *argv[]) {
 		bc_tester_set_writable_dir_prefix(prefix);
 		ms_free(prefix);
 	}
+
 	for (i = 1; i < argc; ++i) {
-		int ret = bc_tester_parse_args(argc, argv, i);
+		ret = bc_tester_parse_args(argc, argv, i);
 		if (ret > 0) {
 			i += ret - 1;
 			continue;

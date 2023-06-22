@@ -21,6 +21,7 @@
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2_tester.h"
+#include "mediastreamer2_tester_private.h"
 
 #ifdef VIDEO_ENABLED
 #include "mediastreamer2/msogl.h" // MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT
@@ -43,7 +44,7 @@ typedef enum {
 } PlayerTestFlags;
 
 static int tester_before_all(void) {
-	_factory = ms_factory_new_with_voip();
+	_factory = ms_tester_factory_new();
 	return 0;
 }
 

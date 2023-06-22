@@ -49,7 +49,7 @@ static void filter_register_tester(void) {
 	MSFilter *filter;
 	MSFactory *factory = NULL;
 
-	factory = ms_factory_new_with_voip();
+	factory = ms_tester_factory_new();
 
 	BC_ASSERT_PTR_NOT_NULL(ms_factory_lookup_filter_by_name(factory, "MSVoidSource"));
 
@@ -517,7 +517,7 @@ static void test_filterdesc_enable_disable_base(const char *mime, const char *fi
 	MSFilter *filter;
 
 	MSFactory *factory = NULL;
-	factory = ms_factory_new_with_voip();
+	factory = ms_tester_factory_new();
 
 	if (is_enc) filter = ms_factory_create_encoder(factory, mime);
 	else filter = ms_factory_create_decoder(factory, mime);

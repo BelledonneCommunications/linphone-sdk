@@ -71,7 +71,7 @@ static void _decode_qr_code(
 	image_path = ms_strdup_printf("images/%s.jpg", _image_path);
 	image_res_path = bc_tester_res(image_path);
 	ms_static_image_set_default_image(image_res_path);
-	_factory = ms_factory_new_with_voip();
+	_factory = ms_tester_factory_new();
 
 	ms_factory_create_filter(_factory, TRUE);
 

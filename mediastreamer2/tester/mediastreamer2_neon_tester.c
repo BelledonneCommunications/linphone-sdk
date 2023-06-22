@@ -19,6 +19,7 @@
  */
 
 #include "mediastreamer2_tester.h"
+#include "mediastreamer2_tester_private.h"
 #include <inttypes.h>
 #include <ortp/port.h>
 #include <stdio.h>
@@ -32,9 +33,7 @@ static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
 	ortp_set_log_level_mask(ORTP_LOG_DOMAIN, ORTP_MESSAGE | ORTP_WARNING | ORTP_ERROR | ORTP_FATAL);
-	_factory = ms_factory_new();
-	ms_factory_init_voip(_factory);
-	ms_factory_init_plugins(_factory);
+	_factory = ms_tester_factory_new();
 	srand(time(0));
 	return 0;
 }
