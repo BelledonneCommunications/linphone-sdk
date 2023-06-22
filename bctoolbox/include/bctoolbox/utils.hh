@@ -67,6 +67,10 @@ private:
 	From const &val;
 };
 
+// Checks if the executable is installed by looking if the resource exists at
+// <executable's path>/../share/<executable's name>/<resource>
+BCTBX_PUBLIC bool isExecutableInstalled(const std::string &executable, const std::string &resource);
+
 } // namespace Utils
 
 } // namespace bctoolbox

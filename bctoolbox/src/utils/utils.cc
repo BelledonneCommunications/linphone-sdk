@@ -116,3 +116,17 @@ std::string bctoolbox::Utils::getMemoryReportAsString() {
 #endif
 	return ossReport.str();
 }
+
+bool bctoolbox::Utils::isExecutableInstalled(const std::string &executable, const std::string &resource) {
+	auto pos = executable.find_last_of('/');
+	if (pos == std::string::npos) {
+		pos = executable.find_last_of('\\');
+	}
+
+	std::string path = executable.substr(0, pos + 1).append("../share/");
+	std::string name = executable.substr(pos + 1);
+
+	std::string check = path + name + "/" + resource;
+
+	return bctbx_file_exist(check.c_str()) == 0;
+}
