@@ -18,9 +18,13 @@
  */
 
 #include "belr-tester.h"
-#include "bctoolbox/logging.h"
+
 #include <fstream>
 #include <sstream>
+
+#include <bctoolbox/logging.h>
+
+#include "config.h"
 
 using namespace ::std;
 
@@ -70,12 +74,13 @@ int main(int argc, char *argv[]) {
 		bc_tester_set_resource_dir_prefix(resDir.c_str());
 		printf("Resource dir set to %s\n", resDir.c_str());
 	} else {
-		bc_tester_set_resource_dir_prefix("./res");
+		bc_tester_set_resource_dir_prefix(BELR_LOCAL_RESOURCE_LOCATION);
+		printf("Resource dir set to %s\n", BELR_LOCAL_RESOURCE_LOCATION);
 	}
 	bc_tester_set_writable_dir_prefix("./");
 
 	for (i = 1; i < argc; ++i) {
-		int ret = bc_tester_parse_args(argc, argv, i);
+		ret = bc_tester_parse_args(argc, argv, i);
 		if (ret > 0) {
 			i += ret - 1;
 			continue;

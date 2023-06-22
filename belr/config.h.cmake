@@ -16,12 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
  
- #ifndef belr_config_h
- #define belr_config_h
- 
- #define BELR_GRAMMARS_DIR "${BELR_GRAMMARS_DIR}"
- #define BELR_GRAMMARS_RELATIVE_DIR "${BELR_GRAMMARS_RELATIVE_DIR}"
- 
- 
- #endif
+#ifndef belr_config_h
+#define belr_config_h
+
+#define BELR_GRAMMARS_DIR "${BELR_GRAMMARS_DIR}"
+#define BELR_GRAMMARS_RELATIVE_DIR "${BELR_GRAMMARS_RELATIVE_DIR}"
+
+#define BELR_LOCAL_RESOURCE_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/tester/res"
+
+#endif
  
