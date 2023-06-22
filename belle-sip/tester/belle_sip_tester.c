@@ -21,9 +21,11 @@
 #endif
 #include "belle_sip_tester.h"
 
+#include <bctoolbox/port.h>
 #include <belle-sip/belle-sip.h>
 #include <belle-sip/utils.h>
 
+#include "belle_sip_tester_utils.h"
 #include "port.h"
 
 extern const char *test_domain;
@@ -227,6 +229,16 @@ int main(int argc, char *argv[]) {
 
 	belle_sip_tester_init(NULL);
 
+#ifdef HAVE_CONFIG_H
+	// If the tester is not installed we configure it, so it can be launched without installing
+	if (!belle_sip_is_executable_installed(argv[0], "afl/sip_dict.txt")) {
+		bc_tester_set_resource_dir_prefix(BELLE_SIP_LOCAL_RESOURCE_LOCATION);
+		printf("Resource dir set to %s\n", BELLE_SIP_LOCAL_RESOURCE_LOCATION);
+
+		belle_sip_add_belr_grammar_search_path(SDP_LOCAL_GRAMMAR_LOCATION);
+	}
+#endif
+
 #ifndef _WIN32 /*this hack doesn't work for argv[0]="c:\blablab\"*/
 	// this allows to launch liblinphone_tester from outside of tester directory
 	if (strstr(argv[0], ".libs")) {
@@ -258,7 +270,7 @@ int main(int argc, char *argv[]) {
 			CHECK_ARG("--dns-hosts", ++i, argc);
 			userhostsfile = argv[i];
 		} else {
-			int ret = bc_tester_parse_args(argc, argv, i);
+			ret = bc_tester_parse_args(argc, argv, i);
 			if (ret > 0) {
 				i += ret - 1;
 				continue;

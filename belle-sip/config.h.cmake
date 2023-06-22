@@ -20,6 +20,10 @@
 *
 ****************************************************************************/
 
+#define BELLE_SIP_LOCAL_RESOURCE_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/tester"
+
+#define SDP_LOCAL_GRAMMAR_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/src/sdp"
+
 #cmakedefine PACKAGE "@PACKAGE@"
 #cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
 #cmakedefine PACKAGE_VERSION "@PACKAGE_VERSION@"

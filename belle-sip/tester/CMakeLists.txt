@@ -22,7 +22,7 @@
 
 set(PROJECT_LIBS belle-sip)
 
-list(APPEND PROJECT_LIBS bctoolbox)
+list(APPEND PROJECT_LIBS belr bctoolbox)
 
 
 set(SOURCE_FILES_C
@@ -46,6 +46,10 @@ set(SOURCE_FILES_C
 	object_tester.cc
 )
 
+set(SOURCE_FILES_CXX
+	belle_sip_tester_utils.cc
+)
+
 set(OTHER_FILES
 	tester_hosts
 )
@@ -61,12 +65,13 @@ endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
+bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C})
+	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
 #	target_include_directories(belle-sip-tester-static PUBLIC ${BCTOOLBOX_TESTER_INCLUDE_DIRS})
-	target_link_libraries(belle-sip-tester-static bctoolbox bctoolbox-tester ${PROJECT_LIBS})
+	target_link_libraries(belle-sip-tester-static belr bctoolbox bctoolbox-tester ${PROJECT_LIBS})
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -74,10 +79,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	)
 	add_library(belle-sip-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
 	target_link_libraries(belle-sip-tester-runtime belle-sip-tester-static)
+	set_target_properties(belle-sip-tester-runtime PROPERTIES LINKER_LANGUAGE CXX)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
-	set_target_properties(belle-sip-tester-runtime PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle-sip-tester-runtime PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES C_STANDARD 99)
 
 
@@ -100,9 +106,9 @@ else()
 		set(USE_BUNDLE MACOSX_BUNDLE)
 	endif()
 
-	add_executable(belle-sip-tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_OBJC})
+	add_executable(belle-sip-tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
 	set_target_properties(belle-sip-tester PROPERTIES LINKER_LANGUAGE CXX)
-	set_target_properties(belle-sip-tester PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
+	set_target_properties(belle-sip-tester PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 	set_target_properties(belle-sip-tester PROPERTIES C_STANDARD 99)
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
