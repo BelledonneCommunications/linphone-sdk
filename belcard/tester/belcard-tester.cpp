@@ -17,13 +17,28 @@
 */
 
 #include "belcard-tester.hpp"
+
+#include <string>
+
 #include <bctoolbox/logging.h>
+#include <bctoolbox/utils.hh>
+#include <belr/grammarbuilder.h>
+
+#include "config.h"
 
 int main(int argc, char *argv[]) {
 	int i;
 	int ret;
 
 	belcard_tester_init(NULL);
+
+	// If the tester is not installed we configure it, so it can be launched without installing
+	if (!bctoolbox::Utils::isExecutableInstalled(std::string(argv[0]), "vcards/vcard.vcf")) {
+		bc_tester_set_resource_dir_prefix(BELCARD_LOCAL_RESOURCE_LOCATION);
+		printf("Resource dir set to %s\n", BELCARD_LOCAL_RESOURCE_LOCATION);
+
+		belr::GrammarLoader::get().addPath(std::string(VCARD_LOCAL_GRAMMAR_LOCATION));
+	}
 
 	if (strstr(argv[0], ".libs")) {
 		int prefix_length = (int)(strstr(argv[0], ".libs") - argv[0]) + 1;
@@ -34,7 +49,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	for (i = 1; i < argc; ++i) {
-		int ret = bc_tester_parse_args(argc, argv, i);
+		ret = bc_tester_parse_args(argc, argv, i);
 		if (ret > 0) {
 			i += ret - 1;
 			continue;
