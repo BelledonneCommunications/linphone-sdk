@@ -96,9 +96,11 @@ foreach(_IOS_ARCH IN LISTS _IOS_ARCHS)
     list(APPEND _IOS_CMAKE_ARGS "-DENABLE_VPX=OFF") # libvpx build system does not support build for arm64 simulator
   endif()
 
+	set(_IOS_ARCH_BINARY_DIR "${PROJECT_BINARY_DIR}/ios-${_IOS_ARCH}")
+	set(_IOS_ARCH_INSTALL_DIR "${PROJECT_BINARY_DIR}/linphone-sdk/ios-${_IOS_ARCH}")
   add_custom_target(ios-${_IOS_ARCH} ALL
-    COMMAND ${CMAKE_COMMAND} --preset=ios-${_IOS_ARCH} ${_CMAKE_CONFIGURE_ARGS} ${_IOS_CMAKE_ARGS}
-    COMMAND ${CMAKE_COMMAND} --build --preset=ios-${_IOS_ARCH} --target install ${_CMAKE_BUILD_ARGS}
+    COMMAND ${CMAKE_COMMAND} --preset=ios-${_IOS_ARCH} -B ${_IOS_ARCH_BINARY_DIR} ${_CMAKE_CONFIGURE_ARGS} ${_IOS_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${_IOS_ARCH_INSTALL_DIR}
+    COMMAND ${CMAKE_COMMAND} --build ${_IOS_ARCH_BINARY_DIR} --target install ${_CMAKE_BUILD_ARGS}
     DEPENDS clean-sdk
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Building Linphone SDK for iOS ${_IOS_ARCH}"

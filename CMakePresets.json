@@ -59,8 +59,6 @@
       "inherits": "android-common",
       "displayName": "Config for Android arm64",
       "description": "Build for Android arm64 using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/android-arm64",
-      "installDir": "${sourceDir}/build/android/linphone-sdk/android-arm64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-android-arm64.cmake"
       }
@@ -70,8 +68,6 @@
       "inherits": "android-common",
       "displayName": "Config for Android armv7",
       "description": "Build for Android armv7 using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/android-armv7",
-      "installDir": "${sourceDir}/build/android/linphone-sdk/android-armv7",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-android-armv7.cmake",
         "ENABLE_ARM_NEON_INTRINSICS": "ON"
@@ -82,8 +78,6 @@
       "inherits": "android-common",
       "displayName": "Config for Android x86",
       "description": "Build for Android x86 using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/android-x86",
-      "installDir": "${sourceDir}/build/android/linphone-sdk/android-x86",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-android-x86.cmake"
       }
@@ -93,8 +87,6 @@
       "inherits": "android-common",
       "displayName": "Config for Android x86_64",
       "description": "Build for Android x86_64 using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/android-x86_64",
-      "installDir": "${sourceDir}/build/android/linphone-sdk/android-x86_64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-android-x86_64.cmake"
       }
@@ -104,7 +96,6 @@
       "inherits": "android-common",
       "displayName": "Config for Android",
       "description": "Build for Android (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/android",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "Android"
       }
@@ -113,8 +104,7 @@
       "name": "default",
       "displayName": "Default Config",
       "description": "Default build using Unix Makefiles generator",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/default"
+      "generator": "Unix Makefiles"
     },
     {
       "name": "ios-common",
@@ -168,8 +158,6 @@
       "inherits": "ios-common",
       "displayName": "Config for IOS arm64",
       "description": "Build for IOS arm64 using Xcode",
-      "binaryDir": "${sourceDir}/build/ios-arm64",
-      "installDir": "${sourceDir}/build/linphone-sdk/ios-arm64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-ios-arm64.cmake",
         "ENABLE_ARM_NEON_INTRINSICS": "ON"
@@ -180,8 +168,6 @@
       "inherits": "ios-common",
       "displayName": "Config for IOS arm64 simulator",
       "description": "Build for IOS arm64 simulator using Xcode",
-      "binaryDir": "${sourceDir}/build/ios-arm64-simulator",
-      "installDir": "${sourceDir}/build/linphone-sdk/ios-arm64-simulator",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-ios-arm64-simulator.cmake",
         "ENABLE_VPX": "OFF"
@@ -192,8 +178,6 @@
       "inherits": "ios-common",
       "displayName": "Config for IOS x86_64 simulator",
       "description": "Build for IOS x86_64 simulator using Xcode",
-      "binaryDir": "${sourceDir}/build/ios-x86_64-simulator",
-      "installDir": "${sourceDir}/build/linphone-sdk/ios-x86_64-simulator",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-ios-x86_64-simulator.cmake"
       }
@@ -203,8 +187,6 @@
       "inherits": "ios-common",
       "displayName": "Config for IOS",
       "description": "Build for IOS (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/ios",
-      "installDir": "${sourceDir}/build/ios/linphone-sdk/ios",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "IOS",
         "ENABLE_FAT_BINARY": "OFF"
@@ -231,8 +213,6 @@
       "inherits": "mac-common",
       "displayName": "Config for Mac arm64",
       "description": "Build for Mac arm64 using Xcode",
-      "binaryDir": "${sourceDir}/build/mac-arm64",
-      "installDir": "${sourceDir}/build/mac/linphone-sdk/mac-arm64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-mac-arm64.cmake"
       }
@@ -242,8 +222,6 @@
       "inherits": "mac-common",
       "displayName": "Config for Mac x86_64",
       "description": "Build for Mac x86_64 using Xcode",
-      "binaryDir": "${sourceDir}/build/mac-x86_64",
-      "installDir": "${sourceDir}/build/mac/linphone-sdk/mac-x86_64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-mac-x86_64.cmake"
       }
@@ -253,8 +231,6 @@
       "inherits": "mac-common",
       "displayName": "Config for Mac",
       "description": "Build for Mac (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/mac",
-      "installDir": "${sourceDir}/build/mac/linphone-sdk/mac",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "Macos",
         "ENABLE_FAT_BINARY": "ON"
@@ -303,8 +279,6 @@
       "inherits": "raspberrypi-common",
       "displayName": "Config for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+",
       "description": "Build for Raspberry PI Zero/W/WH & 1 Model A/B/A+/B+ using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/raspberrypi-0-1",
-      "installDir": "${sourceDir}/build/raspberrypi-0-1/linphone-sdk/raspberrypi-0-1",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-raspberrypi-0-1.cmake"
       }
@@ -314,8 +288,6 @@
       "inherits": "raspberrypi-common",
       "displayName": "Config for Raspberry PI 2 & 3 Model A/B",
       "description": "Build for Raspberry PI 2 & 3 Model A/B using Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/raspberrypi-2-3",
-      "installDir": "${sourceDir}/build/raspberrypi-2-3/linphone-sdk/raspberrypi-2-3",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-raspberrypi-2-3.cmake"
       }
@@ -325,8 +297,6 @@
       "inherits": "raspberrypi-common",
       "displayName": "Config for Raspberry PI 3 & 4 Model A+/B+ & Compute 3/3-lite/3+ (32 bits)",
       "description": "Build for Raspberry PI 3 & 4 Model A+/B+ & Compute 3/3-lite/3+ (32 bits)",
-      "binaryDir": "${sourceDir}/build/raspberrypi-3+",
-      "installDir": "${sourceDir}/build/raspberrypi-3+/linphone-sdk/raspberrypi-3+",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-raspberrypi-3+.cmake"
       }
@@ -362,8 +332,6 @@
       "displayName": "Config for UWP 64 bits",
       "description": "Build for UWP 64 bits using Visual Studio 2019",
       "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/uwp-x64",
-      "installDir": "${sourceDir}/build/uwp/linphone-sdk/uwp-x64",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-uwp-x64.cmake"
       }
@@ -374,8 +342,6 @@
       "displayName": "Config for UWP 32 bits",
       "description": "Build for UWP 32 bits using Visual Studio 2019",
       "architecture": "Win32",
-      "binaryDir": "${sourceDir}/build/uwp-x86",
-      "installDir": "${sourceDir}/build/uwp/linphone-sdk/uwp-x86",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-uwp-x86.cmake"
       }
@@ -385,7 +351,6 @@
       "inherits": "uwp-common",
       "displayName": "Config for UWP",
       "description": "Build for UWP (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/uwp",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "UWP"
       }
@@ -412,25 +377,20 @@
       "inherits": "windows-common",
       "displayName": "Config for Windows 32 bits",
       "description": "Build for Windows 32 bits using Visual Studio 2019",
-      "architecture": "Win32",
-      "binaryDir": "${sourceDir}/build/win32",
-      "installDir": "${sourceDir}/build/win/linphone-sdk/win32"
+      "architecture": "Win32"
     },
     {
       "name": "windows-64bits",
       "inherits": "windows-common",
       "displayName": "Config for Windows 64 bits",
       "description": "Build for Windows 64 bits using Visual Studio 2019",
-      "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/win64",
-      "installDir": "${sourceDir}/build/win/linphone-sdk/win64"
+      "architecture": "x64"
     },
     {
       "name": "windows-sdk",
       "inherits": "windows-common",
       "displayName": "Config for Windows",
       "description": "Build for Windows (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/win",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "Windows"
       }
@@ -445,24 +405,19 @@
       "name": "windows-ninja-32bits",
       "inherits": "windows-ninja-common",
       "displayName": "Config for Windows 32 bits",
-      "description": "Build for Windows 32 bits using Ninja",
-      "binaryDir": "${sourceDir}/build/win32",
-      "installDir": "${sourceDir}/build/win/linphone-sdk/win32"
+      "description": "Build for Windows 32 bits using Ninja"
     },
     {
       "name": "windows-ninja-64bits",
       "inherits": "windows-common",
       "displayName": "Config for Windows 64 bits",
-      "description": "Build for Windows 64 bits using Ninja",
-      "binaryDir": "${sourceDir}/build/win64",
-      "installDir": "${sourceDir}/build/win/linphone-sdk/win64"
+      "description": "Build for Windows 64 bits using Ninja"
     },
     {
       "name": "windows-ninja-sdk",
       "inherits": "windows-ninja-common",
       "displayName": "Config for Windows",
       "description": "Build for Windows (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/win",
       "cacheVariables": {
         "LINPHONESDK_BUILD_TYPE": "Windows",
         "LINPHONESDK_WINDOWS_PRESET_PREFIX": "windows-ninja-"
@@ -474,8 +429,6 @@
       "displayName": "Config for Windows Store 32 bits",
       "description": "Build for Windows Store 32 bits using Visual Studio 2019",
       "architecture": "Win32",
-      "binaryDir": "${sourceDir}/build/win32store",
-      "installDir": "${sourceDir}/build/winstore/linphone-sdk/win32store",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-windows-store-x86.cmake",
         "ENABLE_MICROSOFT_STORE_APP": "ON"
@@ -487,8 +440,6 @@
       "displayName": "Config for Windows Store 64 bits",
       "description": "Build for Windows Store 64 bits using Visual Studio 2019",
       "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/win64store",
-      "installDir": "${sourceDir}/build/winstore/linphone-sdk/win64store",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/toolchain-windows-store-x64.cmake",
         "ENABLE_MICROSOFT_STORE_APP": "ON"
@@ -499,125 +450,10 @@
       "inherits": "windows-common",
       "displayName": "Config for Windows Store",
       "description": "Build for Windows Store (package for all selected archs)",
-      "binaryDir": "${sourceDir}/build/winstore",
       "cacheVariables": {
         "ENABLE_MICROSOFT_STORE_APP": "ON",
         "LINPHONESDK_BUILD_TYPE": "Windows"
       }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "android-arm64",
-      "configurePreset": "android-arm64"
-    },
-    {
-      "name": "android-armv7",
-      "configurePreset": "android-armv7"
-    },
-    {
-      "name": "android-x86",
-      "configurePreset": "android-x86"
-    },
-    {
-      "name": "android-x86_64",
-      "configurePreset": "android-x86_64"
-    },
-    {
-      "name": "android-sdk",
-      "configurePreset": "android-sdk"
-    },
-    {
-      "name": "default",
-      "configurePreset": "default"
-    },
-    {
-      "name": "ios-arm64",
-      "configurePreset": "ios-arm64"
-    },
-    {
-      "name": "ios-arm64-simulator",
-      "configurePreset": "ios-arm64-simulator"
-    },
-    {
-      "name": "ios-x86_64-simulator",
-      "configurePreset": "ios-x86_64-simulator"
-    },
-    {
-      "name": "ios-sdk",
-      "configurePreset": "ios-sdk"
-    },
-    {
-      "name": "mac-arm64",
-      "configurePreset": "mac-arm64"
-    },
-    {
-      "name": "mac-x86_64",
-      "configurePreset": "mac-x86_64"
-    },
-    {
-      "name": "mac-sdk",
-      "configurePreset": "mac-sdk"
-    },
-    {
-      "name": "raspberrypi-0-1",
-      "configurePreset": "raspberrypi-0-1"
-    },
-    {
-      "name": "raspberrypi-2-3",
-      "configurePreset": "raspberrypi-2-3"
-    },
-    {
-      "name": "raspberrypi-3+",
-      "configurePreset": "raspberrypi-3+"
-    },
-    {
-      "name": "uwp-x64",
-      "configurePreset": "uwp-x64"
-    },
-    {
-      "name": "uwp-x86",
-      "configurePreset": "uwp-x86"
-    },
-    {
-      "name": "uwp-sdk",
-      "configurePreset": "uwp-sdk"
-    },
-    {
-      "name": "windows-32bits",
-      "configurePreset": "windows-32bits"
-    },
-    {
-      "name": "windows-64bits",
-      "configurePreset": "windows-64bits"
-    },
-    {
-      "name": "windows-sdk",
-      "configurePreset": "windows-sdk"
-    },
-    {
-      "name": "windows-ninja-32bits",
-      "configurePreset": "windows-ninja-32bits"
-    },
-    {
-      "name": "windows-ninja-64bits",
-      "configurePreset": "windows-ninja-64bits"
-    },
-    {
-      "name": "windows-ninja-sdk",
-      "configurePreset": "windows-ninja-sdk"
-    },
-    {
-      "name": "windows-store-32bits",
-      "configurePreset": "windows-store-32bits"
-    },
-    {
-      "name": "windows-store-64bits",
-      "configurePreset": "windows-store-64bits"
-    },
-    {
-      "name": "windows-store-sdk",
-      "configurePreset": "windows-store-sdk"
     }
   ]
 }

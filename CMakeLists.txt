@@ -75,9 +75,8 @@ elseif(LINPHONESDK_PLATFORM STREQUAL "UWP")
 	set(UWP TRUE)
 endif()
 
-# CheckBuildTools must be called before Options (at least for Android)
-include("cmake/CheckBuildTools${LINPHONESDK_PLATFORM}.cmake")
 include("cmake/Options.cmake")
+include("cmake/CheckBuildTools${LINPHONESDK_PLATFORM}.cmake")
 
 if(ENABLE_SANITIZER)
 	include("cmake/Sanitizer.cmake")

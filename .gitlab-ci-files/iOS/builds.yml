@@ -25,10 +25,10 @@
     - echo $CMAKE_GENERATOR
     - echo $ARCHS_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake --preset=ios-sdk -G "$CMAKE_GENERATOR" -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - cmake --preset=ios-sdk -B build/ios -G "$CMAKE_GENERATOR" -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
-    - cmake --build --preset=ios-sdk $ADDITIONAL_BUILD_CONFIGURATIONS -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build build/ios $ADDITIONAL_BUILD_CONFIGURATIONS -- $ADDITIONAL_BUILD_OPTIONS
     # Get SDK version from cached cmake variables
     - cd build/ios
     - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt

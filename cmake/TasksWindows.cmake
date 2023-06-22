@@ -29,6 +29,23 @@ set(LINPHONESDK_WINDOWS_PRESET_PREFIX "windows-" CACHE STRING "Prefix of the pre
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_WINDOWS_ARCHS}" _WINDOWS_ARCHS)
 
 
+function(get_arch_builddir_name ARCH OUTPUT_VAR)
+	if(ENABLE_MICROSOFT_STORE_APP)
+		if(ARCH STREQUAL "32bits")
+			set(${OUTPUT_VAR} "win32store" PARENT_SCOPE)
+		else()
+			set(${OUTPUT_VAR} "win64store" PARENT_SCOPE)
+		endif()
+	else()
+		if(ARCH STREQUAL "32bits")
+			set(${OUTPUT_VAR} "win32" PARENT_SCOPE)
+		else()
+			set(${OUTPUT_VAR} "win64" PARENT_SCOPE)
+		endif()
+	endif()
+endfunction()
+
+
 ############################################################################
 # Build each selected architecture
 ############################################################################
@@ -44,15 +61,18 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
 		set(_TARGET "win-store-${_WINDOWS_ARCH}")
 		set(_PRESET "windows-store-${_WINDOWS_ARCH}")
-		set(_NAME "Windows")
+		set(_NAME "Windows Store")
 	else()
 		set(_TARGET "win-${_WINDOWS_ARCH}")
 		set(_PRESET "${LINPHONESDK_WINDOWS_PRESET_PREFIX}${_WINDOWS_ARCH}")
-		set(_NAME "Windows Store")
+		set(_NAME "Windows")
 	endif()
+	get_arch_builddir_name(_WINDOWS_ARCH _WINDOWS_ARCH_BUILDDIR_NAME)
+	set(_WINDOWS_ARCH_BINARY_DIR "${PROJECT_BINARY_DIR}/${_WINDOWS_ARCH_BUILDDIR_NAME}")
+	set(_WINDOWS_ARCH_INSTALL_DIR "${PROJECT_BINARY_DIR}/linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}")
 	add_custom_target(${_TARGET} ALL
-	  COMMAND ${CMAKE_COMMAND} --preset=${_PRESET} ${_CMAKE_CONFIGURE_ARGS} ${_WINDOWS_CMAKE_ARGS}
-	  COMMAND ${CMAKE_COMMAND} --build --preset=${_PRESET} --target install ${_CMAKE_BUILD_ARGS}
+	  COMMAND ${CMAKE_COMMAND} --preset=${_PRESET} -B ${_WINDOWS_ARCH_BINARY_DIR} ${_CMAKE_CONFIGURE_ARGS} ${_WINDOWS_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${_WINDOWS_ARCH_INSTALL_DIR}
+	  COMMAND ${CMAKE_COMMAND} --build ${_WINDOWS_ARCH_BINARY_DIR} --target install ${_CMAKE_BUILD_ARGS}
 	  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 	  COMMENT "Building Linphone SDK for ${_NAME} ${_WINDOWS_ARCH}"
 	  USES_TERMINAL
@@ -70,20 +90,11 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
 		set(_DEPENDS_TARGET win-store-${_WINDOWS_ARCH})
 		set(_NAME "Windows")
-		if(_WINDOWS_ARCH STREQUAL "32bits")
-			set(LINPHONESDK_PLATFORM "win32store")
-		else()
-			set(LINPHONESDK_PLATFORM "win64store")
-		endif()
 	else()
 		set(_DEPENDS_TARGET win-${_WINDOWS_ARCH})
 		set(_NAME "Windows Store")
-		if(_WINDOWS_ARCH STREQUAL "32bits")
-			set(LINPHONESDK_PLATFORM "win32")
-		else()
-			set(LINPHONESDK_PLATFORM "win64")
-		endif()
 	endif()
+	get_arch_builddir_name(_WINDOWS_ARCH _WINDOWS_ARCH_BUILDDIR_NAME)
 	
 	add_custom_target(sdk-${_WINDOWS_ARCH} ALL
 		COMMAND "${CMAKE_COMMAND}"
@@ -92,7 +103,7 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	    "-DLINPHONESDK_BUILD_DIR=${PROJECT_BINARY_DIR}"
 	    "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
 	    "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}"
-			"-DLINPHONESDK_FOLDER=linphone-sdk/${LINPHONESDK_PLATFORM}"
+			"-DLINPHONESDK_FOLDER=linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}"
 	    "-DENABLE_EMBEDDED_OPENH264=${ENABLE_EMBEDDED_OPENH264}"
 	    "-P" "${PROJECT_SOURCE_DIR}/cmake/Windows/GenerateSDK.cmake"
 	  DEPENDS ${_DEPENDS_TARGET}

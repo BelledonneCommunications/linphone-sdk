@@ -24,8 +24,8 @@
     - echo $ANDROID_ARCHS
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake --preset=android-sdk -G "$CMAKE_GENERATOR" -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
-    - cmake --build --preset=android-sdk -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --preset=android-sdk -B build/android -G "$CMAKE_GENERATOR" -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - cmake --build build/android -- $ADDITIONAL_BUILD_OPTIONS
     # Get SDK version from cached cmake variables
     - cd build/android
     - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt

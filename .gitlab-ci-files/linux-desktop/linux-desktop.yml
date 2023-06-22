@@ -18,9 +18,9 @@
     - echo $DEFAULT_LINUX_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
     - echo $CMAKE_SANITIZER_OPTIONS
-    - cmake --preset=default -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - cmake --preset=default -B build/default -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
-    - cmake --build --preset=default --target install -- $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build build/default --target install -- $ADDITIONAL_BUILD_OPTIONS
     - echo $(git describe) > build/default/gitdescribe.txt
   artifacts:
     paths:

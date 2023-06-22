@@ -75,12 +75,12 @@ A build with the Ninja generator (`-G "Ninja"` ) is prefered for speed-up build 
 
 The generic steps to build the SDK are:
 
- 1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command) and eventually some additional options:
- `cmake --preset=<PRESET> <SOME OPTIONS>`
+ 1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command), the build directory where you want the build to take place, and eventually some additional options:
+ `cmake --preset=<PRESET> -B <BUILD DIRECTORY> <SOME OPTIONS>`
  3. Build the SDK:
- `cmake --build --preset=<PRESET>`
+ `cmake --build <BUILD DIRECTORY>`
  or
- `cmake --build --preset=<PRESET> --parallel <number of jobs>` (which is faster).
+ `cmake --build <BUILD DIRECTORY> --parallel <number of jobs>` (which is faster).
 
 The options below define the target of the compilation, and hence are required most of the time:
 - `CMAKE_BUILD_TYPE`: By default it is set to `RelWithDebInfo` to build in release mode keeping the debug information. You might want to set it to `Debug` to ease the debugging. On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
@@ -95,7 +95,7 @@ Requirement:
 Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
 Until Cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
 
-`cmake --preset=ios-sdk -G Xcode` or `cmake --preset=ios-sdk -G Ninja`
+`cmake --preset=ios-sdk -G Xcode -B build-ios` or `cmake --preset=ios-sdk -G Ninja -B build-ios`
 
 If the generator is not specified, Xcode will be used by default.
 
@@ -147,10 +147,10 @@ Next command lines must be typed in the docker shell:
 mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
 
 # Configure the build
-cmake --preset=android-sdk -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+cmake --preset=android-sdk -B build-android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
 
 # Build
-cmake --build --preset=android-sdk --parallel <number of jobs>
+cmake --build build-android --parallel <number of jobs>
 
 # Quit build environment
 exit
@@ -165,25 +165,25 @@ Requirement:
 
 Configure the project with:
 
-`cmake --preset=mac-sdk`
+`cmake --preset=mac-sdk -B build-mac`
 
 And build it with:
 
-`cmake --build --preset=mac-sdk`
+`cmake --build build-mac`
 
 As for the iOS build, you can alternatively build with Ninja instead of Xcode by specifying it during the configuration step:
 
-`cmake --preset=mac-sdk -G Ninja`
+`cmake --preset=mac-sdk -B build-mac -G Ninja`
 
 ### Windows
 
 Configure the project with:
 
-`cmake --preset=windows-sdk`
+`cmake --preset=windows-sdk -B build-windows`
 
 As for all other platforms, you can then build with:
 
-`cmake --build --preset=windows-sdk`
+`cmake --build build-windows`
 
 However it may be convenient to build from Visual Studio, which you can do:
  - open `linphone-sdk.sln` with Visual Studio
@@ -208,7 +208,7 @@ See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
 ## Upgrading your SDK
 
-Simply re-invoking `cmake --build --preset=<PRESET>` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
+Simply re-invoking `cmake --build <BUILD DIRECTORY>` in your build directory should update your SDK. If compilation fails, you may need to rebuilding everything by erasing your build directory and restarting your build as explained above.
 
 ## Customizing the build
 

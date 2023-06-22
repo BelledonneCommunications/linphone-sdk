@@ -64,7 +64,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -G '$CMAKE_GENERATOR' $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
+    - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -B $BUILD_DIR -G '$CMAKE_GENERATOR' $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
 
     - echo $LastExitCode
 
@@ -84,7 +84,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "cmake --build --preset=$CMAKE_PRESET --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
+    - Invoke-Expression "cmake --build $BUILD_DIR --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
 
     - if ($EXITS_ON_ERROR_MSVC) { Invoke-Expression "$EXITS_ON_ERROR_MSVC" } else { Write-Output "EXITS_ON_ERROR_MSVC is null" }
 
