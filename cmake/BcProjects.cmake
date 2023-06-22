@@ -80,8 +80,12 @@ if(BUILD_MEDIASTREAMER2)
 	endfunction()
 	add_mediastreamer2()
 
+	set(MEDIASTREAMER2_PLUGINS_TARGETS "")
+
 	if(ENABLE_AAUDIO)
 		add_subdirectory("msaaudio")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS msaaudio)
 	endif()
 	if(ENABLE_AMRNB OR ENABLE_AMRWB)
 		function(add_msamr)
@@ -99,32 +103,46 @@ if(BUILD_MEDIASTREAMER2)
 			add_subdirectory("msamr")
 		endfunction()
 		add_msamr()
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS msamr)
 	else()
 		linphone_sdk_add_dummy_library("msamr")
 	endif()
 	if(ENABLE_CAMERA2)
 		add_subdirectory("msandroidcamera2")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS msandroidcamera2)
 	endif()
 	if(ENABLE_CODEC2)
 		add_subdirectory("mscodec2")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mscodec2)
 	else()
 		linphone_sdk_add_dummy_library("mscodec2")
 	endif()
 	if(ENABLE_SILK)
 		add_subdirectory("mssilk")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mssilk)
 	else()
 		linphone_sdk_add_dummy_library("mssilk")
 	endif()
 	if(ENABLE_OBOE)
 		add_subdirectory("msoboe")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS msoboe)
 	endif()
 	if(ENABLE_OPENH264)
 		add_subdirectory("msopenh264")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS msopenh264)
 	else()
 		linphone_sdk_add_dummy_library("msopenh264")
 	endif()
 	if(ENABLE_WASAPI)
 		add_subdirectory("mswasapi")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mswasapi)
 	endif()
 	if(ENABLE_WEBRTC_AEC OR ENABLE_WEBRTC_AECM OR ENABLE_WEBRTC_VAD OR ENABLE_ILBC OR ENABLE_ISAC)
 		function(add_mswebrtc)
@@ -147,11 +165,22 @@ if(BUILD_MEDIASTREAMER2)
 			add_subdirectory("mswebrtc")
 		endfunction()
 		add_mswebrtc()
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mswebrtc)
 	else()
 		linphone_sdk_add_dummy_library("mswebrtc")
 	endif()
 	if(ENABLE_MSWINRTVIDEO)
 		add_subdirectory("mswinrtvid")
+
+		list(APPEND MEDIASTREAMER2_PLUGINS_TARGETS mswinrtvid)
+	endif()
+
+	# This custom target's goal is to build the mediastreamer2 plugins before
+	# running a tester that needs them since testers do not depend on them.
+	add_custom_target(mediastreamer2-plugins)
+	if(MEDIASTREAMER2_PLUGINS_TARGETS)
+		add_dependencies(mediastreamer2-plugins ${MEDIASTREAMER2_PLUGINS_TARGETS})
 	endif()
 endif()
 
@@ -203,8 +232,23 @@ if(BUILD_LIBLINPHONE)
 	if(NOT ENABLE_UNIT_TESTS)
 		linphone_sdk_add_dummy_library("linphonetester")
 	endif()
-endif()
 
-if(ENABLE_EKT_SERVER_PLUGIN)
-	add_subdirectory("ekt-server")
+	set(LIBLINPHONE_PLUGINS_TARGETS "")
+
+	if(ENABLE_EXAMPLE_PLUGIN)
+		list(APPEND LIBLINPHONE_PLUGINS_TARGETS exampleplugin)
+	endif()
+
+	if(ENABLE_EKT_SERVER_PLUGIN)
+		add_subdirectory("ekt-server")
+
+		list(APPEND LIBLINPHONE_PLUGINS_TARGETS ektserver)
+	endif()
+
+	# This custom target's goal is to build the liblinphone plugins before
+	# running a tester that needs them since testers do not depend on them.
+	add_custom_target(liblinphone-plugins)
+	if(LIBLINPHONE_PLUGINS_TARGETS)
+		add_dependencies(liblinphone-plugins ${LIBLINPHONE_PLUGINS_TARGETS})
+	endif()
 endif()
