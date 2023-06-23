@@ -24,6 +24,8 @@ cmake_minimum_required(VERSION 3.22)
 
 project(MSWASAPI VERSION "1.1.1" LANGUAGES CXX)
 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
+
 set(MSWASAPI_SO_VERSION "0")
 
 option(ENABLE_STRICT "Build with strict compile options." YES)
