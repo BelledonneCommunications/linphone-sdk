@@ -78,13 +78,18 @@ public:
 	void doSomething() {
 		throw BctbxException("Unimplemented");
 	}
+	void setState(State state) {
+		mState = state;
+	}
 	Event *clone() const {
 		return new Event(*this);
 	}
 
-protected:
 	Event(const Event &orig) : HybridObject<LinphoneEvent, Event>(orig) {
 		mState = orig.mState;
+	}
+	Event(Event &&other) : HybridObject<LinphoneEvent, Event>(std::move(other)) {
+		mState = other.mState;
 	}
 	//~Event() = default; //we shouls have the destructor private but in order to test the delete exception
 	// we'll make it public.
@@ -242,6 +247,16 @@ static void dual_object_in_weak_ptr(void) {
 	BC_ASSERT_TRUE(ev_weak.lock() == nullptr);
 }
 
+static void dual_object_move(void) {
+	Event ev;
+
+	ev.setState(Event::Subscribed);
+
+	std::shared_ptr<Event> evptr = Event::create(std::move(ev));
+	BC_ASSERT_TRUE(evptr->getState() == Event::Subscribed);
+	evptr.reset();
+}
+
 static void main_loop_cpp_do_later(void) {
 	int test = 0;
 	belle_sip_main_loop_t *ml = belle_sip_main_loop_new();
@@ -261,6 +276,7 @@ static test_t object_tests[] = {
     TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis()", dual_object_shared_from_this),
     TEST_NO_TAG("Hybrid C/C++ object with sharedFromThis() from C object", dual_object_shared_from_this_from_c),
     TEST_NO_TAG("Hybrid C/C++ object with in a weak_ptr", dual_object_in_weak_ptr),
+    TEST_NO_TAG("Hybrid C/C++ object with move", dual_object_move),
     TEST_NO_TAG("Mainloop's do_later in c++", main_loop_cpp_do_later)};
 
 test_suite_t object_test_suite = {"Object",

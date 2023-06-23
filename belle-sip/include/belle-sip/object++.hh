@@ -57,11 +57,12 @@ protected:
 	virtual ~Object(); /*the destructor must be kept protected, never public, including for all classes inherting from
 	                      this*/
 	Object(const Object &other);
+	Object(Object &&other);
 	void constUnref() const;
 
 private:
 	void init();
-	mutable belle_sip_cpp_object_t mObject;
+	mutable belle_sip_cpp_object_t mObject{};
 	belle_sip_error_code marshal(char *buff, size_t buff_size, size_t *offset);
 };
 
@@ -201,9 +202,11 @@ public:
 
 protected:
 	virtual ~HybridObject() = default;
-	HybridObject() {
-	}
+	HybridObject() = default;
 	HybridObject(const HybridObject<_CType, _CppType> &other) : Object(other) {
+	}
+	HybridObject(HybridObject<_CType, _CppType> &&other) : Object(std::move(other)) {
+		/* mSelf not stolen*/
 	}
 
 private:

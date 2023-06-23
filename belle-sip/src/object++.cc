@@ -57,13 +57,11 @@ public:
 };
 
 void Object::init() {
-	static bool offsetDefined = false;
-	belle_sip_object_vptr_t *vptr = belle_sip_cpp_object_t_vptr_get();
-	if (!offsetDefined) {
+	static belle_sip_object_vptr_t *vptr = nullptr;
+	if (!vptr) {
+		vptr = belle_sip_cpp_object_t_vptr_get();
 		vptr->cpp_offset = (int)((intptr_t)&mObject - (intptr_t)this);
-		offsetDefined = true;
 	}
-	memset(&mObject, 0, sizeof(mObject)); /*the new allocator does not zero the memory*/
 	_belle_sip_object_init(&mObject, vptr);
 }
 
@@ -74,6 +72,15 @@ Object::Object() {
 Object::Object(const Object &other) {
 	init();
 	mObject.vptr->get_parent()->clone(&mObject, &other.mObject); /*belle_sip_object_t own's clone method*/
+}
+
+Object::Object(Object &&other) {
+	init();
+	mObject.name = other.mObject.name;
+	mObject.data_store = other.mObject.data_store;
+	other.mObject.name = nullptr;
+	other.mObject.data_store = nullptr;
+	/* TODO: Warn if weak_refs are non null. It doesn't make sense to move an object that has weak_refs */
 }
 
 Object::~Object() {
