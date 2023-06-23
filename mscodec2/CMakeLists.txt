@@ -24,6 +24,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(MSCODEC2 VERSION 0.1 LANGUAGES C)
 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
 set(MSCODEC2_VERSION "${PROJECT_VERSION}")
 
