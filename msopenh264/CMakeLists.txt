@@ -23,6 +23,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(msopenh264 VERSION 1.2.1 LANGUAGES CXX)
 
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/mediastreamer2/plugins")
 
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
