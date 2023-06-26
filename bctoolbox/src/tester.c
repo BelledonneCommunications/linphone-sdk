@@ -144,8 +144,8 @@ void bc_tester_set_process_events_func(void (*func)(void)) {
 	process_events = func;
 }
 
-void bc_tester_process_events(void){
-	if( process_events) process_events();
+void bc_tester_process_events(void) {
+	if (process_events) process_events();
 }
 
 static void (*tester_printf_va)(int level, const char *format, va_list args) = NULL;
@@ -1232,6 +1232,7 @@ static void detect_res_prefix(const char *prog) {
 		writable_file = fopen(writable_file_path, "w");
 		if (writable_file) {
 			fclose(writable_file);
+			unlink(writable_file_path);
 		}
 		bctbx_free(writable_file_path);
 	}
