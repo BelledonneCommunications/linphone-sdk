@@ -325,7 +325,7 @@ static void media_stream_configure_stun_packet_sending(MediaStream *stream) {
 void media_stream_enable_dtls(MediaStream *stream, const MSDtlsSrtpParams *params) {
 	if (stream->sessions.dtls_context == NULL) {
 		MSDtlsSrtpParams params_copy = *params;
-		ms_message("Start DTLS media stream context in stream session [%p]", &(stream->sessions));
+		ms_message("Create DTLS media stream context in stream session [%p]", &(stream->sessions));
 		if (params_copy.mtu == 0) params_copy.mtu = ms_factory_get_mtu(stream->factory);
 
 		stream->sessions.dtls_context = ms_dtls_srtp_context_new(&(stream->sessions), &params_copy);

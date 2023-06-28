@@ -98,7 +98,7 @@ DtlsBcToolBoxContext *ms_dtls_srtp_bctbx_context_new(void) {
 	ctx->pkey = bctbx_signing_key_new();
 	ctx->crt = bctbx_x509_certificate_new();
 	ctx->ssl_config = bctbx_ssl_config_new();
-	ctx->ssl = bctbx_ssl_context_new();
+	ctx->ssl = NULL;
 	ms_mutex_init(&(ctx->ssl_context_mutex), NULL);
 
 	return ctx;
@@ -400,6 +400,7 @@ static bool_t ms_dtls_srtp_process_dtls_packet(mblk_t *msg, MSDtlsSrtpContext *c
 				    ctx, MSDtlsSrtpRoleIsServer); /* this call will update role and complete server setup */
 				ms_dtls_srtp_start(
 				    ctx); /* complete the ssl setup and change channel_status to DTLS_STATUS_HANDSHAKE_ONGOING */
+				ssl = ctx->rtp_dtls_context->ssl;
 			}
 			ms_mutex_lock(mutex);
 			/* process the packet and store result */
@@ -662,9 +663,7 @@ static void ms_dtls_srtp_set_transport(MSDtlsSrtpContext *userData, RtpSession *
 	userData->rtp_modifier = rtp_modifier;
 }
 
-static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtlsContext,
-                                                      MSDtlsSrtpParams *params,
-                                                      BCTBX_UNUSED(RtpSession *s)) {
+static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtlsContext, MSDtlsSrtpParams *params) {
 	int ret;
 	bctbx_dtls_srtp_profile_t dtls_srtp_protection_profiles[2] = {BCTBX_SRTP_AES128_CM_HMAC_SHA1_80,
 	                                                              BCTBX_SRTP_AES128_CM_HMAC_SHA1_32};
@@ -709,6 +708,18 @@ static int ms_dtls_srtp_initialise_bctbx_dtls_context(DtlsBcToolBoxContext *dtls
 	/* we are not ready yet to actually start the ssl context, this will be done by calling bctbx_ssl_context_setup when
 	 * stream starts */
 	return 0;
+}
+
+static void ms_dtls_srtp_create_ssl_context(MSDtlsSrtpContext *context) {
+	/* create the ssl context for this connection */
+	if (context->rtp_dtls_context->ssl != NULL) {
+		bctbx_ssl_context_free(context->rtp_dtls_context->ssl);
+	}
+	context->rtp_dtls_context->ssl = bctbx_ssl_context_new();
+
+	/* set ssl transport functions */
+	bctbx_ssl_set_io_callbacks(context->rtp_dtls_context->ssl, context, ms_dtls_srtp_rtp_sendData,
+	                           ms_dtls_srtp_rtp_DTLSread);
 }
 
 /***********************************************/
@@ -839,14 +850,11 @@ MSDtlsSrtpContext *ms_dtls_srtp_context_new(MSMediaStreamSessions *sessions, MSD
 	userData->rtp_agreed_srtp_protection_profile = MS_CRYPTO_SUITE_INVALID;
 	ms_dtls_srtp_set_transport(userData, s);
 
-	ret = ms_dtls_srtp_initialise_bctbx_dtls_context(rtp_dtls_context, params, s);
+	ret = ms_dtls_srtp_initialise_bctbx_dtls_context(rtp_dtls_context, params);
 	if (ret != 0) {
 		ms_error("DTLS init error : rtp bctoolbox context init returned -0x%0x on stream session [%p]", -ret, sessions);
 		return NULL;
 	}
-
-	/* set ssl transport functions */
-	bctbx_ssl_set_io_callbacks(rtp_dtls_context->ssl, userData, ms_dtls_srtp_rtp_sendData, ms_dtls_srtp_rtp_DTLSread);
 
 	userData->rtp_channel_status = DTLS_STATUS_CONTEXT_READY;
 
@@ -868,6 +876,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext *context) {
 	/* if we are client, start the handshake(send a clientHello) */
 	if (context->role == MSDtlsSrtpRoleIsClient) {
 		ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+		ms_dtls_srtp_create_ssl_context(context);
 		bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_CLIENT);
 		/* complete ssl setup*/
 		bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
@@ -883,6 +892,7 @@ void ms_dtls_srtp_start(MSDtlsSrtpContext *context) {
 	if (context->role == MSDtlsSrtpRoleIsServer) {
 		if (context->rtp_channel_status == DTLS_STATUS_CONTEXT_READY) {
 			ms_mutex_lock(&context->rtp_dtls_context->ssl_context_mutex);
+			ms_dtls_srtp_create_ssl_context(context);
 			bctbx_ssl_config_set_endpoint(context->rtp_dtls_context->ssl_config, BCTBX_SSL_IS_SERVER);
 			/* complete ssl setup*/
 			bctbx_ssl_context_setup(context->rtp_dtls_context->ssl, context->rtp_dtls_context->ssl_config);
