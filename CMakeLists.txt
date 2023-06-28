@@ -97,6 +97,10 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 		include("cmake/TunnelClone.cmake")
 	endif()
 
+	# Need to activate ASM and ASM_NASM at the top level and in this order to workaround a bug of CMake
+	enable_language(ASM)
+	enable_language(ASM_NASM)
+
 	include("cmake/ExternalDependencies.cmake")
 	include("cmake/BcProjects.cmake")
 
