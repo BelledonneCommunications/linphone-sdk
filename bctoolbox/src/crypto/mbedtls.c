@@ -864,6 +864,7 @@ bctbx_ssl_context_t *bctbx_ssl_context_new(void) {
 }
 
 void bctbx_ssl_context_free(bctbx_ssl_context_t *ssl_ctx) {
+	if (ssl_ctx == NULL) return;
 	mbedtls_ssl_free(&(ssl_ctx->ssl_ctx));
 	bctbx_free(ssl_ctx);
 }
