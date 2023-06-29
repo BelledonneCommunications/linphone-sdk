@@ -231,6 +231,36 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	AAudioStreamBuilder_delete(builder);
+	if (octx->stream == nullptr) {
+		return;
+	}
+
+	aaudio_stream_state_t inputState = AAudioStream_getState(octx->stream);
+	ms_message("[AAudio Player] Current state is %i / %s", inputState, AAudio_convertStreamStateToText(inputState));
+
+	if (inputState == AAUDIO_STREAM_STATE_STARTING) {
+		aaudio_stream_state_t nextState = inputState;
+		int tries = 0;
+		do {
+			ms_usleep(10000); // Wait 10ms
+
+			// Waiting more than 0ns can cause a crash
+			aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, 0);
+			if (result != AAUDIO_OK && result != AAUDIO_ERROR_TIMEOUT) {
+				ms_error("[AAudio Player] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
+				break;
+			}
+
+			tries += 1;
+		} while (nextState == inputState && tries < 10);
+		ms_message("[AAudio Player] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
+	}
+
+	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
+		ms_message("[AAudio Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
+		JNIEnv *env = ms_get_jni_env();
+		ms_android_hack_volume(env);
+	}
 }
 
 static void aaudio_player_close(AAudioOutputContext *octx) {
@@ -257,6 +287,7 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 static void android_snd_write_preprocess(MSFilter *obj) {
 	AAudioOutputContext *octx = (AAudioOutputContext*)obj->data;
 	
+	ms_mutex_lock(&octx->stream_mutex);
 	if ((ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
 		ms_message("[AAudio Player] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
 		octx->bluetoothScoStarted = true;
@@ -266,6 +297,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	}
 
 	aaudio_player_init(octx);
+	ms_mutex_unlock(&octx->stream_mutex);
 }
 
 static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
@@ -321,7 +353,6 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 
 	ms_mutex_lock(&octx->stream_mutex);
 	aaudio_player_close(octx);
-	ms_mutex_unlock(&octx->stream_mutex);
 	
 	if (octx->bluetoothScoStarted) {
 		ms_message("[AAudio Player] We previously started SCO in Android's AudioManager, stopping it now");
@@ -330,6 +361,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		JNIEnv *env = ms_get_jni_env();
 		ms_android_set_bt_enable(env, FALSE);
 	}
+	ms_mutex_unlock(&octx->stream_mutex);
 }
 
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
@@ -349,7 +381,6 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 			aaudio_player_close(octx);
 		}
 
-		JNIEnv *env = ms_get_jni_env();
 		bool bluetoothSoundDevice = (ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
 		if (bluetoothSoundDevice != octx->bluetoothScoStarted) {
 			if (bluetoothSoundDevice) {
@@ -358,6 +389,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 				ms_message("[AAudio Player] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
 			}
 
+			JNIEnv *env = ms_get_jni_env();
 			ms_android_set_bt_enable(env, bluetoothSoundDevice);
 			octx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
@@ -368,31 +400,6 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 			return -1;
 		}
 
-		aaudio_stream_state_t inputState = AAudioStream_getState(octx->stream);
-		ms_message("[AAudio Player] Current state is %i / %s", inputState, AAudio_convertStreamStateToText(inputState));
-
-		if (inputState == AAUDIO_STREAM_STATE_STARTING) {
-			aaudio_stream_state_t nextState = inputState;
-			int tries = 0;
-			do {
-				ms_usleep(10000); // Wait 10ms
-
-				// Waiting more than 0ns can cause a crash
-				aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, 0);
-				if (result != AAUDIO_OK && result != AAUDIO_ERROR_TIMEOUT) {
-					ms_error("[AAudio Player] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
-					break;
-				}
-
-				tries += 1;
-			} while (nextState == inputState && tries < 10);
-			ms_message("[AAudio Player] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
-		}
-
-		if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
-			ms_message("[AAudio Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
-			ms_android_hack_volume(env);
-		}
 		ms_mutex_unlock(&octx->stream_mutex);
 	}
 	return 0;
