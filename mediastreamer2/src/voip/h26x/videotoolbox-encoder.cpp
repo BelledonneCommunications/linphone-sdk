@@ -48,7 +48,8 @@ void VideoToolboxEncoder::Frame::insert(MSQueue *q) {
 	}
 }
 
-VideoToolboxEncoder::VideoToolboxEncoder(const string &mime) : H26xEncoder(mime) {
+VideoToolboxEncoder::VideoToolboxEncoder(const string &mime, int payloadMaxSize) : H26xEncoder(mime) {
+	_payloadMaxSize = payloadMaxSize;
 	_vsize.width = 0;
 	_vsize.height = 0;
 	ms_mutex_init(&_mutex, nullptr);
@@ -111,6 +112,26 @@ void VideoToolboxEncoder::start() {
 		if (err != noErr) {
 			vt_enc_warning("could not enable real-time mode: %s", toString(err).c_str());
 		}
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
+		if (err != noErr) {
+			vt_enc_warning("could not set kVTCompressionPropertyKey_AllowFrameReordering: %s", toString(err).c_str());
+		}
+
+		int max_frame_count = 1;
+		value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &max_frame_count);
+
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_MaxFrameDelayCount, value);
+		if (err != noErr) {
+			vt_enc_warning("could not set kVTCompressionPropertyKey_MaxFrameDelayCount: %s", toString(err).c_str());
+		}
+		CFRelease(value);
+
+		value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &_payloadMaxSize);
+		err = VTSessionSetProperty(_session, kVTCompressionPropertyKey_MaxH264SliceBytes, value);
+		if (err != noErr) {
+			vt_enc_warning("could not set kVTCompressionPropertyKey_MaxH264SliceBytes: %s", toString(err).c_str());
+		}
+		CFRelease(value);
 
 		applyFramerate();
 		applyBitrate();
@@ -227,12 +248,14 @@ void VideoToolboxEncoder::applyFramerate() {
 void VideoToolboxEncoder::applyBitrate() {
 	OSStatus status;
 
+	vt_enc_message("setting output bitrate to [%i] bits/s", _bitrate);
 	CFNumberRef value = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &_bitrate);
 	status = VTSessionSetProperty(_session, kVTCompressionPropertyKey_AverageBitRate, value);
 	CFRelease(value);
 	if (status != noErr) {
 		ostringstream msg;
 		msg << "error while setting kVTCompressionPropertyKey_AverageBitRate: " << toString(status);
+		vt_enc_error("%s : %i bits/s", msg.str().c_str(), _bitrate);
 		throw runtime_error(msg.str());
 	}
 
@@ -250,6 +273,7 @@ void VideoToolboxEncoder::applyBitrate() {
 	if (status != noErr) {
 		ostringstream msg;
 		msg << "error while setting kVTCompressionPropertyKey_DataRateLimits: " << toString(status);
+		vt_enc_error("%s", msg.str().c_str());
 		throw runtime_error(msg.str());
 	}
 }
