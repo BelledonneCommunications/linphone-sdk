@@ -85,20 +85,13 @@ static void resample_uninit(MSFilter *obj) {
 }
 
 static int resample_channel_adapt(int in_nchannels, int out_nchannels, mblk_t *im, mblk_t **om) {
-	if ((in_nchannels == 2) && (out_nchannels == 1)) {
-		size_t msgsize = msgdsize(im) / 2;
+	if(out_nchannels != in_nchannels) {
+		size_t msgsize = msgdsize(im) * out_nchannels / in_nchannels ;	// Allocate memory for all out channels.
 		*om = allocb(msgsize, 0);
-		for (; im->b_rptr < im->b_wptr; im->b_rptr += 4, (*om)->b_wptr += 2) {
-			*(int16_t *)(*om)->b_wptr = *(int16_t *)im->b_rptr;
-		}
-		mblk_meta_copy(im, *om);
-		return 1;
-	} else if ((in_nchannels == 1) && (out_nchannels == 2)) {
-		size_t msgsize = msgdsize(im) * 2;
-		*om = allocb(msgsize, 0);
-		for (; im->b_rptr < im->b_wptr; im->b_rptr += 2, (*om)->b_wptr += 4) {
-			((int16_t *)(*om)->b_wptr)[0] = *(int16_t *)im->b_rptr;
-			((int16_t *)(*om)->b_wptr)[1] = *(int16_t *)im->b_rptr;
+		// Copy first input channel into all output channels. We don't care about other input channels because stereo is not fully supported (because of echo canceller, volume controller, ...)
+		for (; im->b_rptr < im->b_wptr; im->b_rptr += sizeof(int16_t)*in_nchannels, (*om)->b_wptr += sizeof(int16_t)*out_nchannels) {
+			for(int i = 0 ; i < out_nchannels ; ++i)
+				((int16_t *)(*om)->b_wptr)[i] = *(int16_t *)im->b_rptr;
 		}
 		mblk_meta_copy(im, *om);
 		return 1;
@@ -116,8 +109,8 @@ static void resample_init_speex(ResampleData *dt) {
 	quality = SPEEX_RESAMPLER_QUALITY_MIN;
 #endif /*SPEEX_LIB_SET_CPU_FEATURES*/
 #endif /*MS_HAS_ARM*/
-	ms_message("Initializing speex resampler in mode [%s] ",
-	           (quality == SPEEX_RESAMPLER_QUALITY_VOIP ? "voip" : "min"));
+	ms_message("Initializing speex resampler in mode [%s] from %d channels",
+	           (quality==SPEEX_RESAMPLER_QUALITY_VOIP?"voip":"min"), dt->in_nchannels);
 	dt->handle = speex_resampler_init(dt->in_nchannels, dt->input_rate, dt->output_rate, quality, &err);
 }
 
