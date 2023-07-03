@@ -52,6 +52,13 @@ set(HEADER_FILES
 	wakelock.h
 )
 
+# Fix for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108667 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+		AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.1.0
+		AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+	set_source_files_properties(mainloop.h PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
+endif()
+
 set(BELLE_SIP_HEADER_FILES )
 foreach(HEADER_FILE ${HEADER_FILES})
 	list(APPEND BELLE_SIP_HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/belle-sip/${HEADER_FILE}")
