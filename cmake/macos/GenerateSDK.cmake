@@ -23,17 +23,10 @@ include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 file(READ "${LINPHONESDK_ENABLED_FEATURES_FILENAME}" LINPHONESDK_ENABLED_FEATURES)
 string(REGEX MATCH " \\* Video, " ENABLE_VIDEO "${LINPHONESDK_ENABLED_FEATURES}")
 
-if("${ENABLE_VIDEO}" STREQUAL "")
-	set(LINPHONESDK_NAME "linphone-sdk-novideo")
-else()
-	set(LINPHONESDK_NAME "linphone-sdk")
-endif()
-
 
 # Create the zip file of the SDK
-set(INSTALL_FOLDER "mac") # Used to podspec
 execute_process(
-	COMMAND "zip" "-r" "--symlinks" "${LINPHONESDK_NAME}-macos-${LINPHONESDK_VERSION}.zip" "linphone-sdk/${INSTALL_FOLDER}"
+	COMMAND "zip" "-r" "--symlinks" "${LINPHONESDK_NAME}-macos-${LINPHONESDK_VERSION}.zip" "${CMAKE_INSTALL_PREFIX}"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 

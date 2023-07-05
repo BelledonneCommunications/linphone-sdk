@@ -28,6 +28,13 @@ option(ENABLE_FAT_BINARY "Enable fat binary generation using lipo." ON)
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARCHS}" _MACOS_ARCHS)
 
+if(ENABLE_VIDEO)
+	set(LINPHONESDK_NAME "linphone-sdk")
+else()
+	set(LINPHONESDK_NAME "linphone-sdk-novideo")
+endif()
+
+set(_MACOS_INSTALL_DIR "${PROJECT_BINARY_DIR}/${LINPHONESDK_NAME}")
 
 ############################################################################
 # Clean previously generated SDK
@@ -37,7 +44,7 @@ add_custom_target(clean-sdk ALL
   COMMAND "${CMAKE_COMMAND}"
     "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}"
     "-DLINPHONESDK_BUILD_DIR=${PROJECT_BINARY_DIR}"
-    "-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}"
+    "-DCMAKE_INSTALL_PREFIX=${_MACOS_INSTALL_DIR}"
     "-P" "${PROJECT_SOURCE_DIR}/cmake/macos/CleanSDK.cmake"
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Cleaning SDK"
@@ -55,7 +62,7 @@ linphone_sdk_get_enable_cmake_args(_MACOS_CMAKE_ARGS)
 set(_MACOS_TARGETS)
 foreach(_MACOS_ARCH IN LISTS _MACOS_ARCHS)
 	set(_MACOS_ARCH_BINARY_DIR "${PROJECT_BINARY_DIR}/mac-${_MACOS_ARCH}")
-	set(_MACOS_ARCH_INSTALL_DIR "${PROJECT_BINARY_DIR}/linphone-sdk/mac-${_MACOS_ARCH}")
+	set(_MACOS_ARCH_INSTALL_DIR "${_MACOS_INSTALL_DIR}/mac-${_MACOS_ARCH}")
   add_custom_target(mac-${_MACOS_ARCH} ALL
     COMMAND ${CMAKE_COMMAND} --preset=mac-${_MACOS_ARCH} -B ${_MACOS_ARCH_BINARY_DIR} ${_CMAKE_CONFIGURE_ARGS} ${_MACOS_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${_MACOS_ARCH_INSTALL_DIR}
     COMMAND ${CMAKE_COMMAND} --build ${_MACOS_ARCH_BINARY_DIR} --target install ${_CMAKE_BUILD_ARGS}
@@ -78,7 +85,8 @@ add_custom_target(gen-frameworks ALL
     "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}"
     "-DLINPHONESDK_BUILD_DIR=${PROJECT_BINARY_DIR}"
     "-DLINPHONESDK_MACOS_ARCHS=${LINPHONESDK_MACOS_ARCHS}"
-    "-DCMAKE_INSTALL_PREFIX=${PROJECT_BINARY_DIR}/linphone-sdk/mac"
+    "-DLINPHONESDK_NAME=${LINPHONESDK_NAME}"
+    "-DCMAKE_INSTALL_PREFIX=${_MACOS_INSTALL_DIR}/mac"
     "-DENABLE_FAT_BINARY=${ENABLE_FAT_BINARY}"
     "-P" "${PROJECT_SOURCE_DIR}/cmake/macos/GenerateFrameworks.cmake"
 	DEPENDS ${_MACOS_TARGETS}
@@ -102,6 +110,8 @@ add_custom_target(sdk ALL
     "-DLINPHONESDK_ENABLED_FEATURES_FILENAME=${CMAKE_BINARY_DIR}/enabled_features.txt"
     "-DLINPHONESDK_MACOS_ARCHS=${LINPHONESDK_MACOS_ARCHS}"
     "-DLINPHONESDK_MACOS_BASE_URL=${LINPHONESDK_MACOS_BASE_URL}"
+    "-DLINPHONESDK_NAME=${LINPHONESDK_NAME}"
+    "-DCMAKE_INSTALL_PREFIX=${_MACOS_INSTALL_DIR}/mac"
     "-DENABLE_FAT_BINARY=${ENABLE_FAT_BINARY}"
     "-P" "${PROJECT_SOURCE_DIR}/cmake/macos/GenerateSDK.cmake"
   DEPENDS gen-frameworks

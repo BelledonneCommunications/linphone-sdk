@@ -30,25 +30,18 @@ include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 # calls with a single COMMAND argument."
 #
 
-if(ENABLE_VIDEO)
-	set(LINPHONESDK_NAME "linphone-sdk")
-else()
-	set(LINPHONESDK_NAME "linphone-sdk-novideo")
-endif()
-
-
 # Create the zip file of the SDK
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${LINPHONESDK_NAME}/apple-darwin/Tools"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}/Tools"
 )
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${LINPHONESDK_NAME}/apple-darwin/Tools"
+	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}/Tools"
 )
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "${LINPHONESDK_NAME}/apple-darwin/Tools"
+	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "${CMAKE_INSTALL_PREFIX}/Tools"
 )
 execute_process(
-	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "${LINPHONESDK_NAME}/apple-darwin"
+	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "${CMAKE_INSTALL_PREFIX}"
 )
 
 # Generate podspec file
