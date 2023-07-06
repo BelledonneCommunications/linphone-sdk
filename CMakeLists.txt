@@ -61,7 +61,7 @@ endif()
 set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "Macos" "UWP" "Yocto")
 
 set(LINPHONESDK_BUILD_TYPE "Default" CACHE STRING "Type of build")
-set_property(CACHE LINPHONESDK_BUILD_TYPE PROPERTY STRINGS "Default" "Android" "Flexisip" "IOS" "UWP" "Windows")
+set_property(CACHE LINPHONESDK_BUILD_TYPE PROPERTY STRINGS "Default" "Android" "Flexisip" "IOS" "Macos" "UWP" "Windows")
 
 set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
 set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
