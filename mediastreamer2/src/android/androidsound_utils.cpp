@@ -241,8 +241,6 @@ void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable) {
 }
 
 void ms_android_hack_volume(JNIEnv *env) {
-	if (ms_android_is_audio_route_changes_disabled(env)) return;
-
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
 	if (mediastreamerAndroidContextClass != NULL) {
 		jmethodID hackVolume = env->GetStaticMethodID(mediastreamerAndroidContextClass, "hackVolume", "()V");
