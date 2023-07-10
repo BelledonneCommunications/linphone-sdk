@@ -88,7 +88,7 @@ endif()
 include("cmake/Platform${LINPHONESDK_PLATFORM}.cmake")
 
 if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL "Flexisip")
-
+	add_custom_target(sdk)
 	if(ENABLE_EKT_SERVER_PLUGIN)
 		include("cmake/EktServerClone.cmake")
 	endif()
