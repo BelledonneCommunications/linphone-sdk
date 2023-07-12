@@ -29,8 +29,10 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 
 struct AAudioOutputContext {
 	AAudioOutputContext(MSFilter *f) {
+		sound_utils = ms_android_sound_utils_create();
 		mFilter = f;
-		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
+		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
+		ms_flow_controlled_bufferizer_init(&buffer, f, sample_rate, 1);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
 		soundCard = nullptr;
@@ -47,11 +49,12 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_uninit(&buffer);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
+		ms_android_sound_utils_release(sound_utils);
 	}
 	
 	void setContext(AAudioContext *context) {
 		aaudio_context = context;
-		ms_flow_controlled_bufferizer_set_samplerate(&buffer, aaudio_context->samplerate);
+		// Sample rate has already been set
 		ms_flow_controlled_bufferizer_set_nchannels(&buffer, aaudio_context->nchannels);
 		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
 		ms_flow_controlled_bufferizer_set_flow_control_interval_ms(&buffer, flowControlIntervalMs);
@@ -86,6 +89,7 @@ struct AAudioOutputContext {
 		}
 	}
 
+	AndroidSoundUtils* sound_utils;
 	AAudioContext *aaudio_context;
 	AAudioStream *stream;
 	ms_mutex_t stream_mutex;
@@ -98,6 +102,7 @@ struct AAudioOutputContext {
 	aaudio_usage_t usage;
 	aaudio_content_type_t content_type;
 
+	int sample_rate;
 	int32_t bufferCapacity;
 	int32_t prevXRunCount;
 	int32_t bufferSize;
@@ -126,7 +131,7 @@ static int android_snd_write_set_sample_rate(MSFilter *obj, void *data) {
 static int android_snd_write_get_sample_rate(MSFilter *obj, void *data) {
 	int *n = (int*)data;
 	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
-	*n = octx->aaudio_context->samplerate;
+	*n = octx->sample_rate;
 	return 0;
 }
 
@@ -179,7 +184,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
 	ms_message("[AAudio Player] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-	AAudioStreamBuilder_setSampleRate(builder, octx->aaudio_context->samplerate);
+	AAudioStreamBuilder_setSampleRate(builder, octx->sample_rate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);
 	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
 	AAudioStreamBuilder_setChannelCount(builder, octx->aaudio_context->nchannels);
@@ -189,7 +194,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder_setUsage(builder, octx->usage); // Requires NDK build target of 28 instead of 26 !
 	AAudioStreamBuilder_setContentType(builder, octx->content_type); // Requires NDK build target of 28 instead of 26 !
 
-	ms_message("[AAudio Player] Player stream configured with samplerate %i and %i channels", octx->aaudio_context->samplerate, octx->aaudio_context->nchannels);
+	ms_message("[AAudio Player] Player stream configured with samplerate %i and %i channels", octx->sample_rate, octx->aaudio_context->nchannels);
 	
 	result = AAudioStreamBuilder_openStream(builder, &(octx->stream));
 	if (result != AAUDIO_OK && !octx->stream) {
@@ -258,8 +263,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 
 	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
 		ms_message("[AAudio Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_hack_volume(env);
+		ms_android_sound_utils_hack_volume(octx->sound_utils);
 	}
 }
 
@@ -291,9 +295,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	if ((ms_snd_card_get_device_type(octx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
 		ms_message("[AAudio Player] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
 		octx->bluetoothScoStarted = true;
-
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, octx->bluetoothScoStarted);
+		ms_android_sound_utils_enable_bluetooth(octx->sound_utils, octx->bluetoothScoStarted);
 	}
 
 	aaudio_player_init(octx);
@@ -358,8 +360,7 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		ms_message("[AAudio Player] We previously started SCO in Android's AudioManager, stopping it now");
 		octx->bluetoothScoStarted = false;
 		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, FALSE);
+		ms_android_sound_utils_enable_bluetooth(octx->sound_utils, FALSE);
 	}
 	ms_mutex_unlock(&octx->stream_mutex);
 }
@@ -389,8 +390,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 				ms_message("[AAudio Player] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
 			}
 
-			JNIEnv *env = ms_get_jni_env();
-			ms_android_set_bt_enable(env, bluetoothSoundDevice);
+			ms_android_sound_utils_enable_bluetooth(octx->sound_utils, bluetoothSoundDevice);
 			octx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
 

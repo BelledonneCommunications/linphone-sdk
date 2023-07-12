@@ -24,17 +24,13 @@
 #include <mediastreamer2/android_utils.h>
 #include <mediastreamer2/mssndcard.h>
 
-extern int DeviceFavoriteSampleRate;
-
 struct AAudioContext {
 	AAudioContext() {
-		samplerate = DeviceFavoriteSampleRate;
 		nchannels = 1;
 		builtin_aec = false;
 		device_changed = false;
 	}
 
-	int samplerate;
 	int nchannels;
 	bool builtin_aec;
 	bool device_changed;

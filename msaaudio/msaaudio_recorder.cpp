@@ -24,6 +24,8 @@
 
 struct AAudioInputContext {
 	AAudioInputContext() {
+		sound_utils = ms_android_sound_utils_create();
+		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		qinit(&q);
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&stream_mutex, NULL);
@@ -41,12 +43,14 @@ struct AAudioInputContext {
 		flushq(&q,0);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
+		ms_android_sound_utils_release(sound_utils);
 	}
 	
 	void setContext(AAudioContext *context) {
 		aaudio_context = context;
 	}
 	
+	AndroidSoundUtils* sound_utils;
 	AAudioContext *aaudio_context;
 	AAudioStream *stream;
 	ms_mutex_t stream_mutex;
@@ -56,6 +60,7 @@ struct AAudioInputContext {
 	MSTickerSynchronizer *mTickerSynchronizer;
 	MSSndCard *soundCard;
 	MSFilter *mFilter;
+	int sample_rate;
 	int64_t read_samples;
 	int32_t samplesPerFrame;
 	double mAvSkew;
@@ -75,7 +80,7 @@ static void android_snd_read_init(MSFilter *obj) {
 	AAudioInputContext *ictx = aaudio_input_context_init();
 	obj->data = ictx;
 
-	bool permissionGranted = ms_android_is_record_audio_permission_granted();
+	bool permissionGranted = ms_android_sound_utils_is_record_audio_permission_granted(ictx->sound_utils);
 	if (!permissionGranted) {
 		ms_error("[AAudio Recorder] RECORD_AUDIO permission hasn't been granted!");
 	}
@@ -115,7 +120,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 	ms_message("[AAudio Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
 	
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
-	AAudioStreamBuilder_setSampleRate(builder, ictx->aaudio_context->samplerate);
+	AAudioStreamBuilder_setSampleRate(builder, ictx->sample_rate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_recorder_callback, ictx);
 	AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
 	AAudioStreamBuilder_setChannelCount(builder, ictx->aaudio_context->nchannels);
@@ -142,7 +147,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_NONE);
 	}
 
-	ms_message("[AAudio Recorder] Record stream configured with samplerate %i and %i channels", ictx->aaudio_context->samplerate, ictx->aaudio_context->nchannels);
+	ms_message("[AAudio Recorder] Record stream configured with samplerate %i and %i channels", ictx->sample_rate, ictx->aaudio_context->nchannels);
 	
 	result = AAudioStreamBuilder_openStream(builder, &(ictx->stream));
 	if (result != AAUDIO_OK && !ictx->stream) {
@@ -178,8 +183,7 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_message("[AAudio Recorder] Session ID is %i, hardware echo canceller can be enabled", ictx->session_id);
 		if (ictx->session_id != AAUDIO_SESSION_ID_NONE) {
 			if (ictx->aec == NULL) {
-				JNIEnv *env = ms_get_jni_env();
-				ictx->aec = ms_android_enable_hardware_echo_canceller(env, ictx->session_id);
+				ictx->aec = ms_android_sound_utils_create_hardware_echo_canceller(ictx->sound_utils, ictx->session_id);
 				ms_message("[AAudio Recorder] Hardware echo canceller enabled");
 			} else {
 				ms_error("[AAudio Recorder] Hardware echo canceller object already created and not released!");
@@ -203,8 +207,7 @@ static void aaudio_recorder_close(AAudioInputContext *ictx) {
 		}
 
 		if (ictx->aec) {
-			JNIEnv *env = ms_get_jni_env();
-			ms_android_delete_hardware_echo_canceller(env, ictx->aec);
+			ms_android_sound_utils_release_hardware_echo_canceller(ictx->sound_utils, ictx->aec);
 			ictx->aec = NULL;
 			ms_message("[AAudio Recorder] Hardware echo canceller deleted");
 		}
@@ -235,9 +238,7 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
 		ms_message("[AAudio Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
 		ictx->bluetoothScoStarted = true;
-
-		JNIEnv *env = ms_get_jni_env();
-		ms_android_set_bt_enable(env, ictx->bluetoothScoStarted);
+		ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, ictx->bluetoothScoStarted);
 	}
 
 	aaudio_recorder_init(ictx);
@@ -301,7 +302,7 @@ static void android_snd_read_process(MSFilter *obj) {
 		ms_queue_put(obj->outputs[0], m);
 	}
 	if (ictx->mTickerSynchronizer != NULL) {
-		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->aaudio_context->samplerate);
+		ictx->mAvSkew = ms_ticker_synchronizer_update(ictx->mTickerSynchronizer, ictx->read_samples, (unsigned int)ictx->sample_rate);
 	}
 	if (obj->ticker->time % 5000 == 0) {
 		ms_message("[AAudio Recorder] sound/wall clock skew is average=%g ms", ictx->mAvSkew);
@@ -326,8 +327,7 @@ static void android_snd_read_postprocess(MSFilter *obj) {
 		ms_message("[AAudio Recorder] We previously started SCO in Android's AudioManager, stopping it now");
 		ictx->bluetoothScoStarted = false;
 		// At the end of a call, postprocess is called therefore here the bluetooth device is disabled
-		JNIEnv *env = ms_get_jni_env();	
-		ms_android_set_bt_enable(env, FALSE);
+		ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, FALSE);
 	}
 
 	ms_mutex_unlock(&ictx->mutex);
@@ -351,7 +351,7 @@ static int android_snd_read_set_sample_rate(MSFilter *obj, void *data) {
 static int android_snd_read_get_sample_rate(MSFilter *obj, void *data) {
 	int *n = (int*)data;
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(obj->data);
-	*n = ictx->aaudio_context->samplerate;
+	*n = ictx->sample_rate;
 	return 0;
 }
 
@@ -392,8 +392,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 				ms_message("[AAudio Recorder] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
 			}
 
-			JNIEnv *env = ms_get_jni_env();
-			ms_android_set_bt_enable(env, bluetoothSoundDevice);
+			ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, bluetoothSoundDevice);
 			ictx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
 		

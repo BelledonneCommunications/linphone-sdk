@@ -28,9 +28,6 @@
 
 static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
 
-// this global variable is shared among all msaaudio files
-int DeviceFavoriteSampleRate = 44100;
-
 static void android_snd_card_detect(MSSndCardManager *m) {
 	JNIEnv *env = ms_get_jni_env();
 
@@ -116,7 +113,7 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 
 		card->latency = deviceDescription->delay;
 		if (deviceDescription->recommended_rate) {
-			card_data->samplerate = deviceDescription->recommended_rate;
+			//card_data->samplerate = deviceDescription->recommended_rate;
 		}
 
 		// Take capabilities into account as the same device type may have different components with different capabilities and IDs
@@ -164,8 +161,6 @@ MS_PLUGIN_DECLARE(void) libmsaaudio_init(MSFactory* factory) {
 	register_aaudio_recorder(factory);
 
 	ms_message("[AAudio] libmsaaudio plugin loaded");
-
-	DeviceFavoriteSampleRate = ms_android_get_preferred_sample_rate();
 
 	const bool loadOk = loadLib();
 
