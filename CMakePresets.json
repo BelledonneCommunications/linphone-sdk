@@ -45,6 +45,7 @@
         "ENABLE_JAVA_WRAPPER": "ON",
         "ENABLE_JNI": "OFF",
         "ENABLE_LDAP": "ON",
+        "ENABLE_AAUDIO": "ON",
         "ENABLE_OBOE": "OFF",
         "ENABLE_RELATIVE_PREFIX": "ON",
         "ENABLE_STRICT": "OFF",
