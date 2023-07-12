@@ -25,20 +25,75 @@
 #include <mediastreamer2/msfilter.h>
 #include <mediastreamer2/mssndcard.h>
 
-/**
- * Retrieve whether or not RECORD_AUDIO permission has been granted.
- **/
-MS2_PUBLIC bool ms_android_is_record_audio_permission_granted();
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct _AndroidSoundUtils {
+	jclass mediastreamerAndroidContextClass;
+	jclass audioDeviceInfoClass;
+
+	jmethodID isRecordAudioPermissionGranted;
+	jmethodID isAudioRouteChangesDisabled;
+	jmethodID startBluetooth;
+	jmethodID stopBluetooth;
+
+	int sdkVersion;
+	int preferredDeviceBufferSize;
+	int preferredDeviceSampleRate;
+};
+
+typedef struct _AndroidSoundUtils AndroidSoundUtils;
 
 /**
- * Retrieve preferred buffer size from Mediastreamer Android Context.
+ * Creates a AndroidSoundUtils struct used for all kind of things related to audio on Android.
  **/
-MS2_PUBLIC int ms_android_get_preferred_buffer_size();
+MS2_PUBLIC AndroidSoundUtils *ms_android_sound_utils_create(void);
 
 /**
- * Retrieve preferred sample rate from Mediastreamer Android Context.
+ * Frees a previously created AndroidSoundUtils struct.
  **/
-MS2_PUBLIC int ms_android_get_preferred_sample_rate();
+MS2_PUBLIC void ms_android_sound_utils_release(AndroidSoundUtils *utils);
+
+bool_t ms_android_sound_utils_is_audio_route_changes_disabled(const AndroidSoundUtils *utils);
+
+/**
+ * Retrieves whether or not RECORD_AUDIO permission has been granted.
+ **/
+MS2_PUBLIC bool ms_android_sound_utils_is_record_audio_permission_granted(const AndroidSoundUtils *utils);
+
+/**
+ * Retrieves preferred buffer size from Mediastreamer Android Context.
+ **/
+MS2_PUBLIC int ms_android_sound_utils_get_preferred_buffer_size(const AndroidSoundUtils *utils);
+
+/**
+ * Retrieves preferred sample rate from Mediastreamer Android Context.
+ **/
+MS2_PUBLIC int ms_android_sound_utils_get_preferred_sample_rate(const AndroidSoundUtils *utils);
+
+/**
+ * Retrieves SDK version the app is running on.
+ **/
+MS2_PUBLIC int ms_android_sound_utils_get_sdk_version(const AndroidSoundUtils *utils);
+
+/**
+ * Make upcalls to enable/disable bluetooth devices from mediastreamer.
+ **/
+MS2_PUBLIC void ms_android_sound_utils_enable_bluetooth(const AndroidSoundUtils *utils, const bool_t enable);
+
+MS2_PUBLIC jobject ms_android_sound_utils_create_hardware_echo_canceller(const AndroidSoundUtils *utils, int sessionID);
+
+MS2_PUBLIC void ms_android_sound_utils_release_hardware_echo_canceller(const AndroidSoundUtils *utils, jobject haec);
+
+/**
+ * Hack required to have volume not set to 0 on some devices
+ **/
+MS2_PUBLIC void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils);
+
+#ifdef __cplusplus
+}
+#endif
 
 /**
  * Retrieve all devices in a given direction.
@@ -80,6 +135,23 @@ MS2_PUBLIC int ms_android_get_sdk_version(JNIEnv *env);
  * Make upcalls to change device from mediastreamer.
  **/
 MS2_PUBLIC void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDeviceType type);
+
+/** Deprecated **/
+
+/**
+ * Retrieve whether or not RECORD_AUDIO permission has been granted.
+ **/
+MS2_PUBLIC bool ms_android_is_record_audio_permission_granted();
+
+/**
+ * Retrieve preferred buffer size from Mediastreamer Android Context.
+ **/
+MS2_PUBLIC int ms_android_get_preferred_buffer_size();
+
+/**
+ * Retrieve preferred sample rate from Mediastreamer Android Context.
+ **/
+MS2_PUBLIC int ms_android_get_preferred_sample_rate();
 
 /**
  * Make upcalls to enable/disable bluetooth devices from mediastreamer.

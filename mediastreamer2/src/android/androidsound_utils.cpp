@@ -20,6 +20,166 @@
 
 #include <mediastreamer2/android_utils.h>
 
+AndroidSoundUtils *ms_android_sound_utils_create(void) {
+	JNIEnv *env = ms_get_jni_env();
+	AndroidSoundUtils *utils = (AndroidSoundUtils *)ms_new0(AndroidSoundUtils, 1);
+
+	jclass contextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (contextClass != nullptr) {
+		utils->mediastreamerAndroidContextClass = (jclass)env->NewGlobalRef(contextClass);
+		env->DeleteLocalRef(contextClass);
+
+		utils->isRecordAudioPermissionGranted =
+		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "isRecordAudioPermissionGranted", "()Z");
+		utils->isAudioRouteChangesDisabled =
+		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "isAudioRouteChangesDisabled", "()Z");
+		utils->startBluetooth =
+		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "startBluetooth", "()V");
+		utils->stopBluetooth = env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "stopBluetooth", "()V");
+	} else {
+		ms_error("[Android Audio Utils] Failed to find org/linphone/mediastream/MediastreamerAndroidContext class!");
+	}
+
+	jclass deviceClass = env->FindClass("android/media/AudioDeviceInfo");
+	if (deviceClass != nullptr) {
+		utils->audioDeviceInfoClass = (jclass)env->NewGlobalRef(deviceClass);
+		env->DeleteLocalRef(deviceClass);
+	} else {
+		ms_error("[Android Audio Utils] Failed to find android/media/AudioDeviceInfo class!");
+	}
+
+	jclass versionClass = env->FindClass("android/os/Build$VERSION");
+	if (versionClass != nullptr) {
+		jfieldID fid = env->GetStaticFieldID(versionClass, "SDK_INT", "I");
+		if (fid != nullptr) {
+			utils->sdkVersion = env->GetStaticIntField(versionClass, fid);
+			ms_message("[Android Audio Utils] SDK version [%i] detected", utils->sdkVersion);
+		} else {
+			ms_error("[Android Audio Utils] Failed to find SDK_INT static field in android/os/Build$VERSION class!");
+		}
+		env->DeleteLocalRef(versionClass);
+	} else {
+		ms_error("[Android Audio Utils] Failed to find android/os/Build$VERSION class!");
+	}
+
+	utils->preferredDeviceBufferSize = -1;
+	jmethodID getBufferSize =
+	    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "getDeviceFavoriteBufferSize", "()I");
+	if (getBufferSize != nullptr) {
+		int buffer_size = (int)env->CallStaticIntMethod(utils->mediastreamerAndroidContextClass, getBufferSize);
+		ms_message("[Android Audio Utils] Device's preferred buffer size is %i", buffer_size);
+		utils->preferredDeviceBufferSize = buffer_size;
+	} else {
+		ms_error("[Android Audio Utils] Failed to find getDeviceFavoriteBufferSize() method from "
+		         "MediastreamerAndroidContext class!");
+	}
+
+	utils->preferredDeviceSampleRate = 44100;
+	;
+	jmethodID getSampleRate =
+	    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
+	if (getSampleRate != nullptr) {
+		int sample_rate = (int)env->CallStaticIntMethod(utils->mediastreamerAndroidContextClass, getSampleRate);
+		ms_message("[Android Audio Utils] Device's preferred sample rate is %i", sample_rate);
+		utils->preferredDeviceSampleRate = sample_rate;
+	} else {
+		ms_error("[Android Audio Utils] Failed to find getDeviceFavoriteSampleRate() method from "
+		         "MediastreamerAndroidContext class!");
+	}
+
+	return utils;
+}
+
+void ms_android_sound_utils_release(AndroidSoundUtils *utils) {
+	JNIEnv *env = ms_get_jni_env();
+
+	env->DeleteGlobalRef(utils->mediastreamerAndroidContextClass);
+	env->DeleteGlobalRef(utils->audioDeviceInfoClass);
+
+	ms_free(utils);
+}
+
+bool ms_android_sound_utils_is_record_audio_permission_granted(const AndroidSoundUtils *utils) {
+	JNIEnv *env = ms_get_jni_env();
+
+	if (utils->isRecordAudioPermissionGranted != nullptr) {
+		jboolean ret = env->CallStaticBooleanMethod(utils->mediastreamerAndroidContextClass,
+		                                            utils->isRecordAudioPermissionGranted);
+		ms_message("[Android Audio Utils] is RECORD_AUDIO permission granted? %i", ret);
+		return (bool)ret;
+	}
+
+	ms_error("[Android Audio Utils] Failed to retrive RECORD_AUDIO permission state from MediastreamerAndroidContext!");
+	return true;
+}
+
+int ms_android_sound_utils_get_preferred_buffer_size(const AndroidSoundUtils *utils) {
+	return utils->preferredDeviceBufferSize;
+}
+
+int ms_android_sound_utils_get_preferred_sample_rate(const AndroidSoundUtils *utils) {
+	return utils->preferredDeviceSampleRate;
+}
+
+int ms_android_sound_utils_get_sdk_version(const AndroidSoundUtils *utils) {
+	return utils->sdkVersion;
+}
+
+bool_t ms_android_sound_utils_is_audio_route_changes_disabled(const AndroidSoundUtils *utils) {
+	JNIEnv *env = ms_get_jni_env();
+
+	if (utils->isAudioRouteChangesDisabled != nullptr) {
+		return (bool)env->CallStaticBooleanMethod(utils->mediastreamerAndroidContextClass,
+		                                          utils->isAudioRouteChangesDisabled);
+	}
+
+	return FALSE;
+}
+
+void ms_android_sound_utils_enable_bluetooth(const AndroidSoundUtils *utils, const bool_t enable) {
+	JNIEnv *env = ms_get_jni_env();
+
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(utils)) {
+		return;
+	}
+
+	jmethodID bluetooth_method = enable ? utils->startBluetooth : utils->stopBluetooth;
+	if (bluetooth_method != nullptr) {
+		env->CallStaticVoidMethod(utils->mediastreamerAndroidContextClass, bluetooth_method);
+		ms_debug("[Android Audio Utils] setting enable for bluetooth devices to %s", (enable) ? "true" : "false");
+	}
+}
+
+jobject ms_android_sound_utils_create_hardware_echo_canceller(BCTBX_UNUSED(const AndroidSoundUtils *utils),
+                                                              int sessionID) {
+	JNIEnv *env = ms_get_jni_env();
+
+	return ms_android_enable_hardware_echo_canceller(env, sessionID);
+}
+
+void ms_android_sound_utils_release_hardware_echo_canceller(BCTBX_UNUSED(const AndroidSoundUtils *utils),
+                                                            jobject haec) {
+	JNIEnv *env = ms_get_jni_env();
+
+	ms_android_delete_hardware_echo_canceller(env, haec);
+}
+
+void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils) {
+	JNIEnv *env = ms_get_jni_env();
+
+	if (utils->mediastreamerAndroidContextClass != nullptr) {
+		jmethodID hackVolume = env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "hackVolume", "()V");
+		if (hackVolume != nullptr) {
+			env->CallStaticVoidMethod(utils->mediastreamerAndroidContextClass, hackVolume);
+		} else {
+			ms_error(
+			    "[Android Audio Utils] Failed to find hackVolume() method from MediastreamerAndroidContext class!");
+		}
+	}
+}
+
+/** Deprecated **/
+
 bool ms_android_is_record_audio_permission_granted() {
 	JNIEnv *env = ms_get_jni_env();
 	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
