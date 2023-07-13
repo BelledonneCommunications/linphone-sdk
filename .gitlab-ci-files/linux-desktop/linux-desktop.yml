@@ -176,7 +176,7 @@
     - echo $LOG_PATTERN.txt
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
-          then ./$TESTER_BIN --verbose --parallel --parallel-max 30 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+          then ./$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
         else
 
           EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=0;
