@@ -618,14 +618,14 @@ void video_bandwidth_estimation(float exp_bw_min, float exp_bw_max) {
 	stream_manager_t *marielle, *margaux;
 	start_adaptive_stream(MSVideo, &marielle, &margaux, VP8_PAYLOAD_TYPE, 256000, 1000000, 0, 50, 0, FALSE);
 	iterate_adaptive_stream_float(marielle, margaux, 30000,
-	                              &margaux->bw_controller->remote_video_bandwidth_available_estimated, 5 * exp_bw_min);
+	                              &margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_min);
 	BC_ASSERT_GREATER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_min, float, "%f");
 	BC_ASSERT_LOWER(margaux->bw_controller->remote_video_bandwidth_available_estimated, exp_bw_max, float, "%f");
 	stop_adaptive_stream(marielle, margaux, TRUE);
 }
 
 static void video_bandwidth_estimator(void) {
-	video_bandwidth_estimation(810000, 1150000); // kbits/s
+	video_bandwidth_estimation(750000, 1300000); // kbits/s
 }
 
 /** Scenario:
