@@ -23,6 +23,8 @@ message(STATUS "CMAKE_HOST_SYSTEM_NAME : ${CMAKE_HOST_SYSTEM_NAME}")
 message(STATUS "CMAKE_SYSTEM_NAME : ${CMAKE_SYSTEM_NAME}")
 message(STATUS "CMAKE_APPLE_SILICON_PROCESSOR : ${CMAKE_APPLE_SILICON_PROCESSOR}")
 
+include("${CMAKE_CURRENT_LIST_DIR}/PlatformCommon.cmake")
+
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 	# Without instruction choose to target lower version between current machine and current used SDK
 	execute_process(COMMAND sw_vers -productVersion  COMMAND awk -F \\. "{printf \"%i.%i\",$1,$2}"  RESULT_VARIABLE sw_vers_version OUTPUT_VARIABLE CURRENT_OSX_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -43,6 +45,7 @@ else()
 	set(CMAKE_OSX_ARCHITECTURES "i386")
 endif()
 set(CMAKE_MACOSX_RPATH TRUE)
+set(CMAKE_INSTALL_RPATH "@executable_path/../Frameworks;@executable_path/../lib")
 
 if (NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL CMAKE_HOST_SYSTEM_PROCESSOR))
 	set (CMAKE_CROSSCOMPILING TRUE)
