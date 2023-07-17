@@ -178,7 +178,7 @@ if(BUILD_MEDIASTREAMER2)
 
 	# This custom target's goal is to build the mediastreamer2 plugins before
 	# running a tester that needs them since testers do not depend on them.
-	add_custom_target(mediastreamer2-plugins)
+	add_custom_target(mediastreamer2-plugins ALL)
 	if(MEDIASTREAMER2_PLUGINS_TARGETS)
 		add_dependencies(mediastreamer2-plugins ${MEDIASTREAMER2_PLUGINS_TARGETS})
 	endif()
@@ -247,7 +247,7 @@ if(BUILD_LIBLINPHONE)
 
 	# This custom target's goal is to build the liblinphone plugins before
 	# running a tester that needs them since testers do not depend on them.
-	add_custom_target(liblinphone-plugins)
+	add_custom_target(liblinphone-plugins ALL)
 	if(LIBLINPHONE_PLUGINS_TARGETS)
 		add_dependencies(liblinphone-plugins ${LIBLINPHONE_PLUGINS_TARGETS})
 	endif()
