@@ -125,27 +125,30 @@ pass : fFVgA_5Mf-qn2WbvsKRL
 **private access**
 
 A simple login with your Gitlab account should work.
+To know what docker image to pull, first check [.gitlab-ci-files/android/builds.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/android/builds.yml)
+Currently we are using `bc-dev-android-r25` image name.
+
+You'll find the associated tag in [.gitlab-ci-files/.docker-images.yml](https://gitlab.linphone.org/BC/public/linphone-sdk/-/blob/master/.gitlab-ci-files/.docker-images.yml) (for Android R25 image it is currently `20230519_use_cmake_3.22`).
+
+Replace `<name>` and `<tag>` in the commands below by the value you found.
 
 ---
 
 ```bash
 docker login gitlab.linphone.org:4567/bc/public/linphone-sdk
-docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210914_update_java11
+docker pull gitlab.linphone.org:4567/bc/public/linphone-sdk/<name>:<tag>
 ```
 
 Load the build environment:
 
 ```bash
 cd <linphone-sdk-source>
-docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r20:20210914_update_java11 /bin/bash -i
+docker run -it --volume=$PWD:/home/bc/linphone-sdk gitlab.linphone.org:4567/bc/public/linphone-sdk/<name>:<tag> /bin/bash -i
 ```
 
 Next command lines must be typed in the docker shell:
 
 ```bash
-# Make build directory
-mkdir /home/bc/linphone-sdk/build && cd /home/bc/linphone-sdk/build
-
 # Configure the build
 cmake --preset=android-sdk -B build-android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
 
@@ -156,7 +159,7 @@ cmake --build build-android --parallel <number of jobs>
 exit
 ```
 
-The freshly built SDK is located in `<linphone-sdk>/build`.
+The freshly built SDK is located in the `build-android/` directory.
 
 ### MacOS
 
