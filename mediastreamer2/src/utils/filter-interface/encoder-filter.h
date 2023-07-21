@@ -42,6 +42,8 @@ public:
 	virtual void notifyPli() = 0;
 	virtual void notifyFir() = 0;
 	virtual void notifySli() = 0;
+
+	virtual void enableDivideIntoPacketsEqualSize(bool enable) = 0;
 };
 
 } // namespace mediastreamer

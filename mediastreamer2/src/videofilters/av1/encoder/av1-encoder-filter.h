@@ -49,6 +49,8 @@ public:
 	void notifyFir() override;
 	void notifySli() override;
 
+	void enableDivideIntoPacketsEqualSize(bool enable) override;
+
 protected:
 	MSVideoConfiguration mVconf;
 	bool mAvpfEnabled = false;

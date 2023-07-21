@@ -160,8 +160,7 @@ typedef struct _MediastreamDatas {
 	RtpSession *fec_session;
 	FecStream *fec_stream;
 	RtpBundle *fec_bundle;
-	int L;
-	int D;
+	uint8_t fec_level;
 } MediastreamDatas;
 
 // MAIN METHODS
@@ -240,7 +239,8 @@ const char *usage =
     "[ --width <pixels> ]\n"
     "[ --zoom zoom factor ]\n"
     "[ --zrtp (enable zrtp) ]\n"
-    "[ --fec <L [0-10]> <D [0-10]> (enable fec) ]\n"
+    "[ --fec <level> possible values are: 0 (fec enabled but nothing sent), 1 (1D, L=10), 2 (1D interleaved, L=5, "
+    "D=5), 3 (2D, L=5, D=5), 4 (2D, L=4, D=4) and 5 (2D, L=3, D=3) ]\n"
 #if TARGET_OS_IPHONE
     "[ --speaker route audio to speaker ]\n"
 #endif
@@ -661,11 +661,13 @@ bool_t parse_args(int argc, char **argv, MediastreamDatas *out) {
 		} else if (strcmp(argv[i], "--speaker") == 0) {
 			out->enable_speaker = TRUE;
 		} else if (strcmp(argv[i], "--fec") == 0) {
+			i++;
 			out->enable_fec = TRUE;
-			i++;
-			out->L = atoi(argv[i]);
-			i++;
-			out->D = atoi(argv[i]);
+			out->fec_level = (uint8_t)atoi(argv[i]);
+			if (out->fec_level > 5) {
+				ms_error("Invalid value for --fec");
+				return FALSE;
+			}
 		} else {
 			ms_error("Unknown option '%s'\n", argv[i]);
 			return FALSE;
@@ -726,7 +728,8 @@ void mediastream_fec_enable(MediastreamDatas *args, MSFactory *factory) {
 	                                                 rtp_session_get_local_rtcp_port(args->session) + 10, args->mtu);
 	rtp_session_set_remote_addr(args->fec_session, args->ip, args->remoteport + 10);
 	args->fec_session->fec_stream = NULL;
-	FecParams *params = fec_params_new(args->L, args->D, 200000);
+	FecParams *params = fec_params_new(200000);
+	fec_params_update(params, args->fec_level);
 	args->fec_stream = fec_stream_new(args->session, args->fec_session, params);
 	args->session->fec_stream = args->fec_stream;
 	if (args->netsim.enabled) {
@@ -739,22 +742,34 @@ void mediastream_fec_enable_bundle(MediastreamDatas *args, BCTBX_UNUSED(MSFactor
 
 	FecParams *fec_params;
 
+	ms_message("[flexfec] set");
+
 	args->fec_session = rtp_session_new(RTP_SESSION_SENDRECV);
 	rtp_session_set_payload_type(args->fec_session, 10);
 	rtp_session_set_scheduling_mode(args->fec_session, 0);
 	rtp_session_set_blocking_mode(args->fec_session, 0);
-	fec_params = fec_params_new(args->L, args->D, 200000);
+	fec_params = fec_params_new(200000); // default initial state, fec is disabled
 
 	if (args->netsim.enabled) {
 		rtp_session_enable_network_simulation(args->fec_session, &args->netsim);
 	}
 
-	args->fec_bundle = rtp_bundle_new();
-	rtp_bundle_add_session(args->fec_bundle, "video_fec", args->session);
-	rtp_bundle_add_fec_session(args->fec_bundle, args->session, args->fec_session);
-	rtp_bundle_set_primary_session(args->fec_bundle, "video_fec");
-	args->fec_stream = fec_stream_new(args->session, args->fec_session, fec_params);
-	fec_stream_init(args->fec_stream);
+	if (args->enable_fec) {
+
+		args->fec_bundle = rtp_bundle_new();
+
+		rtp_bundle_add_session(args->fec_bundle, "video_fec", args->session);
+		rtp_bundle_add_fec_session(args->fec_bundle, args->session, args->fec_session);
+		rtp_bundle_set_primary_session(args->fec_bundle, "video_fec");
+		args->fec_stream = fec_stream_new(args->session, args->fec_session, fec_params);
+		fec_stream_init(args->fec_stream);
+		fec_params_update(fec_params, args->fec_level);
+		if (fec_stream_enabled(args->fec_stream)) {
+			ms_message("[flexfec] enabled");
+		} else {
+			ms_message("[flexfec] disabled");
+		}
+	}
 }
 void setup_media_streams(MediastreamDatas *args) {
 	/*create the rtp session */
@@ -1181,7 +1196,14 @@ void mediastream_run_loop(MediastreamDatas *args) {
 #endif
 			if (args->audio) audio_stream_iterate(args->audio);
 		}
-		rtp_stats_display(rtp_session_get_stats(args->session), "RTP stats");
+		if (!args->enable_fec) {
+			rtp_stats_display(rtp_session_get_stats(args->session),
+			                  "                     RTP STATISTICS                          ");
+		} else {
+			rtp_stats_display_all(rtp_session_get_stats(args->session), rtp_session_get_stats(args->fec_session),
+			                      "                                RTP STATISTICS                                   ");
+			fec_stream_print_stats(args->fec_stream);
+		}
 		if (args->session) {
 			float audio_load = 0;
 			float video_load = 0;
@@ -1222,8 +1244,13 @@ void clear_mediastreams(MediastreamDatas *args) {
 #ifdef VIDEO_ENABLED
 	if (args->video) {
 		ms_message("Payload max size : %d", ms_factory_get_payload_max_size(args->factory));
-		if (args->enable_fec) {
-			fec_stream_print_stats(args->session->fec_stream);
+		if (!args->enable_fec) {
+			rtp_stats_display(rtp_session_get_stats(args->session),
+			                  "                     RTP STATISTICS                          ");
+		} else {
+			rtp_stats_display_all(rtp_session_get_stats(args->session), rtp_session_get_stats(args->fec_session),
+			                      "                                RTP STATISTICS                                   ");
+			fec_stream_print_stats(args->fec_stream);
 		}
 		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);

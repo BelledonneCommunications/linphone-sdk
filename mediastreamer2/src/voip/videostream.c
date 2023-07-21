@@ -129,6 +129,8 @@ void video_stream_free(VideoStream *stream) {
 
 	if (stream->nack_context) video_stream_enable_retransmission_on_nack(stream, FALSE);
 
+	if (stream->ms.video_quality_controller) ms_video_quality_controller_destroy(stream->ms.video_quality_controller);
+
 	media_stream_free(&stream->ms);
 
 	if (stream->jpegwriter) ms_filter_destroy(stream->jpegwriter);
@@ -423,7 +425,7 @@ void video_stream_iterate(VideoStream *stream) {
 	video_stream_check_camera(stream);
 
 	if (stream->ms.video_quality_controller) {
-		ms_video_quality_controller_process_timer(stream->ms.video_quality_controller);
+		ms_video_quality_controller_process_timers(stream->ms.video_quality_controller);
 	}
 	if (stream->nack_context) {
 		ortp_nack_context_process_timer(stream->nack_context);
@@ -525,6 +527,10 @@ VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	ortp_ev_dispatcher_connect(stream->ms.evd, ORTP_EVENT_JITTER_UPDATE_FOR_NACK, 0,
 	                           (OrtpEvDispatcherCb)video_stream_update_jitter_for_nack, stream);
 	stream->fallback_to_dummy_codec = TRUE;
+
+	if (!stream->ms.video_quality_controller) {
+		stream->ms.video_quality_controller = ms_video_quality_controller_new(stream);
+	}
 
 	return stream;
 }
@@ -1300,7 +1306,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	jbp.max_packets = 1000; // needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
 
-	media_stream_handle_fec(&stream->ms, profile);
+	media_stream_create_fec_session(&stream->ms);
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port > 0)

@@ -277,7 +277,7 @@ typedef enum {
 	MS_RGB565,
 	MS_H264,
 	MS_RGBA32_REV
-}MSPixFmt;
+} MSPixFmt;
 
 typedef struct _MSPicture {
 	int w, h;
@@ -586,6 +586,26 @@ MS2_PUBLIC MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bi
  * @return true if both configurations are equal, false otherwise.
  */
 MS2_PUBLIC bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf1, const MSVideoConfiguration *vconf2);
+
+/**
+ * Compute the number and the size of the payloads of the mblk_t packets to create by the video encoder, given the size
+ * of the bitstream unit, the maximal payload size and the option to get packets of equal size or not. If the size of
+ * the bitstream unit is more than the maximal payload size, it has to be divided into several packets, whose number is
+ * packetsNumber. If the division into packets of equal size is disabled, the first packetsNumber-1 packets are filled
+ * with the maximal payload size. Otherwise, the payload size is computed as the division of the size of the bitstream
+ * unit by the maximal payload size. In both cases, the number of packets is the same, the size of the first
+ * packetsNumber-1 payloads is the one returned and the last payload is filled with the remaining data.
+ * @param[in] bitstreamSize Size of the bitstream unit to split into packets.
+ * @param[in] maxPayloadSize Maximal payload size of the mblkt to create.
+ * @param[in] equalSizeEnabled true to divide into packets of the same size, false to fill the first packet(s) with the
+ * maximal payload size.
+ * @param[in] packetsNumber Number of packets to create
+ * @return size of the payload.
+ */
+MS2_PUBLIC size_t ms_video_payload_sizes(const size_t bitstreamSize,
+                                         const size_t maxPayloadSize,
+                                         const bool_t equalSizeEnabled,
+                                         int *packetsNumber);
 
 #ifdef __cplusplus
 }

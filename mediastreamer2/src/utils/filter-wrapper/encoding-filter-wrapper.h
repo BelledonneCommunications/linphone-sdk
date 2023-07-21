@@ -41,6 +41,8 @@ public:
 	static int onNotifyPliCall(MSFilter *f, void *arg);
 	static int onNotifyFirCall(MSFilter *f, void *arg);
 	static int onNotifySliCall(MSFilter *f, void *arg);
+
+	static int onEnableDivideIntoPacketsEqualSizeCall(MSFilter *f, void *arg);
 };
 
 } // namespace mediastreamer
@@ -56,6 +58,8 @@ public:
 	    {MS_VIDEO_ENCODER_GET_CONFIGURATION_LIST, EncodingFilterWrapper::onGetVideoConfigurationsCall},                \
 	    {MS_VIDEO_ENCODER_GET_CONFIGURATION, EncodingFilterWrapper::onGetConfigurationCall},                           \
 	    {MS_VIDEO_ENCODER_SET_CONFIGURATION, EncodingFilterWrapper::onSetConfigurationCall},                           \
+	    {MS_VIDEO_ENCODER_ENABLE_DIVIDE_PACKETS_EQUAL_SIZE,                                                            \
+	     EncodingFilterWrapper::onEnableDivideIntoPacketsEqualSizeCall},                                               \
 	    {0, nullptr}}
 
 #define MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(base_name, id, text, enc_fmt, flags)                        \

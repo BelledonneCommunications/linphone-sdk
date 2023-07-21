@@ -21,6 +21,7 @@
 #include "mediastreamer2/bitratecontrol.h"
 #include "mediastreamer2/mediastream.h"
 #include "mediastreamer2/mscommon.h"
+#include "mediastreamer2/msrtp.h"
 #include <ortp/ortp.h>
 
 #define NO_INCREASE_THRESHOLD_FOR_CONGESTION 1.4
@@ -109,7 +110,8 @@ static void resync_jitter_buffers(MSBandwidthController *obj) {
 
 	for (elem = obj->streams; elem != NULL; elem = elem->next) {
 		MediaStream *ms = (MediaStream *)elem->data;
-		rtp_session_resync(ms->sessions.rtp_session);
+		MSFilter *f = ms->rtprecv;
+		ms_filter_call_method_noarg(f, MS_RTP_RECV_RESET_JITTER_BUFFER);
 	}
 }
 
@@ -152,6 +154,12 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 			           controlled_stream_bandwidth_requested * 1e-3 / bctbx_list_size(obj->controlled_streams),
 			           controlled_stream_bandwidth_requested * 1e-3, (int)bctbx_list_size(obj->controlled_streams));
 		}
+		/*Reset and disable the video bandwidth estimator during congestion, because the measurements become
+		 * unreliable.*/
+		RtpSession *rtp_session = media_stream_get_rtp_session(ms);
+		if (rtp_session->rtp.video_bw_estimator) {
+			rtp_session_reset_video_bandwidth_estimator(rtp_session);
+		}
 		video_bandwidth_estimator_params.enabled = FALSE;
 	} else {
 		/*now that the congestion has ended, we can submit a new TMMBR to request a bandwidth closer to the maximum
@@ -167,6 +175,12 @@ static void on_congestion_state_changed(const OrtpEventData *evd, void *user_poi
 		}
 		/*we shall reset the jitter buffers, so that they recover faster their diverged states*/
 		resync_jitter_buffers(obj);
+		/*Reset the video bandwidth estimator at the end of the congestion, to start the bandwidth estimation with
+		 * reliable measurements.*/
+		RtpSession *rtp_session = media_stream_get_rtp_session(ms);
+		if (rtp_session->rtp.video_bw_estimator) {
+			rtp_session_reset_video_bandwidth_estimator(rtp_session);
+		}
 		video_bandwidth_estimator_params.enabled = TRUE;
 	}
 

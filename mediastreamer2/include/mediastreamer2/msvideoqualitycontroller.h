@@ -22,6 +22,7 @@
 #define msvideoqualitycontroller_h
 
 #include "mediastreamer2/msvideo.h"
+#include <ortp/ortp.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,13 +37,20 @@ struct _MSVideoQualityController {
 
 	time_t increase_timer_start;
 	bool_t increase_timer_running;
+
+	time_t increase_loss_rate_timer_start;
+	bool_t increase_loss_rate_timer_running;
+	int initial_bitrate;
+
+	OrtpLossRateEstimator *smooth_loss_rate_estimator;
 };
 
 typedef struct _MSVideoQualityController MSVideoQualityController;
 
 MS2_PUBLIC MSVideoQualityController *ms_video_quality_controller_new(struct _VideoStream *stream);
 MS2_PUBLIC void ms_video_quality_controller_destroy(MSVideoQualityController *obj);
-MS2_PUBLIC void ms_video_quality_controller_process_timer(MSVideoQualityController *obj);
+MS2_PUBLIC void ms_video_quality_controller_update_from_feedback(MSVideoQualityController *obj, const mblk_t *rtcp);
+MS2_PUBLIC void ms_video_quality_controller_process_timers(MSVideoQualityController *obj);
 MS2_PUBLIC void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj, int tmmbr);
 
 #ifdef __cplusplus

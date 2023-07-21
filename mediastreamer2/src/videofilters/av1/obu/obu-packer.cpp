@@ -68,6 +68,10 @@ void ObuPacker::pack(MSQueue *input, MSQueue *output, uint32_t ts) {
 	}
 }
 
+void ObuPacker::enableDivideIntoEqualSize(bool enable) {
+	mEqualSizeEnabled = enable;
+}
+
 ObuPacker::ParsedObu ObuPacker::parseNextObu(uint8_t *buf, size_t size) {
 	char errBuf[1024];
 	ptrdiff_t offset;
@@ -90,26 +94,28 @@ ObuPacker::ParsedObu ObuPacker::parseNextObu(uint8_t *buf, size_t size) {
 void ObuPacker::sendObus(vector<ParsedObu> &obus, MSQueue *output, uint32_t ts) {
 	for (size_t i = 0, e = obus.size(); i != e; ++i) {
 		const auto &obu = obus[i];
+		int packetsNumber = 0;
+
+		size_t maxPacketSize = ms_video_payload_sizes(obu.size, mMaxPayloadSize, mEqualSizeEnabled, &packetsNumber);
+
+		size_t remainingSize = obu.size;
+		bool firstPacket = true;
 
 		if (obu.size + 1 < mMaxPayloadSize) {
 			mblk_t *m = makePacket(obu.start, obu.size + 1, false, false, (i == 0), (i == (e - 1)), ts);
 			ms_queue_put(output, m);
 		} else {
-			size_t remainingSize = obu.size;
-			bool firstPacket = true;
-
-			do {
-				size_t minSize = std::min<size_t>(remainingSize + 1, mMaxPayloadSize);
-
+			for (int j = 0; j < packetsNumber; j++) {
+				size_t minSize = std::min<size_t>(remainingSize + 1, maxPacketSize);
 				mblk_t *m = makePacket(obu.start + obu.size - remainingSize, minSize, !firstPacket,
-				                       (remainingSize + 1 > mMaxPayloadSize), (firstPacket && i == 0),
-				                       (i == (e - 1) && minSize < mMaxPayloadSize), ts);
+				                       (remainingSize + 1 > maxPacketSize), (firstPacket && i == 0),
+				                       (i == (e - 1) && j == (packetsNumber - 1)), ts);
 				ms_queue_put(output, m);
 
 				if (firstPacket) firstPacket = false;
 
 				remainingSize -= minSize - 1;
-			} while (remainingSize > 0);
+			}
 		}
 	}
 }

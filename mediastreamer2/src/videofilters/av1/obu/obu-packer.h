@@ -44,6 +44,14 @@ public:
 
 	void pack(MSQueue *input, MSQueue *output, uint32_t timestamp);
 
+	/**
+	 * Enable or disable the division of obu into packets of equal size. Otherwise (default) the obu is divided into
+	 packets of maximum size except the last one which contains the remaining data. When enabled, the overhead of the
+	 bandwidth between the RTP stream and the FEC stream is optimal.
+	 * @param enable boolean, true to enable, false to disable.
+	 **/
+	void enableDivideIntoEqualSize(bool enable);
+
 protected:
 	struct ParsedObu {
 		OBPOBUType type;
@@ -57,6 +65,11 @@ protected:
 
 	size_t mMaxPayloadSize;
 	bool mAggregationEnabled = false;
+
+private:
+	bool mEqualSizeEnabled = false; /* If true, the obu is divided into packets of equal size, if false the obu is
+	                                   divided into packets of maximum size except the last one which contains the
+	                                   remaining data. In both case there are the same number of packets.*/
 };
 
 } // namespace mediastreamer

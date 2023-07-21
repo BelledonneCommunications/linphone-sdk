@@ -140,6 +140,11 @@ void Av1EncoderFilter::notifySli() {
 	ms_iframe_requests_limiter_request_iframe(&mIframeLimiter);
 }
 
+void Av1EncoderFilter::enableDivideIntoPacketsEqualSize(bool enable) {
+	ms_message("Av1EncoderFilter: divide OBU into packets of equal sizes %s", enable ? "enabled" : "disabled");
+	mPacker.enableDivideIntoEqualSize(enable);
+}
+
 const MSVideoConfiguration *Av1EncoderFilter::getVideoConfigurations() const {
 	return mVconfList;
 }

@@ -48,6 +48,8 @@ public:
 	void notifyFir() override;
 	void notifySli() override;
 
+	void enableDivideIntoPacketsEqualSize(bool enable) override;
+
 protected:
 	H26xEncoderFilter(MSFilter *f, H26xEncoder *encoder, const MSVideoConfiguration *vconfList);
 
@@ -57,6 +59,7 @@ protected:
 	MSVideoConfiguration _vconf;
 	bool _avpfEnabled = false;
 	bool _firstFrameDecoded = false;
+	bool _equalSizeEnabled = false; // unused in H264
 
 	MSVideoStarter _starter;
 	MSIFrameRequestsLimiterCtx _iframeLimiter;

@@ -101,4 +101,13 @@ int EncodingFilterWrapper::onNotifySliCall(MSFilter *f, void *) {
 	}
 }
 
+int EncodingFilterWrapper::onEnableDivideIntoPacketsEqualSizeCall(MSFilter *f, void *arg) {
+	try {
+		static_cast<EncoderFilter *>(f->data)->enableDivideIntoPacketsEqualSize(*static_cast<bool *>(arg));
+		return 0;
+	} catch (const EncoderFilter::MethodCallFailed &) {
+		return -1;
+	}
+}
+
 } // namespace mediastreamer

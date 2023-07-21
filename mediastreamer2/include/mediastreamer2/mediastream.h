@@ -344,6 +344,20 @@ MS2_PUBLIC float media_stream_get_up_bw(const MediaStream *stream);
 MS2_PUBLIC float media_stream_get_down_bw(const MediaStream *stream);
 
 /**
+ * get current FEC stream upload bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_fec_up_bw(const MediaStream *stream);
+
+/**
+ * get current FEC stream download bitrate. Value is updated every seconds
+ * @param stream
+ * @return bitrate in bit per seconds
+ * */
+MS2_PUBLIC float media_stream_get_fec_down_bw(const MediaStream *stream);
+
+/**
  * get current stream rtcp upload bitrate. Value is updated every seconds
  * @param stream
  * @return bitrate in bit per seconds
@@ -390,9 +404,31 @@ MS2_PUBLIC OrtpEvDispatcher *media_stream_get_event_dispatcher(const MediaStream
  */
 MS2_PUBLIC uint32_t media_stream_get_recv_ssrc(const MediaStream *stream);
 
-MS2_PUBLIC FecParams *media_stream_extract_fec_params(PayloadType *fec_payload_type);
-MS2_PUBLIC void media_stream_handle_fec(MediaStream *stream, RtpProfile *profile);
-MS2_PUBLIC void media_stream_create_fec_session(MediaStream *ms, RtpProfile *profile);
+/**
+ * Returns the parameters for flexible FEC.
+ *
+ * @param fec_payload_type the payload type for flexible FEC
+ * @return the parameters for flexible FEC
+ */
+MS2_PUBLIC FecParams *media_stream_extract_fec_params(const PayloadType *fec_payload_type);
+
+/**
+ * Create a RTP session with a FEC stream for flexible FEC. The source session is the one given in ms. The rtp bundle
+ * mode must be enabled.
+ *
+ * @param stream the media stream
+ */
+MS2_PUBLIC void media_stream_create_fec_session(MediaStream *ms);
+
+/**
+ * Ask the media stream if it has a flexible FEC stream. Note: the FEC stream can exist and be inactive if the
+ * FEC parameters L and D are set to 0 (no repair packets are sent nor received).
+ *
+ * @param[in] stream The media stream object.
+ * @return true if the media stream has a FEC stream, false otherwise.
+ */
+MS2_PUBLIC bool_t media_stream_fec_enabled(MediaStream *stream);
+
 /**
  * Retrieve the send ssrc of the stream
  *

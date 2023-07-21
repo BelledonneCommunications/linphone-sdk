@@ -105,7 +105,10 @@ typedef void (*ms_tester_iterate_cb)(MediaStream *ms, void *user_pointer);
 
 bool_t wait_for_list(MSList *mss, int *counter, int value, int timeout_ms);
 bool_t wait_for_list_with_parse_events(MSList *mss, int *counter, int value, int timeout_ms, MSList *cbs, MSList *ptrs);
+bool_t wait_for_list_for_uint64_with_parse_events(
+    MSList *mss, uint64_t *counter, uint64_t value, int timeout_ms, MSList *cbs, MSList *ptrs);
 bool_t wait_for_until(MediaStream *ms1, MediaStream *ms2, int *counter, int value, int timeout_ms);
+bool_t wait_for_until_for_uint64(MediaStream *ms1, MediaStream *ms2, uint64_t *counter, uint64_t value, int timeout_ms);
 bool_t wait_for_until_with_parse_events(MediaStream *ms1,
                                         MediaStream *ms2,
                                         int *counter,
@@ -115,6 +118,15 @@ bool_t wait_for_until_with_parse_events(MediaStream *ms1,
                                         void *ptr1,
                                         ms_tester_iterate_cb cb2,
                                         void *ptr2);
+bool_t wait_for_until_for_uint64_with_parse_events(MediaStream *ms1,
+                                                   MediaStream *ms2,
+                                                   uint64_t *counter,
+                                                   uint64_t value,
+                                                   int timeout_ms,
+                                                   ms_tester_iterate_cb cb1,
+                                                   void *ptr1,
+                                                   ms_tester_iterate_cb cb2,
+                                                   void *ptr2);
 bool_t wait_for(MediaStream *ms1, MediaStream *ms2, int *counter, int value);
 
 /* define local IP and ports used by all tests requiring it */

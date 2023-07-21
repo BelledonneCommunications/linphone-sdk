@@ -313,8 +313,54 @@ bool_t wait_for_list_with_parse_events(
 	return TRUE;
 }
 
+bool_t wait_for_list_for_uint64_with_parse_events(
+    bctbx_list_t *mss, uint64_t *counter, uint64_t value, int timeout_ms, bctbx_list_t *cbs, bctbx_list_t *ptrs) {
+	bctbx_list_t *msi;
+	bctbx_list_t *cbi;
+	bctbx_list_t *ptri;
+	int retry = 0;
+
+	while ((*counter < value) && (retry++ < (timeout_ms / 100))) {
+		for (msi = mss, cbi = cbs, ptri = ptrs; msi != NULL; msi = msi->next) {
+			MediaStream *stream = (MediaStream *)msi->data;
+			ms_tester_iterate_cb cb = NULL;
+#if VIDEO_ENABLED
+			if (stream->type == MSVideo) {
+				/* video_stream_iterate does more than just calling media_stream_iterate */
+				video_stream_iterate((VideoStream *)stream);
+			} else {
+#endif
+				media_stream_iterate(stream);
+#if VIDEO_ENABLED
+			}
+#endif
+			if ((retry % 10) == 0) {
+				ms_message("stream [%p] bandwidth usage: rtp [d=%.1f,u=%.1f] kbit/sec", stream,
+				           media_stream_get_down_bw(stream) / 1000, media_stream_get_up_bw(stream) / 1000);
+				ms_message("stream [%p] bandwidth usage: rtcp[d=%.1f,u=%.1f] kbit/sec", stream,
+				           media_stream_get_rtcp_down_bw(stream) / 1000, media_stream_get_rtcp_up_bw(stream) / 1000);
+			}
+			if (cbi && ptri) {
+				cb = (ms_tester_iterate_cb)cbi->data;
+				cb(stream, ptri->data);
+			}
+			if (cbi) cbi = cbi->next;
+			if (ptri) ptri = ptri->next;
+		}
+		ms_usleep(100000);
+	}
+
+	if (*counter < value) return FALSE;
+	return TRUE;
+}
+
 bool_t wait_for_until(MediaStream *ms_1, MediaStream *ms_2, int *counter, int value, int timeout_ms) {
 	return wait_for_until_with_parse_events(ms_1, ms_2, counter, value, timeout_ms, NULL, NULL, NULL, NULL);
+}
+
+bool_t
+wait_for_until_for_uint64(MediaStream *ms_1, MediaStream *ms_2, uint64_t *counter, uint64_t value, int timeout_ms) {
+	return wait_for_until_for_uint64_with_parse_events(ms_1, ms_2, counter, value, timeout_ms, NULL, NULL, NULL, NULL);
 }
 
 bool_t wait_for_until_with_parse_events(MediaStream *ms1,
@@ -346,6 +392,41 @@ bool_t wait_for_until_with_parse_events(MediaStream *ms1,
 		}
 	}
 	result = wait_for_list_with_parse_events(mss, counter, value, timeout_ms, cbs, ptrs);
+	bctbx_list_free(mss);
+	bctbx_list_free(cbs);
+	bctbx_list_free(ptrs);
+	return result;
+}
+
+bool_t wait_for_until_for_uint64_with_parse_events(MediaStream *ms1,
+                                                   MediaStream *ms2,
+                                                   uint64_t *counter,
+                                                   uint64_t value,
+                                                   int timeout_ms,
+                                                   ms_tester_iterate_cb cb1,
+                                                   void *ptr1,
+                                                   ms_tester_iterate_cb cb2,
+                                                   void *ptr2) {
+	bctbx_list_t *mss = NULL;
+	bctbx_list_t *cbs = NULL;
+	bctbx_list_t *ptrs = NULL;
+	bool_t result;
+
+	if (ms1) {
+		mss = bctbx_list_append(mss, ms1);
+		if (cb1 && ptr1) {
+			cbs = bctbx_list_append(cbs, cb1);
+			ptrs = bctbx_list_append(ptrs, ptr1);
+		}
+	}
+	if (ms2) {
+		mss = bctbx_list_append(mss, ms2);
+		if (cb2 && ptr2) {
+			cbs = bctbx_list_append(cbs, cb2);
+			ptrs = bctbx_list_append(ptrs, ptr2);
+		}
+	}
+	result = wait_for_list_for_uint64_with_parse_events(mss, counter, value, timeout_ms, cbs, ptrs);
 	bctbx_list_free(mss);
 	bctbx_list_free(cbs);
 	bctbx_list_free(ptrs);

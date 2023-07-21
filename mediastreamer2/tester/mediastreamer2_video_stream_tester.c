@@ -218,8 +218,6 @@ typedef struct _video_stream_tester_stats_t {
 
 	int number_of_jitter_update_nack;
 
-	int number_of_packet_reconstructed;
-
 	int number_of_framemarking_start;
 	int number_of_framemarking_end;
 
@@ -411,8 +409,6 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 			} else if (evt == ORTP_EVENT_JITTER_UPDATE_FOR_NACK) {
 				st->number_of_jitter_update_nack++;
 				ms_message("event_queue_cb: [%p] jitter update NACK %d", st, st->number_of_jitter_update_nack);
-			} else if (evt == ORTP_EVENT_SOURCE_PACKET_RECONSTRUCTED) {
-				st->number_of_packet_reconstructed++;
 			}
 			ortp_event_destroy(ev);
 		}
@@ -446,18 +442,11 @@ static void destroy_video_stream(video_stream_tester_t *vst) {
 	video_stream_stop(vst->vs);
 	ortp_ev_queue_destroy(vst->stats.q);
 }
-static void video_stream_tester_bundle_fec(video_stream_tester_t *vst, int L, int D) {
-
+static void video_stream_tester_bundle_fec(video_stream_tester_t *vst) {
 	MediaStream *ms = &vst->vs->ms;
-
 	vst->bundle = rtp_bundle_new();
 	rtp_bundle_add_session(vst->bundle, "video_fec", ms->sessions.rtp_session);
 	rtp_bundle_set_primary_session(vst->bundle, "video_fec");
-	media_stream_create_fec_session(ms, &rtp_profile);
-	ms->fec_parameters = fec_params_new(L, D, 200000);
-	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
-	fec_stream_init(ms->fec_stream);
-	rtp_session_set_jitter_compensation(ms->sessions.rtp_session, 200);
 }
 static void
 init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, video_stream_tester_params_t params) {
@@ -475,7 +464,6 @@ init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, vid
 			payload_type_unset_flag(pt, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 		}
 	}
-
 	/* Configure network simulator. */
 	if ((params.network_params != NULL) && (params.network_params->enabled == TRUE)) {
 		rtp_session_enable_network_simulation(vst1->vs->ms.sessions.rtp_session, params.network_params);
@@ -493,22 +481,24 @@ init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, vid
 		video_stream_enable_retransmission_on_nack(vst2->vs, TRUE);
 	}
 	if (params.fec == TRUE) {
-		video_stream_tester_bundle_fec(vst1, 5, 5);
-		video_stream_tester_bundle_fec(vst2, 5, 5);
+		video_stream_tester_bundle_fec(vst1);
+		video_stream_tester_bundle_fec(vst2);
 	}
 	if (params.bandwidth_controller == TRUE) {
-		// rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst1->vs), ORTP_AVPF_FEATURE_TMMBR, TRUE);
-		// rtp_session_enable_avpf_feature(video_stream_get_rtp_session(vst2->vs), ORTP_AVPF_FEATURE_TMMBR, TRUE);
 		ms_bandwidth_controller_add_stream(vst2->bandwidth_controller, &vst2->vs->ms);
 		ms_bandwidth_controller_add_stream(vst1->bandwidth_controller, &vst1->vs->ms);
 	}
-
 	BC_ASSERT_EQUAL(video_stream_start(vst1->vs, &rtp_profile, vst2->local_ip, vst2->local_rtp, vst2->local_ip,
 	                                   vst2->local_rtcp, params.payload_type, 50, vst1->cam),
 	                0, int, "%d");
 	BC_ASSERT_EQUAL(video_stream_start(vst2->vs, &rtp_profile, vst1->local_ip, vst1->local_rtp, vst1->local_ip,
 	                                   vst1->local_rtcp, params.payload_type, 50, vst2->cam),
 	                0, int, "%d");
+
+	if (params.fec == TRUE) {
+		fec_params_update(vst1->vs->ms.fec_parameters, 4);
+		fec_params_update(vst2->vs->ms.fec_parameters, 4);
+	}
 }
 
 static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2) {
@@ -1348,6 +1338,11 @@ static void video_stream_with_itcsink(void) {
 	video_stream_tester_destroy(pauline);
 }
 
+static bool_t is_slightly_lower(uint64_t val1, uint64_t val2, uint64_t limit) {
+	/* Return true if val2 - limit <= val1 <= val2  */
+	return ((val2 - limit) <= val1) && (val1 <= val2);
+}
+
 static void init_fec_videostreams(int payload_type) {
 	video_stream_tester_t *marielle = video_stream_tester_new();
 	video_stream_tester_t *margaux = video_stream_tester_new();
@@ -1355,18 +1350,67 @@ static void init_fec_videostreams(int payload_type) {
 	params.enabled = TRUE;
 	params.loss_rate = 7.;
 	params.mode = OrtpNetworkSimulatorOutbound;
-	fec_stats *stats = NULL;
+	fec_stats *fec_stats1 = NULL;
+	fec_stats *fec_stats2 = NULL;
+	const rtp_stats_t *fec_session_stats1 = NULL;
+	const rtp_stats_t *fec_session_stats2 = NULL;
+	const rtp_stats_t *rtp_session_stats1 = NULL;
+	const rtp_stats_t *rtp_session_stats2 = NULL;
+	uint64_t limit = 2; /* tolerance between the number of packets received in a session and the number counted
+	in the fec stream, due to the delay between the arrival and the processing */
+
 	rtp_profile_set_payload(&rtp_profile, FLEXFEC_PAYLOAD_TYPE, &payload_type_flexfec);
 
 	init_video_streams(marielle, margaux, VS_TESTER_SET_PARAMS(FALSE, FALSE, &params, payload_type, FALSE, TRUE));
-	stats = fec_stream_get_stats(marielle->vs->ms.fec_stream);
-	BC_ASSERT_TRUE(wait_for_until(&marielle->vs->ms, &margaux->vs->ms, &stats->packets_recovered, 15, 20000));
+
+	/* check that several packets have been repaired */
+	fec_stats1 = fec_stream_get_stats(marielle->vs->ms.fec_stream);
+	fec_stats2 = fec_stream_get_stats(margaux->vs->ms.fec_stream);
+	uint64_t ref_value = 15;
+	BC_ASSERT_TRUE(wait_for_until_for_uint64(&marielle->vs->ms, &margaux->vs->ms, &fec_stats1->packets_recovered,
+	                                         ref_value, 20000));
+	BC_ASSERT_TRUE(wait_for_until_for_uint64(&marielle->vs->ms, &margaux->vs->ms, &fec_stats2->packets_recovered,
+	                                         ref_value, 20000));
+
+	/* get stats to check that the number of source and repair packets sent and received are consistent */
+	fec_session_stats1 = rtp_session_get_stats(marielle->vs->ms.sessions.fec_session);
+	fec_session_stats2 = rtp_session_get_stats(margaux->vs->ms.sessions.fec_session);
+	rtp_session_stats1 = rtp_session_get_stats(marielle->vs->ms.sessions.rtp_session);
+	rtp_session_stats2 = rtp_session_get_stats(margaux->vs->ms.sessions.rtp_session);
+
+	/* repair packets: consistency between packets counted in fec stream and packets counted in fec session */
+	BC_ASSERT_TRUE(fec_stats1->col_repair_sent + fec_stats1->row_repair_sent == fec_session_stats1->packet_sent);
+	BC_ASSERT_TRUE(fec_stats2->col_repair_sent + fec_stats2->row_repair_sent == fec_session_stats2->packet_sent);
+	BC_ASSERT_TRUE(is_slightly_lower(fec_stats1->col_repair_received + fec_stats1->row_repair_received,
+	                                 fec_session_stats1->packet_recv, limit));
+	BC_ASSERT_TRUE(is_slightly_lower(fec_stats2->col_repair_received + fec_stats2->row_repair_received,
+	                                 fec_session_stats2->packet_recv, limit));
+
+	/* source packets: number of packets received in rtp session + lost packets = number of packets sent in rtp
+	 * session in the other video stream */
+	bool_t test_source1 = is_slightly_lower(rtp_session_stats2->packet_recv + fec_stats2->packets_lost,
+	                                        rtp_session_stats1->packet_sent, limit);
+	bool_t test_source2 = is_slightly_lower(rtp_session_stats1->packet_recv + fec_stats1->packets_lost,
+	                                        rtp_session_stats2->packet_sent, limit);
+	BC_ASSERT_TRUE(test_source1);
+	BC_ASSERT_TRUE(test_source2);
+	if (!test_source1) {
+		ms_message("wrong count of source packets stream 1: sent %u - stream 2 received %u + lost %u, margin = %u",
+		           (unsigned int)rtp_session_stats1->packet_sent, (unsigned int)rtp_session_stats2->packet_recv,
+		           (unsigned int)fec_stats2->packets_lost, (unsigned int)limit);
+	}
+	if (!test_source2) {
+		ms_message("wrong count of source packets stream 2: sent %u - stream 1 received %u + lost %u, margin = %u",
+		           (unsigned int)rtp_session_stats2->packet_sent, (unsigned int)rtp_session_stats1->packet_recv,
+		           (unsigned int)fec_stats1->packets_lost, (unsigned int)limit);
+	}
 
 	uninit_video_streams(marielle, margaux);
 	rtp_profile_clear_payload(&rtp_profile, FLEXFEC_PAYLOAD_TYPE);
 	video_stream_tester_destroy(margaux);
 	video_stream_tester_destroy(marielle);
 }
+
 static void fec_video_stream_vp8(void) {
 	if (ms_factory_codec_supported(_factory, "vp8")) {
 		init_fec_videostreams(VP8_PAYLOAD_TYPE);

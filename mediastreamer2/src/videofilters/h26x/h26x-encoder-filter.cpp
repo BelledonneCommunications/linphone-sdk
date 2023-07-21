@@ -122,6 +122,10 @@ void H26xEncoderFilter::notifySli() {
 	ms_iframe_requests_limiter_request_iframe(&_iframeLimiter);
 }
 
+void H26xEncoderFilter::enableDivideIntoPacketsEqualSize(bool enable) {
+	_equalSizeEnabled = enable;
+}
+
 const MSVideoConfiguration *H26xEncoderFilter::getVideoConfigurations() const {
 	return _vconfList;
 }

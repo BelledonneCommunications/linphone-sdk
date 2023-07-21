@@ -19,6 +19,7 @@
  */
 
 #include <bctoolbox/defs.h>
+#include <math.h>
 
 #include "mediastreamer2/msvideo.h"
 #if !defined(NO_FFMPEG)
@@ -1233,4 +1234,21 @@ bool_t ms_video_configuratons_equal(const MSVideoConfiguration *vconf1, const MS
 	if (vconf1 == NULL || vconf2 == NULL) return 0;
 	return (vconf1->required_bitrate == vconf2->required_bitrate && vconf1->bitrate_limit == vconf2->bitrate_limit &&
 	        vconf1->fps == vconf2->fps && vconf1->mincpu == vconf2->mincpu);
+}
+
+size_t ms_video_payload_sizes(const size_t bitstreamSize,
+                              const size_t maxPayloadSize,
+                              const bool_t equalSizeEnabled,
+                              int *packetsNumber) {
+	if (bitstreamSize + 1 < maxPayloadSize) {
+		*packetsNumber = 1;
+		return bitstreamSize + 1;
+	}
+	*packetsNumber = (int)ceil((double)bitstreamSize / (double)(maxPayloadSize - 1));
+	if (equalSizeEnabled) {
+		size_t payloadSize = (int)(ceil((double)bitstreamSize / (double)*packetsNumber)) + 1;
+		return payloadSize;
+	} else {
+		return maxPayloadSize;
+	}
 }
