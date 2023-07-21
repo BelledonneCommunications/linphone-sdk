@@ -125,15 +125,15 @@ void MSWASAPIWriter::init(MSSndCard *card, MSFilter *f) {
 	CoInitialize(NULL);
 #endif
 	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
-	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator", result);
+	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator [%x]", result);
 	mRenderId = id;
 	result = pEnumerator->GetDevice(mRenderId, &pDevice);
 	SAFE_RELEASE(pEnumerator);
-	REPORT_ERROR("mswasapi: Could not get the rendering device", result);
+	REPORT_ERROR("mswasapi: Could not get the rendering device [%x]", result);
 	changePolicies(pDevice);
 	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
 	SAFE_RELEASE(pDevice);
-	REPORT_ERROR("mswasapi: Could not activate the rendering device", result);
+	REPORT_ERROR("mswasapi: Could not activate the rendering device [%x]", result);
 #endif
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
 	properties.cbSize = sizeof(AudioClientProperties);
