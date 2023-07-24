@@ -544,7 +544,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
 		uint8_t *payload;
 		size = rtp_get_payload(transfered_packet, &payload);
-		BC_ASSERT_NOT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+		BC_ASSERT_FALSE(size == len);
 		if (size == len) { // They shall not be the same size, but in that case, check they are differents
 			BC_ASSERT_TRUE(memcmp(payload, buffer, len) != 0);
 		}
@@ -568,7 +568,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 			/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
 			size = rtp_get_payload(transfered_packet, &payload);
-			BC_ASSERT_NOT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+			BC_ASSERT_FALSE(size == len);
 			if (size == len) { // They shall not be the same size, but in that case, check they are differents
 				BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) != 0);
 			}
@@ -594,7 +594,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 		/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
 		size = rtp_get_payload(transfered_packet, &payload);
-		BC_ASSERT_NOT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+		BC_ASSERT_FALSE(size == len);
 		if (size == len) { // They shall not be the same size, but in that case, check they are differents
 			BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) != 0);
 		}
@@ -622,7 +622,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 		/* Check the received payload is the same than the bytes reads from file */
 		size = rtp_get_payload(received_packet, &payload);
-		BC_ASSERT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+		BC_ASSERT_TRUE(size == len);
 		if (size == len) {
 			BC_ASSERT_TRUE(memcmp(payload, buffer, len) == 0);
 		}
@@ -648,7 +648,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			/* Check the received payload is the same than the bytes reads from file */
 			uint8_t *payload;
 			size = rtp_get_payload(received_packet, &payload);
-			BC_ASSERT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+			BC_ASSERT_TRUE(size == len);
 			if (size == len) {
 				BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) == 0);
 			}
@@ -666,7 +666,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 			/* Check the received payload is the same than the bytes reads from file */
 			size = rtp_get_payload(received_packet, &payload);
-			BC_ASSERT_EQUAL((ssize_t)size, len, ssize_t, "%ld");
+			BC_ASSERT_TRUE(size == len);
 			if (size == len) {
 				BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) == 0);
 			}

@@ -714,15 +714,15 @@ static void audio_bandwidth_estimator(void) {
 	BC_ASSERT_GREATER(marielle_abe_stats->sent_dup, 0, int, "%d");
 
 	// Wait 25 seconds, check no high bandwidth was detected but we get some duplicates
-	int margaux_recv_dup = margaux_abe_stats->recv_dup;
-	int margaux_recv_rtp = margaux_session->stats.packet_recv;
+	uint32_t margaux_recv_dup = margaux_abe_stats->recv_dup;
+	uint64_t margaux_recv_rtp = margaux_session->stats.packet_recv;
 	iterate_adaptive_stream(marielle, margaux, 25000, &dummy, 1);
 	BC_ASSERT_LOWER(marielle_ms->target_bitrate, 30000, int,
 	                "%d"); // target bitrate must be unchanged : ABE did not produced a false positive
 	// ABE duplicated paquets/RTP paquets received, should be around 1/10
-	BC_ASSERT_GREATER((float)(margaux_abe_stats->recv_dup - margaux_recv_dup) /
-	                      (float)(margaux_session->stats.packet_recv - margaux_recv_rtp),
-	                  0.075, float, "%f");
+	BC_ASSERT_GREATER((double)(margaux_abe_stats->recv_dup - margaux_recv_dup) /
+	                      (double)(margaux_session->stats.packet_recv - margaux_recv_rtp),
+	                  0.075, double, "%f");
 
 	// remove the outbound limit on marielle's side, bandwidth estimator can figure that we can go back to the
 	// original target bitrate
@@ -739,7 +739,7 @@ static void audio_bandwidth_estimator(void) {
 	iterate_adaptive_stream(marielle, margaux, 10000, &dummy, 1);
 	BC_ASSERT_EQUAL(marielle_abe_stats->sent_dup, marielle_abe_dup_sent, int, "%d");
 	// ABE duplicated packet are swallowed before reaching the 'real' duplicated packet detector
-	BC_ASSERT_EQUAL(margaux_session->stats.packet_dup_recv, 0, int, "%d");
+	BC_ASSERT_EQUAL((double)margaux_session->stats.packet_dup_recv, 0, double, "%f");
 
 	/* cleaning */
 	ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->audio_stream->ms));
