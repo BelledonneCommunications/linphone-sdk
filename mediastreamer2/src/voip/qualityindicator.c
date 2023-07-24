@@ -119,7 +119,7 @@ static void update_global_rating(MSQualityIndicator *qi) {
 	qi->count++;
 }
 
-void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp) {
+void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, const mblk_t *rtcp) {
 	const report_block_t *rb = NULL;
 	if (rtcp_is_SR(rtcp)) {
 		rb = rtcp_SR_get_report_block(rtcp, 0);

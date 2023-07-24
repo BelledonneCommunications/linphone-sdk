@@ -25,6 +25,8 @@
 
 #include <math.h>
 
+/* DEPRECATED - replaced by MSBandwidthController*/
+
 #define LOSS_RATE_MIN_INTERVAL 60
 #define LOSS_RATE_MIN_TIME 3000
 
@@ -32,7 +34,7 @@
  * Analyses a received RTCP packet.
  * Returns TRUE is relevant information has been found in the rtcp message, FALSE otherwise.
  **/
-bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *msg) {
+bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, const mblk_t *msg) {
 	if (obj->desc->process_rtcp) {
 		return obj->desc->process_rtcp(obj, msg);
 	}
@@ -152,7 +154,7 @@ static bool_t simple_rt_prop_increased(MSSimpleQosAnalyzer *obj) {
 	return FALSE;
 }
 
-static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp) {
+static bool_t simple_analyzer_process_rtcp(MSQosAnalyzer *objbase, const mblk_t *rtcp) {
 	MSSimpleQosAnalyzer *obj = (MSSimpleQosAnalyzer *)objbase;
 	rtpstats_t *cur;
 	const report_block_t *rb = NULL;
@@ -326,7 +328,7 @@ static float stateful_qos_analyzer_upload_bandwidth(MSStatefulQosAnalyzer *obj, 
 	return (float)obj->upload_bandwidth_latest;
 }
 
-static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, mblk_t *rtcp) {
+static bool_t stateful_analyzer_process_rtcp(MSQosAnalyzer *objbase, const mblk_t *rtcp) {
 	MSStatefulQosAnalyzer *obj = (MSStatefulQosAnalyzer *)objbase;
 	const report_block_t *rb = NULL;
 	if (rtcp_is_SR(rtcp)) {

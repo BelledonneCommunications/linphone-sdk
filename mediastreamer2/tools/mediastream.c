@@ -1427,18 +1427,21 @@ static void display_items(BCTBX_UNUSED(void *user_data),
 }
 
 static void parse_rtcp(mblk_t *m) {
+	RtcpParserContext rtcp_parser;
+	const mblk_t *rtcp_packet = rtcp_parser_context_init(&rtcp_parser, m);
 	do {
-		if (rtcp_is_RR(m)) {
+		if (rtcp_is_RR(rtcp_packet)) {
 			ms_message("Receiving RTCP RR");
-		} else if (rtcp_is_SR(m)) {
+		} else if (rtcp_is_SR(rtcp_packet)) {
 			ms_message("Receiving RTCP SR");
-		} else if (rtcp_is_SDES(m)) {
+		} else if (rtcp_is_SDES(rtcp_packet)) {
 			ms_message("Receiving RTCP SDES");
-			rtcp_sdes_parse(m, display_items, NULL);
+			rtcp_sdes_parse(rtcp_packet, display_items, NULL);
 		} else {
 			ms_message("Receiving unhandled RTCP message");
 		}
-	} while (rtcp_next_packet(m));
+	} while ((rtcp_packet = rtcp_parser_context_next_packet(&rtcp_parser)) != NULL);
+	rtcp_parser_context_uninit(&rtcp_parser);
 }
 
 static void parse_events(RtpSession *session, OrtpEvQueue *q) {

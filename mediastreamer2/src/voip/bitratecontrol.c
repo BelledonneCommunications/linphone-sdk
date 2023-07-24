@@ -115,7 +115,7 @@ static void state_machine(MSBitrateController *obj) {
 	ms_message("MSBitrateController: current state is %s", state_name(obj->state));
 }
 
-void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp) {
+void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, const mblk_t *rtcp) {
 	if (ms_qos_analyzer_process_rtcp(obj->analyzer, rtcp)) {
 		state_machine(obj);
 	}

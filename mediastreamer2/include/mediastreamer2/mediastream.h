@@ -92,7 +92,7 @@ typedef struct _MediaStream MediaStream;
 /*
  * internal cb to process rtcp stream
  * */
-typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, mblk_t *m);
+typedef void (*media_stream_process_rtcp_callback_t)(MediaStream *stream, const mblk_t *m);
 
 struct _MSMediaStreamSessions {
 	RtpSession *rtp_session;
@@ -445,7 +445,9 @@ typedef struct _MSMediaStreamIO {
 
 #define MS_MEDIA_STREAM_IO_INITIALIZER                                                                                 \
 	{                                                                                                                  \
-		{MSResourceInvalid}, { MSResourceInvalid }                                                                     \
+		{MSResourceInvalid}, {                                                                                         \
+			MSResourceInvalid                                                                                          \
+		}                                                                                                              \
 	}
 
 MS2_PUBLIC bool_t ms_media_stream_io_is_consistent(const MSMediaStreamIO *io);
@@ -1063,7 +1065,11 @@ typedef void (*VideoStreamEventCallback)(void *user_pointer,
                                          const MSFilter *f,
                                          const unsigned int event_id,
                                          const void *args);
-typedef void (*VideoStreamDisplayCallback)(void *user_pointer, const unsigned int event_id, const void *args);/* if coming from OpenGL and event_id==MS_VIDEO_DISPLAY_ERROR_OCCURRED, args is an int from eglGetError() : https://registry.khronos.org/EGL/sdk/docs/man/html/eglGetError.xhtml */
+typedef void (*VideoStreamDisplayCallback)(
+    void *user_pointer,
+    const unsigned int event_id,
+    const void *args); /* if coming from OpenGL and event_id==MS_VIDEO_DISPLAY_ERROR_OCCURRED, args is an int from
+                          eglGetError() : https://registry.khronos.org/EGL/sdk/docs/man/html/eglGetError.xhtml */
 typedef void (*VideoStreamCameraNotWorkingCallback)(void *user_pointer, const MSWebCam *old_webcam);
 typedef void (*VideoStreamEncoderControlCb)(struct _VideoStream *, unsigned int method_id, void *arg, void *user_data);
 typedef void (*VideoStreamCsrcChangedCb)(void *user_pointer, uint32_t new_csrc);
@@ -1182,7 +1188,9 @@ MS2_PUBLIC void video_stream_set_render_callback(VideoStream *s, VideoStreamRend
 MS2_PUBLIC void video_stream_set_event_callback(VideoStream *s, VideoStreamEventCallback cb, void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_callback(VideoStream *s, VideoStreamDisplayCallback cb, void *user_pointer);
 
-MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s, VideoStreamCameraNotWorkingCallback cb, void *user_pointer);
+MS2_PUBLIC void video_stream_set_camera_not_working_callback(VideoStream *s,
+                                                             VideoStreamCameraNotWorkingCallback cb,
+                                                             void *user_pointer);
 MS2_PUBLIC void video_stream_set_display_filter_name(VideoStream *s, const char *fname);
 MS2_PUBLIC void video_stream_set_label(VideoStream *s, const char *label);
 MS2_PUBLIC void video_stream_set_content(VideoStream *s, MSVideoContent content);

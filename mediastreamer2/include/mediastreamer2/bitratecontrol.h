@@ -123,7 +123,7 @@ typedef struct _MSQosAnalyzer MSQosAnalyzer;
 typedef struct _MSQosAnalyzerDesc MSQosAnalyzerDesc;
 
 struct _MSQosAnalyzerDesc {
-	bool_t (*process_rtcp)(MSQosAnalyzer *obj, mblk_t *rtcp);
+	bool_t (*process_rtcp)(MSQosAnalyzer *obj, const mblk_t *rtcp);
 	void (*suggest_action)(MSQosAnalyzer *obj, MSRateControlAction *action);
 	bool_t (*has_improved)(MSQosAnalyzer *obj);
 	void (*update)(MSQosAnalyzer *);
@@ -163,7 +163,7 @@ MS2_PUBLIC void ms_qos_analyzer_unref(MSQosAnalyzer *obj);
 MS2_PUBLIC void ms_qos_analyser_set_label(MSQosAnalyzer *obj, const char *label);
 MS2_PUBLIC void ms_qos_analyzer_suggest_action(MSQosAnalyzer *obj, MSRateControlAction *action);
 MS2_PUBLIC bool_t ms_qos_analyzer_has_improved(MSQosAnalyzer *obj);
-MS2_PUBLIC bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, mblk_t *rtcp);
+MS2_PUBLIC bool_t ms_qos_analyzer_process_rtcp(MSQosAnalyzer *obj, const mblk_t *rtcp);
 MS2_PUBLIC void ms_qos_analyzer_update(MSQosAnalyzer *obj);
 MS2_PUBLIC const char *ms_qos_analyzer_get_name(MSQosAnalyzer *obj);
 MS2_PUBLIC void ms_qos_analyzer_set_on_action_suggested(MSQosAnalyzer *obj,
@@ -205,7 +205,7 @@ MS2_PUBLIC MSBitrateController *ms_bitrate_controller_new(MSQosAnalyzer *qosanal
  * then the bitrate controller may take decision and execute actions on the local media streams to adapt the
  * output bitrate.
  **/
-MS2_PUBLIC void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, mblk_t *rtcp);
+MS2_PUBLIC void ms_bitrate_controller_process_rtcp(MSBitrateController *obj, const mblk_t *rtcp);
 
 MS2_PUBLIC void ms_bitrate_controller_update(MSBitrateController *obj);
 

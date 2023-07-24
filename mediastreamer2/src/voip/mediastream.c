@@ -401,14 +401,19 @@ bool_t ms_is_multicast(const char *address) {
 }
 
 static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime) {
+	RtcpParserContext rtcp_parser;
+	const mblk_t *rtcp_packet;
 	stream->last_packet_time = curtime;
+
 	ms_message("%s stream [%p]: receiving RTCP %s%s", media_stream_type_str(stream), stream,
 	           (rtcp_is_SR(m) ? "SR" : ""), (rtcp_is_RR(m) ? "RR" : ""));
+	rtcp_packet = rtcp_parser_context_init(&rtcp_parser, m);
 	do {
-		if (stream->rc_enable && stream->rc) ms_bitrate_controller_process_rtcp(stream->rc, m);
-		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi, m);
-		stream->process_rtcp(stream, m);
-	} while (rtcp_next_packet(m));
+		if (stream->rc_enable && stream->rc) ms_bitrate_controller_process_rtcp(stream->rc, rtcp_packet);
+		if (stream->qi) ms_quality_indicator_update_from_feedback(stream->qi, rtcp_packet);
+		stream->process_rtcp(stream, rtcp_packet);
+	} while ((rtcp_packet = rtcp_parser_context_next_packet(&rtcp_parser)) != NULL);
+	rtcp_parser_context_uninit(&rtcp_parser);
 }
 
 void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir) {

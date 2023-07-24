@@ -38,7 +38,7 @@ static void text_stream_free(TextStream *stream) {
 	ms_free(stream);
 }
 
-static void text_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(mblk_t *m)) {
+static void text_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(const mblk_t *m)) {
 }
 
 static void text_stream_payload_type_changed(RtpSession *session, void *data) {

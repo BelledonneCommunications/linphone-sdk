@@ -268,7 +268,7 @@ static void audio_stream_configure_resampler(AudioStream *st, MSFilter *resample
 	           from, to_name, to, from_rate, to_rate, from_channels, to_channels);
 }
 
-static void audio_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(mblk_t *m)) {
+static void audio_stream_process_rtcp(BCTBX_UNUSED(MediaStream *media_stream), BCTBX_UNUSED(const mblk_t *m)) {
 }
 
 void audio_stream_iterate(AudioStream *stream) {

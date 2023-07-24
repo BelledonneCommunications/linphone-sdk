@@ -359,6 +359,7 @@ typedef struct {
 	OrtpEvQueue *q;
 	int loss_rate;
 } LossRateEstimatorCtx;
+
 static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 	LossRateEstimatorCtx *ctx = (LossRateEstimatorCtx *)user_pointer;
 	if (ctx->q != NULL) {
@@ -367,12 +368,14 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 			OrtpEventType evt = ortp_event_get_type(ev);
 			OrtpEventData *evd = ortp_event_get_data(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
+				RtcpParserContext parserctx;
+				const mblk_t *rtcp_packet = rtcp_parser_context_init(&parserctx, evd->packet);
 				do {
 					const report_block_t *rb = NULL;
-					if (rtcp_is_SR(evd->packet)) {
-						rb = rtcp_SR_get_report_block(evd->packet, 0);
-					} else if (rtcp_is_RR(evd->packet)) {
-						rb = rtcp_RR_get_report_block(evd->packet, 0);
+					if (rtcp_is_SR(rtcp_packet)) {
+						rb = rtcp_SR_get_report_block(rtcp_packet, 0);
+					} else if (rtcp_is_RR(rtcp_packet)) {
+						rb = rtcp_RR_get_report_block(rtcp_packet, 0);
 					}
 
 					if (rb &&
@@ -381,7 +384,8 @@ static void event_queue_cb(MediaStream *ms, void *user_pointer) {
 						BC_ASSERT_GREATER(diff, 0, float, "%f");
 						BC_ASSERT_LOWER(diff, 10, float, "%f");
 					}
-				} while (rtcp_next_packet(evd->packet));
+				} while ((rtcp_packet = rtcp_parser_context_next_packet(&parserctx)) != NULL);
+				rtcp_parser_context_uninit(&parserctx);
 			}
 			ortp_event_destroy(ev);
 		}

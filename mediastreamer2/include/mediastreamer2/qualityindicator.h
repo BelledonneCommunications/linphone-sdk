@@ -44,7 +44,7 @@ MS2_PUBLIC void ms_quality_indicator_set_label(MSQualityIndicator *obj, const ch
 /**
  * Updates quality indicator based on a received RTCP packet.
  **/
-MS2_PUBLIC void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, mblk_t *rtcp);
+MS2_PUBLIC void ms_quality_indicator_update_from_feedback(MSQualityIndicator *qi, const mblk_t *rtcp);
 
 /**
  * Updates quality indicator based on the local statistics directly computed by the RtpSession used when creating the

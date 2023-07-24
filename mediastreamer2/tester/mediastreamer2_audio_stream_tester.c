@@ -104,9 +104,11 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 			OrtpEventType evt = ortp_event_get_type(ev);
 			OrtpEventData *d = ortp_event_get_data(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
+				RtcpParserContext ctx;
+				const mblk_t *rtcp_packet = rtcp_parser_context_init(&ctx, d->packet);
 				do {
-					if (rtcp_is_RTPFB(d->packet)) {
-						switch (rtcp_RTPFB_get_type(d->packet)) {
+					if (rtcp_is_RTPFB(rtcp_packet)) {
+						switch (rtcp_RTPFB_get_type(rtcp_packet)) {
 							case RTCP_RTPFB_TMMBR:
 								st->number_of_TMMBR++;
 								break;
@@ -114,7 +116,8 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 								break;
 						}
 					}
-				} while (rtcp_next_packet(d->packet));
+				} while ((rtcp_packet = rtcp_parser_context_next_packet(&ctx)) != NULL);
+				rtcp_parser_context_uninit(&ctx);
 			}
 			ortp_event_destroy(ev);
 		}

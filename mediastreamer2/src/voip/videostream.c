@@ -240,7 +240,7 @@ static void video_stream_process_encoder_control(VideoStream *stream,
 	ms_filter_call_method(stream->ms.encoder, method_id, arg);
 }
 
-static void video_stream_process_rtcp(MediaStream *media_stream, mblk_t *m) {
+static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m) {
 	VideoStream *stream = (VideoStream *)media_stream;
 	int i;
 

@@ -309,15 +309,17 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 			OrtpEventType evt = ortp_event_get_type(ev);
 			OrtpEventData *d = ortp_event_get_data(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
+				RtcpParserContext ctx;
+				const mblk_t *rtcp_packet = rtcp_parser_context_init(&ctx, d->packet);
 				do {
-					if (rtcp_is_RR(d->packet)) {
+					if (rtcp_is_RR(rtcp_packet)) {
 						st->number_of_RR++;
-					} else if (rtcp_is_SR(d->packet)) {
+					} else if (rtcp_is_SR(rtcp_packet)) {
 						st->number_of_SR++;
-					} else if (rtcp_is_SDES(d->packet)) {
+					} else if (rtcp_is_SDES(rtcp_packet)) {
 						st->number_of_SDES++;
-					} else if (rtcp_is_PSFB(d->packet)) {
-						switch (rtcp_PSFB_get_type(d->packet)) {
+					} else if (rtcp_is_PSFB(rtcp_packet)) {
+						switch (rtcp_PSFB_get_type(rtcp_packet)) {
 							case RTCP_PSFB_PLI:
 								st->number_of_sent_PLI++;
 								ms_message("event_queue_cb: [%p] sending PLI %d", st, st->number_of_sent_PLI);
@@ -333,8 +335,8 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 							default:
 								break;
 						}
-					} else if (rtcp_is_RTPFB(d->packet)) {
-						switch (rtcp_RTPFB_get_type(d->packet)) {
+					} else if (rtcp_is_RTPFB(rtcp_packet)) {
+						switch (rtcp_RTPFB_get_type(rtcp_packet)) {
 							case RTCP_RTPFB_NACK:
 								st->number_of_sent_NACK++;
 								ms_message("event_queue_cb: [%p] sending NACK %d", st, st->number_of_sent_NACK);
@@ -343,7 +345,8 @@ static void event_queue_cb(BCTBX_UNUSED(MediaStream *ms), void *user_pointer) {
 								break;
 						}
 					}
-				} while (rtcp_next_packet(d->packet));
+				} while ((rtcp_packet = rtcp_parser_context_next_packet(&ctx)) != NULL);
+				rtcp_parser_context_uninit(&ctx);
 			} else if (evt == ORTP_EVENT_JITTER_UPDATE_FOR_NACK) {
 				st->number_of_jitter_update_nack++;
 				ms_message("event_queue_cb: [%p] jitter update NACK %d", st, st->number_of_jitter_update_nack);

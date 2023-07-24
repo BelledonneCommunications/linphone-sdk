@@ -27,9 +27,12 @@
 extern "C" {
 #endif
 
+/* DEPRECATED - replaced by MSBandwidthController*/
+
 /**************************************************************************/
 /*************************** Simple QoS analyzer **************************/
 /**************************************************************************/
+
 #define STATS_HISTORY 3
 #define ESTIM_HISTORY 30
 static const float unacceptable_loss_rate = 10;
