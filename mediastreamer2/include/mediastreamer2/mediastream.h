@@ -1153,6 +1153,8 @@ struct _VideoStream {
 	                                               to save CPU time. Default is TRUE */
 	bool_t is_forwarding;
 	bool_t wait_for_frame_decoded;
+	bool_t fallback_to_dummy_codec; /**< if TRUE, enable fallback to dummy codec when the requested one is not supported
+	                                   - used to build a videostream in the conference server */
 	VideoStreamCsrcChangedCb csrc_changed_cb;
 	void *csrc_changed_cb_user_data;
 	uint32_t new_csrc;
@@ -1425,6 +1427,7 @@ MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orient
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
 MS2_PUBLIC void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_display_mode(VideoStream *stream, MSVideoDisplayMode mode);
+MS2_PUBLIC void video_stream_set_fallback_to_dummy_codec(VideoStream *stream, bool_t yesno);
 
 /**
  * @brief Gets the camera sensor rotation.

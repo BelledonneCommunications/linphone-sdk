@@ -235,6 +235,7 @@ if(ENABLE_VIDEO)
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
 		videofilters/videorouter.c
+		videofilters/dummy_codec.c
 		voip/layouts.c
 		voip/layouts.h
 		voip/msvideo_neon.c

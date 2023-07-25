@@ -521,6 +521,7 @@ VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 
 	ortp_ev_dispatcher_connect(stream->ms.evd, ORTP_EVENT_JITTER_UPDATE_FOR_NACK, 0,
 	                           (OrtpEvDispatcherCb)video_stream_update_jitter_for_nack, stream);
+	stream->fallback_to_dummy_codec = TRUE;
 
 	return stream;
 }
@@ -1317,8 +1318,18 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			stream->ms.encoder = ms_factory_create_encoder(stream->ms.factory, pt->mime_type);
 			if (stream->ms.encoder == NULL) {
 				/* big problem: we don't have a registered codec for this payload...*/
-				ms_error("videostream.c: No encoder available for payload %i:%s.", payload, pt->mime_type);
-				return -1;
+				if (stream->fallback_to_dummy_codec == TRUE) {
+					ms_error("videostream.c: No encoder available for payload %i:%s. Try to create a dummy one",
+					         payload, pt->mime_type);
+					stream->ms.encoder = ms_factory_create_filter(stream->ms.factory, MS_DUMMY_ENC_ID);
+					if (stream->ms.encoder == NULL) {
+						ms_error("videostream.c: No encoder available for dummy codec");
+						return -1;
+					}
+				} else {
+					ms_error("videostream.c: No encoder available for payload %i:%s.", payload, pt->mime_type);
+					return -1;
+				}
 			}
 		}
 		/* creates the filters */
@@ -1404,8 +1415,18 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			stream->ms.decoder = ms_factory_create_decoder(stream->ms.factory, pt->mime_type);
 			if (stream->ms.decoder == NULL) {
 				/* big problem: we don't have a registered decoderfor this payload...*/
-				ms_error("videostream.c: No decoder available for payload %i:%s.", payload, pt->mime_type);
-				return -1;
+				if (stream->fallback_to_dummy_codec == TRUE) {
+					ms_error("videostream.c: No decoder available for payload %i:%s. Try to create a dummy one",
+					         payload, pt->mime_type);
+					stream->ms.decoder = ms_factory_create_filter(stream->ms.factory, MS_DUMMY_DEC_ID);
+					if (stream->ms.decoder == NULL) {
+						ms_error("videostream.c: No decoder available for dummy codec");
+						return -1;
+					}
+				} else {
+					ms_error("videostream.c: No decoder available for payload %i:%s.", payload, pt->mime_type);
+					return -1;
+				}
 			}
 		}
 
@@ -2064,6 +2085,10 @@ void video_stream_set_display_mode(VideoStream *stream, MSVideoDisplayMode mode)
 
 void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno) {
 	stream->freeze_on_error = yesno;
+}
+
+void video_stream_set_fallback_to_dummy_codec(VideoStream *stream, bool_t yesno) {
+	stream->fallback_to_dummy_codec = yesno;
 }
 
 int video_stream_get_camera_sensor_rotation(VideoStream *stream) {
