@@ -41,3 +41,10 @@ set_target_properties(pqcrypto-tester PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(pqcrypto-tester PRIVATE bctoolbox bctoolbox-tester postquantumcryptoengine)
 
 add_test(NAME pqcrypto-tester COMMAND pqcrypto-tester)
+
+install(TARGETS pqcrypto-tester
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
