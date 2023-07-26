@@ -38,7 +38,7 @@ endif()
 target_compile_options(msopenh264 PRIVATE "-std=c++11")
 target_compile_definitions(msopenh264 PRIVATE "HAVE_CONFIG_H")
 if(ENABLE_DECODER)
-	target_compile_definitions(msopenh264 PRIVATE "DOPENH264_DECODER_ENABLED")
+	target_compile_definitions(msopenh264 PRIVATE "OPENH264_DECODER_ENABLED")
 endif()
 target_include_directories(msopenh264 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}
