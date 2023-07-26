@@ -704,6 +704,7 @@ struct belle_http_request {
 	belle_http_response_t *response;
 	belle_sip_channel_t *channel;
 	int auth_attempt_count;
+	int redirect_count;
 	int background_task_id;
 	int cancelled;
 	int resubmitted; /* Indicates whether this request has been resubmitted to a new channel after the first one was

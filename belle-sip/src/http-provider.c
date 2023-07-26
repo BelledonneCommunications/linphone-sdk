@@ -48,6 +48,50 @@ struct belle_http_provider {
 #define BELLE_HTTP_REQUEST_INVOKE_LISTENER(obj, method, arg)                                                           \
 	obj->listener ? BELLE_SIP_INVOKE_LISTENER_ARG(obj->listener, belle_http_request_listener_t, method, arg) : 0
 
+static void uri_copy_parts(belle_generic_uri_t *uri, const belle_generic_uri_t *original_uri) {
+	const char *username = belle_generic_uri_get_user(original_uri);
+	const char *passwd = belle_generic_uri_get_user_password(original_uri);
+	if (username) belle_generic_uri_set_user(uri, username);
+	if (passwd) belle_generic_uri_set_user_password(uri, passwd);
+	/* are there other uri parameters that shall be copied ? */
+}
+
+static int http_channel_context_handle_redirect(belle_http_channel_context_t *ctx, belle_http_request_t *req) {
+	const char *method = belle_http_request_get_method(req);
+	belle_http_response_t *resp = belle_http_request_get_response(req);
+	belle_sip_header_t *location;
+	belle_generic_uri_t *new_uri;
+	const char *location_value;
+
+	if (req->redirect_count > 70) {
+		belle_sip_error("Too many redirection of this request, giveup.");
+		return -1;
+	}
+
+	if (!(strcmp(method, "GET") == 0 || strcmp(method, "HEAD") == 0)) {
+		/* if not GET or HEAD, the redirect shall not be done automatically without user interaction */
+		return -1;
+	}
+	location = belle_sip_message_get_header(BELLE_SIP_MESSAGE(resp), "Location");
+	if (!location || (location_value = belle_sip_header_get_unparsed_value(location)) == NULL) {
+		belle_sip_error("HTTP Redirect without location header.");
+		return -1;
+	}
+	new_uri = belle_generic_uri_parse(location_value);
+	if (new_uri == NULL) {
+		belle_sip_error("Cannot parse location header's uri [%s]", location_value);
+		return -1;
+	}
+	req->redirect_count++;
+	if (req->orig_uri) uri_copy_parts(new_uri, req->orig_uri);
+	belle_http_request_set_uri(req, new_uri);
+	/* reset the original URI, as it is being used for routing*/
+	SET_OBJECT_PROPERTY(req, orig_uri, NULL);
+	belle_sip_message("belle_http_request_t[%p]: handling HTTP redirection to [%s]", req, location_value);
+	belle_http_provider_send_request(ctx->provider, req, NULL);
+	return 0;
+}
+
 static int http_channel_context_handle_authentication(belle_http_channel_context_t *ctx, belle_http_request_t *req) {
 	const char *realm = NULL;
 	belle_sip_auth_event_t *ev = NULL;
@@ -192,7 +236,7 @@ static void http_channel_context_handle_response_headers(belle_http_channel_cont
 		return;
 	}
 	code = belle_http_response_get_status_code(response);
-	if (code != 401 && code != 407) {
+	if (code != 401 && code != 407 && code != 301 && code != 302 && code != 307) {
 		/*else notify the app about the response headers received*/
 		ev.source = (belle_sip_object_t *)ctx->provider;
 		ev.request = req;
@@ -234,6 +278,8 @@ static void http_channel_context_handle_response(belle_http_channel_context_t *c
 	code = belle_http_response_get_status_code(response);
 	if ((code == 401 || code == 407) && http_channel_context_handle_authentication(ctx, req) == 0) {
 		/*nothing to do, the request has been resubmitted with authentication*/
+	} else if ((code == 301 || code == 302 || code == 307) && http_channel_context_handle_redirect(ctx, req) == 0) {
+		/* nothing to do, the request is automatically re-submitted to the new location */
 	} else {
 		/*else notify the app about the response received*/
 		ev.source = (belle_sip_object_t *)ctx->provider;
@@ -461,7 +507,8 @@ static void split_request_url(belle_http_request_t *req) {
 	if (belle_generic_uri_get_port(uri) > 0)
 		host_value = belle_sip_strdup_printf("%s:%i", belle_generic_uri_get_host(uri), belle_generic_uri_get_port(uri));
 	else host_value = belle_sip_strdup(belle_generic_uri_get_host(uri));
-	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), belle_sip_header_create("Host", host_value));
+
+	belle_sip_message_set_header(BELLE_SIP_MESSAGE(req), belle_sip_header_create("Host", host_value));
 	belle_sip_free(host_value);
 	SET_OBJECT_PROPERTY(req, orig_uri, uri);
 	belle_http_request_set_uri(req, new_uri);
