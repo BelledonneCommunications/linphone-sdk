@@ -599,5 +599,6 @@ test_suite_t crypto_utils_test_suite = {
 	NULL,
 	NULL,
 	sizeof(crypto_utils_tests) / sizeof(crypto_utils_tests[0]),
-	crypto_utils_tests
+	crypto_utils_tests,
+	0
 };

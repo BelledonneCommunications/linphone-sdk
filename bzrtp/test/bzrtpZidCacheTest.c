@@ -211,5 +211,6 @@ test_suite_t zidcache_test_suite = {
 	NULL,
 	NULL,
 	sizeof(zidcache_tests) / sizeof(zidcache_tests[0]),
-	zidcache_tests
+	zidcache_tests,
+	0
 };

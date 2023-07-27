@@ -1944,5 +1944,6 @@ test_suite_t packet_parser_test_suite = {
 	NULL,
 	NULL,
 	sizeof(packet_parser_tests) / sizeof(packet_parser_tests[0]),
-	packet_parser_tests
+	packet_parser_tests,
+	0
 };
