@@ -546,4 +546,4 @@ static test_t crypto_tests[] = {
 };
 
 test_suite_t crypto_test_suite = {"Crypto", NULL, NULL, NULL, NULL,
-							   sizeof(crypto_tests) / sizeof(crypto_tests[0]), crypto_tests};
+							   sizeof(crypto_tests) / sizeof(crypto_tests[0]), crypto_tests, 0};
