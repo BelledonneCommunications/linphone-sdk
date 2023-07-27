@@ -316,6 +316,7 @@
       "cacheVariables": {
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
+        "ENABLE_AV1": "OFF",
         "ENABLE_CSHARP_WRAPPER": "ON",
         "ENABLE_DAEMON": "OFF",
         "ENABLE_FLEXIAPI": "ON",
