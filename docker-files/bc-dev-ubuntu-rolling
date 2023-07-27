@@ -36,9 +36,15 @@ RUN apt-get update && \
     apt-get clean
 
 # Configure user bc
-RUN useradd -ms /bin/bash bc && \
-    echo 'bc:cotcot' | chpasswd && \
-    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+# As this ubuntu image comes with an "ubuntu" user on 1000:1000, we are forced to use it in order to avoid permission issues with volumes, so we rename this user bc
+RUN usermod -l bc ubuntu && \
+    usermod -d /home/bc -m bc && \
+    groupmod -n bc ubuntu && \
+    usermod --shell /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd
+
+# Allow bc user to install packages without interactive prompt of password, like in other docker images
+RUN sed -i -e "s/%sudo	ALL=(ALL:ALL) ALL/%sudo	ALL=(ALL:ALL) NOPASSWD: ALL/g" /etc/sudoers
 
 USER bc
 WORKDIR /home/bc
