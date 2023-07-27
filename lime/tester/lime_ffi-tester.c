@@ -825,7 +825,8 @@ test_suite_t lime_ffi_test_suite = {
 	NULL,
 	NULL,
 	sizeof(tests) / sizeof(tests[0]),
-	tests
+	tests,
+	0
 };
 
 #else /* FFI_ENABLED */
@@ -836,7 +837,8 @@ test_suite_t lime_ffi_test_suite = {
 	NULL,
 	NULL,
 	0,
-	NULL
+	NULL,
+	0
 };
 
 #endif /* FFI_ENABLED */

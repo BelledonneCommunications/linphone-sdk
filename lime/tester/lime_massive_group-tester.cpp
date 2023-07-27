@@ -430,5 +430,6 @@ test_suite_t lime_massive_group_test_suite = {
 	NULL,
 	NULL,
 	sizeof(tests) / sizeof(tests[0]),
-	tests
+	tests,
+	0
 };

@@ -588,5 +588,6 @@ test_suite_t lime_server_test_suite = {
 	NULL,
 	NULL,
 	sizeof(tests) / sizeof(tests[0]),
-	tests
+	tests,
+	0
 };
