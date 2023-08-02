@@ -102,4 +102,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_identification_properties_test_suite = {
-    "Identification", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "Identification", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

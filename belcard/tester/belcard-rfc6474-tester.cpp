@@ -48,4 +48,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_rfc6474_properties_test_suite = {
-    "RFC 6474", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "RFC 6474", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

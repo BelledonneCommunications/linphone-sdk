@@ -145,4 +145,4 @@ static test_t tests[] = {
     TEST_NO_TAG("Property sort using pref param", property_sort_using_pref_param),
 };
 
-test_suite_t vcard_test_suite = {"VCard", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+test_suite_t vcard_test_suite = {"VCard", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

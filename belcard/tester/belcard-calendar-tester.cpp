@@ -41,4 +41,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_calendar_properties_test_suite = {
-    "Calendar", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "Calendar", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

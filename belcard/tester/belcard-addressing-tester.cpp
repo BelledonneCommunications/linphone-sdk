@@ -31,4 +31,5 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_addressing_properties_test_suite = {
-    "Addressing", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+
+    "Addressing", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

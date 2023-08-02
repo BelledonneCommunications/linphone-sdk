@@ -36,4 +36,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_geographical_properties_test_suite = {
-    "Geographical", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "Geographical", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
