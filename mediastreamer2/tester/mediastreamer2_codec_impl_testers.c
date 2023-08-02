@@ -231,4 +231,4 @@ static test_t tests[] = {
 };
 
 test_suite_t codec_impl_test_suite = {
-    "CodecImplTesters", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "CodecImplTesters", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

@@ -178,4 +178,5 @@ static test_t tests[] = {TEST_NO_TAG("Decode qr code", decode_qr_code),
                          TEST_NO_TAG("Decode qr code twice", decode_qr_code_twice),
                          TEST_NO_TAG("Decode qr code once", decode_qr_code_once)};
 
-test_suite_t qrcode_test_suite = {"QRCode", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+
+test_suite_t qrcode_test_suite = {"QRCode", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

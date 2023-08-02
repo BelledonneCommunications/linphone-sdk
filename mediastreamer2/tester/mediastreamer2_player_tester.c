@@ -264,4 +264,4 @@ static test_t tests[] = {
     TEST_NO_TAG("Loop test", loop_test)};
 
 test_suite_t player_test_suite = {
-    "Player", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests};
+    "Player", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests, 0};

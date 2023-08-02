@@ -266,6 +266,6 @@ static void inner_product_test(void) {
 static test_t tests[] = {{"Inner product", inner_product_test}};
 
 test_suite_t neon_test_suite = {"NEON", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t),
-                                tests};
+                                tests, 0};
 
 #endif // ARM NEON

@@ -582,4 +582,4 @@ static test_t tests[] = {
 };
 
 test_suite_t jitterbuffer_test_suite = {
-    "Jitter buffer", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "Jitter buffer", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

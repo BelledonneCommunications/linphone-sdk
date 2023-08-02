@@ -721,4 +721,5 @@ test_suite_t basic_audio_test_suite = {"Basic Audio",
                                        NULL,
                                        NULL,
                                        sizeof(basic_audio_tests) / sizeof(basic_audio_tests[0]),
-                                       basic_audio_tests};
+                                       basic_audio_tests,
+                                       0};

@@ -141,4 +141,4 @@ static test_t tests[] = {
 };
 
 test_suite_t recorder_test_suite = {
-    "Recorder", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests};
+    "Recorder", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(test_t), tests, 0};

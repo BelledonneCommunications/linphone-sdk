@@ -580,4 +580,4 @@ static test_t tests[] = {TEST_NO_TAG("Multiple ms_voip_init", filter_register_te
 };
 
 test_suite_t framework_test_suite = {
-    "Framework", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "Framework", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

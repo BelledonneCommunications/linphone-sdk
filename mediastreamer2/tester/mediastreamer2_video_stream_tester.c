@@ -1375,7 +1375,7 @@ static test_t tests[] = {
 };
 
 test_suite_t video_stream_test_suite = {
-    "VideoStream", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "VideoStream", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
 #else
-test_suite_t video_stream_test_suite = {"VideoStream", NULL, NULL, 0, NULL};
+test_suite_t video_stream_test_suite = {"VideoStream", NULL, NULL, 0, NULL, 0};
 #endif

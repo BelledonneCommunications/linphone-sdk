@@ -156,5 +156,5 @@ static test_t tests[] = {
 
 extern "C" {
 test_suite_t h26x_tools_test_suite = {
-    "H26x Tools", initMSFactory, releaseMSFactory, nullptr, nullptr, sizeof(tests) / sizeof(test_t), tests};
+    "H26x Tools", initMSFactory, releaseMSFactory, nullptr, nullptr, sizeof(tests) / sizeof(test_t), tests, 0};
 }

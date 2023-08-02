@@ -1379,4 +1379,4 @@ static test_t tests[] = {
 };
 
 test_suite_t audio_stream_test_suite = {
-    "AudioStream", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+    "AudioStream", tester_before_all, tester_after_all, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
