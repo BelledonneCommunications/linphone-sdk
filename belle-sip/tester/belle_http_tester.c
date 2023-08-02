@@ -395,4 +395,4 @@ test_t http_tests[] = {
 };
 
 test_suite_t http_test_suite = {
-    "HTTP stack", http_before_all, http_after_all, NULL, NULL, sizeof(http_tests) / sizeof(http_tests[0]), http_tests};
+    "HTTP stack", http_before_all, http_after_all, NULL, NULL, sizeof(http_tests) / sizeof(http_tests[0]), http_tests, 0};

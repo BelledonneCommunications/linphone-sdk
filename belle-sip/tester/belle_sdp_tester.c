@@ -1203,4 +1203,5 @@ test_suite_t sdp_test_suite = {"SDP",
                                belle_sip_tester_before_each,
                                belle_sip_tester_after_each,
                                sizeof(sdp_tests) / sizeof(sdp_tests[0]),
-                               sdp_tests};
+                               sdp_tests,
+                               0};

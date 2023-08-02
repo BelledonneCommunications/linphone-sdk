@@ -285,4 +285,5 @@ test_suite_t object_test_suite = {"Object",
                                   belle_sip_tester_before_each,
                                   belle_sip_tester_after_each,
                                   sizeof(object_tests) / sizeof(object_tests[0]),
-                                  object_tests};
+                                  object_tests,
+                                  0};

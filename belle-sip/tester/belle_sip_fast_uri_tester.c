@@ -62,7 +62,8 @@ test_suite_t fast_sip_uri_test_suite = {"FAST SIP URI",
                                         belle_sip_tester_before_each,
                                         belle_sip_tester_after_each,
                                         sizeof(uri_tests) / sizeof(uri_tests[0]),
-                                        uri_tests};
+                                        uri_tests,
+                                        0};
 
 test_suite_t perf_sip_uri_test_suite = {"FAST SIP URI 2",
                                         NULL,
@@ -70,4 +71,5 @@ test_suite_t perf_sip_uri_test_suite = {"FAST SIP URI 2",
                                         belle_sip_tester_before_each,
                                         belle_sip_tester_after_each,
                                         sizeof(tests) / sizeof(tests[0]),
-                                        tests};
+                                        tests,
+                                        0};
