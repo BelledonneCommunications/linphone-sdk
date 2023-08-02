@@ -74,6 +74,7 @@ typedef struct {
 	test_function_t after_each;    /*function invoked after each test within this suite, even if it failed. */
 	int nb_tests;                  /* number of tests */
 	test_t *tests;                 /* tests within this suite */
+	int average_time;              /* average time that takes the suite. Used for sorting. Use 0 if unknown, in which case test no sorting is done. */
 } test_suite_t;
 
 #ifdef __cplusplus
@@ -96,7 +97,7 @@ BCTBX_PUBLIC int bc_tester_start(const char *prog_name);
 BCTBX_PUBLIC int bc_tester_register_suites(void);
 
 BCTBX_PUBLIC int bc_tester_register_suite_by_name(const char *suite_name);
-BCTBX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);
+BCTBX_PUBLIC void bc_tester_add_suite(test_suite_t *suite);	/* Add suite to the list of suites to be executed. If average_time is provided, the list are automatically sorted so that longer suites are executed first, in order to optimize (minimize) the total execution time when suites are run in parallel mode.*/
 BCTBX_PUBLIC void bc_tester_set_max_parallel_suites(int max_parallel_suites);
 BCTBX_PUBLIC void bc_tester_set_max_failed_tests_threshold(int max_failed_tests_threshold);
 BCTBX_PUBLIC void bc_tester_set_global_timeout(int seconds);

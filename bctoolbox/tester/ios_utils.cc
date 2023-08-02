@@ -34,4 +34,4 @@ static test_t ios_utils_tests[] = {
 };
 
 test_suite_t ios_utils_test_suite = {
-    "iOS Utilities", NULL, NULL, NULL, NULL, sizeof(ios_utils_tests) / sizeof(ios_utils_tests[0]), ios_utils_tests};
+    "iOS Utilities", NULL, NULL, NULL, NULL, sizeof(ios_utils_tests) / sizeof(ios_utils_tests[0]), ios_utils_tests, 0};

@@ -241,5 +241,6 @@ static test_t utils_tests[] = {
     TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings), TEST_NO_TAG("Time", time_functions),
     TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test), TEST_NO_TAG("Directory utils", bctbx_directory_utils_test)};
 
+
 test_suite_t utils_test_suite = {"Utils",    NULL, NULL, NULL, NULL, sizeof(utils_tests) / sizeof(utils_tests[0]),
-                                 utils_tests};
+                                 utils_tests, 0};

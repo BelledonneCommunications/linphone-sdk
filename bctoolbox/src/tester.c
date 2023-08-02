@@ -1480,7 +1480,13 @@ void bc_tester_add_suite(test_suite_t *suite) {
 	if (test_suite == NULL) {
 		test_suite = (test_suite_t **)malloc(10 * sizeof(test_suite_t *));
 	}
-	test_suite[nb_test_suites] = suite;
+	int insert_index = 0;
+	while(insert_index < nb_test_suites && test_suite[insert_index]->average_time >= suite->average_time ) ++insert_index;	// if suite->average_time == 0 => the new suite will be at the end.
+	if( insert_index < nb_test_suites) {// Need insertion
+		for(int move_index = nb_test_suites ; move_index >= insert_index + 1  ; --move_index)
+			test_suite[move_index] = test_suite[move_index-1];
+	}
+	test_suite[insert_index] = suite;
 	nb_test_suites++;
 	if ((nb_test_suites % 10) == 0) {
 		test_suite = (test_suite_t **)realloc(test_suite, (nb_test_suites + 10) * sizeof(test_suite_t *));
