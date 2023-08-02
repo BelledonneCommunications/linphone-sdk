@@ -127,4 +127,4 @@ static test_t tests[] = {TEST_NO_TAG("SIP grammar save and load", sipgrammar_sav
                          TEST_NO_TAG("SIP grammar with aliases rules", aliases_rules),
                          TEST_NO_TAG("Grammar loader", test_grammar_loader)};
 
-test_suite_t grammar_suite = {"Grammar", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests};
+test_suite_t grammar_suite = {"Grammar", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
