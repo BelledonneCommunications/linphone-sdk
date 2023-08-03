@@ -51,7 +51,7 @@ centos7-ninja-gcc:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
-    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON
+    CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: .linux-desktop
 
 centos7-ninja-gcc-tunnel-pq-h264:
