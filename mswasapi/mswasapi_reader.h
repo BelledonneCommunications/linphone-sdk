@@ -32,16 +32,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 class MSWASAPIReader
 #ifdef MS2_WINDOWS_UNIVERSAL
-	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler > {
 #else
-	: public MSWasapi
+	: public MSWasapi {
 #endif
-{
 public:
 	MSWASAPIReader(MSFilter *filter);
 	virtual ~MSWASAPIReader();
 
-	void init(MSSndCard *card);
 	int activate();
 	int deactivate();
 	bool isStarted() { return mIsStarted; }
@@ -56,43 +54,34 @@ public:
 	void setVolumeLevel(float volume);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
-	void setAsNotInstantiated() { smInstantiated = false; }
-
-	// IActivateAudioInterfaceCompletionHandler
-	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+	static bool smInstantiated;
+	virtual bool isInstantiated() override { return smInstantiated }
+	virtual void setInstantiated(bool instantiated) override { smInstantiated = instantiated; }
 #endif
+
 private:
 	void silence(MSFilter *f);
 
-	static bool smInstantiated;
-#ifdef MS2_WINDOWS_UNIVERSAL
-	Platform::String^ mCaptureId;
-	HANDLE mActivationEvent;
-#else
-	LPCWSTR mCaptureId;
-#endif
 	IAudioCaptureClient *mAudioCaptureClient;
 	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount;
-	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
-	std::string mDeviceName;
 	
 	MSFilter *mFilter;
 	MSTickerSynchronizer *mTickerSynchronizer;
 };
 
-
-#ifdef MS2_WINDOWS_UNIVERSAL
+#ifndef MS2_WINDOWS_PHONE
 #define MSWASAPI_READER(w) ((MSWASAPIReaderType)((MSWASAPIReaderPtr)(w))->reader)
+#ifdef MS2_WINDOWS_UNIVERSAL
 typedef ComPtr<MSWASAPIReader> MSWASAPIReaderType;
-
-struct MSWASAPIReaderWrapper
-{
+#else
+typedef MSWASAPIReader* MSWASAPIReaderType;
+#endif
+struct MSWASAPIReaderWrapper {
 	MSWASAPIReaderType reader;
 };
-
 typedef struct MSWASAPIReaderWrapper* MSWASAPIReaderPtr;
 #else
 #define MSWASAPI_READER(w) ((MSWASAPIReaderType)(w))

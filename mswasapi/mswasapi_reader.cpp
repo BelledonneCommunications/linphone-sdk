@@ -38,121 +38,43 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	}
 
 
+#ifdef MS2_WINDOWS_UNIVERSAL
 bool MSWASAPIReader::smInstantiated = false;
+#endif
 
 
 
 
 MSWASAPIReader::MSWASAPIReader(MSFilter *filter)
-	: MSWasapi("input"), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsInitialized(false), mIsActivated(false), mIsStarted(false), mFilter(filter)
-{
+	: MSWasapi("input"), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsActivated(false), mIsStarted(false), mFilter(filter) {
 	mTickerSynchronizer = ms_ticker_synchronizer_new();
-#ifdef MS2_WINDOWS_UNIVERSAL
+#ifndef MS2_WINDOWS_PHONE
 	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
 	if (!mActivationEvent) {
-		ms_error("Could not create activation event of the MSWASAPI audio input interface [%i]", GetLastError());
+		ms_error("MSWASAPIReader: Could not create activation event of the MSWASAPI audio input interface [%i]", GetLastError());
 		return;
 	}
 #endif
 }
 
-MSWASAPIReader::~MSWASAPIReader()
-{
+MSWASAPIReader::~MSWASAPIReader() {
 	RELEASE_CLIENT(mAudioClient);
+	
 #ifdef MS2_WINDOWS_PHONE
 	FREE_PTR(mCaptureId);
-#endif
-#ifdef MS2_WINDOWS_UNIVERSAL
+#else
 	if (mActivationEvent != INVALID_HANDLE_VALUE) {
 		CloseHandle(mActivationEvent);
 		mActivationEvent = INVALID_HANDLE_VALUE;
 	}
+#ifdef MS2_WINDOWS_UNIVERSAL
+	setInstantiated(false);
+#endif
 #endif
 	ms_ticker_synchronizer_destroy(mTickerSynchronizer);
-	smInstantiated = false;
 }
 
-
-void MSWASAPIReader::init(MSSndCard *card){
-	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
-	LPCWSTR id = wasapicard->id;
-	bool useBestFormat = false;
-	HRESULT result;
-	WAVEFORMATEX *pWfx = NULL;
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
-	AudioClientProperties properties = { 0 };
-#endif
-	mDeviceName = card->name;
-#if defined(MS2_WINDOWS_UNIVERSAL)
-	ComPtr<IActivateAudioInterfaceAsyncOperation> asyncOp;
-	mCaptureId = ref new Platform::String(id);
-	if (mCaptureId == nullptr) {
-		ms_error("Could not get the CaptureID of the MSWASAPI audio input interface");
-		goto error;
-	}
-	if (smInstantiated) {
-		ms_error("An MSWASAPIReader is already instantiated. A second one can not be created.");
-		goto error;
-	}
-	result = ActivateAudioInterfaceAsync(mCaptureId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
-	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%i]", result);
-	WaitForSingleObjectEx(mActivationEvent, INFINITE, FALSE);
-	if (mAudioClient == NULL) {
-		ms_error("Could not create the MSWASAPI audio input interface client");
-		goto error;
-	}
-#elif defined(MS2_WINDOWS_PHONE)
-	mCaptureId = GetDefaultAudioCaptureId(Communications);
-	if (mCaptureId == NULL) {
-		ms_error("Could not get the CaptureId of the MSWASAPI audio input interface");
-		goto error;
-	}
-
-	if (smInstantiated) {
-		ms_error("A MSWASAPIReader is already instantiated. A second one can not be created.");
-		goto error;
-	}
-
-	result = ActivateAudioInterface(mCaptureId, IID_IAudioClient2, (void **)&mAudioClient);
-	REPORT_ERROR("Could not activate the MSWASAPI audio input interface [%x]", result);
-#else
-	IMMDeviceEnumerator *pEnumerator = NULL;
-	IMMDevice *pDevice = NULL;
-#ifdef ENABLE_MICROSOFT_STORE_APP
-	CoInitializeEx(NULL, COINIT_MULTITHREADED);
-#else
-	CoInitialize(NULL);
-#endif
-	result = CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**)&pEnumerator);
-	REPORT_ERROR("mswasapi: Could not create an instance of the device enumerator [%x]", result);
-	mCaptureId = id;
-	result = pEnumerator->GetDevice(mCaptureId, &pDevice);
-	SAFE_RELEASE(pEnumerator);
-	REPORT_ERROR("mswasapi: Could not get the capture device [%x]", result);
-	changePolicies(pDevice);
-	result = pDevice->Activate(IID_IAudioClient, CLSCTX_ALL, NULL, (void **)&mAudioClient);
-	SAFE_RELEASE(pDevice);
-	REPORT_ERROR("mswasapi: Could not activate the capture device [%x]", result);
-#endif
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
-	properties.cbSize = sizeof(AudioClientProperties);
-	properties.bIsOffload = false;
-	properties.eCategory = AudioCategory_Communications;
-	result = mAudioClient->SetClientProperties(&properties);
-	REPORT_ERROR("Could not set properties of the MSWASAPI audio input interface [%x]", result);
-#endif
-	useBestFormat = true;
-error:
-	updateFormat(useBestFormat);
-	
-	mIsInitialized = true;
-	smInstantiated = true;
-	activate();
-	return;
-}
-
-int MSWASAPIReader::activate()
-{
+int MSWASAPIReader::activate() {
 	HRESULT result;
 	REFERENCE_TIME requestedDuration = REFTIME_250MS;
 	WAVEFORMATPCMEX proposedWfx;
@@ -205,8 +127,7 @@ error:
 	return -1;
 }
 
-int MSWASAPIReader::deactivate()
-{
+int MSWASAPIReader::deactivate() {
 	RELEASE_CLIENT(mAudioCaptureClient);
 	RELEASE_CLIENT(mVolumeControler);
 	
@@ -214,8 +135,7 @@ int MSWASAPIReader::deactivate()
 	return 0;
 }
 
-void MSWASAPIReader::start()
-{
+void MSWASAPIReader::start() {
 	HRESULT result;
 
 	if (!isStarted() && mIsActivated) {
@@ -228,8 +148,7 @@ void MSWASAPIReader::start()
 	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
 }
 
-void MSWASAPIReader::stop()
-{
+void MSWASAPIReader::stop() {
 	HRESULT result;
 
 	if (isStarted() && mIsActivated) {
@@ -242,8 +161,7 @@ void MSWASAPIReader::stop()
 	ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 }
 
-int MSWASAPIReader::feed(MSFilter *f)
-{
+int MSWASAPIReader::feed(MSFilter *f) {
 	HRESULT result;
 	DWORD flags;
 	BYTE *pData;
@@ -344,61 +262,31 @@ void MSWASAPIReader::silence(MSFilter *f)
 	ms_queue_put(f->outputs[0], om);
 }
 
-
+#ifndef MS2_WINDOWS_PHONE
+// Called from main mswasapi.
+MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f) {
+	MSWASAPIReaderPtr w = new MSWASAPIReaderWrapper();
 #ifdef MS2_WINDOWS_UNIVERSAL
-//
-//  ActivateCompleted()
-//
-//  Callback implementation of ActivateAudioInterfaceAsync function.  This will be called on MTA thread
-//  when results of the activation are available.
-//
-HRESULT MSWASAPIReader::ActivateCompleted(IActivateAudioInterfaceAsyncOperation *operation)
-{
-	HRESULT hr = S_OK;
-	HRESULT hrActivateResult = S_OK;
-	ComPtr<IUnknown> audioInterface;
-
-	hr = operation->GetActivateResult(&hrActivateResult, &audioInterface);
-	if (FAILED(hr))	goto exit;
-	hr = hrActivateResult;
-	if (FAILED(hr)) goto exit;
-
-	audioInterface.CopyTo(&mAudioClient);
-	if (mAudioClient == NULL) {
-		hr = E_NOINTERFACE;
-		goto exit;
-	}
-
-exit:
-	if (FAILED(hr))	{
-		SAFE_RELEASE(mAudioClient);
-		SAFE_RELEASE(mAudioCaptureClient);
-	}
-
-	SetEvent(mActivationEvent);
-	return S_OK;
+	w->reader = Make<MSWASAPIReader>(f);
+#endif
+	w->reader = new MSWASAPIReader(f);
+	w->reader->AddRef();
+	return w;
 }
-
-
-MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f)
-{
-	MSWASAPIReaderPtr r = new MSWASAPIReaderWrapper();
-	r->reader = Make<MSWASAPIReader>(f);
-	return r;
-}
-void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
-{
-	ptr->reader->setAsNotInstantiated();
+void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr) {
+#ifdef MS2_WINDOWS_UNIVERSAL
+	ptr->reader->setInstantiated(false);
+#endif
+	ptr->reader->Release();
 	ptr->reader = nullptr;
 	delete ptr;
 }
 #else
-MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f)
-{
+MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f) {
 	return (MSWASAPIReaderPtr) new MSWASAPIReader(f);
 }
-void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr)
-{
+
+void MSWASAPIReaderDelete(MSWASAPIReaderPtr ptr) {
 	delete ptr;
 }
 #endif

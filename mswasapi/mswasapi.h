@@ -33,6 +33,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <audioclient.h>
 #ifdef MS2_WINDOWS_UNIVERSAL
 #include <wrl\implements.h>
+#include <mmdeviceapi.h>
 #endif
 #ifdef MS2_WINDOWS_PHONE
 #include <phoneaudioclient.h>
@@ -67,28 +68,63 @@ using namespace Windows::Media::Devices;
 typedef struct WasapiSndCard {
 	std::vector<wchar_t> *id_vector;
 	LPWSTR id;
+	bool isDefault;
 } WasapiSndCard;
 
-class MSWasapi{
-public:
-#if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
-	IAudioClient2 *mAudioClient;
+class MSWasapi
+#ifdef MS2_WINDOWS_UNIVERSAL
+	: public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler > {
+#elsif defined(MS2_WINDOWS_PHONE)
+	{
 #else
-	IAudioClient *mAudioClient;
+	: public IActivateAudioInterfaceCompletionHandler {
 #endif
+public:
+	IAudioClient2 *mAudioClient;
+	
+#ifdef MS2_WINDOWS_PHONE
+	LPCWSTR mDeviceId;
+#elsif defined MS2_WINDOWS_UNIVERSAL
+	Platform::String^ mDeviceId;
+	HANDLE mActivationEvent;
+#else
+	LPCWSTR mDeviceId;
+	HANDLE mActivationEvent;
+#endif
+	
 	int mRate;
 	int mNChannels;
 	int mNBlockAlign;
 	int mWBitsPerSample;
+	int mMediaDirection;	// 0: Reader, 1: Writer
 	std::string mMediaDirectionStr;
 	bool mDisableSysFx; // Option to remove audio enhancements mode. This mode can break inputs on some systems.
+	std::string mDeviceName;
+	bool mIsInitialized = false;
 	
 	MSWasapi(const std::string& mediaDirectionStr);
 #if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
 	void changePolicies(IMMDevice *device);
 #endif
+#ifndef MS2_WINDOWS_PHONE
+	// IActivateAudioInterfaceCompletionHandler
+	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+	virtual ULONG STDMETHODCALLTYPE AddRef(void);
+	virtual ULONG STDMETHODCALLTYPE Release(void);
+private:
+	ULONG m_refCount = 0;
+#endif
+
+public:
+	virtual int activate() = 0;
+#ifdef MS2_WINDOWS_UNIVERSAL
+	virtual bool isInstantiated()= 0;
+	virtual void setInstantiated(bool instantiated)= 0;
+#endif
 	void updateFormat(bool useBestFormat);
 	WAVEFORMATPCMEX buildFormat() const;
+	virtual void init(MSSndCard *card, MSFilter *f);
 };
 
 extern const IID IID_IAudioClient2;

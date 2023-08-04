@@ -41,7 +41,7 @@ set(SOURCE_FILES
 	mswasapi_writer.cpp
 	mswasapi_writer.h
 )
-set(LIBS ws2_32)
+set(LIBS ws2_32 Mmdevapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
 endif()
@@ -68,7 +68,7 @@ if(MSVC)
 	endif()
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+if(MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 	install(FILES $<TARGET_PDB_FILE:mswasapi>
 		DESTINATION "${Mediastreamer2_PLUGINS_DIR}"
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE

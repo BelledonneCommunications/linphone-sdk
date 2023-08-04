@@ -32,17 +32,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 class MSWASAPIWriter
 #ifdef MS2_WINDOWS_UNIVERSAL
-	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler >
+	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler > {
 #else
-	: public MSWasapi
+	: public MSWasapi {
 #endif
-{
 public:
 	MSWASAPIWriter();
 	virtual ~MSWASAPIWriter();
 
-	void init(MSSndCard *card, MSFilter *f);
-	int activate();
+	int activate() override;
 	int deactivate();
 	bool isStarted() { return mIsStarted; }
 	void start();
@@ -56,44 +54,34 @@ public:
 	void setVolumeLevel(float volume);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
-	void setAsNotInstantiated() { smInstantiated = false; }
-
-	// IActivateAudioInterfaceCompletionHandler
-	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+	static bool smInstantiated;
+	virtual bool isInstantiated() ovveride { return smInstantiated }
+	virtual void setInstantiated(bool instantiated) override { smInstantiated = instantiated; }
 #endif
-
+	
 private:
 	void drop(MSFilter *f);
 	HRESULT configureAudioClient();
 
-	static bool smInstantiated;
-#ifdef MS2_WINDOWS_UNIVERSAL
-	Platform::String^ mRenderId;
-	HANDLE mActivationEvent;
-#else
-	LPCWSTR mRenderId;
-#endif
-	
 	IAudioRenderClient *mAudioRenderClient;
 	ISimpleAudioVolume *mVolumeControler;
 	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
 	int mMinFrameCount=-1; /* The minimum samples queued into the wasapi during a 5 second period*/
-	bool mIsInitialized;
 	bool mIsActivated;
 	bool mIsStarted;
-	std::string mDeviceName;
 };
 
 
-#ifdef MS2_WINDOWS_UNIVERSAL
+#ifndef MS2_WINDOWS_PHONE
 #define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)((MSWASAPIWriterPtr)(w))->writer)
+#ifdef MS2_WINDOWS_UNIVERSAL
 typedef ComPtr<MSWASAPIWriter> MSWASAPIWriterType;
-
-struct MSWASAPIWriterWrapper
-{
+#else
+typedef MSWASAPIWriter* MSWASAPIWriterType;
+#endif
+struct MSWASAPIWriterWrapper {
 	MSWASAPIWriterType writer;
 };
-
 typedef struct MSWASAPIWriterWrapper* MSWASAPIWriterPtr;
 #else
 #define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)(w))
