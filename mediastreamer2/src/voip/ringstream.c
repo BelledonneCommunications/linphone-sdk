@@ -51,6 +51,19 @@ RingStream *ring_start(MSFactory *factory, const char *file, int interval, MSSnd
 	return ring_start_with_cb(factory, file, interval, sndcard, NULL, NULL);
 }
 
+static void write_device_event_handler(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+	if (event == MS_FILTER_OUTPUT_FMT_CHANGED) {
+		RingStream *stream = (RingStream *)user_data;
+		int  playbackRate,  playbackChannels;
+		ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_SAMPLE_RATE,&playbackRate);
+		ms_filter_call_method(stream->sndwrite,MS_FILTER_GET_NCHANNELS,&playbackChannels);
+		
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&playbackRate);
+		ms_filter_call_method(stream->write_resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&playbackChannels);
+		ms_message("reconfiguring resampler output to rate=[%i], nchannels=[%i]", playbackRate, playbackChannels);
+	}
+}
+
 RingStream *ring_start_with_cb(
     MSFactory *factory, const char *file, int interval, MSSndCard *sndcard, MSFilterNotifyFunc func, void *user_data) {
 	RingStream *stream;
@@ -80,6 +93,8 @@ RingStream *ring_start_with_cb(
 	stream->gendtmf = ms_factory_create_filter(factory, MS_DTMF_GEN_ID);
 	stream->sndwrite =
 	    (sndcard != NULL) ? ms_snd_card_create_writer(sndcard) : ms_factory_create_filter(factory, MS_VOID_SINK_ID);
+	// sndwrite Callback with TRUE because RingStream doesn't replumb graph so updates need to be done without restarting it.
+	ms_filter_add_notify_callback(stream->sndwrite, write_device_event_handler, stream, TRUE);
 	stream->write_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
 
 	if (file) {

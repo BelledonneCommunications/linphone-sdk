@@ -178,15 +178,29 @@ static void resample_process_ms2(MSFilter *obj) {
 	ms_filter_unlock(obj);
 }
 
-static int ms_resample_set_sr(MSFilter *obj, void *arg) {
-	ResampleData *dt = (ResampleData *)obj->data;
-	dt->input_rate = ((int *)arg)[0];
+static int ms_resample_set_sr(MSFilter *f, void *arg) {
+	ResampleData *dt = (ResampleData *)f->data;
+	unsigned int rate = *(unsigned int *)arg;
+	ms_filter_lock(f);
+	if (dt->input_rate != rate && dt->handle != NULL) {
+		speex_resampler_destroy(dt->handle);
+		dt->handle = NULL;
+	}
+	dt->input_rate = rate;
+	ms_filter_unlock(f);
 	return 0;
 }
 
-static int ms_resample_set_output_sr(MSFilter *obj, void *arg) {
-	ResampleData *dt = (ResampleData *)obj->data;
-	dt->output_rate = ((int *)arg)[0];
+static int ms_resample_set_output_sr(MSFilter *f, void *arg) {
+	ResampleData *dt = (ResampleData *)f->data;
+	unsigned int rate = *(unsigned int *)arg;
+	ms_filter_lock(f);
+	if (dt->output_rate != rate && dt->handle != NULL) {
+		speex_resampler_destroy(dt->handle);
+		dt->handle = NULL;
+	}
+	dt->output_rate = rate;
+	ms_filter_unlock(f);
 	return 0;
 }
 
@@ -207,10 +221,6 @@ static int set_output_nchannels(MSFilter *f, void *arg) {
 	ResampleData *dt = (ResampleData *)f->data;
 	int chans = *(int *)arg;
 	ms_filter_lock(f);
-	if (dt->out_nchannels != chans && dt->handle != NULL) {
-		speex_resampler_destroy(dt->handle);
-		dt->handle = NULL;
-	}
 	dt->out_nchannels = chans;
 	ms_filter_unlock(f);
 	return 0;
