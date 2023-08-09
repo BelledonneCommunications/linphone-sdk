@@ -27,15 +27,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define REFTIME_250MS 2500000
 
 #define RELEASE_CLIENT(client) \
-	if (client != NULL) { \
+if (client != NULL) { \
 		client->Release(); \
 		client = NULL; \
-	}
+}
 #define FREE_PTR(ptr) \
-	if (ptr != NULL) { \
+if (ptr != NULL) { \
 		CoTaskMemFree((LPVOID)ptr); \
 		ptr = NULL; \
-	}
+}
 
 
 #ifdef MS2_WINDOWS_UNIVERSAL
@@ -46,31 +46,11 @@ bool MSWASAPIReader::smInstantiated = false;
 
 
 MSWASAPIReader::MSWASAPIReader(MSFilter *filter)
-	: MSWasapi("input"), mAudioCaptureClient(NULL), mVolumeControler(NULL), mBufferFrameCount(0), mIsActivated(false), mIsStarted(false), mFilter(filter) {
+	: MSWasapi(filter, "input"), mAudioCaptureClient(NULL) {
 	mTickerSynchronizer = ms_ticker_synchronizer_new();
-#ifndef MS2_WINDOWS_PHONE
-	mActivationEvent = CreateEventEx(NULL, NULL, 0, EVENT_ALL_ACCESS);
-	if (!mActivationEvent) {
-		ms_error("MSWASAPIReader: Could not create activation event of the MSWASAPI audio input interface [%i]", GetLastError());
-		return;
-	}
-#endif
 }
 
 MSWASAPIReader::~MSWASAPIReader() {
-	RELEASE_CLIENT(mAudioClient);
-	
-#ifdef MS2_WINDOWS_PHONE
-	FREE_PTR(mCaptureId);
-#else
-	if (mActivationEvent != INVALID_HANDLE_VALUE) {
-		CloseHandle(mActivationEvent);
-		mActivationEvent = INVALID_HANDLE_VALUE;
-	}
-#ifdef MS2_WINDOWS_UNIVERSAL
-	setInstantiated(false);
-#endif
-#endif
 	ms_ticker_synchronizer_destroy(mTickerSynchronizer);
 }
 
@@ -81,43 +61,65 @@ int MSWASAPIReader::activate() {
 	WAVEFORMATEX *pUsedWfx = NULL;
 	WAVEFORMATEX *pSupportedWfx = NULL;
 	DWORD flags = 0;
-
-	if (!mIsInitialized) goto error;
+	
+	if (!mAudioClient) goto error;
+	if (mIsActivated) return 0;
 
 #if defined( MS2_WINDOWS_PHONE )
 	flags = AUDCLNT_SESSIONFLAGS_EXPIREWHENUNOWNED | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDE | AUDCLNT_SESSIONFLAGS_DISPLAY_HIDEWHENEXPIRED;
 #else
 	flags = AUDCLNT_STREAMFLAGS_NOPERSIST | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM |  AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY;
 #endif
-
+	
 	proposedWfx = buildFormat();
 	
 	result = mAudioClient->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX *)&proposedWfx, &pSupportedWfx);
 	if (result == S_OK) {
 		pUsedWfx = (WAVEFORMATEX *)&proposedWfx;
 	} else if (result == S_FALSE) {
+		bool formatNotExpected = false;
 		pUsedWfx = pSupportedWfx;
+		if( mTargetNChannels != pUsedWfx->nChannels ) { // Channel is not what it was requested
+			mTargetNChannels = pUsedWfx->nChannels;
+			if(mForceNChannels == OverwriteState::TO_DO) {// Channel has been forced but it cannot be used. Warn MS2.
+				mForceNChannels = OverwriteState::DONE;
+				formatNotExpected = true;
+			}
+		}
+		if( mTargetRate != pUsedWfx->nSamplesPerSec ) { // Channel is not what it was requested
+			mTargetRate = pUsedWfx->nSamplesPerSec;
+			if(mForceRate == OverwriteState::TO_DO) {// Channel has been forced but it cannot be used. Warn MS2.
+				mForceRate = OverwriteState::DONE;
+				formatNotExpected = true;
+			}
+		}
+		if( formatNotExpected)
+			ms_filter_notify_no_arg(mFilter, MS_FILTER_OUTPUT_FMT_CHANGED);
 	} else {
-		REPORT_ERROR("Audio format not supported by the MSWASAPI audio input interface [%x]", result);
+		REPORT_ERROR("mswasapi: Audio format not supported by the MSWASAPI audio input interface [%x]", result);
 	}
 	
 	result = mAudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, flags, requestedDuration, 0, pUsedWfx, NULL);
 	if ((result != S_OK) && (result != AUDCLNT_E_ALREADY_INITIALIZED)) {
-		REPORT_ERROR("Could not initialize the MSWASAPI audio input interface [%x]", result);
+		REPORT_ERROR("mswasapi: Could not initialize the MSWASAPI audio input interface [%x]", result);
 	}
 	mNBlockAlign = pUsedWfx->nBlockAlign;
-	mRate = pUsedWfx->nSamplesPerSec;
-	mNChannels = pUsedWfx->nChannels;
+	mCurrentRate = mTargetRate;
+	mCurrentNChannels = mTargetNChannels;
 	result = mAudioClient->GetBufferSize(&mBufferFrameCount);
-	REPORT_ERROR("Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
-	ms_message("MSWASAPI audio input interface buffer size: %i", mBufferFrameCount);
+	REPORT_ERROR("mswasapi: Could not get buffer size for the MSWASAPI audio input interface [%x]", result);
+	ms_message("mswasapi: audio input interface buffer size: %i", mBufferFrameCount);
 	result = mAudioClient->GetService(IID_IAudioCaptureClient, (void **)&mAudioCaptureClient);
-	REPORT_ERROR("Could not get render service from the MSWASAPI audio input interface [%x]", result);
-	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeControler);
-	REPORT_ERROR("Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
+	REPORT_ERROR("mswasapi: Could not get render service from the MSWASAPI audio input interface [%x]", result);
+	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeController);
+	REPORT_ERROR("mswasapi: Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
+	result = mAudioClient->GetService(__uuidof(IAudioSessionControl), (void **)&mAudioSessionControl);
+	REPORT_ERROR("mswasapi: Could not get audio session control service from the MSWASAPI audio input interface [%x]", result);
+	result = mAudioSessionControl->RegisterAudioSessionNotification(this);
+	REPORT_ERROR("mswasapi: Could not register to Audio Session from the MSWASAPI audio input interface [%x]", result);
 	mIsActivated = true;
-	ms_message("MSWASAPI capture initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit frames are on %i bits", mDeviceName.c_str(), (int)mRate, (int)mNChannels,
-		(int)mBufferFrameCount, (int)1000*mBufferFrameCount/ mRate, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
+	ms_message("mswasapi: capture initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit frames are on %i bits", mDeviceName.c_str(), (int)mTargetRate, (int)mTargetNChannels,
+			   (int)mBufferFrameCount, (int)1000*mBufferFrameCount/ mTargetRate, (int)pUsedWfx->wBitsPerSample, mNBlockAlign*8);
 	FREE_PTR(pSupportedWfx);
 	return 0;
 
@@ -129,35 +131,22 @@ error:
 
 int MSWASAPIReader::deactivate() {
 	RELEASE_CLIENT(mAudioCaptureClient);
-	RELEASE_CLIENT(mVolumeControler);
-	
+	RELEASE_CLIENT(mVolumeController);
+	if(mAudioSessionControl) {
+		mAudioSessionControl->UnregisterAudioSessionNotification(this);
+		RELEASE_CLIENT(mAudioSessionControl);
+	}
 	mIsActivated = false;
 	return 0;
 }
 
 void MSWASAPIReader::start() {
-	HRESULT result;
-
-	if (!isStarted() && mIsActivated) {
-		mIsStarted = true;
-		result = mAudioClient->Start();
-		if (result != S_OK) {
-			ms_error("Could not start capture on the MSWASAPI audio input interface [%x]", result);
-		}
-	}
+	MSWasapi::start();
 	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
 }
 
 void MSWASAPIReader::stop() {
-	HRESULT result;
-
-	if (isStarted() && mIsActivated) {
-		mIsStarted = false;
-		result = mAudioClient->Stop();
-		if (result != S_OK) {
-			ms_error("Could not stop capture on the MSWASAPI audio input interface [%x]", result);
-		}
-	}
+	MSWasapi::stop();
 	ms_ticker_set_synchronizer(mFilter->ticker, nullptr);
 }
 
@@ -165,25 +154,23 @@ int MSWASAPIReader::feed(MSFilter *f) {
 	HRESULT result;
 	DWORD flags;
 	BYTE *pData;
-
-
 	UINT32 numFramesAvailable;
 	UINT32 numFramesInNextPacket = 0;
 	UINT64 devicePosition;
 	mblk_t *m;
 	int bytesPerFrame = mNBlockAlign;
-
+	
 	if (isStarted()) {
 		result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
 		while (numFramesInNextPacket != 0) {
-			REPORT_ERROR("Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
-
+			REPORT_ERROR("mswasapi: Could not get next packet size for the MSWASAPI audio input interface [%x]", result);
+			
 			result = mAudioCaptureClient->GetBuffer(&pData, &numFramesAvailable, &flags, &devicePosition, NULL);
-			REPORT_ERROR("Could not get buffer from the MSWASAPI audio input interface [%x]", result);
+			REPORT_ERROR("mswasapi: Could not get buffer from the MSWASAPI audio input interface [%x]", result);
 			if (numFramesAvailable > 0) {
 				m = allocb(numFramesAvailable * bytesPerFrame, 0);
 				if (m == NULL) {
-					ms_error("Could not allocate memory for the captured data from the MSWASAPI audio input interface");
+					ms_error("mswasapi: Could not allocate memory for the captured data from the MSWASAPI audio input interface");
 					goto error;
 				}
 				
@@ -193,11 +180,11 @@ int MSWASAPIReader::feed(MSFilter *f) {
 					memcpy(m->b_wptr, pData, numFramesAvailable * bytesPerFrame);
 				}
 				result = mAudioCaptureClient->ReleaseBuffer(numFramesAvailable);
-				REPORT_ERROR("Could not release buffer of the MSWASAPI audio input interface [%x]", result);
-
+				REPORT_ERROR("mswasapi: Could not release buffer of the MSWASAPI audio input interface [%x]", result);
+				
 				m->b_wptr += numFramesAvailable * bytesPerFrame;
-				ms_ticker_synchronizer_update(mTickerSynchronizer, devicePosition, (unsigned int)mRate);
-
+				ms_ticker_synchronizer_update(mTickerSynchronizer, devicePosition, (unsigned int)mCurrentRate);
+				
 				ms_queue_put(f->outputs[0], m);
 				result = mAudioCaptureClient->GetNextPacketSize(&numFramesInNextPacket);
 			}
@@ -212,50 +199,14 @@ error:
 	return -1;
 }
 
-float MSWASAPIReader::getVolumeLevel() {
-	HRESULT result;
-	float volume;
-
-	if (!mIsActivated) {
-		ms_error("MSWASAPIReader::getVolumeLevel(): the MSWASAPIReader instance is not started");
-		goto error;
-	}
-	result = mVolumeControler->GetMasterVolume(&volume);
-	REPORT_ERROR("MSWASAPIReader::getVolumeLevel(): could not get the master volume [%x]", result);
-	return volume;
-
-error:
-	return -1.0f;
-}
-
-void MSWASAPIReader::setVolumeLevel(float volume) {
-	HRESULT result;
-
-	if (!mIsActivated) {
-		ms_error("MSWASAPIReader::setVolumeLevel(): the MSWASAPIReader instance is not started");
-		goto error;
-	}
-	result = mVolumeControler->SetMasterVolume(volume, NULL);
-	REPORT_ERROR("MSWASAPIReader::setVolumeLevel(): could not set the master volume [%x]", result);
-
-error:
-	return;
-}
-
-void MSWASAPIReader::setNChannels(int channels) {
-	if(mNChannels != channels) {
-		ms_warning("MSWASAPIReader::setNChannels(): trying to change channel to %d but it is not implemented. Keep %d", channels, mNChannels);
-	}
-}
-
 void MSWASAPIReader::silence(MSFilter *f)
 {
 	mblk_t *om;
 	unsigned int bufsize;
 	unsigned int nsamples;
-
-	nsamples = (f->ticker->interval * mRate) / 1000;
-	bufsize = nsamples * mNChannels * 2;
+	
+	nsamples = (f->ticker->interval * mTargetRate) / 1000;
+	bufsize = nsamples * mTargetNChannels * 2;
 	om = allocb(bufsize, 0);
 	memset(om->b_wptr, 0, bufsize);
 	om->b_wptr += bufsize;

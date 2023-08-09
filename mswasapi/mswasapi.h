@@ -34,12 +34,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifdef MS2_WINDOWS_UNIVERSAL
 #include <wrl\implements.h>
 #include <mmdeviceapi.h>
+#include <audiopolicy.h>
 #endif
 #ifdef MS2_WINDOWS_PHONE
 #include <phoneaudioclient.h>
 #else
-#include <mmdeviceapi.h>
+#include <audiopolicy.h>
+#include <propkeydef.h>
 #include <functiondiscoverykeys_devpkey.h>
+#include <mmdeviceapi.h>
 #endif
 
 #ifdef MS2_WINDOWS_UNIVERSAL
@@ -51,18 +54,24 @@ using namespace Windows::Devices::Enumeration;
 using namespace Windows::Media::Devices;
 #endif
 
-#define REPORT_ERROR(msg, result) \
-	if (result != S_OK) { \
+#define REPORT_ERROR_NOGOTO(msg, result) \
+if (result != S_OK) { \
 		ms_error(msg, result); \
 		if( result == E_OUTOFMEMORY) \
-			ms_error(("mswasapi: " + bctoolbox::Utils::getMemoryReportAsString()).c_str()); \
+		ms_error(("mswasapi: " + bctoolbox::Utils::getMemoryReportAsString()).c_str()); \
+}
+#define REPORT_ERROR(msg, result) \
+if (result != S_OK) { \
+		ms_error(msg, result); \
+		if( result == E_OUTOFMEMORY) \
+		ms_error(("mswasapi: " + bctoolbox::Utils::getMemoryReportAsString()).c_str()); \
 		goto error; \
-		}
+}
 #define SAFE_RELEASE(obj) \
-	if ((obj) != NULL) { \
+if ((obj) != NULL) { \
 		(obj)->Release(); \
 		(obj) = NULL; \
-		}
+}
 
 
 typedef struct WasapiSndCard {
@@ -77,54 +86,104 @@ class MSWasapi
 #elsif defined(MS2_WINDOWS_PHONE)
 	{
 #else
-	: public IActivateAudioInterfaceCompletionHandler {
+	: public IActivateAudioInterfaceCompletionHandler, public IAudioSessionEvents {
 #endif
-public:
-	IAudioClient2 *mAudioClient;
-	
+	public:
+		IAudioClient2 *mAudioClient;
+		
 #ifdef MS2_WINDOWS_PHONE
-	LPCWSTR mDeviceId;
+		LPCWSTR mDeviceId;
 #elsif defined MS2_WINDOWS_UNIVERSAL
-	Platform::String^ mDeviceId;
-	HANDLE mActivationEvent;
+		Platform::String^ mDeviceId;
+		HANDLE mActivationEvent;
 #else
 	LPCWSTR mDeviceId;
 	HANDLE mActivationEvent;
+	IAudioSessionControl *mAudioSessionControl = nullptr;
 #endif
+	typedef enum{
+		DO_NOTHING,
+		DONE,
+		TO_DO
+	} OverwriteState;
 	
-	int mRate;
-	int mNChannels;
+	int mTargetRate;
+	OverwriteState mForceRate = DO_NOTHING;
+	int mTargetNChannels;
+	OverwriteState mForceNChannels = DO_NOTHING;
 	int mNBlockAlign;
 	int mWBitsPerSample;
 	int mMediaDirection;	// 0: Reader, 1: Writer
 	std::string mMediaDirectionStr;
 	bool mDisableSysFx; // Option to remove audio enhancements mode. This mode can break inputs on some systems.
 	std::string mDeviceName;
-	bool mIsInitialized = false;
+	bool mIsDefaultDevice = false;
+	bool mIsActivated;
+	bool mIsStarted;
+	bool mScheduleUpdateFormat = false; /* Update format on next msticker loop */
+	UINT32 mBufferFrameCount; /* The buffer size obtained from the wasapi.*/
+	MSFilter *mFilter;
+	ISimpleAudioVolume *mVolumeController;
 	
-	MSWasapi(const std::string& mediaDirectionStr);
-#if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
-	void changePolicies(IMMDevice *device);
-#endif
+	MSWasapi(MSFilter *filter, const std::string& mediaDirectionStr);
+	virtual ~MSWasapi();
+	
 #ifndef MS2_WINDOWS_PHONE
 	// IActivateAudioInterfaceCompletionHandler
-	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 	virtual ULONG STDMETHODCALLTYPE AddRef(void);
 	virtual ULONG STDMETHODCALLTYPE Release(void);
+	STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
+	
+	// IAudioSessionEvents
+	virtual HRESULT STDMETHODCALLTYPE OnSessionDisconnected(AudioSessionDisconnectReason DisconnectReason);
+	virtual HRESULT STDMETHODCALLTYPE OnDisplayNameChanged(LPCWSTR NewDisplayName, LPCGUID EventContext);
+	virtual HRESULT STDMETHODCALLTYPE OnIconPathChanged(LPCWSTR NewIconPath, LPCGUID EventContext);
+	virtual HRESULT STDMETHODCALLTYPE OnSimpleVolumeChanged(float NewVolume, BOOL NewMute, LPCGUID EventContext);
+	virtual HRESULT STDMETHODCALLTYPE OnChannelVolumeChanged(DWORD ChannelCount, float NewChannelVolumeArray[  ], DWORD ChangedChannel, LPCGUID EventContext);
+	virtual HRESULT STDMETHODCALLTYPE OnGroupingParamChanged(LPCGUID NewGroupingParam, LPCGUID EventContext);
+	virtual HRESULT STDMETHODCALLTYPE OnStateChanged(AudioSessionState NewState);
+	
 private:
 	ULONG m_refCount = 0;
 #endif
-
+protected:
+	int mCurrentRate;
+	int mCurrentNChannels;
 public:
 	virtual int activate() = 0;
+	virtual int deactivate() = 0;
+	virtual void start();
+	virtual void stop();
+	
+	virtual float getVolumeLevel();
+	virtual void setVolumeLevel(float volume);
+	virtual int getRate() const;
+	virtual void setRate(int rate);
+	virtual int getNChannels() const;
+	virtual void setNChannels(int channels);
+	virtual bool isStarted() const { return mIsStarted; }
+	
+	virtual void init(MSSndCard *card, MSFilter *f);
+	
+	int createAudioClient();
+	void destroyAudioClient();
+	int restartAudioClient();
+	
+	
 #ifdef MS2_WINDOWS_UNIVERSAL
 	virtual bool isInstantiated()= 0;
 	virtual void setInstantiated(bool instantiated)= 0;
 #endif
+	bool isFormatUpdated(); // Check with WASAPI if device format is different from what it is using.
 	void updateFormat(bool useBestFormat);
+	void tryToUpdateFormat();
 	WAVEFORMATPCMEX buildFormat() const;
-	virtual void init(MSSndCard *card, MSFilter *f);
+	bool isCurrentFormatUsable() const;
+	
+#if !defined(MS2_WINDOWS_PHONE) && !defined(MS2_WINDOWS_UNIVERSAL)	
+	void changePolicies(IMMDevice *device);
+#endif
 };
 
 extern const IID IID_IAudioClient2;
@@ -140,3 +199,4 @@ extern const IID IID_IMMDeviceEnumerator;
 extern "C" MSFilterDesc ms_wasapi_read_desc;
 extern "C" MSFilterDesc ms_wasapi_write_desc;
 extern "C" MSSndCardDesc ms_wasapi_snd_card_desc;
+	

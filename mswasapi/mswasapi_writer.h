@@ -30,28 +30,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mswasapi.h"
 
 
-class MSWASAPIWriter
-#ifdef MS2_WINDOWS_UNIVERSAL
-	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler > {
-#else
-	: public MSWasapi {
-#endif
+class MSWASAPIWriter : public MSWasapi {
 public:
-	MSWASAPIWriter();
+	MSWASAPIWriter(MSFilter *filter);
 	virtual ~MSWASAPIWriter();
-
+	
 	int activate() override;
-	int deactivate();
-	bool isStarted() { return mIsStarted; }
-	void start();
-	void stop();
+	int deactivate() override;
 	int feed(MSFilter *f);
-
-	int getRate() { return mRate; }
-	int getNChannels() { return mNChannels; }
-	void setNChannels(int channels);
-	float getVolumeLevel();
-	void setVolumeLevel(float volume);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 	static bool smInstantiated;
@@ -61,14 +47,9 @@ public:
 	
 private:
 	void drop(MSFilter *f);
-	HRESULT configureAudioClient();
-
+	
 	IAudioRenderClient *mAudioRenderClient;
-	ISimpleAudioVolume *mVolumeControler;
-	UINT32 mBufferFrameCount; /* The buffer size we have requested, or obtained from the wasapi.*/
 	int mMinFrameCount=-1; /* The minimum samples queued into the wasapi during a 5 second period*/
-	bool mIsActivated;
-	bool mIsStarted;
 };
 
 
@@ -89,5 +70,5 @@ typedef MSWASAPIWriter* MSWASAPIWriterPtr;
 typedef MSWASAPIWriter* MSWASAPIWriterType;
 #endif
 
-MSWASAPIWriterPtr MSWASAPIWriterNew();
+MSWASAPIWriterPtr MSWASAPIWriterNew(MSFilter *filter);
 void MSWASAPIWriterDelete(MSWASAPIWriterPtr ptr);

@@ -30,45 +30,27 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "mswasapi.h"
 
 
-class MSWASAPIReader
-#ifdef MS2_WINDOWS_UNIVERSAL
-	: public MSWasapi, public RuntimeClass< RuntimeClassFlags< ClassicCom >, FtmBase, IActivateAudioInterfaceCompletionHandler > {
-#else
-	: public MSWasapi {
-#endif
+class MSWASAPIReader : public MSWasapi {
 public:
 	MSWASAPIReader(MSFilter *filter);
 	virtual ~MSWASAPIReader();
-
-	int activate();
-	int deactivate();
-	bool isStarted() { return mIsStarted; }
-	void start();
-	void stop();
+	
+	int activate() override;
+	int deactivate() override;
+	virtual void start() override;
+	virtual void stop() override;
 	int feed(MSFilter *f);
-
-	int getRate() { return mRate; }
-	int getNChannels() { return mNChannels; }
-	void setNChannels(int channels);
-	float getVolumeLevel();
-	void setVolumeLevel(float volume);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 	static bool smInstantiated;
 	virtual bool isInstantiated() override { return smInstantiated }
 	virtual void setInstantiated(bool instantiated) override { smInstantiated = instantiated; }
 #endif
-
+	
 private:
 	void silence(MSFilter *f);
-
-	IAudioCaptureClient *mAudioCaptureClient;
-	ISimpleAudioVolume *mVolumeControler;
-	UINT32 mBufferFrameCount;
-	bool mIsActivated;
-	bool mIsStarted;
 	
-	MSFilter *mFilter;
+	IAudioCaptureClient *mAudioCaptureClient;
 	MSTickerSynchronizer *mTickerSynchronizer;
 };
 
