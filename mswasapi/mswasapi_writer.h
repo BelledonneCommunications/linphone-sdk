@@ -20,54 +20,54 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
 #pragma once
-
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msqueue.h"
 
 #include "mswasapi.h"
 
-
 class MSWASAPIWriter : public MSWasapi {
 public:
 	MSWASAPIWriter(MSFilter *filter);
 	virtual ~MSWASAPIWriter();
-	
+
 	int activate() override;
 	int deactivate() override;
 	int feed(MSFilter *f);
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 	static bool smInstantiated;
-	virtual bool isInstantiated() ovveride { return smInstantiated }
-	virtual void setInstantiated(bool instantiated) override { smInstantiated = instantiated; }
+	virtual bool isInstantiated() ovveride {
+		return smInstantiated
+	}
+	virtual void setInstantiated(bool instantiated) override {
+		smInstantiated = instantiated;
+	}
 #endif
-	
+
 private:
 	void drop(MSFilter *f);
-	
-	IAudioRenderClient *mAudioRenderClient;
-	int mMinFrameCount=-1; /* The minimum samples queued into the wasapi during a 5 second period*/
-};
 
+	IAudioRenderClient *mAudioRenderClient;
+	int mMinFrameCount = -1; /* The minimum samples queued into the wasapi during a 5 second period*/
+};
 
 #ifndef MS2_WINDOWS_PHONE
 #define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)((MSWASAPIWriterPtr)(w))->writer)
 #ifdef MS2_WINDOWS_UNIVERSAL
 typedef ComPtr<MSWASAPIWriter> MSWASAPIWriterType;
 #else
-typedef MSWASAPIWriter* MSWASAPIWriterType;
+typedef MSWASAPIWriter *MSWASAPIWriterType;
 #endif
 struct MSWASAPIWriterWrapper {
 	MSWASAPIWriterType writer;
 };
-typedef struct MSWASAPIWriterWrapper* MSWASAPIWriterPtr;
+typedef struct MSWASAPIWriterWrapper *MSWASAPIWriterPtr;
 #else
 #define MSWASAPI_WRITER(w) ((MSWASAPIWriterType)(w))
-typedef MSWASAPIWriter* MSWASAPIWriterPtr;
-typedef MSWASAPIWriter* MSWASAPIWriterType;
+typedef MSWASAPIWriter *MSWASAPIWriterPtr;
+typedef MSWASAPIWriter *MSWASAPIWriterType;
 #endif
 
 MSWASAPIWriterPtr MSWASAPIWriterNew(MSFilter *filter);

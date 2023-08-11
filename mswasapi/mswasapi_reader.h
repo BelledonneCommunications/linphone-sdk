@@ -20,21 +20,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-
 #pragma once
-
 
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 
 #include "mswasapi.h"
 
-
 class MSWASAPIReader : public MSWasapi {
 public:
 	MSWASAPIReader(MSFilter *filter);
 	virtual ~MSWASAPIReader();
-	
+
 	int activate() override;
 	int deactivate() override;
 	virtual void start() override;
@@ -43,13 +40,17 @@ public:
 
 #ifdef MS2_WINDOWS_UNIVERSAL
 	static bool smInstantiated;
-	virtual bool isInstantiated() override { return smInstantiated }
-	virtual void setInstantiated(bool instantiated) override { smInstantiated = instantiated; }
+	virtual bool isInstantiated() override {
+		return smInstantiated
+	}
+	virtual void setInstantiated(bool instantiated) override {
+		smInstantiated = instantiated;
+	}
 #endif
-	
+
 private:
 	void silence(MSFilter *f);
-	
+
 	IAudioCaptureClient *mAudioCaptureClient;
 	MSTickerSynchronizer *mTickerSynchronizer;
 };
@@ -59,16 +60,16 @@ private:
 #ifdef MS2_WINDOWS_UNIVERSAL
 typedef ComPtr<MSWASAPIReader> MSWASAPIReaderType;
 #else
-typedef MSWASAPIReader* MSWASAPIReaderType;
+typedef MSWASAPIReader *MSWASAPIReaderType;
 #endif
 struct MSWASAPIReaderWrapper {
 	MSWASAPIReaderType reader;
 };
-typedef struct MSWASAPIReaderWrapper* MSWASAPIReaderPtr;
+typedef struct MSWASAPIReaderWrapper *MSWASAPIReaderPtr;
 #else
 #define MSWASAPI_READER(w) ((MSWASAPIReaderType)(w))
-typedef MSWASAPIReader* MSWASAPIReaderPtr;
-typedef MSWASAPIReader* MSWASAPIReaderType;
+typedef MSWASAPIReader *MSWASAPIReaderPtr;
+typedef MSWASAPIReader *MSWASAPIReaderType;
 #endif
 
 MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f);
