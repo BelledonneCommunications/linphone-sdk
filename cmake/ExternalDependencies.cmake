@@ -695,9 +695,10 @@ if(BUILD_LIBJPEGTURBO)
 					"-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}" "-DCMAKE_POSITION_INDEPENDENT_CODE=ON" "-DWITH_SIMD=${WITH_SIMD}" "-DWITH_CRT_DLL=${WITH_CRT_DLL}"
 				BUILD_BYPRODUCTS ${JPEG_BYPRODUCTS}
 			)
-			file(MAKE_DIRECTORY "${CMAKE_INSTALL_PREFIX}/include")
+			set(TURBOJPEG_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/turbojpeg")
+			file(MAKE_DIRECTORY ${TURBOJPEG_INSTALL_INCLUDE_DIR}) # Rid of "Imported target "turbojpeg" includes non-existent path"
 			add_library(turbojpeg UNKNOWN IMPORTED)
-			set_target_properties(turbojpeg PROPERTIES IMPORTED_LOCATION ${JPEG_LOCATION} INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/include")
+			set_target_properties(turbojpeg PROPERTIES IMPORTED_LOCATION ${JPEG_LOCATION} INTERFACE_INCLUDE_DIRECTORIES ${TURBOJPEG_INSTALL_INCLUDE_DIR})
 			add_dependencies(turbojpeg libjpeg-turbo)
 		else()
 			if(BUILD_LIBJPEGTURBO_SHARED_LIBS)
@@ -707,7 +708,6 @@ if(BUILD_LIBJPEGTURBO)
 			endif()
 
 			add_subdirectory("external/libjpeg-turbo")
-			add_dependencies(sdk turbojpeg)
 		endif()
 		add_dependencies(sdk turbojpeg)
 	endfunction()
