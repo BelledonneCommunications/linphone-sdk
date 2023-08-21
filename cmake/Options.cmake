@@ -38,8 +38,18 @@ macro(linphonesdk_dependent_option NAME DESCRIPTION VALUE DEPENDS FORCE)
 	string(TOUPPER ${NAME} UPPERCASE_NAME)
 	string(REGEX REPLACE  " " "_" UPPERCASE_NAME ${UPPERCASE_NAME})
 	string(REGEX REPLACE  "\\+" "P" UPPERCASE_NAME ${UPPERCASE_NAME})
-	cmake_dependent_option(ENABLE_${UPPERCASE_NAME} "${DESCRIPTION}" "${VALUE}" "${DEPENDS}" "${FORCE}")
-	add_feature_info("${NAME}" "ENABLE_${UPPERCASE_NAME}" "${DESCRIPTION}")
+	string(PREPEND UPPERCASE_NAME "ENABLE_")
+
+	# CMake option() command does nothing when the according local or cache variable is already defined (See CMP0077).
+	# Sadly, cmake_dependent_option() hasn't the same behavior and redefines the variable even if it has already
+	# been set, which prevents the upper scope to masquerade Linphone SDK options.
+	if (NOT DEFINED ${UPPERCASE_NAME})
+		message("${UPPERCASE_NAME} not defined")
+		cmake_dependent_option(${UPPERCASE_NAME} "${DESCRIPTION}" "${VALUE}" "${DEPENDS}" "${FORCE}")
+		add_feature_info("${NAME}" "${UPPERCASE_NAME}" "${DESCRIPTION}")
+	else()
+		message("${UPPERCASE_NAME} already defined")
+	endif()
 endmacro()
 
 macro(linphonesdk_strict_dependent_option NAME DESCRIPTION VALUE CONDITION FORCE STRICT_CONDITION ERROR_MSG)
