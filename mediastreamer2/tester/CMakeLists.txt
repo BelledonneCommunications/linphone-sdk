@@ -41,6 +41,10 @@ if(SpeexDSP_FOUND)
 	list(APPEND MS2_LIBS_FOR_TESTER ${SpeexDSP_TARGET})
 endif()
 
+if(TurboJpeg_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER ${TurboJpeg_TARGET})
+endif()
+
 set(SOUND_FILES
 	sounds/arpeggio_8000_mono.wav
 	sounds/bird_44100_stereo.wav
