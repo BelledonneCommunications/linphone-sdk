@@ -690,7 +690,7 @@ else()
 	set(MS2_PLUGINS_DIR "${CMAKE_INSTALL_LIBDIR}/mediastreamer/plugins")
 endif()
 define_property(TARGET PROPERTY "MS2_PLUGINS_DIR" BRIEF_DOCS "Stores the location of mediastreamer2 plugins" FULL_DOCS "Stores the location of mediastreamer2 plugins")
-install(DIRECTORY DESTINATION "${CMAKE_INSTALL_PREFIX}/${MS2_PLUGINS_DIR}")
+install(DIRECTORY DESTINATION "${MS2_PLUGINS_DIR}")
 
 if(ENABLE_RELATIVE_PREFIX)
 	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone" OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
