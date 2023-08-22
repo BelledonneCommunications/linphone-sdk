@@ -252,7 +252,6 @@ void MSWasapi::init(MSSndCard *card, MSFilter *f) {
 	WasapiSndCard *wasapicard = static_cast<WasapiSndCard *>(card->data);
 	LPCWSTR id = wasapicard->id;
 	bool useBestFormat = false;
-	HRESULT result;
 	WAVEFORMATEX *pWfx = NULL;
 
 	mDeviceName = card->name;
@@ -306,6 +305,7 @@ error:
 int MSWasapi::createAudioClient() {
 	if (mAudioClient != NULL) return -1;
 #if defined(MS2_WINDOWS_UNIVERSAL)
+	AudioClientProperties properties = {0};
 	IActivateAudioInterfaceAsyncOperation *asyncOp;
 	HRESULT result = ActivateAudioInterfaceAsync(mDeviceId->Data(), IID_IAudioClient2, NULL, this, &asyncOp);
 	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
@@ -316,6 +316,7 @@ int MSWasapi::createAudioClient() {
 		goto error;
 	}
 #elif defined(MS2_WINDOWS_PHONE)
+	AudioClientProperties properties = {0};
 	HRESULT result = ActivateAudioInterface(mDeviceId, IID_IAudioClient2, (void **)&mAudioClient);
 	REPORT_ERROR(("mswasapi: Could not activate the MSWASAPI audio " + mMediaDirectionStr + " interface [%x]").c_str(),
 	             result);
@@ -352,7 +353,6 @@ int MSWasapi::createAudioClient() {
 	}
 #endif
 #if defined(MS2_WINDOWS_PHONE) || defined(MS2_WINDOWS_UNIVERSAL)
-	AudioClientProperties properties = {0};
 	properties.cbSize = sizeof(AudioClientProperties);
 	properties.bIsOffload = false;
 	properties.eCategory = AudioCategory_Communications;
@@ -476,10 +476,12 @@ WAVEFORMATPCMEX MSWasapi::buildFormat() const {
 }
 
 bool MSWasapi::isCurrentFormatUsable() const {
-#ifdef ENABLE_MICROSOFT_STORE_APP
+#if !defined(MS2_WINDOWS_UNIVERSAL)
+#if defined(ENABLE_MICROSOFT_STORE_APP) || defined(MS2_WINDOWS_UNIVERSAL)
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #else
 	CoInitialize(NULL);
+#endif
 #endif
 	WAVEFORMATPCMEX proposedWfx = buildFormat();
 	WAVEFORMATEX *pSupportedWfx = NULL;
@@ -1156,10 +1158,13 @@ static void ms_wasapi_snd_card_detect_with_data_flow(MSSndCardManager *m, EDataF
 	IMMDeviceEnumerator *pEnumerator = NULL;
 	IMMDeviceCollection *pCollection = NULL;
 	IMMDevice *pEndpoint = NULL;
+	HRESULT result;
+#if !defined(MS2_WINDOWS_UNIVERSAL)
 #ifdef ENABLE_MICROSOFT_STORE_APP
-	HRESULT result = CoInitializeEx(NULL, COINIT_MULTITHREADED);
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 #else
-	HRESULT result = CoInitialize(NULL);
+	CoInitialize(NULL);
+#endif
 #endif
 
 	result =

@@ -41,7 +41,7 @@ public:
 #ifdef MS2_WINDOWS_UNIVERSAL
 	static bool smInstantiated;
 	virtual bool isInstantiated() override {
-		return smInstantiated
+		return smInstantiated;
 	}
 	virtual void setInstantiated(bool instantiated) override {
 		smInstantiated = instantiated;

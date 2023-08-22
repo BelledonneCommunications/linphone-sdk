@@ -222,8 +222,9 @@ MSWASAPIWriterPtr MSWASAPIWriterNew(MSFilter *f) {
 	MSWASAPIWriterPtr w = new MSWASAPIWriterWrapper();
 #ifdef MS2_WINDOWS_UNIVERSAL
 	w->writer = Make<MSWASAPIWriter>(f);
-#endif
+#else
 	w->writer = new MSWASAPIWriter(f);
+#endif
 	w->writer->AddRef();
 	return w;
 }

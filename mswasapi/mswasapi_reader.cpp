@@ -218,8 +218,9 @@ MSWASAPIReaderPtr MSWASAPIReaderNew(MSFilter *f) {
 	MSWASAPIReaderPtr w = new MSWASAPIReaderWrapper();
 #ifdef MS2_WINDOWS_UNIVERSAL
 	w->reader = Make<MSWASAPIReader>(f);
-#endif
+#else
 	w->reader = new MSWASAPIReader(f);
+#endif
 	w->reader->AddRef();
 	return w;
 }

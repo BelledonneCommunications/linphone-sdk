@@ -79,8 +79,8 @@ typedef struct WasapiSndCard {
 
 class MSWasapi
 #ifdef MS2_WINDOWS_UNIVERSAL
-    : public RuntimeClass<RuntimeClassFlags<ClassicCom>, FtmBase, IActivateAudioInterfaceCompletionHandler> {
-#elsif defined(MS2_WINDOWS_PHONE)
+    : public RuntimeClass<RuntimeClassFlags<ClassicCom>, FtmBase, IActivateAudioInterfaceCompletionHandler, IAudioSessionEvents> {
+#elif defined(MS2_WINDOWS_PHONE)
 	{
 #else
     : public IActivateAudioInterfaceCompletionHandler,
@@ -91,9 +91,10 @@ class MSWasapi
 
 #ifdef MS2_WINDOWS_PHONE
 		LPCWSTR mDeviceId;
-#elsif defined MS2_WINDOWS_UNIVERSAL
+#elif defined MS2_WINDOWS_UNIVERSAL
 		Platform::String ^ mDeviceId;
 		HANDLE mActivationEvent;
+		IAudioSessionControl *mAudioSessionControl = nullptr;
 #else
 	LPCWSTR mDeviceId;
 	HANDLE mActivationEvent;
