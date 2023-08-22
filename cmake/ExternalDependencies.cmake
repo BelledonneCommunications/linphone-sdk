@@ -671,44 +671,12 @@ endif()
 
 if(BUILD_LIBJPEGTURBO)
 	function(add_libjpegturbo)
-		if(WIN32)
-			set(JPEG_LOCATION "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/turbojpeg.lib")
-			set(JPEG_BYPRODUCTS ${JPEG_LOCATION})
-			if(UWP OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-				set(BUILD_SHARE_LIBS ON)
-			else()
-				set(BUILD_SHARED_LIBS OFF)
-			endif()
-			if(UWP OR CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-				set(WITH_SIMD FALSE)
-				set(WITH_CRT_DLL TRUE)
-			else()
-				set(WITH_SIMD TRUE)
-				set(WITH_CRT_DLL FALSE)
-			endif()
-			ExternalProject_Add(libjpeg-turbo
-				SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libjpeg-turbo"
-				BINARY_DIR "${PROJECT_BINARY_DIR}/external/libjpeg-turbo"
-				CMAKE_ARGS
-					"-DCMAKE_CROSSCOMPILING=${CMAKE_CROSSCOMPILING}" "-DCMAKE_NO_SYSTEM_FROM_IMPORTED=${CMAKE_NO_SYSTEM_FROM_IMPORTED}" "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}"
-					"-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" "-DCMAKE_INSTALL_DEFAULT_LIBDIR=lib" "-DCMAKE_C_COMPILER_LAUNCHER=${CMAKE_C_COMPILER_LAUNCHER}" "-DCMAKE_CXX_COMPILER_LAUNCHER=${CMAKE_CXX_COMPILER_LAUNCHER}"
-					"-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}" "-DCMAKE_POSITION_INDEPENDENT_CODE=ON" "-DWITH_SIMD=${WITH_SIMD}" "-DWITH_CRT_DLL=${WITH_CRT_DLL}"
-				BUILD_BYPRODUCTS ${JPEG_BYPRODUCTS}
-			)
-			set(TURBOJPEG_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/turbojpeg")
-			file(MAKE_DIRECTORY ${TURBOJPEG_INSTALL_INCLUDE_DIR}) # Rid of "Imported target "turbojpeg" includes non-existent path"
-			add_library(turbojpeg UNKNOWN IMPORTED)
-			set_target_properties(turbojpeg PROPERTIES IMPORTED_LOCATION ${JPEG_LOCATION} INTERFACE_INCLUDE_DIRECTORIES ${TURBOJPEG_INSTALL_INCLUDE_DIR})
-			add_dependencies(turbojpeg libjpeg-turbo)
+		if(BUILD_LIBJPEGTURBO_SHARED_LIBS)
+			set(BUILD_SHARED_LIBS ON)
 		else()
-			if(BUILD_LIBJPEGTURBO_SHARED_LIBS)
-				set(BUILD_SHARED_LIBS ON)
-			else()
-				set(BUILD_SHARED_LIBS OFF)
-			endif()
-
-			add_subdirectory("external/libjpeg-turbo")
+			set(BUILD_SHARED_LIBS OFF)
 		endif()
+		add_subdirectory("external/libjpeg-turbo")
 		add_dependencies(sdk turbojpeg)
 	endfunction()
 	add_libjpegturbo()
