@@ -109,6 +109,7 @@ cmake_dependent_option(ENABLE_RESAMPLE "Build mediastreamer2 with the resampling
 option(ENABLE_VIDEO "Build mediastreamer2 with video support." YES)
 option(ENABLE_QT_GL "Enable Qt OpenGL rendering support." OFF)
 cmake_dependent_option(ENABLE_FFMPEG "Build mediastreamer2 with ffmpeg video support." YES "ENABLE_VIDEO" NO)
+mark_as_advanced(ENABLE_FFMPEG)
 cmake_dependent_option(ENABLE_GL "Enable generic OpenGL rendering support." YES "ENABLE_VIDEO" NO)
 cmake_dependent_option(ENABLE_GLX "Enable X11+OpenGL rendering support (requires glx and glew)." ${ENABLE_GLX_DEFAULT_VALUE} "ENABLE_VIDEO;UNIX" NO)
 cmake_dependent_option(ENABLE_SDL "Enable SDL support." NO "ENABLE_FFMPEG" NO)
