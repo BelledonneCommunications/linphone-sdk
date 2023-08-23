@@ -27,7 +27,6 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Size;
 import android.view.TextureView;
-import android.view.WindowManager;
 
 public class CaptureTextureView extends TextureView {
     public enum DisplayMode {
@@ -67,9 +66,16 @@ public class CaptureTextureView extends TextureView {
         return mPreviewRect;
     }
 
-    public void rotateToMatchDisplayOrientation(int rotation) {
-        mRotation = rotation;
+    public void setRotation(int rotation) {
+        if (rotation != mRotation) {
+            mRotation = rotation;
+            Log.i("[Capture TextureView] Changing preview texture rotation to " + rotation);
+            rotateToMatchDisplayOrientation();
+        }
+    }
 
+    public void rotateToMatchDisplayOrientation() {
+        int rotation = mRotation;
         int width = getMeasuredWidth();
         int height = getMeasuredHeight();
 
@@ -160,13 +166,13 @@ public class CaptureTextureView extends TextureView {
         mCapturedVideoWidth = width;
         mCapturedVideoHeight = height;
 
-        rotateToMatchDisplayOrientation(mRotation);
+        rotateToMatchDisplayOrientation();
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        rotateToMatchDisplayOrientation(mRotation);
+        rotateToMatchDisplayOrientation();
     }
 }
