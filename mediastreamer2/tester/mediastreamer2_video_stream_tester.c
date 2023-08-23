@@ -459,6 +459,7 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	float rtcp_send_bandwidth;
 	PayloadType *vst1_pt;
 	PayloadType *vst2_pt;
+	const float rtcp_bitrate_part = 0.06f;
 
 	vst1_pt = rtp_profile_get_payload(&rtp_profile, vst1->payload_type);
 	vst2_pt = rtp_profile_get_payload(&rtp_profile, vst2->payload_type);
@@ -466,12 +467,13 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst1->vs->ms.sessions.rtp_session);
 	ms_message("vst1: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f", rtcp_send_bandwidth,
-	           payload_type_get_bitrate(vst1_pt), 0.06 * payload_type_get_bitrate(vst1_pt));
-	BC_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(vst1_pt)));
+	           payload_type_get_bitrate(vst1_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt));
+	BC_ASSERT_TRUE(rtcp_send_bandwidth <= (rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt)));
+	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst1_pt)), float, "%f");
 	rtcp_send_bandwidth = rtp_session_get_rtcp_send_bandwidth(vst2->vs->ms.sessions.rtp_session);
 	ms_message("vst2: rtcp_send_bandwidth=%f, payload_type_bitrate=%d, rtcp_target_bandwidth=%f", rtcp_send_bandwidth,
-	           payload_type_get_bitrate(vst2_pt), 0.06 * payload_type_get_bitrate(vst2_pt));
-	BC_ASSERT_TRUE(rtcp_send_bandwidth <= (0.06 * payload_type_get_bitrate(vst2_pt)));
+	           payload_type_get_bitrate(vst2_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt));
+	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt)), float, "%f");
 
 	destroy_video_stream(vst1);
 	destroy_video_stream(vst2);
