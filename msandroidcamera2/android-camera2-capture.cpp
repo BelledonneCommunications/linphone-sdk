@@ -479,7 +479,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	d->captureSessionStateCallbacks.onReady = android_camera2_capture_session_on_ready;
 	d->captureSessionStateCallbacks.onActive = android_camera2_capture_session_on_active;
 	d->captureSessionStateCallbacks.onClosed = android_camera2_capture_session_on_closed;
-
+	
 	camera_status = ACameraDevice_createCaptureRequest(d->cameraDevice, TEMPLATE_PREVIEW, &d->capturePreviewRequest);
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %s", android_camera2_status_to_string(camera_status));
@@ -848,6 +848,22 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
 	ACameraMetadata_free(cameraMetadata);
 }
 
+static void android_camera2_capture_rotate_video_preview_if_possible(AndroidCamera2Context *d) {
+	JNIEnv *env = ms_get_jni_env();
+
+	jobject surfaceTexture = d->nativeWindowId;
+	if (surfaceTexture == nullptr) return;
+
+	jclass captureTextureViewClass = env->FindClass("org/linphone/mediastream/video/capture/CaptureTextureView");
+	if (env->IsInstanceOf(surfaceTexture, captureTextureViewClass)) {
+		ms_message("[Camera2 Capture] NativePreviewWindowId %p is a CaptureTextureView", surfaceTexture);
+		jmethodID setRotation = env->GetMethodID(captureTextureViewClass, "setRotation", "(I)V");
+		int rotation = d->rotation;
+		ms_message("[Camera2 Capture] Apply rotation of %i to CaptureTextureView", rotation);
+		env->CallVoidMethod(d->nativeWindowId, setRotation, rotation);
+	}
+}
+
 static void android_camera2_capture_create_surface_from_surface_texture(AndroidCamera2Context *d) {
 	JNIEnv *env = ms_get_jni_env();
 	jobject surface = nullptr;
@@ -879,6 +895,8 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 
 	if (env->IsInstanceOf(surfaceTexture, textureViewClass)) {
 		ms_message("[Camera2 Capture] NativePreviewWindowId %p is a TextureView", surfaceTexture);
+
+		android_camera2_capture_rotate_video_preview_if_possible(d);
 
 		jmethodID getSurfaceTexture = env->GetMethodID(textureViewClass, "getSurfaceTexture", "()Landroid/graphics/SurfaceTexture;");
 		surfaceTexture = env->CallObjectMethod(d->nativeWindowId, getSurfaceTexture);
@@ -961,9 +979,11 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 static void android_camera2_capture_update_preview_size(AndroidCamera2Context *d) {
 	int orientation = android_camera2_capture_get_orientation(d);
 	if (orientation % 180 == 0) {
+		ms_message("[Camera2 Capture] Device is in portrait, use capture width/height for preview width/height");
 		d->previewSize.width = d->captureSize.width;
 		d->previewSize.height = d->captureSize.height;
 	} else {
+		ms_message("[Camera2 Capture] Device is in landscape, use capture width/height for preview height/width");
 		d->previewSize.width = d->captureSize.height;
 		d->previewSize.height = d->captureSize.width;
 	}
@@ -1026,11 +1046,13 @@ static int android_camera2_capture_set_device_rotation(MSFilter* f, void* arg) {
 	ms_filter_lock(f);
 
 	int rotation = *((int*)arg);
+	ms_message("[Camera2 Capture] Device rotation is %i", rotation);
+
 	if (rotation != d->rotation) {
 		d->rotation = rotation;
 		android_camera2_capture_update_preview_size(d);
+		android_camera2_capture_rotate_video_preview_if_possible(d);
 
-		ms_message("[Camera2 Capture] Device rotation is %i", rotation);
 		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 		}
