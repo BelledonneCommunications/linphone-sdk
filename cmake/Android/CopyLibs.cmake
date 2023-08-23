@@ -82,6 +82,6 @@ foreach(_arch ${_ANDROID_ARCHS})
 	endif()
 
 	execute_process(
-		COMMAND "sh" "../android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
+		COMMAND "sh" "./android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
 	)
 endforeach()
