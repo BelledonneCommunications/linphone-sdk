@@ -90,9 +90,33 @@ void ms_tester_destroy_ticker(void) {
 	}
 }
 
+// This allow multiple tester to be run on the same machine
+// Try to avoid Ephemeral port range as they are used on the test
+// machine by liblinphone test (bind on port 0)
+// Get a Random port in range 6000 - 32240
+// with the last 5 bytes to 0 as ports are used from base to base +28
 void ms_tester_set_random_port(void) {
-	// This allow multiple tester to be run on the same machine
-	base_port = (bctbx_random() % (0xffff - 8096 - 32)) + 8096;
+	base_port = (bctbx_random() % 820) * 32 + 6000;
+}
+
+void ms_tester_get_random_token(char token[7]) {
+	char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	int i = 0;
+	for (i = 0; i < 6; i++) {
+		token[i] = alphabet[(bctbx_random() % 52)];
+	}
+	token[6] = '\0';
+}
+
+char *ms_tester_get_random_filename(const char *basename, const char *suffix) {
+	size_t baseSize = strlen(basename);
+	size_t suffixSize = (suffix == NULL) ? 0 : strlen(suffix);
+	char *ret = (char *)bctbx_malloc(baseSize + 6 + suffixSize + 1);
+	memcpy(ret, basename, baseSize);
+	ms_tester_get_random_token(ret + baseSize);
+	memcpy(ret + baseSize + 6, suffix, suffixSize);
+	ret[baseSize + 6 + suffixSize] = '\0';
+	return ret;
 }
 
 #define CREATE_FILTER(mask, filter, factory, id)                                                                       \

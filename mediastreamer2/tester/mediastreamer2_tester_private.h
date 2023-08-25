@@ -130,7 +130,13 @@ void ms_tester_set_random_port(void);
  * - audio stream : 0-8
  * - jitter_buffer: 9-10
  * - double encryption 11 - 23
+ * - adaptive algorithm 25 - 28
  */
+
+/* generate a NULL terminated 6 characters random token */
+void ms_tester_get_random_token(char token[7]);
+/* generate a filename with a NULL terminated 6 characters random suffix - to be freed by caller */
+char *ms_tester_get_random_filename(const char *basename, const char *suffix);
 #ifdef __cplusplus
 }
 #endif

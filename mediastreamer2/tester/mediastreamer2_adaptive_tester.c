@@ -66,9 +66,11 @@ static int tester_after_all(void) {
 }
 
 #define HELLO_16K_1S_FILE "sounds/hello16000-1s.wav"
-#define RECORDED_16K_1S_FILE "recorded_hello16000-1s.wav"
-// #define RECORDED_16K_1S_FILE  "recorded_hello16000-1sbv16.wav"
-#define RECORDED_16K_1S_NO_PLC_FILE "withoutplc_recorded_hello16000-1sbv16.wav"
+#define RECORDED_16K_1S_FILE "recorded_hello16000-1s-"
+#define RECORDED_16K_1S_NO_PLC_FILE "withoutplc_recorded_hello16000-1sbv16-"
+
+#define MARIELLE_RTP_PORT (base_port + 25)
+#define MARGAUX_RTP_PORT (base_port + 27)
 
 typedef struct _stream_manager_t {
 	MSFormatType type;
@@ -92,12 +94,12 @@ typedef struct _stream_manager_t {
 
 } stream_manager_t;
 
-stream_manager_t *stream_manager_new(MSFormatType type) {
+stream_manager_t *stream_manager_new(MSFormatType type, int base_port) {
 	stream_manager_t *mgr = ms_new0(stream_manager_t, 1);
 	mgr->type = type;
-	mgr->local_rtp = ((bctbx_random() % ((0xffff - 8096)) + 8096)) & 0xfffe;
-	mgr->local_rtcp = mgr->local_rtp + 1;
-	mgr->user_data = 0;
+	mgr->local_rtp = base_port;
+	mgr->local_rtcp = base_port + 1;
+	mgr->user_data = NULL;
 
 	if (mgr->type == MSAudio) {
 		mgr->audio_stream = audio_stream_new(_factory, mgr->local_rtp, mgr->local_rtcp, FALSE);
@@ -112,13 +114,8 @@ stream_manager_t *stream_manager_new(MSFormatType type) {
 	return mgr;
 }
 
-static void stream_manager_delete(stream_manager_t *mgr) {
+static void stream_manager_delete(stream_manager_t *mgr, bool_t destroy_files) {
 
-	if (mgr->user_data) {
-		ms_message("Destroying file %s", (char *)mgr->user_data);
-		unlink((char *)mgr->user_data);
-		ms_free(mgr->user_data);
-	}
 	if (mgr->type == MSAudio) {
 		audio_stream_stop(mgr->audio_stream);
 	} else {
@@ -128,6 +125,11 @@ static void stream_manager_delete(stream_manager_t *mgr) {
 #else
 		ms_fatal("Unsupported stream type [%s]", ms_format_type_to_string(mgr->type));
 #endif
+	}
+	if (mgr->user_data && destroy_files == TRUE) {
+		ms_message("Destroying file %s", (char *)mgr->user_data);
+		unlink((char *)mgr->user_data);
+		ms_free(mgr->user_data);
 	}
 	ms_free(mgr);
 }
@@ -202,20 +204,24 @@ void start_adaptive_stream(MSFormatType type,
 	MSWebCam *marielle_webcam = mediastreamer2_tester_get_mire(_factory);
 #endif
 
-	stream_manager_t *marielle = *pmarielle = stream_manager_new(type);
-	stream_manager_t *margaux = *pmargaux = stream_manager_new(type);
+	stream_manager_t *marielle = *pmarielle = stream_manager_new(type, MARIELLE_RTP_PORT);
+	stream_manager_t *margaux = *pmargaux = stream_manager_new(type, MARGAUX_RTP_PORT);
 
 	if (disable_plc) {
 		disable_plc_on_audio_stream(margaux->audio_stream);
 		disable_plc_on_audio_stream(marielle->audio_stream);
 	}
 	if (!disable_plc) {
-		recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
+		char *random_filename = ms_tester_get_random_filename(RECORDED_16K_1S_FILE, ".wav");
+		recorded_file = bc_tester_file(random_filename);
+		bctbx_free(random_filename);
 	} else {
-		recorded_file = bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE);
+		char *random_filename = ms_tester_get_random_filename(RECORDED_16K_1S_NO_PLC_FILE, ".wav");
+		recorded_file = bc_tester_file(random_filename);
+		bctbx_free(random_filename);
 	}
 
-	marielle->user_data = ms_strdup(recorded_file);
+	margaux->user_data = ms_strdup(recorded_file);
 	params.enabled = TRUE;
 	params.loss_rate = loss_rate;
 	params.max_bandwidth = (float)max_bw;
@@ -343,15 +349,14 @@ static void iterate_adaptive_stream_bool(
 	}
 }
 
-static void
-stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux, BCTBX_UNUSED(bool_t destroy_files)) {
+static void stop_adaptive_stream(stream_manager_t *marielle, stream_manager_t *margaux, bool_t destroy_files) {
 #if VIDEO_ENABLED
 	if (margaux->bw_controller) {
 		ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->video_stream->ms));
 	}
 #endif
-	stream_manager_delete(marielle);
-	stream_manager_delete(margaux);
+	stream_manager_delete(marielle, destroy_files);
+	stream_manager_delete(margaux, destroy_files);
 }
 
 typedef struct {
@@ -466,8 +471,8 @@ static void loss_rate_estimation_bv16(void) {
 		LossRateEstimatorCtx ctx;
 		stream_manager_t *marielle, *margaux;
 		int loss_rate = 15;
-		char *plc_filename;
-		char *no_plc_filename;
+		char *plc_filename = NULL;
+		char *no_plc_filename = NULL;
 		for (plc_disabled = 0; plc_disabled <= 1; plc_disabled++) {
 			start_adaptive_stream(MSAudio, &marielle, &margaux, BV16_PAYLOAD_TYPE, 8000, 0, (float)loss_rate, 0, 0.0f,
 			                      (bool_t)plc_disabled);
@@ -481,25 +486,29 @@ static void loss_rate_estimation_bv16(void) {
 			wait_for_until_with_parse_events(&marielle->audio_stream->ms, &margaux->audio_stream->ms, &loss_rate, 100,
 			                                 10000, event_queue_cb, &ctx, NULL, NULL);
 
+			if (plc_disabled == 0) {
+				plc_filename = margaux->user_data;
+			} else {
+				no_plc_filename = margaux->user_data;
+			}
 			stop_adaptive_stream(marielle, margaux, FALSE);
 			ortp_loss_rate_estimator_destroy(ctx.estimator);
 			ortp_ev_queue_destroy(ctx.q);
 		}
 		/*file without plc must be approx 15% smaller in size than with plc */
-		plc_filename = bc_tester_file(RECORDED_16K_1S_FILE);
 		size_with_plc = fsize(plc_filename);
-		bctbx_free(plc_filename);
-		no_plc_filename = bc_tester_file(RECORDED_16K_1S_NO_PLC_FILE);
 		size_no_plc = fsize(no_plc_filename);
-		bctbx_free(no_plc_filename);
-		result = (size_with_plc * loss_rate / 100 + size_no_plc);
-
+		BC_ASSERT_TRUE(size_with_plc != -1);
+		BC_ASSERT_TRUE(size_no_plc != -1);
+		result = (size_with_plc * (loss_rate + 5) / 100 + size_no_plc);
 		BC_ASSERT_GREATER(result, size_with_plc, int, "%d");
 		// if test worked, remove files
 		if (result >= size_with_plc) {
-			unlink(RECORDED_16K_1S_FILE);
-			unlink(RECORDED_16K_1S_NO_PLC_FILE);
+			unlink(plc_filename);
+			unlink(no_plc_filename);
 		}
+		bctbx_free(plc_filename);
+		bctbx_free(no_plc_filename);
 	}
 }
 
@@ -653,17 +662,19 @@ static void video_bandwidth_estimator(void) {
 static void audio_bandwidth_estimator(void) {
 	int dummy = 0;
 	char *file = bc_tester_res(HELLO_16K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_16K_1S_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_16K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	/* streams use opus, enable feedback on this payload */
 	payload_type_set_flag(&payload_type_opus, PAYLOAD_TYPE_RTCP_FEEDBACK_ENABLED);
 
 	/* create audio streams with bandwith controller, Marielle is sender */
-	stream_manager_t *marielle = stream_manager_new(MSAudio);
+	stream_manager_t *marielle = stream_manager_new(MSAudio, MARIELLE_RTP_PORT);
 	MediaStream *marielle_ms = &marielle->audio_stream->ms;
 	RtpSession *marielle_session = audio_stream_get_rtp_session(marielle->audio_stream);
 	rtp_session_enable_avpf_feature(marielle_session, ORTP_AVPF_FEATURE_TMMBR, TRUE);
 
-	stream_manager_t *margaux = stream_manager_new(MSAudio);
+	stream_manager_t *margaux = stream_manager_new(MSAudio, MARGAUX_RTP_PORT);
 	margaux->bw_controller = ms_bandwidth_controller_new(); // This will enable the bandwidth estimator on margaux side,
 	                                                        // it will select the only available stream, the audio one
 	MediaStream *margaux_ms = &margaux->audio_stream->ms;
@@ -748,8 +759,8 @@ static void audio_bandwidth_estimator(void) {
 	/* cleaning */
 	ms_bandwidth_controller_remove_stream(margaux->bw_controller, &(margaux->audio_stream->ms));
 	ms_bandwidth_controller_destroy(margaux->bw_controller);
-	stream_manager_delete(marielle);
-	stream_manager_delete(margaux);
+	stream_manager_delete(marielle, TRUE);
+	stream_manager_delete(margaux, TRUE);
 }
 
 static test_t tests[] = {

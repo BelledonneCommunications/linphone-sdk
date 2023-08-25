@@ -70,8 +70,7 @@ static int tester_after_all(void) {
 
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
 #define HELLO_16K_1S_FILE "sounds/hello16000-1s.wav"
-#define RECORDED_8K_1S_FILE "recorded_hello8000-1s.wav"
-#define RECORDED_16K_1S_FILE "recorded_hello16000-1s.wav"
+#define RECORDED_8K_1S_FILE "recorded_hello8000-1s-"
 
 typedef struct _stats_t {
 	OrtpEvQueue *q;
@@ -145,7 +144,9 @@ static void basic_audio_stream_base_2(const char *marielle_local_ip,
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	uint64_t marielle_rtp_sent = 0;
 	int dummy = 0;
 
@@ -230,7 +231,9 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 	AudioStream *margaux = audio_stream_new(_factory, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	stats_t marielle_stats;
 	stats_t margaux_stats;
 	int dummy = 0;
@@ -480,7 +483,9 @@ static void codec_change_for_audio_stream(void) {
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	uint64_t marielle_rtp_sent = 0;
 	int dummy = 0;
 
@@ -761,7 +766,9 @@ static void double_encrypted_audio_stream_base(bool_t set_both_send_recv_key,
 	AudioStream *margaux = audio_stream_new(_factory, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	MSFilterRequestMixerToClientDataCb callback;
 	stats_t marielle_stats;
 	stats_t margaux_stats;
@@ -1019,8 +1026,9 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *recorded_file = bc_tester_file(RECORDED_8K_1S_FILE);
-	unlink(recorded_file);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	MSFilterRequestMixerToClientDataCb callback;
 	stats_t marielle_stats;
 	stats_t margaux_stats;
@@ -1315,7 +1323,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 		BC_ASSERT_LOWER(similar, 1.0, double, "%f");
 	}
 
-	// unlink(recorded_file);
+	unlink(recorded_file);
 	free(recorded_file);
 	free(hello_file);
 }

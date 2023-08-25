@@ -486,14 +486,16 @@ static void dtmfgen_enc_rtp_dec_tonedet(void) {
 	rtp_session_destroy(rtps);
 }
 
-#define DTMFGEN_FILE_NAME "dtmfgen_file.raw"
+#define DTMFGEN_FILE_NAME "dtmfgen_file-"
 
 static void dtmfgen_filerec_fileplay_tonedet(void) {
 	MSConnectionHelper h;
 	unsigned int filter_mask = FILTER_MASK_VOIDSOURCE | FILTER_MASK_DTMFGEN | FILTER_MASK_FILEREC |
 	                           FILTER_MASK_FILEPLAY | FILTER_MASK_TONEDET | FILTER_MASK_VOIDSINK;
 	bool_t send_silence = TRUE;
-	char *recorded_file = bc_tester_file(DTMFGEN_FILE_NAME);
+	char *random_filename = ms_tester_get_random_filename(DTMFGEN_FILE_NAME, ".raw");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 
 	ms_factory_reset_statistics(msFactory);
 	ms_tester_create_ticker();
@@ -544,7 +546,7 @@ static void dtmfgen_filerec_fileplay_tonedet(void) {
 
 #define SOUND_TEST_1 "sounds/hello8000.wav"
 #define SOUND_TEST_2 "sounds/arpeggio_8000_mono.wav"
-#define RECORD_SOUND "mixed_file.wav"
+#define RECORD_SOUND "mixed_file-"
 
 static void _two_mono_into_one_stereo(bool_t with_unsynchronized_inputs) {
 	// struct stat sound_file1, sound_file2, sound_record;
@@ -555,7 +557,9 @@ static void _two_mono_into_one_stereo(bool_t with_unsynchronized_inputs) {
 	int sample_rate1, sample_rate2, nb_channels = 2;
 	char *played_file1 = bc_tester_res(SOUND_TEST_1);
 	char *played_file2 = bc_tester_res(SOUND_TEST_2);
-	char *recorded_file = bc_tester_file(RECORD_SOUND);
+	char *random_filename = ms_tester_get_random_filename(RECORD_SOUND, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 
 	unlink(recorded_file); /*make sure the file doesn't exist, otherwise new content will be appended.*/
 	player1_data.end_of_file = FALSE;
@@ -645,7 +649,10 @@ end:
 	ms_tester_destroy_filters(filter_mask);
 	ms_tester_destroy_ticker();
 
-	if (recorded_file) ms_free(recorded_file);
+	if (recorded_file) {
+		unlink(recorded_file);
+		ms_free(recorded_file);
+	}
 	if (played_file1) ms_free(played_file1);
 	if (played_file2) ms_free(played_file2);
 }

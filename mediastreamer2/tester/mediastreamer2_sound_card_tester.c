@@ -460,7 +460,7 @@ static void soundread_speexenc_speexdec_soundwrite(void) {
 	ms_tester_destroy_ticker();
 }
 
-#define SOUNDREAD_FILE_NAME "soundread_file.raw"
+#define SOUNDREAD_FILE_NAME "soundread_file-"
 
 static void soundread_filerec_fileplay_soundwrite(void) {
 	MSConnectionHelper h;
@@ -470,7 +470,9 @@ static void soundread_filerec_fileplay_soundwrite(void) {
 	int playback_sample_rate = 8000;
 	int capture_nchannels = 1;
 	int playback_nchannels = 1;
-	char *writable_filename = bc_tester_file(SOUNDREAD_FILE_NAME);
+	char *random_filename = ms_tester_get_random_filename(SOUNDREAD_FILE_NAME, ".raw");
+	char *writable_filename = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 
 	ms_factory_reset_statistics(_factory);
 	ms_tester_create_ticker();

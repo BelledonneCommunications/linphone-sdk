@@ -106,7 +106,9 @@ static void record_file(const char *filepath, RecorderTestFlags flags) {
 }
 
 static void record_wav(void) {
-	char *file = bc_tester_file("test_record_wav.wav");
+	char *random_filename = ms_tester_get_random_filename("test_record_wav-", ".wav");
+	char *file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
@@ -114,7 +116,9 @@ static void record_wav(void) {
 
 static void record_mkv_vp8(void) {
 #ifdef VIDEO_ENABLED
-	char *file = bc_tester_file("test_record_mkv_vp8.mkv");
+	char *random_filename = ms_tester_get_random_filename("test_record_mkv_vp8-", ".mkv");
+	char *file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
@@ -124,7 +128,9 @@ static void record_mkv_vp8(void) {
 static void record_mkv_h264(void) {
 #ifdef VIDEO_ENABLED
 	if (ms_factory_codec_supported(_factory, "h264")) {
-		char *file = bc_tester_file("test_record_mkv_h264.mkv");
+		char *random_filename = ms_tester_get_random_filename("test_record_mkv_h264-", ".mkv");
+		char *file = bc_tester_file(random_filename);
+		bctbx_free(random_filename);
 		RecorderTestFlags flags =
 		    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 		record_file(file, flags | RECORDER_TEST_H264);
