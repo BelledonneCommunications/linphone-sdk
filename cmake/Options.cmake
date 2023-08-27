@@ -161,12 +161,8 @@ linphonesdk_dependent_option("Swift wrapper compilation" "Compile and package th
 linphonesdk_dependent_option("Jazzy doc" "Build the Swift doc from Liblinphone (needs ENABLE_SWIFT_WRAPPER=ON)." OFF "ENABLE_SWIFT_WRAPPER" OFF)
 
 # Activation of Android related features
-set(ANDROID_NDK_ABOVE_16 FALSE)
-if(CMAKE_ANDROID_NDK_VERSION VERSION_GREATER 16)
-	set(ANDROID_NDK_ABOVE_16 TRUE)
-endif()
-linphonesdk_dependent_option("AAudio" "AAudio Android sound card for Android 8+." ON "ANDROID;ANDROID_NDK_ABOVE_16" OFF)
-linphonesdk_dependent_option("Oboe" "Oboe Android sound card for Android 8+." ON "ANDROID;ANDROID_NDK_ABOVE_16" OFF)
+linphonesdk_dependent_option("AAudio" "AAudio Android sound card for Android 8+." ON "ANDROID" OFF)
+linphonesdk_dependent_option("Oboe" "Oboe Android sound card for Android 8+." ON "ANDROID" OFF)
 linphonesdk_dependent_option("Camera2" "Android capture filter using Camera2 API for Android 8+ (needs ENABLE_VIDEO=ON)." ON "ANDROID;ENABLE_VIDEO" OFF)
 
 
