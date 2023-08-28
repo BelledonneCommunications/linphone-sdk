@@ -51,6 +51,7 @@
         "ENABLE_STRICT": "OFF",
         "ENABLE_TOOLS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
+        "ENABLE_TESTS_COMPONENT": "OFF",
         "ENABLE_WEBRTC_AECM": "ON",
         "LINPHONESDK_PLATFORM": "Android"
       }
