@@ -110,7 +110,6 @@ android-ninja-r25b-no-video:
     - if: $DEPLOY_RUN_ANDROID
   variables:
     CMAKE_GENERATOR: Ninja
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: .android
 
@@ -120,7 +119,6 @@ android-ninja-r25b-no-video:
 #   - if: $NIGHTLY_MASTER
 #  variables:
 #    CMAKE_GENERATOR: Ninja
-#    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
 #  extends: .android
 
 android-ninja-r25b-smallsdk:
@@ -150,5 +148,5 @@ android-ninja-r25b-pqc:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
+    CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: android-ninja-r25b
