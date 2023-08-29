@@ -37,6 +37,7 @@ set(BCTOOLBOX_CXX_SOURCE_FILES
 	utils/exception.cc
 	utils/regex.cc
 	utils/utils.cc
+	logging/log-tags.cc
 )
 
 set(BCTOOLBOX_PRIVATE_HEADER_FILES

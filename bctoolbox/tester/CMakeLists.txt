@@ -25,6 +25,7 @@ if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT A
 		bctoolbox_tester.c
 		bctoolbox_tester.h
 		containers.cc
+		logger.cc
 		port.c
 		parser.c
 		param_string.c

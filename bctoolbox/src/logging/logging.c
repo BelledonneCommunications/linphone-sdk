@@ -127,6 +127,8 @@ typedef struct _bctbx_file_log_handler_t {
 
 void bctbx_logv_out_cb(void *user_info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args);
 
+static char *format_tags(void);
+
 static void wrapper(void *info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
 	BctbxLogFunc func = (BctbxLogFunc)info;
 	if (func) func(domain, lev, fmt, args);
@@ -589,7 +591,7 @@ void bctbx_logv_out(const char *domain, BctbxLogLevel lev, const char *fmt, va_l
 void bctbx_logv_out_cb(
     BCTBX_UNUSED(void *user_info), const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
 	const char *lname = "undef";
-	char *msg;
+	char *msg, *tags = NULL;
 	struct timeval tp;
 	struct tm *lt;
 #ifndef _WIN32
@@ -644,10 +646,13 @@ void bctbx_logv_out_cb(
 	}
 #endif
 #endif
-	fprintf(std, "%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s" ENDLINE, 1900 + lt->tm_year, 1 + lt->tm_mon, lt->tm_mday,
-	        lt->tm_hour, lt->tm_min, lt->tm_sec, (int)(tp.tv_usec / 1000), (domain ? domain : "bctoolbox"), lname, msg);
+	tags = format_tags();
+	fprintf(std, "%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s %s" ENDLINE, 1900 + lt->tm_year, 1 + lt->tm_mon,
+	        lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec, (int)(tp.tv_usec / 1000), (domain ? domain : "bctoolbox"),
+	        lname, tags ? tags : "", msg);
 	fflush(std);
 	bctbx_free(msg);
+	if (tags) bctbx_free(tags);
 }
 
 void bctbx_logv_out_destroy(bctbx_log_handler_t *handler) {
@@ -718,9 +723,26 @@ static void _close_log_collection_file(bctbx_file_log_handler_t *filehandler) {
 	}
 }
 
+static char *format_tags(void) {
+	const bctbx_list_t *tags = bctbx_get_log_tags();
+	const bctbx_list_t *elem;
+	char *tags_str = NULL;
+	for (elem = tags; elem != NULL; elem = elem->next) {
+		const char *tag = (const char *)elem->data;
+		if (tags_str == NULL) tags_str = bctbx_strdup_printf("[%s]", tag);
+		else {
+			char *new_tags_str = bctbx_strdup_printf("%s[%s]", tags_str, tag);
+			bctbx_free(tags_str);
+			tags_str = new_tags_str;
+		}
+	}
+	return tags_str;
+}
+
 void bctbx_logv_file(void *user_info, const char *domain, BctbxLogLevel lev, const char *fmt, va_list args) {
 	const char *lname = "undef";
 	char *msg = NULL;
+	char *tags = NULL;
 	struct timeval tp;
 	struct tm *lt;
 #ifndef _WIN32
@@ -780,10 +802,12 @@ void bctbx_logv_file(void *user_info, const char *domain, BctbxLogLevel lev, con
 	}
 #endif
 #endif
-	ret = fprintf(f, "%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s" ENDLINE, 1900 + lt->tm_year, 1 + lt->tm_mon,
+	tags = format_tags();
+	ret = fprintf(f, "%i-%.2i-%.2i %.2i:%.2i:%.2i:%.3i %s-%s-%s %s" ENDLINE, 1900 + lt->tm_year, 1 + lt->tm_mon,
 	              lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec, (int)(tp.tv_usec / 1000),
-	              (domain ? domain : "bctoolbox"), lname, msg);
+	              (domain ? domain : "bctoolbox"), lname, tags ? tags : "", msg);
 	fflush(f);
+	if (tags) bctbx_free(tags);
 
 	/* reopen the log file when either the size limit has been exceeded, or reopen has been required
 	   by the user. Reopening a log file that has reached the size limit automatically trigger log rotation

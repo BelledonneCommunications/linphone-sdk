@@ -170,6 +170,52 @@ BCTBX_PUBLIC void bctbx_set_thread_log_level(const char *domain, BctbxLogLevel l
 BCTBX_PUBLIC void bctbx_clear_thread_log_level(const char *domain);
 
 /**
+ * Push a log tag in the current thread.
+ * A tag is made of an app-choosen identifier that identifies its type, and a value.
+ * The tags are helpful to provide contexts to logs.
+ * They persist in a thread-local area, until they are pop.
+ * Each push for the same tag_identifier overrides the previous value given for that same
+ * tag_identifier. A bctbx_pop_log_tag() with the same tag_identifier restores the previous value.
+ * See the LogContext template class for a C++ convenient use of the log tag API.
+ */
+BCTBX_PUBLIC void bctbx_push_log_tag(const char *tag_identifier, const char *tag_value);
+
+/**
+ * Pop a local tag in the current thread.
+ */
+BCTBX_PUBLIC void bctbx_pop_log_tag(const char *tag_identifier);
+
+/**
+ * Retrieve the list of current tags (values only).
+ * This helpfull for logger function implementation.
+ */
+BCTBX_PUBLIC const bctbx_list_t *bctbx_get_log_tags(void);
+
+/*
+ * An opaque type to represent a copy of current tags.
+ */
+typedef struct _bctbx_log_tags bctbx_log_tags_t;
+
+/*
+ * Create a copy of the current tags for the calling thread.
+ * This copy can then be paste to a newly created thread, so that its log messages
+ * can bear the same tags that as the thread that created it at the moment it was created.
+ */
+BCTBX_PUBLIC bctbx_log_tags_t *bctbx_create_log_tags_copy(void);
+
+/**
+ * Paste the logs to the current thread.
+ * This is supposed to be done a on newly thread for which no tags were pushed yet.
+ * The tags will remain until the thread exits.
+ */
+BCTBX_PUBLIC void bctbx_paste_log_tags(const bctbx_log_tags_t *log_tags);
+
+/**
+ * Destroy the opaque representation of the tag set state.
+ */
+BCTBX_PUBLIC void bctbx_log_tags_destroy(bctbx_log_tags_t *log_tags);
+
+/**
  * Tell oRTP the id of the thread used to output the logs.
  * This is meant to output all the logs from the same thread to prevent deadlock problems at the application level.
  * @param[in] thread_id The id of the thread that will output the logs (can be obtained using bctbx_thread_self()).
