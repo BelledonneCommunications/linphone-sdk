@@ -86,7 +86,8 @@ struct _MSTicker {
 	void *get_cur_time_data;
 	ms_mutex_t
 	    cur_time_lock; /*mutex protecting the get_cur_time_ptr/get_cur_time_data which can be changed at any time*/
-	char *name;
+	char *name;        /* the thread name */
+	bctbx_log_tags_t *creator_tags;
 	double av_load; /*average load of the ticker */
 	MSTickerPrio prio;
 	MSTickerTickFunc wait_next_tick;

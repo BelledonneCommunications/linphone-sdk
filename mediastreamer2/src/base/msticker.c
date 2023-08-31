@@ -75,6 +75,7 @@ static void ms_ticker_init(MSTicker *ticker, const MSTickerParams *params) {
 	ticker->late_event.lateMs = 0;
 	ticker->late_event.time = 0;
 	ticker->late_event.current_late_ms = 0;
+	ticker->creator_tags = bctbx_create_log_tags_copy();
 	ms_ticker_start(ticker);
 }
 
@@ -112,6 +113,10 @@ void ms_ticker_set_priority(MSTicker *ticker, MSTickerPrio prio) {
 static void ms_ticker_uninit(MSTicker *ticker) {
 	ms_ticker_stop(ticker);
 	ms_free(ticker->name);
+	if (ticker->creator_tags) {
+		bctbx_log_tags_destroy(ticker->creator_tags);
+		ticker->creator_tags = NULL;
+	}
 	ms_mutex_destroy(&ticker->lock);
 	ms_mutex_destroy(&ticker->cur_time_lock);
 }
@@ -441,6 +446,12 @@ void *ms_ticker_run(void *arg) {
 	int max_late = 0;
 	uint64_t late_time_checkpoint = 0;
 
+	if (s->creator_tags) {
+		bctbx_paste_log_tags(s->creator_tags);
+		bctbx_log_tags_destroy(s->creator_tags);
+		s->creator_tags = NULL;
+	}
+
 	ms_mutex_lock(&s->lock);
 	bctbx_set_self_thread_name(s->name);
 
@@ -500,8 +511,8 @@ void *ms_ticker_run(void *arg) {
 	unset_high_prio(precision);
 	ms_message("%s thread exiting", s->name);
 
-	ms_thread_exit(NULL);
 	s->thread_id = 0;
+	ms_thread_exit(NULL);
 	return NULL;
 }
 
