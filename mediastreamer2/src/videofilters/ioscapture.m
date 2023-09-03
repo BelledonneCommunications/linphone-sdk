@@ -319,6 +319,15 @@ static void capture_queue_cleanup(void* p) {
 												  error:&error];
 
 	AVCaptureSession *session = [(AVCaptureVideoPreviewLayer *)self.layer session];
+
+	if (@available(iOS 16.0, *)) {
+		if (session.isMultitaskingCameraAccessSupported) {
+			session.multitaskingCameraAccessEnabled = YES;
+		} else {
+			ms_error("Error: Multitasking camera access not supported for picture in picture video calls");
+		}
+	}
+
 	if ( input && [session canAddInput:input] ){
 		[input retain]; // keep reference on an externally allocated object
 		[session addInput:input];
