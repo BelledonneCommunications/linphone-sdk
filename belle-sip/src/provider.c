@@ -247,35 +247,38 @@ static void belle_sip_provider_dispatch_response(belle_sip_provider_t *p, belle_
 				    BELLE_SIP_MESSAGE(belle_sip_transaction_get_request((belle_sip_transaction_t *)t));
 				belle_sip_header_authentication_info_t *authentication_info =
 				    belle_sip_message_get_header_by_type(msg, belle_sip_header_authentication_info_t);
-				belle_sip_list_t *authorization_lst = NULL;
-				belle_sip_header_call_id_t *call_id =
-				    belle_sip_message_get_header_by_type(msg, belle_sip_header_call_id_t);
-				belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
-				belle_sip_uri_t *from_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t *)from);
-				/*searching for authentication headers*/
-				authorization_lst =
-				    belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(req), BELLE_SIP_AUTHORIZATION));
-				/*search for proxy authenticate*/
-				authorization_lst = belle_sip_list_concat(authorization_lst,
-				                                          belle_sip_list_copy(belle_sip_message_get_headers(
-				                                              BELLE_SIP_MESSAGE(req), BELLE_SIP_PROXY_AUTHORIZATION)));
-				/*update auth contexts with authenticate headers from response*/
-				for (; authentication_info && authorization_lst != NULL; authorization_lst = authorization_lst->next) {
-					belle_sip_header_authorization_t *authorization =
-					    BELLE_SIP_HEADER_AUTHORIZATION(authorization_lst->data);
-					belle_sip_header_www_authenticate_t *www_authenticate =
-					    belle_sip_auth_helper_create_www_authenticate(authorization);
-					belle_sip_header_www_authenticate_set_nonce(
-					    www_authenticate, belle_sip_header_authentication_info_get_next_nonce(authentication_info));
-					belle_sip_message("Updating auth context for ream [%s] next nonce is going to be [%s]",
-					                  belle_sip_header_www_authenticate_get_realm(www_authenticate),
-					                  belle_sip_header_authentication_info_get_next_nonce(authentication_info));
-					belle_sip_provider_update_or_create_auth_context(
-					    p, call_id, www_authenticate, from_uri,
-					    belle_sip_header_www_authenticate_get_realm(www_authenticate));
-					belle_sip_object_unref(www_authenticate);
+				const char *next_nonce = authentication_info
+				                             ? belle_sip_header_authentication_info_get_next_nonce(authentication_info)
+				                             : NULL;
+				if (authentication_info && next_nonce) {
+					belle_sip_list_t *authorization_lst, *elem;
+					belle_sip_header_call_id_t *call_id =
+					    belle_sip_message_get_header_by_type(msg, belle_sip_header_call_id_t);
+					belle_sip_header_from_t *from = belle_sip_message_get_header_by_type(req, belle_sip_header_from_t);
+					belle_sip_uri_t *from_uri = belle_sip_header_address_get_uri((belle_sip_header_address_t *)from);
+					/*searching for authentication headers*/
+					authorization_lst = belle_sip_list_copy(
+					    belle_sip_message_get_headers(BELLE_SIP_MESSAGE(req), BELLE_SIP_AUTHORIZATION));
+					/*search for proxy authenticate*/
+					authorization_lst = belle_sip_list_concat(
+					    authorization_lst, belle_sip_list_copy(belle_sip_message_get_headers(
+					                           BELLE_SIP_MESSAGE(req), BELLE_SIP_PROXY_AUTHORIZATION)));
+					/*update auth contexts with authenticate headers from response*/
+					for (elem = authorization_lst; elem != NULL; elem = elem->next) {
+						belle_sip_header_authorization_t *authorization =
+						    BELLE_SIP_HEADER_AUTHORIZATION(authorization_lst->data);
+						belle_sip_header_www_authenticate_t *www_authenticate =
+						    belle_sip_auth_helper_create_www_authenticate(authorization);
+						belle_sip_header_www_authenticate_set_nonce(www_authenticate, next_nonce);
+						belle_sip_message("Updating auth context for ream [%s] next nonce is going to be [%s]",
+						                  belle_sip_header_www_authenticate_get_realm(www_authenticate), next_nonce);
+						belle_sip_provider_update_or_create_auth_context(
+						    p, call_id, www_authenticate, from_uri,
+						    belle_sip_header_www_authenticate_get_realm(www_authenticate));
+						belle_sip_object_unref(www_authenticate);
+					}
+					if (authorization_lst) belle_sip_list_free(authorization_lst);
 				}
-				if (authorization_lst) belle_sip_list_free(authorization_lst);
 			}
 	}
 	if (t) { /*In some re-connection case, specially over udp, transaction may be found, but without associated
