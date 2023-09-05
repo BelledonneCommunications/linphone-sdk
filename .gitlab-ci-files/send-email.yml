@@ -7,7 +7,7 @@ send-email-test-report:
   tags: [ "docker" ]
 
   needs:
-    - libl-centos7-mr-test-upload
+    - libl-rocky8-mr-test-upload
 
   script:
     - ls -lah results

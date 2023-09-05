@@ -226,31 +226,31 @@
     - if: $ENABLE_ANDROID_TESTS
       when: always
 
-libl-centos7-mr-test-upload:
+libl-rocky8-mr-test-upload:
   extends: .test-report-upload
   needs:
-    - liblinphone-centos7-test-mr
+    - liblinphone-rocky8-test-mr
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
       when: always
 
-libl-centos7-schedule-test-upload:
+libl-rocky8-schedule-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - liblinphone-centos7-test
+    - liblinphone-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
 
-libl-centos7-forced-test-upload:
+libl-rocky8-forced-test-upload:
   extends: .test-report-upload
   needs:
-    - liblinphone-centos7-test-force
+    - liblinphone-rocky8-test-force
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
   rules:
     - if: $ENABLE_TESTS_LIBLINPHONE
@@ -305,12 +305,12 @@ libl-macosx-schedule-test-upload:
     TESTER: "liblinphone"
 
 
-bct-centos7-test-upload:
+bct-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bctoolbox-centos7-test
+    - bctoolbox-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "bctoolbox"
 
 bct-centos8-test-upload:
@@ -345,12 +345,12 @@ bct-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bctoolbox"
 
-bellesip-centos7-test-upload:
+bellesip-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bellesip-centos7-test
+    - bellesip-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "bellesip"
 
 bellesip-centos8-test-upload:
@@ -388,9 +388,9 @@ bellesip-arch-test-upload:
 ms2-arch-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - mediastreamer-centos7-test
+    - mediastreamer-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "mediastreamer"
 
 #commented as long as ms2 testers aren't running everywhere
@@ -420,12 +420,12 @@ ms2-arch-test-upload:
 #    TESTER: "mediastreamer"
 
 
-belr-centos7-test-upload:
+belr-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belr-centos7-test
+    - belr-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "belr"
 
 belr-centos8-test-upload:
@@ -460,12 +460,12 @@ belr-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belr"
 
-belcard-centos7-test-upload:
+belcard-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - belcard-centos7-test
+    - belcard-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "belcard"
 
 belcard-centos8-test-upload:
@@ -500,12 +500,12 @@ belcard-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belcard"
 
-bzrtp-centos7-test-upload:
+bzrtp-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
-    - bzrtp-centos7-test
+    - bzrtp-rocky8-test
   variables:
-    PLATFORM: "linux-centos7"
+    PLATFORM: "linux-rocky8"
     TESTER: "bzrtp"
 
 bzrtp-centos8-test-upload:

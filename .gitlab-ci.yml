@@ -56,11 +56,11 @@ include:
   - '.gitlab-ci-files/linux-desktop/doc-uploads.yml'
   #- '.gitlab-ci-files/raspbian.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
-  - '.gitlab-ci-files/linux-desktop/linux-desktop-centos7.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-centos8.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian11.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian12.yml'
+  - '.gitlab-ci-files/linux-desktop/linux-desktop-rocky8.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu1804.yml'
 
@@ -94,7 +94,7 @@ include:
   - '.gitlab-ci-files/docker-image-update/update-debian11.yml'
   - '.gitlab-ci-files/docker-image-update/update-debian12.yml'
   - '.gitlab-ci-files/docker-image-update/update-centos8.yml'
-  - '.gitlab-ci-files/docker-image-update/update-centos7.yml'
+  - '.gitlab-ci-files/docker-image-update/update-rocky8.yml'
 
 stages:
  - docker-update-build
