@@ -31,6 +31,11 @@ BELLE_SIP_BEGIN_DECLS
  *
  */
 
+struct belle_sip_param_pair {
+	char *name;
+	char *value;
+};
+
 belle_sip_parameters_t *belle_sip_parameters_new(void);
 /*
  * remove all parameters */
@@ -61,6 +66,9 @@ BELLESIP_EXPORT void belle_sip_parameters_set(belle_sip_parameters_t *parameters
 
 BELLESIP_EXPORT const belle_sip_list_t *belle_sip_parameters_get_parameter_names(const belle_sip_parameters_t *obj);
 
+/*
+ * Returns a list of belle_sip_param_pair_t.
+ */
 BELLESIP_EXPORT const belle_sip_list_t *belle_sip_parameters_get_parameters(const belle_sip_parameters_t *obj);
 
 BELLESIP_EXPORT void belle_sip_parameters_remove_parameter(belle_sip_parameters_t *obj, const char *name);

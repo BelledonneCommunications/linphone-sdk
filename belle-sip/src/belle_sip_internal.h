@@ -499,11 +499,6 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		if (name) belle_sip_header_set_name(BELLE_SIP_HEADER(l_object), name);                                         \
 		return l_object;                                                                                               \
 	}
-struct belle_sip_param_pair {
-	int ref;
-	char *name;
-	char *value;
-};
 
 void belle_sip_param_pair_destroy(belle_sip_param_pair_t *pair);
 
@@ -533,7 +528,7 @@ void belle_sip_header_init(belle_sip_header_t *obj);
 /*class parameters*/
 struct _belle_sip_parameters {
 	belle_sip_header_t base;
-	belle_sip_list_t *param_list;
+	belle_sip_list_t *param_list; /* list of belle_sip_param_pair_t */
 	belle_sip_list_t *paramnames_list;
 };
 
