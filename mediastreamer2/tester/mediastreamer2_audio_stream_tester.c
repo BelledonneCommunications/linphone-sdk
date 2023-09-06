@@ -1132,7 +1132,8 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	reset_stats(&marielle_stats);
 	reset_stats(&margaux_stats);
 
-	rtp_profile_set_payload(profile, 0, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, 121, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, 122, &payload_type_pcmu8000);
 
 	// Set callback and parameters for audio level indications
 	if (participant_volume) {
@@ -1145,7 +1146,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 
 	/* Margaux is the final recipient, store received audio in he recorded_file, remote ip/port is useless */
 	BC_ASSERT_EQUAL(audio_stream_start_full(margaux, profile, PAULINE_IP, PAULINE_OUT_RTP_PORT, PAULINE_IP,
-	                                        PAULINE_OUT_RTCP_PORT, 0, 50, NULL, recorded_file, NULL, NULL, 0),
+	                                        PAULINE_OUT_RTCP_PORT, 122, 50, NULL, recorded_file, NULL, NULL, 0),
 	                0, int, "%d");
 
 	// create leg A rtp session - marielle - pauline
@@ -1153,7 +1154,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	                                                           ms_factory_get_mtu(_factory));
 	rtp_session_set_profile(rtpSession_legA, profile);
 	rtp_session_set_remote_addr_and_port(rtpSession_legA, MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_legA, 0);
+	rtp_session_set_payload_type(rtpSession_legA, 121);
 	rtp_session_enable_transfer_mode(rtpSession_legA, TRUE);
 	rtp_session_enable_rtcp(rtpSession_legA, FALSE);
 	MSMediaStreamSessions sessions_legA;
@@ -1183,7 +1184,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	                                                           ms_factory_get_mtu(_factory));
 	rtp_session_set_profile(rtpSession_legB, profile);
 	rtp_session_set_remote_addr_and_port(rtpSession_legB, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_legB, 0);
+	rtp_session_set_payload_type(rtpSession_legB, 122);
 	rtp_session_enable_transfer_mode(rtpSession_legB, TRUE);
 	rtp_session_enable_rtcp(rtpSession_legB, FALSE);
 	MSMediaStreamSessions sessions_legB;
@@ -1215,7 +1216,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 
 	/* Marielle is the original source, she send audio stream to Pauline, gets her source from hello_file */
 	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, PAULINE_IP, PAULINE_IN_RTP_PORT, PAULINE_IP,
-	                                        PAULINE_IN_RTCP_PORT, 0, 50, hello_file, NULL, NULL, NULL, 0),
+	                                        PAULINE_IN_RTCP_PORT, 121, 50, hello_file, NULL, NULL, NULL, 0),
 	                0, int, "%d");
 
 	if (encryption_mandatory) {

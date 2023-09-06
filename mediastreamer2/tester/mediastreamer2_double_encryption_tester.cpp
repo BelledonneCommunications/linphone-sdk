@@ -31,7 +31,6 @@
 
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
 
-static RtpProfile rtp_profile;
 static MSFactory *_factory = NULL;
 
 static int tester_before_all(void) {
@@ -40,7 +39,6 @@ static int tester_before_all(void) {
 
 	ms_factory_enable_statistics(_factory, TRUE);
 	ortp_init();
-	rtp_profile_set_payload(&rtp_profile, 0, &payload_type_pcmu8000);
 	return 0;
 }
 
@@ -48,7 +46,6 @@ static int tester_after_all(void) {
 	// ms_exit();
 
 	ms_factory_destroy(_factory);
-	rtp_profile_clear_all(&rtp_profile);
 	return 0;
 }
 
@@ -85,6 +82,11 @@ static int tester_after_all(void) {
 #define LONG_MID_MARIELLE_SOURCE_SESSION "Marielle"
 #define LONG_MID_MARIELLE_SOURCE_SESSION_BIS "MarielleBis"
 
+/* Payload types: define several payload types as the relay would change it */
+#define MARIELLE_PAYLOAD_TYPE 121
+#define PAULINE_PAYLOAD_TYPE 123
+#define RELAY_PAYLOAD_TYPE 123
+
 static bool_t double_encrypted_rtp_relay_data_base(
     MSCryptoSuite outer_suite,
     MSCryptoSuite inner_suite,
@@ -93,19 +95,23 @@ static bool_t double_encrypted_rtp_relay_data_base(
     bool bundled_source = false,     // Marie bundles 2 streams
     bool use_ekt = false,            // use ekt to encrypt the inner stream
     bool skip_pauline_begin =
-        false) // pauline first 12 packets are lost, so we start getting packets after the ROC change
+        false,                    // pauline first 12 packets are lost, so we start getting packets after the ROC change
+    bool discard_packets = false) // Relay will discard 10 packets from pauline index 20 to 29
 {
 
 	if (!ms_srtp_supported()) {
 		ms_warning("srtp not available, skiping...");
 		return TRUE;
 	}
+	RtpProfile *profile = rtp_profile_new("default profile");
+	rtp_profile_set_payload(profile, MARIELLE_PAYLOAD_TYPE, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, PAULINE_PAYLOAD_TYPE, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, RELAY_PAYLOAD_TYPE, &payload_type_pcmu8000);
 
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	bctbx_vfs_file_t *fp = bctbx_file_open(&bcStandardVfs, hello_file, "r");
 	bc_free(hello_file);
 
-	RtpProfile *profile = rtp_profile_new("default profile");
 	MSEKTParametersSet ekt_params;
 	if (use_ekt) {
 		uint8_t master_salt[14] = {
@@ -212,12 +218,11 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			return FALSE;
 	}
 
-	rtp_profile_set_payload(profile, 0, &payload_type_pcmu8000);
-
 	/* Margaux is the final recipient: build 2 rtpsession, they will be bundled  */
 	/* First session is created duplex just because it is easier, it is used in RECV only */
 	RtpSession *rtpSession_margaux_marielle =
 	    ms_create_duplex_rtp_session(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, ms_factory_get_mtu(_factory));
+	rtp_session_set_profile(rtpSession_margaux_marielle, profile);
 	rtp_session_enable_jitter_buffer(rtpSession_margaux_marielle,
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data when
 	                                         // they arrive, we're assuming no loss
@@ -225,6 +230,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 
 	/* Second session, in RECV only, is bundled so we do not need to define local port */
 	RtpSession *rtpSession_margaux_pauline = rtp_session_new(RTP_SESSION_RECVONLY);
+	rtp_session_set_profile(rtpSession_margaux_pauline, profile);
 	rtp_session_set_recv_buf_size(rtpSession_margaux_pauline, MAX(ms_factory_get_mtu(_factory), 1500));
 	rtp_session_enable_jitter_buffer(rtpSession_margaux_pauline,
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data when
@@ -235,6 +241,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
 		/* Third session, in RECV only, is bundled so we do not need to define local port */
 		rtpSession_margaux_marielle_bis = rtp_session_new(RTP_SESSION_RECVONLY);
+		rtp_session_set_profile(rtpSession_margaux_marielle_bis, profile);
 		rtp_session_set_recv_buf_size(rtpSession_margaux_marielle_bis, MAX(ms_factory_get_mtu(_factory), 1500));
 		rtp_session_enable_jitter_buffer(rtpSession_margaux_marielle_bis,
 		                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
@@ -272,19 +279,25 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	    RELAY_IP, RELAY_MARGAUX_RTP_PORT, RELAY_MARGAUX_RTCP_PORT, ms_factory_get_mtu(_factory));
 	rtp_session_set_remote_addr_and_port(rtpSession_relay_margaux_marielle, MARGAUX_IP, MARGAUX_RTP_PORT,
 	                                     MARGAUX_RTCP_PORT);
+	rtp_session_set_profile(rtpSession_relay_margaux_marielle, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle, FALSE);
+	rtp_session_set_payload_type(rtpSession_relay_margaux_marielle, RELAY_PAYLOAD_TYPE);
 	// relay_margaux: secondary session in the bundle, minimal settings
 	RtpSession *rtpSession_relay_margaux_pauline = rtp_session_new(RTP_SESSION_SENDONLY);
+	rtp_session_set_profile(rtpSession_relay_margaux_pauline, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_pauline, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_margaux_pauline, FALSE);
+	rtp_session_set_payload_type(rtpSession_relay_margaux_pauline, RELAY_PAYLOAD_TYPE);
 
 	RtpSession *rtpSession_relay_margaux_marielle_bis = NULL;
 	if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
 		rtpSession_relay_margaux_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
+		rtp_session_set_profile(rtpSession_relay_margaux_marielle_bis, profile);
 		rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle_bis,
 		                                 TRUE); // relay rtp session is in transfer mode
 		rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle_bis, FALSE);
+		rtp_session_set_payload_type(rtpSession_relay_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
 	}
 
 	/* create a bundle, margaux_marielle is the main session */
@@ -318,6 +331,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	// marielle_relay: session used in recv only but created in duplex just because it is easier
 	RtpSession *rtpSession_relay_marielle = ms_create_duplex_rtp_session(
 	    RELAY_IP, RELAY_MARIELLE_RTP_PORT, RELAY_MARIELLE_RTCP_PORT, ms_factory_get_mtu(_factory));
+	rtp_session_set_profile(rtpSession_relay_marielle, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_marielle, FALSE);
 	MSMediaStreamSessions relay_marielle;
@@ -333,7 +347,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	RtpBundle *rtpBundle_relay_marielle = NULL;
 	if (bundled_source) { // Marielle bundles two sessions so relay must get ready for it
 		rtpSession_relay_marielle_bis = rtp_session_new(RTP_SESSION_RECVONLY);
-		rtp_session_set_payload_type(rtpSession_relay_marielle_bis, 0);
+		rtp_session_set_profile(rtpSession_relay_marielle_bis, profile);
 		rtp_session_enable_transfer_mode(rtpSession_relay_marielle_bis, TRUE); // relay rtp session is in transfer mode
 		rtp_session_enable_rtcp(rtpSession_relay_marielle_bis, FALSE);
 		rtpBundle_relay_marielle = rtp_bundle_new();
@@ -354,6 +368,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	// pauline_relay: session used in recv only but created in duplex just because it is easier
 	RtpSession *rtpSession_relay_pauline = ms_create_duplex_rtp_session(
 	    RELAY_IP, RELAY_PAULINE_RTP_PORT, RELAY_PAULINE_RTCP_PORT, ms_factory_get_mtu(_factory));
+	rtp_session_set_profile(rtpSession_relay_pauline, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_pauline, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_pauline, FALSE);
 	MSMediaStreamSessions relay_pauline;
@@ -369,10 +384,9 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	/* Marielle is a source */
 	RtpSession *rtpSession_marielle =
 	    ms_create_duplex_rtp_session(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, ms_factory_get_mtu(_factory));
-	rtp_session_set_profile(rtpSession_marielle, profile);
 	rtp_session_set_remote_addr_and_port(rtpSession_marielle, RELAY_IP, RELAY_MARIELLE_RTP_PORT,
 	                                     RELAY_MARIELLE_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_marielle, 0);
+	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
 	rtp_session_enable_rtcp(rtpSession_marielle, FALSE);
 	MSMediaStreamSessions marielle;
 	marielle.rtp_session = rtpSession_marielle;
@@ -384,7 +398,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (bundled_source) { // Marielle bundles two sessions
 		rtpSession_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
-		rtp_session_set_payload_type(rtpSession_marielle_bis, 0);
+		rtp_session_set_payload_type(rtpSession_marielle_bis, MARIELLE_PAYLOAD_TYPE);
 		rtp_session_enable_rtcp(rtpSession_marielle_bis, FALSE);
 		rtpBundle_marielle = rtp_bundle_new();
 		if (use_long_bundle_id) {
@@ -400,9 +414,8 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	/* Pauline is a source */
 	RtpSession *rtpSession_pauline =
 	    ms_create_duplex_rtp_session(PAULINE_IP, PAULINE_RTP_PORT, PAULINE_RTCP_PORT, ms_factory_get_mtu(_factory));
-	rtp_session_set_profile(rtpSession_pauline, profile);
 	rtp_session_set_remote_addr_and_port(rtpSession_pauline, RELAY_IP, RELAY_PAULINE_RTP_PORT, RELAY_PAULINE_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_pauline, 0);
+	rtp_session_set_payload_type(rtpSession_pauline, PAULINE_PAYLOAD_TYPE);
 	rtp_session_enable_rtcp(rtpSession_pauline, FALSE);
 	rtp_session_set_seq_number(rtpSession_pauline, 0xFFF8); // Pauline's ROC will change after 8 packets sent as we
 	                                                        // start the session with a seqnumber near the max (0xFFFF)
@@ -468,6 +481,7 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	int packet_sent = 0;
 	bool error = false;
 	/* read the whole file by chunk of 160 bytes */
+	int pauline_last_packet_seqnum = -1;
 	while ((error == false) && ((len = bctbx_file_read2(fp, buffer, 160)) > 0)) {
 		/* marielle create a packet header */
 		mblk_t *sent_packet = rtp_session_create_packet_header(rtpSession_marielle, 0);
@@ -541,13 +555,16 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			break;
 		}
 
-		/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
+		/* Check that the packet available to the relay is encrypted (at least is different than the plain one) */
 		uint8_t *payload;
 		size = rtp_get_payload(transfered_packet, &payload);
 		BC_ASSERT_FALSE(size == len);
 		if (size == len) { // They shall not be the same size, but in that case, check they are differents
 			BC_ASSERT_TRUE(memcmp(payload, buffer, len) != 0);
 		}
+		/* check the packet payload type */
+		uint16_t payload_type = rtp_get_payload_type(transfered_packet);
+		BC_ASSERT_EQUAL(payload_type, MARIELLE_PAYLOAD_TYPE, uint16_t, "%d");
 
 		/* forward the packet to Margaux */
 		size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle, copymsg(transfered_packet), user_ts);
@@ -572,6 +589,10 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			if (size == len) { // They shall not be the same size, but in that case, check they are differents
 				BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) != 0);
 			}
+
+			/* check the packet payload type */
+			payload_type = rtp_get_payload_type(transfered_packet);
+			BC_ASSERT_EQUAL(payload_type, MARIELLE_PAYLOAD_TYPE, uint16_t, "%d");
 
 			/* forward the packet to Margaux */
 			size =
@@ -599,8 +620,12 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) != 0);
 		}
 
-		/* forward the packet to Margaux - except if skip begin is active */
-		if (!(skip_pauline_begin && packet_sent < 12)) {
+		/* check the packet payload type */
+		payload_type = rtp_get_payload_type(transfered_packet);
+		BC_ASSERT_EQUAL(payload_type, PAULINE_PAYLOAD_TYPE, uint16_t, "%d");
+
+		/* forward the packet to Margaux - except if skip begin or discard is active */
+		if (!(skip_pauline_begin && packet_sent < 12) && !(discard_packets && packet_sent > 19 && packet_sent < 30)) {
 			size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_pauline, copymsg(transfered_packet), user_ts);
 			if (size < 0) {
 				ms_error("Session Relay-Margaux-Pauline could not send the packet: -%x", -size);
@@ -635,6 +660,11 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			                -32, int, "%d");
 			BC_ASSERT_EQUAL(voice_activity, TRUE, bool_t, "%d");
 		}
+
+		/* check the packet payload type */
+		payload_type = rtp_get_payload_type(received_packet);
+		BC_ASSERT_EQUAL(payload_type, RELAY_PAYLOAD_TYPE, uint16_t, "%d");
+
 		freemsg(received_packet);
 
 		if (bundled_source) { // Marielle bundles two sessions, fetch this one too
@@ -652,11 +682,16 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			if (size == len) {
 				BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) == 0);
 			}
+
+			/* check the packet payload type */
+			payload_type = rtp_get_payload_type(received_packet);
+			BC_ASSERT_EQUAL(payload_type, RELAY_PAYLOAD_TYPE, uint16_t, "%d");
+
 			freemsg(received_packet);
 		}
 
-		/* margaux receive the packet from pauline - except if we skip pauline's begin */
-		if (!(skip_pauline_begin && packet_sent < 12)) {
+		/* margaux receive the packet from pauline - except if we skip pauline's begin or discard is active*/
+		if (!(skip_pauline_begin && packet_sent < 12) && !(discard_packets && packet_sent > 19 && packet_sent < 30)) {
 			received_packet = rtp_session_recvm_with_ts(rtpSession_margaux_pauline, user_ts);
 			if (received_packet == NULL) {
 				ms_error("Margaux session did not received any packets relayed from Pauline!");
@@ -679,6 +714,18 @@ static bool_t double_encrypted_rtp_relay_data_base(
 				                -96, int, "%d");
 				BC_ASSERT_EQUAL(voice_activity, FALSE, bool_t, "%d");
 			}
+
+			/* check the packet payload type */
+			payload_type = rtp_get_payload_type(received_packet);
+			BC_ASSERT_EQUAL(payload_type, RELAY_PAYLOAD_TYPE, uint16_t, "%d");
+
+			/* Make sure we receive a continuous flow of seq num - even in case of packet discarded by relay */
+			auto packet_seqnum = rtp_get_seqnumber(received_packet);
+			if (pauline_last_packet_seqnum != -1) {
+				pauline_last_packet_seqnum = (pauline_last_packet_seqnum + 1) % 0x10000;
+				BC_ASSERT_EQUAL((int)packet_seqnum, pauline_last_packet_seqnum, int, "%d");
+			}
+			pauline_last_packet_seqnum = packet_seqnum;
 			freemsg(received_packet);
 		}
 
@@ -768,6 +815,20 @@ static void double_encrypted_relayed_data_bundled_source(void) {
 	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, true, true));
 }
 
+static void double_encrypted_relayed_data_discarded_packets(void) {
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_32, MS_AES_128_SHA1_32, false, false, false,
+	                                                    false, false, true));
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, false, false, false,
+	                                                    false, false, true));
+}
+
+static void double_encrypted_relayed_data_discarded_packets_with_ekt_volume_and_bundled_source(void) {
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_32, MS_AES_128_SHA1_32, true, true, true, true,
+	                                                    false, true));
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, true, true, true,
+	                                                    false, true));
+}
+
 static void double_encrypted_relayed_data_use_ekt(void) {
 	BC_ASSERT_TRUE(
 	    double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_32, MS_AES_128_SHA1_32, false, false, false, true));
@@ -813,6 +874,8 @@ static test_t tests[] = {
                 double_encrypted_relayed_data_with_volume),
     TEST_NO_TAG("Double Encrypted relayed data two participants bundled source",
                 double_encrypted_relayed_data_bundled_source),
+    TEST_NO_TAG("Double Encrypted relayed data two participants with packets discarded by relay",
+                double_encrypted_relayed_data_discarded_packets),
     TEST_NO_TAG("Double Encrypted relayed data two participants with ekt", double_encrypted_relayed_data_use_ekt),
     TEST_NO_TAG("Double Encrypted relayed data two participants with volume info and ekt",
                 double_encrypted_relayed_data_with_volume_use_ekt),
@@ -820,6 +883,8 @@ static test_t tests[] = {
                 double_encrypted_relayed_data_bundled_source_use_ekt),
     TEST_NO_TAG("Double Encrypted relayed data two participants with ekt, skip initial ROC",
                 double_encrypted_relayed_data_use_ekt_skip_init_ROC),
+    TEST_NO_TAG("Double Encrypted relayed data two participants with ekt, packets discarded by relay",
+                double_encrypted_relayed_data_discarded_packets_with_ekt_volume_and_bundled_source),
 };
 
 test_suite_t double_encryption_test_suite = {"RTP Data Double Encryption",

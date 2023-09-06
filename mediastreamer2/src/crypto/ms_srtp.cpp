@@ -45,7 +45,12 @@
 
 #include "srtp_prefix.h"
 
-#define NULL_SSRC 0
+namespace {
+const uint32_t NULL_SSRC = 0;
+/* OHB bitmap as defined in RFC8723 - section 4 */
+const uint8_t OHB_SEQNUM_BIT = 0x01;
+const uint8_t OHB_PAYLOAD_TYPE_BIT = 0x02;
+} // namespace
 
 static size_t ms_srtp_get_master_key_size(MSCryptoSuite suite);
 static size_t ms_srtp_get_master_salt_size(MSCryptoSuite suite);
@@ -528,8 +533,77 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 			slen++;
 		} else {
 			/* defragment message and enlarge the buffer for srtp to write its data */
-			msgpullup(m, slen + SRTP_MAX_TRAILER_LEN + ekt_tag_size + 4); /*+4 for 32 bits alignment*/
-			;
+			msgpullup(m, slen + SRTP_MAX_TRAILER_LEN + ekt_tag_size + 4 +
+			                 4); /*+4 for 32 bits alignment + 4 for potential Original header block */
+
+			/* If we are relaying a double encrypted packet, we may need to create here the Original Header Block
+			 * (RFC8723 - section 4) to save the seq number and payload type. Check if :
+			 * 	- the RTP session is in transfer mode (the primary session and the one the current packet comes from if
+			 * we are in bundle mode)
+			 * 	- the RTP session send sequence number is the packet one + 1 (session sequence number shall be the next
+			 * one to use) otherwise we must save it in the OHB
+			 *      - the RTP session send payload type is different than the one in the packet
+			 */
+			if (rtp_session_transfer_mode_enabled(t->session) == TRUE) {
+				RtpSession *original_rtp_session = t->session;
+				/* If this session is part of a bundle, it is the primary one or we would not execute this modifier
+				 * We must retrieve the RtpSession actually managing this message */
+				if (t->session->bundle != NULL) {
+					original_rtp_session = rtp_bundle_lookup_session_for_outgoing_packet(t->session->bundle, m);
+				}
+
+				// We are in bundle mode but unable to retrieve the original RtpSession while the primary is in transfer
+				// mode something is wrong, discard the packet
+				if (original_rtp_session == NULL) {
+					bctbx_warning("Unable to retrieve the RtpSession linked to a packet sent in a bundle with primary "
+					              "in transfer mode, discard the packet. Primary session is [%p]",
+					              t->session);
+					return -1;
+				}
+				// make sure the original session is also in transfer mode
+				if (rtp_session_transfer_mode_enabled(original_rtp_session) == TRUE) {
+					rtp_header = (rtp_header_t *)m->b_rptr; // update header pointer as pullup may have modified it
+					auto packet_seq_number = rtp_header_get_seqnumber(rtp_header);
+					auto session_seq_number = rtp_session_get_seq_number(original_rtp_session);
+					auto packet_payload_type = rtp_get_payload_type(m);
+					auto session_payload_type = rtp_session_get_send_payload_type(original_rtp_session);
+					auto add_seq_num = (session_seq_number != (packet_seq_number + 1));
+					auto add_payload_type = (packet_payload_type != session_payload_type);
+					if (add_seq_num || add_payload_type) {
+						/* We should already have an empty OHB */
+						if (m->b_rptr[slen - 1] == 0) {
+							slen--; // crash the empty OHB
+							// Config byte mapping: | R R R R B M P Q|
+							// R: Reserved, MUST be set to 0
+							// B: Value of marker bit
+							// M: Marker bit is present
+							// P: PT is present
+							// Q: SEQ is present
+							uint8_t config_byte = 0;
+							if (add_payload_type) {
+								m->b_rptr[slen++] = packet_payload_type & 0xFF;
+								config_byte |= OHB_PAYLOAD_TYPE_BIT;
+								// force the packet to use the session payload type
+								rtp_set_payload_type(m, session_payload_type);
+							}
+							if (add_seq_num) {
+								m->b_rptr[slen++] = (packet_seq_number >> 8) & 0xFF;
+								m->b_rptr[slen++] = (packet_seq_number)&0xFF;
+								config_byte |= OHB_SEQNUM_BIT;
+								// force the packet to use the session sequence number
+								rtp_header_set_seqnumber(rtp_header, session_seq_number - 1);
+							}
+							m->b_rptr[slen++] = config_byte;
+						} else {
+							/* There is already a non empty OHB, this feature is not supported */
+							ms_warning("While transfering a double encrypted SRTP packet on session [%p], with seqnum "
+							           "%x and session seqnum %x, we found a pre-existing OHB - discard the packet",
+							           original_rtp_session, session_seq_number, packet_seq_number);
+							return -1;
+						}
+					}
+				}
+			}
 		}
 
 		err = srtp_protect(ctx->mSrtp, m->b_rptr, &slen);
@@ -643,19 +717,34 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 	/* Do we have double encryption */
 	if (ctx->mInnerSrtp != NULL) {
 		/* RFC8723: now that we applied outer crypto algo, we must
-		 * 1 - get the OHB: if it is not 0 replace the headers
+		 * 1 - get the OHB: if it is not 0 extract the original the headers
 		 * 2 - if we have extensions remove them
 		 * 3 - decrypt and put the extensions back */
-		if (m->b_rptr[slen - 1] != 0) { /* there is some OHB bits sets, restore it */
-			// For now we have no reason to support the PT, M or SeqNum modification
-			// So this is not implemented but leads to an error message and packet discarded
+		uint8_t OHB_config = m->b_rptr[slen - 1];
+		uint16_t OHB_seqnum = 0;
+		uint8_t OHB_payload_type = 0;
+		if (OHB_config != 0) { /* there is some OHB bits sets, extract it */
+			// For now we support SeqNum and PT modification but not M, so only the last 2 bits can be non null
 			// Note: this may happend in case of error in the outer layer decryption - the auth tag should prevent
 			// it but...
-			ms_error("A double encrypted packet seem to have a non null OHB - see RFC8723 section 4 - section. "
-			         "This is not supported yet - discard the packet.");
-			return 0;
+			if ((OHB_config & ~(OHB_SEQNUM_BIT | OHB_PAYLOAD_TYPE_BIT)) != 0) {
+				ms_error("A double encrypted packet seem to have a non null OHB - see RFC8723 section 4. "
+				         "With a config byte indicating that M bit was modified."
+				         " This is not supported yet - discard the packet.");
+				return 0;
+			}
+			slen--;
+			if (OHB_config & OHB_SEQNUM_BIT) { // Seqnum is in the OHB
+				OHB_seqnum = (((uint16_t)(m->b_rptr[slen - 2])) << 8) | ((uint16_t)((m->b_rptr[slen - 1])));
+				slen -= 2;
+			}
+			if (OHB_config & OHB_PAYLOAD_TYPE_BIT) { // payload type is in the OHB
+				OHB_payload_type = m->b_rptr[--slen];
+			}
+
+		} else {
+			slen--; /* drop the empty OHB Config byte */
 		}
-		slen--;                       /* drop the OHB Config byte */
 		if (rtp_get_extbit(m) != 0) { /* There is an extension header */
 			uint8_t *payload = NULL;
 			uint16_t cc = rtp_get_cc(m);
@@ -672,8 +761,14 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 			size_t synthetic_header_size = RTP_FIXED_HEADER_SIZE + 4 * cc;
 			int synthetic_len = (int)synthetic_header_size + payload_size;
 			uint8_t *synthetic = (uint8_t *)ms_malloc0(synthetic_len);
-			memcpy(synthetic, m->b_rptr, synthetic_header_size);              /* copy header */
-			((rtp_header_t *)(synthetic))->extbit = 0;                        /* force the ext bit to 0 */
+			memcpy(synthetic, m->b_rptr, synthetic_header_size); /* copy header */
+			((rtp_header_t *)(synthetic))->extbit = 0;           /* force the ext bit to 0 */
+			if (OHB_config & OHB_SEQNUM_BIT) {                   /* set back the original seqnum */
+				rtp_header_set_seqnumber((rtp_header_t *)synthetic, OHB_seqnum);
+			}
+			if (OHB_config & OHB_PAYLOAD_TYPE_BIT) { /* set back the original payload type */
+				((rtp_header_t *)(synthetic))->paytype = OHB_payload_type;
+			}
 			memcpy(synthetic + synthetic_header_size, payload, payload_size); /* append payload */
 
 			/* decrypt the synthetic packet */
@@ -690,8 +785,24 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 			slen = (int)(RTP_FIXED_HEADER_SIZE + 4 * cc + extsize  /* original header size */
 			             + synthetic_len - synthetic_header_size); /* current payload size (after decrypt) */
 		} else {
+			uint16_t outer_layer_seqnum = 0;
+			uint16_t outer_layer_payload_type = 0;
+			if (OHB_config & OHB_SEQNUM_BIT) { /* set back the original seqnum for inner decrypt */
+				outer_layer_seqnum = rtp_get_seqnumber(m);
+				rtp_set_seqnumber(m, OHB_seqnum);
+			}
+			if (OHB_config & OHB_PAYLOAD_TYPE_BIT) { /* set back the original payload type for inner decrypt */
+				outer_layer_payload_type = rtp_get_payload_type(m);
+				rtp_set_payload_type(m, OHB_payload_type);
+			}
 			/* no extension header, decrypt directly */
 			srtp_err = srtp_unprotect(ctx->mInnerSrtp, m->b_rptr, &slen);
+			if (OHB_config & OHB_SEQNUM_BIT) { /* restore the seqnum given by the transfer agent*/
+				rtp_set_seqnumber(m, outer_layer_seqnum);
+			}
+			if (OHB_config & OHB_PAYLOAD_TYPE_BIT) { /* restore the payload type given by the transfer agent */
+				rtp_set_payload_type(m, outer_layer_payload_type);
+			}
 		}
 	} else if (ctx->mEktMode == MS_EKT_TRANSFER) { // We shall not be in transfer mode and have inner srtp context
 		// Restore the Ekt tag after the decrypted packet
@@ -1119,7 +1230,7 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
                                                  bool is_send,
                                                  bool is_inner,
                                                  MSSrtpKeySource source,
-                                                 uint32_t ssrc) {
+                                                 uint32_t ssrc = NULL_SSRC) {
 	int error = -1;
 	int ret = 0;
 	check_and_create_srtp_context(sessions);
@@ -1309,7 +1420,7 @@ static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions 
                                                           MSSrtpKeySource source,
                                                           bool is_send,
                                                           bool is_inner,
-                                                          uint32_t ssrc) {
+                                                          uint32_t ssrc = NULL_SSRC) {
 	int retval;
 
 	size_t key_length = 0;
@@ -1341,7 +1452,7 @@ extern "C" int ms_media_stream_sessions_set_srtp_recv_key_b64(MSMediaStreamSessi
                                                               MSCryptoSuite suite,
                                                               const char *b64_key,
                                                               MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, false, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, false, false);
 }
 extern "C" int ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
     MSMediaStreamSessions *sessions, MSCryptoSuite suite, const char *b64_key, MSSrtpKeySource source, uint32_t ssrc) {
@@ -1352,14 +1463,14 @@ extern "C" int ms_media_stream_sessions_set_srtp_send_key_b64(MSMediaStreamSessi
                                                               MSCryptoSuite suite,
                                                               const char *b64_key,
                                                               MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, false, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, false);
 }
 
 extern "C" int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStreamSessions *sessions,
                                                                     MSCryptoSuite suite,
                                                                     const char *b64_key,
                                                                     MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, true, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key_b64_base(sessions, suite, b64_key, source, true, true);
 }
 
 extern "C" int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions *sessions,
@@ -1367,7 +1478,7 @@ extern "C" int ms_media_stream_sessions_set_srtp_recv_key(MSMediaStreamSessions 
                                                           const uint8_t *key,
                                                           size_t key_length,
                                                           MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, false, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, false, false, source);
 }
 
 extern "C" int ms_media_stream_sessions_set_srtp_inner_recv_key(MSMediaStreamSessions *sessions,
@@ -1384,7 +1495,7 @@ extern "C" int ms_media_stream_sessions_set_srtp_send_key(MSMediaStreamSessions 
                                                           const uint8_t *key,
                                                           size_t key_length,
                                                           MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, false, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, false, source);
 }
 
 extern "C" int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSessions *sessions,
@@ -1392,7 +1503,7 @@ extern "C" int ms_media_stream_sessions_set_srtp_inner_send_key(MSMediaStreamSes
                                                                 const uint8_t *key,
                                                                 size_t key_length,
                                                                 MSSrtpKeySource source) {
-	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, true, source, NULL_SSRC);
+	return ms_media_stream_sessions_set_srtp_key(sessions, suite, key, key_length, true, true, source);
 }
 
 extern "C" int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSessions *sessions, bool_t yesno) {
