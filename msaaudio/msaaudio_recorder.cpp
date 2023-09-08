@@ -235,8 +235,10 @@ static void android_snd_read_preprocess(MSFilter *obj) {
 
 	ms_mutex_lock(&ictx->stream_mutex);
 
-	if ((ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH)) {
-		ms_message("[AAudio Recorder] We were asked to use a bluetooth sound device, starting SCO in Android's AudioManager");
+	if (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
+		ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID)
+	{
+		ms_message("[AAudio Recorder] We were asked to use a bluetooth (or hearing aid) sound device, starting SCO in Android's AudioManager");
 		ictx->bluetoothScoStarted = true;
 		ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, ictx->bluetoothScoStarted);
 	}
@@ -384,12 +386,13 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 		ictx->soundCard = ms_snd_card_ref(card);
 		ictx->aaudio_context->device_changed = true;
 
-		bool bluetoothSoundDevice = (ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH);
+		bool bluetoothSoundDevice = ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
+									ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;
 		if (bluetoothSoundDevice != ictx->bluetoothScoStarted) {
 			if (bluetoothSoundDevice) {
-				ms_message("[AAudio Recorder] New sound device is bluetooth, starting Android AudioManager's SCO");
+				ms_message("[AAudio Recorder] New sound device is bluetooth (or hearing aid), starting Android AudioManager's SCO");
 			} else {
-				ms_message("[AAudio Recorder] New sound device isn't bluetooth, stopping Android AudioManager's SCO");
+				ms_message("[AAudio Recorder] New sound device isn't bluetooth (or hearing aid), stopping Android AudioManager's SCO");
 			}
 
 			ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, bluetoothSoundDevice);
