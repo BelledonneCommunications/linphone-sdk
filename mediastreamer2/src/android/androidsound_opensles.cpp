@@ -1244,6 +1244,7 @@ static void snd_card_device_create(int device_id,
 		           card, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), duplicate,
 		           duplicate->name, duplicate->internal_id, ms_snd_card_device_type_to_string(duplicate->device_type));
 		if (card->device_type == MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
+		    card->device_type == MS_SND_CARD_DEVICE_TYPE_HEARING_AID ||
 		    card->device_type == MS_SND_CARD_DEVICE_TYPE_HEADSET ||
 		    card->device_type == MS_SND_CARD_DEVICE_TYPE_HEADPHONES) {
 			if (hasCaptureCapability &&
@@ -1272,6 +1273,7 @@ static void android_snd_card_device_create(JNIEnv *env,
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE) ||
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADSET) ||
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEADPHONES) ||
+	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID) ||
 	    (type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_GENERIC_USB)) {
 
 		char *name = ms_android_get_device_product_name(env, deviceInfo);
