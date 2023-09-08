@@ -163,16 +163,18 @@ static void au_card_uninit(MSSndCard *card) {
 }
 
 static void au_card_detect(MSSndCardManager *m);
+static void au_card_unload(MSSndCardManager *m);
+static bool_t au_card_reload_requested(MSSndCardManager *m);
 static MSSndCard *au_card_duplicate(MSSndCard *obj);
 
 MSSndCardDesc ca_card_desc = {.driver_type = "AudioUnit",
                               .detect = au_card_detect,
+                              .unload = au_card_unload,
+                              .reload_requested = au_card_reload_requested,
                               .init = au_card_init,
                               .set_level = au_card_set_level,
                               .get_level = au_card_get_level,
                               .set_capture = au_card_set_source,
-                              .set_control = NULL,
-                              .get_control = NULL,
                               .create_reader = ms_au_read_new,
                               .create_writer = ms_au_write_new,
                               .uninit = au_card_uninit,
@@ -335,6 +337,33 @@ static bool_t check_card_capability(AudioDeviceID id, bool_t is_input, char *dev
 	return ret;
 }
 
+/* Would be nice if this boolean could be part of the MSSndCardManager */
+static bool_t reload_requested = FALSE;
+
+static OSStatus au_card_listener(BCTBX_UNUSED(AudioObjectID inObjectID),
+                                 BCTBX_UNUSED(UInt32 inNumberAddresses),
+                                 BCTBX_UNUSED(const AudioObjectPropertyAddress *inAddresses),
+                                 BCTBX_UNUSED(void *inClientData)) {
+	ms_message("macsnd.c: a change happend with the list of available sound devices, will reload");
+	reload_requested = TRUE;
+	return 0;
+}
+
+static void au_card_unload(MSSndCardManager *m) {
+	AudioObjectPropertyAddress theAddress = {kAudioHardwarePropertyDevices, kAudioObjectPropertyScopeGlobal,
+	                                         kAudioObjectPropertyElementMaster};
+	OSStatus err = AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &theAddress, au_card_listener, m);
+	if (err != kAudioHardwareNoError) {
+		ms_error("macsnd.c: Unable to remove listener for audio objects.");
+	} else {
+		ms_message("macsnd.c: removed listener for available sound devices.");
+	}
+}
+
+static bool_t au_card_reload_requested(BCTBX_UNUSED(MSSndCardManager *m)) {
+	return reload_requested;
+}
+
 static void au_card_detect(MSSndCardManager *m) {
 	OSStatus err;
 	UInt32 slen;
@@ -384,6 +413,17 @@ static void au_card_detect(MSSndCardManager *m) {
 			ms_snd_card_manager_add_card(m, card);
 		}
 	}
+
+	/* Attempt to remove the property listener possibly previously set - in case of reload */
+	AudioObjectRemovePropertyListener(kAudioObjectSystemObject, &theAddress, au_card_listener, m);
+
+	err = AudioObjectAddPropertyListener(kAudioObjectSystemObject, &theAddress, au_card_listener, m);
+	if (err != kAudioHardwareNoError) {
+		ms_error("macsnd.c: Unable to set listener for audio objects.");
+	} else {
+		ms_message("macsnd.c: set listener for available sound devices.");
+	}
+	reload_requested = FALSE;
 }
 
 static OSStatus readRenderProc(void *inRefCon,
