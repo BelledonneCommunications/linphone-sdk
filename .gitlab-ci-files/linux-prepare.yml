@@ -57,10 +57,10 @@
     ##
     - !reference [.set-max-jobs-unix, script]
 
-    #Configure dev-toolset for centos-7
+    #Configure dev-toolset for rocky 8
 
-    - CENTOS_VERSION=$(cat /etc/centos-release) || true
-    - if [ -n "$CENTOS_VERSION" ] && [ -n "$(echo $CENTOS_VERSION | grep -o 'release 7')" ]; then source /opt/rh/devtoolset-8/enable; fi
+    - ROCKY_VERSION=$(cat /etc/rocky-release) || true
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 8')" ]; then source /opt/rh/gcc-toolset-12/enable; fi
     - export GRADLE_USER_HOME=`pwd`/.gradle
 
     #debug empty value on updated arch
