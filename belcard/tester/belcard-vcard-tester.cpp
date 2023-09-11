@@ -33,10 +33,14 @@ using namespace ::belr;
 using namespace ::belcard;
 
 static string openFile(const char *name) {
-	ifstream istr(bc_tester_res(name), std::ios::binary);
+	char *res = bc_tester_res(name);
+
+	ifstream istr(res, std::ios::binary);
 	if (!istr.is_open()) {
 		BC_FAIL(name);
 	}
+
+	bctbx_free(res);
 
 	stringstream vcardStream;
 	vcardStream << istr.rdbuf();
