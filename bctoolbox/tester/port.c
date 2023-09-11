@@ -31,7 +31,7 @@ static void bytes_to_from_hexa_strings(void) {
 	const uint8_t downBytes[8] = {0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54, 0x32, 0x10};
 	const uint8_t downString[17] = "fedcba9876543210";
 	uint8_t outputBytes[16];
-	uint8_t outputString[16];
+	uint8_t outputString[17];
 
 	BC_ASSERT_EQUAL(bctbx_char_to_byte("1"[0]), 1, uint8_t, "%d");
 	BC_ASSERT_EQUAL(bctbx_char_to_byte("5"[0]), 5, uint8_t, "%d");
@@ -142,6 +142,7 @@ static void bctbx_addrinfo_sort_test(void) {
 	struct addrinfo *ai = NULL;
 	char printable_ip[256];
 	struct addrinfo *res = res3;
+	struct addrinfo *to_free = NULL;
 
 	for (ai = res2; ai != NULL; ai = ai->ai_next) {
 		if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr)) {
@@ -150,6 +151,7 @@ static void bctbx_addrinfo_sort_test(void) {
 		}
 	}
 	res->ai_next->ai_next = res1;
+	to_free = res1->ai_next;
 	res->ai_next->ai_next->ai_next = NULL;
 
 	// So now, res as ipv4 first, then v4 mapped, then v6
@@ -159,8 +161,8 @@ static void bctbx_addrinfo_sort_test(void) {
 	}
 
 	// now apply bctbx_addrinfo_sort
-
-	for (ai = bctbx_addrinfo_sort(res); ai != NULL; ai = ai->ai_next) {
+	res = bctbx_addrinfo_sort(res);
+	for (ai = res; ai != NULL; ai = ai->ai_next) {
 		if (ai->ai_family == AF_INET6) {
 			if (!searching_for_v6) {
 				BC_ASSERT_FALSE(IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *)(ai->ai_addr))->sin6_addr));
@@ -174,6 +176,7 @@ static void bctbx_addrinfo_sort_test(void) {
 	}
 
 	bctbx_freeaddrinfo(res);
+	bctbx_freeaddrinfo(to_free);
 }
 
 static void bctbx_directory_utils_test(void) {
@@ -241,6 +244,5 @@ static test_t utils_tests[] = {
     TEST_NO_TAG("Bytes to/from Hexa strings", bytes_to_from_hexa_strings), TEST_NO_TAG("Time", time_functions),
     TEST_NO_TAG("Addrinfo sort", bctbx_addrinfo_sort_test), TEST_NO_TAG("Directory utils", bctbx_directory_utils_test)};
 
-
-test_suite_t utils_test_suite = {"Utils",    NULL, NULL, NULL, NULL, sizeof(utils_tests) / sizeof(utils_tests[0]),
+test_suite_t utils_test_suite = {"Utils",     NULL, NULL, NULL, NULL, sizeof(utils_tests) / sizeof(utils_tests[0]),
                                  utils_tests, 0};

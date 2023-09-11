@@ -48,17 +48,17 @@ bctbx_list_t *bctbx_list_next(const bctbx_list_t *elem) {
 void *bctbx_list_get_data(const bctbx_list_t *elem) {
 	return elem->data;
 }
-bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem,bctbx_list_t *new_elem) {
+bctbx_list_t *bctbx_list_append_link(bctbx_list_t *elem, bctbx_list_t *new_elem) {
 	return bctbx_list_concat(elem, new_elem);
 }
 
 bctbx_list_t *bctbx_list_append(bctbx_list_t *elem, void *data) {
-	bctbx_list_t *new_elem=bctbx_list_new(data);
-	return bctbx_list_concat(elem,new_elem);
+	bctbx_list_t *new_elem = bctbx_list_new(data);
+	return bctbx_list_concat(elem, new_elem);
 }
 
 bctbx_list_t *bctbx_list_prepend_link(bctbx_list_t *elem, bctbx_list_t *new_elem) {
-	if (elem!=NULL) {// NULL => NE => NLE => E => LE => NULL (where N=New, L=Last, E=Elem)
+	if (elem != NULL) { // NULL => NE => NLE => E => LE => NULL (where N=New, L=Last, E=Elem)
 		new_elem = bctbx_list_concat(new_elem, elem);
 	}
 	return new_elem;
@@ -123,31 +123,52 @@ bctbx_list_t *bctbx_list_free_with_data(bctbx_list_t *list, bctbx_list_free_func
 	return NULL;
 }
 
-bctbx_list_t *_bctbx_list_remove(bctbx_list_t *first, void *data, int warn_if_not_found) {
+bctbx_list_t *
+_bctbx_list_remove(bctbx_list_t *first, void *data, int warn_if_not_found, bctbx_list_free_func free_func) {
 	bctbx_list_t *it;
 	it = bctbx_list_find(first, data);
-	if (it) return bctbx_list_erase_link(first, it);
-	else if (warn_if_not_found) {
+	if (it) {
+		if (free_func != NULL) free_func(data);
+		return bctbx_list_erase_link(first, it);
+	} else if (warn_if_not_found) {
 		bctbx_warning("bctbx_list_remove: no element with %p data was in the list", data);
 	}
 	return first;
 }
 
 bctbx_list_t *bctbx_list_remove(bctbx_list_t *first, void *data) {
-	return _bctbx_list_remove(first, data, TRUE);
+	return _bctbx_list_remove(first, data, TRUE, NULL);
 }
 
-bctbx_list_t *bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data) {
+bctbx_list_t *bctbx_list_remove_with_data(bctbx_list_t *first, void *data, bctbx_list_free_func free_func) {
+	return _bctbx_list_remove(first, data, TRUE, free_func);
+}
+
+bctbx_list_t *_bctbx_list_remove_custom(bctbx_list_t *first,
+                                        bctbx_compare_func compare_func,
+                                        bctbx_list_free_func free_func,
+                                        const void *user_data) {
 	bctbx_list_t *cur;
 	bctbx_list_t *elem = first;
 	while (elem != NULL) {
 		cur = elem;
 		elem = elem->next;
 		if (compare_func(cur->data, user_data) == 0) {
-			first = bctbx_list_remove(first, cur->data);
+			first = bctbx_list_remove_with_data(first, cur->data, free_func);
 		}
 	}
 	return first;
+}
+
+bctbx_list_t *bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data) {
+	return _bctbx_list_remove_custom(first, compare_func, NULL, user_data);
+}
+
+bctbx_list_t *bctbx_list_remove_custom_with_data(bctbx_list_t *first,
+                                                 bctbx_compare_func compare_func,
+                                                 bctbx_list_free_func free_func,
+                                                 const void *user_data) {
+	return _bctbx_list_remove_custom(first, compare_func, free_func, user_data);
 }
 
 size_t bctbx_list_size(const bctbx_list_t *first) {

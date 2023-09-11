@@ -42,27 +42,19 @@ typedef struct {
 
 #define TEST_NO_TAG_AUTO_NAMED(func)                                                                                   \
 	{                                                                                                                  \
-#func, func, {                                                                                                 \
-			NULL, NULL                                                                                                 \
-		}                                                                                                              \
+#func, func, { NULL, NULL }                                                                                    \
 	}
 #define TEST_NO_TAG(name, func)                                                                                        \
 	{                                                                                                                  \
-		name, func, {                                                                                                  \
-			NULL, NULL                                                                                                 \
-		}                                                                                                              \
+		name, func, { NULL, NULL }                                                                                     \
 	}
 #define TEST_ONE_TAG(name, func, tag)                                                                                  \
 	{                                                                                                                  \
-		name, func, {                                                                                                  \
-			tag, NULL                                                                                                  \
-		}                                                                                                              \
+		name, func, { tag, NULL }                                                                                      \
 	}
 #define TEST_TWO_TAGS(name, func, tag1, tag2)                                                                          \
 	{                                                                                                                  \
-		name, func, {                                                                                                  \
-			tag1, tag2                                                                                                 \
-		}                                                                                                              \
+		name, func, { tag1, tag2 }                                                                                     \
 	}
 
 typedef struct {
@@ -207,12 +199,12 @@ BCTBX_PUBLIC int bc_assert(const char *file, int line, int predicate, const char
 #define BC_ASSERT_NSTRING_EQUAL(actual, expected, count)                                                               \
 	_BC_ASSERT_PRED("BC_ASSERT_NSTRING_EQUAL",                                                                         \
 	                !(strncmp((const char *)(cactual), (const char *)(cexpected), (size_t)(count))), actual, expected, \
-	                const char *, "Expected %*s but was %*s.", (int)(count), cexpected ? cexpected : "nullptr",        \
+	                const char *, "Expected %.*s but was %.*s.", (int)(count), cexpected ? cexpected : "nullptr",      \
 	                (int)(count), cactual ? cactual : "nullptr")
 #define BC_ASSERT_NSTRING_NOT_EQUAL(actual, expected, count)                                                           \
 	_BC_ASSERT_PRED("BC_ASSERT_NSTRING_NOT_EQUAL",                                                                     \
 	                (strncmp((const char *)(cactual), (const char *)(cexpected), (size_t)(count))), actual, expected,  \
-	                const char *, "Expected %*s but it was.", (int)count, cexpected)
+	                const char *, "Expected %.*s but it was.", (int)count, cexpected)
 #define BC_ASSERT_DOUBLE_EQUAL(actual, expected, granularity)                                                          \
 	_BC_ASSERT_PRED("BC_ASSERT_DOUBLE_EQUAL",                                                                          \
 	                ((fabs((double)(cactual) - (cexpected)) <= fabs((double)(granularity)))), actual, expected,        \

@@ -83,10 +83,12 @@ static void multimap_erase(void) {
 			break;
 		}
 	}
+	bctbx_iterator_ullong_delete(it);
 	it = bctbx_map_ullong_begin(mmap);
 	BC_ASSERT_EQUAL((long)bctbx_pair_ullong_get_second(bctbx_iterator_ullong_get_pair(it)), N / 2, long, "%lu");
 
 	bctbx_mmap_ullong_delete(mmap);
+	bctbx_iterator_ullong_delete(it);
 	bctbx_iterator_ullong_delete(end);
 }
 static int compare_func(const void *a, const void *b) {
@@ -127,11 +129,11 @@ static void multimap_insert_cchar(void) {
 		snprintf(str, sizeof(str), "%ld", i);
 		it = bctbx_map_cchar_find_key(mmap, (const char *)str);
 		BC_ASSERT_EQUAL((long)bctbx_pair_cchar_get_second(bctbx_iterator_cchar_get_pair(it)), (long)i, long, "%lu");
+		bctbx_iterator_cchar_delete(it);
 	}
 
 	end = bctbx_map_cchar_end(mmap);
 
-	bctbx_iterator_cchar_delete(it);
 	bctbx_iterator_cchar_delete(end);
 	bctbx_mmap_cchar_delete(mmap);
 }
@@ -160,8 +162,10 @@ static void multimap_erase_cchar(void) {
 			break;
 		}
 	}
+	bctbx_iterator_cchar_delete(it);
 	it = bctbx_map_cchar_begin(mmap);
 	BC_ASSERT_EQUAL((long)bctbx_pair_cchar_get_second(bctbx_iterator_cchar_get_pair(it)), N / 2, long, "%lu");
+	bctbx_iterator_cchar_delete(it);
 
 	bctbx_mmap_cchar_delete(mmap);
 	bctbx_iterator_cchar_delete(end);
@@ -206,10 +210,10 @@ static void list_updates(void) {
 	add_list = bctbx_list_append(add_list, &sequence[7]);
 	add_list = bctbx_list_append(add_list, &sequence[8]);
 
-// For testing prepended list
+	// For testing prepended list
 	prep_list = bctbx_list_concat(prep_list, list);
 
-// For testing added list
+	// For testing added list
 	list = bctbx_list_concat(prep_list, add_list);
 
 	// Check sequence: order and count must be correct.

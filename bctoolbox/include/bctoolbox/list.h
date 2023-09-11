@@ -48,8 +48,13 @@ BCTBX_PUBLIC bctbx_list_t *bctbx_list_first_elem(const bctbx_list_t *l);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_free(bctbx_list_t *elem);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_concat(bctbx_list_t *first, bctbx_list_t *second);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_remove(bctbx_list_t *first, void *data);
+bctbx_list_t *bctbx_list_remove_with_data(bctbx_list_t *first, void *data, bctbx_list_free_func free_func);
 BCTBX_PUBLIC bctbx_list_t *
 bctbx_list_remove_custom(bctbx_list_t *first, bctbx_compare_func compare_func, const void *user_data);
+BCTBX_PUBLIC bctbx_list_t *bctbx_list_remove_custom_with_data(bctbx_list_t *first,
+                                                              bctbx_compare_func compare_func,
+                                                              bctbx_list_free_func free_func,
+                                                              const void *user_data);
 BCTBX_PUBLIC bctbx_list_t *bctbx_list_pop_front(bctbx_list_t *list, void **front_data);
 BCTBX_PUBLIC size_t bctbx_list_size(const bctbx_list_t *first);
 BCTBX_PUBLIC void bctbx_list_for_each(const bctbx_list_t *list, bctbx_list_iterate_func func);

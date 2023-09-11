@@ -36,6 +36,8 @@ static void get_value_test(void) {
 	BC_ASSERT_TRUE(bctbx_param_string_get_value(paramString, "param", result, result_len));
 	BC_ASSERT_TRUE(strcmp(result, "true") == 0);
 	BC_ASSERT_FALSE(bctbx_param_string_get_value(paramString, "notparam", result, result_len));
+
+	bctbx_free(result);
 }
 
 static void get_bool_value_test(void) {
@@ -53,5 +55,5 @@ static test_t param_string_tests[] = {TEST_NO_TAG("Get value", get_value_test),
                                       TEST_NO_TAG("Get bool value", get_bool_value_test)};
 
 test_suite_t param_string_test_suite = {
-    "Param string",    NULL, NULL, NULL, NULL, sizeof(param_string_tests) / sizeof(param_string_tests[0]),
+    "Param string",     NULL, NULL, NULL, NULL, sizeof(param_string_tests) / sizeof(param_string_tests[0]),
     param_string_tests, 0};

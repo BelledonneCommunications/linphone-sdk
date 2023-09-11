@@ -36,7 +36,10 @@ static void assert_tag_presence(const std::list<std::string> &expected) {
 		const char *expected_tag = (const char *)tags->data;
 		current_tags_str << "[" << expected_tag << "]";
 	}
-	BC_ASSERT_STRING_EQUAL(current_tags_str.str().c_str(), expected_tags_str.str().c_str());
+
+	const std::string &currentTags = current_tags_str.str();
+	const std::string &expectedTags = expected_tags_str.str();
+	BC_ASSERT_STRING_EQUAL(currentTags.c_str(), expectedTags.c_str());
 }
 
 static void test_tags(void) {
