@@ -81,7 +81,7 @@ bool Av1Decoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 					mKeyFrameNeeded = false;
 					mKeyFrameIndicator.reset();
 				} else {
-					ms_error("Av1Decoder: waiting for key frame");
+					ms_message("Av1Decoder: waiting for key frame");
 					freemsg(im);
 					continue;
 				}

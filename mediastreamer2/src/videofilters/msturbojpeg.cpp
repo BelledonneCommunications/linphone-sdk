@@ -123,6 +123,7 @@ static void ms_turbojpeg_dec_uninit(MSFilter *filter) {
 	MSTurboJpegDec *dec = static_cast<MSTurboJpegDec *>(filter->data);
 	if (dec->mTurboJpegDecompressor) tjDestroy(dec->mTurboJpegDecompressor);
 	if (dec->mTurboJpegCompressor) tjDestroy(dec->mTurboJpegCompressor);
+	delete dec;
 }
 //---------------------------------------------------------------------------------
 

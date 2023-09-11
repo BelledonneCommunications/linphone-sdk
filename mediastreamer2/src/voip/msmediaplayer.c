@@ -279,6 +279,10 @@ void ms_media_player_close(MSMediaPlayer *obj) {
 		if (obj->graph_state == GraphReady) {
 			ms_media_player_stop(obj);
 		}
+		if (obj->player) {
+			ms_filter_destroy(obj->player);
+			obj->player = NULL;
+		}
 		ms_free(obj->filename);
 		obj->filename = NULL;
 	}
@@ -488,8 +492,10 @@ static void _create_decoders(MSMediaPlayer *obj) {
 	}
 }
 
-
-static void audio_sink_event_handler(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+static void audio_sink_event_handler(void *user_data,
+                                     BCTBX_UNUSED(MSFilter *f),
+                                     unsigned int event,
+                                     BCTBX_UNUSED(void *eventdata)) {
 	if (event == MS_FILTER_OUTPUT_FMT_CHANGED) {
 		MSMediaPlayer *player = (MSMediaPlayer *)user_data;
 		bool_t need_resampler = FALSE;
@@ -497,27 +503,25 @@ static void audio_sink_event_handler(void *user_data, BCTBX_UNUSED(MSFilter *f),
 		int sink_sample_rate, sink_nchannels;
 		int sample_rate = player->audio_pin_fmt.fmt->rate;
 		int nchannels = player->audio_pin_fmt.fmt->nchannels;
-		ms_filter_call_method(player->audio_sink,MS_FILTER_GET_SAMPLE_RATE,&sink_sample_rate);
-		ms_filter_call_method(player->audio_sink,MS_FILTER_GET_NCHANNELS,&sink_nchannels);
+		ms_filter_call_method(player->audio_sink, MS_FILTER_GET_SAMPLE_RATE, &sink_sample_rate);
+		ms_filter_call_method(player->audio_sink, MS_FILTER_GET_NCHANNELS, &sink_nchannels);
 		need_resampler = need_resampler || (sink_sample_rate != sample_rate) || (sink_nchannels != nchannels);
-		
-		if(need_resampler && !player->resampler) {// Create resampler and link it to the graph.
+
+		if (need_resampler && !player->resampler) { // Create resampler and link it to the graph.
 			_unlink_all(player);
 			player->resampler = ms_factory_create_filter(player->factory, MS_RESAMPLE_ID);
 			ms_filter_call_method(player->resampler, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 			ms_filter_call_method(player->resampler, MS_FILTER_SET_NCHANNELS, &nchannels);
 			need_link = TRUE;
 		}
-		if( player->resampler) {// Adapt resampler if it exists.
-			ms_filter_call_method(player->resampler,MS_FILTER_SET_OUTPUT_SAMPLE_RATE,&sink_sample_rate);
-			ms_filter_call_method(player->resampler,MS_FILTER_SET_OUTPUT_NCHANNELS,&sink_nchannels);
+		if (player->resampler) { // Adapt resampler if it exists.
+			ms_filter_call_method(player->resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &sink_sample_rate);
+			ms_filter_call_method(player->resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &sink_nchannels);
 			ms_message("reconfiguring resampler output to rate=[%i], nchannels=[%i]", sink_sample_rate, sink_nchannels);
-			if(need_link)
-				_link_all(player);
+			if (need_link) _link_all(player);
 		}
 	}
 }
-
 
 static void _create_sinks(MSMediaPlayer *obj) {
 	int sink_sample_rate, sample_rate, sink_nchannels, nchannels;

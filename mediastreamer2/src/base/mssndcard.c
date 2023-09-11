@@ -45,8 +45,8 @@ void ms_snd_card_manager_destroy(MSSndCardManager *scm) {
 		}
 		bctbx_list_for_each(scm->cards, (void (*)(void *))ms_snd_card_unref);
 		bctbx_list_free(scm->cards);
-		bctbx_list_free(scm->descs);
 	}
+	bctbx_list_free(scm->descs);
 	if (scm != NULL && scm->paramString != NULL) {
 		bctbx_free(scm->paramString);
 	}

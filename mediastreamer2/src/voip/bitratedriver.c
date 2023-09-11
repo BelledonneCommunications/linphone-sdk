@@ -392,7 +392,9 @@ static int bandwidth_driver_execute_action(MSBitrateDriver *objbase, const MSRat
 	return ret;
 }
 
-static void bandwidth_bitrate_driver_uninit(BCTBX_UNUSED(MSBitrateDriver *objbase)) {
+static void bandwidth_bitrate_driver_uninit(MSBitrateDriver *objbase) {
+	MSBandwidthBitrateDriver *obj = (MSBandwidthBitrateDriver *)objbase;
+	if (obj->audio_driver) ms_bitrate_driver_unref(obj->audio_driver);
 }
 
 static MSBitrateDriverDesc bandwidth_bitrate_driver = {bandwidth_driver_execute_action,

@@ -531,6 +531,10 @@ static void close_av_player(AudioStream *stream) {
 		ms_filter_destroy(player->decoder);
 		player->decoder = NULL;
 	}
+	if (player->video_output) {
+		ms_filter_destroy(player->video_output);
+		player->video_output = NULL;
+	}
 }
 
 static void configure_av_player(AudioStream *stream, const MSFmtDescriptor *audiofmt, const MSFmtDescriptor *videofmt) {

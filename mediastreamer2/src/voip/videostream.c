@@ -778,7 +778,7 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 		if (ms_video_get_scaler_impl() == NULL) {
 			vconf.vsize = cam_vsize;
 		} else {
-/* Libyuv can resize the video itself */
+			/* Libyuv can resize the video itself */
 #if !defined(HAVE_LIBYUV_H)
 			MSVideoSize resized = get_with_same_orientation_and_ratio(vconf.vsize, cam_vsize);
 			if (resized.width & 0x1 || resized.height & 0x1) {
@@ -1324,10 +1324,12 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 					stream->ms.encoder = ms_factory_create_filter(stream->ms.factory, MS_DUMMY_ENC_ID);
 					if (stream->ms.encoder == NULL) {
 						ms_error("videostream.c: No encoder available for dummy codec");
+						if (source) ms_filter_destroy(source);
 						return -1;
 					}
 				} else {
 					ms_error("videostream.c: No encoder available for payload %i:%s.", payload, pt->mime_type);
+					if (source) ms_filter_destroy(source);
 					return -1;
 				}
 			}

@@ -1312,7 +1312,9 @@ void ms_turn_context_destroy(MSTurnContext *context) {
 		ms_free(context->password);
 	}
 	if (context->ha1 != NULL) ms_free(context->ha1);
-	if (context->endpoint != NULL) context->endpoint->data = NULL;
+	if (context->endpoint != NULL) {
+		ms_free(context->endpoint);
+	}
 	bctbx_list_for_each(context->allowed_peer_addresses, (MSIterateFunc)ms_free);
 	bctbx_list_free(context->allowed_peer_addresses);
 	if (context->turn_tcp_client) ms_turn_tcp_client_destroy(context->turn_tcp_client);

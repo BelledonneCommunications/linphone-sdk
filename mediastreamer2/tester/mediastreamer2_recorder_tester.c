@@ -112,6 +112,7 @@ static void record_wav(void) {
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
+	bctbx_free(file);
 }
 
 static void record_mkv_vp8(void) {
@@ -122,6 +123,7 @@ static void record_mkv_vp8(void) {
 	RecorderTestFlags flags =
 	    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 	record_file(file, flags);
+	bctbx_free(file);
 #endif
 }
 
@@ -134,6 +136,7 @@ static void record_mkv_h264(void) {
 		RecorderTestFlags flags =
 		    ms_media_recorder_matroska_supported() ? RECORDER_TEST_NONE : RECORDER_TEST_UNSUPPORTED_FORMAT;
 		record_file(file, flags | RECORDER_TEST_H264);
+		bctbx_free(file);
 	} else {
 		ms_error("H264 codec is not supported! Skip test");
 	}

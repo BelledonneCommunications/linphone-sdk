@@ -667,8 +667,8 @@ static void two_mono_into_one_stereo_with_unsynchronized_inputs(void) {
 
 static void max_ptime(void) {
 	const bctbx_list_t *filters = ms_factory_get_filter_decs(msFactory);
-	bctbx_list_t *it = bctbx_list_copy(filters);
-	for (; it != NULL; it = bctbx_list_next(it)) {
+	bctbx_list_t *copy = bctbx_list_copy(filters);
+	for (bctbx_list_t *it = copy; it != NULL; it = bctbx_list_next(it)) {
 		MSFilterDesc *desc = bctbx_list_get_data(it);
 		if (desc->category != MS_FILTER_ENCODER ||
 		    ms_filter_desc_implements_interface(desc, MSFilterVideoEncoderInterface))
@@ -700,7 +700,7 @@ static void max_ptime(void) {
 		}
 		ms_filter_destroy(filter);
 	}
-	bctbx_list_free(it);
+	bctbx_list_free(copy);
 }
 
 test_t basic_audio_tests[] = {TEST_ONE_TAG("silence detection 48000", silence_detection_48000, "VAD"),

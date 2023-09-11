@@ -505,6 +505,16 @@ static void uninit_video_streams(video_stream_tester_t *vst1, video_stream_teste
 	           payload_type_get_bitrate(vst2_pt), rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt));
 	BC_ASSERT_LOWER(rtcp_send_bandwidth, (rtcp_bitrate_part * payload_type_get_bitrate(vst2_pt)), float, "%f");
 
+	if (vst1->bundle) {
+		rtp_bundle_delete(vst1->bundle);
+		vst1->bundle = NULL;
+	}
+
+	if (vst2->bundle) {
+		rtp_bundle_delete(vst2->bundle);
+		vst2->bundle = NULL;
+	}
+
 	destroy_video_stream(vst1);
 	destroy_video_stream(vst2);
 }
@@ -584,6 +594,7 @@ static void basic_video_stream_dummy(void) {
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, UNSUPPORTED_PAYLOAD_TYPE, FALSE, FALSE);
 		ms_sleep(2);
 		uninit_video_streams(marielle, margaux);
+		video_stream_tester_destroy(marielle);
 		video_stream_tester_destroy(margaux);
 		// ask for unsupported codec, but disable fallback to dummy, it shall fail
 		marielle = video_stream_tester_new();
@@ -596,9 +607,9 @@ static void basic_video_stream_dummy(void) {
 		                                   margaux->local_ip, margaux->local_rtcp, UNSUPPORTED_PAYLOAD_TYPE, 50,
 		                                   marielle->cam),
 		                -1, int, "%d");
+		uninit_video_streams(marielle, margaux);
 		video_stream_tester_destroy(marielle);
 		video_stream_tester_destroy(margaux);
-
 	} else {
 		BC_FAIL("Dummy codec is not supported!");
 	}

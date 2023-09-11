@@ -1918,7 +1918,7 @@ static void ice_send_error_response(const RtpSession *rtp_session,
 		                           (struct sockaddr *)&dest_addr, dest_addrlen);
 	}
 	if (buf != NULL) ms_free(buf);
-	ms_free(response);
+	ms_stun_message_destroy(response);
 }
 
 static void ice_send_indication(const IceCandidatePair *pair, const RtpSession *rtp_session) {
@@ -4450,8 +4450,9 @@ void ice_check_list_process(IceCheckList *cl, RtpSession *rtp_session) {
 	 * or bind TURN channels). */
 	bctbx_list_for_each2(cl->stun_server_requests, (void (*)(void *, void *))ice_send_stun_server_requests, cl);
 
-	cl->stun_server_requests = bctbx_list_remove_custom(
-	    cl->stun_server_requests, (bctbx_compare_func)ice_compare_stun_server_requests_to_remove, NULL);
+	cl->stun_server_requests = bctbx_list_remove_custom_with_data(
+	    cl->stun_server_requests, (bctbx_compare_func)ice_compare_stun_server_requests_to_remove,
+	    (bctbx_list_free_func)ice_stun_server_request_free, NULL);
 
 	/* Send event if needed. */
 	if ((cl->session->send_event == TRUE) && (ice_compare_time(curtime, cl->session->event_time) >= 0)) {
