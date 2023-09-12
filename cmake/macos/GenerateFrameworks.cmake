@@ -27,8 +27,9 @@ linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_MACOS_ARC
 
 # Create the desktop directory that will contain the merged content of all architectures
 execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}"
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}/Frameworks"
+	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}/XCFrameworks"
 )
 
 # Copy and merge content of all architectures in the desktop directory
@@ -38,9 +39,12 @@ execute_process(# Do not use copy_directory because of symlinks
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
-if(NOT ENABLE_FAT_BINARY)
+if(ENABLE_FAT_BINARY)
 	execute_process(
-		COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}/Frameworks"
+		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}/Frameworks"
+	)
+else()
+	execute_process(
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}/XCFrameworks"
 	)
 endif()

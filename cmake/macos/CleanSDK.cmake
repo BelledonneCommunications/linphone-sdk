@@ -23,11 +23,6 @@
 include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 
-# Clean the directory where the SDK is generated
-execute_process(
-	COMMAND "${CMAKE_COMMAND}" "-E" "remove_directory" "${CMAKE_INSTALL_PREFIX}"
-)
-
 # Delete previously created zip files of the SDK
 file(GLOB _ZIP_FILES LIST_DIRECTORIES false "*.zip")
 foreach(_FILE IN LISTS _ZIP_FILES)
