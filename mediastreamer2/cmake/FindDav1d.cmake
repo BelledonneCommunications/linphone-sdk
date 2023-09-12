@@ -19,41 +19,71 @@
 #
 ############################################################################
 #
-# - Find the dav1d include file and library
+# Find the dav1d library.
 #
-#  DAV1D_FOUND - system has dav1d
-#  DAV1D_INCLUDE_DIRS - the dav1d include directory
-#  DAV1D_LIBRARIES - The libraries needed to use dav1d
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  dav1d - If the dav1d library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Dav1d_FOUND - The dav1d library has been found
+#  Dav1d_TARGET - The name of the CMake target for the dav1d library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_Dav1d_REQUIRED_VARS Dav1d_TARGET)
+set(_Dav1d_CACHE_VARS ${_Dav1d_REQUIRED_VARS})
 
 if(TARGET dav1d)
 
-	set(DAV1D_LIBRARIES libdav1d)
-	get_target_property(DAV1D_INCLUDE_DIRS libdav1d INTERFACE_INCLUDE_DIRECTORIES)
+	set(Dav1d_TARGET libdav1d)
 
 else()
 
-	set(_DAV1D_ROOT_PATHS
+	set(_Dav1d_ROOT_PATHS
 		${CMAKE_INSTALL_PREFIX}
 	)
 
-	find_path(DAV1D_INCLUDE_DIRS
+	find_path(Dav1d_INCLUDE_DIRS
 		NAMES dav1d/dav1d.h
-		HINTS _DAV1D_ROOT_PATHS
+		HINTS _Dav1d_ROOT_PATHS
 		PATH_SUFFIXES include
 	)
 
-	find_library(DAV1D_LIBRARIES
+	find_library(Dav1d_LIBRARY
 		NAMES dav1d
-		HINTS _DAV1D_ROOT_PATHS
+		HINTS _Dav1d_ROOT_PATHS
 		PATH_SUFFIXES bin lib lib/Win32
 	)
 
+	if(_Dav1d_INCLUDE_DIRS AND _Dav1d_LIBRARY)
+		add_library(libdav1d UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(libdav1d PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Dav1d_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Dav1d_LIBRARY}"
+			)
+		else()
+			set_target_properties(libdav1d PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Dav1d_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Dav1d_LIBRARY}"
+			)
+		endif()
+
+		set(Dav1d_TARGET libdav1d)
+	endif()
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Dav1d
-	DEFAULT_MSG
-	DAV1D_INCLUDE_DIRS DAV1D_LIBRARIES
+	REQUIRED_VARS ${_Dav1d_REQUIRED_VARS}
 )
-
-mark_as_advanced(DAV1D_INCLUDE_DIRS DAV1D_LIBRARIES)
+mark_as_advanced(${_Dav1d_CACHE_VARS})

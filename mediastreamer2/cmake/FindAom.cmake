@@ -19,41 +19,71 @@
 #
 ############################################################################
 #
-# - Find the aom include file and library
+# Find the aom library.
 #
-#  AOM_FOUND - system has aom
-#  AOM_INCLUDE_DIRS - the aom include directory
-#  AOM_LIBRARIES - The libraries needed to use aom
+# Targets
+# ^^^^^^^
+#
+# The following targets may be defined:
+#
+#  aom - If the aom library has been found
+#
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+#  Aom_FOUND - The aom library has been found
+#  Aom_TARGET - The name of the CMake target for the aom library
+
+
+include(FindPackageHandleStandardArgs)
+
+set(_Aom_REQUIRED_VARS Aom_TARGET)
+set(_Aom_CACHE_VARS ${_Aom_REQUIRED_VARS})
 
 if(TARGET aom)
 
-	set(AOM_LIBRARIES aom)
-	get_target_property(AOM_INCLUDE_DIRS aom INTERFACE_INCLUDE_DIRECTORIES)
+	set(Aom_TARGET aom)
 
 else()
 
-	set(_AOM_ROOT_PATHS
+	set(_Aom_ROOT_PATHS
 		${CMAKE_INSTALL_PREFIX}
 	)
 
-	find_path(AOM_INCLUDE_DIRS
+	find_path(Aom_INCLUDE_DIRS
 		NAMES aom/aomcx.h
-		HINTS _AOM_ROOT_PATHS
+		HINTS _Aom_ROOT_PATHS
 		PATH_SUFFIXES include
 	)
 
-	find_library(AOM_LIBRARIES
+	find_library(Aom_LIBRARY
 		NAMES aom
-		HINTS _AOM_ROOT_PATHS
+		HINTS _Aom_ROOT_PATHS
 		PATH_SUFFIXES bin lib lib/Win32
 	)
 
+	if(_Aom_INCLUDE_DIRS AND _Aom_LIBRARY)
+		add_library(aom UNKNOWN IMPORTED)
+		if(WIN32)
+			set_target_properties(aom PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Aom_INCLUDE_DIRS}"
+				IMPORTED_IMPLIB "${_Aom_LIBRARY}"
+			)
+		else()
+			set_target_properties(aom PROPERTIES
+				INTERFACE_INCLUDE_DIRECTORIES "${_Aom_INCLUDE_DIRS}"
+				IMPORTED_LOCATION "${_Aom_LIBRARY}"
+			)
+		endif()
+
+		set(Aom_TARGET aom)
+	endif()
 endif()
 
-include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Aom
-	DEFAULT_MSG
-	AOM_INCLUDE_DIRS AOM_LIBRARIES
+	REQUIRED_VARS ${_Aom_REQUIRED_VARS}
 )
-
-mark_as_advanced(AOM_INCLUDE_DIRS AOM_LIBRARIES)
+mark_as_advanced(${_Aom_CACHE_VARS})
