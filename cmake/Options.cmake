@@ -105,6 +105,7 @@ linphonesdk_option("WebRTC VAD" "WebRTC voice activation detector support." ON)
 
 # Activation of video related features
 linphonesdk_option("Video" "Ability to capture and display video." ON)
+linphonesdk_dependent_option("AV1" "Build mediastreamer2 with AV1 support through libaom and dav1d (needs ENABLE_VIDEO=ON)." ON "ENABLE_VIDEO" OFF)
 linphonesdk_strict_dependent_option("FFMpeg" "Build mediastreamer2 with ffmpeg video support (needs ENABLE_VIDEO=ON and ENABLE_GPL_THIRD_PARTIES=ON) (not available on Android and Windows)." OFF "ENABLE_VIDEO" OFF "ENABLE_GPL_THIRD_PARTIES" "Usage of GPL third-party code is not allowed (ENABLE_GPL_THIRD_PARTIES)")
 linphonesdk_strict_dependent_option("H263" "H263 video encoding/decoding support (require license) (needs ENABLE_FFMPEG=ON and ENABLE_NON_FREE_FEATURES=ON)." OFF "ENABLE_FFMPEG" OFF "ENABLE_NON_FREE_FEATURES" "Inclusion of non-free features is not allowed (ENABLE_NON_FREE_FEATURES)")
 linphonesdk_strict_dependent_option("H263p" "H263+ video encoding/decoding support (require license) (needs ENABLE_FFMPEG=ON and ENABLE_NON_FREE_FEATURES=ON)." OFF "ENABLE_FFMPEG" OFF "ENABLE_NON_FREE_FEATURES" "Inclusion of non-free features is not allowed (ENABLE_NON_FREE_FEATURES)")
@@ -118,7 +119,6 @@ linphonesdk_option("Qt GL" "Enable Qt OpenGL rendering support." OFF)
 linphonesdk_dependent_option("V4L" "Ability to capture and display video using libv4l2 (needs ENABLE_VIDEO=ON)." ON "ENABLE_VIDEO;LINUX_OR_BSD" OFF)
 linphonesdk_dependent_option("VPX" "Build mediastreamer2 with VPX codec." ON "ENABLE_VIDEO" OFF)
 linphonesdk_dependent_option("MSWinRTVideo" "Build mswinrtvid mediastreamer plugin (Deprecated)." OFF "ENABLE_VIDEO;UWP" OFF)
-linphonesdk_dependent_option("AV1" "Build mediastreamer2 with AV1 support through libaom and dav1d (needs ENABLE_VIDEO=ON)." ON "ENABLE_VIDEO" OFF)
 
 # Activation of other software features
 linphonesdk_option("Advanced IM" "Enable advanced instant messaging such as group chat." ON)
