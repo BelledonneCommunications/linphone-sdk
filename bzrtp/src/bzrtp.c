@@ -1291,7 +1291,7 @@ static uint8_t copyCryptoTypes(uint8_t destination[7], uint8_t source[7], uint8_
 {
 	int i;
 
-	for (i=0; i<size; i++) {
+	for (i=0; i<(size&0x07); i++) {
 		destination[i] = source[i];
 	}
 	return size;
