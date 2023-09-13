@@ -141,8 +141,8 @@ static ssize_t bcWrite(bctbx_vfs_file_t *pFile, const void *buf, size_t count, o
 		if (errno) return -errno;
 	} else {
 		nWrite = bctbx_write(ctx->fd, buf, count);
-		if (nWrite > 0) return nWrite;
-		else if (nWrite <= 0) {
+		if (nWrite >= 0) return nWrite;
+		else if (nWrite == (ssize_t)-1) {
 			if (errno) return -errno;
 			return 0;
 		}

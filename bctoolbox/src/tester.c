@@ -98,7 +98,8 @@ static unsigned char curses = 0;
 static const char default_xml_file[] = "BCUnitAutomated";
 static const char *xml_file = default_xml_file;
 static int xml_enabled = 0;
-static char *suite_name = NULL;
+static bctbx_list_t *suites_to_run = NULL;
+static bctbx_list_t *suites_to_exclude = NULL;
 static char *test_name = NULL;
 static char *tag_name = NULL;
 static char *expected_res = NULL;
@@ -121,6 +122,18 @@ static int (*logfile_arg_func)(const char *arg) = NULL;
 // Processing custom native events for processing events (like PeekMessage for Windows) that is not implemented by
 // Linphone
 static void (*process_events)(void) = NULL;
+
+static int bc_tester_registered_suite_count(void) {
+	return CU_get_registry()->uiNumberOfSuites;
+}
+
+static CU_pSuite bc_tester_registered_suite_index(int index) {
+	CU_pSuite suite = CU_get_suite_at_pos(index + 1);
+	if (suite == NULL) {
+		abort();
+	}
+	return suite;
+}
 
 void bc_tester_set_silent_func(int (*func)(const char *)) {
 	if (func) {
@@ -161,54 +174,48 @@ void bc_tester_printf(int level, const char *format, ...) {
 	va_end(args);
 }
 
-//
-int bc_tester_register_suite(test_suite_t *suite, const char *tag_name) {
-	int i;
-	CU_pSuite pSuite;
-
-	if (tag_name != NULL) {
-		size_t j;
-		int nb_tests_for_tag = 0;
-		for (i = 0; i < suite->nb_tests; i++) {
-			for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
-				if ((suite->tests[i].tags[j] != NULL) && (strcasecmp(tag_name, suite->tests[i].tags[j]) == 0)) {
-					nb_tests_for_tag++;
-				}
-			}
+static bool_t test_enabled(const test_t *test, const char *tag) {
+	size_t j;
+	bool_t enabled = (!tag || tag[0] == '!') ? TRUE : FALSE;
+	for (j = 0; j < (sizeof(test->tags) / sizeof(test->tags[0])); j++) {
+		if (test->tags[j] == NULL) break;
+		if (strcasecmp(test->tags[j], "skip") == 0 && !run_skipped_tests) {
+			// if test has the skip tag but skipped tests are not allowsed, disable it.
+			enabled = FALSE;
+			break;
 		}
-		if (nb_tests_for_tag > 0) {
-			pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
-			                                              suite->before_each, suite->after_each);
-			for (i = 0; i < suite->nb_tests; i++) {
-				for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
-					if ((suite->tests[i].tags[j] != NULL) && (strcasecmp(tag_name, suite->tests[i].tags[j]) == 0)) {
-						if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
-							return CU_get_error();
-						}
-					}
+		if (tag) {
+			if (tag[0] == '!') {
+				if (strcasecmp(test->tags[j], tag + 1) == 0) {
+					// test has a tag that we want to exclude.
+					enabled = FALSE;
 				}
-			}
-		}
-	} else {
-		pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
-		                                              suite->before_each, suite->after_each);
-		for (i = 0; i < suite->nb_tests; i++) {
-			size_t j;
-			bool_t skip = FALSE;
-			for (j = 0; j < (sizeof(suite->tests[i].tags) / sizeof(suite->tests[i].tags[0])); j++) {
-				if ((suite->tests[i].tags[j] != NULL) && (strcasecmp("Skip", suite->tests[i].tags[j]) == 0) &&
-				    (run_skipped_tests == 0)) {
-					skip = TRUE;
-				}
-			}
-			if (!skip) {
-				if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
-					return CU_get_error();
+			} else {
+				if (strcasecmp(test->tags[j], tag) == 0) {
+					// test has the tag that we want.
+					enabled = TRUE;
 				}
 			}
 		}
 	}
+	return enabled;
+}
 
+int bc_tester_register_suite(test_suite_t *suite, const char *tag_name) {
+	int i;
+	CU_pSuite pSuite = NULL;
+
+	for (i = 0; i < suite->nb_tests; i++) {
+		if (test_enabled(&suite->tests[i], tag_name)) {
+			if (pSuite == NULL) {
+				pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
+				                                              suite->before_each, suite->after_each);
+			}
+			if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
+				return CU_get_error();
+			}
+		}
+	}
 	return 0;
 }
 
@@ -324,7 +331,7 @@ char *bc_tester_get_failed_asserts(void) {
 	return buffer;
 }
 
-void write_suite_result_file(char *suite_name, char *results_string) {
+static void write_suite_result_file(char *suite_name, char *results_string) {
 	bctbx_vfs_file_t *bctbx_file;
 	char *suite_name_wo_spaces, *file_name;
 
@@ -340,7 +347,7 @@ void write_suite_result_file(char *suite_name, char *results_string) {
 	bctbx_free(file_name);
 }
 
-void merge_and_print_results_files(void) {
+static void merge_and_print_results_files(void) {
 	bctbx_vfs_file_t *bctbx_file;
 	int i;
 	ssize_t file_size, read_bytes;
@@ -348,8 +355,10 @@ void merge_and_print_results_files(void) {
 	char *suite_name_wo_spaces, *file_name;
 	char *results = NULL;
 
-	for (i = 0; i < nb_test_suites; i++) {
-		suite_name_wo_spaces = bctbx_replace(bctbx_strdup(test_suite[i]->name), ' ', '_');
+	for (i = 0; i < bc_tester_registered_suite_count(); i++) {
+		CU_pSuite suite = CU_get_suite_at_pos(i + 1);
+		const char *suite_name = suite->pName;
+		suite_name_wo_spaces = bctbx_replace(bctbx_strdup(suite_name), ' ', '_');
 		file_name = bc_sprintf("%s.result", suite_name_wo_spaces);
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 
@@ -362,9 +371,9 @@ void merge_and_print_results_files(void) {
 					buffer[read_bytes] = '\0';
 
 					if (results == NULL) {
-						results = bctbx_concat("Suite '", test_suite[i]->name, "' results:\n", buffer, NULL);
+						results = bctbx_concat("Suite '", suite_name, "' results:\n", buffer, NULL);
 					} else {
-						tmp = bctbx_concat(results, "\nSuite '", test_suite[i]->name, "' results:\n", buffer, NULL);
+						tmp = bctbx_concat(results, "\nSuite '", suite_name, "' results:\n", buffer, NULL);
 						bctbx_free(results);
 						results = tmp;
 					}
@@ -381,9 +390,9 @@ void merge_and_print_results_files(void) {
 			bc_tester_printf(bc_printf_verbosity_error, "Failed to open suite results file '%s'", file_name);
 			// Assume suite crash and report it.
 			if (results == NULL) {
-				results = bctbx_concat("Suite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+				results = bctbx_concat("Suite '", suite_name, "' results: CRASH\n", NULL);
 			} else {
-				tmp = bctbx_concat(results, "\nSuite '", test_suite[i]->name, "' results: CRASH\n", NULL);
+				tmp = bctbx_concat(results, "\nSuite '", suite_name, "' results: CRASH\n", NULL);
 				bctbx_free(results);
 				results = tmp;
 			}
@@ -400,9 +409,9 @@ void merge_and_print_results_files(void) {
 static void all_complete_message_handler(BCTBX_UNUSED(const CU_pFailureRecord pFailure)) {
 #ifdef HAVE_CU_GET_SUITE
 	if (run_in_parallel != 0) {
-		if (suite_name) {
+		if (bc_current_suite_name) {
 			char *results = CU_get_run_results_string();
-			write_suite_result_file(suite_name, results);
+			write_suite_result_file(bc_current_suite_name, results);
 			CU_FREE(results);
 		} else {
 			merge_and_print_results_files();
@@ -502,7 +511,7 @@ test_complete_message_handler(const CU_pTest pTest, const CU_pSuite pSuite, cons
 #endif
 
 //
-char *get_logfile_name(const char *base_name, const char *suite_name) {
+static char *get_logfile_name(const char *base_name, const char *suite_name) {
 	if (suite_name) {
 		char *name_wo_spaces = bctbx_replace(bctbx_strdup(suite_name), ' ', '_');
 		char *ret = bc_sprintf("%s_%s.log", base_name, name_wo_spaces);
@@ -516,11 +525,11 @@ char *get_logfile_name(const char *base_name, const char *suite_name) {
 // Get the junit xml file name for a specific suite or the global one
 // If passed to BCUnit, it will append "-Results.xml" to the name
 // Use `suffix` to match	the resulting name if needed
-char *get_junit_xml_file_name(const char *suite_name, const char *suffix) {
+static char *get_junit_xml_file_name(const char *suite_name, const char *suffix) {
 	char *xml_tmp_file;
 
 	if (suite_name) {
-		int suiteIdx = bc_tester_suite_index(suite_name);
+		unsigned int suiteIdx = CU_get_suite_pos_by_name(suite_name) - 1;
 		if (suffix) {
 			xml_tmp_file = bc_sprintf("%s_%d%s", xml_file, suiteIdx, suffix);
 		} else {
@@ -538,16 +547,17 @@ char *get_junit_xml_file_name(const char *suite_name, const char *suffix) {
 
 // In case tests are started in parallel.
 // Merge partial JUnit suites reports into the final XML file
-void merge_junit_xml_files(const char *dst_file_name) {
+static void merge_junit_xml_files(const char *dst_file_name) {
 	char **suite_junit_xml_results;
 	char *file_name;
 	bctbx_vfs_file_t *bctbx_file;
 	ssize_t read_bytes = 0, file_size = 0, offset = 0;
 	int i;
+	int effective_suite_count = bc_tester_registered_suite_count();
 
-	suite_junit_xml_results = malloc(sizeof(char *) * nb_test_suites);
-	for (i = 0; i < nb_test_suites; i++) {
-		file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
+	suite_junit_xml_results = malloc(sizeof(char *) * effective_suite_count);
+	for (i = 0; i < effective_suite_count; i++) {
+		file_name = get_junit_xml_file_name(bc_tester_registered_suite_index(i)->pName, "-Results.xml");
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), file_name, O_RDONLY);
 		if (bctbx_file != NULL) {
 			file_size = (ssize_t)bctbx_file_size(bctbx_file);
@@ -576,7 +586,7 @@ void merge_junit_xml_files(const char *dst_file_name) {
 	if (bctbx_file) {
 		bctbx_file_truncate(bctbx_file, 0);
 		offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
-		for (i = 0; i < nb_test_suites; i++) {
+		for (i = 0; i < effective_suite_count; i++) {
 			if (suite_junit_xml_results[i] != NULL) {
 				offset += bctbx_file_fprintf(bctbx_file, offset, "%s", suite_junit_xml_results[i]);
 				bctbx_free(suite_junit_xml_results[i]);
@@ -590,20 +600,21 @@ void merge_junit_xml_files(const char *dst_file_name) {
 
 // In case tests are started in parallel AND --log-file was given
 // Merge	individual suite log file into a global one
-void merge_log_files(const char *base_logfile_name) {
+static void merge_log_files(const char *base_logfile_name) {
 	bctbx_vfs_file_t *dst_file;
 	bctbx_vfs_file_t *bctbx_file;
 	void *buf;
 	ssize_t offset = 0, file_size = 0, read_bytes = 0;
 	int i;
+	int effective_suite_count = bc_tester_registered_suite_count();
 
 	dst_file = bctbx_file_open(bctbx_vfs_get_default(), base_logfile_name, "w+");
 	if (!dst_file) {
 		bc_tester_printf(bc_printf_verbosity_error, "Failed to create target log file '%s'", base_logfile_name);
 		return;
 	}
-	for (i = 0; i < nb_test_suites; ++i) {
-		char *suite_logfile_name = get_logfile_name(log_file_name, test_suite[i]->name);
+	for (i = 0; i < effective_suite_count; ++i) {
+		char *suite_logfile_name = get_logfile_name(log_file_name, bc_tester_registered_suite_index(i)->pName);
 		bctbx_file = bctbx_file_open2(bctbx_vfs_get_default(), suite_logfile_name, O_RDONLY);
 
 		if (!bctbx_file) {
@@ -615,7 +626,11 @@ void merge_log_files(const char *base_logfile_name) {
 		buf = malloc(file_size);
 		read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
 		if (read_bytes == file_size) {
-			offset += bctbx_file_write(dst_file, buf, file_size, offset);
+			size_t written = bctbx_file_write(dst_file, buf, file_size, offset);
+			if (written == (size_t)BCTBX_VFS_ERROR) {
+				bc_tester_printf(bc_printf_verbosity_error, "Could not write logs of suite %s into log file '%s'",
+				                 suite_logfile_name, base_logfile_name);
+			} else offset += written;
 		} else {
 			bc_tester_printf(bc_printf_verbosity_error, "Could not read log file '%s' to merge into '%s'",
 			                 suite_logfile_name, base_logfile_name);
@@ -647,14 +662,17 @@ void bc_tester_set_global_timeout(int seconds) {
 
 #ifdef _WIN32
 
-void kill_sub_processes(int *pids) {
+#if 0
+static void kill_sub_processes(int *pids) {
 	// TODO: Windows support
 }
+#endif
 
 #else
 
+#if 0
 // If there was an error, kill zombies
-void kill_sub_processes(int *pids) {
+static void kill_sub_processes(int *pids) {
 	int i;
 	for (i = 0; i < nb_test_suites; ++i) {
 		if (pids[i] > 0) {
@@ -662,52 +680,66 @@ void kill_sub_processes(int *pids) {
 		}
 	}
 }
+#endif
 
 #endif
 
-#ifdef _WIN32
-
-// Start	test subprocess for the given suite
-int start_sub_process(const char *suite_name, PROCESS_INFORMATION *pi) {
+// Start test subprocess for the given suite
+static void prepare_child_arguments(const char *suite_name, const char **argv) {
 	int argc = 0;
 	int i;
-	// const char *argv[origin_argc + 10]; //Assume safey 10 more parameters
-	char *commandLine = bctbx_strdup(origin_argv[0]);
-	char *commandLineTemp = NULL;
-	bool_t propagateXmlFileSetter = TRUE;
-	bool_t propagateLogFileSetter = log_file_name != NULL; // Log file has not been set : Don't propagate it
 
+	argv[argc++] = origin_argv[0];
 	for (i = 1; origin_argv[i]; ++i) {
-		if (strcmp(origin_argv[i], "--xml-file") == 0) {
-			propagateXmlFileSetter = FALSE;
-		}
-		if (strcmp(origin_argv[i], "--log-file") == 0) {
+		if (strcmp(origin_argv[i], "--verbose") == 0) {
+			argv[argc++] = origin_argv[i];
+		} else if (strcmp(origin_argv[i], "--silent") == 0) {
+			argv[argc++] = origin_argv[i];
+		} else if (strcmp(origin_argv[i], "--log-file") == 0) {
 			// Create a specific log file for this suite
-			commandLineTemp = commandLine;
-			commandLine = bc_sprintf("%s %s \"%s\"", commandLineTemp, origin_argv[i],
-			                         get_logfile_name(log_file_name, suite_name));
-			bctbx_free(commandLineTemp);
-			propagateLogFileSetter = FALSE;
+			argv[argc++] = origin_argv[i++];
+			argv[argc++] = get_logfile_name(log_file_name, suite_name);
+		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
+			argv[argc++] = origin_argv[i++];
+			argv[argc++] = origin_argv[i];
+		} else if (strcmp(origin_argv[i], "--parallel") == 0) {
+			argv[argc++] = origin_argv[i];
+		} else if (strcmp(origin_argv[i], "--suite") == 0) {
 			++i;
+			// eliminate --suite
+		} else if (strcmp(origin_argv[i], "--exclude-suite") == 0) {
+			++i;
+			// eliminate --exclude-suite
 		} else {
-			// Keep other parameters
-			commandLineTemp = commandLine;
-			commandLine = bc_sprintf("%s %s", commandLineTemp, origin_argv[i]);
-			bctbx_free(commandLineTemp);
+			// Keep unknown parameters
+			argv[argc++] = origin_argv[i];
 		}
 	}
-	commandLineTemp = commandLine;
-	commandLine = bc_sprintf("%s --xml --child --suite \"%s\"", commandLineTemp, suite_name);
-	bctbx_free(commandLineTemp);
-	if (propagateXmlFileSetter) { // Add current xml_file to child commands
-		commandLineTemp = commandLine;
-		commandLine = bc_sprintf("%s --xml-file \"%s\"", commandLineTemp, xml_file);
-		bctbx_free(commandLineTemp);
-	}
-	if (propagateLogFileSetter) {
-		commandLineTemp = commandLine;
-		commandLine = bc_sprintf("%s --log-file \"%s\"", commandLineTemp, get_logfile_name(log_file_name, suite_name));
-		bctbx_free(commandLineTemp);
+	argv[argc++] = "--xml";
+	argv[argc++] = "--xml-file";
+	argv[argc++] = get_junit_xml_file_name(suite_name, NULL);
+	argv[argc++] = "--suite";
+	argv[argc++] = suite_name;
+	argv[argc] = NULL;
+}
+
+#ifdef _WIN32
+
+// Start test subprocess for the given suite
+static int start_sub_process(const char *suite_name, PROCESS_INFORMATION *pi) {
+	int i;
+	char **argv = (char **)malloc(sizeof(char *) * (origin_argc + 10)); // Assume safey 10 more parameters
+	char *commandLine = NULL, *commandLineTemp = NULL;
+
+	prepare_child_arguments(suite_name, (const char **)argv);
+	commandLine = bctbx_strdup(argv[0]);
+
+	/* Serialize the command line with its arguments */
+	for (i = 0; argv[i] != NULL; ++i) {
+		commandLineTemp = bctbx_strdup_printf("%s %s", commandLine, argv[i]);
+		bctbx_free(commandLine);
+		commandLine = commandLineTemp;
+		commandLineTemp = NULL;
 	}
 
 	// Start the child process.
@@ -731,42 +763,15 @@ int start_sub_process(const char *suite_name, PROCESS_INFORMATION *pi) {
 		return GetLastError();
 	}
 	bctbx_free(commandLine);
-
+	free(argv);
 	return 0;
 }
 
 #else
 
-// Start	test subprocess for the given suite
-int start_sub_process(const char *suite_name) {
-	int argc = 0;
-	int i;
+static int start_sub_process(const char *suite_name) {
 	const char *argv[origin_argc + 10]; // Assume safey 10 more parameters
-
-	argv[argc++] = origin_argv[0];
-	for (i = 1; origin_argv[i]; ++i) {
-		if (strcmp(origin_argv[i], "--verbose") == 0) {
-			argv[argc++] = origin_argv[i];
-		} else if (strcmp(origin_argv[i], "--silent") == 0) {
-			argv[argc++] = origin_argv[i];
-		} else if (strcmp(origin_argv[i], "--log-file") == 0) {
-			// Create a specific log file for this suite
-			argv[argc++] = origin_argv[i++];
-			argv[argc++] = get_logfile_name(log_file_name, suite_name);
-		} else if (strcmp(origin_argv[i], "--xml-file") == 0) {
-			argv[argc++] = origin_argv[i++];
-			argv[argc++] = origin_argv[i];
-		} else if (strcmp(origin_argv[i], "--parallel") == 0) {
-			argv[argc++] = origin_argv[i];
-		} else {
-			// Keep unknown parameters
-			argv[argc++] = origin_argv[i];
-		}
-	}
-	argv[argc++] = "--xml";
-	argv[argc++] = "--suite";
-	argv[argc++] = suite_name;
-	argv[argc] = NULL;
+	prepare_child_arguments(suite_name, argv);
 	return execv(argv[0], (char **)argv);
 }
 
@@ -775,31 +780,33 @@ int start_sub_process(const char *suite_name) {
 // For parallel tests only - handle anormally exited test suites
 // Remove previously generated XML suite file if exited anormally (could cause unusable final JUnit XML)
 // And mark all tests for the suite as failed
-int handle_sub_process_error(int pid, int *suitesPids) {
+static int handle_sub_process_error(int pid, int *suitesPids) {
 	int failed_tests = 0;
-	int i, j;
-	for (i = 0; i < nb_test_suites; ++i) {
+	int i;
+	int effective_suite_count = bc_tester_registered_suite_count();
+	for (i = 0; i < effective_suite_count; ++i) {
 		if (suitesPids[i] == pid) {
 			ssize_t offset;
-			char *suite_file_name = get_junit_xml_file_name(test_suite[i]->name, "-Results.xml");
+			CU_pSuite suite = bc_tester_registered_suite_index(i);
+			char *suite_file_name = get_junit_xml_file_name(suite->pName, "-Results.xml");
 			bctbx_vfs_file_t *bctbx_file = bctbx_file_open(bctbx_vfs_get_default(), suite_file_name, "w+");
 			bctbx_file_truncate(bctbx_file, 0);
 
 			offset = bctbx_file_fprintf(
 			    bctbx_file, 0,
 			    "\n<testsuite name=\"%s\" tests=\"%d\" time=\"0\" failures=\"%d\" errors=\"0\" skipped=\"0\">\n",
-			    test_suite[i]->name, test_suite[i]->nb_tests, test_suite[i]->nb_tests);
-			failed_tests = test_suite[i]->nb_tests;
-			for (j = 0; j < test_suite[i]->nb_tests; ++j) {
+			    suite->pName, suite->uiNumberOfTests, suite->uiNumberOfTests);
+			failed_tests = suite->uiNumberOfTests;
+			for (unsigned int j = 0; j < suite->uiNumberOfTests; ++j) {
 				offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n",
-				                             test_suite[i]->name, test_suite[i]->tests[j].name);
+				                             suite->pName, CU_get_test_at_pos(suite, j + 1)->pName);
 				offset += bctbx_file_fprintf(bctbx_file, offset,
 				                             "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
 				offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
 			}
 			bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
 			bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed",
-			                 test_suite[i]->name);
+			                 suite->pName);
 			bctbx_file_close(bctbx_file);
 			bctbx_free(suite_file_name);
 			break;
@@ -811,9 +818,10 @@ int handle_sub_process_error(int pid, int *suitesPids) {
 #ifdef _WIN32
 int bc_tester_run_parallel(void) {
 	int ret = 0; // Global return status;
-	if (nb_test_suites > 0) {
-		PROCESS_INFORMATION *suitesPids = malloc(nb_test_suites * sizeof(PROCESS_INFORMATION));
-		int *processed = malloc(nb_test_suites * sizeof(int));
+	int effective_suite_count = bc_tester_registered_suite_count();
+	if (effective_suite_count > 0) {
+		PROCESS_INFORMATION *suitesPids = malloc(effective_suite_count * sizeof(PROCESS_INFORMATION));
+		int *processed = malloc(effective_suite_count * sizeof(int));
 		uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
 
 		// Assume there is a problem if a suite is still running 60mn after the start of the tester. TODO make timeout
@@ -829,13 +837,12 @@ int bc_tester_run_parallel(void) {
 		int runningSuites = 0; // Number of currently running suites
 		int testsFinished = 0;
 
-		memset(suitesPids, 0, nb_test_suites * sizeof(PROCESS_INFORMATION));
-		memset(processed, 0, nb_test_suites * sizeof(int));
+		memset(suitesPids, 0, effective_suite_count * sizeof(PROCESS_INFORMATION));
+		memset(processed, 0, effective_suite_count * sizeof(int));
 		do {
-			if (nextSuite < nb_test_suites && runningSuites < maxProcess) {
+			if (nextSuite < effective_suite_count && runningSuites < maxProcess) {
 				PROCESS_INFORMATION pi;
-
-				if (start_sub_process(test_suite[nextSuite]->name, &pi) != 0) {
+				if (start_sub_process(bc_tester_registered_suite_index(nextSuite)->pName, &pi) != 0) {
 					bc_tester_printf(bc_printf_verbosity_error, "Error while starting suite sub-process. Aborting.");
 					return -1;
 				}
@@ -872,16 +879,6 @@ int bc_tester_run_parallel(void) {
 		//		} while (testsFinished < nb_test_suites && elapsed < timeout);
 
 		if (elapsed >= timeout) {
-			bc_tester_printf(
-			    bc_printf_verbosity_error,
-			    "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
-			// This code has been commented out in order to display failing test of timed out suites in the allure
-			// report
-			/*			for(int i = 0 ;  i < nextSuite ; ++i){
-			                if( processed[i] == 0)
-			                    TerminateProcess(suitesPids[i].hProcess, -1);
-			            }
-			*/
 			bc_tester_printf(bc_printf_verbosity_error,
 			                 "*** Test suite took too much time. Please check errors or split longest test suites to "
 			                 "benefit from parallel execution. ***");
@@ -907,7 +904,8 @@ int bc_tester_run_parallel(void) {
 #else
 
 int bc_tester_run_parallel(void) {
-	int suitesPids[nb_test_suites];
+	int effective_suite_count = bc_tester_registered_suite_count();
+	int suitesPids[effective_suite_count];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
 	uint64_t timeout = 0;
 
@@ -923,8 +921,9 @@ int bc_tester_run_parallel(void) {
 	int ret = 0; // Global return status;
 
 	memset(suitesPids, 0, sizeof(suitesPids));
+
 	do {
-		if (nextSuite < nb_test_suites && runningSuites < maxProcess) {
+		if (nextSuite < effective_suite_count && runningSuites < maxProcess) {
 			int pid = fork();
 
 			if (pid == -1) {
@@ -936,7 +935,7 @@ int bc_tester_run_parallel(void) {
 				runningSuites++;
 				nextSuite++;
 			} else {
-				if (start_sub_process(test_suite[nextSuite]->name) == -1) {
+				if (start_sub_process(bc_tester_registered_suite_index(nextSuite)->pName) == -1) {
 					bc_tester_printf(bc_printf_verbosity_error, "Error while starting suite sub-process. Aborting.");
 					return -1;
 				}
@@ -967,22 +966,19 @@ int bc_tester_run_parallel(void) {
 		bctbx_sleep_ms(50);
 		if (elapsed - print_timer > 10000) { // print message only every ~10s...
 			bc_tester_printf(bc_printf_verbosity_error,
-			                 "Waiting for test suites to finish... Total Suites(%d). Suites running(%d), Finished(%d)",
-			                 nb_test_suites, runningSuites, testsFinished);
+			                 "Waiting for test suites to finish... Total Suites(%d). Suites running(%d), Finished(%d), "
+			                 "Timeout reached(%s)",
+			                 effective_suite_count, runningSuites, testsFinished, (elapsed >= timeout) ? "yes" : "no");
 			print_timer = bctbx_get_cur_time_ms();
 		}
 		elapsed = bctbx_get_cur_time_ms();
-	} while (testsFinished < nb_test_suites);
-	// This code has been commented out in order to display failing test of timed out suites in the allure report
-	//	} while (testsFinished < nb_test_suites && elapsed < timeout);
+	} while (testsFinished < effective_suite_count);
+	// Despite the timeout, we let all suites finish normally.
 
 	if (elapsed >= timeout) {
-		bc_tester_printf(bc_printf_verbosity_error,
-		                 "Stopped waiting for all test suites to execute as we reach timeout. Killing running suites.");
+		// But if timeout is reached, the overall result is that the tests have failed.
 		bc_tester_printf(bc_printf_verbosity_error, "*** Test suite took too much time. Please check errors or split "
 		                                            "longest test suites to benefit from parallel execution. ***");
-		// This code has been commented out in order to display failing test of timed out suites in the allure report
-		// kill_sub_processes(suitesPids);
 		ret = -1;
 	}
 	bc_tester_printf(bc_printf_verbosity_info, "All suites ended.");
@@ -1024,20 +1020,17 @@ int bc_tester_run_tests(const char *suite_name, const char *test_name, const cha
 			if (suite_name) {
 				// Sub-process started by parent in bc_tester_run_parallel
 				CU_automated_enable_partial_junit(TRUE);
-				xml_file_name = get_junit_xml_file_name(suite_name, NULL);
+				xml_file_name = get_junit_xml_file_name(NULL, NULL);
 				CU_set_output_filename(xml_file_name);
 				bctbx_free(xml_file_name);
 				CU_automated_run_tests();
 			} else { // Starting registered suites in parallel
 				ret = bc_tester_run_parallel();
-				if (ret != -1) {
-					/* -1 means timeout, in this case don't generate junit report. */
-					xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
-					merge_junit_xml_files(xml_file_name);
-					bctbx_free(xml_file_name);
-					if (log_file_name) {
-						merge_log_files(log_file_name);
-					}
+				xml_file_name = get_junit_xml_file_name(NULL, "-Results.xml");
+				merge_junit_xml_files(xml_file_name);
+				bctbx_free(xml_file_name);
+				if (log_file_name) {
+					merge_log_files(log_file_name);
 				}
 				return ret;
 			}
@@ -1341,9 +1334,11 @@ void bc_tester_helper(const char *name, const char *additionnal_helper) {
 	                 "\t\t\t--log-file <output log file path>\n"
 	                 "\t\t\t--list-suites\n"
 	                 "\t\t\t--list-tests <suite>\n"
-	                 "\t\t\t--suite <suite name>\n"
+	                 "\t\t\t--suite <suite name> (this option can be set several times)\n"
+	                 "\t\t\t--exclude-suite <suite name> (this option can be set several times)\n"
 	                 "\t\t\t--test <test name>\n"
-	                 "\t\t\t--tag <tag name> (execute all tests with the given tag)\n"
+	                 "\t\t\t--tag <tag name> (execute all tests with the given tag - use '!' before tag name to "
+	                 "exclude test with given tag)\n"
 	                 "\t\t\t--all (execute all tests, even the ones with the Skip flag)\n"
 	                 "\t\t\t--resource-dir <folder path> (directory where tester resource are located)\n"
 	                 "\t\t\t--writable-dir <folder path> (directory where temporary files should be created)\n"
@@ -1382,7 +1377,10 @@ int bc_tester_parse_args(int argc, char **argv, int argid) {
 		test_name = argv[i];
 	} else if (strcmp(argv[i], "--suite") == 0) {
 		CHECK_ARG("--suite", ++i, argc);
-		suite_name = argv[i];
+		suites_to_run = bctbx_list_append(suites_to_run, argv[i]);
+	} else if (strcmp(argv[i], "--exclude-suite") == 0) {
+		CHECK_ARG("--exclude-suite", ++i, argc);
+		suites_to_exclude = bctbx_list_append(suites_to_exclude, argv[i]);
 	} else if (strcmp(argv[i], "--tag") == 0) {
 		CHECK_ARG("--tag", ++i, argc);
 		tag_name = argv[i];
@@ -1393,7 +1391,7 @@ int bc_tester_parse_args(int argc, char **argv, int argid) {
 		return 0;
 	} else if (strcmp(argv[i], "--list-tests") == 0) {
 		CHECK_ARG("--list-tests", ++i, argc);
-		suite_name = argv[i];
+		const char *suite_name = argv[i];
 		bc_tester_list_tests(suite_name);
 		return 0;
 	} else if (strcmp(argv[i], "--xml-file") == 0) {
@@ -1433,7 +1431,6 @@ int bc_tester_parse_args(int argc, char **argv, int argid) {
 		bc_tester_printf(bc_printf_verbosity_error, "Unknown option \"%s\"", argv[i]);
 		return -1;
 	}
-
 	/* returns number of arguments read + 1 */
 	return i - argid + 1;
 }
@@ -1446,19 +1443,37 @@ int bc_tester_register_suites(void) {
 	}
 	if (CUE_SUCCESS != CU_initialize_registry()) return CU_get_error();
 
-	if (suite_name != NULL) {
-		int suiteIdx = bc_tester_suite_index(suite_name);
-		if (suiteIdx == -1) {
-			bc_tester_printf(bc_printf_verbosity_error,
-			                 "Suite with name \"%s\" not found. Available suites are: ", suite_name);
-			bc_tester_list_suites();
-			return -1;
+	if (suites_to_run && suites_to_exclude) {
+		bc_tester_printf(bc_printf_verbosity_error,
+		                 "You cannot supply --suite and --exclude-suite options simultaenously.");
+		return -1;
+	}
+
+	if (suites_to_run != NULL) {
+		const bctbx_list_t *elem;
+		for (elem = suites_to_run; elem != NULL; elem = elem->next) {
+			const char *suite_name = (const char *)elem->data;
+			int suiteIdx = bc_tester_suite_index(suite_name);
+			if (suiteIdx == -1) {
+				bc_tester_printf(bc_printf_verbosity_error,
+				                 "Suite with name \"%s\" not found. Available suites are: ", suite_name);
+				bc_tester_list_suites();
+				return -1;
+			}
+			bc_tester_register_suite(test_suite[suiteIdx], tag_name);
 		}
-		bc_tester_register_suite(test_suite[suiteIdx], tag_name);
 	} else {
 		int i;
 		for (i = 0; i < nb_test_suites; i++) {
-			bc_tester_register_suite(test_suite[i], tag_name);
+			const bctbx_list_t *elem;
+			bool_t excluded = FALSE;
+			for (elem = suites_to_exclude; elem != NULL; elem = elem->next) {
+				const char *suite_name = (const char *)elem->data;
+				if (strcasecmp(suite_name, test_suite[i]->name) == 0) {
+					excluded = TRUE;
+				}
+			}
+			if (!excluded) bc_tester_register_suite(test_suite[i], tag_name);
 		}
 	}
 	return 0;
@@ -1466,10 +1481,18 @@ int bc_tester_register_suites(void) {
 
 int bc_tester_start(const char *prog_name) {
 	int ret;
+	const char *suite_name = NULL;
 
 	if (expected_res) detect_res_prefix(prog_name);
 
 	if (max_vm_kb) bc_tester_set_max_vm(max_vm_kb);
+
+	if (bctbx_list_size(suites_to_run) == 1) {
+		suite_name = (const char *)suites_to_run->data;
+	} else if (test_name != NULL) {
+		bc_tester_printf(bc_printf_verbosity_error, "--test requires a unique --suite option to be given. ");
+		return -1;
+	}
 
 	ret = bc_tester_run_tests(suite_name, test_name, tag_name);
 
@@ -1481,10 +1504,11 @@ void bc_tester_add_suite(test_suite_t *suite) {
 		test_suite = (test_suite_t **)malloc(10 * sizeof(test_suite_t *));
 	}
 	int insert_index = 0;
-	while(insert_index < nb_test_suites && test_suite[insert_index]->average_time >= suite->average_time ) ++insert_index;	// if suite->average_time == 0 => the new suite will be at the end.
-	if( insert_index < nb_test_suites) {// Need insertion
-		for(int move_index = nb_test_suites ; move_index >= insert_index + 1  ; --move_index)
-			test_suite[move_index] = test_suite[move_index-1];
+	while (insert_index < nb_test_suites && test_suite[insert_index]->average_time >= suite->average_time)
+		++insert_index;                  // if suite->average_time == 0 => the new suite will be at the end.
+	if (insert_index < nb_test_suites) { // Need insertion
+		for (int move_index = nb_test_suites; move_index >= insert_index + 1; --move_index)
+			test_suite[move_index] = test_suite[move_index - 1];
 	}
 	test_suite[insert_index] = suite;
 	nb_test_suites++;
@@ -1520,6 +1544,14 @@ void bc_tester_uninit(void) {
 	if (bc_tester_writable_dir_prefix != NULL) {
 		bctbx_free(bc_tester_writable_dir_prefix);
 		bc_tester_writable_dir_prefix = NULL;
+	}
+	if (suites_to_run) {
+		bctbx_list_free(suites_to_run);
+		suites_to_run = NULL;
+	}
+	if (suites_to_exclude) {
+		bctbx_list_free(suites_to_exclude);
+		suites_to_exclude = NULL;
 	}
 }
 
