@@ -39,19 +39,25 @@ execute_process(
 # Copy and merge content of all architectures in the destination directory
 list(GET _IOS_ARCHS 0 _FIRST_ARCH)
 
+list(FIND _IOS_ARCHS "x86_64-simulator" _X86_64_SIMULATOR_FOUND)
+list(FIND _IOS_ARCHS "arm64-simulator" _ARM64_SIMULATOR_FOUND)
 
-if(ENABLE_SWIFT_WRAPPER AND ENABLE_JAZZY_DOC)
-	message("Generating jazzy doc for swift module, we need archs x86_64 to generate jazzy doc!")
+
+if(ENABLE_SWIFT_DOC AND _ARM64_SIMULATOR_FOUND GREATER -1)
+	message("Generating doc for swift module, we need arch arm64 to generate doc!")
 	execute_process(
-		COMMAND "jazzy" "-x" "-scheme,linphonesw" "--readme" "${LINPHONESDK_DIR}/liblinphone/README.md"
-		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "docs" "${LINPHONESDK_BUILD_DIR}/docs"
-		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-x86_64/liblinphone/"
-		)
+		COMMAND "xcodebuild" "docbuild" "-scheme" "linphonesw" "-destination" "platform=iOS Simulator,name=iPhone 13"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/liblinphone/"
+	)
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "linphonesw.doccarchive" "${LINPHONESDK_BUILD_DIR}/docs/linphonesw.doccarchive"
+		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/lib/Release/"
+	)
 
 	if(NOT ENABLE_SWIFT_WRAPPER_COMPILATION)
-		message("Not ENABLE_SWIFT_WRAPPER_COMPILATION, remove linphonesw.frameworks......")
+		message("Not ENABLE_SWIFT_WRAPPER_COMPILATION, remove linphonesw.frameworks...")
 		foreach(_ARCH IN LISTS _IOS_ARCHS)
-			file(REMOVE_RECURSE "${LINPHONESDK_NAME}/${_ARCH}/Frameworks/linphonesw.framework")
+			file(REMOVE_RECURSE "${LINPHONESDK_NAME}/ios-${_ARCH}/Frameworks/linphonesw.framework")
 		endforeach()
 	endif()
 endif()
@@ -70,9 +76,6 @@ execute_process(
 file(GLOB _FRAMEWORKS "${LINPHONESDK_NAME}/ios-${_FIRST_ARCH}/Frameworks/*.framework")
 
 if(NOT ENABLE_FAT_BINARY)
-	list(FIND _IOS_ARCHS "x86_64-simulator" _X86_64_SIMULATOR_FOUND)
-	list(FIND _IOS_ARCHS "arm64-simulator" _ARM64_SIMULATOR_FOUND)
-
 	if((_X86_64_SIMULATOR_FOUND GREATER -1) AND (_ARM64_SIMULATOR_FOUND GREATER -1))
 		# We have to lipo both x86_64-simulator and arm64-simulator as -create-xcframework doesn't do it itself.
 		# See: https://developer.apple.com/forums/thread/666335

@@ -25,6 +25,11 @@ include("${CMAKE_CURRENT_LIST_DIR}/PlatformCommon.cmake")
 # Set default SYSROOT for IOS to avoid xcode12/cmake 3.18.2 to not be able to detect clang for x86_64
 set(CMAKE_OSX_SYSROOT "iphonesimulator" CACHE STRING "System root for iOS" FORCE)
 
+# Force swift doc to be disabled for archs other than arm64-simulator
+if(CMAKE_TOOLCHAIN_FILE AND NOT CMAKE_TOOLCHAIN_FILE MATCHES "^.*/toolchain-ios-arm64-simulator.cmake$")
+	set(ENABLE_SWIFT_DOC OFF CACHE BOOL "Build the Swift doc from Liblinphone." FORCE)
+endif()
+
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
 endif()

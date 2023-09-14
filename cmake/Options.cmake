@@ -158,7 +158,7 @@ linphonesdk_option("CXX wrapper" "Build the C++ wrapper for Liblinphone." OFF)
 linphonesdk_option("Java wrapper" "Build the Java wrapper from Liblinphone." OFF)
 linphonesdk_option("Swift wrapper" "Build the Swift wrapper sources from Liblinphone." OFF)
 linphonesdk_dependent_option("Swift wrapper compilation" "Compile and package the swift wrapper framework (needs ENABLE_SWIFT_WRAPPER=ON)." OFF "ENABLE_SWIFT_WRAPPER" OFF)
-linphonesdk_dependent_option("Jazzy doc" "Build the Swift doc from Liblinphone (needs ENABLE_SWIFT_WRAPPER=ON)." OFF "ENABLE_SWIFT_WRAPPER" OFF)
+linphonesdk_dependent_option("Swift doc" "Build the Swift doc from Liblinphone (needs ENABLE_SWIFT_WRAPPER=ON)." OFF "ENABLE_SWIFT_WRAPPER" OFF)
 
 # Activation of Android related features
 linphonesdk_dependent_option("AAudio" "AAudio Android sound card for Android 8+." ON "ANDROID" OFF)
