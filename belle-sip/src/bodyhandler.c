@@ -668,7 +668,7 @@ struct belle_sip_file_body_handler {
 	bctbx_vfs_file_t *file;
 	belle_sip_user_body_handler_t *user_bh;
 	belle_sip_body_handler_buffer_t buffer;
-	belle_sip_body_handler_direction_t direction;
+	belle_sip_direction_t direction;
 };
 
 static void belle_sip_file_body_handler_destroy(belle_sip_file_body_handler_t *obj) {
@@ -707,7 +707,7 @@ static void belle_sip_file_body_handler_clone(belle_sip_file_body_handler_t *obj
 static void belle_sip_file_body_handler_begin_recv_transfer(belle_sip_body_handler_t *base) {
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
-	if(obj->direction != BELLE_SIP_BODY_HANDLER_RECV)
+	if (obj->direction != BELLE_SIP_DIRECTION_RECV)
 		bctbx_error("Attempting to receive a file with a body handler initialized for sending");
 	if (obj->filepath == NULL) return;
 	obj->file = bctbx_file_open(vfs, obj->filepath, "w");
@@ -724,7 +724,7 @@ static void belle_sip_file_body_handler_begin_send_transfer(belle_sip_body_handl
 	belle_sip_file_body_handler_t *obj = (belle_sip_file_body_handler_t *)base;
 	bctbx_vfs_t *vfs = bctbx_vfs_get_default();
 
-	if(obj->direction != BELLE_SIP_BODY_HANDLER_SEND)
+	if (obj->direction != BELLE_SIP_DIRECTION_SEND)
 		bctbx_error("Attempting to send a file with a body handler initialized for receiving");
 	if (obj->filepath == NULL) return;
 	obj->file = bctbx_file_open(vfs, obj->filepath, "r");
@@ -827,12 +827,14 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t){
     belle_sip_file_body_handler_send_chunk} BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_END
 
     belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(
-        const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data, belle_sip_body_handler_direction_t direction) {
-
+        const char *filepath,
+        belle_sip_body_handler_progress_callback_t progress_cb,
+        void *data,
+        belle_sip_direction_t direction) {
 	// Get file size if it exists
 	int64_t expected_size = BCTBX_VFS_ERROR;
 	struct stat statbuf;
-	if (direction == BELLE_SIP_BODY_HANDLER_SEND && stat(filepath, &statbuf) == 0) {
+	if (direction == BELLE_SIP_DIRECTION_SEND && stat(filepath, &statbuf) == 0) {
 		bctbx_vfs_t *vfs = bctbx_vfs_get_default();
 		bctbx_vfs_file_t *fp = bctbx_file_open(vfs, filepath, "r");
 		expected_size = bctbx_file_size(fp);
@@ -858,13 +860,12 @@ BELLE_SIP_INSTANCIATE_CUSTOM_VPTR_BEGIN(belle_sip_file_body_handler_t){
 	return obj;
 }
 
-
 belle_sip_file_body_handler_t *
 belle_sip_buffering_file_body_handler_new(const char *filepath,
                                           const size_t buffer_size,
                                           belle_sip_body_handler_progress_callback_t progress_cb,
                                           void *data,
-                                          belle_sip_body_handler_direction_t direction) {
+                                          belle_sip_direction_t direction) {
 	belle_sip_file_body_handler_t *obj = belle_sip_file_body_handler_new(filepath, progress_cb, data, direction);
 
 	obj->buffer.size = buffer_size;

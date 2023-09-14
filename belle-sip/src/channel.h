@@ -131,9 +131,11 @@ struct belle_sip_channel {
 	unsigned char
 	    srv_overrides_port;   /*set when this channel was connected to destination port provided by SRV resolution*/
 	unsigned char soft_error; /*set when this channel enters ERROR state because of error detected in upper layer */
-	unsigned char
-	    stop_logging_buffer; /*log buffer content only if this is non binary data, and stop it at the first occurence*/
-	unsigned char closed_by_remote; /*If the channel has been remotely closed*/
+	unsigned char inhibit_input_logging_buffer; /*log buffer for input content only if this is non binary data, and stop
+	                                               it at the first occurence*/
+	unsigned char inhibit_output_logging_buffer; /*log buffer for input content only if this is non binary data, and
+	                                                stop it at the first occurence*/
+	unsigned char closed_by_remote;              /*If the channel has been remotely closed*/
 	unsigned char dns_ttl_timedout;
 	unsigned char no_srv; /* Set to 1 if SRV must be skipped */
 };

@@ -20,16 +20,7 @@
 #ifndef belle_sip_body_handler_h
 #define belle_sip_body_handler_h
 
-
 #include "belle-sip/types.h"
-
-enum belle_sip_body_handler_direction{
-	BELLE_SIP_BODY_HANDLER_RECV,
-	BELLE_SIP_BODY_HANDLER_SEND,
-};
-
-typedef enum belle_sip_body_handler_direction belle_sip_body_handler_direction_t;
-
 
 BELLE_SIP_BEGIN_DECLS
 
@@ -125,9 +116,11 @@ belle_sip_buffering_user_body_handler_new(size_t total_size,
 
 #define BELLE_SIP_FILE_BODY_HANDLER(obj) BELLE_SIP_CAST(obj, belle_sip_file_body_handler_t)
 
-BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(
-    const char *filepath, belle_sip_body_handler_progress_callback_t progress_cb, void *data,
-    belle_sip_body_handler_direction_t direction);
+BELLESIP_EXPORT belle_sip_file_body_handler_t *
+belle_sip_file_body_handler_new(const char *filepath,
+                                belle_sip_body_handler_progress_callback_t progress_cb,
+                                void *data,
+                                belle_sip_direction_t direction);
 
 /**
  * @brief Buffering file body handler creation
@@ -136,10 +129,12 @@ BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_file_body_handler_new(
  * what remains in buffer when the end function is called is delivered through a last call to rcv_chunk
  * The original purpose of this is to be able to deliver modulo(16) size chunks to the file transfer decryption function
  */
-
-BELLESIP_EXPORT belle_sip_file_body_handler_t *belle_sip_buffering_file_body_handler_new(
-    const char *filepath, const size_t buffer_size, belle_sip_body_handler_progress_callback_t progress_cb, void *data,
-    belle_sip_body_handler_direction_t direction);
+BELLESIP_EXPORT belle_sip_file_body_handler_t *
+belle_sip_buffering_file_body_handler_new(const char *filepath,
+                                          const size_t buffer_size,
+                                          belle_sip_body_handler_progress_callback_t progress_cb,
+                                          void *data,
+                                          belle_sip_direction_t direction);
 BELLESIP_EXPORT size_t belle_sip_file_body_handler_get_file_size(belle_sip_file_body_handler_t *file_bh);
 BELLESIP_EXPORT void belle_sip_file_body_handler_set_user_body_handler(belle_sip_file_body_handler_t *file_bh,
                                                                        belle_sip_user_body_handler_t *user_bh);
