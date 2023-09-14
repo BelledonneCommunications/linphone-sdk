@@ -23,7 +23,11 @@
 #include "mediastreamer2_tester.h"
 #include "mediastreamer2_tester_private.h"
 
-#ifdef VIDEO_ENABLED
+#ifdef HAVE_CONFIG_H
+#include "mediastreamer-config.h" // ENABLE_OPENGL_PROFILING
+#endif
+
+#if defined(HAVE_GL) || defined(HAVE_GLX)
 #include "mediastreamer2/msogl.h" // MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT
 #include "mediastreamer2/msogl_functions.h" // MSEGLContextDescriptor, EGLint, EGL_CONTEXT_MAJOR_VERSION, EGL_NONE, EGL_OPENGL_ES_API
 #endif
@@ -129,7 +133,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 	}
 	timeout = max((int)(timeout * (1.0 + timeout_prec)), 100);
 
-#ifdef VIDEO_ENABLED
+#if defined(HAVE_GL) || defined(HAVE_GLX)
 	if (flags & PLAYER_TEST_EGL_CONTEXT_FALLBACK) {
 		static const EGLint impossible_version[] = {EGL_CONTEXT_MAJOR_VERSION, -1, EGL_NONE};
 		static MSEGLContextDescriptor impossible_context = {EGL_OPENGL_ES_API, impossible_version};
@@ -138,7 +142,7 @@ static void play_file(const char *filepath, PlayerTestFlags flags, const char *r
 		MSFilter *const video_display = ms_media_player_get_video_sink(file_player);
 		ms_filter_call_method(video_display, MS_OGL_DISPLAY_SET_EGL_TARGET_CONTEXT, &impossible_context);
 	}
-#endif // VIDEO_ENABLED
+#endif // defined(HAVE_GL) || defined(HAVE_GLX)
 
 	succeed = ms_media_player_start(file_player);
 	BC_ASSERT_TRUE(succeed);
@@ -230,7 +234,7 @@ static void loop_test(void) {
 	play_root_file("sounds/sintel_trailer_opus_vp8.mkv", flags | PLAYER_TEST_LOOP);
 }
 
-#ifdef VIDEO_ENABLED
+#if defined(HAVE_GL) || defined(HAVE_GLX)
 static void egl_opengl_contexts(void) {
 	PlayerTestFlags flags = ms_media_player_matroska_supported() ? PLAYER_TEST_NONE : PLAYER_TEST_UNSUPPORTED_FORMAT;
 	flags |= PLAYER_TEST_SEEKING;
@@ -245,10 +249,10 @@ static void egl_opengl_contexts(void) {
 
 	bc_free(file);
 }
-#endif // VIDEO_ENABLED
+#endif // defined(HAVE_GL) || defined(HAVE_GLX)
 
 static test_t tests[] = {
-#ifdef VIDEO_ENABLED
+#if defined(HAVE_GL) || defined(HAVE_GLX)
     TEST_NO_TAG("EGL OpenGL contexts", egl_opengl_contexts),
 #endif
     TEST_NO_TAG("Play hello8000.wav", play_hello_8000_wav),
