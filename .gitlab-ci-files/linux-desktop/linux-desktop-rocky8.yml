@@ -57,6 +57,7 @@ rocky8-ninja-gcc:
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
+    CMAKE_SANITIZER_OPTIONS: -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZER=ON -DOPTIMIZE_SANITIZED_BUILD=ON
   extends: .linux-desktop
   needs:
     - wait-cache-synchro-rocky8
@@ -65,7 +66,6 @@ rocky8-ninja-gcc-tunnel-pq-h264:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_OPENH264=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON -DOPENSSL_ROOT_DIR=/usr/local
   extends: rocky8-ninja-gcc
-
 
 #################################################
 # TESTS

@@ -27,6 +27,7 @@
     - echo $(git describe) > build/default/gitdescribe.txt
   artifacts:
     paths:
+      - sanitizer_ignore.txt
       - build/default/gitdescribe.txt
       - build/default/linphone-sdk/desktop/bin/*
       - build/default/linphone-sdk/desktop/lib/*
@@ -119,6 +120,7 @@
     - echo $(git describe) > build/gitdescribe.txt
   artifacts:
     paths:
+      - sanitizer_ignore.txt
       - build/gitdescribe.txt
       - build/linphone-sdk/desktop/bin/*
       - build/linphone-sdk/desktop/lib/*
@@ -145,6 +147,9 @@
     - !reference [.rules-merge-request-manual, rules]
 
   script:
+    #add Sanitizer's ignore list for known leaks
+    - export LSAN_OPTIONS="suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt"
+
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
 
@@ -173,6 +178,7 @@
 
     #checking if the tester has SYS_NICE cap
     - getcap ./$TESTER_BIN || true
+
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
@@ -188,7 +194,7 @@
 
           ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated-Results.xml $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
 
-          ./$TESTER_BIN --verbose --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
+          ./$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
         fi
