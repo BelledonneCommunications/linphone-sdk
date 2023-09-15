@@ -59,7 +59,7 @@ if(NOT ENABLE_FAT_BINARY)
 endif()
 
 foreach(_FILE IN LISTS ${_BINARIES})
-	get_filename_componentt(ABSOLUTE_FILE "${LINPHONESDK_NAME}/${LINPHONESDK_PLATFORM}-${_FIRST_ARCH}/${_FILE}" ABSOLUTE)
+	get_filename_component(ABSOLUTE_FILE "${LINPHONESDK_NAME}/${LINPHONESDK_PLATFORM}-${_FIRST_ARCH}/${_FILE}" ABSOLUTE)
 	if(NOT IS_SYMLINK ${ABSOLUTE_FILE})
 		# Check if lipo can detect an architecture
 		execute_process(COMMAND lipo -archs "${LINPHONESDK_NAME}/${LINPHONESDK_PLATFORM}-${_FIRST_ARCH}/${_FILE}"
