@@ -104,8 +104,6 @@ set(BELLE_SIP_SOURCE_FILES_C
 	bodyhandler.c
 	channel.c
 	channel.h
-	clock_gettime.c
-	clock_gettime.h
 	dialog.c
 	dns/dns.c
 	dns/dns.h
