@@ -863,16 +863,18 @@ void bctbx_shm_close(void *mem) {
 
 #endif
 
-#ifdef __MACH__
-#include <sys/timeb.h>
-#include <sys/types.h>
+#ifdef __linux__
+/* on linux (and Android), CLOCK_MONOTONIC does not take into account suspended time. CLOCK_BOOTTIME does.*/
+#define BC_CLOCK_MONOTONIC CLOCK_BOOTTIME
+#else
+#define BC_CLOCK_MONOTONIC CLOCK_MONOTONIC
 #endif
 
 #ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif // _MSC_VER
-void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime) {
+static void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime) {
 #if defined(_WIN32_WCE) || defined(WIN32)
 #if defined(BCTBX_WINDOWS_DESKTOP) && !defined(ENABLE_MICROSOFT_STORE_APP) && !defined(BCTBX_WINDOWS_UWP)
 	DWORD timemillis;
@@ -888,26 +890,17 @@ void _bctbx_get_cur_time(bctoolboxTimeSpec *ret, bool_t realtime) {
 	ret->tv_sec = timemillis / 1000;
 	ret->tv_nsec = (timemillis % 1000) * 1000000LL;
 #endif
-#elif defined(__MACH__) && defined(__GNUC__) && (__GNUC__ >= 3)
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	ret->tv_sec = tv.tv_sec;
-	ret->tv_nsec = tv.tv_usec * 1000LL;
-#elif defined(__MACH__)
-	struct timeb time_val;
-
-	ftime(&time_val);
-	ret->tv_sec = time_val.time;
-	ret->tv_nsec = time_val.millitm * 1000000LL;
 #else
 	struct timespec ts;
-	if (clock_gettime(realtime ? CLOCK_REALTIME : CLOCK_MONOTONIC, &ts) < 0) {
+	clockid_t clock_id = realtime ? CLOCK_REALTIME : BC_CLOCK_MONOTONIC;
+	if (clock_gettime(clock_id, &ts) < 0) {
 		bctbx_fatal("clock_gettime() doesn't work: %s", strerror(errno));
 	}
 	ret->tv_sec = ts.tv_sec;
 	ret->tv_nsec = ts.tv_nsec;
 #endif
 }
+
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif // _MSC_VER
@@ -922,7 +915,7 @@ void bctbx_get_cur_time(bctoolboxTimeSpec *ret) {
 
 uint64_t bctbx_get_cur_time_ms(void) {
 	bctoolboxTimeSpec ts;
-	_bctbx_get_cur_time(&ts, TRUE);
+	_bctbx_get_cur_time(&ts, FALSE);
 	return (ts.tv_sec * 1000LL) + ((ts.tv_nsec + 500000LL) / 1000000LL);
 }
 
