@@ -49,29 +49,29 @@
 #endif
 #endif
 
-#define ms_malloc ortp_malloc
-#define ms_malloc0 ortp_malloc0
-#define ms_realloc ortp_realloc
-#define ms_new ortp_new
-#define ms_new0 ortp_new0
-#define ms_free ortp_free
-#define ms_strdup ortp_strdup
+#define ms_malloc bctbx_malloc
+#define ms_malloc0 bctbx_malloc0
+#define ms_realloc bctbx_realloc
+#define ms_new bctbx_new
+#define ms_new0 bctbx_new0
+#define ms_free bctbx_free
+#define ms_strdup bctbx_strdup
 #define ms_strndup bctbx_strndup
-#define ms_strdup_printf ortp_strdup_printf
-#define ms_strcat_printf ortp_strcat_printf
+#define ms_strdup_printf bctbx_strdup_printf
+#define ms_strcat_printf bctbx_strcat_printf
 
-#define ms_mutex_t ortp_mutex_t
-#define ms_mutex_init ortp_mutex_init
-#define ms_mutex_destroy ortp_mutex_destroy
-#define ms_mutex_lock ortp_mutex_lock
-#define ms_mutex_unlock ortp_mutex_unlock
+#define ms_mutex_t bctbx_mutex_t
+#define ms_mutex_init bctbx_mutex_init
+#define ms_mutex_destroy bctbx_mutex_destroy
+#define ms_mutex_lock bctbx_mutex_lock
+#define ms_mutex_unlock bctbx_mutex_unlock
 
-#define ms_cond_t ortp_cond_t
-#define ms_cond_init ortp_cond_init
-#define ms_cond_wait ortp_cond_wait
-#define ms_cond_signal ortp_cond_signal
-#define ms_cond_broadcast ortp_cond_broadcast
-#define ms_cond_destroy ortp_cond_destroy
+#define ms_cond_t bctbx_cond_t
+#define ms_cond_init bctbx_cond_init
+#define ms_cond_wait bctbx_cond_wait
+#define ms_cond_signal bctbx_cond_signal
+#define ms_cond_broadcast bctbx_cond_broadcast
+#define ms_cond_destroy bctbx_cond_destroy
 
 #define MS_DEFAULT_MAX_PAYLOAD_SIZE 1440
 
@@ -147,14 +147,14 @@ static MS2_INLINE void ms_debug(const char *fmt, ...) {
 		return;                                                                                                        \
 	}
 
-#define ms_thread_t ortp_thread_t
-#define ms_thread_create ortp_thread_create
-#define ms_thread_join ortp_thread_join
-#define ms_thread_self ortp_thread_self
+#define ms_thread_t bctbx_thread_t
+#define ms_thread_create bctbx_thread_create
+#define ms_thread_join bctbx_thread_join
+#define ms_thread_self bctbx_thread_self
 
-typedef ortpTimeSpec MSTimeSpec;
+typedef bctoolboxTimeSpec MSTimeSpec;
 
-#define ms_get_cur_time ortp_get_cur_time
+#define ms_get_cur_time bctbx_get_cur_time
 #define ms_get_cur_time_ms bctbx_get_cur_time_ms
 
 typedef bctbx_compare_func MSCompareFunc;
