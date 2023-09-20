@@ -253,7 +253,7 @@ void start_adaptive_stream(MSFormatType type,
 		media_stream_set_direction(&margaux->video_stream->ms, MediaStreamRecvOnly);
 		ms_bandwidth_controller_add_stream(margaux->bw_controller, margaux_video_stream);
 		params.packet_count_min = 5;
-		params.packets_size_max = 5;
+		params.min_required_measurements = 30;
 		params.enabled = TRUE;
 		rtp_session_enable_video_bandwidth_estimator(margaux_video_stream->sessions.rtp_session, &params);
 		video_manager_start(margaux, payload, marielle->local_rtp, 0, NULL);
