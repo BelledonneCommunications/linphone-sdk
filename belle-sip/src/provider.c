@@ -1239,26 +1239,32 @@ end:
 	return;
 }
 
-static belle_sip_list_t *belle_sip_list_find_event(belle_sip_list_t *list, belle_sip_auth_event_t *auth_event) {
-	for (; list != NULL; list = list->next) {
-		belle_sip_auth_event_t *ref_event = (belle_sip_auth_event_t *)list->data;
-		if ((!strcmp(ref_event->realm, auth_event->realm)) && (!strcmp(ref_event->username, auth_event->username)))
-			return list;
-	}
-	return NULL;
-}
+#define STREQUAL(a, b) ((a && b && strcmp(a, b) == 0) || (a == NULL && b == NULL))
 
-static belle_sip_list_t *belle_sip_list_find_double_events(belle_sip_list_t *list, belle_sip_auth_event_t *auth_event) {
-	belle_sip_list_t *ref_list;
-	belle_sip_list_t *ref_list2;
-	if ((ref_list = belle_sip_list_find_event(list, auth_event)) &&
-	    (ref_list2 = belle_sip_list_find_event(ref_list->next, auth_event))) {
-		belle_sip_auth_event_t *ref_event = (belle_sip_auth_event_t *)ref_list2->data;
-		/*delete which hasn't passwd*/
-		if (ref_event->passwd || ref_event->ha1) return ref_list;
-		else return ref_list2;
+/*
+ * Insert auth_event into a list of belle_sip_auth_event_t avoiding duplicates and loss of password or ha1.
+ */
+static belle_sip_list_t *update_auth_event_list(belle_sip_list_t *auth_event_list, belle_sip_auth_event_t *auth_event) {
+	belle_sip_list_t *elem;
+	belle_sip_auth_event_t *ev = NULL;
+
+	for (elem = auth_event_list; elem != NULL; elem = elem->next) {
+		ev = (belle_sip_auth_event_t *)elem->data;
+		if (STREQUAL(ev->realm, auth_event->realm) && STREQUAL(ev->username, auth_event->username)) {
+			break;
+		}
 	}
-	return NULL;
+	if (ev) {
+		if ((ev->passwd == NULL && ev->ha1 == NULL) || (auth_event->passwd || auth_event->ha1)) {
+			/* drop the old auth_event if new one has a password/ha1 or if previous one did not have */
+			auth_event_list = belle_sip_list_delete_link(auth_event_list, elem);
+			belle_sip_auth_event_destroy(ev);
+			auth_event_list = belle_sip_list_append(auth_event_list, auth_event);
+		} else belle_sip_auth_event_destroy(auth_event);
+	} else {
+		auth_event_list = belle_sip_list_append(auth_event_list, auth_event);
+	}
+	return auth_event_list;
 }
 
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
@@ -1422,12 +1428,7 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
 		/*provides auth info in any cases, usefull even if found because auth info can contain wrong password*/
 		if (auth_infos) {
 			/*stored to give user information on realm/username which requires authentications*/
-			*auth_infos = belle_sip_list_append(*auth_infos, auth_event);
-			belle_sip_list_t *elem = belle_sip_list_find_double_events(*auth_infos, auth_event);
-			if (elem != NULL) {
-				belle_sip_auth_event_destroy(bctbx_list_get_data(elem));
-				*auth_infos = belle_sip_list_delete_link(*auth_infos, elem);
-			}
+			*auth_infos = update_auth_event_list(*auth_infos, auth_event);
 		} else {
 			belle_sip_auth_event_destroy(auth_event);
 		}
