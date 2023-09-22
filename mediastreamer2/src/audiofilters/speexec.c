@@ -22,9 +22,9 @@
 #include "mediastreamer-config.h"
 #endif
 
+#include "bctoolbox/crypto.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
-#include "ortp/b64.h"
 #include <speex/speex_echo.h>
 #include <speex/speex_preprocess.h>
 
@@ -38,7 +38,7 @@
 
 #include "mediastreamer2/flowcontrol.h"
 
-//#define EC_DUMP 1
+// #define EC_DUMP 1
 #ifdef __ANDROID__
 #define EC_DUMP_PREFIX "/sdcard"
 #else
@@ -121,13 +121,15 @@ static void speex_ec_uninit(MSFilter *f) {
 static void apply_config(SpeexECState *s) {
 	if (s->state_str != NULL) {
 		size_t buflen = strlen(s->state_str);
-		uint8_t *buffer = alloca(buflen);
+		uint8_t *buffer = ms_malloc0(buflen);
 		SpeexEchoStateBlob *blob;
-		if ((buflen = b64_decode(s->state_str, strlen(s->state_str), buffer, buflen)) <= 0) {
+		if ((bctbx_base64_decode(buffer, &buflen, (const unsigned char *)s->state_str, strlen(s->state_str))) != 0) {
 			ms_error("Could not decode base64 %s", s->state_str);
+			ms_free(buffer);
 			return;
 		}
 		blob = speex_echo_state_blob_new_from_memory(buffer, (int)buflen);
+		ms_free(buffer);
 		if (blob == NULL) {
 			ms_error("Could not create blob from config string");
 			return;
@@ -153,7 +155,8 @@ static void fetch_config(SpeexECState *s) {
 	}
 	txt_len = (speex_echo_state_blob_get_size(blob) * 4) + 1;
 	txt = ms_malloc0(txt_len);
-	if (b64_encode(speex_echo_state_blob_get_data(blob), speex_echo_state_blob_get_size(blob), txt, txt_len) == 0) {
+	if (bctbx_base64_encode((unsigned char *)txt, &txt_len, speex_echo_state_blob_get_data(blob),
+	                        speex_echo_state_blob_get_size(blob)) != 0) {
 		ms_error("Base64 encoding failed.");
 		ms_free(txt);
 		return;

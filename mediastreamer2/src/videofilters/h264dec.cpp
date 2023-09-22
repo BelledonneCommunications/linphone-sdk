@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/crypto.h"
+
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
 #include "mediastreamer2/msvideo.h"
@@ -42,10 +44,7 @@
 
 #endif
 
-#include <ortp/b64.h>
-
 using namespace mediastreamer;
-using namespace b64;
 
 typedef struct _DecData {
 	mblk_t *sps, *pps;
@@ -352,6 +351,7 @@ static int dec_add_fmtp(MSFilter *f, void *arg) {
 	DecData *d = (DecData *)f->data;
 	const char *fmtp = (const char *)arg;
 	char value[256];
+	size_t value_size;
 	if (fmtp_get_value(fmtp, "sprop-parameter-sets", value, sizeof(value))) {
 		char *b64_sps = value;
 		char *b64_pps = strchr(value, ',');
@@ -360,9 +360,13 @@ static int dec_add_fmtp(MSFilter *f, void *arg) {
 			++b64_pps;
 			ms_message("Got sprop-parameter-sets : sps=%s , pps=%s", b64_sps, b64_pps);
 			d->sps = allocb(sizeof(value), 0);
-			d->sps->b_wptr += b64_decode(b64_sps, strlen(b64_sps), d->sps->b_wptr, sizeof(value));
+			value_size = sizeof(value);
+			bctbx_base64_decode(d->sps->b_wptr, &value_size, (unsigned char *)b64_sps, strlen(b64_sps));
+			d->sps->b_wptr += value_size;
 			d->pps = allocb(sizeof(value), 0);
-			d->pps->b_wptr += b64_decode(b64_pps, strlen(b64_pps), d->pps->b_wptr, sizeof(value));
+			value_size = sizeof(value);
+			bctbx_base64_decode(d->pps->b_wptr, &value_size, (unsigned char *)b64_pps, strlen(b64_pps));
+			d->pps->b_wptr += value_size;
 		}
 	}
 	return 0;

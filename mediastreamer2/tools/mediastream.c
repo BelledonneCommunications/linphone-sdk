@@ -18,7 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
+#include "bctoolbox/port.h"
 
 #include "common.h"
 #include "mediastreamer2/msequalizer.h"
@@ -71,7 +72,7 @@ extern void libmswebrtc_init();
 #include <jni.h>
 #endif
 
-#include <ortp/b64.h>
+#include "bctoolbox/crypto.h"
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
@@ -858,21 +859,21 @@ void setup_media_streams(MediastreamDatas *args) {
 		// default profile require key-length = 30 bytes
 		//  -> input : 40 b64 encoded bytes
 		if (!args->srtp_local_master_key) {
-			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", bctbx_random(), bctbx_random(), bctbx_random(),
-			         bctbx_random());
+			unsigned char tmp[30];
+			size_t key_len = 40;
+			bctbx_random_bytes(tmp, sizeof(tmp));
 			args->srtp_local_master_key = (char *)malloc(41);
-			b64_encode((const char *)tmp, 30, args->srtp_local_master_key, 40);
-			args->srtp_local_master_key[40] = '\0';
+			bctbx_base64_encode((unsigned char *)args->srtp_local_master_key, &key_len, (unsigned char *)tmp, 30);
+			args->srtp_local_master_key[key_len] = '\0';
 			ms_message("Generated local srtp key: '%s'", args->srtp_local_master_key);
 		}
 		if (!args->srtp_remote_master_key) {
-			char tmp[30];
-			snprintf(tmp, sizeof(tmp), "%08x%08x%08x%08x", bctbx_random(), bctbx_random(), bctbx_random(),
-			         bctbx_random());
+			unsigned char tmp[30];
+			size_t key_len = 40;
+			bctbx_random_bytes(tmp, sizeof(tmp));
 			args->srtp_remote_master_key = (char *)malloc(41);
-			b64_encode((const char *)tmp, 30, args->srtp_remote_master_key, 40);
-			args->srtp_remote_master_key[40] = '\0';
+			bctbx_base64_encode((unsigned char *)args->srtp_remote_master_key, &key_len, (unsigned char *)tmp, 30);
+			args->srtp_remote_master_key[key_len] = '\0';
 			ms_message("Generated remote srtp key: '%s'", args->srtp_remote_master_key);
 		}
 	}

@@ -25,7 +25,6 @@
 #if defined(__cplusplus)
 #define B64_NO_NAMESPACE
 #endif
-#include "ortp/b64.h"
 
 struct SenderData {
 	// Contains both destination ip and port

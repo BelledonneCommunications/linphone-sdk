@@ -18,7 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/crypto.h"
+#include "bctoolbox/defs.h"
 
 #include "mediastreamer2/box-plot.h"
 #include "mediastreamer2/msfactory.h"
@@ -30,7 +31,6 @@
 #define B64_NO_NAMESPACE
 #endif
 #include "mediastreamer2/stun.h"
-#include "ortp/b64.h"
 
 static const int default_dtmf_duration_ms = 100; /*in milliseconds*/
 
@@ -230,8 +230,9 @@ static int sender_unmute(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 static int sender_set_relay_session_id(MSFilter *f, void *arg) {
 	SenderData *d = (SenderData *)f->data;
 	const char *tmp = (const char *)arg;
-	d->relay_session_id_size =
-	    (int)b64_decode(tmp, strlen(tmp), (void *)d->relay_session_id, (unsigned int)sizeof(d->relay_session_id));
+	size_t id_size = sizeof(d->relay_session_id);
+	bctbx_base64_decode((void *)d->relay_session_id, &id_size, (const unsigned char *)tmp, strlen(tmp));
+	d->relay_session_id_size = id_size;
 	return 0;
 }
 

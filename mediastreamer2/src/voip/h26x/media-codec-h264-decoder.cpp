@@ -18,21 +18,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "media-codec-h264-decoder.h"
+
 #include <algorithm>
 #include <cstring>
 
 #include <sys/system_properties.h>
 
-#include <ortp/b64.h>
+#include "bctoolbox/crypto.h"
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
 #include "h264-nal-unpacker.h"
 #include "h264-utils.h"
 #include "h26x-decoder-filter.h"
 
-#include "media-codec-h264-decoder.h"
-
-using namespace b64;
 using namespace std;
 
 namespace mediastreamer {
@@ -146,7 +145,8 @@ public:
 
 	void addFmtp(const char *fmtp) {
 		char value[256];
-		if (fmtp_get_value(fmtp, "sprop-parameter-sets", value, sizeof(value))) {
+		size_t value_size = sizeof(value);
+		if (fmtp_get_value(fmtp, "sprop-parameter-sets", value, value_size)) {
 			char *b64_sps = value;
 			char *b64_pps = strchr(value, ',');
 
@@ -155,9 +155,13 @@ public:
 				++b64_pps;
 				ms_message("Got sprop-parameter-sets : sps=%s , pps=%s", b64_sps, b64_pps);
 				_sps = allocb(sizeof(value), 0);
-				_sps->b_wptr += b64_decode(b64_sps, strlen(b64_sps), _sps->b_wptr, sizeof(value));
+				value_size = sizeof(value);
+				bctbx_base64_decode(_sps->b_wptr, &value_size, (unsigned char *)b64_sps, strlen(b64_sps));
+				_sps->b_wptr += value_size;
 				_pps = allocb(sizeof(value), 0);
-				_pps->b_wptr += b64_decode(b64_pps, strlen(b64_pps), _pps->b_wptr, sizeof(value));
+				value_size = sizeof(value);
+				bctbx_base64_decode(_pps->b_wptr, &value_size, (unsigned char *)b64_pps, strlen(b64_pps));
+				_pps->b_wptr += value_size;
 			}
 		}
 	}

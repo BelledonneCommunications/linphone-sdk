@@ -46,8 +46,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <ortp/b64.h>
-
 #if __APPLE__
 #include "TargetConditionals.h"
 #endif
