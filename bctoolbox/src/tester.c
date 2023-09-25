@@ -626,8 +626,8 @@ static void merge_log_files(const char *base_logfile_name) {
 		buf = malloc(file_size);
 		read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
 		if (read_bytes == file_size) {
-			size_t written = bctbx_file_write(dst_file, buf, file_size, offset);
-			if (written == (size_t)BCTBX_VFS_ERROR) {
+			ssize_t written = bctbx_file_write(dst_file, buf, file_size, offset);
+			if (written == (ssize_t)BCTBX_VFS_ERROR) {
 				bc_tester_printf(bc_printf_verbosity_error, "Could not write logs of suite %s into log file '%s'",
 				                 suite_logfile_name, base_logfile_name);
 			} else offset += written;
