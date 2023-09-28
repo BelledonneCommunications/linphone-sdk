@@ -590,7 +590,7 @@ static int ms_dtls_srtp_rtp_process_on_receive(struct _RtpTransportModifier *t, 
 
 				ctx->rtp_time_reference = 0; /* unarm the timer */
 				ret = bctbx_ssl_get_dtls_srtp_key_material(ctx->rtp_dtls_context->ssl, ctx->rtp_channel_key_material,
-				                                           dtls_srtp_key_material_length);
+				                                           &dtls_srtp_key_material_length);
 				if (ret < 0) {
 					ms_error("DTLS RTP Handshake : Unable to retrieve DTLS SRTP key material [-0x%x]", -ret);
 					return 0;
