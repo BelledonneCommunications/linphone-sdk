@@ -28,6 +28,10 @@
 #include <QQuickWindow>
 #include <QThread>
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QQuickOpenGLUtils>
+#endif
+
 #include "mediastreamer2/msvideo.h"
 
 // Based on generic_opengl_display.c
@@ -89,7 +93,11 @@ void BufferRenderer::render() {
 	if (mParent && mParent->is_sdk_linked && mParent->parent) {
 		qogl_call_render(mParent->parent, NULL);
 		// Synchronize opengl calls with QML.
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 		if (mWindow) mWindow->resetOpenGLState();
+#else
+		QQuickOpenGLUtils::resetOpenGLState();
+#endif
 	}
 }
 
