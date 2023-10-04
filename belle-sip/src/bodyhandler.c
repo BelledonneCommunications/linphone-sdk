@@ -1150,10 +1150,14 @@ static void belle_sip_multipart_body_handler_parse_final(belle_sip_multipart_bod
 	uint8_t *end_header_cursor;
 	uint8_t *cursor = obj_multipart->buffer;
 	char *dash_boundary = belle_sip_strdup_printf("--%s", obj_multipart->boundary);
-	size_t expected_size =
-	    obj_multipart->base.expected_size; /* Save expected size. Indeed add_parts() plays with it
-	                                        * for the composing process. For parsing process we actually don't need
-	                                        * this, so the correct size will be restored at the end.*/
+
+	/* Save expected size. Indeed add_parts() plays with it for the composing process. For parsing process we actually
+	 * don't need this, so the correct size will be restored at the end.*/
+	size_t expected_size = obj_multipart->base.expected_size;
+
+	if (strncmp((char *)cursor, "\r\n", 2) == 0) {
+		cursor += 2;
+	}
 
 	if (strncmp((char *)cursor, dash_boundary, strlen(dash_boundary))) {
 		belle_sip_warning("belle_sip_multipart_body_handler [%p]: body not starting by specified boundary '%s'",
