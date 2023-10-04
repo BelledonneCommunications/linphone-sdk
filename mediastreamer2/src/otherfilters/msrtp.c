@@ -232,7 +232,7 @@ static int sender_set_relay_session_id(MSFilter *f, void *arg) {
 	const char *tmp = (const char *)arg;
 	size_t id_size = sizeof(d->relay_session_id);
 	bctbx_base64_decode((void *)d->relay_session_id, &id_size, (const unsigned char *)tmp, strlen(tmp));
-	d->relay_session_id_size = id_size;
+	d->relay_session_id_size = (int)id_size;
 	return 0;
 }
 
