@@ -39,4 +39,4 @@ MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH265Decoder,
                                                    MS_MEDIACODEC_H265_DEC_ID,
                                                    "A H265 decoder based on MediaCodec API.",
                                                    "H265",
-                                                   MS_FILTER_IS_PUMP);
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);

@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "mediastreamer2/devices.h"
+
 #include "filter-wrapper/encoding-filter-wrapper.h"
 #include "h26x-encoder-filter.h"
 #include "media-codec-encoder.h"
@@ -28,7 +30,7 @@
 		    nullptr                                                                                                    \
 	}
 
-static const MSVideoConfiguration _media_codec_h265_conf_list[] = {
+static const MSVideoConfiguration _media_codec_h264_conf_list[] = {
 /*
  * Formats above 720P are disabled. Indeed, there are not supported in baseline profile of H264, and it was observed
  * that when we ask a MediaCodec to output a 1080P stream with baseline profile, we get interoperability issues:
@@ -47,19 +49,30 @@ static const MSVideoConfiguration _media_codec_h265_conf_list[] = {
 
 namespace mediastreamer {
 
-class MediaCodecH265Encoder : public MediaCodecEncoder {
+class MediaCodecH264Encoder : public MediaCodecEncoder {
 public:
-	MediaCodecH265Encoder() : MediaCodecEncoder("video/hevc") {
+	MediaCodecH264Encoder() : MediaCodecEncoder("video/avc") {
 	}
+
+private:
+	AMediaFormat *createMediaFormat() const override {
+		AMediaFormat *format = MediaCodecEncoder::createMediaFormat();
+		AMediaFormat_setInt32(format, "profile", _profile);
+		AMediaFormat_setInt32(format, "level", _level);
+		return format;
+	}
+
+	static const int32_t _profile = 1; // AVCProfileBaseline
+	static const int32_t _level = 512; // AVCLevel31
 };
 
-class MediaCodecH265EncoderFilterImpl : public H26xEncoderFilter {
+class MediaCodecH264EncoderFilterImpl : public H26xEncoderFilter {
 public:
-	MediaCodecH265EncoderFilterImpl(MSFilter *f)
-	    : H26xEncoderFilter(f, new MediaCodecH265Encoder(), _media_codec_h265_conf_list) {
+	MediaCodecH264EncoderFilterImpl(MSFilter *f)
+	    : H26xEncoderFilter(f, new MediaCodecH264Encoder(), _media_codec_h264_conf_list) {
 		SoundDeviceDescription *info = ms_devices_info_get_sound_device_description(f->factory->devices_info);
 		auto &encoder = static_cast<MediaCodecEncoder &>(*_encoder);
-		encoder.enableOutbufferDequeueLimit(!!(info->flags & DEVICE_MCH265_LIMIT_DEQUEUE_OF_OUTPUT_BUFFERS));
+		encoder.enablePixelFormatConversion((info->flags & DEVICE_MCH264ENC_NO_PIX_FMT_CONV) == 0);
 	}
 };
 
@@ -67,9 +80,9 @@ public:
 
 using namespace mediastreamer;
 
-MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH265Encoder);
-MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH265Encoder,
-                                                   MS_MEDIACODEC_H265_ENC_ID,
-                                                   "A H265 encoder based on MediaCodec API.",
-                                                   "H265",
-                                                   MS_FILTER_IS_PUMP);
+MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(MediaCodecH264Encoder);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(MediaCodecH264Encoder,
+                                                   MS_MEDIACODEC_H264_ENC_ID,
+                                                   "A H264 encoder based on MediaCodec API.",
+                                                   "H264",
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);

@@ -24,9 +24,9 @@
 #include <string>
 #include <vector>
 
-#include <bctoolbox/tester.h>
+#include "bctoolbox/tester.h"
 
-#include <mediastreamer2/msfactory.h>
+#include "mediastreamer2/msfactory.h"
 
 #include "h26x/h26x-utils.h"
 

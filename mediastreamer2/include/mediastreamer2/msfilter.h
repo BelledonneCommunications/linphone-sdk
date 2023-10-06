@@ -137,7 +137,8 @@ typedef enum _MSFilterCategory MSFilterCategory;
  * Filter's flags controlling special behaviours.
  **/
 enum _MSFilterFlags {
-	MS_FILTER_IS_PUMP = 1, /**< The filter must be called in process function every tick.*/
+	MS_FILTER_IS_PUMP = 1,                /**< The filter must be called in process function every tick.*/
+	MS_FILTER_IS_HW_ACCELERATED = 1 << 1, /**< The filter use hardware acceleration */
 	/*...*/
 	/*private flags: don't use it in filters.*/
 	MS_FILTER_IS_ENABLED = 1 << 31 /*<Flag to specify if a filter is enabled or not. Only enabled filters are returned

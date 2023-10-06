@@ -67,8 +67,7 @@ NalUnpacker::Status NalUnpacker::unpack(mblk_t *im, MSQueue *out) {
 			status.frameCorrupted |= (cseq != _refCSeq + 1);
 			ret = outputFrame(out, status);
 			ms_warning("Incomplete H264 frame (missing marker bit after seq number %u, frame corrupted: %s)",
-			           mblk_get_cseq(ms_queue_peek_last(out)),
-						status.frameCorrupted ? "yes" : "no" );
+			           mblk_get_cseq(ms_queue_peek_last(out)), status.frameCorrupted ? "yes" : "no");
 		}
 	}
 

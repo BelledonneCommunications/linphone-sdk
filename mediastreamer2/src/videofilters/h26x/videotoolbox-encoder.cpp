@@ -20,7 +20,7 @@
 
 #include <bctoolbox/defs.h>
 
-#include "h26x/h26x-utils.h"
+#include "h26x-utils.h"
 #include "videotoolbox-utils.h"
 
 #include "videotoolbox-encoder.h"

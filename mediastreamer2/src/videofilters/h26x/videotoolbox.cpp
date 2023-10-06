@@ -22,11 +22,11 @@
 
 #include "filter-wrapper/decoding-filter-wrapper.h"
 #include "filter-wrapper/encoding-filter-wrapper.h"
-#include "h26x/h26x-decoder-filter.h"
-#include "h26x/h26x-encoder-filter.h"
-#include "h26x/videotoolbox-decoder.h"
-#include "h26x/videotoolbox-encoder.h"
-#include "h26x/videotoolbox-utils.h"
+#include "h26x-decoder-filter.h"
+#include "h26x-encoder-filter.h"
+#include "videotoolbox-decoder.h"
+#include "videotoolbox-encoder.h"
+#include "videotoolbox-utils.h"
 
 using namespace std;
 
@@ -83,20 +83,32 @@ public:
 using namespace mediastreamer;
 
 MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Encoder);
-MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(
-    VideoToolboxH264Encoder, MS_VT_H264_ENC_ID, "H264 hardware encoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Encoder,
+                                                   MS_VT_H264_ENC_ID,
+                                                   "H264 hardware encoder for iOS and MacOSX",
+                                                   "H264",
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);
 
 MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH264Decoder);
-MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(
-    VideoToolboxH264Decoder, MS_VT_H264_DEC_ID, "H264 hardware decoder for iOS and MacOSX", "H264", MS_FILTER_IS_PUMP);
+MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH264Decoder,
+                                                   MS_VT_H264_DEC_ID,
+                                                   "H264 hardware decoder for iOS and MacOSX",
+                                                   "H264",
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);
 
 MS_ENCODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH265Encoder);
-MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(
-    VideoToolboxH265Encoder, MS_VT_H265_ENC_ID, "H265 hardware encoder for iOS and MacOSX", "H265", MS_FILTER_IS_PUMP);
+MS_ENCODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH265Encoder,
+                                                   MS_VT_H265_ENC_ID,
+                                                   "H265 hardware encoder for iOS and MacOSX",
+                                                   "H265",
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);
 
 MS_DECODING_FILTER_WRAPPER_METHODS_DECLARATION(VideoToolboxH265Decoder);
-MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(
-    VideoToolboxH265Decoder, MS_VT_H265_DEC_ID, "H265 hardware decoder for iOS and MacOSX", "H265", MS_FILTER_IS_PUMP);
+MS_DECODING_FILTER_WRAPPER_DESCRIPTION_DECLARATION(VideoToolboxH265Decoder,
+                                                   MS_VT_H265_DEC_ID,
+                                                   "H265 hardware decoder for iOS and MacOSX",
+                                                   "H265",
+                                                   MS_FILTER_IS_PUMP | MS_FILTER_IS_HW_ACCELERATED);
 
 extern "C" void _register_videotoolbox_if_supported(BCTBX_UNUSED(MSFactory *factory)) {
 #if TARGET_OS_SIMULATOR
@@ -117,7 +129,6 @@ extern "C" void _register_videotoolbox_if_supported(BCTBX_UNUSED(MSFactory *fact
 		           "requires iOS 8 or MacOS 10.8");
 	}
 
-#if TARGET_OS_IPHONE
 	if (kCFCoreFoundationVersionNumber >= 1400) { // MacOS >= 10.13 or iOS >= 11.0
 		unique_ptr<VideoToolboxUtilities> codecInfo(VideoToolboxUtilities::create("video/hevc"));
 		if (codecInfo->encoderIsAvailable()) {
@@ -131,6 +142,6 @@ extern "C" void _register_videotoolbox_if_supported(BCTBX_UNUSED(MSFactory *fact
 		ms_message("Cannot register VideoToolbox H265 codec. That "
 		           "requires iOS 11.0 or MacOS 10.13");
 	}
-#endif // TARGET_OS_IPHONE
+
 #endif // !TARGET_OS_SIMULATOR
 }

@@ -460,7 +460,7 @@ if(PCAP_FOUND)
 endif()
 
 if(ENABLE_VIDEO)
-	add_subdirectory(voip/h26x)
+	add_subdirectory(videofilters/h26x)
 endif()
 
 set(VOIP_SOURCE_FILES_ALL ${VOIP_SOURCE_FILES_C} ${VOIP_SOURCE_FILES_CXX} ${VOIP_SOURCE_FILES_OBJC} ${VOIP_SOURCE_FILES_ASM})
