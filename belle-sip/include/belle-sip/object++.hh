@@ -199,6 +199,8 @@ public:
 		if (cppString.empty()) return nullptr;
 		else return cppString.c_str();
 	}
+	typedef _CType CObjectType;
+	typedef _CppType CppObjectType;
 
 protected:
 	virtual ~HybridObject() = default;
@@ -228,6 +230,54 @@ private:
 	}
 	mutable std::weak_ptr<_CppType> mSelf;
 };
+
+template <typename _classT>
+typename _classT::CObjectType *toC(_classT *obj) {
+	if (obj) return obj->toC();
+	return nullptr;
+}
+
+template <typename _classT>
+const typename _classT::CObjectType *toC(const _classT *obj) {
+	if (obj) return obj->toC();
+	return nullptr;
+}
+
+template <typename _classT>
+typename _classT::CObjectType *toC(const std::shared_ptr<_classT> &obj) {
+	if (obj) return obj->toC();
+	return nullptr;
+}
+
+template <typename _classT>
+const typename _classT::CObjectType *toC(const std::shared_ptr<const _classT> &obj) {
+	if (obj) return obj->toC();
+	return nullptr;
+}
+
+template <typename _classT>
+typename _classT::CppObjectType *toCpp(typename _classT::CObjectType *obj) {
+	if (obj) return _classT::toCpp(obj);
+	return nullptr;
+}
+
+template <typename _classT>
+const typename _classT::CppObjectType *toCpp(const typename _classT::CObjectType *obj) {
+	if (obj) return _classT::toCpp(obj);
+	return nullptr;
+}
+
+template <typename _classT>
+std::shared_ptr<typename _classT::CppObjectType> getSharedPtr(typename _classT::CObjectType *obj) {
+	if (obj) return _classT::toCpp(obj)->getSharedFromThis();
+	return nullptr;
+}
+
+template <typename _classT>
+std::shared_ptr<const typename _classT::CppObjectType> getSharedPtr(const typename _classT::CObjectType *obj) {
+	if (obj) return _classT::toCpp(obj)->getSharedFromThis();
+	return nullptr;
+}
 
 } // namespace bellesip
 
