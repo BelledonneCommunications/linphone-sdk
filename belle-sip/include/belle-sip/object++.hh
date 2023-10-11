@@ -81,11 +81,13 @@ private:
  * The C++ object can be obtained from C object with static method toCpp().
  *
  * VERY IMPORTANT USAGE RULES:
- * - The destructor MUST be kept protected so that no one can call delete operator on the object. Instead unref() must
- *be used.
- * - make_shared<>() or shared_ptr<>(new ...) MUST NOT be used to instanciate an HybridObject, use create() instead.
+ * - make_shared\<\>() or shared_ptr\<\>(new ...) MUST NOT be used to instanciate an HybridObject, use create() instead.
+ * - An HybridObject can be used on the stack like a regular object ONLY if used internally. If the instance is supposed
+ *   to be returned and used by a client then it MUST be created with create().
+ * - If create() or createCObject() are used on a derived class of the one inheriting this class then the derived type
+ *   MUST be given explicitly, DerivedClass::create\<DerivedClass\>().
  *
- * A shared_ptr<> can be obtained at any time from an HybridObject using getSharedFromThis().
+ * A shared_ptr\<\> can be obtained at any time from an HybridObject using getSharedFromThis().
  * The static getSharedFromThis(_Ctype*) method can be used to directly obtain a shared_ptr from the C object.
  *
  * The clone() method must be overriden to return a new _CppType contructed with copy contructor,
@@ -93,7 +95,7 @@ private:
  *
  * Rational for using this template:
  * - You have an existing library in C where all C objects are inheriting from belle_sip_object_t (for refcounting,
- *data_set etc...).
+ *   data_set etc...).
  * - You want to use C++ in your library without making any disruption in the API.
  * IMPORTANT:
  * If you don't care about belle_sip_object_t inheritance in your C api,
@@ -104,15 +106,16 @@ template <typename _CType, typename _CppType>
 class HybridObject : public Object {
 public:
 	// Create the C++ object returned as a shared_ptr. Reference counting is managed by shared_ptr automatically.
-	template <typename... _Args>
-	static inline std::shared_ptr<_CppType> create(_Args &&...__args) {
-		return (new _CppType(std::forward<_Args>(__args)...))->toSharedPtr();
+	template <typename _DerivedCppType = _CppType, typename... _Args>
+	static inline std::shared_ptr<_DerivedCppType> create(_Args &&...__args) {
+		return std::static_pointer_cast<_DerivedCppType>(
+		    (new _DerivedCppType(std::forward<_Args>(__args)...))->toSharedPtr());
 	}
-	// Convenience creator to get the C object object instead. Automatically acquires a ref. Consumers have the
+	// Convenience creator to get the C object instead. Automatically acquires a ref. Consumers have the
 	// responsibility to unref
-	template <typename... _Args>
+	template <typename _DerivedCppType = _CppType, typename... _Args>
 	static inline _CType *createCObject(_Args &&...__args) {
-		return (new _CppType(std::forward<_Args>(__args)...))->toC();
+		return (new _DerivedCppType(std::forward<_Args>(__args)...))->toC();
 	}
 	// Obtain the C object from this.
 	_CType *toC() {
