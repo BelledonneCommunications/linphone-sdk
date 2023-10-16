@@ -174,7 +174,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		mediastreamer2_tester_windows.h
 	)
 	add_library(mediastreamer2-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
-	target_include_directories(mediastreamer2-tester-runtime PRIVATE "../../mswinrtvid")	# HACK!!
 	target_link_libraries(mediastreamer2-tester-runtime mediastreamer2-tester-static)
 	set_target_properties(mediastreamer2-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(mediastreamer2-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.Mediastreamer2.Tester")

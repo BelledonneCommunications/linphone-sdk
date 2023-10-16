@@ -24,7 +24,6 @@
 #include <bctoolbox/logging.h>
 
 #include "mediastreamer2_tester_windows.h"
-#include "mswinrtvid.h"
 
 using namespace BelledonneCommunications::Mediastreamer2::Tester;
 using namespace Platform;
