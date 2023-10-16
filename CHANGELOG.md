@@ -21,6 +21,8 @@ changes made to these components.
 - Update to mbdetls 3.3
 - TLS Client certificate request authentication callback removed (due to mbedtls update).
   Application using TLS client certificate must provide it before any TLS connexion needing it.
+- LinphoneFriendList's PresenceReceived callback is now only called for full-state NOTIFYs.
+
 
 ## [5.2.0] - 2022-11-14
 
