@@ -115,9 +115,6 @@
 [submodule "msaaudio"]
 	path = msaaudio
 	url = ../msaaudio.git
-[submodule "mswinrtvid"]
-	path = mswinrtvid
-	url = ../mswinrtvid.git
 [submodule "msandroidcamera2"]
 	path = msandroidcamera2
 	url = ../msandroidcamera2.git
