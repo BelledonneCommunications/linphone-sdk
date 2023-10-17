@@ -67,7 +67,7 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 		set(_PRESET "${LINPHONESDK_WINDOWS_PRESET_PREFIX}${_WINDOWS_ARCH}")
 		set(_NAME "Windows")
 	endif()
-	get_arch_builddir_name(_WINDOWS_ARCH _WINDOWS_ARCH_BUILDDIR_NAME)
+	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)
 	set(_WINDOWS_ARCH_BINARY_DIR "${PROJECT_BINARY_DIR}/${_WINDOWS_ARCH_BUILDDIR_NAME}")
 	set(_WINDOWS_ARCH_INSTALL_DIR "${PROJECT_BINARY_DIR}/linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}")
 	add_custom_target(${_TARGET} ALL
@@ -94,7 +94,7 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 		set(_DEPENDS_TARGET win-${_WINDOWS_ARCH})
 		set(_NAME "Windows Store")
 	endif()
-	get_arch_builddir_name(_WINDOWS_ARCH _WINDOWS_ARCH_BUILDDIR_NAME)
+	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)
 	
 	add_custom_target(sdk-${_WINDOWS_ARCH} ALL
 		COMMAND "${CMAKE_COMMAND}"
