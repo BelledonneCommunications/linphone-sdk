@@ -148,17 +148,17 @@ static int compareAllAlgoTypes(bzrtpChannelContext_t *zrtpChannelContext, uint8_
 static int compareAllAlgoTypesWithExpectedChangedOnly(bzrtpChannelContext_t *zrtpChannelContext, uint8_t expectedAlgoType, uint8_t expectedType) {
 	switch(expectedAlgoType) {
 		case ZRTP_HASH_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, expectedType,   ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, expectedType,   ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_GCM, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_CIPHERBLOCK_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, expectedType,     ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, expectedType,     ZRTP_AUTHTAG_GCM, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_AUTHTAG_TYPE:
 			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, expectedType,      getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 		case ZRTP_KEYAGREEMENT_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, expectedType,           ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_GCM, expectedType,           ZRTP_SAS_B32);
 		case ZRTP_SAS_TYPE:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), expectedType);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_GCM, getDefaultKeyAgreementAlgo(), expectedType);
 		default:
-			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_HS32, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
+			return compareAllAlgoTypes(zrtpChannelContext, ZRTP_HASH_S256, ZRTP_CIPHER_AES1, ZRTP_AUTHTAG_GCM, getDefaultKeyAgreementAlgo(), ZRTP_SAS_B32);
 	}
 }
 

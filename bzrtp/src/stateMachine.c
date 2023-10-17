@@ -2622,18 +2622,21 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 	/* allocate memory */
 	uint8_t *srtpkeyi = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
 	uint8_t *srtpkeyr = (uint8_t *)malloc(zrtpChannelContext->cipherKeyLength*sizeof(uint8_t));
-	uint8_t *srtpsalti = (uint8_t *)malloc(14*sizeof(uint8_t));/* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
-	uint8_t *srtpsaltr = (uint8_t *)malloc(14*sizeof(uint8_t));/* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	/* master salt size for srtp GCM auth tag in srtp is 12 bytes when using GCM authentication
+	 * 14 otherwise (RFC section 4.5.3) - GCM support is not in the original RFC */
+	uint8_t srtpsaltlength = (zrtpChannelContext->authTagAlgo == ZRTP_AUTHTAG_GCM)?12:14;
+	uint8_t *srtpsalti = (uint8_t *)malloc(srtpsaltlength*sizeof(uint8_t));
+	uint8_t *srtpsaltr = (uint8_t *)malloc(srtpsaltlength*sizeof(uint8_t));
 	/* compute keys and salts according to rfc section 4.5.3 */
 	/* srtpkeyi = KDF(s0, "Initiator SRTP master key", KDF_Context, negotiated AES key length) */
 	retval = bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, srtpkeyi);
 	/* srtpsalti = KDF(s0, "Initiator SRTP master salt", KDF_Context, 112) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, zrtpChannelContext->hmacFunction, srtpsalti);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Initiator SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, srtpsaltlength, zrtpChannelContext->hmacFunction, srtpsalti);
 
 	/* srtpkeyr = KDF(s0, "Responder SRTP master key", KDF_Context, negotiated AES key length) */
 	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master key", 25, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, zrtpChannelContext->cipherKeyLength, zrtpChannelContext->hmacFunction, srtpkeyr);
 	/* srtpsaltr = KDF(s0, "Responder SRTP master salt", KDF_Context, 112) */
-	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, 14, zrtpChannelContext->hmacFunction, srtpsaltr);
+	retval += bzrtp_keyDerivationFunction(zrtpChannelContext->s0, zrtpChannelContext->hashLength, (uint8_t *)"Responder SRTP master salt", 26, zrtpChannelContext->KDFContext, zrtpChannelContext->KDFContextLength, srtpsaltlength, zrtpChannelContext->hmacFunction, srtpsaltr);
 
 	if (retval!=0) {
 		free(srtpkeyi);
@@ -2659,9 +2662,9 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 
 	/* Set the length in secrets structure */
 	zrtpChannelContext->srtpSecrets.selfSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
-	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = 14; /* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	zrtpChannelContext->srtpSecrets.selfSrtpSaltLength = srtpsaltlength;
 	zrtpChannelContext->srtpSecrets.peerSrtpKeyLength = zrtpChannelContext->cipherKeyLength;
-	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = 14; /* salt length is defined to be 112 bits(14 bytes) in rfc section 4.5.3 */
+	zrtpChannelContext->srtpSecrets.peerSrtpSaltLength = srtpsaltlength;
 
 	/* Set the used algo in secrets structure */
 	zrtpChannelContext->srtpSecrets.cipherAlgo = zrtpChannelContext->cipherAlgo;

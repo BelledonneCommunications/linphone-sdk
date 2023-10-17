@@ -1318,6 +1318,7 @@ const char *bzrtp_algoToString(uint8_t algo){
 	case(ZRTP_AUTHTAG_HS80): return "HMAC-SHA1-80";
 	case(ZRTP_AUTHTAG_SK32): return "Skein-32";
 	case(ZRTP_AUTHTAG_SK64): return "Skein-64";
+	case(ZRTP_AUTHTAG_GCM): return "GCM";
 
 	case(ZRTP_KEYAGREEMENT_DH2k): return "DHM-2048";
 	case(ZRTP_KEYAGREEMENT_EC25): return "ECDH-256";

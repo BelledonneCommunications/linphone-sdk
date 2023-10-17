@@ -49,9 +49,10 @@ uint8_t bzrtpUtils_getAllAvailableCryptoTypes(uint8_t algoType, uint8_t availabl
 		availableTypes[1] = ZRTP_CIPHER_AES3;
 		return 2;
 	case ZRTP_AUTHTAG_TYPE:
-		availableTypes[0] = ZRTP_AUTHTAG_HS32;
-		availableTypes[1] = ZRTP_AUTHTAG_HS80;
-		return 2;
+		availableTypes[0] = ZRTP_AUTHTAG_GCM;
+		availableTypes[1] = ZRTP_AUTHTAG_HS32;
+		availableTypes[2] = ZRTP_AUTHTAG_HS80;
+		return 3;
 	case ZRTP_KEYAGREEMENT_TYPE:
 	{
 		/* get availables types from bctoolbox */
@@ -846,6 +847,8 @@ uint8_t bzrtp_cryptoAlgoTypeStringToInt(uint8_t algoType[4], uint8_t algoFamily)
 			return ZRTP_AUTHTAG_SK32;
 		} else if (memcmp(algoType, "SK64", 4) == 0) {
 			return ZRTP_AUTHTAG_SK64;
+		} else if (memcmp(algoType, "GCM ", 4) == 0) {
+			return ZRTP_AUTHTAG_GCM;
 		}
 		return ZRTP_UNSET_ALGO;
 	}
@@ -974,6 +977,9 @@ void bzrtp_cryptoAlgoTypeIntToString(uint8_t algoTypeInt, uint8_t algoTypeString
 		break;
 	case ZRTP_AUTHTAG_SK64:
 		memcpy(algoTypeString, "SK64", 4);
+		break;
+	case ZRTP_AUTHTAG_GCM:
+		memcpy(algoTypeString, "GCM ", 4);
 		break;
 	case ZRTP_KEYAGREEMENT_DH2k:
 		memcpy(algoTypeString, "DH2k", 4);

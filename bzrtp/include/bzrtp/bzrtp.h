@@ -75,6 +75,7 @@
 #define ZRTP_AUTHTAG_HS80		0x32
 #define ZRTP_AUTHTAG_SK32		0x33
 #define ZRTP_AUTHTAG_SK64		0x34
+#define ZRTP_AUTHTAG_GCM		0x35
 
 /**
  * WARNING : it is very important to keep the key agreement defined in that order
