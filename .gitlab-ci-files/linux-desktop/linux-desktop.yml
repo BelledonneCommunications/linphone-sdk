@@ -221,6 +221,11 @@
     - echo "thread apply all bt" | sudo tee .gdbinit
     #We need to add this command in two .gdbinit files, one in the current directory and the other in the home directory, for gdb to pick the above command.
     - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
+
+    - ROCKY_VERSION=$(cat /etc/rocky-release) || true
+    - echo ${ROCKY_VERSION}
+    - if [ -n "$ROCKY_VERSION" ] && [ -n "$(echo $ROCKY_VERSION | grep -o 'release 8')" ]; then source /opt/rh/gcc-toolset-12/enable; fi
+
     # searching for core files and if there are some, launch gdb on all of it
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails

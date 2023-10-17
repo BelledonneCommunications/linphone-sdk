@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20230905_add_rocky8_sdk
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20230914_gdb_toolset_12_sdk
 ###############################################################################
 
 FROM rockylinux:8
@@ -23,7 +23,7 @@ RUN dnf -y install at bison ccache clang doxygen gettext-devel git graphviz libt
     dnf -y clean all
 
 # Install gcc toolset 12
-RUN dnf -y install gcc-toolset-12 gcc-toolset-12-libasan-devel gcc-toolset-12-libubsan-devel
+RUN dnf -y install gcc-toolset-12 gcc-toolset-12-libasan-devel gcc-toolset-12-libubsan-devel gcc-toolset-12-gdb
 
 # Install linphone & flexisip dependencies development packages
 RUN dnf -y install alsa-lib-devel glew-devel gsm-devel jansson-devel libbsd-devel libsrtp-devel libv4l-devel libvpx-devel libXv-devel libxml2-devel mariadb-devel mbedtls-devel mesa-libEGL-devel net-snmp-devel openssh openssh-clients opus-devel postgresql-devel protobuf-devel pulseaudio-libs-devel speex-devel sqlite-devel xerces-c-devel xsd && \
