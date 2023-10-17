@@ -197,6 +197,7 @@ static void player_process(MSFilter *f) {
 				}
 
 				if (res == -2) {
+					ms_message("%s: end of file reached.", f->desc->name);
 					ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
 					ms_filter_notify_no_arg(f, MS_FILE_PLAYER_EOF);
 					d->state = MSPlayerPaused;

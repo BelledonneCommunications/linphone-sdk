@@ -427,6 +427,7 @@ void clear_mediastreams(MediastreamDatas *args) {
 		ms_connection_helper_start(&h);
 		ms_connection_helper_unlink(&h, args->read, -1, 0);
 		ms_connection_helper_unlink(&h, args->decoder, 0, 0);
+		if (args->resampler) ms_connection_helper_unlink(&h, args->resampler, 0, 0);
 		ms_connection_helper_unlink(&h, args->write, 0, -1);
 		if (ms_filter_get_id(args->write) == MS_FILE_REC_ID) {
 			ms_filter_call_method_noarg(args->write, MS_FILE_REC_CLOSE);
