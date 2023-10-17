@@ -70,7 +70,8 @@ typedef enum _MSZrtpAuthTag {
 	MS_ZRTP_AUTHTAG_HS32,
 	MS_ZRTP_AUTHTAG_HS80,
 	MS_ZRTP_AUTHTAG_SK32,
-	MS_ZRTP_AUTHTAG_SK64
+	MS_ZRTP_AUTHTAG_SK64,
+	MS_ZRTP_AUTHTAG_GCM
 } MSZrtpAuthTag;
 
 typedef enum _MSZrtpKeyAgreement {
