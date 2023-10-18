@@ -149,12 +149,11 @@ android {
 
 ///////////// Task /////////////
 
-task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
-    mustRunAfter "generateDebugRFile"
+task(generateJavadoc, type: Javadoc) {
+    mustRunAfter 'generateDebugRFile', 'generateReleaseRFile'
     source = srcDir
     excludes = javaExcludes.plus(['**/**.html', '**/**.aidl', '**/org/linphone/core/tools/**'])
     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    //classpath += files(android.libraryVariants.release.javaCompile.classpath.files)
     classpath += configurations.javadocDeps
     options.encoding = 'UTF-8'
     options.addStringOption('Xdoclint:none', '-quiet')
@@ -167,14 +166,15 @@ task(releaseJavadoc, type: Javadoc, dependsOn: "assembleRelease") {
     }
 }
 
+task androidJavadocsJar(type: Jar, dependsOn: generateJavadoc) {
+    archiveClassifier = 'javadoc'
+    from generateJavadoc.destinationDir
+}
+
 task sourcesJar(type: Jar) {
     archiveClassifier = 'sources'
     from android.sourceSets.main.java.srcDirs
-}
-
-task androidJavadocsJar(type: Jar, dependsOn: releaseJavadoc) {
-    archiveClassifier = 'javadoc'
-    from releaseJavadoc.destinationDir
+    finalizedBy androidJavadocsJar
 }
 
 task sdkZip(type: Zip) {
@@ -215,8 +215,6 @@ task copyAssets(type: Sync) {
 
 project.tasks['preBuild'].dependsOn 'copyAssets'
 project.tasks['preBuild'].dependsOn 'copyProguard'
-project.tasks['assemble'].dependsOn 'sourcesJar'
-project.tasks['assemble'].dependsOn 'androidJavadocsJar'
 
 afterEvaluate {
     def debugFile = file("$buildDir/outputs/aar/linphone-sdk-android.aar")

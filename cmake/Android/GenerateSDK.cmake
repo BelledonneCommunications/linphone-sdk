@@ -45,9 +45,24 @@ if(_gradle_assemble_result)
 	message(FATAL_ERROR "Gradle assemble failed")
 endif()
 
-execute_process(
-	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publish"
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishReleasePublicationToMavenRepository"
+	)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishDebugPublicationToMavenRepository"
+	)
+elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishDebugPublicationToMavenRepository"
+	)
+else()
+	execute_process(
+		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publish"
+	)
+endif()
+
 execute_process(
 	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-q" "sdkZip"
 	RESULT_VARIABLE _gradle_sdkzip_result

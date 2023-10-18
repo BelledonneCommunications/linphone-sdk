@@ -26,4 +26,15 @@ project(gdbserver LANGUAGES) # Dummy project
 configure_file(gdb.setup.in gdb.setup @ONLY)
 
 install(FILES "${PROJECT_BINARY_DIR}/gdb.setup" DESTINATION bin)
-install(PROGRAMS "${CMAKE_ANDROID_NDK}/prebuilt/android-${ANDROID_SYSROOT_ABI}/gdbserver/gdbserver" DESTINATION bin)
+
+if(EXISTS "${CMAKE_ANDROID_NDK}/prebuilt/android-${ANDROID_SYSROOT_ABI}/gdbserver/gdbserver")
+	install(PROGRAMS "${CMAKE_ANDROID_NDK}/prebuilt/android-${ANDROID_SYSROOT_ABI}/gdbserver/gdbserver" DESTINATION bin)
+else()
+	message("Failed to find gdb-server at [${CMAKE_ANDROID_NDK}/prebuilt/android-${ANDROID_SYSROOT_ABI}/gdbserver/gdbserver], trying with lldb-server")
+
+	if(EXISTS "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/${CMAKE_C_COMPILER_VERSION}/lib/linux/${CMAKE_SYSTEM_PROCESSOR}/lldb-server")
+		install(PROGRAMS "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/${CMAKE_C_COMPILER_VERSION}/lib/linux/${CMAKE_SYSTEM_PROCESSOR}/lldb-server" DESTINATION bin)
+	else()
+		message("Failed to find lldb-server at [${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/${CMAKE_C_COMPILER_VERSION}/lib/linux/${CMAKE_SYSTEM_PROCESSOR}/lldb-server]")
+	endif()
+endif()
