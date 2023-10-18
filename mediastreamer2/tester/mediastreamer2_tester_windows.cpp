@@ -257,24 +257,13 @@ void NativeTester::startVideoStream(Platform::String ^ videoSwapChainPanelName,
 	if (usePreviewStream) {
 		_usePreviewStream = usePreviewStream;
 		_videoStream = video_preview_new(_factory);
-		RefToPtrProxy<Platform::String ^> *nativeWindowId =
-		    new RefToPtrProxy<Platform::String ^>(videoSwapChainPanelName);
-		video_preview_set_native_window_id(_videoStream, nativeWindowId);
-		video_preview_set_display_filter_name(_videoStream, "MSWinRTBackgroundDis");
 		video_preview_set_size(_videoStream, vsize);
 		video_preview_set_fps(_videoStream, (float)frameRate);
 		video_preview_set_device_rotation(_videoStream, _deviceRotation);
 		video_preview_start(_videoStream, cam);
 	} else {
 		_videoStream = video_stream_new(_factory, 20000, 0, FALSE);
-		RefToPtrProxy<Platform::String ^> *nativeWindowId =
-		    new RefToPtrProxy<Platform::String ^>(videoSwapChainPanelName);
-		video_stream_set_native_window_id(_videoStream, nativeWindowId);
-		RefToPtrProxy<Platform::String ^> *nativePreviewWindowId =
-		    new RefToPtrProxy<Platform::String ^>(previewSwapChainPanelName);
-		video_stream_set_native_preview_window_id(_videoStream, nativePreviewWindowId);
 		video_stream_use_preview_video_window(_videoStream, TRUE);
-		video_stream_set_display_filter_name(_videoStream, "MSWinRTBackgroundDis");
 		video_stream_use_video_preset(_videoStream, "custom");
 		video_stream_set_sent_video_size(_videoStream, vsize);
 		video_stream_set_fps(_videoStream, (float)frameRate);
