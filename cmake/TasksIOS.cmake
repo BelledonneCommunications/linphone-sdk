@@ -24,6 +24,7 @@
 set(LINPHONESDK_IOS_ARCHS "arm64, x86_64" CACHE STRING "iOS architectures to build: comma-separated list of values in [arm64, x86_64]")
 set(LINPHONESDK_IOS_PLATFORM "Both" CACHE STRING "Platform to build for iOS. Value can be either \"Iphone\", \"Simulator\" or \"Both\"")
 set(LINPHONESDK_IOS_BASE_URL "https://www.linphone.org/releases/ios" CACHE STRING "URL of the repository where the iOS SDK zip files are located.")
+set(LINPHONESDK_SWIFT_DOC_HOSTING_PATH "snapshots/docs/liblinphone/${LINPHONESDK_VERSION}/swift" CACHE STRING "Hosting path of the swift doc.")
 option(ENABLE_FAT_BINARY "Enable fat binary generation using lipo." ON)
 
 
@@ -53,7 +54,7 @@ endif()
 
 
 if(ENABLE_FAT_BINARY)
-	set(LINPHONE_APP_EXT_FRAMEWORKS 
+	set(LINPHONE_APP_EXT_FRAMEWORKS
 		"bctoolbox.framework,belcard.framework,belle-sip.framework,belr.framework,lime.framework,linphone.framework,mediastreamer2.framework,msamr.framework,mscodec2.framework,msopenh264.framework,mssilk.framework,mswebrtc.framework,ortp.framework"
 		CACHE STRING "Frameworks which are safe for app extension use"
   )
@@ -121,7 +122,7 @@ endforeach()
 ############################################################################
 # Generate the aggregated frameworks
 ############################################################################
-
+message("preparing to GenerateFrameworks")
 list(JOIN _IOS_ARCHS ", " _IOS_ARCHS)
 
 add_custom_target(gen-frameworks ALL
@@ -131,6 +132,7 @@ add_custom_target(gen-frameworks ALL
 		"-DLINPHONESDK_NAME=${LINPHONESDK_NAME}"
 		"-DLINPHONESDK_IOS_ARCHS=${_IOS_ARCHS}"
 		"-DLINPHONESDK_IOS_PLATFORM=${LINPHONESDK_IOS_PLATFORM}"
+		"-DLINPHONESDK_SWIFT_DOC_HOSTING_PATH=${LINPHONESDK_SWIFT_DOC_HOSTING_PATH}"
 		"-DCMAKE_INSTALL_PREFIX=${_IOS_INSTALL_DIR}/apple-darwin"
 		"-DENABLE_FAT_BINARY=${ENABLE_FAT_BINARY}"
 		"-DENABLE_SWIFT_DOC=${ENABLE_SWIFT_DOC}"

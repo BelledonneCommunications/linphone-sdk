@@ -109,3 +109,11 @@
         then
           exit $EXIT_CODE
       fi
+
+.set_xcdoc_directory:
+  stage: deploy
+  rules:
+    - if: $DEPLOY_RUN_TEST
+  tags: [ "macmini-m1-xcode13" ]
+  script:
+    - UPLOAD_ROOT_DIRECTORY=$(echo $UPLOAD_ROOT_DIRECTORY | grep --extended-regexp --only-matching "[a-z]{8,9}$")

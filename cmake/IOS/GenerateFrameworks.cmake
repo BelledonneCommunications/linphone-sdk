@@ -25,7 +25,7 @@ include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_IOS_ARCHS}" _IOS_ARCHS)
 
-
+message("Creating the destination directory that will contain the merged content of all architectures")
 # Create the destination directory that will contain the merged content of all architectures
 execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${CMAKE_INSTALL_PREFIX}"
@@ -46,7 +46,7 @@ list(FIND _IOS_ARCHS "arm64-simulator" _ARM64_SIMULATOR_FOUND)
 if(ENABLE_SWIFT_DOC AND _ARM64_SIMULATOR_FOUND GREATER -1)
 	message("Generating doc for swift module, we need arch arm64 to generate doc!")
 	execute_process(
-		COMMAND "xcodebuild" "docbuild" "-scheme" "linphonesw" "-destination" "platform=iOS Simulator,name=iPhone 13"
+		COMMAND "xcodebuild" "docbuild" "-scheme" "linphonesw" "-destination" "platform=iOS Simulator,name=iPhone 13" "DOCC_HOSTING_BASE_PATH=${LINPHONESDK_SWIFT_DOC_HOSTING_PATH}"
 		WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}/ios-arm64-simulator/liblinphone/"
 	)
 	execute_process(
@@ -60,6 +60,8 @@ if(ENABLE_SWIFT_DOC AND _ARM64_SIMULATOR_FOUND GREATER -1)
 			file(REMOVE_RECURSE "${LINPHONESDK_NAME}/ios-${_ARCH}/Frameworks/linphonesw.framework")
 		endforeach()
 	endif()
+else()
+	message("Swift doc not generated. ENABLE_SWIFT_DOC=${ENABLE_SWIFT_DOC}, _ARM64_SIMULATOR_FOUND=${_ARM64_SIMULATOR_FOUND}")
 endif()
 
 if(ENABLE_FAT_BINARY)

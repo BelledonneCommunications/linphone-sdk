@@ -41,7 +41,8 @@ execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "${CMAKE_INSTALL_PREFIX}/Tools"
 )
 execute_process(
-	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "${CMAKE_INSTALL_PREFIX}"
+	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "linphone-sdk" "-i" "linphone-sdk/apple-darwin/*"
+	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
 # Generate podspec file

@@ -8,6 +8,9 @@
     - !reference [.rules-merge-request-manual, rules]
     - if: $ALL_IOS_BUILDS != null
 
+  variables:
+    CMAKE_PRESET: ios-sdk
+
   before_script:
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
@@ -29,7 +32,8 @@
     - echo $CMAKE_GENERATOR
     - echo $ARCHS_OPTIONS
     - echo $CMAKE_OPTIONS
-    - cmake --preset=ios-sdk -B build/ios -G "$CMAKE_GENERATOR" -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - echo $CCACHE_CONFIGPATH
+    - cmake --preset=$CMAKE_PRESET -B build/ios -G "$CMAKE_GENERATOR" -DLINPHONESDK_IOS_ARCHS="$ARCHS_OPTIONS" $UPLOAD_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - echo $ADDITIONAL_BUILD_OPTIONS
     - echo $ADDITIONAL_BUILD_CONFIGURATIONS
     - cmake --build build/ios $ADDITIONAL_BUILD_CONFIGURATIONS -- $ADDITIONAL_BUILD_OPTIONS
@@ -58,12 +62,28 @@
 
 
 ios-makefile:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_IOS_BUILDS != null
+    - if: $DEPLOY_IOS != null
+    - if: $DEPLOY_RUN_NUGET != null
+    - if: $UPLOAD_XAMARIN != null
+    - if: $ENABLE_IOS_TESTS != null
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=OFF
+    CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_CSHARP_WRAPPER=ON -DENABLE_DOC=ON -DENABLE_UNIT_TESTS=ON -DENABLE_EXAMPLE_PLUGIN=ON
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-    ARCHS_OPTIONS: $IOS_ARCHS
+    ARCHS_OPTIONS: "arm64,x86_64"
+    ADDITIONAL_BUILD_CONFIGURATIONS: --config RelWithDebInfo -j $MAX_NUMBER_TASK
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+  script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+    - !reference [.choose_url_ios, script]
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
+    - !reference [.ios, script]
   extends: .ios
 
 
@@ -153,13 +173,13 @@ ios-xcode:
     - CCACHE_CONFIGPATH=~/Library/Preferences/ccache/ccache-xcode.conf
 
     - !reference [.ios, before_script]
-  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring UPLOAD_CMAKE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
     - !reference [.choose_url_ios, script]
-    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
     - !reference [.ios, script]
 
   extends: .ios
@@ -181,14 +201,14 @@ ios-xcode-novideo:
     - CCACHE_CONFIGPATH=~/Library/Preferences/ccache/ccache-xcode.conf
 
     - !reference [.ios, before_script]
-  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring UPLOAD_CMAKE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
 
     - !reference [.choose_url_ios, script]
-    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/novideo/"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/novideo/"
     - !reference [.ios, script]
   extends: .ios
 
@@ -200,13 +220,27 @@ ios-xcode-pqc:
   variables:
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
-  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring UPLOAD_CMAKE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
 
     - !reference [.choose_url_ios, script]
-    - XCODE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/pqc/"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/pqc/"
     - !reference [.ios, script]
   extends: ios-xcode
+
+ios-xcode-doc-arm64:
+  tags: [ "macos-xcode15" ]
+  variables:
+    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_SWIFT_DOC=ON -DENABLE_SWIFT_WRAPPER=ON -DENABLE_CSHARP_WRAPPER=ON -DENABLE_UNIT_TESTS=ON -DENABLE_EXAMPLE_PLUGIN=ON -DLINPHONESDK_IOS_PLATFORM=Simulator -DLINPHONESDK_BUILD_TYPE=IOS
+    ARCHS_OPTIONS: "arm64"
+    CMAKE_PRESET: ios-arm64-simulator
+  extends: ios-xcode
+  before_script:
+    - !reference [.factorize_ios_upload, script]
+    #Xcode doesn't want full path so we give him only part of it
+    - !reference [.set_xcdoc_directory, script]
+    - CMAKE_OPTIONS="$CMAKE_OPTIONS -DLINPHONESDK_SWIFT_DOC_HOSTING_PATH=$UPLOAD_ROOT_DIRECTORY/docs/liblinphone/$LIBLINPHONE_VERSION/swift"
+    - !reference [ios-xcode, before_script]

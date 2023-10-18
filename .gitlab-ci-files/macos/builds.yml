@@ -27,13 +27,13 @@
   script:
     - !reference [.set-max-jobs-unix, script]
     - echo $MACOS_DEPLOY_URL
-    - echo $XCODE_OPTIONS
+    - echo $UPLOAD_CMAKE_OPTIONS
     - if [ -d "build" ]; then rm -rf build; fi;
     - echo $CMAKE_GENERATOR
     - echo $DEFAULT_CMAKE_OPTIONS
     - echo $CMAKE_OPTIONS
     - echo $LINPHONESDK_MACOS_ARCHS
-    - cmake --preset=mac-sdk -B build/mac -G "$CMAKE_GENERATOR" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" $DEFAULT_CMAKE_OPTIONS $XCODE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
+    - cmake --preset=mac-sdk -B build/mac -G "$CMAKE_GENERATOR" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.14 -DLINPHONESDK_MACOS_ARCHS="$LINPHONESDK_MACOS_ARCHS" $DEFAULT_CMAKE_OPTIONS $UPLOAD_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS
     - cmake --build build/mac -- $ADDITIONAL_BUILD_OPTIONS
     #used to know the right zip to pick up in tests stage. we parse the git status command to stop at the number of commits
     #and we then use a glob in test stage to get the right archive
@@ -63,10 +63,27 @@
 #################################################
 
 macos-m1-multiarch-makefile:
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_MACOS_BUILDS != null
+    - if: $DEPLOY_MACOS != null
   variables:
     CMAKE_GENERATOR: Unix Makefiles
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
     #Only used to overwrite value set by .set_parallel_level.yml
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
+
+  # All variables declared in "variables" are processed before "before_script" and "script", so declaring UPLOAD_CMAKE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
+  script:
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+
+    - !reference [.choose_url_macos, script]
+
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
+
+    - !reference [.macos-m1-multiarch-desktop, script]
   extends: .macos-m1-multiarch-desktop
 
 macos-m1-multiarch-makefile-pqc:
@@ -128,17 +145,10 @@ macos-xcode:
 
     - !reference [.macos-desktop, before_script]
 
-  # All variables declared in "variables" are processed before "before_script" and "script", so declaring XCODE_OPTIONS (path to base URL) in before_script allows to set it dynamically.
   script:
-
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
-
-    - !reference [.choose_url_macos, script]
-
-    - XCODE_OPTIONS="-DLINPHONESDK_MACOS_BASE_URL=$MACOS_URL"
-
-    - !reference [.macos-m1-multiarch-desktop, script]
+    - !reference [macos-m1-multiarch-makefile, script]
 
 macos-xcode-pqc:
   extends: macos-xcode
