@@ -69,9 +69,9 @@ endif()
 
 
 # Hidden options to (de)activate building of some bc components (mainly used by flexisip)
-set(BUILD_BELLESIP ON CACHE BOOL "Build belle-sip component.")
-set(BUILD_LIBLINPHONE ON CACHE BOOL "Build liblinphone component.")
-set(BUILD_MEDIASTREAMER2 ON CACHE BOOL "Build mediastreamer2 component.")
+option(BUILD_BELLESIP "Build belle-sip component." ON)
+option(BUILD_LIBLINPHONE "Build liblinphone component." ON)
+option(BUILD_MEDIASTREAMER2 "Build mediastreamer2 component." ON)
 mark_as_advanced(FORCE BUILD_BELLESIP BUILD_LIBLINPHONE BUILD_MEDIASTREAMER2)
 
 # Global compilation options
