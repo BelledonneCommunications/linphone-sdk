@@ -17,4 +17,5 @@ tester/Windows/LinphoneTester_uwp/packages
 CMakeUserPresets.json
 
 # Cache
+.cache
 .direnv
