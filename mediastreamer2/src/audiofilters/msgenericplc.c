@@ -65,7 +65,7 @@ static void generic_plc_process(MSFilter *f) {
 	mblk_t *m;
 
 	while ((m = ms_queue_get(f->inputs[0])) != NULL) {
-		int transitionBufferSize = mgps->rate * sizeof(int16_t) * TRANSITION_DELAY / 1000;
+		int transitionBufferSize = (mgps->rate * TRANSITION_DELAY / 1000) * sizeof(int16_t);
 		size_t msg_size = msgdsize(m);
 		unsigned int time = (unsigned int)((1000 * msg_size) / (mgps->rate * sizeof(int16_t) * mgps->nchannels));
 		ms_concealer_inc_sample_time(mgps->concealer, f->ticker->time, time, TRUE);
@@ -119,7 +119,7 @@ static void generic_plc_process(MSFilter *f) {
 		ms_queue_put(f->outputs[0], m);
 	}
 	if (ms_concealer_context_is_concealement_required(mgps->concealer, f->ticker->time)) {
-		unsigned int buff_size = mgps->rate * sizeof(int16_t) * mgps->nchannels * f->ticker->interval / 1000;
+		unsigned int buff_size = (mgps->rate * mgps->nchannels * f->ticker->interval / 1000) * sizeof(int16_t);
 #ifdef HAVE_G729B
 		m = allocb(buff_size, 0);
 

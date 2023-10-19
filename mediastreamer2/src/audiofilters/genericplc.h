@@ -42,6 +42,7 @@
 
 typedef struct {
 	unsigned char *continuity_buffer; /**< buffer used to store a small set of future samples */
+	uint16_t plc_buffer_samples_nb;   /**< The buffer len in samples */
 	uint16_t plc_buffer_len;          /**< The buffer len in bytes*/
 	unsigned char *plc_buffer;        /**< buffer to store the previous frames used to generate plc */
 	float *hamming_window;            /**< store the hamming window to apply to signal before fft */

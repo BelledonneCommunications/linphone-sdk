@@ -37,12 +37,16 @@ plc_context_t *generic_plc_create_context(int sample_rate) {
 	 * can save the end of arrived frame,
 	 *     - the second TRANSITION_DELAY ms are mixed for smooth transition with the begining of arrived frame
 	 */
-	context->continuity_buffer = ms_malloc0(2 * sample_rate * sizeof(int16_t) * TRANSITION_DELAY /
-	                                        1000); /* continuity buffer introduce a TRANSITION_DELAY ms delay */
+	context->continuity_buffer =
+	    ms_malloc0((2 * sample_rate * TRANSITION_DELAY / 1000) *
+	               sizeof(int16_t)); /* continuity buffer introduce a TRANSITION_DELAY ms delay */
+	context->plc_buffer_samples_nb =
+	    ((sample_rate * PLC_BUFFER_LEN) / 100) *
+	    100; /* sample numbers should be easily breakable in small factors - not more than 17 */
 	context->plc_buffer_len =
-	    (uint16_t)(sample_rate * sizeof(int16_t) * PLC_BUFFER_LEN); /* length in bytes of the plc_buffer */
+	    (uint16_t)(context->plc_buffer_samples_nb * sizeof(int16_t)); /* length in bytes of the plc_buffer */
 	context->plc_buffer = ms_malloc0(context->plc_buffer_len);
-	context->hamming_window = ms_malloc0(sample_rate * PLC_BUFFER_LEN * sizeof(float));
+	context->hamming_window = ms_malloc0(context->plc_buffer_samples_nb * sizeof(float));
 	context->plc_out_buffer = ms_malloc0(2 * context->plc_buffer_len);
 	context->plc_index = 0;
 	context->plc_samples_used = 0;
@@ -50,12 +54,12 @@ plc_context_t *generic_plc_create_context(int sample_rate) {
 
 	/* initialise the fft contexts, one with sample number being the plc buffer length,
 	 * the complex to real is twice that number as buffer is doubled in frequency domain */
-	context->fft_to_frequency_context = ms_fft_init(sample_rate * PLC_BUFFER_LEN);
-	context->fft_to_time_context = ms_fft_init(2 * sample_rate * PLC_BUFFER_LEN);
+	context->fft_to_frequency_context = ms_fft_init(context->plc_buffer_samples_nb);
+	context->fft_to_time_context = ms_fft_init(2 * context->plc_buffer_samples_nb);
 
 	/* initialise hamming window : h(t) = 0.75 - 0.25*cos(2pi*t/T) */
-	for (i = 0; i < sample_rate * PLC_BUFFER_LEN; i++) {
-		context->hamming_window[i] = (float)(0.75 - 0.25 * cos(2 * PI * i / (sample_rate * PLC_BUFFER_LEN)));
+	for (i = 0; i < context->plc_buffer_samples_nb; i++) {
+		context->hamming_window[i] = (float)(0.75 - 0.25 * cos(2 * PI * i / (context->plc_buffer_samples_nb)));
 	}
 
 	return context;
@@ -126,7 +130,7 @@ void generic_plc_generate_samples(plc_context_t *context, int16_t *data, uint16_
 	if (context->plc_samples_used == 0) {
 		/* generate samples based on the plc_buffer(previously received signal)*/
 		generic_plc_fftbf(context, (int16_t *)context->plc_buffer, context->plc_out_buffer,
-		                  context->sample_rate * PLC_BUFFER_LEN);
+		                  context->plc_buffer_samples_nb);
 
 		/* mix with continuity buffer */
 		generic_plc_transition_mix(context->plc_out_buffer, (int16_t *)context->continuity_buffer,
@@ -135,10 +139,9 @@ void generic_plc_generate_samples(plc_context_t *context, int16_t *data, uint16_
 
 	/* we being asked for more sample than we have in the buffer (save some for continuity buffer, we must have twice
 	 * the TRANSITION_DELAY in buffer) */
-	if (context->plc_index + sample_nbr + continuity_buffer_sample_nbr * 2 >
-	    2 * context->sample_rate * PLC_BUFFER_LEN) {
+	if (context->plc_index + sample_nbr + continuity_buffer_sample_nbr * 2 > 2 * context->plc_buffer_samples_nb) {
 		uint16_t samples_ready_nbr =
-		    2 * context->sample_rate * PLC_BUFFER_LEN - context->plc_index - continuity_buffer_sample_nbr;
+		    2 * context->plc_buffer_samples_nb - context->plc_index - continuity_buffer_sample_nbr;
 
 		if (samples_ready_nbr > sample_nbr) { /* we had more than one but less than two TRANSITION_DELAY ms in buffer */
 			samples_ready_nbr = sample_nbr;
@@ -150,8 +153,7 @@ void generic_plc_generate_samples(plc_context_t *context, int16_t *data, uint16_
 		       continuity_buffer_sample_nbr * sizeof(int16_t));
 
 		/* generate sample based on the plc_out_buffer(previously generated signal) */
-		generic_plc_fftbf(context, context->plc_out_buffer, context->plc_out_buffer,
-		                  context->sample_rate * PLC_BUFFER_LEN);
+		generic_plc_fftbf(context, context->plc_out_buffer, context->plc_out_buffer, context->plc_buffer_samples_nb);
 
 		/* mix with continuity buffer */
 		generic_plc_transition_mix(context->plc_out_buffer, (int16_t *)context->continuity_buffer,
@@ -210,7 +212,7 @@ void generic_plc_update_plc_buffer(plc_context_t *context, unsigned char *data, 
 }
 
 void generic_plc_update_continuity_buffer(plc_context_t *context, unsigned char *data, size_t data_len) {
-	size_t transitionBufferSize = context->sample_rate * sizeof(int16_t) * TRANSITION_DELAY / 1000;
+	size_t transitionBufferSize = (context->sample_rate * TRANSITION_DELAY / 1000) * sizeof(uint16_t);
 	unsigned char *buffer;
 
 	if (transitionBufferSize > data_len) transitionBufferSize = data_len;
