@@ -592,17 +592,11 @@ endif()
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
-		if(IOS)
-			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		else()
-			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(mediastreamer2 PROPERTIES
 			FRAMEWORK TRUE
 			FRAMEWORK_VERSION ${MS2_FRAMEWORK_VERSION}
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mediastreamer2
-  			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+  			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 			PUBLIC_HEADER "${MEDIASTREAMER2_HEADER_FILES}"
 		)
 #		if(ENABLE_QT_GL AND QT_PACKAGES)
@@ -713,18 +707,12 @@ if(ENABLE_QT_GL)
 	if(BUILD_SHARED_LIBS)
 		if(APPLE)
 			if(IOS)
-				set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 				set_target_properties(msqogl 	PROPERTIES
 								FRAMEWORK TRUE
 								MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msqogl
-								MACOSX_FRAMEWORK_INFO_PLIST msqogl.Info.plist.in
+								MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/msqogl.Info.plist.in"
 				)
-
-			else()
-				set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
 			endif()
-
-			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/build/osx/")
 			foreach (package ${QT5_PACKAGES})
 				if(Qt5${package}_FOUND)
 					add_custom_command(TARGET msqogl POST_BUILD COMMAND install_name_tool -change "${Qt${package}_ROOT_LOCATION}Qt${package}.framework/Versions/5/Qt${package}" "@rpath/Qt${package}.framework/Versions/5/Qt${package}" $<TARGET_FILE:msqogl>)
