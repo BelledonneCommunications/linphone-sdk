@@ -128,11 +128,6 @@ if(APPLE)
 	endif()
 	target_link_libraries(bctoolbox PRIVATE Iconv::Iconv)
 
-	if(IOS)
-		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-	else()
-		set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
-	endif()
 	set_target_properties(bctoolbox PROPERTIES
 		FRAMEWORK TRUE
 		MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox
