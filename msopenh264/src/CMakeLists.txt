@@ -49,17 +49,10 @@ target_link_libraries(msopenh264 PRIVATE ${Mediastreamer2_TARGET} ${OpenH264_TAR
 
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
-		if(IOS)
-			set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
-		else()
-			set(MIN_OS ${CMAKE_OSX_DEPLOYMENT_TARGET})
-		endif()
-
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/build/osx/")
 		set_target_properties(msopenh264 PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.msopenh264
-			MACOSX_FRAMEWORK_INFO_PLIST Info.plist.in
+			MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
 		) 
 	endif()
 	if(MSVC)
