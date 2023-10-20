@@ -58,7 +58,6 @@ if(Codec2_USE_BUILD_INTERFACE)
 endif()
 if(BUILD_SHARED_LIBS)
 	if(IOS)
-		set(MIN_OS ${LINPHONE_IOS_DEPLOYMENT_TARGET})
 		set_target_properties(mscodec2 PROPERTIES
 			FRAMEWORK TRUE
 			MACOSX_FRAMEWORK_IDENTIFIER org.linphone.mscodec2
