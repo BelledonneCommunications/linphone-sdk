@@ -123,7 +123,7 @@ public:
 	RtpTransportModifier *mModifierRtcp;
 	bool mSecured;
 	bool mMandatoryEnabled;
-	std::mutex mMutex;
+	std::recursive_mutex mMutex;
 	/* for stats purpose */
 	MSSrtpStreamStats mStats;
 
@@ -266,7 +266,6 @@ static bool ms_srtp_process_ekt_on_receive(RtpTransportModifier *t, mblk_t *m, i
 			// Insert the key and ROC in the srtp context
 			srtp_master_key.insert(srtp_master_key.end(), ekt->mSrtpMasterSalt.cbegin(), ekt->mSrtpMasterSalt.cend());
 			if (ctx->mInnerSrtp == NULL) {
-				std::unique_lock<std::mutex> lock(ctx->mMutex);
 				auto err = srtp_create(&ctx->mInnerSrtp, NULL);
 				if (err != srtp_err_status_ok) {
 					ms_error("Failed to create inner srtp session (%d) for srtp stream [%p] upon "
@@ -442,7 +441,7 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 	if (rtp_header && (slen > RTP_FIXED_HEADER_SIZE && rtp_header->version == 2)) {
 		size_t ekt_tag_size = 0;
 		std::vector<uint8_t> ekt_tag{};
-		std::unique_lock<std::mutex> lock(ctx->mMutex);
+		std::lock_guard<std::recursive_mutex> lock(ctx->mMutex);
 		if (ctx->mStats.mSuite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
 			if (ctx->mMandatoryEnabled) {
 				return 0; /* drop the packet */
@@ -643,7 +642,7 @@ static int ms_srtcp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 
 	// ignore non rtcp packets
 	if (rtcp_header && (slen > RTP_FIXED_HEADER_SIZE && rtcp_header->version == 2)) {
-		std::unique_lock<std::mutex> lock(ctx->mMutex);
+		std::lock_guard<std::recursive_mutex> lock(ctx->mMutex);
 		if (ctx->mStats.mSuite == MS_CRYPTO_SUITE_INVALID) { // No srtp is set up
 			err = err_status_ok;
 			if (ctx->mMandatoryEnabled) {
@@ -681,6 +680,7 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 	MSSrtpRecvStreamContext *ctx = (MSSrtpRecvStreamContext *)t->data;
 	/* Shall we check the EKT ? */
 	std::vector<uint8_t> ekt_tag{};
+	std::lock_guard<std::recursive_mutex> lock(ctx->mMutex);
 	if (ctx->mEktMode == MS_EKT_ENABLED) {
 		if (!ms_srtp_process_ekt_on_receive(t, m, &slen)) {
 			return 0; // Error during ekt tag processing, drop the packet
@@ -920,8 +920,6 @@ static int ms_media_stream_session_fill_srtp_context(MSMediaStreamSessions *sess
 	MSSrtpStreamContext *streamCtx = get_stream_context(sessions, is_send);
 
 	rtp_session_get_transports(sessions->rtp_session, &transport_rtp, &transport_rtcp);
-
-	std::unique_lock<std::mutex> lock(streamCtx->mMutex);
 
 	if (is_inner) { /* inner srtp context just need to setup itself, not the modifier*/
 		if (streamCtx->mInnerSrtp && is_send) {
@@ -1246,6 +1244,8 @@ static int ms_media_stream_sessions_set_srtp_key(MSMediaStreamSessions *sessions
 
 	MSSrtpStreamContext *streamCtx = get_stream_context(sessions, is_send);
 
+	std::lock_guard<std::recursive_mutex> lock(streamCtx->mMutex);
+
 	/* When the key is NULL or suite set to INVALID, juste deactivate SRTP */
 	if (key == NULL || suite == MS_CRYPTO_SUITE_INVALID) {
 		if (is_inner) {
@@ -1429,10 +1429,8 @@ static int ms_media_stream_sessions_set_srtp_key_b64_base(MSMediaStreamSessions 
 	if (b64_key != NULL) {
 		/* decode b64 key */
 		size_t b64_key_length = strlen(b64_key);
-		// size_t max_key_length = b64_decode(b64_key, b64_key_length, 0, 0);
 		bctbx_base64_decode(nullptr, &key_length, (const unsigned char *)b64_key, b64_key_length);
 		key = (uint8_t *)ms_malloc0(key_length);
-		// if ((key_length = b64_decode(b64_key, b64_key_length, key, max_key_length)) == 0) {
 		if ((retval = bctbx_base64_decode(key, &key_length, (const unsigned char *)b64_key, b64_key_length)) != 0) {
 			ms_error("Error decoding b64 srtp (%s) key : error -%x", b64_key, -retval);
 			ms_free(key);
@@ -1510,6 +1508,8 @@ extern "C" int ms_media_stream_sessions_set_encryption_mandatory(MSMediaStreamSe
 	/*for now, managing all streams in one time*/
 	int err;
 	check_and_create_srtp_context(sessions);
+	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
+	std::lock_guard<std::recursive_mutex> lockR(sessions->srtp_context->mRecv.mMutex);
 	if (yesno) {
 		if ((err = ms_media_stream_sessions_fill_srtp_context_all_stream(sessions))) {
 			return err;
@@ -1529,6 +1529,8 @@ extern "C" bool_t ms_media_stream_sessions_get_encryption_mandatory(const MSMedi
 
 extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sessions, MSEKTMode mode) {
 	check_and_create_srtp_context(sessions);
+	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
+	std::lock_guard<std::recursive_mutex> lockR(sessions->srtp_context->mRecv.mMutex);
 
 	switch (mode) {
 		case MS_EKT_DISABLED:
@@ -1570,6 +1572,8 @@ static void ms_media_stream_generate_and_set_srtp_keys_for_ekt(MSMediaStreamSess
 extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions, const MSEKTParametersSet *ekt_params) {
 	ms_message("set EKT with SPI %04x on session %p", ekt_params->ekt_spi, sessions);
 	check_and_create_srtp_context(sessions);
+	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
+	std::lock_guard<std::recursive_mutex> lockR(sessions->srtp_context->mRecv.mMutex);
 	// Force the operating mode to enable as we are given a key
 	sessions->srtp_context->mRecv.mEktMode = MS_EKT_ENABLED;
 	sessions->srtp_context->mSend.mEktMode = MS_EKT_ENABLED;
@@ -1592,11 +1596,12 @@ extern "C" int ms_media_stream_sessions_set_ekt(MSMediaStreamSessions *sessions,
 			ekt = sessions->srtp_context->mRecv.ektsReceiverPool[ekt_params->ekt_spi];
 			ekt->mEpoch++;
 		}
+	} else {
+		// create the ekt object from given params, insert it in the recv context map
+		ekt = std::make_shared<Ekt>(ekt_params);
+		sessions->srtp_context->mRecv.ektsReceiverPool.emplace(ekt_params->ekt_spi, ekt);
 	}
-
-	// create the ekt object from given params, insert it in the recv context map and set is as the current sending one
-	ekt = std::make_shared<Ekt>(ekt_params);
-	sessions->srtp_context->mRecv.ektsReceiverPool.emplace(ekt_params->ekt_spi, ekt);
+	// set is as the current sending one
 	sessions->srtp_context->mSend.ektSender = ekt;
 	// SRTP master key retrieval is performed upon reception of full EKT tag matching the SPI.
 	// Generate a master key for sending stream
