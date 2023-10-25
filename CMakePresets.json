@@ -371,6 +371,7 @@
       },
       "generator": "Visual Studio 16 2019",
       "cacheVariables": {
+        "ENABLE_LDAP": "ON",
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_CSHARP_WRAPPER": "ON",
