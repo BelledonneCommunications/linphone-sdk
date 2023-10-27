@@ -1,3 +1,12 @@
+wait-cache-synchro-rocky8:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: rocky8
+
+recache-rocky8:
+  extends: .recache-update-cache
+  image: !reference [.rocky8_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_rocky8: &docker_image_needs_platform_runner_tag_dev_toolset
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$ROCKY_8_IMAGE_VERSION
+  image: !reference [.rocky8_image_version, image]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -19,7 +28,7 @@
 
 rocky8-makefile-gcc:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$ROCKY_8_IMAGE_VERSION
+  image: !reference [.rocky8_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -39,7 +48,7 @@ rocky8-makefile-gcc:
 
 rocky8-ninja-gcc:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$ROCKY_8_IMAGE_VERSION
+  image: !reference [.rocky8_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
@@ -49,6 +58,8 @@ rocky8-ninja-gcc:
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-rocky8
 
 rocky8-ninja-gcc-tunnel-pq-h264:
   variables:
@@ -114,7 +125,7 @@ ortp-rocky8-test-mr:
   <<: *docker_image_needs_platform_runner_tag_dev_toolset
 
 .factorize_bs_rocky8: &docker_image_needs_tag_platform_devtoolset_bs
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:$ROCKY_8_IMAGE_VERSION
+  image: !reference [.rocky8_image_version, image]
   needs:
     - rocky8-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
@@ -131,7 +142,7 @@ bellesip-rocky8-test:
 #   <<: *docker_image_needs_tag_platform_devtoolset_bs
 
 .factorize_ms2_rocky8: &docker_image_needs_platform_devtoolset_ms
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:$ROCKY_8_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.rocky8_test_libl_image_version, image]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -147,7 +158,7 @@ mediastreamer-rocky8-test:
 
 mediastreamer-rocky8-test-h264-mr:
   extends: .test-mediastreamer-mr
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:$ROCKY_8_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.rocky8_test_libl_image_version, image]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264
   variables:
@@ -155,7 +166,7 @@ mediastreamer-rocky8-test-h264-mr:
 
 
 .factorize_liblinphone_rocky8: &docker_image_needs_platform_devtoolset_libl
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:$ROCKY_8_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.rocky8_test_libl_image_version, image]
   needs:
     - rocky8-ninja-gcc
   variables:
@@ -168,7 +179,7 @@ liblinphone-rocky8-test:
 liblinphone-rocky8-test-tunnel-pq:
   extends:
     - .test-liblinphone-tunnel-pq
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:$ROCKY_8_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.rocky8_test_libl_image_version, image]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264
   variables:
@@ -181,7 +192,7 @@ liblinphone-rocky8-test-mr:
 liblinphone-rocky8-test-mr-tunnel-pq:
   extends:
     - .test-liblinphone-tunnel-pq-mr
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:$ROCKY_8_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.rocky8_test_libl_image_version, image]
   needs:
     - rocky8-ninja-gcc-tunnel-pq-h264
   variables:

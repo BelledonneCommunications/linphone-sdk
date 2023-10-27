@@ -1,3 +1,12 @@
+wait-cache-synchro-archlinux:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: archlinux
+
+recache-archlinux:
+  extends: .recache-update-cache
+  image: !reference [.archlinux_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_arch: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   variables:
     PLATFORM: linux-arch
   rules:
@@ -19,7 +28,7 @@
 arch-latest-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -33,7 +42,7 @@ arch-latest-makefile-gcc:
 arch-latest-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -52,7 +61,7 @@ arch-latest-makefile-clang:
 arch-latest-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -84,7 +93,7 @@ arch-latest-ninja-gcc-pqc:
 arch-latest-ninja-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
@@ -93,6 +102,8 @@ arch-latest-ninja-clang:
     CC: clang
     CXX: clang++
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-archlinux
 
 
 arch-latest-ninja-clang-novideo:
@@ -135,7 +146,7 @@ bellesip-arch-test:
     - arch-latest-ninja-clang
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
+  image: !reference [.archlinux_image_version, image]
   variables:
     PLATFORM: linux-arch
 
@@ -158,7 +169,7 @@ bzrtp-arch-test:
   <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-arch-test:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:$ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.archlinux_test_libl_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
   extends: .test-liblinphone

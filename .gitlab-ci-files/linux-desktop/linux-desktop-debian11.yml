@@ -1,3 +1,12 @@
+wait-cache-synchro-debian11:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian11
+
+recache-debian11:
+  extends: .recache-update-cache
+  image: !reference [.debian11_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_debian11: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   variables:
     PLATFORM: linux-debian11
   rules:
@@ -19,7 +28,7 @@
 debian11-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -34,7 +43,7 @@ debian11-makefile-gcc:
 debian11-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -54,19 +63,20 @@ debian11-makefile-clang:
 debian11-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
-
+  needs:
+    - wait-cache-synchro-debian11
 
 debian11-ninja-gcc-sequential:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -106,7 +116,7 @@ debian11-ninja-clang:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -154,7 +164,7 @@ bellesip-debian11-test:
     - debian11-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$DEBIAN_11_IMAGE_VERSION
+  image: !reference [.debian11_image_version, image]
   variables:
     PLATFORM: linux-debian11
   rules:
@@ -185,7 +195,7 @@ ortp-debian11-test:
   <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-debian11-test:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.debian11_test_libl_image_version, image]
   extends: .test-liblinphone
   needs:
     - debian11-ninja-gcc
@@ -196,7 +206,7 @@ liblinphone-debian11-test:
 
 # liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr
-#   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:$DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION
+#   image: !reference [.debian11_test_libl_image_version, image]
 #   needs:
 #     - debian11-ninja-gcc
 #   variables:

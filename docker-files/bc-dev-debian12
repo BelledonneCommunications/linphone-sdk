@@ -24,7 +24,7 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make meson nasm ninja-build openssh-client patch perl yasm && \
+    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make meson nasm ninja-build openssh-client patch perl yasm jq && \
     apt-get clean
 
 # Install linphone & flexisip dependencies development packages

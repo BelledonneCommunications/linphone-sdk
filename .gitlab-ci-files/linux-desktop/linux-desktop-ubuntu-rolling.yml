@@ -1,3 +1,14 @@
+wait-cache-synchro-ubuntu-rolling:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: ubuntu-rolling
+
+recache-ubuntu-rolling:
+  extends: .recache-update-cache
+  # Set as this job can only be launched manually in mr, so the cache could be absent
+  allow_failure: true
+  image: !reference [.ubuntu-rolling_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +16,7 @@
 
 .factorize_ubuntu-rolling: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling_image_version, image]
   variables:
     PLATFORM: linux-ubuntu-rolling
   rules:
@@ -19,7 +30,7 @@
 ubuntu-rolling-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -36,7 +47,7 @@ ubuntu-rolling-makefile-gcc:
 #ubuntu-rolling-makefile-clang:
 
 #  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+#  image: !reference [.ubuntu-rolling_image_version, image]
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
@@ -56,7 +67,7 @@ ubuntu-rolling-makefile-gcc:
 #ubuntu-rolling-ninja-gcc:
 
 #  tags: [ "docker" ]
-#  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+#  image: !reference [.ubuntu-rolling_image_version, image]
 # rules:
 #   - if: $NIGHTLY_MASTER
 #  variables:
@@ -76,7 +87,7 @@ ubuntu-rolling-makefile-gcc:
 
 ubuntu-rolling-ninja-clang:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -124,7 +135,7 @@ bellesip-ubuntu-test:
   needs:
     - ubuntu-rolling-ninja-clang
   tags: [ "docker-test-ubuntu-rolling-nuc" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
+  image: !reference [.ubuntu-rolling_image_version, image]
   variables:
     PLATFORM: linux-ubuntu-rolling
   rules:

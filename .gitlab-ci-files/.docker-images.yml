@@ -1,22 +1,50 @@
 ########################################################
 # Docker Image version, common for sdk and sdk tunnel
 ########################################################
-variables:
-  ANDROID_R25B_IMAGE_VERSION: 20230706_add_deps_for_av1
-  ARCHLINUX_IMAGE_VERSION: 20230706_add_deps_for_av1
-  ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION: 20230706_add_deps_for_av1
-  CENTOS_8_IMAGE_VERSION: 20230706_add_deps_for_av1
-  CENTOS_8_TEST_LIBLIN_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_10_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_11_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_11_TEST_LIBLIN_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_12_IMAGE_VERSION: 20230706_add_deps_for_av1
-  DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION: 20230706_add_deps_for_av1
-  ROCKY_8_IMAGE_VERSION: 20230914_gdb_toolset_12_sdk
-  ROCKY_8_TEST_LIBLIN_IMAGE_VERSION: 20230914_gdb_toolset_12_sdk
-  RASPIOS_IMAGE_VERSION: 20230706_add_deps_for_av1
-  UBUNTU_ROLLING_IMAGE_VERSION: 20230802_fix_wrong_user_id
-  UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION: 20230802_fix_wrong_user_id
-  UBUNTU_2004_IMAGE_VERSION: 20231025_remove_modules_install_from_arg
-  UBUNTU_2004_TEST_LIBLIN_IMAGE_VERSION: 20231025_remove_modules_install_from_arg
+
+# We need to redefine images use here because they are used as fallback cache key. The cache fallback key don't work with defined variables in jobs. It needs static values, that we use here with !references
+
+.android_r25b_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:20230706_add_deps_for_av1
+
+.archlinux_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:20230706_add_deps_for_av1
+
+.archlinux_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:20230706_add_deps_for_av1
+
+.debian10_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:20230706_add_deps_for_av1
+
+.debian10_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:20230706_add_deps_for_av1
+
+.debian11_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20230706_add_deps_for_av1
+
+.debian11_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20230706_add_deps_for_av1
+
+.debian12_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20231031_add_jq_for_cache_improvements
+
+.debian12_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:20230706_add_deps_for_av1
+
+.raspios_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-raspios:20230706_add_deps_for_av1
+
+.rocky8_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8:20230914_gdb_toolset_12_sdk
+
+.rocky8_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20230914_gdb_toolset_12_sdk
+
+.ubuntu2004_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:20231025_remove_modules_install_from_arg
+
+.ubuntu2004_test_libl_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts-test-liblinphone:20231025_remove_modules_install_from_arg
+
+.ubuntu-rolling_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:20230802_fix_wrong_user_id

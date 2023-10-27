@@ -1,3 +1,12 @@
+wait-cache-synchro-debian12:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian12
+
+recache-debian12:
+  extends: .recache-update-cache
+  image: !reference [.debian12_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_debian12: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   variables:
     PLATFORM: linux-debian12
   rules:
@@ -19,7 +28,7 @@
 debian12-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -34,7 +43,7 @@ debian12-makefile-gcc:
 debian12-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -54,14 +63,15 @@ debian12-makefile-clang:
 debian12-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_LDAP=OFF
   extends: .linux-desktop
-
+  needs:
+    - wait-cache-synchro-debian12
 
 debian12-ninja-gcc-novideo:
   rules:
@@ -91,7 +101,7 @@ debian12-ninja-gcc-smallsdk:
 debian12-ninja-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -142,7 +152,7 @@ bellesip-debian12-test:
     - debian12-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
+  image: !reference [.debian12_image_version, image]
   variables:
     PLATFORM: linux-debian12
   rules:
@@ -173,7 +183,7 @@ ortp-debian12-test:
   <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-debian12-test:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.debian12_test_libl_image_version, image]
   extends: .test-liblinphone
   needs:
     - debian12-ninja-gcc
@@ -184,7 +194,7 @@ liblinphone-debian12-test:
 
 # liblinphone-debian12-test-mr:
 #   extends: .test-liblinphone-mr
-#   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
+#   image: !reference [.debian12_test_libl_image_version, image]
 #   needs:
 #     - debian12-ninja-gcc
 #   variables:

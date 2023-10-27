@@ -1,3 +1,12 @@
+wait-cache-synchro-ubuntu2004:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: ubuntu2004
+
+recache-ubuntuubuntu2004:
+  extends: .recache-update-cache
+  image: !reference [.ubuntu2004_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_ubuntu2004: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
+  image: !reference [.ubuntu2004_image_version, image]
   needs:
     - ubuntu2004-ninja-gcc
   variables:
@@ -15,7 +24,7 @@
 
 .factorize_ubuntu2004_s: &docker_image_platform_and_runner_tag_rules_s
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
+  image: !reference [.ubuntu2004_image_version, image]
   needs:
     - ubuntu2004-ninja-gcc
   variables:
@@ -25,7 +34,7 @@
 
 # "tags" is defined in tester extends (check linux-desktop.yml)
 .factorize_ubuntu2004_libl: &docker_image_platform_and_runner_tag_rules_libl
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts-test-liblinphone:$UBUNTU_2004_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.ubuntu2004_test_libl_image_version, image]
   needs:
     - ubuntu2004-ninja-gcc
   variables:
@@ -39,7 +48,7 @@
 
 ubuntu2004-makefile-clang:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
+  image: !reference [.ubuntu2004_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -65,7 +74,7 @@ ubuntu2004-makefile-clang-pqc:
 
 ubuntu2004-ninja-gcc:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
+  image: !reference [.ubuntu2004_image_version, image]
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
@@ -83,6 +92,8 @@ ubuntu2004-ninja-gcc:
     - export Qt5_DIR=${QTLIBDIR}/cmake/Qt5
     - export PATH=${QTTOOLDIR}:$PATH
   extends: .linux-desktop
+  needs:
+    - wait-cache-synchro-ubuntu2004
 
 ubuntu2004-ninja-gcc-pqc:
   rules:

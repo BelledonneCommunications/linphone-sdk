@@ -1,3 +1,12 @@
+wait-cache-synchro-debian10:
+  extends: .wait-cache-synchro
+  variables:
+    BUILD_SUBTYPE: debian10
+
+recache-debian10:
+  extends: .recache-update-cache
+  image: !reference [.debian10_image_version, image]
+
 #Build template to use in other job scripts without having to copy same code
 #format = .className: &referenceName
 #Use = "<< *referenceName" to use the template ("-*" in script)
@@ -5,7 +14,7 @@
 
 .factorize_debian10: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   variables:
     PLATFORM: linux-debian10
   rules:
@@ -19,7 +28,7 @@
 debian10-makefile-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -35,7 +44,7 @@ debian10-makefile-gcc:
 debian10-makefile-clang:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -56,14 +65,15 @@ debian10-makefile-clang:
 debian10-ninja-gcc:
 
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
     CMAKE_OPTIONS: -DENABLE_CXX_WRAPPER=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
   extends: .linux-desktop
-
+  needs:
+    - wait-cache-synchro-debian10
 
 debian10-ninja-gcc-novideo:
 
@@ -102,7 +112,7 @@ debian10-ninja-clang:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang
@@ -159,7 +169,7 @@ bellesip-debian10-test:
     - debian10-ninja-gcc
   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10:$DEBIAN_10_IMAGE_VERSION
+  image: !reference [.debian10_image_version, image]
   variables:
     PLATFORM: linux-debian10
   rules:
@@ -190,7 +200,7 @@ ortp-debian10-test:
   <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-debian10-test:
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian10-test-liblinphone:$DEBIAN_10_TEST_LIBLIN_IMAGE_VERSION
+  image: !reference [.debian10_test_libl_image_version, image]
   extends: .test-liblinphone
   needs:
     - debian10-ninja-gcc

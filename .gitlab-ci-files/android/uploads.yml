@@ -1,7 +1,7 @@
 .android-upload-common:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:$ANDROID_R25B_IMAGE_VERSION
+  image: !reference [.android_r25b_image_version, image]
 
   rules:
     - if: $DEPLOY_RUN_ANDROID
@@ -37,7 +37,7 @@
 android-doc-upload:
   stage: deploy
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-android-r25b:$ANDROID_R25B_IMAGE_VERSION
+  image: !reference [.android_r25b_image_version, image]
 
   rules:
     - if: $DEPLOY_RUN_ANDROID

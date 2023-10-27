@@ -1,14 +1,123 @@
+# Was a branch recently merged into main branch ?
+# We do this check in a separate job to avoid repeating it in all recache-update-cache jobs, as there are is one running per docker image
+recache-get-from-branch:
+  stage: init-recache
+  tags: ["docker"]
+  extends: .no-cache
+  variables:
+    GIT_STRATEGY: none
+  image: !reference [.debian12_image_version, image]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+  script:
+    - curl --verbose --location --request GET "https://gitlab.linphone.org/api/v4/projects/411/merge_requests?state=merged&order_by=updated_at&target_branch=master&private_token=$UPDATE_CACHE_TOKEN" > temp_result.txt
+    - cat temp_result.txt | jq ".[0].source_branch" > source_branch.txt
+    - cat temp_result.txt | jq ".[0].force_remove_source_branch" > force_remove_source_branch.txt
+    - echo source_branch.txt
+    - echo force_remove_source_branch.txt
+    # We manually re-do the processing from CI_COMMIT_REF_NAME to CI_COMMIT_REF_SLUG
+    # CI_COMMIT_REF_NAME in lowercase, shortened to 63 bytes, and with everything except 0-9 and a-z replaced with -. No leading / trailing -.
+    - CACHE_SOURCE_BRANCH=$(cat source_branch.txt)
+    - echo $CACHE_SOURCE_BRANCH
+    - CACHE_SOURCE_BRANCH=$(echo "${CACHE_SOURCE_BRANCH,,}")
+    - echo $CACHE_SOURCE_BRANCH
+    - CACHE_SOURCE_BRANCH="${CACHE_SOURCE_BRANCH:0:63}"
+    - echo $CACHE_SOURCE_BRANCH
+    - CACHE_SOURCE_BRANCH=$(echo ${CACHE_SOURCE_BRANCH//[^a-z0-9]/-})
+    - echo $CACHE_SOURCE_BRANCH
+    - CACHE_SOURCE_BRANCH=$(echo "${CACHE_SOURCE_BRANCH}" | sed -e 's/^[-]*//')
+    - echo $CACHE_SOURCE_BRANCH
+    - CACHE_SOURCE_BRANCH=$(echo "${CACHE_SOURCE_BRANCH}" | sed -e 's/\-*$//g')
+    - echo $CACHE_SOURCE_BRANCH > source_branch.txt
+  artifacts:
+    paths:
+      - source_branch.txt
+      - force_remove_source_branch.txt
+    expire_in: 1 week
+
+# If a branch was recently merged into main branch, updates the non_protected cache for all cache keys (here docker images)
+# This way we keep the separation between non_protected and protected cache to ensure that main branch cache can't be polluted by malicious people
+.recache-update-cache:
+  stage: recache
+  needs:
+    - recache-get-from-branch
+  extends: .no-cache
+  tags: ["docker"]
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+  # We break abstraction if order to be able to automatically remove cache related to deleted mr branches, as this would eat CI machine disk space
+  # cache:
+  #   - key: $CI_JOB_IMAGE-master
+  #     paths:
+  #       - ccache/
+  #     policy: pull
+  #   - key: ${CI_JOB_IMAGE}-master-4-non_protected
+  #     paths:
+  #       - ccache/
+  #     policy: push
+  before_script:
+    - CACHE_SOURCE_BRANCH=$(cat source_branch.txt)
+    - echo $CACHE_SOURCE_BRANCH
+    - SHOULD_DELETE_OLD_CACHE=$(cat force_remove_source_branch.txt)
+    - echo $SHOULD_DELETE_OLD_CACHE
+    ##
+    ## If a SSH_USER_KEY is defined then start ssh-agent and add the key
+    ##
+    - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then eval $(ssh-agent -s); fi
+    - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then echo "$LINUX_BUILD_SSH_USER_KEY" | tr -d '\r' | ssh-add - > /dev/null; fi
+    - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then mkdir -p ~/.ssh && chmod 700 ~/.ssh; fi
+    ## TODO add host key to variables instead of blindly trusting the server
+    - LINUX_BUILD_MACHINE_ADMIN_HOST=$(echo $LINUX_BUILD_MACHINE_ADMIN | sed -e 's/^[a-z@]*//')
+    - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then echo -e "Host $LINUX_BUILD_MACHINE_ADMIN_HOST\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config; fi
+    - if ! [ -z ${LINUX_BUILD_SSH_USER_KEY+x} ]; then chmod 700 ~/.ssh/config; fi
+  script:
+    - ssh $LINUX_BUILD_MACHINE_ADMIN cp -rp "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-4-non_protected" "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CI_COMMIT_REF_SLUG-4-non_protected"
+    - if [ $SHOULD_DELETE_OLD_CACHE = true ]; then ssh $LINUX_BUILD_MACHINE_ADMIN rm -rf "$LINUX_CACHE_ROOT_PATH/$CI_JOB_IMAGE-$CACHE_SOURCE_BRANCH-4-non_protected"; fi
+
+# When the cache is updated, we don't want an old version to overwrite the new one.
+# We could have a newly created branch launching its jobs in the same time as the cache is being updated (just after a merge). In this case, the merge-request pipeline of the newly created branch could overwrite the updated cache if one job launches just before the cache udpate step is finished. In the worst scenario, cache could be corrupted...
+# To avoid this, we force each mr job to wait before the eventual cache update is finished before running.
+# We do so by calling Gitlab API to fetch the current running jobs by name.
+# /!\ As such, DO NOT MODIFY JOB NAMES unless you know what you are doing, as this could impact caching.
+.wait-cache-synchro:
+  stage: wait-cache-synchro
+  tags: ["docker"]
+  extends: .no-cache
+  variables:
+    GIT_STRATEGY: none
+  # we use this image to avoid the need to add jq in every docker image
+  image: !reference [.debian12_image_version, image]
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null && $CI_COMMIT_REF_SLUG != "master"
+  script:
+    - |
+     while true; do
+      set -o errexit
+      set -o nounset
+      set -o pipefail
+      WAIT_IF_SET=$(curl --verbose --location --request GET "https://gitlab.linphone.org/api/v4/projects/411/jobs?scope[]=running&scope[]=pending&scope[]=created&scope[]=waiting_for_resource&private_token=$UPDATE_CACHE_TOKEN" | jq '.[] | select(.name == "recache-$BUILD_SUBTYPE" or .name == "recache-get-from-branch" and .ref == "master") | .name')
+      echo "wait_if_set=$WAIT_IF_SET"
+      if [ ! -z "$WAIT_IF_SET" ]; then sleep 3; else break; fi;
+     done
+
 .no-cache:
   cache: []
 
+# .cache_rw_main_branch:
+#   cache:
+#     - key: $CI_JOB_IMAGE-master
+#       paths:
+#         - ccache/
+#       policy: pull-push
+
+
 .linux-prepare:
-
-  cache:
-    - key: $CI_JOB_IMAGE-master
-      paths:
-        - ccache/
-
   variables:
+    CACHE_FALLBACK_KEY: "${CI_JOB_IMAGE}-master-4-non_protected"
+
     #Misleading name, means no compression at all
     CACHE_COMPRESSION_LEVEL: "fastest"
     CCACHE_DIRECTORY_NAME: "ccache"
@@ -17,6 +126,14 @@
     # Will work after the update to Gitlab 14
     FF_SCRIPT_SECTIONS: 1
 
+  cache:
+    # - key: $CI_JOB_IMAGE-master
+    #   paths:
+    #     - ccache/
+    #   policy: pull
+    - key: $CI_JOB_IMAGE-$CI_COMMIT_REF_SLUG
+      paths:
+        - ccache/
 
   extends: .job-prepare
 
@@ -25,6 +142,8 @@
       when: never
 
   before_script:
+
+    - echo $CACHE_FALLBACK_KEY
 
     - echo $CI_JOB_IMAGE
     ##

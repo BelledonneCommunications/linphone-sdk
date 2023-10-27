@@ -28,7 +28,8 @@ variables:
 
 workflow:
   rules:
-    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH == "master" && $CI_PIPELINE_SOURCE == "push"
+    - if: $CI_COMMIT_BRANCH && $CI_COMMIT_BRANCH != "master" && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE == "push"
       when: never
     #Launch merge request pipeline is there is a merge request open
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^Draft:.*/
@@ -54,15 +55,16 @@ include:
 
   - '.gitlab-ci-files/linux-desktop/linux-desktop.yml'
   - '.gitlab-ci-files/linux-desktop/doc-uploads.yml'
-  #- '.gitlab-ci-files/raspbian.yml'
+  # - '.gitlab-ci-files/raspbian.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-archlinux-latest.yml'
-  - '.gitlab-ci-files/linux-desktop/linux-desktop-centos8.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian10.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian11.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-debian12.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-rocky8.yml'
+
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu-rolling.yml'
   - '.gitlab-ci-files/linux-desktop/linux-desktop-ubuntu2004.yml'
+
 
   - '.gitlab-ci-files/yocto-raspberrypi3.yml'
   - '.gitlab-ci-files/yocto-qemuarm64.yml'
@@ -93,10 +95,12 @@ include:
   - '.gitlab-ci-files/docker-image-update/update-debian10.yml'
   - '.gitlab-ci-files/docker-image-update/update-debian11.yml'
   - '.gitlab-ci-files/docker-image-update/update-debian12.yml'
-  - '.gitlab-ci-files/docker-image-update/update-centos8.yml'
   - '.gitlab-ci-files/docker-image-update/update-rocky8.yml'
 
 stages:
+ - init-recache
+ - recache
+ - wait-cache-synchro
  - docker-update-build
  - build
  - docker-update-build-ms

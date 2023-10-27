@@ -255,14 +255,6 @@ libl-rocky8-forced-test-upload:
   rules:
     - if: $ENABLE_TESTS_LIBLINPHONE
 
-libl-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - liblinphone-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
-    TESTER: "liblinphone"
-
 libl-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -321,14 +313,6 @@ bct-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "bctoolbox"
 
-bct-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bctoolbox-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
-    TESTER: "bctoolbox"
-
 bct-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -367,14 +351,6 @@ bellesip-rocky8-test-upload:
     - bellesip-rocky8-test
   variables:
     PLATFORM: "linux-rocky8"
-    TESTER: "bellesip"
-
-bellesip-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bellesip-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
     TESTER: "bellesip"
 
 bellesip-debian10-test-upload:
@@ -460,14 +436,6 @@ belr-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "belr"
 
-belr-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belr-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
-    TESTER: "belr"
-
 belr-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -508,14 +476,6 @@ belcard-rocky8-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "belcard"
 
-belcard-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belcard-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
-    TESTER: "belcard"
-
 belcard-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
   needs:
@@ -554,14 +514,6 @@ bzrtp-rocky8-test-upload:
     - bzrtp-rocky8-test
   variables:
     PLATFORM: "linux-rocky8"
-    TESTER: "bzrtp"
-
-bzrtp-centos8-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bzrtp-centos8-test
-  variables:
-    PLATFORM: "linux-centos8"
     TESTER: "bzrtp"
 
 bzrtp-debian10-test-upload:
