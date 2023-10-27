@@ -98,7 +98,7 @@ linphonesdk_strict_dependent_option("AMRWB" "AMR wide-band audio encoding/decodi
 linphonesdk_option("BV16" "BroadVoice 16 audio encoding/decoding support." ON)
 linphonesdk_option("Codec2" "Codec2 audio encoding/decoding support." OFF)
 linphonesdk_option("G726" "G726 audio encoding/decoding support." OFF)
-linphonesdk_strict_dependent_option("G729" "G.729 audio encoding/decoding support (needs ENABLE_GPL_THIRD_PARTIES=ON)." OFF ON OFF "ENABLE_GPL_THIRD_PARTIES" "Usage of GPL third-party code is not allowed (ENVABLE_GPL_THIRD_PARTIES)")
+linphonesdk_strict_dependent_option("G729" "G.729 audio encoding/decoding support (needs ENABLE_GPL_THIRD_PARTIES=ON)." OFF ON OFF "ENABLE_GPL_THIRD_PARTIES" "Usage of GPL third-party code is not allowed (ENABLE_GPL_THIRD_PARTIES)")
 linphonesdk_strict_dependent_option("G729B CNG" "G.729 annex B confort noise generation (needs ENABLE_GPL_THIRD_PARTIES=ON)." OFF ON OFF "ENABLE_GPL_THIRD_PARTIES" "Usage of GPL third-party code is not allowed (ENABLE_GPL_THIRD_PARTIES)")
 linphonesdk_option("GSM" "GSM audio encoding/decoding support." ON)
 linphonesdk_option("iLBC" "iLBC audio encoding/decoding support." ON)
