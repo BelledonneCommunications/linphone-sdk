@@ -3,11 +3,13 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_centos8: &docker_image_platform_and_runner_tag
+.factorize_centos8: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos8
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -121,11 +123,11 @@ bctoolbox-centos8-test:
   extends: .test-bctoolbox
   needs:
     - centos8-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 pqc-centos8-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
   needs:
     - centos8-ninja-gcc-pqc
 
@@ -138,30 +140,32 @@ bellesip-centos8-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-centos8:$CENTOS_8_IMAGE_VERSION
   variables:
     PLATFORM: linux-centos8
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 belr-centos8-test:
   extends: .test-belr
   needs:
     - centos8-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 belcard-centos8-test:
   extends: .test-belcard
   needs:
     - centos8-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 bzrtp-centos8-test:
   extends: .test-bzrtp
   needs:
     - centos8-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 ortp-centos8-test:
   extends: .test-ortp
   needs:
     - centos8-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 #mediastreamer-centos8-test:
 #  tags: [ "docker-test-centos8-liblinphone-nuc" ]
@@ -184,3 +188,5 @@ liblinphone-centos8-test:
     - centos8-ninja-gcc
   variables:
     PLATFORM: linux-centos8
+  rules:
+    - !reference [.rules-merge-request-manual, rules]

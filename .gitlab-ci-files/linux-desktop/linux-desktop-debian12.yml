@@ -3,11 +3,13 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_debian12: &docker_image_platform_and_runner_tag
+.factorize_debian12: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian12
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -126,11 +128,11 @@ bctoolbox-debian12-test:
   extends: .test-bctoolbox
   needs:
     - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 pqc-debian12-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
   needs:
     - debian12-ninja-gcc-pqc
 
@@ -143,30 +145,32 @@ bellesip-debian12-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:$DEBIAN_12_IMAGE_VERSION
   variables:
     PLATFORM: linux-debian12
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 belr-debian12-test:
   extends: .test-belr
   needs:
     - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 belcard-debian12-test:
   extends: .test-belcard
   needs:
     - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 bzrtp-debian12-test:
   extends: .test-bzrtp
   needs:
     - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 ortp-debian12-test:
   extends: .test-ortp
   needs:
     - debian12-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-debian12-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-test-liblinphone:$DEBIAN_12_TEST_LIBLIN_IMAGE_VERSION
@@ -175,6 +179,8 @@ liblinphone-debian12-test:
     - debian12-ninja-gcc
   variables:
     PLATFORM: linux-debian12
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 # liblinphone-debian12-test-mr:
 #   extends: .test-liblinphone-mr

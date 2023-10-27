@@ -3,11 +3,13 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_arch: &docker_image_platform_and_runner_tag
+.factorize_arch: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux:$ARCHLINUX_IMAGE_VERSION
   variables:
     PLATFORM: linux-arch
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -119,11 +121,11 @@ bctoolbox-arch-test:
   extends: .test-bctoolbox
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 pqc-arch-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
   needs:
     - arch-latest-ninja-clang-pqc
 
@@ -141,22 +143,24 @@ belr-arch-test:
   extends: .test-belr
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 belcard-arch-test:
   extends: .test-belcard
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 bzrtp-arch-test:
   extends: .test-bzrtp
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-arch-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-archlinux-test-liblinphone:$ARCHLINUX_TEST_LIBLIN_IMAGE_VERSION
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
   extends: .test-liblinphone
   needs:
     - arch-latest-ninja-clang

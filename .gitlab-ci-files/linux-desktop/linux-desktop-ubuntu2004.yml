@@ -3,37 +3,43 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_ubuntu1804: &docker_image_platform_and_runner_tag
+.factorize_ubuntu2004: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:$UBUNTU_1804_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
   needs:
-    - ubuntu1804-ninja-gcc
+    - ubuntu2004-ninja-gcc
   variables:
-    PLATFORM: linux-ubuntu1804
+    PLATFORM: linux-ubuntu2004
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
-.factorize_ubuntu1804_s: &docker_image_platform_and_runner_tag_s
+.factorize_ubuntu2004_s: &docker_image_platform_and_runner_tag_rules_s
   tags: [ "docker-sequential" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:$UBUNTU_1804_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
   needs:
-    - ubuntu1804-ninja-gcc
+    - ubuntu2004-ninja-gcc
   variables:
-    PLATFORM: linux-ubuntu1804
+    PLATFORM: linux-ubuntu2004
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 # "tags" is defined in tester extends (check linux-desktop.yml)
-.factorize_ubuntu1804_libl: &docker_image_platform_and_runner_tag_libl
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts-test-liblinphone:$UBUNTU_1804_TEST_LIBLIN_IMAGE_VERSION
+.factorize_ubuntu2004_libl: &docker_image_platform_and_runner_tag_rules_libl
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts-test-liblinphone:$UBUNTU_2004_TEST_LIBLIN_IMAGE_VERSION
   needs:
-    - ubuntu1804-ninja-gcc
+    - ubuntu2004-ninja-gcc
   variables:
-    PLATFORM: linux-ubuntu1804
+    PLATFORM: linux-ubuntu2004
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
 #################################################
 
-ubuntu1804-makefile-clang:
+ubuntu2004-makefile-clang:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:$UBUNTU_1804_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -45,21 +51,21 @@ ubuntu1804-makefile-clang:
     #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
   extends: .linux-desktop
 
-ubuntu1804-makefile-clang-pqc:
+ubuntu2004-makefile-clang-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
-  extends: ubuntu1804-makefile-clang
+  extends: ubuntu2004-makefile-clang
 
 #################################################
 # Ninja
 #################################################
 
-ubuntu1804-ninja-gcc:
+ubuntu2004-ninja-gcc:
   tags: [ "docker" ]
-  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:$UBUNTU_1804_IMAGE_VERSION
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:$UBUNTU_2004_IMAGE_VERSION
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
@@ -67,13 +73,18 @@ ubuntu1804-ninja-gcc:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
-    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON -DENABLE_QT_GL=ON
     CMAKE_GENERATOR: Ninja
     CC: gcc
     CXX: g++
+  before_script:
+    - !reference [.linux-prepare, before_script]
+    - eval "$(qtchooser -qt=5.15.2 -print-env)"
+    - export Qt5_DIR=${QTLIBDIR}/cmake/Qt5
+    - export PATH=${QTTOOLDIR}:$PATH
   extends: .linux-desktop
 
-ubuntu1804-ninja-gcc-pqc:
+ubuntu2004-ninja-gcc-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $NIGHTLY_MASTER
@@ -82,76 +93,76 @@ ubuntu1804-ninja-gcc-pqc:
       when: never
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
-  extends: ubuntu1804-ninja-gcc
+  extends: ubuntu2004-ninja-gcc
 
-ubuntu1804-ninja-gcc-smallsdk:
+ubuntu2004-ninja-gcc-smallsdk:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF -DENABLE_QRCODE=OFF
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-  extends: ubuntu1804-ninja-gcc
+  extends: ubuntu2004-ninja-gcc
 
-ubuntu1804-ninja-gcc-tunnel-pq:
+ubuntu2004-ninja-gcc-tunnel-pq:
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
-  extends: ubuntu1804-ninja-gcc
+  extends: ubuntu2004-ninja-gcc
 
 #################################################
 # TESTS
 #################################################
 
-bctoolbox-ubuntu1804-test:
+bctoolbox-ubuntu2004-test:
   extends: .test-bctoolbox
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
-bellesip-ubuntu1804-test:
+bellesip-ubuntu2004-test:
   extends: .test-bellesip
-  <<: *docker_image_platform_and_runner_tag_s
+  <<: *docker_image_platform_and_runner_tag_rules_s
 
-belr-ubuntu1804-test:
+belr-ubuntu2004-test:
   extends: .test-belr
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
-belcard-ubuntu1804-test:
+belcard-ubuntu2004-test:
   extends: .test-belcard
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
-bzrtp-ubuntu1804-test:
+bzrtp-ubuntu2004-test:
   extends: .test-bzrtp
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
-liblinphone-ubuntu1804-test:
+liblinphone-ubuntu2004-test:
   extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_libl
+  <<: *docker_image_platform_and_runner_tag_rules_libl
 
-liblinphone-ubuntu1804-test-tunnel-pq:
+liblinphone-ubuntu2004-test-tunnel-pq:
   extends:
     - .test-liblinphone-tunnel-pq
-  <<: *docker_image_platform_and_runner_tag_libl
+  <<: *docker_image_platform_and_runner_tag_rules_libl
   needs:
-    - ubuntu1804-ninja-gcc-tunnel-pq
+    - ubuntu2004-ninja-gcc-tunnel-pq
 
-# liblinphone-ubuntu1804-test-mr:
+# liblinphone-ubuntu2004-test-mr:
 #  extends: .test-liblinphone-mr
-#  <<: *docker_image_platform_and_runner_tag_libl
+#  <<: *docker_image_platform_and_runner_tag_rules_libl
 
-liblinphone-ubuntu1804-test-force:
+liblinphone-ubuntu2004-test-force:
   extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_libl
+  <<: *docker_image_platform_and_runner_tag_rules_libl
   rules:
     - if: $ENABLE_TESTS_LIBLINPHONE
 
-mediastreamer-ubuntu1804-test:
+mediastreamer-ubuntu2004-test:
   extends: .test-mediastreamer
-  <<: *docker_image_platform_and_runner_tag_libl
+  <<: *docker_image_platform_and_runner_tag_rules_libl
 
-ortp-ubuntu1804-test:
+ortp-ubuntu2004-test:
   extends: .test-ortp
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
-pqc-ubuntu1804-test:
+pqc-ubuntu2004-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
   needs:
-    - ubuntu1804-ninja-gcc-pqc
+    - ubuntu2004-ninja-gcc-pqc

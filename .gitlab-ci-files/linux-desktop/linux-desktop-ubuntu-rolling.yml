@@ -3,11 +3,13 @@
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_ubuntu-rolling: &docker_image_platform_and_runner_tag
+.factorize_ubuntu-rolling: &docker_image_platform_and_runner_tag_rules
   tags: [ "docker-test" ]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     PLATFORM: linux-ubuntu-rolling
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -109,11 +111,11 @@ bctoolbox-ubuntu-test:
   extends: .test-bctoolbox
   needs:
     - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 pqc-ubuntu-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
   needs:
     - ubuntu-rolling-ninja-clang-pqc
 
@@ -125,30 +127,32 @@ bellesip-ubuntu-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling:$UBUNTU_ROLLING_IMAGE_VERSION
   variables:
     PLATFORM: linux-ubuntu-rolling
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 
 belr-ubuntu-test:
   extends: .test-belr
   needs:
     - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 belcard-ubuntu-test:
   extends: .test-belcard
   needs:
     - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 bzrtp-ubuntu-test:
   extends: .test-bzrtp
   needs:
     - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 ortp-ubuntu-test:
   extends: .test-ortp
   needs:
     - ubuntu-rolling-ninja-clang
-  <<: *docker_image_platform_and_runner_tag
+  <<: *docker_image_platform_and_runner_tag_rules
 
 liblinphone-ubuntu-test:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-rolling-test-liblinphone:$UBUNTU_ROLLING_TEST_LIBLIN_IMAGE_VERSION
@@ -157,3 +161,5 @@ liblinphone-ubuntu-test:
     - ubuntu-rolling-ninja-clang
   variables:
     PLATFORM: linux-ubuntu-rolling
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
