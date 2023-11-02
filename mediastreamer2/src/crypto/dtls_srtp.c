@@ -716,10 +716,6 @@ static void ms_dtls_srtp_create_ssl_context(MSDtlsSrtpContext *context) {
 		bctbx_ssl_context_free(context->rtp_dtls_context->ssl);
 	}
 	context->rtp_dtls_context->ssl = bctbx_ssl_context_new();
-
-	/* set ssl transport functions */
-	bctbx_ssl_set_io_callbacks(context->rtp_dtls_context->ssl, context, ms_dtls_srtp_rtp_sendData,
-	                           ms_dtls_srtp_rtp_DTLSread);
 }
 
 /***********************************************/
