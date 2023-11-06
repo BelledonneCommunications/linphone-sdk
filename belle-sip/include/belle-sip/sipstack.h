@@ -158,6 +158,10 @@ BELLESIP_EXPORT int belle_sip_stack_get_inactive_transport_timeout(const belle_s
  **/
 BELLESIP_EXPORT void belle_sip_stack_set_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds);
 
+BELLESIP_EXPORT void belle_sip_stack_set_http_inactive_transport_timeout(belle_sip_stack_t *stack, int seconds);
+
+BELLESIP_EXPORT int belle_sip_stack_get_http_inactive_transport_timeout(const belle_sip_stack_t *stack);
+
 /**
  * Set the time interval in seconds after which a connection is considered to be unreliable because
  * no data was received over it.

@@ -741,7 +741,13 @@ static int channel_inactive_timeout(void *data, unsigned int event) {
 }
 
 static void update_inactivity_timer(belle_sip_channel_t *obj, int from_recv) {
-	int inactive_timeout = belle_sip_stack_get_inactive_transport_timeout(obj->stack) * 1000;
+	int inactive_timeout;
+	if (obj->lp) {
+		/* We assume that if there is the listening_point back pointer, it is a SIP channel, otherwise it is http.*/
+		inactive_timeout = belle_sip_stack_get_inactive_transport_timeout(obj->stack) * 1000;
+	} else {
+		inactive_timeout = belle_sip_stack_get_http_inactive_transport_timeout(obj->stack) * 1000;
+	}
 	if (inactive_timeout > 0) {
 		if (!obj->inactivity_timer) {
 			obj->inactivity_timer = belle_sip_main_loop_create_timeout(obj->stack->ml, channel_inactive_timeout, obj,

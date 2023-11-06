@@ -80,7 +80,8 @@ static int http_before_all(void) {
 	stack = belle_sip_stack_new(NULL);
 	belle_sip_tester_set_dns_host_file(stack);
 
-	prov = belle_sip_stack_create_http_provider(stack, "0.0.0.0");
+	prov = belle_sip_stack_create_http_provider(stack, "::0");
+	if (!prov) prov = belle_sip_stack_create_http_provider(stack, "0.0.0.0"); /*ipv6 not available ?*/
 	prov_https_only = belle_sip_stack_create_http_provider_with_transports(
 	    stack, "0.0.0.0", BELLE_SIP_HTTP_TRANSPORT_TLS); // Enable TLS transport only
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
@@ -408,6 +409,48 @@ static void http_redirect_to_https(void) {
 	belle_sip_object_unref(l);
 }
 
+static void http_channel_reuse(void) {
+	belle_http_request_listener_callbacks_t cbs = {0};
+	belle_http_request_listener_t *l;
+	belle_generic_uri_t *uri;
+	belle_http_request_t *req;
+	http_counters_t counters = {0};
+	const char *url = "https://www.linphone.org/remote_provisioning.xml";
+	belle_http_response_t *resp;
+	belle_sip_channel_t *channels[2];
+	FILE *outfile;
+	int i;
+
+	cbs.process_response_headers = process_response_headers;
+	cbs.process_response = process_response;
+	cbs.process_io_error = process_io_error;
+	cbs.process_auth_requested = process_auth_requested;
+
+	for (i = 0; i < 2; ++i) {
+		uri = belle_generic_uri_parse(url);
+		req = belle_http_request_create("GET", uri, belle_sip_header_create("User-Agent", "belle-sip/" PACKAGE_VERSION),
+		                                NULL);
+		l = belle_http_request_listener_create_from_callbacks(&cbs, &counters);
+		belle_sip_object_ref(req);
+		outfile = fopen("provisioning.xml", "w");
+		belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "file", outfile, NULL);
+		belle_http_provider_send_request(prov, req, l);
+		channels[i] = (belle_sip_channel_t *)belle_sip_object_ref(belle_http_request_get_channel(req));
+		BC_ASSERT_TRUE(wait_for(stack, &counters.two_hundred, i + 1, 20000));
+		BC_ASSERT_EQUAL(counters.response_headers_count, i + 1, int, "%d");
+		resp = belle_http_request_get_response(req);
+		BC_ASSERT_PTR_NOT_NULL(resp);
+		if (outfile) fclose(outfile);
+		belle_sip_object_unref(req);
+		belle_sip_object_unref(l);
+	}
+	/* assert that channels were the same */
+	BC_ASSERT_PTR_EQUAL(channels[0], channels[1]);
+	for (i = 0; i < 2; ++i) {
+		belle_sip_object_unref(channels[i]);
+	}
+}
+
 extern const char *test_http_proxy_addr;
 extern int test_http_proxy_port;
 
@@ -437,7 +480,8 @@ test_t http_tests[] = {TEST_NO_TAG("One http GET", one_http_get),
                        TEST_NO_TAG("https POST with long body", https_post_long_body),
                        TEST_NO_TAG("http GET with long user body", http_get_long_user_body),
                        TEST_NO_TAG("https only", one_https_only_get),
-                       TEST_NO_TAG("http redirect to https", http_redirect_to_https)};
+                       TEST_NO_TAG("http redirect to https", http_redirect_to_https),
+                       TEST_NO_TAG("http channel reuse", http_channel_reuse)};
 
 test_suite_t http_test_suite = {"HTTP stack",   http_before_all,
                                 http_after_all, NULL,

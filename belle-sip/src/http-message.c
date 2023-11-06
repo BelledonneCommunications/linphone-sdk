@@ -123,6 +123,10 @@ void belle_http_request_set_channel(belle_http_request_t *req, belle_sip_channel
 	}
 }
 
+belle_sip_channel_t *belle_http_request_get_channel(const belle_http_request_t *req) {
+	return req->channel;
+}
+
 belle_http_request_listener_t *belle_http_request_get_listener(const belle_http_request_t *req) {
 	return req->listener;
 }

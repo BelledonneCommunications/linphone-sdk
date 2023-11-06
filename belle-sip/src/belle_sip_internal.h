@@ -559,6 +559,7 @@ struct belle_sip_stack {
 	int transport_timeout;
 	int unreliable_transport_timeout;
 	int inactive_transport_timeout;
+	int inactive_http_transport_timeout;
 	int dns_timeout;
 	int tx_delay;            /*used to simulate network transmission delay, for tests*/
 	int send_error;          /* used to simulate network error. if <0, channel_send will return this value*/
@@ -708,6 +709,7 @@ struct belle_http_request {
 
 void belle_http_request_set_listener(belle_http_request_t *req, belle_http_request_listener_t *l);
 void belle_http_request_set_channel(belle_http_request_t *req, belle_sip_channel_t *chan);
+BELLESIP_EXPORT belle_sip_channel_t *belle_http_request_get_channel(const belle_http_request_t *req);
 void belle_http_request_set_response(belle_http_request_t *req, belle_http_response_t *resp);
 /*
  belle_sip_transaction_t
