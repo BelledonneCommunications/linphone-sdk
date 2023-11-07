@@ -179,7 +179,7 @@ static void webrtc_aec_preprocess(MSFilter *f) {
       ms_error("Entering bypass mode");
       return;
     }
-    aec_config.nlpMode = kAecNlpAggressive;
+    aec_config.nlpMode = kAecNlpModerate;
     aec_config.skewMode = kAecFalse;
     aec_config.metricsMode = kAecFalse;
     aec_config.delay_logging = kAecFalse;
