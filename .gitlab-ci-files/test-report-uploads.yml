@@ -279,13 +279,13 @@ libl-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
 
-libl-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - liblinphone-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "liblinphone"
+#libl-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - liblinphone-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "liblinphone"
 
 # libl-ios-test-upload:
 #   extends: .test-report-upload-ios-scheduled
@@ -337,13 +337,13 @@ bct-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bctoolbox"
 
-bct-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bctoolbox-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "bctoolbox"
+#bct-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bctoolbox-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "bctoolbox"
 
 bellesip-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
@@ -377,13 +377,13 @@ bellesip-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bellesip"
 
-bellesip-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bellesip-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "bellesip"
+#bellesip-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bellesip-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "bellesip"
 
 ms2-arch-test-upload:
   extends: .test-report-upload-linux-scheduled
@@ -460,13 +460,13 @@ belr-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belr"
 
-belr-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belr-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "belr"
+#belr-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - belr-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "belr"
 
 belcard-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
@@ -500,13 +500,13 @@ belcard-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "belcard"
 
-belcard-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - belcard-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "belcard"
+#belcard-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - belcard-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "belcard"
 
 bzrtp-rocky8-test-upload:
   extends: .test-report-upload-linux-scheduled
@@ -540,10 +540,10 @@ bzrtp-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "bzrtp"
 
-bzrtp-ubuntu2004-test-upload:
-  extends: .test-report-upload-linux-scheduled
-  needs:
-    - bzrtp-ubuntu2004-test
-  variables:
-    PLATFORM: "linux-ubuntu2004"
-    TESTER: "bzrtp"
+#bzrtp-ubuntu2004-test-upload:
+#  extends: .test-report-upload-linux-scheduled
+#  needs:
+#    - bzrtp-ubuntu2004-test
+#  variables:
+#    PLATFORM: "linux-ubuntu2004"
+#    TESTER: "bzrtp"

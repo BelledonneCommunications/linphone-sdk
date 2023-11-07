@@ -12,13 +12,11 @@ recache-debian10:
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_debian10: &docker_image_platform_and_runner_tag_rules
+.factorize_debian10: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
   image: !reference [.debian10_image_version, image]
   variables:
     PLATFORM: linux-debian10
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -155,11 +153,11 @@ bctoolbox-debian10-test:
   extends: .test-bctoolbox
   needs:
     - debian10-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 pqc-debian10-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - debian10-ninja-gcc-pqc
 
@@ -172,32 +170,30 @@ bellesip-debian10-test:
   image: !reference [.debian10_image_version, image]
   variables:
     PLATFORM: linux-debian10
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 belr-debian10-test:
   extends: .test-belr
   needs:
     - debian10-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 belcard-debian10-test:
   extends: .test-belcard
   needs:
     - debian10-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 bzrtp-debian10-test:
   extends: .test-bzrtp
   needs:
     - debian10-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 ortp-debian10-test:
   extends: .test-ortp
   needs:
     - debian10-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 liblinphone-debian10-test:
   image: !reference [.debian10_test_libl_image_version, image]
@@ -206,5 +202,3 @@ liblinphone-debian10-test:
     - debian10-ninja-gcc
   variables:
     PLATFORM: linux-debian10
-  rules:
-    - !reference [.rules-merge-request-manual, rules]

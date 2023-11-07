@@ -12,13 +12,11 @@ recache-debian11:
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_debian11: &docker_image_platform_and_runner_tag_rules
+.factorize_debian11: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
   image: !reference [.debian11_image_version, image]
   variables:
     PLATFORM: linux-debian11
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -150,11 +148,11 @@ bctoolbox-debian11-test:
   extends: .test-bctoolbox
   needs:
     - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 pqc-debian11-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - debian11-ninja-gcc-pqc
 
@@ -167,32 +165,30 @@ bellesip-debian11-test:
   image: !reference [.debian11_image_version, image]
   variables:
     PLATFORM: linux-debian11
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 belr-debian11-test:
   extends: .test-belr
   needs:
     - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 belcard-debian11-test:
   extends: .test-belcard
   needs:
     - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 bzrtp-debian11-test:
   extends: .test-bzrtp
   needs:
     - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 ortp-debian11-test:
   extends: .test-ortp
   needs:
     - debian11-ninja-gcc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 liblinphone-debian11-test:
   image: !reference [.debian11_test_libl_image_version, image]
@@ -201,8 +197,6 @@ liblinphone-debian11-test:
     - debian11-ninja-gcc
   variables:
     PLATFORM: linux-debian11
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 # liblinphone-debian11-test-mr:
 #   extends: .test-liblinphone-mr

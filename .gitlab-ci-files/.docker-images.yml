@@ -1,7 +1,6 @@
 ########################################################
 # Docker Image version, common for sdk and sdk tunnel
 ########################################################
-
 # We need to redefine images use here because they are used as fallback cache key. The cache fallback key don't work with defined variables in jobs. It needs static values, that we use here with !references
 
 .android_r25b_image_version:

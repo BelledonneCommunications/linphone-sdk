@@ -12,13 +12,11 @@ recache-archlinux:
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_arch: &docker_image_platform_and_runner_tag_rules
+.factorize_arch: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
   image: !reference [.archlinux_image_version, image]
   variables:
     PLATFORM: linux-arch
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -132,11 +130,11 @@ bctoolbox-arch-test:
   extends: .test-bctoolbox
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 pqc-arch-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - arch-latest-ninja-clang-pqc
 
@@ -154,24 +152,24 @@ belr-arch-test:
   extends: .test-belr
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 belcard-arch-test:
   extends: .test-belcard
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 bzrtp-arch-test:
   extends: .test-bzrtp
   needs:
     - arch-latest-ninja-clang
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 liblinphone-arch-test:
   image: !reference [.archlinux_test_libl_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
+    #  rules:
+    #- !reference [.rules-merge-request-manual, rules]
   extends: .test-liblinphone
   needs:
     - arch-latest-ninja-clang
