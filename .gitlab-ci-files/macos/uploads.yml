@@ -1,16 +1,14 @@
-macosx-upload:
+macos-upload:
   stage: deploy
   tags: [ "macos-xcode13" ]
 
   rules:
-    - if: $DEPLOY_RUN_MACOSX
-    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
-    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_MACOS != null
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   needs:
-    - macosx-xcode
+    - macos-xcode
 
   script:
     - DESCRIBE=$(git -C liblinphone describe)

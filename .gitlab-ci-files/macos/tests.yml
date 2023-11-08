@@ -1,12 +1,12 @@
-macosx-liblinphone-test:
+macos-liblinphone-test:
   stage: test
   extends: .job-prepare
   tags: [ "macmini-m1-xcode12" ]
   allow_failure: true
   needs:
-    - macosx-ninja
+    - macos-ninja
   rules:
-    - if: $ENABLE_MACOSX_TESTS
+    - if: $ENABLE_MACOS_TESTS != null
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none
@@ -46,7 +46,7 @@ macosx-liblinphone-test:
     - echo $ESCAPED_BRANCH
     - COMMIT=$(git describe)
     - echo $COMMIT
-    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/macosx/liblinphone/allure-report
+    - URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$COMMIT-$CI_JOB_ID/macos/liblinphone/allure-report
 
     - echo "<\!DOCTYPE HTML>" >> index.html
     - echo "<meta charset=\"UTF-8\">" >> index.html
@@ -61,7 +61,7 @@ macosx-liblinphone-test:
 
     - echo "TEST REPORTS URL $URL"
 
-    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/macosx/liblinphone/allure-report"
+    - echo "alias URL=https://$DEPLOY_SERVER_DOMAIN/snapshots/allure-tests-reports/$ESCAPED_BRANCH/$GITLAB_USER_LOGIN/$COMMIT-$CI_JOB_ID/macos/liblinphone/allure-report"
 
     #Gathering artifacts in one folder to ease their use
     - if [[ -n $(ls ${CI_PROJECT_DIR} | grep results) ]]; then rm -rf ${CI_PROJECT_DIR}/results/*; else mkdir ${CI_PROJECT_DIR}/results ; fi || true;

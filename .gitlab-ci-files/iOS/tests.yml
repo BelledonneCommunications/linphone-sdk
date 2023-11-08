@@ -10,7 +10,7 @@ liblinphone-iOS-test:
     - ios-xcode
 
   rules:
-    - if: $ENABLE_IOS_TESTS
+    - if: $ENABLE_IOS_TESTS != null
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"

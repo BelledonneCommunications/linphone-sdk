@@ -4,6 +4,10 @@
   stage: build
   tags: [ "macosx-min-xcode12.2" ]
 
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_IOS_BUILDS != null
+
   before_script:
     - export CCACHE_BASEDIR=${PWD}
     - export CCACHE_DIR=~/Library/Preferences/ccache-linphone-sdk-master
@@ -54,11 +58,6 @@
 
 
 ios-makefile:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=OFF
@@ -74,10 +73,8 @@ ios-makefile:
 
 
 ios-ninja:
-
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_IOS == null
-
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -87,9 +84,7 @@ ios-ninja:
 ios-ninja-allcodecs:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
+    - if: $ALL_IOS_BUILDS != null
   variables:
     CMAKE_GENERATOR: Ninja
     ARCHS_OPTIONS: $IOS_ARCHS
@@ -98,12 +93,9 @@ ios-ninja-allcodecs:
 
 
 ios-ninja-g729:
-
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
+    - if: $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON
   extends: ios-ninja
@@ -112,9 +104,7 @@ ios-ninja-g729:
 ios-ninja-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
+    - if: $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: ios-ninja
@@ -123,9 +113,7 @@ ios-ninja-novideo:
 ios-ninja-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-
+    - if: $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF
   extends: ios-ninja
@@ -134,7 +122,7 @@ ios-ninja-smallsdk:
 ios-ninja-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ios-ninja
@@ -146,12 +134,11 @@ ios-ninja-pqc:
 ios-xcode:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_IOS
-    - if: $DEPLOY_RUN_NUGET
-    - if: $UPLOAD_XAMARIN
-    - if: $ENABLE_IOS_TESTS
+    - if: $ALL_IOS_BUILDS != null
+    - if: $DEPLOY_IOS != null
+    - if: $DEPLOY_RUN_NUGET != null
+    - if: $UPLOAD_XAMARIN != null
+    - if: $ENABLE_IOS_TESTS != null
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -180,11 +167,8 @@ ios-xcode:
 ios-xcode-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_IOS
-
-
+    - if: $ALL_IOS_BUILDS != null
+    - if: $DEPLOY_IOS != null
   variables:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_VIDEO=OFF
@@ -211,7 +195,7 @@ ios-xcode-novideo:
 ios-xcode-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_IOS_BUILDS != null
 
   variables:
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON

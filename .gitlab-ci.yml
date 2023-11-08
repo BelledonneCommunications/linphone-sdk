@@ -72,9 +72,9 @@ include:
 
   - '.gitlab-ci-files/raspberrypi.yml'
 
-  - '.gitlab-ci-files/macosx/builds.yml'
-  - '.gitlab-ci-files/macosx/tests.yml'
-  - '.gitlab-ci-files/macosx/uploads.yml'
+  - '.gitlab-ci-files/macos/builds.yml'
+  - '.gitlab-ci-files/macos/tests.yml'
+  - '.gitlab-ci-files/macos/uploads.yml'
 
   - '.gitlab-ci-files/windows/builds.yml'
   - '.gitlab-ci-files/windows/tests.yml'

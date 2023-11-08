@@ -197,7 +197,7 @@
 .test-report-upload-linux-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_LINUX_TESTS
+    - if: $ENABLE_LINUX_TESTS != null
       when: always
     - if: $SKIP_LINUX
       when: never
@@ -205,7 +205,7 @@
 .test-report-upload-windows-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_WINDOWS_TESTS
+    - if: $ENABLE_WINDOWS_TESTS != null
       when: always
 
 .test-report-upload-macos-scheduled:
@@ -217,13 +217,13 @@
 .test-report-upload-ios-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_IOS_TESTS
+    - if: $ENABLE_IOS_TESTS != null
       when: always
 
 .test-report-upload-android-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_ANDROID_TESTS
+    - if: $ENABLE_ANDROID_TESTS != null
       when: always
 
 libl-rocky8-mr-test-upload:
@@ -253,7 +253,7 @@ libl-rocky8-forced-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
   rules:
-    - if: $ENABLE_TESTS_LIBLINPHONE
+    - if: $ENABLE_TESTS_LIBLINPHONE != null
 
 libl-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled
@@ -296,12 +296,12 @@ libl-arch-test-upload:
 #     TESTER: "liblinphone"
 #     XML_FILENAME_START_PATTERN: "TEST"
 
-libl-macosx-schedule-test-upload:
+libl-macos-schedule-test-upload:
   extends: .test-report-upload-macos-scheduled
   needs:
-    - macosx-liblinphone-test
+    - macos-liblinphone-test
   variables:
-    PLATFORM: "macosx"
+    PLATFORM: "macos"
     TESTER: "liblinphone"
 
 

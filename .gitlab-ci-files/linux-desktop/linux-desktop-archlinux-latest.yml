@@ -27,9 +27,6 @@ arch-latest-makefile-gcc:
 
   tags: [ "docker" ]
   image: !reference [.archlinux_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -41,9 +38,6 @@ arch-latest-makefile-clang:
 
   tags: [ "docker" ]
   image: !reference [.archlinux_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -57,12 +51,8 @@ arch-latest-makefile-clang:
 
 
 arch-latest-ninja-gcc:
-
   tags: [ "docker" ]
   image: !reference [.archlinux_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
@@ -70,19 +60,11 @@ arch-latest-ninja-gcc:
   extends: .linux-desktop
 
 arch-latest-ninja-gcc-novideo:
-  tags: [ "docker" ]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: arch-latest-ninja-gcc
 
 arch-latest-ninja-gcc-pqc:
-  tags: [ "docker" ]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: arch-latest-ninja-gcc
@@ -106,16 +88,16 @@ arch-latest-ninja-clang:
 
 arch-latest-ninja-clang-novideo:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: arch-latest-ninja-clang
 
 arch-latest-ninja-clang-pqc:
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: arch-latest-ninja-clang

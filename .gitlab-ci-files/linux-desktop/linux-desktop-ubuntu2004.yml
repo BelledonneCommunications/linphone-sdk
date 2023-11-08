@@ -3,7 +3,7 @@ wait-cache-synchro-ubuntu2004:
   variables:
     BUILD_SUBTYPE: ubuntu2004
 
-recache-ubuntuubuntu2004:
+recache-ubuntu2004:
   extends: .recache-update-cache
   image: !reference [.ubuntu2004_image_version, image]
 
@@ -12,35 +12,29 @@ recache-ubuntuubuntu2004:
 #Use = "<< *referenceName" to use the template ("-*" in script)
 
 
-.factorize_ubuntu2004: &docker_image_platform_and_runner_tag_rules
+.factorize_ubuntu2004: &docker_image_platform_and_runner_tag
   tags: [ "docker-test" ]
   image: !reference [.ubuntu2004_image_version, image]
   needs:
-    - ubuntu2004-ninja-gcc
+    - ubuntu2004-ninja-gcc-tunnel-pq
   variables:
     PLATFORM: linux-ubuntu2004
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
-.factorize_ubuntu2004_s: &docker_image_platform_and_runner_tag_rules_s
+.factorize_ubuntu2004_s: &docker_image_platform_and_runner_tag_s
   tags: [ "docker-sequential" ]
   image: !reference [.ubuntu2004_image_version, image]
   needs:
-    - ubuntu2004-ninja-gcc
+    - ubuntu2004-ninja-gcc-tunnel-pq
   variables:
     PLATFORM: linux-ubuntu2004
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 # "tags" is defined in tester extends (check linux-desktop.yml)
-.factorize_ubuntu2004_libl: &docker_image_platform_and_runner_tag_rules_libl
+.factorize_ubuntu2004_libl: &docker_image_platform_and_runner_tag_libl
   image: !reference [.ubuntu2004_test_libl_image_version, image]
   needs:
-    - ubuntu2004-ninja-gcc
+    - ubuntu2004-ninja-gcc-tunnel-pq
   variables:
     PLATFORM: linux-ubuntu2004
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
 
 #################################################
 # Makefile
@@ -49,9 +43,6 @@ recache-ubuntuubuntu2004:
 ubuntu2004-makefile-clang:
   tags: [ "docker" ]
   image: !reference [.ubuntu2004_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -61,9 +52,6 @@ ubuntu2004-makefile-clang:
   extends: .linux-desktop
 
 ubuntu2004-makefile-clang-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu2004-makefile-clang
@@ -79,8 +67,8 @@ ubuntu2004-ninja-gcc:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
   variables:
     CMAKE_OPTIONS: -DENABLE_DOC=ON -DENABLE_LDAP=ON -DENABLE_QT_GL=ON
     CMAKE_GENERATOR: Ninja
@@ -96,12 +84,6 @@ ubuntu2004-ninja-gcc:
     - wait-cache-synchro-ubuntu2004
 
 ubuntu2004-ninja-gcc-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $ENABLE_LINUX_TESTS
-    - if: $SKIP_LINUX
-      when: never
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=ON
   extends: ubuntu2004-ninja-gcc
@@ -109,12 +91,12 @@ ubuntu2004-ninja-gcc-pqc:
 ubuntu2004-ninja-gcc-smallsdk:
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF -DENABLE_QRCODE=OFF
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   extends: ubuntu2004-ninja-gcc
 
 ubuntu2004-ninja-gcc-tunnel-pq:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
   extends: ubuntu2004-ninja-gcc
@@ -125,55 +107,55 @@ ubuntu2004-ninja-gcc-tunnel-pq:
 
 bctoolbox-ubuntu2004-test:
   extends: .test-bctoolbox
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 bellesip-ubuntu2004-test:
   extends: .test-bellesip
-  <<: *docker_image_platform_and_runner_tag_rules_s
+  <<: *docker_image_platform_and_runner_tag_s
 
 belr-ubuntu2004-test:
   extends: .test-belr
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 belcard-ubuntu2004-test:
   extends: .test-belcard
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 bzrtp-ubuntu2004-test:
   extends: .test-bzrtp
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 liblinphone-ubuntu2004-test:
   extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_rules_libl
+  <<: *docker_image_platform_and_runner_tag_libl
 
 liblinphone-ubuntu2004-test-tunnel-pq:
   extends:
     - .test-liblinphone-tunnel-pq
-  <<: *docker_image_platform_and_runner_tag_rules_libl
+  <<: *docker_image_platform_and_runner_tag_libl
   needs:
     - ubuntu2004-ninja-gcc-tunnel-pq
 
 # liblinphone-ubuntu2004-test-mr:
 #  extends: .test-liblinphone-mr
-#  <<: *docker_image_platform_and_runner_tag_rules_libl
+#  <<: *docker_image_platform_and_runner_tag_libl
 
 liblinphone-ubuntu2004-test-force:
   extends: .test-liblinphone
-  <<: *docker_image_platform_and_runner_tag_rules_libl
+  <<: *docker_image_platform_and_runner_tag_libl
   rules:
-    - if: $ENABLE_TESTS_LIBLINPHONE
+    - if: $ENABLE_TESTS_LIBLINPHONE != null
 
 mediastreamer-ubuntu2004-test:
   extends: .test-mediastreamer
-  <<: *docker_image_platform_and_runner_tag_rules_libl
+  <<: *docker_image_platform_and_runner_tag_libl
 
 ortp-ubuntu2004-test:
   extends: .test-ortp
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
 
 pqc-ubuntu2004-test:
   extends: .test-pqc
-  <<: *docker_image_platform_and_runner_tag_rules
+  <<: *docker_image_platform_and_runner_tag
   needs:
     - ubuntu2004-ninja-gcc-pqc

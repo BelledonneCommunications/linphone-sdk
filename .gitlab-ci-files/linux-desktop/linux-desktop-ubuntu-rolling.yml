@@ -91,14 +91,10 @@ ubuntu-rolling-ninja-clang:
     CC: clang
     CXX: clang++
   rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.linux-desktop, rules]
   extends: .linux-desktop
 
 ubuntu-rolling-ninja-clang-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ubuntu-rolling-ninja-clang

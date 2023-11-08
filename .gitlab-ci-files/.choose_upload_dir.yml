@@ -8,7 +8,7 @@
 .choose_variable_from_git_tag:
   stage: deploy
   rules:
-    - if: $DEPLOY_RUN_TEST
+    - if: $DEPLOY_RUN_TEST != null
   tags: [ "macmini-m1-xcode13" ]
   script:
 
@@ -59,7 +59,7 @@
 .choose_upload_dir:
   stage: deploy
   rules:
-    - if: $DEPLOY_RUN_TEST
+    - if: $DEPLOY_RUN_TEST != null
   tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$DEPLOY_SNAPSHOTS_ROOT_DIRECTORY
@@ -77,7 +77,7 @@
 .choose_url_macos:
   stage: deploy
   rules:
-    - if: $DEPLOY_RUN_TEST
+    - if: $DEPLOY_RUN_TEST != null
   tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$MACOS_SNAPSHOTS_URL
@@ -95,7 +95,7 @@
 .choose_url_ios:
   stage: deploy
   rules:
-    - if: $DEPLOY_RUN_TEST
+    - if: $DEPLOY_RUN_TEST != null
   tags: [ "macmini-m1-xcode13" ]
   script:
     - SNAPSHOTS_LOCATION=$IOS_SNAPSHOTS_URL

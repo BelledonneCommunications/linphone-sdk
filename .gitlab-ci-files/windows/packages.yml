@@ -6,14 +6,13 @@ vs2017-nuget-windows-package:
     - vs2017-uwp-scheduled-windows
     - vs2017-win32-scheduled-windows
   rules:
-    - if: $DEPLOY_RUN_WINDOWS
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $WINDOWS_PACKAGE != null
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab-ci-files/windows/packages.yml
         - cmake/NuGet/Windows/**/*
-    - if: $DEPLOY_RUN_NUGET
+    - if: $DEPLOY_RUN_NUGET != null
   script:
     - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
     - cd build-desktop

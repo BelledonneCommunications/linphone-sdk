@@ -3,8 +3,8 @@
   stage: build
   tags: [ "windows-powershell" ]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_WINDOWS_BUILDS != null
   variables:
     BUILD_DIR: build/win
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -149,9 +149,9 @@
   extends: .windows-vs2017-msvc
 
   rules:
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $ENABLE_WINDOWS_TESTS
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $ENABLE_WINDOWS_TESTS != null
 
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
@@ -176,14 +176,16 @@ vs2017-ninja-win64-windows-pqc:
   extends: vs2017-ninja-win64-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
 vs2017-ninja-win32-windows:
   extends: .windows-vs2017-ninja
   rules:
-    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA != null
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -199,13 +201,12 @@ vs2017-uwp-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $DEPLOY_RUN_WINDOWS != null
     - &nuget_deploy_rule
-      if: $DEPLOY_RUN_NUGET
-    - if: $ENABLE_WINDOWS_UWP_TESTS
-    - if: $ENABLE_WINDOWS_TESTS
+      if: $DEPLOY_RUN_NUGET != null
+    - if: $ENABLE_WINDOWS_UWP_TESTS != null
+    - if: $ENABLE_WINDOWS_TESTS != null
     - &nuget_dev_rule
       if:  $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -215,7 +216,7 @@ vs2017-uwp-scheduled-windows:
   variables:
     BUILD_DIR: build/uwp
     CMAKE_PRESET: uwp-sdk
-    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF 
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
     CMAKE_GENERATOR: "Visual Studio 15 2017"
@@ -224,7 +225,7 @@ vs2017-uwp-scheduled-windows-pqc:
   extends: vs2017-uwp-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=OFF -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON
 
@@ -232,10 +233,9 @@ vs2017-win32-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $UPLOAD_CS_DOC
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $UPLOAD_CS_DOC != null
+    - if: $DEPLOY_RUN_WINDOWS != null
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
@@ -248,7 +248,7 @@ vs2017-win32-scheduled-windows-pqc:
   extends: vs2017-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON -DENABLE_GPL_THIRD_PARTIES=ON
 
@@ -256,9 +256,9 @@ vs2017-win32store-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $ENABLE_WINDOWS_TESTS != null
+    - if: $DEPLOY_RUN_WINDOWS != null
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
@@ -271,9 +271,8 @@ win32-vs2017-novideo-windows:
   extends: vs2017-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_WINDOWS
+    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $DEPLOY_RUN_WINDOWS != null
 
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_VIDEO=OFF

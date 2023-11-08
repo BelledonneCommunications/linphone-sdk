@@ -3,17 +3,15 @@ nuget-upload-xamarin:
   tags: [ "macmini-m1-xcode12" ]
 
   rules:
-    - if: $DEPLOY_RUN_NUGET
-    - if: $UPLOAD_XAMARIN
-    - if: $NIGHTLY_MASTER && $SKIP_DEPLOY == null
-    - if: $NIGHTLY_RELEASE
+    - if: $DEPLOY_RUN_NUGET != null
+    - if: $UPLOAD_XAMARIN != null
 
   variables:
     GIT_STRATEGY: none # We don't need sources for this job.
 
   needs:
     - job: xamarin-package
-  
+
   before_script:
     - nuget sources Add -Name gitlab -Source "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/nuget/index.json" -UserName gitlab-ci-token -Password $CI_JOB_TOKEN -StorePasswordInClearText
 

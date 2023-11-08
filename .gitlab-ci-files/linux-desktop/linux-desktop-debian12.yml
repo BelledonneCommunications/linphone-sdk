@@ -27,9 +27,6 @@ debian12-makefile-gcc:
 
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -42,9 +39,6 @@ debian12-makefile-clang:
 
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -72,37 +66,27 @@ debian12-ninja-gcc:
     - wait-cache-synchro-debian12
 
 debian12-ninja-gcc-novideo:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian12-ninja-gcc
 
 debian12-ninja-gcc-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian12-ninja-gcc
 
 debian12-ninja-gcc-smallsdk:
   rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian12-ninja-gcc
 
 
 debian12-ninja-clang:
-
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: clang

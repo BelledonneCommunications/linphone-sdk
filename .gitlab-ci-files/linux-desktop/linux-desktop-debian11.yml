@@ -5,6 +5,7 @@ wait-cache-synchro-debian11:
 
 recache-debian11:
   extends: .recache-update-cache
+  allow_failure: true
   image: !reference [.debian11_image_version, image]
 
 #Build template to use in other job scripts without having to copy same code
@@ -27,9 +28,6 @@ debian11-makefile-gcc:
 
   tags: [ "docker" ]
   image: !reference [.debian11_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -42,9 +40,6 @@ debian11-makefile-clang:
 
   tags: [ "docker" ]
   image: !reference [.debian11_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -84,35 +79,22 @@ debian11-ninja-gcc-sequential:
 
 
 debian11-ninja-gcc-novideo:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 debian11-ninja-gcc-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 debian11-ninja-gcc-smallsdk:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian11-ninja-gcc
 
 
 debian11-ninja-clang:
-
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   tags: [ "docker" ]
   image: !reference [.debian11_image_version, image]
   variables:

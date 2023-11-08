@@ -8,6 +8,8 @@ wait-cache-synchro-raspberrypi:
 
 recache-raspberrypi:
   extends: .recache-update-cache
+  # Set as this job can only be launched manually in mr, so the cache could be absent
+  allow_failure: true
   image: !reference [.raspios_image_version, image]
 
 
@@ -19,8 +21,8 @@ recache-raspberrypi:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
     CMAKE_PRESET: raspberrypi-0-1
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
-    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null
+    - if: $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
   script:
     # rootfs is not created here but mounted as a volume
     # - /home/bc/raspios-create-rootfs.sh

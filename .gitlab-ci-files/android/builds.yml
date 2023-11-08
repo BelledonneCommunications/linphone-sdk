@@ -19,14 +19,14 @@ recache-android:
         - .gradle/wrapper
         - .gradle/caches
 
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+    - if: $ALL_ANDROID_BUILDS != null
+
   variables:
     CCACHE_SIZE: 4G
 
   extends: .linux-prepare
-
-  rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
-    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
 
   script:
     - echo $CMAKE_GENERATOR
@@ -69,7 +69,9 @@ recache-android:
 #################################################
 
 android-ninja-r25b:
-
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
   image: !reference [.android_r25b_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -81,14 +83,15 @@ android-ninja-r25b:
   needs:
     - wait-cache-synchro-android
 
+
+
 android-makefile-r25b-g729-ldap:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_ANDROID
-    - if: $DEPLOY_RUN_NUGET
-    - if: $UPLOAD_XAMARIN
+    - if: $ALL_ANDROID_BUILDS != null
+    - if: $DEPLOY_RUN_ANDROID != null
+    - if: $DEPLOY_RUN_NUGET != null
+    - if: $UPLOAD_XAMARIN != null
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -97,10 +100,9 @@ android-makefile-r25b-g729-ldap:
 
 android-ninja-r25b-minimal-size:
   rules:
+    - if: $DEPLOY_RUN_ANDROID != null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_ANDROID
+    - if: $ALL_ANDROID_BUILDS != null
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
@@ -116,9 +118,9 @@ android-ninja-r25b-no-video:
   image: !reference [.android_r25b_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $NIGHTLY_RELEASE
-    - if: $DEPLOY_RUN_ANDROID
+    - if: $ALL_ANDROID_BUILDS != null
+    - if: $DEPLOY_ANDROID != null
+    - if: $DEPLOY_RUN_ANDROID != null
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
@@ -127,7 +129,8 @@ android-ninja-r25b-no-video:
 #android-ninja-r25b-macos:
 #  tags: [ "macosx" ]
 # rules:
-#   - if: $NIGHTLY_MASTER
+#   - !reference [.rules-merge-request-manual, rules]
+#   - if: $ALL_ANDROID_BUILDS != null
 #  variables:
 #    CMAKE_GENERATOR: Ninja
 #  extends: .android
@@ -135,7 +138,7 @@ android-ninja-r25b-no-video:
 android-ninja-r25b-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF
   extends: android-ninja-r25b
@@ -143,10 +146,9 @@ android-ninja-r25b-smallsdk:
 android-ninja-r25b-allcodecs:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_G729=ON
-
   extends: android-ninja-r25b
 
 #android-ninja-r25b-sanitizer:
@@ -157,7 +159,7 @@ android-ninja-r25b-allcodecs:
 android-ninja-r25b-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
+    - if: $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: android-ninja-r25b

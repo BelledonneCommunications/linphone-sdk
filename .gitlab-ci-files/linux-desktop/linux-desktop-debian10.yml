@@ -5,6 +5,7 @@ wait-cache-synchro-debian10:
 
 recache-debian10:
   extends: .recache-update-cache
+  allow_failure: true
   image: !reference [.debian10_image_version, image]
 
 #Build template to use in other job scripts without having to copy same code
@@ -27,9 +28,6 @@ debian10-makefile-gcc:
 
   tags: [ "docker" ]
   image: !reference [.debian10_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -43,9 +41,6 @@ debian10-makefile-clang:
 
   tags: [ "docker" ]
   image: !reference [.debian10_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: clang
@@ -74,42 +69,22 @@ debian10-ninja-gcc:
     - wait-cache-synchro-debian10
 
 debian10-ninja-gcc-novideo:
-
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
-
 debian10-ninja-gcc-smallsdk:
-
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
 debian10-ninja-gcc-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian10-ninja-gcc
 
-
-
 debian10-ninja-clang:
-
   tags: [ "docker" ]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   image: !reference [.debian10_image_version, image]
   variables:
     CMAKE_GENERATOR: Ninja
@@ -128,17 +103,11 @@ debian10-ninja-clang-sanitizer:
   extends: debian10-ninja-clang
 
 debian10-ninja-clang-novideo:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_LDAP=OFF
   extends: debian10-ninja-clang
 
 debian10-ninja-clang-pqc:
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_LDAP=OFF
   extends: debian10-ninja-clang
