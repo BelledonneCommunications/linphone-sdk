@@ -52,6 +52,7 @@ void H26xDecoderFilter::process() {
 
 	ms_queue_init(&frame);
 
+	TimeReport feeding("H26x feeding");
 	while (mblk_t *im = ms_queue_get(getInput(0))) {
 		NalUnpacker::Status unpacking_ret = _unpacker->unpack(im, &frame);
 
@@ -80,6 +81,7 @@ void H26xDecoderFilter::process() {
 
 		ms_queue_flush(&frame);
 	}
+	feeding.finished();
 
 	mblk_t *om = nullptr;
 	VideoDecoder::Status status;
@@ -92,7 +94,7 @@ void H26xDecoderFilter::process() {
 		// if (regulatorPendingCount > 0) ms_message("H26xDecoder: %i frames pending in StreamRegulator",
 		// regulatorPendingCount);
 	}
-
+	TimeReport fetching("H26x fetching");
 	while ((status = _codec->fetch(om)) != VideoDecoder::Status::NoFrameAvailable) {
 		if (status == VideoDecoder::DecodingFailure) {
 			ms_error("H26xDecoder: decoding failure");
@@ -103,6 +105,7 @@ void H26xDecoderFilter::process() {
 		ms_queue_put(&q, om);
 		om = nullptr;
 	}
+	fetching.finished();
 	if (decodedFramesCount >= 10) {
 		if (!_useRegulator) {
 			ms_warning("H26xDecoder: [%i] frames decoded in a row - non real-time MediaCodec decoding detected. "

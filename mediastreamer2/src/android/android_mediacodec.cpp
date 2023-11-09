@@ -447,6 +447,7 @@ void AMediaCodec_setParams(AMediaCodec *codec, const AMediaFormat *fmt) {
 	}
 	jbundle = env->NewObject(BundleClass, codec->_init_BundleClass);
 
+	/* FIXME - we have to transfer from AMediaFormat to Bundle all known properties - only these three one for now. */
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "request-sync");
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "video-bitrate");
 	putToBundle(env, codec, jbundle, (AMediaFormat *)fmt, "frame-rate");

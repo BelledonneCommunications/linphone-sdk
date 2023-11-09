@@ -127,19 +127,23 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 		status = NoFrameAvailable;
 		goto end;
 	}
-
-	oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
-	while (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED || oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
-		ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
-		if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
-			AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
-			AMediaFormat_getInt32(format, "width", &_curWidth);
-			AMediaFormat_getInt32(format, "height", &_curHeight);
-			ms_message("MediaCodecDecoder: new format %ix%i :\n%s", _curWidth, _curHeight,
-			           AMediaFormat_toString(format));
-			AMediaFormat_delete(format);
-		}
+	{
+		TimeReport dequeue("dequeueOutputBuffer");
 		oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+		while (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED ||
+		       oBufidx == AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED) {
+			ms_message("MediaCodecDecoder: %s", codecInfoToString(oBufidx).c_str());
+			if (oBufidx == AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED) {
+				AMediaFormat *format = AMediaCodec_getOutputFormat(_impl);
+				AMediaFormat_getInt32(format, "width", &_curWidth);
+				AMediaFormat_getInt32(format, "height", &_curHeight);
+				ms_message("MediaCodecDecoder: new format %ix%i :\n%s", _curWidth, _curHeight,
+				           AMediaFormat_toString(format));
+				AMediaFormat_delete(format);
+			}
+			oBufidx = AMediaCodec_dequeueOutputBuffer(_impl, &info, _timeoutUs);
+		}
+		dequeue.finished();
 	}
 
 	if (oBufidx < 0) {
@@ -163,11 +167,14 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	}
 
 	_pendingFrames--;
-
-	if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
-		ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
-		status = DecodingFailure;
-		goto end;
+	{
+		TimeReport getOutputImage("AMediaCodec_getOutputImage");
+		if (AMediaCodec_getOutputImage(_impl, oBufidx, &image) <= 0) {
+			ms_error("MediaCodecDecoder: AMediaCodec_getOutputImage() failed");
+			status = DecodingFailure;
+			goto end;
+		}
+		getOutputImage.finished();
 	}
 
 	if (_curWidth && _curHeight && (_curWidth != image.crop_rect.w || _curHeight != image.crop_rect.h)) {
@@ -190,10 +197,12 @@ MediaCodecDecoder::Status MediaCodecDecoder::fetch(mblk_t *&frame) {
 	// ms_message("image.crop_rect.w=%i, image.crop_rect.h=%i, image.row_strides=%i,%i,%i image.pixel_strides=%i,%i,%i",
 	//	   image.crop_rect.w, image.crop_rect.h, image.row_strides[0], image.row_strides[1], image.row_strides[2],
 	//		image.pixel_strides[0], image.pixel_strides[1], image.pixel_strides[2]);
+	if (frame) {
+		ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect,
+		                                 pic.planes, pic.strides, dst_pix_strides, dst_roi);
+		mblk_set_timestamp_info(frame, (uint32_t)((image.timestamp / 1000000LL) * 90LL));
+	} else status = VideoDecoder::Status::NoFrameAvailable;
 
-	ms_yuv_buf_copy_with_pix_strides(image.buffers, image.row_strides, image.pixel_strides, image.crop_rect, pic.planes,
-	                                 pic.strides, dst_pix_strides, dst_roi);
-	mblk_set_timestamp_info(frame, (uint32_t)((image.timestamp / 1000000LL) * 90LL));
 	AMediaImage_close(&image);
 
 end:
@@ -208,6 +217,7 @@ AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
 	AMediaFormat_setInt32(format, "max-width", 1920);
 	AMediaFormat_setInt32(format, "max-height", 1920);
 	AMediaFormat_setInt32(format, "priority", 0);
+	AMediaFormat_setInt32(format, "low-latency", 1); // MediaFormat.KEY_LOW_LATENCY
 	return format;
 }
 

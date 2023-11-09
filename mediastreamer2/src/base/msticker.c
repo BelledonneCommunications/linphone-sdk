@@ -419,6 +419,7 @@ static int wait_next_tick(void *data, BCTBX_UNUSED(uint64_t virt_ticker_time)) {
 	uint64_t realtime;
 	int64_t diff;
 	int late;
+	bool_t has_slept = FALSE;
 
 	while (1) {
 		ms_mutex_lock(&s->cur_time_lock);
@@ -429,10 +430,14 @@ static int wait_next_tick(void *data, BCTBX_UNUSED(uint64_t virt_ticker_time)) {
 		if (diff > 0) {
 			/* sleep until next tick */
 			bctbx_sleep_ms((int)diff < 10 ? (int)diff : 10);
+			has_slept = TRUE;
 		} else {
 			late = (int)-diff;
 			break; /*exit the while loop */
 		}
+	}
+	if (late > 100 && has_slept) {
+		ms_warning("%s: late wakeup by %i ms", s->name, late);
 	}
 	return late;
 }

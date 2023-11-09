@@ -32,6 +32,9 @@
 #include <android/rect.h>
 #include <android/window.h>
 
+#include <sys/resource.h>
+#include <sys/time.h>
+
 /* All AndroidTextureDisplay filters share a same worker thread to execute OpenGl primitives.
  * This structure is not thread-safe: it works as long as filters are not created or destroyed in parallel.
  */
@@ -303,18 +306,26 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	ms_filter_unlock(f);
 }
 
+static void report_abusive_time(uint64_t orig, const char *cause) {
+	uint64_t now = bctbx_get_cur_time_ms();
+	uint64_t diff = now - orig;
+	if (diff > 10) {
+		ms_warning("%s took %i ms !", cause, (int)diff);
+	}
+}
+
 static void android_texture_display_swap_buffers(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	mblk_t *yuv_to_restore = NULL;
-
-	ms_filter_lock(f);
+	uint64_t start_time;
 
 	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context || !ad->nativeWindowId) {
-		ms_filter_unlock(f);
+		ms_message("android_texture_display_swap_buffers(): nothing to do.");
 		return;
 	}
 
 	EGLint w, h;
+	start_time = bctbx_get_cur_time_ms();
 	eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_WIDTH, &w);
 	eglQuerySurface(ad->gl_display, ad->gl_surface, EGL_HEIGHT, &h);
 
@@ -325,15 +336,12 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 		/* Get back the last image displayed, in order to set it immediately after the new view is avaiable */
 		yuv_to_restore = ogl_display_get_yuv_to_display(ad->ogl);
 		if (yuv_to_restore) yuv_to_restore = dupmsg(yuv_to_restore);
-		ms_filter_unlock(f);
 		android_texture_display_destroy_opengl(f);
 		android_texture_display_init_opengl(f);
-		ms_filter_lock(f);
 	}
 
 	if (eglMakeCurrent(ad->gl_display, ad->gl_surface, ad->gl_surface, ad->gl_context) == EGL_FALSE) {
 		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
-		ms_filter_unlock(f);
 		return;
 	}
 	if (yuv_to_restore) {
@@ -348,7 +356,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 		         result);
 	}
 	ogl_display_notify_errors(ad->ogl, f);
-	ms_filter_unlock(f);
+	report_abusive_time(start_time, "android_texture_display_swap_buffers");
 }
 
 static void android_texture_display_init(MSFilter *f) {
@@ -360,10 +368,17 @@ static void android_texture_display_init(MSFilter *f) {
 	f->data = ad;
 }
 
+static void android_texture_display_set_priority(BCTBX_UNUSED(MSFilter *f)) {
+	if (setpriority(PRIO_PROCESS, 0, -20) == -1) {
+		ms_message("android_texture_display_set_priority(): setpriority() failed: %s, nevermind.", strerror(errno));
+	}
+}
+
 static void android_texture_display_preprocess(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
-	ad->refresh_task = ms_worker_thread_add_repeated_task(
-	    ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, (void *)f, 10);
+	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_set_priority, f);
+	ad->refresh_task =
+	    ms_worker_thread_add_repeated_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, f, 20);
 }
 
 static void android_texture_display_process(MSFilter *f) {
@@ -376,16 +391,16 @@ static void android_texture_display_process(MSFilter *f) {
 			ogl_display_set_yuv_to_display(ad->ogl, m);
 		}
 	}
+	ms_filter_unlock(f);
 	ms_queue_flush(f->inputs[0]);
 	if (f->inputs[1] != NULL) {
 		ms_queue_flush(f->inputs[1]);
 	}
-	ms_filter_unlock(f);
 }
 
 static void android_texture_display_postprocess(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
-	ms_task_cancel_and_destroy(ad->refresh_task);
+	if (ad->refresh_task) ms_task_cancel_and_destroy(ad->refresh_task);
 }
 
 static void android_texture_display_uninit(MSFilter *f) {
@@ -421,7 +436,7 @@ static int android_texture_display_set_window(MSFilter *f, void *arg) {
 		}
 	} else if (!(*env)->IsSameObject(env, ad->nativeWindowId, windowId)) {
 		if (ad->nativeWindowId) {
-			ms_message("[TextureView Display][Filter=%p] Scheduling current window to be destryed first", f);
+			ms_message("[TextureView Display][Filter=%p] Scheduling current window to be destroyed first", f);
 			(*env)->DeleteGlobalRef(env, ad->nativeWindowId);
 			ad->nativeWindowId = NULL;
 			ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_destroy_opengl,

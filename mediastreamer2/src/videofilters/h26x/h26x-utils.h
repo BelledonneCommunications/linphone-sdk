@@ -143,4 +143,21 @@ private:
 	static std::unordered_map<std::string, std::unique_ptr<H26xToolFactory>> _instances;
 };
 
+class TimeReport {
+public:
+	TimeReport(const std::string &what, int threshold_ms = 10) : mWhat(what) {
+		mCurTime = bctbx_get_cur_time_ms();
+		mThreshold = threshold_ms;
+	}
+	void finished() {
+		uint64_t diff = bctbx_get_cur_time_ms() - mCurTime;
+		if ((int)diff >= mThreshold) ms_warning("%s took %i ms !", mWhat.c_str(), (int)diff);
+	}
+
+private:
+	uint64_t mCurTime;
+	int mThreshold;
+	std::string mWhat;
+};
+
 } // namespace mediastreamer

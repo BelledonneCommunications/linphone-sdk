@@ -34,21 +34,23 @@ void ms_box_plot_reset(MSBoxPlot *bp) {
 }
 
 void ms_box_plot_add_value(MSBoxPlot *bp, int64_t value) {
+	int64_t mean, deviation;
 	if (bp->count == 0) {
 		bp->min = bp->max = value;
-		bp->mean = (double)value;
-		bp->quad_moment = (double)(value * value);
 	} else {
 		bp->min = min(bp->min, value);
 		bp->max = max(bp->max, value);
-		bp->mean = ((bp->mean * bp->count) + value) / (bp->count + 1);
-		bp->quad_moment = ((bp->quad_moment * bp->count) + value * value) / (bp->count + 1);
 	}
+	bp->sum += value;
 	bp->count++;
+	mean = bp->sum / bp->count;
+	deviation = value - mean;
+	bp->deviation_sum += deviation * deviation;
+	bp->mean = (double)mean;
 }
 
 double ms_box_plot_get_variance(const MSBoxPlot *bp) {
-	return bp->quad_moment - bp->mean * bp->mean;
+	return bp->count != 0 ? (double)bp->deviation_sum / (double)bp->count : (double)0;
 }
 
 double ms_box_plot_get_standard_deviation(const MSBoxPlot *bp) {
@@ -66,21 +68,23 @@ void ms_u_box_plot_reset(MSUBoxPlot *bp) {
 }
 
 void ms_u_box_plot_add_value(MSUBoxPlot *bp, uint64_t value) {
+	int64_t deviation, mean;
 	if (bp->count == 0) {
 		bp->min = bp->max = value;
-		bp->mean = (double)value;
-		bp->quad_moment = (double)(value * value);
 	} else {
 		bp->min = min(bp->min, value);
 		bp->max = max(bp->max, value);
-		bp->mean = ((bp->mean * bp->count) + value) / (bp->count + 1);
-		bp->quad_moment = ((bp->quad_moment * bp->count) + value * value) / (bp->count + 1);
 	}
+	bp->sum += value;
 	bp->count++;
+	mean = bp->sum / bp->count;
+	deviation = value - mean;
+	bp->deviation_sum += deviation * deviation;
+	bp->mean = (double)mean;
 }
 
 double ms_u_box_plot_get_variance(const MSUBoxPlot *bp) {
-	return bp->quad_moment - bp->mean * bp->mean;
+	return bp->count != 0 ? (double)bp->deviation_sum / (double)bp->count : (double)0;
 }
 
 double ms_u_box_plot_get_standard_deviation(const MSUBoxPlot *bp) {

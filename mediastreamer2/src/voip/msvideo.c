@@ -255,6 +255,7 @@ void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[],
 MSYuvBufAllocator *ms_yuv_buf_allocator_new(void) {
 	msgb_allocator_t *allocator = (msgb_allocator_t *)ms_new0(msgb_allocator_t, 1);
 	msgb_allocator_init(allocator);
+	ms_yuv_buf_allocator_set_max_frames(allocator, 2);
 	return allocator;
 }
 
@@ -771,6 +772,7 @@ mblk_t *copy_ycbcrbiplanar_to_true_yuv_with_rotation_and_down_scale_by_2(MSYuvBu
 #endif
 
 	yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
+	if (!yuv_block) return NULL;
 
 	if (!uFirstvSecond) {
 		unsigned char *tmp = pict.planes[1];
@@ -900,6 +902,7 @@ mblk_t *copy_yuv_with_rotation(MSYuvBufAllocator *allocator,
 	mblk_t *yuv_block;
 
 	yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
+	if (!yuv_block) return NULL;
 
 	if (rotation % 180 == 0) {
 		int i, j;

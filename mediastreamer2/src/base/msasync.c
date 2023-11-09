@@ -98,16 +98,22 @@ static bool_t ms_worker_thread_process_task(MSWorkerThread *obj, MSTask *task, u
 	bool_t drop = TRUE;
 	if (task->state == MSTaskQueued) {
 		if (task->repeat_interval != 0) {
-			if (task->repeat_at == 0) task->repeat_at = curtime;
+			if (task->repeat_at == 0) {
+				task->repeat_at = curtime;
+			}
 			if (curtime >= task->repeat_at) {
 				drop = ms_worker_thread_run_task(obj, task, do_it);
 				task->repeat_at += task->repeat_interval;
+			} else {
+				drop = FALSE; /* The task must remain queued.*/
 			}
 		} else {
 			drop = ms_worker_thread_run_task(obj, task, do_it);
 		}
-	} else if (task->state == MSTaskCancelled) {
+	}
+	if (task->state == MSTaskCancelled) {
 		task->state = MSTaskDone;
+		drop = TRUE;
 	}
 	if (task->auto_release) ms_task_destroy(task);
 	return drop;

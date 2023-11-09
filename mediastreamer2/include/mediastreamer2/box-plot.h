@@ -26,9 +26,10 @@
 typedef struct _MSBoxPlot {
 	int64_t min;
 	int64_t max;
-	double mean;
-	double quad_moment; // E(X^2)
+	int64_t sum;
+	uint64_t deviation_sum;
 	uint64_t count;
+	double mean;
 } MSBoxPlot;
 
 void ms_box_plot_reset(MSBoxPlot *bp);
@@ -42,9 +43,10 @@ char *ms_box_plot_to_string(const MSBoxPlot *bp, const char *unit);
 typedef struct _MSUBoxPlot {
 	uint64_t min;
 	uint64_t max;
-	double mean;
-	double quad_moment; // E(X^2)
+	uint64_t sum;
+	uint64_t deviation_sum;
 	uint64_t count;
+	double mean;
 } MSUBoxPlot;
 
 void ms_u_box_plot_reset(MSUBoxPlot *bp);

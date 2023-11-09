@@ -235,6 +235,8 @@ void ms_filter_process(MSFilter *f) {
 		ms_get_cur_time(&stop);
 		elapsed_time = (stop.tv_sec - start.tv_sec) * 1000000000LL + (stop.tv_nsec - start.tv_nsec);
 		ms_u_box_plot_add_value(&f->stats->bp_elapsed, elapsed_time);
+		if (elapsed_time > 10LL * 1000000LL)
+			ms_warning("Filter %s took %lli ms to process.", f->desc->name, (long long int)(elapsed_time / 1000000LL));
 	}
 }
 
