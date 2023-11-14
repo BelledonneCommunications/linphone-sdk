@@ -352,10 +352,12 @@ void ms_factory_uninit_voip(MSFactory *obj) {
 			ms_devices_info_free(obj->devices_info);
 			obj->devices_info = NULL;
 		}
+#ifdef __ANDROID__
 		if (obj->android_sound_utils) {
 			ms_android_sound_utils_release(obj->android_sound_utils);
 			obj->android_sound_utils = NULL;
 		}
+#endif
 		obj->voip_initd = FALSE;
 	}
 }

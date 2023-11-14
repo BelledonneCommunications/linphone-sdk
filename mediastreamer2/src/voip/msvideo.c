@@ -255,7 +255,7 @@ void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[],
 MSYuvBufAllocator *ms_yuv_buf_allocator_new(void) {
 	msgb_allocator_t *allocator = (msgb_allocator_t *)ms_new0(msgb_allocator_t, 1);
 	msgb_allocator_init(allocator);
-	ms_yuv_buf_allocator_set_max_frames(allocator, 2);
+	ms_yuv_buf_allocator_set_max_frames(allocator, 15); /* abitrary limit to avoid undefinite memory inflation */
 	return allocator;
 }
 

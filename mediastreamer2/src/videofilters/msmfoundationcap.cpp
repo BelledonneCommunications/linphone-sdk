@@ -143,7 +143,7 @@ MSMFoundationCap::~MSMFoundationCap() {
 		freemsg(mFrameData);
 		mFrameData = NULL;
 	}
-	ms_free(mAllocator);
+	ms_yuv_buf_allocator_free(mAllocator);
 	LeaveCriticalSection(&mCriticalSection);
 	DeleteCriticalSection(&mCriticalSection);
 }

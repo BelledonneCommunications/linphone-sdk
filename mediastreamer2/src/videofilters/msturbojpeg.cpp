@@ -58,7 +58,7 @@ public:
 		if (mRgbBufferSize > 0) {
 			bctbx_free(mRgbBuffer); // jpeg2yuv_details use bctbx_new
 		}
-		ms_free(mAllocator);
+		ms_yuv_buf_allocator_free(mAllocator);
 	}
 
 	MSVideoSize mSize;

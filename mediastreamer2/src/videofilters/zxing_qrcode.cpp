@@ -58,7 +58,6 @@ typedef struct {
 	char *resultText;
 	bool_t searchQRCode;
 	MSRect decoderRect;
-	MSYuvBufAllocator *msAllocator;
 	MSFilter *f;
 } QRCodeReaderStruct;
 
@@ -68,7 +67,6 @@ static void qrcode_init(MSFilter *f) {
 	qrc->decoderRect.h = 0;
 	qrc->decoderRect.w = 0;
 	qrc->image = ImageView(NULL, 0, 0, ImageFormat::None);
-	qrc->msAllocator = ms_yuv_buf_allocator_new();
 	f->data = qrc;
 }
 
@@ -76,7 +74,6 @@ static void qrcode_uninit(MSFilter *f) {
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
 	qrc->f = NULL;
 	f->data = NULL;
-	if (qrc->msAllocator) ms_yuv_buf_allocator_free(qrc->msAllocator);
 	ms_free(qrc);
 }
 

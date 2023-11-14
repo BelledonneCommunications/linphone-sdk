@@ -110,9 +110,15 @@ static MSPixFmt ostype_to_pix_fmt(OSType pixelFormat, bool printFmtName){
 		size_t h = CVPixelBufferGetHeight(frame);
 		mblk_t *yuv_block = ms_yuv_buf_allocator_get(allocator, &pict, w, h);
 
+		if (!yuv_block) {
+			ms_error("QTCaptureOutput: no more frames.");
+			return;
+		}
+
 		CVReturn status = CVPixelBufferLockBaseAddress(frame, 0);
 		if (kCVReturnSuccess != status) {
 			ms_error("Error locking base address: %i", status);
+			freemsg(yuv_block);
 			return;
 		}
 		int p;

@@ -253,6 +253,11 @@ void VideoToolboxDecoder::outputCb(void *decompressionOutputRefCon,
 	CGSize vsize = CVImageBufferGetEncodedSize(imageBuffer);
 	mblk_t *pixbuf = ms_yuv_buf_allocator_get(ctx->_pixbufAllocator, &pixbuf_desc, int(vsize.width), int(vsize.height));
 
+	if (!pixbuf) {
+		ms_error("VideoToolboxDecoder: no more output frames.");
+		return;
+	}
+
 	uint8_t *src_planes[4] = {0};
 	int src_strides[4] = {0};
 	CVPixelBufferLockBaseAddress(imageBuffer, kCVPixelBufferLock_ReadOnly);

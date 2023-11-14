@@ -37,6 +37,7 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) : H26xDecoder(mime
 		}
 		_format = createFormat(mime);
 		_bufAllocator = ms_yuv_buf_allocator_new();
+		ms_yuv_buf_allocator_set_max_frames(_bufAllocator, 15); /* we need to accomodate decoding with 'B-frames' */
 		_naluHeader.reset(H26xToolFactory::get(mime).createNaluHeader());
 		_psStore.reset(H26xToolFactory::get(mime).createParameterSetsStore());
 		startImpl();
