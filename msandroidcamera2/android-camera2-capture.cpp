@@ -71,6 +71,8 @@ struct AndroidCamera2Context {
 		ms_mutex_init(&mutex, NULL);
 		ms_mutex_init(&imageReaderMutex, NULL);
 		snprintf(fps_context, sizeof(fps_context), "Captured mean fps=%%f");
+		
+		ms_yuv_buf_allocator_set_max_frames(bufAllocator, 2); // no need to have more.
 
 		cameraManager = ACameraManager_create();
 		ms_message("[Camera2 Capture] Context ready");
@@ -339,20 +341,25 @@ static void android_camera2_capture_on_image_available(void *context, AImageRead
 		AImage *image = nullptr;
 		// Using AImageReader_acquireLatestImage will lead to the following log if maxImages given to ImageReader is 1
 		// W/NdkImageReader: Unable to acquire a lockedBuffer, very likely client tries to lock more than maxImages buffers
-		status = AImageReader_acquireNextImage(d->imageReader, &image);
+		status = AImageReader_acquireLatestImage(d->imageReader, &image);
+		//status = AImageReader_acquireNextImage(d->imageReader, &image);
 		if (status == AMEDIA_OK && image != nullptr) {
 			MSTicker* ticker = d->filter->ticker;
 			uint64_t tickerTime = 0;
 			// We need to check if ticker is still available here, as no mutex lock can prevent it to be detached (and attached back later) in case of resizing
 			if (ticker != nullptr) tickerTime = ticker->time;
 			if (tickerTime != 0 && ms_video_capture_new_frame(&d->fpsControl, tickerTime)) {
-				mblk_t *m = android_camera2_capture_image_to_mblkt(d, image);
-				if (m) {
-					ms_mutex_lock(&d->mutex);
-					if (d->frame) freemsg(d->frame);
-					d->frame = m;
-					ms_mutex_unlock(&d->mutex);
-				}
+				if (d->frame == NULL){
+					mblk_t *m = android_camera2_capture_image_to_mblkt(d, image);
+					mblk_t *oldframe;
+					if (m) {
+						ms_mutex_lock(&d->mutex);
+						oldframe = d->frame;
+						d->frame = m;
+						ms_mutex_unlock(&d->mutex);
+						if (oldframe) freemsg(oldframe);
+					}
+				} else ms_warning("[Camera2 Capture] skipped frame, the filter is late.");
 			}
 			
 			AImage_delete(image);
@@ -505,7 +512,7 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 		ms_error("[Camera2 Capture] Failed to add capture session output to container, error is %s", android_camera2_status_to_string(camera_status));
 	}
 
-	media_status_t status = AImageReader_new(d->captureSize.width, d->captureSize.height, d->captureFormat, 1, &d->imageReader);
+	media_status_t status = AImageReader_new(d->captureSize.width, d->captureSize.height, d->captureFormat, 2, &d->imageReader);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to create image reader, error is %i", status);
 		d->configured = false;
@@ -591,17 +598,18 @@ static void android_camera2_capture_stop(AndroidCamera2Context *d) {
 	d->capturing = false;
 
 	ms_mutex_lock(&d->imageReaderMutex);
-	if (d->imageReaderListener) {
-		delete d->imageReaderListener;
-		d->imageReaderListener = nullptr;
-	}
 
 	AImageReader_ImageListener nullListener = {nullptr, nullptr};
   	media_status_t status = AImageReader_setImageListener(d->imageReader, &nullListener);
 	if (status != AMEDIA_OK) {
 		ms_error("[Camera2 Capture] Failed to set null image listener, error is %i", status);
 	}
+	if (d->imageReaderListener) {
+		delete d->imageReaderListener;
+		d->imageReaderListener = nullptr;
+	}
 	ms_mutex_unlock(&d->imageReaderMutex);
+	
 
 	// Seems to provoke an ANR on some devices if the camera close is done after the capture session
 	android_camera2_capture_close_camera(d);
@@ -709,22 +717,25 @@ static void android_camera2_capture_preprocess(MSFilter *f) {
 
 static void android_camera2_capture_process(MSFilter *f) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
-	ms_filter_lock(f);
-
+	mblk_t *frame;
+	
+	
 	if (!d->capturing && d->configured) {
-		android_camera2_capture_start(d);
+		ms_filter_lock(f);
+		if (!d->capturing && d->configured) android_camera2_capture_start(d);
+		ms_filter_unlock(f);
 	}
-
+	
+	
 	ms_mutex_lock(&d->mutex);
-	if (d->frame) {
-		ms_average_fps_update(&d->averageFps, f->ticker->time);
-		mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
-		ms_queue_put(f->outputs[0], d->frame);
-		d->frame = nullptr;
-	}
+	frame = d->frame;
+	if (frame) d->frame = NULL;
 	ms_mutex_unlock(&d->mutex);
-
-	ms_filter_unlock(f);
+	if (frame) {
+		ms_average_fps_update(&d->averageFps, f->ticker->time);
+		mblk_set_timestamp_info(frame, f->ticker->time * 90);
+		ms_queue_put(f->outputs[0], frame);
+	}
 }
 
 static void android_camera2_capture_postprocess(MSFilter *f) {
