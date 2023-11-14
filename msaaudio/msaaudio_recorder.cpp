@@ -23,8 +23,8 @@
 #include <msaaudio/msaaudio.h>
 
 struct AAudioInputContext {
-	AAudioInputContext() {
-		sound_utils = ms_android_sound_utils_create();
+	AAudioInputContext(MSFilter *f) {
+		sound_utils = ms_factory_get_android_sound_utils(f->factory);
 		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		qinit(&q);
 		ms_mutex_init(&mutex, NULL);
@@ -43,7 +43,6 @@ struct AAudioInputContext {
 		flushq(&q,0);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
-		ms_android_sound_utils_release(sound_utils);
 	}
 	
 	void setContext(AAudioContext *context) {
@@ -71,13 +70,13 @@ struct AAudioInputContext {
 	bool bluetoothScoStarted;
 };
 
-static AAudioInputContext* aaudio_input_context_init() {
-	AAudioInputContext* ictx = new AAudioInputContext();
+static AAudioInputContext* aaudio_input_context_init(MSFilter *f) {
+	AAudioInputContext* ictx = new AAudioInputContext(f);
 	return ictx;
 }
 
 static void android_snd_read_init(MSFilter *obj) {
-	AAudioInputContext *ictx = aaudio_input_context_init();
+	AAudioInputContext *ictx = aaudio_input_context_init(obj);
 	obj->data = ictx;
 
 	bool permissionGranted = ms_android_sound_utils_is_record_audio_permission_granted(ictx->sound_utils);

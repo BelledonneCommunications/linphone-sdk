@@ -29,7 +29,7 @@ static void aaudio_player_callback_error(AAudioStream *stream, void *userData, a
 
 struct AAudioOutputContext {
 	AAudioOutputContext(MSFilter *f) {
-		sound_utils = ms_android_sound_utils_create();
+		sound_utils = ms_factory_get_android_sound_utils(f->factory);
 		mFilter = f;
 		sample_rate = ms_android_sound_utils_get_preferred_sample_rate(sound_utils);
 		ms_flow_controlled_bufferizer_init(&buffer, f, sample_rate, 1);
@@ -49,7 +49,6 @@ struct AAudioOutputContext {
 		ms_flow_controlled_bufferizer_uninit(&buffer);
 		ms_mutex_destroy(&mutex);
 		ms_mutex_destroy(&stream_mutex);
-		ms_android_sound_utils_release(sound_utils);
 	}
 	
 	void setContext(AAudioContext *context) {
