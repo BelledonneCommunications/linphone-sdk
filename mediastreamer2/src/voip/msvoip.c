@@ -63,6 +63,7 @@ extern void _register_videotoolbox_if_supported(MSFactory *factory);
 
 #ifdef __ANDROID__
 #include "android_mediacodec.h"
+#include "mediastreamer2/android_utils.h"
 #include <android/log.h>
 #endif
 
@@ -261,6 +262,9 @@ void ms_factory_init_voip(MSFactory *obj) {
 
 	ms_srtp_init();
 	obj->devices_info = ms_devices_info_new();
+#ifdef __ANDROID__
+	obj->android_sound_utils = ms_android_sound_utils_create(obj);
+#endif
 
 #if defined(VIDEO_ENABLED) && defined(MS2_FILTERS) && !defined(NO_FFMPEG) && defined(HAVE_LIBAVCODEC_AVCODEC_H)
 	ms_ffmpeg_check_init();
@@ -344,7 +348,14 @@ void ms_factory_uninit_voip(MSFactory *obj) {
 		ms_video_presets_manager_destroy(obj->video_presets_manager);
 #endif
 		ms_srtp_shutdown();
-		if (obj->devices_info) ms_devices_info_free(obj->devices_info);
+		if (obj->devices_info) {
+			ms_devices_info_free(obj->devices_info);
+			obj->devices_info = NULL;
+		}
+		if (obj->android_sound_utils) {
+			ms_android_sound_utils_release(obj->android_sound_utils);
+			obj->android_sound_utils = NULL;
+		}
 		obj->voip_initd = FALSE;
 	}
 }

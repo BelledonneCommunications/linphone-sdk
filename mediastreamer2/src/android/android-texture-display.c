@@ -378,7 +378,7 @@ static void android_texture_display_preprocess(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	ms_worker_thread_add_task(ad->process_thread, (MSTaskFunc)android_texture_display_set_priority, f);
 	ad->refresh_task =
-	    ms_worker_thread_add_repeated_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, f, 20);
+	    ms_worker_thread_add_repeated_task(ad->process_thread, (MSTaskFunc)android_texture_display_swap_buffers, f, 10);
 }
 
 static void android_texture_display_process(MSFilter *f) {

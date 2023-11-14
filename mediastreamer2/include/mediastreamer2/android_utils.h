@@ -38,6 +38,8 @@ struct _AndroidSoundUtils {
 	jmethodID startBluetooth;
 	jmethodID stopBluetooth;
 
+	MSDevicesInfo *devices_info;
+
 	int sdkVersion;
 	int preferredDeviceBufferSize;
 	int preferredDeviceSampleRate;
@@ -47,8 +49,10 @@ typedef struct _AndroidSoundUtils AndroidSoundUtils;
 
 /**
  * Creates a AndroidSoundUtils struct used for all kind of things related to audio on Android.
+ * Do not use anymore directly: it is more convenient to use ms_factory_get_android_sound_utils(), in which case no call
+ * to ms_android_sound_utils_release() is necessary.
  **/
-MS2_PUBLIC AndroidSoundUtils *ms_android_sound_utils_create(void);
+MS2_PUBLIC AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *f);
 
 /**
  * Frees a previously created AndroidSoundUtils struct.
@@ -141,17 +145,17 @@ MS2_PUBLIC void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDev
 /**
  * Retrieve whether or not RECORD_AUDIO permission has been granted.
  **/
-MS2_PUBLIC bool ms_android_is_record_audio_permission_granted();
+MS2_PUBLIC bool ms_android_is_record_audio_permission_granted(void);
 
 /**
  * Retrieve preferred buffer size from Mediastreamer Android Context.
  **/
-MS2_PUBLIC int ms_android_get_preferred_buffer_size();
+MS2_PUBLIC int ms_android_get_preferred_buffer_size(void);
 
 /**
  * Retrieve preferred sample rate from Mediastreamer Android Context.
  **/
-MS2_PUBLIC int ms_android_get_preferred_sample_rate();
+MS2_PUBLIC int ms_android_get_preferred_sample_rate(void);
 
 /**
  * Make upcalls to enable/disable bluetooth devices from mediastreamer.

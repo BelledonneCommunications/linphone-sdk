@@ -57,6 +57,8 @@ static SoundDeviceAudioHacks SonySGP511Hacks = {"50:0.01:100 600:0.2:100 1350:0.
  */
 static SoundDeviceDescription devices[] = {
     {"alps", "Bluboo Maya Max", "mt6750", DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0},
+    {"alps", "aiot8365p4_64_bsp", "mt8168", DEVICE_HAS_BUILTIN_OPENSLES_AEC, 0,
+     16000}, // Limit to 16khz, the audioservice consumes too much CPU at 48Khz.
     {"HTC", "Nexus One", "qsd8k", 0, 300},
     {"HTC", "HTC One X", "tegra", 0,
      150}, /*has a very good acoustic isolation, which result in calibration saying no echo. */

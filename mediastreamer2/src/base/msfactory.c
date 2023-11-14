@@ -968,6 +968,10 @@ MSDevicesInfo *ms_factory_get_devices_info(MSFactory *f) {
 	return f->devices_info;
 }
 
+struct _AndroidSoundUtils *ms_factory_get_android_sound_utils(MSFactory *f) {
+	return f->android_sound_utils;
+}
+
 const char *ms_factory_get_image_resources_dir(const MSFactory *f) {
 	return f->image_resources_dir;
 }

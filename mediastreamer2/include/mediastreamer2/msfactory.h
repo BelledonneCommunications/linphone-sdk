@@ -46,6 +46,7 @@ struct _MSFactory {
 	bool_t statistics_enabled;
 	bool_t voip_initd;
 	MSDevicesInfo *devices_info;
+	struct _AndroidSoundUtils *android_sound_utils;
 	char *image_resources_dir;
 	char *echo_canceller_filtername;
 	int expected_video_bandwidth;
@@ -433,6 +434,8 @@ MS2_PUBLIC MSOfferAnswerProvider *ms_factory_get_offer_answer_provider(MSFactory
 MS2_PUBLIC MSOfferAnswerContext *ms_factory_create_offer_answer_context(MSFactory *f, const char *mime_type);
 
 MS2_PUBLIC MSDevicesInfo *ms_factory_get_devices_info(MSFactory *f);
+
+MS2_PUBLIC struct _AndroidSoundUtils *ms_factory_get_android_sound_utils(MSFactory *f);
 
 /**
  * Get the path where the image resources (mainly the nowebcam image) are located.

@@ -89,9 +89,6 @@ int initOpenSLES() {
 static const int flowControlIntervalMs = 5000;
 static const int flowControlThresholdMs = 40;
 
-static int DeviceFavoriteSampleRate = 44100;
-static int DeviceFavoriteBufferSize = 256;
-
 using namespace fake_opensles;
 
 static void android_snd_card_device_create(JNIEnv *env,
@@ -109,16 +106,19 @@ static MSFilter *ms_android_snd_write_new(MSFactory *factory);
 
 struct OpenSLESContext {
 	OpenSLESContext() {
-
-		samplerate = DeviceFavoriteSampleRate;
 		nchannels = 1;
 		builtin_aec = false;
 
 		engineObject = NULL;
 		engineEngine = NULL;
 	}
-
-	int samplerate;
+	void initRuntimeValues(MSFactory *factory) {
+		AndroidSoundUtils *asu = ms_factory_get_android_sound_utils(factory);
+		buffersize = ms_android_sound_utils_get_preferred_buffer_size(asu);
+		samplerate = ms_android_sound_utils_get_preferred_sample_rate(asu);
+	}
+	int buffersize = 0;
+	int samplerate = 0;
 	int nchannels;
 	bool builtin_aec;
 
@@ -131,8 +131,7 @@ struct OpenSLESOutputContext {
 		filter = f;
 		streamType = SL_ANDROID_STREAM_VOICE;
 		nbufs = 0;
-		outBufSize = DeviceFavoriteBufferSize;
-		ms_flow_controlled_bufferizer_init(&buffer, f, DeviceFavoriteSampleRate, 1);
+		ms_flow_controlled_bufferizer_init(&buffer, f, 44100, 1);
 		ms_mutex_init(&mutex, NULL);
 
 		currentBuffer = 0;
@@ -156,6 +155,7 @@ struct OpenSLESOutputContext {
 
 	void setContext(OpenSLESContext *context) {
 		opensles_context = context;
+		opensles_context->initRuntimeValues(filter->factory);
 		ms_flow_controlled_bufferizer_set_samplerate(&buffer, opensles_context->samplerate);
 		ms_flow_controlled_bufferizer_set_nchannels(&buffer, opensles_context->nchannels);
 		ms_flow_controlled_bufferizer_set_max_size_ms(&buffer, flowControlThresholdMs);
@@ -200,9 +200,8 @@ struct OpenSLESOutputContext {
 };
 
 struct OpenSLESInputContext {
-	OpenSLESInputContext() {
+	OpenSLESInputContext(MSFilter *f) {
 		streamType = SL_ANDROID_RECORDING_PRESET_VOICE_COMMUNICATION;
-		inBufSize = DeviceFavoriteBufferSize;
 		qinit(&q);
 		ms_mutex_init(&mutex, NULL);
 		mTickerSynchronizer = NULL;
@@ -218,6 +217,7 @@ struct OpenSLESInputContext {
 		recBuffer[1] = NULL;
 		voiceRecognitionMode = false;
 		deviceChanged = false;
+		mFilter = f;
 	}
 
 	~OpenSLESInputContext() {
@@ -229,6 +229,7 @@ struct OpenSLESInputContext {
 
 	void setContext(OpenSLESContext *context) {
 		opensles_context = context;
+		opensles_context->initRuntimeValues(mFilter->factory);
 	}
 
 	OpenSLESContext *opensles_context;
@@ -321,8 +322,6 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 		deviceDescription = ms_devices_info_get_sound_device_description(devices);
 		if (deviceDescription->flags & DEVICE_HAS_CRAPPY_OPENSLES) return;
 
-		DeviceFavoriteSampleRate = ms_android_get_preferred_sample_rate();
-		DeviceFavoriteBufferSize = ms_android_get_preferred_buffer_size();
 		android_snd_card_add_devices(devices, deviceDescription, m);
 	} else {
 		ms_warning("[OpenSLES] Failed to dlopen libOpenSLES, OpenSLES MS soundcard unavailable");
@@ -536,16 +535,12 @@ static SLresult opensles_recorder_callback_init(OpenSLESInputContext *ictx) {
 	return result;
 }
 
-static OpenSLESInputContext *opensles_input_context_init() {
-	OpenSLESInputContext *ictx = new OpenSLESInputContext();
-	return ictx;
-}
-
 static void android_snd_read_init(MSFilter *obj) {
-	OpenSLESInputContext *ictx = opensles_input_context_init();
+	OpenSLESInputContext *ictx = new OpenSLESInputContext(obj);
 	obj->data = ictx;
 
-	bool permissionGranted = ms_android_is_record_audio_permission_granted();
+	bool permissionGranted =
+	    ms_android_sound_utils_is_record_audio_permission_granted(ms_factory_get_android_sound_utils(obj->factory));
 	if (!permissionGranted) {
 		ms_error("[OpenSLES] RECORD_AUDIO permission hasn't been granted!");
 	}
@@ -553,10 +548,9 @@ static void android_snd_read_init(MSFilter *obj) {
 
 static void android_snd_read_preprocess(MSFilter *obj) {
 	OpenSLESInputContext *ictx = (OpenSLESInputContext *)obj->data;
-	ictx->mFilter = obj;
 	ictx->read_samples = 0;
 
-	ictx->inBufSize = DeviceFavoriteBufferSize * sizeof(int16_t) * ictx->opensles_context->nchannels;
+	ictx->inBufSize = ictx->opensles_context->buffersize * sizeof(int16_t) * ictx->opensles_context->nchannels;
 	ictx->recBuffer[0] = (uint8_t *)calloc(ictx->inBufSize, sizeof(uint8_t));
 	ictx->recBuffer[1] = (uint8_t *)calloc(ictx->inBufSize, sizeof(uint8_t));
 
@@ -1054,7 +1048,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 	OpenSLESOutputContext *octx = (OpenSLESOutputContext *)obj->data;
 	SLresult result;
 
-	octx->outBufSize = DeviceFavoriteBufferSize * sizeof(int16_t) * octx->opensles_context->nchannels;
+	octx->outBufSize = octx->opensles_context->buffersize * sizeof(int16_t) * octx->opensles_context->nchannels;
 	octx->playBuffer[0] = (uint8_t *)calloc(octx->outBufSize, sizeof(uint8_t));
 	octx->playBuffer[1] = (uint8_t *)calloc(octx->outBufSize, sizeof(uint8_t));
 

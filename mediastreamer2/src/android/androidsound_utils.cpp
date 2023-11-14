@@ -20,7 +20,7 @@
 
 #include <mediastreamer2/android_utils.h>
 
-AndroidSoundUtils *ms_android_sound_utils_create(void) {
+AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *factory) {
 	JNIEnv *env = ms_get_jni_env();
 	AndroidSoundUtils *utils = (AndroidSoundUtils *)ms_new0(AndroidSoundUtils, 1);
 
@@ -75,7 +75,6 @@ AndroidSoundUtils *ms_android_sound_utils_create(void) {
 	}
 
 	utils->preferredDeviceSampleRate = 44100;
-	;
 	jmethodID getSampleRate =
 	    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "getDeviceFavoriteSampleRate", "()I");
 	if (getSampleRate != nullptr) {
@@ -86,6 +85,7 @@ AndroidSoundUtils *ms_android_sound_utils_create(void) {
 		ms_error("[Android Audio Utils] Failed to find getDeviceFavoriteSampleRate() method from "
 		         "MediastreamerAndroidContext class!");
 	}
+	utils->devices_info = ms_factory_get_devices_info(factory);
 
 	return utils;
 }
@@ -118,6 +118,10 @@ int ms_android_sound_utils_get_preferred_buffer_size(const AndroidSoundUtils *ut
 }
 
 int ms_android_sound_utils_get_preferred_sample_rate(const AndroidSoundUtils *utils) {
+	if (utils->devices_info) {
+		SoundDeviceDescription *sds = ms_devices_info_get_sound_device_description(utils->devices_info);
+		if (sds && sds->recommended_rate != 0) return sds->recommended_rate;
+	} else ms_error("ms_android_sound_utils_get_preferred_sample_rate(): no DevicesInfo table !");
 	return utils->preferredDeviceSampleRate;
 }
 
