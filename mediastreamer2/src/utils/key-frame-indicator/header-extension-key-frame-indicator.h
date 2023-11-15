@@ -1,8 +1,8 @@
 /*
  * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2
- * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ * This file is part of linphone-sdk
+ * (see https://gitlab.linphone.org/BC/public/linphone-sdk).
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -20,26 +20,16 @@
 
 #pragma once
 
-#include "key-frame-indicator/key-frame-indicator.h"
-#include "mediastreamer2/mediastream.h"
-#include "obuparse.h"
+#include "key-frame-indicator.h"
 
 namespace mediastreamer {
 
-class ObuKeyFrameIndicator : public KeyFrameIndicator {
+class HeaderExtensionKeyFrameIndicator : public KeyFrameIndicator {
 public:
-	ObuKeyFrameIndicator() = default;
-	~ObuKeyFrameIndicator() = default;
+	HeaderExtensionKeyFrameIndicator() = default;
+	virtual ~HeaderExtensionKeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *im) override;
-
-	void reset();
-
-private:
-	OBPState mState{};
-	OBPSequenceHeader mSequenceHeader{};
-
-	bool mSequenceHeaderSeen = false;
+	bool isKeyFrame(mblk_t *frame) override;
 };
 
 } // namespace mediastreamer

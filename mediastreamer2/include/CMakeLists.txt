@@ -85,7 +85,7 @@ set(HEADER_FILES
 	mspcapfileplayer.h
 	msanalysedisplay.h
 	msmire.h
-	msvideorouter.h
+	mspacketrouter.h
 )
 
 set(MEDIASTREAMER2_HEADER_FILES )

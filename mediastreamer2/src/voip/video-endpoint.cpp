@@ -80,7 +80,7 @@ static void ms_video_endpoint_tmmbr_received(const OrtpEventData *evd, void *use
 			ms_message("MSVideoConference [%p]: received a TMMBR for bitrate %i kbits/s on pin %i.", ep->mConference,
 			           (int)(tmmbr_mxtbr / 1000), ep->mPin);
 			ep->mLastTmmbrReceived = tmmbr_mxtbr;
-			VideoConferenceGeneric *conf = (VideoConferenceGeneric *)ep->mConference;
+			VideoConferenceAllToAll *conf = (VideoConferenceAllToAll *)ep->mConference;
 			conf->updateBitrateRequest();
 		} break;
 		default:

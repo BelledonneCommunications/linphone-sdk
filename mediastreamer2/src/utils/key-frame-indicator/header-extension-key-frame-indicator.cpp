@@ -1,8 +1,8 @@
 /*
  * Copyright (c) 2010-2023 Belledonne Communications SARL.
  *
- * This file is part of mediastreamer2
- * (see https://gitlab.linphone.org/BC/public/mediastreamer2).
+ * This file is part of linphone-sdk
+ * (see https://gitlab.linphone.org/BC/public/linphone-sdk).
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -18,28 +18,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "header-extension-key-frame-indicator.h"
 
-#include "key-frame-indicator/key-frame-indicator.h"
-#include "mediastreamer2/mediastream.h"
-#include "obuparse.h"
+#include <ortp/rtp.h>
 
 namespace mediastreamer {
 
-class ObuKeyFrameIndicator : public KeyFrameIndicator {
-public:
-	ObuKeyFrameIndicator() = default;
-	~ObuKeyFrameIndicator() = default;
+bool HeaderExtensionKeyFrameIndicator::isKeyFrame(mblk_t *frame) {
+	uint8_t marker = 0;
 
-	bool isKeyFrame(mblk_t *im) override;
+	if (!rtp_get_frame_marker(frame, RTP_EXTENSION_FRAME_MARKING, &marker)) return false;
 
-	void reset();
-
-private:
-	OBPState mState{};
-	OBPSequenceHeader mSequenceHeader{};
-
-	bool mSequenceHeaderSeen = false;
-};
+	return marker & RTP_FRAME_MARKER_START;
+}
 
 } // namespace mediastreamer

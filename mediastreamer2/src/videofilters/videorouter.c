@@ -20,8 +20,8 @@
 
 #include <bctoolbox/defs.h>
 
+#include "mediastreamer2/mspacketrouter.h"
 #include "mediastreamer2/msticker.h"
-#include "mediastreamer2/msvideorouter.h"
 #include "vp8rtpfmt.h"
 
 static bool_t is_vp8_key_frame(mblk_t *m) {

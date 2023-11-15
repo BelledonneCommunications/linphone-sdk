@@ -54,7 +54,7 @@ public:
 
 protected:
 	MSVideoSize mVsize;
-	MSAverageFPS mFps;
+	MSAverageFPS mFps{};
 	bool mAvpfEnabled = false;
 	bool mFreezeOnError = true;
 	bool mFirstImageDecoded = false;

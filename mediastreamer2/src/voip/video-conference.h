@@ -25,7 +25,7 @@
 #include <bctoolbox/defs.h>
 
 #include "mediastreamer2/msconference.h"
-#include "mediastreamer2/msvideorouter.h"
+#include "mediastreamer2/mspacketrouter.h"
 #include "private.h"
 
 namespace ms2 {
@@ -62,78 +62,50 @@ public:
 	int mLinkSource = -1;
 };
 
-class VideoConferenceGeneric {
-
-public:
-	VideoConferenceGeneric() = default;
-	virtual ~VideoConferenceGeneric() = default;
-
-	virtual int getSize() const;
-	virtual const bctbx_list_t *getMembers() const;
-	virtual void removeMember(VideoEndpoint *ep) = 0;
-	virtual void addMember(VideoEndpoint *ep) = 0;
-	virtual VideoEndpoint *getVideoPlaceholderMember() const;
-	virtual void setFocus(BCTBX_UNUSED(VideoEndpoint *ep)){};
-	virtual void setProfile(RtpProfile *prof) {
-		mLocalDummyProfile = prof;
-	};
-
-	virtual MSFilter *getMixer() const;
-	virtual void updateBitrateRequest() = 0;
-	virtual void setLocalMember(MSVideoConferenceFilterPinControl pc) = 0;
-	virtual void notifyFir(int pin) = 0;
-	virtual void notifySli(int pin) = 0;
-	virtual VideoEndpoint *getMemberAtInputPin(int pin) const;
-	virtual VideoEndpoint *getMemberAtOutputPin(int pin) const;
-	virtual void unconfigureOutput(BCTBX_UNUSED(int pin)){};
-	virtual bool allToAllEnabled() const = 0;
-
-protected:
-	virtual void addVideoPlaceholderMember(){};
-	virtual void setPin(BCTBX_UNUSED(VideoEndpoint *ep)){};
-	virtual void configureOutput(BCTBX_UNUSED(VideoEndpoint *ep)){};
-	virtual void applyNewBitrateRequest();
-
-	MSVideoConferenceParams mCfparams;
-	MSTicker *mTicker = NULL;
-	MSFilter *mMixer = NULL;
-	bctbx_list_t *mMembers = NULL;
-	int mBitrate = 0;
-	VideoEndpoint *mVideoPlaceholderMember = NULL;
-	bctbx_list_t *mEndpoints = NULL;
-	bool allToAll = false;
-	RtpProfile *mLocalDummyProfile = NULL;
-
-	MSFilter *mVoidSource = NULL;
-	MSFilter *mVoidOutput = NULL;
-};
-
-class VideoConferenceAllToAll : public VideoConferenceGeneric {
+class VideoConferenceAllToAll {
 
 public:
 	VideoConferenceAllToAll(MSFactory *f, const MSVideoConferenceParams *params);
 	~VideoConferenceAllToAll();
 
-	void removeMember(VideoEndpoint *ep) override;
-	void addMember(VideoEndpoint *ep) override;
-	void setLocalMember(MSVideoConferenceFilterPinControl pc) override;
-	void notifyFir(int pin) override;
-	void notifySli(int pin) override;
+	int getSize() const;
+	const bctbx_list_t *getMembers() const;
+	void removeMember(VideoEndpoint *ep);
+	void addMember(VideoEndpoint *ep);
+	void setFocus(VideoEndpoint *ep);
+	void setProfile(RtpProfile *prof) {
+		mLocalDummyProfile = prof;
+	};
+
+	MSFilter *getMixer() const;
+	void updateBitrateRequest();
+	void setLocalMember(MSPacketRouterPinControl pc);
+	void notifyFir(int pin);
+	void notifySli(int pin);
+	VideoEndpoint *getMemberAtInputPin(int pin) const;
+	VideoEndpoint *getMemberAtOutputPin(int pin) const;
+	void unconfigureOutput(int pin);
+
 	void connectEndpoint(VideoEndpoint *ep);
 	int findFreeOutputPin();
 	int findFreeInputPin();
-	void unconfigureOutput(int pin) override;
-	bool allToAllEnabled() const override {
-		return true;
-	}
-	void setFocus(VideoEndpoint *ep) override;
-	void updateBitrateRequest() override;
 
 protected:
 	void chooseNewFocus();
-	void addVideoPlaceholderMember() override;
 	int findSourcePin(const std::string &participant);
-	void configureOutput(VideoEndpoint *ep) override;
+	void configureOutput(VideoEndpoint *ep);
+	void applyNewBitrateRequest();
+
+	MSVideoConferenceParams mCfparams{};
+	MSTicker *mTicker = nullptr;
+	MSFilter *mMixer = nullptr;
+	bctbx_list_t *mMembers = nullptr;
+	int mBitrate = 0;
+	bctbx_list_t *mEndpoints = nullptr;
+	RtpProfile *mLocalDummyProfile = nullptr;
+
+	MSFilter *mVoidSource = nullptr;
+	MSFilter *mVoidOutput = nullptr;
 	int mOutputs[ROUTER_MAX_OUTPUT_CHANNELS];
 	int mInputs[ROUTER_MAX_INPUT_CHANNELS];
 	int mLastFocusPin = -1;

@@ -60,6 +60,10 @@ protected:
 		ms_filter_notify_no_arg(_f, id);
 	}
 
+	void notify(unsigned int id, void *arg) {
+		ms_filter_notify(_f, id, arg);
+	}
+
 	void lock() const {
 		ms_filter_lock(_f);
 	}

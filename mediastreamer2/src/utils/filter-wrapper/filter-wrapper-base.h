@@ -45,7 +45,7 @@ public:
 		static_cast<FilterBase *>(f->data)->postprocess();
 	}
 
-	static void onFilterProcces(MSFilter *f) {
+	static void onFilterProcess(MSFilter *f) {
 		static_cast<FilterBase *>(f->data)->process();
 	}
 };
@@ -55,7 +55,8 @@ public:
 #define MS_FILTER_WRAPPER_NAME(base_name) FilterWrapperBase
 #define MS_FILTER_WRAPPER_METHODS_NAME(base_name) ms_##base_name##_methods
 
-#define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs, flags)    \
+#define MS_FILTER_WRAPPER_FILTER_DESCRIPTION_BASE(base_name, id, text, category, enc_fmt, ninputs, noutputs,           \
+                                                  base_class, flags)                                                   \
 	extern "C" {                                                                                                       \
 	MSFilterDesc ms_##base_name##_desc = {                                                                             \
 	    id,                                                                                                            \
@@ -65,9 +66,9 @@ public:
 	    enc_fmt,                                                                                                       \
 	    ninputs,                                                                                                       \
 	    noutputs,                                                                                                      \
-	    FilterWrapperBase::onFilterInit<base_name##FilterImpl>,                                                        \
+	    FilterWrapperBase::onFilterInit<base_class>,                                                                   \
 	    FilterWrapperBase::onFilterPreProcess,                                                                         \
-	    FilterWrapperBase::onFilterProcces,                                                                            \
+	    FilterWrapperBase::onFilterProcess,                                                                            \
 	    FilterWrapperBase::onFilterPostProcess,                                                                        \
 	    FilterWrapperBase::onFilterUninit,                                                                             \
 	    MS_FILTER_WRAPPER_METHODS_NAME(base_name),                                                                     \

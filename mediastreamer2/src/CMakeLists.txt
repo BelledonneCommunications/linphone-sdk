@@ -128,14 +128,14 @@ set(VOIP_SOURCE_FILES_C
 	voip/private.h
 )
 set(VOIP_SOURCE_FILES_CXX
+	crypto/ms_srtp.cpp
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
+	videofilters/packet-router.cpp
 	voip/audiostreamvolumes.cpp
 	voip/turn_tcp.cpp
 	voip/video-conference.cpp
-	voip/video-conference-all-to-all.cpp
 	voip/video-endpoint.cpp
-	crypto/ms_srtp.cpp
 )
 set(VOIP_SOURCE_FILES_OBJC )
 set(VOIP_SOURCE_FILES_ASM )
@@ -229,13 +229,14 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
+		utils/key-frame-indicator/header-extension-key-frame-indicator.cpp
+		utils/key-frame-indicator/vp8-key-frame-indicator.cpp
 		videofilters/extdisplay.c
 		videofilters/msanalysedisplay.c
 		videofilters/mire.c
 		videofilters/nowebcam.c
 		videofilters/pixconv.c
 		videofilters/sizeconv.c
-		videofilters/videorouter.c
 		videofilters/dummy_codec.c
 		voip/layouts.c
 		voip/layouts.h

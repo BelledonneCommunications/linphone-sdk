@@ -20,26 +20,27 @@
 
 #pragma once
 
-#include "key-frame-indicator/key-frame-indicator.h"
 #include "mediastreamer2/mediastream.h"
-#include "obuparse.h"
 
 namespace mediastreamer {
 
-class ObuKeyFrameIndicator : public KeyFrameIndicator {
+class KeyFrameIndicator {
 public:
-	ObuKeyFrameIndicator() = default;
-	~ObuKeyFrameIndicator() = default;
+	KeyFrameIndicator() = default;
+	virtual ~KeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *im) override;
+	KeyFrameIndicator(const KeyFrameIndicator &) = delete;
+	KeyFrameIndicator &operator=(const KeyFrameIndicator &) = delete;
 
-	void reset();
-
-private:
-	OBPState mState{};
-	OBPSequenceHeader mSequenceHeader{};
-
-	bool mSequenceHeaderSeen = false;
+	/**
+	 * @brief Checks if the given frame is a keyframe.
+	 *
+	 * This function takes a pointer to a frame and checks if it is a keyframe.
+	 *
+	 * @param frame Pointer to the frame to check.
+	 * @return True if the frame is a keyframe, false otherwise.
+	 */
+	virtual bool isKeyFrame(mblk_t *frame) = 0;
 };
 
 } // namespace mediastreamer

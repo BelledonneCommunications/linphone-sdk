@@ -76,7 +76,7 @@ bool Av1Decoder::feed(MSQueue *encodedFrame, uint64_t timestamp) {
 	while (data.sz != 0 || (im = ms_queue_get(encodedFrame))) {
 		if (data.sz == 0) {
 			if (mKeyFrameNeeded) {
-				if (mKeyFrameIndicator.parseFrame(im)) {
+				if (mKeyFrameIndicator.isKeyFrame(im)) {
 					ms_message("Av1Decoder: key frame received");
 					mKeyFrameNeeded = false;
 					mKeyFrameIndicator.reset();

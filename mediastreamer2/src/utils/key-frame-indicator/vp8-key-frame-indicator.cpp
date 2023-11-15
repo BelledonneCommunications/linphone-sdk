@@ -18,28 +18,26 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "vp8-key-frame-indicator.h"
 
-#include "key-frame-indicator/key-frame-indicator.h"
-#include "mediastreamer2/mediastream.h"
-#include "obuparse.h"
+#include "vp8rtpfmt.h"
 
 namespace mediastreamer {
 
-class ObuKeyFrameIndicator : public KeyFrameIndicator {
-public:
-	ObuKeyFrameIndicator() = default;
-	~ObuKeyFrameIndicator() = default;
+bool VP8KeyFrameIndicator::isKeyFrame(mblk_t *frame) {
+	uint8_t *p;
 
-	bool isKeyFrame(mblk_t *im) override;
+	if (frame->b_cont) {
+		/* When data comes directly from the VP8 encoder, the VP8 payload is the second of the mblk_t chain.*/
+		return !(frame->b_cont->b_rptr[0] & 1);
+	}
+	p = vp8rtpfmt_skip_payload_descriptor(frame);
 
-	void reset();
-
-private:
-	OBPState mState{};
-	OBPSequenceHeader mSequenceHeader{};
-
-	bool mSequenceHeaderSeen = false;
-};
+	if (!p) {
+		ms_warning("VP8KeyFrameIndicator: invalid vp8 payload descriptor.");
+		return FALSE;
+	}
+	return !(p[0] & 1);
+}
 
 } // namespace mediastreamer

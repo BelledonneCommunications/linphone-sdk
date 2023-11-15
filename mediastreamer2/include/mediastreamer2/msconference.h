@@ -39,7 +39,7 @@ typedef void (*MSAudioConferenceNotifyActiveTalker)(struct _MSAudioConference *,
 
 /**
  * The MSStreamSecurityLevel represents the security level of the streams in a mixer
-**/
+ **/
 typedef enum {
 	MSStreamSecurityLevelNone,
 	MSStreamSecurityLevelPointToPoint,
@@ -53,6 +53,7 @@ struct _MSAudioConferenceParams {
 	int samplerate; /**< Conference audio sampling rate in Hz: 8000, 16000 ...*/
 	MSAudioConferenceNotifyActiveTalker active_talker_callback;
 	MSStreamSecurityLevel security_level;
+	bool_t full_packet_mode;
 	void *user_data;
 };
 
@@ -192,7 +193,8 @@ MS2_PUBLIC void ms_audio_conference_destroy(MSAudioConference *obj);
  * MSAudioEndpoint *local_endpoint=ms_audio_endpoint_get_from_stream(st,FALSE);
  * </PRE>
  **/
-MS2_PUBLIC MSAudioEndpoint *ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote);
+MS2_PUBLIC MSAudioEndpoint *
+ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote, bool_t full_packet_mode);
 
 /**
  * Associate a user pointer to the endpoint.
@@ -331,13 +333,6 @@ MS2_PUBLIC void ms_video_conference_remove_member(MSVideoConference *obj, MSVide
  * @param ep the participant, represented as a MSVideoEndpoint object
  */
 MS2_PUBLIC void ms_video_conference_set_focus(MSVideoConference *obj, MSVideoEndpoint *ep);
-
-/**
- * Get the video placeholder member, as MSVideoEndpoint.
- * @param obj the conference
- * @return a MSVideoEndpoint object.
- */
-MS2_PUBLIC MSVideoEndpoint *ms_video_conference_get_video_placeholder_member(const MSVideoConference *obj);
 
 /**
  * Get the list of members, as MSVideoEndpoints.

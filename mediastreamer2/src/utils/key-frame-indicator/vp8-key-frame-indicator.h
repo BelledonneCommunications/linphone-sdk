@@ -20,26 +20,16 @@
 
 #pragma once
 
-#include "key-frame-indicator/key-frame-indicator.h"
-#include "mediastreamer2/mediastream.h"
-#include "obuparse.h"
+#include "key-frame-indicator.h"
 
 namespace mediastreamer {
 
-class ObuKeyFrameIndicator : public KeyFrameIndicator {
+class VP8KeyFrameIndicator : public KeyFrameIndicator {
 public:
-	ObuKeyFrameIndicator() = default;
-	~ObuKeyFrameIndicator() = default;
+	VP8KeyFrameIndicator() = default;
+	virtual ~VP8KeyFrameIndicator() = default;
 
-	bool isKeyFrame(mblk_t *im) override;
-
-	void reset();
-
-private:
-	OBPState mState{};
-	OBPSequenceHeader mSequenceHeader{};
-
-	bool mSequenceHeaderSeen = false;
+	bool isKeyFrame(mblk_t *frame) override;
 };
 
 } // namespace mediastreamer
