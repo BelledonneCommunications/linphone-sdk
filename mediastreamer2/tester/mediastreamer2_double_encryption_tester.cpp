@@ -31,19 +31,31 @@
 
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
 
-static MSFactory *_factory = NULL;
+/* Payload types: define several payload types as the relay would change it */
+#define MARIELLE_PAYLOAD_TYPE 121
+#define PAULINE_PAYLOAD_TYPE 123
+#define RELAY_PAYLOAD_TYPE 123
 
+static MSFactory *_factory = NULL;
+static RtpProfile *profile = NULL;
 static int tester_before_all(void) {
 	// ms_init();
 	_factory = ms_tester_factory_new();
 
 	ms_factory_enable_statistics(_factory, TRUE);
 	ortp_init();
+
+	profile = rtp_profile_new("default profile");
+	rtp_profile_set_payload(profile, MARIELLE_PAYLOAD_TYPE, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, PAULINE_PAYLOAD_TYPE, &payload_type_pcmu8000);
+	rtp_profile_set_payload(profile, RELAY_PAYLOAD_TYPE, &payload_type_pcmu8000);
+
 	return 0;
 }
 
 static int tester_after_all(void) {
 	// ms_exit();
+	rtp_profile_destroy(profile);
 
 	ms_factory_destroy(_factory);
 	return 0;
@@ -82,10 +94,46 @@ static int tester_after_all(void) {
 #define LONG_MID_MARIELLE_SOURCE_SESSION "Marielle"
 #define LONG_MID_MARIELLE_SOURCE_SESSION_BIS "MarielleBis"
 
-/* Payload types: define several payload types as the relay would change it */
-#define MARIELLE_PAYLOAD_TYPE 121
-#define PAULINE_PAYLOAD_TYPE 123
-#define RELAY_PAYLOAD_TYPE 123
+static void new_ssrc_incoming_in_bundle(BCTBX_UNUSED(RtpSession *session), void *b, void *s, void *userData) {
+	RtpBundle *bundle = (RtpBundle *)b;
+	RtpSession **newSession = (RtpSession **)s;
+	bctbx_list_t *margaux_sessions_list = (bctbx_list_t *)userData;
+	*newSession = rtp_session_new(RTP_SESSION_RECVONLY);
+	rtp_session_set_profile(*newSession, profile);
+	rtp_session_enable_jitter_buffer(*newSession,
+	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
+	                                         // when they arrive, we're assuming no loss
+	rtp_session_enable_rtcp(*newSession, FALSE);
+	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
+
+	// the session list holds 2 session, use them one after the other to create sessions
+	if (*((RtpSession **)bctbx_list_get_data(margaux_sessions_list)) == NULL) {
+		*((RtpSession **)bctbx_list_get_data(margaux_sessions_list)) = *newSession;
+	} else {
+		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(margaux_sessions_list))) = *newSession;
+	}
+}
+
+static void new_ssrc_outgoing_in_bundle(BCTBX_UNUSED(RtpSession *session), void *b, void *s, void *userData) {
+	RtpBundle *bundle = (RtpBundle *)b;
+	RtpSession **newSession = (RtpSession **)s;
+	bctbx_list_t *relay_sessions_list = (bctbx_list_t *)userData;
+	*newSession = rtp_session_new(RTP_SESSION_SENDONLY);
+	rtp_session_set_profile(*newSession, profile);
+	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
+	rtp_session_enable_rtcp(*newSession, FALSE);
+	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
+	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
+
+	// the session list holds 3 sessions, use them one after the other to create sessions
+	if (*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) == NULL) {
+		*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) = *newSession;
+	} else if (*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) == NULL) {
+		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) = *newSession;
+	} else {
+		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(bctbx_list_next(relay_sessions_list)))) = *newSession;
+	}
+}
 
 static bool_t double_encrypted_rtp_relay_data_base(
     MSCryptoSuite outer_suite,
@@ -96,21 +144,38 @@ static bool_t double_encrypted_rtp_relay_data_base(
     bool use_ekt = false,            // use ekt to encrypt the inner stream
     bool skip_pauline_begin =
         false,                    // pauline first 12 packets are lost, so we start getting packets after the ROC change
-    bool discard_packets = false) // Relay will discard 10 packets from pauline index 20 to 29
-{
+    bool discard_packets = false, // Relay will discard 10 packets from pauline index 20 to 29
+    bool shared_mid =
+        false, // relayed bundled sessions are using the same MID: relay will declare the three (bundled source is
+               // always on when setting shared mid) sessions with same MID (and must identify the correct one when
+               // sending). On the reception side, Margaux has three sessions, SSRC are pre-assigned on send and receive
+               // are pre-assigned - implies use_long_bundle_id and bundled_source
+    bool auto_discover_bundle_sessions =
+        false // relay to margaux sessions are auto discovered: create only one session (on relay side and on margaux
+              // side) and set it in a bundle. Bundle callbacks create new session on needed basis.Implies shared_mid
+              // and use_ekt(as we cannot set inner keys without knowing first the expected SSRC.
+) {
 
 	if (!ms_srtp_supported()) {
 		ms_warning("srtp not available, skiping...");
 		return TRUE;
 	}
-	RtpProfile *profile = rtp_profile_new("default profile");
-	rtp_profile_set_payload(profile, MARIELLE_PAYLOAD_TYPE, &payload_type_pcmu8000);
-	rtp_profile_set_payload(profile, PAULINE_PAYLOAD_TYPE, &payload_type_pcmu8000);
-	rtp_profile_set_payload(profile, RELAY_PAYLOAD_TYPE, &payload_type_pcmu8000);
+	// auto discover implies using ekt and shared_mid
+	if (auto_discover_bundle_sessions) {
+		shared_mid = true;
+		use_ekt = true;
+	}
+	// Share MID implies using bundled source and long_bundle_id
+	if (shared_mid) {
+		bundled_source = true;
+		use_long_bundle_id = true;
+	}
 
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
 	bctbx_vfs_file_t *fp = bctbx_file_open(&bcStandardVfs, hello_file, "r");
 	bc_free(hello_file);
+	bctbx_list_t *margaux_sessions_list = NULL;
+	bctbx_list_t *relay_sessions_list = NULL;
 
 	MSEKTParametersSet ekt_params;
 	if (use_ekt) {
@@ -228,34 +293,55 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	                                         // they arrive, we're assuming no loss
 	rtp_session_enable_rtcp(rtpSession_margaux_marielle, FALSE);
 
-	/* Second session, in RECV only, is bundled so we do not need to define local port */
-	RtpSession *rtpSession_margaux_pauline = rtp_session_new(RTP_SESSION_RECVONLY);
-	rtp_session_set_profile(rtpSession_margaux_pauline, profile);
-	rtp_session_set_recv_buf_size(rtpSession_margaux_pauline, MAX(ms_factory_get_mtu(_factory), 1500));
-	rtp_session_enable_jitter_buffer(rtpSession_margaux_pauline,
-	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data when
-	                                         // they arrive, we're assuming no loss
-	rtp_session_enable_rtcp(rtpSession_margaux_pauline, FALSE);
-
+	RtpSession *rtpSession_margaux_pauline = NULL;
 	RtpSession *rtpSession_margaux_marielle_bis = NULL;
-	if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
-		/* Third session, in RECV only, is bundled so we do not need to define local port */
-		rtpSession_margaux_marielle_bis = rtp_session_new(RTP_SESSION_RECVONLY);
-		rtp_session_set_profile(rtpSession_margaux_marielle_bis, profile);
-		rtp_session_set_recv_buf_size(rtpSession_margaux_marielle_bis, MAX(ms_factory_get_mtu(_factory), 1500));
-		rtp_session_enable_jitter_buffer(rtpSession_margaux_marielle_bis,
+	if (auto_discover_bundle_sessions == false) {
+		/* Second session, in RECV only, is bundled so we do not need to define local port */
+		rtpSession_margaux_pauline = rtp_session_new(RTP_SESSION_RECVONLY);
+		rtp_session_set_profile(rtpSession_margaux_pauline, profile);
+		rtp_session_set_recv_buf_size(rtpSession_margaux_pauline, MAX(ms_factory_get_mtu(_factory), 1500));
+		rtp_session_enable_jitter_buffer(rtpSession_margaux_pauline,
 		                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
 		                                         // when they arrive, we're assuming no loss
-		rtp_session_enable_rtcp(rtpSession_margaux_marielle_bis, FALSE);
+		rtp_session_enable_rtcp(rtpSession_margaux_pauline, FALSE);
+
+		if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
+			// Third session, in RECV only, is bundled so we do not need to define local port
+			rtpSession_margaux_marielle_bis = rtp_session_new(RTP_SESSION_RECVONLY);
+			rtp_session_set_profile(rtpSession_margaux_marielle_bis, profile);
+			rtp_session_set_recv_buf_size(rtpSession_margaux_marielle_bis, MAX(ms_factory_get_mtu(_factory), 1500));
+			rtp_session_enable_jitter_buffer(rtpSession_margaux_marielle_bis,
+			                                 FALSE); // Disable jitter buffer for the final recipient, we want to get
+			                                         // data when they arrive, we're assuming no loss
+			rtp_session_enable_rtcp(rtpSession_margaux_marielle_bis, FALSE);
+		}
+	} else {
+		// set the additional margaux sessions pointers in a list, so we can get them in the callback in charge of their
+		// creation
+		margaux_sessions_list = bctbx_list_new(&rtpSession_margaux_marielle_bis);
+		margaux_sessions_list = bctbx_list_append(margaux_sessions_list, &rtpSession_margaux_pauline);
+
+		rtp_session_signal_connect(rtpSession_margaux_marielle, "new_incoming_ssrc_found_in_bundle",
+		                           (RtpCallback)new_ssrc_incoming_in_bundle, margaux_sessions_list);
 	}
 
 	/* create a bundle, margaux_marielle is the main session */
 	RtpBundle *rtpBundle_margaux = rtp_bundle_new();
 	if (use_long_bundle_id) {
+		// when shared_mid is on(then use_long_bundle and bundled_source are also on, to simplify the test code), all
+		// the sessions use the same MID
 		rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_MARIELLE_SESSION, rtpSession_margaux_marielle);
-		rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_PAULINE_SESSION, rtpSession_margaux_pauline);
-		if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
-			rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_MARIELLE_SESSION_BIS, rtpSession_margaux_marielle_bis);
+		if (auto_discover_bundle_sessions == false) {
+			if (shared_mid) {
+				rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_MARIELLE_SESSION, rtpSession_margaux_marielle_bis);
+				rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_MARIELLE_SESSION, rtpSession_margaux_pauline);
+			} else {
+				rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_PAULINE_SESSION, rtpSession_margaux_pauline);
+				if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
+					rtp_bundle_add_session(rtpBundle_margaux, LONG_MID_MARIELLE_SESSION_BIS,
+					                       rtpSession_margaux_marielle_bis);
+				}
+			}
 		}
 	} else {
 		rtp_bundle_add_session(rtpBundle_margaux, SHORT_MID_MARIELLE_SESSION, rtpSession_margaux_marielle);
@@ -283,31 +369,55 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_margaux_marielle, RELAY_PAYLOAD_TYPE);
-	// relay_margaux: secondary session in the bundle, minimal settings
-	RtpSession *rtpSession_relay_margaux_pauline = rtp_session_new(RTP_SESSION_SENDONLY);
-	rtp_session_set_profile(rtpSession_relay_margaux_pauline, profile);
-	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_pauline, TRUE); // relay rtp session is in transfer mode
-	rtp_session_enable_rtcp(rtpSession_relay_margaux_pauline, FALSE);
-	rtp_session_set_payload_type(rtpSession_relay_margaux_pauline, RELAY_PAYLOAD_TYPE);
-
+	RtpSession *rtpSession_relay_margaux_marielle_autodiscovered = NULL;
 	RtpSession *rtpSession_relay_margaux_marielle_bis = NULL;
-	if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
-		rtpSession_relay_margaux_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
-		rtp_session_set_profile(rtpSession_relay_margaux_marielle_bis, profile);
-		rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle_bis,
+	RtpSession *rtpSession_relay_margaux_pauline = NULL;
+	if (auto_discover_bundle_sessions == false) {
+		// relay_margaux: secondary session in the bundle, minimal settings
+		rtpSession_relay_margaux_pauline = rtp_session_new(RTP_SESSION_SENDONLY);
+		rtp_session_set_profile(rtpSession_relay_margaux_pauline, profile);
+		rtp_session_enable_transfer_mode(rtpSession_relay_margaux_pauline,
 		                                 TRUE); // relay rtp session is in transfer mode
-		rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle_bis, FALSE);
-		rtp_session_set_payload_type(rtpSession_relay_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
+		rtp_session_enable_rtcp(rtpSession_relay_margaux_pauline, FALSE);
+		rtp_session_set_payload_type(rtpSession_relay_margaux_pauline, RELAY_PAYLOAD_TYPE);
+
+		if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
+			rtpSession_relay_margaux_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
+			rtp_session_set_profile(rtpSession_relay_margaux_marielle_bis, profile);
+			rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle_bis,
+			                                 TRUE); // relay rtp session is in transfer mode
+			rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle_bis, FALSE);
+			rtp_session_set_payload_type(rtpSession_relay_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
+		}
+	} else {
+		// set the additional relay sessions pointers in a list, so we can get them in the callback in charge of their
+		// creation
+		relay_sessions_list = bctbx_list_new(&rtpSession_relay_margaux_marielle_autodiscovered);
+		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_marielle_bis);
+		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_pauline);
+
+		rtp_session_signal_connect(rtpSession_relay_margaux_marielle, "new_outgoing_ssrc_found_in_bundle",
+		                           (RtpCallback)new_ssrc_outgoing_in_bundle, relay_sessions_list);
 	}
 
-	/* create a bundle, margaux_marielle is the main session */
+	/* create a bundle, relay_margaux_marielle is the main session */
 	RtpBundle *rtpBundle_relay = rtp_bundle_new();
 	if (use_long_bundle_id) {
 		rtp_bundle_add_session(rtpBundle_relay, LONG_MID_MARIELLE_SESSION, rtpSession_relay_margaux_marielle);
-		rtp_bundle_add_session(rtpBundle_relay, LONG_MID_PAULINE_SESSION, rtpSession_relay_margaux_pauline);
-		if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
-			rtp_bundle_add_session(rtpBundle_relay, LONG_MID_MARIELLE_SESSION_BIS,
-			                       rtpSession_relay_margaux_marielle_bis);
+		if (auto_discover_bundle_sessions == false) {
+			// when shared_mid is on(then use_long_bundle and bundled_source are also on, to simplify the test code),
+			// all the sessions use the same MID
+			if (shared_mid) {
+				rtp_bundle_add_session(rtpBundle_relay, LONG_MID_MARIELLE_SESSION, rtpSession_relay_margaux_pauline);
+				rtp_bundle_add_session(rtpBundle_relay, LONG_MID_MARIELLE_SESSION,
+				                       rtpSession_relay_margaux_marielle_bis);
+			} else {
+				rtp_bundle_add_session(rtpBundle_relay, LONG_MID_PAULINE_SESSION, rtpSession_relay_margaux_pauline);
+				if (bundled_source) { // Marielle source bundles two sessions so margaux receives 3
+					rtp_bundle_add_session(rtpBundle_relay, LONG_MID_MARIELLE_SESSION_BIS,
+					                       rtpSession_relay_margaux_marielle_bis);
+				}
+			}
 		}
 	} else {
 		rtp_bundle_add_session(rtpBundle_relay, SHORT_MID_MARIELLE_SESSION, rtpSession_relay_margaux_marielle);
@@ -482,6 +592,9 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	bool error = false;
 	/* read the whole file by chunk of 160 bytes */
 	int pauline_last_packet_seqnum = -1;
+	uint32_t marielleSSRC = 0;
+	uint32_t mariellebisSSRC = 0;
+	uint32_t paulineSSRC = 0;
 	while ((error == false) && ((len = bctbx_file_read2(fp, buffer, 160)) > 0)) {
 		/* marielle create a packet header */
 		mblk_t *sent_packet = rtp_session_create_packet_header(rtpSession_marielle, 0);
@@ -567,6 +680,15 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		BC_ASSERT_EQUAL(payload_type, MARIELLE_PAYLOAD_TYPE, uint16_t, "%d");
 
 		/* forward the packet to Margaux */
+		if (packet_sent == 0) {
+			if (auto_discover_bundle_sessions == false) {
+				marielleSSRC = rtp_get_ssrc(transfered_packet);
+				// session are not in auto-discovery, so we must set rtpSession_relay_margaux_marielle send ssrc to
+				// match the sent packet SSRC
+				rtp_session_set_ssrc(rtpSession_relay_margaux_marielle, marielleSSRC);
+			}
+		}
+
 		size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle, copymsg(transfered_packet), user_ts);
 		if (size < 0) {
 			ms_error("Session Relay-Margaux-Marielle could not send the packet: -%x", -size);
@@ -595,8 +717,20 @@ static bool_t double_encrypted_rtp_relay_data_base(
 			BC_ASSERT_EQUAL(payload_type, MARIELLE_PAYLOAD_TYPE, uint16_t, "%d");
 
 			/* forward the packet to Margaux */
-			size =
-			    rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle_bis, copymsg(transfered_packet), user_ts);
+			if (packet_sent == 0 && auto_discover_bundle_sessions == false) {
+				mariellebisSSRC = rtp_get_ssrc(transfered_packet);
+				// session are not in auto-discovery, so we must set rtpSession_relay_margaux_marielle_bis send ssrc to
+				// match the sent packet SSRC
+				rtp_session_set_ssrc(rtpSession_relay_margaux_marielle_bis, mariellebisSSRC);
+			}
+
+			if (auto_discover_bundle_sessions == false || packet_sent > 0) {
+				size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle_bis, copymsg(transfered_packet),
+				                                 user_ts);
+			} else {
+				size =
+				    rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle, copymsg(transfered_packet), user_ts);
+			}
 			if (size < 0) {
 				ms_error("Session Relay-Margaux-Marielle-bis could not send the packet: -%x", -size);
 				error = true;
@@ -625,7 +759,22 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		BC_ASSERT_EQUAL(payload_type, PAULINE_PAYLOAD_TYPE, uint16_t, "%d");
 
 		/* forward the packet to Margaux - except if skip begin or discard is active */
-		if (!(skip_pauline_begin && packet_sent < 12) && !(discard_packets && packet_sent > 19 && packet_sent < 30)) {
+		if (packet_sent == 0 && auto_discover_bundle_sessions == false) {
+			paulineSSRC = rtp_get_ssrc(transfered_packet);
+			// session are not in auto-discovery, so we must set rtpSession_relay_margaux_pauline send ssrc to match
+			// the sent packet SSRC
+			rtp_session_set_ssrc(rtpSession_relay_margaux_pauline, paulineSSRC);
+		}
+
+		if (packet_sent == 0 && auto_discover_bundle_sessions == true) {
+			size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_marielle, copymsg(transfered_packet), user_ts);
+			if (size < 0) {
+				ms_error("Session Relay-Margaux-Pauline could not send the packet: -%x", -size);
+				error = true;
+				break;
+			}
+		} else if (!(skip_pauline_begin && packet_sent < 12) &&
+		           !(discard_packets && packet_sent > 19 && packet_sent < 30)) {
 			size = rtp_session_sendm_with_ts(rtpSession_relay_margaux_pauline, copymsg(transfered_packet), user_ts);
 			if (size < 0) {
 				ms_error("Session Relay-Margaux-Pauline could not send the packet: -%x", -size);
@@ -638,6 +787,17 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		/* margaux receive the packet from marielle
 		 * This fetch will also retrieve and decrypt Pauline's session packet and get it ready to be fetched on
 		 * margaux_pauline rtp session */
+
+		if (packet_sent == 0 && !auto_discover_bundle_sessions) {
+			rtpSession_margaux_marielle->ssrc_set = TRUE;
+			rtpSession_margaux_marielle->rcv.ssrc = marielleSSRC;
+			if (bundled_source) {
+				rtpSession_margaux_marielle_bis->ssrc_set = TRUE;
+				rtpSession_margaux_marielle_bis->rcv.ssrc = mariellebisSSRC;
+			}
+			rtpSession_margaux_pauline->ssrc_set = TRUE;
+			rtpSession_margaux_pauline->rcv.ssrc = paulineSSRC;
+		}
 		mblk_t *received_packet = rtp_session_recvm_with_ts(rtpSession_margaux_marielle, user_ts);
 		if (received_packet == NULL) {
 			ms_error("Margaux session did not received any packets relayed from Marielle!");
@@ -768,6 +928,10 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	BC_ASSERT_TRUE(error == false);
 
 	/* cleaning */
+	if (auto_discover_bundle_sessions == true) {
+		bctbx_list_free(margaux_sessions_list);
+		bctbx_list_free(relay_sessions_list);
+	}
 	bctbx_file_close(fp);
 	rtp_bundle_delete(rtpBundle_relay);
 	rtp_bundle_delete(rtpBundle_margaux);
@@ -779,7 +943,6 @@ static bool_t double_encrypted_rtp_relay_data_base(
 		rtp_session_destroy(rtpSession_relay_margaux_marielle_bis);
 		rtp_session_destroy(rtpSession_margaux_marielle_bis);
 	}
-	rtp_profile_destroy(profile);
 	ms_media_stream_sessions_uninit(&marielle);
 	ms_media_stream_sessions_uninit(&margaux); // This will destroy rtpSession_margaux_marielle
 	rtp_session_destroy(rtpSession_margaux_pauline);
@@ -787,6 +950,9 @@ static bool_t double_encrypted_rtp_relay_data_base(
 	ms_media_stream_sessions_uninit(&relay_marielle);
 	ms_media_stream_sessions_uninit(&relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
 	rtp_session_destroy(rtpSession_relay_margaux_pauline);
+	if (auto_discover_bundle_sessions == true) {
+		rtp_session_destroy(rtpSession_relay_margaux_marielle_autodiscovered);
+	}
 	ms_media_stream_sessions_uninit(&relay_pauline);
 
 	return error == false;
@@ -813,6 +979,18 @@ static void double_encrypted_relayed_data_bundled_source(void) {
 	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, false, true));
 	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_32, MS_AES_128_SHA1_32, true, true, true));
 	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, true, true));
+}
+
+static void double_encrypted_relayed_data_shared_mid(void) {
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, true, true,
+	                                                    false, false, false, true));
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AEAD_AES_256_GCM, MS_AES_128_SHA1_80, true, true, true, true,
+	                                                    false, true, true));
+}
+
+static void double_encrypted_relayed_data_autodiscoverd_bundled_sessions(void) {
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM, true, true, true, true,
+	                                                    false, false, true, true));
 }
 
 static void double_encrypted_relayed_data_discarded_packets(void) {
@@ -869,22 +1047,23 @@ static void double_encrypted_relayed_data_use_ekt_skip_init_ROC(void) {
 	    double_encrypted_rtp_relay_data_base(MS_AES_128_SHA1_32, MS_AEAD_AES_256_GCM, false, false, false, true, true));
 };
 static test_t tests[] = {
-    TEST_NO_TAG("Double Encrypted relayed data two participants", double_encrypted_relayed_data),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with volume info",
-                double_encrypted_relayed_data_with_volume),
-    TEST_NO_TAG("Double Encrypted relayed data two participants bundled source",
-                double_encrypted_relayed_data_bundled_source),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with packets discarded by relay",
+    TEST_NO_TAG("Double Encrypted relayed data", double_encrypted_relayed_data),
+    TEST_NO_TAG("Double Encrypted relayed data with volume info", double_encrypted_relayed_data_with_volume),
+    TEST_NO_TAG("Double Encrypted relayed data bundled source", double_encrypted_relayed_data_bundled_source),
+    TEST_NO_TAG("Double Encrypted relayed data with packets discarded by relay",
                 double_encrypted_relayed_data_discarded_packets),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with ekt", double_encrypted_relayed_data_use_ekt),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with volume info and ekt",
+    TEST_NO_TAG("Double Encrypted relayed data with ekt", double_encrypted_relayed_data_use_ekt),
+    TEST_NO_TAG("Double Encrypted relayed data with volume info and ekt",
                 double_encrypted_relayed_data_with_volume_use_ekt),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with bundled source and ekt",
+    TEST_NO_TAG("Double Encrypted relayed data with bundled source and ekt",
                 double_encrypted_relayed_data_bundled_source_use_ekt),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with ekt, skip initial ROC",
+    TEST_NO_TAG("Double Encrypted relayed data with ekt, skip initial ROC",
                 double_encrypted_relayed_data_use_ekt_skip_init_ROC),
-    TEST_NO_TAG("Double Encrypted relayed data two participants with ekt, packets discarded by relay",
+    TEST_NO_TAG("Double Encrypted relayed data with ekt, packets discarded by relay",
                 double_encrypted_relayed_data_discarded_packets_with_ekt_volume_and_bundled_source),
+    TEST_NO_TAG("Double Encrypted relayed data shared MID in bundle", double_encrypted_relayed_data_shared_mid),
+    TEST_NO_TAG("Double Encrypted relayed data autodiscovered bundled sessions",
+                double_encrypted_relayed_data_autodiscoverd_bundled_sessions),
 };
 
 test_suite_t double_encryption_test_suite = {"RTP Data Double Encryption",
