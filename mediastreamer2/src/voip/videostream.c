@@ -1356,7 +1356,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			if (stream->use_preview_window) {
 				if (stream->rendercb == NULL) {
 					stream->output2 = ms_factory_create_filter_from_name(stream->ms.factory, stream->display_name);
-					ms_filter_add_notify_callback(stream->output2, display_cb, stream, FALSE);
+					if (stream->output2) ms_filter_add_notify_callback(stream->output2, display_cb, stream, FALSE);
 				}
 			}
 			configure_video_source(stream, FALSE, TRUE);
@@ -1461,7 +1461,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			} else {
 				/* Create default display filter */
 				stream->output = ms_factory_create_filter_from_name(stream->ms.factory, stream->display_name);
-				ms_filter_add_notify_callback(stream->output, display_cb, stream, FALSE);
+				if (stream->output) ms_filter_add_notify_callback(stream->output, display_cb, stream, FALSE);
 			}
 		}
 
@@ -2199,10 +2199,12 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 		if (displaytype) {
 			stream->output2 = ms_factory_create_filter_from_name(stream->ms.factory, displaytype);
-			ms_filter_add_notify_callback(stream->output2, display_cb, stream, FALSE);
-			ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
-			ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
-			ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+			if (stream->output2) {
+				ms_filter_add_notify_callback(stream->output2, display_cb, stream, FALSE);
+				ms_filter_call_method(stream->output2, MS_FILTER_SET_PIX_FMT, &format);
+				ms_filter_call_method(stream->output2, MS_FILTER_SET_VIDEO_SIZE, &disp_size);
+				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_LOCAL_VIEW_MODE, &corner);
+			}
 			assign_value_to_mirroring_flag_to_preview(stream);
 			/* and then connect all */
 		}

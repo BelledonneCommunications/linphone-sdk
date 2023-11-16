@@ -462,8 +462,15 @@ bctbx_list_t *ms_factory_lookup_filter_by_interface(MSFactory *factory, MSFilter
 
 MSFilter *ms_factory_create_filter_from_name(MSFactory *factory, const char *filter_name) {
 	MSFilterDesc *desc = ms_factory_lookup_filter_by_name(factory, filter_name);
-	if (desc == NULL) return NULL;
-	return ms_factory_create_filter_from_desc(factory, desc);
+	MSFilter *filter = NULL;
+
+	if (!desc) {
+		ms_error("Mediastreamer was not build to support the requested filter: %s.", filter_name);
+	} else {
+		filter = ms_factory_create_filter_from_desc(factory, desc);
+		if (!filter) ms_error("Mediastreamer couldn't create the filter: %s.", filter_name);
+	}
+	return filter;
 }
 
 void ms_factory_enable_statistics(MSFactory *obj, bool_t enabled) {
