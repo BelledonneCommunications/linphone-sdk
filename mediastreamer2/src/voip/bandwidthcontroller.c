@@ -181,9 +181,9 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 	MSBandwidthController *obj = ms->bandwidth_controller;
 	if (!obj->congestion_detected) {
 		float estimated_bitrate = evd->info.video_bandwidth_available;
-		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated * NO_INCREASE_THRESHOLD) {
+		if (estimated_bitrate <= obj->remote_video_bandwidth_available_estimated) {
 			ms_message("MSBandwidthController: %p not using new total video bandwidth estimation (%f kbit/s) because "
-			           "it's not enough greater than the previous one (%f kbit/s)",
+			           "it's not greater than the previous one (%f kbit/s)",
 			           ms, estimated_bitrate / 1000, obj->remote_video_bandwidth_available_estimated / 1000);
 			return;
 		}
@@ -201,6 +201,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		           ms, ms_format_type_to_string(ms->type),
 		           estimated_bitrate / (bctbx_list_size(obj->controlled_streams) * 1000), estimated_bitrate / 1000,
 		           (int)bctbx_list_size(obj->controlled_streams));
+#if 0
 		if (obj->remote_video_bandwidth_available_estimated == 0) {
 			/* This was the first estimate. Request a larger sample for next one, to get more accurate estimate */
 			OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
@@ -208,6 +209,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 			video_bandwidth_estimator_params.min_required_measurements = 200;
 			rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
 		}
+#endif
 		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
 		obj->currently_requested_stream_bandwidth = estimated_bitrate;
 		ms_bandwidth_controller_send_tmmbr(obj, ms);

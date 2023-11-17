@@ -53,33 +53,38 @@ static void update_video_quality_from_bitrate(MSVideoQualityController *obj,
 		ms_filter_call_method(obj->stream->ms.encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &current_vconf);
 
 		if (!update_only_fps) {
-			/* tmmbr >= required_bitrate * [Threshold] is the same as tmmbr / [Threshold] >= required_bitrate */
+			int current_bitrate = media_stream_get_target_network_bitrate(&obj->stream->ms);
 			int bitrate_limit = (int)(bitrate / bitrate_threshold);
+			if (bitrate_limit >= current_bitrate) {
+				if (obj->stream->max_sent_vsize.height > 0 && obj->stream->max_sent_vsize.width > 0) {
+					best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(
+					    vconf_list, obj->stream->max_sent_vsize, ms_factory_get_cpu_count(obj->stream->ms.factory),
+					    bitrate_limit);
+				} else {
+					best_vconf = ms_video_find_best_configuration_for_bitrate(
+					    vconf_list, bitrate_limit, ms_factory_get_cpu_count(obj->stream->ms.factory));
+				}
 
-			if (obj->stream->max_sent_vsize.height > 0 && obj->stream->max_sent_vsize.width > 0) {
-				best_vconf = ms_video_find_best_configuration_for_size_and_bitrate(
-				    vconf_list, obj->stream->max_sent_vsize, ms_factory_get_cpu_count(obj->stream->ms.factory),
-				    bitrate_limit);
+				if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) &&
+				    best_vconf.vsize.width * best_vconf.vsize.height !=
+				        current_vconf.vsize.width * current_vconf.vsize.height) {
+					ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj,
+					           best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
+					/*
+					 * Changing the resolution requires a call to video_stream_change_camera() so that the video graph
+					 * is reconfigured.
+					 */
+					obj->stream->sent_vsize = best_vconf.vsize;
+					obj->stream->preview_vsize = best_vconf.vsize;
+					media_stream_set_target_network_bitrate(&obj->stream->ms, best_vconf.required_bitrate);
+					video_stream_update_video_params(obj->stream);
+					obj->last_vsize = best_vconf.vsize;
+					return;
+				}
 			} else {
-				best_vconf = ms_video_find_best_configuration_for_bitrate(
-				    vconf_list, bitrate_limit, ms_factory_get_cpu_count(obj->stream->ms.factory));
-			}
-
-			if (!ms_video_size_equal(obj->last_vsize, best_vconf.vsize) &&
-			    best_vconf.vsize.width * best_vconf.vsize.height !=
-			        current_vconf.vsize.width * current_vconf.vsize.height) {
-				ms_message("MSVideoQualityController [%p]: Changing video definition to %dx%d at %f fps", obj,
-				           best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.fps);
-				/*
-				 * Changing the resolution requires a call to video_stream_change_camera() so that the video graph is
-				 * reconfigured.
-				 */
-				obj->stream->sent_vsize = best_vconf.vsize;
-				obj->stream->preview_vsize = best_vconf.vsize;
-				media_stream_set_target_network_bitrate(&obj->stream->ms, best_vconf.required_bitrate);
-				video_stream_update_video_params(obj->stream);
-				obj->last_vsize = best_vconf.vsize;
-				return;
+				ms_message(
+				    "MSVideoQualityController [%p]: new bitrate not sufficient to try a video resolution upgrade.",
+				    obj);
 			}
 		}
 

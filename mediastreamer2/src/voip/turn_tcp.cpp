@@ -697,6 +697,8 @@ void TurnClient::connect() {
 int TurnClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockaddr *from, socklen_t *fromlen) {
 	std::unique_ptr<Packet> p = nullptr;
 
+	if (!mTurnConnection) return 0;
+
 	mTurnConnection->mReceivingLock.lock();
 	if (!mTurnConnection->mReceivingQueue.empty()) {
 		p = std::move(mTurnConnection->mReceivingQueue.front());
@@ -728,7 +730,7 @@ int TurnClient::recvfrom(mblk_t *msg, BCTBX_UNUSED(int flags), struct sockaddr *
 }
 
 int TurnClient::sendto(mblk_t *msg, BCTBX_UNUSED(int flags), const struct sockaddr *, socklen_t) {
-	if (!mTurnConnection->isRunning()) {
+	if (!mTurnConnection || !mTurnConnection->isRunning()) {
 		return -1;
 	}
 	auto p = std::make_unique<Packet>(msg, true); // Add padding at this point.

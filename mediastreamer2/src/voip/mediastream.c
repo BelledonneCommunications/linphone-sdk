@@ -94,11 +94,7 @@ MSTickerPrio __ms_get_default_prio(bool_t is_video) {
 #endif
 		if (penv && _ms_ticker_prio_from_env(penv, &prio) == 0) return prio;
 
-#if TARGET_OS_IPHONE
 		return MS_TICKER_PRIO_HIGH;
-#else
-		return MS_TICKER_PRIO_NORMAL;
-#endif
 	} else {
 #ifndef MS2_WINDOWS_UNIVERSAL
 		penv = getenv("MS_AUDIO_PRIO");

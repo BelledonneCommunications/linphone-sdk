@@ -142,7 +142,7 @@ PayloadType payload_type_dummy = {.type = PAYLOAD_VIDEO,
                                   .bits_per_sample = 0,
                                   .zero_pattern = NULL,
                                   .pattern_length = 0,
-                                  .normal_bitrate = 6000,
+                                  .normal_bitrate = 600000,
                                   .mime_type = "DUMMY",
                                   .channels = 0,
                                   .recv_fmtp = NULL,
@@ -155,7 +155,7 @@ PayloadType payload_type_unsupported = {.type = PAYLOAD_VIDEO,
                                         .bits_per_sample = 0,
                                         .zero_pattern = NULL,
                                         .pattern_length = 0,
-                                        .normal_bitrate = 6000,
+                                        .normal_bitrate = 600000,
                                         .mime_type = "UNSUPPORTED",
                                         .channels = 0,
                                         .recv_fmtp = NULL,
@@ -572,6 +572,7 @@ static void basic_video_stream_dummy(void) {
 		video_stream_tester_t *marielle = video_stream_tester_new();
 		video_stream_tester_t *margaux = video_stream_tester_new();
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, DUMMY_PAYLOAD_TYPE, FALSE, FALSE);
+		ms_sleep(2);
 		uninit_video_streams(marielle, margaux);
 		video_stream_tester_destroy(margaux);
 		video_stream_tester_destroy(marielle);
@@ -581,6 +582,7 @@ static void basic_video_stream_dummy(void) {
 		marielle->fallback_to_dummy_codec = TRUE;
 		margaux->fallback_to_dummy_codec = TRUE;
 		init_video_streams(marielle, margaux, FALSE, FALSE, NULL, UNSUPPORTED_PAYLOAD_TYPE, FALSE, FALSE);
+		ms_sleep(2);
 		uninit_video_streams(marielle, margaux);
 		video_stream_tester_destroy(margaux);
 		// ask for unsupported codec, but disable fallback to dummy, it shall fail
@@ -595,6 +597,7 @@ static void basic_video_stream_dummy(void) {
 		                                   marielle->cam),
 		                -1, int, "%d");
 		video_stream_tester_destroy(marielle);
+		video_stream_tester_destroy(margaux);
 
 	} else {
 		BC_FAIL("Dummy codec is not supported!");
