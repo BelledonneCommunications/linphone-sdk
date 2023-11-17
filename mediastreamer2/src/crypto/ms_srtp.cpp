@@ -565,10 +565,10 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 				if (rtp_session_transfer_mode_enabled(original_rtp_session) == TRUE) {
 					rtp_header = (rtp_header_t *)m->b_rptr; // update header pointer as pullup may have modified it
 					auto packet_seq_number = rtp_header_get_seqnumber(rtp_header);
-					auto session_seq_number = rtp_session_get_seq_number(original_rtp_session);
+					auto original_seq_number = ortp_mblk_get_original_seqnum(m);
 					auto packet_payload_type = rtp_get_payload_type(m);
 					auto session_payload_type = rtp_session_get_send_payload_type(original_rtp_session);
-					auto add_seq_num = (session_seq_number != (packet_seq_number + 1));
+					auto add_seq_num = (original_seq_number != packet_seq_number);
 					auto add_payload_type = (packet_payload_type != session_payload_type);
 					if (add_seq_num || add_payload_type) {
 						/* We should already have an empty OHB */
@@ -588,18 +588,17 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 								rtp_set_payload_type(m, session_payload_type);
 							}
 							if (add_seq_num) {
-								m->b_rptr[slen++] = (packet_seq_number >> 8) & 0xFF;
-								m->b_rptr[slen++] = (packet_seq_number)&0xFF;
+								m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
+								m->b_rptr[slen++] = (original_seq_number)&0xFF;
 								config_byte |= OHB_SEQNUM_BIT;
-								// force the packet to use the session sequence number
-								rtp_header_set_seqnumber(rtp_header, session_seq_number - 1);
 							}
 							m->b_rptr[slen++] = config_byte;
 						} else {
 							/* There is already a non empty OHB, this feature is not supported */
-							ms_warning("While transfering a double encrypted SRTP packet on session [%p], with seqnum "
-							           "%x and session seqnum %x, we found a pre-existing OHB - discard the packet",
-							           original_rtp_session, session_seq_number, packet_seq_number);
+							ms_warning("While transfering a double encrypted SRTP packet on session [%p], with "
+							           "original seqnum "
+							           "%x and packet seqnum %x, we found a pre-existing OHB - discard the packet",
+							           original_rtp_session, original_seq_number, packet_seq_number);
 							return -1;
 						}
 					}
