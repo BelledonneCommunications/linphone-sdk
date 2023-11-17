@@ -23,7 +23,8 @@
 #include "mediastreamer2/mscommon.h"
 #include <ortp/ortp.h>
 
-#define NO_INCREASE_THRESHOLD 1.4
+#define NO_INCREASE_THRESHOLD_FOR_CONGESTION 1.4
+#define NO_INCREASE_THRESHOLD 1.1
 
 MSBandwidthController *ms_bandwidth_controller_new(void) {
 	MSBandwidthController *obj = ms_new0(MSBandwidthController, 1);
@@ -188,7 +189,7 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		}
 
 		if (obj->stats.estimated_download_bandwidth != 0 &&
-		    estimated_bitrate <= (NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth)) {
+		    estimated_bitrate <= (NO_INCREASE_THRESHOLD_FOR_CONGESTION * obj->stats.estimated_download_bandwidth)) {
 			ms_message("MSBandwidthController: %p not using new total video bandwidth estimation (%f kbit/s) because "
 			           "it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
 			           ms, estimated_bitrate / 1000, obj->stats.estimated_download_bandwidth / 1000);
@@ -200,6 +201,13 @@ static void on_video_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		           ms, ms_format_type_to_string(ms->type),
 		           estimated_bitrate / (bctbx_list_size(obj->controlled_streams) * 1000), estimated_bitrate / 1000,
 		           (int)bctbx_list_size(obj->controlled_streams));
+		if (obj->remote_video_bandwidth_available_estimated == 0) {
+			/* This was the first estimate. Request a larger sample for next one, to get more accurate estimate */
+			OrtpVideoBandwidthEstimatorParams video_bandwidth_estimator_params = {0};
+			video_bandwidth_estimator_params.enabled = TRUE;
+			video_bandwidth_estimator_params.min_required_measurements = 200;
+			rtp_session_enable_video_bandwidth_estimator(ms->sessions.rtp_session, &video_bandwidth_estimator_params);
+		}
 		obj->remote_video_bandwidth_available_estimated = estimated_bitrate;
 		obj->currently_requested_stream_bandwidth = estimated_bitrate;
 		ms_bandwidth_controller_send_tmmbr(obj, ms);
@@ -219,7 +227,7 @@ static void on_audio_bandwidth_estimation_available(const OrtpEventData *evd, vo
 		}
 
 		if (obj->stats.estimated_download_bandwidth != 0 &&
-		    estimated_bitrate <= (NO_INCREASE_THRESHOLD * obj->stats.estimated_download_bandwidth)) {
+		    estimated_bitrate <= (NO_INCREASE_THRESHOLD_FOR_CONGESTION * obj->stats.estimated_download_bandwidth)) {
 			ms_message("MSBandwidthController: %p not using new total audio bandwidth estimation (%f kbit/s) because "
 			           "it's not enough greater than bandwidth measured under congestion (%f kbit/s)",
 			           ms, estimated_bitrate / 1000, obj->stats.estimated_download_bandwidth / 1000);

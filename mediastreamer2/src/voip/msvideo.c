@@ -608,7 +608,7 @@ ff_create_swscale_context(int src_w, int src_h, MSPixFmt src_fmt, int dst_w, int
 	MSFFScalerContext *ctx = ms_new0(MSFFScalerContext, 1);
 	ctx->src_h = src_h;
 #if MS_HAS_ARM
-	#pragma unused(flags)
+#pragma unused(flags)
 	ff_flags |= SWS_FAST_BILINEAR;
 #else
 	if (flags & MS_SCALER_METHOD_BILINEAR) ff_flags |= SWS_BILINEAR;
@@ -1068,6 +1068,10 @@ ms_video_find_best_configuration_for_bitrate(const MSVideoConfiguration *vconf_l
 		vconf_it++;
 	}
 	best_vconf.required_bitrate = bitrate > best_vconf.bitrate_limit ? best_vconf.bitrate_limit : bitrate;
+
+	ms_message("Best video configuration for bitrate [%d] bits/s: rb=%d, bl=%d, fps=%f, vsize=%dx%d, mincpu=%d",
+	           bitrate, best_vconf.required_bitrate, best_vconf.bitrate_limit, best_vconf.fps, best_vconf.vsize.width,
+	           best_vconf.vsize.height, best_vconf.mincpu);
 	return best_vconf;
 }
 
@@ -1184,9 +1188,10 @@ MSVideoConfiguration ms_video_find_best_configuration_for_size_and_bitrate(const
 	last_good_vconf = NULL;
 	best_vconf.vsize = vsize;
 
-	ms_message("Best video configuration for %d bits/s: rb=%d, bl=%d, fps=%f, vsize=%dx%d, mincpu=%d", bitrate,
-	           best_vconf.required_bitrate, best_vconf.bitrate_limit, best_vconf.fps, best_vconf.vsize.width,
-	           best_vconf.vsize.height, best_vconf.mincpu);
+	ms_message("Best video configuration for size [%ix%i] and bitrate [%d] bits/s: rb=%d, bl=%d, fps=%f, vsize=%dx%d, "
+	           "mincpu=%d",
+	           vsize.width, vsize.height, bitrate, best_vconf.required_bitrate, best_vconf.bitrate_limit,
+	           best_vconf.fps, best_vconf.vsize.width, best_vconf.vsize.height, best_vconf.mincpu);
 
 	return best_vconf;
 }
