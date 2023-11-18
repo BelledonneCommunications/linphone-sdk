@@ -79,6 +79,10 @@ void Av1DecoderFilter::process() {
 			requestPli = true;
 			continue;
 		}
+		if (!om) {
+			ms_warning("Av1DecoderFilter: no frame.");
+			break;
+		}
 
 		if (!mFirstImageDecoded) {
 			MSPicture pic;
