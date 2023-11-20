@@ -23,7 +23,7 @@
 #include "mediastreamer2/mscommon.h"
 
 #define INCREASE_TIMER_DELAY 10
-#define INCREASE_BITRATE_THRESHOLD 1.3f
+#define INCREASE_BITRATE_THRESHOLD 1.1f
 
 MSVideoQualityController *ms_video_quality_controller_new(struct _VideoStream *stream) {
 	MSVideoQualityController *obj = ms_new0(MSVideoQualityController, 1);
