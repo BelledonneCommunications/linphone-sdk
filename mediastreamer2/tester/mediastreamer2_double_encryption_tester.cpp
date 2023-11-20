@@ -94,8 +94,10 @@ static int tester_after_all(void) {
 #define LONG_MID_MARIELLE_SOURCE_SESSION "Marielle"
 #define LONG_MID_MARIELLE_SOURCE_SESSION_BIS "MarielleBis"
 
-static void new_ssrc_incoming_in_bundle(BCTBX_UNUSED(RtpSession *session), void *b, void *s, void *userData) {
-	RtpBundle *bundle = (RtpBundle *)b;
+static void new_ssrc_incoming_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpBundle *bundle = session->bundle;
 	RtpSession **newSession = (RtpSession **)s;
 	bctbx_list_t *margaux_sessions_list = (bctbx_list_t *)userData;
 	*newSession = rtp_session_new(RTP_SESSION_RECVONLY);
@@ -104,6 +106,8 @@ static void new_ssrc_incoming_in_bundle(BCTBX_UNUSED(RtpSession *session), void 
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
 	                                         // when they arrive, we're assuming no loss
 	rtp_session_enable_rtcp(*newSession, FALSE);
+	(*newSession)->ssrc_set = TRUE;
+	(*newSession)->rcv.ssrc = ssrc;
 	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
 
 	// the session list holds 2 session, use them one after the other to create sessions
@@ -114,8 +118,10 @@ static void new_ssrc_incoming_in_bundle(BCTBX_UNUSED(RtpSession *session), void 
 	}
 }
 
-static void new_ssrc_outgoing_in_bundle(BCTBX_UNUSED(RtpSession *session), void *b, void *s, void *userData) {
-	RtpBundle *bundle = (RtpBundle *)b;
+static void new_ssrc_outgoing_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpBundle *bundle = session->bundle;
 	RtpSession **newSession = (RtpSession **)s;
 	bctbx_list_t *relay_sessions_list = (bctbx_list_t *)userData;
 	*newSession = rtp_session_new(RTP_SESSION_SENDONLY);
@@ -123,6 +129,7 @@ static void new_ssrc_outgoing_in_bundle(BCTBX_UNUSED(RtpSession *session), void 
 	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(*newSession, FALSE);
 	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
+	(*newSession)->snd.ssrc = ssrc;
 	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
 
 	// the session list holds 3 sessions, use them one after the other to create sessions
