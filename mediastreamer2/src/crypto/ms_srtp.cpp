@@ -233,7 +233,8 @@ static bool ms_srtp_process_ekt_on_receive(RtpTransportModifier *t, mblk_t *m, i
 		if ((ekt->tagCache.count(ssrc) == 0) || (ekt->tagCache[ssrc]->mCipherText.size() != ekt_tag_size) ||
 		    (memcmp(ekt->tagCache[ssrc]->mCipherText.data(), m->b_rptr + *slen, ekt_tag_size) != 0)) {
 			// This is a new EKTtag
-			std::vector<uint8_t> cipherText{m->b_rptr + *slen, m->b_rptr + *slen + ekt_tag_size};
+			std::vector<uint8_t> cipherText{m->b_rptr + *slen, m->b_rptr + *slen + ekt_tag_size -
+			                                                       7}; // get only the cipher text without trailer
 
 			// Decrypt it
 			std::vector<uint8_t> plainText{};
@@ -307,8 +308,9 @@ static bool ms_srtp_process_ekt_on_receive(RtpTransportModifier *t, mblk_t *m, i
 				rtp_session_dispatch_event(t->session, ev);
 			}
 
-			// Store the tag in cache
-			ekt->tagCache.emplace(ssrc, std::make_shared<EktTagCipherText>(roc, cipherText));
+			// Store the full tag in cache
+			std::vector<uint8_t> cipherTextWithSPI{m->b_rptr + *slen, m->b_rptr + *slen + ekt_tag_size};
+			ekt->tagCache.emplace(ssrc, std::make_shared<EktTagCipherText>(roc, cipherTextWithSPI));
 		}
 		return true;
 	} else {
