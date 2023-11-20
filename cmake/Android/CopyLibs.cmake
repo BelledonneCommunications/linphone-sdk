@@ -61,18 +61,12 @@ foreach(_arch ${_ANDROID_ARCHS})
 		COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "libs-debug/${_libarch}"
 	)
 
-	file(GLOB _libs "linphone-sdk/android-${_arch}/lib/lib*.so")
-	file(GLOB _plugins "linphone-sdk/android-${_arch}/lib/mediastreamer/plugins/*.so")
+	file(GLOB_RECURSE _libs "linphone-sdk/android-${_arch}/lib/*.so")
 	foreach(_lib ${_libs})
 		execute_process(
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_lib}" "libs/${_libarch}/"
 			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_lib}" "libs-debug/${_libarch}/"
-		)
-	endforeach()
-	foreach(_plugin ${_plugins})
-		execute_process(
-			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_plugin}" "libs/${_libarch}/"
-			COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${_plugin}" "libs-debug/${_libarch}/"
+			WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 		)
 	endforeach()
 
