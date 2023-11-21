@@ -110,10 +110,10 @@ set(CMAKE_NM "${TOOLCHAIN_NM}" CACHE FILEPATH "nm")
 
 # Define default compiler flags
 set(CMAKE_C_LANG_FLAGS_INIT "${CMAKE_C_LANG_FLAGS_INIT} -fms-extensions")
-set(CMAKE_CXX_LANG_FLAGS_INIT "${CMAKE_C_LANG_FLAGS_INIT} -fms-extensions -stdlib=libc++")
-set(CMAKE_EXE_LINKER_FLAGS_INIT "${CMAKE_EXE_LINKER_FLAGS_INIT} -fms-extensions -stdlib=libc++")
-set(CMAKE_MODULE_LINKER_FLAGS_INIT "${CMAKE_MODULE_LINKER_FLAGS_INIT} -fms-extensions -stdlib=libc++")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "${CMAKE_SHARED_LINKER_FLAGS_INIT} -fms-extensions -stdlib=libc++")
+set(CMAKE_CXX_LANG_FLAGS_INIT "${CMAKE_C_LANG_FLAGS_INIT} -fms-extensions")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "${CMAKE_EXE_LINKER_FLAGS_INIT} -fms-extensions")
+set(CMAKE_MODULE_LINKER_FLAGS_INIT "${CMAKE_MODULE_LINKER_FLAGS_INIT} -fms-extensions")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "${CMAKE_SHARED_LINKER_FLAGS_INIT} -fms-extensions")
 
 set(CMAKE_FIND_ROOT_PATH ${CMAKE_OSX_SYSROOT} ${CMAKE_INSTALL_PREFIX})
 # search for programs in the build host directories
