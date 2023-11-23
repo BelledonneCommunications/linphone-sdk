@@ -1272,4 +1272,5 @@ test_suite_t message_test_suite = {"Message",
                                    belle_sip_tester_after_each,
                                    sizeof(message_tests) / sizeof(message_tests[0]),
                                    message_tests,
+                                   0,
                                    0};

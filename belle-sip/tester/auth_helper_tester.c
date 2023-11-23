@@ -314,4 +314,5 @@ test_suite_t authentication_helper_test_suite = {"Authentication helper",
                                                  sizeof(authentication_helper_tests) /
                                                      sizeof(authentication_helper_tests[0]),
                                                  authentication_helper_tests,
+                                                 0,
                                                  0};

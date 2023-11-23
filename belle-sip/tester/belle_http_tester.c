@@ -483,7 +483,12 @@ test_t http_tests[] = {TEST_NO_TAG("One http GET", one_http_get),
                        TEST_NO_TAG("http redirect to https", http_redirect_to_https),
                        TEST_NO_TAG("http channel reuse", http_channel_reuse)};
 
-test_suite_t http_test_suite = {"HTTP stack",   http_before_all,
-                                http_after_all, NULL,
-                                NULL,           sizeof(http_tests) / sizeof(http_tests[0]),
-                                http_tests,     0};
+test_suite_t http_test_suite = {"HTTP stack",
+                                http_before_all,
+                                http_after_all,
+                                NULL,
+                                NULL,
+                                sizeof(http_tests) / sizeof(http_tests[0]),
+                                http_tests,
+                                0,
+                                0};

@@ -297,4 +297,5 @@ test_suite_t core_test_suite = {"Core",
                                 belle_sip_tester_after_each,
                                 sizeof(core_tests) / sizeof(core_tests[0]),
                                 core_tests,
+                                0,
                                 0};

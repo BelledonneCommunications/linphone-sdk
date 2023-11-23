@@ -1373,4 +1373,5 @@ test_suite_t register_test_suite = {"Register",
                                     NULL,
                                     sizeof(register_tests) / sizeof(register_tests[0]),
                                     register_tests,
+                                    0,
                                     0};

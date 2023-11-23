@@ -1323,4 +1323,5 @@ test_suite_t refresher_test_suite = {"Refresher",
                                      belle_sip_tester_after_each,
                                      sizeof(refresher_tests) / sizeof(refresher_tests[0]),
                                      refresher_tests,
+                                     0,
                                      0};

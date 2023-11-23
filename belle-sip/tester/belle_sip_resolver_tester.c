@@ -1193,4 +1193,5 @@ test_suite_t resolver_test_suite = {"Resolver",
                                     belle_sip_tester_after_each,
                                     sizeof(resolver_tests) / sizeof(resolver_tests[0]),
                                     resolver_tests,
+                                    0,
                                     0};
