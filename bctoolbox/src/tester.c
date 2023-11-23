@@ -210,6 +210,7 @@ int bc_tester_register_suite(test_suite_t *suite, const char *tag_name) {
 			if (pSuite == NULL) {
 				pSuite = CU_add_suite_with_setup_and_teardown(suite->name, suite->before_all, suite->after_all,
 				                                              suite->before_each, suite->after_each);
+				pSuite->pUserData = suite;
 			}
 			if (NULL == CU_add_test(pSuite, suite->tests[i].name, suite->tests[i].func)) {
 				return CU_get_error();
@@ -645,7 +646,7 @@ static void merge_log_files(const char *base_logfile_name) {
 // Number of test suites to run concurrently
 int bc_tester_get_max_parallel_processes(void) {
 	if (max_parallel_suites == 0) return (nb_test_suites / 2) + 1;
-	return MIN(max_parallel_suites, nb_test_suites);
+	return max_parallel_suites;
 }
 
 void bc_tester_set_max_parallel_suites(int nb_suites) {
@@ -815,6 +816,32 @@ static int handle_sub_process_error(int pid, int *suitesPids) {
 	return failed_tests;
 }
 
+static test_suite_t *lookup_suite_from_pid(int pid, int *suitesPids) {
+	int i;
+	int effective_suite_count = bc_tester_registered_suite_count();
+	for (i = 0; i < effective_suite_count; ++i) {
+		if (suitesPids[i] == pid) {
+			CU_pSuite suite = bc_tester_registered_suite_index(i);
+			if (suite) return (test_suite_t *)suite->pUserData;
+		}
+	}
+	return NULL;
+}
+
+static int test_suite_cpu_weight(const test_suite_t *ts) {
+	int maxProcess = bc_tester_get_max_parallel_processes();
+	int cpu_weight = ts->cpu_weight == 0 ? 1 : ts->cpu_weight;
+	if (cpu_weight > maxProcess) {
+		bc_tester_printf(
+		    bc_printf_verbosity_error,
+		    "Suite [%s] has a declared cpu weight [%i] greater than the maximum number of parallel processes. "
+		    "cpu_weight is ignored.",
+		    ts->name, cpu_weight);
+		cpu_weight = 1;
+	}
+	return cpu_weight;
+}
+
 #ifdef _WIN32
 int bc_tester_run_parallel(void) {
 	int ret = 0; // Global return status;
@@ -919,25 +946,34 @@ int bc_tester_run_parallel(void) {
 	int runningSuites = 0; // Number of currently running suites
 	int testsFinished = 0;
 	int ret = 0; // Global return status;
+	int suitesCpuWeight = 0;
 
 	memset(suitesPids, 0, sizeof(suitesPids));
 
 	do {
-		if (nextSuite < effective_suite_count && runningSuites < maxProcess) {
-			int pid = fork();
+		if (nextSuite < effective_suite_count) {
+			CU_Suite *launchedSuite = bc_tester_registered_suite_index(nextSuite);
+			test_suite_t *bcLaunchedSuite = (test_suite_t *)launchedSuite->pUserData;
+			int cpu_weight = test_suite_cpu_weight(bcLaunchedSuite);
 
-			if (pid == -1) {
-				bc_tester_printf(bc_printf_verbosity_error,
-				                 "Error during fork() while starting child process. Aborting.");
-				return -1;
-			} else if (pid > 0) {
-				suitesPids[nextSuite] = pid;
-				runningSuites++;
-				nextSuite++;
-			} else {
-				if (start_sub_process(bc_tester_registered_suite_index(nextSuite)->pName) == -1) {
-					bc_tester_printf(bc_printf_verbosity_error, "Error while starting suite sub-process. Aborting.");
+			if (suitesCpuWeight + cpu_weight < maxProcess) {
+				int pid = fork();
+
+				if (pid == -1) {
+					bc_tester_printf(bc_printf_verbosity_error,
+					                 "Error during fork() while starting child process. Aborting.");
 					return -1;
+				} else if (pid > 0) {
+					suitesPids[nextSuite] = pid;
+					runningSuites++;
+					suitesCpuWeight += cpu_weight;
+					nextSuite++;
+				} else {
+					if (start_sub_process(launchedSuite->pName) == -1) {
+						bc_tester_printf(bc_printf_verbosity_error,
+						                 "Error while starting suite sub-process. Aborting.");
+						return -1;
+					}
 				}
 			}
 		}
@@ -950,6 +986,8 @@ int bc_tester_run_parallel(void) {
 			}
 			if (childPid != 0) {
 				if (WIFEXITED(wstatus) || WIFSIGNALED(wstatus)) {
+					test_suite_t *finishedSuite = lookup_suite_from_pid(childPid, suitesPids);
+					suitesCpuWeight -= test_suite_cpu_weight(finishedSuite);
 					--runningSuites;
 					++testsFinished;
 				}
