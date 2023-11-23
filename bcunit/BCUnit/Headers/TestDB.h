@@ -161,6 +161,7 @@ typedef struct CU_Suite
 
   unsigned int      uiNumberOfTestsFailed;  /**< Number of failed tests in the suite. */
   unsigned int      uiNumberOfTestsSuccess; /**< Number of success tests in the suite. */
+  void *            pUserData; /**< Pointer to application data */
 } CU_Suite;
 typedef CU_Suite* CU_pSuite;          /**< Pointer to a BCUnit suite. */
 
