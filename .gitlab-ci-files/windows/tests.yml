@@ -73,7 +73,7 @@ liblinphone-win32-msbuild-windows-test:
   extends: .windows-linphone-test
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
   needs:
     - vs2017-win32-scheduled-windows
 
@@ -81,7 +81,7 @@ liblinphone-win32-ninja-windows-test:
   extends: .windows-linphone-test
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS_WIN32_NINJA != null
   needs:
     - vs2017-ninja-win32-windows
 
@@ -89,8 +89,8 @@ liblinphone-win64-ninja-windows-test:
   extends: .windows-linphone-test
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
-    - if: $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS_WIN64_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
   needs:
     - vs2017-ninja-win64-windows
 
@@ -103,8 +103,8 @@ liblinphone-uwp-windows-test:
     - vs2017-uwp-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ENABLE_WINDOWS_UWP_TESTS != null
-    - if: $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_UWP_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
   variables:
     #no need to fetch repo, all the needed files are in input artifacts
     GIT_SUBMODULE_STRATEGY: none

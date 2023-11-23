@@ -2,6 +2,9 @@ wait-cache-synchro-debian12:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: debian12
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
 
 recache-debian12:
   extends: .recache-update-cache
@@ -77,7 +80,7 @@ debian12-ninja-gcc-pqc:
 
 debian12-ninja-gcc-smallsdk:
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF -DENABLE_LDAP=OFF

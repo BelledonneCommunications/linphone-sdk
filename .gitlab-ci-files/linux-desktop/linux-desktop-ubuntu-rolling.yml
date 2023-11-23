@@ -2,6 +2,9 @@ wait-cache-synchro-ubuntu-rolling:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: ubuntu-rolling
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-ubuntu-rolling:
   extends: .recache-update-cache
@@ -30,9 +33,9 @@ ubuntu-rolling-makefile-gcc:
   tags: [ "docker" ]
   image: !reference [.ubuntu-rolling_image_version, image]
   rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE_UBUNTU != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
-    - if: $DOCKER_UPDATE
   variables:
     CMAKE_GENERATOR: Unix Makefiles
     CC: gcc
@@ -42,19 +45,16 @@ ubuntu-rolling-makefile-gcc:
   extends: .linux-desktop
 
 
-#ubuntu-rolling-makefile-clang:
-
-#  tags: [ "docker" ]
-#  image: !reference [.ubuntu-rolling_image_version, image]
-# rules:
-#   - if: $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Unix Makefiles
-#    CC: clang
-#    CXX: clang++
-#    #Only used to overwrite value set by .set_parallel_level.yml
-#    #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
-#  extends: .linux-desktop
+ubuntu-rolling-makefile-clang:
+ tags: [ "docker" ]
+ image: !reference [.ubuntu-rolling_image_version, image]
+ variables:
+   CMAKE_GENERATOR: Unix Makefiles
+   CC: clang
+   CXX: clang++
+   #Only used to overwrite value set by .set_parallel_level.yml
+   #ADDITIONAL_BUILD_OPTIONS: -j[jobs]
+ extends: .linux-desktop
 
 
 #################################################
@@ -62,25 +62,21 @@ ubuntu-rolling-makefile-gcc:
 #################################################
 
 
-#ubuntu-rolling-ninja-gcc:
+ubuntu-rolling-ninja-gcc:
 
-#  tags: [ "docker" ]
-#  image: !reference [.ubuntu-rolling_image_version, image]
-# rules:
-#   - if: $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_GENERATOR: Ninja
-#    CC: gcc
-#    CXX: g++
-#  extends: .linux-desktop
+ tags: [ "docker" ]
+ image: !reference [.ubuntu-rolling_image_version, image]
+ variables:
+   CMAKE_GENERATOR: Ninja
+   CC: gcc
+   CXX: g++
+ extends: .linux-desktop
 
 
-#ubuntu-rolling-ninja-gcc-novideo:
-# rules:
-#   - if: $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
-#  extends: ubuntu-rolling-ninja-gcc
+ubuntu-rolling-ninja-gcc-novideo:
+ variables:
+   CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
+ extends: ubuntu-rolling-ninja-gcc
 
 
 ubuntu-rolling-ninja-clang:
@@ -90,8 +86,6 @@ ubuntu-rolling-ninja-clang:
     CMAKE_GENERATOR: Ninja
     CC: clang
     CXX: clang++
-  rules:
-    - !reference [.linux-desktop, rules]
   extends: .linux-desktop
 
 ubuntu-rolling-ninja-clang-pqc:
@@ -99,13 +93,10 @@ ubuntu-rolling-ninja-clang-pqc:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ubuntu-rolling-ninja-clang
 
-#ubuntu-rolling-ninja-clang-novideo:
-
-# rules:
-#   - if: $NIGHTLY_MASTER
-#  variables:
-#    CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
-#  extends: ubuntu-rolling-ninja-clang
+ubuntu-rolling-ninja-clang-novideo:
+ variables:
+   CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
+ extends: ubuntu-rolling-ninja-clang
 
 #################################################
 # TESTS

@@ -5,6 +5,9 @@ wait-cache-synchro-raspberrypi:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: raspberrypi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-raspberrypi:
   extends: .recache-update-cache
@@ -21,7 +24,7 @@ recache-raspberrypi:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
     CMAKE_PRESET: raspberrypi-0-1
   rules:
-    - if: $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
   script:
     # rootfs is not created here but mounted as a volume

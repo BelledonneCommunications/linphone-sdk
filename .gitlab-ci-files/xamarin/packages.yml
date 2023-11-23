@@ -8,8 +8,8 @@ xamarin-package:
     - android-makefile-r25b-g729-ldap
 
   rules:
-    - if: $DEPLOY_RUN_NUGET != null
-    - if: $UPLOAD_XAMARIN != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
 
 
   before_script:

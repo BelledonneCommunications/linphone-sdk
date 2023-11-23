@@ -23,7 +23,7 @@ vs2017-win32-windows-upload:
   tags: [ "windows-powershell"]
 
   rules:
-    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
   variables:
     DEPLOY_DEST_DIR_SDK_WINDOWS: "windows/sdk"
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
@@ -46,7 +46,7 @@ cs-doc-windows-upload:
   tags: [ "windows-powershell"]
 
   rules:
-    - if: $UPLOAD_CS_DOC != null && $SKIP_DEPLOY == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_CS_DOC != null && $SKIP_DEPLOY == null
 
   needs:
     - vs2017-win32-scheduled-windows
@@ -75,8 +75,8 @@ cs-doc-windows-upload:
 #   extends: nuget-upload-xamarin
 
 #   rules:
-#     - if: $DEPLOY_RUN_NUGET != null
-#     - if: $DEPLOY_RUN_WINDOWS != null
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
 
 #   needs:
 #     - job: vs2017-nuget-windows-package

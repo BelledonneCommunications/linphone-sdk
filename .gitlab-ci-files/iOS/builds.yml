@@ -6,7 +6,7 @@
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
 
   variables:
     CMAKE_PRESET: ios-sdk
@@ -115,7 +115,7 @@ ios-ninja-allcodecs:
 ios-ninja-g729:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON
   extends: ios-ninja
@@ -124,7 +124,7 @@ ios-ninja-g729:
 ios-ninja-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
   extends: ios-ninja
@@ -133,7 +133,7 @@ ios-ninja-novideo:
 ios-ninja-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_FLEXIAPI=OFF
   extends: ios-ninja
@@ -142,7 +142,7 @@ ios-ninja-smallsdk:
 ios-ninja-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: ios-ninja
@@ -154,11 +154,11 @@ ios-ninja-pqc:
 ios-xcode:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
-    - if: $DEPLOY_IOS != null
-    - if: $DEPLOY_RUN_NUGET != null
-    - if: $UPLOAD_XAMARIN != null
-    - if: $ENABLE_IOS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
 
   variables:
     CMAKE_GENERATOR: Xcode
@@ -187,8 +187,8 @@ ios-xcode:
 ios-xcode-novideo:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
-    - if: $DEPLOY_IOS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null
   variables:
     CMAKE_GENERATOR: Xcode
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_VIDEO=OFF
@@ -215,7 +215,7 @@ ios-xcode-novideo:
 ios-xcode-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_IOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_IOS_BUILDS != null
 
   variables:
     CMAKE_OPTIONS: -DENABLE_SWIFT_WRAPPER=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON

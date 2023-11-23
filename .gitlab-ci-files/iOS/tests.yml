@@ -10,7 +10,7 @@ liblinphone-iOS-test:
     - ios-xcode
 
   rules:
-    - if: $ENABLE_IOS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
 
   variables:
     LOG_PATTERN: "logLiblinphoneIos"

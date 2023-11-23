@@ -3,7 +3,7 @@ debian11-yocto-qemux86-64:
   tags: ["docker"]
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-yocto:kirkstone-qemux86-64
   rules:
-    - if: $ALL_YOCTO_BUILDS != null && $SKIP_YOCTO == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_YOCTO_BUILDS != null && $SKIP_YOCTO == null
     - !reference [.rules-merge-request-manual, rules]
   script:
     - export WORKSPACE_PATH="$CI_PROJECT_DIR"

@@ -3,7 +3,7 @@ macos-upload:
   tags: [ "macos-xcode13" ]
 
   rules:
-    - if: $DEPLOY_MACOS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_MACOS != null
   variables:
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive

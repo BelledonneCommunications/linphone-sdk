@@ -4,8 +4,8 @@
   image: !reference [.android_r25b_image_version, image]
 
   rules:
-    - if: $DEPLOY_RUN_ANDROID != null
-    - if: $DEPLOY_ANDROID != null && $SKIP_DEPLOY == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_ANDROID != null && $SKIP_DEPLOY == null
 
   variables:
     CCACHE_SIZE: 4G

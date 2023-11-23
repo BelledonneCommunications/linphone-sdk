@@ -10,7 +10,7 @@ liblinphone-android-r25b-test:
   needs:
     - android-ninja-r25b
   rules:
-    - if: $ENABLE_ANDROID_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_ANDROID_TESTS != null
   script:
     - cd ${CI_PROJECT_DIR}/tester/Android
     # uninstalling tester apps on device to prevent conflicts, but running anyway if there isn't some found.

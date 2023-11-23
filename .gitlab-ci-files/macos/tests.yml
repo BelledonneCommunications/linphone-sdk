@@ -6,7 +6,8 @@ macos-liblinphone-test:
   needs:
     - macos-ninja
   rules:
-    - if: $ENABLE_MACOS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_MACOS_TESTS != null
+    - !reference [.rules-merge-request-manual, rules]
   variables:
     # no need to fetch repo, all is needed in artifacts
     GIT_STRATEGY: none

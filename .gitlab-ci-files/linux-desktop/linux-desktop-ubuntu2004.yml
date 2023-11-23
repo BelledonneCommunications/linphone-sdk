@@ -2,6 +2,9 @@ wait-cache-synchro-ubuntu2004:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: ubuntu2004
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
 
 recache-ubuntu2004:
   extends: .recache-update-cache
@@ -96,7 +99,7 @@ ubuntu2004-ninja-gcc-smallsdk:
 ubuntu2004-ninja-gcc-tunnel-pq:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $DOCKER_UPDATE == null && $SKIP_LINUX == null
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_UNIT_TESTS=ON -DENABLE_TUNNEL=ON
   extends: ubuntu2004-ninja-gcc

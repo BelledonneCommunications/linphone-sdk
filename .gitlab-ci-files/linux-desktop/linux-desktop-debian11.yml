@@ -2,6 +2,9 @@ wait-cache-synchro-debian11:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: debian11
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
 
 recache-debian11:
   extends: .recache-update-cache

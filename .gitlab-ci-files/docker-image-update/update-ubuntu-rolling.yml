@@ -65,25 +65,25 @@ ubuntu-rolling-makefile-gcc-newdocker:
   extends: ubuntu-rolling-makefile-gcc
   <<: *docker_image_rule_no_cache
 
-#ubuntu-rolling-ninja-gcc-newdocker:
-#  extends: ubuntu-rolling-ninja-gcc
-#  <<: *docker_image_rule_no_cache
+ubuntu-rolling-ninja-gcc-newdocker:
+ extends: ubuntu-rolling-ninja-gcc
+ <<: *docker_image_rule_no_cache
 
-#ubuntu-rolling-ninja-gcc-newdocker-novideo:
-#  extends: ubuntu-rolling-ninja-gcc-novideo
-#  <<: *docker_image_rule_no_cache
+ubuntu-rolling-ninja-gcc-newdocker-novideo:
+ extends: ubuntu-rolling-ninja-gcc-novideo
+ <<: *docker_image_rule_no_cache
 
-#ubuntu-rolling-makefile-clang-newdocker:
-#  extends: ubuntu-rolling-makefile-clang
-#  <<: *docker_image_rule_no_cache
+ubuntu-rolling-makefile-clang-newdocker:
+ extends: ubuntu-rolling-makefile-clang
+ <<: *docker_image_rule_no_cache
 
 ubuntu-rolling-ninja-clang-newdocker:
   extends: ubuntu-rolling-ninja-clang
   <<: *docker_image_rule_no_cache
 
-#ubuntu-rolling-ninja-clang-newdocker-novideo:
-#  extends: ubuntu-rolling-ninja-clang-novideo
-#  <<: *docker_image_rule_no_cache
+ubuntu-rolling-ninja-clang-newdocker-novideo:
+ extends: ubuntu-rolling-ninja-clang-novideo
+ <<: *docker_image_rule_no_cache
 
 liblinphone-ubuntu-test-rolling-newdocker:
   extends: liblinphone-ubuntu-test

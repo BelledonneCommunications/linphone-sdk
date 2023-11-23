@@ -2,6 +2,9 @@ wait-cache-synchro-android:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: android
+  rules:
+    - !reference [.wait-cache-synchro, rules]
+    - if: ($CI_PIPELINE_SOURCE == "schedule") && $DOCKER_UPDATE == null && $SKIP_ANDROID == null
 
 recache-android:
   extends: .recache-update-cache
@@ -21,7 +24,7 @@ recache-android:
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
 
   variables:
     CCACHE_SIZE: 4G
@@ -35,7 +38,7 @@ recache-android:
     - echo $CMAKE_OPTIONS
     - cmake --preset=android-sdk -B build/android -G "$CMAKE_GENERATOR" -DLINPHONESDK_ANDROID_ARCHS="$ANDROID_ARCHS" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
     - cmake --build build/android -- $ADDITIONAL_BUILD_OPTIONS
-    # Get SDK version from cached cmake variables
+    #Get SDK version from cached cmake variables
     - cd build/android
     - cat CMakeCache.txt | grep LINPHONESDK_VERSION_CACHED | cut -d "=" -f2 > linphonesdkversion.txt
     - cat linphonesdkversion.txt
@@ -88,10 +91,10 @@ android-ninja-r25b:
 android-makefile-r25b-g729-ldap:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
-    - if: $DEPLOY_RUN_ANDROID != null
-    - if: $DEPLOY_RUN_NUGET != null
-    - if: $UPLOAD_XAMARIN != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
@@ -100,9 +103,9 @@ android-makefile-r25b-g729-ldap:
 
 android-ninja-r25b-minimal-size:
   rules:
-    - if: $DEPLOY_RUN_ANDROID != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     ANDROID_ARCHS: $ANDROID_ARCHS_MINIMAL_SIZE
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF -DENABLE_VCARD=OFF -DENABLE_MKV=OFF -DENABLE_CAMERA2=OFF -DENABLE_ASSETS=OFF -DENABLE_LIME_X3DH=OFF -DENABLE_QRCODE=OFF -DENABLE_JPEG=OFF -DENABLE_ZLIB=OFF -DENABLE_SQLITE=OFF -DENABLE_XML2=OFF -DENABLE_ZRTP=OFF
@@ -118,9 +121,9 @@ android-ninja-r25b-no-video:
   image: !reference [.android_r25b_image_version, image]
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
-    - if: $DEPLOY_ANDROID != null
-    - if: $DEPLOY_RUN_ANDROID != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_ANDROID != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_ANDROID != null
   variables:
     CMAKE_GENERATOR: Ninja
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF
@@ -138,7 +141,7 @@ android-ninja-r25b-no-video:
 android-ninja-r25b-smallsdk:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_VIDEO=OFF -DENABLE_ADVANCED_IM=OFF -DENABLE_DB_STORAGE=OFF
   extends: android-ninja-r25b
@@ -146,7 +149,7 @@ android-ninja-r25b-smallsdk:
 android-ninja-r25b-allcodecs:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_G729=ON
   extends: android-ninja-r25b
@@ -159,7 +162,7 @@ android-ninja-r25b-allcodecs:
 android-ninja-r25b-pqc:
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_ANDROID_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
   extends: android-ninja-r25b

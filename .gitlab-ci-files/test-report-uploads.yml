@@ -10,7 +10,6 @@
     XML_FILENAME_START_PATTERN: "BCUnit"
 
   script:
-
     - ls -la
     #getting the version number for each submodule and writing it in environment.properties file
     #this file will be parsed by allure and will help to display additionnal information in the web view
@@ -197,34 +196,32 @@
 .test-report-upload-linux-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_LINUX_TESTS != null
-      when: always
-    - if: $SKIP_LINUX
-      when: never
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_LINUX_TESTS != null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
 
 .test-report-upload-windows-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_WINDOWS_TESTS != null
-      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
+    - !reference [.rules-merge-request-manual, rules]
 
 .test-report-upload-macos-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_MACOSX_TESTS
-      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_MACOSX_TESTS != null
+    - !reference [.rules-merge-request-manual, rules]
 
 .test-report-upload-ios-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_IOS_TESTS != null
-      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_IOS_TESTS != null
+    - !reference [.rules-merge-request-manual, rules]
 
 .test-report-upload-android-scheduled:
   extends: .test-report-upload
   rules:
-    - if: $ENABLE_ANDROID_TESTS != null
-      when: always
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_ANDROID_TESTS != null
+    - !reference [.rules-merge-request-manual, rules]
 
 libl-rocky8-mr-test-upload:
   extends: .test-report-upload
@@ -234,7 +231,7 @@ libl-rocky8-mr-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
 
 libl-rocky8-schedule-test-upload:
@@ -253,7 +250,7 @@ libl-rocky8-forced-test-upload:
     PLATFORM: "linux-rocky8"
     TESTER: "liblinphone"
   rules:
-    - if: $ENABLE_TESTS_LIBLINPHONE != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_TESTS_LIBLINPHONE != null
 
 libl-debian10-test-upload:
   extends: .test-report-upload-linux-scheduled

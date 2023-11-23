@@ -5,7 +5,7 @@
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_MACOS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_MACOS_BUILDS != null
 
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON

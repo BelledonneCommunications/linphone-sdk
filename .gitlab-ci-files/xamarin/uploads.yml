@@ -3,8 +3,8 @@ nuget-upload-xamarin:
   tags: [ "macmini-m1-xcode12" ]
 
   rules:
-    - if: $DEPLOY_RUN_NUGET != null
-    - if: $UPLOAD_XAMARIN != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_XAMARIN != null
 
   variables:
     GIT_STRATEGY: none # We don't need sources for this job.

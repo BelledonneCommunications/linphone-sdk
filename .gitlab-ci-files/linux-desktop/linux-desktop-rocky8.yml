@@ -2,6 +2,9 @@ wait-cache-synchro-rocky8:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: rocky8
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
 
 recache-rocky8:
   extends: .recache-update-cache
@@ -47,7 +50,7 @@ rocky8-ninja-gcc:
   tags: [ "docker" ]
   image: !reference [.rocky8_image_version, image]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_GENERATOR: Ninja

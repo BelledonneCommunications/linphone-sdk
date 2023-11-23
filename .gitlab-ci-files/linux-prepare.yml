@@ -1,5 +1,6 @@
 # Was a branch recently merged into main branch ?
 # We do this check in a separate job to avoid repeating it in all recache-update-cache jobs, as there are is one running per docker image
+#
 recache-get-from-branch:
   stage: init-recache
   tags: ["docker"]
@@ -89,11 +90,12 @@ recache-get-from-branch:
     GIT_STRATEGY: none
   # we use this image to avoid the need to add jq in every docker image
   image: !reference [.debian12_image_version, image]
+  # we can't set different rules between needed jobs (here wait-cache -synchro and build jobs). As launching wait-cache-synchro on master if useless, if we are on master branch, we launch the job but exits immediately.
   rules:
-    - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && $SKIP_LINUX == null
-    - if: ($CI_PIPELINE_SOURCE == "schedule") && $SKIP_LINUX == null && $CI_COMMIT_REF_SLUG != "master"
+    - if: ($CI_PIPELINE_SOURCE == "merge_request_event")
   script:
     - |
+     if [ $CI_COMMIT_REF_SLUG == "master" ]; then exit 0; fi;
      while true; do
       set -o errexit
       set -o nounset
@@ -136,10 +138,6 @@ recache-get-from-branch:
         - ccache/
 
   extends: .job-prepare
-
-  rules:
-    - if: $SKIP_LINUX
-      when: never
 
   before_script:
 

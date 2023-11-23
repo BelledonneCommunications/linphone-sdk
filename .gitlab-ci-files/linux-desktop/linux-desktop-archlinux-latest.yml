@@ -2,6 +2,9 @@ wait-cache-synchro-archlinux:
   extends: .wait-cache-synchro
   variables:
     BUILD_SUBTYPE: archlinux
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.wait-cache-synchro, rules]
 
 recache-archlinux:
   extends: .recache-update-cache
@@ -75,7 +78,7 @@ arch-latest-ninja-clang:
   tags: [ "docker" ]
   image: !reference [.archlinux_image_version, image]
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_LINUX == null
   variables:
     CMAKE_GENERATOR: Ninja

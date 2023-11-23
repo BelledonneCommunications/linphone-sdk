@@ -6,8 +6,8 @@ vs2017-nuget-windows-package:
     - vs2017-uwp-scheduled-windows
     - vs2017-win32-scheduled-windows
   rules:
-    - if: $DEPLOY_RUN_WINDOWS != null
-    - if: $WINDOWS_PACKAGE != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $WINDOWS_PACKAGE != null
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - .gitlab-ci-files/windows/packages.yml

@@ -4,7 +4,7 @@
   tags: [ "windows-powershell" ]
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
     BUILD_DIR: build/win
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
@@ -150,8 +150,8 @@
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
 
   before_script:
     #cache disabled on scheduled builds since we dot not need the fastest build
@@ -176,7 +176,7 @@ vs2017-ninja-win64-windows-pqc:
   extends: vs2017-ninja-win64-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
@@ -184,8 +184,8 @@ vs2017-ninja-win32-windows:
   extends: .windows-vs2017-ninja
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $ENABLE_WINDOWS_TESTS_WIN32_NINJA != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS_WIN32_NINJA != null
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
@@ -201,12 +201,12 @@ vs2017-uwp-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
     - &nuget_deploy_rule
-      if: $DEPLOY_RUN_NUGET != null
-    - if: $ENABLE_WINDOWS_UWP_TESTS != null
-    - if: $ENABLE_WINDOWS_TESTS != null
+      if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_UWP_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
     - &nuget_dev_rule
       if:  $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -233,9 +233,9 @@ vs2017-win32-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $UPLOAD_CS_DOC != null
-    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $UPLOAD_CS_DOC != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
@@ -248,7 +248,7 @@ vs2017-win32-scheduled-windows-pqc:
   extends: vs2017-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON -DENABLE_GPL_THIRD_PARTIES=ON
 
@@ -256,9 +256,9 @@ vs2017-win32store-scheduled-windows:
   extends: .windows-vs2017-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $ENABLE_WINDOWS_TESTS != null
-    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_WINDOWS_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
@@ -271,8 +271,8 @@ win32-vs2017-novideo-windows:
   extends: vs2017-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
-    - if: $ALL_WINDOWS_BUILDS != null
-    - if: $DEPLOY_RUN_WINDOWS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
 
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_VIDEO=OFF

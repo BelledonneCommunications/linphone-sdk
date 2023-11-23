@@ -9,9 +9,12 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON
   rules:
-    - if: $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
   script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_COMMIT_BRANCH
     - export CC=$CC
     - export CXX=$CXX
     - echo $CMAKE_GENERATOR
@@ -138,10 +141,8 @@
     GIT_SUBMODULE_STRATEGY: none
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"
   rules:
-    - if: $ENABLE_LINUX_TESTS != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ENABLE_LINUX_TESTS != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
-    - if: $SKIP_LINUX != null
-      when: never
 
   script:
     - cd $PATH_TO_TESTER
@@ -297,7 +298,7 @@
   allow_failure: false
   #Only launches mr tests on mr, excepted for wip and draft
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-ortp:
   extends: .test
@@ -316,7 +317,7 @@
   allow_failure: false
   #Only launches mr tests on mr, excepted for wip and draft
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-pqc:
   extends: .test
@@ -332,7 +333,7 @@
  allow_failure: false
  #Only launches mr tests on mr, excepted for wip and draft
  rules:
-   - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+   - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-bellesip:
   extends: .test
@@ -375,7 +376,7 @@
   #Only launches mr tests on mr, excepted for wip and draft
   allow_failure: false
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-belcard:
   extends: .test
@@ -394,7 +395,7 @@
   #Only launches mr tests on mr, excepted for wip and draft
   allow_failure: false
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-bzrtp:
   extends: .test
@@ -409,7 +410,7 @@
   #Only launches mr tests on mr, excepted for wip and draft
   allow_failure: false
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-mediastreamer:
   tags: [ "docker-test-liblinphone" ]
@@ -428,7 +429,7 @@
   #Only launches mr tests on mr, excepted for wip and draft
   allow_failure: false
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-liblinphone:
   tags: [ "docker-test-liblinphone" ]
@@ -460,7 +461,7 @@
   allow_failure: false
   #Only launches mr tests on mr, excepted for wip and draft
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 .test-liblinphone-tunnel-pq-mr:
   extends: .test-liblinphone-mr

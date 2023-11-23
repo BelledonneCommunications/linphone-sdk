@@ -10,7 +10,7 @@
 #   extends: .linux-prepare
 #   rules:
   # rules:
-  #   - if: $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+  #   - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
   #   - !reference [.rules-merge-request-manual, rules]
 #   variables:
 #     CMAKE_GENERATOR: Unix Makefiles

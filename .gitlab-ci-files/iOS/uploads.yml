@@ -27,7 +27,7 @@
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
   rules:
-    - if: $DEPLOY_IOS != null && $SKIP_DEPLOY == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_IOS != null && $SKIP_DEPLOY == null
   needs:
     - ios-makefile
 
