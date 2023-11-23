@@ -1,5 +1,5 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:20230706_add_deps_for_av1
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-18-04-lts:20230915_gcc_10
 ###############################################################################
 
 FROM ubuntu:18.04
@@ -9,25 +9,26 @@ ARG QT_MODULES=qtwebengine qtnetworkauth qtquick3d
 
 MAINTAINER Julien Wadel <julien.wadel@belledonne-communications.com>
 
-# Use a french mirror
-RUN sed -i -E 's/(archive|security)\.ubuntu\.com/fr.archive.ubuntu.com/' /etc/apt/sources.list
-
 # add fallbacks for timeout connections.
+RUN apt-get -y --fix-missing update \
+ && apt-get -y install software-properties-common python-pip \
 #Swiss
-RUN echo "deb http://ch.archive.ubuntu.com/ubuntu/ bionic main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://security.ubuntu.com/ubuntu bionic-security main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://ch.archive.ubuntu.com/ubuntu/ bionic-updates main restricted" >> /etc/apt/sources.list
+ && add-apt-repository "deb http://ch.archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse" \
+ && add-apt-repository "deb http://ch.archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse" \
 #Belgium
-RUN echo "deb http://be.archive.ubuntu.com/ubuntu/ bionic main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://security.ubuntu.com/ubuntu bionic-security main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://be.archive.ubuntu.com/ubuntu/ bionic-updates main restricted" >> /etc/apt/sources.list
+ && add-apt-repository "deb http://be.archive.ubuntu.com/ubuntu/ bionic main restricted" \
+ && add-apt-repository "deb http://be.archive.ubuntu.com/ubuntu/ bionic-updates main restricted" \
 #International
-RUN echo "deb http://archive.ubuntu.com/ubuntu/ bionic main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://security.ubuntu.com/ubuntu bionic-security main restricted" >> /etc/apt/sources.list
-RUN echo "deb http://archive.ubuntu.com/ubuntu/ bionic-updates main restricted" >> /etc/apt/sources.list
+ && add-apt-repository "deb http://archive.archive.ubuntu.com/ubuntu/ bionic main restricted" \
+ && add-apt-repository "deb http://archive.archive.ubuntu.com/ubuntu/ bionic-updates main restricted" \
+ && add-apt-repository "deb http://security.archive.ubuntu.com/ubuntu/ bionic-security main restricted" \
+ && add-apt-repository ppa:ubuntu-toolchain-r/test \
+ && pip install apt-mirror-updater
 
 # Configure locale
-RUN apt-get update && \
+RUN apt-mirror-updater --auto-change-mirror && \
+    apt-mirror-updater --update && \
+    apt-get update && \
     apt-get install -y locales && \
     apt-get clean && \
     echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -47,12 +48,12 @@ RUN apt-get update && \
 
 # Install development tools
 RUN apt-get update && \
-    apt-get install -y alien at autoconf bison ccache clang cmake doxygen elfutils g++ gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch perl python3-pip python3-pystache python-six yasm && \
+    apt-get -y --fix-missing install alien at autoconf bison ccache clang-10 llvm-10 cmake doxygen elfutils gcc-10 g++-10 gdb git graphviz intltool libtool lsb-release make nasm ninja-build openssh-client patch perl python3-pip python3-pystache python-six yasm && \
     apt-get clean
 
 # Install linphone & flexisip dependencies development packages
 RUN apt-get update && \
-    apt-get install -y libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libjansson-dev libmariadb-dev-compat libmbedtls-dev libopus-dev libpq-dev libprotobuf-dev libpulse-dev libqt5svg5-dev libsnmp-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev protobuf-compiler qttools5-dev qttools5-dev-tools xsdcxx && \
+    apt-get -y --fix-missing install libasound2-dev libavcodec-dev libavutil-dev libbsd-dev libegl1-mesa-dev libglew-dev libgsm1-dev libjansson-dev libmariadb-dev-compat libmbedtls-dev libopus-dev libpq-dev libprotobuf-dev libpulse-dev libqt5svg5-dev libsnmp-dev libspeex-dev libspeexdsp-dev libsqlite3-dev libsrtp2-dev libssl-dev libswscale-dev libturbojpeg0-dev libv4l-dev libvpx-dev libxerces-c-dev libxml2-dev libxv-dev protobuf-compiler qttools5-dev qttools5-dev-tools xsdcxx && \
     apt-get clean
 
 # Install signing tools
@@ -87,6 +88,12 @@ RUN curl --fail --silent --show-error --location https://www.nasm.us/pub/nasm/re
 
 RUN sudo apt-get update && sudo apt-get install -y libxkbcommon* flite1-dev libspeechd-dev speech-dispatcher libfontconfig1-dev libfreetype6-dev libx11-dev libxext-dev libxfixes-dev libxi-dev libxrender-dev libx11-xcb* libxcb* qdbus-qt5 libqt5dbus5 libdbus-1-dev libdbus-glib-1-dev libatspi2.0-0 libatspi2.0-dev
 RUN sudo apt-get update && sudo apt-get install -y libxcb-keysyms1-dev libxcb-image0-dev libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync0-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev 
+
+# Configure clang
+RUN sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 100 && \
+    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 100 && \
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && \
+    sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
 
 USER bc
 WORKDIR /home/bc
