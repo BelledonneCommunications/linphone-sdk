@@ -289,4 +289,4 @@ static void parser_with_inheritance(void) {
 static test_t tests[] = {TEST_NO_TAG("Parser connected to C functions", parser_connected_to_c_functions),
                          TEST_NO_TAG("Parser with inheritance", parser_with_inheritance)};
 
-test_suite_t parser_suite = {"Parser", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
+test_suite_t parser_suite = {"Parser", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0, 0};
