@@ -49,4 +49,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_communication_properties_test_suite = {
-    "Communication", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
+    "Communication", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0, 0};

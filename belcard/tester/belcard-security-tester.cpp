@@ -34,4 +34,4 @@ static test_t tests[] = {
 };
 
 test_suite_t vcard_security_properties_test_suite = {
-    "Security", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};
+    "Security", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0, 0};
