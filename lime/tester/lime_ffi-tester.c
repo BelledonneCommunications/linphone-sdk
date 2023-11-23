@@ -838,6 +838,7 @@ test_suite_t lime_ffi_test_suite = {
 	NULL,
 	0,
 	NULL,
+	0,
 	0
 };
 
