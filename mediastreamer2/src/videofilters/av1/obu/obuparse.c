@@ -14,13 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <assert.h>
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "mediastreamer2/mscommon.h"
 #include "obuparse.h"
 
 /************************************
@@ -40,8 +40,14 @@ static inline _OBPBitReader _obp_new_br(uint8_t *buf, size_t buf_size) {
 	return ret;
 }
 
+#define return_if_assert_failed(return_value, assertion)                                                               \
+	if (!(assertion)) {                                                                                                \
+		ms_error("obuparse assertion failed: " #assertion);                                                            \
+		return return_value;                                                                                           \
+	}
+
 static inline uint64_t _obp_br_unchecked(_OBPBitReader *br, uint8_t n) {
-	assert(n <= 63);
+	return_if_assert_failed(0, n <= 63);
 
 	while (n > br->bits_in_buf) {
 		br->bit_buffer <<= 8;
@@ -175,7 +181,7 @@ static inline int _obp_ns(_OBPBitReader *br, uint32_t n, uint32_t *out, OBPError
 	uint32_t v;
 	uint32_t extra_bit;
 
-	assert(w - 1 <= 32);
+	return_if_assert_failed(-1, w - 1 <= 32);
 	_obp_br(v, br, ((uint8_t)(w - 1)));
 	if (v < m) {
 		*out = v;
@@ -222,7 +228,7 @@ static inline int _obp_decode_subexp(_OBPBitReader *br, int32_t numSyms, uint32_
 				mk += a;
 			} else {
 				uint32_t subexp_bits;
-				assert(b2 <= 255);
+				return_if_assert_failed(-1, b2 <= 255);
 				_obp_br(subexp_bits, br, ((uint8_t)b2));
 				*out = subexp_bits + mk;
 				return 0;
@@ -525,7 +531,7 @@ int obp_get_next_obu(uint8_t *buf,
 			return -1;
 		}
 
-		assert(value < UINT32_MAX);
+		return_if_assert_failed(-1, value < UINT32_MAX);
 
 		*offset = (ptrdiff_t)pos + consumed;
 		*size = (size_t)value;
@@ -1065,7 +1071,7 @@ int obp_parse_frame_header(uint8_t *buf,
 			}
 			fh->refresh_frame_flags = 0;
 			if (seq->frame_id_numbers_present_flag) {
-				assert(idLen <= 255);
+				return_if_assert_failed(-1, idLen <= 255);
 				_obp_br(fh->display_frame_id, br, (uint8_t)idLen);
 			}
 			fh->frame_type = state->RefFrameType[fh->frame_to_show_map_idx];
@@ -1126,7 +1132,7 @@ int obp_parse_frame_header(uint8_t *buf,
 	}
 	if (seq->frame_id_numbers_present_flag) {
 		/*PrevFrameID = current_frame_id */
-		assert(idLen <= 255);
+		return_if_assert_failed(-1, idLen <= 255);
 		_obp_br(fh->current_frame_id, br, idLen);
 		/* mark_ref_frames(idLen) */
 		uint8_t diffLen = seq->delta_frame_id_length_minus_2 + 2;
