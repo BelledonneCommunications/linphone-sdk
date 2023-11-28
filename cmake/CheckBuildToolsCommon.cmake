@@ -70,7 +70,7 @@ if(WIN32)
 		if (NOT CHECK_WINDOWS_TOOLS_STATUS EQUAL 0)
 			message(STATUS "Installing windows tools : toolchains, make, perl, yasm, gawk, bzip2, nasm, sed, python, doxygen, graphviz")
 			execute_process(
-				COMMAND "${MSYS2_PROGRAM}" "-${MINGW_TYPE}" "-here" "-full-path" "-defterm" "-shell" "sh" "-l" "-c" "pacman -Sy base-devel ${MINGW_PACKAGE_PREFIX}toolchain ${MINGW_PACKAGE_PREFIX}python make perl yasm bzip2 nasm ${MINGW_PACKAGE_PREFIX}doxygen gawk sed ${MINGW_PACKAGE_PREFIX}graphviz --noconfirm --needed"
+				COMMAND "${MSYS2_PROGRAM}" "-${MINGW_TYPE}" "-here" "-full-path" "-defterm" "-shell" "sh" "-l" "-c" "pacman -Sy base-devel ${MINGW_PACKAGE_PREFIX}toolchain ${MINGW_PACKAGE_PREFIX}python make perl ${MINGW_PACKAGE_PREFIX}yasm bzip2 nasm ${MINGW_PACKAGE_PREFIX}doxygen gawk sed ${MINGW_PACKAGE_PREFIX}graphviz --noconfirm --needed"
 				RESULT_VARIABLE EXECUTE_STATUS
 			)
 			set(CHECK_WINDOWS_TOOLS_STATUS ${EXECUTE_STATUS} CACHE INTERNAL "for internal use only; do not modify" FORCE)
