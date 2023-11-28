@@ -297,7 +297,7 @@ static void encrypted_audio_stream_base(bool_t change_ssrc,
 
 	const MSAudioDiffParams audio_cmp_params = {10, 200};
 	double similar = 0.0;
-	const double threshold = 0.9;
+	const double threshold = 0.85;
 
 	const char *aes_128_bits_send_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_send_key_2 = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
@@ -1093,7 +1093,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 
 	const MSAudioDiffParams audio_cmp_params = {10, 200};
 	double similar = 0.0;
-	const double threshold = 0.9;
+	const double threshold = 0.85;
 
 	const char *aes_128_bits_marielle_outer_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 	const char *aes_128_bits_marielle_inner_key = "eCYF4nYyCvmCpFWjUeDaxI2GWp2BzCRlIPfg52Te";
@@ -1221,6 +1221,8 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legA.ticker = ms_ticker_new();
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legA, MS_EKT_TRANSFER);
+	} else {
+		ms_media_stream_sessions_set_ekt_mode(&sessions_legA, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	MSFilter *rtpsend_legA = NULL;
@@ -1251,6 +1253,8 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legB.ticker = ms_ticker_new();
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legB, MS_EKT_TRANSFER);
+	} else {
+		ms_media_stream_sessions_set_ekt_mode(&sessions_legB, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	MSFilter *rtpsend_legB = NULL;

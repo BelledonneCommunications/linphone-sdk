@@ -132,7 +132,12 @@ public:
 	MSSrtpStreamStats mInnerStats;
 
 	/* For EKT */
-	MSEKTMode mEktMode; /**< EKT operation mode: disabled, enabled, transfer */
+	MSEKTMode mEktMode; /**< EKT operation mode:
+	                     * disabled: no EKT operation
+	                     * enabled: we should have an EKT key, use it to encrypt/decrypt inner layer
+	                     * transfer: we are in transfer mode and must manage the transfer of the EKT tag
+	                     * disabled with transfer: EKT itself is disabled, but the SRTP session is in transfer with
+	                     * double encryption, we still have to manage the OHB */
 
 	MSSrtpStreamContext()
 	    : mSrtp{nullptr}, mModifierRtp{nullptr}, mModifierRtcp{nullptr}, mSecured{false}, mMandatoryEnabled{false},
@@ -310,7 +315,7 @@ static bool ms_srtp_process_ekt_on_receive(RtpTransportModifier *t, mblk_t *m, i
 
 			// Store the full tag in cache
 			std::vector<uint8_t> cipherTextWithSPI{m->b_rptr + *slen, m->b_rptr + *slen + ekt_tag_size};
-			ekt->tagCache.emplace(ssrc, std::make_shared<EktTagCipherText>(roc, cipherTextWithSPI));
+			ekt->tagCache[ssrc] = std::make_shared<EktTagCipherText>(roc, cipherTextWithSPI);
 		}
 		return true;
 	} else {
@@ -537,70 +542,53 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 			msgpullup(m, slen + SRTP_MAX_TRAILER_LEN + ekt_tag_size + 4 +
 			                 4); /*+4 for 32 bits alignment + 4 for potential Original header block */
 
-			/* If we are relaying a double encrypted packet, we may need to create here the Original Header Block
-			 * (RFC8723 - section 4) to save the seq number and payload type. Check if :
-			 * 	- the RTP session is in transfer mode (the primary session and the one the current packet comes from if
+			/* If we are relaying a double encrypted packet(so session is in transfer and Ekt mode is also in transfer),
+			 * we may need to create here the Original Header Block (RFC8723 - section 4) to save the seq number and
+			 * payload type. Check if :
+			 * 	- the RTP session is in transfer mode and we are in EKT transfer mode (so we may need to provide an OHB)
 			 * we are in bundle mode)
-			 * 	- the RTP session send sequence number is the packet one + 1 (session sequence number shall be the next
-			 * one to use) otherwise we must save it in the OHB
-			 *      - the RTP session send payload type is different than the one in the packet
+			 * 	- original seqnum and payload type are stored in the mblk_t (in reserved1), just check if they match
+			 * with current ones
 			 */
-			if (rtp_session_transfer_mode_enabled(t->session) == TRUE) {
-				RtpSession *original_rtp_session = t->session;
-				/* If this session is part of a bundle, it is the primary one or we would not execute this modifier
-				 * We must retrieve the RtpSession actually managing this message */
-				if (t->session->bundle != NULL) {
-					original_rtp_session = rtp_bundle_lookup_session_for_outgoing_packet(t->session->bundle, m);
-				}
-
-				// We are in bundle mode but unable to retrieve the original RtpSession while the primary is in transfer
-				// mode something is wrong, discard the packet
-				if (original_rtp_session == NULL) {
-					bctbx_warning("Unable to retrieve the RtpSession linked to a packet sent in a bundle with primary "
-					              "in transfer mode, discard the packet. Primary session is [%p]",
-					              t->session);
-					return -1;
-				}
-				// make sure the original session is also in transfer mode
-				if (rtp_session_transfer_mode_enabled(original_rtp_session) == TRUE) {
-					rtp_header = (rtp_header_t *)m->b_rptr; // update header pointer as pullup may have modified it
-					auto packet_seq_number = rtp_header_get_seqnumber(rtp_header);
-					auto original_seq_number = ortp_mblk_get_original_seqnum(m);
-					auto packet_payload_type = rtp_get_payload_type(m);
-					auto session_payload_type = rtp_session_get_send_payload_type(original_rtp_session);
-					auto add_seq_num = (original_seq_number != packet_seq_number);
-					auto add_payload_type = (packet_payload_type != session_payload_type);
-					if (add_seq_num || add_payload_type) {
-						/* We should already have an empty OHB */
-						if (m->b_rptr[slen - 1] == 0) {
-							slen--; // crash the empty OHB
-							// Config byte mapping: | R R R R B M P Q|
-							// R: Reserved, MUST be set to 0
-							// B: Value of marker bit
-							// M: Marker bit is present
-							// P: PT is present
-							// Q: SEQ is present
-							uint8_t config_byte = 0;
-							if (add_payload_type) {
-								m->b_rptr[slen++] = packet_payload_type & 0xFF;
-								config_byte |= OHB_PAYLOAD_TYPE_BIT;
-								// force the packet to use the session payload type
-								rtp_set_payload_type(m, session_payload_type);
-							}
-							if (add_seq_num) {
-								m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
-								m->b_rptr[slen++] = (original_seq_number)&0xFF;
-								config_byte |= OHB_SEQNUM_BIT;
-							}
-							m->b_rptr[slen++] = config_byte;
-						} else {
-							/* There is already a non empty OHB, this feature is not supported */
-							ms_warning("While transfering a double encrypted SRTP packet on session [%p], with "
-							           "original seqnum "
-							           "%x and packet seqnum %x, we found a pre-existing OHB - discard the packet",
-							           original_rtp_session, original_seq_number, packet_seq_number);
-							return -1;
+			if ((rtp_session_transfer_mode_enabled(t->session) == TRUE) &&
+			    (ctx->mEktMode == MS_EKT_TRANSFER || ctx->mEktMode == MS_EKT_DISABLED_WITH_TRANSFER)) {
+				rtp_header = (rtp_header_t *)m->b_rptr; // update header pointer as pullup may have modified it
+				auto packet_seq_number = rtp_header_get_seqnumber(rtp_header);
+				auto original_seq_number = ortp_mblk_get_original_seqnum(m);
+				auto packet_payload_type = rtp_get_payload_type(m);
+				auto original_payload_type = ortp_mblk_get_original_pt(m);
+				auto add_seq_num = (original_seq_number != packet_seq_number);
+				auto add_payload_type = (packet_payload_type != original_payload_type);
+				if (add_seq_num || add_payload_type) {
+					/* We should already have an empty OHB */
+					if (m->b_rptr[slen - 1] == 0) {
+						slen--; // crash the empty OHB
+						// Config byte mapping: | R R R R B M P Q|
+						// R: Reserved, MUST be set to 0
+						// B: Value of marker bit
+						// M: Marker bit is present
+						// P: PT is present
+						// Q: SEQ is present
+						uint8_t config_byte = 0;
+						if (add_payload_type) {
+							m->b_rptr[slen++] = original_payload_type & 0xFF;
+							config_byte |= OHB_PAYLOAD_TYPE_BIT;
 						}
+						if (add_seq_num) {
+							m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
+							m->b_rptr[slen++] = (original_seq_number)&0xFF;
+							config_byte |= OHB_SEQNUM_BIT;
+						}
+						m->b_rptr[slen++] = config_byte;
+					} else {
+						/* There is already a non empty OHB, this feature is not supported */
+						ms_warning("While transfering a double encrypted SRTP packet on session [%p], with "
+						           "original seqnum "
+						           "%x and packet seqnum %x, original payload type %d and packet payload type %d we "
+						           "found a pre-existing OHB - discard the packet",
+						           t->session, original_seq_number, packet_seq_number, original_payload_type,
+						           packet_payload_type);
+						return -1;
 					}
 				}
 			}
@@ -1537,6 +1525,7 @@ extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 		case MS_EKT_DISABLED:
 		case MS_EKT_ENABLED:
 		case MS_EKT_TRANSFER:
+		case MS_EKT_DISABLED_WITH_TRANSFER:
 			sessions->srtp_context->mSend.mEktMode = mode;
 			sessions->srtp_context->mRecv.mEktMode = mode;
 			break;

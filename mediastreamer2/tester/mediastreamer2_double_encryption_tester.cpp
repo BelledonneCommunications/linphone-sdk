@@ -106,6 +106,7 @@ static void new_ssrc_incoming_in_bundle(RtpSession *session, void *mp, void *s, 
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
 	                                         // when they arrive, we're assuming no loss
 	rtp_session_enable_rtcp(*newSession, FALSE);
+	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
 	(*newSession)->ssrc_set = TRUE;
 	(*newSession)->rcv.ssrc = ssrc;
 	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
@@ -145,6 +146,7 @@ static void new_ssrc_outgoing_in_bundle(RtpSession *session, void *mp, void *s, 
 namespace {
 struct test_params {
 	MSCryptoSuite outerSuite;  /**< SRTP crypto suite used for outer encryption */
+	bool useInnerEncryption;   /**< When set off do not use inner encryption - default in On */
 	MSCryptoSuite innerSuite;  /**< SRTP crypto suite used for inner encryption */
 	bool useParticipantVolume; /**< include participant volumes (force usage of other extension header) */
 	bool useLongBundleId;      /**< use long strings for bundle Id -> ofrce re-allocation in packet header */
@@ -164,9 +166,10 @@ struct test_params {
 	                                    inner keys without knowing first the expected SSRC */
 
 	test_params()
-	    : outerSuite{MS_AES_128_SHA1_80}, innerSuite{MS_AEAD_AES_256_GCM}, useParticipantVolume{false},
-	      useLongBundleId{false}, useBundledSource{false}, useEkt{false}, skipPaulineBegin{false},
-	      discardPaulinePackets{false}, useSharedMid{false}, autodiscoverBundleSessions{false} {
+	    : outerSuite{MS_AES_128_SHA1_80}, useInnerEncryption{true}, innerSuite{MS_AEAD_AES_256_GCM},
+	      useParticipantVolume{false}, useLongBundleId{false}, useBundledSource{false}, useEkt{false},
+	      skipPaulineBegin{false}, discardPaulinePackets{false}, useSharedMid{false},
+	      autodiscoverBundleSessions{false} {
 	}
 };
 } // namespace
@@ -180,7 +183,9 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	// auto discover implies using ekt and shared Mid
 	if (p.autodiscoverBundleSessions) {
 		p.useSharedMid = true;
-		p.useEkt = true;
+		if (p.useInnerEncryption) {
+			p.useEkt = true;
+		}
 	}
 	// Share MID implies using bundled source and long bundle id
 	if (p.useSharedMid) {
@@ -189,6 +194,19 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	}
 
 	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+	BCTBX_SLOGI << "Double encrypted rtp relay test - Params:" << std::endl
+	            << " - Outer suite : " << (ms_crypto_suite_to_string(p.outerSuite)) << std::endl
+	            << " - Inner suite : " << (ms_crypto_suite_to_string(p.innerSuite)) << std::endl
+	            << " - useInnerEncryption : " << p.useInnerEncryption << std::endl
+	            << " - useParticipantVolume : " << p.useParticipantVolume << std::endl
+	            << " - useLongBundleId : " << p.useLongBundleId << std::endl
+	            << " - useBundledSource : " << p.useBundledSource << std::endl
+	            << " - useEkt : " << p.useEkt << std::endl
+	            << " - useSharedMid : " << p.useSharedMid << std::endl
+	            << " - skipPaulineBegin : " << p.skipPaulineBegin << std::endl
+	            << " - discardPaulinePackets : " << p.discardPaulinePackets << std::endl
+	            << " - autodiscoverBundleSessions : " << p.autodiscoverBundleSessions << std::endl;
+
 	bctbx_vfs_file_t *fp = bctbx_file_open(&bcStandardVfs, hello_file, "r");
 	bc_free(hello_file);
 	bctbx_list_t *margaux_sessions_list = NULL;
@@ -196,6 +214,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 
 	MSEKTParametersSet ekt_params;
 	if (p.useEkt) {
+		p.useInnerEncryption = true;
 		uint8_t master_salt[14] = {
 		    0x01, 0x10, 0x11, 0x04, 0x40, 0x44, 0x07,
 		    0x70, 0x77, 0x0a, 0xa0, 0xaa, 0xf0, 0x0f}; // 14 bytes master salt even if we may end up using only 12 bytes
@@ -275,29 +294,32 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 			return FALSE;
 	}
 
-	switch (p.innerSuite) {
-		case MS_AES_128_SHA1_32:
-		case MS_AES_128_SHA1_80:
-			marielle_inner_key = aes_128_bits_marielle_inner_key;
-			pauline_inner_key = aes_128_bits_pauline_inner_key;
-			break;
-		case MS_AES_256_SHA1_32:
-		case MS_AES_256_SHA1_80:
-		case MS_AES_CM_256_SHA1_80:
-			marielle_inner_key = aes_256_bits_marielle_inner_key;
-			pauline_inner_key = aes_256_bits_pauline_inner_key;
-			break;
-		case MS_AEAD_AES_128_GCM:
-			marielle_inner_key = aes_gcm_128_bits_marielle_inner_key;
-			pauline_inner_key = aes_gcm_128_bits_pauline_inner_key;
-			break;
-		case MS_AEAD_AES_256_GCM:
-			marielle_inner_key = aes_gcm_256_bits_marielle_inner_key;
-			pauline_inner_key = aes_gcm_256_bits_pauline_inner_key;
-			break;
-		default:
-			BC_FAIL("Unsupported suite");
-			return FALSE;
+	// Set inner keys if needed (not Ekt and using inner encryption
+	if (p.useInnerEncryption && !p.useEkt) {
+		switch (p.innerSuite) {
+			case MS_AES_128_SHA1_32:
+			case MS_AES_128_SHA1_80:
+				marielle_inner_key = aes_128_bits_marielle_inner_key;
+				pauline_inner_key = aes_128_bits_pauline_inner_key;
+				break;
+			case MS_AES_256_SHA1_32:
+			case MS_AES_256_SHA1_80:
+			case MS_AES_CM_256_SHA1_80:
+				marielle_inner_key = aes_256_bits_marielle_inner_key;
+				pauline_inner_key = aes_256_bits_pauline_inner_key;
+				break;
+			case MS_AEAD_AES_128_GCM:
+				marielle_inner_key = aes_gcm_128_bits_marielle_inner_key;
+				pauline_inner_key = aes_gcm_128_bits_pauline_inner_key;
+				break;
+			case MS_AEAD_AES_256_GCM:
+				marielle_inner_key = aes_gcm_256_bits_marielle_inner_key;
+				pauline_inner_key = aes_gcm_256_bits_pauline_inner_key;
+				break;
+			default:
+				BC_FAIL("Unsupported suite");
+				return FALSE;
+		}
 	}
 
 	/* Margaux is the final recipient: build 2 rtpsession, they will be bundled  */
@@ -309,6 +331,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data when
 	                                         // they arrive, we're assuming no loss
 	rtp_session_enable_rtcp(rtpSession_margaux_marielle, FALSE);
+	rtp_session_set_payload_type(rtpSession_margaux_marielle, RELAY_PAYLOAD_TYPE);
 
 	RtpSession *rtpSession_margaux_pauline = NULL;
 	RtpSession *rtpSession_margaux_marielle_bis = NULL;
@@ -321,6 +344,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data
 		                                         // when they arrive, we're assuming no loss
 		rtp_session_enable_rtcp(rtpSession_margaux_pauline, FALSE);
+		rtp_session_set_payload_type(rtpSession_margaux_pauline, RELAY_PAYLOAD_TYPE);
 
 		if (p.useBundledSource) { // Marielle source bundles two sessions so margaux receives 3
 			// Third session, in RECV only, is bundled so we do not need to define local port
@@ -331,6 +355,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 			                                 FALSE); // Disable jitter buffer for the final recipient, we want to get
 			                                         // data when they arrive, we're assuming no loss
 			rtp_session_enable_rtcp(rtpSession_margaux_marielle_bis, FALSE);
+			rtp_session_set_payload_type(rtpSession_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
 		}
 	} else {
 		// set the additional margaux sessions pointers in a list, so we can get them in the callback in charge of their
@@ -453,6 +478,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_margaux.ticker = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_TRANSFER);
+	} else if (p.useInnerEncryption) {
+		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	// marielle_relay: session used in recv only but created in duplex just because it is easier
@@ -461,6 +488,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_profile(rtpSession_relay_marielle, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_marielle, FALSE);
+	rtp_session_set_payload_type(rtpSession_relay_marielle, MARIELLE_PAYLOAD_TYPE);
 	MSMediaStreamSessions relay_marielle;
 	relay_marielle.rtp_session = rtpSession_relay_marielle;
 	relay_marielle.srtp_context = NULL;
@@ -469,6 +497,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_marielle.ticker = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_TRANSFER);
+	} else if (p.useInnerEncryption) {
+		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 	RtpSession *rtpSession_relay_marielle_bis = NULL;
 	RtpBundle *rtpBundle_relay_marielle = NULL;
@@ -477,6 +507,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		rtp_session_set_profile(rtpSession_relay_marielle_bis, profile);
 		rtp_session_enable_transfer_mode(rtpSession_relay_marielle_bis, TRUE); // relay rtp session is in transfer mode
 		rtp_session_enable_rtcp(rtpSession_relay_marielle_bis, FALSE);
+		rtp_session_set_payload_type(rtpSession_relay_marielle_bis, MARIELLE_PAYLOAD_TYPE);
 		rtpBundle_relay_marielle = rtp_bundle_new();
 		if (p.useLongBundleId) {
 			rtp_bundle_add_session(rtpBundle_relay_marielle, LONG_MID_MARIELLE_SOURCE_SESSION,
@@ -498,6 +529,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_profile(rtpSession_relay_pauline, profile);
 	rtp_session_enable_transfer_mode(rtpSession_relay_pauline, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_pauline, FALSE);
+	rtp_session_set_payload_type(rtpSession_relay_pauline, PAULINE_PAYLOAD_TYPE);
 	MSMediaStreamSessions relay_pauline;
 	relay_pauline.rtp_session = rtpSession_relay_pauline;
 	relay_pauline.srtp_context = NULL;
@@ -506,6 +538,8 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_pauline.ticker = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_TRANSFER);
+	} else if (p.useInnerEncryption) {
+		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_DISABLED_WITH_TRANSFER);
 	}
 
 	/* Marielle is a source */
@@ -513,8 +547,9 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	    ms_create_duplex_rtp_session(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, ms_factory_get_mtu(_factory));
 	rtp_session_set_remote_addr_and_port(rtpSession_marielle, RELAY_IP, RELAY_MARIELLE_RTP_PORT,
 	                                     RELAY_MARIELLE_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
+	rtp_session_set_profile(rtpSession_marielle, profile);
 	rtp_session_enable_rtcp(rtpSession_marielle, FALSE);
+	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
 	MSMediaStreamSessions marielle;
 	marielle.rtp_session = rtpSession_marielle;
 	marielle.srtp_context = NULL;
@@ -525,8 +560,9 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (p.useBundledSource) { // Marielle bundles two sessions
 		rtpSession_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
-		rtp_session_set_payload_type(rtpSession_marielle_bis, MARIELLE_PAYLOAD_TYPE);
+		rtp_session_set_profile(rtpSession_marielle_bis, profile);
 		rtp_session_enable_rtcp(rtpSession_marielle_bis, FALSE);
+		rtp_session_set_payload_type(rtpSession_marielle_bis, MARIELLE_PAYLOAD_TYPE);
 		rtpBundle_marielle = rtp_bundle_new();
 		if (p.useLongBundleId) {
 			rtp_bundle_add_session(rtpBundle_marielle, LONG_MID_MARIELLE_SOURCE_SESSION, rtpSession_marielle);
@@ -542,8 +578,9 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	RtpSession *rtpSession_pauline =
 	    ms_create_duplex_rtp_session(PAULINE_IP, PAULINE_RTP_PORT, PAULINE_RTCP_PORT, ms_factory_get_mtu(_factory));
 	rtp_session_set_remote_addr_and_port(rtpSession_pauline, RELAY_IP, RELAY_PAULINE_RTP_PORT, RELAY_PAULINE_RTCP_PORT);
-	rtp_session_set_payload_type(rtpSession_pauline, PAULINE_PAYLOAD_TYPE);
+	rtp_session_set_profile(rtpSession_pauline, profile);
 	rtp_session_enable_rtcp(rtpSession_pauline, FALSE);
+	rtp_session_set_payload_type(rtpSession_pauline, PAULINE_PAYLOAD_TYPE);
 	rtp_session_set_seq_number(rtpSession_pauline, 0xFFF8); // Pauline's ROC will change after 8 packets sent as we
 	                                                        // start the session with a seqnumber near the max (0xFFFF)
 	MSMediaStreamSessions pauline;
@@ -553,19 +590,16 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	pauline.dtls_context = NULL;
 	pauline.ticker = NULL;
 
-	/* set marielle send keys: inner and outer */
+	/* set outer keys */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&marielle, p.outerSuite, marielle_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	/* set pauline send keys: inner and outer */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&pauline, p.outerSuite, pauline_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	/* set margaux recv keys: outer and inners matching marielle and pauline */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&margaux, p.outerSuite, margaux_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 
-	/* set the relay outer keys for all sessions */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&relay_margaux, p.outerSuite, margaux_outer_key,
 	                                                              MSSrtpKeySourceSDES) == 0);
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&relay_marielle, p.outerSuite, marielle_outer_key,
@@ -574,29 +608,31 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	                                                              MSSrtpKeySourceSDES) == 0);
 
 	/* set inner keys */
-	if (p.useEkt) { // Just set the same EKT for all sources and recipient, they will generate keys and decrypt them
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&marielle, &ekt_params) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&pauline, &ekt_params) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&margaux, &ekt_params) == 0);
-	} else { // set the inner keys
-		// Marielle (even when 2 sessions are bundled from marielle, they will use the same key)
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(&marielle, p.innerSuite, marielle_inner_key,
-		                                                                    MSSrtpKeySourceZRTP) == 0);
-		// Pauline
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(&pauline, p.innerSuite, pauline_inner_key,
-		                                                                    MSSrtpKeySourceZRTP) == 0);
-		/* margaux inner keys are both set in margaux_marielle(attached to margaux MSMediaSessions)) rtpSession as it is
-		 * the main one in the bundle, it is the one used to decrypt them all */
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite, marielle_inner_key,
-		                                                                    MSSrtpKeySourceZRTP,
-		                                                                    marielle.rtp_session->snd.ssrc) == 0);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite, pauline_inner_key,
-		                                                                    MSSrtpKeySourceZRTP,
-		                                                                    pauline.rtp_session->snd.ssrc) == 0);
-		if (p.useBundledSource) { // Marielle bundles two sessions, set the key for its SSRC too
-			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
-			                   &margaux, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP,
-			                   rtpSession_marielle_bis->snd.ssrc) == 0);
+	if (p.useInnerEncryption) {
+		if (p.useEkt) { // Just set the same EKT for all sources and recipient, they will generate keys and decrypt them
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&marielle, &ekt_params) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&pauline, &ekt_params) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_ekt(&margaux, &ekt_params) == 0);
+		} else { // set the inner keys
+			// Marielle (even when 2 sessions are bundled from marielle, they will use the same key)
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(
+			                   &marielle, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP) == 0);
+			// Pauline
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_send_key_b64(
+			                   &pauline, p.innerSuite, pauline_inner_key, MSSrtpKeySourceZRTP) == 0);
+			/* margaux inner keys are both set in margaux_marielle(attached to margaux MSMediaSessions)) rtpSession as
+			 * it is the main one in the bundle, it is the one used to decrypt them all */
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite,
+			                                                                    marielle_inner_key, MSSrtpKeySourceZRTP,
+			                                                                    marielle.rtp_session->snd.ssrc) == 0);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(&margaux, p.innerSuite,
+			                                                                    pauline_inner_key, MSSrtpKeySourceZRTP,
+			                                                                    pauline.rtp_session->snd.ssrc) == 0);
+			if (p.useBundledSource) { // Marielle bundles two sessions, set the key for its SSRC too
+				BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_inner_recv_key_b64(
+				                   &margaux, p.innerSuite, marielle_inner_key, MSSrtpKeySourceZRTP,
+				                   rtpSession_marielle_bis->snd.ssrc) == 0);
+			}
 		}
 	}
 
@@ -688,9 +724,17 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		/* Check that the packet available to the relay is encrypted (at least is different than the plain one) */
 		uint8_t *payload;
 		size = rtp_get_payload(transfered_packet, &payload);
-		BC_ASSERT_FALSE(size == len);
-		if (size == len) { // They shall not be the same size, but in that case, check they are differents
-			BC_ASSERT_TRUE(memcmp(payload, buffer, len) != 0);
+		if (p.useInnerEncryption) {
+			BC_ASSERT_FALSE(size == len);
+			if (size == len) { // They shall not be the same size, but in that case, check they are differents
+				error = true;
+				BC_ASSERT_TRUE(memcmp(payload, buffer, len) != 0);
+			}
+		} else { // no inner encryption, relay can read the packet
+			BC_ASSERT_TRUE(size == len);
+			if (size == len) {
+				BC_ASSERT_TRUE(memcmp(payload, buffer, len) == 0);
+			}
 		}
 		/* check the packet payload type */
 		uint16_t payload_type = rtp_get_payload_type(transfered_packet);
@@ -724,9 +768,17 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 
 			/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
 			size = rtp_get_payload(transfered_packet, &payload);
-			BC_ASSERT_FALSE(size == len);
-			if (size == len) { // They shall not be the same size, but in that case, check they are differents
-				BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) != 0);
+			if (p.useInnerEncryption) {
+				BC_ASSERT_FALSE(size == len);
+				if (size == len) { // They shall not be the same size, but in that case, check they are differents
+					error = true;
+					BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) != 0);
+				}
+			} else { // no inner encryption, relay can read the packet
+				BC_ASSERT_TRUE(size == len);
+				if (size == len) {
+					BC_ASSERT_TRUE(memcmp(payload, bBuffer, len) == 0);
+				}
 			}
 
 			/* check the packet payload type */
@@ -766,9 +818,17 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 
 		/* Check that the packet available to the relay is encrypted (at leat is different than the plain one */
 		size = rtp_get_payload(transfered_packet, &payload);
-		BC_ASSERT_FALSE(size == len);
-		if (size == len) { // They shall not be the same size, but in that case, check they are differents
-			BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) != 0);
+		if (p.useInnerEncryption) {
+			BC_ASSERT_FALSE(size == len);
+			if (size == len) { // They shall not be the same size, but in that case, check they are differents
+				BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) != 0);
+				error = true;
+			}
+		} else { // no inner encryption, relay can read the packet
+			BC_ASSERT_TRUE(size == len);
+			if (size == len) {
+				BC_ASSERT_TRUE(memcmp(payload, xBuffer, len) == 0);
+			}
 		}
 
 		/* check the packet payload type */
@@ -926,24 +986,28 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&margaux, MediaStreamRecvOnly, FALSE) ==
 	               p.outerSuite);
 
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&marielle, MediaStreamSendOnly, TRUE) ==
-	               p.innerSuite);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&pauline, MediaStreamSendOnly, TRUE) == p.innerSuite);
-	BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&margaux, MediaStreamRecvOnly, TRUE) == p.innerSuite);
-	if (p.useEkt) { // Just set the same EKT for all sources and recipient, they will generate keys and decrypt them
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
-		               MSSrtpKeySourceEKT);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
-		               MSSrtpKeySourceEKT);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
-		               MSSrtpKeySourceEKT);
-	} else {
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
-		               MSSrtpKeySourceZRTP);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
-		               MSSrtpKeySourceZRTP);
-		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
-		               MSSrtpKeySourceZRTP);
+	if (p.useInnerEncryption) {
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&marielle, MediaStreamSendOnly, TRUE) ==
+		               p.innerSuite);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&pauline, MediaStreamSendOnly, TRUE) ==
+		               p.innerSuite);
+		BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_crypto_suite(&margaux, MediaStreamRecvOnly, TRUE) ==
+		               p.innerSuite);
+		if (p.useEkt) {
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
+			               MSSrtpKeySourceEKT);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
+			               MSSrtpKeySourceEKT);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
+			               MSSrtpKeySourceEKT);
+		} else {
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&marielle, MediaStreamSendOnly, TRUE) ==
+			               MSSrtpKeySourceZRTP);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&pauline, MediaStreamSendOnly, TRUE) ==
+			               MSSrtpKeySourceZRTP);
+			BC_ASSERT_TRUE(ms_media_stream_sessions_get_srtp_key_source(&margaux, MediaStreamRecvOnly, TRUE) ==
+			               MSSrtpKeySourceZRTP);
+		}
 	}
 
 	BC_ASSERT_TRUE(error == false);
@@ -1120,6 +1184,16 @@ static void double_encrypted_relayed_data_use_ekt_skip_init_ROC(void) {
 	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(p));
 };
 
+static void simple_encrypted_relayed_data(void) {
+	test_params p;
+	p.useInnerEncryption = false;
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(p));
+	p.discardPaulinePackets = true;
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(p));
+	p.autodiscoverBundleSessions = true;
+	BC_ASSERT_TRUE(double_encrypted_rtp_relay_data_base(p));
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Double Encrypted relayed data", double_encrypted_relayed_data),
     TEST_NO_TAG("Double Encrypted relayed data with volume info", double_encrypted_relayed_data_with_volume),
@@ -1138,6 +1212,7 @@ static test_t tests[] = {
     TEST_NO_TAG("Double Encrypted relayed data shared MID in bundle", double_encrypted_relayed_data_shared_mid),
     TEST_NO_TAG("Double Encrypted relayed data autodiscovered bundled sessions",
                 double_encrypted_relayed_data_autodiscoverd_bundled_sessions),
+    TEST_NO_TAG("Simple Encrypted relayed data", simple_encrypted_relayed_data),
 };
 
 test_suite_t double_encryption_test_suite = {"RTP Data Double Encryption",

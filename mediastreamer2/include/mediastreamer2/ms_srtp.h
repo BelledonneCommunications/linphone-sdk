@@ -76,10 +76,12 @@ typedef enum _MSEKTCipherType {
 
 typedef enum _MSEKTMode {
 	MS_EKT_DISABLED = 0, /**< EKT is not in operation */
-	MS_EKT_ENABLED, /**< EKT is used, we should be given an EKT and use it to produce EKT tag on sending and expect EKT
-	                   tag on reception */
-	MS_EKT_TRANSFER /**< We are in transfer mode: we expect EKT tag at the end of the packet but cannot decrypt, just
+	MS_EKT_ENABLED,  /**< EKT is used, we should be given an EKT and use it to produce EKT tag on sending and expect EKT
+	                    tag on reception */
+	MS_EKT_TRANSFER, /**< We are in transfer mode: we expect EKT tag at the end of the packet but cannot decrypt, just
 	                   pass them */
+	MS_EKT_DISABLED_WITH_TRANSFER /**< We are in transfer but wihtout EKT tag, only double encryption, so manage the OHB
+	                               */
 } MSEKTMode;
 
 typedef struct _MSEKTParametersSet {
@@ -272,6 +274,8 @@ MS2_PUBLIC int ms_media_stream_sessions_set_srtp_inner_send_key_b64(MSMediaStrea
  * on incoming ones
  *   - MS_EKT_TRANSFER: We are a relay unable to decrypt the EKT tag but it will be present at the end of the packet and
  * we need to relay it
+ *   - MS_EKT_DISABLED_WITH_TRANSFER: We are a relay and double encryption is on. EKT is not enabled(so no EKT tag at
+ * the end of RPT packets) but we must manage the OHB - this mode is used mostly for testing.
  *
  * @param[in/out]	stream		The mediastream to operate on
  * @param[in]		mode		One of disabled, enabled or transfer
