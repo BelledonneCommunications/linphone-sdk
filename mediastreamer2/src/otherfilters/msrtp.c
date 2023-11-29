@@ -163,7 +163,7 @@ static void sender_init(MSFilter *f) {
 
 static void sender_uninit(MSFilter *f) {
 	SenderData *d = (SenderData *)f->data;
-
+	if (d->mtc_volumes) ms_free(d->mtc_volumes);
 	ms_free(d);
 }
 
@@ -491,6 +491,7 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
 			    s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
 			ms_free(d->mtc_volumes);
+			d->mtc_volumes = NULL;
 			d->mtc_volumes_left_to_send = 0;
 		} else {
 			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
