@@ -149,6 +149,7 @@
   script:
     #add Sanitizer's ignore list for known leaks
     - export LSAN_OPTIONS="suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt"
+    - export ASAN_OPTIONS="abort_on_error=1:disable_coredump=0:unmap_shadow_on_exit=1"
 
     - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
