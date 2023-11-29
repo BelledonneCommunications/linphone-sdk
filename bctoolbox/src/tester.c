@@ -956,7 +956,7 @@ int bc_tester_run_parallel(void) {
 			test_suite_t *bcLaunchedSuite = (test_suite_t *)launchedSuite->pUserData;
 			int cpu_weight = test_suite_cpu_weight(bcLaunchedSuite);
 
-			if (suitesCpuWeight + cpu_weight < maxProcess) {
+			if (suitesCpuWeight + cpu_weight <= maxProcess) {
 				int pid = fork();
 
 				if (pid == -1) {
@@ -991,14 +991,21 @@ int bc_tester_run_parallel(void) {
 					--runningSuites;
 					++testsFinished;
 				}
-				if (WIFSIGNALED(wstatus)) {
+				/*
+				 * Handle test suite errors, which can be:
+				 * - a crash (WIFSIGNALED(wstatus))
+				 * - a -1 return value (typically when sanitizer detects an error)
+				 * In these two cases, the whole suite is marked as failed.
+				 */
+				if (WIFSIGNALED(wstatus) || (WIFEXITED(wstatus) && WEXITSTATUS(wstatus) == 255)) {
+					bc_tester_printf(bc_printf_verbosity_error,
+					                 "Suite sub process (pid %d) crashed or exited with (-1) return code.", childPid);
 					childRet = handle_sub_process_error(childPid, suitesPids);
 				} else {
+					/* Here the sub-process returned the number of failed tests. */
 					childRet = WEXITSTATUS(wstatus);
 				}
 				ret += childRet;
-				bc_tester_printf(bc_printf_verbosity_error,
-				                 "Suite sub process (pid %d) terminated with return code %d.", childPid, childRet);
 			}
 		}
 		bctbx_sleep_ms(50);

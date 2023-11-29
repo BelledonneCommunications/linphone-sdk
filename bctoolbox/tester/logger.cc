@@ -116,7 +116,6 @@ static void test_cpp_tags(void) {
 		bctbx_error("Error again with previous expected");
 		assert_tag_presence({"hello"});
 	}
-
 	bctbx_uninit_logger();
 }
 
