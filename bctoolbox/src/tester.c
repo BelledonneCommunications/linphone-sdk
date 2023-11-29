@@ -995,7 +995,7 @@ int bc_tester_run_parallel(void) {
 				 * Handle test suite errors, which can be:
 				 * - a crash (WIFSIGNALED(wstatus))
 				 * - a -1 return value (typically when sanitizer detects an error)
-				 * In these two cases, the whole suite is marked as failed.
+				 * In these two cases, the whole suite is marked as failed (all tests failed).
 				 */
 				if (WIFSIGNALED(wstatus) || (WIFEXITED(wstatus) && WEXITSTATUS(wstatus) == 255)) {
 					bc_tester_printf(bc_printf_verbosity_error,
