@@ -18,17 +18,23 @@ debian11-yocto-qemux86-64:
     - echo -e 'IMAGE_INSTALL:append = " linphone-sdk"' >> build/conf/local.conf
     - echo -e 'TEST_SUITES:append = " liblinphone"' >> build/conf/local.conf
     - echo -e 'TEST_RUNQEMUPARAMS = "kvm audio"' >> build/conf/local.conf
+    - echo -e 'PARALLEL_MAKE = "-j$MAKEFILE_JOBS" >> build/conf/local.conf'
+    - echo -e 'PARALLEL_MAKEINST = -j"$MAKEFILE_JOBS" >> build/conf/local.conf'
+    - echo -e 'BB_NUMBER_THREADS = "$MAKEFILE_JOBS" >> build/conf/local.conf'
+    - echo -e 'BB_NUMBER_PARSE_THREADS = "$MAKEFILE_JOBS" >> build/conf/local.conf'
     - export BB_ENV_PASSTHROUGH_ADDITIONS="LINPHONE_SDK_REV LINPHONE_SDK_BRANCH PREFERED_LINPHONE_SDK_RECIPE_VERSION LATEST_REVISIONS"
+    - echo "MAKEFILE_JOBS=$MAKEFILE_JOBS"
     - export LINPHONE_SDK_REV="$CI_COMMIT_SHA"
-    - echo $LINPHONE_SDK_REV
+    - echo "LINPHONE_SDK_REV=$LINPHONE_SDK_REV"
     - export LINPHONE_SDK_BRANCH="$CI_COMMIT_REF_NAME"
-    - echo $LINPHONE_SDK_BRANCH
+    - echo "LINPHONE_SDK_BRANCH=$LINPHONE_SDK_BRANCH"
     - export PREFERED_LINPHONE_SDK_RECIPE_VERSION="latest"
-    - echo $PREFERED_LINPHONE_SDK_RECIPE_VERSION
+    - echo "PREFERED_LINPHONE_SDK_RECIPE_VERSION=$PREFERED_LINPHONE_SDK_RECIPE_VERSION"
     - export LATEST_REVISIONS="1"
-    - echo $LATEST_REVISIONS
+    - echo "LATEST_REVISIONS=$LATEST_REVISIONS"
     - source oe-init-build-env
-    - bitbake core-image-sato 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
+    # - bitbake core-image-sato 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
+    - bitbake linphone-sdk 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_build_error.log
     # Uncomment following line to activate run of liblinphone_tester
     #- bitbake core-image-sato -c testimage 2>&1 | tee ${CI_PROJECT_DIR}/bitbake_test_error.log
     # Get build logs from linphone-sdk

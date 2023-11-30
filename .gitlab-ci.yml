@@ -67,8 +67,8 @@ include:
 
 
   - '.gitlab-ci-files/yocto-raspberrypi3.yml'
-  - '.gitlab-ci-files/yocto-qemuarm64.yml'
-  - '.gitlab-ci-files/yocto-qemux86-64.yml'
+  # - '.gitlab-ci-files/yocto-qemuarm64.yml'
+  # - '.gitlab-ci-files/yocto-qemux86-64.yml'
 
   - '.gitlab-ci-files/raspberrypi.yml'
 
