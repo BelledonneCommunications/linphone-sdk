@@ -24,7 +24,7 @@ include("${PROJECT_SOURCE_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 linphone_sdk_check_git()
 
-set(EKT_SERVER_REVISION "a2b83f9f5d3ad3cf6956e4312d49e1239c9492e8")
+set(EKT_SERVER_REVISION "e96c5af27a4b675baf9877b662d694d94d1f2901")
 
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ekt-server")
 	execute_process(
