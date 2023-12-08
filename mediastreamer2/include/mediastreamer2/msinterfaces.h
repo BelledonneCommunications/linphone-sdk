@@ -198,9 +198,12 @@ typedef enum _MSRecorderState MSRecorderState;
 #define MS_VIDEO_DECODER_FREEZE_ON_ERROR_ENABLED MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 11, bool_t)
 #define MS_VIDEO_DECODER_SET_MAX_THREADS MS_FILTER_METHOD(MSFilterVideoDecoderInterface, 12, int)
 
-/** Interface definitions for video capture */
+/**
+ * Interface definitions for video capture
+ **/
 #define MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION MS_FILTER_METHOD(MSFilterVideoCaptureInterface, 0, int)
 #define MS_VIDEO_CAPTURE_GET_CAMERA_SENSOR_ROTATION MS_FILTER_METHOD(MSFilterVideoCaptureInterface, 1, int)
+
 #define MS_CAMERA_PREVIEW_SIZE_CHANGED MS_FILTER_EVENT(MS_ANDROID_VIDEO_READ_ID, 0, MSVideoSize)
 
 /** Interface definitions for audio decoder */

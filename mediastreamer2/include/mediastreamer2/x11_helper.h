@@ -23,6 +23,9 @@
 #ifdef HAVE_X11_XLIB_H
 
 #include <X11/Xlib.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct _x11_helper {
 	Display *display;
@@ -40,6 +43,14 @@ int ms_x11_helper_destroy_window(MSX11Helper *x11);
 
 int ms_x11_helper_uninit(MSX11Helper *x11);
 
+MS2_PUBLIC MSPixFmt ms_x11_image_get_pixel_format(XImage *image);
+
+MS2_PUBLIC void ms_x11_image_clear_rectangle(XImage *image, int x, int y, int w, unsigned int h);
+
+MS2_PUBLIC void ms_x11_image_draw_cursor(Display *dpy, XImage *image, int recording_area_x, int recording_area_y);
+#ifdef __cplusplus
+}
+#endif
 #endif
 
 #endif

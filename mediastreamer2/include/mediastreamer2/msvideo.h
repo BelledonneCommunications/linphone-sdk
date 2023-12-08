@@ -275,8 +275,9 @@ typedef enum {
 	MS_YUY2, /* -> same as MS_YUYV */
 	MS_RGBA32,
 	MS_RGB565,
-	MS_H264
-} MSPixFmt;
+	MS_H264,
+	MS_RGBA32_REV
+}MSPixFmt;
 
 typedef struct _MSPicture {
 	int w, h;

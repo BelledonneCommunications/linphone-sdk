@@ -68,6 +68,8 @@ static void assign_value_to_mirroring_flag_to_preview(VideoStream *stream) {
 				// If the camera does't show a static image, then set mirroring to 1, 0 otherwise
 				mirroring = (strstr(cam_name, "Static picture") == NULL);
 			}
+		} else if (stream->source && ms_filter_get_id(stream->source) == MS_SCREEN_SHARING_ID) {
+			mirroring = FALSE;
 		}
 		ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_ENABLE_MIRRORING, &mirroring);
 	}
@@ -460,6 +462,7 @@ VideoStream *video_stream_new2(MSFactory *factory, const char *ip, int loc_rtp_p
 	obj = video_stream_new_with_sessions(factory, &sessions);
 	obj->ms.owns_sessions = TRUE;
 	obj->display_mode = MSVideoDisplayHybrid;
+	obj->preview_display_mode = MSVideoDisplayHybrid;
 	return obj;
 }
 
@@ -838,7 +841,17 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 			stream->sizeconv = ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
 			ms_filter_call_method(stream->sizeconv, MS_FILTER_SET_VIDEO_SIZE, &vconf.vsize);
 			ms_filter_add_notify_callback(stream->sizeconv, source_event_cb, stream, FALSE);
+			if (ms_filter_get_id(stream->source) != MS_ITC_SOURCE_ID) {
+			}
 		} else {
+#ifndef MS2_NO_VIDEO_RESCALING
+			if (ms_video_get_scaler_impl() != NULL) {
+				stream->sizeconv = ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
+				ms_filter_call_method(stream->sizeconv, MS_FILTER_SET_VIDEO_SIZE, &vconf.vsize);
+			}
+#endif
+		}
+		if (stream->content != MSVideoContentThumbnail || ms_filter_get_id(stream->source) != MS_ITC_SOURCE_ID) {
 			if (format == MS_MJPEG) {
 				stream->pixconv = ms_factory_create_filter(stream->ms.factory, MS_MJPEG_DEC_ID);
 				if (stream->pixconv == NULL) {
@@ -853,12 +866,6 @@ static void configure_video_source(VideoStream *stream, bool_t skip_bitrate, boo
 				ms_filter_call_method(stream->pixconv, MS_FILTER_SET_PIX_FMT, &format);
 				ms_filter_call_method(stream->pixconv, MS_FILTER_SET_VIDEO_SIZE, &cam_vsize);
 			}
-#ifndef MS2_NO_VIDEO_RESCALING
-			if (ms_video_get_scaler_impl() != NULL) {
-				stream->sizeconv = ms_factory_create_filter(stream->ms.factory, MS_SIZE_CONV_ID);
-				ms_filter_call_method(stream->sizeconv, MS_FILTER_SET_VIDEO_SIZE, &vconf.vsize);
-			}
-#endif
 		}
 	}
 	if (stream->ms.rc) {
@@ -1044,6 +1051,11 @@ int video_stream_start_from_io(VideoStream *stream,
 				if (io->input.itc) {
 					ms_filter_call_method(io->input.itc, MS_ITC_SINK_CONNECT, stream->source);
 				}
+				break;
+			case MSResourceScreenSharing:
+				source = ms_factory_create_filter(stream->ms.factory, MS_SCREEN_SHARING_ID);
+				ms_filter_call_method(source, MS_SCREEN_SHARING_SET_SOURCE_DESCRIPTOR,
+				                      (void *)&io->input.screen_sharing);
 				break;
 			default:
 				ms_error("Unhandled input resource type %s", ms_resource_type_to_string(io->input.type));
@@ -1365,7 +1377,9 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 		/* and then connect all */
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_link(&ch, stream->source, -1, 0);
-		if (stream->content != MSVideoContentThumbnail && stream->pixconv) {
+		/* Note: if pixconv is not null then it is needed. For example, Thumbnail can coming directly from camera and
+		 * not from itc*/
+		if (stream->pixconv) {
 			ms_connection_helper_link(&ch, stream->pixconv, 0, 0);
 		}
 		if (stream->tee) {
@@ -1392,8 +1406,8 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 			if (ms_filter_has_method(stream->output2, MS_VIDEO_DISPLAY_SET_MODE)) {
 				ms_message("Video stream[%p] thumbnail[%d] direction[%d]: set display mode %d to filter %s", stream,
 				           stream->content == MSVideoContentThumbnail ? 1 : 0, media_stream_get_direction(&stream->ms),
-				           stream->display_mode, ms_filter_get_name(stream->output2));
-				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_MODE, &stream->display_mode);
+				           stream->preview_display_mode, ms_filter_get_name(stream->output2));
+				ms_filter_call_method(stream->output2, MS_VIDEO_DISPLAY_SET_MODE, &stream->preview_display_mode);
 			}
 
 			ms_filter_link(stream->tee, 1, stream->output2, 0);
@@ -2085,6 +2099,18 @@ void video_stream_set_display_mode(VideoStream *stream, MSVideoDisplayMode mode)
 	stream->display_mode = mode;
 }
 
+MSVideoDisplayMode video_stream_get_display_mode(VideoStream *stream) {
+	return stream->display_mode;
+}
+
+MSVideoDisplayMode video_stream_get_preview_display_mode(VideoStream *stream) {
+	return stream->preview_display_mode;
+}
+
+void video_stream_set_preview_display_mode(VideoStream *stream, MSVideoDisplayMode mode) {
+	stream->preview_display_mode = mode;
+}
+
 void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno) {
 	stream->freeze_on_error = yesno;
 }
@@ -2583,4 +2609,12 @@ void video_stream_set_sent_video_size_max(VideoStream *stream, MSVideoSize max) 
 void video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer) {
 	stream->csrc_changed_cb = cb;
 	stream->csrc_changed_cb_user_data = user_pointer;
+}
+
+bool_t video_stream_local_screen_sharing_enabled(VideoStream *stream) {
+	return stream->local_screen_sharing_enabled;
+}
+
+void video_stream_enable_local_screen_sharing(VideoStream *stream, bool_t enable) {
+	stream->local_screen_sharing_enabled = enable;
 }

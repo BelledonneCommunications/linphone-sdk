@@ -814,19 +814,30 @@ const char *ms_resource_type_to_string(MSResourceType type) {
 			return "MSResourceVoid";
 		case MSResourceItc:
 			return "MSResourceItc";
+		case MSResourceScreenSharing:
+			return "MSResourceScreenSharing";
 	}
 	return "INVALID";
 }
 
 bool_t ms_media_resource_is_consistent(const MSMediaResource *r) {
 	switch (r->type) {
-		case MSResourceCamera:
 		case MSResourceRtp:
 		case MSResourceSoundcard:
 			if (r->resource_arg == NULL) {
 				ms_error("No resource argument specified for resource type %s", ms_resource_type_to_string(r->type));
 				return FALSE;
 			}
+			return TRUE;
+			break;
+		case MSResourceCamera:
+			if (r->camera == NULL) {
+				ms_error("No camera specified for resource type %s", ms_resource_type_to_string(r->type));
+				return FALSE;
+			}
+			return TRUE;
+			break;
+		case MSResourceScreenSharing:
 			return TRUE;
 			break;
 		case MSResourceFile:

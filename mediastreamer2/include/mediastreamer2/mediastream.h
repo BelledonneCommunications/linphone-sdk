@@ -33,6 +33,7 @@
 #include <mediastreamer2/msequalizer.h>
 #include <mediastreamer2/msfactory.h>
 #include <mediastreamer2/msfilter.h>
+#include <mediastreamer2/msscreensharing.h>
 #include <mediastreamer2/mssndcard.h>
 #include <mediastreamer2/msticker.h>
 #include <mediastreamer2/msvideo.h>
@@ -421,7 +422,8 @@ typedef enum MSResourceType {
 	MSResourceCamera,
 	MSResourceSoundcard,
 	MSResourceVoid,
-	MSResourceItc
+	MSResourceItc,
+	MSResourceScreenSharing
 } MSResourceType;
 
 MS2_PUBLIC const char *ms_resource_type_to_string(MSResourceType type);
@@ -430,8 +432,8 @@ MS2_PUBLIC const char *ms_resource_type_to_string(MSResourceType type);
  * Structure describing the input or the output of a MediaStream.
  * type must be set to one the member of the MSResourceType enum, and the correspoding
  * resource argument must be set: the file name (const char*) for MSResourceFile,
- * the RtpSession for MSResourceRtp, an MSWebCam for MSResourceCamera, an MSSndCard for MSResourceSoundcard.
- * an MSFilter for MSResourceItc
+ * the RtpSession for MSResourceRtp, an MSWebCam for MSResourceCamera, an MSSndCard for MSResourceSoundcard,
+ * an MSFilter for MSResourceItc, an MSScreenSharingDesc for MSResourceScreenSharing
  * @warning due to implementation, if RTP is to be used for input and output, the same RtpSession must be passed for
  * both sides.
  */
@@ -444,6 +446,7 @@ typedef struct _MSMediaResource {
 		MSWebCam *camera;
 		MSSndCard *soundcard;
 		MSFilter *itc;
+		MSScreenSharingDesc screen_sharing;
 	};
 } MSMediaResource;
 
@@ -1164,6 +1167,7 @@ struct _VideoStream {
 	char *display_name;
 	void *window_id;
 	void *preview_window_id;
+	void *video_descriptor;
 	MediaStreamDir dir; /* Not used anymore, see direction in MediaStream */
 	MSRect decode_rect; // Used for the qrcode decoder
 	MSWebCam *cam;
@@ -1183,6 +1187,7 @@ struct _VideoStream {
 	VideoStreamEncoderControlCb encoder_control_cb;
 	void *encoder_control_cb_user_data;
 	MSVideoDisplayMode display_mode;
+	MSVideoDisplayMode preview_display_mode;
 	int frame_marking_extension_id;
 	char *label;
 	MSVideoContent content;
@@ -1204,6 +1209,7 @@ struct _VideoStream {
 	uint32_t new_csrc;
 	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 	FecStream *fec_stream;
+	bool_t local_screen_sharing_enabled;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1466,11 +1472,15 @@ MS2_PUBLIC void video_stream_set_native_window_id(VideoStream *stream, void *id)
 MS2_PUBLIC void *video_stream_create_native_preview_window_id(VideoStream *stream);
 MS2_PUBLIC void video_stream_set_native_preview_window_id(VideoStream *stream, void *id);
 MS2_PUBLIC void *video_stream_get_native_preview_window_id(VideoStream *stream);
+MS2_PUBLIC void *video_stream_get_video_source_descriptor(VideoStream *stream);
 MS2_PUBLIC void video_stream_use_preview_video_window(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_device_rotation(VideoStream *stream, int orientation);
 MS2_PUBLIC void video_stream_show_video(VideoStream *stream, bool_t show);
 MS2_PUBLIC void video_stream_set_freeze_on_error(VideoStream *stream, bool_t yesno);
 MS2_PUBLIC void video_stream_set_display_mode(VideoStream *stream, MSVideoDisplayMode mode);
+MS2_PUBLIC MSVideoDisplayMode video_stream_get_display_mode(VideoStream *stream);
+MS2_PUBLIC void video_stream_set_preview_display_mode(VideoStream *stream, MSVideoDisplayMode mode);
+MS2_PUBLIC MSVideoDisplayMode video_stream_get_preview_display_mode(VideoStream *stream);
 MS2_PUBLIC void video_stream_set_fallback_to_dummy_codec(VideoStream *stream, bool_t yesno);
 
 /**
@@ -1629,6 +1639,13 @@ MS2_PUBLIC void video_stream_set_sent_video_size_max(VideoStream *stream, MSVide
 
 MS2_PUBLIC void
 video_stream_set_csrc_changed_callback(VideoStream *stream, VideoStreamCsrcChangedCb cb, void *user_pointer);
+
+/**
+ * Screen sharing API to know if local (me) shares its screen.
+ **/
+
+MS2_PUBLIC bool_t video_stream_local_screen_sharing_enabled(VideoStream *stream);
+MS2_PUBLIC void video_stream_enable_local_screen_sharing(VideoStream *stream, bool_t enable);
 
 /**
  * Small API to display a local preview window.

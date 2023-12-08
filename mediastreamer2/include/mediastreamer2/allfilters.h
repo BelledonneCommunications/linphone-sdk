@@ -182,7 +182,8 @@ typedef enum MSFilterId {
 	MS_AV1_DEC_ID,
 	MS_AV1_ENC_ID,
 	MS_DUMMY_ENC_ID,
-	MS_DUMMY_DEC_ID
+	MS_DUMMY_DEC_ID,
+	MS_SCREEN_SHARING_ID
 } MSFilterId;
 
 #endif

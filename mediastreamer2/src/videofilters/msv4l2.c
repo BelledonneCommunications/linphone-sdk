@@ -571,7 +571,8 @@ static mblk_t *v4l2_dequeue_ready_buffer(V4l2State *s, int poll_timeout_ms, bool
 					/* Could ignore EIO, see spec. */
 					break;
 				default:
-					ms_warning("[MSV4l2] VIDIOC_DQBUF failed: %s", strerror(errno));
+					ms_warning("[MSV4l2] VIDIOC_DQBUF failed: %s [%d]", strerror(errno), errno);
+					usleep(20000);
 			}
 		} else {
 			s->queued--;
@@ -727,6 +728,7 @@ static void *msv4l2_thread(void *ptr) {
 			}
 		}
 	}
+	ms_message("[MSV4l2] msv4l2_thread exiting.");
 	/*dequeue pending buffers so that we can properly unref them (avoids memleak ), and even worse crashes (vmware)*/
 	start = bctbx_get_cur_time_ms();
 

@@ -63,6 +63,8 @@ const char *ms_pix_fmt_to_string(MSPixFmt fmt) {
 			return "MS_YUY2";
 		case MS_RGBA32:
 			return "MS_RGBA32";
+		case MS_RGBA32_REV:
+			return "MS_RGBA32_REV";
 		case MS_RGB565:
 			return "MS_RGB565";
 		case MS_H264:
@@ -136,6 +138,14 @@ int ms_picture_init_from_mblk_with_size(MSPicture *buf, mblk_t *m, MSPixFmt fmt,
 			buf->h = h;
 			buf->planes[0] = m->b_rptr;
 			buf->strides[0] = w * 3;
+			break;
+		case MS_RGBA32:
+		case MS_RGBA32_REV:
+			memset(buf, 0, sizeof(*buf));
+			buf->w = w;
+			buf->h = h;
+			buf->planes[0] = m->b_rptr;
+			buf->strides[0] = w * 4;
 			break;
 		default:
 			ms_fatal("FIXME: unsupported format %i", fmt);
@@ -218,11 +228,17 @@ static void plane_copy(const uint8_t *src_plane,
 void ms_yuv_buf_copy(
     uint8_t *src_planes[], const int src_strides[], uint8_t *dst_planes[], const int dst_strides[], MSVideoSize roi) {
 	MSRect roi_rect = {0, 0, roi.width, roi.height};
-	plane_copy(src_planes[0], src_strides[0], 1, &roi_rect, dst_planes[0], dst_strides[0], 1, &roi_rect);
+	if (src_planes[0] && dst_planes[0]) {
+		plane_copy(src_planes[0], src_strides[0], 1, &roi_rect, dst_planes[0], dst_strides[0], 1, &roi_rect);
+	}
 	roi_rect.w /= 2;
 	roi_rect.h /= 2;
-	plane_copy(src_planes[1], src_strides[1], 1, &roi_rect, dst_planes[1], dst_strides[1], 1, &roi_rect);
-	plane_copy(src_planes[2], src_strides[2], 1, &roi_rect, dst_planes[2], dst_strides[2], 1, &roi_rect);
+	if (src_planes[1] && dst_planes[1]) {
+		plane_copy(src_planes[1], src_strides[1], 1, &roi_rect, dst_planes[1], dst_strides[1], 1, &roi_rect);
+	}
+	if (src_planes[2] && dst_planes[2]) {
+		plane_copy(src_planes[2], src_strides[2], 1, &roi_rect, dst_planes[2], dst_strides[2], 1, &roi_rect);
+	}
 }
 
 void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[],
@@ -530,6 +546,10 @@ static int yuv_scale(MSScalerContext *ctx, uint8_t *src[], int src_strides[], ui
 			err = RGB24ToJ420(src[0], src_strides[0], dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2],
 			                  dst_strides[2], fctx->target.width, fctx->target.height);
 			break;
+		case MS_RGBA32_REV: // BGRAToI420, ABGRToI420
+			err = ARGBToI420(src[0], src_strides[0], dst[0], dst_strides[0], dst[1], dst_strides[1], dst[2],
+			                 dst_strides[2], fctx->target.width, fctx->target.height);
+			break;
 		default:
 			ms_warning("yuv_scale: unsupported format %s", ms_pix_fmt_to_string(fctx->src_fmt));
 			break;
@@ -556,6 +576,8 @@ int ms_pix_fmt_to_ffmpeg(MSPixFmt fmt) {
 			return AV_PIX_FMT_RGB24;
 		case MS_RGB24_REV:
 			return AV_PIX_FMT_BGR24;
+		case MS_RGBA32_REV:
+			return AV_PIX_FMT_BGRA;
 		case MS_YUV420P:
 			return AV_PIX_FMT_YUV420P;
 		case MS_YUYV:
@@ -579,6 +601,8 @@ MSPixFmt ffmpeg_pix_fmt_to_ms(int fmt) {
 			return MS_RGB24;
 		case AV_PIX_FMT_BGR24:
 			return MS_RGB24_REV;
+		case AV_PIX_FMT_BGRA:
+			return MS_RGBA32_REV;
 		case AV_PIX_FMT_YUV420P:
 			return MS_YUV420P;
 		case AV_PIX_FMT_YUYV422:

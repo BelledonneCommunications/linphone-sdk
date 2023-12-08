@@ -60,6 +60,7 @@ set(HEADER_FILES
 	msmediarecorder.h
 	msqueue.h
 	msrtp.h
+	msscreensharing.h
 	mssndcard.h
 	mstee.h
 	msticker.h

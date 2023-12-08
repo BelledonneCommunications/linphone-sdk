@@ -68,8 +68,11 @@
 #cmakedefine HAVE_FUN_av_frame_unref 1
 #cmakedefine HAVE_GL 1
 #cmakedefine HAVE_GLX 1
+#cmakedefine HAVE_SCREEN_SHARING 1
 #cmakedefine HAVE_X11_XLIB_H 1
 #cmakedefine HAVE_XV 1
+#cmakedefine HAVE_XINERAMA 1
+#cmakedefine HAVE_XFIXES 1
 #cmakedefine HAVE_LINUX_VIDEODEV_H 1
 #cmakedefine HAVE_LINUX_VIDEODEV2_H 1
 #cmakedefine HAVE_POLARSSL_SSL_H 1
