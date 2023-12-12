@@ -59,9 +59,6 @@ debian12-ninja-gcc:
 
   tags: [ "docker" ]
   image: !reference [.debian12_image_version, image]
-  rules:
-    - !reference [.rules-merge-request-manual, rules]
-    - if: $NIGHTLY_MASTER
   variables:
     CMAKE_GENERATOR: Ninja
     CC: gcc
