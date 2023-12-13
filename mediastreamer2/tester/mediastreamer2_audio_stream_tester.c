@@ -70,6 +70,8 @@ static int tester_after_all(void) {
 
 #define VOICE_8K_FILE "sounds/test_silence_voice_8000.wav"
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
+#define HELLO_8K_FILE "sounds/hello8000.wav"
+#define ARPEGGIO_FILE "sounds/arpeggio_8000_mono.wav"
 #define HELLO_16K_1S_FILE "sounds/hello16000-1s.wav"
 #define RECORDED_8K_FILE "recorded_test_silence_voice_8000-"
 #define RECORDED_8K_1S_FILE "recorded_hello8000-1s-"
@@ -1050,22 +1052,182 @@ static void double_encrypted_audio_stream_base(bool_t set_both_send_recv_key,
 static void double_encrypted_audio_stream(void) {
 	double_encrypted_audio_stream_base(FALSE, FALSE, FALSE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_audio_stream_base(FALSE, FALSE, FALSE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_audio_stream_both_streams(void) {
 	double_encrypted_audio_stream_base(TRUE, FALSE, FALSE, MS_AES_256_SHA1_32, MS_AES_128_SHA1_80);
 	double_encrypted_audio_stream_base(TRUE, FALSE, FALSE, MS_AEAD_AES_256_GCM, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_audio_stream_encryption_mandatory(void) {
 	double_encrypted_audio_stream_base(FALSE, TRUE, FALSE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_audio_stream_base(FALSE, TRUE, FALSE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_audio_stream_with_participants_volumes(void) {
 	double_encrypted_audio_stream_base(FALSE, FALSE, TRUE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_audio_stream_base(FALSE, FALSE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
+
+/* Marielle and Pauline audiostream aimed at Margaux, on the same port -> they are automatically bundled in reception */
+static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCTBX_UNUSED(MSCryptoSuite inner_suite)) {
+	if (!ms_srtp_supported()) {
+		ms_warning("srtp not available, skiping...");
+		return;
+	}
+
+	AudioStream *marielle = audio_stream_new(_factory, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, FALSE);
+	AudioStream *pauline = audio_stream_new(_factory, PAULINE_IN_RTP_PORT, PAULINE_IN_RTCP_PORT, FALSE);
+	AudioStream *margaux = audio_stream_new(_factory, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
+	media_stream_set_direction(&marielle->ms, MediaStreamSendOnly);
+	media_stream_set_direction(&pauline->ms, MediaStreamSendOnly);
+	media_stream_set_direction(&margaux->ms, MediaStreamRecvOnly);
+	RtpProfile *profile = rtp_profile_new("default profile");
+	char *hello_file = bc_tester_res(HELLO_8K_FILE);
+	char *arpeggio_file = bc_tester_res(ARPEGGIO_FILE);
+	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	char *recorded_file = bc_tester_file(random_filename);
+	bctbx_free(random_filename);
+	stats_t marielle_stats;
+	stats_t margaux_stats;
+	stats_t pauline_stats;
+	bctbx_list_t *audiostreams = bctbx_list_new(marielle);
+	audiostreams = bctbx_list_append(audiostreams, pauline);
+	audiostreams = bctbx_list_append(audiostreams, margaux);
+	int dummy = 0;
+
+	/* sessions are in a bundle (even if we have only one session) for each one
+	 * they all use the same MID */
+	RtpBundle *rtpBundle_margaux = rtp_bundle_new();
+	rtp_bundle_add_session(rtpBundle_margaux, "as", margaux->ms.sessions.rtp_session);
+	/* the sending ones are using a bundle just to insert the corred MID */
+	RtpBundle *rtpBundle_marielle = rtp_bundle_new();
+	rtp_bundle_add_session(rtpBundle_marielle, "as", marielle->ms.sessions.rtp_session);
+	RtpBundle *rtpBundle_pauline = rtp_bundle_new();
+	rtp_bundle_add_session(rtpBundle_pauline, "as", pauline->ms.sessions.rtp_session);
+
+	const char *aes_128_bits_marielle_outer_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
+
+	const char *aes_256_bits_marielle_outer_key = "nJNTwiMkyAu8zs0MWUiSQbnBL4M+xkWTYgrVLR2eFwZyO+ca2UqBy2Uh9pVRbA==";
+
+	const char *aes_gcm_128_bits_marielle_outer_key = "bkTcxXe9N3/vHKKiqQAqmL0qJ+CSiWRat/Tadg==";
+
+	const char *aes_gcm_256_bits_marielle_outer_key = "WpvA7zUhbhJ2i1ui2nOX43QjrOwCGBkaCPtjnphQKwv/L+GdscAKGQWzG/c=";
+
+	const char *outer_send_key = NULL;
+
+	switch (outer_suite) {
+		case MS_AES_128_SHA1_32:
+		case MS_AES_128_SHA1_80:
+			outer_send_key = aes_128_bits_marielle_outer_key;
+			break;
+		case MS_AES_256_SHA1_32:
+		case MS_AES_256_SHA1_80:
+		case MS_AES_CM_256_SHA1_80:
+			outer_send_key = aes_256_bits_marielle_outer_key;
+			break;
+		case MS_AEAD_AES_128_GCM:
+			outer_send_key = aes_gcm_128_bits_marielle_outer_key;
+			break;
+		case MS_AEAD_AES_256_GCM:
+			outer_send_key = aes_gcm_256_bits_marielle_outer_key;
+			break;
+		default:
+			BC_FAIL("Unsupported suite");
+			return;
+	}
+
+	reset_stats(&marielle_stats);
+	reset_stats(&margaux_stats);
+	reset_stats(&pauline_stats);
+
+	rtp_profile_set_payload(profile, 0, &payload_type_pcmu8000);
+
+	/* marielle and pauline use the SRTP key (but they do not share SSRC so stream are actually encrypted with different
+	 * keys) */
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(marielle->ms.sessions), outer_suite, outer_send_key,
+	                                                              MSSrtpKeySourceSDES) == 0);
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&(pauline->ms.sessions), outer_suite, outer_send_key,
+	                                                              MSSrtpKeySourceSDES) == 0);
+
+	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_recv_key_b64(&(margaux->ms.sessions), outer_suite, outer_send_key,
+	                                                              MSSrtpKeySourceSDES) == 0);
+
+	/* start all streams, margaux first as she is in recv only */
+	BC_ASSERT_EQUAL(
+	    audio_stream_start_full(margaux, profile, NULL, 0, NULL, 0, 0, 50, NULL, recorded_file, NULL, NULL, 0), 0, int,
+	    "%d");
+
+	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP,
+	                                        MARGAUX_RTCP_PORT, 0, 50, hello_file, NULL, NULL, NULL, 0),
+	                0, int, "%d");
+	BC_ASSERT_EQUAL(audio_stream_start_full(pauline, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP,
+	                                        MARGAUX_RTCP_PORT, 0, 50, arpeggio_file, NULL, NULL, NULL, 0),
+	                0, int, "%d");
+
+	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
+	ms_filter_add_notify_callback(pauline->soundread, notify_cb, &pauline_stats, TRUE);
+
+	/* check streams are encrypted */
+	BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream *)marielle, MediaStreamSendOnly, FALSE) ==
+	               MSSrtpKeySourceSDES);
+	BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream *)pauline, MediaStreamSendOnly, FALSE) ==
+	               MSSrtpKeySourceSDES);
+	BC_ASSERT_TRUE(media_stream_get_srtp_key_source((MediaStream *)margaux, MediaStreamRecvOnly, FALSE) ==
+	               MSSrtpKeySourceSDES);
+	BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream *)marielle, MediaStreamSendOnly, FALSE) ==
+	               outer_suite);
+	BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream *)pauline, MediaStreamSendOnly, FALSE) ==
+	               outer_suite);
+	BC_ASSERT_TRUE(media_stream_get_srtp_crypto_suite((MediaStream *)margaux, MediaStreamRecvOnly, FALSE) ==
+	               outer_suite);
+	BC_ASSERT_TRUE(media_stream_secured((MediaStream *)marielle));
+	BC_ASSERT_TRUE(media_stream_secured((MediaStream *)pauline));
+	BC_ASSERT_TRUE(media_stream_secured((MediaStream *)margaux));
+
+	/* Marielle audio file is longer, so pauline should end first -> not really a problem anyway */
+	BC_ASSERT_TRUE(wait_for_list(audiostreams, &pauline_stats.number_of_EndOfFile, 1, 15000));
+	audio_stream_play(pauline, NULL);
+	BC_ASSERT_TRUE(wait_for_list(audiostreams, &marielle_stats.number_of_EndOfFile, 1, 15000));
+	audio_stream_play(marielle, NULL);
+
+	/*make sure packets can cross from sender to receiver*/
+	wait_for_list(audiostreams, &dummy, 1, 1500);
+
+	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
+	audio_stream_get_local_rtp_stats(pauline, &pauline_stats.rtp);
+	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
+
+	/* No packet loss is assumed */
+	/* sums packets received by margaux on the main session and the one added on discovery */
+	size_t margaux_received_packets = margaux_stats.rtp.packet_recv; // main session
+	bctbx_list_t *it = margaux->bundledRecvBranches;
+	for (; it != NULL; it = it->next) {
+		AudioStreamMixedRecvBranch *b = (AudioStreamMixedRecvBranch *)it->data;
+		margaux_received_packets += rtp_session_get_stats(b->rtp_session)->packet_recv;
+	}
+	BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent + pauline_stats.rtp.packet_sent, margaux_received_packets,
+	                unsigned long long, "%llu");
+
+	/* cleaning */
+	rtp_bundle_delete(rtpBundle_margaux);
+	rtp_bundle_delete(rtpBundle_marielle);
+	rtp_bundle_delete(rtpBundle_pauline);
+	audio_stream_stop(marielle);
+	audio_stream_stop(pauline);
+	audio_stream_stop(margaux);
+	rtp_profile_destroy(profile);
+	bctbx_list_free(audiostreams);
+
+	// unlink(recorded_file);
+	free(recorded_file);
+	free(hello_file);
+	free(arpeggio_file);
+}
+
+static void multiple_audiostreams_auto_bundled(void) {
+	multiple_audiostreams_to_bundled_base(MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
+}
 
 static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_mandatory,
                                                          bool_t participant_volume,
@@ -1392,27 +1554,27 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 static void double_encrypted_relayed_audio_stream(void) {
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, FALSE, FALSE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, FALSE, FALSE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_relayed_audio_stream_encryption_mandatory(void) {
 	double_encrypted_rtp_relay_audio_stream_base(TRUE, FALSE, FALSE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_rtp_relay_audio_stream_base(TRUE, FALSE, FALSE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_relayed_audio_stream_with_participants_volumes(void) {
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, FALSE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, FALSE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_relayed_audio_stream_use_ekt(void) {
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, FALSE, TRUE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, FALSE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void double_encrypted_relayed_audio_stream_with_participants_volumes_use_ekt(void) {
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, TRUE, MS_AES_128_SHA1_32, MS_AES_128_SHA1_32);
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
-};
+}
 
 static void voice_activity_detection(void) {
 	basic_audio_stream_base_2(MARIELLE_IP, MARGAUX_IP, MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT,
@@ -1452,6 +1614,7 @@ static test_t tests[] = {
     TEST_NO_TAG("Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port),
     TEST_NO_TAG("Participants volumes in audio stream", participants_volumes_in_audio_stream),
     TEST_NO_TAG("Voice activity detection", voice_activity_detection),
+    TEST_NO_TAG("Auto bundle multiple audiostream in reception", multiple_audiostreams_auto_bundled),
 };
 
 test_suite_t audio_stream_test_suite = {

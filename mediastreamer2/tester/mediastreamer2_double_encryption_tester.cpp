@@ -323,9 +323,14 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	}
 
 	/* Margaux is the final recipient: build 2 rtpsession, they will be bundled  */
-	/* First session is created duplex just because it is easier, it is used in RECV only */
-	RtpSession *rtpSession_margaux_marielle =
-	    ms_create_duplex_rtp_session(MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, ms_factory_get_mtu(_factory));
+	/* This is the bundle primary session, code mostly copied from ms_create_duplex_rtp_session*/
+	RtpSession *rtpSession_margaux_marielle = rtp_session_new(RTP_SESSION_RECVONLY);
+	rtp_session_set_recv_buf_size(rtpSession_margaux_marielle, ms_factory_get_mtu(_factory));
+	rtp_session_set_scheduling_mode(rtpSession_margaux_marielle, 0);
+	rtp_session_set_blocking_mode(rtpSession_margaux_marielle, 0);
+	rtp_session_set_symmetric_rtp(rtpSession_margaux_marielle, TRUE);
+	rtp_session_set_local_addr(rtpSession_margaux_marielle, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT);
+	rtp_session_set_multicast_loopback(rtpSession_margaux_marielle, TRUE);
 	rtp_session_set_profile(rtpSession_margaux_marielle, profile);
 	rtp_session_enable_jitter_buffer(rtpSession_margaux_marielle,
 	                                 FALSE); // Disable jitter buffer for the final recipient, we want to get data when

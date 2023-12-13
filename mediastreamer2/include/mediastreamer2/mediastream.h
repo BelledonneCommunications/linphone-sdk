@@ -459,6 +459,7 @@ typedef void (*MSAudioRouteChangedCallback)(void *audioStream,
                                             bool_t needReloadSoundDevices,
                                             char *newInputPort,
                                             char *newOutputPort);
+
 struct _AudioStream {
 	MediaStream ms;
 	MSSndCard *playcard;
@@ -535,12 +536,26 @@ struct _AudioStream {
 	uint32_t active_speaker_ssrc;
 	MSAudioRouteChangedCallback audio_route_changed_cb;
 	void *audio_route_changed_cb_user_data;
+	bctbx_list_t *bundledRecvBranches; /**< a list of AudioStreamMixedRecvBranch added upon reception of new stream in a
+	                                      locally mixed audio conference */
 };
 
 /**
  * The AudioStream holds all resources to create and run typical VoIP audiostream.
  **/
 typedef struct _AudioStream AudioStream;
+
+/**
+ * Structure to store an input branch added to an audiostream by conference local mixing upon reception of a new stream
+ */
+typedef struct _AudioStreamMixedRecvBranch {
+	RtpSession *rtp_session; /**< the rtp session linked to the recv filter */
+	MSFilter *recv;          /**< the receiver filter */
+	MSFilter *dec;           /**<  the decoder filter */
+	MSFilter *mixer;         /**<  the audio mixer we connected to - needed to unplug this branch */
+	MSTicker *ticker;        /**< the ticker used to schedule the recv filter - needed to detach */
+	int mixerPin;            /**< pin used as input on the local audio mixer */
+} AudioStreamMixedRecvBranch;
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */
 MS2_PUBLIC AudioStream *audio_stream_start(MSFactory *factory,
