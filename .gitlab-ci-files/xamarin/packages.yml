@@ -5,7 +5,7 @@ xamarin-package:
     GIT_STRATEGY: fetch
   needs:
     - ios-xcode
-    - android-makefile-r25b-g729-ldap
+    - android-ninja-r25b
 
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null

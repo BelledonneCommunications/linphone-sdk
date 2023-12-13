@@ -112,9 +112,9 @@ android-upload-minimal-size:
   needs:
     - android-ninja-r25b-minimal-size
 
-android-upload-g729-ldap:
+android-upload-g729-ldap-post-quantum:
   extends: .android-upload-common
   variables:
     MAVEN_REPO_URL: $ANDROID_PRIVATE_MAVEN_URL
   needs:
-    - android-makefile-r25b-g729-ldap
+    - android-makefile-r25b-g729-ldap-post-quantum

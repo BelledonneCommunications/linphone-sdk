@@ -86,9 +86,7 @@ android-ninja-r25b:
   needs:
     - wait-cache-synchro-android
 
-
-
-android-makefile-r25b-g729-ldap:
+android-makefile-r25b-g729-ldap-post-quantum:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_ANDROID_BUILDS != null
@@ -98,7 +96,7 @@ android-makefile-r25b-g729-ldap:
 
   variables:
     CMAKE_GENERATOR: Unix Makefiles
-    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON -DENABLE_LDAP=ON
+    CMAKE_OPTIONS: -DENABLE_GPL_THIRD_PARTIES=ON -DENABLE_G729=ON -DENABLE_LDAP=ON -DENABLE_PQCRYPTO=YES -DENABLE_NON_FREE_FEATURES=YES
   extends: android-ninja-r25b
 
 android-ninja-r25b-minimal-size:
