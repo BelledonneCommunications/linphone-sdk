@@ -100,8 +100,6 @@ void bzrtp_tester_uninit(void) {
 
 #if !defined(__ANDROID__) && !(defined(BCTBX_WINDOWS_PHONE) || defined(BCTBX_WINDOWS_UNIVERSAL))
 
-static const char* lime_helper = "";
-
 int main(int argc, char *argv[]) {
 	int i;
 	int ret;
@@ -122,7 +120,7 @@ int main(int argc, char *argv[]) {
 			i += ret - 1;
 			continue;
 		} else if (ret<0) {
-			bc_tester_helper(argv[0], lime_helper);
+			bc_tester_helper(argv[0], NULL);
 		}
 		return ret;
 	}

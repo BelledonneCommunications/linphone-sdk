@@ -396,7 +396,8 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, //
 										   void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, // Alice cache related informations, if NULL, run cacheless
 										   void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI, // Bob cache related informations, if NULL, run cacheless
 										   uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS, // When checkPVS is TRUE, check that Alice and Bob PVS are as expected
-										   size_t mtu) // if mtu is not 0, enforce mtu and check that packet size are never bigger than expected
+										   size_t mtu, // if mtu is not 0, enforce mtu and check that packet size are never bigger than expected
+										   int max_channels_number) // Maximum channel number, if only one no multichannel exchange is performed
 {
 
 	int retval,channelNumber;
@@ -570,8 +571,8 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, //
 	BC_ASSERT_EQUAL(memcmp(Alice.sendExportedKey, Bob.recvExportedKey, 16), 0, int, "%d");
 	BC_ASSERT_EQUAL(memcmp(Alice.recvExportedKey, Bob.sendExportedKey, 16), 0, int, "%d");
 
-	/* open as much channels as we can */
-	for (channelNumber=2; channelNumber<=MAX_NUM_CHANNEL; channelNumber++) {
+	/* open as much channels as requested */
+	for (channelNumber=2; channelNumber<=max_channels_number; channelNumber++) {
 		/* increase SSRCs as they are used to identify a channel */
 		aliceSSRC++;
 		bobSSRC++;
@@ -669,19 +670,27 @@ uint32_t multichannel_exchange_full_params(cryptoParams_t *aliceCryptoParams, //
 
 /* Variants of the exchange function with less parameter : never call directly the full params one but use one of these */
 uint32_t multichannel_exchange_pvs_params(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI, uint8_t checkPVS, uint8_t expectedAlicePVS, uint8_t expectedBobPVS) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, checkPVS, expectedAlicePVS, expectedBobPVS, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, checkPVS, expectedAlicePVS, expectedBobPVS, 0, MAX_NUM_CHANNEL);
+}
+
+uint32_t monochannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0, 0, 1);
+}
+
+uint32_t multichannel_exchange_fast(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0, 0, 2);
 }
 
 uint32_t multichannel_exchange(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, char *aliceURI, void *bobCache, char *bobURI) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, NULL, aliceURI, bobCache, NULL, bobURI, FALSE, 0, 0, 0, MAX_NUM_CHANNEL);
 }
 
 uint32_t multichannel_exchange_mtu(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, size_t mtu) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, 0, 0, mtu);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, NULL, NULL, NULL, NULL, NULL, NULL, FALSE, 0, 0, mtu, 2);
 }
 
 uint32_t multichannel_exchange_mutex(cryptoParams_t *aliceCryptoParams, cryptoParams_t *bobCryptoParams, cryptoParams_t *expectedCryptoParams, void *aliceCache, bctbx_mutex_t *aliceCacheMutex, char *aliceURI, void *bobCache, bctbx_mutex_t *bobCacheMutex, char *bobURI) {
-	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceCacheMutex, aliceURI, bobCache, bobCacheMutex, bobURI, FALSE, 0, 0, 0);
+	return multichannel_exchange_full_params(aliceCryptoParams, bobCryptoParams, expectedCryptoParams, aliceCache, aliceCacheMutex, aliceURI, bobCache, bobCacheMutex, bobURI, FALSE, 0, 0, 0, 4);
 }
 
 
@@ -847,7 +856,7 @@ static void test_cacheless_exchange(void) {
 
 	pattern = &patterns[0]; /* pattern is a pointer to current pattern */
 	while (pattern->cipherNb!=0) {
-		BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+		BC_ASSERT_EQUAL(multichannel_exchange_fast(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 		pattern++; /* point to next row in the array of patterns */
 	}
 
@@ -855,7 +864,7 @@ static void test_cacheless_exchange(void) {
 	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
 		pattern = &ecdh_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
-			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+			BC_ASSERT_EQUAL(multichannel_exchange_fast(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
 		}
 	}
@@ -864,7 +873,7 @@ static void test_cacheless_exchange(void) {
 	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
-			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+			BC_ASSERT_EQUAL(multichannel_exchange_fast(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
 		}
 	}
@@ -873,13 +882,64 @@ static void test_cacheless_exchange(void) {
 	if (bzrtp_is_PQ_available() == TRUE) {
 		pattern = &hybrid_kem_patterns[0]; /* pattern is a pointer to current pattern */
 		while (pattern->cipherNb!=0) {
-			BC_ASSERT_EQUAL(multichannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+			BC_ASSERT_EQUAL(multichannel_exchange_fast(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
 			pattern++; /* point to next row in the array of patterns */
 		}
 	}
 	BC_ASSERT_EQUAL(multichannel_exchange(NULL, NULL, defaultCryptoAlgoSelection(), NULL, NULL, NULL, NULL), 0, int, "%x");
 }
 
+#define PERFO_LOOP_NB 500
+static void test_performances(void) {
+	cryptoParams_t *pattern;
+
+	/* Reset Global Static settings */
+	resetGlobalParams();
+	/* force log level to error for this test - just get the perf measurement output */
+	unsigned int logLevelMask = bctbx_get_log_level_mask(BCTBX_LOG_DOMAIN);
+	if (logLevelMask & BCTBX_LOG_ERROR) {
+		bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR);
+	}
+
+	cryptoParams_t all_patterns[] = {
+	/* DH exchange are slow, commented to save time on CI, uncomment if needed */
+	//	{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_DH2k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+	//	{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_DH3k},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_X255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_X448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+#ifdef HAVE_BCTBXPQ
+		/* KEM version on ECDH are available only when PQ is available */
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_HQC128},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_HQC256},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512_HQC128},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
+#endif /* HAVE BCTBXPQ */
+		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
+	};
+	if (bctbx_key_agreement_algo_list()&BCTBX_ECDH_X25519) {
+		pattern = &all_patterns[0]; /* pattern is a pointer to current pattern */
+		while (pattern->cipherNb!=0) {
+			int i;
+			clock_t start, current;
+			double cpu_time_used=0.0f;
+			start = clock();
+			current = start;
+			for (i=0; i<PERFO_LOOP_NB || (((double)(current - start)*1000)/CLOCKS_PER_SEC < 1000); i++) {
+				BC_ASSERT_EQUAL(monochannel_exchange(pattern, pattern, pattern, NULL, NULL, NULL, NULL), 0, int, "%x");
+				if (i%10 == 9) current = clock();
+			}
+			cpu_time_used = (double)(clock() - start);
+			bctbx_error("Use %s key agreement. Mean execution time on %d runs: %.2f ms/exchange", bzrtp_algoToString(pattern->keyAgreement[0]), i, (cpu_time_used*1000)/(i*CLOCKS_PER_SEC));
+			pattern++; /* point to next row in the array of patterns */
+		}
+	}
+	// reset loglvel
+	bctbx_set_log_level_mask(BCTBX_LOG_DOMAIN, logLevelMask);
+}
 static void test_config_contraints(void) {
 #ifdef HAVE_BCTBXPQ
 	cryptoParams_t *pattern;
@@ -2430,6 +2490,7 @@ static test_t key_exchange_tests[] = {
 	TEST_NO_TAG("Go Clear Send simultaneously", test_goclear_sendSimultaneously),
 	TEST_NO_TAG("Loosy network GoClear", test_loosy_network_goclear),
 	TEST_NO_TAG("Loosy network GoClear Multichannel", test_loosy_network_goclear_multiChannel),
+	TEST_NO_TAG("Performance measurements", test_performances),
 };
 
 test_suite_t key_exchange_test_suite = {
