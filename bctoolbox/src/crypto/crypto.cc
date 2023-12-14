@@ -46,7 +46,8 @@ std::vector<uint8_t> HMAC(BCTBX_UNUSED(const std::vector<uint8_t> &key),
 template <>
 std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	std::vector<uint8_t> hmacOutput(SHA1::ssize());
-	bctbx_hmacSha1(key.data(), key.size(), input.data(), input.size(), hmacOutput.size(), hmacOutput.data());
+	bctbx_hmacSha1(key.data(), key.size(), input.data(), input.size(), static_cast<uint8_t>(hmacOutput.size()),
+	               hmacOutput.data());
 	return hmacOutput;
 }
 
@@ -54,7 +55,8 @@ std::vector<uint8_t> HMAC<SHA1>(const std::vector<uint8_t> &key, const std::vect
 template <>
 std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	std::vector<uint8_t> hmacOutput(SHA256::ssize());
-	bctbx_hmacSha256(key.data(), key.size(), input.data(), input.size(), hmacOutput.size(), hmacOutput.data());
+	bctbx_hmacSha256(key.data(), key.size(), input.data(), input.size(), static_cast<uint8_t>(hmacOutput.size()),
+	                 hmacOutput.data());
 	return hmacOutput;
 }
 
@@ -62,7 +64,8 @@ std::vector<uint8_t> HMAC<SHA256>(const std::vector<uint8_t> &key, const std::ve
 template <>
 std::vector<uint8_t> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	std::vector<uint8_t> hmacOutput(SHA384::ssize());
-	bctbx_hmacSha384(key.data(), key.size(), input.data(), input.size(), hmacOutput.size(), hmacOutput.data());
+	bctbx_hmacSha384(key.data(), key.size(), input.data(), input.size(), static_cast<uint8_t>(hmacOutput.size()),
+	                 hmacOutput.data());
 	return hmacOutput;
 }
 
@@ -70,7 +73,8 @@ std::vector<uint8_t> HMAC<SHA384>(const std::vector<uint8_t> &key, const std::ve
 template <>
 std::vector<uint8_t> HMAC<SHA512>(const std::vector<uint8_t> &key, const std::vector<uint8_t> &input) {
 	std::vector<uint8_t> hmacOutput(SHA512::ssize());
-	bctbx_hmacSha512(key.data(), key.size(), input.data(), input.size(), hmacOutput.size(), hmacOutput.data());
+	bctbx_hmacSha512(key.data(), key.size(), input.data(), input.size(), static_cast<uint8_t>(hmacOutput.size()),
+	                 hmacOutput.data());
 	return hmacOutput;
 }
 
