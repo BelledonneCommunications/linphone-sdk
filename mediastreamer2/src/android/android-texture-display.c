@@ -320,7 +320,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 	uint64_t start_time;
 
 	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context || !ad->nativeWindowId) {
-		ms_message("android_texture_display_swap_buffers(): nothing to do.");
+		// ms_message("android_texture_display_swap_buffers(): nothing to do.");
 		return;
 	}
 

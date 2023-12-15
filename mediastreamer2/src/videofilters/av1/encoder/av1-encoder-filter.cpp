@@ -22,6 +22,10 @@
 
 #include "filter-wrapper/encoding-filter-wrapper.h"
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
+
 using namespace std;
 
 #define MS_AV1_CONF(required_bitrate, bitrate_limit, resolution, fps, ncpus)                                           \
@@ -31,10 +35,11 @@ using namespace std;
 	}
 
 static const MSVideoConfiguration _av1_conf_list[] = {
-    // High resolutions are for now too demanding for the encoding software.
-    // MS_AV1_CONF(1024000, 2048000, 720P, 25, 4),
+// High resolutions are for now too demanding for the encoding software on mobile phones.
+#if !defined(ANDROID) && !defined(TARGET_OS_IPHONE)
+    MS_AV1_CONF(1024000, 2048000, 720P, 30, 8),
+#endif
     // MS_AV1_CONF(850000, 2048000, XGA, 25, 4),
-    MS_AV1_CONF(750000, 2048000, SVGA, 25, 2),
     MS_AV1_CONF(400000, 1500000, VGA, 30, 2),
     MS_AV1_CONF(128000, 512000, CIF, 30, 1),
     MS_AV1_CONF(0, 170000, QVGA, 15, 1),

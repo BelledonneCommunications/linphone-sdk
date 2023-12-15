@@ -151,8 +151,9 @@ void ms_video_quality_controller_update_from_tmmbr(MSVideoQualityController *obj
 	} else if (tmmbr < obj->last_tmmbr) {
 		if (obj->increase_timer_running) obj->increase_timer_running = FALSE;
 
-		ms_message("MSVideoQualityController [%p]: Congestion detected (%f kbit/s), reducing video quality...", obj,
-		           tmmbr * 1e-3);
+		ms_message(
+		    "MSVideoQualityController [%p]: tmmbr is lower than previous one (%f kbit/s), reducing video quality...",
+		    obj, tmmbr * 1e-3);
 		update_video_quality_from_bitrate(obj, tmmbr, 1.0f, FALSE);
 	}
 
