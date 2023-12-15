@@ -12,16 +12,23 @@ Please refer to CHANGELOG.md files of submodules (mainly: *liblinphone*, *medias
 changes made to these components.
 
 
-## [5.3.0] Unreleased
+## [5.3.0] 2023-12-18
+
+### Added
+- dav1d and libaom dependencies for AV-1 codec
 
 ### Changed
+- Improved CMake build scripts, so that they are faster and integrate smoothly with IDEs.
 - Update ZLib to 1.2.13
 - Enum relocations dictionnary is now automatically computed, causing an API change in C++, Swift & Java wrappers!
 - Update macOS deployment target version to 10.14 and iOS deployment target version to iOS12
+- Android 14 ready
 - Update to mbdetls 3.3
 - TLS Client certificate request authentication callback removed (due to mbedtls update).
   Application using TLS client certificate must provide it before any TLS connexion needing it.
-- LinphoneFriendList's PresenceReceived callback is now only called for full-state NOTIFYs.
+
+# Removed
+- Jazzy dependency (used to generate Swift documentation), replaced by docc (xcodebuild docbuild)
 
 
 ## [5.2.0] - 2022-11-14
