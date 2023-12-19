@@ -20,6 +20,15 @@
 
 #include <mediastreamer2/android_utils.h>
 
+static const char *GetStringUTFChars(JNIEnv *env, jstring string) {
+	const char *cstring = string ? env->GetStringUTFChars(string, nullptr) : nullptr;
+	return cstring;
+}
+
+static void ReleaseStringUTFChars(JNIEnv *env, jstring string, const char *cstring) {
+	if (string) env->ReleaseStringUTFChars(string, cstring);
+}
+
 AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *factory) {
 	JNIEnv *env = ms_get_jni_env();
 	AndroidSoundUtils *utils = (AndroidSoundUtils *)ms_new0(AndroidSoundUtils, 1);
@@ -282,6 +291,27 @@ unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo) {
 	}
 
 	return id;
+}
+
+bool ms_android_get_microphone_device_is_bottom(JNIEnv *env, jobject deviceInfo) {
+	jstring address;
+	bool is_bottom = false;
+
+	jclass audioDeviceInfoClass = env->FindClass("android/media/AudioDeviceInfo");
+	if (audioDeviceInfoClass != NULL) {
+		jmethodID getAddressID = env->GetMethodID(audioDeviceInfoClass, "getAddress", "()Ljava/lang/String;");
+		if (getAddressID != NULL) {
+			address = (jstring)env->CallObjectMethod(deviceInfo, getAddressID);
+			if (address) {
+				const char *c_address = GetStringUTFChars(env, address);
+				is_bottom = strcmp(c_address, "bottom") == 0;
+				ReleaseStringUTFChars(env, address, c_address);
+			}
+		}
+		env->DeleteLocalRef(audioDeviceInfoClass);
+	}
+
+	return is_bottom;
 }
 
 int ms_android_getJVIntField(JNIEnv *env, const char *className, const char *fieldName) {

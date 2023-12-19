@@ -1120,6 +1120,16 @@ int audio_stream_start_from_io(AudioStream *stream,
 			stream->playcard = NULL;
 		}
 		stream->playcard = ms_snd_card_ref(card);
+
+		// Notify capture filter that playback device is set
+		// (needed to change microphone when using AAudio on Android)
+		if (ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
+			if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED)) {
+				ms_message("Notify record filter [%s:%p] that playback device is being set to [%s]",
+				           ms_filter_get_name(stream->soundread), stream->soundread, stream->playcard->id);
+				ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED, stream->playcard);
+			}
+		}
 	} else if (io->output.type == MSResourceRtp) {
 		stream->rtp_io_session = io->output.session;
 		pt = rtp_profile_get_payload(rtp_session_get_profile(stream->rtp_io_session),
@@ -2334,6 +2344,17 @@ int audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard *sndcard_
 		stream->playcard = NULL;
 	}
 	stream->playcard = playcard;
+
+	// Notify capture filter that playback device has changed
+	// (needed to change microphone when using AAudio on Android)
+	if (ms_filter_implements_interface(stream->soundread, MSFilterAudioCaptureInterface)) {
+		if (ms_filter_has_method(stream->soundread, MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED)) {
+			ms_message("[AudioStream] Notify record filter [%s:%p] that playback device is being changed to [%s]",
+			           ms_filter_get_name(stream->soundread), stream->soundread, playcard->id);
+			ms_filter_call_method(stream->soundread, MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED, playcard);
+		}
+	}
+
 	return audio_stream_configure_output_snd_card(stream);
 }
 

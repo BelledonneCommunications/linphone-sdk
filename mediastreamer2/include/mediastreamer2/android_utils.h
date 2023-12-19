@@ -111,6 +111,11 @@ MS2_PUBLIC jobjectArray ms_android_get_all_devices(JNIEnv *env, const char *dir)
 MS2_PUBLIC unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo);
 
 /**
+ * Retrieve wether or not the device address is equal to "bottom" or not.
+ */
+MS2_PUBLIC bool ms_android_get_microphone_device_is_bottom(JNIEnv *env, jobject deviceInfo);
+
+/**
  * Retrieve the value of a JV class field fieldName.
  **/
 MS2_PUBLIC int ms_android_getJVIntField(JNIEnv *env, const char *className, const char *fieldName);

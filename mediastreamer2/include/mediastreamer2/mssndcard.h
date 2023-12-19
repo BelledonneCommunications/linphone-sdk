@@ -182,6 +182,7 @@ struct _MSSndCard {
 	MSSndCardStreamType streamType;
 	int ref_count;
 	const SoundDeviceDescription *device_description;
+	int alternative_id;
 };
 
 #ifdef __cplusplus
@@ -354,6 +355,15 @@ MS2_PUBLIC void ms_snd_card_manager_add_card(MSSndCardManager *m, MSSndCard *c);
  *
  */
 MS2_PUBLIC void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard *c);
+
+/**
+ * Removes a sound card object in a sound card manager's list.
+ *
+ * @param m    A sound card manager containing sound cards.
+ * @param c    A sound card object.
+ *
+ */
+MS2_PUBLIC void ms_snd_card_manager_remove_card(MSSndCardManager *m, MSSndCard *c);
 
 /**
  * Set the sound card manager of a sound card.
