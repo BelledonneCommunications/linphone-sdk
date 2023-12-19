@@ -33,6 +33,7 @@ struct AAudioInputContext {
 		mAvSkew = 0;
 		session_id = AAUDIO_SESSION_ID_NONE;
 		soundCard = NULL;
+		deviceId = -1;
 		aec = NULL;
 		aecEnabled = true;
 		voiceRecognitionMode = false;
@@ -58,6 +59,7 @@ struct AAudioInputContext {
 	ms_mutex_t mutex;
 	MSTickerSynchronizer *mTickerSynchronizer;
 	MSSndCard *soundCard;
+	int deviceId;
 	MSFilter *mFilter;
 	int sample_rate;
 	int64_t read_samples;
@@ -115,8 +117,12 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_error("[AAudio Recorder] Couldn't create stream builder for recorder: %i / %s", result, AAudio_convertResultToText(result));
 	}
 
-	AAudioStreamBuilder_setDeviceId(builder, ictx->soundCard->internal_id);
-	ms_message("[AAudio Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
+	if (ictx->deviceId == -1) {
+		ms_warning("[AAudio Recorder] Invalid device ID set [-1], using soundCard internal ID insread [%0d]", ictx->soundCard->internal_id);
+		ictx->deviceId = ictx->soundCard->internal_id;
+	}
+	AAudioStreamBuilder_setDeviceId(builder, ictx->deviceId);
+	ms_message("[AAudio Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->deviceId);
 	
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
 	AAudioStreamBuilder_setSampleRate(builder, ictx->sample_rate);
@@ -262,7 +268,7 @@ static void android_snd_read_process(MSFilter *obj) {
 	ms_mutex_lock(&ictx->stream_mutex);
 
 	if (ictx->aaudio_context->device_changed) {
-		ms_warning("[AAudio Recorder] Device ID changed to %0d", ictx->soundCard->internal_id);
+		ms_warning("[AAudio Recorder] Device ID changed to %0d", ictx->deviceId);
 		if (ictx->stream) {
 			AAudioStream_close(ictx->stream);
 			ictx->stream = NULL;
@@ -370,12 +376,18 @@ static int android_snd_read_get_nchannels(MSFilter *obj, void *data) {
 	return 0;
 }
 
+static void android_snd_read_set_internal_device_id(AAudioInputContext *ictx, int internal_id) {
+	ictx->deviceId = internal_id;
+	ictx->aaudio_context->device_changed = true;
+	ms_message("[AAudio Recorder] Internal ID changed to [%0d], waiting for next process() to restart the recorder", internal_id);
+}
+
 static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(obj->data);
-	ms_message("[AAudio Recorder] Requesting to change capture device ID from %0d to %0d", ictx->soundCard->internal_id, card->internal_id);
+	ms_message("[AAudio Recorder] Sound card is being changed from ID [%s], device ID [%0d] to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", ictx->soundCard->id, ictx->deviceId, card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 	// Change device ID only if the new value is different from the previous one
-	if (ictx->soundCard->internal_id != card->internal_id) {
+	if (ictx->deviceId != card->internal_id) {
 		ms_mutex_lock(&ictx->stream_mutex);
 
 		if (ictx->soundCard) {
@@ -383,7 +395,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 			ictx->soundCard = NULL;
 		}
 		ictx->soundCard = ms_snd_card_ref(card);
-		ictx->aaudio_context->device_changed = true;
+		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
 
 		bool bluetoothSoundDevice = ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH ||
 									ms_snd_card_get_device_type(ictx->soundCard) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_HEARING_AID;
@@ -397,8 +409,10 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 			ms_android_sound_utils_enable_bluetooth(ictx->sound_utils, bluetoothSoundDevice);
 			ictx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
-		
+
 		ms_mutex_unlock(&ictx->stream_mutex);
+	} else {
+		ms_warning("[AAudio Recorder] This device ID [%0d] is already in use", card->internal_id);
 	}
 	return 0;
 }
@@ -406,7 +420,7 @@ static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 static int android_snd_read_get_device_id(MSFilter *obj, void *data) {
 	int *n = (int*)data;
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
-	*n = ictx->soundCard->internal_id;
+	*n = ictx->deviceId;
 	return 0;
 }
 
@@ -425,6 +439,63 @@ static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
 	bool *enabled = (bool*)data;
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ictx->voiceRecognitionMode = !!(*enabled);
+	if (ictx->soundCard->alternative_id != -1) {
+		if (ictx->voiceRecognitionMode) {
+			ms_message("[AAudio Recorder] An alternative ID is set on the microphone, using it for voice recognition");
+			ictx->deviceId = ictx->soundCard->alternative_id;
+		} else {
+			ms_message("[AAudio Recorder] An alternative ID is set on the microphone but voice recognition is not enabled, using main ID");
+			ictx->deviceId = ictx->soundCard->internal_id;
+		}
+	}
+	return 0;
+}
+
+static void android_snd_read_change_microphone_according_to_speaker(MSFilter *obj, MSSndCard *playback_card) {
+	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
+
+	if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
+		if (ictx->soundCard->alternative_id != -1) {
+			ms_message("[AAudio Recorder] Changing microphone to use the one in the back [%0d]", ictx->soundCard->alternative_id);
+			ms_mutex_lock(&ictx->stream_mutex);
+			android_snd_read_set_internal_device_id(ictx, ictx->soundCard->alternative_id);
+			ms_mutex_unlock(&ictx->stream_mutex);
+		} else {
+			ms_warning("[AAudio Recorder] No alternative microphone ID found, doing nothing...");
+		}
+	} else if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
+		ms_message("[AAudio Recorder] Changing microphone to use the one in the main one [%0d]", ictx->soundCard->internal_id);
+		ms_mutex_lock(&ictx->stream_mutex);
+		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
+		ms_mutex_unlock(&ictx->stream_mutex);
+	} else if ((playback_card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
+		ms_message("[AAudio Recorder] Playback soundcard also has capture capability, switching microphone to it as well");
+		android_snd_read_set_device_id(obj, playback_card);
+	}
+}
+
+static int android_snd_read_playback_device_changed(MSFilter *obj, void *data) {
+	MSSndCard *playback_card = (MSSndCard *)data;
+	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
+	ms_message("[AAudio Recorder] Playback sound card is being changed to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", playback_card->id, playback_card->name, playback_card->internal_id, ms_snd_card_device_type_to_string(playback_card->device_type), playback_card->capabilities);
+
+	if (playback_card->name != NULL && ictx->soundCard->name != NULL && strcmp(playback_card->name, ictx->soundCard->name) == 0) {
+		android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
+	} else {
+		ms_message("[AAudio Recorder] New playback device [%s] doesn't have the same name as the current recorder device [%s], trying to find a recorder soundcard with the same name to use", playback_card->name, ictx->soundCard->name);
+		MSSndCardManager *manager = ms_factory_get_snd_card_manager(obj->factory);
+		const bctbx_list_t *list = ms_snd_card_manager_get_list(manager);
+		for (const bctbx_list_t *it = list; it != nullptr; it = bctbx_list_next(it)) {
+			MSSndCard *card = static_cast<MSSndCard *>(bctbx_list_get_data(it));
+			if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE && card->name != NULL && strcmp(card->name, playback_card->name) == 0) {
+				ms_message("[AAudio Recorder] Found a sound card matching playback device name and with CAPTURE capability, using it");
+				android_snd_read_set_device_id(obj, card);
+				android_snd_read_change_microphone_according_to_speaker(obj, playback_card);
+				break;
+			}
+		}
+	}
+
 	return 0;
 }
 
@@ -438,6 +509,7 @@ static MSFilterMethod android_snd_read_methods[] = {
 	{MS_AUDIO_CAPTURE_GET_INTERNAL_ID, android_snd_read_get_device_id},
 	{MS_AUDIO_CAPTURE_ENABLE_AEC, android_snd_read_enable_aec},
 	{MS_AUDIO_CAPTURE_ENABLE_VOICE_REC, android_snd_read_enable_voice_rec},
+	{MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED, android_snd_read_playback_device_changed},
 	{0,NULL}
 };
 
@@ -472,7 +544,8 @@ MSFilter *android_snd_card_create_reader(MSSndCard *card) {
 	MSFilter *f = ms_android_snd_read_new(ms_snd_card_get_factory(card));
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(f->data);
 	ictx->soundCard = ms_snd_card_ref(card);
-	ms_message("[AAudio Recorder] Created using device ID: %s (%i)", ictx->soundCard->id, ictx->soundCard->internal_id);
+	ictx->deviceId = ictx->soundCard->internal_id;
+	ms_message("[AAudio Recorder] Created using device ID: %s (%i)", ictx->soundCard->id, ictx->deviceId);
 	ictx->setContext((AAudioContext*)card->data);
 	return f;
 }

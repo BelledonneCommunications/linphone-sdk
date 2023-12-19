@@ -26,13 +26,14 @@
 
 #include <msaaudio/msaaudio.h>
 
-static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
+static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m);
 
 static void android_snd_card_detect(MSSndCardManager *m) {
 	JNIEnv *env = ms_get_jni_env();
 
+	AndroidSoundUtils *soundUtils = ms_factory_get_android_sound_utils(m->factory);
 	// Get all devices
-	jobject devices = ms_android_get_all_devices(env, "all");
+	jobject devices = ms_android_sound_utils_get_devices(soundUtils, "all");
 
 	// extract required information from every device
 	jobjectArray deviceArray = (jobjectArray) devices;
@@ -44,7 +45,7 @@ static void android_snd_card_detect(MSSndCardManager *m) {
 
 	for (int idx=0; idx < deviceNumber; idx++) {
 		jobject deviceInfo = env->GetObjectArrayElement(deviceArray, idx);
-		android_snd_card_device_create(env, deviceInfo, deviceDescription, m);
+		android_snd_card_device_create(soundUtils, deviceInfo, deviceDescription, m);
 	}
 }
 
@@ -73,8 +74,8 @@ MSSndCardDesc android_native_snd_aaudio_card_desc = {
 	android_native_snd_card_uninit
 };
 
-static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m) {
-	MSSndCardDeviceType type = ms_android_get_device_type(env, deviceInfo);
+static void android_snd_card_device_create(const AndroidSoundUtils *soundUtils, jobject deviceInfo, SoundDeviceDescription *deviceDescription, MSSndCardManager *m) {
+	MSSndCardDeviceType type = ms_android_sound_utils_get_device_type(soundUtils, deviceInfo);
 	if (
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_BLUETOOTH) ||
 		(type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) ||
@@ -88,8 +89,8 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 		MSSndCard *card = ms_snd_card_new(&android_native_snd_aaudio_card_desc);
 		card = ms_snd_card_ref(card);
 
-		card->name = ms_android_get_device_product_name(env, deviceInfo);
-		card->internal_id = ms_android_get_device_id(env, deviceInfo);
+		card->name = ms_android_sound_utils_get_device_product_name(soundUtils, deviceInfo);
+		card->internal_id = ms_android_sound_utils_get_device_id(soundUtils, deviceInfo);
 		card->device_type = type;
 		card->device_description = deviceDescription;
 
@@ -97,31 +98,55 @@ static void android_snd_card_device_create(JNIEnv *env, jobject deviceInfo, Soun
 
 		// Card capabilities
 		// Assign the value because the default value is MS_SND_CARD_CAP_CAPTURE|MS_SND_CARD_CAP_PLAYBACK
-		card->capabilities = ms_android_get_device_capabilities(env, deviceInfo);
+		card->capabilities = ms_android_sound_utils_get_device_capabilities(soundUtils, deviceInfo);
 		if (deviceDescription->flags & DEVICE_HAS_CRAPPY_AAUDIO) {
 			ms_warning("[AAudio] Device has been dynamically blacklisted using DEVICE_HAS_CRAPPY_AAUDIO flag");
 			ms_snd_card_unref(card);
 			return;
 		}
 
+		bool isBottom = false;
 		if ((card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
+			char *address = ms_android_sound_utils_get_microphone_device_address(soundUtils, deviceInfo);
+			if (address != NULL && strcmp(address, "bottom") == 0) {
+				ms_message("[AAudio] Microphone device has [%s] address", address);
+				isBottom = true;
+			} else {
+				ms_message("[AAudio] Microphone device have [%s] address, assuming not bottom (back)", address);
+			}
 			if (deviceDescription->flags & DEVICE_HAS_BUILTIN_AEC) {
 				card->capabilities |= MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER;
 				card_data->builtin_aec = true;
 			}
+			if (address != NULL) {
+				ms_free(address);
+			}
 		}
 
 		card->latency = deviceDescription->delay;
-		if (deviceDescription->recommended_rate) {
-			//card_data->samplerate = deviceDescription->recommended_rate;
-		}
 
 		// Take capabilities into account as the same device type may have different components with different capabilities and IDs
 		if (!ms_snd_card_is_card_duplicate(m, card, TRUE)) {
 			ms_snd_card_manager_prepend_card(m, card);
-			ms_message("[AAudio] Added card with ID: [%s], name: [%s], device ID: [%0d], type: [%s] and capabilities: [%0d]", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
+			ms_message("[AAudio] Added card with ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 		} else {
-			ms_message("[AAudio] Card with ID: [%s], name: [%s], device ID: [%0d], type: [%s] and capabilities: [%0d] not added, considered as duplicate", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
+			if (ms_snd_card_get_device_type(card) == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_MICROPHONE) {
+				MSSndCard *duplicate = ms_snd_card_get_card_duplicate(m, card, TRUE);
+				if (duplicate) {
+					if (isBottom) {
+						ms_warning("[AAudio] Back microphone already added with device ID [%0d], removing it and adding bottom microphone ID [%0d] instead with back ID as alternative", duplicate->internal_id, card->internal_id);
+						card->alternative_id = duplicate->internal_id;
+						ms_snd_card_manager_prepend_card(m, card);
+						ms_snd_card_manager_remove_card(m, duplicate);
+					} else {
+						ms_message("[AAudio] Bottom microphone already added with device ID [%0d], storing back microphone ID [%0d] as alternative in it", duplicate->internal_id, card->internal_id);
+						duplicate->alternative_id = card->internal_id;
+					}
+					ms_snd_card_unref(duplicate);
+				}
+			} else {
+				ms_message("[AAudio] Card with ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d] not added, considered as duplicate", card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
+			}
 		}
 
 		ms_snd_card_unref(card);
