@@ -991,3 +991,7 @@ void media_stream_handle_fec(MediaStream *ms, RtpProfile *profile) {
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, fec_params);
 	fec_stream_init(ms->fec_stream);
 }
+
+void media_stream_enable_conference_local_mix(MediaStream *stream, bool_t enabled) {
+	stream->local_mix_conference = enabled;
+}

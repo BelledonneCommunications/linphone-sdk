@@ -156,6 +156,9 @@ struct _MediaStream {
 	MSVideoQualityController *video_quality_controller;
 	MediaStreamDir direction;
 	FecStream *fec_stream;
+	bool_t local_mix_conference; /**< true when this client stream is part of a conference perfoming mix locally -
+	                                conference server uses transfer session to forward the RTP packet not just the
+	                                payload */
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -390,6 +393,16 @@ MS2_PUBLIC void media_stream_handle_fec(MediaStream *stream, RtpProfile *profile
  * @return the send ssrc of the stream
  */
 MS2_PUBLIC uint32_t media_stream_get_send_ssrc(const MediaStream *stream);
+
+/**
+ * Enable/Disable the local conference mix capabilities. Enable it when the conference server is doing session transfer
+ * forwarding whole RTP packet not just the payload On a videostream: force instant resync on incoming SSRC change: so
+ * the active speaker session is able to switch from one session to another instantly On an audiostream: allow creation
+ * of bundled RtpSession upon reception of a new SSRC
+ *
+ * Do this setting before start
+ */
+MS2_PUBLIC void media_stream_enable_conference_local_mix(MediaStream *stream, bool_t enabled);
 
 typedef enum EchoLimiterType { ELInactive, ELControlMic, ELControlFull } EchoLimiterType;
 

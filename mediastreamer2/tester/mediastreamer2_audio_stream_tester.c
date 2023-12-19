@@ -1082,6 +1082,7 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	media_stream_set_direction(&marielle->ms, MediaStreamSendOnly);
 	media_stream_set_direction(&pauline->ms, MediaStreamSendOnly);
 	media_stream_set_direction(&margaux->ms, MediaStreamRecvOnly);
+	media_stream_enable_conference_local_mix(&margaux->ms, TRUE);
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_FILE);
 	char *arpeggio_file = bc_tester_res(ARPEGGIO_FILE);
