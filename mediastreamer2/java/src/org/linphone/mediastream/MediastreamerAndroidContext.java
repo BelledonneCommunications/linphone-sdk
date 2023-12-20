@@ -132,7 +132,7 @@ public class MediastreamerAndroidContext {
 		for (AudioDeviceInfo device : devices) {
 			int type = device.getType();
 			String stringType = getHumanReadableAudioDeviceType(type);
-			Log.i("[Audio Manager] Found device: name [" + device.getProductName() + "], ID [" + device.getId() + "], type [" + stringType + " (" + type + ")], isSource [" + device.isSource() + "], isSink [" + device.isSink() + "]");
+			Log.i("[Audio Manager] Found device: name [" + device.getProductName() + "], ID [" + device.getId() + "], type [" + stringType + " (" + type + ")], isSource [" + device.isSource() + "], isSink [" + device.isSink() + "], address [" + device.getAddress() + "]");
 		}
 		return devices;
 	}

@@ -44,7 +44,7 @@ static void log_handler(int lev, const char *fmt, va_list args) {
 	va_end(cap);
 #endif
 	if (log_file) {
-		bctbx_logv_out(BCTBX_LOG_DOMAIN, lev, fmt, args);
+		bctbx_logv(BCTBX_LOG_DOMAIN, lev, fmt, args);
 	}
 }
 
@@ -68,6 +68,7 @@ int mediastreamer2_tester_set_log_file(const char *filename) {
 #pragma deprecated(message_state_changed_cb)
 #endif
 	bctbx_set_log_file(log_file);
+	bctbx_set_log_handler(NULL);
 #if defined(__clang__) || ((__GNUC__ == 4 && __GNUC_MINOR__ >= 6) || __GNUC__ > 4)
 #pragma GCC diagnostic pop
 #endif

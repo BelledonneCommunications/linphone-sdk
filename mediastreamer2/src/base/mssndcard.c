@@ -211,6 +211,11 @@ void ms_snd_card_manager_prepend_card(MSSndCardManager *m, MSSndCard *c) {
 	m->cards = bctbx_list_prepend(m->cards, ms_snd_card_ref(c));
 }
 
+void ms_snd_card_manager_remove_card(MSSndCardManager *m, MSSndCard *c) {
+	m->cards = bctbx_list_remove(m->cards, c);
+	ms_snd_card_unref(c);
+}
+
 bool_t ms_snd_card_manager_swap_cards(MSSndCardManager *m, MSSndCard *card0, MSSndCard *card1) {
 
 	if (!card0) return FALSE;
@@ -359,6 +364,7 @@ MSSndCard *ms_snd_card_new_with_name(MSSndCardDesc *desc, const char *name) {
 	obj->data = NULL;
 	obj->id = NULL;
 	obj->internal_id = -1;
+	obj->alternative_id = -1;
 	obj->device_type = MS_SND_CARD_DEVICE_TYPE_UNKNOWN;
 	obj->capabilities = MS_SND_CARD_CAP_CAPTURE | MS_SND_CARD_CAP_PLAYBACK;
 	obj->streamType = MS_SND_CARD_STREAM_VOICE;

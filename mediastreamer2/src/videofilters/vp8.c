@@ -182,8 +182,9 @@ static void enc_init_impl(MSFilter *f) {
 #if TARGET_IPHONE_SIMULATOR
 	s->cfg.g_threads = 1; /*workaround to remove crash on ipad simulator*/
 #else
-	// We don't need more than 4 threads for encoder and we have to free thread space for decoders. This limitation is due to the inefficiency of spinlocks used by the libvpx.
-	s->cfg.g_threads= MIN(MAX(ms_factory_get_cpu_count(f->factory)-2,1),4);
+	// We don't need more than 4 threads for encoder and we have to free thread space for decoders. This limitation is
+	// due to the inefficiency of spinlocks used by the libvpx.
+	s->cfg.g_threads = MIN(MAX(ms_factory_get_cpu_count(f->factory) - 2, 1), 4);
 #endif
 	ms_message("VP8 g_threads=%d", s->cfg.g_threads);
 	s->cfg.rc_undershoot_pct = 95; /* --undershoot-pct=95 */
@@ -218,9 +219,10 @@ static void enc_init_impl(MSFilter *f) {
 	vpx_codec_control(&s->codec, VP8E_SET_CPUUSED, cpuused);
 	vpx_codec_control(&s->codec, VP8E_SET_STATIC_THRESHOLD, 0);
 	vpx_codec_control(&s->codec, VP8E_SET_ENABLEAUTOALTREF, !s->avpf_enabled);
-	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limite iFrame size to 4 pframe*/
+	vpx_codec_control(&s->codec, VP8E_SET_MAX_INTRA_BITRATE_PCT, 400); /*limit iFrame size to 4 pframe*/
 	if (s->flags & VPX_CODEC_USE_OUTPUT_PARTITION) {
-		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 2); /* Output 4 partitions per frame */
+		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS,
+		                  2 /*VP8_ONE_TOKENPARTITION*/); /* Output 4 partition per frame */
 	} else {
 		vpx_codec_control(&s->codec, VP8E_SET_TOKEN_PARTITIONS, 0);
 	}

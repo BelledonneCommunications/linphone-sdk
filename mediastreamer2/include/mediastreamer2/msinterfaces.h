@@ -100,7 +100,7 @@ struct _MSVideoDisplayDecodingSupport {
 #define MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID MS_FILTER_METHOD(MSFilterVideoDisplayInterface, 13, void *)
 
 /**triggered whenever the filter API throws errors*/
-#define MS_VIDEO_DISPLAY_ERROR_OCCURRED	MS_FILTER_EVENT(MSFilterVideoDisplayInterface, 0, int)
+#define MS_VIDEO_DISPLAY_ERROR_OCCURRED MS_FILTER_EVENT(MSFilterVideoDisplayInterface, 0, int)
 
 /**
  * Interface definitions for players
@@ -254,6 +254,7 @@ typedef struct _MSAudioRouteChangedEvent {
 #define MS_AUDIO_CAPTURE_MUTE MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 4, int)
 #define MS_AUDIO_CAPTURE_ENABLE_AEC MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 5, bool_t)
 #define MS_AUDIO_CAPTURE_ENABLE_VOICE_REC MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 6, bool_t)
+#define MS_AUDIO_CAPTURE_PLAYBACK_DEVICE_CHANGED MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 7, MSSndCard *)
 #define MS_AUDIO_CAPTURE_FORCE_SPEAKER_STATE MS_FILTER_METHOD(MSFilterAudioCaptureInterface, 255, bool_t)
 
 #define MS_AUDIO_ROUTE_CHANGED MS_FILTER_EVENT(MSFilterAudioCaptureInterface, 0, MSAudioRouteChangedEvent)

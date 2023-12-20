@@ -69,10 +69,12 @@ void H26xDecoderFilter::process() {
 			}
 		}
 		/*
-		 * Feed the decoder implementation with the full frame.
-		 * In case of feeding error (such too many buffers queued), we will request a PLI.
+		 * Feed the decoder implementation with the full frame, which is supposed to be complete.
+		 * If a key-frame is requested, feed() will return false.
+		 * In case of feeding error (such as too many buffers queued), we will request a PLI.
+		 * Otherwise, if feed() succeeds, it means that decoding is on its way.
 		 */
-		if (!_codec->feed(&frame, ms_get_cur_time_ms())) requestPli = true;
+		requestPli = !_codec->feed(&frame, ms_get_cur_time_ms());
 
 		if (requestPli && _freezeOnError) {
 			/* In freeze on error mode, regardless of the decoding failure cause, we must restart with a key-frame. */

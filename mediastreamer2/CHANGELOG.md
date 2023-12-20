@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.3.0] - 2023-12-18
+
+### Added
+- AV1 codec added
+- SRTP GCM mode
+- Add MS_FILTER_IS_HW_ACCELERATED MSFilter flag to advertise hw-accelerated codecs
+- Dummy codec, to avoid fatal errors when a encoder/decoder is not available
+- Double SRTP encryption (experimental)
+
+### Changed
+- Removed legacy platform abstraction code, now provided by bctoolbox.
+- Various optimisations for video processing on Android platform
+
+### Fixed
+- Fix buffer overflow in GenericPLC filter.
+- Issue with H264 decoding of malformed RTP streams
+
 ## [5.2.0] - 2022-11-14
 
 ### Added
