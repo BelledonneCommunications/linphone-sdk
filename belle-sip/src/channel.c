@@ -339,7 +339,10 @@ static void uncompress_body_if_required(belle_sip_message_t *msg) {
 				    belle_sip_message_get_header_by_type(msg, belle_sip_header_content_length_t);
 				belle_sip_header_content_length_set_content_length(
 				    content_length, belle_sip_body_handler_get_size(BELLE_SIP_BODY_HANDLER(mbh)));
+				belle_sip_header_t *xceh =
+				    belle_sip_header_create("X-BelleSip-Removed-Content-Encoding", content_encoding);
 				belle_sip_message_remove_header_from_ptr(msg, ceh);
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(msg), xceh);
 				if (content_type && (strcmp(belle_sip_header_content_type_get_type(content_type), "multipart") == 0)) {
 					const char *boundary =
 					    belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(content_type), "boundary");

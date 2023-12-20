@@ -160,6 +160,7 @@ int stream_channel_connect(belle_sip_stream_channel_t *obj, const struct addrinf
 	belle_sip_socket_set_nonblocking(sock);
 	if (obj->base.stack->dscp && obj->base.lp) {
 		/*apply dscp only to channel belonging to a SIP listening point*/
+		belle_sip_message("DSCP value [%i] requested for this connection.", obj->base.stack->dscp);
 		belle_sip_socket_set_dscp(sock, obj->base.ai_family, obj->base.stack->dscp);
 	}
 	if (ai->ai_family == AF_INET6 && stack->test_bind_port == 0) {
