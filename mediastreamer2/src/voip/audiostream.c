@@ -585,10 +585,11 @@ static void plumb_av_player(AudioStream *stream) {
 	if (player->decoder) ms_connection_helper_link(&ch, player->decoder, 0, 0);
 	ms_connection_helper_link(&ch, player->resampler, 0, 0);
 	/*detach the outbound graph before attaching to the outbound mixer*/
-	if (reattach) ms_ticker_detach(stream->ms.sessions.ticker, stream->soundread);
+	MSTicker *soundread_ticker = stream->soundread->ticker;
+	if (reattach && soundread_ticker) ms_ticker_detach(soundread_ticker, stream->soundread);
 	ms_connection_helper_link(&ch, stream->outbound_mixer, 1, -1);
 	/*and attach back*/
-	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker, stream->soundread);
+	if (reattach && soundread_ticker) ms_ticker_attach(soundread_ticker, stream->soundread);
 	player->plumbed = TRUE;
 }
 
