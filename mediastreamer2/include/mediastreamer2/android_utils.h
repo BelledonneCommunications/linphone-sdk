@@ -37,7 +37,34 @@ struct _AndroidSoundUtils {
 	jmethodID isAudioRouteChangesDisabled;
 	jmethodID startBluetooth;
 	jmethodID stopBluetooth;
+	jmethodID enableEarpiece;
+	jmethodID enableSpeaker;
+	jmethodID hackVolume;
+	jmethodID clearCommunicationDevice;
+	jmethodID setCommunicationDevice;
 
+	jmethodID getAudioDevices;
+	jmethodID getAudioDeviceId;
+	jmethodID getAudioDeviceAddress;
+	jmethodID getAudioDeviceType;
+	jmethodID isAudioDeviceSink;
+	jmethodID isAudioDeviceSource;
+	jmethodID getAudioDeviceProductName;
+	int audioDeviceTypeBluetoothSco;
+	int audioDeviceTypeBluetoothA2dp;
+	int audioDeviceTypeBuiltinEarpiece;
+	int audioDeviceTypeBuiltinMicrophone;
+	int audioDeviceTypeWiredHeadphones;
+	int audioDeviceTypeUsbDevice;
+	int audioDeviceTypeAuxLine;
+	int audioDeviceTypeTelephony;
+	int audioDeviceTypeBluetoothSpeaker;
+	int audioDeviceTypeBuiltinSpeakerSafe;
+	int audioDeviceTypeBuiltinSpeaker;
+	int audioDeviceTypeBluetoothHeadset;
+	int audioDeviceTypeUsbHeadset;
+	int audioDeviceTypeWiredHeadset;
+	int audioDeviceTypeHearingAid;
 	MSDevicesInfo *devices_info;
 
 	int sdkVersion;
@@ -95,9 +122,29 @@ MS2_PUBLIC void ms_android_sound_utils_release_hardware_echo_canceller(const And
  **/
 MS2_PUBLIC void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils);
 
+MS2_PUBLIC jobjectArray ms_android_sound_utils_get_devices(const AndroidSoundUtils *utils, const char *dir);
+
+MS2_PUBLIC unsigned int ms_android_sound_utils_get_device_id(const AndroidSoundUtils *utils, jobject deviceInfo);
+
+MS2_PUBLIC char *ms_android_sound_utils_get_microphone_device_address(const AndroidSoundUtils *utils,
+                                                                      jobject deviceInfo);
+
+MS2_PUBLIC MSSndCardDeviceType ms_android_sound_utils_get_device_type(const AndroidSoundUtils *utils,
+                                                                      jobject deviceInfo);
+
+MS2_PUBLIC unsigned int ms_android_sound_utils_get_device_capabilities(const AndroidSoundUtils *utils,
+                                                                       jobject deviceInfo);
+
+MS2_PUBLIC char *ms_android_sound_utils_get_device_product_name(const AndroidSoundUtils *utils, jobject deviceInfo);
+
+MS2_PUBLIC void
+ms_android_sound_utils_change_device(const AndroidSoundUtils *utils, int deviceID, MSSndCardDeviceType type);
+
 #ifdef __cplusplus
 }
 #endif
+
+/** Deprecated **/
 
 /**
  * Retrieve all devices in a given direction.
@@ -116,11 +163,6 @@ MS2_PUBLIC unsigned int ms_android_get_device_id(JNIEnv *env, jobject deviceInfo
 MS2_PUBLIC bool ms_android_get_microphone_device_is_bottom(JNIEnv *env, jobject deviceInfo);
 
 /**
- * Retrieve the value of a JV class field fieldName.
- **/
-MS2_PUBLIC int ms_android_getJVIntField(JNIEnv *env, const char *className, const char *fieldName);
-
-/**
  * Retrieve device type for the device deviceInfo.
  **/
 MS2_PUBLIC MSSndCardDeviceType ms_android_get_device_type(JNIEnv *env, jobject deviceInfo);
@@ -136,16 +178,9 @@ MS2_PUBLIC unsigned int ms_android_get_device_capabilities(JNIEnv *env, jobject 
 MS2_PUBLIC char *ms_android_get_device_product_name(JNIEnv *env, jobject deviceInfo);
 
 /**
- * Retrieve SDK version the app is running on.
- **/
-MS2_PUBLIC int ms_android_get_sdk_version(JNIEnv *env);
-
-/**
  * Make upcalls to change device from mediastreamer.
  **/
 MS2_PUBLIC void ms_android_change_device(JNIEnv *env, int deviceID, MSSndCardDeviceType type);
-
-/** Deprecated **/
 
 /**
  * Retrieve whether or not RECORD_AUDIO permission has been granted.
@@ -171,6 +206,11 @@ MS2_PUBLIC void ms_android_set_bt_enable(JNIEnv *env, const bool_t enable);
  * Hack required to have volume not set to 0 on some devices
  **/
 MS2_PUBLIC void ms_android_hack_volume(JNIEnv *env);
+
+/**
+ * Retrieve SDK version the app is running on.
+ **/
+MS2_PUBLIC int ms_android_get_sdk_version(JNIEnv *env);
 
 #ifdef __cplusplus
 extern "C" {
