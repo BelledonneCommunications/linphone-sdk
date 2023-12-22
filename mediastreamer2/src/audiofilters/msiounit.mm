@@ -374,6 +374,8 @@ ms_mutex_t mutex;
 
 	time_start = bctbx_get_cur_time_ms();
 	ms_message("configure_audio_unit() now called.");
+	
+	apply_sound_card_to_audio_session(_ms_snd_card);
 
 	AudioStreamBasicDescription audioFormat;
 	/*card sampling rate is fixed at that time*/
