@@ -41,7 +41,7 @@ execute_process(
 	COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${LINPHONESDK_DIR}/cmake/IOS/Tools/deploy.sh" "${CMAKE_INSTALL_PREFIX}/Tools"
 )
 execute_process(
-	COMMAND "zip" "-r" "linphone-sdk-ios-${LINPHONESDK_VERSION}.zip" "${LINPHONESDK_NAME}" "-i" "${LINPHONESDK_NAME}/apple-darwin/*"
+	COMMAND "zip" "-r" "${LINPHONESDK_NAME}.zip" "${LINPHONESDK_NAME}" "-i" "${LINPHONESDK_NAME}/apple-darwin/*"
 	WORKING_DIRECTORY "${LINPHONESDK_BUILD_DIR}"
 )
 
