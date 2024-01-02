@@ -40,8 +40,8 @@ struct _MSBandwidthController {
 	bctbx_list_t *streams;            /*list of MediaStream objects*/
 	bctbx_list_t *controlled_streams; /*the most bandwidth consuming streams*/
 	MSBandwidthControllerStats stats;
-	float remote_video_bandwidth_available_estimated;
-	float remote_audio_bandwidth_available_estimated;
+	float download_video_bandwidth_available_estimated;
+	float download_audio_bandwidth_available_estimated;
 	float maximum_bw_usage;
 	float currently_requested_stream_bandwidth; // According to congestion control and bandwith estimator only.
 	bool_t congestion_detected;
