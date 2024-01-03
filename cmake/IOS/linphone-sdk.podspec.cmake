@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
     }
   s.author       = { 'Belledonne Communications SARL' => 'linphone-iphone@belledonne-communications.com' }
   s.platform     = :ios, "12.0"
-  s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@/linphone-sdk-ios-@LINPHONESDK_VERSION@.zip" }
+  s.source       = { :http => "@LINPHONESDK_IOS_BASE_URL@/@LINPHONESDK_NAME@-@LINPHONESDK_VERSION@.zip" }
   s.vendored_frameworks = "@LINPHONESDK_NAME@/apple-darwin/@LINPHONESDK_FRAMEWORK_FOLDER@/**"
   s.pod_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
   s.user_target_xcconfig = { 'VALID_ARCHS' => "@VALID_ARCHS@" }
