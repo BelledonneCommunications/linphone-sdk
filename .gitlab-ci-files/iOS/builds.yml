@@ -82,7 +82,7 @@ ios-makefile:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
     - !reference [.choose_url_ios, script]
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}"
     - !reference [.ios, script]
   extends: .ios
 
@@ -179,7 +179,7 @@ ios-xcode:
     - DESCRIBE=$(git -C liblinphone describe)
     - echo $DESCRIBE
     - !reference [.choose_url_ios, script]
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}"
     - !reference [.ios, script]
 
   extends: .ios
@@ -208,7 +208,7 @@ ios-xcode-novideo:
     - echo $DESCRIBE
 
     - !reference [.choose_url_ios, script]
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/novideo/"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/novideo/"
     - !reference [.ios, script]
   extends: .ios
 
@@ -227,7 +227,7 @@ ios-xcode-pqc:
     - echo $DESCRIBE
 
     - !reference [.choose_url_ios, script]
-    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=$IOS_URL/pqc/"
+    - UPLOAD_CMAKE_OPTIONS="-DLINPHONESDK_IOS_BASE_URL=${IOS_URL}/pqc/"
     - !reference [.ios, script]
   extends: ios-xcode
 
