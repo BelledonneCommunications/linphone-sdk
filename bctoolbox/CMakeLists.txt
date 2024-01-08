@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BCToolbox VERSION 5.3.0)
+project(BCToolbox VERSION 5.4.0)
 
 set(BCTOOLBOX_VERSION "${PROJECT_VERSION}")
 set(BCTOOLBOX_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
