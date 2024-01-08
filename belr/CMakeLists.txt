@@ -23,7 +23,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(Belr VERSION 5.3.0 LANGUAGES C CXX)
+project(Belr VERSION 5.4.0 LANGUAGES C CXX)
 
 set(BELR_SO_VERSION "1")
 
