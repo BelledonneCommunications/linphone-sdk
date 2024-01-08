@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(BelleSIP VERSION 5.3.0 LANGUAGES C CXX)
+project(BelleSIP VERSION 5.4.0 LANGUAGES C CXX)
 
 set(PACKAGE "${PROJECT_NAME}")
 set(PACKAGE_NAME "${PROJECT_NAME}")
