@@ -22,7 +22,7 @@
 
 cmake_minimum_required(VERSION 3.22)
 
-project(Mediastreamer2 VERSION 5.3.0 LANGUAGES C CXX)
+project(Mediastreamer2 VERSION 5.4.0 LANGUAGES C CXX)
 
 if(WIN32)
     if( NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
