@@ -49,7 +49,7 @@ unsigned long IOSUtilsApp::beginBackgroundTask(const char *name, std::function<v
 		} else {
 			bgid = [app beginBackgroundTaskWithExpirationHandler:handler];
 		}
-		
+
 		if (bgid==UIBackgroundTaskInvalid){
 			bctbx_error("Could not start background task %s.", name);
 			bgid = 0;
@@ -57,7 +57,8 @@ unsigned long IOSUtilsApp::beginBackgroundTask(const char *name, std::function<v
 		}
 		
 		// backgroundTimeRemaining is properly set only when running background... but not immediately!
-		if (app.applicationState != UIApplicationStateBackground || (app.backgroundTimeRemaining == DBL_MAX)) {
+		// removed app.applicationState check because not thread safe
+		if (app.backgroundTimeRemaining == DBL_MAX) {
 			bctbx_message("Background task %s started. Unknown remaining time since application is not fully in background.", name);
 		} else {
 			bctbx_message("Background task %s started. Remaining time %.1f secs", name, app.backgroundTimeRemaining);
