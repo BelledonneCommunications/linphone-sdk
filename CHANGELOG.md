@@ -13,8 +13,8 @@ changes made to these components.
 
 
 ## [5.4.0] unreleased
-
-
+### Changed
+- Update macOS deployment target version to 10.15 and iOS deployment target version to iOS13
  
 
 ## [5.3.0] 2023-12-18
