@@ -229,8 +229,6 @@ endif()
 if(ENABLE_VIDEO)
 	list(APPEND VOIP_SOURCE_FILES_C
 		utils/bits_rw.c
-		utils/key-frame-indicator/header-extension-key-frame-indicator.cpp
-		utils/key-frame-indicator/vp8-key-frame-indicator.cpp
 		videofilters/extdisplay.c
 		videofilters/msanalysedisplay.c
 		videofilters/mire.c
@@ -251,6 +249,10 @@ if(ENABLE_VIDEO)
 		voip/videostream.c
 		voip/vp8rtpfmt.c
 		voip/vp8rtpfmt.h
+	)
+	list(APPEND VOIP_SOURCE_FILES_CXX
+		utils/key-frame-indicator/header-extension-key-frame-indicator.cpp
+		utils/key-frame-indicator/vp8-key-frame-indicator.cpp
 	)
 	if(FFMpeg_FOUND AND NOT TurboJpeg_FOUND)
 		list(APPEND VOIP_SOURCE_FILES_C
