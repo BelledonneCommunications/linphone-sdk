@@ -43,6 +43,7 @@ struct _MSWebCamManager {
 	MSFactory *factory;
 	MSList *cams;
 	MSList *descs;
+	int desired_whitebalance;
 };
 
 /**
@@ -184,6 +185,22 @@ MS2_PUBLIC void ms_web_cam_manager_register_desc(MSWebCamManager *m, MSWebCamDes
  * @param m A webcam manager
  **/
 MS2_PUBLIC void ms_web_cam_manager_reload(MSWebCamManager *m);
+
+/**
+ * Sets the desired whitebalance.
+ *
+ * @param m A webcam manager
+ * @param whitebalance the desired whitebalance, -1 to disable.
+ **/
+MS2_PUBLIC void ms_web_cam_manager_set_whitebalance(MSWebCamManager *m, int whitebalance);
+
+/**
+ * Gets the configured value for whitebalance.
+ *
+ * @param m A webcam manager
+ * @return the configured whitebalance, -1 if not set or disabled.
+ **/
+MS2_PUBLIC int ms_web_cam_manager_get_whitebalance(MSWebCamManager *m);
 
 /**
  * Create an INPUT filter based on the selected camera.

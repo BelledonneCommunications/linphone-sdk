@@ -30,6 +30,7 @@
 MSWebCamManager *ms_web_cam_manager_new(void) {
 	MSWebCamManager *obj = (MSWebCamManager *)ms_new0(MSWebCamManager, 1);
 	obj->factory = NULL;
+	obj->desired_whitebalance = -1;
 	return obj;
 }
 
@@ -114,6 +115,14 @@ void ms_web_cam_manager_reload(MSWebCamManager *m) {
 	m->cams = NULL;
 	for (elem = m->descs; elem != NULL; elem = elem->next)
 		cam_detect(m, (MSWebCamDesc *)elem->data);
+}
+
+void ms_web_cam_manager_set_whitebalance(MSWebCamManager *m, int whitebalance) {
+	m->desired_whitebalance = whitebalance;
+}
+
+int ms_web_cam_manager_get_whitebalance(MSWebCamManager *m) {
+	return m->desired_whitebalance;
 }
 
 MSWebCam *ms_web_cam_new(MSWebCamDesc *desc) {
