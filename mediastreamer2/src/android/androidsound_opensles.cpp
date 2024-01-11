@@ -374,6 +374,18 @@ static void android_native_snd_card_uninit(MSSndCard *card) {
 	delete ctx;
 }
 
+static void android_snd_card_usage_hint(MSSndCard *card, bool_t used) {
+	if (!used) {
+		if ((card->capabilities & MS_SND_CARD_CAP_PLAYBACK) == MS_SND_CARD_CAP_PLAYBACK) {
+			ms_message(
+			    "[OpenSLES] Sound card not needed anymore, making sure the earpiece is the default audio route in "
+			    "Android's AudioManager");
+			JNIEnv *env = ms_get_jni_env();
+			ms_android_change_device(env, -1, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
+		}
+	}
+}
+
 static void opensles_reset_recorder(OpenSLESInputContext *ictx) {
 	if (ictx->recorderObject != NULL) {
 		(*ictx->recorderObject)->Destroy(ictx->recorderObject);
@@ -1113,10 +1125,6 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 		octx->outputMixObject = NULL;
 	}
 
-	// At the end of a call, postprocess is called therefore here the output device can be changed to earpiece in the
-	// audio manager
-	JNIEnv *env = ms_get_jni_env();
-	ms_android_change_device(env, -1, MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE);
 	free(octx->playBuffer[0]);
 	octx->playBuffer[0] = NULL;
 	free(octx->playBuffer[1]);
@@ -1151,17 +1159,13 @@ static MSFilter *ms_android_snd_write_new(MSFactory *factory) {
 	return f;
 }
 
-MSSndCardDesc android_native_snd_opensles_card_desc = {"openSLES",
-                                                       android_snd_card_detect,
-                                                       android_native_snd_card_init,
-                                                       NULL,
-                                                       NULL,
-                                                       NULL,
-                                                       NULL,
-                                                       NULL,
-                                                       android_snd_card_create_reader,
-                                                       android_snd_card_create_writer,
-                                                       android_native_snd_card_uninit};
+MSSndCardDesc android_native_snd_opensles_card_desc = {.driver_type = "openSLES",
+                                                       .detect = android_snd_card_detect,
+                                                       .init = android_native_snd_card_init,
+                                                       .create_reader = android_snd_card_create_reader,
+                                                       .create_writer = android_snd_card_create_writer,
+                                                       .uninit = android_native_snd_card_uninit,
+                                                       .usage_hint = android_snd_card_usage_hint};
 
 static void snd_card_device_create_extra_fields(BCTBX_UNUSED(MSSndCardManager *m),
                                                 MSSndCard *card,

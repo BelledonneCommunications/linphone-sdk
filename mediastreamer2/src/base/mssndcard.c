@@ -498,7 +498,9 @@ struct _MSFilter *ms_snd_card_create_writer(MSSndCard *obj) {
 }
 
 void ms_snd_card_set_usage_hint(MSSndCard *obj, bool_t is_going_to_be_used) {
-	if (obj->desc->usage_hint != NULL) obj->desc->usage_hint(obj, is_going_to_be_used);
+	if (obj->desc->usage_hint != NULL) {
+		obj->desc->usage_hint(obj, is_going_to_be_used);
+	}
 }
 
 void ms_snd_card_notify_audio_session_activated(MSSndCard *obj, bool_t activated) {
