@@ -491,6 +491,13 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	if (camera_status != ACAMERA_OK) {
 		ms_error("[Camera2 Capture] Failed to create capture preview request, error is %s", android_camera2_status_to_string(camera_status));
 	}
+	
+	uint8_t awbMode = d->filter->factory->wbcmanager->desired_whitebalance;
+	if (awbMode >= 0) {
+		// See https://developer.android.com/ndk/reference/group/camera#group___camera_1gaadc7ea8989b8b00ee2a7670fb3a7221b for possible values
+		ms_message("[Camera2 Capture] Asking for ACAMERA_CONTROL_AWB_MODE with value [%i]", awbMode);
+		ACaptureRequest_setEntry_u8(d->capturePreviewRequest, ACAMERA_CONTROL_AWB_MODE, 1, &awbMode);
+	}
 
 	camera_status = ACameraOutputTarget_create(d->nativeWindow, &d->cameraPreviewOutputTarget);
 	if (camera_status != ACAMERA_OK) {
