@@ -101,6 +101,8 @@ struct _MSMediaStreamSessions {
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
+	bctbx_list_t *bundledSndRtpSessions; /**< a list of RtpSessions created by the mediatream on outgoing SSRC
+	                                        multiplexed in a bundle */
 };
 
 #ifndef MS_MEDIA_STREAM_SESSIONS_DEFINED
@@ -549,6 +551,8 @@ struct _AudioStream {
 	uint32_t active_speaker_ssrc;
 	MSAudioRouteChangedCallback audio_route_changed_cb;
 	void *audio_route_changed_cb_user_data;
+	bool_t transfer_mode; /** When enable and the session is part of a bundle, a new SSRC detected on outgoing packet
+	                         will create a new RTP Session in transfer mode */
 	bctbx_list_t *bundledRecvBranches; /**< a list of AudioStreamMixedRecvBranch added upon reception of new stream in a
 	                                      locally mixed audio conference */
 };
@@ -1056,6 +1060,12 @@ MS2_PUBLIC uint32_t audio_stream_get_recv_ssrc(const AudioStream *stream);
  */
 MS2_PUBLIC uint32_t audio_stream_get_send_ssrc(const AudioStream *stream);
 
+/**
+ * When the stream is in transfer mode, new RTP Sessions are generated
+ * when a new SSRC is detected in an outgoing packet
+ * to be done before start
+ *  */
+MS2_PUBLIC void audio_stream_enable_transfer_mode(AudioStream *stream, bool_t enable);
 /* Map api to be able to keep participants volumes */
 typedef struct _AudioStreamVolumes AudioStreamVolumes;
 

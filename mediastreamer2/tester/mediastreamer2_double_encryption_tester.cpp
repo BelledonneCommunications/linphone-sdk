@@ -131,15 +131,14 @@ static void new_ssrc_outgoing_in_bundle(RtpSession *session, void *mp, void *s, 
 	rtp_session_enable_rtcp(*newSession, FALSE);
 	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
 	(*newSession)->snd.ssrc = ssrc;
+	(*newSession)->ssrc_out_set = TRUE;
 	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
 
-	// the session list holds 3 sessions, use them one after the other to create sessions
+	// the session list holds 2 sessions, use them one after the other to create sessions
 	if (*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) == NULL) {
 		*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) = *newSession;
 	} else if (*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) == NULL) {
 		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) = *newSession;
-	} else {
-		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(bctbx_list_next(relay_sessions_list)))) = *newSession;
 	}
 }
 
@@ -404,6 +403,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	margaux.zrtp_context = NULL;
 	margaux.dtls_context = NULL;
 	margaux.ticker = NULL;
+	margaux.bundledSndRtpSessions = NULL;
 
 	/* the relay needs to open rtp session with all endpoints, 2 bundled sessions for margaux. Relay's RtpSession are
 	 * all in transfer mode  */
@@ -416,10 +416,10 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_margaux_marielle, RELAY_PAYLOAD_TYPE);
-	RtpSession *rtpSession_relay_margaux_marielle_autodiscovered = NULL;
 	RtpSession *rtpSession_relay_margaux_marielle_bis = NULL;
 	RtpSession *rtpSession_relay_margaux_pauline = NULL;
 	if (p.autodiscoverBundleSessions == false) {
+		rtpSession_relay_margaux_marielle->ssrc_out_set = TRUE;
 		// relay_margaux: secondary session in the bundle, minimal settings
 		rtpSession_relay_margaux_pauline = rtp_session_new(RTP_SESSION_SENDONLY);
 		rtp_session_set_profile(rtpSession_relay_margaux_pauline, profile);
@@ -427,6 +427,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		                                 TRUE); // relay rtp session is in transfer mode
 		rtp_session_enable_rtcp(rtpSession_relay_margaux_pauline, FALSE);
 		rtp_session_set_payload_type(rtpSession_relay_margaux_pauline, RELAY_PAYLOAD_TYPE);
+		rtpSession_relay_margaux_pauline->ssrc_out_set = TRUE;
 
 		if (p.useBundledSource) { // Marielle source bundles two sessions so margaux receives 3
 			rtpSession_relay_margaux_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
@@ -435,11 +436,11 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 			                                 TRUE); // relay rtp session is in transfer mode
 			rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle_bis, FALSE);
 			rtp_session_set_payload_type(rtpSession_relay_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
+			rtpSession_relay_margaux_marielle_bis->ssrc_out_set = TRUE;
 		}
 	} else {
 		// set the additional relay sessions pointers in a list, so we can get them in the callback in charge of their
 		// creation
-		relay_sessions_list = bctbx_list_new(&rtpSession_relay_margaux_marielle_autodiscovered);
 		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_marielle_bis);
 		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_pauline);
 
@@ -481,6 +482,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_margaux.zrtp_context = NULL;
 	relay_margaux.dtls_context = NULL;
 	relay_margaux.ticker = NULL;
+	relay_margaux.bundledSndRtpSessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -500,6 +502,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_marielle.zrtp_context = NULL;
 	relay_marielle.dtls_context = NULL;
 	relay_marielle.ticker = NULL;
+	relay_marielle.bundledSndRtpSessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -541,6 +544,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_pauline.zrtp_context = NULL;
 	relay_pauline.dtls_context = NULL;
 	relay_pauline.ticker = NULL;
+	relay_pauline.bundledSndRtpSessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -561,6 +565,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	marielle.zrtp_context = NULL;
 	marielle.dtls_context = NULL;
 	marielle.ticker = NULL;
+	marielle.bundledSndRtpSessions = NULL;
 	RtpSession *rtpSession_marielle_bis = NULL;
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (p.useBundledSource) { // Marielle bundles two sessions
@@ -594,6 +599,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	pauline.zrtp_context = NULL;
 	pauline.dtls_context = NULL;
 	pauline.ticker = NULL;
+	pauline.bundledSndRtpSessions = NULL;
 
 	/* set outer keys */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&marielle, p.outerSuite, marielle_outer_key,
@@ -1040,9 +1046,6 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	ms_media_stream_sessions_uninit(&relay_marielle);
 	ms_media_stream_sessions_uninit(&relay_margaux); // This will destroy rtpSession_relay_margaux_marielle
 	rtp_session_destroy(rtpSession_relay_margaux_pauline);
-	if (p.autodiscoverBundleSessions == true) {
-		rtp_session_destroy(rtpSession_relay_margaux_marielle_autodiscovered);
-	}
 	ms_media_stream_sessions_uninit(&relay_pauline);
 
 	return error == false;

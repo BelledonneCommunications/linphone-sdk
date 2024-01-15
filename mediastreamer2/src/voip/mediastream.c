@@ -203,6 +203,14 @@ const char *media_stream_type_str(MediaStream *stream) {
 	return ms_format_type_to_string(stream->type);
 }
 
+static void ms_media_stream_bundle_snd_sessions_free(void *b) {
+	RtpSession *session = (RtpSession *)b;
+	if (session->bundle != NULL) {
+		rtp_bundle_remove_session(session->bundle, session);
+	}
+	rtp_session_destroy(session);
+}
+
 void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions) {
 	if (sessions->srtp_context) {
 		ms_srtp_context_delete(sessions->srtp_context);
@@ -224,6 +232,11 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions) {
 	if (sessions->ticker) {
 		ms_ticker_destroy(sessions->ticker);
 		sessions->ticker = NULL;
+	}
+
+	if (sessions->bundledSndRtpSessions != NULL) {
+		bctbx_list_free_with_data(sessions->bundledSndRtpSessions, ms_media_stream_bundle_snd_sessions_free);
+		sessions->bundledSndRtpSessions = NULL;
 	}
 }
 

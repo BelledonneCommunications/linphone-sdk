@@ -1382,6 +1382,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legA.zrtp_context = NULL;
 	sessions_legA.dtls_context = NULL;
 	sessions_legA.ticker = ms_ticker_new();
+	sessions_legA.bundledSndRtpSessions = NULL;
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legA, MS_EKT_TRANSFER);
 	} else {
@@ -1414,6 +1415,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legB.zrtp_context = NULL;
 	sessions_legB.dtls_context = NULL;
 	sessions_legB.ticker = ms_ticker_new();
+	sessions_legB.bundledSndRtpSessions = NULL;
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legB, MS_EKT_TRANSFER);
 	} else {
