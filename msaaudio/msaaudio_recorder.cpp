@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <mediastreamer2/android_utils.h>
 #include <mediastreamer2/msjava.h>
 #include <mediastreamer2/msticker.h>
 
@@ -117,12 +118,17 @@ static void aaudio_recorder_init(AAudioInputContext *ictx) {
 		ms_error("[AAudio Recorder] Couldn't create stream builder for recorder: %i / %s", result, AAudio_convertResultToText(result));
 	}
 
-	if (ictx->deviceId == -1) {
-		ms_warning("[AAudio Recorder] Invalid device ID set [-1], using soundCard internal ID insread [%0d]", ictx->soundCard->internal_id);
-		ictx->deviceId = ictx->soundCard->internal_id;
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
+		ms_warning("[AAudio Recorder] Not using any device ID because audio route changes are disabled by configuration");
+	} else {
+		if (ictx->deviceId == -1) {
+			ms_warning("[AAudio Recorder] Invalid device ID set [-1], using soundCard internal ID insread [%0d]", ictx->soundCard->internal_id);
+			ictx->deviceId = ictx->soundCard->internal_id;
+		}
+
+		AAudioStreamBuilder_setDeviceId(builder, ictx->deviceId);
+		ms_message("[AAudio Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->deviceId);
 	}
-	AAudioStreamBuilder_setDeviceId(builder, ictx->deviceId);
-	ms_message("[AAudio Recorder] Using device ID: %s (%i)", ictx->soundCard->id, ictx->deviceId);
 	
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
 	AAudioStreamBuilder_setSampleRate(builder, ictx->sample_rate);
@@ -377,14 +383,22 @@ static int android_snd_read_get_nchannels(MSFilter *obj, void *data) {
 }
 
 static void android_snd_read_set_internal_device_id(AAudioInputContext *ictx, int internal_id) {
-	ictx->deviceId = internal_id;
-	ictx->aaudio_context->device_changed = true;
-	ms_message("[AAudio Recorder] Internal ID changed to [%0d], waiting for next process() to restart the recorder", internal_id);
+	if (!ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
+		ictx->deviceId = internal_id;
+		ictx->aaudio_context->device_changed = true;
+		ms_message("[AAudio Recorder] Internal ID changed to [%0d], waiting for next process() to restart the recorder", internal_id);
+	}
 }
 
 static int android_snd_read_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
 	AAudioInputContext *ictx = static_cast<AAudioInputContext*>(obj->data);
+
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
+		ms_warning("[AAudio Recorder] Audio route changes have been disabled, do not alter device ID");
+		return -1;
+	}
+
 	ms_message("[AAudio Recorder] Sound card is being changed from ID [%s], device ID [%0d] to ID [%s], name [%s], device ID [%0d], type [%s] and capabilities [%0d]", ictx->soundCard->id, ictx->deviceId, card->id, card->name, card->internal_id, ms_snd_card_device_type_to_string(card->device_type), card->capabilities);
 	// Change device ID only if the new value is different from the previous one
 	if (ictx->deviceId != card->internal_id) {
@@ -439,13 +453,18 @@ static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
 	bool *enabled = (bool*)data;
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ictx->voiceRecognitionMode = !!(*enabled);
-	if (ictx->soundCard->alternative_id != -1) {
-		if (ictx->voiceRecognitionMode) {
-			ms_message("[AAudio Recorder] An alternative ID is set on the microphone, using it for voice recognition");
-			ictx->deviceId = ictx->soundCard->alternative_id;
-		} else {
-			ms_message("[AAudio Recorder] An alternative ID is set on the microphone but voice recognition is not enabled, using main ID");
-			ictx->deviceId = ictx->soundCard->internal_id;
+
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
+		ms_warning("[AAudio Recorder] Audio route changes disabled, do not alter device ID (but voice recognition mode was changed)");
+	} else {
+		if (ictx->soundCard->alternative_id != -1) {
+			if (ictx->voiceRecognitionMode) {
+				ms_message("[AAudio Recorder] An alternative ID is set on the microphone, using it for voice recognition");
+				ictx->deviceId = ictx->soundCard->alternative_id;
+			} else {
+				ms_message("[AAudio Recorder] An alternative ID is set on the microphone but voice recognition is not enabled, using main ID");
+				ictx->deviceId = ictx->soundCard->internal_id;
+			}
 		}
 	}
 	return 0;

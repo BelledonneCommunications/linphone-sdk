@@ -19,7 +19,9 @@
 
 #include <string.h>
 
-#include "mediastreamer2/msjava.h"
+#include <mediastreamer2/android_utils.h>
+#include <mediastreamer2/msjava.h>
+
 #include <msaaudio/msaaudio.h>
 
 static const int flowControlIntervalMs = 5000;
@@ -180,8 +182,13 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	octx->updateStreamTypeFromMsSndCard();
-	AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
-	ms_message("[AAudio Player] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(octx->sound_utils)) {
+		ms_warning("[AAudio Player] Not using any device ID because audio route changes are disabled by configuration");
+	} else {
+		AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
+		ms_message("[AAudio Player] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
+	}
+
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
 	AAudioStreamBuilder_setSampleRate(builder, octx->sample_rate);
 	AAudioStreamBuilder_setDataCallback(builder, aaudio_player_callback, octx);
@@ -369,6 +376,12 @@ static void android_snd_write_postprocess(MSFilter *obj) {
 static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 	MSSndCard *card = (MSSndCard*)data;
 	AAudioOutputContext *octx = static_cast<AAudioOutputContext*>(obj->data);
+
+	if (ms_android_sound_utils_is_audio_route_changes_disabled(octx->sound_utils)) {
+		ms_warning("[AAudio Player] Audio route changes have been disabled, do not alter device ID");
+		return -1;
+	}
+
 	ms_message("[AAudio Player] Requesting to output card. Current %s (device ID %0d) and requested %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
 	// Change device ID only if the new value is different from the previous one
 	if (octx->soundCard->internal_id != card->internal_id) {
