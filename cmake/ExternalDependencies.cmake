@@ -704,8 +704,11 @@ if(BUILD_LIBOQS)
 	add_liboqs()
 endif()
 
+
+
 if(BUILD_LIBVPX)
 	function(add_libvpx)
+
 		include("${PROJECT_BINARY_DIR}/Autotools/Autotools.cmake")
 
 		set(EP_SOURCE_DIR "${PROJECT_SOURCE_DIR}/external/libvpx")
@@ -743,6 +746,8 @@ if(BUILD_LIBVPX)
 		if(NOT "${CCACHE_ENABLED}" STREQUAL "-1")
 			list(APPEND EP_CONFIGURE_OPTIONS "--enable-ccache")
 		endif()
+
+
 		if(WIN32)
 			if(MSVC)
 				if(CMAKE_GENERATOR MATCHES "^Visual Studio")
@@ -803,8 +808,13 @@ if(BUILD_LIBVPX)
 				if(_VERSION_MAJOR STREQUAL "10")
 					math(EXPR _DARWIN_VERSION "4+${_VERSION_MINOR}")
 					set(DARWIN "darwin${_DARWIN_VERSION}")
+					message(STATUS "Darwin version guess : ${CMAKE_OSX_DEPLOYMENT_TARGET} osx => ${DARWIN}")
+				elseif(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_GREATER_EQUAL 11)
+					math(EXPR _DARWIN_VERSION "20+${_VERSION_MAJOR}-11")
+					set(DARWIN "darwin${_DARWIN_VERSION}")
+					message(STATUS "Darwin version guess : ${CMAKE_OSX_DEPLOYMENT_TARGET} osx => ${DARWIN}")
 				else()
-					message(STATUS "CMAKE_OSX_DEPLOYMENT_TARGET is not found. Build on Darwin10 by default.")
+					message(WARNING "CMAKE_OSX_DEPLOYMENT_TARGET is not found. Build on Darwin10 by default.")
 					set(DARWIN "darwin10")
 				endif()
 				if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")

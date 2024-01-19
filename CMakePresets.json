@@ -48,6 +48,7 @@
         "ENABLE_AAUDIO": "ON",
         "ENABLE_OBOE": "OFF",
         "ENABLE_RELATIVE_PREFIX": "ON",
+        "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
         "ENABLE_TOOLS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
@@ -150,6 +151,7 @@
         "ENABLE_ISAC": "ON",
         "ENABLE_LDAP": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
+        "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
         "ENABLE_SWIFT_WRAPPER": "ON",
         "ENABLE_SWIFT_WRAPPER_COMPILATION": "OFF",
@@ -209,6 +211,7 @@
       "generator": "Xcode",
       "cacheVariables": {
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
+        "ENABLE_SCREENSHARING": "ON",
         "ENABLE_SWIFT_WRAPPER": "ON",
         "ENABLE_SWIFT_WRAPPER_COMPILATION": "OFF"
       }
@@ -273,6 +276,7 @@
         "ENABLE_AV1": "OFF",
         "ENABLE_FLOAT_API": "OFF",
         "ENABLE_FIXED_POINT": "ON",
+        "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
         "ENABLE_WEBRTC_AEC": "OFF",
         "ENABLE_WEBRTC_AECM": "ON",
@@ -326,6 +330,7 @@
         "ENABLE_G729B_CNG": "OFF",
         "ENABLE_LDAP": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
+        "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_TOOLS": "OFF",
         "ENABLE_TUTORIALS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
@@ -377,7 +382,8 @@
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_CSHARP_WRAPPER": "ON",
-        "ENABLE_RELATIVE_PREFIX": "ON"
+        "ENABLE_RELATIVE_PREFIX": "ON",
+        "ENABLE_SCREENSHARING": "ON"
       }
     },
     {

@@ -37,7 +37,10 @@ if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 		set(CMAKE_OSX_DEPLOYMENT_TARGET ${CURRENT_SDK_VERSION})
 	endif()
 endif()
-if(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.15")
+
+if(ENABLE_SCREENSHARING AND CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "12.3")
+	message(FATAL_ERROR "Minimal OS X deployment target of 12.3 required for Screen Sharing!")
+elseif(CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.15")
 	message(FATAL_ERROR "Minimal OS X deployment target of 10.15 required!")
 endif()
 
