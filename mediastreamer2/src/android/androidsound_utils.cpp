@@ -279,6 +279,7 @@ jobjectArray ms_android_sound_utils_get_devices(const AndroidSoundUtils *utils, 
 	if (audioDevices == NULL) {
 		ms_error("[Android Audio Utils] Failed to convert local ref to audio devices to global ref");
 	}
+	env->DeleteLocalRef(device_dir);
 
 	return audioDevices;
 }

@@ -554,30 +554,30 @@ void AMediaImage_close(AMediaImage *image) {
 	image->priv_ptr = NULL;
 }
 
-bool_t AMediaImage_isAvailable(void) {
+bool AMediaImage_isAvailable(void) {
 	return ms_get_android_sdk_version() >= 22;
 }
 
-bool_t AMediaCodec_checkCodecAvailability(const char *mime) {
-	bool_t res = TRUE;
-	AMediaCodec *encoder = NULL, *decoder = NULL;
+bool AMediaCodec_checkCodecAvailability(const char *mime) {
+	JNIEnv *env = ms_get_jni_env();
+	jboolean available = FALSE;
 
-	encoder = AMediaCodec_createEncoderByType(mime);
-	if (encoder) {
-		AMediaCodec_delete(encoder);
-	} else {
-		ms_warning("MediaCodec: '%s' format not supported for encoding", mime);
-		res = FALSE;
+	jclass mediastreamerAndroidContextClass = env->FindClass("org/linphone/mediastream/MediastreamerAndroidContext");
+	if (mediastreamerAndroidContextClass != NULL) {
+		jmethodID checkMediaCodecAvailability = env->GetStaticMethodID(
+		    mediastreamerAndroidContextClass, "checkMediaCodecAvailability", "(Ljava/lang/String;)Z");
+
+		if (checkMediaCodecAvailability != NULL) {
+			jstring mimeType = env->NewStringUTF(mime);
+			available =
+			    env->CallStaticBooleanMethod(mediastreamerAndroidContextClass, checkMediaCodecAvailability, mimeType);
+			env->DeleteLocalRef(mimeType);
+		}
+
+		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}
-	decoder = AMediaCodec_createDecoderByType(mime);
-	if (decoder) {
-		AMediaCodec_delete(decoder);
-	} else {
-		ms_warning("MediaCodec: '%s' format not supported for decoding", mime);
-		res = FALSE;
-	}
-	if (res) ms_message("MediaCodec: '%s' format supported", mime);
-	return res;
+
+	return (bool)available;
 }
 
 ////////////////////////////////////////////////////

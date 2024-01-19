@@ -109,6 +109,7 @@ jobjectArray ms_android_get_all_devices(JNIEnv *env, const char *dir) {
 			if (audioDevices == NULL) {
 				ms_error("[Android Audio Utils] Failed to convert local ref to audio devices to global ref");
 			}
+			env->DeleteLocalRef(device_dir);
 		}
 		env->DeleteLocalRef(mediastreamerAndroidContextClass);
 	}

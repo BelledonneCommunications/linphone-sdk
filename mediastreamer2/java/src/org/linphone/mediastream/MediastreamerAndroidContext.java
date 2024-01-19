@@ -28,6 +28,8 @@ import java.lang.SecurityException;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.AudioDeviceInfo;
+import android.media.MediaCodecList;
+import android.media.MediaCodecInfo;
 import android.os.Build;
 import android.os.SystemClock;
 
@@ -292,6 +294,34 @@ public class MediastreamerAndroidContext {
 		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 		audioManager.clearCommunicationDevice();
 		Log.i("[Audio Manager] Cleared communication device");
+	}
+
+	public synchronized static boolean checkMediaCodecAvailability(String mimeType) {
+		Log.i("[Media Codec] Looking if mime type [" + mimeType + "] is supported");
+		MediaCodecList mediaCodecList = new MediaCodecList(MediaCodecList.REGULAR_CODECS);
+		boolean encoderFound = false;
+		boolean decoderFound = false;
+
+		for (MediaCodecInfo codecInfo : mediaCodecList.getCodecInfos()) {
+			String[] types = codecInfo.getSupportedTypes();
+			for (int j = 0; j < types.length; j++) {
+				if (types[j].equalsIgnoreCase(mimeType)) {
+					if (codecInfo.isEncoder()) {
+						Log.i("[Media Codec] Found encoder for mime type [" + mimeType + "]");
+						encoderFound = true;
+					} else {
+						Log.i("[Media Codec] Found decoder for mime type [" + mimeType + "]");
+						decoderFound = true;
+					}
+
+					if (encoderFound && decoderFound) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 
 	private static String getHumanReadableAudioDeviceType(int type) {
