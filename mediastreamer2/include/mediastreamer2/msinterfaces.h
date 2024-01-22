@@ -302,6 +302,10 @@ typedef enum _MSAudioRoute MSAudioRoute;
 /* Give the end of silence and duration in ms */
 #define MS_VAD_EVENT_SILENCE_ENDED MS_FILTER_EVENT(MSFilterVADInterface, 1, unsigned int)
 
+#define MS_VAD_EVENT_VOICE_DETECTED MS_FILTER_EVENT_NO_ARG(MSFilterVADInterface, 2)
+
+#define MS_VAD_EVENT_VOICE_ENDED MS_FILTER_EVENT_NO_ARG(MSFilterVADInterface, 3)
+
 /** Interface definitions for void source/sink */
 #define MS_VOID_SOURCE_SEND_SILENCE MS_FILTER_METHOD(MSFilterVoidInterface, 0, bool_t)
 

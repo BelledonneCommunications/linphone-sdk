@@ -470,6 +470,7 @@ struct _AudioStream {
 	MSFilter *plc;
 	MSFilter *ec;                /*echo canceler*/
 	MSFilter *volsend, *volrecv; /*MSVolumes*/
+	MSFilter *vad;
 	MSFilter *local_mixer;
 	MSFilter *local_player;
 	MSFilter *local_player_resampler;
@@ -679,6 +680,7 @@ MS2_PUBLIC AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const
 #define AUDIO_STREAM_FEATURE_LOCAL_PLAYING (1 << 8)
 #define AUDIO_STREAM_FEATURE_REMOTE_PLAYING (1 << 9)
 #define AUDIO_STREAM_FEATURE_FLOW_CONTROL (1 << 10)
+#define AUDIO_STREAM_FEATURE_VAD (1 << 11)
 
 #define AUDIO_STREAM_FEATURE_ALL                                                                                       \
 	(AUDIO_STREAM_FEATURE_PLC | AUDIO_STREAM_FEATURE_EC | AUDIO_STREAM_FEATURE_EQUALIZER |                             \

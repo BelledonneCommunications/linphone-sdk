@@ -68,8 +68,10 @@ static int tester_after_all(void) {
 #define PAULINE_OUT_RTP_PORT (base_port + 7)
 #define PAULINE_OUT_RTCP_PORT (base_port + 8)
 
+#define VOICE_8K_FILE "sounds/test_silence_voice_8000.wav"
 #define HELLO_8K_1S_FILE "sounds/hello8000-1s.wav"
 #define HELLO_16K_1S_FILE "sounds/hello16000-1s.wav"
+#define RECORDED_8K_FILE "recorded_test_silence_voice_8000-"
 #define RECORDED_8K_1S_FILE "recorded_hello8000-1s-"
 
 typedef struct _stats_t {
@@ -77,6 +79,8 @@ typedef struct _stats_t {
 	rtp_stats_t rtp;
 	int number_of_EndOfFile;
 	int number_of_TMMBR;
+	int number_of_VoiceDetected;
+	int number_of_VoiceEnded;
 } stats_t;
 
 static void reset_stats(stats_t *s) {
@@ -91,6 +95,21 @@ static void notify_cb(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int e
 			stats->number_of_EndOfFile++;
 			break;
 		} break;
+	}
+}
+
+static void
+voice_detection_cb(void *user_data, BCTBX_UNUSED(MSFilter *f), unsigned int event, BCTBX_UNUSED(void *eventdata)) {
+	stats_t *stats = (stats_t *)user_data;
+	switch (event) {
+		case MS_VAD_EVENT_VOICE_DETECTED:
+			ms_message("Voice Activity detected");
+			stats->number_of_VoiceDetected++;
+			break;
+		case MS_VAD_EVENT_VOICE_ENDED:
+			ms_message("Voice Activity ended");
+			stats->number_of_VoiceEnded++;
+			break;
 	}
 }
 
@@ -135,16 +154,41 @@ static void basic_audio_stream_base_2(const char *marielle_local_ip,
                                       int margaux_remote_rtp_port,
                                       int margaux_local_rtcp_port,
                                       int margaux_remote_rtcp_port,
-                                      int lost_percentage) {
+                                      int lost_percentage,
+                                      bool_t voice_activity) {
+	if (voice_activity) {
+		MSFilterDesc *vad_desc = ms_factory_lookup_filter_by_name(_factory, "MSWebRtcVADDec");
+		if (vad_desc == NULL) {
+			BC_PASS("VAD not enabled");
+			return;
+		}
+	}
+
 	AudioStream *marielle =
 	    audio_stream_new2(_factory, marielle_local_ip, marielle_local_rtp_port, marielle_local_rtcp_port);
 	stats_t marielle_stats;
 	AudioStream *margaux =
 	    audio_stream_new2(_factory, margaux_local_ip, margaux_local_rtp_port, margaux_local_rtcp_port);
+
+	if (voice_activity) {
+		uint32_t features = audio_stream_get_features(marielle);
+		features |= AUDIO_STREAM_FEATURE_VAD;
+		audio_stream_set_features(marielle, features);
+	}
+
 	stats_t margaux_stats;
 	RtpProfile *profile = rtp_profile_new("default profile");
-	char *hello_file = bc_tester_res(HELLO_8K_1S_FILE);
-	char *random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+
+	char *hello_file;
+	char *random_filename;
+	if (voice_activity) {
+		hello_file = bc_tester_res(VOICE_8K_FILE);
+		random_filename = ms_tester_get_random_filename(RECORDED_8K_FILE, ".wav");
+	} else {
+		hello_file = bc_tester_res(HELLO_8K_1S_FILE);
+		random_filename = ms_tester_get_random_filename(RECORDED_8K_1S_FILE, ".wav");
+	}
+
 	char *recorded_file = bc_tester_file(random_filename);
 	bctbx_free(random_filename);
 	uint64_t marielle_rtp_sent = 0;
@@ -171,9 +215,21 @@ static void basic_audio_stream_base_2(const char *marielle_local_ip,
 	                                        NULL, NULL, 0),
 	                0, int, "%d");
 
+	if (voice_activity) {
+		BC_ASSERT_PTR_NOT_NULL(marielle->vad);
+		if (marielle->vad) ms_filter_add_notify_callback(marielle->vad, voice_detection_cb, &marielle_stats, TRUE);
+	}
+
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
 
-	wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000);
+	if (voice_activity) {
+		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 26000);
+		BC_ASSERT_GREATER_STRICT(marielle_stats.number_of_VoiceDetected, 3, int, "%d");
+		BC_ASSERT_GREATER_STRICT(marielle_stats.number_of_VoiceEnded, 3, int, "%d");
+	} else {
+		wait_for_until(&marielle->ms, &margaux->ms, &marielle_stats.number_of_EndOfFile, 1, 12000);
+	}
+
 	audio_stream_play(marielle, NULL);
 	wait_for_until(&marielle->ms, &margaux->ms, &dummy, 1, 1500);
 
@@ -210,7 +266,7 @@ static void basic_audio_stream_base(const char *marielle_local_ip,
 	basic_audio_stream_base_2(marielle_local_ip, margaux_local_ip, marielle_local_rtp_port, margaux_local_rtp_port,
 	                          marielle_local_rtcp_port, margaux_local_rtcp_port, margaux_local_ip, marielle_local_ip,
 	                          margaux_local_rtp_port, marielle_local_rtp_port, margaux_local_rtcp_port,
-	                          marielle_local_rtcp_port, 0);
+	                          marielle_local_rtcp_port, 0, FALSE);
 }
 static void basic_audio_stream(void) {
 	basic_audio_stream_base(MARIELLE_IP, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, MARGAUX_IP, MARGAUX_RTP_PORT,
@@ -662,7 +718,7 @@ static void symetric_rtp_with_wrong_addr(void) {
 
 	                          ,
 	                          MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT,
-	                          MARIELLE_RTCP_PORT, 5);
+	                          MARIELLE_RTCP_PORT, 5, FALSE);
 }
 
 static void symetric_rtp_with_wrong_rtcp_port(void) {
@@ -673,7 +729,7 @@ static void symetric_rtp_with_wrong_rtcp_port(void) {
 	                          MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT, MARGAUX_RTCP_PORT,
 	                          MARIELLE_RTCP_PORT + 10 /*dummy port*/
 	                          ,
-	                          5);
+	                          5, FALSE);
 }
 
 static int
@@ -1354,6 +1410,12 @@ static void double_encrypted_relayed_audio_stream_with_participants_volumes_use_
 	double_encrypted_rtp_relay_audio_stream_base(FALSE, TRUE, TRUE, MS_AES_128_SHA1_80, MS_AEAD_AES_256_GCM);
 };
 
+static void voice_activity_detection(void) {
+	basic_audio_stream_base_2(MARIELLE_IP, MARGAUX_IP, MARIELLE_RTP_PORT, MARGAUX_RTP_PORT, MARIELLE_RTCP_PORT,
+	                          MARGAUX_RTCP_PORT, MARGAUX_IP, MARIELLE_IP, MARGAUX_RTP_PORT, MARIELLE_RTP_PORT,
+	                          MARGAUX_RTCP_PORT, MARIELLE_RTCP_PORT, 0, TRUE);
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Basic audio stream", basic_audio_stream),
     TEST_NO_TAG("Multicast audio stream", multicast_audio_stream),
@@ -1385,6 +1447,7 @@ static test_t tests[] = {
     TEST_NO_TAG("Symetric rtp with wrong address", symetric_rtp_with_wrong_addr),
     TEST_NO_TAG("Symetric rtp with wrong rtcp port", symetric_rtp_with_wrong_rtcp_port),
     TEST_NO_TAG("Participants volumes in audio stream", participants_volumes_in_audio_stream),
+    TEST_NO_TAG("Voice activity detection", voice_activity_detection),
 };
 
 test_suite_t audio_stream_test_suite = {

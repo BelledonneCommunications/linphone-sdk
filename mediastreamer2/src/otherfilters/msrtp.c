@@ -74,6 +74,7 @@ struct SenderData {
 	int frame_marking_extension_id;
 	bool_t frame_start;
 	bool_t rtp_transfer_mode;
+	bool_t voice_activity;
 };
 
 typedef struct SenderData SenderData;
@@ -158,6 +159,7 @@ static void sender_init(MSFilter *f) {
 	d->frame_marking_extension_id = 0;
 	d->frame_start = TRUE;
 	d->rtp_transfer_mode = FALSE;
+	d->voice_activity = FALSE;
 	f->data = d;
 }
 
@@ -484,28 +486,27 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 	rtp_audio_level_t *audio_levels = NULL;
 	mblk_t *header = NULL;
 
-	if (d->mtc_volumes_left_to_send > 0) {
-		rtp_audio_level_t *tmp = d->mtc_volumes + (d->mtc_volumes_size - d->mtc_volumes_left_to_send);
+	// Mixer to client volumes
+	if (d->mixer_to_client_extension_id > 0 && d->mtc_request_data_cb) {
+		if (d->mtc_volumes_left_to_send > 0) {
+			rtp_audio_level_t *tmp = d->mtc_volumes + (d->mtc_volumes_size - d->mtc_volumes_left_to_send);
 
-		if (d->mtc_volumes_left_to_send <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
-			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
-			    s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
-			ms_free(d->mtc_volumes);
-			d->mtc_volumes = NULL;
-			d->mtc_volumes_left_to_send = 0;
-		} else {
-			header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
-			    s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp);
-			d->mtc_volumes_left_to_send -= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
+			if (d->mtc_volumes_left_to_send <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
+				header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+				    s, 0, d->mixer_to_client_extension_id, d->mtc_volumes_left_to_send, tmp);
+				ms_free(d->mtc_volumes);
+				d->mtc_volumes = NULL;
+				d->mtc_volumes_left_to_send = 0;
+			} else {
+				header = rtp_session_create_packet_header_with_mixer_to_client_audio_level(
+				    s, 0, d->mixer_to_client_extension_id, RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL, tmp);
+				d->mtc_volumes_left_to_send -= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
+			}
+
+			return header;
 		}
 
-		return header;
-	}
-
-	if ((d->mixer_to_client_extension_id > 0 || d->client_to_mixer_extension_id > 0) &&
-	    f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
-
-		if (d->mixer_to_client_extension_id > 0 && d->mtc_request_data_cb) {
+		if (f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
 			int size = d->mtc_request_data_cb(f, &audio_levels, d->mtc_request_data_user_data);
 			if (audio_levels != NULL) {
 				if (size <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
@@ -520,16 +521,25 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 					d->mtc_volumes_left_to_send = size - RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
 				}
 			}
-		} else if (d->client_to_mixer_extension_id > 0 && d->ctm_request_data_cb) {
+
+			d->last_audio_level_sent_time = f->ticker->time;
+		}
+	}
+
+	// Client to mixer volume
+	if (d->client_to_mixer_extension_id > 0 && d->ctm_request_data_cb) {
+		// If we have voice activity, we send the volume without interval
+		if (d->voice_activity ||
+		    f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
 			int volume = d->ctm_request_data_cb(f, d->ctm_request_data_user_data);
 			if (!header)
 				header = rtp_session_create_packet_header(
-				    s, 8); // allocate 8 more bytes than needed so we can add an extension header with client to mixer
-				           // extension without reallocating
-			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, FALSE, volume);
-		}
+				    s, 8); // allocate 8 more bytes than needed so we can add an extension
+				           // header with client to mixer extension without reallocating
+			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, d->voice_activity, volume);
 
-		d->last_audio_level_sent_time = f->ticker->time;
+			d->last_audio_level_sent_time = f->ticker->time;
+		}
 	}
 
 	return header ? header : rtp_session_create_packet_header(s, 0);
@@ -739,6 +749,13 @@ static int sender_set_active_speaker_ssrc(MSFilter *f, void *data) {
 	return 0;
 }
 
+static int sender_set_voice_activity(MSFilter *f, void *data) {
+	SenderData *d = (SenderData *)f->data;
+	bool_t detected = *(bool_t *)data;
+	d->voice_activity = detected;
+	return 0;
+}
+
 static MSFilterMethod sender_methods[] = {
     {MS_RTP_SEND_MUTE, sender_mute},
     {MS_RTP_SEND_UNMUTE, sender_unmute},
@@ -762,6 +779,7 @@ static MSFilterMethod sender_methods[] = {
     {MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, sender_enable_rtp_transfer_mode},
     {MS_RTP_SEND_SET_ACTIVE_SPEAKER_SSRC, sender_set_active_speaker_ssrc},
     {MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED, sender_telephone_event_supported},
+    {MS_RTP_SEND_SET_VOICE_ACTIVITY, sender_set_voice_activity},
     {0, NULL}};
 
 #ifdef _MSC_VER

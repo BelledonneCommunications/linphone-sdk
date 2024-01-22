@@ -110,6 +110,8 @@ typedef struct _MSFilterRequestClientToMixerDataCb MSFilterRequestClientToMixerD
  */
 #define MS_RTP_SEND_TELEPHONE_EVENT_SUPPORTED MS_FILTER_METHOD_NO_ARG(MS_RTP_SEND_ID, 18)
 
+#define MS_RTP_SEND_SET_VOICE_ACTIVITY MS_FILTER_METHOD(MS_RTP_SEND_ID, 19, bool_t)
+
 extern MSFilterDesc ms_rtp_send_desc;
 extern MSFilterDesc ms_rtp_recv_desc;
 

@@ -75,6 +75,7 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->ec != NULL) ms_filter_destroy(stream->ec);
 	if (stream->volrecv != NULL) ms_filter_destroy(stream->volrecv);
 	if (stream->volsend != NULL) ms_filter_destroy(stream->volsend);
+	if (stream->vad != NULL) ms_filter_destroy(stream->vad);
 	if (stream->mic_equalizer) ms_filter_destroy(stream->mic_equalizer);
 	if (stream->spk_equalizer) ms_filter_destroy(stream->spk_equalizer);
 	if (stream->read_decoder != NULL) ms_filter_destroy(stream->read_decoder);
@@ -1014,6 +1015,27 @@ on_audio_route_changed_received(void *data, BCTBX_UNUSED(MSFilter *f), unsigned 
 	}
 }
 
+static void on_voice_activity_detected_cb(void *data,
+                                          BCTBX_UNUSED(MSFilter *f),
+                                          unsigned int event_id,
+                                          BCTBX_UNUSED(void *event_arg)) {
+	AudioStream *as = (AudioStream *)data;
+	bool_t detected;
+
+	if (as->ms.rtpsend) {
+		switch (event_id) {
+			case MS_VAD_EVENT_VOICE_DETECTED:
+				detected = TRUE;
+				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_SET_VOICE_ACTIVITY, &detected);
+				break;
+			case MS_VAD_EVENT_VOICE_ENDED:
+				detected = FALSE;
+				ms_filter_call_method(as->ms.rtpsend, MS_RTP_SEND_SET_VOICE_ACTIVITY, &detected);
+				break;
+		}
+	}
+}
+
 int audio_stream_start_from_io(AudioStream *stream,
                                RtpProfile *profile,
                                const char *rem_rtp_ip,
@@ -1253,8 +1275,21 @@ int audio_stream_start_from_io(AudioStream *stream,
 	else stream->volsend = NULL;
 	if ((stream->features & AUDIO_STREAM_FEATURE_VOL_RCV) != 0)
 		stream->volrecv = ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
-
 	else stream->volrecv = NULL;
+
+	if ((stream->features & AUDIO_STREAM_FEATURE_VAD) != 0) {
+		MSFilterDesc *vad_desc = ms_factory_lookup_filter_by_name(stream->ms.factory, "MSWebRtcVADDec");
+		if (vad_desc) {
+			int vad_mode = 3;
+			stream->vad = ms_factory_create_filter_from_desc(stream->ms.factory, vad_desc);
+
+			ms_filter_add_notify_callback(stream->vad, on_voice_activity_detected_cb, stream, TRUE);
+			ms_filter_call_method(stream->vad, MS_FILTER_SET_SAMPLE_RATE, (void *)&stream->sample_rate);
+			ms_filter_call_method(stream->vad, MS_VAD_SET_MODE, (void *)&vad_mode);
+		} else {
+			ms_error("Cannot enable VAD, plugin is not enabled");
+		}
+	}
 
 	audio_stream_enable_echo_limiter(stream, stream->el_type);
 	audio_stream_enable_noise_gate(stream, stream->use_ng);
@@ -1267,7 +1302,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 	}
 
 	if (stream->use_agc) {
-		int tmp = 1;
+		tmp = 1;
 		if (stream->volsend == NULL) stream->volsend = ms_factory_create_filter(stream->ms.factory, MS_VOLUME_ID);
 		ms_filter_call_method(stream->volsend, MS_VOLUME_ENABLE_AGC, &tmp);
 	}
@@ -1510,6 +1545,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 	if (stream->mic_equalizer) ms_connection_helper_link(&h, stream->mic_equalizer, 0, 0);
 	if (stream->ec) ms_connection_helper_link(&h, stream->ec, 1, 1);
 	if (stream->volsend) ms_connection_helper_link(&h, stream->volsend, 0, 0);
+	if (stream->vad) ms_connection_helper_link(&h, stream->vad, 0, 0);
 	if (stream->dtmfgen_rtp) ms_connection_helper_link(&h, stream->dtmfgen_rtp, 0, 0);
 	if (stream->outbound_mixer) ms_connection_helper_link(&h, stream->outbound_mixer, 0, 0);
 	if (stream->vaddtx) ms_connection_helper_link(&h, stream->vaddtx, 0, 0);
@@ -2096,6 +2132,7 @@ void audio_stream_stop(AudioStream *stream) {
 			if (stream->mic_equalizer) ms_connection_helper_unlink(&h, stream->mic_equalizer, 0, 0);
 			if (stream->ec != NULL) ms_connection_helper_unlink(&h, stream->ec, 1, 1);
 			if (stream->volsend != NULL) ms_connection_helper_unlink(&h, stream->volsend, 0, 0);
+			if (stream->vad != NULL) ms_connection_helper_unlink(&h, stream->vad, 0, 0);
 			if (stream->dtmfgen_rtp) ms_connection_helper_unlink(&h, stream->dtmfgen_rtp, 0, 0);
 			if (stream->outbound_mixer) ms_connection_helper_unlink(&h, stream->outbound_mixer, 0, 0);
 			if (stream->vaddtx) ms_connection_helper_unlink(&h, stream->vaddtx, 0, 0);
