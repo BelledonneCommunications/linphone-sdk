@@ -230,15 +230,15 @@ VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConf
 	std::fill_n(mOutputs, ROUTER_MAX_OUTPUT_CHANNELS, -1);
 	std::fill_n(mInputs, ROUTER_MAX_INPUT_CHANNELS, -1);
 
-	ms_filter_link(mVoidSource, 0, mMixer, ROUTER_MAX_INPUT_CHANNELS - 2);
-	ms_filter_link(mMixer, ROUTER_MAX_OUTPUT_CHANNELS - 1, mVoidOutput, 0);
+	ms_filter_link(mVoidSource, 0, mMixer, 0);
+	ms_filter_link(mMixer, 0, mVoidOutput, 0);
 	ms_ticker_attach(mTicker, mMixer);
 }
 
 int VideoConferenceAllToAll::findFreeOutputPin() {
 	int i;
-	// pin is reserved
-	for (i = 0; i < mMixer->desc->noutputs - 1; ++i) {
+	// pin 0 is reserved for voidsink
+	for (i = 1; i < mMixer->desc->noutputs; ++i) {
 		if (mOutputs[i] == -1) {
 			mOutputs[i] = 0;
 			return i;
@@ -250,8 +250,8 @@ int VideoConferenceAllToAll::findFreeOutputPin() {
 
 int VideoConferenceAllToAll::findFreeInputPin() {
 	int i;
-	// pin is reserved
-	for (i = 0; i < mMixer->desc->ninputs - 2; ++i) {
+	// pin 0 is reserved for voidsource
+	for (i = 1; i < mMixer->desc->ninputs; ++i) {
 		if (mInputs[i] == -1) {
 			mInputs[i] = 0;
 			return i;
@@ -465,8 +465,8 @@ void VideoConferenceAllToAll::setFocus(VideoEndpoint *ep) {
 
 VideoConferenceAllToAll::~VideoConferenceAllToAll() {
 	ms_ticker_detach(mTicker, mMixer);
-	ms_filter_unlink(mVoidSource, 0, mMixer, ROUTER_MAX_INPUT_CHANNELS - 2);
-	ms_filter_unlink(mMixer, ROUTER_MAX_OUTPUT_CHANNELS - 1, mVoidOutput, 0);
+	ms_filter_unlink(mVoidSource, 0, mMixer, 0);
+	ms_filter_unlink(mMixer, 0, mVoidOutput, 0);
 	ms_filter_destroy(mVoidOutput);
 	ms_filter_destroy(mVoidSource);
 	ms_ticker_destroy(mTicker);

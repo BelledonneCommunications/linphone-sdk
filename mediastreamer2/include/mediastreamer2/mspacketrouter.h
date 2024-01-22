@@ -26,10 +26,8 @@
 
 typedef enum { MS_PACKET_ROUTER_MODE_AUDIO, MS_PACKET_ROUTER_MODE_VIDEO } MSPacketRouterMode;
 
-#define ROUTER_MAX_CHANNELS 20
-#define ROUTER_MAX_INPUT_CHANNELS (ROUTER_MAX_CHANNELS + 1) /* 1 pin reserved for voidsource in video mode */
-#define ROUTER_MAX_OUTPUT_CHANNELS                                                                                     \
-	(ROUTER_MAX_CHANNELS * ROUTER_MAX_CHANNELS) /* 1 pin reserved for voidsink in video mode */
+#define ROUTER_MAX_INPUT_CHANNELS 1024  /* 1 pin reserved for voidsource in video mode */
+#define ROUTER_MAX_OUTPUT_CHANNELS 1024 /* 1 pin reserved for voidsink in video mode */
 
 typedef struct _MSPacketRouterPinData {
 	int input;

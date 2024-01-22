@@ -49,9 +49,7 @@ void RouterAudioInput::update() {
 	if (queue == nullptr) return;
 
 	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
-		if (mSsrc == 0) {
-			mSsrc = rtp_get_ssrc(m);
-		}
+		mSsrc = rtp_get_ssrc(m);
 
 		bool_t voiceActivity = FALSE;
 		int volume = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, &voiceActivity);
@@ -260,17 +258,22 @@ RouterInputAudioSelector::RouterInputAudioSelector(PacketRouter *router) : Route
 void RouterInputAudioSelector::select() {
 	mSelected = {};
 
+	// If only two, select them anyway to always have audio.
+	bool onlyTwo = mRouter->getRouterInputsSize() == 2;
+
 	for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
 		auto audioInput = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
 
-		if (audioInput != nullptr && audioInput->mIsSpeaking) mSelected.push_back(audioInput);
+		if (audioInput != nullptr && (onlyTwo || audioInput->mIsSpeaking)) mSelected.push_back(audioInput);
 	}
 
-	// Sort by descending volume order
-	std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
+	if (!onlyTwo) {
+		// Sort by descending volume order
+		std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
 
-	// Keep the first MAX_SPEAKER_AT_ONCE volumes
-	if (mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+		// Keep the first MAX_SPEAKER_AT_ONCE volumes
+		if (mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+	}
 }
 
 const std::vector<RouterAudioInput *> &RouterInputAudioSelector::getSelectedInputs() const {
