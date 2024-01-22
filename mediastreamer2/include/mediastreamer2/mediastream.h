@@ -101,7 +101,9 @@ struct _MSMediaStreamSessions {
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
-	bctbx_list_t *bundledSndRtpSessions; /**< a list of RtpSessions created by the mediatream on outgoing SSRC
+	bctbx_list_t *bundledSndRtpSessions;  /**< a list of RtpSessions created by the mediastream on outgoing SSRC
+	                                         multiplexed in a bundle */
+	bctbx_list_t *bundledRecvRtpSessions; /**< a list of RtpSessions created by the mediastream for incoming SSRC
 	                                        multiplexed in a bundle */
 };
 
@@ -566,12 +568,11 @@ typedef struct _AudioStream AudioStream;
  * Structure to store an input branch added to an audiostream by conference local mixing upon reception of a new stream
  */
 typedef struct _AudioStreamMixedRecvBranch {
-	RtpSession *rtp_session; /**< the rtp session linked to the recv filter */
-	MSFilter *recv;          /**< the receiver filter */
-	MSFilter *dec;           /**<  the decoder filter */
-	MSFilter *mixer;         /**<  the audio mixer we connected to - needed to unplug this branch */
-	MSTicker *ticker;        /**< the ticker used to schedule the recv filter - needed to detach */
-	int mixerPin;            /**< pin used as input on the local audio mixer */
+	MSFilter *recv;   /**< the receiver filter */
+	MSFilter *dec;    /**<  the decoder filter */
+	MSFilter *mixer;  /**<  the audio mixer we connected to - needed to unplug this branch */
+	MSTicker *ticker; /**< the ticker used to schedule the recv filter - needed to detach */
+	int mixerPin;     /**< pin used as input on the local audio mixer */
 } AudioStreamMixedRecvBranch;
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */

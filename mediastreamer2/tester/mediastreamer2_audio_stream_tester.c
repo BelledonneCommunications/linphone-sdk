@@ -1202,10 +1202,10 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	/* No packet loss is assumed */
 	/* sums packets received by margaux on the main session and the one added on discovery */
 	size_t margaux_received_packets = margaux_stats.rtp.packet_recv; // main session
-	bctbx_list_t *it = margaux->bundledRecvBranches;
+	bctbx_list_t *it = margaux->ms.sessions.bundledRecvRtpSessions;
 	for (; it != NULL; it = it->next) {
-		AudioStreamMixedRecvBranch *b = (AudioStreamMixedRecvBranch *)it->data;
-		margaux_received_packets += rtp_session_get_stats(b->rtp_session)->packet_recv;
+		RtpSession *s = (RtpSession *)it->data;
+		margaux_received_packets += rtp_session_get_stats(s)->packet_recv;
 	}
 	BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent + pauline_stats.rtp.packet_sent, margaux_received_packets,
 	                unsigned long long, "%llu");
@@ -1383,6 +1383,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legA.dtls_context = NULL;
 	sessions_legA.ticker = ms_ticker_new();
 	sessions_legA.bundledSndRtpSessions = NULL;
+	sessions_legA.bundledRecvRtpSessions = NULL;
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legA, MS_EKT_TRANSFER);
 	} else {
@@ -1416,6 +1417,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	sessions_legB.dtls_context = NULL;
 	sessions_legB.ticker = ms_ticker_new();
 	sessions_legB.bundledSndRtpSessions = NULL;
+	sessions_legB.bundledRecvRtpSessions = NULL;
 	if (use_ekt) {
 		ms_media_stream_sessions_set_ekt_mode(&sessions_legB, MS_EKT_TRANSFER);
 	} else {
