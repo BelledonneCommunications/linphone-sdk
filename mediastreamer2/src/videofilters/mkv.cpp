@@ -2706,6 +2706,7 @@ static void player_process(MSFilter *f) {
 	    (!obj->players[1] || !f->outputs[1] || obj->players[1]->eot)) {
 
 		ms_filter_notify_no_arg(f, MS_PLAYER_EOF);
+		ms_message("MKVPlayer: end of file reached.");
 		if (obj->loop_pause_interval < 0) {
 			obj->state = MSPlayerPaused;
 		} else {
@@ -2730,6 +2731,7 @@ static int player_close(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 		}
 		obj->time = 0;
 		obj->state = MSPlayerClosed;
+		ms_message("MKVPlayer: closed.");
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -2753,6 +2755,7 @@ static int player_start(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	}
 	obj->state = MSPlayerPlaying;
 	ms_filter_unlock(f);
+	ms_message("MKVPlayer: started.");
 	return 0;
 
 fail:
@@ -2760,13 +2763,14 @@ fail:
 	return -1;
 }
 
-static int player_stop(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+static int player_pause(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	MKVPlayer *obj = (MKVPlayer *)f->data;
 	ms_filter_lock(f);
 	if (obj->state == MSPlayerPlaying) {
 		obj->state = MSPlayerPaused;
 	}
 	ms_filter_unlock(f);
+	ms_message("MKVPlayer: paused.");
 	return 0;
 }
 
@@ -2849,7 +2853,7 @@ static MSFilterMethod player_methods[] = {{MS_FILTER_GET_OUTPUT_FMT, player_get_
                                           {MS_PLAYER_CLOSE, player_close},
                                           {MS_PLAYER_SEEK_MS, player_seek_ms},
                                           {MS_PLAYER_START, player_start},
-                                          {MS_PLAYER_PAUSE, player_stop},
+                                          {MS_PLAYER_PAUSE, player_pause},
                                           {MS_PLAYER_GET_STATE, player_get_state},
                                           {MS_PLAYER_SET_LOOP, player_set_loop},
                                           {MS_PLAYER_GET_DURATION, player_get_duration},
