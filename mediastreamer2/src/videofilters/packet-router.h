@@ -58,6 +58,8 @@ protected:
 };
 
 class RouterAudioInput : public RouterInput {
+	friend class PacketRouter;
+	friend class RouterAudioOutput;
 	friend class RouterInputAudioSelector;
 
 public:
@@ -66,8 +68,9 @@ public:
 	void update() override;
 
 protected:
-	bool mIsSpeaking = false;
+	uint32_t mSsrc = 0;
 	int mVolume = MS_VOLUME_DB_LOWEST;
+	bool mIsSpeaking = false;
 };
 
 #ifdef VIDEO_ENABLED
@@ -229,6 +232,10 @@ public:
 
 	void setAsLocalMember(const MSPacketRouterPinControl *pinControl);
 
+	// Audio mode only
+	const std::vector<rtp_audio_level_t> &getVolumesToSend() const;
+
+	// Video mode only
 #ifdef VIDEO_ENABLED
 	void setFocus(int pin);
 
@@ -243,6 +250,7 @@ public:
 
 protected:
 	void createInputIfNotExists(int index);
+	void updateVolumesToSend();
 
 	RoutingMode mRoutingMode = RoutingMode::Unknown;
 	bool mFullPacketMode = false;
@@ -251,6 +259,16 @@ protected:
 
 	std::vector<std::unique_ptr<RouterInput>> mInputs{};
 	std::vector<std::unique_ptr<RouterOutput>> mOutputs{};
+
+	// Volumes are kept globally in case of conferences with lots of participants
+	// since we can only send 15 volumes at a time (limited by the number of csrc).
+	std::vector<rtp_audio_level_t> mVolumes{};
+	uint64_t mVolumesSentInterval = 250;
+	uint64_t mLastVolumesSentTime = 0;
+
+	// Cache of the data accessed by the outputs to send the volumes.
+	std::vector<rtp_audio_level_t> mVolumesToSend{};
+	int mVolumesSentIndex = 0;
 
 #ifdef VIDEO_ENABLED
 	std::string mEncoding;

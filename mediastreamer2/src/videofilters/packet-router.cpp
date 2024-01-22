@@ -49,12 +49,19 @@ void RouterAudioInput::update() {
 	if (queue == nullptr) return;
 
 	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
+		if (mSsrc == 0) {
+			mSsrc = rtp_get_ssrc(m);
+		}
+
 		bool_t voiceActivity = FALSE;
 		int volume = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL, &voiceActivity);
 
 		if (volume != RTP_AUDIO_LEVEL_NO_VOLUME) {
 			mVolume = volume;
 			mIsSpeaking = voiceActivity;
+
+			// Delete the extension, so it won't interfere with the mixer to client volumes that will be injected later.
+			rtp_delete_extension_header(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL);
 		}
 	}
 }
@@ -143,6 +150,8 @@ void RouterAudioOutput::transfer() {
 		const auto selector = dynamic_cast<RouterInputAudioSelector *>(mRouter->getRouterInputSelector());
 
 		if (selector) {
+			auto &volumes = mRouter->getVolumesToSend();
+
 			for (const auto input : selector->getSelectedInputs()) {
 				// Don't send audio to ourselves
 				if (input == nullptr || mPin == input->getPin()) continue;
@@ -151,8 +160,24 @@ void RouterAudioOutput::transfer() {
 
 				if (inputQueue == nullptr || ms_queue_empty(inputQueue)) continue;
 
+				bool volumesSent = false;
 				for (mblk_t *m = ms_queue_peek_first(inputQueue); !ms_queue_end(inputQueue, m);
 				     m = ms_queue_peek_next(inputQueue, m)) {
+
+					if (!volumes.empty() && !volumesSent) {
+						// Small optimization here, we inject the volumes into the input's first packet and not the
+						// duplication. So only the first output transfer() will inject the volumes then it will already
+						// be there.
+						if (uint8_t * data;
+						    rtp_get_extension_header(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL, &data) == -1) {
+							// If we don't find it then we must be in the first output transfer(), inject it.
+							rtp_add_mixer_to_client_audio_level(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL,
+							                                    volumes.size(), volumes.data());
+						}
+
+						volumesSent = true;
+					}
+
 					ms_queue_put(outputQueue, dupmsg(m));
 				}
 			}
@@ -245,7 +270,7 @@ void RouterInputAudioSelector::select() {
 	std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
 
 	// Keep the first MAX_SPEAKER_AT_ONCE volumes
-	mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+	if (mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
 }
 
 const std::vector<RouterAudioInput *> &RouterInputAudioSelector::getSelectedInputs() const {
@@ -380,6 +405,11 @@ void PacketRouter::process() {
 	// Update all current inputs.
 	for (const auto &input : mInputs) {
 		if (input != nullptr) input->update();
+	}
+
+	// Update the volumes to send
+	if (mRoutingMode == RoutingMode::Audio) {
+		updateVolumesToSend();
 	}
 
 	// Select which one(s) we will use.
@@ -549,6 +579,10 @@ void PacketRouter::setAsLocalMember(const MSPacketRouterPinControl *pinControl) 
 	mInputs[pinControl->pin]->mLocal = pinControl->enabled;
 }
 
+const std::vector<rtp_audio_level_t> &PacketRouter::getVolumesToSend() const {
+	return mVolumesToSend;
+}
+
 #ifdef VIDEO_ENABLED
 void PacketRouter::setFocus(int pin) {
 	if (mRoutingMode != RoutingMode::Video) {
@@ -638,6 +672,53 @@ void PacketRouter::createInputIfNotExists(int index) {
 		}
 
 		mInputs[index] = std::move(input);
+	}
+}
+
+void PacketRouter::updateVolumesToSend() {
+	// Clear and reserve is more efficient to keep this vector updated.
+	// Order is guaranteed to be the same as we iterate through inputs and reserve will allocate what is needed one time
+	// and then will do nothing if already at the good capacity.
+	mVolumes.clear();
+	mVolumes.reserve(mInputs.size());
+
+	for (const auto &input : mInputs) {
+		if (input == nullptr) continue;
+
+		auto audioInput = dynamic_cast<RouterAudioInput *>(input.get());
+		if (audioInput) mVolumes.push_back({audioInput->mSsrc, audioInput->mVolume});
+	}
+
+	if (mVolumesSentIndex > 0) {
+		int size = static_cast<int>(mVolumes.size());
+
+		// In case of mass disconnections. If we are past the size then stop, and we will send volumes again next time.
+		if (mVolumesSentIndex >= size) {
+			mVolumesSentIndex = 0;
+			mVolumesToSend.clear();
+			return;
+		}
+
+		if (mVolumesSentIndex + RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL >= size) {
+			mVolumesToSend.assign(mVolumes.begin() + mVolumesSentIndex, mVolumes.end());
+			mVolumesSentIndex = 0;
+		} else {
+			auto begin = mVolumes.begin() + mVolumesSentIndex;
+			mVolumesToSend.assign(begin, begin + RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL);
+			mVolumesSentIndex += RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
+		}
+	} else if (uint64_t time = getTime(); time - mLastVolumesSentTime > mVolumesSentInterval) {
+		if (static_cast<int>(mVolumes.size()) <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
+			mVolumesToSend = mVolumes;
+		} else {
+			mVolumesToSend.assign(mVolumes.begin(), mVolumes.begin() + RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL);
+			mVolumesSentIndex = RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
+		}
+
+		mLastVolumesSentTime = time;
+	} else if (!mVolumesToSend.empty()) {
+		// If we are here, it means we just sent the last volumes, and we have to wait for the timer.
+		mVolumesToSend.clear();
 	}
 }
 

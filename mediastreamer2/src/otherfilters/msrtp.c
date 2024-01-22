@@ -962,16 +962,20 @@ static void receiver_check_for_extensions(MSFilter *f, mblk_t *m) {
 	rtp_audio_level_t mtc_levels[RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL] = {{0}};
 	rtp_audio_level_t ctm_level;
 	bool_t voice_activity;
+	bool_t ignore_ctm = FALSE;
 	int ret;
 
 	// Check the packet if it contains audio level extensions
 	if (d->mixer_to_client_extension_id > 0) {
-		if ((ret = rtp_get_mixer_to_client_audio_level(m, d->mixer_to_client_extension_id, mtc_levels)) != -1) {
+		if (rtp_get_mixer_to_client_audio_level(m, d->mixer_to_client_extension_id, mtc_levels) != -1) {
 			ms_filter_notify(f, MS_RTP_RECV_MIXER_TO_CLIENT_AUDIO_LEVEL_RECEIVED, mtc_levels);
+			ignore_ctm = TRUE;
 		}
 	}
 
-	if (d->client_to_mixer_extension_id > 0) {
+	// If we received a Mixer to Client, we ignore the Client to Mixer.
+	// In conference with full packet mode enabled, a client will receive both.
+	if (d->client_to_mixer_extension_id > 0 && !ignore_ctm) {
 		if ((ret = rtp_get_client_to_mixer_audio_level(m, RTP_EXTENSION_CLIENT_TO_MIXER_AUDIO_LEVEL,
 		                                               &voice_activity)) != RTP_AUDIO_LEVEL_NO_VOLUME) {
 			ctm_level.csrc = rtp_get_ssrc(m);
