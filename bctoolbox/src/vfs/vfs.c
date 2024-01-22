@@ -332,7 +332,7 @@ off_t bctbx_file_seek(bctbx_vfs_file_t *pFile, off_t offset, int whence) {
 				ret = (off_t)bctbx_file_size(pFile) + offset;
 				break;
 			default:
-				bctbx_error("Encrypted VFS: Invalid whence value in bcSeek: %d", whence);
+				bctbx_error("bctbx_file_seek(): Invalid whence value: %d", whence);
 				return BCTBX_VFS_ERROR;
 		}
 		pFile->offset = ret;
