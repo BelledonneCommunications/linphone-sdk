@@ -121,9 +121,164 @@ audio_stream_bundle_recv_branch_new(RtpSession *session, int mixerInputPin, Audi
 	return branch;
 }
 
+/* Create a new RTP session copying the setting of the given one */
+static RtpSession *audio_stream_rtp_session_new_from_session(RtpSession *session, int mode) {
+	RtpSession *s = rtp_session_new(mode);
+	/* TODO: also copy IP and port? This is used only in bundle so it shall not be needed */
+	/* profile */
+	rtp_session_set_send_profile(s, rtp_session_get_send_profile(session));
+	rtp_session_set_recv_profile(s, rtp_session_get_recv_profile(session));
+
+	/* payload */
+	rtp_session_set_send_payload_type(s, rtp_session_get_send_payload_type(session));
+	rtp_session_set_recv_payload_type(s, rtp_session_get_recv_payload_type(session));
+
+	/* jitter settings */
+	if (rtp_session_jitter_buffer_enabled(session)) {
+		JBParameters jitter_params;
+		rtp_session_enable_jitter_buffer(s, TRUE);
+		rtp_session_get_jitter_buffer_params(session, &jitter_params);
+		rtp_session_set_jitter_buffer_params(s, &jitter_params);
+	} else {
+		rtp_session_enable_jitter_buffer(s, FALSE);
+	}
+	/* RTCP */
+	rtp_session_enable_rtcp(s, rtp_session_rtcp_enabled(session));
+	// Should we enable RTCP on bundled sessions? If yes, we must set a session SDES
+	rtp_session_enable_rtcp(s, FALSE);
+
+	return s;
+}
+
+static void on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpBundle *bundle = session->bundle;
+	RtpSession **newSession = (RtpSession **)s;
+	AudioStream *stream = (AudioStream *)userData;
+
+	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
+	 * Do not create a new session (-> packet drop) if :
+	 * - no MID in packet
+	 * - current session and packet MID do not match
+	 */
+	int midId = rtp_bundle_get_mid_extension_id(bundle);
+	uint8_t *mid = NULL;
+	char *sMid = NULL;
+	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
+	if (midSize == (size_t)-1) {
+		/* there is no MID in the incoming packet */
+		ms_warning("New outgoing SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
+		return;
+	} else {
+		sMid = bctbx_malloc0(midSize + 1);
+		memcpy(sMid, mid, midSize);
+		/* Check the mid in packet matches the session one */
+		const char *sessionMid = rtp_bundle_get_session_mid(session->bundle, session);
+		if ((strlen(sessionMid) != midSize) || (memcmp(mid, sessionMid, midSize) != 0)) {
+			ms_warning("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			           session, sMid, sessionMid);
+			bctbx_free(sMid);
+			return;
+		}
+	}
+
+	/* create a new session copying param from the main one */
+	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_SENDONLY);
+	ms_message("New outgoing SSRC %u on session %p detected, create a new session %p", ssrc, session, *newSession);
+	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
+	/* this new session is associated to the outgoing SSRC */
+	(*newSession)->snd.ssrc = ssrc;
+	(*newSession)->ssrc_out_set = TRUE;
+	/* add it to the bundle */
+	rtp_bundle_add_session(bundle, sMid, *newSession);
+	bctbx_free(sMid);
+
+	/* keep track of newly created session */
+	stream->ms.sessions.bundledSndRtpSessions =
+	    bctbx_list_append(stream->ms.sessions.bundledSndRtpSessions, *newSession);
+	/* TODO: shall we attach a ticker? */
+}
+
+/** look for a free input pin in the local audio mixer
+ */
+static int audio_stream_get_free_mixer_input_pin(AudioStream *stream) {
+	/* TODO: unplug oldest used session when no pin are found ?*/
+	int freeMixerInputPin = 0;
+	int inputPin = 2; /* pin 0 is the main session, pin 1 is the local player */
+	while (freeMixerInputPin == 0) {
+		MSQueue *q = stream->local_mixer->inputs[inputPin];
+		if (!q) {
+			freeMixerInputPin = inputPin;
+		}
+	}
+	return freeMixerInputPin;
+}
+static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpSession **newSession = (RtpSession **)s;
+	AudioStream *stream = (AudioStream *)userData;
+
+	int freeMixerInputPin = audio_stream_get_free_mixer_input_pin(stream);
+	if (freeMixerInputPin == 0) {
+		bctbx_error("No free input found in local audio mixer to plug new recv session");
+		return;
+	}
+
+	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
+	 * Do not create a new session (-> packet drop) if :
+	 * - no MID in packet
+	 * - current session and packet MID do not match
+	 */
+	int midId = rtp_bundle_get_mid_extension_id(session->bundle);
+	uint8_t *mid = NULL;
+	char *sMid = NULL;
+	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
+	if (midSize == (size_t)-1) {
+		/* there is no MID in the incoming packet */
+		ms_warning("New incoming SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
+		return;
+	} else {
+		sMid = bctbx_malloc0(midSize + 1);
+		memcpy(sMid, mid, midSize);
+		/* Check the mid in packet matches the session one */
+		const char *sessionMid = rtp_bundle_get_session_mid(session->bundle, session);
+		if ((strlen(sessionMid) != midSize) || (memcmp(mid, sessionMid, midSize) != 0)) {
+			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			           session, sMid, sessionMid);
+			bctbx_free(sMid);
+			return;
+		}
+	}
+
+	/* create a new session copying param from the main one */
+	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_RECVONLY);
+	ms_message(
+	    "New incoming SSRC %u on session %p detected, create a new session %p attach it to local mixer input pin %d ",
+	    ssrc, session, *newSession, freeMixerInputPin);
+	/* the new session is associated to the incoming SSRC */
+	(*newSession)->ssrc_set = TRUE;
+	(*newSession)->rcv.ssrc = ssrc;
+	/* add it to the bundle and save it to the mediasessions */
+	rtp_bundle_add_session(session->bundle, sMid, *newSession);
+	stream->ms.sessions.bundledRecvRtpSessions =
+	    bctbx_list_append(stream->ms.sessions.bundledRecvRtpSessions, *newSession);
+	bctbx_free(sMid);
+	/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it cleanly */
+	stream->bundledRecvBranches = bctbx_list_append(
+	    stream->bundledRecvBranches, audio_stream_bundle_recv_branch_new(*newSession, freeMixerInputPin, stream));
+}
+
 static void audio_stream_free(AudioStream *stream) {
 	if (stream->ms.local_mix_conference == TRUE) {
 		bctbx_list_free_with_data(stream->bundledRecvBranches, audio_stream_bundle_recv_branch_free);
+		rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "new_incoming_ssrc_found_in_bundle",
+		                                          on_incoming_ssrc_in_bundle);
+	}
+	if (stream->transfer_mode == TRUE) {
+		rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "new_outgoing_ssrc_found_in_bundle",
+		                                          on_outgoing_ssrc_in_bundle);
 	}
 	media_stream_free(&stream->ms);
 	if (stream->soundread != NULL) ms_filter_destroy(stream->soundread);
@@ -162,35 +317,6 @@ static void audio_stream_free(AudioStream *stream) {
 	if (stream->participants_volumes) audio_stream_volumes_delete(stream->participants_volumes);
 
 	ms_free(stream);
-}
-
-/* Create a new RTP session copying the setting of the given one */
-static RtpSession *audio_stream_rtp_session_new_from_session(RtpSession *session, int mode) {
-	RtpSession *s = rtp_session_new(mode);
-	/* TODO: also copy IP and port? This is used only in bundle so it shall not be needed */
-	/* profile */
-	rtp_session_set_send_profile(s, rtp_session_get_send_profile(session));
-	rtp_session_set_recv_profile(s, rtp_session_get_recv_profile(session));
-
-	/* payload */
-	rtp_session_set_send_payload_type(s, rtp_session_get_send_payload_type(session));
-	rtp_session_set_recv_payload_type(s, rtp_session_get_recv_payload_type(session));
-
-	/* jitter settings */
-	if (rtp_session_jitter_buffer_enabled(session)) {
-		JBParameters jitter_params;
-		rtp_session_enable_jitter_buffer(s, TRUE);
-		rtp_session_get_jitter_buffer_params(session, &jitter_params);
-		rtp_session_set_jitter_buffer_params(s, &jitter_params);
-	} else {
-		rtp_session_enable_jitter_buffer(s, FALSE);
-	}
-	/* RTCP */
-	rtp_session_enable_rtcp(s, rtp_session_rtcp_enabled(session));
-	// Should we enable RTCP on bundled sessions? If yes, we must set a session SDES
-	rtp_session_enable_rtcp(s, FALSE);
-
-	return s;
 }
 
 static int dtmf_tab[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '#', 'A', 'B', 'C', 'D'};
@@ -1122,126 +1248,6 @@ static void on_voice_activity_detected_cb(void *data,
 				break;
 		}
 	}
-}
-
-static void on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
-	mblk_t *m = (mblk_t *)mp;
-	uint32_t ssrc = rtp_get_ssrc(m);
-	RtpBundle *bundle = session->bundle;
-	RtpSession **newSession = (RtpSession **)s;
-	AudioStream *stream = (AudioStream *)userData;
-
-	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
-	 * Do not create a new session (-> packet drop) if :
-	 * - no MID in packet
-	 * - current session and packet MID do not match
-	 */
-	int midId = rtp_bundle_get_mid_extension_id(bundle);
-	uint8_t *mid = NULL;
-	char *sMid = NULL;
-	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
-	if (midSize == (size_t)-1) {
-		/* there is no MID in the incoming packet */
-		ms_warning("New outgoing SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
-		return;
-	} else {
-		sMid = bctbx_malloc0(midSize + 1);
-		memcpy(sMid, mid, midSize);
-		/* Check the mid in packet matches the session one */
-		const char *sessionMid = rtp_bundle_get_session_mid(session->bundle, session);
-		if ((strlen(sessionMid) != midSize) || (memcmp(mid, sessionMid, midSize) != 0)) {
-			ms_warning("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
-			           session, sMid, sessionMid);
-			bctbx_free(sMid);
-			return;
-		}
-	}
-
-	/* create a new session copying param from the main one */
-	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_SENDONLY);
-	ms_message("New outgoing SSRC %u on session %p detected, create a new session %p", ssrc, session, *newSession);
-	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
-	/* this new session is associated to the outgoing SSRC */
-	(*newSession)->snd.ssrc = ssrc;
-	(*newSession)->ssrc_out_set = TRUE;
-	/* add it to the bundle */
-	rtp_bundle_add_session(bundle, sMid, *newSession);
-	bctbx_free(sMid);
-
-	/* keep track of newly created session */
-	stream->ms.sessions.bundledSndRtpSessions =
-	    bctbx_list_append(stream->ms.sessions.bundledSndRtpSessions, *newSession);
-	/* TODO: shall we attach a ticker? */
-}
-
-/** look for a free input pin in the local audio mixer
- */
-static int audio_stream_get_free_mixer_input_pin(AudioStream *stream) {
-	/* TODO: unplug oldest used session when no pin are found ?*/
-	int freeMixerInputPin = 0;
-	int inputPin = 2; /* pin 0 is the main session, pin 1 is the local player */
-	while (freeMixerInputPin == 0) {
-		MSQueue *q = stream->local_mixer->inputs[inputPin];
-		if (!q) {
-			freeMixerInputPin = inputPin;
-		}
-	}
-	return freeMixerInputPin;
-}
-static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
-	mblk_t *m = (mblk_t *)mp;
-	uint32_t ssrc = rtp_get_ssrc(m);
-	RtpSession **newSession = (RtpSession **)s;
-	AudioStream *stream = (AudioStream *)userData;
-
-	int freeMixerInputPin = audio_stream_get_free_mixer_input_pin(stream);
-	if (freeMixerInputPin == 0) {
-		bctbx_error("No free input found in local audio mixer to plug new recv session");
-		return;
-	}
-
-	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
-	 * Do not create a new session (-> packet drop) if :
-	 * - no MID in packet
-	 * - current session and packet MID do not match
-	 */
-	int midId = rtp_bundle_get_mid_extension_id(session->bundle);
-	uint8_t *mid = NULL;
-	char *sMid = NULL;
-	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
-	if (midSize == (size_t)-1) {
-		/* there is no MID in the incoming packet */
-		ms_warning("New incoming SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
-		return;
-	} else {
-		sMid = bctbx_malloc0(midSize + 1);
-		memcpy(sMid, mid, midSize);
-		/* Check the mid in packet matches the session one */
-		const char *sessionMid = rtp_bundle_get_session_mid(session->bundle, session);
-		if ((strlen(sessionMid) != midSize) || (memcmp(mid, sessionMid, midSize) != 0)) {
-			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
-			           session, sMid, sessionMid);
-			bctbx_free(sMid);
-			return;
-		}
-	}
-
-	/* create a new session copying param from the main one */
-	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_RECVONLY);
-	ms_message(
-	    "New incoming SSRC %u on session %p detected, create a new session %p attach it to local mixer input pin %d ",
-	    ssrc, session, *newSession, freeMixerInputPin);
-	/* the new session is associated to the incoming SSRC */
-	(*newSession)->ssrc_set = TRUE;
-	(*newSession)->rcv.ssrc = ssrc;
-	/* add it to the bundle and save it to the mediasessions */
-	rtp_bundle_add_session(session->bundle, sMid, *newSession);
-	stream->ms.sessions.bundledRecvRtpSessions =
-	    bctbx_list_append(stream->ms.sessions.bundledRecvRtpSessions, *newSession);
-	bctbx_free(sMid);
-	/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it cleanly */
-	stream->bundledRecvBranches = bctbx_list_append(
-	    stream->bundledRecvBranches, audio_stream_bundle_recv_branch_new(*newSession, freeMixerInputPin, stream));
 }
 
 int audio_stream_start_from_io(AudioStream *stream,
