@@ -47,8 +47,8 @@ extern "C" {
 /**
  * Instanciate a media recorder
  * @param factory a MSFactory
- * @param snd_card Recording sound card
- * @param web_cam Recording camera
+ * @param snd_card Recording sound card, may be NULL if no audio record is requested.
+ * @param web_cam Recording camera, may be NULL if no video record is requested.
  * @param video_display_name Video out
  * @param window_id Pointer on the drawing window
  * @param format File format (Wave or MKV)
@@ -77,12 +77,28 @@ MS2_PUBLIC void ms_media_recorder_free(MSMediaRecorder *obj);
 MS2_PUBLIC void *ms_media_recorder_get_window_id(const MSMediaRecorder *obj);
 
 /**
+ * Create the window ID
+ * @param obj The recorder
+ * @return The window ID
+ */
+MS2_PUBLIC void *ms_media_recorder_create_window_id(MSMediaRecorder *obj);
+
+/**
  * Open a media file to write to
  * @param obj The recorder
  * @param filepath Path of the file to write to
  * @return TRUE if the file could be created
  */
-MS2_PUBLIC bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath, int device_orientation);
+MS2_PUBLIC bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath);
+
+/**
+ * Open a media file to write to
+ * @param obj The recorder
+ * @param filepath Path of the file to write to
+ * @param append boolean to enable append mode (in case the file already exists).
+ * @return TRUE if the file could be created
+ */
+MS2_PUBLIC bool_t ms_media_recorder_open_2(MSMediaRecorder *obj, const char *filepath, bool_t append);
 
 /**
  * Close a media file
@@ -137,6 +153,14 @@ MS2_PUBLIC void ms_media_recorder_remove_file(MSMediaRecorder *obj, const char *
  * @return Linear volume.
  */
 MS2_PUBLIC float ms_media_recorder_get_capture_volume(const MSMediaRecorder *obj);
+
+/**
+ * Set the device orientation. Must be set before calling ms_media_recorder_open(),
+ * cannot be changed afterwards.
+ * @param obj Recorder
+ * @param device_orientation the orientation in degrees.
+ */
+MS2_PUBLIC void ms_media_recorder_set_device_orientation(MSMediaRecorder *obj, int device_orientation);
 
 #ifdef __cplusplus
 }

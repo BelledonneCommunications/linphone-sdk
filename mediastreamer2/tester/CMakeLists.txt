@@ -45,6 +45,11 @@ if(TurboJpeg_FOUND)
 	list(APPEND MS2_LIBS_FOR_TESTER ${TurboJpeg_TARGET})
 endif()
 
+
+if(ZLIB_FOUND)
+	list(APPEND MS2_LIBS_FOR_TESTER ${ZLIB_TARGET})
+endif()
+
 set(SOUND_FILES
 	sounds/arpeggio_8000_mono.wav
 	sounds/bird_44100_stereo.wav
@@ -132,6 +137,11 @@ set(SOURCE_FILES_CXX
 	mediastreamer2_double_encryption_tester.cpp
 	mediastreamer2_tester_utils.cpp
 )
+
+if(ZLIB_FOUND)
+	list(APPEND SOURCE_FILES_CXX smff_tester.cpp)
+endif()
+
 set(SOURCE_FILES_OBJC )
 
 add_definitions(

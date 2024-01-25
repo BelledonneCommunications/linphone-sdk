@@ -124,6 +124,9 @@ void mediastreamer2_tester_init(void (*ftester_printf)(int level, const char *fm
 	bc_tester_add_suite(&jitterbuffer_test_suite);
 #endif
 	bc_tester_add_suite(&double_encryption_test_suite);
+#ifdef HAVE_ZLIB
+	bc_tester_add_suite(&smff_test_suite);
+#endif
 }
 
 void mediastreamer2_tester_uninit(void) {

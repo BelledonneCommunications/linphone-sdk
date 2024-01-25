@@ -138,7 +138,7 @@ ObuPacker::makePacket(uint8_t *buf, size_t size, bool Z, bool Y, bool N, bool ma
 	mblk_set_independent_flag(m, mblk_get_independent_flag(source));
 	mblk_set_discardable_flag(m, mblk_get_discardable_flag(source));
 	mblk_set_marker_info(m, marker ? 1 : 0);
-
+	mblk_set_cseq(m, mSeq++);
 	return m;
 }
 

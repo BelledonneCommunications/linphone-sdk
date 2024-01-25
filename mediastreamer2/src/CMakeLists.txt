@@ -131,6 +131,10 @@ set(VOIP_SOURCE_FILES_CXX
 	crypto/ms_srtp.cpp
 	utils/filter-wrapper/decoding-filter-wrapper.cpp
 	utils/filter-wrapper/encoding-filter-wrapper.cpp
+	videofilters/smff/recorder.cpp
+	videofilters/smff/player.cpp
+	videofilters/smff/smff.cpp
+	videofilters/smff/smff.h
 	videofilters/packet-router.cpp
 	voip/audiostreamvolumes.cpp
 	voip/turn_tcp.cpp

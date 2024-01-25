@@ -64,6 +64,7 @@ protected:
 	mblk_t *makePacket(uint8_t *buf, size_t size, bool Z, bool Y, bool N, bool M, uint32_t ts, mblk_t *source);
 
 	size_t mMaxPayloadSize;
+	uint16_t mSeq = 0;
 	bool mAggregationEnabled = false;
 
 private:

@@ -109,7 +109,9 @@ static void rec_process(MSFilter *f) {
 static int rec_get_length(const char *file, int *length) {
 	wave_header_t header;
 	bctbx_vfs_file_t *fp = bctbx_file_open2(bctbx_vfs_get_default(), file, O_RDONLY | O_BINARY);
-	int ret = ms_read_wav_header_from_fp(&header, fp);
+	int ret;
+	if (!fp) return -1;
+	ret = ms_read_wav_header_from_fp(&header, fp);
 	bctbx_file_close(fp);
 	if (ret > 0) {
 		*length = le_uint32(header.data_chunk.len);

@@ -25,7 +25,9 @@
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msmediarecorder.h"
 #include "mediastreamer2/msticker.h"
+
 #include "mediastreamer2/msvolume.h"
+#include "private.h"
 
 #include <math.h>
 
@@ -64,8 +66,10 @@ struct _MSMediaRecorder {
 	MSFilter *audio_capture_volume;
 	// Video filters
 	MSFilter *video_source;
+	MSFilter *video_converter;
+	MSFilter *video_tee;
 	MSFilter *video_encoder;
-	MSFilter *video_sink;
+	MSFilter *video_display;
 
 	MSPinFormat audio_pin_fmt;
 	MSPinFormat video_pin_fmt;
@@ -75,25 +79,19 @@ struct _MSMediaRecorder {
 	char *filename;
 	MSSndCard *snd_card;
 	MSWebCam *web_cam;
-	char *video_display;
+	char *video_display_type;
 	void *window_id;
 	char *video_codec;
 	int device_orientation;
 };
 
-static void _create_encoders(MSMediaRecorder *obj, int device_orientation);
+static void _create_encoders(MSMediaRecorder *obj);
 static void _create_sources(MSMediaRecorder *obj);
 static void _set_pin_fmt(MSMediaRecorder *obj);
 static void _destroy_graph(MSMediaRecorder *obj);
 static bool_t _link_all(MSMediaRecorder *obj);
 static void _unlink_all(MSMediaRecorder *obj);
 static void _recorder_callback(void *ud, MSFilter *f, unsigned int id, void *arg);
-
-static const char *get_filename_ext(const char *filename) {
-	const char *dot = strrchr(filename, '.');
-	if (!dot || dot == filename) return "";
-	return dot + 1;
-}
 
 MSMediaRecorder *ms_media_recorder_new(MSFactory *factory,
                                        MSSndCard *snd_card,
@@ -107,12 +105,15 @@ MSMediaRecorder *ms_media_recorder_new(MSFactory *factory,
 	params.name = "Recorder";
 	params.prio = MS_TICKER_PRIO_NORMAL;
 	obj->ticker = ms_ticker_new_with_params(&params);
-	obj->snd_card = ms_snd_card_ref(snd_card);
+	obj->snd_card = snd_card ? ms_snd_card_ref(snd_card) : NULL;
 	obj->web_cam = web_cam;
 	if (video_display_name != NULL && strlen(video_display_name) > 0) {
-		obj->video_display = ms_strdup(video_display_name);
-		obj->window_id = window_id;
+		obj->video_display_type = ms_strdup(video_display_name);
+	} else {
+		obj->video_display_type = ms_strdup(ms_factory_get_default_video_renderer(factory));
 	}
+
+	obj->window_id = window_id;
 	obj->factory = factory;
 	obj->format = format;
 	if (video_codec != NULL) {
@@ -124,64 +125,90 @@ MSMediaRecorder *ms_media_recorder_new(MSFactory *factory,
 void ms_media_recorder_free(MSMediaRecorder *obj) {
 	ms_media_recorder_close(obj);
 	ms_ticker_destroy(obj->ticker);
-	ms_snd_card_unref(obj->snd_card);
-	ms_free_if_not_null(obj->video_display);
+	if (obj->snd_card) ms_snd_card_unref(obj->snd_card);
+	ms_free_if_not_null(obj->video_display_type);
 	ms_free_if_not_null(obj->video_codec);
 	ms_free(obj);
+}
+
+void *ms_media_recorder_create_window_id(MSMediaRecorder *obj) {
+	if (obj->video_display) {
+		ms_filter_call_method(obj->video_display, MS_VIDEO_DISPLAY_CREATE_NATIVE_WINDOW_ID, &obj->window_id);
+	}
+	return obj->window_id;
 }
 
 void *ms_media_recorder_get_window_id(const MSMediaRecorder *obj) {
 	return obj->window_id;
 }
 
-bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath, int device_orientation) {
-	const char *file_ext = get_filename_ext(filepath);
-	if (!((strcmp(file_ext, "wav") == 0 && obj->format == MS_FILE_FORMAT_WAVE) ||
-	      ((strcmp(file_ext, "mkv") == 0 && obj->format == MS_FILE_FORMAT_MATROSKA)))) {
-		ms_error("file format and file extension do not match, was expecting %s and got %s for filename: %s",
-		         (obj->format == MS_FILE_FORMAT_WAVE ? "wav" : "mkv"), file_ext, filepath);
-		return FALSE;
-	}
-	char *tmp;
-	ms_message("Opening %s", filepath);
+void ms_media_recorder_set_device_orientation(MSMediaRecorder *obj, int device_orientation) {
+	obj->device_orientation = device_orientation;
+}
+
+bool_t ms_media_recorder_open(MSMediaRecorder *obj, const char *filepath) {
+	return ms_media_recorder_open_2(obj, filepath, FALSE);
+}
+
+bool_t ms_media_recorder_open_2(MSMediaRecorder *obj, const char *filepath, bool_t append) {
+	ms_message("ms_media_recorder_open_2(): open '%s'", filepath ? filepath : "");
 	if (access(filepath, F_OK | W_OK) == 0) {
-		ms_warning("Removing existing file %s", filepath);
-		remove(filepath);
+		if (append) {
+			ms_message("File [%s] already exists, using append mode.", filepath);
+		} else {
+			ms_warning("Removing existing file %s", filepath);
+			remove(filepath);
+		}
 	}
 	switch (obj->format) {
 		case MS_FILE_FORMAT_WAVE:
+			if (!ms_path_ends_with(filepath, ".wav")) {
+				ms_warning("ms_media_recorder_open(): Bad extension %s for wave file.", filepath);
+			}
 			if ((obj->recorder = ms_factory_create_filter(obj->factory, MS_FILE_REC_ID)) == NULL) {
 				ms_error("Cannot create recorder for %s.", filepath);
 				return FALSE;
 			}
 			break;
 		case MS_FILE_FORMAT_MATROSKA:
+			if (!ms_path_ends_with(filepath, ".mkv") && !ms_path_ends_with(filepath, ".mka")) {
+				ms_warning("ms_media_recorder_open(): Bad extension %s for wave file.", filepath);
+			}
 			if ((obj->recorder = ms_factory_create_filter(obj->factory, MS_MKV_RECORDER_ID)) == NULL) {
 				ms_error("Cannot create recorder for %s.", filepath);
 				return FALSE;
 			}
 			break;
+		case MS_FILE_FORMAT_SMFF:
+			if (!ms_path_ends_with(filepath, ".smff")) {
+				ms_warning("ms_media_recorder_open(): Bad extension %s for wave file.", filepath);
+			}
+			if ((obj->recorder = ms_factory_create_filter(obj->factory, MS_SMFF_RECORDER_ID)) == NULL) {
+				ms_error("Cannot create recorder for %s.", filepath);
+				return FALSE;
+			}
+			break;
 		case MS_FILE_FORMAT_UNKNOWN:
-		default:
 			ms_error("Cannot open %s. Unknown format", filepath);
 			return FALSE;
 	}
-	tmp = ms_strdup(filepath);
-	if (ms_filter_call_method(obj->recorder, MS_RECORDER_OPEN, tmp) == -1) {
+	if (!obj->recorder) return FALSE;
+
+	if (ms_filter_call_method(obj->recorder, MS_RECORDER_OPEN, (void *)filepath) == -1) {
 		ms_error("Cannot open %s", filepath);
-		ms_free(tmp);
 		ms_filter_destroy(obj->recorder);
 		return FALSE;
 	}
-	ms_free(tmp);
 	obj->audio_capture_volume = ms_factory_create_filter(obj->factory, MS_VOLUME_ID);
 
-	ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_VOICE);
+	if (obj->snd_card) {
+		ms_snd_card_set_stream_type(obj->snd_card, MS_SND_CARD_STREAM_VOICE);
+	}
 	_create_sources(obj);
 	_set_pin_fmt(obj);
-	_create_encoders(obj, device_orientation);
+	_create_encoders(obj);
 	if (!_link_all(obj)) {
-		ms_error("Cannot open %s. Could not build playing graph", filepath);
+		ms_error("Cannot open %s. Could not build recoding graph", filepath);
 		_destroy_graph(obj);
 		return FALSE;
 	}
@@ -261,10 +288,11 @@ float ms_media_recorder_get_capture_volume(const MSMediaRecorder *obj) {
 	return volume;
 }
 
-static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
+static void _create_encoders(MSMediaRecorder *obj) {
 	// In short : if wave: no encoder. If mkv, "opus" for audio, "vp8" or "h264"
-	int source_sample_rate, encoder_sample_rate, sample_rate, source_nchannels, nchannels;
+	int source_sample_rate = 0, encoder_sample_rate = 0, sample_rate = 0, source_nchannels = 0, nchannels = 0;
 	switch (obj->format) {
+		case MS_FILE_FORMAT_SMFF:
 		case MS_FILE_FORMAT_MATROSKA:
 			if (obj->snd_card) {
 				obj->audio_encoder = ms_factory_create_encoder(obj->factory, obj->audio_pin_fmt.fmt->encoding);
@@ -290,7 +318,7 @@ static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
 						ms_filter_call_method(obj->resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &nchannels);
 					}
 				}
-				ms_message("Configuring MKV recorder with audio format %s",
+				ms_message("Configuring multimedia recorder with audio format %s",
 				           ms_fmt_descriptor_to_string(obj->audio_pin_fmt.fmt));
 				ms_filter_call_method(obj->recorder, MS_FILTER_SET_INPUT_FMT, &obj->audio_pin_fmt);
 			}
@@ -302,13 +330,28 @@ static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
 				} else {
 					if (ms_filter_has_method(obj->video_source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION))
 						ms_filter_call_method(obj->video_source, MS_VIDEO_CAPTURE_SET_DEVICE_ORIENTATION,
-						                      &device_orientation);
+						                      &obj->device_orientation);
 					ms_filter_add_notify_callback(obj->recorder, _recorder_callback, obj, TRUE);
 					float fps = 30;
+					MSPixFmt pixfmt = MS_PIX_FMT_UNKNOWN;
 					ms_filter_call_method(obj->video_source, MS_FILTER_SET_FPS, &fps);
 					MSVideoSize video_size = MS_VIDEO_SIZE_VGA;
 					ms_filter_call_method(obj->video_source, MS_FILTER_SET_VIDEO_SIZE, &video_size);
 					ms_filter_call_method(obj->video_source, MS_FILTER_GET_VIDEO_SIZE, &video_size);
+					ms_filter_call_method(obj->video_source, MS_FILTER_GET_PIX_FMT, &pixfmt);
+
+					if (pixfmt == MS_MJPEG) {
+						obj->video_converter = ms_factory_create_decoder(obj->factory, "MJPEG");
+					} else {
+						obj->video_converter = ms_factory_create_filter(obj->factory, MS_PIX_CONV_ID);
+						ms_filter_call_method(obj->video_converter, MS_FILTER_SET_PIX_FMT, &pixfmt);
+						ms_filter_call_method(obj->video_converter, MS_FILTER_SET_VIDEO_SIZE, &video_size);
+					}
+					obj->video_tee = ms_factory_create_filter(obj->factory, MS_TEE_ID);
+					if (obj->video_display_type) {
+						obj->video_display = ms_factory_create_filter_from_name(obj->factory, obj->video_display_type);
+					}
+
 					if (ms_filter_implements_interface(obj->video_encoder, MSFilterVideoEncoderInterface)) {
 						MSVideoConfiguration vconf;
 						ms_filter_call_method(obj->video_encoder, MS_VIDEO_ENCODER_GET_CONFIGURATION, &vconf);
@@ -327,13 +370,15 @@ static void _create_encoders(MSMediaRecorder *obj, int device_orientation) {
 				}
 			}
 			break;
-		default:
+		case MS_FILE_FORMAT_UNKNOWN:
+		case MS_FILE_FORMAT_WAVE:
 			break;
 	}
 }
 
 static void _create_sources(MSMediaRecorder *obj) {
 	switch (obj->format) {
+		case MS_FILE_FORMAT_SMFF:
 		case MS_FILE_FORMAT_MATROSKA:
 			if (obj->web_cam && obj->video_codec) {
 				obj->video_source = ms_web_cam_create_reader(obj->web_cam);
@@ -344,7 +389,8 @@ static void _create_sources(MSMediaRecorder *obj) {
 				} else {
 					ms_error("Could not create video source: %s", obj->web_cam->name);
 				}
-			} else if (obj->snd_card) {
+			}
+			if (obj->snd_card) {
 				if ((obj->audio_source = ms_snd_card_create_reader(obj->snd_card))) {
 					if (ms_filter_has_method(obj->audio_source, MS_AUDIO_CAPTURE_ENABLE_AEC)) {
 						bool_t aec_enabled = FALSE;
@@ -375,7 +421,7 @@ static void _create_sources(MSMediaRecorder *obj) {
 				}
 			}
 			break;
-		default:
+		case MS_FILE_FORMAT_UNKNOWN:
 			break;
 	}
 }
@@ -392,6 +438,7 @@ static void _set_pin_fmt(MSMediaRecorder *obj) {
 			obj->audio_pin_fmt.fmt = ms_factory_get_audio_format(obj->factory, "pcm", sample_rate, nchannels, NULL);
 			break;
 		case MS_FILE_FORMAT_MATROSKA:
+		case MS_FILE_FORMAT_SMFF:
 			if (obj->snd_card) {
 				obj->audio_pin_fmt.pin = 0;
 				ms_filter_call_method(obj->audio_source, MS_FILTER_GET_SAMPLE_RATE, &sample_rate);
@@ -408,7 +455,7 @@ static void _set_pin_fmt(MSMediaRecorder *obj) {
 				    ms_factory_get_video_format(obj->factory, obj->video_codec, video_size, fps, NULL);
 			}
 			break;
-		default:
+		case MS_FILE_FORMAT_UNKNOWN:
 			break;
 	}
 }
@@ -419,6 +466,9 @@ static void _destroy_graph(MSMediaRecorder *obj) {
 	ms_filter_destroy_and_reset_if_not_null(obj->video_encoder);
 	ms_filter_destroy_and_reset_if_not_null(obj->audio_source);
 	ms_filter_destroy_and_reset_if_not_null(obj->video_source);
+	ms_filter_destroy_and_reset_if_not_null(obj->video_converter);
+	ms_filter_destroy_and_reset_if_not_null(obj->video_tee);
+	ms_filter_destroy_and_reset_if_not_null(obj->video_display);
 	ms_filter_destroy_and_reset_if_not_null(obj->resampler);
 	ms_filter_destroy_and_reset_if_not_null(obj->audio_capture_volume);
 	obj->audio_pin_fmt.fmt = NULL;
@@ -448,8 +498,11 @@ static bool_t _link_all(MSMediaRecorder *obj) {
 	if (obj->video_pin_fmt.fmt && obj->video_source) {
 		ms_connection_helper_start(&helper);
 		ms_connection_helper_link(&helper, obj->video_source, -1, 0);
+		if (obj->video_converter) ms_connection_helper_link(&helper, obj->video_converter, 0, 0);
+		if (obj->video_tee) ms_connection_helper_link(&helper, obj->video_tee, 0, 0);
 		if (obj->video_encoder) ms_connection_helper_link(&helper, obj->video_encoder, 0, 0);
 		ms_connection_helper_link(&helper, obj->recorder, obj->video_pin_fmt.pin, -1);
+		if (obj->video_display) ms_filter_link(obj->video_tee, 1, obj->video_display, 0);
 	}
 	return TRUE;
 }
@@ -467,8 +520,11 @@ static void _unlink_all(MSMediaRecorder *obj) {
 	if (obj->video_pin_fmt.fmt && obj->video_source) {
 		ms_connection_helper_start(&helper);
 		ms_connection_helper_unlink(&helper, obj->video_source, -1, 0);
+		if (obj->video_converter) ms_connection_helper_unlink(&helper, obj->video_converter, 0, 0);
+		if (obj->video_tee) ms_connection_helper_unlink(&helper, obj->video_tee, 0, 0);
 		if (obj->video_encoder) ms_connection_helper_unlink(&helper, obj->video_encoder, 0, 0);
 		ms_connection_helper_unlink(&helper, obj->recorder, obj->video_pin_fmt.pin, -1);
+		if (obj->video_display) ms_filter_unlink(obj->video_tee, 1, obj->video_display, 0);
 	}
 }
 

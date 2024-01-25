@@ -571,7 +571,7 @@ typedef struct _Vp8Module {
 static void *vp8_module_new(BCTBX_UNUSED(MSFactory *factory)) {
 	Vp8Module *obj = (Vp8Module *)ms_new0(Vp8Module, 1);
 	vp8rtpfmt_unpacker_init(&obj->unpacker, NULL, FALSE, TRUE, FALSE);
-	vp8rtpfmt_packer_init(&obj->packer);
+	vp8rtpfmt_packer_init(&obj->packer, ms_factory_get_payload_max_size(factory));
 	return obj;
 }
 
@@ -601,7 +601,7 @@ static mblk_t *vp8_module_process(BCTBX_UNUSED(void *obj),
 	return buffer;
 }
 
-static void vp8_module_reverse(MSFactory *f,
+static void vp8_module_reverse(BCTBX_UNUSED(MSFactory *f),
                                void *obj,
                                mblk_t *input,
                                MSQueue *output,
@@ -624,7 +624,7 @@ static void vp8_module_reverse(MSFactory *f,
 	packet->pd->pid = 0;
 	mblk_set_marker_info(packet->m, TRUE);
 	packer_input = bctbx_list_append(packer_input, packet);
-	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q, f);
+	vp8rtpfmt_packer_process(&mod->packer, packer_input, &q);
 
 	while ((m = ms_queue_get(&q))) {
 		mblk_set_cseq(m, mod->cseq++);

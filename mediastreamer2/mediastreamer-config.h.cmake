@@ -80,7 +80,10 @@
 #cmakedefine HAVE_PCAP 1
 #cmakedefine HAVE_MATROSKA 1
 #cmakedefine HAVE_VPX 1
+#cmakedefine HAVE_ZLIB 1
 
 #cmakedefine HAVE_SYS_SOUNDCARD_H 1
 
 #cmakedefine ENABLE_OPENGL_PROFILING 1
+
+

@@ -1039,12 +1039,11 @@ int vp8rtpfmt_unpacker_get_frame(Vp8RtpFmtUnpackerCtx *ctx, MSQueue *out, Vp8Rtp
 static void packer_process_frame_part(void *p, void *c) {
 	Vp8RtpFmtPacket *packet = (Vp8RtpFmtPacket *)p;
 	Vp8RtpFmtPackerCtx *ctx = (Vp8RtpFmtPackerCtx *)c;
-	MSFactory *factory = ctx->factory;
 	mblk_t *pdm = NULL;
 	mblk_t *dm = NULL;
 	uint8_t *rptr;
 	uint8_t pdsize = 1;
-	int max_size = ms_factory_get_payload_max_size(factory);
+	int max_size = ctx->max_payload_size;
 	int dlen;
 	bool_t marker_info = mblk_get_marker_info(packet->m);
 
@@ -1127,16 +1126,16 @@ static void packer_process_frame_part(void *p, void *c) {
 	packet->m = NULL;
 }
 
-void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx) {
+void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, size_t max_payload_size) {
 	ctx->_refCSeq = 0;
+	ctx->max_payload_size = max_payload_size;
 }
 
 void vp8rtpfmt_packer_uninit(BCTBX_UNUSED(Vp8RtpFmtPackerCtx *ctx)) {
 }
 
-void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, bctbx_list_t *in, MSQueue *out, MSFactory *f) {
+void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, bctbx_list_t *in, MSQueue *out) {
 	ctx->output_queue = out;
-	ctx->factory = f;
 	bctbx_list_for_each2(in, packer_process_frame_part, ctx);
 	bctbx_list_for_each(in, free_packet);
 	bctbx_list_free(in);

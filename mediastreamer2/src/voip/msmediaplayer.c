@@ -57,6 +57,7 @@ typedef struct _FormatDesc {
 static const FormatDesc _format_desc_list[] = {
     {MS_FILE_FORMAT_WAVE, {'R', 'I', 'F', 'F'}},
     {MS_FILE_FORMAT_MATROSKA, {0x1a, 0x45, 0xdf, 0xa3}},
+    {MS_FILE_FORMAT_SMFF, {'S', 'M', 'F', 'F'}},
     {MS_FILE_FORMAT_UNKNOWN, {0x0, 0x0, 0x0, 0x0}},
 };
 
@@ -115,9 +116,17 @@ MSMediaPlayer *
 ms_media_player_new(MSFactory *factory, MSSndCard *snd_card, const char *video_display_name, void *window_id) {
 	MSMediaPlayer *obj = (MSMediaPlayer *)ms_new0(MSMediaPlayer, 1);
 	ms_mutex_init(&obj->cb_access, NULL);
-	if (snd_card) obj->snd_card = ms_snd_card_ref(snd_card);
+
+	if (!snd_card) {
+		snd_card = ms_snd_card_manager_get_default_playback_card(ms_factory_get_snd_card_manager(factory));
+	}
+	obj->snd_card = ms_snd_card_ref(snd_card);
 	if (video_display_name != NULL && strlen(video_display_name) > 0) {
 		obj->video_display = ms_strdup(video_display_name);
+	} else {
+		obj->video_display = ms_strdup(ms_factory_get_default_video_renderer(factory));
+	}
+	if (window_id) {
 		obj->window_id = window_id;
 #ifdef ANDROID
 		if (obj->window_id) {
@@ -217,6 +226,12 @@ bool_t ms_media_player_open(MSMediaPlayer *obj, const char *filepath) {
 		case MS_FILE_FORMAT_MATROSKA:
 			if ((obj->player = ms_factory_create_filter(obj->factory, MS_MKV_PLAYER_ID)) == NULL) {
 				ms_error("Cannot open %s. Matroska file support is disabled", filepath);
+				return FALSE;
+			}
+			break;
+		case MS_FILE_FORMAT_SMFF:
+			if ((obj->player = ms_factory_create_filter(obj->factory, MS_SMFF_PLAYER_ID)) == NULL) {
+				ms_error("Cannot open %s. SMFF file support is disabled", filepath);
 				return FALSE;
 			}
 			break;
@@ -458,6 +473,7 @@ static void _create_decoders(MSMediaPlayer *obj) {
 			obj->audio_pin_fmt.fmt = ms_factory_get_audio_format(obj->factory, "pcm", sample_rate, nchannels, NULL);
 			break;
 		case MS_FILE_FORMAT_MATROSKA:
+		case MS_FILE_FORMAT_SMFF:
 			obj->audio_pin_fmt.pin = 1;
 			obj->video_pin_fmt.pin = 0;
 			ms_filter_call_method(obj->player, MS_FILTER_GET_OUTPUT_FMT, &obj->audio_pin_fmt);

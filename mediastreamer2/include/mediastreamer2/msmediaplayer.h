@@ -34,7 +34,7 @@ typedef struct _MSMediaPlayer MSMediaPlayer;
  * Callbacks definitions */
 typedef void (*MSMediaPlayerEofCallback)(void *user_data);
 
-typedef enum { MS_FILE_FORMAT_UNKNOWN, MS_FILE_FORMAT_WAVE, MS_FILE_FORMAT_MATROSKA } MSFileFormat;
+typedef enum { MS_FILE_FORMAT_UNKNOWN, MS_FILE_FORMAT_WAVE, MS_FILE_FORMAT_MATROSKA, MS_FILE_FORMAT_SMFF } MSFileFormat;
 
 #ifdef __cplusplus
 extern "C" {

@@ -41,7 +41,7 @@ endif()
 
 set(simple_executables bench ring mtudiscover tones msaudiocmp)
 if(ENABLE_VIDEO)
-	list(APPEND simple_executables videodisplay)
+	list(APPEND simple_executables videodisplay player recorder)
 	if(X11_FOUND)
 		list(APPEND simple_executables test_x11window)
 	endif()
@@ -102,4 +102,14 @@ if(ENABLE_VIDEO)
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 		)
 	endif()
+endif()
+
+
+if (ENABLE_VIDEO AND NOT IOS)
+	install(TARGETS mediastreamer2-player
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	)
+	install(TARGETS mediastreamer2-recorder
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	)
 endif()

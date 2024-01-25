@@ -233,7 +233,7 @@ static void enc_preprocess(MSFilter *f) {
 
 	enc_init_impl(f);
 	s->invalid_frame_reported = FALSE;
-	vp8rtpfmt_packer_init(&s->packer);
+	vp8rtpfmt_packer_init(&s->packer, ms_factory_get_payload_max_size(f->factory));
 	if (s->avpf_enabled == TRUE) {
 		s->force_keyframe = TRUE;
 	} else if (s->frame_count == 0) {
@@ -605,7 +605,7 @@ static bool_t enc_process_frame_task(void *obj) {
 #endif
 
 		ms_filter_lock(f);
-		vp8rtpfmt_packer_process(&s->packer, list, s->exit_q, f->factory);
+		vp8rtpfmt_packer_process(&s->packer, list, s->exit_q);
 		ms_filter_unlock(f);
 
 		/* Handle video starter if AVPF is not enabled. */

@@ -160,6 +160,7 @@ check_library_exists("dl" "dlopen" "" HAVE_DLOPEN)
 include(TestBigEndian)
 test_big_endian(WORDS_BIGENDIAN)
 
+find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 find_package(Ortp 5.3.0 REQUIRED)
 
 if(ENABLE_PCAP)
@@ -227,6 +228,12 @@ if(ENABLE_QSA)
 	find_package(QSA REQUIRED)
 	find_package(QnxAudioManager REQUIRED)
 endif()
+
+bc_find_package(ZLIB ZLIB::ZLIB zlib)
+if(ZLIB_FOUND)
+	set(HAVE_ZLIB 1)
+endif()
+
 if(ENABLE_VIDEO)
 	add_definitions(-DVIDEO_ENABLED)
 endif()
@@ -417,7 +424,6 @@ if(ANDROID)
 	endif()
 endif()
 
-find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 
 include_directories(
 	include
@@ -584,6 +590,9 @@ if(Dav1d_FOUND)
 endif()
 if(Aom_FOUND)
 	list(APPEND LINK_LIBS ${Aom_TARGET})
+endif()
+if(ZLIB_FOUND)
+	list(APPEND LINK_LIBS ${ZLIB_TARGET})
 endif()
 if(ENABLE_ANDROIDSND)
 	include_directories(

@@ -18,9 +18,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/defs.h"
 #include "mediastreamer2/msfilter.h"
 #include "ortp/port.h"
-#include <bctoolbox/defs.h>
 
 #ifdef HAVE_CONFIG_H
 #include "mediastreamer-config.h"
@@ -748,8 +748,10 @@ bool_t ms_path_ends_with(const char *path, const char *suffix) {
 }
 
 MSFilter *_ms_create_av_player(const char *filename, MSFactory *factory) {
-	if (ms_path_ends_with(filename, ".mkv")) return ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
+	if (ms_path_ends_with(filename, ".mkv") || ms_path_ends_with(filename, ".mka"))
+		return ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
 	else if (ms_path_ends_with(filename, ".wav")) return ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+	else if (ms_path_ends_with(filename, ".smff")) return ms_factory_create_filter(factory, MS_SMFF_PLAYER_ID);
 	else ms_error("Cannot open %s, unsupported file extension", filename);
 	return NULL;
 }
@@ -980,8 +982,13 @@ static void av_recorder_handle_event(void *userdata, MSFilter *recorder, unsigne
 #endif // _MSC_VER
 
 static void setup_av_recorder(AudioStream *stream, int sample_rate, int nchannels) {
-
-	stream->av_recorder.recorder = ms_factory_create_filter(stream->ms.factory, MS_MKV_RECORDER_ID);
+	MSFilterId recorder_id = MS_MKV_RECORDER_ID;
+	if (stream->recorder_file) {
+		if (ms_path_ends_with(stream->recorder_file, ".smff")) {
+			recorder_id = MS_SMFF_RECORDER_ID;
+		}
+	}
+	stream->av_recorder.recorder = ms_factory_create_filter(stream->ms.factory, recorder_id);
 	if (stream->av_recorder.recorder) {
 		MSPinFormat pinfmt = {0};
 		stream->av_recorder.video_input = ms_factory_create_filter(stream->ms.factory, MS_ITC_SOURCE_ID);
@@ -1986,14 +1993,13 @@ int audio_stream_set_mixed_record_file(AudioStream *st, const char *filename) {
 }
 
 static MSFilter *get_recorder(AudioStream *stream) {
-	const char *fname = stream->recorder_file;
-	size_t len = strlen(fname);
-
-	if (strstr(fname, ".mkv") == fname + len - 4) {
+	if (stream->recorder_file &&
+	    (ms_path_ends_with(stream->recorder_file, ".mkv") || ms_path_ends_with(stream->recorder_file, ".mka") ||
+	     ms_path_ends_with(stream->recorder_file, ".smff"))) {
 		if (stream->av_recorder.recorder) {
 			return stream->av_recorder.recorder;
 		} else {
-			ms_error("Cannot record in mkv format, not supported in this build.");
+			ms_error("Cannot record in multimedia format, not supported in this build.");
 			return NULL;
 		}
 	}

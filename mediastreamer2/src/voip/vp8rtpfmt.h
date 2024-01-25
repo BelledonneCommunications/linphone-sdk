@@ -122,13 +122,13 @@ typedef struct Vp8RtpFmtUnpackerCtx {
 
 typedef struct Vp8RtpFmtPackerCtx {
 	MSQueue *output_queue;
-	MSFactory *factory;
+	size_t max_payload_size;
 	uint16_t _refCSeq;
 } Vp8RtpFmtPackerCtx;
 
-void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx);
+void vp8rtpfmt_packer_init(Vp8RtpFmtPackerCtx *ctx, size_t max_payload_size);
 void vp8rtpfmt_packer_uninit(Vp8RtpFmtPackerCtx *ctx);
-void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out, MSFactory *f);
+void vp8rtpfmt_packer_process(Vp8RtpFmtPackerCtx *ctx, MSList *in, MSQueue *out);
 
 void vp8rtpfmt_unpacker_init(
     Vp8RtpFmtUnpackerCtx *ctx, MSFilter *f, bool_t avpf_enabled, bool_t freeze_on_error, bool_t output_partitions);

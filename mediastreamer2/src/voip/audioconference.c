@@ -527,11 +527,15 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep) {
 MSAudioEndpoint *ms_audio_endpoint_new_recorder(MSFactory *factory, const char *path) {
 	MSAudioEndpoint *ep = ms_audio_endpoint_new();
 
-	if (ms_path_ends_with(path, ".mkv")) {
+	if (ms_path_ends_with(path, ".mkv") || ms_path_ends_with(path, ".mka") || ms_path_ends_with(path, ".smff")) {
 		MSPinFormat pinfmt = {0};
 
 		ep->recorder_encoder = ms_factory_create_filter(factory, MS_OPUS_ENC_ID);
-		ep->recorder = ms_factory_create_filter(factory, MS_MKV_RECORDER_ID);
+		if (ms_path_ends_with(path, ".smff")) {
+			ep->recorder = ms_factory_create_filter(factory, MS_SMFF_RECORDER_ID);
+		} else {
+			ep->recorder = ms_factory_create_filter(factory, MS_MKV_RECORDER_ID);
+		}
 		ms_filter_link(ep->recorder_encoder, 0, ep->recorder, 0);
 
 		pinfmt.pin = 0;
@@ -580,12 +584,15 @@ MSAudioEndpoint *ms_audio_endpoint_new_player(MSFactory *factory, const char *pa
 	MSFileFormat format = MS_FILE_FORMAT_UNKNOWN;
 	MSAudioEndpoint *ep = ms_audio_endpoint_new();
 
-	if (ms_path_ends_with(path, ".mkv")) {
+	if (ms_path_ends_with(path, ".mkv") || ms_path_ends_with(path, ".mka")) {
 		format = MS_FILE_FORMAT_MATROSKA;
 		ep->player = ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
 	} else if (ms_path_ends_with(path, ".wav")) {
 		format = MS_FILE_FORMAT_WAVE;
 		ep->player = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+	} else if (ms_path_ends_with(path, ".smff")) {
+		format = MS_FILE_FORMAT_SMFF;
+		ep->player = ms_factory_create_filter(factory, MS_SMFF_PLAYER_ID);
 	} else {
 		ms_error("Unsupported audio file extension for path %s.", path);
 		ms_audio_endpoint_destroy(ep);
@@ -603,6 +610,7 @@ MSAudioEndpoint *ms_audio_endpoint_new_player(MSFactory *factory, const char *pa
 			ms_filter_call_method(ep->player, MS_FILTER_GET_SAMPLE_RATE, &ep->samplerate);
 			break;
 		case MS_FILE_FORMAT_MATROSKA:
+		case MS_FILE_FORMAT_SMFF:
 			pinfmt.pin = 1;
 			ms_filter_call_method(ep->player, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
 			if (pinfmt.fmt) {
