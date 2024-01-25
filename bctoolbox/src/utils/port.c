@@ -1782,17 +1782,19 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	s = sizeof(addr);
 	err = getsockname(sock, (struct sockaddr *)&addr, &s);
 	if (err != 0) {
-		bctbx_error("Error in getsockname: %s", getSocketError());
+		bctbx_error("get_local_ip_for_with_connect(): Error in getsockname: %s", getSocketError());
 		bctbx_socket_close(sock);
 		return -1;
 	}
 	if (p_addr->sa_family == AF_INET) {
 		struct sockaddr_in *p_sin = (struct sockaddr_in *)p_addr;
 		if (p_sin->sin_addr.s_addr == 0) {
+			bctbx_error("get_local_ip_for_with_connect(): getsockname() returned INADDR_ANY.");
 			bctbx_socket_close(sock);
 			return -1;
 		}
 	}
+	bctbx_sockaddr_remove_v4_mapping((struct sockaddr *)&addr, (struct sockaddr *)&addr, &s);
 	err = bctbx_getnameinfo((struct sockaddr *)&addr, s, result, (socklen_t)result_len, NULL, 0, NI_NUMERICHOST);
 	if (err != 0) bctbx_error("getnameinfo error: %s", gai_strerror(err));
 	/* Avoid ipv6 link-local addresses */
