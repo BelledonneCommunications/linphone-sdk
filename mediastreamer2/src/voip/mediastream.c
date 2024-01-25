@@ -234,14 +234,9 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions) {
 		sessions->ticker = NULL;
 	}
 
-	if (sessions->bundledSndRtpSessions != NULL) {
-		bctbx_list_free_with_data(sessions->bundledSndRtpSessions, ms_media_stream_bundle_and_sessions_free);
-		sessions->bundledSndRtpSessions = NULL;
-	}
-
-	if (sessions->bundledRecvRtpSessions != NULL) {
-		bctbx_list_free_with_data(sessions->bundledRecvRtpSessions, ms_media_stream_bundle_and_sessions_free);
-		sessions->bundledRecvRtpSessions = NULL;
+	if (sessions->auxiliary_sessions != NULL) {
+		bctbx_list_free_with_data(sessions->auxiliary_sessions, ms_media_stream_bundle_and_sessions_free);
+		sessions->auxiliary_sessions = NULL;
 	}
 }
 

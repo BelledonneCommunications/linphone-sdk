@@ -101,9 +101,7 @@ struct _MSMediaStreamSessions {
 	MSZrtpContext *zrtp_context;
 	MSDtlsSrtpContext *dtls_context;
 	MSTicker *ticker;
-	bctbx_list_t *bundledSndRtpSessions;  /**< a list of RtpSessions created by the mediastream on outgoing SSRC
-	                                         multiplexed in a bundle */
-	bctbx_list_t *bundledRecvRtpSessions; /**< a list of RtpSessions created by the mediastream for incoming SSRC
+	bctbx_list_t *auxiliary_sessions; /**< a list of RtpSessions created by the mediastream on new SSRC
 	                                        multiplexed in a bundle */
 };
 
@@ -555,8 +553,8 @@ struct _AudioStream {
 	void *audio_route_changed_cb_user_data;
 	bool_t transfer_mode; /** When enable and the session is part of a bundle, a new SSRC detected on outgoing packet
 	                         will create a new RTP Session in transfer mode */
-	bctbx_list_t *bundledRecvBranches; /**< a list of AudioStreamMixedRecvBranch added upon reception of new stream in a
-	                                      locally mixed audio conference */
+	bctbx_list_t *bundled_recv_branches; /**< a list of AudioStreamMixedRecvBranch added upon reception of new stream in
+	                                      a locally mixed audio conference */
 };
 
 /**

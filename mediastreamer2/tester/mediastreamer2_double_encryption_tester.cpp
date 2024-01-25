@@ -403,8 +403,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	margaux.zrtp_context = NULL;
 	margaux.dtls_context = NULL;
 	margaux.ticker = NULL;
-	margaux.bundledSndRtpSessions = NULL;
-	margaux.bundledRecvRtpSessions = NULL;
+	margaux.auxiliary_sessions = NULL;
 
 	/* the relay needs to open rtp session with all endpoints, 2 bundled sessions for margaux. Relay's RtpSession are
 	 * all in transfer mode  */
@@ -483,8 +482,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_margaux.zrtp_context = NULL;
 	relay_margaux.dtls_context = NULL;
 	relay_margaux.ticker = NULL;
-	relay_margaux.bundledSndRtpSessions = NULL;
-	relay_margaux.bundledRecvRtpSessions = NULL;
+	relay_margaux.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_margaux, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -504,8 +502,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_marielle.zrtp_context = NULL;
 	relay_marielle.dtls_context = NULL;
 	relay_marielle.ticker = NULL;
-	relay_marielle.bundledSndRtpSessions = NULL;
-	relay_marielle.bundledRecvRtpSessions = NULL;
+	relay_marielle.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_marielle, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -547,8 +544,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	relay_pauline.zrtp_context = NULL;
 	relay_pauline.dtls_context = NULL;
 	relay_pauline.ticker = NULL;
-	relay_pauline.bundledSndRtpSessions = NULL;
-	relay_pauline.bundledRecvRtpSessions = NULL;
+	relay_pauline.auxiliary_sessions = NULL;
 	if (p.useEkt) {
 		ms_media_stream_sessions_set_ekt_mode(&relay_pauline, MS_EKT_TRANSFER);
 	} else if (p.useInnerEncryption) {
@@ -569,8 +565,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	marielle.zrtp_context = NULL;
 	marielle.dtls_context = NULL;
 	marielle.ticker = NULL;
-	marielle.bundledSndRtpSessions = NULL;
-	marielle.bundledRecvRtpSessions = NULL;
+	marielle.auxiliary_sessions = NULL;
 	RtpSession *rtpSession_marielle_bis = NULL;
 	RtpBundle *rtpBundle_marielle = NULL;
 	if (p.useBundledSource) { // Marielle bundles two sessions
@@ -604,8 +599,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	pauline.zrtp_context = NULL;
 	pauline.dtls_context = NULL;
 	pauline.ticker = NULL;
-	pauline.bundledSndRtpSessions = NULL;
-	pauline.bundledRecvRtpSessions = NULL;
+	pauline.auxiliary_sessions = NULL;
 
 	/* set outer keys */
 	BC_ASSERT_TRUE(ms_media_stream_sessions_set_srtp_send_key_b64(&marielle, p.outerSuite, marielle_outer_key,

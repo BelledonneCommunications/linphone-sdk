@@ -195,8 +195,7 @@ static void on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	bctbx_free(sMid);
 
 	/* keep track of newly created session */
-	stream->ms.sessions.bundledSndRtpSessions =
-	    bctbx_list_append(stream->ms.sessions.bundledSndRtpSessions, *newSession);
+	stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
 	/* TODO: shall we attach a ticker? */
 }
 
@@ -204,15 +203,15 @@ static void on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
  */
 static int audio_stream_get_free_mixer_input_pin(AudioStream *stream) {
 	/* TODO: unplug oldest used session when no pin are found ?*/
-	int freeMixerInputPin = 0;
-	int inputPin = 2; /* pin 0 is the main session, pin 1 is the local player */
-	while (freeMixerInputPin == 0) {
-		MSQueue *q = stream->local_mixer->inputs[inputPin];
+	int free_mixer_input_pin = 0;
+	int input_pin = 2; /* pin 0 is the main session, pin 1 is the local player */
+	while (free_mixer_input_pin == 0) {
+		MSQueue *q = stream->local_mixer->inputs[input_pin];
 		if (!q) {
-			freeMixerInputPin = inputPin;
+			free_mixer_input_pin = input_pin;
 		}
 	}
-	return freeMixerInputPin;
+	return free_mixer_input_pin;
 }
 static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
 	mblk_t *m = (mblk_t *)mp;
@@ -220,8 +219,8 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	RtpSession **newSession = (RtpSession **)s;
 	AudioStream *stream = (AudioStream *)userData;
 
-	int freeMixerInputPin = audio_stream_get_free_mixer_input_pin(stream);
-	if (freeMixerInputPin == 0) {
+	int free_mixer_input_pin = audio_stream_get_free_mixer_input_pin(stream);
+	if (free_mixer_input_pin == 0) {
 		bctbx_error("No free input found in local audio mixer to plug new recv session");
 		return;
 	}
@@ -256,23 +255,22 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_RECVONLY);
 	ms_message(
 	    "New incoming SSRC %u on session %p detected, create a new session %p attach it to local mixer input pin %d ",
-	    ssrc, session, *newSession, freeMixerInputPin);
+	    ssrc, session, *newSession, free_mixer_input_pin);
 	/* the new session is associated to the incoming SSRC */
 	(*newSession)->ssrc_set = TRUE;
 	(*newSession)->rcv.ssrc = ssrc;
 	/* add it to the bundle and save it to the mediasessions */
 	rtp_bundle_add_session(session->bundle, sMid, *newSession);
-	stream->ms.sessions.bundledRecvRtpSessions =
-	    bctbx_list_append(stream->ms.sessions.bundledRecvRtpSessions, *newSession);
+	stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
 	bctbx_free(sMid);
 	/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it cleanly */
-	stream->bundledRecvBranches = bctbx_list_append(
-	    stream->bundledRecvBranches, audio_stream_bundle_recv_branch_new(*newSession, freeMixerInputPin, stream));
+	stream->bundled_recv_branches = bctbx_list_append(
+	    stream->bundled_recv_branches, audio_stream_bundle_recv_branch_new(*newSession, free_mixer_input_pin, stream));
 }
 
 static void audio_stream_free(AudioStream *stream) {
 	if (stream->ms.local_mix_conference == TRUE) {
-		bctbx_list_free_with_data(stream->bundledRecvBranches, audio_stream_bundle_recv_branch_free);
+		bctbx_list_free_with_data(stream->bundled_recv_branches, audio_stream_bundle_recv_branch_free);
 		rtp_session_signal_disconnect_by_callback(stream->ms.sessions.rtp_session, "new_incoming_ssrc_found_in_bundle",
 		                                          on_incoming_ssrc_in_bundle);
 	}
@@ -1286,32 +1284,28 @@ int audio_stream_start_from_io(AudioStream *stream,
 	ms_filter_add_notify_callback(stream->ms.rtprecv, on_volumes_received, stream, FALSE);
 	stream->ms.sessions.rtp_session = rtps;
 
-	/* apply profile and pt to the bundled sessions auto created for outgoing streams */
-	bctbx_list_t *it = stream->ms.sessions.bundledSndRtpSessions;
+	/* apply profile and pt to the bundled sessions auto created */
+	bctbx_list_t *it = stream->ms.sessions.auxiliary_sessions;
 	while (it != NULL) {
 		RtpSession *s = (RtpSession *)bctbx_list_get_data(it);
 		rtp_session_set_profile(s, profile);
 		rtp_session_set_payload_type(s, payload);
 		rtp_session_enable_rtcp(s, (rem_rtcp_port > 0 ? TRUE : FALSE));
-		it = it->next;
-	};
-	/* apply profile and pt to the bundled sessions auto created for incoming streams */
-	it = stream->ms.sessions.bundledRecvRtpSessions;
-	while (it != NULL) {
-		RtpSession *s = (RtpSession *)bctbx_list_get_data(it);
-		rtp_session_set_profile(s, profile);
-		rtp_session_set_payload_type(s, payload);
-		rtp_session_enable_rtcp(s, (rem_rtcp_port > 0 ? TRUE : FALSE));
-		/* recreate the graph for the added sessions, plug them to the local mixer */
-		int freeMixerInputPin = audio_stream_get_free_mixer_input_pin(stream);
 
-		if (freeMixerInputPin == 0) {
-			bctbx_error("Audiostream restart with MsMediaSessions holding bundle autodiscovered sessions but No free "
-			            "input found in local audio mixer to plug recv session associated to SSRC %u",
-			            s->rcv.ssrc);
-		} else {
-			stream->bundledRecvBranches = bctbx_list_append(
-			    stream->bundledRecvBranches, audio_stream_bundle_recv_branch_new(s, freeMixerInputPin, stream));
+		/* for incoming auxiliary sessions, we must also recreate the graph and plug them to the local mixer */
+		if (s->mode == RTP_SESSION_RECVONLY) {
+			int free_mixer_input_pin = audio_stream_get_free_mixer_input_pin(stream);
+
+			if (free_mixer_input_pin == 0) {
+				bctbx_error(
+				    "Audiostream restart with MsMediaSessions holding bundle autodiscovered sessions but No free "
+				    "input found in local audio mixer to plug recv session associated to SSRC %u",
+				    s->rcv.ssrc);
+			} else {
+				stream->bundled_recv_branches =
+				    bctbx_list_append(stream->bundled_recv_branches,
+				                      audio_stream_bundle_recv_branch_new(s, free_mixer_input_pin, stream));
+			}
 		}
 		it = it->next;
 	};
@@ -2140,7 +2134,7 @@ AudioStream *audio_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	stream->client_to_mixer_extension_id = 0;
 	stream->active_speaker_ssrc = 0;
 
-	stream->bundledRecvBranches = NULL;
+	stream->bundled_recv_branches = NULL;
 	stream->ms.local_mix_conference = FALSE;
 
 	return stream;
@@ -2408,7 +2402,7 @@ void audio_stream_stop(AudioStream *stream) {
 
 			/*dismantle the receiving graph*/
 			if (stream->ms.local_mix_conference == TRUE) {
-				bctbx_list_for_each(stream->bundledRecvBranches, audio_stream_dismantle_bundle_recv_branch);
+				bctbx_list_for_each(stream->bundled_recv_branches, audio_stream_dismantle_bundle_recv_branch);
 			}
 			ms_connection_helper_start(&h);
 			ms_connection_helper_unlink(&h, stream->ms.rtprecv, -1, 0);
