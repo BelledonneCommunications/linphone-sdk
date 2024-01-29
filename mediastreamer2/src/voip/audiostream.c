@@ -72,6 +72,10 @@ static void audio_stream_bundle_recv_branch_free(void *b) {
 	ms_free(branch);
 }
 
+/*invoked from FEC capable filters*/
+static mblk_t *audio_stream_payload_picker(MSRtpPayloadPickerContext *context, unsigned int sequence_number) {
+	return rtp_session_pick_with_cseq((RtpSession *)(context->filter_graph_manager), sequence_number);
+}
 static AudioStreamMixedRecvBranch *
 audio_stream_bundle_recv_branch_new(RtpSession *session, int mixerInputPin, AudioStream *stream) {
 	AudioStreamMixedRecvBranch *branch = (AudioStreamMixedRecvBranch *)ms_new0(AudioStreamMixedRecvBranch, 1);
@@ -90,17 +94,15 @@ audio_stream_bundle_recv_branch_new(RtpSession *session, int mixerInputPin, Audi
 	ms_filter_call_method(branch->dec, MS_FILTER_SET_SAMPLE_RATE, &stream->sample_rate);
 	ms_filter_call_method(branch->dec, MS_FILTER_SET_NCHANNELS, &stream->nchannels);
 	if (pt->recv_fmtp != NULL) ms_filter_call_method(branch->dec, MS_FILTER_ADD_FMTP, (void *)pt->recv_fmtp);
-	/* TODO: how to enable FEC in this case
-	if (ms_filter_has_method(dec, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) ||
-	    ms_filter_has_method(dec, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
-	    MSRtpPayloadPickerContext picker_context;
-	    ms_message("Decoder has FEC capabilities");
-	    picker_context.filter_graph_manager = stream;
-	    picker_context.picker = &audio_stream_payload_picker; // TODO: this callback pick the rtpsession from the
-	audiostream but it is not what we want to do here ms_filter_call_method(dec,
-	MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
+	/* enable FEC */
+	if (ms_filter_has_method(branch->dec, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) ||
+	    ms_filter_has_method(branch->dec, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
+		MSRtpPayloadPickerContext picker_context;
+		ms_message("Auxiliary session []%p]: Decoder has FEC capabilities", session);
+		picker_context.filter_graph_manager = session;
+		picker_context.picker = &audio_stream_payload_picker;
+		ms_filter_call_method(branch->dec, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
-	*/
 
 	/* store info needed to unplug */
 	branch->mixer = stream->local_mixer;
@@ -490,12 +492,6 @@ void audio_stream_iterate(AudioStream *stream) {
 
 bool_t audio_stream_alive(AudioStream *stream, int timeout) {
 	return media_stream_alive((MediaStream *)stream, timeout);
-}
-
-/*invoked from FEC capable filters*/
-static mblk_t *audio_stream_payload_picker(MSRtpPayloadPickerContext *context, unsigned int sequence_number) {
-	return rtp_session_pick_with_cseq(((AudioStream *)(context->filter_graph_manager))->ms.sessions.rtp_session,
-	                                  sequence_number);
 }
 
 static void stop_preload_graph(AudioStream *stream) {
@@ -1068,7 +1064,7 @@ static void configure_decoder(AudioStream *stream, PayloadType *pt, int sample_r
 	    ms_filter_has_method(stream->ms.decoder, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		MSRtpPayloadPickerContext picker_context;
 		ms_message("Decoder has FEC capabilities");
-		picker_context.filter_graph_manager = stream;
+		picker_context.filter_graph_manager = stream->ms.sessions.rtp_session;
 		picker_context.picker = &audio_stream_payload_picker;
 		ms_filter_call_method(stream->ms.decoder, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
