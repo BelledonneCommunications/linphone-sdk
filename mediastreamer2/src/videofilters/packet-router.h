@@ -26,6 +26,7 @@
 #include "filter-interface/filter-base.h"
 #include "mediastreamer2/mspacketrouter.h"
 #include "mediastreamer2/msvolume.h"
+#include "ortp/rtpsession.h"
 
 #ifdef VIDEO_ENABLED
 #include "key-frame-indicator/key-frame-indicator.h"
