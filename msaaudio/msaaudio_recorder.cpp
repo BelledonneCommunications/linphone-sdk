@@ -453,20 +453,6 @@ static int android_snd_read_enable_voice_rec(MSFilter *obj, void *data) {
 	bool *enabled = (bool*)data;
 	AAudioInputContext *ictx = (AAudioInputContext*)obj->data;
 	ictx->voiceRecognitionMode = !!(*enabled);
-
-	if (ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
-		ms_warning("[AAudio Recorder] Audio route changes disabled, do not alter device ID (but voice recognition mode was changed)");
-	} else {
-		if (ictx->soundCard->alternative_id != -1) {
-			if (ictx->voiceRecognitionMode) {
-				ms_message("[AAudio Recorder] An alternative ID is set on the microphone, using it for voice recognition");
-				ictx->deviceId = ictx->soundCard->alternative_id;
-			} else {
-				ms_message("[AAudio Recorder] An alternative ID is set on the microphone but voice recognition is not enabled, using main ID");
-				ictx->deviceId = ictx->soundCard->internal_id;
-			}
-		}
-	}
 	return 0;
 }
 
