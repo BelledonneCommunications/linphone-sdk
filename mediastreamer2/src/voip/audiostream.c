@@ -1526,7 +1526,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 	}
 
 	// Do not set sample rate if the input is a file
-	if (io->input.file == NULL) {
+	if (io->input.type != MSResourceFile) {
 		ms_filter_call_method(stream->soundread, MS_FILTER_SET_SAMPLE_RATE, &sample_rate);
 	}
 
