@@ -754,8 +754,11 @@ static void ms_opus_dec_preprocess(MSFilter *f) {
 	if (error != OPUS_OK) {
 		ms_error("Opus decoder creation failed: %s", opus_strerror(error));
 	}
-	/* initialise the concealer context */
-	d->concealer = ms_concealer_context_new(UINT32_MAX);
+	/* initialise the concealer context : allow concealment for 1400ms
+	 * - DTX/CNG packets are sent each 400ms
+	 * - concealment goes on for 1400ms so we can loose two consecutive DTX packets and keep doing CNG
+	 */
+	d->concealer = ms_concealer_context_new(1400);
 }
 
 static void ms_opus_dec_process(MSFilter *f) {
