@@ -178,7 +178,7 @@ void RouterAudioOutput::transfer() {
 						volumesSent = true;
 					}
 
-					ms_queue_put(outputQueue, dupmsg(m));
+					ms_queue_put(outputQueue, copymsg(m));
 				}
 			}
 		}
