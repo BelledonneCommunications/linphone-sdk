@@ -566,11 +566,13 @@ typedef struct _AudioStream AudioStream;
  * Structure to store an input branch added to an audiostream by conference local mixing upon reception of a new stream
  */
 typedef struct _AudioStreamMixedRecvBranch {
-	MSFilter *recv;   /**< the receiver filter */
-	MSFilter *dec;    /**<  the decoder filter */
-	MSFilter *mixer;  /**<  the audio mixer we connected to - needed to unplug this branch */
-	MSTicker *ticker; /**< the ticker used to schedule the recv filter - needed to detach */
-	int mixerPin;     /**< pin used as input on the local audio mixer */
+	MSFilter *recv;      /**< the receiver filter */
+	MSFilter *dec;       /**<  the decoder filter */
+	MSFilter *mixer;     /**<  the audio mixer we connected to - needed to unplug this branch */
+	MSTicker *ticker;    /**< the ticker used to schedule the recv filter - needed to detach */
+	int mixerPin;        /**< pin used as input on the local audio mixer */
+	RtpSession *session; /**< the rtp session used in the recv filter -  needed to reset it when a session is recycled
+	                        for a new incoming stream and all mixer input are occupied */
 } AudioStreamMixedRecvBranch;
 
 /* start a thread that does sampling->encoding->rtp_sending|rtp_receiving->decoding->playing */

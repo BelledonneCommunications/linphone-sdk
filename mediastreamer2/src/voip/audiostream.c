@@ -173,11 +173,13 @@ audio_stream_bundle_recv_branch_new(RtpSession *session, int mixerInputPin, Audi
 	if (ms_filter_has_method(branch->dec, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER) ||
 	    ms_filter_has_method(branch->dec, MS_FILTER_SET_RTP_PAYLOAD_PICKER)) {
 		MSRtpPayloadPickerContext picker_context;
-		ms_message("Auxiliary session []%p]: Decoder has FEC capabilities", session);
+		ms_message("Auxiliary session [%p]: Decoder has FEC capabilities", session);
 		picker_context.filter_graph_manager = session;
 		picker_context.picker = &audio_stream_payload_picker;
 		ms_filter_call_method(branch->dec, MS_AUDIO_DECODER_SET_RTP_PAYLOAD_PICKER, &picker_context);
 	}
+
+	branch->session = session;
 
 	/* store info needed to unplug */
 	branch->mixer = stream->local_mixer;
@@ -297,12 +299,6 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	RtpSession **newSession = (RtpSession **)s;
 	AudioStream *stream = (AudioStream *)userData;
 
-	int free_mixer_input_pin = audio_stream_get_free_mixer_input_pin(stream);
-	if (free_mixer_input_pin == 0) {
-		bctbx_error("No free input found in local audio mixer to plug new recv session");
-		return;
-	}
-
 	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
 	 * Do not create a new session (-> packet drop) if :
 	 * - no MID in packet
@@ -329,21 +325,52 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		}
 	}
 
-	/* create a new session copying param from the main one */
-	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_RECVONLY);
-	ms_message(
-	    "New incoming SSRC %u on session %p detected, create a new session %p attach it to local mixer input pin %d ",
-	    ssrc, session, *newSession, free_mixer_input_pin);
+	int free_mixer_input_pin = audio_stream_get_free_mixer_input_pin(stream);
+	if (free_mixer_input_pin == 0) {
+		/* No more free input pin on the mixer:
+		 * - get in the current auxiliary sessions the one not used for the longest time
+		 * - recycle it to use for this new stream */
+		bctbx_list_t *it = stream->bundled_recv_branches;
+		AudioStreamMixedRecvBranch *recycledBranch = (AudioStreamMixedRecvBranch *)bctbx_list_get_data(it);
+		struct timeval oldestRecvTs;
+		rtp_session_get_last_recv_time(recycledBranch->session, &oldestRecvTs);
+		it = it->next;
+		while (it) {
+			struct timeval tv;
+			AudioStreamMixedRecvBranch *b = (AudioStreamMixedRecvBranch *)bctbx_list_get_data(it);
+			rtp_session_get_last_recv_time(b->session, &tv);
+			if (tv.tv_sec < oldestRecvTs.tv_sec) { /* selection is performed on tv_sec only, no need to be precise */
+				oldestRecvTs.tv_sec = tv.tv_sec;
+				recycledBranch = b;
+			}
+			it = it->next;
+		}
+		ms_message("No free input found in local audio mixer to plug new recv session incoming on session [%p], so "
+		           "recycle session [%p] used to receive SSRC %u switched to %u on local mixer pin %d",
+		           session, recycledBranch->session, recycledBranch->session->rcv.ssrc, ssrc, recycledBranch->mixerPin);
+		/* reset session, nothing to do for the bundle: the old SSRC will still be associated with the mid but the
+		 * session not anymore */
+		rtp_session_reset(recycledBranch->session);
+		*newSession = recycledBranch->session;
+	} else { /* local mixer has a free input */
+		/* create a new session copying param from the main one */
+		*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_RECVONLY);
+		ms_message("New incoming SSRC %u on session [%p] detected, create a new session [%p] attach it to local mixer "
+		           "input pin %d ",
+		           ssrc, session, *newSession, free_mixer_input_pin);
+		/* add it to the bundle and save it to the mediasessions */
+		rtp_bundle_add_session(session->bundle, sMid, *newSession);
+		stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
+		/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it
+		 * cleanly */
+		stream->bundled_recv_branches =
+		    bctbx_list_append(stream->bundled_recv_branches,
+		                      audio_stream_bundle_recv_branch_new(*newSession, free_mixer_input_pin, stream));
+	}
 	/* the new session is associated to the incoming SSRC */
 	(*newSession)->ssrc_set = TRUE;
 	(*newSession)->rcv.ssrc = ssrc;
-	/* add it to the bundle and save it to the mediasessions */
-	rtp_bundle_add_session(session->bundle, sMid, *newSession);
-	stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
 	bctbx_free(sMid);
-	/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it cleanly */
-	stream->bundled_recv_branches = bctbx_list_append(
-	    stream->bundled_recv_branches, audio_stream_bundle_recv_branch_new(*newSession, free_mixer_input_pin, stream));
 }
 
 static void audio_stream_free(AudioStream *stream) {
