@@ -424,6 +424,9 @@ if(ANDROID)
 	endif()
 endif()
 
+if(ENABLE_JAVA_WRAPPER AND NOT ANDROID)
+	find_package(JNI REQUIRED)
+endif()
 
 include_directories(
 	include
@@ -657,15 +660,6 @@ if(APPLE)
 elseif(WIN32 AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")#Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
 	list(APPEND LINK_OPTIONS_DEBUG "/nodefaultlib:vccorlibd" "/nodefaultlib:msvcrtd" "vccorlibd.lib" "msvcrtd.lib")
 	list(APPEND LINK_OPTIONS_RELEASE "/nodefaultlib:vccorlib" "/nodefaultlib:msvcrt" "vccorlib.lib" "msvcrt.lib")
-endif()
-
-set(MEDIASTREAMER2_CPPFLAGS )
-if(NOT BUILD_SHARED_LIBS)
-	list(APPEND MEDIASTREAMER2_CPPFLAGS "-DMS2_STATIC")
-endif()
-if(MEDIASTREAMER2_CPPFLAGS)
-	list(REMOVE_DUPLICATES MEDIASTREAMER2_CPPFLAGS)
-	add_definitions(${MEDIASTREAMER2_CPPFLAGS})
 endif()
 
 set(STRICT_OPTIONS_CPP )

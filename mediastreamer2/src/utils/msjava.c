@@ -25,7 +25,11 @@
 
 static JavaVM *ms2_vm = NULL;
 
-#ifndef _WIN32
+#ifdef _WIN32
+
+static DWORD jnienv_key;
+
+#else
 #include <pthread.h>
 
 static pthread_key_t jnienv_key;
@@ -47,14 +51,24 @@ void _android_key_cleanup(void *data) {
 
 void ms_set_jvm_from_env(JNIEnv *env) {
 	(*env)->GetJavaVM(env, &ms2_vm);
-#ifndef _WIN32
+#ifdef _WIN32
+	jnienv_key = TlsAlloc();
+	if (jnienv_key == TLS_OUT_OF_INDEXES) {
+		bctbx_error("TlsAlloc(): TLS_OUT_OF_INDEXES.");
+	}
+#else
 	pthread_key_create(&jnienv_key, _android_key_cleanup);
 #endif
 }
 
 void ms_set_jvm(JavaVM *vm) {
 	ms2_vm = vm;
-#ifndef _WIN32
+#ifdef _WIN32
+	jnienv_key = TlsAlloc();
+	if (jnienv_key == TLS_OUT_OF_INDEXES) {
+		bctbx_error("TlsAlloc(): TLS_OUT_OF_INDEXES.");
+	}
+#else
 	pthread_key_create(&jnienv_key, _android_key_cleanup);
 #endif
 }
@@ -68,18 +82,22 @@ JNIEnv *ms_get_jni_env(void) {
 	if (ms2_vm == NULL) {
 		ms_fatal("Calling ms_get_jni_env() while no jvm has been set using ms_set_jvm().");
 	} else {
-#ifndef _WIN32
+#ifdef _WIN32
+		env = (JNIEnv *)TlsGetValue(jnienv_key);
+#else
 		env = (JNIEnv *)pthread_getspecific(jnienv_key);
+#endif
 		if (env == NULL) {
-			if ((*ms2_vm)->AttachCurrentThread(ms2_vm, &env, NULL) != 0) {
+			if ((*ms2_vm)->AttachCurrentThread(ms2_vm, (void *)&env, NULL) != 0) {
 				ms_fatal("AttachCurrentThread() failed !");
 				return NULL;
 			}
-			pthread_setspecific(jnienv_key, env);
-		}
+#ifdef _WIN32
+			TlsSetValue(jnienv_key, (void *)env);
 #else
-		ms_fatal("ms_get_jni_env() not implemented on windows.");
+			pthread_setspecific(jnienv_key, env);
 #endif
+		}
 	}
 	return env;
 }

@@ -44,7 +44,8 @@ set(BASE_SOURCE_FILES_C
 	otherfilters/tee.c
 	otherfilters/void.c
 )
-if(ANDROID)
+
+if(ANDROID OR ENABLE_JAVA_WRAPPER)
 	list(APPEND BASE_SOURCE_FILES_C utils/msjava.c)
 endif()
 
@@ -151,7 +152,8 @@ endif()
 if(ENABLE_ALSA)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/alsa.c)
 endif()
-if(ANDROID)
+
+if(ANDROID OR ENABLE_JAVA_WRAPPER)
 	list(APPEND VOIP_SOURCE_FILES_CXX voip/msvoip_jni.cc)
 endif()
 if(ENABLE_ANDROIDSND)
@@ -614,6 +616,11 @@ if(BV16_FOUND AND BV16_USE_BUILD_INTERFACE)
 	target_compile_definitions(mediastreamer2 PRIVATE BV16_USE_BUILD_INTERFACE)
 endif()
 
+if(JNI_FOUND)
+	target_include_directories(mediastreamer2 PRIVATE ${JNI_INCLUDE_DIRS})
+	target_link_libraries(mediastreamer2 PRIVATE ${JNI_LIBRARIES})
+endif()
+
 if(BUILD_SHARED_LIBS)
 	if(APPLE)
 		set_target_properties(mediastreamer2 PROPERTIES
@@ -697,6 +704,10 @@ if(BUILD_SHARED_LIBS)
 			set_property(TARGET mediastreamer2 PROPERTY POSITION_INDEPENDENT_CODE ON)
 		endif()
 	endif()
+
+else()
+
+	target_compile_definitions(mediastreamer2 PUBLIC "MS2_STATIC")
 
 endif()
 
