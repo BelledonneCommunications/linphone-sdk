@@ -25,6 +25,7 @@
 #include "mediastreamer2/msfactory.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msticker.h"
+#include "mediastreamer2/msvolume.h"
 
 #include "ortp/telephonyevents.h"
 #if defined(__cplusplus)
@@ -532,11 +533,15 @@ static mblk_t *create_packet_with_volume_data_at_intervals(MSFilter *f) {
 		if (d->voice_activity ||
 		    f->ticker->time - d->last_audio_level_sent_time > (uint64_t)d->audio_level_send_interval) {
 			int volume = d->ctm_request_data_cb(f, d->ctm_request_data_user_data);
+
+			// This prevents sending voice activity with muted volume when a participant mutes himself while speaking.
+			bool_t voice_activity = d->voice_activity && ms_volume_dbov_to_dbm0(volume) != MS_VOLUME_DB_MUTED;
+
 			if (!header)
 				header = rtp_session_create_packet_header(
 				    s, 8); // allocate 8 more bytes than needed so we can add an extension
 				           // header with client to mixer extension without reallocating
-			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, d->voice_activity, volume);
+			rtp_add_client_to_mixer_audio_level(header, d->client_to_mixer_extension_id, voice_activity, volume);
 
 			d->last_audio_level_sent_time = f->ticker->time;
 		}

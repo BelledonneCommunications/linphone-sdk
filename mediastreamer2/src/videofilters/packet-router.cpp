@@ -256,7 +256,7 @@ RouterInputAudioSelector::RouterInputAudioSelector(PacketRouter *router) : Route
 }
 
 void RouterInputAudioSelector::select() {
-	mSelected = {};
+	mSelected.clear();
 
 	// If only two, select them anyway to always have audio.
 	bool onlyTwo = mRouter->getRouterInputsSize() == 2;
@@ -379,14 +379,6 @@ PacketRouter::PacketRouter(MSFilter *f) : FilterBase(f) {
 }
 
 void PacketRouter::preprocess() {
-	// Make sure all connected inputs are created
-	for (int i = 0; i < ROUTER_MAX_INPUT_CHANNELS; ++i) {
-		MSQueue *q = getInput(i);
-		if (q) {
-			createInputIfNotExists(i);
-		}
-	}
-
 #ifdef VIDEO_ENABLED
 	if (mRoutingMode == RoutingMode::Video && mFocusPin != -1) {
 		// Re-apply the focus selection in case of reconnection.
@@ -563,7 +555,15 @@ void PacketRouter::unconfigureOutput(int pin) {
 	lock();
 
 	try {
+		// Retrieve the current source pin
+		const auto &output = mOutputs.at(pin);
+		int currentSource = output != nullptr ? output->getCurrentSource() : -1;
+
+		// Remove the output
 		mOutputs.at(pin) = nullptr;
+
+		// Remove the source if not in use anymore
+		if (currentSource != -1) removeUnusedInput(currentSource);
 	} catch (const std::out_of_range &) {
 		ms_error("PacketRouter: Trying to unconfigure output on un-existing pin");
 	}
@@ -675,6 +675,28 @@ void PacketRouter::createInputIfNotExists(int index) {
 		}
 
 		mInputs[index] = std::move(input);
+	}
+}
+
+void PacketRouter::removeUnusedInput(int index) {
+	try {
+		if (mRoutingMode == RoutingMode::Audio) {
+			// In audio mode, each output is tied to one input. We can remove the source.
+			mInputs.at(index) = nullptr;
+		} else if (mRoutingMode == RoutingMode::Video) {
+			// In video mode, before removing the input we have to check that no other output is using the current
+			// source anymore.
+			bool stillInUse = false;
+			for (const auto &output : mOutputs) {
+				if (output != nullptr && output->getCurrentSource() == index) {
+					stillInUse = true;
+					break;
+				}
+			}
+			if (!stillInUse) mInputs.at(index) = nullptr;
+		}
+	} catch (const std::out_of_range &) {
+		ms_error("PacketRouter: Trying to remove input on un-existing pin");
 	}
 }
 

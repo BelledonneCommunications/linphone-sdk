@@ -107,14 +107,20 @@ public:
 
 	virtual void configure(const MSPacketRouterPinData *pinData) {
 		mSelfSource = pinData->self;
+		mCurrentSource = pinData->input;
 	};
 	virtual void transfer() = 0;
+
+	int getCurrentSource() const {
+		return mCurrentSource;
+	}
 
 protected:
 	PacketRouter *mRouter;
 
 	int mPin = -1;
 	int mSelfSource = -1;
+	int mCurrentSource = -1;
 };
 
 class RouterAudioOutput : public RouterOutput {
@@ -136,17 +142,12 @@ public:
 	void configure(const MSPacketRouterPinData *pinData) override;
 	void transfer() override;
 
-	int getCurrentSource() const {
-		return mCurrentSource;
-	}
-
 protected:
 	uint32_t mOutTimestamp = 0;
 	uint32_t mAdjustedOutTimestamp = 0;
 
 	uint16_t mOutSeqNumber = 0;
 
-	int mCurrentSource = -1;
 	int mNextSource = -1;
 
 	bool mActiveSpeakerEnabled = false;
@@ -251,6 +252,7 @@ public:
 
 protected:
 	void createInputIfNotExists(int index);
+	void removeUnusedInput(int index);
 	void updateVolumesToSend();
 
 	RoutingMode mRoutingMode = RoutingMode::Unknown;
