@@ -1,0 +1,16 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12-java:20240916_add_jdk
+###############################################################################
+
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian12:20230706_add_deps_for_av1
+
+MAINTAINER Ghislain MARY <ghislain.mary@belledonne-communications.com>
+
+USER root
+
+# Install dependencies
+RUN apt update && apt -y install openjdk-17-jdk
+
+USER bc
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64/

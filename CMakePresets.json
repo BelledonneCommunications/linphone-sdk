@@ -113,6 +113,74 @@
       }
     },
     {
+      "name": "java-common",
+      "inherits": "default",
+      "hidden": true,
+      "displayName": "Common config for Java",
+      "description": "Common build for Java",
+      "cacheVariables": {
+        "BUILD_BCG729_SHARED_LIBS": "OFF",
+        "BUILD_BELCARD_SHARED_LIBS": "OFF",
+        "BUILD_BELLESIP_SHARED_LIBS": "OFF",
+        "BUILD_BELR_SHARED_LIBS": "OFF",
+        "BUILD_BV16_SHARED_LIBS": "OFF",
+        "BUILD_BZRTP_SHARED_LIBS": "OFF",
+        "BUILD_DECAF_SHARED_LIBS": "OFF",
+        "BUILD_GSM_SHARED_LIBS": "OFF",
+        "BUILD_JSONCPP_SHARED_LIBS": "OFF",
+        "BUILD_LIBJPEGTURBO_SHARED_LIBS": "OFF",
+        "BUILD_LIBSRTP2_SHARED_LIBS": "OFF",
+        "BUILD_LIBXML2_SHARED_LIBS": "OFF",
+        "BUILD_LIBYUV_SHARED_LIBS": "OFF",
+        "BUILD_LIME_SHARED_LIBS": "OFF",
+        "BUILD_MBEDTLS_SHARED_LIBS": "OFF",
+        "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
+        "BUILD_OPENLDAP_SHARED_LIBS": "OFF",
+        "BUILD_OPUS_SHARED_LIBS": "OFF",
+        "BUILD_PQCRYPTO_SHARED_LIBS": "OFF",
+        "BUILD_SOCI_SHARED_LIBS": "OFF",
+        "BUILD_SPEEX_SHARED_LIBS": "OFF",
+        "BUILD_SQLITE3_SHARED_LIBS": "OFF",
+        "BUILD_XERCESC_SHARED_LIBS": "OFF",
+        "BUILD_ZLIB_SHARED_LIBS": "OFF",
+        "BUILD_ZXINGCPP_SHARED_LIBS": "OFF",
+        "ENABLE_CXX_WRAPPER": "OFF",
+        "ENABLE_DAEMON": "OFF",
+        "ENABLE_FLEXIAPI": "ON",
+        "ENABLE_JAVA_WRAPPER": "ON",
+        "ENABLE_JNI": "OFF",
+        "ENABLE_LDAP": "OFF",
+        "ENABLE_RELATIVE_PREFIX": "ON",
+        "ENABLE_TOOLS": "OFF",
+        "ENABLE_UNIT_TESTS": "OFF",
+        "ENABLE_TESTS_COMPONENT": "OFF",
+        "LINPHONESDK_BUILD_TYPE": "Java",
+        "LINPHONESDK_PLATFORM": "Java"
+      }
+    },
+    {
+      "name": "java-sdk-linux",
+      "inherits": "java-common",
+      "displayName": "Config for Java",
+      "description": "Build Java SDK for Linux"
+    },
+    {
+      "name": "java-sdk-windows",
+      "inherits": "java-common",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "generator": "Visual Studio 16 2019",
+      "displayName": "Config for Java on Windows 64 bits",
+      "description": "Build Java SDK for Windows 64 bits using Visual Studio 2019",
+      "architecture": "x64",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo"
+      }
+    },
+    {
       "name": "ios-common",
       "inherits": "default",
       "hidden": true,

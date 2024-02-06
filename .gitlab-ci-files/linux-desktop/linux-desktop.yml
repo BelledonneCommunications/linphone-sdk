@@ -68,6 +68,36 @@
       - build/default/linphone-sdk/desktop/pylinphone.html
     expire_in: 1 week
 
+.linux-desktop-java:
+
+  stage: build
+  extends: .linux-prepare
+  variables:
+    CMAKE_OPTIONS: -DENABLE_DOC=ON
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
+  script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_COMMIT_BRANCH
+    - export CC=$CC
+    - export CXX=$CXX
+    - echo $CMAKE_GENERATOR
+    - echo $DEFAULT_LINUX_CMAKE_OPTIONS
+    - echo $CMAKE_OPTIONS
+    - echo $CMAKE_SANITIZER_OPTIONS
+    - cmake --preset=java-sdk-linux -B build/java -G "$CMAKE_GENERATOR" $DEFAULT_LINUX_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS $CMAKE_SANITIZER_OPTIONS
+    - echo $ADDITIONAL_BUILD_OPTIONS
+    - cmake --build build/java -- $ADDITIONAL_BUILD_OPTIONS
+    - echo $(git describe) > build/java/gitdescribe.txt
+  artifacts:
+    paths:
+      - sanitizer_ignore.txt
+      - build/java/gitdescribe.txt
+      - build/java/linphone-sdk/bin/distributions/linphone-sdk-java-*.zip
+    expire_in: 1 week
+
 .linux-desktop-sequential:
 
   stage: build

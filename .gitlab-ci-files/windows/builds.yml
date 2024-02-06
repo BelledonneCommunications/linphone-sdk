@@ -328,6 +328,15 @@ vs2022-uwp-windows:
   extends:
     - .windows-vs2022-msvc
     - .vs-uwp-windows
+
+vs2022-windows-java:
+  extends: .windows-vs2022-scheduled
+  variables:
+    CMAKE_PRESET: java-sdk-windows
+    OUTPUT_ZIP_FOLDER: java
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=OFF
+    PARALLEL_OPTIONS: --verbose
+
 ######################################################
 # NIGHTLY
 ######################################################

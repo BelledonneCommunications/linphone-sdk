@@ -129,6 +129,13 @@ debian12-ninja-gcc-python-wheel:
     CXX: clang++
   extends: .linux-desktop-python
 
+debian12-ninja-java:
+  tags: [ "docker" ]
+  image: !reference [.debian12_java_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+  extends: .linux-desktop-java
+
 #################################################
 # TESTS
 #################################################
