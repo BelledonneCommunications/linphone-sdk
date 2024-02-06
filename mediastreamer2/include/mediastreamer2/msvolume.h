@@ -81,9 +81,9 @@
 
 #define MS_VOLUME_DB_LOWEST (-120) /*arbitrary value returned when linear volume is 0*/
 
-#define MS_VOLUME_DB_MUTED (-130) /*-130 because in dBov -127 is digital silence*/
+#define MS_VOLUME_DB_MUTED (-130) /*expressed in dbm0, -130 because in dBov -127 is digital silence*/
 
-#define MS_VOLUME_DB_MIN_THRESHOLD (-30) /*value at which we consider the participant is speaking*/
+#define MS_VOLUME_DB_MIN_THRESHOLD (-20) /*value at which we consider the participant is speaking*/
 
 extern MSFilterDesc ms_volume_desc;
 

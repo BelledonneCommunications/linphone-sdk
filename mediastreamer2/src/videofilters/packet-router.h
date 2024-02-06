@@ -129,6 +129,9 @@ public:
 
 	void configure(const MSPacketRouterPinData *pinData) override;
 	void transfer() override;
+
+protected:
+	void sendData(MSQueue *outputQueue, RouterAudioInput *input, const std::vector<rtp_audio_level_t> &volumes);
 };
 
 #ifdef VIDEO_ENABLED
@@ -223,6 +226,8 @@ public:
 
 	int getRouterInputsSize() const;
 	int getRouterOutputsSize() const;
+
+	int getRouterActiveInputs() const;
 
 	MSQueue *getInputQueue(int pin) const;
 	MSQueue *getOutputQueue(int pin) const;

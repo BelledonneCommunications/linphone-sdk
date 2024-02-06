@@ -147,39 +147,74 @@ void RouterAudioOutput::transfer() {
 	if (outputQueue != nullptr) {
 		const auto selector = dynamic_cast<RouterInputAudioSelector *>(mRouter->getRouterInputSelector());
 
-		if (selector) {
+		if (selector != nullptr) {
 			auto &volumes = mRouter->getVolumesToSend();
+			int size = static_cast<int>(selector->getSelectedInputs().size());
 
-			for (const auto input : selector->getSelectedInputs()) {
-				// Don't send audio to ourselves
-				if (input == nullptr || mPin == input->getPin()) continue;
-
-				MSQueue *inputQueue = mRouter->getInputQueue(input->getPin());
-
-				if (inputQueue == nullptr || ms_queue_empty(inputQueue)) continue;
-
-				bool volumesSent = false;
-				for (mblk_t *m = ms_queue_peek_first(inputQueue); !ms_queue_end(inputQueue, m);
-				     m = ms_queue_peek_next(inputQueue, m)) {
-
-					if (!volumes.empty() && !volumesSent) {
-						// Small optimization here, we inject the volumes into the input's first packet and not the
-						// duplication. So only the first output transfer() will inject the volumes then it will already
-						// be there.
-						if (uint8_t * data;
-						    rtp_get_extension_header(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL, &data) == -1) {
-							// If we don't find it then we must be in the first output transfer(), inject it.
-							rtp_add_mixer_to_client_audio_level(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL,
-							                                    volumes.size(), volumes.data());
-						}
-
-						volumesSent = true;
+			if (size == 0) {
+				// There is no selected inputs, send the first one that is not us.
+				// This is needed to make sure clients still receives volumes from the PacketRouter.
+				for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
+					const auto &input = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
+					if (input != nullptr && mCurrentSource != input->getPin()) {
+						sendData(outputQueue, input, volumes);
+						break;
 					}
-
-					ms_queue_put(outputQueue, copymsg(m));
+				}
+			} else if (size == 1) {
+				// There is only one selected, if we are the one selected send another one or else it will not receive
+				// any volumes. For the rest, send the one selected.
+				const auto &selected = selector->getSelectedInputs()[0];
+				if (selected != nullptr) {
+					bool isSelf = mCurrentSource == selected->getPin();
+					if (isSelf) {
+						for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
+							const auto &input = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
+							if (input != nullptr && input != selected) {
+								sendData(outputQueue, input, volumes);
+								break;
+							}
+						}
+					} else {
+						sendData(outputQueue, selected, volumes);
+					}
+				}
+			} else {
+				// Else just send all selected inputs that are not us.
+				for (const auto input : selector->getSelectedInputs()) {
+					// Don't send audio to ourselves
+					if (input != nullptr && mCurrentSource != input->getPin()) sendData(outputQueue, input, volumes);
 				}
 			}
 		}
+	}
+}
+
+void RouterAudioOutput::sendData(MSQueue *outputQueue,
+                                 RouterAudioInput *input,
+                                 const std::vector<rtp_audio_level_t> &volumes) {
+	MSQueue *inputQueue = mRouter->getInputQueue(input->getPin());
+
+	if (inputQueue == nullptr || ms_queue_empty(inputQueue)) return;
+
+	bool volumesSent = false;
+	for (mblk_t *m = ms_queue_peek_first(inputQueue); !ms_queue_end(inputQueue, m);
+	     m = ms_queue_peek_next(inputQueue, m)) {
+
+		if (!volumes.empty() && !volumesSent) {
+			// Small optimization here, we inject the volumes into the input's first packet and not the
+			// duplication. So only the first output transfer() will inject the volumes then it will already
+			// be there.
+			if (uint8_t * data; rtp_get_extension_header(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL, &data) == -1) {
+				// If we don't find it then we must be in the first output transfer(), inject it.
+				rtp_add_mixer_to_client_audio_level(m, RTP_EXTENSION_MIXER_TO_CLIENT_AUDIO_LEVEL, volumes.size(),
+				                                    volumes.data());
+			}
+
+			volumesSent = true;
+		}
+
+		ms_queue_put(outputQueue, copymsg(m));
 	}
 }
 
@@ -259,20 +294,21 @@ void RouterInputAudioSelector::select() {
 	mSelected.clear();
 
 	// If only two, select them anyway to always have audio.
-	bool onlyTwo = mRouter->getRouterInputsSize() == 2;
+	int activeParticipants = mRouter->getRouterActiveInputs();
 
 	for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
 		auto audioInput = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
 
-		if (audioInput != nullptr && (onlyTwo || audioInput->mIsSpeaking)) mSelected.push_back(audioInput);
+		if (audioInput != nullptr && (activeParticipants == 2 || audioInput->mIsSpeaking))
+			mSelected.push_back(audioInput);
 	}
 
-	if (!onlyTwo) {
+	if (activeParticipants > 2 && mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) {
 		// Sort by descending volume order
 		std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
 
 		// Keep the first MAX_SPEAKER_AT_ONCE volumes
-		if (mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+		mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
 	}
 }
 
@@ -402,13 +438,13 @@ void PacketRouter::process() {
 		if (input != nullptr) input->update();
 	}
 
+	// Select which one(s) we will use.
+	mSelector->select();
+
 	// Update the volumes to send
 	if (mRoutingMode == RoutingMode::Audio) {
 		updateVolumesToSend();
 	}
-
-	// Select which one(s) we will use.
-	mSelector->select();
 
 	// If the output's linked input is selected, then transfer the stream.
 	for (const auto &output : mOutputs) {
@@ -499,6 +535,11 @@ int PacketRouter::getRouterInputsSize() const {
 
 int PacketRouter::getRouterOutputsSize() const {
 	return static_cast<int>(mOutputs.size());
+}
+
+int PacketRouter::getRouterActiveInputs() const {
+	return std::count_if(mInputs.begin(), mInputs.end(),
+	                     [](const unique_ptr<RouterInput> &input) { return input != nullptr; });
 }
 
 MSQueue *PacketRouter::getInputQueue(int pin) const {
@@ -707,11 +748,31 @@ void PacketRouter::updateVolumesToSend() {
 	mVolumes.clear();
 	mVolumes.reserve(mInputs.size());
 
+	const auto &selector = dynamic_cast<RouterInputAudioSelector *>(mSelector.get());
+
 	for (const auto &input : mInputs) {
 		if (input == nullptr) continue;
 
 		auto audioInput = dynamic_cast<RouterAudioInput *>(input.get());
-		if (audioInput) mVolumes.push_back({audioInput->mSsrc, audioInput->mVolume});
+		if (audioInput) {
+			if (selector) {
+				const auto &selected = selector->getSelectedInputs();
+				const auto &found = std::find(selected.begin(), selected.end(), audioInput);
+
+				// Force all non-selected inputs not muted to have the lowest volume to avoid the client to notify more
+				// isSpeaking than the max.
+				if (found != selected.end()) {
+					mVolumes.push_back({audioInput->mSsrc, audioInput->mVolume});
+				} else {
+					mVolumes.push_back(
+					    {audioInput->mSsrc, ms_volume_dbov_to_dbm0(audioInput->mVolume) == MS_VOLUME_DB_MUTED
+					                            ? audioInput->mVolume
+					                            : ms_volume_dbm0_to_dbov(MS_VOLUME_DB_LOWEST)});
+				}
+			} else {
+				mVolumes.push_back({audioInput->mSsrc, audioInput->mVolume});
+			}
+		}
 	}
 
 	if (mVolumesSentIndex > 0) {
