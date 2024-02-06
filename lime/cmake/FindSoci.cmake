@@ -60,6 +60,7 @@ if(TARGET soci_core OR TARGET soci_core_static)
         set(Soci_TARGET soci_core)
     else()
         set(Soci_TARGET soci_core_static)
+        set(Soci_STATIC ON)
     endif()
 
     if(TARGET soci_sqlite3 OR TARGET soci_sqlite3_static)

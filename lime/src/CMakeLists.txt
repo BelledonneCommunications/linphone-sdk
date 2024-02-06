@@ -90,6 +90,8 @@ if(BUILD_SHARED_LIBS)
 			CONFIGURATIONS Debug RelWithDebInfo
 		)
 	endif()
+else()
+	set_target_properties(lime PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 install(TARGETS lime EXPORT ${PROJECT_NAME}Targets
