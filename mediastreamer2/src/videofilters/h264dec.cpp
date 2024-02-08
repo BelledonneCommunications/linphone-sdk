@@ -332,16 +332,19 @@ static void dec_process(MSFilter *f) {
 		}
 		d->packet_num++;
 	}
+	bool_t haveFrame = FALSE;
 	while ((om = ms_stream_regulator_get(d->regulator))) {
 		ms_queue_put(f->outputs[0], om);
 		if (!d->first_image_decoded) {
 			d->first_image_decoded = TRUE;
 			ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
-		if (ms_average_fps_update(&d->fps, f->ticker->time)) {
+		haveFrame = TRUE;
+		if (ms_average_fps_activity(&d->fps, f->ticker->time, TRUE)) {
 			ms_message("ffmpeg H264 decoder: Frame size: %dx%d", d->vsize.width, d->vsize.height);
 		}
 	}
+	if (!haveFrame) ms_average_fps_activity(&d->fps, f->ticker->time, FALSE);
 	if (d->avpf_enabled && requestPLI) {
 		ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_SEND_PLI);
 	}

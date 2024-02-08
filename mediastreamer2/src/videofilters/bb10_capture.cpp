@@ -265,11 +265,11 @@ static void bb10capture_process(MSFilter *f) {
 	}
 	ms_mutex_unlock(&d->mutex);
 
+	ms_average_fps_activity(&d->avgfps, f->ticker->time, om != NULL);
 	if (om != NULL) {
 		timestamp = f->ticker->time * 90; /* rtp uses a 90000 Hz clockrate for video*/
 		mblk_set_timestamp_info(om, timestamp);
 		ms_queue_put(f->outputs[0], om);
-		ms_average_fps_update(&d->avgfps, f->ticker->time);
 	}
 
 	ms_filter_unlock(f);
@@ -348,7 +348,9 @@ static int bb10capture_get_vsize(MSFilter *f, void *arg) {
 static int bb10capture_get_fps(MSFilter *f, void *arg) {
 	BB10Capture *d = (BB10Capture *)f->data;
 	if (f->ticker) {
+		ms_filter_lock(f);
 		*(float *)arg = ms_average_fps_get(&d->avgfps);
+		ms_filter_unlock(f);
 	} else {
 		*(float *)arg = d->framerate;
 	}

@@ -1034,7 +1034,7 @@ void ms_video_init_average_fps(MSAverageFPS *afps, const char *ctx) {
 	ms_average_fps_init(afps, ctx);
 }
 
-bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
+bool_t ms_average_fps_activity(MSAverageFPS *afps, uint64_t current_time, bool_t have_frame) {
 	if (afps->last_frame_time != (uint64_t)-1) {
 		float frame_interval = (float)(current_time - afps->last_frame_time) / 1000.0f;
 		if (afps->mean_inter_frame == 0) {
@@ -1042,7 +1042,8 @@ bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
 		} else {
 
 			if (frame_interval >= 1.0) {
-				afps->mean_inter_frame = 1.0;
+				afps->mean_inter_frame = 0.0;
+				afps->last_frame_time = (uint64_t)-1;
 			} else {
 				afps->mean_inter_frame = (0.8f * afps->mean_inter_frame) + (0.2f * frame_interval);
 			}
@@ -1050,7 +1051,7 @@ bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
 	} else {
 		afps->last_print_time = current_time;
 	}
-	afps->last_frame_time = current_time;
+	if (have_frame) afps->last_frame_time = current_time;
 
 	if ((current_time - afps->last_print_time > 5000) && afps->mean_inter_frame != 0) {
 		ms_message(afps->context, 1 / afps->mean_inter_frame);
@@ -1058,6 +1059,11 @@ bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
 		return TRUE;
 	}
 	return FALSE;
+}
+
+/*deprecated*/
+bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time) {
+	return ms_average_fps_activity(afps, current_time, TRUE);
 }
 
 /*compatibility, deprecated*/

@@ -114,7 +114,9 @@ static int video_capture_set_autofocus(MSFilter *f, BCTBX_UNUSED(void *data)) {
 
 static int video_capture_get_fps(MSFilter *f, void *arg) {
 	AndroidReaderContext *d = (AndroidReaderContext *)f->data;
+	ms_mutex_lock(&d->mutex);
 	*((float *)arg) = ms_average_fps_get(&d->averageFps);
+	ms_mutex_unlock(&d->mutex);
 	return 0;
 }
 
@@ -339,13 +341,13 @@ static void video_capture_process(MSFilter *f) {
 
 	ms_mutex_lock(&d->mutex);
 
+	ms_average_fps_activity(&d->averageFps, f->ticker->time, d->frame != 0);
 	// If frame not ready, return
 	if (d->frame == 0) {
 		ms_mutex_unlock(&d->mutex);
 		return;
 	}
 
-	ms_average_fps_update(&d->averageFps, f->ticker->time);
 	mblk_set_timestamp_info(d->frame, f->ticker->time * 90);
 
 	ms_queue_put(f->outputs[0], d->frame);

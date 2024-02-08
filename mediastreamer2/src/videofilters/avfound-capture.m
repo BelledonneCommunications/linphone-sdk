@@ -450,9 +450,9 @@ static void v4m_process(MSFilter * obj){
 				mblk_set_timestamp_info(om,timestamp);
 				mblk_set_marker_info(om,TRUE);
 				ms_queue_put(obj->outputs[0],om);
-				ms_average_fps_update(&s->afps, obj->ticker->time);
 			} else {
 				freemsg(om);
+				om = NULL;
 				if(![s->webcam isChangingFormat]){
 					ms_warning("AVCapture frame (%dx%d) does not have desired size (%dx%d), notify change and discarding frame ...", frame_size.w, frame_size.h, desired_size.width, desired_size.height);
 					MSVideoSize newSize;
@@ -468,6 +468,7 @@ static void v4m_process(MSFilter * obj){
 				ms_filter_notify_no_arg(obj,MS_FILTER_OUTPUT_FMT_CHANGED);
 			}
 		}
+		ms_average_fps_activity(&s->afps, obj->ticker->time, om != NULL);
 	}
 
 	ms_mutex_unlock([s->webcam mutex]);
@@ -497,7 +498,9 @@ static int v4m_set_fps(MSFilter *f, void *arg) {
 
 static int v4m_get_fps(MSFilter *f, void *arg) {
 	v4mState *s = (v4mState *)f->data;
+	ms_mutex_lock([s->webcam mutex]);
 	*((float *)arg) = ms_average_fps_get(&s->afps);
+	ms_mutex_unlock([s->webcam mutex]);
 	return 0;
 }
 

@@ -126,6 +126,7 @@ void H26xDecoderFilter::process() {
 		}
 	}
 
+	bool_t haveFrame = FALSE;
 	while ((_useRegulator && (om = ms_stream_regulator_get(_regulator)) != nullptr) ||
 	       (!_useRegulator && (om = ms_queue_get(&q)) != nullptr)) {
 		MSPicture pic;
@@ -138,12 +139,11 @@ void H26xDecoderFilter::process() {
 			_firstImageDecoded = true;
 			notify(MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
-
-		ms_average_fps_update(&_fps, getTime());
+		haveFrame = TRUE;
 		ms_queue_put(getOutput(0), om);
 		om = nullptr;
 	}
-
+	ms_average_fps_activity(&_fps, getTime(), haveFrame);
 	if (requestPli) {
 		notify(_avpfEnabled ? MS_VIDEO_DECODER_SEND_PLI : MS_VIDEO_DECODER_DECODING_ERRORS);
 	}

@@ -561,11 +561,11 @@ static void dscap_process(MSFilter *obj) {
 			if (om != NULL) freemsg(om);
 			om = m;
 		}
+		ms_average_fps_activity(&s->avgfps, obj->ticker->time, om != NULL);
 		if (om != NULL) {
 			timestamp = (uint32_t)(obj->ticker->time * 90); /* rtp uses a 90000 Hz clockrate for video*/
 			mblk_set_timestamp_info(om, timestamp);
 			ms_queue_put(obj->outputs[0], om);
-			ms_average_fps_update(&s->avgfps, obj->ticker->time);
 		}
 	}
 }
@@ -581,7 +581,9 @@ static int dscap_set_fps(MSFilter *f, void *arg) {
 static int dscap_get_fps(MSFilter *f, void *arg) {
 	DSCapture *s = (DSCapture *)f->data;
 	if (f->ticker) {
+		ms_filter_lock(f);
 		*((float *)arg) = ms_average_fps_get(&s->avgfps);
+		ms_filter_unlock(f);
 	} else {
 		*((float *)arg) = s->getFps();
 	}

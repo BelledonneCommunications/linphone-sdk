@@ -109,7 +109,7 @@ static void dec_snow_init(MSFilter *f) {
 #if HAVE_ACVODEC_SNOW
 	dec_init(f, CODEC_ID_SNOW);
 #else
-	(void)f; // Prevent unused paramater warning
+	(void)f;     // Prevent unused paramater warning
 #endif
 }
 static void dec_uninit(MSFilter *f) {
@@ -600,7 +600,7 @@ static unsigned char smasks[7] = {0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01};
 static void dec_process_frame(MSFilter *f, mblk_t *inm) {
 	DecState *s = (DecState *)f->data;
 
-	int got_picture;
+	int got_picture = 0;
 	/* get a picture from the input queue */
 
 	if (f->desc->id == MS_H263_DEC_ID) inm = skip_rfc2429_header(inm);
@@ -658,9 +658,10 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm) {
 				}
 				if (got_picture) {
 					mblk_t *om = get_as_yuvmsg(f, s, s->orig);
-					ms_average_fps_update(&s->fps, f->ticker->time);
-					if (om != NULL) ms_queue_put(f->outputs[0], om);
-
+					ms_average_fps_activity(&s->fps, f->ticker->time, om != NULL);
+					if (om != NULL) {
+						ms_queue_put(f->outputs[0], om);
+					}
 					if (!s->first_image_decoded) {
 						s->first_image_decoded = TRUE;
 						ms_filter_notify_no_arg(f, MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
@@ -674,6 +675,7 @@ static void dec_process_frame(MSFilter *f, mblk_t *inm) {
 			freemsg(frame);
 		}
 	}
+	if (!got_picture) ms_average_fps_activity(&s->fps, f->ticker->time, FALSE);
 }
 
 static void dec_process(MSFilter *f) {
@@ -705,7 +707,9 @@ static int dec_get_vsize(MSFilter *f, void *data) {
 
 static int dec_get_fps(MSFilter *f, void *data) {
 	DecState *s = (DecState *)f->data;
+	ms_filter_lock(f);
 	*(float *)data = ms_average_fps_get(&s->fps);
+	ms_filter_unlock(f);
 	return 0;
 }
 

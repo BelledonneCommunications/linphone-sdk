@@ -82,12 +82,13 @@ public:
 		if (mTurboJpegDecompressor) {
 			mblk_t *m = jpeg2yuv_details(inm->b_rptr, (int)(inm->b_wptr - inm->b_rptr), &mSize, mTurboJpegDecompressor,
 			                             mTurboJpegCompressor, mAllocator, &mRgbBuffer, &mRgbBufferSize);
+
+			ms_average_fps_activity(&mAvgFps, filter->ticker->time, m != NULL);
 			if (m) {
 				uint32_t timestamp;
 				timestamp = (uint32_t)(filter->ticker->time * 90); // rtp uses a 90000 Hz clockrate for video
 				mblk_set_timestamp_info(m, timestamp);
 				ms_queue_put(filter->outputs[0], m);
-				ms_average_fps_update(&mAvgFps, filter->ticker->time);
 			}
 		}
 	}
@@ -165,11 +166,13 @@ static int ms_turbojpeg_dec_set_vsize(MSFilter *f, void *data) {
 }
 static int ms_turbojpeg_dec_get_fps(MSFilter *filter, void *arg) {
 	MSTurboJpegDec *dec = (MSTurboJpegDec *)filter->data;
+	ms_filter_lock(filter);
 	if (filter->ticker) {
 		*((float *)arg) = ms_average_fps_get(&dec->mAvgFps);
 	} else {
 		*((float *)arg) = dec->getFps();
 	}
+	ms_filter_unlock(filter);
 	return 0;
 }
 

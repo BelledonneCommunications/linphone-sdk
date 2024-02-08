@@ -202,14 +202,14 @@ void MSMFoundationCap::feed(MSFilter *filter) {
 		return; // Avoid sending new frames till new format has not been taken account (look for getter of size)
 	mblk_t **data = &mFrameData;
 	EnterCriticalSection(&mCriticalSection);
-	if (mRunning && mFrameData) {
-		if (isTimeToSend(filter->ticker->time)) {
+	if (mRunning && isTimeToSend(filter->ticker->time)) {
+		ms_average_fps_activity(&mAvgFps, filter->ticker->time, mFrameData != NULL);
+		if (mFrameData) {
 			++mProcessCount;
 			uint32_t timestamp;
 			timestamp = (uint32_t)(filter->ticker->time * 90); // rtp uses a 90000 Hz clockrate for video
 			mblk_set_timestamp_info(*data, timestamp);
 			ms_queue_put(filter->outputs[0], *data);
-			ms_average_fps_update(&mAvgFps, filter->ticker->time);
 			*data = NULL;
 		}
 	}
@@ -326,11 +326,13 @@ static int ms_mfoundation_set_fps(MSFilter *filter, void *arg) {
 
 static int ms_mfoundation_get_fps(MSFilter *filter, void *arg) {
 	MSMFoundationCap *mf = (MSMFoundationCap *)filter->data;
+	ms_filter_lock(filter);
 	if (filter->ticker) {
 		*((float *)arg) = ms_average_fps_get(&mf->mAvgFps);
 	} else {
 		*((float *)arg) = mf->getFps();
 	}
+	ms_filter_unlock(filter);
 	return 0;
 }
 

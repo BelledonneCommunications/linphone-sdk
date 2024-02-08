@@ -533,7 +533,10 @@ struct _MSAverageFPS {
 };
 typedef struct _MSAverageFPS MSAverageFPS;
 MS2_PUBLIC void ms_average_fps_init(MSAverageFPS *afps, const char *context);
-MS2_PUBLIC bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time);
+MS2_PUBLIC bool_t ms_average_fps_activity(MSAverageFPS *afps, uint64_t current_time, bool_t have_frame);
+/** Deprecated: use ms_average_fps_activity() */
+MS2_PUBLIC MS2_DEPRECATED bool_t ms_average_fps_update(MSAverageFPS *afps, uint64_t current_time);
+
 MS2_PUBLIC float ms_average_fps_get(const MSAverageFPS *afps);
 
 /*deprecated: for compatibility with plugin*/

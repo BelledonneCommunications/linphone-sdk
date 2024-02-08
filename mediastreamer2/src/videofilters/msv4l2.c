@@ -532,6 +532,7 @@ static int msv4l2_do_mmap(V4l2State *s) {
 		buf.index = i;
 		if (-1 == v4l2_ioctl(s->fd, VIDIOC_QBUF, &buf)) {
 			ms_error("[MSV4l2] VIDIOC_QBUF failed: %s", strerror(errno));
+			ms_usleep(500000);
 		} else {
 			s->queued++;
 			/* We internaly use here the marker bit to mark buffers that are queued into the V4L2 driver. */
@@ -622,6 +623,7 @@ static mblk_t *v4lv2_grab_image(V4l2State *s, int poll_timeout_ms) {
 			buf.index = k;
 			if (-1 == v4l2_ioctl(s->fd, VIDIOC_QBUF, &buf)) {
 				ms_warning("[MSV4l2] VIDIOC_QBUF %i failed: %s", k, strerror(errno));
+				ms_usleep(500000);
 			} else {
 				s->queued++;
 				/* We internaly use here the marker bit to mark buffers that are queued into the V4L2 driver. */
@@ -789,6 +791,8 @@ static void msv4l2_process(MSFilter *f) {
 			}
 		}
 		ms_mutex_unlock(&s->mutex);
+
+		ms_average_fps_activity(&s->avgfps, f->ticker->time, om != NULL);
 		if (om != NULL) {
 			if (s->use_rotation && s->rotation > 0) {
 				om = msv4l2_rotate_image(s, om);
@@ -800,7 +804,6 @@ static void msv4l2_process(MSFilter *f) {
 			 */
 			mblk_set_marker_info(om, (s->pix_fmt == MS_MJPEG));
 			ms_queue_put(f->outputs[0], om);
-			ms_average_fps_update(&s->avgfps, f->ticker->time);
 		}
 	}
 }
@@ -880,9 +883,11 @@ static int msv4l2_set_devfile(MSFilter *f, void *arg) {
 
 static int msv4l2_get_fps(MSFilter *f, void *arg) {
 	V4l2State *s = (V4l2State *)f->data;
+	ms_filter_lock(f);
 	if (f->ticker) {
 		*(float *)arg = ms_average_fps_get(&s->avgfps);
 	} else *(float *)arg = s->fps;
+	ms_filter_unlock(f);
 	return 0;
 }
 

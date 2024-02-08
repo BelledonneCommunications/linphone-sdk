@@ -75,10 +75,12 @@ void Av1DecoderFilter::process() {
 		if (status == VideoDecoder::DecodingFailure) {
 			ms_error("Av1DecoderFilter: decoding failure");
 			requestPli = true;
+			ms_average_fps_activity(&mFps, getTime(), FALSE);
 			continue;
 		}
 		if (!om) {
 			ms_warning("Av1DecoderFilter: no frame.");
+			ms_average_fps_activity(&mFps, getTime(), FALSE);
 			break;
 		}
 
@@ -95,7 +97,7 @@ void Av1DecoderFilter::process() {
 			notify(MS_VIDEO_DECODER_FIRST_IMAGE_DECODED);
 		}
 
-		ms_average_fps_update(&mFps, getTime());
+		ms_average_fps_activity(&mFps, getTime(), TRUE);
 		ms_queue_put(getOutput(0), om);
 	}
 
