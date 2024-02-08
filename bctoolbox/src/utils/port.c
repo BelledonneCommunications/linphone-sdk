@@ -1746,11 +1746,13 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = type;
 	hints.ai_socktype = SOCK_DGRAM;
-	/*hints.ai_flags = AI_NUMERICHOST | AI_CANONNAME;*/
+	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
+
 	snprintf(port_str, sizeof(port_str), "%i", port);
-	err = getaddrinfo(dest, port_str, &hints, &res);
+
+	err = bctbx_getaddrinfo(dest, port_str, &hints, &res);
 	if (err != 0) {
-		bctbx_error("getaddrinfo() error for %s: %s", dest, gai_strerror(err));
+		bctbx_error("get_local_ip_for_with_connect(): getaddrinfo() error for %s: %s", dest, gai_strerror(err));
 		return -1;
 	}
 	if (res == NULL) {
@@ -1773,11 +1775,11 @@ static int get_local_ip_for_with_connect(int type, const char *dest, int port, c
 		if (getSocketErrorCode() != BCTBX_ENETUNREACH && getSocketErrorCode() != BCTBX_EHOSTUNREACH &&
 		    getSocketErrorCode() != BCTBX_EPROTOTYPE)
 			bctbx_error("Error in connect: %s", getSocketError());
-		freeaddrinfo(res);
+		bctbx_freeaddrinfo(res);
 		bctbx_socket_close(sock);
 		return -1;
 	}
-	freeaddrinfo(res);
+	bctbx_freeaddrinfo(res);
 	res = NULL;
 	s = sizeof(addr);
 	err = getsockname(sock, (struct sockaddr *)&addr, &s);
