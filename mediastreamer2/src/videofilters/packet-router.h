@@ -177,6 +177,7 @@ public:
 	void select() override;
 
 	const std::vector<RouterAudioInput *> &getSelectedInputs() const;
+	void clearSelectedInputs();
 
 protected:
 	std::vector<RouterAudioInput *> mSelected{};
@@ -242,6 +243,8 @@ public:
 	// Audio mode only
 	const std::vector<rtp_audio_level_t> &getVolumesToSend() const;
 
+	int getActiveSpeakerPin() const;
+
 	// Video mode only
 #ifdef VIDEO_ENABLED
 	void setFocus(int pin);
@@ -295,6 +298,8 @@ public:
 	static int onConfigureOutput(MSFilter *f, void *arg);
 	static int onUnconfigureOutput(MSFilter *f, void *arg);
 	static int onSetAsLocalMember(MSFilter *f, void *arg);
+
+	static int onGetActiveSpeakerPin(MSFilter *f, void *arg);
 
 #ifdef VIDEO_ENABLED
 	static int onSetFocus(MSFilter *f, void *arg);

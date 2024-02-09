@@ -395,26 +395,43 @@ int ms_audio_conference_get_participant_volume(MSAudioConference *obj, uint32_t 
 
 void ms_audio_conference_process_events(MSAudioConference *obj) {
 	const bctbx_list_t *elem;
-	float max_db_over_member = MS_VOLUME_DB_LOWEST;
 	MSAudioEndpoint *winner = NULL;
 
-	for (elem = obj->members; elem != NULL; elem = elem->next) {
-		MSAudioEndpoint *ep = (MSAudioEndpoint *)elem->data;
-		int is_remote;
-		if (ep->st == NULL) continue; /* This happens for the player/recorder special endpoint */
-		is_remote = (ep->in_cut_point_prev.filter == ep->st->volrecv);
-		MSFilter *volume_filter = is_remote ? ep->st->volrecv : ep->st->volsend;
-		if (ep->muted) continue;
-		if (volume_filter) {
-			float max_db = MS_VOLUME_DB_LOWEST;
-			if (ms_filter_call_method(volume_filter, MS_VOLUME_GET_MAX, &max_db) == 0) {
-				if (max_db > audio_threshold_min_db && max_db > max_db_over_member) {
-					max_db_over_member = max_db;
+	if (obj->params.full_packet_mode) {
+		int pin = -1;
+		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_GET_ACTIVE_SPEAKER_PIN, &pin);
+
+		if (pin > -1) {
+			for (elem = obj->members; elem != NULL; elem = elem->next) {
+				MSAudioEndpoint *ep = (MSAudioEndpoint *)elem->data;
+				if (ep->pin == pin) {
 					winner = ep;
+					break;
+				}
+			}
+		}
+	} else {
+		float max_db_over_member = MS_VOLUME_DB_LOWEST;
+
+		for (elem = obj->members; elem != NULL; elem = elem->next) {
+			MSAudioEndpoint *ep = (MSAudioEndpoint *)elem->data;
+			int is_remote;
+			if (ep->st == NULL) continue; /* This happens for the player/recorder special endpoint */
+			is_remote = (ep->in_cut_point_prev.filter == ep->st->volrecv);
+			MSFilter *volume_filter = is_remote ? ep->st->volrecv : ep->st->volsend;
+			if (ep->muted) continue;
+			if (volume_filter) {
+				float max_db = MS_VOLUME_DB_LOWEST;
+				if (ms_filter_call_method(volume_filter, MS_VOLUME_GET_MAX, &max_db) == 0) {
+					if (max_db > audio_threshold_min_db && max_db > max_db_over_member) {
+						max_db_over_member = max_db;
+						winner = ep;
+					}
 				}
 			}
 		}
 	}
+
 	if (obj->active_speaker != winner && winner != NULL) {
 		ms_message("Active speaker changed: now on pin %i", winner->pin);
 		if (obj->params.active_talker_callback) obj->params.active_talker_callback(obj, winner);

@@ -336,17 +336,21 @@ void RouterInputAudioSelector::select() {
 			mSelected.push_back(audioInput);
 	}
 
-	if (activeParticipants > 2 && mSelected.size() > PacketRouter::MAX_SPEAKER_AT_ONCE) {
+	if (auto size = mSelected.size(); size > 1) {
 		// Sort by descending volume order
 		std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
 
 		// Keep the first MAX_SPEAKER_AT_ONCE volumes
-		mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+		if (size > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
 	}
 }
 
 const std::vector<RouterAudioInput *> &RouterInputAudioSelector::getSelectedInputs() const {
 	return mSelected;
+}
+
+void RouterInputAudioSelector::clearSelectedInputs() {
+	mSelected.clear();
 }
 
 #ifdef VIDEO_ENABLED
@@ -480,12 +484,12 @@ void PacketRouter::process() {
 	// Select which one(s) we will use.
 	mSelector->select();
 
-	// Update the volumes to send
+	// Update the volumes to send.
 	if (mRoutingMode == RoutingMode::Audio) {
 		updateVolumesToSend();
 	}
 
-	// If the output's linked input is selected, then transfer the stream.
+	// Transfer the selected inputs' data.
 	for (const auto &output : mOutputs) {
 		if (output != nullptr) output->transfer();
 	}
@@ -514,8 +518,10 @@ void PacketRouter::setRoutingMode(PacketRouter::RoutingMode mode) {
 #ifdef VIDEO_ENABLED
 			mSelector = make_unique<RouterInputVideoSelector>(this);
 #else
+		{
 			PackerRouterLogContextualizer prlc(this);
 			ms_error("Cannot set mode to video as it is disabled");
+		}
 #endif
 			break;
 		default:
@@ -677,6 +683,15 @@ const std::vector<rtp_audio_level_t> &PacketRouter::getVolumesToSend() const {
 	return mVolumesToSend;
 }
 
+int PacketRouter::getActiveSpeakerPin() const {
+	const auto &selector = dynamic_cast<RouterInputAudioSelector *>(mSelector.get());
+	if (selector && !selector->getSelectedInputs().empty()) {
+		return selector->getSelectedInputs().front()->getPin();
+	}
+
+	return -1;
+}
+
 #ifdef VIDEO_ENABLED
 void PacketRouter::setFocus(int pin) {
 	PackerRouterLogContextualizer prlc(this);
@@ -780,6 +795,13 @@ void PacketRouter::removeUnusedInput(int index) {
 		if (mRoutingMode == RoutingMode::Audio) {
 			// In audio mode, each output is tied to one input. We can remove the source.
 			mInputs.at(index) = nullptr;
+
+			// Clear the selected inputs if any to avoid choosing the one being removed.
+			// Selection will be redone in the next process.
+			auto audioSelector = dynamic_cast<RouterInputAudioSelector *>(mSelector.get());
+			if (audioSelector && !audioSelector->getSelectedInputs().empty()) {
+				audioSelector->clearSelectedInputs();
+			}
 		} else if (mRoutingMode == RoutingMode::Video) {
 			// In video mode, before removing the input we have to check that no other output is using the current
 			// source anymore.
@@ -832,6 +854,8 @@ void PacketRouter::updateVolumesToSend() {
 	}
 
 	if (mVolumesSentIndex > 0) {
+		// There is still volumes to send.
+
 		int size = static_cast<int>(mVolumes.size());
 
 		// In case of mass disconnections. If we are past the size then stop, and we will send volumes again next time.
@@ -850,6 +874,8 @@ void PacketRouter::updateVolumesToSend() {
 			mVolumesSentIndex += RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL;
 		}
 	} else if (uint64_t time = getTime(); time - mLastVolumesSentTime > mVolumesSentInterval) {
+		// Timer is done, we send the volumes.
+
 		if (static_cast<int>(mVolumes.size()) <= RTP_MAX_MIXER_TO_CLIENT_AUDIO_LEVEL) {
 			mVolumesToSend = mVolumes;
 		} else {
@@ -860,6 +886,7 @@ void PacketRouter::updateVolumesToSend() {
 		mLastVolumesSentTime = time;
 	} else if (!mVolumesToSend.empty()) {
 		// If we are here, it means we just sent the last volumes, and we have to wait for the timer.
+
 		mVolumesToSend.clear();
 	}
 }
@@ -945,6 +972,25 @@ int PacketRouterFilterWrapper::onSetAsLocalMember(MSFilter *f, void *arg) {
 	}
 }
 
+int PacketRouterFilterWrapper::onGetActiveSpeakerPin(MSFilter *f, void *arg) {
+	try {
+		auto router = static_cast<PacketRouter *>(f->data);
+		PackerRouterLogContextualizer prlc(router);
+
+		if (router->getRoutingMode() != PacketRouter::RoutingMode::Audio) {
+			ms_error("Trying to call MS_PACKET_ROUTER_GET_ACTIVE_SPEAKER_PIN while not in audio mode");
+			return -1;
+		}
+
+		int *pin = (int *)arg;
+		*pin = router->getActiveSpeakerPin();
+
+		return 0;
+	} catch (const PacketRouter::MethodCallFailed &) {
+		return -1;
+	}
+}
+
 #ifdef VIDEO_ENABLED
 int PacketRouterFilterWrapper::onSetFocus(MSFilter *f, void *arg) {
 	try {
@@ -972,15 +1018,16 @@ int PacketRouterFilterWrapper::onSetFocus(MSFilter *f, void *arg) {
 int PacketRouterFilterWrapper::onNotifyPli(MSFilter *f, void *arg) {
 	try {
 		auto router = static_cast<PacketRouter *>(f->data);
-		PackerRouterLogContextualizer prlc(router);
 
 		if (router->getRoutingMode() != PacketRouter::RoutingMode::Video) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Trying to call MS_PACKET_ROUTER_NOTIFY_PLI while not in video mode");
 			return -1;
 		}
 
 		int pin = *static_cast<int *>(arg);
 		if (pin < 0 || pin >= ROUTER_MAX_OUTPUT_CHANNELS) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Invalid argument to MS_PACKET_ROUTER_NOTIFY_PLI");
 			return -1;
 		}
@@ -988,6 +1035,7 @@ int PacketRouterFilterWrapper::onNotifyPli(MSFilter *f, void *arg) {
 		// Propagate the PLI to the current input source.
 		auto output = dynamic_cast<RouterVideoOutput *>(router->getRouterOutput(pin));
 		if (output == nullptr) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Cannot notify PLI, output on pin %d does not exist", pin);
 			return -1;
 		}
@@ -1003,15 +1051,16 @@ int PacketRouterFilterWrapper::onNotifyPli(MSFilter *f, void *arg) {
 int PacketRouterFilterWrapper::onNotifyFir(MSFilter *f, void *arg) {
 	try {
 		auto router = static_cast<PacketRouter *>(f->data);
-		PackerRouterLogContextualizer prlc(router);
 
 		if (router->getRoutingMode() != PacketRouter::RoutingMode::Video) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Trying to call MS_PACKET_ROUTER_NOTIFY_FIR while not in video mode");
 			return -1;
 		}
 
 		int pin = *static_cast<int *>(arg);
 		if (pin < 0 || pin >= ROUTER_MAX_OUTPUT_CHANNELS) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Invalid argument to MS_PACKET_ROUTER_NOTIFY_FIR");
 			return -1;
 		}
@@ -1019,6 +1068,7 @@ int PacketRouterFilterWrapper::onNotifyFir(MSFilter *f, void *arg) {
 		// Propagate the FIR to the current input source.
 		auto output = dynamic_cast<RouterVideoOutput *>(router->getRouterOutput(pin));
 		if (output == nullptr) {
+			PackerRouterLogContextualizer prlc(router);
 			ms_error("Cannot notify FIR, output on pin %d does not exist", pin);
 			return -1;
 		}
@@ -1064,6 +1114,7 @@ static MSFilterMethod MS_FILTER_WRAPPER_METHODS_NAME(PacketRouter)[] = {
     {MS_PACKET_ROUTER_CONFIGURE_OUTPUT, PacketRouterFilterWrapper::onConfigureOutput},
     {MS_PACKET_ROUTER_UNCONFIGURE_OUTPUT, PacketRouterFilterWrapper::onUnconfigureOutput},
     {MS_PACKET_ROUTER_SET_AS_LOCAL_MEMBER, PacketRouterFilterWrapper::onSetAsLocalMember},
+    {MS_PACKET_ROUTER_GET_ACTIVE_SPEAKER_PIN, PacketRouterFilterWrapper::onGetActiveSpeakerPin},
 #ifdef VIDEO_ENABLED
     {MS_PACKET_ROUTER_SET_FOCUS, PacketRouterFilterWrapper::onSetFocus},
     {MS_PACKET_ROUTER_NOTIFY_PLI, PacketRouterFilterWrapper::onNotifyPli},
