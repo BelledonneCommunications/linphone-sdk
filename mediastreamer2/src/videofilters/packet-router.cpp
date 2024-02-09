@@ -21,7 +21,7 @@
 #include "packet-router.h"
 
 #include <algorithm>
-#include <map>
+#include <sstream>
 
 #ifdef AV1_ENABLED
 #include "av1/obu/obu-key-frame-indicator.h"
@@ -33,6 +33,34 @@
 using namespace std;
 
 namespace mediastreamer {
+
+class PackerRouterLogContextualizer {
+public:
+	explicit PackerRouterLogContextualizer(const PacketRouter *packetRouter) {
+		ostringstream os;
+
+		os << "PacketRouter ";
+		if (packetRouter->getRoutingMode() == PacketRouter::RoutingMode::Audio) {
+			os << "Audio";
+		} else if (packetRouter->getRoutingMode() == PacketRouter::RoutingMode::Video) {
+			os << "Video";
+		} else {
+			os << "Unknown";
+		}
+		os << ", " << packetRouter;
+
+		bctbx_push_log_tag(sTagIdentifier, os.str().c_str());
+	}
+
+	~PackerRouterLogContextualizer() {
+		bctbx_pop_log_tag(sTagIdentifier);
+	}
+
+private:
+	static constexpr char sTagIdentifier[] = "packet-router";
+};
+
+// =============================================================================
 
 RouterInput::RouterInput(PacketRouter *router, int inputNumber) : mRouter(router), mPin(inputNumber) {
 }
@@ -78,7 +106,8 @@ RouterVideoInput::RouterVideoInput(PacketRouter *router,
 #ifdef AV1_ENABLED
 		mKeyFrameIndicator = make_unique<ObuKeyFrameIndicator>();
 #else
-		ms_error("PacketRouter: Trying to create a video input in AV1 while it is disabled");
+		PackerRouterLogContextualizer prlc(router);
+		ms_error("Trying to create a video input in AV1 while it is disabled");
 #endif
 	}
 }
@@ -97,7 +126,8 @@ void RouterVideoInput::update() {
 			mState = State::Stopped;
 			mKeyFrameRequested = true;
 		} else if (!mLocal && (newSeqNumber != mCurrentSeqNumber + 1)) {
-			ms_warning("PacketRouter: Sequence discontinuity detected on pin %i, key-frame requested", mPin);
+			PackerRouterLogContextualizer prlc(mRouter);
+			ms_warning("Sequence discontinuity detected on pin %i, key-frame requested", mPin);
 			mState = State::Stopped;
 			mKeyFrameRequested = true;
 		}
@@ -106,7 +136,8 @@ void RouterVideoInput::update() {
 			if (!mSeqNumberSet || mCurrentTimestamp != newTimestamp) {
 				// Possibly a beginning of frame !
 				if (mKeyFrameIndicator->isKeyFrame(m)) {
-					ms_message("PacketRouter: Key frame detected on pin %i", mPin);
+					PackerRouterLogContextualizer prlc(mRouter);
+					ms_message("Key frame detected on pin %i", mPin);
 					mState = State::Running;
 					mKeyFrameStart = m;
 					mKeyFrameRequested = false;
@@ -223,6 +254,8 @@ RouterVideoOutput::RouterVideoOutput(PacketRouter *router, int pin) : RouterOutp
 }
 
 void RouterVideoOutput::configure(const MSPacketRouterPinData *pinData) {
+	PackerRouterLogContextualizer prlc(mRouter);
+
 	RouterOutput::configure(pinData);
 
 	mCurrentSource = pinData->input;
@@ -239,7 +272,7 @@ void RouterVideoOutput::configure(const MSPacketRouterPinData *pinData) {
 		}
 	}
 
-	ms_message("PacketRouter: Configure active_speaker[%d] pin output %d with input %d, next_source %d",
+	ms_message("Configure active_speaker[%d] pin output %d with input %d, next_source %d",
 	           pinData->active_speaker_enabled, pinData->output, pinData->input, mNextSource);
 }
 
@@ -326,18 +359,21 @@ void RouterInputVideoSelector::select() {
 
 		if (videoOutput != nullptr && videoOutput->mActiveSpeakerEnabled) {
 			if (videoOutput->mNextSource != -1 && mRouter->getInputQueue(videoOutput->mNextSource) == nullptr) {
-				ms_warning("PacketRouter: Next source %i disappeared, choosing another one", videoOutput->mNextSource);
+				PackerRouterLogContextualizer prlc(mRouter);
+				ms_warning("Next source %i disappeared, choosing another one", videoOutput->mNextSource);
 				videoOutput->mNextSource = -1;
 			}
 
 			if (videoOutput->mCurrentSource != -1 && mRouter->getInputQueue(videoOutput->mCurrentSource) == nullptr) {
-				ms_warning("PacketRouter: Current source %i disappeared", videoOutput->mCurrentSource);
+				PackerRouterLogContextualizer prlc(mRouter);
+				ms_warning("Current source %i disappeared", videoOutput->mCurrentSource);
 				// Invalidate the current source until the next switch
 				videoOutput->mCurrentSource = -1;
 			}
 
 			if (videoOutput->mNextSource == -1) {
 				if (electNewSource(videoOutput) != -1) {
+					PackerRouterLogContextualizer prlc(mRouter);
 					ms_message(
 					    "PacketRouter: New source automatically selected for output pin [%d]: next source = [%i]", i,
 					    videoOutput->mNextSource);
@@ -360,7 +396,8 @@ void RouterInputVideoSelector::select() {
 					} else {
 						// Else request a key frame
 						if (!videoInput->mKeyFrameRequested) {
-							ms_message("PacketRouter: Need key-frame for pin %i", videoOutput->mNextSource);
+							PackerRouterLogContextualizer prlc(mRouter);
+							ms_message("Need key-frame for pin %i", videoOutput->mNextSource);
 							videoInput->mKeyFrameRequested = true;
 						}
 					}
@@ -371,9 +408,11 @@ void RouterInputVideoSelector::select() {
 }
 
 int RouterInputVideoSelector::electNewSource(mediastreamer::RouterVideoOutput *output) {
+	PackerRouterLogContextualizer prlc(mRouter);
+
 	if (!output->mActiveSpeakerEnabled) {
-		ms_error("PacketRouter: electNewSource should only be called for active speaker case");
-		return -1;
+		ms_error("electNewSource should only be called for active speaker case");
+		return output->mNextSource;
 	}
 
 	if (int focus = mRouter->getFocusPin();
@@ -475,7 +514,8 @@ void PacketRouter::setRoutingMode(PacketRouter::RoutingMode mode) {
 #ifdef VIDEO_ENABLED
 			mSelector = make_unique<RouterInputVideoSelector>(this);
 #else
-			ms_error("PacketRouter: Cannot set mode to video as it is disabled");
+			PackerRouterLogContextualizer prlc(this);
+			ms_error("Cannot set mode to video as it is disabled");
 #endif
 			break;
 		default:
@@ -496,6 +536,8 @@ bool PacketRouter::isFullPacketModeEnabled() const {
 }
 
 RouterInput *PacketRouter::getRouterInput(int index) const {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (index < 0 || (size_t)index > ROUTER_MAX_INPUT_CHANNELS) {
 		return nullptr;
 	}
@@ -504,13 +546,15 @@ RouterInput *PacketRouter::getRouterInput(int index) const {
 		const auto &input = mInputs.at(index);
 		return input != nullptr ? input.get() : nullptr;
 	} catch (const std::out_of_range &) {
-		ms_error("PacketRouter: Trying to get router input on un-existing pin");
+		ms_error("Trying to get router input on un-existing pin");
 	}
 
 	return nullptr;
 }
 
 RouterOutput *PacketRouter::getRouterOutput(int index) const {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (index < 0 || (size_t)index > mOutputs.size()) {
 		return nullptr;
 	}
@@ -519,7 +563,7 @@ RouterOutput *PacketRouter::getRouterOutput(int index) const {
 		const auto &output = mOutputs.at(index);
 		return output != nullptr ? output.get() : nullptr;
 	} catch (const std::out_of_range &) {
-		ms_error("PacketRouter: Trying to get router output on un-existing pin");
+		ms_error("Trying to get router output on un-existing pin");
 	}
 
 	return nullptr;
@@ -555,8 +599,10 @@ uint64_t PacketRouter::getTime() const {
 }
 
 void PacketRouter::configureOutput(const MSPacketRouterPinData *pinData) {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (mRoutingMode == RoutingMode::Unknown) {
-		ms_error("PacketRouter: Trying to configure an output while mode has not yet been set");
+		ms_error("Trying to configure an output while mode has not yet been set");
 		return;
 	}
 
@@ -591,6 +637,8 @@ void PacketRouter::configureOutput(const MSPacketRouterPinData *pinData) {
 }
 
 void PacketRouter::unconfigureOutput(int pin) {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (static_cast<size_t>(pin) > mOutputs.size()) return;
 
 	lock();
@@ -606,16 +654,18 @@ void PacketRouter::unconfigureOutput(int pin) {
 		// Remove the source if not in use anymore
 		if (currentSource != -1) removeUnusedInput(currentSource);
 	} catch (const std::out_of_range &) {
-		ms_error("PacketRouter: Trying to unconfigure output on un-existing pin");
+		ms_error("Trying to unconfigure output on un-existing pin");
 	}
 
 	unlock();
 
-	ms_message("PacketRouter: Unconfigure output pin %i", pin);
+	ms_message("Unconfigure output pin %i", pin);
 }
 
 void PacketRouter::setAsLocalMember(const MSPacketRouterPinControl *pinControl) {
-	ms_message("PacketRouter: Pin #%i local member attribute: %i", pinControl->pin, pinControl->enabled);
+	PackerRouterLogContextualizer prlc(this);
+
+	ms_message("Pin #%i local member attribute: %i", pinControl->pin, pinControl->enabled);
 
 	// If the input does not exist create it first, so we can configure it
 	createInputIfNotExists(pinControl->pin);
@@ -629,24 +679,24 @@ const std::vector<rtp_audio_level_t> &PacketRouter::getVolumesToSend() const {
 
 #ifdef VIDEO_ENABLED
 void PacketRouter::setFocus(int pin) {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (mRoutingMode != RoutingMode::Video) {
-		ms_error("PacketRouter: Trying to set focus while not in video mode");
+		ms_error("Trying to set focus while not in video mode");
 		return;
 	}
 
-	int requestedPin = pin;
-
-	ms_message("PacketRouter: Set focus %d", pin);
+	ms_message("Set focus %d", pin);
 
 	for (size_t i = 0; i < mOutputs.size(); ++i) {
 		auto output = dynamic_cast<RouterVideoOutput *>(mOutputs[i].get());
 		if (output != nullptr && output->mActiveSpeakerEnabled) {
 			// Never send back self contribution.
-			if (requestedPin != output->mSelfSource) {
+			if (pin != output->mSelfSource) {
 				output->mNextSource = pin;
 			}
-			ms_message("PacketRouter: This pin %zu self_source[%d], current_source %d and next_source %d", i,
-			           output->mSelfSource, output->mCurrentSource, output->mNextSource);
+			ms_message("This pin %zu self_source[%d], current_source %d and next_source %d", i, output->mSelfSource,
+			           output->mCurrentSource, output->mNextSource);
 		}
 	}
 
@@ -659,7 +709,8 @@ int PacketRouter::getFocusPin() const {
 
 void PacketRouter::notifyPli(int pin) {
 	if (mRoutingMode != RoutingMode::Video) {
-		ms_error("PacketRouter: Trying to notify PLI while not in video mode");
+		PackerRouterLogContextualizer prlc(this);
+		ms_error("Trying to notify PLI while not in video mode");
 		return;
 	}
 
@@ -668,7 +719,8 @@ void PacketRouter::notifyPli(int pin) {
 
 void PacketRouter::notifyFir(int pin) {
 	if (mRoutingMode != RoutingMode::Video) {
-		ms_error("PacketRouter: Trying to notify FIR while not in video mode");
+		PackerRouterLogContextualizer prlc(this);
+		ms_error("Trying to notify FIR while not in video mode");
 		return;
 	}
 
@@ -680,13 +732,15 @@ void PacketRouter::notifyOutputSwitched(MSPacketRouterSwitchedEventData event) {
 }
 
 void PacketRouter::setInputFmt(const MSFmtDescriptor *format) {
+	PackerRouterLogContextualizer prlc(this);
+
 	if (mRoutingMode != RoutingMode::Video) {
-		ms_error("PacketRouter: Trying to set input format while not in video mode");
+		ms_error("Trying to set input format while not in video mode");
 		return;
 	}
 
 	if (!mInputs.empty()) {
-		ms_error("PacketRouter: Input format has to be set before configuring any inputs");
+		ms_error("Input format has to be set before configuring any inputs");
 		return;
 	}
 
@@ -720,6 +774,8 @@ void PacketRouter::createInputIfNotExists(int index) {
 }
 
 void PacketRouter::removeUnusedInput(int index) {
+	PackerRouterLogContextualizer prlc(this);
+
 	try {
 		if (mRoutingMode == RoutingMode::Audio) {
 			// In audio mode, each output is tied to one input. We can remove the source.
@@ -737,7 +793,7 @@ void PacketRouter::removeUnusedInput(int index) {
 			if (!stillInUse) mInputs.at(index) = nullptr;
 		}
 	} catch (const std::out_of_range &) {
-		ms_error("PacketRouter: Trying to remove input on un-existing pin");
+		ms_error("Trying to remove input on un-existing pin");
 	}
 }
 
@@ -900,7 +956,8 @@ int PacketRouterFilterWrapper::onSetFocus(MSFilter *f, void *arg) {
 
 		auto router = static_cast<PacketRouter *>(f->data);
 		if (pin != router->getFocusPin()) {
-			ms_message("PacketRouter: Focus requested on pin %i", pin);
+			PackerRouterLogContextualizer prlc(router);
+			ms_message("Focus requested on pin %i", pin);
 			ms_filter_lock(f);
 			router->setFocus(pin);
 			ms_filter_unlock(f);
@@ -915,21 +972,23 @@ int PacketRouterFilterWrapper::onSetFocus(MSFilter *f, void *arg) {
 int PacketRouterFilterWrapper::onNotifyPli(MSFilter *f, void *arg) {
 	try {
 		auto router = static_cast<PacketRouter *>(f->data);
+		PackerRouterLogContextualizer prlc(router);
+
 		if (router->getRoutingMode() != PacketRouter::RoutingMode::Video) {
-			ms_error("PacketRouter: Trying to call MS_PACKET_ROUTER_NOTIFY_PLI while not in video mode");
+			ms_error("Trying to call MS_PACKET_ROUTER_NOTIFY_PLI while not in video mode");
 			return -1;
 		}
 
 		int pin = *static_cast<int *>(arg);
 		if (pin < 0 || pin >= ROUTER_MAX_OUTPUT_CHANNELS) {
-			ms_error("PacketRouter: Invalid argument to MS_PACKET_ROUTER_NOTIFY_PLI");
+			ms_error("Invalid argument to MS_PACKET_ROUTER_NOTIFY_PLI");
 			return -1;
 		}
 
 		// Propagate the PLI to the current input source.
 		auto output = dynamic_cast<RouterVideoOutput *>(router->getRouterOutput(pin));
 		if (output == nullptr) {
-			ms_error("PacketRouter: Cannot notify PLI, output on pin %d does not exist", pin);
+			ms_error("Cannot notify PLI, output on pin %d does not exist", pin);
 			return -1;
 		}
 
@@ -944,21 +1003,23 @@ int PacketRouterFilterWrapper::onNotifyPli(MSFilter *f, void *arg) {
 int PacketRouterFilterWrapper::onNotifyFir(MSFilter *f, void *arg) {
 	try {
 		auto router = static_cast<PacketRouter *>(f->data);
+		PackerRouterLogContextualizer prlc(router);
+
 		if (router->getRoutingMode() != PacketRouter::RoutingMode::Video) {
-			ms_error("PacketRouter: Trying to call MS_PACKET_ROUTER_NOTIFY_FIR while not in video mode");
+			ms_error("Trying to call MS_PACKET_ROUTER_NOTIFY_FIR while not in video mode");
 			return -1;
 		}
 
 		int pin = *static_cast<int *>(arg);
 		if (pin < 0 || pin >= ROUTER_MAX_OUTPUT_CHANNELS) {
-			ms_error("PacketRouter: Invalid argument to MS_PACKET_ROUTER_NOTIFY_FIR");
+			ms_error("Invalid argument to MS_PACKET_ROUTER_NOTIFY_FIR");
 			return -1;
 		}
 
 		// Propagate the FIR to the current input source.
 		auto output = dynamic_cast<RouterVideoOutput *>(router->getRouterOutput(pin));
 		if (output == nullptr) {
-			ms_error("PacketRouter: Cannot notify FIR, output on pin %d does not exist", pin);
+			ms_error("Cannot notify FIR, output on pin %d does not exist", pin);
 			return -1;
 		}
 

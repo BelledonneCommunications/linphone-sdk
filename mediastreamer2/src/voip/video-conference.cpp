@@ -337,17 +337,11 @@ void VideoConferenceAllToAll::addMember(VideoEndpoint *ep) {
 }
 
 void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
-	bool needNewFocus = false;
-
 	if (bctbx_list_find(mMembers, ep) != NULL) {
 		ms_message("[VideoConferenceAllToAll]: conference %p remove member %s with input pin %d output pin %d", this,
 		           ep->mName.c_str(), ep->mPin, ep->mOutPin);
 		mMembers = bctbx_list_remove(mMembers, ep);
-		if (ep->mPin == mLastFocusPin) {
-			ms_message(
-			    "[VideoConferenceAllToAll]: removing the currently focused member, a new focus will be selected.");
-			needNewFocus = true;
-		}
+
 		mInputs[ep->mPin] = -1;
 		if (ep->mOutPin > -1) mOutputs[ep->mOutPin] = -1;
 		bctbx_list_for_each2(mEndpoints, (void (*)(void *, void *))unconfigureEndpoint, (void *)&ep->mPin);
@@ -368,9 +362,6 @@ void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
 	ep->mConference = NULL;
 	if (mMembers || mEndpoints) {
 		ms_ticker_attach(mTicker, mMixer);
-	}
-	if (needNewFocus) {
-		chooseNewFocus();
 	}
 }
 
