@@ -1201,7 +1201,7 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 
 	/* No packet loss is assumed */
 	/* sums packets received by margaux on the main session and the one added on discovery */
-	size_t margaux_received_packets = margaux_stats.rtp.packet_recv; // main session
+	uint64_t margaux_received_packets = margaux_stats.rtp.packet_recv; // main session
 	bctbx_list_t *it = margaux->ms.sessions.auxiliary_sessions;
 	for (; it != NULL; it = it->next) {
 		RtpSession *s = (RtpSession *)it->data;
