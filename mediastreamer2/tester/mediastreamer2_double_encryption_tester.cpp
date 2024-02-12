@@ -94,10 +94,20 @@ static int tester_after_all(void) {
 #define LONG_MID_MARIELLE_SOURCE_SESSION "Marielle"
 #define LONG_MID_MARIELLE_SOURCE_SESSION_BIS "MarielleBis"
 
-static void new_ssrc_incoming_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
-	mblk_t *m = (mblk_t *)mp;
-	uint32_t ssrc = rtp_get_ssrc(m);
-	RtpBundle *bundle = session->bundle;
+static void push_rtp_session_into_list(bctbx_list_t *l, RtpSession *s) {
+	bctbx_list_t *elem;
+	for (elem = l; elem != nullptr; elem = elem->next) {
+		RtpSession **pps = (RtpSession **)elem->data;
+		if (*pps == nullptr) {
+			*pps = s;
+			return;
+		}
+	}
+	BC_FAIL("push_rtp_session_into_list(): Unexpected RtpSession");
+}
+
+static void
+new_ssrc_incoming_in_bundle(BCTBX_UNUSED(RtpSession *session), BCTBX_UNUSED(void *mp), void *s, void *userData) {
 	RtpSession **newSession = (RtpSession **)s;
 	bctbx_list_t *margaux_sessions_list = (bctbx_list_t *)userData;
 	*newSession = rtp_session_new(RTP_SESSION_RECVONLY);
@@ -107,22 +117,12 @@ static void new_ssrc_incoming_in_bundle(RtpSession *session, void *mp, void *s, 
 	                                         // when they arrive, we're assuming no loss
 	rtp_session_enable_rtcp(*newSession, FALSE);
 	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
-	(*newSession)->ssrc_set = TRUE;
-	(*newSession)->rcv.ssrc = ssrc;
-	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
 
-	// the session list holds 2 session, use them one after the other to create sessions
-	if (*((RtpSession **)bctbx_list_get_data(margaux_sessions_list)) == NULL) {
-		*((RtpSession **)bctbx_list_get_data(margaux_sessions_list)) = *newSession;
-	} else {
-		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(margaux_sessions_list))) = *newSession;
-	}
+	push_rtp_session_into_list(margaux_sessions_list, *newSession);
 }
 
-static void new_ssrc_outgoing_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
-	mblk_t *m = (mblk_t *)mp;
-	uint32_t ssrc = rtp_get_ssrc(m);
-	RtpBundle *bundle = session->bundle;
+static void
+new_ssrc_outgoing_in_bundle(BCTBX_UNUSED(RtpSession *session), BCTBX_UNUSED(void *mp), void *s, void *userData) {
 	RtpSession **newSession = (RtpSession **)s;
 	bctbx_list_t *relay_sessions_list = (bctbx_list_t *)userData;
 	*newSession = rtp_session_new(RTP_SESSION_SENDONLY);
@@ -130,16 +130,9 @@ static void new_ssrc_outgoing_in_bundle(RtpSession *session, void *mp, void *s, 
 	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(*newSession, FALSE);
 	rtp_session_set_payload_type(*newSession, RELAY_PAYLOAD_TYPE);
-	(*newSession)->snd.ssrc = ssrc;
-	(*newSession)->ssrc_out_set = TRUE;
-	rtp_bundle_add_session(bundle, LONG_MID_MARIELLE_SESSION, *newSession);
 
 	// the session list holds 2 sessions, use them one after the other to create sessions
-	if (*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) == NULL) {
-		*((RtpSession **)bctbx_list_get_data(relay_sessions_list)) = *newSession;
-	} else if (*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) == NULL) {
-		*((RtpSession **)bctbx_list_get_data(bctbx_list_next(relay_sessions_list))) = *newSession;
-	}
+	push_rtp_session_into_list(relay_sessions_list, *newSession);
 }
 
 namespace {
@@ -167,8 +160,8 @@ struct test_params {
 	test_params()
 	    : outerSuite{MS_AES_128_SHA1_80}, useInnerEncryption{true}, innerSuite{MS_AEAD_AES_256_GCM},
 	      useParticipantVolume{false}, useLongBundleId{false}, useBundledSource{false}, useEkt{false},
-	      skipPaulineBegin{false}, discardPaulinePackets{false}, useSharedMid{false},
-	      autodiscoverBundleSessions{false} {
+	      skipPaulineBegin{false}, discardPaulinePackets{false}, useSharedMid{false}, autodiscoverBundleSessions{
+	                                                                                      false} {
 	}
 };
 } // namespace
@@ -416,10 +409,10 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_enable_transfer_mode(rtpSession_relay_margaux_marielle, TRUE); // relay rtp session is in transfer mode
 	rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle, FALSE);
 	rtp_session_set_payload_type(rtpSession_relay_margaux_marielle, RELAY_PAYLOAD_TYPE);
+	RtpSession *rtpSession_relay_margaux_marielle_2 = NULL;
 	RtpSession *rtpSession_relay_margaux_marielle_bis = NULL;
 	RtpSession *rtpSession_relay_margaux_pauline = NULL;
 	if (p.autodiscoverBundleSessions == false) {
-		rtpSession_relay_margaux_marielle->ssrc_out_set = TRUE;
 		// relay_margaux: secondary session in the bundle, minimal settings
 		rtpSession_relay_margaux_pauline = rtp_session_new(RTP_SESSION_SENDONLY);
 		rtp_session_set_profile(rtpSession_relay_margaux_pauline, profile);
@@ -427,7 +420,6 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		                                 TRUE); // relay rtp session is in transfer mode
 		rtp_session_enable_rtcp(rtpSession_relay_margaux_pauline, FALSE);
 		rtp_session_set_payload_type(rtpSession_relay_margaux_pauline, RELAY_PAYLOAD_TYPE);
-		rtpSession_relay_margaux_pauline->ssrc_out_set = TRUE;
 
 		if (p.useBundledSource) { // Marielle source bundles two sessions so margaux receives 3
 			rtpSession_relay_margaux_marielle_bis = rtp_session_new(RTP_SESSION_SENDONLY);
@@ -436,11 +428,11 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 			                                 TRUE); // relay rtp session is in transfer mode
 			rtp_session_enable_rtcp(rtpSession_relay_margaux_marielle_bis, FALSE);
 			rtp_session_set_payload_type(rtpSession_relay_margaux_marielle_bis, RELAY_PAYLOAD_TYPE);
-			rtpSession_relay_margaux_marielle_bis->ssrc_out_set = TRUE;
 		}
 	} else {
 		// set the additional relay sessions pointers in a list, so we can get them in the callback in charge of their
 		// creation
+		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_marielle_2);
 		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_marielle_bis);
 		relay_sessions_list = bctbx_list_append(relay_sessions_list, &rtpSession_relay_margaux_pauline);
 
@@ -1036,6 +1028,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 		rtp_bundle_delete(rtpBundle_relay_marielle);
 		rtp_session_destroy(rtpSession_marielle_bis);
 		rtp_session_destroy(rtpSession_relay_marielle_bis);
+		if (rtpSession_relay_margaux_marielle_2) rtp_session_destroy(rtpSession_relay_margaux_marielle_2);
 		rtp_session_destroy(rtpSession_relay_margaux_marielle_bis);
 		rtp_session_destroy(rtpSession_margaux_marielle_bis);
 	}

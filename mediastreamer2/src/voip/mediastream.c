@@ -551,20 +551,31 @@ int media_stream_get_target_network_bitrate(const MediaStream *stream) {
 	return stream->target_bitrate;
 }
 
+typedef float (*RtpSessionBandwidthFunc)(RtpSession *);
+static float media_stream_sum_bandwidth(const MediaStream *stream, RtpSessionBandwidthFunc func) {
+	float ret = func(stream->sessions.rtp_session);
+	bctbx_list_t *elem;
+	for (elem = stream->sessions.auxiliary_sessions; elem != NULL; elem = elem->next) {
+		RtpSession *aux_session = (RtpSession *)elem->data;
+		ret += func(aux_session);
+	}
+	return ret;
+}
+
 float media_stream_get_up_bw(const MediaStream *stream) {
-	return rtp_session_get_rtp_send_bandwidth(stream->sessions.rtp_session);
+	return media_stream_sum_bandwidth(stream, rtp_session_get_rtp_send_bandwidth);
 }
 
 float media_stream_get_down_bw(const MediaStream *stream) {
-	return rtp_session_get_rtp_recv_bandwidth(stream->sessions.rtp_session);
+	return media_stream_sum_bandwidth(stream, rtp_session_get_rtp_recv_bandwidth);
 }
 
 float media_stream_get_rtcp_up_bw(const MediaStream *stream) {
-	return rtp_session_get_rtcp_send_bandwidth(stream->sessions.rtp_session);
+	return media_stream_sum_bandwidth(stream, rtp_session_get_rtcp_send_bandwidth);
 }
 
 float media_stream_get_rtcp_down_bw(const MediaStream *stream) {
-	return rtp_session_get_rtcp_recv_bandwidth(stream->sessions.rtp_session);
+	return media_stream_sum_bandwidth(stream, rtp_session_get_rtcp_recv_bandwidth);
 }
 
 void media_stream_reclaim_sessions(MediaStream *stream, MSMediaStreamSessions *sessions) {

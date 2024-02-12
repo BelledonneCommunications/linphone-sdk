@@ -266,16 +266,12 @@ static void on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 	*newSession = audio_stream_rtp_session_new_from_session(session, RTP_SESSION_SENDONLY);
 	ms_message("New outgoing SSRC %u on session %p detected, create a new session %p", ssrc, session, *newSession);
 	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
-	/* this new session is associated to the outgoing SSRC */
-	(*newSession)->snd.ssrc = ssrc;
-	(*newSession)->ssrc_out_set = TRUE;
-	/* add it to the bundle */
-	rtp_bundle_add_session(bundle, sMid, *newSession);
 	bctbx_free(sMid);
 
 	/* keep track of newly created session */
 	stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
 	/* TODO: shall we attach a ticker? */
+	/* this new session is associated to the outgoing SSRC */
 }
 
 /** look for a free input pin in the local audio mixer
@@ -358,8 +354,6 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		ms_message("New incoming SSRC %u on session [%p] detected, create a new session [%p] attach it to local mixer "
 		           "input pin %d ",
 		           ssrc, session, *newSession, free_mixer_input_pin);
-		/* add it to the bundle and save it to the mediasessions */
-		rtp_bundle_add_session(session->bundle, sMid, *newSession);
 		stream->ms.sessions.auxiliary_sessions = bctbx_list_append(stream->ms.sessions.auxiliary_sessions, *newSession);
 		/* Create a new branch recv->decoder->mixer and connect it to the ms2 graph, store it so we can unplug it
 		 * cleanly */
@@ -367,9 +361,7 @@ static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, v
 		    bctbx_list_append(stream->bundled_recv_branches,
 		                      audio_stream_bundle_recv_branch_new(*newSession, free_mixer_input_pin, stream));
 	}
-	/* the new session is associated to the incoming SSRC */
-	(*newSession)->ssrc_set = TRUE;
-	(*newSession)->rcv.ssrc = ssrc;
+
 	bctbx_free(sMid);
 }
 
