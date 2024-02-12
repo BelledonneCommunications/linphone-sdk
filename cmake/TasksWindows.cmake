@@ -1,8 +1,8 @@
-############################################################################
+# ###########################################################################
 # TasksWindows.cmake
 # Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
 #
-############################################################################
+# ###########################################################################
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -18,16 +18,13 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
-############################################################################
-
+# ###########################################################################
 
 set(LINPHONESDK_WINDOWS_ARCHS "32bits, 64bits" CACHE STRING "Windows architectures to build: comma-separated list of values in [32bits, 64bits]")
 set(LINPHONESDK_WINDOWS_BASE_URL "https://www.linphone.org/releases/windows/sdk" CACHE STRING "URL of the repository where the Windows SDK zip files are located")
 set(LINPHONESDK_WINDOWS_PRESET_PREFIX "windows-" CACHE STRING "Prefix of the presets to use to build each architectures")
 
-
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_WINDOWS_ARCHS}" _WINDOWS_ARCHS)
-
 
 function(get_arch_builddir_name ARCH OUTPUT_VAR)
 	if(ENABLE_MICROSOFT_STORE_APP)
@@ -45,11 +42,9 @@ function(get_arch_builddir_name ARCH OUTPUT_VAR)
 	endif()
 endfunction()
 
-
-############################################################################
+# ###########################################################################
 # Build each selected architecture
-############################################################################
-
+# ###########################################################################
 linphone_sdk_get_inherited_cmake_args(_CMAKE_CONFIGURE_ARGS _CMAKE_BUILD_ARGS)
 linphone_sdk_get_enable_cmake_args(_WINDOWS_CMAKE_ARGS)
 
@@ -57,6 +52,7 @@ linphone_sdk_get_enable_cmake_args(_WINDOWS_CMAKE_ARGS)
 list(APPEND _WINDOWS_CMAKE_ARGS "-DENABLE_WINDOWS_TOOLS_CHECK=OFF")
 
 set(_WINDOWS_TARGETS)
+
 foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
 		set(_TARGET "win-store-${_WINDOWS_ARCH}")
@@ -67,25 +63,24 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 		set(_PRESET "${LINPHONESDK_WINDOWS_PRESET_PREFIX}${_WINDOWS_ARCH}")
 		set(_NAME "Windows")
 	endif()
+
 	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)
 	set(_WINDOWS_ARCH_BINARY_DIR "${PROJECT_BINARY_DIR}/${_WINDOWS_ARCH_BUILDDIR_NAME}")
 	set(_WINDOWS_ARCH_INSTALL_DIR "${PROJECT_BINARY_DIR}/linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}")
 	add_custom_target(${_TARGET} ALL
-	  COMMAND ${CMAKE_COMMAND} --preset=${_PRESET} -B ${_WINDOWS_ARCH_BINARY_DIR} ${_CMAKE_CONFIGURE_ARGS} ${_WINDOWS_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${_WINDOWS_ARCH_INSTALL_DIR}
-	  COMMAND ${CMAKE_COMMAND} --build ${_WINDOWS_ARCH_BINARY_DIR} --target install ${_CMAKE_BUILD_ARGS}
-	  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-	  COMMENT "Building Linphone SDK for ${_NAME} ${_WINDOWS_ARCH}"
-	  USES_TERMINAL
-	  COMMAND_EXPAND_LISTS
+		COMMAND ${CMAKE_COMMAND} --preset=${_PRESET} -B ${_WINDOWS_ARCH_BINARY_DIR} ${_CMAKE_CONFIGURE_ARGS} ${_WINDOWS_CMAKE_ARGS} -DCMAKE_INSTALL_PREFIX=${_WINDOWS_ARCH_INSTALL_DIR}
+		COMMAND ${CMAKE_COMMAND} --build ${_WINDOWS_ARCH_BINARY_DIR} --target install ${_CMAKE_BUILD_ARGS}
+		WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+		COMMENT "Building Linphone SDK for ${_NAME} ${_WINDOWS_ARCH}"
+		USES_TERMINAL
+		COMMAND_EXPAND_LISTS
 	)
-  list(APPEND _WINDOWS_TARGETS ${_TARGET})
+	list(APPEND _WINDOWS_TARGETS ${_TARGET})
 endforeach()
 
-
-############################################################################
+# ###########################################################################
 # Generate the SDK for each selected architecture
-############################################################################
-
+# ###########################################################################
 foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 	if(ENABLE_MICROSOFT_STORE_APP)
 		set(_DEPENDS_TARGET win-store-${_WINDOWS_ARCH})
@@ -94,21 +89,22 @@ foreach(_WINDOWS_ARCH IN LISTS _WINDOWS_ARCHS)
 		set(_DEPENDS_TARGET win-${_WINDOWS_ARCH})
 		set(_NAME "Windows Store")
 	endif()
+
 	get_arch_builddir_name("${_WINDOWS_ARCH}" _WINDOWS_ARCH_BUILDDIR_NAME)
-	
+
 	add_custom_target(sdk-${_WINDOWS_ARCH} ALL
 		COMMAND "${CMAKE_COMMAND}"
-	    "-DLINPHONESDK_PLATFORM=${LINPHONESDK_PLATFORM}"
-	    "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}"
-	    "-DLINPHONESDK_BUILD_DIR=${PROJECT_BINARY_DIR}"
-	    "-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
-	    "-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}"
-			"-DLINPHONESDK_FOLDER=linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}"
-	    "-DENABLE_EMBEDDED_OPENH264=${ENABLE_EMBEDDED_OPENH264}"
-	    "-P" "${PROJECT_SOURCE_DIR}/cmake/Windows/GenerateSDK.cmake"
-	  DEPENDS ${_DEPENDS_TARGET}
-	  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+		"-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}"
+		"-DLINPHONESDK_BUILD_DIR=${PROJECT_BINARY_DIR}"
+		"-DLINPHONESDK_VERSION=${LINPHONESDK_VERSION}"
+		"-DLINPHONESDK_WINDOWS_BASE_URL=${LINPHONESDK_WINDOWS_BASE_URL}"
+		"-DLINPHONESDK_FOLDER=linphone-sdk/${_WINDOWS_ARCH_BUILDDIR_NAME}"
+		"-DLINPHONESDK_WINDOWS_ARCH=${_WINDOWS_ARCH_BUILDDIR_NAME}"
+		"-DENABLE_EMBEDDED_OPENH264=${ENABLE_EMBEDDED_OPENH264}"
+		"-P" "${PROJECT_SOURCE_DIR}/cmake/Windows/GenerateSDK.cmake"
+		DEPENDS ${_DEPENDS_TARGET}
+		WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
 		COMMENT "Generating the SDK (zip file) for ${_NAME} ${_WINDOWS_ARCH}"
-	  USES_TERMINAL
+		USES_TERMINAL
 	)
 endforeach()
