@@ -1145,7 +1145,7 @@ static void apply_bitrate_limit(VideoStream *stream, PayloadType *pt) {
 		ms_message("target and payload bitrates not set for stream [%p] using lowest configuration of preferred video "
 		           "size %dx%d",
 		           stream, stream->sent_vsize.width, stream->sent_vsize.height);
-	} else if (pt->normal_bitrate > 0) {
+	} else if (stream->ms.max_target_bitrate <= 0) {
 		ms_message("Max target bitrate not set for stream [%p], but using payload type's bitrate [%i]", stream,
 		           stream->ms.max_target_bitrate);
 		target_upload_bandwidth = stream->ms.max_target_bitrate = pt->normal_bitrate;
