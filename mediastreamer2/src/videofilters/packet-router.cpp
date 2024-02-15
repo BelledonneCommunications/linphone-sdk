@@ -588,8 +588,8 @@ int PacketRouter::getRouterOutputsSize() const {
 }
 
 int PacketRouter::getRouterActiveInputs() const {
-	return std::count_if(mInputs.begin(), mInputs.end(),
-	                     [](const unique_ptr<RouterInput> &input) { return input != nullptr; });
+	return static_cast<int>(std::count_if(mInputs.begin(), mInputs.end(),
+	                                      [](const unique_ptr<RouterInput> &input) { return input != nullptr; }));
 }
 
 MSQueue *PacketRouter::getInputQueue(int pin) const {
