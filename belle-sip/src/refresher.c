@@ -628,6 +628,10 @@ static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher
 	contact = belle_sip_message_get_header_by_type(request, belle_sip_header_contact_t);
 	if (contact && belle_sip_header_contact_get_expires(contact) >= 0)
 		belle_sip_header_contact_set_expires(contact, refresher->target_expires);
+	if (!expires_header && !(contact && belle_sip_header_contact_get_expires(contact) >= 0)) {
+		expires_header = belle_sip_header_expires_create(refresher->target_expires);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_HEADER(expires_header));
+	}
 
 	/*update the Date header if it exists*/
 	{
@@ -795,8 +799,8 @@ static int set_expires_from_trans(belle_sip_refresher_t *refresher) {
 		belle_sip_error("Refresher does not support INVITE yet");
 		return -1;
 	} else {
-		belle_sip_error("Refresher does not support [%s] yet", belle_sip_request_get_method(request));
-		return -1;
+		belle_sip_message("Refresher of a publish without expires");
+		return 0;
 	}
 	return 0;
 }
