@@ -43,7 +43,7 @@
   variables:
     CMAKE_OPTIONS: -DENABLE_LDAP=ON -DENABLE_PYTHON_WRAPPER=ON -DENABLE_DOC=ON
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_PYTHON != null && $SKIP_LINUX == null
     - !reference [.rules-merge-request-manual, rules]
   script:
     - echo $CI_PIPELINE_SOURCE
