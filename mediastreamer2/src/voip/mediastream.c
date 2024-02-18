@@ -41,6 +41,8 @@
 #define MS_MINIMAL_MTU 1500
 #endif
 
+static const char *media_stream_id = "media-stream-id";
+
 #if defined(_WIN32_WCE)
 time_t ms_time(time_t *t) {
 	DWORD timemillis = GetTickCount();
@@ -124,6 +126,11 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	stream->stun_allowed = TRUE;
 }
 
+void media_stream_set_log_tag(MediaStream *stream, const char *log_tag) {
+	if (stream->log_tag) bctbx_free(stream->log_tag);
+	stream->log_tag = bctbx_strdup(log_tag);
+}
+
 void media_stream_add_tmmbr_handler(MediaStream *stream,
                                     void (*on_tmmbr_received)(const OrtpEventData *evd, void *),
                                     void *user_data) {
@@ -192,11 +199,13 @@ void media_stream_start_ticker(MediaStream *stream) {
 	char name[32] = {0};
 
 	if (stream->sessions.ticker) return;
+	if (stream->log_tag) bctbx_push_log_tag(media_stream_id, stream->log_tag);
 	snprintf(name, sizeof(name) - 1, "%s MSTicker", media_stream_type_str(stream));
 	name[0] = toupper(name[0]);
 	params.name = name;
 	params.prio = __ms_get_default_prio((stream->type == MSVideo) ? TRUE : FALSE);
 	stream->sessions.ticker = ms_ticker_new_with_params(&params);
+	if (stream->log_tag) bctbx_pop_log_tag(media_stream_id);
 }
 
 const char *media_stream_type_str(MediaStream *stream) {
@@ -265,6 +274,7 @@ void media_stream_free(MediaStream *stream) {
 #ifdef VIDEO_ENABLED
 	if (stream->video_quality_controller) ms_video_quality_controller_destroy(stream->video_quality_controller);
 #endif
+	if (stream->log_tag) bctbx_free(stream->log_tag);
 }
 
 MSFactory *media_stream_get_factory(MediaStream *stream) {
@@ -409,10 +419,9 @@ bool_t ms_is_multicast(const char *address) {
 	return ret;
 }
 
-static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t curtime) {
+static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m) {
 	RtcpParserContext rtcp_parser;
 	const mblk_t *rtcp_packet;
-	stream->last_packet_time = curtime;
 
 	ms_message("%s stream [%p]: receiving RTCP %s%s", media_stream_type_str(stream), stream,
 	           (rtcp_is_SR(m) ? "SR" : ""), (rtcp_is_RR(m) ? "RR" : ""));
@@ -426,7 +435,22 @@ static void media_stream_process_rtcp(MediaStream *stream, mblk_t *m, time_t cur
 }
 
 void media_stream_set_direction(MediaStream *stream, MediaStreamDir dir) {
+	RtpSessionMode mode = RTP_SESSION_SENDRECV;
 	stream->direction = dir;
+	if (stream->sessions.rtp_session) {
+		switch (dir) {
+			case MediaStreamSendOnly:
+				mode = RTP_SESSION_SENDONLY;
+				break;
+			case MediaStreamRecvOnly:
+				mode = RTP_SESSION_RECVONLY;
+				break;
+			case MediaStreamSendRecv:
+				mode = RTP_SESSION_SENDRECV;
+				break;
+		}
+		rtp_session_set_mode(stream->sessions.rtp_session, mode);
+	}
 	if (dir == MediaStreamSendOnly && stream->bandwidth_controller) {
 		ms_bandwidth_controller_elect_controlled_streams(stream->bandwidth_controller);
 	}
@@ -438,6 +462,8 @@ MediaStreamDir media_stream_get_direction(const MediaStream *stream) {
 
 void media_stream_iterate(MediaStream *stream) {
 	time_t curtime = ms_time(NULL);
+
+	if (stream->log_tag) bctbx_push_log_tag(media_stream_id, stream->log_tag);
 
 	if (stream->ice_check_list) ice_check_list_process(stream->ice_check_list, stream->sessions.rtp_session);
 	/*we choose to update the quality indicator as much as possible, since local statistics can be computed realtime. */
@@ -467,7 +493,7 @@ void media_stream_iterate(MediaStream *stream) {
 			OrtpEventType evt = ortp_event_get_type(ev);
 			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
 				mblk_t *m = ortp_event_get_data(ev)->packet;
-				media_stream_process_rtcp(stream, m, curtime);
+				media_stream_process_rtcp(stream, m);
 			} else if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
 				ms_message("%s_stream_iterate[%p], local statistics available:"
 				           "\n\tLocal current jitter buffer size: %5.1fms",
@@ -482,18 +508,23 @@ void media_stream_iterate(MediaStream *stream) {
 			ortp_event_destroy(ev);
 		}
 	}
+	if (stream->log_tag) bctbx_pop_log_tag(media_stream_id);
 }
 
 bool_t media_stream_alive(MediaStream *ms, int timeout) {
+	const rtp_stats_t *rtpstats;
 	if (ms->state != MSStreamStarted) {
 		return TRUE;
 	}
 
-	/* get stats on main session and auxiliary ones: ms->last packet count stores the sum of the recv */
-	uint64_t recv_total_stats = rtp_session_get_stats(ms->sessions.rtp_session)->recv;
+	/* get stats on main session and auxiliary ones: ms->last packet count stores the sum of the recv RTP and RTCP
+	 * packets*/
+	rtpstats = rtp_session_get_stats(ms->sessions.rtp_session);
+	uint64_t recv_total_stats = rtpstats->recv + rtpstats->recv_rtcp_packets;
 	bctbx_list_t *it = ms->sessions.auxiliary_sessions;
 	while (it) {
-		recv_total_stats += rtp_session_get_stats((RtpSession *)bctbx_list_get_data(it))->recv;
+		rtpstats = rtp_session_get_stats((RtpSession *)bctbx_list_get_data(it));
+		recv_total_stats += rtpstats->recv + rtpstats->recv_rtcp_packets;
 		it = it->next;
 	}
 	if (recv_total_stats != 0) {

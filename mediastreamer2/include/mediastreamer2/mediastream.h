@@ -142,6 +142,7 @@ struct _MediaStream {
 	time_t last_packet_time;
 	MSQosAnalyzerAlgorithm rc_algorithm;
 	PayloadType *current_pt; /*doesn't need to be freed*/
+	char *log_tag;
 	bool_t rc_enable;
 	bool_t is_beginning;
 	bool_t owns_sessions;
@@ -166,6 +167,8 @@ struct _MediaStream {
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
 
 MS2_PUBLIC MSFactory *media_stream_get_factory(MediaStream *stream);
+
+MS2_PUBLIC void media_stream_set_log_tag(MediaStream *stream, const char *log_tag);
 
 /**
  * @addtogroup audio_stream_api

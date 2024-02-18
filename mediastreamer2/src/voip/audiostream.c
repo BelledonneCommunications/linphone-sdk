@@ -223,8 +223,7 @@ static RtpSession *audio_stream_rtp_session_new_from_session(RtpSession *session
 	}
 	/* RTCP */
 	rtp_session_enable_rtcp(s, rtp_session_rtcp_enabled(session));
-	// Should we enable RTCP on bundled sessions? If yes, we must set a session SDES
-	rtp_session_enable_rtcp(s, FALSE);
+	rtp_session_enable_rtcp_mux(s, rtp_session_rtcp_mux_enabled(session));
 
 	return s;
 }
@@ -1767,6 +1766,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 		                           on_incoming_ssrc_in_bundle, stream);
 	}
 	if (stream->transfer_mode == TRUE) {
+		rtp_session_set_mode(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
 		rtp_session_signal_connect(stream->ms.sessions.rtp_session, "new_outgoing_ssrc_found_in_bundle",
 		                           on_outgoing_ssrc_in_bundle, stream);
 	}
@@ -1853,7 +1853,7 @@ int audio_stream_start_from_io(AudioStream *stream,
 
 			if (free_mixer_input_pin == 0) {
 				bctbx_error(
-				    "Audiostream restart with MsMediaSessions holding bundle autodiscovered sessions but No free "
+				    "Audiostream restart with MsMediaSessions holding bundle autodiscovered sessions but no free "
 				    "input found in local audio mixer to plug recv session associated to SSRC %u",
 				    s->rcv.ssrc);
 			} else {

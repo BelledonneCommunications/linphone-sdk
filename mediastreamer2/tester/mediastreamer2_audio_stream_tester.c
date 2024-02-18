@@ -1079,9 +1079,19 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	AudioStream *marielle = audio_stream_new(_factory, MARIELLE_RTP_PORT, MARIELLE_RTCP_PORT, FALSE);
 	AudioStream *pauline = audio_stream_new(_factory, PAULINE_IN_RTP_PORT, PAULINE_IN_RTCP_PORT, FALSE);
 	AudioStream *margaux = audio_stream_new(_factory, MARGAUX_RTP_PORT, MARGAUX_RTCP_PORT, FALSE);
+	media_stream_set_log_tag(&marielle->ms, "marielle");
+	media_stream_set_log_tag(&pauline->ms, "pauline");
+	media_stream_set_log_tag(&margaux->ms, "margaux");
 	media_stream_set_direction(&marielle->ms, MediaStreamSendOnly);
 	media_stream_set_direction(&pauline->ms, MediaStreamSendOnly);
 	media_stream_set_direction(&margaux->ms, MediaStreamRecvOnly);
+	rtp_session_enable_rtcp_mux(marielle->ms.sessions.rtp_session, TRUE);
+	rtp_session_enable_rtcp_mux(pauline->ms.sessions.rtp_session, TRUE);
+	rtp_session_enable_rtcp_mux(margaux->ms.sessions.rtp_session, TRUE);
+	rtp_session_set_symmetric_rtp(marielle->ms.sessions.rtp_session, FALSE);
+	rtp_session_set_symmetric_rtp(pauline->ms.sessions.rtp_session, FALSE);
+	rtp_session_set_symmetric_rtp(margaux->ms.sessions.rtp_session, FALSE);
+
 	media_stream_enable_conference_local_mix(&margaux->ms, TRUE);
 	RtpProfile *profile = rtp_profile_new("default profile");
 	char *hello_file = bc_tester_res(HELLO_8K_FILE);
@@ -1092,6 +1102,10 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	stats_t marielle_stats;
 	stats_t margaux_stats;
 	stats_t pauline_stats;
+	MSMediaStreamSessions marielle_sessions = {0};
+	MSMediaStreamSessions pauline_sessions = {0};
+	MSMediaStreamSessions margaux_sessions = {0};
+
 	bctbx_list_t *audiostreams = bctbx_list_new(marielle);
 	audiostreams = bctbx_list_append(audiostreams, pauline);
 	audiostreams = bctbx_list_append(audiostreams, margaux);
@@ -1106,6 +1120,10 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	rtp_bundle_add_session(rtpBundle_marielle, "as", marielle->ms.sessions.rtp_session);
 	RtpBundle *rtpBundle_pauline = rtp_bundle_new();
 	rtp_bundle_add_session(rtpBundle_pauline, "as", pauline->ms.sessions.rtp_session);
+
+	ortp_message("margaux RtpBundle=%p", rtpBundle_margaux);
+	ortp_message("pauline RtpBundle=%p", rtpBundle_pauline);
+	ortp_message("marielle RtpBundle=%p", rtpBundle_marielle);
 
 	const char *aes_128_bits_marielle_outer_key = "d0RmdmcmVCspeEc3QGZiNWpVLFJhQX1cfHAwJSoj";
 
@@ -1155,15 +1173,17 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	                                                              MSSrtpKeySourceSDES) == 0);
 
 	/* start all streams, margaux first as she is in recv only */
-	BC_ASSERT_EQUAL(
-	    audio_stream_start_full(margaux, profile, NULL, 0, NULL, 0, 0, 50, NULL, recorded_file, NULL, NULL, 0), 0, int,
-	    "%d");
+
+	BC_ASSERT_EQUAL(audio_stream_start_full(margaux, profile, PAULINE_IP, PAULINE_IN_RTP_PORT, PAULINE_IP,
+	                                        PAULINE_IN_RTP_PORT, 0, 50, NULL, recorded_file, NULL, NULL, 0),
+	                0, int, "%d");
 
 	BC_ASSERT_EQUAL(audio_stream_start_full(marielle, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP,
-	                                        MARGAUX_RTCP_PORT, 0, 50, hello_file, NULL, NULL, NULL, 0),
+	                                        MARGAUX_RTP_PORT, 0, 50, hello_file, NULL, NULL, NULL, 0),
 	                0, int, "%d");
+	ms_usleep(500000);
 	BC_ASSERT_EQUAL(audio_stream_start_full(pauline, profile, MARGAUX_IP, MARGAUX_RTP_PORT, MARGAUX_IP,
-	                                        MARGAUX_RTCP_PORT, 0, 50, arpeggio_file, NULL, NULL, NULL, 0),
+	                                        MARGAUX_RTP_PORT, 0, 50, arpeggio_file, NULL, NULL, NULL, 0),
 	                0, int, "%d");
 
 	ms_filter_add_notify_callback(marielle->soundread, notify_cb, &marielle_stats, TRUE);
@@ -1195,28 +1215,67 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	/*make sure packets can cross from sender to receiver*/
 	wait_for_list(audiostreams, &dummy, 1, 1500);
 
+	media_stream_reclaim_sessions(&marielle->ms, &marielle_sessions);
+	media_stream_reclaim_sessions(&pauline->ms, &pauline_sessions);
+	media_stream_reclaim_sessions(&margaux->ms, &margaux_sessions);
+
 	audio_stream_get_local_rtp_stats(marielle, &marielle_stats.rtp);
 	audio_stream_get_local_rtp_stats(pauline, &pauline_stats.rtp);
 	audio_stream_get_local_rtp_stats(margaux, &margaux_stats.rtp);
 
+	ms_message("Stopping marielle");
+	audio_stream_stop(marielle);
+	ms_message("Stopping pauline");
+	audio_stream_stop(pauline);
+	ms_message("Stopping margaux");
+	audio_stream_stop(margaux);
+
 	/* No packet loss is assumed */
 	/* sums packets received by margaux on the main session and the one added on discovery */
 	uint64_t margaux_received_packets = margaux_stats.rtp.packet_recv; // main session
-	bctbx_list_t *it = margaux->ms.sessions.auxiliary_sessions;
-	for (; it != NULL; it = it->next) {
+	uint64_t margaux_received_rtcp_packets = margaux_stats.rtp.recv_rtcp_packets;
+	ms_message("Margaux primary session received RTCP packets: %i", (int)margaux_received_rtcp_packets);
+	bctbx_list_t *it;
+	for (it = margaux_sessions.auxiliary_sessions; it != NULL; it = it->next) {
 		RtpSession *s = (RtpSession *)it->data;
 		margaux_received_packets += rtp_session_get_stats(s)->packet_recv;
 	}
 	BC_ASSERT_EQUAL(marielle_stats.rtp.packet_sent + pauline_stats.rtp.packet_sent, margaux_received_packets,
 	                unsigned long long, "%llu");
 
+	/*check RTCP too: margaux shall have received RTCP packets */
+	for (it = margaux_sessions.auxiliary_sessions; it != NULL; it = it->next) {
+		RtpSession *s = (RtpSession *)it->data;
+		ms_message("Margaux auxillary session received RTCP packets: %i",
+		           (int)rtp_session_get_stats(s)->recv_rtcp_packets);
+		margaux_received_rtcp_packets += rtp_session_get_stats(s)->recv_rtcp_packets;
+	}
+	BC_ASSERT_GREATER_STRICT(margaux_received_rtcp_packets, 0, int, "%i");
+	BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.sent_rtcp_packets, 0, int, "%i");
+	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.sent_rtcp_packets, 0, int, "%i");
+	/* Both marielle and pauline are sending to margaux, however RTCP message can't be sent them back to both of them.
+	 * This is the limitation of this test, such limitation being unexistant when packets are centralized
+	 * through a SFU engine.
+	 * As a result, Pauline receives RTCP packets from Margaux for the RTP stream it receives from by Marielle, which
+	 * generates errors like "Rctp msg (201) ssrc=3404549401 does not correspond to any sessions" . Marielle does not
+	 * receive any RTCP packets.
+	 */
+	// BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.recv_rtcp_packets, 0, int, "%i");
+	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.recv_rtcp_packets, 0, int, "%i");
+	/* The RtpBundle cuts RTCP compound packets in several unitary RTCP packets (SR or RR + SDES).
+	 * This the reason why Margaux receives twice more packets than Marielle and Pauline actually did send.
+	 */
+	BC_ASSERT_EQUAL(marielle_stats.rtp.sent_rtcp_packets + pauline_stats.rtp.sent_rtcp_packets,
+	                margaux_received_rtcp_packets, unsigned long long, "%llu");
+
 	/* cleaning */
 	rtp_bundle_delete(rtpBundle_margaux);
 	rtp_bundle_delete(rtpBundle_marielle);
 	rtp_bundle_delete(rtpBundle_pauline);
-	audio_stream_stop(marielle);
-	audio_stream_stop(pauline);
-	audio_stream_stop(margaux);
+
+	ms_media_stream_sessions_uninit(&marielle_sessions);
+	ms_media_stream_sessions_uninit(&margaux_sessions);
+	ms_media_stream_sessions_uninit(&pauline_sessions);
 	rtp_profile_destroy(profile);
 	bctbx_list_free(audiostreams);
 
