@@ -32,5 +32,4 @@
 
 #cmakedefine HAVE_LIBRT 1
 
-#cmakedefine BCTBX_STATIC
 #cmakedefine HAVE_EXECINFO 

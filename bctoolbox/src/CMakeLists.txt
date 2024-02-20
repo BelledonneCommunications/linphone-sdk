@@ -122,6 +122,7 @@ target_include_directories(bctoolbox PUBLIC
 	$<INSTALL_INTERFACE:include>
 )
 if(NOT BUILD_SHARED_LIBS)
+	target_compile_definitions(bctoolbox PUBLIC "BCTBX_STATIC")
 	set_target_properties(bctoolbox PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 endif()
 

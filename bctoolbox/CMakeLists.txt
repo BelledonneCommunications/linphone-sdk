@@ -126,11 +126,6 @@ include_directories(
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
-set(BCTOOLBOX_CPPFLAGS )
-if(NOT BUILD_SHARED_LIBS)
-	set(BCTBX_STATIC 1)
-	list(APPEND BCTOOLBOX_CPPFLAGS "-DBCTBX_STATIC")
-endif()
 if(ENABLE_DEBUG_LOGS)
 	add_definitions("-DBCTBX_DEBUG_MODE")
 endif()
