@@ -34,8 +34,6 @@ H26xDecoderFilter::H26xDecoderFilter(MSFilter *f, H26xDecoder *decoder)
 }
 
 void H26xDecoderFilter::preprocess() {
-	_firstImageDecoded = false;
-	if (_codec) _codec->waitForKeyFrame();
 	_regulator = ms_stream_regulator_new(getTicker(), 90000);
 }
 
@@ -152,7 +150,6 @@ void H26xDecoderFilter::process() {
 }
 
 void H26xDecoderFilter::postprocess() {
-	_unpacker->reset();
 	ms_stream_regulator_free(_regulator);
 }
 

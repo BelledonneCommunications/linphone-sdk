@@ -32,8 +32,6 @@ Av1DecoderFilter::Av1DecoderFilter(MSFilter *f, Av1Decoder *codec)
 }
 
 void Av1DecoderFilter::preprocess() {
-	mFirstImageDecoded = false;
-	if (mCodec) mCodec->waitForKeyFrame();
 }
 
 void Av1DecoderFilter::process() {
@@ -107,8 +105,6 @@ void Av1DecoderFilter::process() {
 }
 
 void Av1DecoderFilter::postprocess() {
-	if (mCodec) mCodec->flush();
-	mUnpacker.reset();
 }
 
 void Av1DecoderFilter::resetFirstImage() {
