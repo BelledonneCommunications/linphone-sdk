@@ -63,7 +63,7 @@
     paths:
       - sanitizer_ignore.txt
       - build/default/gitdescribe.txt
-      - build/default/linphone-sdk/desktop/pylinphone*.whl
+      - build/default/linphone-sdk/desktop/linphone*.whl
       - build/default/linphone-sdk/desktop/pylinphone.html
     expire_in: 1 week
 

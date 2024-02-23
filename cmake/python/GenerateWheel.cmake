@@ -77,23 +77,41 @@ endif()
 endfunction()
 bc_compute_python_wheel_version(WHEEL_LINPHONESDK_VERSION)
 
-configure_file("cmake/python/setup.cmake" "${CMAKE_INSTALL_PREFIX}/setup.py" @ONLY)
+if(APPLE)
+    set(SHARED_LIB_EXTENSION "*.dylib*")
+else()
+    set(SHARED_LIB_EXTENSION "*.so*")
+endif()
 
+set(PYTHON_INSTALL_DIR "${CMAKE_BINARY_DIR}/pylinphone/")
+set(PYTHON_INSTALL_MODULE_DIR "${PYTHON_INSTALL_DIR}linphone/")
+set(PYTHON_INSTALL_GRAMMARS_DIR "${PYTHON_INSTALL_MODULE_DIR}share/belr/grammars/")
 
+configure_file("cmake/python/setup.cmake" "${CMAKE_BINARY_DIR}/setup.py" @ONLY)
 
-add_custom_target(build_python_sdk
-    COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_INSTALL_PREFIX}/pylinphone"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/pylinphone"
-    COMMAND ${CMAKE_COMMAND} --build . --target install
-    COMMAND "cp" "-R" "${CMAKE_INSTALL_FULL_LIBDIR}/*.so*" "${CMAKE_INSTALL_PREFIX}/pylinphone/" # Do not use copy_directory because of symlinks
-    COMMAND "cp" "-R" "${CMAKE_INSTALL_PREFIX}/share" "${CMAKE_INSTALL_PREFIX}/pylinphone/"
+add_custom_target(create_python_module_architecture
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${PYTHON_INSTALL_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PYTHON_INSTALL_GRAMMARS_DIR}"
+
+    # Do not use copy_directory because of symlinks, and copy from full libdir to have proper RPATH set by install target
+    COMMAND "cp" "-R" "${CMAKE_INSTALL_FULL_LIBDIR}/${SHARED_LIB_EXTENSION}" "${PYTHON_INSTALL_MODULE_DIR}" 
+    
+    # Copy grammar files from each projects, like install target would do
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/belcard/src/vcard_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/belle-sip/src/sdp/sdp_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/identity_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/ics_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/liblinphone/share/cpim_grammar" "${PYTHON_INSTALL_GRAMMARS_DIR}"
+
+    COMMAND "cp" "${CMAKE_SOURCE_DIR}/cmake/python/__init__.py" "${PYTHON_INSTALL_MODULE_DIR}" 
+
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Generating linphone SDK with Python wrapper"
 )
 
 add_custom_target(wheel
-    COMMAND ${Python3_EXECUTABLE} setup.py bdist_wheel --dist-dir ${CMAKE_INSTALL_PREFIX}/
-    DEPENDS build_python_sdk ${CMAKE_INSTALL_PREFIX}/setup.py 
-    WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+    COMMAND ${Python3_EXECUTABLE} ../setup.py bdist_wheel --dist-dir ${CMAKE_INSTALL_PREFIX}/
+    DEPENDS create_python_module_architecture ${CMAKE_BINARY_DIR}/setup.py 
+    WORKING_DIRECTORY ${PYTHON_INSTALL_DIR}/
     COMMENT "Packaging linphone SDK with Python wrapper as a wheel"
 )

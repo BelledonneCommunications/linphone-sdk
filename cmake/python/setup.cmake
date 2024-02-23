@@ -5,7 +5,7 @@ class BinaryDistribution(Distribution):
         return True
 
 setup(
-    name="pylinphone",
+    name="linphone",
     version="@WHEEL_LINPHONESDK_VERSION@",
     author="Belledonne Communications",
     author_email="info@belledonne-communications.com",
@@ -14,9 +14,9 @@ setup(
     long_description_content_type="plain/text",
     url="https://linphone.org",
     license="GPLv3",
-    packages=['pylinphone'],
+    packages=['linphone'],
     package_data={
-        'pylinphone': ['*.so*', 'share/belr/grammars/*'],
+        'linphone': ['@SHARED_LIB_EXTENSION@', 'share/belr/grammars/*'],
     },
     include_package_data=True,
     distclass=BinaryDistribution,
