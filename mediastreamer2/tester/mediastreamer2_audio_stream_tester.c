@@ -1250,9 +1250,9 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 		           (int)rtp_session_get_stats(s)->recv_rtcp_packets);
 		margaux_received_rtcp_packets += rtp_session_get_stats(s)->recv_rtcp_packets;
 	}
-	BC_ASSERT_GREATER_STRICT(margaux_received_rtcp_packets, 0, int, "%i");
-	BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.sent_rtcp_packets, 0, int, "%i");
-	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.sent_rtcp_packets, 0, int, "%i");
+	BC_ASSERT_GREATER_STRICT(margaux_received_rtcp_packets, 0, unsigned long long, "%llu");
+	BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.sent_rtcp_packets, 0, unsigned long long, "%llu");
+	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.sent_rtcp_packets, 0, unsigned long long, "%llu");
 	/* Both marielle and pauline are sending to margaux, however RTCP message can't be sent them back to both of them.
 	 * This is the limitation of this test, such limitation being unexistant when packets are centralized
 	 * through a SFU engine.
@@ -1261,7 +1261,7 @@ static void multiple_audiostreams_to_bundled_base(MSCryptoSuite outer_suite, BCT
 	 * receive any RTCP packets.
 	 */
 	// BC_ASSERT_GREATER_STRICT(marielle_stats.rtp.recv_rtcp_packets, 0, int, "%i");
-	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.recv_rtcp_packets, 0, int, "%i");
+	BC_ASSERT_GREATER_STRICT(pauline_stats.rtp.recv_rtcp_packets, 0, unsigned long long, "%llu");
 	/* The RtpBundle cuts RTCP compound packets in several unitary RTCP packets (SR or RR + SDES).
 	 * This the reason why Margaux receives twice more packets than Marielle and Pauline actually did send.
 	 */
