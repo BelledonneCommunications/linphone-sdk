@@ -1,0 +1,72 @@
+###############################################################################
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-gentoo
+###############################################################################
+
+FROM gentoo/stage3:latest
+
+LABEL org.opencontainers.image.authors="Ghislain MARY <ghislain.mary@belledonne-communications.com>"
+
+# Configure locale
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen
+ENV LANG='en_US.UTF-8' LANGUAGE='en_US:en' LC_ALL='en_US.UTF-8'
+
+ENV SHELL=/bin/bash
+
+# Configure portage
+RUN echo "ACCEPT_KEYWORDS=\"~amd64 ~x86\"" >> /etc/portage/make.conf && \
+    echo "USE=\"-test X xvfb\"" >> /etc/portage/make.conf && \
+    echo "VIDEO_CARDS=\"virgl\""
+
+# Copy packages configuration
+COPY gentoo/env.debugsyms /etc/portage/env/debugsyms
+COPY gentoo/env.installsources /etc/portage/env/installsources
+COPY gentoo/package.env /etc/portage/package.env
+COPY gentoo/package.use-bc /etc/portage/package.use/bc
+COPY gentoo/package.use-bc-tests /etc/portage/package.use/bc-tests
+COPY gentoo/package.license-bc-tests /etc/portage/package.license
+COPY gentoo/package.unmask /etc/portage/package.unmask
+COPY gentoo/sets /etc/portage/sets/
+# Define environment variable to prevent xerces-c from crashing
+COPY gentoo/xerces-c.sh /etc/profile.d/
+COPY gentoo/xterm.sh /etc/profile.d/
+
+# WARNING : AS GENTOO IS A ROLLING RELEASE, ALL THE IMAGE MUST BE REBUILT FOR AN UPGRADE, OTHERWIZE THERE COULD BE CONFLICTS BETWEEN PACKAGES (ALL THE SYSTEM MUST BE UPDATED AT ONCE, THIS IS ALSO TRUE OUT OF DOCKER)
+# Select profile & Update the system
+RUN emaint --auto sync && \
+    eselect profile set 1 && eselect profile show && \
+    emerge --verbose --update --deep --newuse @world && \
+    emerge --depclean
+
+# Install common general tools
+RUN emerge app-admin/sudo app-editors/nano app-editors/vim app-eselect/eselect-repository app-portage/getuto dev-debug/gdb dev-util/debugedit dev-vcs/git media-sound/pulseaudio www-servers/lighttpd && \
+    emerge --depclean && \
+    getuto
+
+# Configure web server to install built binary packages for running tests
+COPY gentoo/lighttpd.conf /tmp/lighttpd.conf
+RUN cat /tmp/lighttpd.conf >> /etc/lighttpd/lighttpd.conf && \
+    rm /tmp/lighttpd.conf && \
+    rc-update add lighttpd
+
+# Create our own repository
+RUN eselect repository create belledonne-communications
+
+# Copy packages ebuilds
+COPY gentoo/ebuilds /var/db/repos/belledonne-communications/
+COPY gentoo/binrepos.conf /etc/portage/binrepos.conf/bcbinhost.conf
+
+# Install X & dependencies that are very long to build
+RUN emerge dev-libs/boost virtual/opengl x11-base/xorg-drivers x11-base/xorg-server x11-terms/xterm && \
+    env-update && source /etc/profile && \
+    emerge --depclean
+
+# Configure user bc
+RUN useradd -ms /bin/bash bc && \
+    echo 'bc:cotcot' | chpasswd && \
+    echo 'bc ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER bc
+WORKDIR /home/bc
+CMD bash
+ENTRYPOINT /bin/bash -l

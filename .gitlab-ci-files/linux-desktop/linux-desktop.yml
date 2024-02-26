@@ -151,7 +151,7 @@
     - export LSAN_OPTIONS="exitcode=255:suppressions=${CI_PROJECT_DIR}/sanitizer_ignore.txt"
     - export ASAN_OPTIONS="exitcode=255"
 
-    - cd $PATH_TO_TESTER
+    # - cd $PATH_TO_TESTER
     - echo $PATH_TO_TESTER
 
     #pulseaudio launch for mediastreamer
@@ -178,14 +178,14 @@
     - $SET_CAP_SYS_NICE_NET_ADMIN_MS || true
 
     #checking if the tester has SYS_NICE cap
-    - getcap ./$TESTER_BIN || true
+    - getcap $PATH_TO_TESTER/$TESTER_BIN || true
 
     - echo $RESOURCES_DIR
     - echo $ADDITIONNAL_OPTIONS
     - echo $LOG_PATTERN.txt
     - |
         if [ $USE_TUNNEL_PQ_TESTS_LIBLINPHONE = "false" ];
-          then ./$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
+          then $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
         else
 
           EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=0;
@@ -193,11 +193,11 @@
           EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_OVER_TUNNEL_AND_PQ=0;
 
-          ./$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated-Results.xml $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated-Results.xml $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
 
-          ./$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag.xml $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
-         # ./$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
+         # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel.xml $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
         fi
 
     - $PULSEAUDIO_KILL
@@ -220,14 +220,14 @@
 
   after_script:
     - pwd
-    - cd $PATH_TO_TESTER
-    - echo $PATH_TO_TESTER && pwd
+    # - cd $PATH_TO_TESTER
+    # - echo $PATH_TO_TESTER && pwd
 
     #.gdbinit is used to store gdb init scripts
     #we use it to avoid the need to specify manually the commands for each potential coredump
     - echo "thread apply all bt" | sudo tee .gdbinit
     #We need to add this command in two .gdbinit files, one in the current directory and the other in the home directory, for gdb to pick the above command.
-    - echo add-auto-load-safe-path $PATH_TO_TESTER/.gdbinit | sudo tee -a /home/bc/.gdbinit
+    - echo add-auto-load-safe-path ./.gdbinit | sudo tee -a /home/bc/.gdbinit
 
     - ROCKY_VERSION=$(cat /etc/rocky-release) || true
     - echo ${ROCKY_VERSION}
@@ -236,7 +236,7 @@
     # searching for core files and if there are some, launch gdb on all of it
     # xargs -L1 means that the command in argument will be executed for each line (core dump) found in find output
     # "true ||" is used here to continue the script even if the find fails
-    - if [[ -n $(find . -type f -name 'core*') ]]; then find . -type f -name 'core*' | xargs -d '\n' -L1 gdb $TESTER_BIN; fi || true
+    - if [[ -n $(find . -type f -name 'core*') ]]; then find . -type f -name 'core*' | xargs -d '\n' -L1 gdb $PATH_TO_TESTER/$TESTER_BIN; fi || true
     - COMMIT=$(cat ${CI_PROJECT_DIR}/build/default/gitdescribe.txt)
     - echo $COMMIT
     #generation of html file to redirect on test results page
@@ -281,12 +281,12 @@
 
   artifacts:
     paths:
-      - results/*
+      - ${CI_PROJECT_DIR}/results/*
       - ${CI_PROJECT_DIR}/build/default/gitdescribe.txt
     when: always
     reports:
       junit:
-        - $PATH_TO_TESTER/BCUnitAutomated-Results.xml
+        - ${CI_PROJECT_DIR}/BCUnitAutomated-Results.xml
     expire_in: 4 week
 
 .test-bctoolbox:
@@ -313,7 +313,7 @@
     TESTER_BIN: "ortp-tester"
     LOG_PATTERN: "logOrtpAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    RESOURCES_DIR: "--resource-dir ../share/"
+    RESOURCES_DIR: "--resource-dir ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/"
     TESTER: "ortp"
 
 .test-ortp-mr:
@@ -348,7 +348,7 @@
     TESTER_BIN: "belle-sip-tester"
     LOG_PATTERN: "logBellesipAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    RESOURCES_DIR: "--resource-dir ../share/"
+    RESOURCES_DIR: "--resource-dir ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/"
     TESTER: "bellesip"
 
 
@@ -372,7 +372,7 @@
     TESTER_BIN: "belr-tester"
     LOG_PATTERN: "logBelrAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    RESOURCES_DIR: "--resource-dir ../share/belr-tester/res"
+    RESOURCES_DIR: "--resource-dir ${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/share/belr-tester/res"
     TESTER: "belr"
   # only:
   #   changes:
@@ -428,7 +428,7 @@
     PULSEAUDIO_KILL: "pulseaudio --kill"
     LOG_PATTERN: "logMediastreamerAllPar"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
-    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ./${TESTER_BIN}"
+    SET_CAP_SYS_NICE_NET_ADMIN_MS: "sudo setcap cap_net_admin,cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "mediastreamer"
 
 .test-mediastreamer-mr:
@@ -450,7 +450,7 @@
     LOG_PATTERN: "logLiblinphoneAllParThIpv6"
     PATH_TO_TESTER: "${CI_PROJECT_DIR}/build/default/linphone-sdk/desktop/bin"
     ADDITIONNAL_OPTIONS: " --show-account-manager-logs"
-    SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ./${TESTER_BIN}"
+    SET_CAP_SYS_NICE_LIN: "sudo setcap cap_sys_nice+ep ${PATH_TO_TESTER}/${TESTER_BIN}"
     TESTER: "liblinphone"
     #false
     USE_TUNNEL_PQ_TESTS_LIBLINPHONE: "false"

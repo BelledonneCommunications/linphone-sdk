@@ -276,6 +276,14 @@ libl-arch-test-upload:
     PLATFORM: "linux-arch"
     TESTER: "liblinphone"
 
+libl-gentoo-test-upload:
+  extends: .test-report-upload-linux-scheduled
+  needs:
+    - liblinphone-gentoo-test
+  variables:
+    PLATFORM: "linux-gentoo"
+    TESTER: "liblinphone"
+
 #libl-ubuntu2004-test-upload:
 #  extends: .test-report-upload-linux-scheduled
 #  needs:
