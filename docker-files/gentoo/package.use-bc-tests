@@ -1,0 +1,9 @@
+dev-libs/bctoolbox test
+dev-libs/belcard test
+dev-libs/belr test
+dev-libs/liblinphone test
+dev-libs/lime test
+media-libs/mediastreamer2 test
+net-libs/belle-sip test
+net-libs/bzrtp test
+net-libs/ortp test

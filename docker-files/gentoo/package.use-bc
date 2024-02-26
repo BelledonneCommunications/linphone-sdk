@@ -1,0 +1,20 @@
+dev-db/soci sqlite -test
+dev-libs/bctoolbox mbedtls
+dev-libs/bcunit -test
+dev-libs/liblinphone -ldap lime qrcode
+dev-libs/liboqs openssl
+dev-libs/postquantumcryptoengine -test
+media-libs/mediastreamer2 av1 bv16 g726 g729 gsm jpeg matroska opengl opus qrcode resample speex srtp theora vpx yuv zrtp
+net-libs/belle-sip zeroconf
+net-libs/bzrtp sqlite
+net-libs/mbedtls -test
+
+app-text/doxygen dot
+media-libs/gd fontconfig truetype
+media-libs/libglvnd X
+media-libs/libpulse X
+media-plugins/alsa-plugins pulseaudio
+media-sound/pulseaudio daemon
+net-dns/avahi mdnsresponder-compat
+net-libs/libsrtp openssl
+sys-auth/pambase elogind

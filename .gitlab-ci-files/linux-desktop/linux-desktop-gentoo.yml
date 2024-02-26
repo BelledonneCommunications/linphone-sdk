@@ -1,0 +1,181 @@
+.factorize_gentoo: &docker_image_platform_and_runner_tag
+  tags: ["docker-test"]
+  image: !reference [.gentoo_image_version, image]
+  needs:
+    - gentoo
+  before_script:
+    - sudo cp -r $CI_PROJECT_DIR/binpkgs /home/bc/
+    - sudo chown -R bc:bc /home/bc/binpkgs
+    - sudo chmod -R 755 /home/bc/binpkgs
+    - sudo rc-status
+    - sudo touch /run/openrc/softlevel
+    - sudo rc-service lighttpd start
+    - sudo emerge --getbinpkg @liblinphone-latest
+
+#################################################
+# Build
+#################################################
+
+gentoo:
+  tags: ["docker"]
+  image: !reference [.gentoo_image_version, image]
+
+  stage: build
+# Prevent repo fetching. The gentoo build system does its own fetching for each project.
+  variables:
+    # GIT_STRATEGY: none
+    GIT_SUBMODULE_STRATEGY: none
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_LINUX_BUILDS != null && $SKIP_LINUX == null
+    - !reference [.rules-merge-request-manual, rules]
+  script:
+    - echo $CI_PIPELINE_SOURCE
+    - echo $CI_OPEN_MERGE_REQUESTS
+    - echo $CI_COMMIT_BRANCH
+
+    # Set the submodules revisions in the ebuild files
+    - git config --global --add safe.directory ${CI_PROJECT_DIR}
+    - |
+        for PACKAGE in dev-libs/bctoolbox dev-libs/bcunit dev-libs/belcard dev-libs/belr dev-libs/liblinphone dev-libs/lime dev-libs/postquantumcryptoengine media-libs/bcmatroska2 media-libs/mediastreamer2 media-plugins/msamr media-plugins/mscodec2 media-plugins/msopenh264 media-plugins/mssilk media-plugins/mswebrtc net-libs/belle-sip net-libs/bzrtp net-libs/ortp
+        do
+          PACKAGE_NAME=$(echo "$PACKAGE" | cut -d "/" -f 2);
+          PACKAGE_REVISION=$(git ls-tree HEAD | grep "$PACKAGE_NAME" | cut -f 1 | cut -d " " -f 3)
+          EBUILD_PATH="/var/db/repos/belledonne-communications/$PACKAGE/$PACKAGE_NAME-9999.ebuild"
+          echo "EGIT_COMMIT=\"$PACKAGE_REVISION\"" | sudo tee -a $EBUILD_PATH
+        done
+        for PACKAGE in dev-db/soci net-libs/mbedtls
+        do
+          PACKAGE_NAME=$(echo "$PACKAGE" | cut -d "/" -f 2);
+          PACKAGE_REVISION=$(git -C external ls-tree HEAD | grep "$PACKAGE_NAME" | cut -f 1 | cut -d " " -f 3)
+          EBUILD_PATH="/var/db/repos/belledonne-communications/$PACKAGE/$PACKAGE_NAME-9999.ebuild"
+          echo "EGIT_COMMIT=\"$PACKAGE_REVISION\"" | sudo tee -a $EBUILD_PATH
+        done
+
+    # Do the build and create the binary packages
+    - sudo emerge @liblinphone-latest
+    - sudo quickpkg @liblinphone-latest
+
+    # Get the binary packages to put as artifacts
+    - sudo cp -r /var/cache/binpkgs .
+    - ls -l
+    - mkdir -p build/default && echo $(git describe) > build/default/gitdescribe.txt
+  artifacts:
+    paths:
+      - build/default/gitdescribe.txt
+      - binpkgs/*
+    expire_in: 1 week
+
+#################################################
+# Tests
+#################################################
+
+bctoolbox-gentoo-test:
+  extends: .test-bctoolbox
+  <<: *docker_image_platform_and_runner_tag
+  variables:
+    PLATFORM: linux-gentoo
+    PATH_TO_TESTER: "/usr/bin"
+    LOG_PATTERN: "/home/bc/logBctoolboxAllPar"
+
+ortp-gentoo-test:
+  extends: .test-ortp
+  <<: *docker_image_platform_and_runner_tag
+  variables:
+    PLATFORM: linux-gentoo
+    PATH_TO_TESTER: "/usr/bin"
+    LOG_PATTERN: "/home/bc/logOrtpAllPar"
+    RESOURCES_DIR: "--resource-dir /usr/share/"
+
+# bellesip-gentoo-test:
+#   extends: .test-bellesip
+#   needs:
+#     - gentoo
+#   #different runner needed because belle-sip_tester can't work in parallel (dialog test suite is crashing randomly)
+#   tags: ["docker-sequential"]
+#   image: !reference [.gentoo_image_version, image]
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logBelrAllPar"
+#     RESOURCES_DIR: "--resource-dir /usr/share/belle-sip-tester"
+#   before_script:
+#     - sudo cp -r $CI_PROJECT_DIR/binpkgs /home/bc/
+#     - sudo chown -R bc:bc /home/bc/binpkgs
+#     - sudo chmod -R 755 /home/bc/binpkgs
+#     - sudo rc-status
+#     - sudo touch /run/openrc/softlevel
+#     - sudo rc-service lighttpd start
+#     - sudo emerge --getbinpkg @liblinphone-latest
+
+belr-gentoo-test:
+  extends: .test-belr
+  <<: *docker_image_platform_and_runner_tag
+  variables:
+    PLATFORM: linux-gentoo
+    PATH_TO_TESTER: "/usr/bin"
+    LOG_PATTERN: "/home/bc/logBellesipAllPar"
+    RESOURCES_DIR: "--resource-dir /usr/share/belr-tester/res"
+
+belcard-gentoo-test:
+  extends: .test-belcard
+  <<: *docker_image_platform_and_runner_tag
+  variables:
+    PLATFORM: linux-gentoo
+    PATH_TO_TESTER: "/usr/bin"
+    LOG_PATTERN: "/home/bc/logBelcardAllPar"
+
+bzrtp-gentoo-test:
+  extends: .test-bzrtp
+  <<: *docker_image_platform_and_runner_tag
+  variables:
+    PLATFORM: linux-gentoo
+    PATH_TO_TESTER: "/usr/bin"
+    LOG_PATTERN: "/home/bc/logBzrtpAllPar"
+
+# mediastreamer-gentoo-test:
+#   extends: .test-mediastreamer
+#   <<: *docker_image_platform_and_runner_tag
+#   tags: [ "docker-test-liblinphone" ]
+#   variables:
+#     PLATFORM: linux-gentoo
+#     PATH_TO_TESTER: "/usr/bin"
+#     LOG_PATTERN: "/home/bc/logMediastreamerAllPar"
+
+liblinphone-gentoo-test:
+  extends: .test-liblinphone
+  <<: *docker_image_platform_and_runner_tag
+  tags: [ "docker-test-liblinphone" ]
+  variables:
+    PLATFORM: linux-gentoo
+    PULSEAUDIO: "pulseaudio -D -L module-virtual-source --exit-idle-time=-1"
+    PULSEAUDIO_KILL: "pulseaudio --kill"
+    LOG_PATTERN: "/home/bc/logLiblinphoneAllParThIpv6"
+    PATH_TO_TESTER: "/usr/bin"
+
+#################################################
+# Uploads
+#################################################
+
+gentoo-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_GENTOO != null
+  variables:
+    GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
+    GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
+  needs:
+    - gentoo
+
+  script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git config --global --add safe.directory $CI_PROJECT_DIR/liblinphone
+    - DESCRIBE=$(git -C liblinphone describe)
+    - echo $DESCRIBE
+    - SDK_DESCRIBE=$(git describe)
+    - echo $SDK_DESCRIBE
+    - !reference [.choose_upload_dir, script]
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
+    - rsync -rlv --ignore-existing binpkgs/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
+    - ssh $DEPLOY_SERVER chmod -R 755 $UPLOAD_ROOT_DIRECTORY/gentoo/$SDK_DESCRIBE/
