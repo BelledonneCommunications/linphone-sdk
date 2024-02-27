@@ -95,16 +95,18 @@ These generic steps work are the base for building, but a few specifics behavior
 ### iOS
 
 Requirement:
- - Xcode >= 10
+ - Xcode >= 15
 
-Cmake has limited swift support: only Ninja and Xcode generators can handle swift.
-Until Cmake has full swift support, you need to specify configuration step by specifying one of the two backends:
+Please note that the multi-architectures (arm64, x86_64) 'ios-sdk' preset fails with the default 'Xcode' cmake generator, due to internal changes made to Xcode 15.
+It is then recommanded to use 'Ninja' or 'Unix makefiles' generators:
 
-`cmake --preset=ios-sdk -G Xcode -B build-ios` or `cmake --preset=ios-sdk -G Ninja -B build-ios`
+`cmake --preset=ios-sdk -G Ninja -B build-ios`
 
-If the generator is not specified, Xcode will be used by default.
+The generation of the Swift documentation (docc) requires the Xcode generator, and hence won't be generated with the above command.
+In order to generate the swift documentation, a new separate build needs to be done using the ios-arm64-simulator preset:
 
-Please note that the Xcode backend is very slow: about one hour of build time, compared to approximately 15 mn for Ninja.
+`cmake --preset=ios-arm64-simulator -G Xcode -B build-ios`
+
 
 ⚙ Note to developers: If a new Apple `.framework` folder needs to be added to the iOS build, remember to update the [NuGet iOS project] to include it.
 
