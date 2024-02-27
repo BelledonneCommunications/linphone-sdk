@@ -35,7 +35,7 @@ public class CaptureTextureView extends TextureView {
 
     private int mCapturedVideoWidth = 0;
     private int mCapturedVideoHeight = 0;
-    private int mRotation = 0;
+    private int mRotation = -1;
     private DisplayMode mActualMode = DisplayMode.BLACK_BARS;
     private RectF mPreviewRect = null;
 
@@ -71,6 +71,8 @@ public class CaptureTextureView extends TextureView {
             mRotation = rotation;
             Log.i("[Capture TextureView] Changing preview texture rotation to " + rotation);
             rotateToMatchDisplayOrientation();
+        } else {
+            Log.w("[Capture TextureView] Rotation is already the current value, skipping");
         }
     }
 
@@ -83,7 +85,7 @@ public class CaptureTextureView extends TextureView {
         RectF textureViewRect = new RectF(0, 0, width, height);
         matrix.mapRect(textureViewRect);
 
-        Log.d("[Capture TextureView] Rotating preview texture by " + rotation);
+        Log.i("[Capture TextureView] Rotating preview texture by rotation " + rotation);
         if (rotation % 180 == 90) {
             float[] src = new float[] { 0.f, 0.f, width, 0.f, 0.f, height, width, height, };
             float[] dst = new float[] { 0.f, height, 0.f, 0.f, width, height, width, 0.f, };
