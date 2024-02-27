@@ -249,8 +249,10 @@ static const char* android_camera2_status_to_string(camera_status_t status) {
 static int32_t android_camera2_capture_get_orientation(AndroidCamera2Context *d) {
 	int32_t orientation = d->device->orientation;
 	if (d->device->back_facing) {
+		ms_message("[Camera2 Capture] Selected device is back facing");
 		orientation -= d->rotation;
 	} else {
+		ms_message("[Camera2 Capture] Selected device is front facing");
 		orientation += d->rotation;
 	}
 	if (orientation < 0) {
@@ -835,7 +837,7 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
 			int32_t width = scaler.data.i32[i + 1];
 			int32_t height = scaler.data.i32[i + 2];
 			double currentSizeRatio = width * height;
-			ms_message("[Camera2 Capture] Available size width %d, height %d for requested format %d", width, height, format);
+			ms_message("[Camera2 Capture] Available size width [%d], height [%d] for requested format [%d]", width, height, format);
 
 			if (width == d->captureSize.width && height == d->captureSize.height) {
 				found = true;
@@ -850,17 +852,17 @@ static void android_camera2_capture_choose_best_configurations(AndroidCamera2Con
 		} else {
 			int32_t width = scaler.data.i32[i + 1];
 			int32_t height = scaler.data.i32[i + 2];
-			ms_debug("[Camera2 Capture] Available size width %d, height %d for format %d", width, height, format);
+			ms_debug("[Camera2 Capture] Available size width [%d], height [%d] for format [%d]", width, height, format);
 		}
 	}
 
 	if (found) {
-		ms_message("[Camera2 Capture] Found exact match for our required size of %ix%i", d->captureSize.width, d->captureSize.height);
+		ms_message("[Camera2 Capture] Found exact match for our required size of [%ix%i]", d->captureSize.width, d->captureSize.height);
 	} else {
 		// Asked resolution not found
 		d->captureSize.width = backupSize.width;
 		d->captureSize.height = backupSize.height;
-		ms_warning("[Camera2 Capture] Couldn't find requested resolution, instead using %ix%i", backupSize.width, backupSize.height);
+		ms_warning("[Camera2 Capture] Couldn't find requested resolution, instead using [%ix%i]", backupSize.width, backupSize.height);
 	}
 
 	ACameraMetadata_free(cameraMetadata);
@@ -874,11 +876,13 @@ static void android_camera2_capture_rotate_video_preview_if_possible(AndroidCame
 
 	jclass captureTextureViewClass = env->FindClass("org/linphone/mediastream/video/capture/CaptureTextureView");
 	if (env->IsInstanceOf(surfaceTexture, captureTextureViewClass)) {
-		ms_message("[Camera2 Capture] NativePreviewWindowId %p is a CaptureTextureView", surfaceTexture);
+		ms_message("[Camera2 Capture] NativePreviewWindowId [%p] is a CaptureTextureView", surfaceTexture);
 		jmethodID setRotation = env->GetMethodID(captureTextureViewClass, "setRotation", "(I)V");
 		int rotation = d->rotation;
-		ms_message("[Camera2 Capture] Apply rotation of %i to CaptureTextureView", rotation);
+		ms_message("[Camera2 Capture] Apply rotation of [%i] to CaptureTextureView", rotation);
 		env->CallVoidMethod(d->nativeWindowId, setRotation, rotation);
+	} else {
+		ms_warning("[Camera2 Capture] NativePreviewWindowId [%p] isn't a CaptureTextureView, can't rotate!", surfaceTexture);
 	}
 }
 
@@ -906,13 +910,13 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 	}
 
 	if (env->IsInstanceOf(surfaceTexture, surfaceClass)) {
-		ms_message("[Camera2 Capture] NativePreviewWindowId %p is a Surface, using it directly", surfaceTexture);
+		ms_message("[Camera2 Capture] NativePreviewWindowId [%p] is a Surface, using it directly", surfaceTexture);
 		d->surface = (jobject)env->NewGlobalRef(surfaceTexture);
 		return;
 	}
 
 	if (env->IsInstanceOf(surfaceTexture, textureViewClass)) {
-		ms_message("[Camera2 Capture] NativePreviewWindowId %p is a TextureView", surfaceTexture);
+		ms_message("[Camera2 Capture] NativePreviewWindowId [%p] is a TextureView", surfaceTexture);
 
 		android_camera2_capture_rotate_video_preview_if_possible(d);
 
@@ -922,14 +926,16 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 			ms_error("[Camera2 Capture] TextureView isn't available !");
 			return;
 		}
-		ms_message("[Camera2 Capture] Got SurfaceTexture %p from TextureView %p", surfaceTexture, d->nativeWindowId);
+		ms_message("[Camera2 Capture] Got SurfaceTexture [%p] from TextureView [%p]", surfaceTexture, d->nativeWindowId);
+	} else {
+		ms_warning("[Camera2 Capture] SurfaceTexture [%p] isn't a TextureView", surfaceTexture);
 	}
 
 	if (surfaceTexture != nullptr) {
 		if (d->captureSize.width != 0 && d->captureSize.height != 0) {
 			jmethodID setDefaultBufferSize = env->GetMethodID(surfaceTextureClass, "setDefaultBufferSize", "(II)V");
 			env->CallVoidMethod(surfaceTexture, setDefaultBufferSize, d->captureSize.width, d->captureSize.height);
-			ms_message("[Camera2 Capture] Set default buffer size for SurfaceTexture %p to %ix%i", surfaceTexture, d->captureSize.width, d->captureSize.height);
+			ms_message("[Camera2 Capture] Set default buffer size for SurfaceTexture [%p] to [%ix%i]", surfaceTexture, d->captureSize.width, d->captureSize.height);
 		} else {
 			ms_warning("[Camera2 Capture] SurfaceTexture buffer size not available yet, aborting for now, will come back later");
 			d->surface = nullptr;
@@ -942,7 +948,7 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 		return;
 	}
 
-	ms_message("[Camera2 Capture] Creating Surface from SurfaceTexture %p", surfaceTexture);
+	ms_message("[Camera2 Capture] Creating Surface from SurfaceTexture [%p]", surfaceTexture);
 	jmethodID ctor = env->GetMethodID(surfaceClass, "<init>", "(Landroid/graphics/SurfaceTexture;)V");
 	surface = env->NewObject(surfaceClass, ctor, surfaceTexture);
 	if (!surface) {
@@ -951,7 +957,7 @@ static void android_camera2_capture_create_surface_from_surface_texture(AndroidC
 	}
 	
 	d->surface = (jobject)env->NewGlobalRef(surface);
-	ms_message("[Camera2 Capture] Got Surface %p from SurfaceTexture %p",  d->surface, surfaceTexture);
+	ms_message("[Camera2 Capture] Got Surface [%p] from SurfaceTexture [%p]",  d->surface, surfaceTexture);
 }
 
 static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
@@ -964,7 +970,7 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 	jobject currentWindowId = d->nativeWindowId;
 	ms_filter_unlock(f);
 
-	ms_message("[Camera2 Capture] New native window ptr is %p, current one is %p", nativeWindowId, currentWindowId);
+	ms_message("[Camera2 Capture] New native window ptr is [%p], current one is [%p]", nativeWindowId, currentWindowId);
 	if (id == 0) {
 		if (currentWindowId) {
 			android_camera2_capture_stop(d);
@@ -979,6 +985,7 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 		
 		d->nativeWindowId = env->NewGlobalRef(nativeWindowId);
 		android_camera2_capture_create_surface_from_surface_texture(d);
+		android_camera2_capture_rotate_video_preview_if_possible(d);
 		
 		ms_filter_lock(f);
 		android_camera2_check_configuration_ok(d);
@@ -997,11 +1004,11 @@ static int android_camera2_capture_set_surface_texture(MSFilter *f, void *arg) {
 static void android_camera2_capture_update_preview_size(AndroidCamera2Context *d) {
 	int orientation = android_camera2_capture_get_orientation(d);
 	if (orientation % 180 == 0) {
-		ms_message("[Camera2 Capture] Device is in portrait, use capture width/height for preview width/height");
+		ms_message("[Camera2 Capture] Device rotation [%i] is portrait, use capture width/height for preview width/height", orientation);
 		d->previewSize.width = d->captureSize.width;
 		d->previewSize.height = d->captureSize.height;
 	} else {
-		ms_message("[Camera2 Capture] Device is in landscape, use capture width/height for preview height/width");
+		ms_message("[Camera2 Capture] Device rotation [%i] is landscape, use capture width/height for preview height/width", orientation);
 		d->previewSize.width = d->captureSize.height;
 		d->previewSize.height = d->captureSize.width;
 	}
@@ -1010,7 +1017,7 @@ static void android_camera2_capture_update_preview_size(AndroidCamera2Context *d
 static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 	AndroidCamera2Context *d = (AndroidCamera2Context *)f->data;
 	MSVideoSize requestedSize = *(MSVideoSize*)arg;
-	ms_message("[Camera2 Capture] New requested size is %ix%i", requestedSize.width, requestedSize.height);
+	ms_message("[Camera2 Capture] New requested size is [%i/%i]", requestedSize.width, requestedSize.height);
 
 	if (d->captureSize.width == requestedSize.width && d->captureSize.height == requestedSize.height) {
 		ms_warning("[Camera2 Capture] Newly requested size is the same as current one, skipping");
@@ -1030,7 +1037,7 @@ static int android_camera2_capture_set_vsize(MSFilter *f, void* arg) {
 		ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 	}
 
-	ms_message("[Camera2 Capture] Previous preview size was %i/%i, new size is %i/%i", 
+	ms_message("[Camera2 Capture] Previous preview size was [%i/%i], new size is [%i/%i]", 
 		oldSize.width, oldSize.height, d->previewSize.width, d->previewSize.height);
 
 	if (d->surface == nullptr && d->nativeWindowId != 0) {
@@ -1053,7 +1060,7 @@ static int android_camera2_capture_get_vsize(MSFilter *f, void* arg) {
 	ms_filter_unlock(f);
 
 	*(MSVideoSize*)arg = d->previewSize;
-	ms_message("[Camera2 Capture] Getting preview size: %ix%i", d->previewSize.width, d->previewSize.height);
+	ms_message("[Camera2 Capture] Getting preview size: [%ix%i]", d->previewSize.width, d->previewSize.height);
 
 	return 0;
 }
@@ -1064,9 +1071,9 @@ static int android_camera2_capture_set_device_rotation(MSFilter* f, void* arg) {
 	ms_filter_lock(f);
 
 	int rotation = *((int*)arg);
-	ms_message("[Camera2 Capture] Device rotation is %i", rotation);
 
 	if (rotation != d->rotation) {
+		ms_message("[Camera2 Capture] New device rotation is [%i]", rotation);
 		d->rotation = rotation;
 		android_camera2_capture_update_preview_size(d);
 		android_camera2_capture_rotate_video_preview_if_possible(d);
@@ -1074,6 +1081,8 @@ static int android_camera2_capture_set_device_rotation(MSFilter* f, void* arg) {
 		if (d->previewSize.width != 0 && d->previewSize.height != 0) {
 			ms_filter_notify(f, MS_CAMERA_PREVIEW_SIZE_CHANGED, &d->previewSize);
 		}
+	} else {
+		ms_warning("[Camera2 Capture] Newly set device rotation [%i] matches current value, skipping", rotation);
 	}
 
 	ms_filter_unlock(f);
