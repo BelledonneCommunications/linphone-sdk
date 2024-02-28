@@ -37,7 +37,7 @@ macro(bc_init_compilation_flags CPP_FLAGS C_FLAGS CXX_FLAGS STRICT_COMPILATION)
 			list(APPEND ${CPP_FLAGS} "-Wno-error=pragmas")
 		endif()
 		if(APPLE)
-			list(APPEND ${CPP_FLAGS} "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-unused-function" "-Wno-array-bounds")
+			list(APPEND ${CPP_FLAGS} "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-unused-function" "-Wno-array-bounds" "-Wno-error=shorten-64-to-32")
 		endif()
 		if(ENABLE_STRICT)
 			list(APPEND ${CPP_FLAGS} "-Werror" "-Wextra" "-Wunused-parameter" "-Wno-error=unknown-pragmas" "-Wuninitialized" "-Wno-missing-field-initializers"
