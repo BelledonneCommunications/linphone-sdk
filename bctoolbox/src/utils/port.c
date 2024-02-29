@@ -338,12 +338,18 @@ int __bctbx_thread_join(bctbx_thread_t thread, void **ptr) {
 
 int __bctbx_thread_create(bctbx_thread_t *thread, pthread_attr_t *attr, void *(*routine)(void *), void *arg) {
 	pthread_attr_t my_attr;
-	pthread_attr_init(&my_attr);
-	if (attr) my_attr = *attr;
+	bool_t use_local = !attr;
+	if(use_local){
+		pthread_attr_init(&my_attr);
+		attr = &my_attr;
+	}
 #ifdef BCTBX_DEFAULT_THREAD_STACK_SIZE
-	if (BCTBX_DEFAULT_THREAD_STACK_SIZE != 0) pthread_attr_setstacksize(&my_attr, BCTBX_DEFAULT_THREAD_STACK_SIZE);
+	if (BCTBX_DEFAULT_THREAD_STACK_SIZE != 0) pthread_attr_setstacksize(attr, BCTBX_DEFAULT_THREAD_STACK_SIZE);
 #endif
-	return pthread_create(thread, &my_attr, routine, arg);
+
+	int result = pthread_create(thread, attr, routine, arg);
+	if(use_local) pthread_attr_destroy(attr);
+	return result;
 }
 
 unsigned long __bctbx_thread_self(void) {
