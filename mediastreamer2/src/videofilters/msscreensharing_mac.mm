@@ -50,9 +50,19 @@
 - (void)stream:(SCStream *)stream
 	didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
 				   ofType:(SCStreamOutputType)type;
-+ (SCWindow *)findWindow:(CGWindowID)windowId;
-+ (SCDisplay *)findDisplay:(CGDirectDisplayID)displayId;
++ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId;
++ (void)getWindowSize:(CGWindowID)windowId x:(int*)x y:(int*)y height:(int*)height width:(int*)width;
++ (void)getDisplaySize:(CGDirectDisplayID)displayId x:(int*)x y:(int*)y height:(int*)height width:(int*)width;
 @end
+
+template<typename... T>
+void doRelease(T && ... args) {
+#if !__has_feature(objc_arc)
+	([&]{
+		if(args) [args release];
+	} (), ...);
+#endif
+}
 
 MsScreenSharing_mac::MsScreenSharing_mac() : MsScreenSharing(){
 	mLastFormat.mPixelFormat = MS_YUV420P;
@@ -79,44 +89,12 @@ void MsScreenSharing_mac::init() {
 
 bool MsScreenSharing_mac::initDisplay() {
 	mScreenRects.clear();
-	switch (mSourceDesc.type) {
-	case MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY: {
-		CGDirectDisplayID displayId = *(CGDirectDisplayID *) (&mSourceDesc.native_data);
-		SCDisplay *display = [StreamOutput findDisplay:displayId];
-		if(display) {
-			if (display.width > 0 && display.height > 0)
-				mScreenRects.push_back(Rect(0, 0, display.width, display.height));
-			else
-				ms_error("[MsScreenSharing_mac] display size not available %dx%d, %dx%d",
-						 (int)display.width,
-						 (int)display.height,
-						 (int)display.frame.size.width,
-						 (int)display.frame.size.height);
-			[display release];
-		}else
-			ms_error("[MsScreenSharing_mac] Display ID is not available: %x", displayId);
-		}
-		break;
-	case MSScreenSharingType::MS_SCREEN_SHARING_WINDOW: {
-		CGWindowID windowId = *(CGWindowID *) (&mSourceDesc.native_data);
-		SCWindow *window = [StreamOutput findWindow:windowId];
-		if(window){
-			if (window.frame.size.width > 0 && window.frame.size.height > 0)
-				mScreenRects.push_back(Rect(0, 0, window.frame.size.width, window.frame.size.height));
-			else
-				ms_error("[MsScreenSharing_mac] window size not available %dx%d",
-					 (int)window.frame.size.width,
-					 (int)window.frame.size.height);
-			[window release];
-		}else
-			ms_error("[MsScreenSharing_mac] Window ID is not available: %x", windowId);
-		}
-		break;
-	case MSScreenSharingType::MS_SCREEN_SHARING_AREA:
-		break;
-	default: {
-	}
-	}
+	int x, y, width = 0, height = 0;
+	getWindowSize(&x,&y,&width,&height);
+	if(width > 0 && height > 0)
+		mScreenRects.push_back(Rect(x, y, width, height));
+	else
+		ms_error("[MsScreenSharing_mac] Window ID size is not available %dx%d, %dx%d from %x", x, y, width, height, mSourceDesc.native_data);
 
 	MsScreenSharing::updateScreenConfiguration(mScreenRects);
 
@@ -130,24 +108,14 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
 		CGDirectDisplayID displayId = *(CGDirectDisplayID *) (&mSourceDesc.native_data);
-		SCDisplay *display = [StreamOutput findDisplay:displayId];
-		if(display) {
-			*windowX = 0;
-			*windowY = 0;
-			*windowWidth = display.width;
-			*windowHeight = display.height;
-			[display release];
-		}
+		[StreamOutput getDisplaySize:displayId x:windowX y:windowY height:windowHeight width:windowWidth];
+		*windowX = 0;
+		*windowY = 0;
 	} else if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_WINDOW) {
 		CGWindowID windowId = *(CGWindowID *) (&mSourceDesc.native_data);
-		SCWindow *window = [StreamOutput findWindow:windowId];
-		if(window) {
-			*windowX = 0;
-			*windowY = 0;
-			*windowWidth = window.frame.size.width;
-			*windowHeight = window.frame.size.height;
-			[window release];
-		}
+		[StreamOutput getWindowSize:windowId x:windowX y:windowY height:windowHeight width:windowWidth];
+		*windowX = 0;
+		*windowY = 0;
 	}
 }
 
@@ -170,11 +138,11 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 @end
 
 @implementation StreamOutput
-+ (SCWindow *)findWindow:(CGWindowID)windowId {
++ (SCContentFilter *)getFilter:(CGWindowID)windowId displayId:(CGDirectDisplayID)displayId{
 	std::condition_variable condition;
 	std::mutex lock;
 	BOOL ended = FALSE;
-	__block SCWindow *window = nil;
+	__block SCContentFilter *filter = nil;
 	__block BOOL *_ended = &ended;
 	__block std::condition_variable *_condition = &condition;
 	
@@ -182,43 +150,56 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 		getShareableContentWithCompletionHandler:^(SCShareableContent *shareableContent,
 												   NSError *error) {
 			if (!error || error.code == 0) {
-				for (int i = 0; i < shareableContent.windows.count && !window; ++i)
-					if (shareableContent.windows[i].windowID == windowId) {
-						window = [shareableContent.windows[i] retain];
-					}
+				if(windowId) {
+					for (int i = 0; i < shareableContent.windows.count && !filter; ++i)
+						if (shareableContent.windows[i].windowID == windowId) {
+							filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:shareableContent.windows[i]];
+						}
+				}else if( displayId) {
+					for (int i = 0; i < shareableContent.displays.count && !filter; ++i)
+						if( shareableContent.displays[i].displayID == displayId) {
+							filter = [[SCContentFilter alloc] initWithDisplay:shareableContent.displays[i] excludingWindows:@[]];
+						}
+				}
 			}
 			*_ended = TRUE;
 			_condition->notify_all();
 		}];
 	std::unique_lock<std::mutex> locker(lock);
 	condition.wait(locker, [&ended]{ return ended; });
-	return window;
+	return filter;
 }
 
-+ (SCDisplay *)findDisplay:(CGDirectDisplayID)displayId {
-	std::condition_variable condition;
-	std::mutex lock;
-	BOOL ended = FALSE;
-	__block SCDisplay *display = nil;
-	__block BOOL *_ended = &ended;
-	__block std::condition_variable *_condition = &condition;
-	[SCShareableContent
-		getShareableContentWithCompletionHandler:^(SCShareableContent *shareableContent,
-												   NSError *error) {
-			if (!error || error.code == 0) {
-				for (int i = 0; i < shareableContent.displays.count && !display; ++i)
-					if (shareableContent.displays[i].displayID == displayId) {
-						display = [shareableContent.displays[i] retain];
-					}
-			}
-			*_ended = TRUE;
-			_condition->notify_all();
-		}];
-
-	std::unique_lock<std::mutex> locker(lock);
-	condition.wait(locker, [&ended]{ return ended; });
-	return display;
++ (void)getWindowSize:(CGWindowID)windowId x:(int*)x y:(int*)y height:(int*)height width:(int*)width {
+	CFArrayRef descriptions = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, windowId);
+	if(CFArrayGetCount(descriptions) > 0) {
+		CFDictionaryRef description = (CFDictionaryRef)CFArrayGetValueAtIndex ((CFArrayRef)descriptions, 0);
+		if(CFDictionaryContainsKey(description, kCGWindowBounds)) {
+			CFDictionaryRef bounds = (CFDictionaryRef)CFDictionaryGetValue (description, kCGWindowBounds);
+			if(bounds) {
+				CGRect windowRect;
+				CGRectMakeWithDictionaryRepresentation(bounds, &windowRect);
+				*x = windowRect.origin.x;
+				*y = windowRect.origin.y;
+				*height = windowRect.size.height;
+				*width = windowRect.size.width;
+			}else
+				ms_warning("[MsScreenSharing_mac] Bounds found be cannot be parsed for Window ID : %x", windowId);
+		}else
+			ms_warning("[MsScreenSharing_mac] No bounds specified in Apple description for Window ID : %x", windowId);
+	}else
+		ms_warning("[MsScreenSharing_mac] No description found for Window ID : %x", windowId);
+	CFRelease(descriptions);
 }
+
++ (void)getDisplaySize:(CGDirectDisplayID)displayId x:(int*)x y:(int*)y height:(int*)height width:(int*)width {
+	CGRect displayRect = CGDisplayBounds(displayId);
+	*x = displayRect.origin.x;
+	*y = displayRect.origin.y;
+	*height = displayRect.size.height;
+	*width = displayRect.size.width;
+}
+
 
 - (id)initWithScreensharing:(MsScreenSharing_mac *)screenSharing {
 	mScreenSharing = screenSharing;
@@ -317,7 +298,7 @@ void MsScreenSharing_mac::inputThread() {
 	
 	if (!streamOutput) {
 		ms_error("[MsScreenSharing_mac] Cannot instantiate stream output");
-		[streamDelegate dealloc];
+		doRelease(streamDelegate);
 		return;
 	}
 	// FILTER
@@ -325,14 +306,10 @@ void MsScreenSharing_mac::inputThread() {
 	streamConfig = [[SCStreamConfiguration alloc] init];
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
 		CGDirectDisplayID displayId = *(CGDirectDisplayID *) (&mSourceDesc.native_data);
-		SCDisplay *display = [StreamOutput findDisplay:displayId];
-		filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
-		[display release];
+		filter = [StreamOutput getFilter:0 displayId:displayId];
 	} else if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_WINDOW) {
 		CGWindowID windowId = *(CGWindowID *) (&mSourceDesc.native_data);
-		SCWindow *window = [StreamOutput findWindow:windowId];
-		filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:window];
-		[window release];
+		filter = [StreamOutput getFilter:windowId displayId:0];
 	}
 	[streamConfig setWidth:mLastFormat.mPosition.getWidth()];
 	[streamConfig setHeight:mLastFormat.mPosition.getHeight()];
@@ -350,11 +327,8 @@ void MsScreenSharing_mac::inputThread() {
 												delegate:streamDelegate];
 	if (!stream) {
 		ms_error("[MsScreenSharing_mac] Cannot instantiate stream");
-		if (filter) [filter dealloc];
-		if (streamConfig) [streamConfig dealloc];
 		dispatch_release(videoSampleBufferQueue);
-		[streamOutput dealloc];
-		[streamDelegate dealloc];
+		doRelease(streamConfig,filter, streamOutput, streamDelegate);
 		return;
 	}
 	[stream addStreamOutput:streamOutput
@@ -364,11 +338,7 @@ void MsScreenSharing_mac::inputThread() {
 	if (error) {
 		ms_error("[MsScreenSharing_mac] Cannot add stream output %x", (int)error.code);
 		dispatch_release(videoSampleBufferQueue);
-		if (stream) [stream dealloc];
-		if (filter) [filter dealloc];
-		if (streamConfig) [streamConfig dealloc];
-		[streamOutput dealloc];
-		[streamDelegate dealloc];
+		doRelease(streamConfig,filter, stream, streamOutput, streamDelegate);
 		return;
 	}
 
@@ -429,11 +399,7 @@ void MsScreenSharing_mac::inputThread() {
 		std::unique_lock<std::mutex> lock(mAppleThreadLock);
 		mAppleThreadIterator.wait(lock, [&ended, streamOutput](){return ended && !streamOutput->mProcessing;});
 	}
-	if (streamConfig) [streamConfig dealloc];
-	if (filter) [filter dealloc];
-	if (stream) [stream dealloc];
 	dispatch_release(videoSampleBufferQueue);
-	[streamOutput dealloc];
-	[streamDelegate dealloc];
+	doRelease(streamConfig,filter, stream, streamOutput, streamDelegate);
 	ms_message("[MsScreenSharing_mac] Thread stopped");
 }
