@@ -63,12 +63,14 @@ public:
 	std::condition_variable mThreadIterator;
 	std::mutex mThreadLock;
 	FormatData mLastFormat;
-	bool mToStop;
+	bool mToStop = false;
 
 public:
 	MsScreenSharing();
 	virtual ~MsScreenSharing();
 	MsScreenSharing(const MsScreenSharing &) = delete;
+	
+	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData);
 
 	virtual void init();
 	virtual void uninit();
@@ -81,7 +83,7 @@ public:
 	virtual MSPixFmt getPixFormat() const;
 
 	// Return the position of the current Window in global coordinates.
-	virtual void getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const = 0;
+	virtual void getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const;
 	virtual bool prepareImage() {
 		return true;
 	};

@@ -49,22 +49,50 @@
 #define MIN(a, b) a <= b ? a : b
 #endif
 
-typedef struct _SIData {
+class SIData {
+public:
+	SIData(){
+		vsize.width = MS_VIDEO_SIZE_CIF_W;
+		vsize.height = MS_VIDEO_SIZE_CIF_H;
+		lasttime = 0;
+		fps = 10.0;
+	}
+
 	MSVideoSize vsize;
 	uint64_t lasttime;
 	float fps;
-	MSScreenSharingDesc mSourceDesc;
 
-	MsScreenSharing *mScreenSharing;
-} SIData;
+#if HAVE_X11_XLIB_H
+	MsScreenSharing_x11 mScreenSharing;
+#elif defined(_WIN32)
+	MsScreenSharing_win mScreenSharing;
+#elif defined(__APPLE__)
+	MsScreenSharing_mac mScreenSharing;
+#else
+	MsScreenSharing mScreenSharing;
+#endif
+};
 
 MsScreenSharing::MsScreenSharing() {
-	ms_message("[MsScreenSharing] Created");
+	mSourceDesc.type = MS_SCREEN_SHARING_EMPTY;
+	mSourceDesc.native_data = NULL;
 }
+
+MsScreenSharing::~MsScreenSharing() {
+	stop();
+	ms_message("[MsScreenSharing] Destroyed");
+}
+
+void MsScreenSharing::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) {
+	stop();
+	mSourceDesc = sourceDesc;
+	mLastFormat = formatData;
+}
+
 void MsScreenSharing::init() {
 	int windowX = 0, windowY = 0, windowW = 100, windowH = 100;
 	int screenIndex = 0;
-	getWindowSize(&windowX, &windowY, &windowW, &windowH);
+	if(mSourceDesc.type != MS_SCREEN_SHARING_EMPTY)	getWindowSize(&windowX, &windowY, &windowW, &windowH);
 	mLastFormat.mPosition = getCroppedArea(windowX, windowY, windowW, windowH, &screenIndex);
 	mLastFormat.mSizeChanged = false;
 	mLastFormat.mScreenIndex = screenIndex;
@@ -73,11 +101,6 @@ void MsScreenSharing::init() {
 }
 
 void MsScreenSharing::uninit() {
-}
-
-MsScreenSharing::~MsScreenSharing() {
-	stop();
-	ms_message("[MsScreenSharing] Destroyed");
 }
 
 bool_t MsScreenSharing::isTimeToSend(uint64_t tickerTime) {
@@ -117,6 +140,10 @@ void MsScreenSharing::start() {
 		freemsg(mFrameToSend);
 		mFrameToSend = nullptr;
 	}
+	if(mAllocator){
+		ms_yuv_buf_allocator_free(mAllocator);
+		mAllocator = nullptr;
+	}
 	mAllocator = ms_yuv_buf_allocator_new();
 	mThread = std::thread(&MsScreenSharing::inputThread, this);
 	mFrameLock.unlock();
@@ -145,6 +172,7 @@ void MsScreenSharing::stop() {
 		}
 		mFrameLock.unlock();
 		ms_message("[MsScreenSharing Input thread stopped");
+	
 	}
 }
 
@@ -245,6 +273,10 @@ MsScreenSharing::getCroppedArea(int windowX, int windowY, int windowWidth, int w
 	}
 	return cropArea;
 }
+
+void MsScreenSharing::getWindowSize(BCTBX_UNUSED(int *windowX), BCTBX_UNUSED(int *windowY), BCTBX_UNUSED(int *windowWidth), BCTBX_UNUSED(int *windowHeight)) const{
+}
+
 void MsScreenSharing::inputThread() {
 	ms_message("[MsScreenSharing] Input thread started. %d", (int)mToStop);
 	int grabX, grabY, grabWidth, grabHeight;
@@ -334,50 +366,29 @@ void MsScreenSharing::feed(MSFilter *filter) {
 //------------------------------------------------------------------------------------------------------------
 
 void ms_screensharing_init(MSFilter *f) {
-	SIData *d = (SIData *)ms_new0(SIData, 1);
-	d->vsize.width = MS_VIDEO_SIZE_CIF_W;
-	d->vsize.height = MS_VIDEO_SIZE_CIF_H;
-	d->lasttime = 0;
-	d->fps = 10.0;
+	SIData *d = new SIData();
 	f->data = d;
-	MSScreenSharingDesc desc;
-	desc.type = MS_SCREEN_SHARING_EMPTY;
-	desc.native_data = NULL;
-
-#if HAVE_X11_XLIB_H
-	d->mScreenSharing = new MsScreenSharing_x11(desc, MsScreenSharing::FormatData());
-#elif defined(_WIN32)
-	d->mScreenSharing = new MsScreenSharing_win(desc, MsScreenSharing::FormatData());
-#elif defined(__APPLE__)
-	d->mScreenSharing = new MsScreenSharing_mac(desc, MsScreenSharing::FormatData());
-#else
-	ms_error("[MsScreenSharing] Current platform is not supported");
-	return;
-#endif
-	d->mScreenSharing->init(); // need to init to have frame sizes on creation.
-	d->mScreenSharing->mFilter = f;
+		
+	d->mScreenSharing.mFilter = f;
+	d->mScreenSharing.init(); // need to init to have frame sizes on creation.
 }
 
 void ms_screensharing_uninit(MSFilter *f) {
 	SIData *d = (SIData *)f->data;
-	if (d->mScreenSharing) {
-		delete d->mScreenSharing;
-		d->mScreenSharing = nullptr;
-	}
-	ms_free(d);
+	delete d;
 }
 
 void ms_screensharing_preprocess(BCTBX_UNUSED(MSFilter *f)) {
 	ms_filter_lock(f);
 	SIData *d = (SIData *)f->data;
-	d->mScreenSharing->start();
+	d->mScreenSharing.start();
 	ms_filter_unlock(f);
 }
 
 void ms_screensharing_process(MSFilter *filter) {
 	ms_filter_lock(filter);
 	SIData *d = (SIData *)filter->data;
-	if (d->mScreenSharing) d->mScreenSharing->feed(filter);
+	if(d->mScreenSharing.mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) d->mScreenSharing.feed(filter);
 	d->lasttime = filter->ticker->time;
 	ms_filter_unlock(filter);
 }
@@ -385,14 +396,14 @@ void ms_screensharing_process(MSFilter *filter) {
 void ms_screensharing_postprocess(MSFilter *f) {
 	ms_filter_lock(f);
 	SIData *d = (SIData *)f->data;
-	if (d->mScreenSharing) d->mScreenSharing->stop();
+	d->mScreenSharing.stop();
 	ms_filter_unlock(f);
 }
 
 static int ms_screensharing_set_fps(MSFilter *f, void *arg) {
 	ms_filter_lock(f);
 	SIData *d = (SIData *)f->data;
-	d->mScreenSharing->setFps(*(float *)arg);
+	d->mScreenSharing.setFps(*(float *)arg);
 	ms_filter_unlock(f);
 	return 0;
 }
@@ -400,12 +411,10 @@ static int ms_screensharing_set_fps(MSFilter *f, void *arg) {
 static int ms_screensharing_get_fps(MSFilter *filter, void *arg) {
 	ms_filter_lock(filter);
 	SIData *d = (SIData *)filter->data;
-	if (d->mScreenSharing) {
-		if (filter->ticker) {
-			*((float *)arg) = ms_average_fps_get(&d->mScreenSharing->mAvgFps);
-		} else {
-			*((float *)arg) = d->mScreenSharing->getFps();
-		}
+	if (filter->ticker) {
+		*((float *)arg) = ms_average_fps_get(&d->mScreenSharing.mAvgFps);
+	} else {
+		*((float *)arg) = d->mScreenSharing.getFps();
 	}
 	ms_filter_unlock(filter);
 	return 0;
@@ -419,12 +428,12 @@ int ms_screensharing_set_vsize(BCTBX_UNUSED(MSFilter *f), BCTBX_UNUSED(void *dat
 int ms_screensharing_get_vsize(MSFilter *f, void *data) {
 	SIData *d = (SIData *)f->data;
 	ms_filter_lock(f);
-	if (!d->mScreenSharing->mRunnable) {
-		d->mScreenSharing->uninit();
-		d->mScreenSharing->init();
+	if (!d->mScreenSharing.mRunnable) {
+		d->mScreenSharing.uninit();
+		d->mScreenSharing.init();
 	}
-	d->vsize.width = d->mScreenSharing->mLastFormat.mPosition.getWidth();
-	d->vsize.height = d->mScreenSharing->mLastFormat.mPosition.getHeight();
+	d->vsize.width = d->mScreenSharing.mLastFormat.mPosition.getWidth();
+	d->vsize.height = d->mScreenSharing.mLastFormat.mPosition.getHeight();
 	ms_filter_unlock(f);
 	*(MSVideoSize *)data = d->vsize;
 	return 0;
@@ -432,7 +441,7 @@ int ms_screensharing_get_vsize(MSFilter *f, void *data) {
 
 int ms_screensharing_get_pix_fmt(BCTBX_UNUSED(MSFilter *f), void *data) {
 	SIData *d = (SIData *)f->data;
-	*(MSPixFmt *)data = d->mScreenSharing->getPixFormat();
+	*(MSPixFmt *)data = d->mScreenSharing.getPixFormat();
 	return 0;
 }
 
@@ -441,35 +450,23 @@ static int ms_screensharing_set_source_descriptor(MSFilter *f, void *arg) {
 	SIData *d = (SIData *)f->data;
 	bool wasRunning = false;
 	MsScreenSharing::FormatData saveData;
-	if (d->mScreenSharing) {
+	if (d->mScreenSharing.mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) {
 		ms_message("[MSScreenSharing] Resetting new source descriptor");
-		wasRunning = d->mScreenSharing->isRunning();
+		wasRunning = d->mScreenSharing.isRunning();
 		// Last format is saved only if sharing is running: If not, format is not refreshing on change.
-		if (wasRunning) saveData = d->mScreenSharing->mLastFormat;
-		delete d->mScreenSharing;
-		d->mScreenSharing = nullptr;
+		if (wasRunning) saveData = d->mScreenSharing.mLastFormat;
+		
 	} else ms_message("[MSScreenSharing] Setting new source descriptor");
+	d->mScreenSharing.mFilter = f;
 	MSScreenSharingDesc descriptor = *(MSScreenSharingDesc *)arg;
-	d->mSourceDesc = descriptor;
-#if HAVE_X11_XLIB_H
-	d->mScreenSharing = new MsScreenSharing_x11(d->mSourceDesc, saveData);
-#elif defined(_WIN32)
-	d->mScreenSharing = new MsScreenSharing_win(d->mSourceDesc, saveData);
-#elif defined(__APPLE__)
-	d->mScreenSharing = new MsScreenSharing_mac(d->mSourceDesc, saveData);
-#else
-	ms_error("[MsScreenSharing] Current platform is not supported");
-	ms_filter_unlock(f);
-	return -1;
-#endif
-	d->mScreenSharing->mFilter = f;
-	d->mScreenSharing->init(); // need to init to have frame sizes on creation.
+	d->mScreenSharing.setSource(descriptor, saveData);
+	d->mScreenSharing.init(); // need to init to have frame sizes on creation.
 	if (wasRunning) {
-		d->mScreenSharing->mLastFormat.mSizeChanged =
-		    d->mScreenSharing->mLastFormat.mSizeChanged ||
-		    saveData.mPosition.getHeight() != d->mScreenSharing->mLastFormat.mPosition.getHeight() ||
-		    saveData.mPosition.getWidth() != d->mScreenSharing->mLastFormat.mPosition.getWidth();
-		d->mScreenSharing->start();
+		d->mScreenSharing.mLastFormat.mSizeChanged =
+		    d->mScreenSharing.mLastFormat.mSizeChanged ||
+		    saveData.mPosition.getHeight() != d->mScreenSharing.mLastFormat.mPosition.getHeight() ||
+		    saveData.mPosition.getWidth() != d->mScreenSharing.mLastFormat.mPosition.getWidth();
+		d->mScreenSharing.start();
 	}
 	ms_filter_unlock(f);
 	return 0;
@@ -477,7 +474,7 @@ static int ms_screensharing_set_source_descriptor(MSFilter *f, void *arg) {
 
 static int ms_screensharing_get_source_descriptor(MSFilter *f, void *arg) {
 	SIData *d = (SIData *)f->data;
-	*(void **)arg = &d->mSourceDesc;
+	*(void **)arg = &d->mScreenSharing.mSourceDesc;
 	return 0;
 }
 

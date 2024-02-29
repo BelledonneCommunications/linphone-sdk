@@ -54,16 +54,18 @@
 + (SCDisplay *)findDisplay:(CGDirectDisplayID)displayId;
 @end
 
-MsScreenSharing_mac::MsScreenSharing_mac(MSScreenSharingDesc sourceDesc, FormatData formatData)
-	: MsScreenSharing() {
-	mLastFormat = formatData;
-	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_YUV420P;
-	mSourceDesc = sourceDesc;
+MsScreenSharing_mac::MsScreenSharing_mac() : MsScreenSharing(){
+	mLastFormat.mPixelFormat = MS_YUV420P;
 }
 
 MsScreenSharing_mac::~MsScreenSharing_mac() {
 	stop();
 	MsScreenSharing_mac::uninit();
+}
+
+void MsScreenSharing_mac::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData){
+	MsScreenSharing::setSource(sourceDesc, formatData);
+	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_YUV420P;
 }
 
 void MsScreenSharing_mac::init() {

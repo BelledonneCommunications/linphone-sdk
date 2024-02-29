@@ -44,10 +44,11 @@ public:
 	bool mShmServerAttached;
 
 public:
-	MsScreenSharing_x11(MSScreenSharingDesc sourceDesc, FormatData formatData);
-
+	MsScreenSharing_x11();
 	virtual ~MsScreenSharing_x11();
 	MsScreenSharing_x11(const MsScreenSharing_x11 &) = delete;
+	
+	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) override;
 
 	void initDisplay();
 	void clean();

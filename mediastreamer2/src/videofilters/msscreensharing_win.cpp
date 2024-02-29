@@ -38,15 +38,18 @@
 #include <map>
 #include <mutex>
 
-MsScreenSharing_win::MsScreenSharing_win(MSScreenSharingDesc sourceDesc, FormatData formatData) : MsScreenSharing() {
-	mLastFormat = formatData;
-	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_RGBA32_REV;
-	mSourceDesc = sourceDesc;
+MsScreenSharing_win::MsScreenSharing_win() : MsScreenSharing() {
+	mLastFormat.mPixelFormat = MS_RGBA32_REV;
 }
 
 MsScreenSharing_win::~MsScreenSharing_win() {
 	stop();
 	MsScreenSharing_win::uninit();
+}
+
+void MsScreenSharing_win::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData){
+	MsScreenSharing::setSource(sourceDesc, formatData);
+	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_RGBA32_REV;
 }
 
 void MsScreenSharing_win::init() {

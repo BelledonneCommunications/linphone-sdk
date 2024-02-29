@@ -30,10 +30,10 @@
 
 class MsScreenSharing_win : public MsScreenSharing {
 public:
-	MsScreenSharing_win(MSScreenSharingDesc sourceDesc, FormatData formatData);
-
+	MsScreenSharing_win();
 	virtual ~MsScreenSharing_win();
 	MsScreenSharing_win(const MsScreenSharing_win &) = delete;
+	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) override;
 
 	virtual void init() override;
 	virtual void uninit() override;

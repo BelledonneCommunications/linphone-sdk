@@ -46,11 +46,18 @@
 #include <mutex>
 #include <sys/shm.h>
 
-MsScreenSharing_x11::MsScreenSharing_x11(MSScreenSharingDesc sourceDesc, FormatData formatData) : MsScreenSharing() {
-	mLastFormat = formatData;
+MsScreenSharing_x11::MsScreenSharing_x11() : MsScreenSharing(){
+}
+
+MsScreenSharing_x11::~MsScreenSharing_x11() {
+	stop();
+	cleanImage();
+}
+
+void MsScreenSharing_x11::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) {
+	MsScreenSharing::setSource(sourceDesc, formatData);
 	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_RGBA32_REV;
 	mDisplay = NULL;
-	mSourceDesc = sourceDesc;
 	mImage = NULL;
 
 	mShmInfo.shmseg = 0;
@@ -77,11 +84,6 @@ MsScreenSharing_x11::MsScreenSharing_x11(MSScreenSharingDesc sourceDesc, FormatD
 	init();
 }
 
-MsScreenSharing_x11::~MsScreenSharing_x11() {
-	stop();
-	cleanImage();
-}
-
 void MsScreenSharing_x11::getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const {
 	XWindowAttributes windowAttributes;
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY &&
@@ -91,7 +93,7 @@ void MsScreenSharing_x11::getWindowSize(int *windowX, int *windowY, int *windowW
 		*windowY = rect.mY1;
 		*windowWidth = rect.getWidth();
 		*windowHeight = rect.getHeight();
-	} else {
+	} else if(mDisplay){
 		XGetWindowAttributes(mDisplay, mRootWindow, &windowAttributes);
 		*windowX = windowAttributes.x;
 		*windowY = windowAttributes.y;

@@ -27,10 +27,11 @@
 
 class MsScreenSharing_mac : public MsScreenSharing {
 public:
-	MsScreenSharing_mac(MSScreenSharingDesc sourceDesc, FormatData formatData);
-
+	MsScreenSharing_mac();
 	virtual ~MsScreenSharing_mac();
 	MsScreenSharing_mac(const MsScreenSharing_mac &) = delete;
+	
+	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) override;
 
 	virtual void init() override;
 	bool initDisplay();
