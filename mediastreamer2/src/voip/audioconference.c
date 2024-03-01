@@ -55,7 +55,7 @@ struct _MSAudioEndpoint {
 	int pin;
 	int samplerate;
 	bool_t muted;
-	bool_t full_packet_mode;
+	MSConferenceMode conf_mode;
 };
 
 MSAudioConference *ms_audio_conference_new(const MSAudioConferenceParams *params, MSFactory *factory) {
@@ -67,15 +67,18 @@ MSAudioConference *ms_audio_conference_new(const MSAudioConferenceParams *params
 	obj->ticker = ms_ticker_new_with_params(&ticker_params);
 	obj->params = *params;
 
-	if (params->full_packet_mode) {
+	if (params->mode == MSConferenceModeMixer) {
+		obj->mixer = ms_factory_create_filter(factory, MS_AUDIO_MIXER_ID);
+		ms_filter_call_method(obj->mixer, MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE, &tmp);
+		ms_filter_call_method(obj->mixer, MS_FILTER_SET_SAMPLE_RATE, &obj->params.samplerate);
+	} else {
 		obj->mixer = ms_factory_create_filter(factory, MS_PACKET_ROUTER_ID);
 
 		MSPacketRouterMode mode = MS_PACKET_ROUTER_MODE_AUDIO;
 		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_SET_ROUTING_MODE, &mode);
-	} else {
-		obj->mixer = ms_factory_create_filter(factory, MS_AUDIO_MIXER_ID);
-		ms_filter_call_method(obj->mixer, MS_AUDIO_MIXER_ENABLE_CONFERENCE_MODE, &tmp);
-		ms_filter_call_method(obj->mixer, MS_FILTER_SET_SAMPLE_RATE, &obj->params.samplerate);
+
+		bool_t full_packet = params->mode == MSConferenceModeRouterFullPacket ? TRUE : FALSE;
+		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, &full_packet);
 	}
 
 	return obj;
@@ -113,46 +116,46 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 	if (!st->ec) ms_ticker_detach(st->ms.sessions.ticker, st->soundwrite);
 
 	ep->in_cut_point_prev.pin = 0;
-	if (ep->full_packet_mode) {
-		// Full packet mode is remote only
-		ep->in_cut_point_prev.filter = st->ms.rtprecv;
-	} else {
+	if (ep->conf_mode == MSConferenceModeMixer) {
 		if (is_remote) {
 			/*we would like to keep the volrecv (MSVolume filter) in the graph to measure the output level*/
 			ep->in_cut_point_prev.filter = st->volrecv;
 		} else {
 			ep->in_cut_point_prev.filter = st->plc ? st->plc : st->ms.decoder;
 		}
+	} else {
+		// Full packet mode is remote only
+		ep->in_cut_point_prev.filter = st->ms.rtprecv;
 	}
 
 	ep->in_cut_point = just_after(ep->in_cut_point_prev.filter);
 	ms_filter_unlink(ep->in_cut_point_prev.filter, ep->in_cut_point_prev.pin, ep->in_cut_point.filter,
 	                 ep->in_cut_point.pin);
 
-	if (ep->full_packet_mode) {
-		ep->out_cut_point = just_before(st->ms.rtpsend);
-		ep->out_cut_point_next.filter = st->ms.rtpsend;
-		ep->out_cut_point_next.pin = 0;
-	} else {
+	if (ep->conf_mode == MSConferenceModeMixer) {
 		ep->out_cut_point = just_before(st->ms.encoder);
 		ep->out_cut_point_next.filter = st->ms.encoder;
+		ep->out_cut_point_next.pin = 0;
+	} else {
+		ep->out_cut_point = just_before(st->ms.rtpsend);
+		ep->out_cut_point_next.filter = st->ms.rtpsend;
 		ep->out_cut_point_next.pin = 0;
 	}
 
 	ms_filter_unlink(ep->out_cut_point.filter, ep->out_cut_point.pin, ep->out_cut_point_next.filter,
 	                 ep->out_cut_point_next.pin);
 
-	if (ep->full_packet_mode) {
-		bool_t enable = TRUE;
-		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
-		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
-		rtp_session_enable_transfer_mode(st->ms.sessions.rtp_session, TRUE);
-	} else {
+	if (ep->conf_mode == MSConferenceModeMixer) {
 		if (ms_filter_has_method(st->ms.encoder, MS_FILTER_GET_SAMPLE_RATE)) {
 			ms_filter_call_method(st->ms.encoder, MS_FILTER_GET_SAMPLE_RATE, &ep->samplerate);
 		} else {
 			ms_filter_call_method(st->ms.rtpsend, MS_FILTER_GET_SAMPLE_RATE, &ep->samplerate);
 		}
+	} else if (ep->conf_mode == MSConferenceModeRouterFullPacket) {
+		bool_t enable = TRUE;
+		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
+		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
+		rtp_session_enable_transfer_mode(st->ms.sessions.rtp_session, TRUE);
 	}
 
 	if (is_remote) {
@@ -169,7 +172,7 @@ static void cut_audio_stream_graph(MSAudioEndpoint *ep, bool_t is_remote) {
 static void redo_audio_stream_graph(MSAudioEndpoint *ep) {
 	AudioStream *st = ep->st;
 
-	if (ep->full_packet_mode) {
+	if (ep->conf_mode == MSConferenceModeRouterFullPacket) {
 		bool_t enable = FALSE;
 		ms_filter_call_method(st->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
 		ms_filter_call_method(st->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
@@ -200,7 +203,7 @@ static void plumb_to_conf(MSAudioEndpoint *ep) {
 
 	ep->pin = find_free_pin(conf->mixer);
 
-	if (ep->full_packet_mode) {
+	if (ep->conf_mode != MSConferenceModeMixer) {
 		if (ep->mixer_in.filter) {
 			ms_filter_link(ep->mixer_in.filter, ep->mixer_in.pin, conf->mixer, ep->pin);
 		}
@@ -306,9 +309,7 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 	obj->members = bctbx_list_append(obj->members, ep);
 	obj->nmembers++;
 
-	if (obj->params.full_packet_mode) {
-		configure_output(ep);
-	} else {
+	if (obj->params.mode == MSConferenceModeMixer) {
 		ms_audio_conference_mute_member(obj, ep, ep->muted);
 
 		// If mixer to client extension id is configured then add the needed callback
@@ -318,6 +319,8 @@ void ms_audio_conference_add_member(MSAudioConference *obj, MSAudioEndpoint *ep)
 			callback.user_data = ep;
 			ms_filter_call_method(ep->st->ms.rtpsend, MS_RTP_SEND_SET_MIXER_TO_CLIENT_DATA_REQUEST_CB, &callback);
 		}
+	} else {
+		configure_output(ep);
 	}
 }
 
@@ -325,25 +328,25 @@ static void unplumb_from_conf(MSAudioEndpoint *ep) {
 	MSAudioConference *conf = ep->conference;
 
 	if (ep->mixer_in.filter) {
-		if (ep->full_packet_mode) {
-			ms_filter_unlink(ep->mixer_in.filter, ep->mixer_in.pin, conf->mixer, ep->pin);
-		} else {
+		if (ep->conf_mode == MSConferenceModeMixer) {
 			ms_filter_unlink(ep->mixer_in.filter, ep->mixer_in.pin, ep->in_resampler, 0);
 			ms_filter_unlink(ep->in_resampler, 0, conf->mixer, ep->pin);
+		} else {
+			ms_filter_unlink(ep->mixer_in.filter, ep->mixer_in.pin, conf->mixer, ep->pin);
 		}
 	}
 	if (ep->mixer_out.filter) {
-		if (ep->full_packet_mode) {
-			ms_filter_unlink(conf->mixer, ep->pin, ep->mixer_out.filter, ep->mixer_out.pin);
-		} else {
+		if (ep->conf_mode == MSConferenceModeMixer) {
 			ms_filter_unlink(conf->mixer, ep->pin, ep->out_resampler, 0);
 			ms_filter_unlink(ep->out_resampler, 0, ep->mixer_out.filter, ep->mixer_out.pin);
+		} else {
+			ms_filter_unlink(conf->mixer, ep->pin, ep->mixer_out.filter, ep->mixer_out.pin);
 		}
 	}
 }
 
 void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *ep) {
-	if (ep->full_packet_mode) unconfigure_output(ep);
+	if (ep->conf_mode != MSConferenceModeMixer) unconfigure_output(ep);
 	ms_ticker_detach(obj->ticker, obj->mixer);
 	unplumb_from_conf(ep);
 	ep->conference = NULL;
@@ -352,9 +355,9 @@ void ms_audio_conference_remove_member(MSAudioConference *obj, MSAudioEndpoint *
 	if (obj->nmembers > 0) ms_ticker_attach(obj->ticker, obj->mixer);
 }
 
-void ms_audio_conference_mute_member(BCTBX_UNUSED(MSAudioConference *obj), MSAudioEndpoint *ep, bool_t muted) {
-	if (ep->full_packet_mode) {
-		ms_warning("Cannot mute participant in full packet mode");
+void ms_audio_conference_mute_member(MSAudioConference *obj, MSAudioEndpoint *ep, bool_t muted) {
+	if (obj->params.mode != MSConferenceModeMixer) {
+		ms_warning("Cannot mute participant when the conference is not in mixer mode");
 		return;
 	}
 
@@ -397,7 +400,7 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 	const bctbx_list_t *elem;
 	MSAudioEndpoint *winner = NULL;
 
-	if (obj->params.full_packet_mode) {
+	if (obj->params.mode == MSConferenceModeRouterFullPacket) {
 		int pin = -1;
 		ms_filter_call_method(obj->mixer, MS_PACKET_ROUTER_GET_ACTIVE_SPEAKER_PIN, &pin);
 
@@ -410,7 +413,7 @@ void ms_audio_conference_process_events(MSAudioConference *obj) {
 				}
 			}
 		}
-	} else {
+	} else if (obj->params.mode == MSConferenceModeMixer) {
 		float max_db_over_member = MS_VOLUME_DB_LOWEST;
 
 		for (elem = obj->members; elem != NULL; elem = elem->next) {
@@ -460,19 +463,19 @@ void *ms_audio_endpoint_get_user_data(const MSAudioEndpoint *ep) {
 	return ep->user_data;
 }
 
-MSAudioEndpoint *ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote, bool_t full_packet_mode) {
+MSAudioEndpoint *ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote, MSConferenceMode conf_mode) {
 	MSAudioEndpoint *ep = ms_audio_endpoint_new();
 	ep->st = st;
-	ep->full_packet_mode = full_packet_mode;
+	ep->conf_mode = conf_mode;
 
-	if (ep->full_packet_mode) {
+	if (ep->conf_mode == MSConferenceModeMixer) {
+		ep->in_resampler = ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
+		ep->out_resampler = ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
+	} else {
 		if (!is_remote) {
 			ms_error("Cannot set local audio endpoint if full packet mode is enabled, changing to remote.");
 			is_remote = TRUE;
 		}
-	} else {
-		ep->in_resampler = ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
-		ep->out_resampler = ms_factory_create_filter(st->ms.factory, MS_RESAMPLE_ID);
 	}
 
 	cut_audio_stream_graph(ep, is_remote);

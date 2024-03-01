@@ -47,13 +47,33 @@ typedef enum {
 } MSStreamSecurityLevel;
 
 /**
+ * The MSConferenceMode represents the different modes a conference can have.
+ *
+ * MSConferenceModeMixer: The conference will decode all streams, mix what we need, and re-encode the result to send.
+ *
+ * MSConferenceModeRouterPayload: The conference will route the streams' extracted payload without decoding and
+ * re-encoding. All audio is sent to everyone (except ourselves).
+ *
+ * MSConferenceModeRouterFullPacket: The conference will route the streams without any modification, decoding and
+ * re-encoding. This mode will only send the relevant streams.
+ *
+ * Be careful, the MSConferenceModeRouterPayload is meant to work (for now) for ONLY 2 participants. It can route more
+ * but it is not yet implemented client-side.
+ **/
+typedef enum {
+	MSConferenceModeMixer,
+	MSConferenceModeRouterPayload,
+	MSConferenceModeRouterFullPacket
+} MSConferenceMode;
+
+/**
  * Structure that holds audio conference parameters
  **/
 struct _MSAudioConferenceParams {
 	int samplerate; /**< Conference audio sampling rate in Hz: 8000, 16000 ...*/
 	MSAudioConferenceNotifyActiveTalker active_talker_callback;
 	MSStreamSecurityLevel security_level;
-	bool_t full_packet_mode;
+	MSConferenceMode mode;
 	void *user_data;
 };
 
@@ -194,7 +214,7 @@ MS2_PUBLIC void ms_audio_conference_destroy(MSAudioConference *obj);
  * </PRE>
  **/
 MS2_PUBLIC MSAudioEndpoint *
-ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote, bool_t full_packet_mode);
+ms_audio_endpoint_get_from_stream(AudioStream *st, bool_t is_remote, MSConferenceMode conf_mode);
 
 /**
  * Associate a user pointer to the endpoint.

@@ -74,7 +74,9 @@ RouterAudioInput::RouterAudioInput(PacketRouter *router, int inputNumber) : Rout
 
 void RouterAudioInput::update() {
 	MSQueue *queue = mRouter->getInputQueue(mPin);
-	if (queue == nullptr) return;
+	if (queue == nullptr || ms_queue_empty(queue)) return;
+
+	if (!mRouter->isFullPacketModeEnabled()) return;
 
 	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
 		mSsrc = rtp_get_ssrc(m);
@@ -165,6 +167,27 @@ void RouterVideoInput::update() {
 RouterOutput::RouterOutput(PacketRouter *router, int pin) : mRouter(router), mPin(pin) {
 }
 
+void RouterOutput::rewritePacketInformation(mblk_t *source, mblk_t *output) {
+	if (mblk_get_timestamp_info(source) != mOutTimestamp) {
+		if (mRouter->getRoutingMode() == PacketRouter::RoutingMode::Video) {
+			// Each time we observe a new input timestamp, we must select a new output timestamp
+			mOutTimestamp = mblk_get_timestamp_info(source);
+			mAdjustedOutTimestamp = static_cast<uint32_t>(mRouter->getTime() * 90LL);
+		} else {
+			// In audio as it can only work for 2 since client-side is not implemented
+			// just set source timestamp
+			mOutTimestamp = mAdjustedOutTimestamp = mblk_get_timestamp_info(source);
+		}
+	}
+
+	// We need to set sequence number for what we send out, otherwise the decoder won't be able
+	// to verify the integrity of the stream
+
+	mblk_set_timestamp_info(output, mAdjustedOutTimestamp);
+	mblk_set_cseq(output, mOutSeqNumber++);
+	mblk_set_marker_info(output, mblk_get_marker_info(source));
+}
+
 RouterAudioOutput::RouterAudioOutput(PacketRouter *router, int pin) : RouterOutput(router, pin) {
 }
 
@@ -187,7 +210,7 @@ void RouterAudioOutput::transfer() {
 				// This is needed to make sure clients still receives volumes from the PacketRouter.
 				for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
 					const auto &input = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
-					if (input != nullptr && mCurrentSource != input->getPin()) {
+					if (input != nullptr && mSelfSource != input->getPin()) {
 						sendData(outputQueue, input, volumes);
 						break;
 					}
@@ -197,8 +220,7 @@ void RouterAudioOutput::transfer() {
 				// any volumes. For the rest, send the one selected.
 				const auto &selected = selector->getSelectedInputs()[0];
 				if (selected != nullptr) {
-					bool isSelf = mCurrentSource == selected->getPin();
-					if (isSelf) {
+					if (mSelfSource == selected->getPin()) {
 						for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
 							const auto &input = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
 							if (input != nullptr && input != selected) {
@@ -214,7 +236,7 @@ void RouterAudioOutput::transfer() {
 				// Else just send all selected inputs that are not us.
 				for (const auto input : selector->getSelectedInputs()) {
 					// Don't send audio to ourselves
-					if (input != nullptr && mCurrentSource != input->getPin()) sendData(outputQueue, input, volumes);
+					if (input != nullptr && mSelfSource != input->getPin()) sendData(outputQueue, input, volumes);
 				}
 			}
 		}
@@ -232,7 +254,7 @@ void RouterAudioOutput::sendData(MSQueue *outputQueue,
 	for (mblk_t *m = ms_queue_peek_first(inputQueue); !ms_queue_end(inputQueue, m);
 	     m = ms_queue_peek_next(inputQueue, m)) {
 
-		if (!volumes.empty() && !volumesSent) {
+		if (mRouter->isFullPacketModeEnabled() && !volumes.empty() && !volumesSent) {
 			// Small optimization here, we inject the volumes into the input's first packet and not the
 			// duplication. So only the first output transfer() will inject the volumes then it will already
 			// be there.
@@ -245,7 +267,13 @@ void RouterAudioOutput::sendData(MSQueue *outputQueue,
 			volumesSent = true;
 		}
 
-		ms_queue_put(outputQueue, copymsg(m));
+		mblk_t *o = copymsg(m);
+
+		if (!mRouter->isFullPacketModeEnabled()) {
+			rewritePacketInformation(m, o);
+		}
+
+		ms_queue_put(outputQueue, o);
 	}
 }
 
@@ -294,18 +322,7 @@ void RouterVideoOutput::transfer() {
 
 				// Only re-write packet information if full packet mode is disabled
 				if (!mRouter->isFullPacketModeEnabled()) {
-					if (mblk_get_timestamp_info(m) != mOutTimestamp) {
-						// Each time we observe a new input timestamp, we must select a new output timestamp
-						mOutTimestamp = mblk_get_timestamp_info(m);
-						mAdjustedOutTimestamp = static_cast<uint32_t>(mRouter->getTime() * 90LL);
-					}
-
-					/* We need to set sequence number for what we send out, otherwise the VP8 decoder won't be able
-					 * to verify the integrity of the stream */
-
-					mblk_set_timestamp_info(o, mAdjustedOutTimestamp);
-					mblk_set_cseq(o, mOutSeqNumber++);
-					mblk_set_marker_info(o, mblk_get_marker_info(m));
+					rewritePacketInformation(m, o);
 				}
 
 				ms_queue_put(outputQueue, o);
@@ -326,22 +343,31 @@ RouterInputAudioSelector::RouterInputAudioSelector(PacketRouter *router) : Route
 void RouterInputAudioSelector::select() {
 	mSelected.clear();
 
-	// If only two, select them anyway to always have audio.
-	int activeParticipants = mRouter->getRouterActiveInputs();
+	if (mRouter->isFullPacketModeEnabled()) {
+		// If only two, select them anyway to always have audio.
+		int activeParticipants = mRouter->getRouterActiveInputs();
 
-	for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
-		auto audioInput = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
+		for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
+			auto audioInput = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
 
-		if (audioInput != nullptr && (activeParticipants == 2 || audioInput->mIsSpeaking))
-			mSelected.push_back(audioInput);
-	}
+			if (audioInput != nullptr && (activeParticipants == 2 || audioInput->mIsSpeaking))
+				mSelected.push_back(audioInput);
+		}
 
-	if (auto size = mSelected.size(); size > 1) {
-		// Sort by descending volume order
-		std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
+		if (auto size = mSelected.size(); size > 1) {
+			// Sort by descending volume order
+			std::sort(mSelected.begin(), mSelected.end(), [](auto a, auto b) { return a->mVolume > b->mVolume; });
 
-		// Keep the first MAX_SPEAKER_AT_ONCE volumes
-		if (size > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+			// Keep the first MAX_SPEAKER_AT_ONCE volumes
+			if (size > PacketRouter::MAX_SPEAKER_AT_ONCE) mSelected.resize(PacketRouter::MAX_SPEAKER_AT_ONCE);
+		}
+	} else {
+		// If not in full packet mode, we send all audio.
+		for (int i = 0; i < mRouter->getRouterInputsSize(); ++i) {
+			auto audioInput = dynamic_cast<RouterAudioInput *>(mRouter->getRouterInput(i));
+
+			if (audioInput != nullptr) mSelected.push_back(audioInput);
+		}
 	}
 }
 
@@ -485,7 +511,7 @@ void PacketRouter::process() {
 	mSelector->select();
 
 	// Update the volumes to send.
-	if (mRoutingMode == RoutingMode::Audio) {
+	if (mRoutingMode == RoutingMode::Audio && mFullPacketMode) {
 		updateVolumesToSend();
 	}
 
@@ -511,7 +537,6 @@ void PacketRouter::setRoutingMode(PacketRouter::RoutingMode mode) {
 
 	switch (mRoutingMode) {
 		case PacketRouter::RoutingMode::Audio:
-			mFullPacketMode = true; // This does nothing for audio mode because it always uses full packets.
 			mSelector = make_unique<RouterInputAudioSelector>(this);
 			break;
 		case PacketRouter::RoutingMode::Video:
@@ -650,15 +675,15 @@ void PacketRouter::unconfigureOutput(int pin) {
 	lock();
 
 	try {
-		// Retrieve the current source pin
+		// Retrieve the self source pin
 		const auto &output = mOutputs.at(pin);
-		int currentSource = output != nullptr ? output->getCurrentSource() : -1;
+		int selfSource = output != nullptr ? output->getSelfSource() : -1;
 
 		// Remove the output
 		mOutputs.at(pin) = nullptr;
 
 		// Remove the source if not in use anymore
-		if (currentSource != -1) removeUnusedInput(currentSource);
+		if (selfSource != -1) removeUnusedInput(selfSource);
 	} catch (const std::out_of_range &) {
 		ms_error("Trying to unconfigure output on un-existing pin");
 	}
@@ -803,16 +828,19 @@ void PacketRouter::removeUnusedInput(int index) {
 				audioSelector->clearSelectedInputs();
 			}
 		} else if (mRoutingMode == RoutingMode::Video) {
+#ifdef VIDEO_ENABLED
 			// In video mode, before removing the input we have to check that no other output is using the current
 			// source anymore.
 			bool stillInUse = false;
 			for (const auto &output : mOutputs) {
-				if (output != nullptr && output->getCurrentSource() == index) {
+				const auto videoOutput = dynamic_cast<RouterVideoOutput *>(output.get());
+				if (videoOutput != nullptr && videoOutput->mCurrentSource == index) {
 					stillInUse = true;
 					break;
 				}
 			}
 			if (!stillInUse) mInputs.at(index) = nullptr;
+#endif
 		}
 	} catch (const std::out_of_range &) {
 		ms_error("Trying to remove input on un-existing pin");
@@ -916,9 +944,18 @@ int PacketRouterFilterWrapper::onSetRoutingMode(MSFilter *f, void *arg) {
 	}
 }
 
-int PacketRouterFilterWrapper::onEnableFullPacketMode(MSFilter *f, void *arg) {
+int PacketRouterFilterWrapper::onSetFullPacketModeEnabled(MSFilter *f, void *arg) {
 	try {
 		static_cast<PacketRouter *>(f->data)->enableFullPacketMode(*static_cast<bool_t *>(arg));
+		return 0;
+	} catch (const PacketRouter::MethodCallFailed &) {
+		return -1;
+	}
+}
+
+int PacketRouterFilterWrapper::onGetFullPacketModeEnabled(MSFilter *f, void *arg) {
+	try {
+		*static_cast<bool_t *>(arg) = static_cast<PacketRouter *>(f->data)->isFullPacketModeEnabled();
 		return 0;
 	} catch (const PacketRouter::MethodCallFailed &) {
 		return -1;
@@ -1110,7 +1147,8 @@ using namespace mediastreamer;
 
 static MSFilterMethod MS_FILTER_WRAPPER_METHODS_NAME(PacketRouter)[] = {
     {MS_PACKET_ROUTER_SET_ROUTING_MODE, PacketRouterFilterWrapper::onSetRoutingMode},
-    {MS_PACKET_ROUTER_ENABLE_FULL_PACKET_MODE, PacketRouterFilterWrapper::onEnableFullPacketMode},
+    {MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, PacketRouterFilterWrapper::onSetFullPacketModeEnabled},
+    {MS_PACKET_ROUTER_GET_FULL_PACKET_MODE_ENABLED, PacketRouterFilterWrapper::onGetFullPacketModeEnabled},
     {MS_PACKET_ROUTER_CONFIGURE_OUTPUT, PacketRouterFilterWrapper::onConfigureOutput},
     {MS_PACKET_ROUTER_UNCONFIGURE_OUTPUT, PacketRouterFilterWrapper::onUnconfigureOutput},
     {MS_PACKET_ROUTER_SET_AS_LOCAL_MEMBER, PacketRouterFilterWrapper::onSetAsLocalMember},
