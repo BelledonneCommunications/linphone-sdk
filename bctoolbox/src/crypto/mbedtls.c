@@ -1422,7 +1422,7 @@ int32_t bctbx_ssl_config_set_dtls_srtp_protection_profiles(bctbx_ssl_config_t *s
 }
 
 #else  /* HAVE_DTLS_SRTP */
-int32_t bctbx_ssl_get_dtls_srtp_key_material(BCTBX_UNUSED(bctbx_ssl_config_t *ssl_ctx),
+int32_t bctbx_ssl_get_dtls_srtp_key_material(BCTBX_UNUSED(bctbx_ssl_context_t *ssl_ctx),
                                              BCTBX_UNUSED(uint8_t *output),
                                              size_t *output_length) {
 	*output_length = 0;
