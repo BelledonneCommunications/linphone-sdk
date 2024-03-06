@@ -51,7 +51,7 @@
 
 class SIData {
 public:
-	SIData(){
+	SIData() {
 		vsize.width = MS_VIDEO_SIZE_CIF_W;
 		vsize.height = MS_VIDEO_SIZE_CIF_H;
 		lasttime = 0;
@@ -92,7 +92,7 @@ void MsScreenSharing::setSource(MSScreenSharingDesc sourceDesc, FormatData forma
 void MsScreenSharing::init() {
 	int windowX = 0, windowY = 0, windowW = 100, windowH = 100;
 	int screenIndex = 0;
-	if(mSourceDesc.type != MS_SCREEN_SHARING_EMPTY)	getWindowSize(&windowX, &windowY, &windowW, &windowH);
+	if (mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) getWindowSize(&windowX, &windowY, &windowW, &windowH);
 	mLastFormat.mPosition = getCroppedArea(windowX, windowY, windowW, windowH, &screenIndex);
 	mLastFormat.mSizeChanged = false;
 	mLastFormat.mScreenIndex = screenIndex;
@@ -140,7 +140,7 @@ void MsScreenSharing::start() {
 		freemsg(mFrameToSend);
 		mFrameToSend = nullptr;
 	}
-	if(mAllocator){
+	if (mAllocator) {
 		ms_yuv_buf_allocator_free(mAllocator);
 		mAllocator = nullptr;
 	}
@@ -166,13 +166,12 @@ void MsScreenSharing::stop() {
 			freemsg(mFrameToSend);
 			mFrameToSend = nullptr;
 		}
-		if(mAllocator){
+		if (mAllocator) {
 			ms_yuv_buf_allocator_free(mAllocator);
 			mAllocator = nullptr;
 		}
 		mFrameLock.unlock();
 		ms_message("[MsScreenSharing Input thread stopped");
-	
 	}
 }
 
@@ -187,7 +186,7 @@ void MsScreenSharing::updateScreenConfiguration(const std::vector<Rect> &screenR
 	// log the screen rectangles
 	for (size_t i = 0; i < screenRects.size(); ++i) {
 		auto &rect = screenRects[i];
-		ms_message("[MsScreenSharing] Screen %ld: (%d, %d) x (%d, %d)", i, rect.mX1, rect.mY1, rect.mX2, rect.mY2);
+		ms_message("[MsScreenSharing] Screen %zu: (%d, %d) x (%d, %d)", i, rect.mX1, rect.mY1, rect.mX2, rect.mY2);
 	}
 
 	// calculate bounding box
@@ -230,7 +229,7 @@ void MsScreenSharing::updateScreenConfiguration(const std::vector<Rect> &screenR
 	// log the dead space rectangles
 	for (size_t i = 0; i < mScreenDeadSpace.size(); ++i) {
 		Rect &rect = mScreenDeadSpace[i];
-		ms_message("[MsScreenSharing] Dead space  %ld: (%d, %d) x (%d, %d)", i, rect.mX1, rect.mY1, rect.mX2, rect.mY2);
+		ms_message("[MsScreenSharing] Dead space  %zu: (%d, %d) x (%d, %d)", i, rect.mX1, rect.mY1, rect.mX2, rect.mY2);
 	}
 }
 
@@ -274,7 +273,10 @@ MsScreenSharing::getCroppedArea(int windowX, int windowY, int windowWidth, int w
 	return cropArea;
 }
 
-void MsScreenSharing::getWindowSize(BCTBX_UNUSED(int *windowX), BCTBX_UNUSED(int *windowY), BCTBX_UNUSED(int *windowWidth), BCTBX_UNUSED(int *windowHeight)) const{
+void MsScreenSharing::getWindowSize(BCTBX_UNUSED(int *windowX),
+                                    BCTBX_UNUSED(int *windowY),
+                                    BCTBX_UNUSED(int *windowWidth),
+                                    BCTBX_UNUSED(int *windowHeight)) const {
 }
 
 void MsScreenSharing::inputThread() {
@@ -368,7 +370,7 @@ void MsScreenSharing::feed(MSFilter *filter) {
 void ms_screensharing_init(MSFilter *f) {
 	SIData *d = new SIData();
 	f->data = d;
-		
+
 	d->mScreenSharing.mFilter = f;
 	d->mScreenSharing.init(); // need to init to have frame sizes on creation.
 }
@@ -388,7 +390,7 @@ void ms_screensharing_preprocess(BCTBX_UNUSED(MSFilter *f)) {
 void ms_screensharing_process(MSFilter *filter) {
 	ms_filter_lock(filter);
 	SIData *d = (SIData *)filter->data;
-	if(d->mScreenSharing.mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) d->mScreenSharing.feed(filter);
+	if (d->mScreenSharing.mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) d->mScreenSharing.feed(filter);
 	d->lasttime = filter->ticker->time;
 	ms_filter_unlock(filter);
 }
@@ -455,7 +457,7 @@ static int ms_screensharing_set_source_descriptor(MSFilter *f, void *arg) {
 		wasRunning = d->mScreenSharing.isRunning();
 		// Last format is saved only if sharing is running: If not, format is not refreshing on change.
 		if (wasRunning) saveData = d->mScreenSharing.mLastFormat;
-		
+
 	} else ms_message("[MSScreenSharing] Setting new source descriptor");
 	d->mScreenSharing.mFilter = f;
 	MSScreenSharingDesc descriptor = *(MSScreenSharingDesc *)arg;
