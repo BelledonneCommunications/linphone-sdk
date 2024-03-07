@@ -282,7 +282,7 @@ static void android_snd_read_process(MSFilter *obj) {
 		ms_mutex_lock(&ictx->mutex);
 		if (ictx->mTickerSynchronizer){
 			ms_ticker_synchronizer_resync(ictx->mTickerSynchronizer);
-			ms_message("[AAudio Recorder] resync ticket synchronizer to avoid audio delay");
+			ms_message("[AAudio Recorder] resync ticker synchronizer to avoid audio delay");
 		}
 		ms_mutex_unlock(&ictx->mutex);
 		ictx->aaudio_context->device_changed = false;
@@ -384,9 +384,13 @@ static int android_snd_read_get_nchannels(MSFilter *obj, void *data) {
 
 static void android_snd_read_set_internal_device_id(AAudioInputContext *ictx, int internal_id) {
 	if (!ms_android_sound_utils_is_audio_route_changes_disabled(ictx->sound_utils)) {
-		ictx->deviceId = internal_id;
-		ictx->aaudio_context->device_changed = true;
-		ms_message("[AAudio Recorder] Internal ID changed to [%0d], waiting for next process() to restart the recorder", internal_id);
+		if (ictx->deviceId != internal_id) {
+			ictx->deviceId = internal_id;
+			ictx->aaudio_context->device_changed = true;
+			ms_message("[AAudio Recorder] Internal ID changed to [%0d], waiting for next process() to restart the recorder", internal_id);
+		} else {
+			ms_message("[AAudio Recorder] Internal ID was already [%0d], nothing to do", internal_id);
+		}
 	}
 }
 
@@ -461,7 +465,7 @@ static void android_snd_read_change_microphone_according_to_speaker(MSFilter *ob
 
 	if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_SPEAKER) {
 		if (ictx->soundCard->alternative_id != -1) {
-			ms_message("[AAudio Recorder] Changing microphone to use the one in the back [%0d]", ictx->soundCard->alternative_id);
+			ms_message("[AAudio Recorder] Using microphone in the back of the device [%0d]", ictx->soundCard->alternative_id);
 			ms_mutex_lock(&ictx->stream_mutex);
 			android_snd_read_set_internal_device_id(ictx, ictx->soundCard->alternative_id);
 			ms_mutex_unlock(&ictx->stream_mutex);
@@ -469,12 +473,12 @@ static void android_snd_read_change_microphone_according_to_speaker(MSFilter *ob
 			ms_warning("[AAudio Recorder] No alternative microphone ID found, doing nothing...");
 		}
 	} else if (playback_card->device_type == MSSndCardDeviceType::MS_SND_CARD_DEVICE_TYPE_EARPIECE) {
-		ms_message("[AAudio Recorder] Changing microphone to use the one in the main one [%0d]", ictx->soundCard->internal_id);
+		ms_message("[AAudio Recorder] Using microphone at the bottom of the device [%0d]", ictx->soundCard->internal_id);
 		ms_mutex_lock(&ictx->stream_mutex);
 		android_snd_read_set_internal_device_id(ictx, ictx->soundCard->internal_id);
 		ms_mutex_unlock(&ictx->stream_mutex);
 	} else if ((playback_card->capabilities & MS_SND_CARD_CAP_CAPTURE) == MS_SND_CARD_CAP_CAPTURE) {
-		ms_message("[AAudio Recorder] Playback soundcard also has capture capability, switching microphone to it as well");
+		ms_message("[AAudio Recorder] Playback soundcard [%s] also has capture capability, switching microphone to it as well", playback_card->name);
 		android_snd_read_set_device_id(obj, playback_card);
 	}
 }
