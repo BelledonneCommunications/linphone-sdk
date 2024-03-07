@@ -48,7 +48,7 @@ namespace lime {
 	static void KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<Curve, lime::Xtype::sharedSecret> &dh_out) noexcept {
 		// Ask for twice the size of a DRChainKey for HKDF output
 		lime::sBuffer<2*lime::settings::DRChainKeySize> HKDFoutput{};
-		HMAC_KDF<SHA512>(RK.data(), RK.size(), dh_out.data(), dh_out.size(), lime::settings::hkdf_DRChainKey_info, HKDFoutput.data(), HKDFoutput.size());
+		HMAC_KDF<SHA512>(RK.data(), RK.size(), dh_out.data(), dh_out.size(), lime::settings::hkdf_DRChainKey_info.data(), lime::settings::hkdf_DRChainKey_info.size(), HKDFoutput.data(), HKDFoutput.size());
 
 		// First half of the output goes to RootKey (RK)
 		std::copy_n(HKDFoutput.cbegin(), lime::settings::DRChainKeySize, RK.begin());
@@ -529,7 +529,7 @@ namespace lime {
 			std::vector<uint8_t> emptySalt;
 			emptySalt.clear(); //just to be sure
 			lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
-			HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
+			HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info.data(), lime::settings::hkdf_randomSeed_info.size(), randomKey.data(), randomKey.size());
 
 			// resize cipherMessage vector as it is adressed directly by C library: same as plain message + room for the authentication tag
 			cipherMessage.resize(plaintext.size()+lime::settings::DRMessageAuthTagSize);
@@ -656,7 +656,7 @@ namespace lime {
 				std::vector<uint8_t> emptySalt;
 				emptySalt.clear();
 				lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize> randomKey;
-				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info, randomKey.data(), randomKey.size());
+				HMAC_KDF<SHA512>(emptySalt.data(), emptySalt.size(), randomSeed.data(), randomSeed.size(), lime::settings::hkdf_randomSeed_info.data(), lime::settings::hkdf_randomSeed_info.size(), randomKey.data(), randomKey.size());
 
 				// use it to decipher message
 				if (AEAD_decrypt<AES256GCM>(randomKey.data(), lime::settings::DRMessageKeySize, // random key buffer hold key<DRMessageKeySize bytes> || IV<DRMessageIVSize bytes>

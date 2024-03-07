@@ -359,7 +359,7 @@ std::shared_ptr<Signature<Curve>> make_Signature() {
 template <typename hashAlgo>
 void HMAC(const uint8_t *const key, const size_t keySize, const uint8_t *const input, const size_t inputSize, uint8_t *hash, size_t hashSize) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
-	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC_KDF function template");
+	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC function template");
 }
 
 /* HMAC specialized template for SHA512 */
@@ -367,40 +367,15 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
 	bctbx_hmacSha512(key, keySize, input, inputSize, static_cast<uint8_t>(std::min(SHA512::ssize(),hashSize)), hash);
 }
 
-/* generic implementation, of HKDF RFC-5869 */
-template <typename hashAlgo, typename infoType>
-void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const infoType &info, uint8_t *output, size_t outputSize) {
-	std::array<uint8_t, hashAlgo::ssize()> prk{}; // hold the output of pre-computation
-	// extraction
-	HMAC<hashAlgo>(salt, saltSize, ikm, ikmSize, prk.data(), prk.size());
-
-	// expansion round 0
-	std::vector<uint8_t> T(info.cbegin(), info.cend());
-	T.push_back(0x01);
-	HMAC<hashAlgo>(prk.data(), prk.size(), T.data(), T.size(), output, outputSize);
-
-	// successives expansion rounds
-	size_t index = std::min(outputSize, hashAlgo::ssize());
-	for(uint8_t i=0x02; index < outputSize; i++) {
-		T.assign(output+(i-2)*hashAlgo::ssize(), output+(i-1)*hashAlgo::ssize());
-		T.insert(T.end(), info.cbegin(), info.cend());
-		T.push_back(i);
-		HMAC<hashAlgo>(prk.data(), prk.size(), T.data(), T.size(), output+index, outputSize-index);
-		index += hashAlgo::ssize();
-	}
-	cleanBuffer(prk.data(), prk.size());
-	cleanBuffer(T.data(), T.size());
+/* HMAC must use a specialized template */
+template <typename hashAlgo> void HMAC_KDF(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const char *info, const size_t infoSize, uint8_t *output, size_t outputSize) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
+	static_assert(sizeof(hashAlgo) != sizeof(hashAlgo), "You must specialize HMAC_KDF function template");
 }
-template <typename hashAlgo, typename infoType>
-void HMAC_KDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const infoType &info, uint8_t *output, size_t outputSize) {
-	HMAC_KDF<hashAlgo>(salt.data(), salt.size(), ikm.data(), ikm.size(), info, output, outputSize);
+/* HMAC_KDF specialised template for SHA512 */
+template <> void HMAC_KDF<SHA512>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const char *info, const size_t infoSize, uint8_t *output, size_t outputSize) {
+	bctoolbox::HKDF<bctoolbox::SHA512>(salt, saltSize, ikm, ikmSize, info, infoSize, output, outputSize);
 };
-
-/* instanciate HMAC_KDF template with SHA512 and string or vector info */
-template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
-template void HMAC_KDF<SHA512, std::string>(const uint8_t *const salt, const size_t saltSize, const uint8_t *const ikm, const size_t ikmSize, const std::string &info, uint8_t *output, size_t outputSize);
-template void HMAC_KDF<SHA512, std::vector<uint8_t>>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::vector<uint8_t> &info, uint8_t *output, size_t outputSize);
-template void HMAC_KDF<SHA512, std::string>(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, uint8_t *output, size_t outputSize);
 
 /* AEAD template must be specialized */
 template <typename AEADAlgo>

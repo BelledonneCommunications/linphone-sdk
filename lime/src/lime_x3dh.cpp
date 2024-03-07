@@ -53,7 +53,7 @@ namespace lime {
 			auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
 
 			// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
-			// use sBuffer of size able to hold also DH$ even if we may not use it
+			// use sBuffer of size able to hold also DH4 even if we may not use it
 			sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
 			HKDF_input.fill(0xFF); // HKDF_input holds F
 			size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
@@ -97,7 +97,7 @@ namespace lime {
 			DRChainKey SK;
 			/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
 			std::vector<uint8_t> salt(SHA512::ssize(), 0);
-			HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info, SK.data(), SK.size());
+			HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
 
 			// Generate X3DH init message: as in X3DH spec section 3.3:
 			std::vector<uint8_t> X3DH_initMessage{};
@@ -111,7 +111,7 @@ namespace lime {
 			AD_input.insert(AD_input.end(), peerBundle.Ik.cbegin(), peerBundle.Ik.cend());
 			AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
 			AD_input.insert(AD_input.end(), peerBundle.deviceId.cbegin(), peerBundle.deviceId.cend());
-			HMAC_KDF<SHA512>(salt, AD_input, lime::settings::X3DH_AD_info, AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
+			HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
 
 			// Generate DR_Session and put it in cache(but not in localStorage yet, that would be done when first message generation will be complete)
 			// it could happend that we eventually already have a session for this peer device if we received an initial message from it while fetching its key bundle(very unlikely but...)
@@ -199,7 +199,7 @@ namespace lime {
 		DRChainKey SK;
 		/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
 		std::vector<uint8_t> salt(SHA512::ssize(), 0);
-		HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info, SK.data(), SK.size());
+		HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
 
 		// Generate the shared AD used in DR session
 		SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id), we are receiver on this one
@@ -207,7 +207,7 @@ namespace lime {
 		AD_input.insert(AD_input.end(), m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
 		AD_input.insert(AD_input.end(), senderDeviceId.cbegin(), senderDeviceId.cend());
 		AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
-		HMAC_KDF<SHA512>(salt, AD_input, lime::settings::X3DH_AD_info, AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
+		HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
 
 		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
 		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
