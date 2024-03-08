@@ -27,5 +27,6 @@ set(PLATFORM "OS")
 
 set(CMAKE_C_FLAGS_INIT "-fembed-bitcode")
 set(CMAKE_CXX_FLAGS_INIT "-fembed-bitcode")
+set(CMAKE_ASM_FLAGS_INIT "-fembed-bitcode")
 
 include("${CMAKE_CURRENT_LIST_DIR}/toolchain-ios-common.cmake")
