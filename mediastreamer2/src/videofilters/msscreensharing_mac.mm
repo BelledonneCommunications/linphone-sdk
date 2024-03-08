@@ -145,7 +145,7 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 	__block SCContentFilter *filter = nil;
 	__block BOOL *_ended = &ended;
 	__block std::condition_variable *_condition = &condition;
-	
+	ms_message("[MsScreenSharing_mac] Getting Filter");
 	[SCShareableContent
 		getShareableContentWithCompletionHandler:^(SCShareableContent *shareableContent,
 												   NSError *error) {
@@ -153,11 +153,13 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 				if(windowId) {
 					for (int i = 0; i < shareableContent.windows.count && !filter; ++i)
 						if (shareableContent.windows[i].windowID == windowId) {
+							ms_message("[MsScreenSharing_mac] Got a Window");
 							filter = [[SCContentFilter alloc] initWithDesktopIndependentWindow:shareableContent.windows[i]];
 						}
 				}else if( displayId) {
 					for (int i = 0; i < shareableContent.displays.count && !filter; ++i)
 						if( shareableContent.displays[i].displayID == displayId) {
+							ms_message("[MsScreenSharing_mac] Got a Display");
 							filter = [[SCContentFilter alloc] initWithDisplay:shareableContent.displays[i] excludingWindows:@[]];
 						}
 				}
@@ -271,12 +273,17 @@ void MsScreenSharing_mac::getWindowSize(int *windowX,
 @end
 
 bool MsScreenSharing_mac::getPermission() {
-	int tryCount = 0;
-	while (!CGRequestScreenCaptureAccess() && ++tryCount <= 5) {// Let 5 seconds to get permissions.
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
+	ms_message("[MsScreenSharing_mac] Getting permissions");
+	__block bool haveAccess = false;
+	// Must be call from main thread! If not, you may be in deadlock.
+	dispatch_sync(dispatch_get_main_queue(), ^{
+	// Checks whether the current process already has screen capture access
+		haveAccess = CGPreflightScreenCaptureAccess();
+	//Requests event listening access if absent, potentially prompting
+		if(!haveAccess) haveAccess = CGRequestScreenCaptureAccess();
+	});
 
-	return CGRequestScreenCaptureAccess();
+	return haveAccess;
 }
 
 void MsScreenSharing_mac::inputThread() {
@@ -284,7 +291,8 @@ void MsScreenSharing_mac::inputThread() {
 	if(!getPermission()){
 		ms_error("[MsScreenSharing_mac] Permission denied for screen sharing");
 		return;
-	}
+	}else
+		ms_message("[MsScreenSharing_mac] Permission granted");
 	
 	NSError *error = nil;
 	SCContentFilter *filter = nil;
@@ -311,6 +319,12 @@ void MsScreenSharing_mac::inputThread() {
 		CGWindowID windowId = *(CGWindowID *) (&mSourceDesc.native_data);
 		filter = [StreamOutput getFilter:windowId displayId:0];
 	}
+	if(!filter) {
+		ms_error("[MsScreenSharing_mac] Cannot instantiate a SCContentFilter");
+		dispatch_release(videoSampleBufferQueue);
+		doRelease(streamConfig,filter, streamOutput, streamDelegate);
+		return;
+	}
 	[streamConfig setWidth:mLastFormat.mPosition.getWidth()];
 	[streamConfig setHeight:mLastFormat.mPosition.getHeight()];
 	// Should be more accurate on quantize the signal values. Equivalent to NV12
@@ -320,7 +334,7 @@ void MsScreenSharing_mac::inputThread() {
 	fps.value = 1;
 	fps.timescale = mFps;
 	[streamConfig setMinimumFrameInterval:fps];
-
+	ms_message("[MsScreenSharing_mac] Creating stream");
 	// Start Capturing session
 	SCStream *stream = [[SCStream alloc] initWithFilter:filter
 												configuration:streamConfig
@@ -331,6 +345,7 @@ void MsScreenSharing_mac::inputThread() {
 		doRelease(streamConfig,filter, streamOutput, streamDelegate);
 		return;
 	}
+	ms_message("[MsScreenSharing_mac] Adding output");
 	[stream addStreamOutput:streamOutput
 						type:SCStreamOutputTypeScreen
 						sampleHandlerQueue:videoSampleBufferQueue
@@ -346,6 +361,7 @@ void MsScreenSharing_mac::inputThread() {
 	BOOL ended = false;
 	__block BOOL *_ended = &ended;
 // Start
+	ms_message("[MsScreenSharing_mac] Starting capture");
 	[stream startCaptureWithCompletionHandler:^(NSError *_Nullable error) {
 		if (error != nil && error.code != 0) {
             ms_error("[MsScreenSharing_mac] Failed to start capture : %s, (%x), %s"
@@ -362,7 +378,7 @@ void MsScreenSharing_mac::inputThread() {
 		std::unique_lock<std::mutex> lock(mAppleThreadLock);
 		mAppleThreadIterator.wait(lock, [&ended]{ return ended;});
 	}
-    
+	if(started && !mToStop) ms_message("[MsScreenSharing_mac] Capturing");
 	while (!mToStop) {
 		int width = mLastFormat.mPosition.getWidth();
 		int height = mLastFormat.mPosition.getHeight();
@@ -380,12 +396,12 @@ void MsScreenSharing_mac::inputThread() {
 			mFrameLock.unlock();
 		}else {
 			std::unique_lock<std::mutex> lock(mThreadLock);
-			mThreadIterator.wait_for(lock, std::chrono::microseconds(100), [this]{return this->mToStop;});
+			mThreadIterator.wait_for(lock, std::chrono::milliseconds( MIN((int)(1000.0 / mFps), 333)), [this]{return this->mToStop;});
 		}
 	}
 // Stop
-	ms_message("[MsScreenSharing_mac] Stopping thread");
 	if(started) {
+		ms_message("[MsScreenSharing_mac] Stopping thread");
 		ended = FALSE;
 		[stream stopCaptureWithCompletionHandler:^(NSError *_Nullable error) {
 			if (error != nil && error.code != 0) {

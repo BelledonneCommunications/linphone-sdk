@@ -151,11 +151,12 @@ void MsScreenSharing::start() {
 
 void MsScreenSharing::stop() {
 	if (isRunning()) {
-		ms_message("[MsScreenSharing Stopping input thread ...");
+		ms_message("[MsScreenSharing] Stopping input thread ...");
 		mThreadLock.lock();
 		mToStop = true;
 		mThreadLock.unlock();
 		mThreadIterator.notify_all();
+		ms_message("[MsScreenSharing] Waiting for input thread ...");
 		mThread.join();
 		mFrameLock.lock(); // Just in case of multiple start
 		if (mFrameData) {
@@ -171,7 +172,7 @@ void MsScreenSharing::stop() {
 			mAllocator = nullptr;
 		}
 		mFrameLock.unlock();
-		ms_message("[MsScreenSharing Input thread stopped");
+		ms_message("[MsScreenSharing] Input thread stopped");
 	}
 }
 
@@ -314,7 +315,7 @@ void MsScreenSharing::inputThread() {
 
 			if (targetTimeFrame > workTimeFrame) {
 				std::unique_lock<std::mutex> lock(mThreadLock);
-				mThreadIterator.wait_for(lock, targetTimeFrame - workTimeFrame);
+				mThreadIterator.wait_for(lock, targetTimeFrame - workTimeFrame, [this] { return this->mToStop; });
 			}
 			startTime = std::chrono::system_clock::now();
 		}
