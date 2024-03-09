@@ -335,6 +335,7 @@
         "ENABLE_TUTORIALS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
         "ENABLE_WEBRTC_AECM": "ON",
+        "ENABLE_WINDOWS_TOOLS_CHECK": "OFF",
         "LINPHONESDK_PLATFORM": "UWP"
       }
     },
@@ -383,7 +384,8 @@
         "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_CSHARP_WRAPPER": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
-        "ENABLE_SCREENSHARING": "ON"
+        "ENABLE_SCREENSHARING": "ON",
+        "ENABLE_WINDOWS_TOOLS_CHECK": "OFF"
       }
     },
     {
