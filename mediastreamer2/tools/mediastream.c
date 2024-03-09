@@ -1227,9 +1227,9 @@ void clear_mediastreams(MediastreamDatas *args) {
 		}
 		if (args->video->ms.ice_check_list) ice_check_list_destroy(args->video->ms.ice_check_list);
 		video_stream_stop(args->video);
-		ms_factory_log_statistics(args->video->ms.factory);
 	}
 #endif
+	ms_factory_log_statistics(args->factory);
 	if (args->ice_session) ice_session_destroy(args->ice_session);
 	ortp_ev_queue_destroy(args->q);
 	rtp_profile_destroy(args->profile);

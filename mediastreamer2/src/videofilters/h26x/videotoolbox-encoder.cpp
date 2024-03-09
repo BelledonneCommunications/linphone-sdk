@@ -18,6 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "TargetConditionals.h"
+
 #include <bctoolbox/defs.h>
 
 #include "h26x-utils.h"
@@ -159,7 +161,7 @@ void VideoToolboxEncoder::start() {
 #endif
 		return;
 	} catch (const runtime_error &e) {
-		vt_enc_error("%s", e.what());
+		vt_enc_error("VTSession not created because of error '%s'", e.what());
 		if (_session) {
 			CFRelease(_session);
 			_session = nullptr;
@@ -179,6 +181,11 @@ void VideoToolboxEncoder::feed(mblk_t *rawData, uint64_t time, bool requestIFram
 	YuvBuf src_yuv_frame, dst_yuv_frame = {0};
 	CVPixelBufferRef pixbuf = nullptr;
 	const int pixbuf_fmt = kCVPixelFormatType_420YpCbCr8Planar;
+
+	if (!_session) {
+		freemsg(rawData);
+		return;
+	}
 
 	ms_yuv_buf_init_from_mblk(&src_yuv_frame, rawData);
 
@@ -271,10 +278,10 @@ void VideoToolboxEncoder::applyBitrate() {
 	CFRelease(duration_value);
 	CFRelease(data_rate_limits);
 	if (status != noErr) {
-		ostringstream msg;
-		msg << "error while setting kVTCompressionPropertyKey_DataRateLimits: " << toString(status);
-		vt_enc_error("%s", msg.str().c_str());
-		throw runtime_error(msg.str());
+		ms_error("VideoToolboxEncoder::applyBitrate(): kVTCompressionPropertyKey_DataRateLimits failed: %s",
+		         toString(status).c_str());
+		/* This error is not fatal unlike for averageBitRate: do not throw exception which would result in VTSession not
+		 * created.*/
 	}
 }
 

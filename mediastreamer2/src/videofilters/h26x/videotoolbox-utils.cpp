@@ -18,6 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <TargetConditionals.h>
 #include <array>
 #include <sstream>
 #include <unordered_map>
@@ -145,10 +146,17 @@ void VideoToolboxUtilities::loadCodecAvailability() {
 			auto dict = static_cast<const CFDictionaryRef>(CFArrayGetValueAtIndex(encoderLists, i));
 			auto codecTypeNumber =
 			    static_cast<const CFNumberRef>(CFDictionaryGetValue(dict, kVTVideoEncoderList_CodecType));
+			bool isHardwareAccelerated = CFDictionaryGetValue(dict, kVTVideoEncoderList_IsHardwareAccelerated);
+			CFStringRef encoderName = (CFStringRef)CFDictionaryGetValue(dict, kVTVideoEncoderList_EncoderName);
 			CFNumberGetValue(codecTypeNumber, kCFNumberIntType, &codecType2);
 			if (codecType == codecType2) {
-				_codecAvailability[codecType] = true;
-				break;
+				if (isHardwareAccelerated) {
+					_codecAvailability[codecType] = true;
+					break;
+				} else {
+					ms_message("VideoToolbox: hardware encoding not supported for [%s]",
+					           CFStringGetCStringPtr(encoderName, kCFStringEncodingUTF8));
+				}
 			}
 		}
 	}
