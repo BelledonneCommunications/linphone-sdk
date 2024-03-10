@@ -96,6 +96,10 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 		include("cmake/TunnelClone.cmake")
 	endif()
 
+	if(ENABLE_PQCRYPTO AND IOS AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+        	set(ENABLE_PQCRYPTO OFF)
+        	message (WARNING "PQCRYPTO disabled for x86_64 ios simultator due to compatibility issue with xcode 15")
+	endif()
 	# Need to activate ASM and ASM_NASM at the top level and in this order to workaround a bug of CMake
 	enable_language(ASM)
 	enable_language(ASM_NASM)

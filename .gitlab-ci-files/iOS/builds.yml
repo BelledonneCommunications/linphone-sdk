@@ -2,7 +2,7 @@
 
   extends: .job-prepare
   stage: build
-  tags: [ "macosx-min-xcode12.2" ]
+  tags: [ "macos-xcode15" ]
 
   rules:
     - !reference [.rules-merge-request-manual, rules]
