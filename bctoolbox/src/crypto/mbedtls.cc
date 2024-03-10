@@ -203,6 +203,20 @@ std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
 	}
 	return okm;
 };
+template <>
+void HKDF<SHA512>(const uint8_t *salt,
+                  const size_t saltSize,
+                  const uint8_t *ikm,
+                  const size_t ikmSize,
+                  const char *info,
+                  const size_t infoSize,
+                  uint8_t *okm,
+                  size_t okmSize) {
+	if (mbedtls_hkdf(mbedtls_md_info_from_type(MBEDTLS_MD_SHA512), salt, saltSize, ikm, ikmSize,
+	                 reinterpret_cast<const unsigned char *>(info), infoSize, okm, okmSize) != 0) {
+		throw BCTBX_EXCEPTION << "HKDF-SHA512 error";
+	}
+};
 
 /*****************************************************************************/
 /***                      Key Wrap                                         ***/

@@ -204,6 +204,16 @@ std::vector<uint8_t> HKDF(const std::vector<uint8_t> &salt,
 template <typename hashAlgo>
 std::vector<uint8_t>
 HKDF(const std::vector<uint8_t> &salt, const std::vector<uint8_t> &ikm, const std::string &info, size_t okmSize);
+template <typename hashAlgo>
+void HKDF(const uint8_t *salt,
+          const size_t saltSize,
+          const uint8_t *ikm,
+          const size_t ikmSize,
+          const char *info,
+          const size_t infoSize,
+          uint8_t *okm,
+          size_t okmSize);
+
 /* declare template specialisations */
 template <>
 std::vector<uint8_t> HKDF<SHA256>(const std::vector<uint8_t> &salt,
@@ -235,6 +245,15 @@ std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
                                   const std::vector<uint8_t> &ikm,
                                   const std::string &info,
                                   size_t outputSize);
+template <>
+void HKDF<SHA512>(const uint8_t *salt,
+                  const size_t saltSize,
+                  const uint8_t *ikm,
+                  const size_t ikmSize,
+                  const char *info,
+                  const size_t infoSize,
+                  uint8_t *okm,
+                  size_t okmSize);
 
 /************************ AEAD interface *************************************/
 // AEAD function defines

@@ -106,6 +106,36 @@ uint32_t RNG::cRandomize() {
 /*****************************************************************************/
 /***                      Hash related function                            ***/
 /*****************************************************************************/
+void HMAC_KDF(const std::string &hashAlgorithm,
+              const uint8_t *salt,
+              const size_t saltSize,
+              const uint8_t *ikm,
+              const size_t ikmSize,
+              const char *info,
+              const size_t infoSize,
+              uint8_t *output,
+              size_t outputSize) {
+	auto kdf = std::shared_ptr<EVP_KDF>(EVP_KDF_fetch(NULL, "HKDF", NULL), EVP_KDF_free);
+
+	if (kdf == nullptr) {
+		bctbx_error("EVP_KDF_fetch failed.");
+		throw BCTBX_EXCEPTION << "HKDF-SHA512 error";
+	}
+
+	auto kctx = std::shared_ptr<EVP_KDF_CTX>(EVP_KDF_CTX_new(kdf.get()), EVP_KDF_CTX_free);
+
+	OSSL_PARAM params[] = {
+	    OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, (char *)hashAlgorithm.data(), hashAlgorithm.size()),
+	    OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_KEY, (void *)ikm, ikmSize),
+	    OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_INFO, (void *)info, infoSize),
+	    OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void *)salt, saltSize), OSSL_PARAM_END};
+
+	if (EVP_KDF_derive(kctx.get(), output, outputSize, params) <= 0) {
+		bctbx_error("EVP_KDF_derive failed.");
+		throw BCTBX_EXCEPTION << "HKDF-SHA512 error";
+	}
+}
+
 template <typename infoType>
 std::vector<uint8_t> HMAC_KDF(const std::string &hashAlgorithm,
                               const std::vector<uint8_t> &salt,
@@ -187,6 +217,18 @@ std::vector<uint8_t> HKDF<SHA512>(const std::vector<uint8_t> &salt,
                                   const std::string &info,
                                   size_t outputSize) {
 	return HMAC_KDF<std::string>(SN_sha512, salt, ikm, info, outputSize);
+};
+
+template <>
+void HKDF<SHA512>(const uint8_t *salt,
+                  const size_t saltSize,
+                  const uint8_t *ikm,
+                  const size_t ikmSize,
+                  const char *info,
+                  const size_t infoSize,
+                  uint8_t *okm,
+                  size_t okmSize) {
+	HMAC_KDF(SN_sha512, salt, saltSize, ikm, ikmSize, info, infoSize, okm, okmSize);
 };
 
 /*****************************************************************************/
