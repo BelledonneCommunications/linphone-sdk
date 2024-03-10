@@ -33,6 +33,7 @@ option(ENABLE_PROFILING "Enable profiling, GCC only" NO)
 option(ENABLE_C_INTERFACE "Enable support of C89 foreign function interface" NO)
 option(ENABLE_JNI "Enable support of Java foreign function interface" NO)
 option(ENABLE_PACKAGE_SOURCE "Create 'package_source' target for source archive making" OFF)
+option(ENABLE_PQCRYPTO "Enable Post Quantum Cryptography key agreements algorithms" NO)
 
 
 set(LANGUAGES_LIST CXX)
@@ -58,7 +59,9 @@ if(NOT CPACK_GENERATOR AND NOT CMAKE_INSTALL_RPATH AND CMAKE_INSTALL_PREFIX)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-
+if(ENABLE_PQCRYPTO)
+	find_package(PostQuantumCryptoEngine 5.3.0 REQUIRED)
+endif()
 find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 find_package(Soci REQUIRED COMPONENTS sqlite3)
 
@@ -143,6 +146,11 @@ if(ENABLE_JNI)
 	endif()
 endif()
 
+if(ENABLE_PQCRYPTO)
+	add_definitions("-DHAVE_BCTBXPQ")
+	message(STATUS "Building with Post Quantum Key Agreements")
+endif()
+
 add_subdirectory(include)
 add_subdirectory(src)
 if(ENABLE_UNIT_TESTS)
@@ -171,6 +179,10 @@ install(EXPORT ${PROJECT_NAME}Targets
 	FILE "${PROJECT_NAME}Targets.cmake"
 	DESTINATION ${CMAKE_MODULES_INSTALL_DIR}
 )
+
+if(ENABLE_PQCRYPTO)
+	install(FILES "cmake/FindPostQuantumCryptoEngine.cmake" DESTINATION ${CMAKE_MODULES_INSTALL_DIR})
+endif()
 
 if(ENABLE_DOC)
 	# Doxygen

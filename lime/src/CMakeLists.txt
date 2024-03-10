@@ -62,6 +62,9 @@ target_include_directories(lime PRIVATE ${JNI_INCLUDE_DIRS} INTERFACE
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
 target_link_libraries(lime PRIVATE ${BCToolbox_TARGET} ${Soci_TARGET} ${Soci_sqlite3_TARGET} ${JNI_LIBRARIES})
+if(ENABLE_PQCRYPTO)
+	target_link_libraries(lime PRIVATE ${PostQuantumCryptoEngine_TARGET})
+endif()
 if(ENABLE_PROFILING)
 	set_target_properties(lime PROPERTIES LINK_FLAGS "-pg")
 endif()

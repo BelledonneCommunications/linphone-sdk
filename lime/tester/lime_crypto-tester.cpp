@@ -37,6 +37,8 @@ using namespace::std;
 using namespace::lime;
 
 constexpr uint64_t BENCH_TIMING_MS=200;
+#include "KEM_patterns.cpp"
+
 
 /* Function */
 static void snprintSI(std::string &output, double x, const char *unit, const char *spacer = " ") {
@@ -120,7 +122,7 @@ void keyExchange_bench(uint64_t runTime_ms) {
 	std::string freq_unit, period_unit;
 	snprintSI(freq_unit, freq, "keys/s");
 	snprintSI(period_unit, 1/freq, "s/keys");
-	LIME_LOGI<<"Key generation "<<int(2*runCount)<<" ECDH keys in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+	LIME_LOGI<<"Key generation "<<int(2*runCount)<<" ECDH keys in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit;
 
 	/* Exchange keys */
 	Alice->set_peerPublic(Bob->get_selfPublic());
@@ -141,25 +143,154 @@ void keyExchange_bench(uint64_t runTime_ms) {
 	freq = 1000*runCount/static_cast<double>(span);
 	snprintSI(freq_unit, freq, "computations/s");
 	snprintSI(period_unit, 1/freq, "s/computation");
-	LIME_LOGI<<"Shared Secret "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl<<endl;
+	LIME_LOGI<<"Shared Secret "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
 }
 
 static void exchange(void) {
 #ifdef EC25519_ENABLED
 	keyExchange_test<C255>();
 	if (bench) {
-		LIME_LOGI<<"Bench for Curve 25519:"<<endl;
+		LIME_LOGI<<"Bench for Curve 25519:";
 		keyExchange_bench<C255>(BENCH_TIMING_MS);
 	}
 #endif
 #ifdef EC448_ENABLED
 	keyExchange_test<C448>();
 	if (bench) {
-		LIME_LOGI<<"Bench for Curve 448:"<<endl;
+		LIME_LOGI<<"Bench for Curve 448:";
 		keyExchange_bench<C448>(BENCH_TIMING_MS);
 	}
 #endif
 }
+
+/* get patterns specialized constructor */
+template <typename Algo>
+void KEM_getPatterns(lime::K<Algo, lime::Ktype::privateKey> &sk, lime::K<Algo, lime::Ktype::publicKey> &pk, lime::K<Algo, lime::Ktype::cipherText> &ct, lime::K<Algo, lime::Ktype::sharedSecret> &ss) {
+	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
+	static_assert(sizeof(Algo) != sizeof(Algo), "You must specialize KEM class contructor for your type");
+}
+
+#ifdef HAVE_BCTBXPQ
+	/* specialise KEM creation : KYB1 is Kyber512 */
+template <> void KEM_getPatterns<KYB1>(lime::K<lime::KYB1, lime::Ktype::privateKey> &sk, lime::K<lime::KYB1, lime::Ktype::publicKey> &pk, lime::K<lime::KYB1, lime::Ktype::cipherText> &ct, lime::K<lime::KYB1, lime::Ktype::sharedSecret> &ss) {
+	sk.assign(sk_KYBER512.cbegin());
+	pk.assign(pk_KYBER512.cbegin());
+	ct.assign(ct_KYBER512.cbegin());
+	ss.assign(ss_KYBER512.cbegin());
+}
+#endif //HAVE_BCTBXPQ
+
+template <typename Algo>
+void KEM_test(void) {
+	/* Create Alice and Bob context */
+	std::shared_ptr<KEM<Algo>> Alice = make_KEM<Algo>();
+	std::shared_ptr<KEM<Algo>> Bob = make_KEM<Algo>();
+
+	/* Generate key pair */
+	Kpair<Algo> aliceKeys;
+	Alice->createKeyPair(aliceKeys);
+
+	/* bob encapsulate */
+	K<Algo, lime::Ktype::cipherText> ctAlice;
+	K<Algo, lime::Ktype::sharedSecret> ssBob;
+	K<Algo, lime::Ktype::sharedSecret> ssAlice;
+	Bob->encaps(aliceKeys.publicKey(), ctAlice, ssBob);
+
+	/* Compute shared secret */
+	Alice->decaps(aliceKeys.privateKey(), ctAlice, ssAlice);
+
+	/* Compare them */
+	BC_ASSERT_TRUE(ssAlice == ssBob);
+
+	/* Patterns */
+	lime::K<Algo, lime::Ktype::privateKey> skPattern;
+	lime::K<Algo, lime::Ktype::publicKey> pkPattern;
+	lime::K<Algo, lime::Ktype::cipherText> ctPattern;
+	lime::K<Algo, lime::Ktype::sharedSecret> ssPattern;
+	KEM_getPatterns<Algo>(skPattern, pkPattern, ctPattern, ssPattern);
+	Alice->decaps(skPattern, ctPattern, ssAlice);
+	BC_ASSERT_TRUE(ssAlice == ssPattern);
+
+}
+
+
+template <typename Algo>
+void KEM_bench(uint64_t runTime_ms) {
+	constexpr size_t batch_size = 100;
+	/* Create Alice and Bob context */
+	std::shared_ptr<KEM<Algo>> Alice = make_KEM<Algo>();
+	std::shared_ptr<KEM<Algo>> Bob = make_KEM<Algo>();
+
+	auto start = bctbx_get_cur_time_ms();
+	uint64_t span=0;
+	size_t runCount = 0;
+
+	Kpair<Algo> aliceKeys;
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			/* Generate key pair */
+			Alice->createKeyPair(aliceKeys);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+
+	auto freq = 2000*runCount/static_cast<double>(span);
+	std::string freq_unit, period_unit;
+	snprintSI(freq_unit, freq, "keys/s");
+	snprintSI(period_unit, 1/freq, "s/keys");
+	LIME_LOGI<<"Key generation "<<int(2*runCount)<<" KEM keys in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit;
+
+	/* Encaps */
+	K<Algo, lime::Ktype::cipherText> ct;
+	K<Algo, lime::Ktype::sharedSecret> ssBob;
+	K<Algo, lime::Ktype::sharedSecret> ssAlice;
+
+	start = bctbx_get_cur_time_ms();
+	span=0;
+	runCount = 0;
+
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			Bob->encaps(aliceKeys.publicKey(), ct, ssBob);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+	freq = 1000*runCount/static_cast<double>(span);
+	snprintSI(freq_unit, freq, "computations/s");
+	snprintSI(period_unit, 1/freq, "s/computation");
+	LIME_LOGI<<"Encaps "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit;
+	
+	/* Decaps */
+	start = bctbx_get_cur_time_ms();
+	span=0;
+	runCount = 0;
+
+	while (span<runTime_ms) {
+		for (size_t i=0; i<batch_size; i++) {
+			Alice->decaps(aliceKeys.privateKey(), ct, ssAlice);
+		}
+		span = bctbx_get_cur_time_ms() - start;
+		runCount += batch_size;
+	}
+	freq = 1000*runCount/static_cast<double>(span);
+	snprintSI(freq_unit, freq, "computations/s");
+	snprintSI(period_unit, 1/freq, "s/computation");
+	LIME_LOGI<<"Decaps "<<int(runCount)<<" computations in "<<int(span)<<" ms : "<<period_unit<<" "<<freq_unit<<endl;
+
+}
+
+static void keyEncapsulation(void) {
+#ifdef HAVE_BCTBXPQ
+	KEM_test<KYB1>();
+	if (bench) {
+		LIME_LOGI<<"Bench for Kyber512:";
+		KEM_bench<KYB1>(BENCH_TIMING_MS);
+	}
+#endif
+}
+
 
 /**
  * Testing sign, verify and DSA to keyEchange key conversion
@@ -788,6 +919,7 @@ static void RNG_test(void) {
 
 static test_t tests[] = {
 	TEST_NO_TAG("Key Exchange", exchange),
+	TEST_NO_TAG("KEM", keyEncapsulation),
 	TEST_NO_TAG("Signature", signAndVerify),
 	TEST_NO_TAG("HKDF", hashMac_KDF),
 	TEST_NO_TAG("AEAD", AEAD),

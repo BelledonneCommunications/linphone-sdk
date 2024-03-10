@@ -86,6 +86,47 @@ namespace lime {
 	};
 
 	/****************************************************************/
+	/* Key Encapsulation Data structures                            */
+	/****************************************************************/
+	/**
+	 * @brief Base buffer definition for KEM data structure
+	 *
+	 * easy use of array types with correct size
+	 */
+	template <typename Algo, lime::Ktype dataType>
+	class K : public sBuffer<static_cast<size_t>(Algo::Ksize(dataType))>{
+		public :
+			/// provide a static size function to be able to call the function not on an object
+			constexpr static size_t ssize(void) {return Algo::Ksize(dataType);};
+			/// construct from a std::vector<uint8_t>
+			K(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Algo::Ksize(dataType), this->begin());}
+			K() {};
+			/// copy from a std::vector<uint8_t>
+			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Algo::Ksize(dataType), this->begin());}
+	};
+
+	/**
+	 * @brief Key pair structure for key exchange algorithm
+	 */
+	template <typename Algo>
+	class Kpair {
+		private:
+			K<Algo, lime::Ktype::publicKey> m_pubKey;
+			K<Algo, lime::Ktype::privateKey> m_privKey;
+		public:
+			/// access the private key
+			K<Algo, lime::Ktype::privateKey> &privateKey(void) {return m_privKey;};
+			/// access the public key
+			K<Algo, lime::Ktype::publicKey> &publicKey(void) {return m_pubKey;};
+			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
+			Kpair(K<Algo, lime::Ktype::publicKey> &pub, K<Algo, lime::Ktype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
+			Kpair() :m_pubKey{},m_privKey{}{};
+			/// == operator assert that public and private keys are the same
+			bool operator==(Kpair<Algo> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
+
+	};
+
+	/****************************************************************/
 	/* Digital Signature Algorithm data structures                  */
 	/****************************************************************/
 	/**
@@ -226,6 +267,43 @@ class keyExchange {
 		 */
 		virtual void computeSharedSecret(void) = 0;
 		virtual ~keyExchange() = default;
+}; //class keyExchange
+
+/**
+ * @brief Key Encapsulation Mechanism interface
+ *
+ * shall be able to provide an interface to any algorithm implementing KEM (with PQ or not)
+ */
+template <typename Algo>
+class KEM {
+	public:
+		/**
+		 * @brief generate a new random key pair
+		 *
+		 * @param[out]	keyPair	The key pair generated
+		 */
+		virtual void createKeyPair(Kpair<Algo>&keyPair) = 0;
+
+		/**
+		 * @brief Generate and encapsulate a shared secret for a given public key
+		 *
+		 * @param[in] publicKey 	The public to encapsulate for
+		 * @param[out] cipherText	The cipher text generated
+		 * @param[out] sharedSecret	The shared secret generated
+		 */
+		virtual void encaps(const K<Algo, lime::Ktype::publicKey> &publicKey, K<Algo, lime::Ktype::cipherText> &cipherText, K<Algo, lime::Ktype::sharedSecret> &sharedSecret) = 0;
+	
+		/**
+		 * @brief decapsulate a shared secret from a cipher text using a private key
+		 *
+		 * @param[in] privateKey 	The private key used to decapsulate
+		 * @param[in] cipherText	The cipher text 
+		 * @param[out] sharedSecret	The retrieved shared secret
+		 */
+		virtual void decaps(const K<Algo, lime::Ktype::privateKey> &privateKey, const K<Algo, lime::Ktype::cipherText> &cipherText, K<Algo, lime::Ktype::sharedSecret> &sharedSecret) = 0;
+
+
+		virtual ~KEM() = default;
 }; //class keyExchange
 
 /**
@@ -402,7 +480,7 @@ template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t 
 /*************************************************************************************************/
 /********************** Factory Functions ********************************************************/
 /*************************************************************************************************/
-/* Use these to instantiate an object as they will pick the correct undurlying implemenation of virtual classes */
+/* Use these to instantiate an object as they will pick the correct underlying implemenation of virtual classes */
 std::shared_ptr<RNG> make_RNG();
 
 template <typename Curve>
@@ -410,6 +488,9 @@ std::shared_ptr<keyExchange<Curve>> make_keyExchange();
 
 template <typename Curve>
 std::shared_ptr<Signature<Curve>> make_Signature();
+
+template <typename Algo>
+std::shared_ptr<KEM<Algo>> make_KEM();
 
 /*************************************************************************************************/
 /********************** Template Instanciation ***************************************************/
@@ -442,6 +523,14 @@ std::shared_ptr<Signature<Curve>> make_Signature();
 	extern template class DSApair<C448>;
 #endif // EC448_ENABLED
 
+#ifdef HAVE_BCTBXPQ
+	extern template std::shared_ptr<KEM<KYB1>> make_KEM();
+	extern template class K<KYB1, lime::Ktype::publicKey>;
+	extern template class K<KYB1, lime::Ktype::privateKey>;
+	extern template class K<KYB1, lime::Ktype::cipherText>;
+	extern template class K<KYB1, lime::Ktype::sharedSecret>;
+	extern template class Kpair<KYB1>;
+#endif //HAVE_BCTBXPQ
 } // namespace lime
 
 #endif //lime_crypto_primitives_hpp

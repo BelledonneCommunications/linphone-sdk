@@ -32,6 +32,12 @@ namespace lime {
 	 * public key, private key and shared secret
 	 * */
 	enum class Xtype {publicKey, privateKey, sharedSecret};
+	/** @brief List of data types used by key encapsulation mechanism algorithm
+	 *
+	 * public key, private key, cipher text and shared secret
+	 * */
+	enum class Ktype {publicKey, privateKey, cipherText, sharedSecret};
+
 	/** @brief List of data types used by Signature algorithm
 	 *
 	 * public key, private key and signature
@@ -65,6 +71,30 @@ namespace lime {
 		static constexpr size_t Xsize(lime::Xtype dataType) {return 56;};
 		/// for Ed448, public and private key have the same length 57 bytes, signature is 114 bytes long
 		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?57:114;};
+	};
+
+	/**
+	 * @brief Kyber 512 KEM data types size definition
+	 */
+	struct KYB1 {
+		 ///the kyber512/c25519 hybrid KEM enumeration
+		static constexpr lime::CurveId curveId() {return lime::CurveId::k512c25519;};
+		static constexpr size_t Ksize(lime::Ktype dataType) {
+			switch (dataType) {
+				case lime::Ktype::publicKey:
+					return 800;
+				break;
+				case lime::Ktype::privateKey:
+					return 1632;
+				break;
+				case lime::Ktype::cipherText:
+					return 768;
+				break;
+				case lime::Ktype::sharedSecret:
+					return 32;
+				break;
+			}	
+		};
 	};
 
 	// Hash function defines
