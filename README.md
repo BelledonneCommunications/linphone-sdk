@@ -113,6 +113,8 @@ In this case, you will need to choose the build configuration in the first step,
 
 Requirement:
  - Xcode >= 15
+ 
+Sample configuration for arm64 targeting iPhone only in Debug mode:
 
 `cmake --preset=ios-sdk -G Xcode -B build-ios -DLINPHONESDK_IOS_PLATFORM=Iphone -DLINPHONESDK_IOS_ARCHS="arm64"`
 `cmake --build build-ios --config Debug`
@@ -122,10 +124,7 @@ You can also build using the 'Ninja' or 'Unix makefiles' generators:
 `cmake --preset=ios-sdk -G Ninja -B build-ios -DCMAKE_BUILD_TYPE=Debug`
 `cmake --build build-ios`
 
-The generation of the Swift documentation (docc) requires the Xcode generator, and hence won't be generated with the above command.
-In order to generate the swift documentation, a new separate build needs to be done using the ios-arm64-simulator preset:
-
-`cmake --preset=ios-arm64-simulator -G Xcode -B build-ios`
+If the generator is not specified, Xcode will be used by default.
 
 
 ⚙ Note to developers: If a new Apple `.framework` folder needs to be added to the iOS build, remember to update the [NuGet iOS project] to include it.
