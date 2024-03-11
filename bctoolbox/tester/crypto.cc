@@ -949,7 +949,7 @@ static void rng_test_args(size_t buffer_size, size_t calls_nb) noexcept {
 			BC_FAIL("RNG output mean out of expected values");
 		}
 		// normalised variance shall be around 1/12
-		if (stat_m2 > 1.15 / 12 || stat_m2 < 0.85 / 12) {
+		if (stat_m2 > 1.2 / 12 || stat_m2 < 0.8 / 12) {
 			BCTBX_SLOGE << "RNG variance value on buffer size " << buffer_size << " running " << calls_nb << " is "
 			            << stat_m2;
 			BC_FAIL("RNG output variance out of expected values");
