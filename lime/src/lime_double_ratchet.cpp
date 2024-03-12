@@ -147,7 +147,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-	:m_DHr{peerPublicKey},m_DHr_valid{true}, m_DHs{},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
+	:m_ARKeys{peerPublicKey},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 	m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 	{
@@ -159,8 +159,7 @@ namespace lime {
 		DH->set_peerPublic(peerPublicKey);
 
 		// get self key pair from context
-		m_DHs.publicKey() = DH->get_selfPublic();
-		m_DHs.privateKey() = DH->get_secret();
+		m_ARKeys.setDHs(DH->get_selfPublic(), DH->get_secret());
 
 		// compute shared secret
 		DH->computeSharedSecret();
@@ -191,7 +190,7 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
-	:m_DHr{},m_DHr_valid{false},m_DHs{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
+	:m_ARKeys{selfKeyPair},m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 	m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{}
 	{
@@ -214,11 +213,11 @@ namespace lime {
 	 */
 	template <typename Curve>
 	DR<Curve>::DR(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
-	:m_DHr{},m_DHr_valid{true},m_DHs{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
+	:m_ARKeys{},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 	m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},m_peerDeviceId{},
 	m_peerIk{},m_db_Uid{0},	m_active_status{false}, m_X3DH_initMessage{}
 	{
-		session_load();
+		m_ARKeys.setValid(session_load());
 	}
 
 	template <typename Curve>
@@ -244,7 +243,7 @@ namespace lime {
 		}
 
 		// each call to this function is made with a different DHr
-		ReceiverKeyChain<Curve> newRChain{m_DHr};
+		ReceiverKeyChain<Curve> newRChain{m_ARKeys.getDHr()};
 		m_mkskipped.push_back(newRChain);
 		auto rChain = &m_mkskipped.back();
 
@@ -271,15 +270,15 @@ namespace lime {
 		m_Nr=0;
 
 		// this is our new DHr
-		m_DHr = headerDH;
+		m_ARKeys.setDHr(headerDH);
 
 		// generate a new self key pair
 		auto DH = make_keyExchange<Curve>();
 
 		// copy the peer public key into ECDH context
-		DH->set_peerPublic(m_DHr);
-		DH->set_selfPublic(m_DHs.publicKey());
-		DH->set_secret(m_DHs.privateKey());
+		DH->set_peerPublic(headerDH);
+		DH->set_selfPublic(m_ARKeys.getDHs().publicKey());
+		DH->set_secret(m_ARKeys.getDHs().privateKey());
 
 		//  Derive the new receiving chain key
 		DH->computeSharedSecret();
@@ -293,8 +292,7 @@ namespace lime {
 		KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret());
 
 		// get self key pair from context
-		m_DHs.publicKey() = DH->get_selfPublic();
-		m_DHs.privateKey() = DH->get_secret();
+		m_ARKeys.setDHs(DH->get_selfPublic(), DH->get_secret());
 
 		// modified the DR session, not in sync anymore with local storage
 		m_dirty = DRSessionDbStatus::dirty_ratchet;
@@ -321,7 +319,7 @@ namespace lime {
 		KDF_CK(m_CKs, MK);
 
 		// build header string in the ciphertext buffer
-		double_ratchet_protocol::buildMessage_header(ciphertext, m_Ns, m_PN, m_DHs.publicKey(), m_X3DH_initMessage, payloadDirectEncryption);
+		double_ratchet_protocol::buildMessage_header(ciphertext, m_Ns, m_PN, m_ARKeys.getDHs().publicKey(), m_X3DH_initMessage, payloadDirectEncryption);
 		auto headerSize = ciphertext.size(); // cipher text holds only the DR header for now
 
 		// increment current sending chain message index
@@ -388,9 +386,9 @@ namespace lime {
 		DRMKey MK;
 		int maxAllowedDerivation = lime::settings::maxMessageSkip;
 		m_dirty = DRSessionDbStatus::dirty_decrypt; // we're about to modify the DR session, it will not be in sync anymore with local storage
-		if (!m_DHr_valid) { // it's the first message arriving after the initialisation of the chain in receiver mode, we have no existing history in this chain
+		if (!m_ARKeys.getValid()) { // it's the first message arriving after the initialisation of the chain in receiver mode, we have no existing history in this chain
 			DHRatchet(header.DHs()); // just perform the DH ratchet step
-			m_DHr_valid=true;
+			m_ARKeys.setValid(true);
 		} else {
 			// check stored message keys
 			if (trySkippedMessageKeys(header.Ns(), header.DHs(), MK)) {
@@ -408,7 +406,7 @@ namespace lime {
 				}
 			}
 			// if header DH public key != current stored peer public DH key: we must perform a DH ratchet
-			if (m_DHr!=header.DHs()) {
+			if (m_ARKeys.getDHr()!=header.DHs()) {
 				maxAllowedDerivation -= header.PN()-m_Nr; /* we must derive headerPN-Nr keys, remove this from the count of our allowedDerivation number */
 				skipMessageKeys(header.PN(), lime::settings::maxMessageSkip-header.Ns()); // we must keep header.Ns derivations available for the next chain
 				DHRatchet(header.DHs());

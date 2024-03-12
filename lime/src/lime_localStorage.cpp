@@ -763,10 +763,11 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 		if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
 			// Build blobs from DR session
 			blob DHr(m_localStorage->sql);
-			DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
+			auto mDHr = m_ARKeys.getDHr();
+			DHr.write(0, (char *)(mDHr.data()), mDHr.size());
 			blob DHs(m_localStorage->sql);
-			DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
-			DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+			DHs.write(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize()); // DHs holds Public || Private keys in the same field
+			DHs.write(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
 			blob RK(m_localStorage->sql);
 			RK.write(0, (char *)(m_RK.data()), m_RK.size());
 			blob CKs(m_localStorage->sql);
@@ -819,10 +820,11 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 
 					// Build blobs from DR session
 					blob DHr(m_localStorage->sql);
-					DHr.write(0, (char *)(m_DHr.data()), m_DHr.size());
+					auto mDHr = m_ARKeys.getDHr();
+					DHr.write(0, (char *)(mDHr.data()), mDHr.size());
 					blob DHs(m_localStorage->sql);
-					DHs.write(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size()); // DHs holds Public || Private keys in the same field
-					DHs.write(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+					DHs.write(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize()); // DHs holds Public || Private keys in the same field
+					DHs.write(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
 					blob RK(m_localStorage->sql);
 					RK.write(0, (char *)(m_RK.data()), m_RK.size());
 					blob CKs(m_localStorage->sql);
@@ -936,9 +938,9 @@ bool DR<Curve>::session_load() {
 	m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
 
 	if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
-		DHr.read(0, (char *)(m_DHr.data()), m_DHr.size());
-		DHs.read(0, (char *)(m_DHs.publicKey().data()), m_DHs.publicKey().size());
-		DHs.read(m_DHs.publicKey().size(), (char *)(m_DHs.privateKey().data()), m_DHs.privateKey().size());
+		DHr.read(0, (char *)(m_ARKeys.getDHrPtr()), ARKeys<Curve>::DHrSize());
+		DHs.read(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize());
+		DHs.read(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
 		RK.read(0, (char *)(m_RK.data()), m_RK.size());
 		CKs.read(0, (char *)(m_CKs.data()), m_CKs.size());
 		CKr.read(0, (char *)(m_CKr.data()), m_CKr.size());

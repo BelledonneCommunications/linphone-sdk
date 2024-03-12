@@ -71,6 +71,42 @@ namespace lime {
 	};
 
 	/**
+	 * @brief structure to hold th keys used in asymmetric ratchet
+	 * For EC only DR, it holds
+	 *  - the peer public key (DHr)
+	 *  - self key pair (DHs)
+	 * For KEM augmented DR, it also holds peer KEM public key and self KEM key pair
+	 */
+	template <typename Curve>
+	struct ARKeys {
+		private:
+			X<Curve, lime::Xtype::publicKey> m_DHr; // Remote public key for elliptic curve
+			bool m_DHr_valid; // do we have a valid remote public key, flag used to spot the first message arriving at session creation in receiver mode
+			Xpair<Curve> m_DHs; // self Key pair
+		public:
+			static constexpr size_t DHrSize(void) {return Curve::Xsize(lime::Xtype::publicKey);};
+			static constexpr size_t DHsPublicSize(void) {return Curve::Xsize(lime::Xtype::publicKey);};
+			static constexpr size_t DHsPrivateSize(void) {return Curve::Xsize(lime::Xtype::privateKey);};
+
+			ARKeys(const X<Curve, lime::Xtype::publicKey> &DHr) : m_DHr{DHr}, m_DHr_valid{true}, m_DHs{} {};
+			ARKeys(bool valid=false) : m_DHr{}, m_DHr_valid{valid}, m_DHs{} {};
+			ARKeys(const Xpair<Curve> &DHs) : m_DHr{}, m_DHr_valid{false}, m_DHs{DHs} {};
+			void setValid(bool valid) {m_DHr_valid = valid;};
+			bool getValid(void) const { return m_DHr_valid;};
+			void setDHr(const X<Curve, lime::Xtype::publicKey> &DHr) {m_DHr = DHr;};
+			const X<Curve, lime::Xtype::publicKey> &getDHr(void) const { return m_DHr;};
+			const uint8_t *getDHrPtr(void) const { return m_DHr.data();};
+
+			void setDHs(const X<Curve, lime::Xtype::publicKey> &DHsPublic, const X<Curve, lime::Xtype::privateKey> &DHsPrivate) {
+				m_DHs.publicKey() = DHsPublic;
+				m_DHs.privateKey() = DHsPrivate;
+			};
+			Xpair<Curve> &getDHs(void) { return m_DHs;};
+			uint8_t *getDHsPublicPtr(void) { return m_DHs.publicKey().data();};
+			uint8_t *getDHsPrivatePtr(void) { return m_DHs.privateKey().data();};
+		//	std::enable_if_t<std::is_base_of<genericKEM, Curve>::value,  K<Curve, lime::Ktype::publicKey>> m_Kr; // Remote public key for KEM
+	};
+	/**
 	 * @brief store a Double Rachet session.
 	 *
 	 * A session is associated to a local user and a peer device.
@@ -82,9 +118,7 @@ namespace lime {
 	class DR {
 		private:
 			/* State variables for Double Ratchet, see Double Ratchet spec section 3.2 for details */
-			X<Curve, lime::Xtype::publicKey> m_DHr; // Remote public key
-			bool m_DHr_valid; // do we have a valid remote public key, flag used to spot the first message arriving at session creation in receiver mode
-			Xpair<Curve> m_DHs; // self Key pair
+			ARKeys<Curve> m_ARKeys; // Asymmetric Ratchet keys
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
 			DRChainKey m_CKr; // 32 bytes key chain for receiving
