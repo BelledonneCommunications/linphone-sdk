@@ -21,6 +21,7 @@
 #define lime_double_ratchet_protocol_hpp
 
 #include "lime_crypto_primitives.hpp"
+#include "lime_double_ratchet.hpp"
 
 namespace lime {
 	namespace double_ratchet_protocol {
@@ -58,7 +59,7 @@ namespace lime {
 		bool parseMessage_get_X3DHinit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
 
 		template <typename Curve>
-		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<Curve, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 
 		/**
 		 * @brief helper class and functions to parse Double Ratchet message header and access its components
@@ -68,7 +69,7 @@ namespace lime {
 		 class DRHeader {
 			private:
 				uint16_t m_Ns,m_PN; /**<  Sender chain and Previous Sender chain indexes. */
-				X<Curve, lime::Xtype::publicKey> m_DHs; /**< Public key */
+				std::array<uint8_t, lime::ARsKey<Curve>::serializedPublicSize()> m_DHs; /**< Public key */
 				bool m_valid; /**< is this header valid? */
 				size_t m_size; /**< store the size of parsed header */
 				bool m_payload_direct_encryption; /**< flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet */
@@ -79,7 +80,7 @@ namespace lime {
 				/// read-only accessor to Previous Sender Chain index (PN)
 				uint16_t PN(void) const {return m_PN;}
 				/// read-only accessor to peer Double Ratchet public key
-				const X<Curve, lime::Xtype::publicKey> &DHs(void) const {return m_DHs;}
+				const std::array<uint8_t, ARsKey<Curve>::serializedPublicSize()> &DHs(void) const {return m_DHs;}
 				/// is this header valid? (property is set by constructor/parser)
 				bool valid(void) const {return m_valid;}
 				/// what encryption mode is advertised in this header
@@ -98,7 +99,7 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, DSA<C255, lime::DSAtype::publicKey> &Ik, X<C255, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C255, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<C255>;
 #endif
 
@@ -106,7 +107,7 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, DSA<C448, lime::DSAtype::publicKey> &Ik, X<C448, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const X<C448, lime::Xtype::publicKey> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<C448>;
 #endif
 		/* These constants are needed only for tests purpose, otherwise their usage is internal only to double_ratchet_protocol.hpp */

@@ -763,11 +763,11 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 		if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
 			// Build blobs from DR session
 			blob DHr(m_localStorage->sql);
-			auto mDHr = m_ARKeys.getDHr();
+			auto mDHr = m_ARKeys.serializeDHr();
 			DHr.write(0, (char *)(mDHr.data()), mDHr.size());
 			blob DHs(m_localStorage->sql);
-			DHs.write(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize()); // DHs holds Public || Private keys in the same field
-			DHs.write(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
+			auto mDHs = m_ARKeys.serializeDHs();
+			DHs.write(0, (char *)(mDHs.data()), mDHs.size());
 			blob RK(m_localStorage->sql);
 			RK.write(0, (char *)(m_RK.data()), m_RK.size());
 			blob CKs(m_localStorage->sql);
@@ -820,11 +820,11 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 
 					// Build blobs from DR session
 					blob DHr(m_localStorage->sql);
-					auto mDHr = m_ARKeys.getDHr();
+					auto mDHr = m_ARKeys.serializeDHr();
 					DHr.write(0, (char *)(mDHr.data()), mDHr.size());
 					blob DHs(m_localStorage->sql);
-					DHs.write(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize()); // DHs holds Public || Private keys in the same field
-					DHs.write(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
+					auto mDHs = m_ARKeys.serializeDHs();
+					DHs.write(0, (char *)(mDHs.data()), mDHs.size());
 					blob RK(m_localStorage->sql);
 					RK.write(0, (char *)(m_RK.data()), m_RK.size());
 					blob CKs(m_localStorage->sql);
@@ -877,7 +877,7 @@ bool DR<Curve>::session_save(bool commit) { // commit default to true
 		// Shall we insert some skipped Message keys?
 		for ( const auto &rChain : m_mkskipped) { // loop all chains of message keys, each one is a DHr associated to an unordered map of MK indexed by Nr to be saved
 			blob DHr(m_localStorage->sql);
-			DHr.write(0, (char *)(rChain.DHr.data()), rChain.DHr.size());
+			DHr.write(0, (char *)(rChain.DHrIndex.data()), rChain.DHrIndex.size());
 			long DHid=0;
 			m_localStorage->sql<<"SELECT DHid FROM DR_MSk_DHr WHERE sessionId = :sessionId AND DHr = :DHr LIMIT 1;",into(DHid), use(m_dbSessionId), use(DHr);
 			if (!m_localStorage->sql.got_data()) { // There is no row in DR_MSk_DHr matching this key, we must add it
@@ -938,9 +938,12 @@ bool DR<Curve>::session_load() {
 	m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
 
 	if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
-		DHr.read(0, (char *)(m_ARKeys.getDHrPtr()), ARKeys<Curve>::DHrSize());
-		DHs.read(0, (char *)(m_ARKeys.getDHsPublicPtr()), ARKeys<Curve>::DHsPublicSize());
-		DHs.read(ARKeys<Curve>::DHsPublicSize(), (char *)(m_ARKeys.getDHsPrivatePtr()), ARKeys<Curve>::DHsPrivateSize());
+		std::array<uint8_t, ARrKey<Curve>::serializedSize()> serializedDHr{};
+		DHr.read(0, (char *)(serializedDHr.data()), ARrKey<Curve>::serializedSize());
+		m_ARKeys.setDHr(serializedDHr);
+		sBuffer<ARsKey<Curve>::serializedSize()> serializedDHs{};
+		DHs.read(0, (char *)(serializedDHs.data()), ARsKey<Curve>::serializedSize());
+		m_ARKeys.setDHs(serializedDHs);
 		RK.read(0, (char *)(m_RK.data()), m_RK.size());
 		CKs.read(0, (char *)(m_CKs.data()), m_CKs.size());
 		CKr.read(0, (char *)(m_CKr.data()), m_CKr.size());
@@ -961,11 +964,11 @@ bool DR<Curve>::session_load() {
 };
 
 template <typename Curve>
-bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xtype::publicKey> &DHr, DRMKey &MK) {
+bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob MK_blob(m_localStorage->sql);
 	blob DHr_blob(m_localStorage->sql);
-	DHr_blob.write(0, (char *)(DHr.data()), DHr.size());
+	DHr_blob.write(0, (char *)(DHrIndex.data()), DHrIndex.size());
 
 	indicator ind;
 	m_localStorage->sql<<"SELECT m.MK, m.DHid FROM DR_MSk_MK as m INNER JOIN DR_MSk_DHr as d ON d.DHid=m.DHid WHERE d.sessionId = :sessionId AND d.DHr = :DHr AND m.Nr = :Nr LIMIT 1", into(MK_blob,ind), into(m_usedDHid), use(m_dbSessionId), use(DHr_blob), use(Nr);
@@ -984,13 +987,13 @@ bool DR<Curve>::trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xt
 #ifdef EC25519_ENABLED
 	template bool DR<C255>::session_load();
 	template bool DR<C255>::session_save(bool commit);
-	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const X<C255, lime::Xtype::publicKey> &DHr, DRMKey &MK);
+	template bool DR<C255>::trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK);
 #endif
 
 #ifdef EC448_ENABLED
 	template bool DR<C448>::session_load();
 	template bool DR<C448>::session_save(bool commit);
-	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const X<C448, lime::Xtype::publicKey> &DHr, DRMKey &MK);
+	template bool DR<C448>::trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK);
 #endif
 
 /******************************************************************************/

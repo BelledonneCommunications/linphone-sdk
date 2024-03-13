@@ -58,10 +58,12 @@ namespace lime {
 			/// provide a static size function to be able to call the function not on an object
 			constexpr static size_t ssize(void) {return Curve::Xsize(dataType);};
 			/// construct from a std::vector<uint8_t>
-			X(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::Xsize(dataType), this->begin());}
+			X(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			/// construct from a std::array<uint8_t>
+			X(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			X() {};
 			/// copy from a std::vector<uint8_t>
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::Xsize(dataType), this->begin());}
+			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
 
 	/**
@@ -100,10 +102,10 @@ namespace lime {
 			/// provide a static size function to be able to call the function not on an object
 			constexpr static size_t ssize(void) {return Algo::Ksize(dataType);};
 			/// construct from a std::vector<uint8_t>
-			K(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Algo::Ksize(dataType), this->begin());}
+			K(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			K() {};
 			/// copy from a std::vector<uint8_t>
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Algo::Ksize(dataType), this->begin());}
+			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
 
 	/**
@@ -141,10 +143,10 @@ namespace lime {
 			/// provide a static size function to be able to call the function not on an object
 			constexpr static size_t ssize(void) {return Curve::DSAsize(dataType);};
 			/// contruct from a std::vector<uint8_t>
-			DSA(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::DSAsize(dataType), this->begin());}
+			DSA(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			DSA() {};
 			/// copy from a std::vector<uint8_t>
-			void assign(std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, Curve::DSAsize(dataType), this->begin());}
+			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
 
 	/**

@@ -61,17 +61,180 @@ namespace lime {
 	 */
 	template <typename Curve>
 	struct ReceiverKeyChain {
-		X<Curve, lime::Xtype::publicKey> DHr; /**< peer public key identifying this chain */
+		std::vector<uint8_t> DHrIndex; /**< peer public key(or a hash of it) identifying this chain */
 		std::unordered_map<uint16_t, DRMKey> messageKeys; /**< message keys indexed by Nr */
 		/**
 		 * Start a new empty chain
 		 * @param[in]	key	the peer DH public key used on this chain
 		 */
-		ReceiverKeyChain(X<Curve, lime::Xtype::publicKey> key) :DHr{std::move(key)}, messageKeys{} {};
+		ReceiverKeyChain(const std::vector<uint8_t> &keyIndex) :DHrIndex{keyIndex}, messageKeys{} {};
+	};
+
+	/* The key type for remote asymmetric ratchet keys. Hold the public key(s) provided by remote */
+	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
+	struct ARrKey;
+
+	// Remote public key for elliptic curve
+	template <typename Curve>
+	struct ARrKey <Curve, false> {
+		private:
+			X<Curve, lime::Xtype::publicKey> m_DHr;
+
+		public:
+			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
+
+			ARrKey(const X<Curve, lime::Xtype::publicKey> &DHr) : m_DHr{DHr} {};
+			// Unserializing constructor
+			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) : m_DHr(DHr.cbegin()) {};
+			ARrKey() : m_DHr{} {};
+
+			const X<Curve, lime::Xtype::publicKey> &getECKey(void) const { return m_DHr;};
+			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_DHr.cbegin(), m_DHr.cend());}
+			std::array<uint8_t, serializedSize()> serialize(void) const { return m_DHr;}
+			std::string whoami(void) const {return std::string("Classic ARrkey");}
+	};
+
+
+	// Remote public key for any type based on genericKEM - note: it will fail if we try to instanciate it for a KEM only type
+	template <typename Algo>
+	struct ARrKey <Algo, true> {
+		private:
+			X<Algo, lime::Xtype::publicKey> m_ec_DHr; // Remote public key for elliptic curve
+			K<Algo, lime::Ktype::publicKey> m_kem_DHr; // Remote public key for KEM
+			K<Algo, lime::Ktype::cipherText> m_kem_CTr; // Remote cipherText for KEM, decapsulate with our local kem private key
+		public:
+			static constexpr size_t serializedSize(void) {return X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize() +  K<Algo, lime::Ktype::cipherText>::ssize(); };
+
+			ARrKey(const X<Algo, lime::Xtype::publicKey> &ecDHr, K<Algo, lime::Ktype::publicKey> &kemDHr, K<Algo, lime::Ktype::cipherText> &kemCTr ) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{kemCTr} {};
+			// Unserializing constructor
+			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) {
+				//TODO: something better thant going through vector?
+				std::vector<uint8_t> v(DHr.cbegin(), DHr.cend());
+				m_ec_DHr.assign(v.cbegin());
+				m_kem_DHr.assign(v.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize());
+				m_kem_CTr.assign(v.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize());
+			};
+			ARrKey() : m_ec_DHr{}, m_kem_DHr{}, m_kem_CTr{} {};
+
+			const X<Algo, lime::Xtype::publicKey> &getECKey(void) const { return m_ec_DHr;};
+			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_ec_DHr.cbegin(), m_ec_DHr.cend());} // TODO: index should be a hash of ecDH and CT?
+			std::array<uint8_t, serializedSize()> serialize(void) const {
+				std::array<uint8_t, serializedSize()> s;
+				std::copy_n(m_ec_DHr.cbegin(), m_ec_DHr.size(), s.begin());
+				std::copy_n(m_kem_DHr.cbegin(), m_kem_DHr.size(), s.begin() + m_ec_DHr.size());
+				std::copy_n(m_kem_CTr.cbegin(), m_kem_CTr.size(), s.begin() + m_ec_DHr.size() + m_kem_DHr.size());
+				return s;
+			}
+
+			std::string whoami(void) const {return std::string("KEM ARrkey");}
+	};
+
+	/* The key type for self Asymmetric Ratchet keys. Hold the key(s) generated locally */
+	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
+	struct ARsKey;
+
+	// Self AR keys for elliptic curve
+	template <typename Curve>
+	struct ARsKey<Curve, false> {
+		private:
+			Xpair<Curve> m_DHs; // Self key for elliptic curve
+		public:
+			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
+			static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
+
+			ARsKey(const Xpair<Curve> &DHs) : m_DHs{DHs} {};
+			ARsKey(const X<Curve, lime::Xtype::publicKey> &DHsPublic, const X<Curve, lime::Xtype::privateKey> &DHsPrivate) {
+				m_DHs.publicKey() = DHsPublic;
+				m_DHs.privateKey() = DHsPrivate;
+			};
+			ARsKey() : m_DHs{} {};
+			// Unserializing constructor
+			ARsKey(const std::array<uint8_t, serializedSize()> &DHs) {
+				m_DHs.publicKey() = DHs.cbegin();
+				m_DHs.privateKey() = DHs.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
+			};
+
+			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_DHs.privateKey();};
+			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_DHs.publicKey();};
+			/// Serialize the key pair (to store in DB): First the public value, then the private one
+			sBuffer<serializedSize()> serialize(void) { //TODO: shall be able to be defined const on the object but accessing publicKey() impairs it
+				sBuffer<serializedSize()> s{};
+				std::copy_n(m_DHs.publicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
+				std::copy_n(m_DHs.privateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
+				return s;
+			}
+			/// Serialize the public part only to insert in the DR message header
+			std::vector<uint8_t> serializePublic(void) { return std::vector<uint8_t>(m_DHs.publicKey().cbegin(), m_DHs.publicKey().cend());}
+			std::string whoami(void) const {return std::string("Classic ARskey");}
+	};
+
+	// Self AR keys for KEM based algo
+	template <typename Algo>
+	struct ARsKey<Algo, true> {
+		private:
+			Xpair<Algo> m_ec_DHs; // Self key for elliptic curve
+			Kpair<Algo> m_kem_DHs; // Self key for Kem
+			K<Algo, lime::Ktype::cipherText> m_kem_CTs; // Cipher Text encapsulated locally using remote KEM public key
+
+		public:
+			static constexpr size_t serializedSize(void) {
+				return X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+					+ X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+					+ K<Algo, lime::Ktype::cipherText>::ssize();
+			};
+			static constexpr size_t serializedPublicSize(void) {
+				return X<Algo, lime::Xtype::publicKey>::ssize()
+					+ X<Algo, lime::Xtype::publicKey>::ssize()
+					+ K<Algo, lime::Ktype::cipherText>::ssize();
+			};
+
+			ARsKey(const Xpair<Algo> &ecDHs, const Kpair<Algo> &kemDHs, const K<Algo, lime::Ktype::cipherText> &kemCTs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{kemCTs} {};
+			ARsKey(const X<Algo, lime::Xtype::publicKey> &DHsPublic, const X<Algo, lime::Xtype::privateKey> &DHsPrivate) {
+				m_ec_DHs.publicKey() = DHsPublic;
+				m_ec_DHs.privateKey() = DHsPrivate;
+			};
+			ARsKey() : m_ec_DHs{}, m_kem_DHs{}, m_kem_CTs{} {};
+			// Unserializing constructor
+			ARsKey(const std::array<uint8_t, serializedSize()> &DHs) {
+				m_ec_DHs.publicKey() = DHs.cbegin();
+				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
+				m_ec_DHs.privateKey() = DHs.cbegin() + index;
+				index += X<Algo, lime::Xtype::privateKey>::ssize();
+				m_kem_DHs.publicKey() = DHs.cbegin() + index;
+				index += K<Algo, lime::Ktype::publicKey>::ssize();
+				m_kem_DHs.privateKey() = DHs.cbegin() + index;
+				index += K<Algo, lime::Ktype::privateKey>::ssize();
+				m_kem_CTs = DHs.cbegin() + index;
+			};
+
+			X<Algo, lime::Xtype::privateKey> &privateKey(void) {return m_ec_DHs.privateKey();};
+			X<Algo, lime::Xtype::publicKey> &publicKey(void) {return m_ec_DHs.publicKey();};
+			/// Serialize the key pair (to store in DB): First the public value, then the private one
+			sBuffer<serializedSize()> serialize(void) { //TODO: shall be able to be defined const on the object but accessing publicKey() impairs it
+				sBuffer<serializedSize()> s{};
+				std::copy_n(m_ec_DHs.publicKey().cbegin(), m_ec_DHs.publicKey().size(), s.begin());
+				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
+				std::copy_n(m_ec_DHs.privateKey().cbegin(), m_ec_DHs.privateKey().size(), s.begin()+index);
+				index += X<Algo, lime::Xtype::privateKey>::ssize();
+				std::copy_n(m_kem_DHs.publicKey().cbegin(), m_kem_DHs.publicKey().size(), s.begin()+index);
+				index += K<Algo, lime::Ktype::publicKey>::ssize();
+				std::copy_n(m_kem_DHs.privateKey().cbegin(), m_kem_DHs.privateKey().size(), s.begin()+index);
+				index += K<Algo, lime::Ktype::privateKey>::ssize();
+				std::copy_n(m_kem_CTs.cbegin(), m_kem_CTs.size(), s.begin()+index);
+				return s;
+			}
+			/// Serialize the public part only to insert in the DR message header
+			std::vector<uint8_t> serializePublic(void) {
+			       std::vector<uint8_t> v(m_ec_DHs.publicKey().cbegin(), m_ec_DHs.publicKey().cend());
+			       v.insert(v.end(), m_kem_DHs.publicKey().cbegin(), m_kem_DHs.publicKey().cend());
+			       v.insert(v.end(), m_kem_CTs.publicKey().cbegin(), m_kem_CTs.publicKey().cend());
+			       return v;
+			}
+			std::string whoami(void) const {return std::string("KEMbased ARskey");}
 	};
 
 	/**
-	 * @brief structure to hold th keys used in asymmetric ratchet
+	 * @brief structure to hold the keys used in asymmetric ratchet
 	 * For EC only DR, it holds
 	 *  - the peer public key (DHr)
 	 *  - self key pair (DHs)
@@ -80,32 +243,32 @@ namespace lime {
 	template <typename Curve>
 	struct ARKeys {
 		private:
-			X<Curve, lime::Xtype::publicKey> m_DHr; // Remote public key for elliptic curve
+			ARrKey<Curve> m_DHr; // Remote public key for elliptic curve
 			bool m_DHr_valid; // do we have a valid remote public key, flag used to spot the first message arriving at session creation in receiver mode
-			Xpair<Curve> m_DHs; // self Key pair
+			ARsKey<Curve> m_DHs; // self Key pair
 		public:
-			static constexpr size_t DHrSize(void) {return Curve::Xsize(lime::Xtype::publicKey);};
-			static constexpr size_t DHsPublicSize(void) {return Curve::Xsize(lime::Xtype::publicKey);};
-			static constexpr size_t DHsPrivateSize(void) {return Curve::Xsize(lime::Xtype::privateKey);};
-
-			ARKeys(const X<Curve, lime::Xtype::publicKey> &DHr) : m_DHr{DHr}, m_DHr_valid{true}, m_DHs{} {};
+			ARKeys(const ARrKey<Curve> &DHr) : m_DHr{DHr}, m_DHr_valid{true}, m_DHs{} {};
 			ARKeys(bool valid=false) : m_DHr{}, m_DHr_valid{valid}, m_DHs{} {};
-			ARKeys(const Xpair<Curve> &DHs) : m_DHr{}, m_DHr_valid{false}, m_DHs{DHs} {};
+			ARKeys(const ARsKey<Curve> &DHs) : m_DHr{}, m_DHr_valid{false}, m_DHs{DHs} {};
+
 			void setValid(bool valid) {m_DHr_valid = valid;};
 			bool getValid(void) const { return m_DHr_valid;};
-			void setDHr(const X<Curve, lime::Xtype::publicKey> &DHr) {m_DHr = DHr;};
-			const X<Curve, lime::Xtype::publicKey> &getDHr(void) const { return m_DHr;};
-			const uint8_t *getDHrPtr(void) const { return m_DHr.data();};
 
-			void setDHs(const X<Curve, lime::Xtype::publicKey> &DHsPublic, const X<Curve, lime::Xtype::privateKey> &DHsPrivate) {
-				m_DHs.publicKey() = DHsPublic;
-				m_DHs.privateKey() = DHsPrivate;
-			};
-			Xpair<Curve> &getDHs(void) { return m_DHs;};
-			uint8_t *getDHsPublicPtr(void) { return m_DHs.publicKey().data();};
-			uint8_t *getDHsPrivatePtr(void) { return m_DHs.privateKey().data();};
-		//	std::enable_if_t<std::is_base_of<genericKEM, Curve>::value,  K<Curve, lime::Ktype::publicKey>> m_Kr; // Remote public key for KEM
+			void setDHr(const ARrKey<Curve> &DHr) {m_DHr = DHr;};
+			const ARrKey<Curve> &getDHr(void) const { return m_DHr;};
+			const std::array<uint8_t, ARrKey<Curve>::serializedSize()> serializeDHr(void) { return m_DHr.serialize();};
+			/**
+			 * @return an index identifying the DHr - used to index the skip messages keys
+			 */
+			std::vector<uint8_t> getDHrIndex(void) const { return m_DHr.getIndex();};
+
+			void setDHs(const ARsKey<Curve> &DHs) { m_DHs = DHs; };
+			ARsKey<Curve> &getDHs(void) { return m_DHs;};
+			const sBuffer<ARsKey<Curve>::serializedSize()> serializeDHs(void) { return m_DHs.serialize();};
+			const std::vector<uint8_t> serializePublicDHs(void) { return m_DHs.serializePublic();};
+
 	};
+
 	/**
 	 * @brief store a Double Rachet session.
 	 *
@@ -144,16 +307,16 @@ namespace lime {
 
 			/*helpers functions */
 			void skipMessageKeys(const uint16_t until, const int limit); /* check if we skipped some messages in current receiving chain, generate and store in session intermediate message keys */
-			void DHRatchet(const X<Curve, lime::Xtype::publicKey> &headerDH); /* perform a Diffie-Hellman ratchet using the given peer public key */
+			void DHRatchet(const std::array<uint8_t, ARsKey<Curve>::serializedPublicSize()> &headerDH); /* perform a Diffie-Hellman ratchet using the given peer public key */
 			/* local storage related implemented in lime_localStorage.cpp */
 			bool session_save(bool commit=true); /* save/update session in database : updated component depends m_dirty value, when commit is true, commit transaction in DB */
 			bool session_load(); /* load session in database */
-			bool trySkippedMessageKeys(const uint16_t Nr, const X<Curve, lime::Xtype::publicKey> &DHr, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
+			bool trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
 
 		public:
 			DR() = delete; // make sure the Double Ratchet is not initialised without parameters
-			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const X<Curve, lime::Xtype::publicKey> &peerPublicKey, const long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
-			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const Xpair<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
+			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, const long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
+			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
 			DR(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context); // load session from DB
 			DR(DR<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
@@ -168,7 +331,6 @@ namespace lime {
 			/// return the current status of session
 			bool isActive(void) const {return m_active_status;}
 	};
-
 
 	/**
 	 * @brief extend the RecipientData to add a Double Ratchet session shared with the recipient

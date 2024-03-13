@@ -73,12 +73,14 @@ namespace lime {
 		static constexpr size_t DSAsize(lime::DSAtype dataType) {return (dataType != lime::DSAtype::signature)?57:114;};
 	};
 
+	struct genericKEM {
+		static constexpr lime::CurveId curveId() {return lime::CurveId::unset;}; // KEM cannot be used directly in DR or X3DH -> no curveId
+	};
 	/**
 	 * @brief Kyber 512 KEM data types size definition
 	 */
-	struct KYB1 {
-		 ///the kyber512/c25519 hybrid KEM enumeration
-		static constexpr lime::CurveId curveId() {return lime::CurveId::k512c25519;};
+	struct KYB1: public genericKEM {
+		 /// kyber512
 		static constexpr size_t Ksize(lime::Ktype dataType) {
 			switch (dataType) {
 				case lime::Ktype::publicKey:
@@ -95,6 +97,10 @@ namespace lime {
 				break;
 			}	
 		};
+	};
+
+	struct LVL1: public C255,KYB1 {
+		static constexpr lime::CurveId curveId() {return lime::CurveId::k512c25519;};
 	};
 
 	// Hash function defines
