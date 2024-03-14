@@ -98,21 +98,26 @@ public class AndroidVideoApi5JniWrapper {
 
 	public static Object startRecording(int cameraId, int width, int height, int fps, int rotation, final long nativePtr) {
 		Log.d("mediastreamer", "startRecording(" + cameraId + ", " + width + ", " + height + ", " + fps + ", " + rotation + ", " + nativePtr + ")");
-		Camera camera = Camera.open();
+		Camera camera = null;
+		try{
+			camera = Camera.open();
 
-		applyCameraParameters(camera, width, height, fps);
+			applyCameraParameters(camera, width, height, fps);
 
-		camera.setPreviewCallback(new Camera.PreviewCallback() {
-			public void onPreviewFrame(byte[] data, Camera camera) {
-				if (isRecording) {
-					// forward image data to JNI
-					putImage(nativePtr, data);
+			camera.setPreviewCallback(new Camera.PreviewCallback() {
+				public void onPreviewFrame(byte[] data, Camera camera) {
+					if (isRecording) {
+						// forward image data to JNI
+						putImage(nativePtr, data);
+					}
 				}
-			}
-		});
+			});
 
-		camera.startPreview();
-		isRecording = true;
+			camera.startPreview();
+			isRecording = true;
+		}catch(Throwable e){
+			Log.e("mediastreamer", "AndroidVideoApi5JniWrapper.startRecording(): caught exception " + e);
+		}
 		Log.d("mediastreamer", "Returning camera object: " + camera);
 		return camera;
 	}
@@ -123,9 +128,13 @@ public class AndroidVideoApi5JniWrapper {
 		Camera camera = (Camera) cam;
 
 		if (camera != null) {
-			camera.setPreviewCallback(null);
-			camera.stopPreview();
-			camera.release();
+			try{
+				camera.setPreviewCallback(null);
+				camera.stopPreview();
+				camera.release();
+			}catch(Throwable e){
+				Log.e("mediastreamer", "AndroidVideoApi5JniWrapper.stopRecording(): caught exception " + e);
+			}
 		} else {
 			Log.i("mediastreamer", "Cannot stop recording ('camera' is null)");
 		}

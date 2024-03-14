@@ -113,8 +113,8 @@ public class AndroidVideoApi9JniWrapper {
 		AndroidVideoApi5JniWrapper.isRecording = true;
 		Log.d("Returning camera object: " + camera);
 		return camera;
-		} catch (Exception exc) {
-			exc.printStackTrace();
+		} catch (Throwable e) {
+			Log.e("AndroidVideoApi9JniWrapper.startRecording(): caught exception " + e);
 			return null;
 		}
 	}
@@ -131,7 +131,11 @@ public class AndroidVideoApi9JniWrapper {
 			compensateCameraTextureViewRotation = true;
 		}
         //start preview is delayed to workaround autofocus issues on Samsung devices
-		((Camera)cam).startPreview();
+        try{
+			((Camera)cam).startPreview();
+		}catch(Throwable e){
+			Log.e("AndroidVideoApi9JniWrapper.setPreviewDisplaySurface(): caught exception " + e);
+		}
         Log.i("Camera ["+((Camera)cam) +"] preview started");
 	}
 
