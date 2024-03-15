@@ -122,7 +122,7 @@ namespace lime {
 				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 			}
 
-			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_shared<DR<Curve>>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
+			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_DR_for_sender<Curve>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
 
 			LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
@@ -211,7 +211,7 @@ namespace lime {
 
 		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
 		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
-		auto DRSession = make_shared<DR<Curve>>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
+		auto DRSession = make_DR_for_receiver<Curve>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
 
 		return DRSession;
 	}

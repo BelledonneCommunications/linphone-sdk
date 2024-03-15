@@ -176,6 +176,7 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	extern template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage,  std::shared_ptr<RNG> RNG_context);
 	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
+	extern template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 } // namespace lime_tester
 
 extern "C" {

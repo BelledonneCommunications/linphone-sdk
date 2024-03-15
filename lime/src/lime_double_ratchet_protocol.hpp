@@ -34,7 +34,7 @@ namespace lime {
 		 */
 		template <typename Curve>
 		constexpr size_t headerSize() noexcept {
-			return 7 + X<Curve, lime::Xtype::publicKey>::ssize();
+			return 7 + lime::ARsKey<Curve>::serializedPublicSize();
 		}
 
 		/**
@@ -110,6 +110,10 @@ namespace lime {
 		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<C448>;
 #endif
+
+		extern template void buildMessage_header<LVL1>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template class DRHeader<LVL1>;
+
 		/* These constants are needed only for tests purpose, otherwise their usage is internal only to double_ratchet_protocol.hpp */
 		/** Double ratchet protocol version number */
 		constexpr uint8_t DR_v01=0x01;

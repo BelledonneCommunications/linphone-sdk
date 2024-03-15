@@ -103,6 +103,8 @@ namespace lime {
 			constexpr static size_t ssize(void) {return Algo::Ksize(dataType);};
 			/// construct from a std::vector<uint8_t>
 			K(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			/// construct from a std::array<uint8_t>
+			K(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			K() {};
 			/// copy from a std::vector<uint8_t>
 			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
@@ -185,13 +187,6 @@ namespace lime {
  */
 class RNG {
 	public:
-		/**
-		 * @brief fill the given RandomSeed buffer with Random bytes
-		 *
-		 * @param[in,out] buffer	point to the beginning of the buffer to be filled with random bytes
-		 */
-		virtual void randomize(sBuffer<lime::settings::DRrandomSeedSize> &buffer) = 0;
-
 		/**
 		 * @brief Generate a 32 bits unsigned integer(used to generate keys Id)
 		 * The MSbit is forced to 0 to avoid dealing with DB misinterpreting unsigned values into signed one

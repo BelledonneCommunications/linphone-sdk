@@ -67,11 +67,6 @@ class bctbx_RNG : public RNG {
 		bctoolbox::RNG m_context; // the bctoolbox RNG context
 
 	public:
-
-		void randomize(sBuffer<lime::settings::DRrandomSeedSize> &buffer) override {
-			m_context.randomize(buffer.data(), buffer.size());
-		};
-
 		uint32_t randomize() override {
 			uint32_t ret = m_context.randomize();
 			// we are on 31 bits: keep the uint32_t MSb set to 0 (see RNG interface definition)

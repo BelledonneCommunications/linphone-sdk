@@ -188,7 +188,7 @@ void randomize(uint8_t *buffer, const size_t size) {
  *	Alice must then send the first message, once bob got it, sessions are fully initialised
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
  */
-template <typename Curve>
+template<typename Curve>
 void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
@@ -224,8 +224,53 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 	// create DR sessions
 	std::vector<uint8_t> X3DH_initMessage{};
 	DSA<Curve, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
-	alice = std::make_shared<DR<Curve>>(localStorageAlice, SK, AD, bobKeyPair.publicKey(), aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
-	bob = std::make_shared<DR<Curve>>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
+	alice = make_DR_for_sender<Curve>(localStorageAlice, SK, AD, bobKeyPair.publicKey(), aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
+	bob = make_DR_for_receiver<Curve>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
+}
+
+template<>
+void dr_sessionsInit<LVL1>(std::shared_ptr<DR<LVL1>> &alice, std::shared_ptr<DR<LVL1>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
+	if (initStorage==true) {
+		// create or load Db
+		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice, db_mutex_alice);
+		localStorageBob = std::make_shared<lime::Db>(dbFilenameBob, db_mutex_bob);
+	}
+
+	/* generate EC key pair for bob */
+	auto tempECDH = make_keyExchange<LVL1::EC>();
+	tempECDH->createKeyPair(RNG_context);
+	Xpair<LVL1::EC> bobECKeyPair{tempECDH->get_selfPublic(), tempECDH->get_secret()};
+
+	/* generate KEM key pair for bob */
+	Kpair<LVL1::KEM> bobKEMKeyPair;
+	auto tempKEM = make_KEM<LVL1::KEM>();
+	tempKEM->createKeyPair(bobKEMKeyPair);
+	ARrKey<LVL1> bobPK(bobECKeyPair.publicKey(), bobKEMKeyPair.publicKey());
+	ARsKey<LVL1> bobKeyPair(bobECKeyPair, bobKEMKeyPair);
+
+	/* generate a shared secret and AD */
+	lime::DRChainKey SK;
+	lime::SharedADBuffer AD;
+	lime_tester::randomize(SK.data(), SK.size());
+	lime_tester::randomize(AD.data(), AD.size());
+
+	// insert the peer Device (with dummy datas in lime_PeerDevices and lime_LocalUsers tables, not used in the DR tests but needed to satisfy foreign key condition on session insertion)
+	long int aliceUid,bobUid,bobDid,aliceDid;
+	localStorageAlice->sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server) VALUES ('dummy', 1, 'dummy')";
+	localStorageAlice->sql<<"select last_insert_rowid()",soci::into(aliceUid);
+	localStorageAlice->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik) VALUES ('dummy', 1)";
+	localStorageAlice->sql<<"select last_insert_rowid()",soci::into(aliceDid);
+
+	localStorageBob->sql<<"INSERT INTO lime_LocalUsers(UserId, Ik, server) VALUES ('dummy', 1, 'dummy')";
+	localStorageBob->sql<<"select last_insert_rowid()",soci::into(bobUid);
+	localStorageBob->sql<<"INSERT INTO lime_PeerDevices(DeviceId, Ik) VALUES ('dummy', 1)";
+	localStorageBob->sql<<"select last_insert_rowid()",soci::into(bobDid);
+
+	// create DR sessions
+	std::vector<uint8_t> X3DH_initMessage{};
+	DSA<LVL1::EC, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
+	alice = make_DR_for_sender<LVL1>(localStorageAlice, SK, AD, bobPK, aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
+	bob = make_DR_for_receiver<LVL1>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
 
 
@@ -568,7 +613,6 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
-
-
+	template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 } // namespace lime_tester
 

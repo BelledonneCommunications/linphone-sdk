@@ -218,6 +218,10 @@ static void dr_skippedMessages_basic(void) {
 	dr_skippedMessages_basic_test<C448>(10, 10, 1, 15, "dr_skipMessage_1_X448");
 	dr_skippedMessages_basic_test<C448>(5, 5, 1, 10, "dr_skipMessage_2_X448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_skippedMessages_basic_test<LVL1>(10, 10, 1, 15, "dr_skipMessage_1_LVL1");
+	dr_skippedMessages_basic_test<LVL1>(5, 5, 1, 10, "dr_skipMessage_2_LVL1");
+#endif
 }
 
 /* alice send <period> messages to bob, and bob replies with <period> messages and so on until the end of message pattern list  */
@@ -262,7 +266,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload bob sessions */
 				auto bobSessionId=bob->dbSessionId();
 				bob = nullptr; // release and destroy bob DR context
-				bob = make_shared<DR<Curve>>(bobLocalStorage, bobSessionId, RNG_context);
+				bob = make_DR_from_localStorage<Curve>(bobLocalStorage, bobSessionId, RNG_context);
 			}
 		} else {
 			// bob replies
@@ -286,7 +290,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 				/* destroy and reload alice sessions */
 				auto aliceSessionId=alice->dbSessionId();
 				alice = nullptr; // release and destroy alice DR context
-				alice = make_shared<DR<Curve>>(aliceLocalStorage, aliceSessionId, RNG_context);
+				alice = make_DR_from_localStorage<Curve>(aliceLocalStorage, aliceSessionId, RNG_context);
 			}
 		}
 	}
@@ -304,6 +308,9 @@ static void dr_long_exchange1(void) {
 #ifdef EC448_ENABLED
 	dr_long_exchange_test<C448>(1, "dr_long_exchange_1_X448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_long_exchange_test<LVL1>(1, "dr_long_exchange_1_LVL1");
+#endif
 }
 static void dr_long_exchange3(void) {
 #ifdef EC25519_ENABLED
@@ -312,6 +319,9 @@ static void dr_long_exchange3(void) {
 #ifdef EC448_ENABLED
 	dr_long_exchange_test<C448>(3, "dr_long_exchange_3_X448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_long_exchange_test<LVL1>(3, "dr_long_exchange_3_LVL1");
+#endif
 }
 static void dr_long_exchange10(void) {
 #ifdef EC25519_ENABLED
@@ -319,6 +329,9 @@ static void dr_long_exchange10(void) {
 #endif
 #ifdef EC448_ENABLED
 	dr_long_exchange_test<C448>(10, "dr_long_exchange_10_X448");
+#endif
+#ifdef HAVE_BCTBXPQ
+	dr_long_exchange_test<LVL1>(10, "dr_long_exchange_10_LVL1");
 #endif
 }
 
@@ -368,7 +381,9 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
 	recipientDRSessions.push_back(DRsessionBob);
 	std::vector<uint8_t> plainBuffer{};
-	decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, aliceCipher, plainBuffer);
+	auto ret = decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, aliceCipher, plainBuffer);
+	BC_ASSERT_TRUE(ret == DRsessionBob);
+	if (ret != DRsessionBob) return;
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
@@ -395,7 +410,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	recipientDRSessions.clear();
 	recipientDRSessions.push_back(DRsessionAlice);
 	plainBuffer.clear();
-	decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[0].DRmessage, bobCipher, plainBuffer);
+	BC_ASSERT_TRUE(decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[0].DRmessage, bobCipher, plainBuffer) == DRsessionAlice);
 	std::string plainMessageAlice{plainBuffer.begin(), plainBuffer.end()};
 
 	// same same?
@@ -446,6 +461,9 @@ static void dr_basic(void) {
 #ifdef EC448_ENABLED
 	dr_basic_test<C448>("dr_basic_X448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_basic_test<LVL1>("dr_basic_LVL1");
+#endif
 }
 /* Bob decrypt patterns: Bob DB holds in DR_session id 1 a session able to decrypt the pattern message giving messages_pattern[5] */
 template <typename Curve>
@@ -464,7 +482,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 
 	// Load the DR session with id 1 from the DB
 	localStorageBob = std::make_shared<lime::Db>(bobFilename, bob_db_mutex);
-	bob = std::make_shared<DR<Curve>>(localStorageBob, 1, RNG_context);
+	bob = make_DR_from_localStorage<Curve>(localStorageBob, 1, RNG_context);
 	BC_ASSERT_TRUE(bob->isActive());
 	if (!bob->isActive()) return; // skip the test if we were not able to load bob's session from pattern
 
@@ -477,6 +495,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 	BC_ASSERT_TRUE(plainMessageBob==lime_tester::messages_pattern[5]);
 
+	//auto bob2 = std::make_shared<DR<LVL1>>(localStorageBob, 1, RNG_context);
 	if (cleanDatabase) {
 		remove(bobFilename.data());
 	}
@@ -588,6 +607,9 @@ static void dr_multidevice_basic(void) {
 #endif
 #ifdef EC448_ENABLED
 	dr_multidevice_basic_test<C448>("dr_multidevice_basic_C448");
+#endif
+#ifdef HAVE_BCTBXPQ
+	dr_multidevice_basic_test<LVL1>("dr_multidevice_basic_LVL1");
 #endif
 }
 
@@ -709,6 +731,9 @@ static void dr_skip_too_much(void) {
 #ifdef EC448_ENABLED
 	dr_skip_too_much_test<C448>("dr_skip_too_much_C448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_skip_too_much_test<LVL1>("dr_skip_too_much_LVL1");
+#endif
 }
 
 /* alice send a message to bob, and he replies */
@@ -774,6 +799,9 @@ static void dr_encryptionPolicy_basic(void) {
 #ifdef EC448_ENABLED
 	dr_encryptionPolicy_basic_test<C448>("dr_encryptionPolicy_X448");
 #endif
+#ifdef HAVE_BCTBXPQ
+	dr_encryptionPolicy_basic_test<LVL1>("dr_encryptionPolicy_LVL1");
+#endif
 }
 
 template <typename Curve>
@@ -786,7 +814,7 @@ static void dr_encryptionPolicy_multidevice_test(std::string db_filename) {
 			lime::EncryptionPolicy::DRMessage, // check we have direct encryotion
 			lime::EncryptionPolicy::optimizeUploadSize); // do nothing about payload encryption policy: use default
 
-	/* long message, forced optimizeSize policy(which shall be the default anyway) -> cipher message  encryption(we have more thant one recipient) */
+	/* long message, forced optimizeSize policy(which shall be the default anyway) -> cipher message  encryption(we have more than one recipient) */
 	dr_multidevice_exchange<Curve>(db_filename,
 			lime_tester::longMessage,
 			true,
@@ -828,6 +856,9 @@ static void dr_encryptionPolicy_multidevice(void) {
 #endif
 #ifdef EC448_ENABLED
 	dr_encryptionPolicy_multidevice_test<C448>("dr_encryptionPolicy_multidevice_C448");
+#endif
+#ifdef HAVE_BCTBXPQ
+	dr_encryptionPolicy_multidevice_test<LVL1>("dr_encryptionPolicy_multidevice_LVL1");
 #endif
 }
 /* Alice send a encrypt a message to Bob, with forced encryption policy but the cipher message is deleted
@@ -895,6 +926,10 @@ static void dr_encryptionPolicy_error(void) {
 #ifdef EC448_ENABLED
 	dr_encryptionPolicy_error_test<C448>("dr_encryptionPolicy_error_C448", lime::EncryptionPolicy::cipherMessage);
 	dr_encryptionPolicy_error_test<C448>("dr_encryptionPolicy_error_C448", lime::EncryptionPolicy::DRMessage);
+#endif
+#ifdef HAVE_BCTBXPQ
+	dr_encryptionPolicy_error_test<LVL1>("dr_encryptionPolicy_error_LVL1", lime::EncryptionPolicy::cipherMessage);
+	dr_encryptionPolicy_error_test<LVL1>("dr_encryptionPolicy_error_LVL1", lime::EncryptionPolicy::DRMessage);
 #endif
 }
 

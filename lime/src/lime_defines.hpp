@@ -63,6 +63,9 @@ namespace settings {
 	 */
 	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
 
+	/// DR DHr chain index size is 32 bytes long (used to identify a DR reception chain for KEM based DR)
+	constexpr size_t DRrIndexSize=32;
+
 	/// AEAD generates tag 16 bytes long
 	constexpr size_t DRMessageAuthTagSize=16;
 

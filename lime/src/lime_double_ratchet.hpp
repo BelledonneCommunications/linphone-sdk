@@ -28,6 +28,7 @@
 #include "lime_settings.hpp"
 #include "lime_defines.hpp"
 #include "lime_crypto_primitives.hpp"
+#include "lime_log.hpp"
 
 namespace lime {
 
@@ -88,10 +89,9 @@ namespace lime {
 			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) : m_DHr(DHr.cbegin()) {};
 			ARrKey() : m_DHr{} {};
 
-			const X<Curve, lime::Xtype::publicKey> &getECKey(void) const { return m_DHr;};
-			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_DHr.cbegin(), m_DHr.cend());}
+			const X<Curve, lime::Xtype::publicKey> &publicKey(void) const { return m_DHr;};
+			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_DHr.cbegin(), m_DHr.cend());} // index is directly the public key itself
 			std::array<uint8_t, serializedSize()> serialize(void) const { return m_DHr;}
-			std::string whoami(void) const {return std::string("Classic ARrkey");}
 	};
 
 
@@ -99,25 +99,32 @@ namespace lime {
 	template <typename Algo>
 	struct ARrKey <Algo, true> {
 		private:
-			X<Algo, lime::Xtype::publicKey> m_ec_DHr; // Remote public key for elliptic curve
-			K<Algo, lime::Ktype::publicKey> m_kem_DHr; // Remote public key for KEM
-			K<Algo, lime::Ktype::cipherText> m_kem_CTr; // Remote cipherText for KEM, decapsulate with our local kem private key
+			X<typename Algo::EC, lime::Xtype::publicKey> m_ec_DHr; /**< Remote public key for elliptic curve */
+			K<typename Algo::KEM, lime::Ktype::publicKey> m_kem_DHr; /**< Remote public key for KEM */
+			K<typename Algo::KEM, lime::Ktype::cipherText> m_kem_CTr; /**< Remote cipherText for KEM, decapsulate with our local kem private key */
 		public:
 			static constexpr size_t serializedSize(void) {return X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize() +  K<Algo, lime::Ktype::cipherText>::ssize(); };
 
-			ARrKey(const X<Algo, lime::Xtype::publicKey> &ecDHr, K<Algo, lime::Ktype::publicKey> &kemDHr, K<Algo, lime::Ktype::cipherText> &kemCTr ) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{kemCTr} {};
+			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr, K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTr ) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{kemCTr} {};
+			// At Sender's session creation, we do not have any peer CT
+			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{} {};
 			// Unserializing constructor
-			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) {
-				//TODO: something better thant going through vector?
-				std::vector<uint8_t> v(DHr.cbegin(), DHr.cend());
-				m_ec_DHr.assign(v.cbegin());
-				m_kem_DHr.assign(v.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize());
-				m_kem_CTr.assign(v.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize());
+			ARrKey(const std::array<uint8_t, serializedSize()> &DHr){
+				m_ec_DHr = DHr.cbegin();
+				m_kem_DHr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize();
+				m_kem_CTr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize();
 			};
 			ARrKey() : m_ec_DHr{}, m_kem_DHr{}, m_kem_CTr{} {};
 
-			const X<Algo, lime::Xtype::publicKey> &getECKey(void) const { return m_ec_DHr;};
-			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_ec_DHr.cbegin(), m_ec_DHr.cend());} // TODO: index should be a hash of ecDH and CT?
+			const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) const { return m_ec_DHr;};
+			const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) const { return m_kem_DHr;};
+			const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) const { return m_kem_CTr;};
+			std::vector<uint8_t> getIndex(void) const {
+				std::vector<uint8_t>index(lime::settings::DRrIndexSize);
+				auto serialized = serialize();
+				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRrIndexSize);
+				return index;
+			}
 			std::array<uint8_t, serializedSize()> serialize(void) const {
 				std::array<uint8_t, serializedSize()> s;
 				std::copy_n(m_ec_DHr.cbegin(), m_ec_DHr.size(), s.begin());
@@ -125,8 +132,6 @@ namespace lime {
 				std::copy_n(m_kem_CTr.cbegin(), m_kem_CTr.size(), s.begin() + m_ec_DHr.size() + m_kem_DHr.size());
 				return s;
 			}
-
-			std::string whoami(void) const {return std::string("KEM ARrkey");}
 	};
 
 	/* The key type for self Asymmetric Ratchet keys. Hold the key(s) generated locally */
@@ -157,41 +162,45 @@ namespace lime {
 			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_DHs.privateKey();};
 			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_DHs.publicKey();};
 			/// Serialize the key pair (to store in DB): First the public value, then the private one
-			sBuffer<serializedSize()> serialize(void) { //TODO: shall be able to be defined const on the object but accessing publicKey() impairs it
+			sBuffer<serializedSize()> serialize(void) const {
 				sBuffer<serializedSize()> s{};
-				std::copy_n(m_DHs.publicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
-				std::copy_n(m_DHs.privateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
+				std::copy_n(m_DHs.cpublicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
+				std::copy_n(m_DHs.cprivateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
 				return s;
 			}
 			/// Serialize the public part only to insert in the DR message header
-			std::vector<uint8_t> serializePublic(void) { return std::vector<uint8_t>(m_DHs.publicKey().cbegin(), m_DHs.publicKey().cend());}
-			std::string whoami(void) const {return std::string("Classic ARskey");}
+			std::vector<uint8_t> serializePublic(void) const { return std::vector<uint8_t>(m_DHs.cpublicKey().cbegin(), m_DHs.cpublicKey().cend());}
 	};
 
-	// Self AR keys for KEM based algo
+	// Self AR keys for EC/KEM based algo
 	template <typename Algo>
 	struct ARsKey<Algo, true> {
 		private:
-			Xpair<Algo> m_ec_DHs; // Self key for elliptic curve
-			Kpair<Algo> m_kem_DHs; // Self key for Kem
-			K<Algo, lime::Ktype::cipherText> m_kem_CTs; // Cipher Text encapsulated locally using remote KEM public key
+			Xpair<typename Algo::EC> m_ec_DHs; /**< Self key for elliptic curve */
+			Kpair<typename Algo::KEM> m_kem_DHs; /**< Self key for Kem */
+			K<typename Algo::KEM, lime::Ktype::cipherText> m_kem_CTs; /**< Cipher Text encapsulated locally using remote KEM public key */
 
 		public:
 			static constexpr size_t serializedSize(void) {
 				return X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
-					+ X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+					+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize()
 					+ K<Algo, lime::Ktype::cipherText>::ssize();
 			};
 			static constexpr size_t serializedPublicSize(void) {
 				return X<Algo, lime::Xtype::publicKey>::ssize()
-					+ X<Algo, lime::Xtype::publicKey>::ssize()
+					+ K<Algo, lime::Ktype::publicKey>::ssize()
 					+ K<Algo, lime::Ktype::cipherText>::ssize();
 			};
 
-			ARsKey(const Xpair<Algo> &ecDHs, const Kpair<Algo> &kemDHs, const K<Algo, lime::Ktype::cipherText> &kemCTs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{kemCTs} {};
-			ARsKey(const X<Algo, lime::Xtype::publicKey> &DHsPublic, const X<Algo, lime::Xtype::privateKey> &DHsPrivate) {
-				m_ec_DHs.publicKey() = DHsPublic;
-				m_ec_DHs.privateKey() = DHsPrivate;
+			ARsKey(const Xpair<typename Algo::EC> &ecDHs, const Kpair<typename Algo::KEM> &kemDHs, const K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{kemCTs} {};
+			ARsKey(const Xpair<typename Algo::EC> &ecDHs, const Kpair<typename Algo::KEM> &kemDHs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{} {};
+			ARsKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublic, const X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivate,
+					const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublic, const K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivate,
+					const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCT) : m_kem_CTs{KEMCT} {
+				m_ec_DHs.publicKey() = ECPublic;
+				m_ec_DHs.privateKey() = ECPrivate;
+				m_kem_DHs.publicKey() = KEMPublic;
+				m_kem_DHs.privateKey() = KEMPrivate;
 			};
 			ARsKey() : m_ec_DHs{}, m_kem_DHs{}, m_kem_CTs{} {};
 			// Unserializing constructor
@@ -207,30 +216,32 @@ namespace lime {
 				m_kem_CTs = DHs.cbegin() + index;
 			};
 
-			X<Algo, lime::Xtype::privateKey> &privateKey(void) {return m_ec_DHs.privateKey();};
-			X<Algo, lime::Xtype::publicKey> &publicKey(void) {return m_ec_DHs.publicKey();};
-			/// Serialize the key pair (to store in DB): First the public value, then the private one
-			sBuffer<serializedSize()> serialize(void) { //TODO: shall be able to be defined const on the object but accessing publicKey() impairs it
+			X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivateKey(void) {return m_ec_DHs.privateKey();};
+			X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) {return m_ec_DHs.publicKey();};
+			K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivateKey(void) {return m_kem_DHs.privateKey();};
+			K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) {return m_kem_DHs.publicKey();};
+			K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) {return m_kem_DHs.cipherText();};
+			/// Serialize the key pair (to store in DB): First the public value, then the private one, then the cipherText
+			sBuffer<serializedSize()> serialize(void) const{
 				sBuffer<serializedSize()> s{};
-				std::copy_n(m_ec_DHs.publicKey().cbegin(), m_ec_DHs.publicKey().size(), s.begin());
+				std::copy_n(m_ec_DHs.cpublicKey().cbegin(), m_ec_DHs.cpublicKey().size(), s.begin());
 				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
-				std::copy_n(m_ec_DHs.privateKey().cbegin(), m_ec_DHs.privateKey().size(), s.begin()+index);
+				std::copy_n(m_ec_DHs.cprivateKey().cbegin(), m_ec_DHs.cprivateKey().size(), s.begin()+index);
 				index += X<Algo, lime::Xtype::privateKey>::ssize();
-				std::copy_n(m_kem_DHs.publicKey().cbegin(), m_kem_DHs.publicKey().size(), s.begin()+index);
+				std::copy_n(m_kem_DHs.cpublicKey().cbegin(), m_kem_DHs.cpublicKey().size(), s.begin()+index);
 				index += K<Algo, lime::Ktype::publicKey>::ssize();
-				std::copy_n(m_kem_DHs.privateKey().cbegin(), m_kem_DHs.privateKey().size(), s.begin()+index);
+				std::copy_n(m_kem_DHs.cprivateKey().cbegin(), m_kem_DHs.cprivateKey().size(), s.begin()+index);
 				index += K<Algo, lime::Ktype::privateKey>::ssize();
 				std::copy_n(m_kem_CTs.cbegin(), m_kem_CTs.size(), s.begin()+index);
 				return s;
 			}
-			/// Serialize the public part only to insert in the DR message header
-			std::vector<uint8_t> serializePublic(void) {
-			       std::vector<uint8_t> v(m_ec_DHs.publicKey().cbegin(), m_ec_DHs.publicKey().cend());
-			       v.insert(v.end(), m_kem_DHs.publicKey().cbegin(), m_kem_DHs.publicKey().cend());
-			       v.insert(v.end(), m_kem_CTs.publicKey().cbegin(), m_kem_CTs.publicKey().cend());
+			/// Serialize the public part only to insert in the DR message header: EC public || KEM public || KEM ciphertext
+			std::vector<uint8_t> serializePublic(void) const {
+			       std::vector<uint8_t> v(m_ec_DHs.cpublicKey().cbegin(), m_ec_DHs.cpublicKey().cend());
+			       v.insert(v.end(), m_kem_DHs.cpublicKey().cbegin(), m_kem_DHs.cpublicKey().cend());
+			       v.insert(v.end(), m_kem_CTs.cbegin(), m_kem_CTs.cend());
 			       return v;
 			}
-			std::string whoami(void) const {return std::string("KEMbased ARskey");}
 	};
 
 	/**
@@ -257,10 +268,6 @@ namespace lime {
 			void setDHr(const ARrKey<Curve> &DHr) {m_DHr = DHr;};
 			const ARrKey<Curve> &getDHr(void) const { return m_DHr;};
 			const std::array<uint8_t, ARrKey<Curve>::serializedSize()> serializeDHr(void) { return m_DHr.serialize();};
-			/**
-			 * @return an index identifying the DHr - used to index the skip messages keys
-			 */
-			std::vector<uint8_t> getDHrIndex(void) const { return m_DHr.getIndex();};
 
 			void setDHs(const ARsKey<Curve> &DHs) { m_DHs = DHs; };
 			ARsKey<Curve> &getDHs(void) { return m_DHs;};
@@ -270,67 +277,23 @@ namespace lime {
 	};
 
 	/**
-	 * @brief store a Double Rachet session.
-	 *
-	 * A session is associated to a local user and a peer device.
-	 * It stores all the state variables described in Double Ratcher spec section 3.2 and provide encrypt/decrypt functions
-	 *
-	 * @tparam Curve	The elliptic curve to use: C255 or C448
+	 * @brief A virtual class to define the Double Ratchet interface
 	 */
-	template <typename Curve>
+	template <typename Algo>
 	class DR {
-		private:
-			/* State variables for Double Ratchet, see Double Ratchet spec section 3.2 for details */
-			ARKeys<Curve> m_ARKeys; // Asymmetric Ratchet keys
-			DRChainKey m_RK; // 32 bytes root key
-			DRChainKey m_CKs; // 32 bytes key chain for sending
-			DRChainKey m_CKr; // 32 bytes key chain for receiving
-			uint16_t m_Ns,m_Nr; // Message index in sending and receiving chain
-			uint16_t m_PN; // Number of messages in previous sending chain
-			SharedADBuffer m_sharedAD; // Associated Data derived from self and peer device Identity key, set once at session creation, given by X3DH
-			std::vector<lime::ReceiverKeyChain<Curve>> m_mkskipped; // list of skipped message indexed by DH receiver public key and Nr, store MK generated during on-going decrypt, lookup is done directly in DB.
-
-			/* helpers variables */
-			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
-			long int m_dbSessionId; // used to store row id from Database Storage
-			uint16_t m_usedNr; // store the index of message key used for decryption if it came from mkskipped db
-			long m_usedDHid; // store the index of DHr message key used for decryption if it came from mkskipped db(not zero only if used)
-			uint32_t m_usedOPkId; // when the session is created on receiver side, store the OPk id used so we can remove it from local storage when saving session for the first time.
-			std::shared_ptr<lime::Db> m_localStorage; // enable access to the database holding sessions and skipped message keys
-			DRSessionDbStatus m_dirty; // status of the object regarding its instance in local storage, could be: clean, dirty_encrypt, dirty_decrypt or dirty
-			long int m_peerDid; // used during session creation only to hold the peer device id in DB as we need it to insert the session in local Storage
-			std::string m_peerDeviceId; // used during session creation only, if the deviceId is not yet in local storage, to hold the peer device Id so we can insert it in DB when session is saved for the first time
-			DSA<Curve, lime::DSAtype::publicKey> m_peerIk; // used during session creation only, if the deviceId is not yet in local storage, to hold the peer device Ik so we can insert it in DB when session is saved for the first time
-			long int m_db_Uid; // used to link session to a local device Id
-			bool m_active_status; // current status of this session, true if it is the active one, false if it is stale
-			std::vector<uint8_t> m_X3DH_initMessage; // store the X3DH init message to be able to prepend it to any message until we got a first response from peer so we're sure he was able to init the session on his side
-
-			/*helpers functions */
-			void skipMessageKeys(const uint16_t until, const int limit); /* check if we skipped some messages in current receiving chain, generate and store in session intermediate message keys */
-			void DHRatchet(const std::array<uint8_t, ARsKey<Curve>::serializedPublicSize()> &headerDH); /* perform a Diffie-Hellman ratchet using the given peer public key */
-			/* local storage related implemented in lime_localStorage.cpp */
-			bool session_save(bool commit=true); /* save/update session in database : updated component depends m_dirty value, when commit is true, commit transaction in DB */
-			bool session_load(); /* load session in database */
-			bool trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
-
 		public:
-			DR() = delete; // make sure the Double Ratchet is not initialised without parameters
-			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, const long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context); // call to initialise a session for sender: we have Shared Key and peer Public key
-			DR(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context); // call at initialisation of a session for receiver: we have Share Key and self key pair
-			DR(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context); // load session from DB
-			DR(DR<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
-			DR<Curve> &operator=(DR<Curve> &a) = delete; // can't copy a session
-			~DR();
-
-			template<typename inputContainer>
-			void ratchetEncrypt(const inputContainer &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption);
-			template<typename outputContainer>
-			bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, outputContainer &plaintext, const bool payloadDirectEncryption);
+			virtual void ratchetEncrypt(const std::vector<uint8_t> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption) = 0;
+			virtual bool ratchetDecrypt(const std::vector<uint8_t> &cipherText, const std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext, const bool payloadDirectEncryption) = 0;
 			/// return the session's local storage id
-			long int dbSessionId(void) const {return m_dbSessionId;};
+			virtual long int dbSessionId(void) const = 0;
 			/// return the current status of session
-			bool isActive(void) const {return m_active_status;}
+			virtual bool isActive(void) const = 0;
+			virtual ~DR() = default;
 	};
+	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Algo> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Algo> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+
 
 	/**
 	 * @brief extend the RecipientData to add a Double Ratchet session shared with the recipient
@@ -363,16 +326,32 @@ namespace lime {
 	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 
 	/* this templates are instanciated once in the lime_double_ratchet.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
+	//extern template class DR<LVL1>;
 #ifdef EC25519_ENABLED
 	extern template class DR<C255>;
+	extern template std::shared_ptr<DR<C255>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<C255>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C255> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<C255>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C255> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+
 	extern template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
 	extern template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
 #ifdef EC448_ENABLED
 	extern template class DR<C448>;
+	extern template std::shared_ptr<DR<C448>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<C448>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C448> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<C448>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C448> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+
 	extern template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
 	extern template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 #endif
+
+	extern template class DR<LVL1>;
+	extern template std::shared_ptr<DR<LVL1>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<LVL1>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<LVL1> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR<LVL1>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<LVL1> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	extern template void encryptMessage<LVL1>(std::vector<RecipientInfos<LVL1>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
+	extern template std::shared_ptr<DR<LVL1>> decryptMessage<LVL1>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<LVL1>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
 
 }
 

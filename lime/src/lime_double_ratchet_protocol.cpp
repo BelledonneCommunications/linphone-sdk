@@ -327,6 +327,8 @@ namespace lime {
 		template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		template class DRHeader<C448>;
 #endif
+		template void buildMessage_header<LVL1>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		template class DRHeader<LVL1>;
 
 	} // namespace double_ratchet_protocol
 } //namespace lime

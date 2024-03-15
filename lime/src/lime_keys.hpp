@@ -53,6 +53,7 @@ namespace lime {
 	 *  use a 4 chars(C255) to identify it to improve code readability
 	 */
 	struct C255 {
+		using EC = C255;
 		/// the C25519 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		/// for X25519, public, private and shared secret have the same length: 32 bytes
@@ -65,6 +66,7 @@ namespace lime {
 	 * @brief curve 448-goldilocks data types size definition
 	 */
 	struct C448 {
+		using EC = C448;
 		 ///the C448 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
 		/// for X448, public, private and shared secret have the same length 56 bytes
@@ -101,6 +103,8 @@ namespace lime {
 
 	struct LVL1: public C255,KYB1 {
 		static constexpr lime::CurveId curveId() {return lime::CurveId::k512c25519;};
+		using EC = C255;
+		using KEM = KYB1;
 	};
 
 	// Hash function defines
