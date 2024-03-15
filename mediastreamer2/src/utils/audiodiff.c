@@ -54,15 +54,18 @@ static FileInfo *file_info_new(const char *file) {
 	}
 	if ((fsize = bctbx_file_size(fp)) == BCTBX_VFS_ERROR) {
 		ms_error("could not fstat.");
+		bctbx_file_close(fp);
 		return NULL;
 	}
 	hsize = ms_read_wav_header_from_fp(&header, fp);
 	if (hsize <= 0) {
 		ms_error("%s: not a wav file", file);
+		bctbx_file_close(fp);
 		return NULL;
 	}
 	if (wave_header_get_channel(&header) < 1) {
 		ms_error("%s: incorrect number of channels", file);
+		bctbx_file_close(fp);
 		return NULL;
 	}
 
