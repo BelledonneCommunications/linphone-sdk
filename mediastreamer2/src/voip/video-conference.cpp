@@ -343,7 +343,12 @@ void VideoConferenceAllToAll::removeMember(VideoEndpoint *ep) {
 		mMembers = bctbx_list_remove(mMembers, ep);
 
 		mInputs[ep->mPin] = -1;
-		if (ep->mOutPin > -1) mOutputs[ep->mOutPin] = -1;
+		if (ep->mOutPin > -1) {
+			mOutputs[ep->mOutPin] = -1;
+
+			MediaStreamDir dir = media_stream_get_direction(&ep->mSt->ms);
+			if (dir == MediaStreamSendRecv || dir == MediaStreamSendOnly) unconfigureOutput(ep->mOutPin);
+		}
 		bctbx_list_for_each2(mEndpoints, (void (*)(void *, void *))unconfigureEndpoint, (void *)&ep->mPin);
 	} else if (bctbx_list_find(mEndpoints, ep) != NULL) {
 		ms_message("[VideoConferenceAllToAll] conference %p remove endpoint %s with output pin %d", this,
