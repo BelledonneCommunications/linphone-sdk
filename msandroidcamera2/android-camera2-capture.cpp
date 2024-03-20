@@ -1209,12 +1209,16 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
   			ACameraMetadata_const_entry face;
 			ACameraMetadata_getConstEntry(cameraMetadata, ACAMERA_LENS_FACING, &face);
 			bool back_facing = face.data.u8[0] == ACAMERA_LENS_FACING_BACK;
-			std::string facing = std::string(!back_facing ? "front" : "back");
-			ms_message("[Camera2 Capture] Camera %s is facing %s with angle %d, hardware level is %s", camId, facing.c_str(), angle, supportedHardwareLevel.c_str());
+			bool external = face.data.u8[0] == ACAMERA_LENS_FACING_EXTERNAL;
+			std::string facing = std::string(external ? "external" : !back_facing ? "front" : "back");
+			ms_message("[Camera2 Capture] Camera %s is facing [%s] with angle [%d], hardware level is [%s]", camId, facing.c_str(), angle, supportedHardwareLevel.c_str());
 			device->back_facing = back_facing;
 
 			MSWebCam *cam = ms_web_cam_new(&ms_android_camera2_capture_webcam_desc);
 			std::string idstring = std::string(!back_facing ? "Front" : "Back") + std::string("FacingCamera");
+			if (external) {
+				idstring = std::string("ExternalCamera");
+			}
 			cam->id = ms_strdup(idstring.c_str());
 			cam->name = ms_strdup(idstring.c_str());
 			cam->data = device;
