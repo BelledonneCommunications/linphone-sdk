@@ -1172,6 +1172,7 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 
 	bool front_facing_found = false;
 	bool back_facing_found = false;
+	bool external_found = false;
 
 	const char *camId = nullptr;
 	for (int i = 0; i < cameraIdList->numCameras; i++) {
@@ -1204,6 +1205,9 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_3:
 					supportedHardwareLevel = "3";
 					break;
+				case ACAMERA_INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL:
+					supportedHardwareLevel = "external (limited)";
+					break;
 			}
 
   			ACameraMetadata_const_entry face;
@@ -1223,15 +1227,17 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			cam->name = ms_strdup(idstring.c_str());
 			cam->data = device;
 
-			if ((back_facing && !back_facing_found) || (!back_facing && !front_facing_found)) {
+			if ((external && !external_found) || (back_facing && !back_facing_found) || (!back_facing && !front_facing_found)) {
 				ms_web_cam_manager_prepend_cam(obj, cam);
-				if (back_facing) {
+				if (external) {
+					external_found = true;
+				} else if (back_facing) {
 					back_facing_found = true;
 				} else {
 					front_facing_found = true;
 				}
 			} else {
-				ms_warning("[Camera2 Capture] A camera with the same direction as already been added, skipping this one");
+				ms_warning("[Camera2 Capture] A [%s] facing camera has already been added, skipping this one [%s]", facing.c_str(), camId);
 			}
 
 			ACameraMetadata_free(cameraMetadata);
