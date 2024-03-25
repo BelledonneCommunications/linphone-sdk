@@ -36,7 +36,6 @@ namespace lime {
 	// an enum used by network state engine to manage sequence packet sending(at user creation)
 	enum class network_state : uint8_t {done=0x00, sendSPk=0x01, sendOPk=0x02};
 
-	template <typename Curve>
 	struct callbackUserData;
 
 	/** @brief Implement the abstract class LimeGeneric
@@ -64,11 +63,11 @@ namespace lime {
 			std::string m_X3DH_Server_URL; // url of x3dh key server
 
 			/* Double ratchet related */
-			std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> m_DR_sessions_cache; // store already loaded DR session
+			std::unordered_map<std::string, std::shared_ptr<DR>> m_DR_sessions_cache; // store already loaded DR session
 
 			/* encryption queue: encryption requesting asynchronous operation(connection to X3DH server) are queued to avoid repeating a request to server */
-			std::shared_ptr<callbackUserData<Curve>> m_ongoing_encryption;
-			std::queue<std::shared_ptr<callbackUserData<Curve>>> m_encryption_queue;
+			std::shared_ptr<callbackUserData> m_ongoing_encryption;
+			std::queue<std::shared_ptr<callbackUserData>> m_encryption_queue;
 
 			/*** Private functions ***/
 			/* database related functions, implementation is in lime_localStorage.cpp */
@@ -78,8 +77,8 @@ namespace lime {
 			bool activate_user();
 			// user load from DB is implemented directly as a Db member function, output of it is passed to Lime<> ctor
 			void get_SelfIdentityKey(); // check our Identity key pair is loaded in Lime object, retrieve it from DB if it isn't
-			void cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
-			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
+			void cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
+			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 
 			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
 			void X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load=false); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
@@ -90,12 +89,12 @@ namespace lime {
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session
-			std::shared_ptr<DR<Curve>> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session
+			std::shared_ptr<DR> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session
 
 			/* network related, implemented in lime_x3dh_protocol.cpp */
-			void postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
-			void process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody); // callback on server response
-			void cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData); // clean user data
+			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
+			void process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody); // callback on server response
+			void cleanUserData(std::shared_ptr<callbackUserData> userData); // clean user data
 
 		public: /* Implement API defined in lime_lime.hpp in LimeGeneric abstract class */
 			Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data);
@@ -119,10 +118,9 @@ namespace lime {
 	/**
 	 * @brief structure holding user data while waiting for callback from X3DH server response processing
 	 */
-	template <typename Curve>
 	struct callbackUserData {
 		/// limeObj is owned by the LimeManager, it shall no be destructed, do not own this with a shared_ptr as Lime obj may own the callbackUserData obj thus creating circular reference
-		std::weak_ptr<Lime<Curve>> limeObj;
+		std::weak_ptr<LimeGeneric> limeObj;
 		/// is a lambda closure, not real idea of what is its lifetime but it seems ok to hold it this way
 		const limeCallback callback;
 		/// Recipient username. Needed for encryption: get a shared ref to keep params alive
@@ -141,19 +139,19 @@ namespace lime {
 		uint16_t OPkBatchSize;
 
 		/// created at user create/delete and keys Post. EncryptionPolicy is not used, set it to the default value anyway
-		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize)
+		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef, uint16_t OPkInitialBatchSize=lime::settings::OPk_initialBatchSize)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit(0), OPkBatchSize(OPkInitialBatchSize) {};
 
 		/// created at update: getSelfOPks. EncryptionPolicy is not used, set it to the default value anyway
-		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
+		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef, uint16_t OPkServerLowLimit, uint16_t OPkBatchSize)
 			: limeObj{thiz}, callback{callbackRef},
 			recipientUserId{nullptr}, recipients{nullptr}, plainMessage{nullptr}, cipherMessage{nullptr},
 			encryptionPolicy(lime::EncryptionPolicy::optimizeUploadSize), OPkServerLowLimit{OPkServerLowLimit}, OPkBatchSize{OPkBatchSize} {};
 
 		/// created at encrypt(getPeerBundle)
-		callbackUserData(std::weak_ptr<Lime<Curve>> thiz, const limeCallback &callbackRef,
+		callbackUserData(std::weak_ptr<LimeGeneric> thiz, const limeCallback &callbackRef,
 				std::shared_ptr<const std::vector<uint8_t>> recipientUserId, std::shared_ptr<std::vector<RecipientData>> recipients,
 				std::shared_ptr<const std::vector<uint8_t>> plainMessage, std::shared_ptr<std::vector<uint8_t>> cipherMessage,
 				lime::EncryptionPolicy policy)

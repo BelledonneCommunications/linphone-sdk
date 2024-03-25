@@ -90,7 +90,7 @@ namespace lime {
 	/****************************************************************************/
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
-		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, OPkInitialBatchSize);
+		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, OPkInitialBatchSize);
 		get_SelfIdentityKey(); // make sure our Ik is loaded in object
 		// Generate (or load if they already are in base when publishing an inactive user) the SPk
 		X<Curve, lime::Xtype::publicKey> SPk{};
@@ -115,7 +115,7 @@ namespace lime {
 		m_localStorage->delete_LimeUser(m_selfDeviceId);
 
 		// delete user from server
-		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
+		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback);
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_deleteUser<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage);
@@ -131,7 +131,7 @@ namespace lime {
 		// Do we need to update the SPk
 		if (!is_currentSPk_valid()) {
 			LIME_LOGI<<"User "<<m_selfDeviceId<<" updates its SPk";
-			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback);
+			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback);
 			// generate and publish the SPk
 			X<Curve, lime::Xtype::publicKey> SPk{};
 			DSA<Curve, lime::DSAtype::signature> SPk_sig{};
@@ -150,7 +150,7 @@ namespace lime {
 		// Request Server for the count of our OPk it still holds
 		// OPk server low limit cannot be zero, it must be at least one as we test the userData on this to check the server request was a getSelfOPks
 		// and republish the user if not found
-		auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, std::max(OPkServerLowLimit,static_cast<uint16_t>(1)), OPkBatchSize);
+		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, std::max(OPkServerLowLimit,static_cast<uint16_t>(1)), OPkBatchSize);
 		std::vector<uint8_t> X3DHmessage{};
 		x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
 		postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
@@ -171,7 +171,7 @@ namespace lime {
 		/* Create the appropriate recipient infos and fill it with sessions found in cache */
 		// internal_recipients is a vector duplicating the recipients one in the same order (ignoring the one with peerStatus set to fail)
 		// This allows fast copying of relevant information back to recipients when encryption is completed
-		std::vector<RecipientInfos<Curve>> internal_recipients{};
+		std::vector<RecipientInfos> internal_recipients{};
 
 		std::unique_lock<std::mutex> lock(m_mutex);
 		for (const auto &recipient : *recipients) {
@@ -199,7 +199,7 @@ namespace lime {
 		/* If we are still missing session we must ask the X3DH server for key bundles */
 		if (missing_devices.size()>0) {
 			// create a new callbackUserData, it shall be then deleted in callback, store in all shared_ptr to input/output values needed to call this encrypt function
-			auto userData = make_shared<callbackUserData<Curve>>(this->shared_from_this(), callback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
+			auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, recipientUserId, recipients, plainMessage, cipherMessage, encryptionPolicy);
 			if (m_ongoing_encryption == nullptr) { // no ongoing asynchronous encryption process it
 				m_ongoing_encryption = userData;
 			} else { // some one else is expecting X3DH server response, enqueue this request
@@ -261,8 +261,8 @@ namespace lime {
 		auto db_sessionIdInCache = 0; // this would be the db_sessionId of the session stored in cache if there is one, no session has the Id 0
 		if (sessionElem != m_DR_sessions_cache.end()) { // session is in cache, it is the active one, just give it a try
 			db_sessionIdInCache = sessionElem->second->dbSessionId();
-			std::vector<std::shared_ptr<DR<Curve>>> cached_DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
-			if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, cached_DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
+			std::vector<std::shared_ptr<DR>> cached_DRSessions{1, sessionElem->second}; // copy the session pointer into a vector as the decrypt function ask for it
+			if (decryptMessage(senderDeviceId, m_selfDeviceId, recipientUserId, cached_DRSessions, DRmessage, cipherMessage, plainMessage) != nullptr) {
 				// we manage to decrypt the message with the current active session loaded in cache
 				return senderDeviceStatus;
 			} else { // remove session from cache
@@ -272,11 +272,11 @@ namespace lime {
 		}
 
 		// If we are still here, no session in cache or it didn't decrypt with it. Lookup in localStorage
-		std::vector<std::shared_ptr<DR<Curve>>> DRSessions{};
+		std::vector<std::shared_ptr<DR>> DRSessions{};
 		// load in DRSessions all the session found in cache for this peer device, except the one with id db_sessionIdInCache(is ignored if 0) as we already tried it
 		get_DRSessions(senderDeviceId, db_sessionIdInCache, DRSessions);
 		LIME_LOGI<<m_selfDeviceId<<" decrypts from "<<senderDeviceId<<" : found "<<DRSessions.size()<<" sessions in DB";
-		auto usedDRSession = decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
+		auto usedDRSession = decryptMessage(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage);
 		if (usedDRSession != nullptr) { // we manage to decrypt with a session
 			m_DR_sessions_cache[senderDeviceId] = std::move(usedDRSession); // store it in cache
 			return senderDeviceStatus;
@@ -291,7 +291,7 @@ namespace lime {
 
 		// parse the X3DH init message, get keys from localStorage, compute the shared secrets, create DR_Session and return a shared pointer to it
 		try {
-			std::shared_ptr<DR<Curve>> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure
+			std::shared_ptr<DR> DRSession{X3DH_init_receiver_session(X3DH_initMessage, senderDeviceId)}; // would just throw an exception in case of failure
 			DRSessions.clear();
 			DRSessions.push_back(DRSession);
 		} catch (BctbxException const &e) {
@@ -299,7 +299,7 @@ namespace lime {
 			return lime::PeerDeviceStatus::fail;
 		}
 
-		if (decryptMessage<Curve>(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != 0) {
+		if (decryptMessage(senderDeviceId, m_selfDeviceId, recipientUserId, DRSessions, DRmessage, cipherMessage, plainMessage) != 0) {
 			// we manage to decrypt the message with this session, set it in cache
 			m_DR_sessions_cache[senderDeviceId] = std::move(DRSessions.front());
 			return senderDeviceStatus;
@@ -321,8 +321,8 @@ namespace lime {
 	extern template void Lime<C255>::get_SelfIdentityKey();
 	extern template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
-	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
-	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
+	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
+	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	extern template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
 	extern template bool Lime<C255>::is_currentSPk_valid(void);
 	extern template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
@@ -331,11 +331,11 @@ namespace lime {
 	extern template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
 	extern template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
-	extern template std::shared_ptr<DR<C255>> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	extern template std::shared_ptr<DR> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
-	extern template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData<C255>> userData, const std::vector<uint8_t> &message);
-	extern template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
-	extern template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData<C255>> userData);
+	extern template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
+	extern template void Lime<C255>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody);
+	extern template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData> userData);
 
 	template class Lime<C255>;
 #endif
@@ -347,8 +347,8 @@ namespace lime {
 	extern template void Lime<C448>::get_SelfIdentityKey();
 	extern template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
-	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
-	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
+	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
+	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	extern template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
 	extern template bool Lime<C448>::is_currentSPk_valid(void);
 	extern template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
@@ -357,11 +357,11 @@ namespace lime {
 	extern template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
 	extern template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
-	extern template std::shared_ptr<DR<C448>> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	extern template std::shared_ptr<DR> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
-	extern template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData<C448>> userData, const std::vector<uint8_t> &message);
-	extern template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
-	extern template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData<C448>> userData);
+	extern template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
+	extern template void Lime<C448>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody);
+	extern template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData> userData);
 
 	template class Lime<C448>;
 #endif
@@ -409,7 +409,7 @@ namespace lime {
 				/* constructor will insert user in Db, if already present, raise an exception*/
 				auto lime_ptr = std::make_shared<Lime<C255>>(localStorage, deviceId, url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
-				return lime_ptr;
+				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
 #endif
 			break;
@@ -419,7 +419,7 @@ namespace lime {
 			{
 				auto lime_ptr = std::make_shared<Lime<C448>>(localStorage, deviceId, url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
-				return lime_ptr;
+				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
 #endif
 			break;

@@ -57,7 +57,7 @@ static int stop_RNG_after_all(void) {
   */
 template <typename Curve>
 static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t skip_period=255, const uint8_t skip_length=0, const uint8_t skip_delay=0, const std::string db_filename="dr_skipped_message_basic_tmp") {
-	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<DR> alice, bob;
 	std::shared_ptr<lime::Db> aliceLocalStorage, bobLocalStorage;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -73,9 +73,9 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	// create sessions
 	auto alice_db_mutex = make_shared<std::recursive_mutex>();
 	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<std::vector<uint8_t>> cipher;
-	std::vector<std::vector<RecipientInfos<Curve>>> recipients;
+	std::vector<std::vector<RecipientInfos>> recipients;
 	std::vector<uint8_t> messageSender; // hold status of message: 0 not sent, 1 sent by Alice, 2 sent by Bob, 3 received
 	std::vector<std::string> plainMessage;
 
@@ -120,7 +120,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 			if (messageSender[i]==2) {
 				bctbx_debug("alice decrypt %d", int(i));
 				// alice decrypt it
-				std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+				std::vector<shared_ptr<DR>> recipientDRSessions{};
 				recipientDRSessions.push_back(alice);
 				std::vector<uint8_t> plainBuffer{};
 				decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[i][0].DRmessage, cipher[i], plainBuffer);
@@ -130,7 +130,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 			} else if (messageSender[i]==1) {
 				bctbx_debug("bob decrypt %d", int(i));
 				// bob decrypt it
-				std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+				std::vector<shared_ptr<DR>> recipientDRSessions{};
 				recipientDRSessions.push_back(bob);
 				std::vector<uint8_t> plainBuffer{};
 				decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[i][0].DRmessage, cipher[i], plainBuffer);
@@ -148,7 +148,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 				if (messageSender[j]==2) {
 					bctbx_debug("alice decrypt %d", int(j));
 					// alice decrypt it
-					std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+					std::vector<shared_ptr<DR>> recipientDRSessions{};
 					recipientDRSessions.push_back(alice);
 					std::vector<uint8_t> plainBuffer{};
 					decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
@@ -158,7 +158,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 				} else if (messageSender[j]==1) {
 					bctbx_debug("bob decrypt %d", int(j));
 					// bob decrypt it
-					std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+					std::vector<shared_ptr<DR>> recipientDRSessions{};
 					recipientDRSessions.push_back(bob);
 					std::vector<uint8_t> plainBuffer{};
 					decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
@@ -176,7 +176,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 		if (messageSender[j]==2) {
 			bctbx_debug("alice decrypt %d", int(j));
 			// alice decrypt it
-			std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(alice);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
@@ -186,7 +186,7 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 		} else if (messageSender[j]==1) {
 			bctbx_debug("bob decrypt %d", int(j));
 			// bob decrypt it
-			std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(bob);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
@@ -227,7 +227,7 @@ static void dr_skippedMessages_basic(void) {
 /* alice send <period> messages to bob, and bob replies with <period> messages and so on until the end of message pattern list  */
 template <typename Curve>
 static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_long_exchange_tmp") {
-	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<DR> alice, bob;
 	std::shared_ptr<lime::Db> aliceLocalStorage, bobLocalStorage;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -238,7 +238,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	// create sessions
 	auto alice_db_mutex = make_shared<std::recursive_mutex>();
 	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(alice, bob, aliceLocalStorage, bobLocalStorage, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	bool aliceSender=true;
@@ -246,14 +246,14 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 	for (size_t i=0; i<lime_tester::messages_pattern.size(); i++) {
 		if (aliceSender) {
 			// alice encrypt a message
-			std::vector<RecipientInfos<Curve>> recipients;
+			std::vector<RecipientInfos> recipients;
 			recipients.emplace_back("bob",alice);
 			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients, plaintext, bobUserId, "alice", cipherMessage, lime::EncryptionPolicy::optimizeUploadSize, aliceLocalStorage);
 
 			// bob decrypt it
-			std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(bob);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, cipherMessage, plainBuffer);
@@ -270,14 +270,14 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			}
 		} else {
 			// bob replies
-			std::vector<RecipientInfos<Curve>> recipients;
+			std::vector<RecipientInfos> recipients;
 			recipients.emplace_back("alice",bob);
 			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients, plaintext, aliceUserId, "bob", cipherMessage, lime::EncryptionPolicy::optimizeUploadSize, bobLocalStorage);
 
 			// alice decrypt it
-			std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(alice);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[0].DRmessage, cipherMessage, plainBuffer);
@@ -346,7 +346,7 @@ static void dr_long_exchange10(void) {
  * @param setEncryptionPolicy	Policy requested, DRMessage, cipherMessage, optimizeSize
  */
 template <typename Curve>
-static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::shared_ptr<DR<Curve>> &DRsessionBob,
+static void dr_simple_exchange(std::shared_ptr<DR> &DRsessionAlice, std::shared_ptr<DR> &DRsessionBob,
 			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
 			std::string &filenameAlice, std::string &filenameBob,
 			std::string &messageAlice, std::string &messageBob,
@@ -356,13 +356,13 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	// create sessions: alice sender, bob receiver
 	auto alice_db_mutex = make_shared<std::recursive_mutex>();
 	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, alice_db_mutex, filenameBob, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, filenameAlice, alice_db_mutex, filenameBob, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 	std::vector<uint8_t> aliceUserId{'a','l','i','c','e'};
 	std::vector<uint8_t> bobUserId{'b','o','b'};
 
 	// alice encrypt a message
-	std::vector<RecipientInfos<Curve>> recipients;
+	std::vector<RecipientInfos> recipients;
 	recipients.emplace_back("bob",DRsessionAlice);
 	std::vector<uint8_t> plaintextAlice{messageAlice.begin(), messageAlice.end()};
 	encryptMessage(recipients, plaintextAlice, bobUserId, "alice", aliceCipher, setEncryptionPolicyAlice, localStorageAlice);
@@ -378,7 +378,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 	}
 
 	// bob decrypt it
-	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+	std::vector<shared_ptr<DR>> recipientDRSessions{};
 	recipientDRSessions.push_back(DRsessionBob);
 	std::vector<uint8_t> plainBuffer{};
 	auto ret = decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, aliceCipher, plainBuffer);
@@ -419,11 +419,11 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 }
 
 template <typename Curve>
-static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::shared_ptr<DR<Curve>> &DRsessionBob,
+static void dr_simple_exchange(std::shared_ptr<DR> &DRsessionAlice, std::shared_ptr<DR> &DRsessionBob,
 			std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob,
 			std::string &filenameAlice, std::string &filenameBob) {
 
-	dr_simple_exchange(DRsessionAlice, DRsessionBob,
+	dr_simple_exchange<Curve>(DRsessionAlice, DRsessionBob,
 			localStorageAlice, localStorageBob,
 			filenameAlice, filenameBob,
 			lime_tester::messages_pattern[0], lime_tester::messages_pattern[1], // default: use messages_pattern 0 and 1
@@ -435,7 +435,7 @@ static void dr_simple_exchange(std::shared_ptr<DR<Curve>> &DRsessionAlice, std::
 /* alice send a message to bob, and he replies */
 template <typename Curve>
 static void dr_basic_test(std::string db_filename) {
-	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<DR> alice, bob;
 	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -446,7 +446,7 @@ static void dr_basic_test(std::string db_filename) {
 	remove(aliceFilename.data());
 	remove(bobFilename.data());
 
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
 
 	if (cleanDatabase) {
 		remove(aliceFilename.data());
@@ -468,7 +468,7 @@ static void dr_basic(void) {
 /* Bob decrypt patterns: Bob DB holds in DR_session id 1 a session able to decrypt the pattern message giving messages_pattern[5] */
 template <typename Curve>
 static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmessage, std::vector<uint8_t> &cipherText) {
-	std::shared_ptr<DR<Curve>> bob;
+	std::shared_ptr<DR> bob;
 	std::shared_ptr<lime::Db> localStorageBob;
 	std::string bobFilename(db_filename);
 	bobFilename.append(".bob.pattern.sqlite3");
@@ -487,7 +487,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	if (!bob->isActive()) return; // skip the test if we were not able to load bob's session from pattern
 
 	// Bob decrypts the message
-	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+	std::vector<shared_ptr<DR>> recipientDRSessions{};
 	recipientDRSessions.push_back(bob);
 	std::vector<uint8_t> plainBuffer{};
 	// decryptMessage returns the session used to successfully decrypt it: it should be the only one given to it
@@ -534,7 +534,7 @@ static void dr_multidevice_exchange(std::string db_filename,
 	lime_tester::dr_devicesInit(db_filename, users, usernames, created_db_files, RNG_context);
 
 	/* Send a message from alice.dev0 to all bob device(and copy to alice devices too) */
-	std::vector<RecipientInfos<Curve>> recipients;
+	std::vector<RecipientInfos> recipients;
 	for (size_t u=0; u<users.size(); u++) { // loop users
 		for (size_t d=0; d<users[u].size(); d++) { // devices
 			if (u!=0 || d!=0) { // sender is users 0, device 0, do not encode for him
@@ -569,9 +569,9 @@ static void dr_multidevice_exchange(std::string db_filename,
 	for (size_t u=0; u<users.size(); u++) { // loop users
 		for (size_t d=0; d<users[u].size(); d++) { // devices
 			if (u!=0 || d!=0) { // sender is users 0, device 0, do not decode with it
-				RecipientInfos<Curve> recipient = recipients[recipientsIndex];
+				RecipientInfos recipient = recipients[recipientsIndex];
 				// store our DRSession in a vector as interface request a vector of DRSession to try them all, we may have several sessions with one peer device
-				std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+				std::vector<shared_ptr<DR>> recipientDRSessions{};
 				recipientDRSessions.push_back(users[u][d][0][0].DRSession); // we are u,d receiving from 0,0
 
 				std::vector<uint8_t> plaintext_back;
@@ -617,7 +617,7 @@ static void dr_multidevice_basic(void) {
 /* After session is established, more than limit messages are skipped */
 template <typename Curve>
 static void dr_skip_too_much_test(std::string db_filename) {
-	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<DR> alice, bob;
 	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -631,11 +631,11 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	remove(bobFilename.data());
 
 	// fully establish session
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
 
 	// encrypt maxMessageSkip+2 messages
 	std::vector<uint8_t> aliceCipher{};
-	std::vector<RecipientInfos<Curve>> recipients;
+	std::vector<RecipientInfos> recipients;
 	recipients.emplace_back("bob",alice);
 	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end()};
 	for (auto i=0; i<lime::settings::maxMessageSkip+2; i++) { // we can skip maxMessageSkip, so encrypt +2 and we will skip +1
@@ -644,7 +644,7 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	}
 
 	// now decrypt the last encrypted message, it shall fail: too much skiped messages
-	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+	std::vector<shared_ptr<DR>> recipientDRSessions{};
 	recipientDRSessions.push_back(bob);
 	std::vector<uint8_t> plainBuffer{};
 	BC_ASSERT_TRUE (decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, aliceCipher, plainBuffer) == nullptr); // decrypt must fail without throwing any exception
@@ -656,7 +656,7 @@ static void dr_skip_too_much_test(std::string db_filename) {
 	remove(bobFilename.data());
 
 	// fully establish session
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename);
 
 	// alice encrypt 1 message, bob decipher it. Alice uses sending chain n, receiving chain n
 	aliceCipher.clear();
@@ -684,7 +684,7 @@ static void dr_skip_too_much_test(std::string db_filename) {
 
 	// alice did not get bob reply, and encrypt maxMessageSkip/2 messages, with sending chain n (receiving chain is still n too))
 	aliceCipher.clear();
-	std::vector<RecipientInfos<Curve>> lostRecipients;
+	std::vector<RecipientInfos> lostRecipients;
 	lostRecipients.emplace_back("bob",alice);
 	plaintextAlice.assign(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
 	for (auto i=0; i<lime::settings::maxMessageSkip/2; i++) {
@@ -739,7 +739,7 @@ static void dr_skip_too_much(void) {
 /* alice send a message to bob, and he replies */
 template <typename Curve>
 static void dr_encryptionPolicy_basic_test(std::string db_filename) {
-	std::shared_ptr<DR<Curve>> alice, bob;
+	std::shared_ptr<DR> alice, bob;
 	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -751,37 +751,37 @@ static void dr_encryptionPolicy_basic_test(std::string db_filename) {
 	remove(bobFilename.data());
 
 	/* short message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true,
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption when we have only one recipient
 			lime::EncryptionPolicy::optimizeUploadSize, lime::EncryptionPolicy::optimizeUploadSize); // and force optimizeSize
 
 	/* long message, force optimizeSize policy -> direct encryption(we have only one recipient)*/
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true,
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect direct message encryption as we have only one recipient even if the message is long
 			lime::EncryptionPolicy::optimizeUploadSize, lime::EncryptionPolicy::optimizeUploadSize); // and force optimizeSize
 
 	/* short message, force cipher Message policy -> cipher Message encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true,
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
 
 	/* long message, force cipher Message policy -> cipher Message encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true,
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage, // we expect cipher message encryption
 			lime::EncryptionPolicy::cipherMessage, lime::EncryptionPolicy::cipherMessage); // when we force it
 
 	/* short message, force DRMessage policy -> DRMessage encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::shortMessage, lime_tester::shortMessage,
 			true,
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
 
 	/* long message, force DRMessage policy -> DRMessage encryption */
-	dr_simple_exchange(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
+	dr_simple_exchange<Curve>(alice, bob, localStorageAlice, localStorageBob, aliceFilename, bobFilename, lime_tester::longMessage, lime_tester::longMessage,
 			true,
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage, // we expect DR message encryption
 			lime::EncryptionPolicy::DRMessage, lime::EncryptionPolicy::DRMessage); // when we force it
@@ -872,7 +872,7 @@ static void dr_encryptionPolicy_multidevice(void) {
  */
 template <typename Curve>
 static void dr_encryptionPolicy_error_test(std::string db_filename, lime::EncryptionPolicy encryptionPolicy) {
-	std::shared_ptr<DR<Curve>> DRsessionAlice, DRsessionBob;
+	std::shared_ptr<DR> DRsessionAlice, DRsessionBob;
 	std::shared_ptr<lime::Db> localStorageAlice, localStorageBob;
 	std::string aliceFilename(db_filename);
 	std::string bobFilename(db_filename);
@@ -884,11 +884,11 @@ static void dr_encryptionPolicy_error_test(std::string db_filename, lime::Encryp
 	// create sessions: alice sender, bob receiver
 	auto alice_db_mutex = make_shared<std::recursive_mutex>();
 	auto bob_db_mutex = make_shared<std::recursive_mutex>();
-	lime_tester::dr_sessionsInit(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
+	lime_tester::dr_sessionsInit<Curve>(DRsessionAlice, DRsessionBob, localStorageAlice, localStorageBob, aliceFilename, alice_db_mutex, bobFilename, bob_db_mutex, true, RNG_context);
 	std::vector<uint8_t> aliceCipher, bobCipher;
 
 	// alice encrypt a message
-	std::vector<RecipientInfos<Curve>> recipients;
+	std::vector<RecipientInfos> recipients;
 	recipients.emplace_back("bob",DRsessionAlice);
 	std::vector<uint8_t> plaintextAlice{lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end()};
 	encryptMessage(recipients, plaintextAlice, bobUserId, "alice", aliceCipher, encryptionPolicy, localStorageAlice);
@@ -904,7 +904,7 @@ static void dr_encryptionPolicy_error_test(std::string db_filename, lime::Encryp
 	}
 
 	// bob decrypt it
-	std::vector<shared_ptr<DR<Curve>>> recipientDRSessions{};
+	std::vector<shared_ptr<DR>> recipientDRSessions{};
 	recipientDRSessions.push_back(DRsessionBob);
 	std::vector<uint8_t> plainBuffer{};
 	// the decryption shall fail because

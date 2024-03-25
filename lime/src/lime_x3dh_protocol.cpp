@@ -778,7 +778,7 @@ namespace lime {
 	 * @param[in,out] userData	the structure holding the data structure captured by the process response lambda
 	 */
 	template <typename Curve>
-	void Lime<Curve>::cleanUserData(std::shared_ptr<callbackUserData<Curve>> userData) {
+	void Lime<Curve>::cleanUserData(std::shared_ptr<callbackUserData> userData) {
 		if (userData->plainMessage!=nullptr) { // only encryption request for X3DH bundle would populate the plainMessage field of user data structure
 			// userData is actually a part of the Lime Object and allocated as a shared pointer, just set it to nullptr it will cleanly destroy it
 			m_ongoing_encryption = nullptr;
@@ -802,7 +802,7 @@ namespace lime {
 	 * @param[in]		responseBody	a vector holding the actual response from server to be processed
 	 */
 	template <typename Curve>
-	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData<Curve>> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
+	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
 		auto callback = userData->callback; // get callback
 
 		if (responseCode == 200) { // HTTP server is happy with our packet
@@ -983,7 +983,7 @@ namespace lime {
 	 * @param[in]		message		the message to be sent
 	 */
 	template <typename Curve>
-	void Lime<Curve>::postToX3DHServer(std::shared_ptr<callbackUserData<Curve>> userData, const std::vector<uint8_t> &message) {
+	void Lime<Curve>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message) {
 		LIME_LOGI<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
 
 		// copy capture the shared_ptr to userData
@@ -994,20 +994,21 @@ namespace lime {
 					LIME_LOGE<<"Got response from X3DH server but our Lime Object has been destroyed";
 					return; // the captured shared_ptr on userData will be freed when this capture will be destroyed
 				}
-				thiz->process_response(userData, responseCode, responseBody);
+				auto that = std::dynamic_pointer_cast<Lime<Curve>>(thiz);
+				that->process_response(userData, responseCode, responseBody);
 			});
 	}
 
 	/* Instanciate templated member functions */
 #ifdef EC25519_ENABLED
-	template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData<C255>> userData, const std::vector<uint8_t> &message);
-	template void Lime<C255>::process_response(std::shared_ptr<callbackUserData<C255>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
-	template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData<C255>> userData);
+	template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
+	template void Lime<C255>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody);
+	template void Lime<C255>::cleanUserData(std::shared_ptr<callbackUserData> userData);
 #endif
 
 #ifdef EC448_ENABLED
-	template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData<C448>> userData, const std::vector<uint8_t> &message);
-	template void Lime<C448>::process_response(std::shared_ptr<callbackUserData<C448>> userData, int responseCode, const std::vector<uint8_t> &responseBody);
-	template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData<C448>> userData);
+	template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
+	template void Lime<C448>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody);
+	template void Lime<C448>::cleanUserData(std::shared_ptr<callbackUserData> userData);
 #endif
 } //namespace lime

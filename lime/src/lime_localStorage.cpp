@@ -1052,7 +1052,7 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 }
 
 template <typename Curve>
-void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal_recipients, std::vector<std::string> &missing_devices) {
+void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
 	// build also a list of all peer devices used to fetch from DB their status: unknown, untrusted or trusted
@@ -1110,7 +1110,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 	// fetch them from DB
 	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE s.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
 
-	std::unordered_map<std::string, std::shared_ptr<DR<Curve>>> requestedDevices; // found session will be loaded and temp stored in this
+	std::unordered_map<std::string, std::shared_ptr<DR>> requestedDevices; // found session will be loaded and temp stored in this
 	for (const auto &r : rs) {
 		auto sessionId = r.get<int>(0);
 		auto peerDeviceId = r.get<std::string>(1);
@@ -1135,7 +1135,7 @@ void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos<Curve>> &internal
 
 // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 template <typename Curve>
-void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR<Curve>>> &DRSessions) {
+void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
 
@@ -1269,8 +1269,8 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template void Lime<C255>::get_SelfIdentityKey();
 	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
-	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos<C255>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C255>>> &DRSessions);
+	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
+	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
 	template bool Lime<C255>::is_currentSPk_valid(void);
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
@@ -1285,8 +1285,8 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template void Lime<C448>::get_SelfIdentityKey();
 	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
 	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
-	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos<C448>> &internal_recipients, std::vector<std::string> &missing_devices);
-	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR<C448>>> &DRSessions);
+	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
+	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
 	template bool Lime<C448>::is_currentSPk_valid(void);
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);

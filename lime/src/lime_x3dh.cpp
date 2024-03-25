@@ -122,14 +122,14 @@ namespace lime {
 				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 			}
 
-			m_DR_sessions_cache.emplace(peerBundle.deviceId, make_DR_for_sender<Curve>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG)); // will just do nothing if this peerDeviceId is already in cache
+			m_DR_sessions_cache.emplace(peerBundle.deviceId, std::static_pointer_cast<DR>(make_DR_for_sender<Curve>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG))); // will just do nothing if this peerDeviceId is already in cache
 
 			LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
 		}
 	}
 
 	template <typename Curve>
-	std::shared_ptr<DR<Curve>> Lime<Curve>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) {
+	std::shared_ptr<DR> Lime<Curve>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) {
 		DSA<Curve, lime::DSAtype::publicKey> peerIk{};
 		X<Curve, lime::Xtype::publicKey> Ek{};
 		bool OPk_flag = false;
@@ -213,18 +213,18 @@ namespace lime {
 		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
 		auto DRSession = make_DR_for_receiver<Curve>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
 
-		return DRSession;
+		return std::static_pointer_cast<DR>(DRSession);
 	}
 
 	/* Instanciate templated member functions */
 #ifdef EC25519_ENABLED
 	template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
-	template std::shared_ptr<DR<C255>> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	template std::shared_ptr<DR> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 #endif
 
 #ifdef EC448_ENABLED
 	template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
-	template std::shared_ptr<DR<C448>> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
+	template std::shared_ptr<DR> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 #endif
 
 }

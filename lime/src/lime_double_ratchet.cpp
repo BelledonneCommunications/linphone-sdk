@@ -33,6 +33,38 @@ using namespace::soci;
 using namespace::lime;
 
 namespace lime {
+	/**
+	 * @brief the possible status of session regarding the Local Storage
+	 *
+	 * used to pick a subset of session to be saved in DB
+	*/
+	enum class DRSessionDbStatus : uint8_t {
+		clean, /**< session in cache match the one in local storage */
+		dirty_encrypt, /**< an encrypt was performed modifying part of the cached session */
+		dirty_decrypt, /**< a dencrypt was performed modifying part of the cached session */
+		dirty_ratchet, /**< a ratchet step was performed modifying part of cached session */
+		dirty /**< the whole session data must be saved to local storage */
+	};
+
+
+	/** Double Ratchet Message keys : 32 bytes of encryption key followed by 16 bytes of IV */
+	using DRMKey = lime::sBuffer<lime::settings::DRMessageKeySize+lime::settings::DRMessageIVSize>;
+
+	/**
+	 * @brief Chain storing the DH and MKs associated with Nr(uint16_t map index)
+	 * @tparam Curve	The elliptic curve to use: C255 or C448
+	 */
+	template <typename Curve>
+	struct ReceiverKeyChain {
+		std::vector<uint8_t> DHrIndex; /**< peer public key(or a hash of it) identifying this chain */
+		std::unordered_map<uint16_t, DRMKey> messageKeys; /**< message keys indexed by Nr */
+		/**
+		 * Start a new empty chain
+		 * @param[in]	key	the peer DH public key used on this chain
+		 */
+		ReceiverKeyChain(const std::vector<uint8_t> &keyIndex) :DHrIndex{keyIndex}, messageKeys{} {};
+	};
+
 	/****************************************************************************/
 	/* Helpers functions not part of DRi class                                  */
 	/****************************************************************************/
@@ -142,7 +174,7 @@ namespace lime {
 	 * @tparam Curve	The elliptic curve to use: C255 or C448
 	 */
 	template <typename Curve>
-	class DRi : public DR<Curve> {
+	class DRi : public DR {
 		public:
 			/****************************************************************************/
 			/* DRi class constructors: 3 cases                                          */
@@ -854,38 +886,38 @@ namespace lime {
 	/* factory functions                                                        */
 	/****************************************************************************/
 
-	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context) {
-		return std::make_shared<DRi<Algo>>(localStorage, sessionId, RNG_context);
+	template <typename Algo> std::shared_ptr<DR> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context) {
+		return std::static_pointer_cast<DR>(std::make_shared<DRi<Algo>>(localStorage, sessionId, RNG_context));
 	}
-	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Algo> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context) {
-		return std::make_shared<DRi<Algo>>(localStorage, SK, AD, peerPublicKey, peerDid, peerDeviceId, peerIk, selfDid, X3DH_initMessage, RNG_context);
+	template <typename Algo> std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Algo> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context) {
+		return std::static_pointer_cast<DR>(std::make_shared<DRi<Algo>>(localStorage, SK, AD, peerPublicKey, peerDid, peerDeviceId, peerIk, selfDid, X3DH_initMessage, RNG_context));
 	}
-	template <typename Algo> std::shared_ptr<DR<Algo>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Algo> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context) {
-		return std::make_shared<DRi<Algo>>(localStorage, SK, AD, selfKeyPair, peerDid, peerDeviceId, OPk_id, peerIk, selfDeviceId, RNG_context);
+	template <typename Algo> std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Algo> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context) {
+		return std::static_pointer_cast<DR>(std::make_shared<DRi<Algo>>(localStorage, SK, AD, selfKeyPair, peerDid, peerDeviceId, OPk_id, peerIk, selfDeviceId, RNG_context));
 	}
 
 
 /* template instanciations */
 #ifdef EC25519_ENABLED
-	template class DR<C255>;
+	template class DRi<C255>;
 
-	template std::shared_ptr<DR<C255>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<C255>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C255> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<C255>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C255> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_from_localStorage<C255>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C255> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C255> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C255::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 
 #ifdef EC448_ENABLED
-	template class DR<C448>;
+	template class DRi<C448>;
 
-	template std::shared_ptr<DR<C448>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<C448>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C448> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<C448>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C448> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_from_localStorage<C448>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C448> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C448> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef HAVE_BCTBXPQ
-	template class DR<LVL1>;
-	template std::shared_ptr<DR<LVL1>> make_DR_from_localStorage(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<LVL1>> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<LVL1> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR<LVL1>> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<LVL1> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	template class DRi<LVL1>;
+	template std::shared_ptr<DR> make_DR_from_localStorage<LVL1>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<LVL1> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<LVL1> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 
 	/**
@@ -904,8 +936,7 @@ namespace lime {
 	 * 						default is optimized output size mode.
 	 * @param[in]		localStorage	pointer to the local storage, used to get lock and start transaction on all DR sessions at once
 	 */
-	template <typename Curve>
-	void encryptMessage(std::vector<RecipientInfos<Curve>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage) {
+	void encryptMessage(std::vector<RecipientInfos>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage) {
 		// Shall we set the payload in the DR message or in a separate cupher message buffer?
 		bool payloadDirectEncryption;
 		switch (encryptionPolicy) {
@@ -1042,8 +1073,7 @@ namespace lime {
 	 *
 	 * @return a shared pointer towards the session used to decrypt, nullptr if we couldn't find one to do it
 	 */
-	template <typename Curve>
-	std::shared_ptr<DR<Curve>> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<Curve>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
+	std::shared_ptr<DR> decryptMessage(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext) {
 		bool payloadDirectEncryption = (cipherMessage.size() == 0); // if we do not have any cipher message, then we must be in payload direct encryption mode: the payload is in the DR message
 		std::vector<uint8_t> AD; // the Associated Data authenticated by the AEAD scheme used in DR encrypt/decrypt
 
@@ -1114,18 +1144,4 @@ namespace lime {
 		}
 		return nullptr; // no session correctly deciphered
 	}
-
-	/* template instanciations for encryption/decryption functions */
-#ifdef EC25519_ENABLED
-	template void encryptMessage<C255>(std::vector<RecipientInfos<C255>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
-	template std::shared_ptr<DR<C255>> decryptMessage<C255>(const std::string& sourceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<C255>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
-#endif
-#ifdef EC448_ENABLED
-	template void encryptMessage<C448>(std::vector<RecipientInfos<C448>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
-	template std::shared_ptr<DR<C448>> decryptMessage<C448>(const std::string& sourceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<C448>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
-#endif
-#ifdef HAVE_BCTBXPQ
-	template void encryptMessage<LVL1>(std::vector<RecipientInfos<LVL1>>& recipients, const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& recipientUserId, const std::string& sourceDeviceId, std::vector<uint8_t>& cipherMessage, const lime::EncryptionPolicy encryptionPolicy, std::shared_ptr<lime::Db> localStorage);
-	template std::shared_ptr<DR<LVL1>> decryptMessage<LVL1>(const std::string& sourceDeviceId, const std::string& recipientDeviceId, const std::vector<uint8_t>& recipientUserId, std::vector<std::shared_ptr<DR<LVL1>>>& DRSessions, const std::vector<uint8_t>& DRmessage, const std::vector<uint8_t>& cipherMessage, std::vector<uint8_t>& plaintext);
-#endif
 }

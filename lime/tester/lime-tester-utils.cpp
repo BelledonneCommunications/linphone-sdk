@@ -189,7 +189,7 @@ void randomize(uint8_t *buffer, const size_t size) {
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
  */
 template<typename Curve>
-void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
+void dr_sessionsInit(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
 		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice, db_mutex_alice);
@@ -229,7 +229,7 @@ void dr_sessionsInit(std::shared_ptr<DR<Curve>> &alice, std::shared_ptr<DR<Curve
 }
 
 template<>
-void dr_sessionsInit<LVL1>(std::shared_ptr<DR<LVL1>> &alice, std::shared_ptr<DR<LVL1>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
+void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
 		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice, db_mutex_alice);
@@ -319,11 +319,11 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 	for (size_t i=0; i<users.size(); i++) { // loop on users
 		for (size_t j=0; j<users[i].size(); j++) { // loop on devices
 			for (size_t j_fw=j+1; j_fw<users[i].size(); j_fw++) { // loop on the rest of our devices
-				dr_sessionsInit(users[i][j][i][j_fw].DRSession, users[i][j_fw][i][j].DRSession, users[i][j][i][j_fw].localStorage, users[i][j_fw][i][j].localStorage, " ", nullptr, " ", nullptr, false, RNG_context);
+				dr_sessionsInit<Curve>(users[i][j][i][j_fw].DRSession, users[i][j_fw][i][j].DRSession, users[i][j][i][j_fw].localStorage, users[i][j_fw][i][j].localStorage, " ", nullptr, " ", nullptr, false, RNG_context);
 			}
 			for (size_t i_fw=i+1; i_fw<users.size(); i_fw++) { // loop on the rest of users
 				for (size_t j_fw=0; j_fw<users[i].size(); j_fw++) { // loop on the rest of devices
-					dr_sessionsInit(users[i][j][i_fw][j_fw].DRSession, users[i_fw][j_fw][i][j].DRSession, users[i][j][i_fw][j_fw].localStorage, users[i_fw][j_fw][i][j].localStorage, " ", nullptr, " ", nullptr, false, RNG_context);
+					dr_sessionsInit<Curve>(users[i][j][i_fw][j_fw].DRSession, users[i_fw][j_fw][i][j].DRSession, users[i][j][i_fw][j_fw].localStorage, users[i_fw][j_fw][i][j].localStorage, " ", nullptr, " ", nullptr, false, RNG_context);
 				}
 			}
 		}
@@ -606,11 +606,11 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 
 // template instanciation
 #ifdef EC25519_ENABLED
-	template void dr_sessionsInit<C255>(std::shared_ptr<DR<C255>> &alice, std::shared_ptr<DR<C255>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
+	template void dr_sessionsInit<C255>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 	template void dr_devicesInit<C255>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef EC448_ENABLED
-	template void dr_sessionsInit<C448>(std::shared_ptr<DR<C448>> &alice, std::shared_ptr<DR<C448>> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
+	template void dr_sessionsInit<C448>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 	template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
