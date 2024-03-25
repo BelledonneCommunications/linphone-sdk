@@ -150,6 +150,7 @@ void VideoToolboxUtilities::loadCodecAvailability() {
 			CFStringRef encoderName = (CFStringRef)CFDictionaryGetValue(dict, kVTVideoEncoderList_EncoderName);
 			CFNumberGetValue(codecTypeNumber, kCFNumberIntType, &codecType2);
 			if (codecType == codecType2) {
+#if !TARGET_OS_IPHONE
 				if (isHardwareAccelerated) {
 					_codecAvailability[codecType] = true;
 					break;
@@ -157,6 +158,10 @@ void VideoToolboxUtilities::loadCodecAvailability() {
 					ms_message("VideoToolbox: hardware encoding not supported for [%s]",
 					           CFStringGetCStringPtr(encoderName, kCFStringEncodingUTF8));
 				}
+#else
+				/* Real iOS devices do not report hardware acceleration. Assume it is.*/
+				_codecAvailability[codecType] = true;
+#endif
 			}
 		}
 	}
