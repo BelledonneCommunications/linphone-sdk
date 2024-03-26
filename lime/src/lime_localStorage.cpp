@@ -24,6 +24,7 @@
 
 #include "lime_log.hpp"
 #include "lime/lime.hpp"
+#include "lime_x3dh.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_double_ratchet.hpp"
 #include "lime_impl.hpp"
@@ -877,47 +878,47 @@ void Lime<Curve>::get_SelfIdentityKey() {
 
 
 /**
- * @brief Generate (or load) a SPk and its signature by Ik.
+ * @brief Generate (or load) a SPk, sign it with the given Ik.
  * The generated SPk is stored in local storage with active Status, any exiting SPk are set to inactive.
  *
- * @param[out]	publicSPk	The generated (or loaded) active SPk public key
- * @param[out]	SPk_sig		The signature by Ik of the SPk public key
- * @param[out]	SPk_id		The SPk id
+ * @param[in]	Ik		Identity key used to sign the newly generated (or loaded) key
  * @param[in]	load		Flag, if set first try to load key from storage to return them and if none is found, generate it
+ *
+ * @return	the generated SPk with signature(private key is not set in the structure)
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load) {
-	// check Identity key is loaded in Lime object context
-	get_SelfIdentityKey();
-
-	// lock after the get_SelfIdentityKey as it also acquires this lock
+SignedPreKey<Curve> Lime<Curve>::X3DH_generate_SPk(const DSApair<Curve> &Ik, const bool load) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-
+	
 	// if the load flag is on, try to load a existing active key instead of generating it
 	if (load) {
+		uint32_t SPkId=0;
 		blob SPk_blob(m_localStorage->sql);
-		m_localStorage->sql<<"SELECT SPk, SPKid  FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 LIMIT 1;", into(SPk_blob), into(SPk_id), use(m_db_Uid);
+		m_localStorage->sql<<"SELECT SPk, SPKid  FROM X3DH_SPk WHERE Uid = :Uid AND Status = 1 LIMIT 1;", into(SPk_blob), into(SPkId), use(m_db_Uid);
 		if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-			SPk_blob.read(0, (char *)(publicSPk.data()), publicSPk.size()); // Read the public key
+			sBuffer<SignedPreKey<Curve>::serializedSize()> serializedSPk{};
+			SPk_blob.read(0, (char *)(serializedSPk.data()), SignedPreKey<Curve>::serializedSize());
+			SignedPreKey<Curve> s(serializedSPk, SPkId);
 			// Sign the public key with our identity key
 			auto SPkSign = make_Signature<Curve>();
-			SPkSign->set_public(m_Ik.publicKey());
-			SPkSign->set_secret(m_Ik.privateKey());
-			SPkSign->sign(publicSPk, SPk_sig);
-			return;
+			SPkSign->set_public(Ik.cpublicKey());
+			SPkSign->set_secret(Ik.cprivateKey());
+			SPkSign->sign(s.publicKey(), s.signature());
+			return s;
 		}
 	}
 
 	// Generate a new ECDH Key pair
 	auto DH = make_keyExchange<Curve>();
 	DH->createKeyPair(m_RNG);
-	publicSPk = DH->get_selfPublic();
+	SignedPreKey<Curve> s{};
+	s.publicKey() = DH->get_selfPublic();
 
 	// Sign the public key with our identity key
 	auto SPkSign = make_Signature<Curve>();
-	SPkSign->set_public(m_Ik.publicKey());
-	SPkSign->set_secret(m_Ik.privateKey());
-	SPkSign->sign(publicSPk, SPk_sig);
+	SPkSign->set_public(Ik.cpublicKey());
+	SPkSign->set_secret(Ik.cprivateKey());
+	SPkSign->sign(s.cpublicKey(), s.signature());
 
 	// Generate a random SPk Id
 	// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
@@ -930,10 +931,11 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
 		activeSPkIds.insert(activeSPkId);
 	}
 
-	SPk_id = m_RNG->randomize();
-	while (activeSPkIds.insert(SPk_id).second == false) { // This one was already in
-		SPk_id = m_RNG->randomize();
+	uint32_t SPkId = m_RNG->randomize();
+	while (activeSPkIds.insert(SPkId).second == false) { // This one was already in
+		SPkId = m_RNG->randomize();
 	}
+	s.set_Id(SPkId);
 
 	// insert all this in DB
 	try {
@@ -944,14 +946,15 @@ void Lime<Curve>::X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk,
 		m_localStorage->sql<<"UPDATE X3DH_SPK SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1;", use(m_db_Uid);
 
 		blob SPk_blob(m_localStorage->sql);
-		SPk_blob.write(0, (const char *)publicSPk.data(), publicSPk.size());
-		SPk_blob.write(publicSPk.size(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
-		m_localStorage->sql<<"INSERT INTO X3DH_SPK(SPKid,SPK,Uid) VALUES (:SPKid,:SPK,:Uid) ", use(SPk_id), use(SPk_blob), use(m_db_Uid);
+		SPk_blob.write(0, (const char *)s.publicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
+		SPk_blob.write(X<Curve, lime::Xtype::publicKey>::ssize(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
+		m_localStorage->sql<<"INSERT INTO X3DH_SPK(SPKid,SPK,Uid) VALUES (:SPKid,:SPK,:Uid) ", use(s.get_Id()), use(SPk_blob), use(m_db_Uid);
 
 		tr.commit();
 	} catch (exception const &e) {
 		throw BCTBX_EXCEPTION << "SPK insertion in DB failed. DB backend says : "<<e.what();
 	}
+	return s;
 }
 
 /**
@@ -1149,16 +1152,17 @@ void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long i
  * @brief retrieve matching SPk from localStorage, throw an exception if not found
  *
  * @param[in]	SPk_id	Id of the SPk we're trying to fetch
- * @param[out]	SPk	The SPk if found
+ * @return 	The SPk if found
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk) {
+SignedPreKey<Curve> Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob SPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-		SPk_blob.read(0, (char *)(SPk.publicKey().data()), SPk.publicKey().size()); // Read the public key
-		SPk_blob.read(SPk.publicKey().size(), (char *)(SPk.privateKey().data()), SPk.privateKey().size()); // Read the private key
+		sBuffer<SignedPreKey<Curve>::serializedSize()> serializedSPk{};
+		SPk_blob.read(0, (char *)(serializedSPk.data()), SignedPreKey<Curve>::serializedSize());
+		return SignedPreKey<Curve>(serializedSPk, SPk_id);
 	} else {
 		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for SPk id "<<SPk_id<<" failed";
 	}
@@ -1267,11 +1271,11 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template bool Lime<C255>::create_user();
 	template bool Lime<C255>::activate_user();
 	template void Lime<C255>::get_SelfIdentityKey();
-	template void Lime<C255>::X3DH_generate_SPk(X<C255, lime::Xtype::publicKey> &publicSPk, DSA<C255, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	template SignedPreKey<C255> Lime<C255>::X3DH_generate_SPk(const DSApair<C255> &Ik, const bool load);
 	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	template void Lime<C255>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C255> &SPk);
+	template SignedPreKey<C255> Lime<C255>::X3DH_get_SPk(uint32_t SPk_id);
 	template bool Lime<C255>::is_currentSPk_valid(void);
 	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
 	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
@@ -1283,11 +1287,11 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template bool Lime<C448>::create_user();
 	template bool Lime<C448>::activate_user();
 	template void Lime<C448>::get_SelfIdentityKey();
-	template void Lime<C448>::X3DH_generate_SPk(X<C448, lime::Xtype::publicKey> &publicSPk, DSA<C448, DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load);
+	template SignedPreKey<C448> Lime<C448>::X3DH_generate_SPk(const DSApair<C448> &Ik, const bool load);
 	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
 	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	template void Lime<C448>::X3DH_get_SPk(uint32_t SPk_id, Xpair<C448> &SPk);
+	template SignedPreKey<C448> Lime<C448>::X3DH_get_SPk(uint32_t SPk_id);
 	template bool Lime<C448>::is_currentSPk_valid(void);
 	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
 	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);

@@ -27,6 +27,7 @@
 
 #include "lime_settings.hpp"
 #include "lime_defines.hpp"
+#include "lime_x3dh.hpp"
 #include "lime_crypto_primitives.hpp"
 #include "lime_log.hpp"
 
@@ -39,7 +40,6 @@ namespace lime {
 
 	/** Shared Associated Data : stored at session initialisation, given by upper level(X3DH), shall be derived from Identity and Identity keys of sender and recipient, fixed size for storage convenience */
 	using SharedADBuffer = std::array<uint8_t, lime::settings::DRSessionSharedADSize>;
-
 
 	/* The key type for remote asymmetric ratchet keys. Hold the public key(s) provided by remote */
 	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
@@ -54,7 +54,7 @@ namespace lime {
 		public:
 			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
 
-			ARrKey(const X<Curve, lime::Xtype::publicKey> &DHr) : m_DHr{DHr} {};
+			ARrKey(const SignedPreKey<Curve> &SPk) : m_DHr{SPk.cpublicKey()} {};
 			// Unserializing constructor
 			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) : m_DHr(DHr.cbegin()) {};
 			ARrKey() : m_DHr{} {};
@@ -117,7 +117,10 @@ namespace lime {
 			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
 			static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
 
-			ARsKey(const Xpair<Curve> &DHs) : m_DHs{DHs} {};
+			ARsKey(const SignedPreKey<Curve> &SPk) {
+				m_DHs.publicKey() = SPk.cpublicKey();
+				m_DHs.privateKey() = SPk.cprivateKey();
+			};
 			ARsKey(const X<Curve, lime::Xtype::publicKey> &DHsPublic, const X<Curve, lime::Xtype::privateKey> &DHsPrivate) {
 				m_DHs.publicKey() = DHsPublic;
 				m_DHs.privateKey() = DHsPrivate;

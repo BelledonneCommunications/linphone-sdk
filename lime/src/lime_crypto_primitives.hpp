@@ -61,7 +61,8 @@ namespace lime {
 			X(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// construct from a std::array<uint8_t>
 			X(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
-			X() {};
+			/// default initialise value to 0
+			X() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
 			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
@@ -77,8 +78,10 @@ namespace lime {
 		public:
 			/// access the private key
 			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_privKey;};
+			const X<Curve, lime::Xtype::privateKey> &cprivateKey(void) const {return m_privKey;};
 			/// access the public key
 			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_pubKey;};
+			const X<Curve, lime::Xtype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			Xpair(const X<Curve, lime::Xtype::publicKey> &pub, const X<Curve, lime::Xtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			Xpair(const Xpair<Curve> &p) :m_pubKey(p.m_pubKey),m_privKey(p.m_privKey){};
@@ -105,7 +108,8 @@ namespace lime {
 			K(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// construct from a std::array<uint8_t>
 			K(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
-			K() {};
+			/// default initialise value to 0
+			K() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
 			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
@@ -121,8 +125,10 @@ namespace lime {
 		public:
 			/// access the private key
 			K<Algo, lime::Ktype::privateKey> &privateKey(void) {return m_privKey;};
+			const K<Algo, lime::Ktype::privateKey> &cprivateKey(void) const {return m_privKey;};
 			/// access the public key
 			K<Algo, lime::Ktype::publicKey> &publicKey(void) {return m_pubKey;};
+			const K<Algo, lime::Ktype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			Kpair(K<Algo, lime::Ktype::publicKey> &pub, K<Algo, lime::Ktype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			Kpair() :m_pubKey{},m_privKey{}{};
@@ -146,7 +152,8 @@ namespace lime {
 			constexpr static size_t ssize(void) {return Curve::DSAsize(dataType);};
 			/// contruct from a std::vector<uint8_t>
 			DSA(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
-			DSA() {};
+			/// default initialise value to 0
+			DSA() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
 			void assign(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 	};
@@ -162,8 +169,10 @@ namespace lime {
 		public:
 			/// access the private key
 			DSA<Curve, lime::DSAtype::privateKey> &privateKey(void) {return m_privKey;};
+			const DSA<Curve, lime::DSAtype::privateKey> &cprivateKey(void) const {return m_privKey;};
 			/// access the public key
 			DSA<Curve, lime::DSAtype::publicKey> &publicKey(void) {return m_pubKey;};
+			const DSA<Curve, lime::DSAtype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			DSApair(DSA<Curve, lime::DSAtype::publicKey> &pub, DSA<Curve, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			DSApair() :m_pubKey{},m_privKey{}{};
@@ -403,7 +412,6 @@ template <> void HMAC<SHA512>(const uint8_t *const key, const size_t keySize, co
  *	@endcode
  *
  * @tparam	hashAlgo	the hash algorithm to use (SHA512 available for now)
- * @tparam	infoType	the info parameter can be passed as a string or a std::vector<uint8_t>
  *
  * @param[in]	salt 		salt
  * @param[in]	saltSize	saltSize

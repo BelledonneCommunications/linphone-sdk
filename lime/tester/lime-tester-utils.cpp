@@ -24,6 +24,7 @@
 #include "lime_settings.hpp"
 #include "lime/lime.hpp"
 #include "lime_keys.hpp"
+#include "lime_x3dh.hpp"
 #include "lime_crypto_primitives.hpp"
 #include "lime_double_ratchet_protocol.hpp"
 #include "lime-tester-utils.hpp"
@@ -199,9 +200,7 @@ void dr_sessionsInit(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::
 	/* generate key pair for bob */
 	auto tempECDH = make_keyExchange<Curve>();
 	tempECDH->createKeyPair(RNG_context);
-	auto bobPublic = tempECDH->get_selfPublic();
-	auto bobPrivate = tempECDH->get_secret();
-	Xpair<Curve> bobKeyPair{bobPublic, bobPrivate};
+	SignedPreKey<Curve> bobSPk{tempECDH->get_selfPublic(), tempECDH->get_secret()};
 
 	/* generate a shared secret and AD */
 	lime::DRChainKey SK;
@@ -224,8 +223,8 @@ void dr_sessionsInit(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::
 	// create DR sessions
 	std::vector<uint8_t> X3DH_initMessage{};
 	DSA<Curve, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
-	alice = make_DR_for_sender<Curve>(localStorageAlice, SK, AD, bobKeyPair.publicKey(), aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
-	bob = make_DR_for_receiver<Curve>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
+	alice = make_DR_for_sender<Curve>(localStorageAlice, SK, AD, bobSPk.cpublicKey(), aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
+	bob = make_DR_for_receiver<Curve>(localStorageBob, SK, AD, bobSPk, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
 
 template<>

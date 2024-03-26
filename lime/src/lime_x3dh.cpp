@@ -43,7 +43,7 @@ namespace lime {
 			auto SPkVerify = make_Signature<Curve>();
 			SPkVerify->set_public(peerBundle.Ik);
 
-			if (!SPkVerify->verify(peerBundle.SPk, peerBundle.SPk_sig)) {
+			if (!SPkVerify->verify(peerBundle.SPk.cpublicKey(), peerBundle.SPk.csignature())) {
 				LIME_LOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
 				throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
 			}
@@ -63,7 +63,7 @@ namespace lime {
 			auto DH = make_keyExchange<Curve>();
 			DH->set_secret(m_Ik.privateKey()); // Ik Signature key is converted to keyExchange format
 			DH->set_selfPublic(m_Ik.publicKey());
-			DH->set_peerPublic(peerBundle.SPk);
+			DH->set_peerPublic(peerBundle.SPk.cpublicKey());
 			DH->computeSharedSecret();
 			auto DH_out = DH->get_sharedSecret();
 			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1
@@ -101,7 +101,7 @@ namespace lime {
 
 			// Generate X3DH init message: as in X3DH spec section 3.3:
 			std::vector<uint8_t> X3DH_initMessage{};
-			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk_id, peerBundle.OPk_id, (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
+			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk.get_Id(), peerBundle.OPk_id, (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
 
 			DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
 
@@ -137,8 +137,7 @@ namespace lime {
 
 		double_ratchet_protocol::parseMessage_X3DHinit(X3DH_initMessage, peerIk, Ek, SPk_id, OPk_id, OPk_flag);
 
-		Xpair<Curve> SPk{};
-		X3DH_get_SPk(SPk_id, SPk); // this one will throw an exception if the SPk is not found in local storage, let it flow up
+		auto SPk = X3DH_get_SPk(SPk_id); // this one will throw an exception if the SPk is not found in local storage, let it flow up
 
 		Xpair<Curve> OPk{};
 		if (OPk_flag) { // there is an OPk id

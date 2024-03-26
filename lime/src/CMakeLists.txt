@@ -25,6 +25,7 @@ set(LIME_PRIVATE_HEADER_FILES
 	lime_defines.hpp
 	lime_keys.hpp
 	lime_impl.hpp
+	lime_x3dh.hpp
 	lime_x3dh_protocol.hpp
 	lime_localStorage.hpp
 	lime_double_ratchet.hpp
@@ -42,6 +43,7 @@ set(LIME_SOURCE_FILES_CXX
 	lime_double_ratchet.cpp
 	lime_double_ratchet_protocol.cpp
 	lime_manager.cpp
+	lime_log.cpp
 )
 
 if (ENABLE_C_INTERFACE)

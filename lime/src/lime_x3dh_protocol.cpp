@@ -170,25 +170,19 @@ namespace lime {
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
 		 * @param[in]		Ik		Self public identity key (formatted for signature algorithm)
-		 * @param[in]		SPk		public signed pre-key (ECDH format)
-		 * @param[in]		Sig		SPk signed using Ik
-		 * @param[in]		SPk_id		SPk Id in local storage
+		 * @param[in]		SPk		signed pre-key
 		 * @param[in]		OPks		Vector of one time pre-keys
 		 * @param[in]		OPk_ids		Ids of the OPk hold by previous vector(in matching indexes)
 		 */
 		template <typename Curve>
-		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
+		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const SignedPreKey<Curve> &SPk, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
 			message.insert(message.end(), Ik.cbegin(), Ik.cend());
-			// append SPk, Signature and SPkId
-			message.insert(message.end(), SPk.cbegin(), SPk.cend());
-			message.insert(message.end(), Sig.cbegin(), Sig.cend());
-			message.push_back(static_cast<uint8_t>((SPk_id>>24)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id>>16)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id>>8)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id)&0xFF));
+			// append SPk
+			auto serialSPk = SPk.serializePublic();
+			message.insert(message.end(), serialSPk.cbegin(), serialSPk.cend());
 
 			// check we do not try to upload more than 2^16 OPks as the counter is on 2 bytes
 			auto OPkCount = OPks.size();
@@ -208,16 +202,7 @@ namespace lime {
 				message_trace << setw(2) << i << ", ";
 			});
 
-			message_trace <<endl<<"    SPk:";
-			std::for_each(SPk.cbegin(), SPk.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
-			message_trace << endl <<"    SPk Signature:";
-			std::for_each(Sig.cbegin(), Sig.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
-			message_trace << endl <<"    SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id);
-
+			SPk.dump(message_trace, "    ");
 			message_trace << endl << dec << setfill('0') << "    " << static_cast<unsigned int>(OPkCount)<<" OPks."<< hex;
 
 			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
@@ -259,33 +244,22 @@ namespace lime {
 		 *		SPk Id < 4 bytes>
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
-		 * @param[in]		SPk		Public Signed Pre-Key
-		 * @param[in]		Sig		Signature of Public Signed Pre-Key (signed using self Identity key)
-		 * @param[in]		SPk_id		SPk id used to retrieve the SPk from local storage
+		 * @param[in]		SPk		Signed Pre-Key
 		 */
 		template <typename Curve>
-		void buildMessage_publishSPk(std::vector<uint8_t> &message, const X<Curve, lime::Xtype::publicKey> &SPk, const DSA<Curve, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept {
+		void buildMessage_publishSPk(std::vector<uint8_t> &message, const SignedPreKey<Curve> &SPk) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postSPk, Curve::curveId());
 			// append SPk, Signature and SPkId
-			message.insert(message.end(), SPk.cbegin(), SPk.cend());
-			message.insert(message.end(), Sig.cbegin(), Sig.cend());
-			message.push_back(static_cast<uint8_t>((SPk_id>>24)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id>>16)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id>>8)&0xFF));
-			message.push_back(static_cast<uint8_t>((SPk_id)&0xFF));
+			auto serialSPk = SPk.serializePublic();
+			message.insert(message.end(), serialSPk.cbegin(), serialSPk.cend());
 
 			// debug trace
 			ostringstream message_trace;
 			message_trace << hex << setfill('0') << "Outgoing X3DH postSPk message holds:"<<endl<<"    SPk:";
-			std::for_each(SPk.cbegin(), SPk.cend(), [&message_trace] (unsigned int i) {
+			std::for_each(serialSPk.cbegin(), serialSPk.cend(), [&message_trace] (unsigned int i) {
 				message_trace << setw(2) << i << ", ";
 			});
-			message_trace << endl <<"    SPk Signature:";
-			std::for_each(Sig.cbegin(), Sig.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
-			message_trace << endl <<"    SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id);
 			LIME_LOGI<<message_trace.str();
 		}
 
@@ -644,60 +618,17 @@ namespace lime {
 				index += 1;
 
 				// add device Id (and its size) and flag to the trace
-				message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk"<<endl<<"        Ik: ";
+				message_trace << endl << dec << "    Device Id ("<<static_cast<unsigned int>(deviceIdSize)<<" bytes): "<<deviceId<<(haveOPk?" has ":" does not have ")<<"OPk";
 
-				if (body.size() < index + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4 + (haveOPk?(X<Curve, lime::Xtype::publicKey>::ssize()+4):0) ) {
+				if (body.size() < index + X3DH_peerBundle<Curve>::ssize(haveOPk)) {
 					peersBundle.clear();
 					LIME_LOGE<<"Invalid message: size is not what expected, not enough buffer to hold keys bundle, discard without parsing";
 					LIME_LOGD<<"message_trace so far: "<<message_trace.str();
 					return false;
 				}
 
-				// retrieve simple pointers to all keys and signature, the X3DH_peerBundle constructor will construct the keys out of them
-				const auto Ik = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::publicKey>::ssize();
-
-				// add Ik to message trace
-				message_trace << hex << setfill('0');
-				std::for_each(Ik, Ik + DSA<Curve, lime::DSAtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
-					message_trace << setw(2) << i << ", ";
-				});
-
-				const auto SPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
-				uint32_t SPk_id = static_cast<uint32_t>(body[index])<<24 |
-						static_cast<uint32_t>(body[index+1])<<16 |
-						static_cast<uint32_t>(body[index+2])<<8 |
-						static_cast<uint32_t>(body[index+3]);
-				index += 4;
-				const auto SPk_sig = body.cbegin()+index; index += DSA<Curve, lime::DSAtype::signature>::ssize();
-
-				// add SPk Id, SPk and SPk signature to the trace
-				message_trace <<endl<<"        SPk Id: 0x"<< setw(8) << static_cast<unsigned int>(SPk_id)<<endl<<"        SPk: ";
-				std::for_each(SPk, SPk + X<Curve, lime::Xtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
-					message_trace << setw(2) << i << ", ";
-				});
-				message_trace <<endl<<"        SPk Signature: ";
-				std::for_each(SPk_sig, SPk_sig + DSA<Curve, lime::DSAtype::signature>::ssize(), [&message_trace] (unsigned int i) {
-					message_trace << setw(2) << i << ", ";
-				});
-
-				if (haveOPk) {
-					const auto OPk = body.cbegin()+index; index += X<Curve, lime::Xtype::publicKey>::ssize();
-					uint32_t OPk_id = static_cast<uint32_t>(body[index])<<24 |
-						static_cast<uint32_t>(body[index+1])<<16 |
-						static_cast<uint32_t>(body[index+2])<<8 |
-						static_cast<uint32_t>(body[index+3]);
-					index += 4;
-
-					// add OPk Id and OPk to the trace
-					message_trace <<endl<<"        OPk Id: 0x" << setw(8) << static_cast<unsigned int>(OPk_id)<<endl<<"        OPk: ";
-					std::for_each(OPk, OPk + X<Curve, lime::Xtype::publicKey>::ssize(), [&message_trace] (unsigned int i) {
-						message_trace << setw(2) << i << ", ";
-					});
-
-					peersBundle.emplace_back(std::move(deviceId), Ik, SPk, SPk_id, SPk_sig, OPk, OPk_id);
-				} else {
-					peersBundle.emplace_back(std::move(deviceId), Ik, SPk, SPk_id, SPk_sig);
-				}
+				peersBundle.emplace_back(std::move(deviceId), body.cbegin()+index, haveOPk, message_trace);
+				index += X3DH_peerBundle<Curve>::ssize(haveOPk);
 			}
 			LIME_LOGI<<message_trace.str();
 			return true;
@@ -754,18 +685,18 @@ namespace lime {
 
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
-		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &SPk, const DSA<C255, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const SignedPreKey<C255> &SPk, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_deleteUser<C255>(std::vector<uint8_t> &message) noexcept;
-		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const X<C255, lime::Xtype::publicKey> &SPk, const DSA<C255, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
+		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const SignedPreKey<C255> &SPk) noexcept;
 		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
-		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &SPk, const DSA<C448, lime::DSAtype::signature> &Sig, const uint32_t SPk_id, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C448> &SPk, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_deleteUser<C448>(std::vector<uint8_t> &message) noexcept;
-		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const X<C448, lime::Xtype::publicKey> &SPk, const DSA<C448, lime::DSAtype::signature> &Sig, const uint32_t SPk_id) noexcept;
+		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const SignedPreKey<C448> &SPk) noexcept;
 		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;

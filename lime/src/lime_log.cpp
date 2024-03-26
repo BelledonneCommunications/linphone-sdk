@@ -16,22 +16,32 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef lime_log_hpp
 #define lime_log_hpp
 
-#include <string>
+#include <iomanip>
+#include <sstream>
+#include <memory>
 
-#define BCTBX_LOG_DOMAIN "lime"
-#include <bctoolbox/logging.h>
 
-#define LIME_LOGD BCTBX_SLOGD
-#define LIME_LOGI BCTBX_SLOGI
-#define LIME_LOGW BCTBX_SLOGW
-#define LIME_LOGE BCTBX_SLOGE
+using namespace::std;
 
 namespace lime {
-	std::string hexStr(const uint8_t *data, int len);
-	void hexStr(std::ostringstream &os, const uint8_t *data, int len);
-}
+	std::string hexStr(const uint8_t *data, int len) {
+		std::stringstream ss;
+		ss << "("<<len<<") "<<std::hex;
+		for( int i(0) ; i < len; ++i )
+			ss << std::setw(2) << std::setfill('0') << (int)data[i];
+		return ss.str();
+	}
 
-#endif //lime_log_hpp
+	void hexStr(std::ostringstream &os, const uint8_t *data, int len) {
+		os <<std::hex;
+		if (len > 0) {;
+			os << std::setw(2) << std::setfill('0') << (int)data[0];
+			for( int i(1) ; i < len; ++i ) {
+				os << ", "<<std::setw(2) << std::setfill('0') << (int)data[i];
+			}
+		}
+	}
+} // namespace lime
+

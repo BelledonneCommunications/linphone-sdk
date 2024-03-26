@@ -30,6 +30,7 @@
 #include "lime_crypto_primitives.hpp"
 #include "lime_localStorage.hpp"
 #include "lime_double_ratchet.hpp"
+#include "lime_x3dh.hpp"
 #include "lime_x3dh_protocol.hpp"
 
 namespace lime {
@@ -81,9 +82,9 @@ namespace lime {
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 
 			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
-			void X3DH_generate_SPk(X<Curve, lime::Xtype::publicKey> &publicSPk, DSA<Curve, lime::DSAtype::signature> &SPk_sig, uint32_t &SPk_id, const bool load=false); // generate a new Signed Pre-Key key pair, store it in DB and set its public key, signature and Id in given params
+			SignedPreKey<Curve> X3DH_generate_SPk(const DSApair<Curve> &Ik, const bool load=false); // generate a new Signed Pre-Key key pair, store it in DB
 			void X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load=false); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
-			void X3DH_get_SPk(uint32_t SPk_id, Xpair<Curve> &SPk); // retrieve matching SPk from localStorage, throw an exception if not found
+			SignedPreKey<Curve> X3DH_get_SPk(uint32_t SPk_id); // retrieve matching SPk from localStorage, throw an exception if not found
 			bool is_currentSPk_valid(void); // check validity of current SPk
 			void X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk); // retrieve matching OPk from localStorage, throw an exception if not found
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
