@@ -22,6 +22,7 @@
 
 #include "mediastreamer2/msaudiomixer.h"
 #include "mediastreamer2/msconference.h"
+#include "mediastreamer2/msmediaplayer.h"
 #include "mediastreamer2/mspacketrouter.h"
 #include "mediastreamer2/msrtp.h"
 #include "mediastreamer2/msvolume.h"
@@ -51,7 +52,10 @@ struct _MSAudioEndpoint {
 	MSAudioConference *conference;
 	MSFilter *recorder;         /* in case it is a recorder endpoint*/
 	MSFilter *recorder_encoder; /* in case the recorder is mkv */
-	MSFilter *player; /* not used at the moment, but we need it so that there is a source connected to the mixer*/
+	MSFilter *player; /* in case it is a player endpoint, but also used as a dummy source connected to the mixer for a
+	                     recorder endpoint*/
+	MSFilter *player_decoder;
+	int player_nchannels;
 	int pin;
 	int samplerate;
 	bool_t muted;
@@ -241,6 +245,11 @@ static void plumb_to_conf(MSAudioEndpoint *ep) {
 	ms_filter_call_method(ep->out_resampler, MS_FILTER_SET_SAMPLE_RATE, &conf->params.samplerate);
 	ms_filter_call_method(ep->in_resampler, MS_FILTER_SET_SAMPLE_RATE, &in_rate);
 	ms_filter_call_method(ep->out_resampler, MS_FILTER_SET_OUTPUT_SAMPLE_RATE, &out_rate);
+	if (ep->player_nchannels != -1) {
+		int nchannels = 2;
+		ms_filter_call_method(ep->in_resampler, MS_FILTER_SET_NCHANNELS, &ep->player_nchannels);
+		ms_filter_call_method(ep->in_resampler, MS_FILTER_SET_OUTPUT_NCHANNELS, &nchannels);
+	}
 }
 
 static int request_volumes(BCTBX_UNUSED(MSFilter *filter), rtp_audio_level_t **audio_levels, void *user_data) {
@@ -452,6 +461,7 @@ MSAudioEndpoint *ms_audio_endpoint_new(void) {
 	MSAudioEndpoint *ep = ms_new0(MSAudioEndpoint, 1);
 
 	ep->samplerate = 8000;
+	ep->player_nchannels = -1;
 	return ep;
 }
 
@@ -504,7 +514,13 @@ void ms_audio_endpoint_destroy(MSAudioEndpoint *ep) {
 		ms_filter_destroy(ep->recorder_encoder);
 	}
 	if (ep->recorder) ms_filter_destroy(ep->recorder);
-	if (ep->player) ms_filter_destroy(ep->player);
+	if (ep->player) {
+		MSPlayerState state;
+		if (ms_filter_call_method(ep->player, MS_PLAYER_GET_STATE, &state) == 0) {
+			if (state != MSPlayerClosed) ms_filter_call_method_noarg(ep->player, MS_PLAYER_CLOSE);
+		}
+		ms_filter_destroy(ep->player);
+	}
 	ms_free(ep);
 }
 
@@ -558,4 +574,99 @@ int ms_audio_recorder_endpoint_stop(MSAudioEndpoint *ep) {
 		return -1;
 	}
 	return ms_filter_call_method_noarg(ep->recorder, MS_RECORDER_CLOSE);
+}
+
+MSAudioEndpoint *ms_audio_endpoint_new_player(MSFactory *factory, const char *path) {
+	MSFileFormat format = MS_FILE_FORMAT_UNKNOWN;
+	MSAudioEndpoint *ep = ms_audio_endpoint_new();
+
+	if (ms_path_ends_with(path, ".mkv")) {
+		format = MS_FILE_FORMAT_MATROSKA;
+		ep->player = ms_factory_create_filter(factory, MS_MKV_PLAYER_ID);
+	} else if (ms_path_ends_with(path, ".wav")) {
+		format = MS_FILE_FORMAT_WAVE;
+		ep->player = ms_factory_create_filter(factory, MS_FILE_PLAYER_ID);
+	} else {
+		ms_error("Unsupported audio file extension for path %s.", path);
+		ms_audio_endpoint_destroy(ep);
+		return NULL;
+	}
+
+	if (ms_filter_call_method(ep->player, MS_PLAYER_OPEN, (void *)path) == -1) {
+		ms_audio_endpoint_destroy(ep);
+		return NULL;
+	}
+
+	MSPinFormat pinfmt = {0};
+	switch (format) {
+		case MS_FILE_FORMAT_WAVE:
+			ms_filter_call_method(ep->player, MS_FILTER_GET_SAMPLE_RATE, &ep->samplerate);
+			break;
+		case MS_FILE_FORMAT_MATROSKA:
+			pinfmt.pin = 1;
+			ms_filter_call_method(ep->player, MS_FILTER_GET_OUTPUT_FMT, &pinfmt);
+			if (pinfmt.fmt) {
+				ep->player_decoder = ms_factory_create_decoder(factory, pinfmt.fmt->encoding);
+				if (ep->player_decoder == NULL) {
+					ms_error("Could not create audio decoder for %s", pinfmt.fmt->encoding);
+				} else {
+					ep->samplerate = pinfmt.fmt->rate;
+					ep->player_nchannels = pinfmt.fmt->nchannels;
+					if (strcmp(pinfmt.fmt->encoding, "opus") == 0) {
+						// Disable PLC in Opus decoder to prevent white noise when pausing media player
+						const char *fmtp = "plc=0";
+						ms_filter_call_method(ep->player_decoder, MS_FILTER_ADD_FMTP, (void *)fmtp);
+					}
+					ms_filter_link(ep->player, 1, ep->player_decoder, 0);
+				}
+			}
+			break;
+		case MS_FILE_FORMAT_UNKNOWN:
+			break;
+	}
+
+	ep->in_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+	ep->out_resampler = ms_factory_create_filter(factory, MS_RESAMPLE_ID);
+	ep->mixer_in.filter = ep->player_decoder ? ep->player_decoder : ep->player;
+
+	return ep;
+}
+
+void ms_audio_player_endpoint_set_eof_cb(MSAudioEndpoint *ep, MSFilterNotifyFunc cb, void *user_data) {
+	ms_filter_add_notify_callback(ep->player, cb, user_data, FALSE);
+}
+
+int ms_audio_player_endpoint_start(MSAudioEndpoint *ep) {
+	MSPlayerState state;
+	if (!ep->player || ep->recorder) {
+		ms_error("This endpoint isn't a player endpoint.");
+		return -1;
+	}
+	ms_filter_call_method(ep->player, MS_PLAYER_GET_STATE, &state);
+	if (state != MSPlayerPaused) {
+		ms_error("The endpoint player is in a bad state, cannot start.");
+		return -1;
+	}
+	return ms_filter_call_method_noarg(ep->player, MS_PLAYER_START);
+}
+
+int ms_audio_player_endpoint_stop(MSAudioEndpoint *ep) {
+	if (!ep->player || ep->recorder) {
+		return -1;
+	}
+	return ms_filter_call_method_noarg(ep->player, MS_PLAYER_CLOSE);
+}
+
+int ms_audio_player_endpoint_pause(MSAudioEndpoint *ep) {
+	return ms_filter_call_method_noarg(ep->player, MS_PLAYER_PAUSE);
+}
+
+int ms_audio_player_endpoint_seek(MSAudioEndpoint *ep, int time_ms) {
+	return ms_filter_call_method(ep->player, MS_PLAYER_SEEK_MS, &time_ms);
+}
+
+MSPlayerState ms_audio_player_endpoint_get_state(const MSAudioEndpoint *ep) {
+	MSPlayerState state = MSPlayerClosed;
+	ms_filter_call_method(ep->player, MS_PLAYER_GET_STATE, &state);
+	return state;
 }

@@ -266,6 +266,61 @@ MS2_PUBLIC int ms_audio_recorder_endpoint_stop(MSAudioEndpoint *ep);
  **/
 MS2_PUBLIC void ms_audio_endpoint_destroy(MSAudioEndpoint *ep);
 
+/**
+ * Creates an audio endpoint (or virtual participant) to play a wav file in the conference.
+ * @param factory The factory used by the linphone core.
+ * @param path The path to the wav file to play in the conference.
+ */
+MS2_PUBLIC MSAudioEndpoint *ms_audio_endpoint_new_player(MSFactory *factory, const char *path);
+
+/**
+ * Sets a callback to be notified when an audio file played with an audio endpoint has finished playing.
+ * @param ep The audio endpoint.
+ * @param cb The callback to set
+ * @param user_data A user data to pass to the callback.
+ */
+MS2_PUBLIC void ms_audio_player_endpoint_set_eof_cb(MSAudioEndpoint *ep, MSFilterNotifyFunc cb, void *user_data);
+
+/**
+ * Start audio file playing.
+ * The endpoint must have been created by ms_audio_endpoint_new_player().
+ * @param ep The audio endpoint.
+ * @return 0 if successful, -1 if the path is invalid.
+ */
+MS2_PUBLIC int ms_audio_player_endpoint_start(MSAudioEndpoint *ep);
+
+/**
+ * Stop audio file playing.
+ * The endpoint must have been created by ms_audio_endpoint_new_player().
+ * @param ep The audio endpoint.
+ * @return 0 if successful, -1 if the audio file playing wasn't started.
+ */
+MS2_PUBLIC int ms_audio_player_endpoint_stop(MSAudioEndpoint *ep);
+
+/**
+ * Pause audio file playing.
+ * The endpoint must have been created by ms_audio_endpoint_new_player() and the playing must have
+ * been started by ms_audio_player_endpoint_start().
+ * @param ep The audio endpoint.
+ * @return 0 if successful, -1 if the audio file could not be paused.
+ */
+MS2_PUBLIC int ms_audio_player_endpoint_pause(MSAudioEndpoint *ep);
+
+/**
+ * Seek in the audio file.
+ * @param ep The audio endpoint.
+ * @param time_ms The time to which to seek to (in ms).
+ * @return 0 if successful, -1 otherwise.
+ */
+MS2_PUBLIC int ms_audio_player_endpoint_seek(MSAudioEndpoint *ep, int time_ms);
+
+/**
+ * Get the state of the audio player.
+ * @param ep The audio endpoint.
+ * @return The state of the audio player.
+ */
+MS2_PUBLIC MSPlayerState ms_audio_player_endpoint_get_state(const MSAudioEndpoint *ep);
+
 #ifdef __cplusplus
 }
 #endif
