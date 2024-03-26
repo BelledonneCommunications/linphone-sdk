@@ -335,7 +335,7 @@ void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onSubscribeSta
 			break;
 		case SubscriptionState::IncomingReceived:
 			bctbx_message("ParticipantDeviceContext::onSubscribeStateChanged : IncomingReceived");
-			if (event->getTo() == mEventSubscribe->getTo() &&
+			if (event->getToAddress() == mEventSubscribe->getToAddress() &&
 			    event->getRemoteContact() == mEventSubscribe->getRemoteContact()) {
 				mServerEktManager.lock()->sendNotifyAcceptedEkt(mEventSubscribe);
 			}
