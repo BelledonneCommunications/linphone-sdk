@@ -798,7 +798,8 @@ static void unplumb_av_player(AudioStream *stream) {
 	if (!player->plumbed) return;
 
 	/*detach the outbound graph before modifying the graph*/
-	ms_ticker_detach(stream->ms.sessions.ticker, stream->soundread);
+	MSTicker *soundread_ticker = stream->soundread->ticker;
+	ms_ticker_detach(soundread_ticker, stream->soundread);
 	if (player->videopin != -1) {
 		ms_connection_helper_start(&ch);
 		ms_connection_helper_unlink(&ch, player->player, -1, player->videopin);
@@ -810,7 +811,7 @@ static void unplumb_av_player(AudioStream *stream) {
 	ms_connection_helper_unlink(&ch, player->resampler, 0, 0);
 	ms_connection_helper_unlink(&ch, stream->outbound_mixer, 1, -1);
 	/*and attach back*/
-	if (reattach) ms_ticker_attach(stream->ms.sessions.ticker, stream->soundread);
+	if (reattach) ms_ticker_attach(soundread_ticker, stream->soundread);
 	player->plumbed = FALSE;
 }
 
@@ -903,7 +904,6 @@ static int open_av_player(AudioStream *stream, const char *filename) {
 	MSPinFormat *videofmt = NULL;
 
 	if (player->player) close_av_player(stream);
-	// player->player=_ms_create_av_player(filename);
 	player->player = _ms_create_av_player(filename, stream->ms.factory);
 	if (player->player == NULL) {
 		ms_warning("AudioStream[%p]: no way to open [%s].", stream, filename);
@@ -986,7 +986,7 @@ void audio_stream_close_remote_play(AudioStream *stream) {
 	MSPlayerState state;
 	if (stream->av_player.player) {
 		ms_filter_call_method(stream->av_player.player, MS_PLAYER_GET_STATE, &state);
-		if (state != MSPlayerClosed) ms_filter_call_method_noarg(stream->av_player.player, MS_PLAYER_CLOSE);
+		if (state != MSPlayerClosed) close_av_player(stream);
 	}
 	if (stream->videostream) video_stream_close_player(stream->videostream);
 }
