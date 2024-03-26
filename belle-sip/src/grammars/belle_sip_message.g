@@ -575,17 +575,22 @@ huit_lhex
   : hexdigit+;
 
 auth_param [belle_sip_header_authorization_t* header_authorization_base]
-  :   auth_param_name equal
+  :   auth_param_name
+		{
+		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(header_authorization_base)
+                                                                         ,(char*)$auth_param_name.text->chars
+									,NULL);
+		}  (equal
                      auth_param_value {belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(header_authorization_base)
                                                                          ,(char*)$auth_param_name.text->chars
                                                                          ,(char*)$auth_param_value.text->chars);
-                                       }
+                                       })?
           ;
 auth_param_value : token | quoted_string ;
 auth_param_name
-  :   token;
+  :   b64token;
 other_response [belle_sip_header_authorization_t* header_authorization_base]
-  :   auth_scheme {belle_sip_header_authorization_set_scheme(header_authorization_base,(const char*)$auth_scheme.text->chars);}
+  :  auth_scheme {belle_sip_header_authorization_set_scheme(header_authorization_base,(const char*)$auth_scheme.text->chars);}
      lws auth_param[header_authorization_base]
                      (comma auth_param[header_authorization_base])*;
 
@@ -1969,6 +1974,9 @@ three_digit: (DIGIT) => DIGIT
             (DIGIT DIGIT DIGIT) =>(DIGIT DIGIT DIGIT) ;
 token
   :   (alphanum | mark | PERCENT | PLUS | BQUOTE  )+;
+
+b64token
+     : ( alphanum | DASH | DOT | USCORE | TILDE | PLUS | SLASH )+ EQUAL*; 
 
 reserved_for_from_to_contact_addr_spec:
 	COLON | AT | AND | EQUAL | PLUS | DOLLARD  | SLASH;

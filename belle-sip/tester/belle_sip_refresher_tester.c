@@ -17,9 +17,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
+#include "belle_sip_tester_utils.h"
 
 #ifndef _MSC_VER
 #include "belle-sip/headers.h"
@@ -1272,7 +1274,7 @@ static void register_digest_auth_with_bad_next_nonce(void) {
 	destroy_endpoint(server);
 }
 
-test_t refresher_tests[] = {
+static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER Expires header", register_expires_header),
     TEST_NO_TAG("REGISTER Expires in Contact", register_expires_in_contact),
     TEST_NO_TAG("REGISTER Expires header digest", register_expires_header_digest),

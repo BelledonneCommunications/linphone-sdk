@@ -637,6 +637,8 @@ BELLESIP_EXPORT const char *
 belle_sip_header_www_authenticate_get_scheme(const belle_sip_header_www_authenticate_t *www_authenticate);
 BELLESIP_EXPORT const char *
 belle_sip_header_www_authenticate_get_domain(const belle_sip_header_www_authenticate_t *www_authenticate);
+BELLESIP_EXPORT const char *
+belle_sip_header_www_authenticate_get_authz_server(const belle_sip_header_www_authenticate_t *www_authenticate);
 BELLESIP_EXPORT unsigned int
 belle_sip_header_www_authenticate_is_stale(const belle_sip_header_www_authenticate_t *www_authenticate);
 BELLESIP_EXPORT void

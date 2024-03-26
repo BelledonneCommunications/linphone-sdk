@@ -19,6 +19,7 @@
 
 #ifndef belle_sip_port_h
 #define belle_sip_port_h
+BELLE_SIP_BEGIN_DECLS
 
 #include <sys/stat.h>
 
@@ -196,5 +197,7 @@ static BELLESIP_INLINE int get_socket_error(void) {
 #define BELLESIP_EWOULDBLOCK BCTBX_EWOULDBLOCK
 #define BELLESIP_EINPROGRESS BCTBX_EINPROGRESS
 #define belle_sip_error_code_is_would_block(err) ((err) == BELLESIP_EWOULDBLOCK || (err) == BELLESIP_EINPROGRESS)
+
+BELLE_SIP_END_DECLS
 
 #endif

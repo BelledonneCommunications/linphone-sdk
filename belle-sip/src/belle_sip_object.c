@@ -41,61 +41,26 @@ void belle_sip_object_enable_marshal_check(int enable) {
 	_belle_sip_object_marshal_check_enabled = (enable) ? TRUE : FALSE;
 }
 
-static const char *belle_sip_object_vptr_get_type_name(const belle_sip_object_t *obj) {
+const char *belle_sip_object_vptr_get_type_name(const belle_sip_object_t *obj) {
 	if (!obj->vptr->is_cpp) return obj->vptr->type_name;
 	return belle_sip_cpp_object_get_type_name(obj);
 }
 
-static belle_sip_list_t *all_objects = NULL;
-static int belle_sip_leak_detector_enabled = FALSE;
-static int belle_sip_leak_detector_inhibited = FALSE;
-
-static void add_new_object(belle_sip_object_t *obj) {
-	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited) {
-		all_objects = belle_sip_list_prepend(all_objects, obj);
-	}
-}
-
-void belle_sip_object_remove_from_leak_detector(belle_sip_object_t *obj) {
-	if (belle_sip_leak_detector_enabled && !belle_sip_leak_detector_inhibited) {
-		belle_sip_list_t *it;
-		it = belle_sip_list_find(all_objects, obj);
-		if (it)
-			all_objects = belle_sip_list_delete_link(
-			    all_objects, it); /*it may fail if the leak detector was inhibitted at the time the object was created*/
-	}
-}
+static bool_t leak_detector_enabled = FALSE;
+static bool_t leak_detector_inhibited = FALSE;
 
 void belle_sip_object_inhibit_leak_detector(int yes) {
-	belle_sip_leak_detector_inhibited = yes ? TRUE : FALSE;
+	leak_detector_inhibited = yes ? TRUE : FALSE;
 }
 
 void belle_sip_object_enable_leak_detector(int enable) {
-	belle_sip_leak_detector_enabled = enable;
+	leak_detector_enabled = enable;
 }
 
-int belle_sip_object_get_object_count(void) {
-	return (int)belle_sip_list_size(all_objects);
-}
-
-void belle_sip_object_flush_active_objects(void) {
-	// do not free objects so that they are still detected as leaked by valgrind and such
-	all_objects = belle_sip_list_free(all_objects);
-}
-
-void belle_sip_object_dump_active_objects(void) {
-	belle_sip_list_t *elem;
-
-	if (all_objects) {
-		belle_sip_warning("List of leaked objects:");
-		for (elem = all_objects; elem != NULL; elem = elem->next) {
-			belle_sip_object_t *obj = (belle_sip_object_t *)elem->data;
-			char *content = belle_sip_object_to_string(obj);
-			belle_sip_warning("%s(%p) ref=%i, content [%10s...]", belle_sip_object_vptr_get_type_name(obj), obj,
-			                  obj->ref, content);
-			belle_sip_free(content);
-		}
-	} else belle_sip_warning("No objects leaked.");
+static void add_new_object(belle_sip_object_t *obj) {
+	if (leak_detector_enabled && !leak_detector_inhibited) {
+		belle_sip_object_add_to_leak_detector(obj);
+	}
 }
 
 belle_sip_object_t *_belle_sip_object_init(belle_sip_object_t *obj, belle_sip_object_vptr_t *vptr) {
@@ -106,7 +71,6 @@ belle_sip_object_t *_belle_sip_object_init(belle_sip_object_t *obj, belle_sip_ob
 		belle_sip_object_pool_t *pool = belle_sip_object_pool_get_current();
 		if (pool) belle_sip_object_pool_add(pool, obj);
 	}
-
 	add_new_object(obj);
 	return obj;
 }
@@ -256,7 +220,9 @@ void belle_sip_object_uninit(belle_sip_object_t *obj) {
 	belle_sip_object_vptr_t *vptr;
 
 	belle_sip_object_loose_weak_refs(obj);
-	belle_sip_object_remove_from_leak_detector(obj);
+	if (leak_detector_enabled && !leak_detector_inhibited) {
+		belle_sip_object_remove_from_leak_detector(obj);
+	}
 	vptr = obj->vptr;
 	while (vptr != NULL) {
 		if (vptr->destroy) vptr->destroy(obj);

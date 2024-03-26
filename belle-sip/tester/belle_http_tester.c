@@ -17,9 +17,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
+#include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
-#include <belle_sip_internal.h>
+#include "belle_sip_tester_utils.h"
+#include "httplib.h"
+#include "register_tester.h"
+using namespace bellesip;
 
 typedef struct http_counters {
 	int response_headers_count;
@@ -58,6 +63,13 @@ static void process_io_error(void *data, const belle_sip_io_error_event_t *event
 	http_counters_t *counters = (http_counters_t *)data;
 	counters->io_error_count++;
 }
+#define HTTP_TESTER_ACCESS_TOKEN                                                                                       \
+	"eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9."                                                                            \
+	"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.o1hC1xYbJolSyh0-"     \
+	"bOY230w22zEQSk5TiBfc-OCvtpI2JtYlW-23-8B48NpATozzMHn0j3rE0xVUldxShzy0xeJ7vYAccVXu2Gs9rnTVqouc-UZu_wJHkZiKBL67j8_"  \
+	"61L6SXswzPAQu4kVDwAefGf5hyYBUM-80vYZwWPEpLI8K4yCBsF6I9N1yQaZAJmkMp_Iw371Menae4Mp4JusvBJS-"                        \
+	"s6LrmG2QbiZaFaxVJiW8KlUkWyUCns8-"                                                                                 \
+	"qFl5OMeYlgGFsyvvSHvXCzQrsEXqyCdS4tQJd73ayYA4SPtCb9clz76N1zE5WsV4Z0BYrxeb77oA7jJhh994RAPzCG0hmQ"
 
 static void process_auth_requested(void *data, belle_sip_auth_event_t *event) {
 	belle_sip_message("process_auth_requested requested for realm [%s] in mode [%s]",
@@ -72,29 +84,30 @@ static void process_auth_requested(void *data, belle_sip_auth_event_t *event) {
 		belle_sip_auth_event_set_signing_key(event, key);
 		belle_sip_message("process_auth_requested requested for DN [%s]",
 		                  belle_sip_auth_event_get_distinguished_name(event));
-	} else {
-
+	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_BASIC) {
 		belle_sip_auth_event_set_username(event, "testuser");
 		belle_sip_auth_event_set_passwd(event, "secret");
+	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
+		belle_sip_auth_event_set_bearer_token(
+		    event, belle_sip_bearer_token_new(HTTP_TESTER_ACCESS_TOKEN, 255 << sizeof(time_t), "not set yet "));
 	}
 }
 
-static belle_sip_stack_t *stack = NULL;
-static belle_http_provider_t *prov = NULL;
+static belle_sip_stack_t *http_stack = NULL;
+static belle_http_provider_t *http_prov = NULL;
 static belle_http_provider_t *prov_https_only = NULL;
-
 static int http_before_all(void) {
-	stack = belle_sip_stack_new(NULL);
-	belle_sip_tester_set_dns_host_file(stack);
+	http_stack = belle_sip_stack_new(NULL);
+	belle_sip_tester_set_dns_host_file(http_stack);
 
-	prov = belle_sip_stack_create_http_provider(stack, "::0");
-	if (!prov) prov = belle_sip_stack_create_http_provider(stack, "0.0.0.0"); /*ipv6 not available ?*/
+	http_prov = belle_sip_stack_create_http_provider(http_stack, "::0");
+	if (!http_prov) http_prov = belle_sip_stack_create_http_provider(http_stack, "0.0.0.0"); /*ipv6 not available ?*/
 	prov_https_only = belle_sip_stack_create_http_provider_with_transports(
-	    stack, "0.0.0.0", BELLE_SIP_HTTP_TRANSPORT_TLS); // Enable TLS transport only
+	    http_stack, "0.0.0.0", BELLE_SIP_HTTP_TRANSPORT_TLS); // Enable TLS transport only
 	if (belle_sip_tester_get_root_ca_path() != NULL) {
 		belle_tls_crypto_config_t *crypto_config = belle_tls_crypto_config_new();
 		belle_tls_crypto_config_set_root_ca(crypto_config, belle_sip_tester_get_root_ca_path());
-		belle_http_provider_set_tls_crypto_config(prov, crypto_config);
+		belle_http_provider_set_tls_crypto_config(http_prov, crypto_config);
 		belle_http_provider_set_tls_crypto_config(prov_https_only, crypto_config);
 		belle_sip_object_unref(crypto_config);
 	}
@@ -102,14 +115,14 @@ static int http_before_all(void) {
 }
 
 static int http_after_all(void) {
-	belle_sip_object_unref(prov);
+	belle_sip_object_unref(http_prov);
 	belle_sip_object_unref(prov_https_only);
-	belle_sip_object_unref(stack);
+	belle_sip_object_unref(http_stack);
 	return 0;
 }
 
 static int url_supported(const char *url) {
-	if (url && strstr(url, "https://") == url && !belle_sip_stack_tls_available(stack)) {
+	if (url && strstr(url, "https://") == url && !belle_sip_stack_tls_available(http_stack)) {
 		belle_sip_error("No TLS support, test skipped.");
 		return -1;
 	}
@@ -136,19 +149,23 @@ static int one_get_prov(const char *url, http_counters_t *counters, int *counter
 			belle_sip_object_unref(l);
 			return -1;
 		}
-		wait_for(stack, counter, 1, 10000);
+		wait_for(http_stack, counter, 1, 10000);
 
 		belle_sip_object_unref(l);
 		return 0;
 	}
 }
 static int one_get(const char *url, http_counters_t *counters, int *counter) {
-	return one_get_prov(url, counters, counter, prov);
+	return one_get_prov(url, counters, counter, http_prov);
+}
+static int one_get(std::string url, http_counters_t *counters, int *counter) {
+	return one_get_prov(url.c_str(), counters, counter, http_prov);
 }
 
 static void one_http_get(void) {
 	http_counters_t counters = {0};
-	if (one_get("http://smtp.linphone.org", &counters, &counters.response_count) == 0) {
+	HttpServer http_server;
+	if (one_get(http_server.mRootUrl, &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -222,13 +239,69 @@ static void http_digest_get(void) {
 }
 static void http_basic_auth_get(void) {
 	http_counters_t counters = {0};
-	if (one_get("http://testuser:secret@localhost/basic", &counters, &counters.response_count) == 0) {
+	HttpServer http_server;
+
+	http_server.Get("/basic", [](const httplib::Request &req, httplib::Response &res) {
+		if (req.has_header("Authorization")) {
+			// ok
+			res.set_content("Auth succesfull", "text/plain");
+		} else {
+			res.status = 401;
+			res.set_header("WWW-Authenticate", "Basic realm=\"linphone.org\"");
+		}
+	});
+
+	if (one_get("http://testuser:secret@localhost:" + http_server.mListeningPort + "/basic", &counters,
+	            &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
 	memset(&counters, 0, sizeof(http_counters_t));
-	if (one_get("http://localhost/basic", &counters, &counters.response_count) == 0) {
+	if (one_get(http_server.mRootUrl + "/basic", &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+}
+
+static void http_bearer_get(void) {
+	http_counters_t counters = {0};
+	HttpServer http_server;
+
+	http_server.Get("/bearer", [](const httplib::Request &req, httplib::Response &res) {
+		if (req.has_header("Authorization")) {
+			// ok
+			belle_sip_header_authorization_t *authorisation = belle_sip_header_authorization_parse(
+			    ("Authorization: " + req.get_header_value("Authorization")).c_str());
+			BC_ASSERT_NOT_EQUAL(belle_sip_header_authorization_get_scheme(authorisation), "Bearer", const char *, "%s");
+			std::string token =
+			    (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
+			                       belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(authorisation))))
+			        ->name;
+			;
+			BC_ASSERT_NOT_EQUAL(token.c_str(), HTTP_TESTER_ACCESS_TOKEN, const char *, "%s");
+			BC_ASSERT_NOT_EQUAL(belle_sip_header_authorization_get_scheme(authorisation), "Bearer", const char *, "%s");
+			belle_sip_object_unref(authorisation);
+			if (token == HTTP_TESTER_ACCESS_TOKEN) {
+				res.set_content("Auth succesfull", "text/plain");
+			} else {
+				res.status = 403;
+			}
+		} else {
+			res.status = 401;
+			res.set_header("WWW-Authenticate", "Bearer realm=\"linphone.org\"");
+		}
+	});
+
+	if (one_get("http://localhost:" + http_server.mListeningPort + "/bearer?access_token=" + HTTP_TESTER_ACCESS_TOKEN,
+	            &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+	memset(&counters, 0, sizeof(http_counters_t));
+	if (one_get(http_server.mRootUrl + "/bearer", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
@@ -240,7 +313,7 @@ static void https_client_cert_connection(void){
 	belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
 	http_counters_t counters={0};
 	belle_tls_verify_policy_set_exceptions(policy,BELLE_TLS_VERIFY_ANY_REASON);/*ignore the server verification because we don't have a true certificate*/
-	belle_http_provider_set_tls_verify_policy(prov,policy);
+	belle_http_provider_set_tls_verify_policy(http_prov,policy);
 	if (one_get("https://sip2.linphone.org:5063",&counters) == 0) {
 		BC_ASSERT_EQUAL(counters.two_hundred,1,int,"%d");
 	}
@@ -319,8 +392,8 @@ static void https_post_long_body(void) {
 	cbs.process_io_error = process_io_error;
 	cbs.process_auth_requested = process_auth_requested;
 	l = belle_http_request_listener_create_from_callbacks(&cbs, &counters);
-	belle_http_provider_send_request(prov, req, l);
-	BC_ASSERT_TRUE(wait_for(stack, &counters.two_hundred, 1, 20000));
+	belle_http_provider_send_request(http_prov, req, l);
+	BC_ASSERT_TRUE(wait_for(http_stack, &counters.two_hundred, 1, 20000));
 
 	belle_sip_object_unref(l);
 }
@@ -342,7 +415,7 @@ static void process_response_headers(void *data, const belle_http_response_event
 	if (event->response) {
 		/*we are receiving a response, set a specific body handler to acquire the response.
 		 * if not done, belle-sip will create a memory body handler, the default*/
-		FILE *file = belle_sip_object_data_get(BELLE_SIP_OBJECT(event->request), "file");
+		FILE *file = (FILE *)belle_sip_object_data_get(BELLE_SIP_OBJECT(event->request), "file");
 		belle_sip_message_set_body_handler((belle_sip_message_t *)event->response,
 		                                   (belle_sip_body_handler_t *)belle_sip_user_body_handler_new(
 		                                       0, on_progress, NULL, on_recv_body, NULL, NULL, file));
@@ -371,8 +444,8 @@ static void http_get_long_user_body(void) {
 	l = belle_http_request_listener_create_from_callbacks(&cbs, &counters);
 	belle_sip_object_ref(req);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "file", outfile, NULL);
-	belle_http_provider_send_request(prov, req, l);
-	BC_ASSERT_TRUE(wait_for(stack, &counters.two_hundred, 1, 20000));
+	belle_http_provider_send_request(http_prov, req, l);
+	BC_ASSERT_TRUE(wait_for(http_stack, &counters.two_hundred, 1, 20000));
 	BC_ASSERT_EQUAL(counters.response_headers_count, 1, int, "%d");
 	resp = belle_http_request_get_response(req);
 	BC_ASSERT_PTR_NOT_NULL(resp);
@@ -409,8 +482,8 @@ static void http_redirect_to_https(void) {
 	l = belle_http_request_listener_create_from_callbacks(&cbs, &counters);
 	belle_sip_object_ref(req);
 	belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "file", outfile, NULL);
-	belle_http_provider_send_request(prov, req, l);
-	BC_ASSERT_TRUE(wait_for(stack, &counters.two_hundred, 1, 20000));
+	belle_http_provider_send_request(http_prov, req, l);
+	BC_ASSERT_TRUE(wait_for(http_stack, &counters.two_hundred, 1, 20000));
 	BC_ASSERT_EQUAL(counters.response_headers_count, 1, int, "%d");
 	resp = belle_http_request_get_response(req);
 	BC_ASSERT_PTR_NOT_NULL(resp);
@@ -456,9 +529,9 @@ static void http_channel_reuse(void) {
 		belle_sip_object_ref(req);
 		outfile = fopen("provisioning.xml", "w");
 		belle_sip_object_data_set(BELLE_SIP_OBJECT(req), "file", outfile, NULL);
-		belle_http_provider_send_request(prov, req, l);
+		belle_http_provider_send_request(http_prov, req, l);
 		channels[i] = (belle_sip_channel_t *)belle_sip_object_ref(belle_http_request_get_channel(req));
-		BC_ASSERT_TRUE(wait_for(stack, &counters.two_hundred, i + 1, 20000));
+		BC_ASSERT_TRUE(wait_for(http_stack, &counters.two_hundred, i + 1, 20000));
 		BC_ASSERT_EQUAL(counters.response_headers_count, i + 1, int, "%d");
 		resp = belle_http_request_get_response(req);
 		BC_ASSERT_PTR_NOT_NULL(resp);
@@ -478,33 +551,32 @@ extern int test_http_proxy_port;
 
 static void one_https_get_with_proxy(void) {
 	http_counters_t counters = {0};
-	belle_sip_stack_set_http_proxy_host(stack, test_http_proxy_addr);
-	belle_sip_stack_set_http_proxy_port(stack, test_http_proxy_port);
+	belle_sip_stack_set_http_proxy_host(http_stack, test_http_proxy_addr);
+	belle_sip_stack_set_http_proxy_port(http_stack, test_http_proxy_port);
 
 	if (one_get("https://smtp.linphone.org", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
 		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
-	belle_sip_stack_set_http_proxy_host(stack, NULL);
-	belle_sip_stack_set_http_proxy_port(stack, 0);
+	belle_sip_stack_set_http_proxy_host(http_stack, NULL);
+	belle_sip_stack_set_http_proxy_port(http_stack, 0);
 }
 
-test_t http_tests[] = {TEST_NO_TAG("One http GET", one_http_get),
-                       TEST_NO_TAG("http GET of empty body", http_get_empty_body),
-                       TEST_NO_TAG("One https GET", one_https_get),
-                       TEST_NO_TAG("One https GET with maddr", one_https_get_with_maddr),
-                       TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
-                       TEST_NO_TAG("http request with io error", http_get_io_error),
-                       TEST_NO_TAG("https GET with long body", https_get_long_body),
-                       TEST_NO_TAG("http basic auth GET", http_basic_auth_get),
-                       TEST_NO_TAG("http digest auth GET", http_digest_get), /*, FIXME, need a server for testing
-                       TEST_NO_TAG("https with client certificate", https_client_cert_connection),*/
-                       TEST_NO_TAG("https POST with long body", https_post_long_body),
-                       TEST_NO_TAG("http GET with long user body", http_get_long_user_body),
-                       TEST_NO_TAG("https only", one_https_only_get),
-                       TEST_NO_TAG("http redirect to https", http_redirect_to_https),
-                       TEST_NO_TAG("http channel reuse", http_channel_reuse)};
+static test_t http_tests[] = {
+    TEST_NO_TAG("One http GET", one_http_get), TEST_NO_TAG("http GET of empty body", http_get_empty_body),
+    TEST_NO_TAG("One https GET", one_https_get), TEST_NO_TAG("One https GET with maddr", one_https_get_with_maddr),
+    TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
+    TEST_NO_TAG("http request with io error", http_get_io_error),
+    TEST_NO_TAG("https GET with long body", https_get_long_body),
+    TEST_NO_TAG("http basic auth GET", http_basic_auth_get),
+    TEST_NO_TAG("http digest auth GET", http_digest_get), /*, FIXME, need a server for testing*/
+    TEST_NO_TAG("http bearer auth GET", http_bearer_get),
+    // TEST_NO_TAG("https with client certificate", https_client_cert_connection),
+    TEST_NO_TAG("https POST with long body", https_post_long_body),
+    TEST_NO_TAG("http GET with long user body", http_get_long_user_body), TEST_NO_TAG("https only", one_https_only_get),
+    TEST_NO_TAG("http redirect to https", http_redirect_to_https),
+    TEST_NO_TAG("http channel reuse", http_channel_reuse)};
 
 test_suite_t http_test_suite = {"HTTP stack",
                                 http_before_all,

@@ -189,9 +189,9 @@ DNS_PUBLIC int *dns_debug_p(void);
 #define DNS_EVREAD 2
 #define DNS_EVWRITE 4
 
-#define DNS_POLL2EV(set) (((set)&DNS_POLLIN) ? DNS_EVREAD : 0) | (((set)&DNS_POLLOUT) ? DNS_EVWRITE : 0)
+#define DNS_POLL2EV(set) (((set) & DNS_POLLIN) ? DNS_EVREAD : 0) | (((set) & DNS_POLLOUT) ? DNS_EVWRITE : 0)
 
-#define DNS_EV2POLL(set) (((set)&DNS_EVREAD) ? DNS_POLLIN : 0) | (((set)&DNS_EVWRITE) ? DNS_POLLOUT : 0)
+#define DNS_EV2POLL(set) (((set) & DNS_EVREAD) ? DNS_POLLIN : 0) | (((set) & DNS_EVWRITE) ? DNS_POLLOUT : 0)
 
 /*
  * E N U M E R A T I O N  I N T E R F A C E S
@@ -845,6 +845,8 @@ DNS_PUBLIC int dns_hosts_loadpath(struct dns_hosts *, const char *);
 DNS_PUBLIC int dns_hosts_dump(struct dns_hosts *, FILE *);
 
 DNS_PUBLIC int dns_hosts_insert(struct dns_hosts *, int, const void *, const void *, _Bool);
+
+DNS_PUBLIC int dns_hosts_insert_v4_entry(struct dns_hosts *hosts, const char *hostname, const char *ipv4);
 
 DNS_PUBLIC struct dns_packet *dns_hosts_query(struct dns_hosts *, struct dns_packet *, int *);
 

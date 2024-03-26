@@ -86,9 +86,11 @@ belle_sip_transaction_terminated_event_get_server_transaction(const belle_sip_tr
 typedef enum belle_sip_auth_mode {
 	BELLE_SIP_AUTH_MODE_HTTP_DIGEST, /** Digest authentication has been requested by the server*/
 	BELLE_SIP_AUTH_MODE_TLS,         /** Client certificate has been requested by the server*/
-	BELLE_SIP_AUTH_MODE_HTTP_BASIC   /*  Basic authentication has been requested by the server*/
+	BELLE_SIP_AUTH_MODE_HTTP_BASIC,  /*  Basic authentication has been requested by the server*/
+	BELLE_SIP_AUTH_MODE_HTTP_BEARER  /*  Bearer authentication has been requested by the server*/
 } belle_sip_auth_mode_t;
 
+BELLESIP_EXPORT belle_sip_auth_mode_t belle_sip_auth_event_mode_parse(const char *schema);
 BELLESIP_EXPORT const char *belle_sip_auth_event_mode_to_string(const belle_sip_auth_mode_t mode);
 BELLESIP_EXPORT void belle_sip_auth_event_destroy(belle_sip_auth_event_t *event);
 BELLESIP_EXPORT const char *belle_sip_auth_event_get_username(const belle_sip_auth_event_t *event);
@@ -111,6 +113,14 @@ BELLESIP_EXPORT void belle_sip_auth_event_set_passwd(belle_sip_auth_event_t *eve
 
 BELLESIP_EXPORT const char *belle_sip_auth_event_get_ha1(const belle_sip_auth_event_t *event);
 BELLESIP_EXPORT void belle_sip_auth_event_set_ha1(belle_sip_auth_event_t *event, const char *value);
+
+BELLESIP_EXPORT const char *belle_sip_auth_event_get_authz_server(const belle_sip_auth_event_t *event);
+BELLESIP_EXPORT void belle_sip_auth_event_set_authz_server(belle_sip_auth_event_t *event, const char *value);
+
+BELLESIP_EXPORT const belle_sip_bearer_token_t *
+belle_sip_auth_event_get_bearer_token(const belle_sip_auth_event_t *event);
+BELLESIP_EXPORT void belle_sip_auth_event_set_bearer_token(belle_sip_auth_event_t *event,
+                                                           belle_sip_bearer_token_t *bearer_token);
 
 /**
  * get the authentication mode requested by the server, can be either TLS client certificates of http digest

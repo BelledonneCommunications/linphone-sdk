@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -1150,7 +1151,7 @@ static void mdns_queries(void) {
 }
 #endif
 
-test_t resolver_tests[] = {
+static test_t resolver_tests[] = {
     TEST_NO_TAG("A query (IPv4)", ipv4_a_query),
     TEST_NO_TAG("A query (IPv4) with CNAME", ipv4_cname_a_query),
     TEST_NO_TAG("A query (IPv4) with no result", ipv4_a_query_no_result),

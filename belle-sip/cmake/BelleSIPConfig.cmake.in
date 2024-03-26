@@ -27,6 +27,7 @@
 #
 # The following targets are defined:
 #  belle-sip - The belle-sip library target
+#  belle-sip-tester-runtime - The belle-sip-tester library target (defined if the tester is asked for)
 #
 #
 # Result variables
@@ -36,6 +37,8 @@
 #
 #  BelleSIP_FOUND - The belle-sip library has been found
 #  BelleSIP_TARGET - The name of the CMake target for the belle-sip library
+#  BelleSIP_tester_FOUND - The belle-sip-tester library has been found
+#  BelleSIP_tester_TARGET - The name of the CMake target for the belle-sip-tester-runtime library
 
 
 @PACKAGE_INIT@
@@ -44,6 +47,13 @@ include("${CMAKE_CURRENT_LIST_DIR}/BelleSIPTargets.cmake")
 
 set(BelleSIP_TARGET belle-sip)
 
+if(@ENABLE_UNIT_TESTS@)
+        set(BelleSIP_tester_FOUND TRUE)
+        set(BelleSIP_tester_TARGET belle-sip-tester-runtime)
+message (WARNING "BelleSIP_tester_TARGET: ", ${BelleSIP_tester_TARGET})
+endif()
+
+message (WARNING "BelleSIP_TARGET: ", ${BelleSIP_TARGET})
 # We must propagate the public dependencies and the private dependencies for static build
 include(CMakeFindDependencyMacro)
 find_dependency(Belr)

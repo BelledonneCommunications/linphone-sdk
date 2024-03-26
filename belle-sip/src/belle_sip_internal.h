@@ -28,6 +28,7 @@
 
 /* include all public headers*/
 #include "bctoolbox/map.h"
+#include "belle-sip/bearer-token.h"
 #include "belle-sip/belle-sip.h"
 #include "belle-sip/dialog.h"
 #include "belle-sip/headers.h"
@@ -156,6 +157,7 @@ typedef struct weak_ref {
 extern "C" {
 #endif
 
+const char *belle_sip_object_vptr_get_type_name(const belle_sip_object_t *obj);
 void *belle_sip_object_get_interface_methods(belle_sip_object_t *obj, belle_sip_interface_id_t ifid);
 /*used internally by unref()*/
 void belle_sip_object_delete(void *obj);
@@ -448,6 +450,14 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 		belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(obj), #attribute, NULL);                               \
 	}
 
+#define GET_SET_OBJECT(zis_name, property_name, object_type)                                                           \
+	void zis_name##_set_##property_name(zis_name##_t *obj, object_type *property_name) {                               \
+		SET_OBJECT_PROPERTY(obj, property_name, property_name);                                                        \
+	}                                                                                                                  \
+	const object_type *zis_name##_get_##property_name(const zis_name##_t *obj) {                                       \
+		return obj->property_name;                                                                                     \
+	}
+
 #define ANTLR_STREAM_NEW(object_type, value, length)                                                                   \
 	antlr3StringStreamNew((pANTLR3_UINT8)value, ANTLR3_ENC_8BIT, (ANTLR3_UINT32)length, (pANTLR3_UINT8) #object_type)
 
@@ -476,7 +486,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type##_t);                                                      \
 	BELLE_SIP_INSTANCIATE_VPTR(object_type##_t, super_type##_t, object_type##_destroy, object_type##_clone,            \
 	                           object_type##_marshal, TRUE);                                                           \
-	object_type##_t *object_type##_new(void) {                                                                             \
+	object_type##_t *object_type##_new(void) {                                                                         \
 		object_type##_t *l_object = belle_sip_object_new(object_type##_t);                                             \
 		super_type##_init((super_type##_t *)l_object);                                                                 \
 		object_type##_init((object_type##_t *)l_object);                                                               \
@@ -567,9 +577,11 @@ struct belle_sip_stack {
 	int resolver_send_error; /* used to simulate network error*/
 	int test_bind_port;
 	int dscp;
-	char *dns_user_hosts_file;     /* used to load additional hosts file for tests */
-	char *dns_resolv_conf;         /*used to load custom resolv.conf, for tests*/
-	belle_sip_list_t *dns_servers; /*used when dns servers are supplied by app layer*/
+	char *dns_user_hosts_file;       /* used to load additional hosts file for tests */
+	char *dns_resolv_conf;           /*used to load custom resolv.conf, for tests*/
+	bctbx_list_t *user_host_entries; /*list of belle_sip_param_pair_t* storing user provided dns entries name  for
+	                                    hostname, value for ip value*/
+	belle_sip_list_t *dns_servers;   /*used when dns servers are supplied by app layer*/
 	/*http proxy stuff to be used by both http and sip provider*/
 	char *http_proxy_host;
 	int http_proxy_port;
@@ -581,6 +593,7 @@ struct belle_sip_stack {
 	unsigned char dns_search_enabled;
 	unsigned char reconnect_to_primary_asap;
 	unsigned char simulate_non_working_srv;
+
 #ifdef HAVE_DNS_SERVICE
 	dispatch_queue_t dns_service_queue;
 	unsigned char use_dns_service;
@@ -1055,7 +1068,9 @@ struct belle_sip_auth_event {
 	char *distinguished_name;
 	belle_sip_certificates_chain_t *cert;
 	belle_sip_signing_key_t *key;
-	char *algorithm; /* either MD5 ot SHA256*/
+	belle_sip_bearer_token_t *bearer_token;
+	char *algorithm;    /* either MD5 ot SHA256*/
+	char *authz_server; /* OAUTH2 authorization server */
 };
 
 belle_sip_auth_event_t *

@@ -17,9 +17,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_tester.h"
-
+#include "belle_sip_tester_utils.h"
 #include "register_tester.h"
 int call_endeed;
 
@@ -349,12 +350,12 @@ static void do_simple_call(int enable_100rel) {
 		marie_register_req = register_user(stack, prov, "TCP", 1, CALLER, NULL);
 	}
 
-	from = belle_sip_header_address_create(NULL, belle_sip_uri_create(CALLER, test_domain));
+	from = belle_sip_header_address_create(NULL, belle_sip_uri_create(CALLER, belle_sip_test_domain));
 	/*to make sure unexpected messages are ignored*/
 	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(from), "cookie",
 	                                   belle_sip_random_token(cookie, sizeof(cookie)));
 	/*to make sure unexpected messages are ignored*/
-	to = belle_sip_header_address_create(NULL, belle_sip_uri_create(CALLEE, test_domain));
+	to = belle_sip_header_address_create(NULL, belle_sip_uri_create(CALLEE, belle_sip_test_domain));
 	belle_sip_parameters_set_parameter(BELLE_SIP_PARAMETERS(to), "cookie",
 	                                   belle_sip_random_token(cookie, sizeof(cookie)));
 
@@ -367,7 +368,7 @@ static void do_simple_call(int enable_100rel) {
 	              &callee_listener_callbacks,
 	              belle_sip_object_ref(belle_sip_header_address_get_uri((belle_sip_header_address_t *)to))));
 
-	route = belle_sip_header_address_create(NULL, belle_sip_uri_create(NULL, test_domain));
+	route = belle_sip_header_address_create(NULL, belle_sip_uri_create(NULL, belle_sip_test_domain));
 	belle_sip_uri_set_transport_param(belle_sip_header_address_get_uri(route), "tcp");
 
 	req = build_request(stack, prov, from, to, route, "INVITE");
@@ -403,9 +404,9 @@ static void do_simple_call(int enable_100rel) {
 	belle_sip_object_unref(caller_listener);
 	belle_sip_object_unref(callee_listener);
 
-	unregister_user(stack, prov, pauline_register_req, 1);
+	unregister_user(stack, prov, pauline_register_req, 1, NULL);
 	belle_sip_object_unref(pauline_register_req);
-	unregister_user(stack, prov, marie_register_req, 1);
+	unregister_user(stack, prov, marie_register_req, 1, NULL);
 	belle_sip_object_unref(marie_register_req);
 }
 
@@ -436,7 +437,7 @@ static void simple_call_with_prack(void) {
     belle_sip_object_unref(lp);
 }*/
 
-test_t dialog_tests[] = {
+static test_t dialog_tests[] = {
     TEST_ONE_TAG("Simple call", simple_call, "LeaksMemory"),
     TEST_ONE_TAG("Simple call with delay", simple_call_with_delay, "LeaksMemory"),
     TEST_ONE_TAG("Simple call with prack", simple_call_with_prack, "LeaksMemory"),

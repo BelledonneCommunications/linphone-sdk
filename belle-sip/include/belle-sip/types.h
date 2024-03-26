@@ -136,5 +136,6 @@ typedef struct belle_sip_memory_body_handler belle_sip_memory_body_handler_t;
 typedef struct belle_sip_user_body_handler belle_sip_user_body_handler_t;
 typedef struct belle_sip_file_body_handler belle_sip_file_body_handler_t;
 typedef struct belle_sip_multipart_body_handler belle_sip_multipart_body_handler_t;
+typedef struct belle_sip_bearer_token belle_sip_bearer_token_t;
 
 #endif

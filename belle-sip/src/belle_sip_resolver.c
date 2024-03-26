@@ -484,6 +484,17 @@ static struct dns_hosts *hosts(belle_sip_simple_resolver_context_t *ctx) {
 		}
 	}
 
+	for (bctbx_list_t *it = ctx->base.stack->user_host_entries; it != NULL; it = it->next) {
+		const char *ip = ((belle_sip_param_pair_t *)it->data)->name;
+		const char *hostname = ((belle_sip_param_pair_t *)it->data)->value;
+		error = dns_hosts_insert_v4_entry(ctx->hosts, ip, hostname);
+		if (error) {
+			belle_sip_error("%s cannot add host entry [%s:%s]: %s", __FUNCTION__, ip, hostname, dns_strerror(error));
+		} else {
+			belle_sip_message("host entry [%s:%s]  added", ip, hostname);
+		}
+	}
+
 	return ctx->hosts;
 }
 
@@ -772,7 +783,7 @@ static int resolver_process_data(belle_sip_simple_resolver_context_t *ctx, unsig
 		ctx->getaddrinfo_cancelled = TRUE;
 #endif
 		if (dns_res_was_asymetric(ctx->R)) {
-			belle_sip_warning("DNS answer was not received from the DNS server IP address the request was sent to. "
+			belle_sip_message("DNS answer was not received from the DNS server IP address the request was sent to. "
 			                  "This seems to be a known issue with NAT64 networks created by Apple computers.");
 		}
 		belle_sip_resolver_context_notify(BELLE_SIP_RESOLVER_CONTEXT(ctx));
@@ -2085,7 +2096,7 @@ int belle_sip_get_src_addr_for(
 
 	belle_sip_close_socket(sock);
 	return ret;
-fail : {
+fail: {
 	struct addrinfo *res =
 	    bctbx_ip_address_to_addrinfo(af_type, SOCK_STREAM, af_type == AF_INET ? "127.0.0.1" : "::1", local_port);
 	if (res != NULL) {

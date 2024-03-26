@@ -169,6 +169,7 @@ static void belle_sip_stack_destroy(belle_sip_stack_t *stack) {
 		stack->dns_service_queue = NULL;
 	}
 #endif /* HAVE_DNS_SERVICE */
+	bctbx_list_free_with_data(stack->user_host_entries, bctbx_free);
 	bctbx_uninit_logger();
 }
 
@@ -195,9 +196,14 @@ belle_sip_stack_t *belle_sip_stack_new(const char *properties) {
 	stack->use_dns_service = TRUE;
 #endif /* HAVE_DNS_SERVICE */
 	belle_sip_stack_set_digest_authentication_policy(stack, belle_sip_digest_authentication_policy_new());
+	stack->user_host_entries = NULL;
+	;
 	return stack;
 }
 
+void belle_sip_stack_add_user_host_entry(belle_sip_stack_t *stack, const char *ip, const char *hostname) {
+	stack->user_host_entries = bctbx_list_append(stack->user_host_entries, belle_sip_param_pair_new(ip, hostname));
+}
 const belle_sip_timer_config_t *belle_sip_stack_get_timer_config(const belle_sip_stack_t *stack) {
 	return &stack->timer_config;
 }

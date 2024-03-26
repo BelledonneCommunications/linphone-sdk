@@ -115,6 +115,16 @@ BELLESIP_EXPORT unsigned char belle_sip_stack_dns_search_enabled(const belle_sip
 BELLESIP_EXPORT void belle_sip_stack_enable_dns_search(belle_sip_stack_t *stack, unsigned char enable);
 
 /**
+ * Allow to add custom dns entry. Same usage as belle_sip_stack_get_dns_user_hosts_file but with a nique entry
+ * @param stack the stack
+ * @param ip. ip adress (only ipv4 for now) ex 127.0.0.1
+ * @param hostname. fqdn name ex sip.example.org*
+ **/
+
+BELLESIP_EXPORT void
+belle_sip_stack_add_user_host_entry(belle_sip_stack_t *stack, const char *ip, const char *hostname);
+
+/**
  * Override system's DNS servers used for DNS resolving by app-supplied list of dns servers.
  * @param stack the stack
  * @param servers a list of char*. It is copied internally.

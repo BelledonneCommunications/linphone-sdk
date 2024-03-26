@@ -1374,7 +1374,7 @@ GET_SET_STRING(belle_sip_header_extension, value);
 	if (error != BELLE_SIP_OK) return error;                                                                           \
 	list = belle_sip_parameters_get_parameters(&header->params_list);                                                  \
 	if (header->scheme) {                                                                                              \
-		error = belle_sip_snprintf(buff, buff_size, offset, " %s", header->scheme);                                    \
+		error = belle_sip_snprintf(buff, buff_size, offset, "%s", header->scheme);                                     \
 		if (error != BELLE_SIP_OK) return error;                                                                       \
 	} else {                                                                                                           \
 		belle_sip_error("missing mandatory scheme");                                                                   \
@@ -1422,6 +1422,7 @@ struct _belle_sip_header_authorization {
 	const char *cnonce;
 	int nonce_count;
 	const char *qop;
+	belle_sip_bearer_token_t *token;
 };
 
 static void belle_sip_header_authorization_destroy(belle_sip_header_authorization_t *authorization) {
@@ -1449,6 +1450,7 @@ static void belle_sip_header_authorization_clone(belle_sip_header_authorization_
 	authorization->nonce_count = orig->nonce_count;
 	CLONE_STRING(belle_sip_header_authorization, qop, authorization, orig)
 }
+
 static void belle_sip_header_authorization_init(belle_sip_header_authorization_t *authorization) {
 }
 
@@ -1621,15 +1623,17 @@ void belle_http_header_authorization_set_uri(belle_http_header_authorization_t *
  **************************/
 struct _belle_sip_header_www_authenticate {
 	AUTH_BASE
-	const char *domain;
+	char *domain;
+	char *authz_server;
 	int stale;
 	belle_sip_list_t *qop;
 };
 
 static void belle_sip_header_www_authenticate_destroy(belle_sip_header_www_authenticate_t *www_authenticate) {
 	AUTH_BASE_DESTROY(www_authenticate)
-	if (www_authenticate->domain) belle_sip_free((void *)www_authenticate->domain);
+	if (www_authenticate->domain) belle_sip_free(www_authenticate->domain);
 	if (www_authenticate->qop) belle_sip_list_free_with_data(www_authenticate->qop, belle_sip_free);
+	if (www_authenticate->authz_server) belle_sip_free(www_authenticate->authz_server);
 }
 void belle_sip_header_www_authenticate_init(belle_sip_header_www_authenticate_t *www_authenticate) {
 	www_authenticate->stale = -1;
@@ -1703,6 +1707,19 @@ belle_sip_header_www_authenticate_get_qop(const belle_sip_header_www_authenticat
 const char *
 belle_sip_header_www_authenticate_get_qop_first(const belle_sip_header_www_authenticate_t *www_authetication) {
 	return www_authetication->qop ? (const char *)www_authetication->qop->data : NULL;
+}
+
+const char *
+belle_sip_header_www_authenticate_get_authz_server(const belle_sip_header_www_authenticate_t *www_authenticate) {
+	belle_sip_header_www_authenticate_t *mutable_authenticate = (belle_sip_header_www_authenticate_t *)www_authenticate;
+	const char *authz_server =
+	    belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(www_authenticate), "authz_server");
+	if (mutable_authenticate->authz_server) {
+		belle_sip_free(mutable_authenticate->authz_server);
+		mutable_authenticate->authz_server = NULL;
+	}
+	if (authz_server) mutable_authenticate->authz_server = _belle_sip_str_dup_and_unquote_string(authz_server);
+	return mutable_authenticate->authz_server;
 }
 
 /**************************

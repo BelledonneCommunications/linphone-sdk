@@ -153,6 +153,7 @@ set(BELLE_SIP_SOURCE_FILES_CXX
 	cpp_utils.cc
 	belle_sdp_impl.cc
 	sdp/parser.cc
+	bearer_token.cc
 )
 set(GRAMMAR_FILES
 	sdp/sdp_grammar

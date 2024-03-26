@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -636,6 +637,50 @@ static void test_authorization_header(void) {
 	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(L_authorization), "blabla"),
 	                       "\"toto\"");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+
+	l_header = "Authorization: Basic dG90bzp0aXRpOnNlY3JldA==";
+	L_authorization = belle_sip_header_authorization_parse(l_header);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authorization));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	L_tmp = belle_sip_header_authorization_parse(l_raw_header);
+	L_authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	if (!BC_ASSERT_PTR_NOT_NULL(L_authorization)) return;
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Basic");
+	const char *passord =
+	    (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
+	                       belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
+	        ->name;
+	BC_ASSERT_NOT_EQUAL(passord, "dG90bzp0aXRpOnNlY3JldA==", const char *, "%s");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+
+#define JWT_TOKEN                                                                                                      \
+	"eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9."                                                                            \
+	"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.o1hC1xYbJolSyh0-"     \
+	"bOY230w22zEQSk5TiBfc-OCvtpI2JtYlW-23-8B48NpATozzMHn0j3rE0xVUldxShzy0xeJ7vYAccVXu2Gs9rnTVqouc-UZu_wJHkZiKBL67j8_"  \
+	"61L6SXswzPAQu4kVDwAefGf5hyYBUM-80vYZwWPEpLI8K4yCBsF6I9N1yQaZAJmkMp_Iw371Menae4Mp4JusvBJS-"                        \
+	"s6LrmG2QbiZaFaxVJiW8KlUkWyUCns8-"                                                                                 \
+	"qFl5OMeYlgGFsyvvSHvXCzQrsEXqyCdS4tQJd73ayYA4SPtCb9clz76N1zE5WsV4Z0BYrxeb77oA7jJhh994RAPzCG0hmQ"
+
+	l_header = "Authorization: Bearer " JWT_TOKEN;
+	L_authorization = belle_sip_header_authorization_parse(l_header);
+	l_raw_header = belle_sip_object_to_string(BELLE_SIP_OBJECT(L_authorization));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+	L_tmp = belle_sip_header_authorization_parse(l_raw_header);
+	L_authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
+	belle_sip_free(l_raw_header);
+
+	if (!BC_ASSERT_PTR_NOT_NULL(L_authorization)) return;
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_authorization_get_scheme(L_authorization), "Bearer");
+	passord = (const char *)((belle_sip_param_pair_t *)bctbx_list_get_data(
+	                             belle_sip_parameters_get_parameters(BELLE_SIP_PARAMETERS(L_authorization))))
+	              ->name;
+	BC_ASSERT_NOT_EQUAL(passord, JWT_TOKEN, const char *, "%s");
+	belle_sip_object_unref(BELLE_SIP_OBJECT(L_authorization));
+
 	BC_ASSERT_PTR_NULL(belle_sip_header_authorization_parse("nimportequoi"));
 }
 
@@ -1499,7 +1544,7 @@ static void test_authentication_info_header(void) {
 	BC_ASSERT_PTR_NULL(belle_sip_header_authentication_info_parse("nimportequoi"));
 }
 
-test_t headers_tests[] = {
+static test_t headers_tests[] = {
     TEST_NO_TAG("Address", test_address_header),
     TEST_NO_TAG("Address with params", test_address_header_with_params),
     TEST_NO_TAG("Address tel uri", test_address_header_with_tel_uri),

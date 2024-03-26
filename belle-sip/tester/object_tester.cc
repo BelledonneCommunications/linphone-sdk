@@ -17,11 +17,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "belle-sip/belle-sip.h"
-#include "belle_sip_tester.h"
-
 #include "bctoolbox/exception.hh"
+#include "bctoolbox/tester.h"
+#include "belle-sip/belle-sip.h"
 #include "belle-sip/object++.hh"
+#include "belle_sip_tester.h"
 
 using namespace bellesip;
 
@@ -103,23 +103,23 @@ extern "C" {
 
 using namespace Linphone;
 
-LinphoneEvent *linphone_event_new(void) {
+LinphoneEvent *bellesiptest_event_new(void) {
 	return (new Event())->toC();
 }
 
-void linphone_event_send_subscribe(LinphoneEvent *obj, const char *dest) {
+void bellesiptest_event_send_subscribe(LinphoneEvent *obj, const char *dest) {
 	Event::toCpp(obj)->sendSubscribe(dest);
 }
 
-LinphoneEventState linphone_event_get_state(const LinphoneEvent *obj) {
+LinphoneEventState bellesiptest_event_get_state(const LinphoneEvent *obj) {
 	return (LinphoneEventState)Event::toCpp(obj)->getState(); /*enum conversion should be performed better*/
 }
 
-void linphone_event_ref(LinphoneEvent *obj) {
+void bellesiptest_event_ref(LinphoneEvent *obj) {
 	Event::toCpp(obj)->ref();
 }
 
-void linphone_event_unref(LinphoneEvent *obj) {
+void bellesiptest_event_unref(LinphoneEvent *obj) {
 	Event::toCpp(obj)->unref();
 }
 
@@ -128,17 +128,17 @@ void linphone_event_unref(LinphoneEvent *obj) {
 static void dual_object(void) {
 	int object_destroyed = 0;
 	/*in this test we use the C Api */
-	LinphoneEvent *ev = linphone_event_new();
-	BC_ASSERT_TRUE(linphone_event_get_state(ev) == LinphoneEventIdle);
-	linphone_event_send_subscribe(ev, "sip:1234@sip.linphone.org");
-	BC_ASSERT_TRUE(linphone_event_get_state(ev) == LinphoneEventSubscribed);
+	LinphoneEvent *ev = bellesiptest_event_new();
+	BC_ASSERT_TRUE(bellesiptest_event_get_state(ev) == LinphoneEventIdle);
+	bellesiptest_event_send_subscribe(ev, "sip:1234@sip.bellesiptest.org");
+	BC_ASSERT_TRUE(bellesiptest_event_get_state(ev) == LinphoneEventSubscribed);
 
 	belle_sip_object_t *c_obj = Linphone::Event::toCpp(ev)->getCObject();
 	BC_ASSERT_PTR_NOT_NULL(c_obj);
 	if (c_obj) {
 		belle_sip_object_weak_ref(c_obj, on_object_destroyed, &object_destroyed);
 	}
-	linphone_event_unref(ev);
+	bellesiptest_event_unref(ev);
 	BC_ASSERT_TRUE(object_destroyed);
 }
 

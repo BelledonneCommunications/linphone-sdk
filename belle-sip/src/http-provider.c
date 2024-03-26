@@ -102,6 +102,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_http_response_t *resp = belle_http_request_get_response(req);
 	const char *username = NULL;
 	const char *passwd = NULL;
+	const char *access_token = NULL;
 	const char *ha1 = NULL;
 	const char *algorithm = NULL;
 	belle_sip_auth_mode_t auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
@@ -130,10 +131,11 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		return -1;
 	}
 
-	/*find if username, passwd were already supplied in original request uri*/
+	/*find if username, passwd or acces token were already supplied in original request uri*/
 	if (req->orig_uri) {
 		username = belle_generic_uri_get_user(req->orig_uri);
 		passwd = belle_generic_uri_get_user_password(req->orig_uri);
+		access_token = belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(req->orig_uri), "access_token");
 	}
 
 	// add from_uri to process_auth_requested event data
@@ -160,6 +162,9 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		} else if (strcasecmp("Basic", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
 			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BASIC;
 			/* ok, Basic is supported*/
+		} else if (strcasecmp("Bearer", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BEARER;
+			/* ok, Bearer is supported*/
 		} else {
 			belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate",
 			                belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
@@ -175,14 +180,19 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			from_uri = belle_sip_uri_create(username, realm);
 		}
 
-		if (!username || !passwd) {
+		if ((!username || !passwd) && !access_token) {
 			ev = belle_sip_auth_event_create((belle_sip_object_t *)ctx->provider, realm, from_uri);
 			belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
 			ev->mode = auth_mode;
+			if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
+				belle_sip_auth_event_set_authz_server(ev,
+				                                      belle_sip_header_www_authenticate_get_authz_server(authenticate));
+			}
 			BELLE_HTTP_REQUEST_INVOKE_LISTENER(req, process_auth_requested, ev);
 			username = ev->userid ? ev->userid : ev->username;
 			passwd = ev->passwd;
 			ha1 = ev->ha1;
+			access_token = ev->bearer_token ? belle_sip_bearer_token_get_token(ev->bearer_token) : NULL;
 			algorithm = ev->algorithm;
 		}
 		if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST && !ha1) {
@@ -226,7 +236,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		belle_http_header_authorization_t *authorization;
 		req->auth_attempt_count++;
 
-		authorization = belle_http_auth_helper_create_authorization(authenticate);
+		authorization = belle_http_header_authorization_new();
 		belle_sip_header_authorization_set_scheme(BELLE_SIP_HEADER_AUTHORIZATION(authorization), "Basic");
 		char *username_passwd = belle_sip_strdup_printf("%s:%s", username, passwd);
 		size_t username_passwd_length = strlen(username_passwd);
@@ -238,6 +248,17 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		belle_sip_free(username_passwd);
 		belle_sip_free(encoded_username_paswd);
 
+		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req), BELLE_HTTP_AUTHORIZATION);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(authorization));
+		belle_http_provider_send_request(ctx->provider, req, NULL);
+	} else if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BEARER && access_token) {
+		belle_http_header_authorization_t *authorization;
+		req->auth_attempt_count++;
+
+		authorization = belle_http_header_authorization_new();
+		belle_sip_header_authorization_set_scheme(BELLE_SIP_HEADER_AUTHORIZATION(authorization), "Bearer");
+
+		belle_sip_parameters_set(BELLE_SIP_PARAMETERS(authorization), access_token);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req), BELLE_HTTP_AUTHORIZATION);
 		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(authorization));
 		belle_http_provider_send_request(ctx->provider, req, NULL);

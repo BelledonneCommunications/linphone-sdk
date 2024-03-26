@@ -29,6 +29,8 @@
 #define BELLE_SIP_EVENT_ERROR (1 << 2)
 #define BELLE_SIP_EVENT_TIMEOUT (1 << 3)
 
+BELLE_SIP_BEGIN_DECLS
+
 typedef struct belle_sip_source belle_sip_source_t;
 
 BELLESIP_EXPORT int belle_sip_source_set_events(belle_sip_source_t *source, int event_mask);
@@ -55,8 +57,6 @@ typedef struct belle_sip_main_loop belle_sip_main_loop_t;
 #define BELLE_SIP_CONTINUE_WITHOUT_CATCHUP 2
 #define BELLE_SIP_CONTINUE 1
 #define BELLE_SIP_STOP 0
-
-BELLE_SIP_BEGIN_DECLS
 
 BELLESIP_EXPORT void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source);
 
@@ -197,6 +197,14 @@ BELLESIP_EXPORT void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int mi
  * Break out the main loop.
  **/
 BELLESIP_EXPORT int belle_sip_main_loop_quit(belle_sip_main_loop_t *ml);
+
+/**
+ * Wake up the main loop.
+ * This is to be used from an external thread (not the thread in belle_sip_main_loop_run()/belle_sip_main_loop_sleep()),
+ * after calling belle_sip_main_loop_quit(), to let it exit.
+ */
+
+BELLESIP_EXPORT void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml);
 
 /**
  * Cancel (removes) a source. It is not freed.

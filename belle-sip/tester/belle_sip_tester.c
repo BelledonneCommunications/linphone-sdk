@@ -19,197 +19,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "bctoolbox/tester.h"
 #include "belle_sip_tester.h"
-
-#include <bctoolbox/port.h>
-#include <belle-sip/belle-sip.h>
-#include <belle-sip/utils.h>
-
 #include "belle_sip_tester_utils.h"
 #include "port.h"
 
-extern const char *test_domain;
-extern const char *auth_domain;
-
-static char *all_leaks_buffer = NULL;
-static const char *belle_sip_tester_root_ca_path = NULL;
-
-static belle_sip_object_pool_t *pool;
-
-static int leaked_objects_count;
-const char *userhostsfile = NULL;
-
-static int _belle_sip_tester_ipv6_available(void) {
-	struct addrinfo *ai = bctbx_ip_address_to_addrinfo(AF_INET6, SOCK_STREAM, "2a01:e00::2", 53);
-	if (ai) {
-		struct sockaddr_storage ss;
-		struct addrinfo src;
-		socklen_t slen = sizeof(ss);
-		char localip[128];
-		int port = 0;
-		belle_sip_get_src_addr_for(ai->ai_addr, (socklen_t)ai->ai_addrlen, (struct sockaddr *)&ss, &slen, 4444);
-		src.ai_addr = (struct sockaddr *)&ss;
-		src.ai_addrlen = slen;
-		bctbx_addrinfo_to_ip_address(&src, localip, sizeof(localip), &port);
-		bctbx_freeaddrinfo(ai);
-		return strcmp(localip, "::1") != 0;
-	}
-	return FALSE;
-}
-
-static int ipv6_available = 0;
-
-int belle_sip_tester_ipv6_available(void) {
-	return ipv6_available;
-}
-
-const char *belle_sip_tester_get_root_ca_path(void) {
-	return belle_sip_tester_root_ca_path;
-}
-
-void belle_sip_tester_set_root_ca_path(const char *root_ca_path) {
-	belle_sip_tester_root_ca_path = root_ca_path;
-}
-
-static void log_handler(int lev, const char *fmt, va_list args) {
-#ifdef _WIN32
-	/* We must use stdio to avoid log formatting (for autocompletion etc.) */
-	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, args);
-	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
-#else
-	va_list cap;
-	va_copy(cap, args);
-	vfprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, fmt, cap);
-	fprintf(lev == BELLE_SIP_LOG_ERROR ? stderr : stdout, "\n");
-	va_end(cap);
-#endif
-
-	belle_sip_logv(BELLE_SIP_LOG_DOMAIN, lev, fmt, args);
-}
-
-int belle_sip_tester_set_log_file(const char *filename) {
-	int res = 0;
-	char *dir = bctbx_dirname(filename);
-	char *base = bctbx_basename(filename);
-	belle_sip_message("Redirecting traces to file [%s]", filename);
-	bctbx_log_handler_t *filehandler = bctbx_create_file_log_handler(0, dir, base);
-	if (filehandler == NULL) {
-		res = -1;
-		goto end;
-	}
-	bctbx_add_log_handler(filehandler);
-
-end:
-	bctbx_free(dir);
-	bctbx_free(base);
-	return res;
-}
-
-int silent_arg_func(const char *arg) {
-	belle_sip_set_log_level(BELLE_SIP_LOG_FATAL);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL);
-	return 0;
-}
-
-int verbose_arg_func(const char *arg) {
-	belle_sip_set_log_level(BELLE_SIP_LOG_DEBUG);
-	bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
-	return 0;
-}
-
-int logfile_arg_func(const char *arg) {
-	bctbx_set_log_handler(NULL); /*remove default log handler*/
-	if (belle_sip_tester_set_log_file(arg) < 0) return -2;
-	return 0;
-}
-
-void belle_sip_tester_init(void (*ftester_printf)(int level, const char *fmt, va_list args)) {
-	bc_tester_set_silent_func(silent_arg_func);
-	bc_tester_set_verbose_func(verbose_arg_func);
-	bc_tester_set_logfile_func(logfile_arg_func);
-	if (ftester_printf == NULL) ftester_printf = log_handler;
-	bc_tester_init(ftester_printf, BELLE_SIP_LOG_MESSAGE, BELLE_SIP_LOG_ERROR, "tester_hosts");
-	belle_sip_init_sockets();
-	belle_sip_object_enable_marshal_check(TRUE);
-	ipv6_available = _belle_sip_tester_ipv6_available();
-	bc_tester_add_suite(&cast_test_suite);
-	bc_tester_add_suite(&sip_uri_test_suite);
-	bc_tester_add_suite(&fast_sip_uri_test_suite);
-	bc_tester_add_suite(&perf_sip_uri_test_suite);
-	bc_tester_add_suite(&generic_uri_test_suite);
-	bc_tester_add_suite(&headers_test_suite);
-	bc_tester_add_suite(&core_test_suite);
-	bc_tester_add_suite(&sdp_test_suite);
-	bc_tester_add_suite(&resolver_test_suite);
-	bc_tester_add_suite(&message_test_suite);
-	bc_tester_add_suite(&authentication_helper_test_suite);
-	bc_tester_add_suite(&register_test_suite);
-	bc_tester_add_suite(&dialog_test_suite);
-	bc_tester_add_suite(&refresher_test_suite);
-	bc_tester_add_suite(&http_test_suite);
-	bc_tester_add_suite(&object_test_suite);
-}
-
-void belle_sip_tester_uninit(void) {
-	belle_sip_object_unref(pool);
-	belle_sip_uninit_sockets();
-
-	// show all leaks that happened during the test
-	if (all_leaks_buffer) {
-		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, all_leaks_buffer);
-		belle_sip_free(all_leaks_buffer);
-	}
-
-	bc_tester_uninit();
-}
-
-void belle_sip_tester_before_each(void) {
-	belle_sip_object_enable_leak_detector(TRUE);
-	leaked_objects_count = belle_sip_object_get_object_count();
-}
-
-void belle_sip_tester_after_each(void) {
-	int leaked_objects = belle_sip_object_get_object_count() - leaked_objects_count;
-	if (leaked_objects > 0) {
-		char *format = belle_sip_strdup_printf("%d object%s leaked in suite [%s] test [%s], please fix that!",
-		                                       leaked_objects, leaked_objects > 1 ? "s were" : "was",
-		                                       bc_tester_current_suite_name(), bc_tester_current_test_name());
-		belle_sip_object_dump_active_objects();
-		belle_sip_object_flush_active_objects();
-		bc_tester_printf(BELLE_SIP_LOG_MESSAGE, format);
-		belle_sip_error("%s", format);
-		belle_sip_free(format);
-
-		all_leaks_buffer = all_leaks_buffer ? belle_sip_strcat_printf(all_leaks_buffer, "\n%s", format)
-		                                    : belle_sip_strdup_printf("\n%s", format);
-	}
-
-	// prevent any future leaks
-	{
-		const char **tags = bc_tester_current_test_tags();
-		int leaks_expected =
-		    (tags && ((tags[0] && !strcmp(tags[0], "LeaksMemory")) || (tags[1] && !strcmp(tags[1], "LeaksMemory"))));
-		// if the test is NOT marked as leaking memory and it actually is, we should make it fail
-		if (!leaks_expected && leaked_objects > 0) {
-			BC_FAIL("This test is leaking memory!");
-			// and reciprocally
-		} else if (leaks_expected && leaked_objects == 0) {
-			BC_FAIL("This test is not leaking anymore, please remove LeaksMemory tag!");
-		}
-	}
-}
-
-void belle_sip_tester_set_dns_host_file(belle_sip_stack_t *stack) {
-	if (userhostsfile) {
-		belle_sip_stack_set_dns_user_hosts_file(stack, userhostsfile);
-	} else {
-		char *default_hosts = bc_tester_res("tester_hosts");
-		if (default_hosts) {
-			belle_sip_stack_set_dns_user_hosts_file(stack, default_hosts);
-			bc_free(default_hosts);
-		}
-	}
-}
+/*
+ * This file is the main() entry point for belle-sip-tester UNIX executable.
+ */
 
 #if !defined(__ANDROID__) && !defined(TARGET_OS_IPHONE) &&                                                             \
     !(defined(BELLE_SIP_WINDOWS_PHONE) || defined(BELLE_SIP_WINDOWS_UNIVERSAL))
@@ -252,23 +70,23 @@ int main(int argc, char *argv[]) {
 #endif
 
 	if (env_domain) {
-		test_domain = env_domain;
+		belle_sip_tester_set_test_domain(env_domain);
 	}
 	bctbx_init_logger(TRUE);
 
 	for (i = 1; i < argc; ++i) {
 		if (strcmp(argv[i], "--domain") == 0) {
 			CHECK_ARG("--domain", ++i, argc);
-			test_domain = argv[i];
+			belle_sip_tester_set_test_domain(argv[i]);
 		} else if (strcmp(argv[i], "--auth-domain") == 0) {
 			CHECK_ARG("--auth-domain", ++i, argc);
-			auth_domain = argv[i];
+			belle_sip_tester_set_auth_domain(argv[i]);
 		} else if (strcmp(argv[i], "--root-ca") == 0) {
 			CHECK_ARG("--root-ca", ++i, argc);
 			root_ca_path = argv[i];
 		} else if (strcmp(argv[i], "--dns-hosts") == 0) {
 			CHECK_ARG("--dns-hosts", ++i, argc);
-			userhostsfile = argv[i];
+			belle_sip_tester_set_userhostsfile(argv[i]);
 		} else {
 			ret = bc_tester_parse_args(argc, argv, i);
 			if (ret > 0) {
@@ -281,7 +99,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	belle_sip_tester_set_root_ca_path(root_ca_path);
-	pool = belle_sip_object_pool_push();
 
 	ret = bc_tester_start(argv[0]);
 	belle_sip_tester_uninit();

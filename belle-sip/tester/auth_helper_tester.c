@@ -20,10 +20,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include "bctoolbox/crypto.h"
+#include "bctoolbox/tester.h"
 #include "belle-sip/auth-helper.h"
 #include "belle_sip_tester.h"
-#include <bctoolbox/crypto.h>
+#include "register_tester.h"
 
 static void test_authentication(void) {
 	const char *l_raw_header = "WWW-Authenticate: Digest "
@@ -296,7 +297,7 @@ static void test_certificate_fingerprint(void) {
 	belle_sip_object_unref(cert);
 }
 
-test_t authentication_helper_tests[] = {
+static test_t authentication_helper_tests[] = {
     TEST_NO_TAG("Proxy-Authenticate", test_proxy_authentication),
     TEST_NO_TAG("WWW-Authenticate", test_authentication),
     TEST_NO_TAG("WWW-Authenticate-sha", test_authentication_sha256),

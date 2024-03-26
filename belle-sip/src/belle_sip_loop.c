@@ -356,8 +356,6 @@ belle_sip_main_loop_t *belle_sip_main_loop_new(void) {
 	return m;
 }
 
-void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml);
-
 void belle_sip_main_loop_add_source(belle_sip_main_loop_t *ml, belle_sip_source_t *source) {
 	bctbx_mutex_lock(&ml->sources_mutex);
 	if (source->node.next || source->node.prev) {
@@ -768,10 +766,13 @@ void belle_sip_main_loop_sleep(belle_sip_main_loop_t *ml, int milliseconds) {
 	belle_sip_object_unref(s);
 }
 
-#ifndef _WIN32
 void belle_sip_main_loop_wake_up(belle_sip_main_loop_t *ml) {
+
+#ifndef _WIN32
 	if (write(ml->control_fds[1], "wake up!", 1) == -1) {
 		belle_sip_fatal("Cannot write to control pipe of main loop thread: %s", strerror(errno));
 	}
-}
+#else
+	belle_sip_error("belle_sip_main_loop_wake_up() is not implemented for Windows.");
 #endif
+}

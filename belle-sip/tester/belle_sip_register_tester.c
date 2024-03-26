@@ -17,21 +17,25 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
+#include "belle_sip_tester_utils.h"
 
 #include "register_tester.h"
+using namespace bellesip;
 
 const int RANDOM_PORT = -1;
 #define AUTH_DOMAIN "sip.example.org"
-const char *test_domain = "sipopen.example.org";
-const char *auth_domain = AUTH_DOMAIN;
+#define TEST_DOMAIN "sipopen.example.org"
+const char *belle_sip_test_domain = TEST_DOMAIN;
+const char *belle_sip_auth_domain = AUTH_DOMAIN;
 const char *client_auth_domain = "client.example.org";
 const char *client_auth_outbound_proxy = "sips:sip.example.org:5063";
 const char *no_server_running_here = "sip:test.linphone.org:3;transport=tcp";
 const char *no_response_here = "sip:78.220.48.77:3;transport=%s";
-const char *test_domain_tls_to_tcp = "sip:sip2.linphone.org:5060;transport=tls";
+const char *belle_sip_auth_domain_tls_to_tcp = "sip:sip2.linphone.org:5060;transport=tls";
 const char *test_http_proxy_addr = "fs-test-3.linphone.org";
 const char *test_with_wrong_cname = "sips:rototo.com;maddr=91.121.209.194";
 int test_http_proxy_port = 3128;
@@ -94,7 +98,7 @@ static void process_response_event(void *user_ctx, const belle_sip_response_even
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_AUTHORIZATION);
 		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_PROXY_AUTHORIZATION);
 		BC_ASSERT_TRUE(belle_sip_provider_add_authorization(prov, request, belle_sip_response_event_get_response(event),
-		                                                    NULL, NULL, auth_domain));
+		                                                    NULL, NULL, belle_sip_auth_domain));
 
 		t = belle_sip_provider_create_client_transaction(prov, request);
 		belle_sip_client_transaction_send_request_to(t, dest);
@@ -168,79 +172,13 @@ const char *belle_sip_tester_private_key = "-----BEGIN ENCRYPTED PRIVATE KEY----
 
 const char *belle_sip_tester_private_key_passwd = "secret";
 
-const char *belle_sip_tester_root_ca = "-----BEGIN CERTIFICATE-----\n"
-                                       "MIIEuDCCAyCgAwIBAgIUPv3F/G4gZ9tD6b7Ia9v2TPJLasUwDQYJKoZIhvcNAQEL\n"
-                                       "BQAwbTELMAkGA1UEBhMCRlIxDzANBgNVBAgMBkZyYW5jZTERMA8GA1UEBwwIR3Jl\n"
-                                       "bm9ibGUxIjAgBgNVBAoMGUJlbGxlZG9ubmUgQ29tbXVuaWNhdGlvbnMxFjAUBgNV\n"
-                                       "BAMMDUplaGFuIE1vbm5pZXIwHhcNMjAxMjEzMjExMzIxWhcNMzAxMjExMjExMzIx\n"
-                                       "WjBtMQswCQYDVQQGEwJGUjEPMA0GA1UECAwGRnJhbmNlMREwDwYDVQQHDAhHcmVu\n"
-                                       "b2JsZTEiMCAGA1UECgwZQmVsbGVkb25uZSBDb21tdW5pY2F0aW9uczEWMBQGA1UE\n"
-                                       "AwwNSmVoYW4gTW9ubmllcjCCAaIwDQYJKoZIhvcNAQEBBQADggGPADCCAYoCggGB\n"
-                                       "ANFkmerzuMSYwcIqwD1/FMirIZb7MyXHqnTWBqahh6cVl/mzVb/7WM0Rbh7V9vce\n"
-                                       "X7F70EEIKOqF6ckbDAY9kP3UTHOE/NhnKRBW5q8FsN2P6N4KCzYbGO3XcxveOnGg\n"
-                                       "E1yCkqBFfN8HJwpBXrDJFXKKEzaqo0Gdb9PfgWgJy0RVW6MkenF4U3nxwRTCvnem\n"
-                                       "y4uaQAR/WLLeMQVec27ia6K36zyyyrw4Gr6CaeEVxRw8+P75k4DMkLHzOvfF0YMT\n"
-                                       "adLMB6m1ij7TbvtsugsWYggZx+JB8bvzsZ7mqFuF+gPKMmAEnrZxaBXYp61Eo3Ay\n"
-                                       "HrNmXjdJ7MTw0pmvjLeusSzrWXAzA/jH/1SKyCbnhRmJlTyDIadD9BDM4jeAh+bK\n"
-                                       "1yQ4YzNRQkrf4h4yecF8F778WQuE6GaHEzSC3AWXoj35i9exkagxLMSJs787NwB5\n"
-                                       "lUb2OmIW+a2YW4d9LPiYB+b3Vx+gcSXUuE7hpS89uA1YvKUczykpUX1KxhPk7JzZ\n"
-                                       "nwIDAQABo1AwTjAdBgNVHQ4EFgQUjawORCzNIqz4Fw7ei2N5PffDwQ4wHwYDVR0j\n"
-                                       "BBgwFoAUjawORCzNIqz4Fw7ei2N5PffDwQ4wDAYDVR0TBAUwAwEB/zANBgkqhkiG\n"
-                                       "9w0BAQsFAAOCAYEAZZTBykt6WmK41WmKBFJEfe11R/IQJdnYBIusqrkYHsiMkirt\n"
-                                       "tWGxT9JjqRmQU9iSQPfqCSZ0/lmOAEIKNPRGvWJgkYV20ynyWpQqJEBPsibFCGz/\n"
-                                       "kSzQBZJH8p8XJvtROqzCqyNCLMWZ5fA+WvB7afinoOFcrtdFTIxNhh1hblaUG3Pj\n"
-                                       "F5/uznQw5B0wt4Ek5KHhtdjRlksEhAcomzdBGmkhqv9lIDPJzcdd8dnueG9gxSSR\n"
-                                       "TFCIw/chalrXI7Ch0YSx7GKMGNNVb+yvKr4w+e2wb6OG9NoYoAPTivhIire1HO9L\n"
-                                       "KnG7cArBaYE9wmpGkvRFjKVr76/SICIKEiCqq+bU6fIZFCp/oLYftfCBa478kPXR\n"
-                                       "iXUiZrKeFDNroIQitihSFpDyK27lWSOdiF3Zx2Vqow66D0luPtr1cBtg6C7dF9ye\n"
-                                       "qJRVEVBDSweYfRLrKhtlhxtcLoPwk/3bP/Z/QTHLBxrYH8EKj0z8T4lPtyL6q8Ev\n"
-                                       "/TPDdtsWG8e15MVX\n"
-                                       "-----END CERTIFICATE-----\n"
-                                       "\n"
-                                       "-----BEGIN CERTIFICATE-----\n"
-                                       "MIIDRjCCAq+gAwIBAgIJAJ3nFcA7qFrOMA0GCSqGSIb3DQEBBQUAMIG7MQswCQYD\n"
-                                       "VQQGEwJGUjETMBEGA1UECAwKU29tZS1TdGF0ZTERMA8GA1UEBwwIR3Jlbm9ibGUx\n"
-                                       "IjAgBgNVBAoMGUJlbGxlZG9ubmUgQ29tbXVuaWNhdGlvbnMxDDAKBgNVBAsMA0xB\n"
-                                       "QjEWMBQGA1UEAwwNSmVoYW4gTW9ubmllcjE6MDgGCSqGSIb3DQEJARYramVoYW4u\n"
-                                       "bW9ubmllckBiZWxsZWRvbm5lLWNvbW11bmljYXRpb25zLmNvbTAeFw0xMzA0MzAx\n"
-                                       "MzMwMThaFw0yMzA0MjgxMzMwMThaMIG7MQswCQYDVQQGEwJGUjETMBEGA1UECAwK\n"
-                                       "U29tZS1TdGF0ZTERMA8GA1UEBwwIR3Jlbm9ibGUxIjAgBgNVBAoMGUJlbGxlZG9u\n"
-                                       "bmUgQ29tbXVuaWNhdGlvbnMxDDAKBgNVBAsMA0xBQjEWMBQGA1UEAwwNSmVoYW4g\n"
-                                       "TW9ubmllcjE6MDgGCSqGSIb3DQEJARYramVoYW4ubW9ubmllckBiZWxsZWRvbm5l\n"
-                                       "LWNvbW11bmljYXRpb25zLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkCgYEA\n"
-                                       "z5F8mMh3SUr6NUd7tq2uW2Kdn22Zn3kNpLYb78AQK4IoQMOLGXbBdyoXvz1fublg\n"
-                                       "bxtLYsiGhICd7Ul9zLGc3edn85LbD3Skb7ERx6MakRnYep3FzagZJhn14QEaZCx6\n"
-                                       "3Qs0Ir4rSP7hmlpYt8VO/zqqNR3tsA59O0D9c7bpQ7UCAwEAAaNQME4wHQYDVR0O\n"
-                                       "BBYEFAZfXccWr2L4LW5xA4ig1h0rBH+6MB8GA1UdIwQYMBaAFAZfXccWr2L4LW5x\n"
-                                       "A4ig1h0rBH+6MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADgYEAKvmt2m1o\n"
-                                       "axGKc0DjiJPypU/NsAf4Yu0nOnY8pHqJJCB0AWVoAPM7vGYPWpeH7LSdGZLuT9eK\n"
-                                       "FUWGJhPnkrnklmBdVB0l7qXYjR5uf766HDkoDxuLhNifow3IYvsS+L2Y6puRQb9w\n"
-                                       "HLMDE29mBDl0WyoX3h0yR0EiAO15V9A7I10=\n"
-                                       "-----END CERTIFICATE-----\n"
-                                       "\n"
-                                       "AddTrust External Root used for *.linphone.org\n"
-                                       "======================\n"
-                                       "-----BEGIN CERTIFICATE-----\n"
-                                       "MIIENjCCAx6gAwIBAgIBATANBgkqhkiG9w0BAQUFADBvMQswCQYDVQQGEwJTRTEUMBIGA1UEChML\n"
-                                       "QWRkVHJ1c3QgQUIxJjAkBgNVBAsTHUFkZFRydXN0IEV4dGVybmFsIFRUUCBOZXR3b3JrMSIwIAYD\n"
-                                       "VQQDExlBZGRUcnVzdCBFeHRlcm5hbCBDQSBSb290MB4XDTAwMDUzMDEwNDgzOFoXDTIwMDUzMDEw\n"
-                                       "NDgzOFowbzELMAkGA1UEBhMCU0UxFDASBgNVBAoTC0FkZFRydXN0IEFCMSYwJAYDVQQLEx1BZGRU\n"
-                                       "cnVzdCBFeHRlcm5hbCBUVFAgTmV0d29yazEiMCAGA1UEAxMZQWRkVHJ1c3QgRXh0ZXJuYWwgQ0Eg\n"
-                                       "Um9vdDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALf3GjPm8gAELTngTlvtH7xsD821\n"
-                                       "+iO2zt6bETOXpClMfZOfvUq8k+0DGuOPz+VtUFrWlymUWoCwSXrbLpX9uMq/NzgtHj6RQa1wVsfw\n"
-                                       "Tz/oMp50ysiQVOnGXw94nZpAPA6sYapeFI+eh6FqUNzXmk6vBbOmcZSccbNQYArHE504B4YCqOmo\n"
-                                       "aSYYkKtMsE8jqzpPhNjfzp/haW+710LXa0Tkx63ubUFfclpxCDezeWWkWaCUN/cALw3CknLa0Dhy\n"
-                                       "2xSoRcRdKn23tNbE7qzNE0S3ySvdQwAl+mG5aWpYIxG3pzOPVnVZ9c0p10a3CitlttNCbxWyuHv7\n"
-                                       "7+ldU9U0WicCAwEAAaOB3DCB2TAdBgNVHQ4EFgQUrb2YejS0Jvf6xCZU7wO94CTLVBowCwYDVR0P\n"
-                                       "BAQDAgEGMA8GA1UdEwEB/wQFMAMBAf8wgZkGA1UdIwSBkTCBjoAUrb2YejS0Jvf6xCZU7wO94CTL\n"
-                                       "VBqhc6RxMG8xCzAJBgNVBAYTAlNFMRQwEgYDVQQKEwtBZGRUcnVzdCBBQjEmMCQGA1UECxMdQWRk\n"
-                                       "VHJ1c3QgRXh0ZXJuYWwgVFRQIE5ldHdvcmsxIjAgBgNVBAMTGUFkZFRydXN0IEV4dGVybmFsIENB\n"
-                                       "IFJvb3SCAQEwDQYJKoZIhvcNAQEFBQADggEBALCb4IUlwtYj4g+WBpKdQZic2YR5gdkeWxQHIzZl\n"
-                                       "j7DYd7usQWxHYINRsPkyPef89iYTx4AWpb9a/IfPeHmJIZriTAcKhjW88t5RxNKWt9x+Tu5w/Rw5\n"
-                                       "6wwCURQtjr0W4MHfRnXnJK3s9EK0hZNwEGe6nQY1ShjTK3rMUUKhemPR5ruhxSvCNr4TDea9Y355\n"
-                                       "e6cJDUCrat2PisP29owaQgVR1EX1n6diIWgVIEM8med8vSTYqZEXc4g/VhsxOBi0cQ+azcgOno4u\n"
-                                       "G+GMmIPLHzHxREzGBHNJdmAPx/i9F4BrLunMTA5amnkPIAou1Z5jJh5VkpTYghdae9C8x49OhgQ=\n"
-                                       "-----END CERTIFICprocess_auth_requestedATE-----\n";
+#define SIP_TESTER_ACCESS_TOKEN                                                                                        \
+	"eyJhbGciOiJSUzM4NCIsInR5cCI6IkpXVCJ9."                                                                            \
+	"eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.o1hC1xYbJolSyh0-"     \
+	"bOY230w22zEQSk5TiBfc-OCvtpI2JtYlW-23-8B48NpATozzMHn0j3rE0xVUldxShzy0xeJ7vYAccVXu2Gs9rnTVqouc-UZu_wJHkZiKBL67j8_"  \
+	"61L6SXswzPAQu4kVDwAefGf5hyYBUM-80vYZwWPEpLI8K4yCBsF6I9N1yQaZAJmkMp_Iw371Menae4Mp4JusvBJS-"                        \
+	"s6LrmG2QbiZaFaxVJiW8KlUkWyUCns8-"                                                                                 \
+	"qFl5OMeYlgGFsyvvSHvXCzQrsEXqyCdS4tQJd73ayYA4SPtCb9clz76N1zE5WsV4Z0BYrxeb77oA7jJhh994RAPzCG0hmQ"
 
 static void process_auth_requested(void *user_ctx, belle_sip_auth_event_t *event) {
 	BELLESIP_UNUSED(user_ctx);
@@ -291,6 +229,11 @@ static void process_auth_requested_for_algorithm(void *user_ctx, belle_sip_auth_
 		distinguished_name = belle_sip_auth_event_get_distinguished_name(event);
 		belle_sip_message("process_auth_requested requested for  DN[%s]", distinguished_name ? distinguished_name : "");
 
+	} else if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
+		belle_sip_message("process_auth_requested requested for Bearer auth for  realm [%s]",
+		                  belle_sip_auth_event_get_realm(event));
+		belle_sip_auth_event_set_bearer_token(
+		    event, belle_sip_bearer_token_new(SIP_TESTER_ACCESS_TOKEN, 255 << sizeof(time_t), "not set yet "));
 	} else {
 		belle_sip_error("Unexpected auth mode");
 	}
@@ -302,7 +245,10 @@ int register_before_all(void) {
 	belle_sip_listening_point_t *lp;
 	stack = belle_sip_stack_new(NULL);
 
-	belle_sip_tester_set_dns_host_file(stack);
+	// belle_sip_tester_set_dns_host_file(stack);
+	belle_sip_stack_set_dns_engine(stack, BELLE_SIP_DNS_DNS_C);
+	belle_sip_stack_add_user_host_entry(stack, "127.0.0.1", TEST_DOMAIN);
+	belle_sip_stack_add_user_host_entry(stack, "127.0.0.1", AUTH_DOMAIN);
 
 	lp = belle_sip_stack_create_listening_point(stack, "0.0.0.0", RANDOM_PORT, "UDP");
 	prov = belle_sip_stack_create_provider(stack, lp);
@@ -342,7 +288,8 @@ int register_after_all(void) {
 void unregister_user(belle_sip_stack_t *stack,
                      belle_sip_provider_t *prov,
                      belle_sip_request_t *initial_request,
-                     int use_transaction) {
+                     int use_transaction,
+                     const char *outbound_proxy) {
 	belle_sip_request_t *req;
 	belle_sip_header_cseq_t *cseq;
 	belle_sip_header_expires_t *expires_header;
@@ -358,11 +305,19 @@ void unregister_user(belle_sip_stack_t *stack,
 	expires_header =
 	    (belle_sip_header_expires_t *)belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_EXPIRES);
 	belle_sip_header_expires_set_expires(expires_header, 0);
+	char *outbound = NULL;
+
+	if (outbound_proxy) {
+		if (strstr(outbound_proxy, "sip:") == NULL && strstr(outbound_proxy, "sips:") == NULL) {
+			outbound = belle_sip_strdup_printf("sip:%s", outbound_proxy);
+		} else outbound = belle_sip_strdup(outbound_proxy);
+	}
+
 	if (use_transaction) {
 		belle_sip_client_transaction_t *t;
 		belle_sip_provider_add_authorization(prov, req, NULL, NULL, NULL, NULL); /*just in case*/
 		t = belle_sip_provider_create_client_transaction(prov, req);
-		belle_sip_client_transaction_send_request(t);
+		belle_sip_client_transaction_send_request_to(t, outbound ? belle_sip_uri_parse(outbound) : NULL);
 	} else belle_sip_provider_send_request(prov, req);
 	for (i = 0; !is_register_ok && i < 20; i++) {
 		belle_sip_stack_sleep(stack, 500);
@@ -376,6 +331,7 @@ void unregister_user(belle_sip_stack_t *stack,
 	BC_ASSERT_EQUAL(using_transaction, use_transaction, int, "%d");
 	belle_sip_object_unref(req);
 	belle_sip_provider_remove_sip_listener(prov, l);
+	if (outbound) belle_sip_free(outbound);
 }
 
 static belle_sip_request_t *create_registration_request(belle_sip_stack_t *stack,
@@ -488,7 +444,7 @@ belle_sip_request_t *register_user(belle_sip_stack_t *stack,
                                    int use_transaction,
                                    const char *username,
                                    const char *outbound) {
-	return register_user_at_domain(stack, prov, transport, use_transaction, username, test_domain, outbound);
+	return register_user_at_domain(stack, prov, transport, use_transaction, username, belle_sip_test_domain, outbound);
 }
 
 belle_sip_client_transaction_t *register_user_with_transaction(belle_sip_stack_t *stack,
@@ -499,7 +455,7 @@ belle_sip_client_transaction_t *register_user_with_transaction(belle_sip_stack_t
 	belle_sip_request_t *req;
 	belle_sip_client_transaction_t *t = NULL;
 
-	req = create_registration_request(stack, prov, transport, username, test_domain);
+	req = create_registration_request(stack, prov, transport, username, belle_sip_auth_domain);
 	if (req) {
 		t = belle_sip_provider_create_client_transaction(prov, req);
 		belle_sip_object_ref(t);
@@ -511,10 +467,12 @@ belle_sip_client_transaction_t *register_user_with_transaction(belle_sip_stack_t
 
 static void register_with_outbound(const char *transport, int use_transaction, const char *outbound) {
 	belle_sip_request_t *req;
+	BasicRegistrar registrar(belle_sip_auth_domain, transport ? transport : "UDP");
 
+	belle_sip_stack_set_well_known_port(belle_sip_uri_get_port(registrar.getAgent().getListeningUri()));
 	req = register_user(stack, prov, transport, use_transaction, "tester", outbound);
 	if (req) {
-		unregister_user(stack, prov, req, use_transaction);
+		unregister_user(stack, prov, req, use_transaction, outbound);
 		belle_sip_object_unref(req);
 	}
 }
@@ -547,7 +505,7 @@ static void stateful_register_udp_with_keep_alive(void) {
 }
 
 static void stateful_register_udp_with_outbound_proxy(void) {
-	register_with_outbound("udp", 1, test_domain);
+	register_with_outbound("udp", 1, belle_sip_test_domain);
 }
 
 static void stateful_register_udp_delayed(void) {
@@ -559,7 +517,7 @@ static void stateful_register_udp_delayed(void) {
 static void stateful_register_udp_with_send_error(void) {
 	belle_sip_request_t *req;
 	belle_sip_stack_set_send_error(stack, -1);
-	req = try_register_user_at_domain(stack, prov, NULL, 1, "tester", test_domain, NULL, 0);
+	req = try_register_user_at_domain(stack, prov, NULL, 1, "tester", belle_sip_test_domain, NULL, 0);
 	belle_sip_stack_set_send_error(stack, 0);
 	if (req) belle_sip_object_unref(req);
 }
@@ -575,7 +533,7 @@ static void stateful_register_tls(void) {
 static void stateful_register_tls_with_wrong_cname(void) {
 	belle_sip_request_t *req;
 
-	req = try_register_user_at_domain(stack, prov, "tls", 1, "tester", test_domain, test_with_wrong_cname, 0);
+	req = try_register_user_at_domain(stack, prov, "tls", 1, "tester", belle_sip_test_domain, test_with_wrong_cname, 0);
 	if (req) belle_sip_object_unref(req);
 }
 
@@ -605,7 +563,7 @@ static void stateful_register_tls_with_wrong_http_proxy(void) {
 	belle_sip_provider_clean_channels(prov);
 	belle_sip_stack_set_http_proxy_host(stack, "mauvaisproxy.linphone.org");
 	belle_sip_stack_set_http_proxy_port(stack, test_http_proxy_port);
-	try_register_user_at_domain(stack, prov, "tls", 1, "tester", test_domain, NULL, 0);
+	try_register_user_at_domain(stack, prov, "tls", 1, "tester", belle_sip_test_domain, NULL, 0);
 	belle_sip_stack_set_http_proxy_host(stack, NULL);
 	belle_sip_stack_set_http_proxy_port(stack, 0);
 }
@@ -631,14 +589,16 @@ static void test_bad_request(void) {
 	belle_sip_request_t *req;
 	belle_sip_listener_t *bad_req_listener;
 	belle_sip_client_transaction_t *t;
-	belle_sip_header_address_t *route_address =
-	    belle_sip_header_address_create(NULL, belle_sip_uri_create(NULL, test_domain));
 	belle_sip_header_route_t *route;
 	belle_sip_header_to_t *to = belle_sip_header_to_create2("sip:toto@titi.com", NULL);
 	belle_sip_listener_callbacks_t cbs;
 	belle_sip_listening_point_t *lp = belle_sip_provider_get_listening_point(prov, "TCP");
 	int bad_request_response_received = 0;
 	memset(&cbs, 0, sizeof(cbs));
+
+	BasicRegistrar registrar(belle_sip_auth_domain, "TCP");
+	belle_sip_header_address_t *route_address =
+	    belle_sip_header_address_create(NULL, (belle_sip_uri_t *)registrar.getAgent().getListeningUri());
 
 	cbs.process_io_error = bad_req_process_io_error;
 	cbs.process_response_event = bad_req_process_response_event;
@@ -672,9 +632,13 @@ static void test_register_authenticate(void) {
 	belle_sip_request_t *reg;
 	number_of_challenge = 0;
 	authorized_request = NULL;
-	reg = register_user_at_domain(stack, prov, "udp", 1, "bellesip", auth_domain, NULL);
+	AuthenticatedRegistrar registrar({std::string("sip:bellesip:secret@") + AUTH_DOMAIN}, belle_sip_auth_domain, "UDP");
+	registrar.addAuthMode(BELLE_SIP_AUTH_MODE_HTTP_DIGEST);
+	belle_sip_stack_set_well_known_port(belle_sip_uri_get_port(registrar.getAgent().getListeningUri()));
+
+	reg = register_user_at_domain(stack, prov, "udp", 1, "bellesip", AUTH_DOMAIN, NULL);
 	if (authorized_request) {
-		unregister_user(stack, prov, authorized_request, 1);
+		unregister_user(stack, prov, authorized_request, 1, NULL);
 		belle_sip_object_unref(authorized_request);
 	}
 	belle_sip_object_unref(reg);
@@ -712,8 +676,8 @@ static void test_channel_moving_to_error_and_cleaned(void) {
 		belle_sip_listening_point_clean_channels(lp);
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp), 0, int, "%d");
 
-		snprintf(identity, sizeof(identity), "Tester <sip:%s@%s>", "bellesip", test_domain);
-		snprintf(uri, sizeof(uri), "sip:%s", test_domain);
+		snprintf(identity, sizeof(identity), "Tester <sip:%s@%s>", "bellesip", belle_sip_test_domain);
+		snprintf(uri, sizeof(uri), "sip:%s", belle_sip_test_domain);
 		req = belle_sip_request_create(belle_sip_uri_parse(uri), "REGISTER", belle_sip_provider_create_call_id(prov),
 		                               belle_sip_header_cseq_create(20, "REGISTER"),
 		                               belle_sip_header_from_create2(identity, BELLE_SIP_RANDOM_TAG),
@@ -738,7 +702,7 @@ static void test_register_client_authenticated(void) {
 
 	reg = register_user_at_domain(stack, prov, "tls", 1, "tester", client_auth_domain, client_auth_outbound_proxy);
 	if (authorized_request) {
-		unregister_user(stack, prov, authorized_request, 1);
+		unregister_user(stack, prov, authorized_request, 1, client_auth_outbound_proxy);
 		belle_sip_object_unref(authorized_request);
 	}
 	if (reg) belle_sip_object_unref(reg);
@@ -757,7 +721,7 @@ static void test_register_client_bad_ciphersuites(void) {
 		belle_sip_listening_point_clean_channels((belle_sip_listening_point_t *)s);
 
 		void *config_ref = crypto_config->ssl_config;
-		bctbx_list_t *ciphersuites = bctbx_list_new("TLS-RSA-WITH-AES-128-GCM-SHA256");
+		bctbx_list_t *ciphersuites = bctbx_list_new((void *)"TLS-RSA-WITH-AES-128-GCM-SHA256");
 
 		bctbx_ssl_config_t *sslcfg = bctbx_ssl_config_new();
 		bctbx_ssl_config_defaults(sslcfg, BCTBX_SSL_IS_CLIENT, BCTBX_SSL_TRANSPORT_STREAM);
@@ -772,7 +736,7 @@ static void test_register_client_bad_ciphersuites(void) {
 		reg = try_register_user_at_domain(stack, prov, "tls", 1, "tester", client_auth_domain,
 		                                  client_auth_outbound_proxy, 0);
 		if (authorized_request) {
-			unregister_user(stack, prov, authorized_request, 1);
+			unregister_user(stack, prov, authorized_request, 1, client_auth_outbound_proxy);
 			belle_sip_object_unref(authorized_request);
 		}
 		if (reg) belle_sip_object_unref(reg);
@@ -820,7 +784,8 @@ static void test_tls_to_tcp(void) {
 	int orig = belle_sip_stack_get_transport_timeout(stack);
 	io_error_count = 0;
 	belle_sip_stack_set_transport_timeout(stack, 2000);
-	req = try_register_user_at_domain(stack, prov, "TLS", 1, "tester", test_domain, test_domain_tls_to_tcp, 0);
+	req = try_register_user_at_domain(stack, prov, "TLS", 1, "tester", belle_sip_test_domain,
+	                                  belle_sip_auth_domain_tls_to_tcp, 0);
 	if (req) {
 		BC_ASSERT_GREATER(io_error_count, 1, int, "%d");
 		belle_sip_object_unref(req);
@@ -945,7 +910,7 @@ static void reuse_nonce_base(const char *outbound) {
 
 	if (outbound) snprintf(outbound_uri, sizeof(outbound_uri), "sip:%s", outbound);
 
-	register_request = register_user_at_domain(stack, prov, "tcp", 1, "marie", auth_domain, outbound);
+	register_request = register_user_at_domain(stack, prov, "tcp", 1, "marie", belle_sip_auth_domain, outbound);
 
 	if (register_request) {
 		belle_sip_header_authorization_t *h = NULL;
@@ -985,8 +950,8 @@ static void reuse_nonce_base(const char *outbound) {
 		BC_ASSERT_GREATER((number_of_sha256_auth_context + number_of_md5_auth_context), 1, unsigned int, "%u");
 
 		/*this should reuse previous nonce*/
-		message_request =
-		    send_message_to(register_request, auth_domain, outbound ? belle_sip_uri_parse(outbound_uri) : NULL);
+		message_request = send_message_to(register_request, belle_sip_auth_domain,
+		                                  outbound ? belle_sip_uri_parse(outbound_uri) : NULL);
 		BC_ASSERT_EQUAL(is_register_ok, 404, int, "%d");
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 		    BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t));
@@ -1017,8 +982,8 @@ static void reuse_nonce_base(const char *outbound) {
 		belle_sip_object_unref(message_request);
 
 		/*first nonce created should be reused. this test is only for qop = auth*/
-		message_request =
-		    send_message_to(register_request, auth_domain, outbound ? belle_sip_uri_parse(outbound_uri) : NULL);
+		message_request = send_message_to(register_request, belle_sip_auth_domain,
+		                                  outbound ? belle_sip_uri_parse(outbound_uri) : NULL);
 
 		h = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_message_get_header_by_type(
 		    BELLE_SIP_MESSAGE(message_request), belle_sip_header_proxy_authorization_t));
@@ -1030,12 +995,12 @@ static void reuse_nonce_base(const char *outbound) {
 		belle_sip_object_unref(message_request);
 
 		belle_sip_provider_remove_sip_listener(prov, BELLE_SIP_LISTENER(reuse_nonce_listener));
-		unregister_user(stack, prov, register_request, 1);
+		unregister_user(stack, prov, register_request, 1, outbound);
 		belle_sip_object_unref(register_request);
 	}
 }
 static void reuse_nonce(void) {
-	reuse_nonce_base(auth_domain);
+	reuse_nonce_base(belle_sip_auth_domain);
 }
 #define NONCE_SIZE 32
 void register_process_request_event(char *nonce, const belle_sip_request_event_t *event) {
@@ -1119,6 +1084,17 @@ static void test_register_with_next_nonce(void) {
 	belle_sip_provider_remove_listening_point(prov, server_lp);
 }
 
+static void test_register_with_bearer_auth(void) {
+	std::ostringstream user;
+	user << "sip:bellesip@" << AUTH_DOMAIN;
+	user << ";access_token=" << SIP_TESTER_ACCESS_TOKEN;
+	AuthenticatedRegistrar registrar({user.str()}, belle_sip_auth_domain, "tcp");
+	registrar.addAuthMode(BELLE_SIP_AUTH_MODE_HTTP_BEARER);
+
+	register_user_at_domain(stack, prov, "tcp", 1, "bellesip", AUTH_DOMAIN,
+	                        registrar.getAgent().getListeningUriAsString().c_str());
+}
+
 static void test_channel_load_process_response_event(void *user_ctx, const belle_sip_response_event_t *event) {
 
 	if (!BC_ASSERT_PTR_NOT_NULL(belle_sip_response_event_get_response(event))) {
@@ -1146,8 +1122,8 @@ static void test_channel_load(void) {
 		char uri[128];
 		char tmp[4];
 		snprintf(identity, sizeof(identity), "Tester <sip:bellesip%s@%s>", belle_sip_random_token(tmp, sizeof(tmp)),
-		         auth_domain);
-		snprintf(uri, sizeof(uri), "sip:%s;transport=tcp", auth_domain);
+		         belle_sip_auth_domain);
+		snprintf(uri, sizeof(uri), "sip:%s;transport=tcp", belle_sip_auth_domain);
 		belle_sip_listener_callbacks_t listener_callbacks;
 		listener_callbacks.process_dialog_terminated = NULL;
 		listener_callbacks.process_io_error = NULL;
@@ -1230,8 +1206,8 @@ static void udp_socket(int port_mode) {
 		belle_sip_provider_add_sip_listener(prov, listener);
 		char tmp[4];
 		snprintf(identity, sizeof(identity), "Tester <sip:bellesip%s@%s>", belle_sip_random_token(tmp, sizeof(tmp)),
-		         test_domain);
-		snprintf(uri, sizeof(uri), "sip:%s", auth_domain);
+		         belle_sip_test_domain);
+		snprintf(uri, sizeof(uri), "sip:%s", belle_sip_auth_domain);
 		req1 = belle_sip_request_create(belle_sip_uri_parse(uri), "REGISTER", belle_sip_provider_create_call_id(prov),
 		                                belle_sip_header_cseq_create(20, "REGISTER"),
 		                                belle_sip_header_from_create2(identity, BELLE_SIP_RANDOM_TAG),
@@ -1243,7 +1219,7 @@ static void udp_socket(int port_mode) {
 		belle_sip_object_ref(tr1);
 		belle_sip_client_transaction_send_request(tr1);
 
-		snprintf(uri, sizeof(uri), "sip:%s", test_domain);
+		snprintf(uri, sizeof(uri), "sip:%s", belle_sip_test_domain);
 		req2 = belle_sip_request_create(belle_sip_uri_parse(uri), "REGISTER", belle_sip_provider_create_call_id(prov),
 		                                belle_sip_header_cseq_create(20, "REGISTER"),
 		                                belle_sip_header_from_create2(identity, BELLE_SIP_RANDOM_TAG),
@@ -1336,7 +1312,7 @@ static void udp_multiple_socket(void) {
 	udp_socket(BELLE_SIP_LISTENING_POINT_DONT_BIND);
 }
 
-test_t register_tests[] = {
+static test_t register_tests[] = {
     TEST_NO_TAG("Stateful UDP", stateful_register_udp),
     TEST_NO_TAG("Stateful UDP with keep-alive", stateful_register_udp_with_keep_alive),
     TEST_NO_TAG("Stateful UDP with network delay", stateful_register_udp_delayed),
@@ -1352,6 +1328,7 @@ test_t register_tests[] = {
     TEST_NO_TAG("Stateless TLS", stateless_register_tls),
     TEST_NO_TAG("Bad TCP request", test_bad_request),
     TEST_NO_TAG("Authenticate", test_register_authenticate),
+    TEST_NO_TAG("Bearer auth", test_register_with_bearer_auth),
     TEST_NO_TAG("TLS client cert authentication", test_register_client_authenticated),
     TEST_NO_TAG("TLS client cert bad ciphersuites", test_register_client_bad_ciphersuites),
     TEST_NO_TAG("Channel inactive", test_register_channel_inactive),
@@ -1370,12 +1347,12 @@ test_t register_tests[] = {
     TEST_NO_TAG("UDP multiple channels single socket", udp_single_socket),
     TEST_NO_TAG("UDP multiple channels multiple sockets", udp_multiple_socket)};
 
-test_suite_t register_test_suite = {"Register",
-                                    register_before_all,
-                                    register_after_all,
-                                    NULL,
-                                    NULL,
-                                    sizeof(register_tests) / sizeof(register_tests[0]),
-                                    register_tests,
-                                    0,
-                                    0};
+test_suite_t belle_sip_register_test_suite = {"Register",
+                                              register_before_all,
+                                              register_after_all,
+                                              NULL,
+                                              NULL,
+                                              sizeof(register_tests) / sizeof(register_tests[0]),
+                                              register_tests,
+                                              0,
+                                              0};

@@ -19,31 +19,40 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
+set(HTTPLIB_COMPILE YES)
+set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE NO)
+set(HTTPLIB_USE_ZLIB_IF_AVAILABLE NO)
+set(HTTPLIB_USE_BROTLI_IF_AVAILABLE NO)
+set(HTTPLIB_USE_CERTS_FROM_MACOSX_KEYCHAIN NO)
+add_subdirectory(cpp-httplib)
 
 set(SOURCE_FILES_C
 	auth_helper_tester.c
 	belle_generic_uri_tester.c
-	belle_http_tester.c
 	belle_sdp_tester.c
 	belle_sip_core_tester.c
 	belle_sip_dialog_tester.c
 	belle_sip_headers_tester.c
 	belle_sip_message_tester.c
 	belle_sip_refresher_tester.c
-	belle_sip_register_tester.c
 	belle_sip_resolver_tester.c
-	belle_sip_tester.c
+	belle_sip_tester_runtime.c
 	belle_sip_tester.h
 	belle_sip_uri_tester.c
 	belle_sip_fast_uri_tester.c
 	cast_test.c
 	register_tester.h
-	object_tester.cc
 )
 
 set(SOURCE_FILES_CXX
+	belle_http_tester.c
+	belle_sip_register_tester.c
 	belle_sip_tester_utils.cc
+	belle_sip_tester_utils.h
+	object_tester.cc
 )
+
+set_source_files_properties(${SOURCE_FILES_CXX} PROPERTIES LANGUAGE CXX)
 
 set(OTHER_FILES
 	tester_hosts
@@ -60,7 +69,7 @@ endif()
 
 string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
-bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
+bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
@@ -99,11 +108,14 @@ else()
 	if (IOS)
 		set(USE_BUNDLE MACOSX_BUNDLE)
 	endif()
+	add_library(belle-sip-tester-runtime ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
+	target_link_libraries(belle-sip-tester-runtime PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
+	target_link_libraries(belle-sip-tester-runtime PUBLIC httplib)
+	target_include_directories(belle-sip-tester-runtime INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+	$<INSTALL_INTERFACE:include>)
 
-	add_executable(belle-sip-tester ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
-	set_target_properties(belle-sip-tester PROPERTIES LINKER_LANGUAGE CXX)
-	set_target_properties(belle-sip-tester PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
-	set_target_properties(belle-sip-tester PROPERTIES C_STANDARD 99)
+	add_executable(belle-sip-tester belle_sip_tester.c belle_sip_tester.h)
+	target_link_libraries(belle-sip-tester PRIVATE belle-sip-tester-runtime belle-sip ${BCToolbox_tester_TARGET})
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -111,9 +123,18 @@ else()
 	if(WIN32)
 		target_link_libraries(belle-sip-tester PRIVATE "Ws2_32")
 	endif()
-	target_link_libraries(belle-sip-tester PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
 	add_test(NAME belle-sip-tester COMMAND belle-sip-tester --verbose)
 	if(NOT IOS)
+		install(TARGETS belle-sip-tester-runtime EXPORT ${PROJECT_NAME}Targets
+			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		)
+		install(FILES belle_sip_tester_utils.h
+			DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
+			PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+		)
 		install(TARGETS belle-sip-tester
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

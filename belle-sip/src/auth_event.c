@@ -29,6 +29,8 @@ GET_SET_STRING(belle_sip_auth_event, passwd)
 GET_SET_STRING(belle_sip_auth_event, ha1)
 GET_SET_STRING(belle_sip_auth_event, distinguished_name)
 GET_SET_STRING(belle_sip_auth_event, algorithm)
+GET_SET_STRING(belle_sip_auth_event, authz_server)
+GET_SET_OBJECT(belle_sip_auth_event, bearer_token, belle_sip_bearer_token_t)
 
 belle_sip_auth_event_t *
 belle_sip_auth_event_create(belle_sip_object_t *source, const char *realm, const belle_sip_uri_t *from_uri) {
@@ -52,8 +54,10 @@ void belle_sip_auth_event_destroy(belle_sip_auth_event_t *event) {
 	DESTROY_STRING(event, ha1);
 	DESTROY_STRING(event, distinguished_name);
 	DESTROY_STRING(event, algorithm);
+	DESTROY_STRING(event, authz_server);
 	if (event->cert) belle_sip_object_unref(event->cert);
 	if (event->key) belle_sip_object_unref(event->key);
+	if (event->bearer_token) belle_sip_object_unref(event->bearer_token);
 
 	belle_sip_free(event);
 }
@@ -88,9 +92,24 @@ const char *belle_sip_auth_event_mode_to_string(const belle_sip_auth_mode_t mode
 			return "BELLE_SIP_AUTH_MODE_TLS";
 		case BELLE_SIP_AUTH_MODE_HTTP_BASIC:
 			return "BELLE_SIP_AUTH_MODE_HTTP_BASIC";
+		case BELLE_SIP_AUTH_MODE_HTTP_BEARER:
+			return "BELLE_SIP_AUTH_MODE_HTTP_BEARER";
 	}
 	return "unkown belle-sip auth mode";
 }
+belle_sip_auth_mode_t belle_sip_auth_event_mode_parse(const char *schema) {
+	if (strcasecmp("Digest", schema) == 0) {
+		return BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
+	} else if (strcasecmp("Bearer", schema) == 0) {
+		return BELLE_SIP_AUTH_MODE_HTTP_BEARER;
+	} else if (strcasecmp("Basic", schema) == 0) {
+		return BELLE_SIP_AUTH_MODE_HTTP_BASIC;
+	} else {
+		belle_sip_error("Unknown auth schema [%s] returning BELLE_SIP_AUTH_MODE_HTTP_DIGEST", schema);
+		return BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
+	}
+}
+
 /* deprecated on 2016/02/02 */
 belle_tls_verify_policy_t *belle_tls_verify_policy_new(void) {
 	return (belle_tls_verify_policy_t *)belle_tls_crypto_config_new();

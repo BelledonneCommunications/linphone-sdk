@@ -235,6 +235,13 @@ BELLESIP_EXPORT int belle_sip_object_get_object_count(void);
 BELLESIP_EXPORT void belle_sip_object_flush_active_objects(void);
 
 BELLESIP_EXPORT void belle_sip_object_dump_active_objects(void);
+
+/*
+ * Might be used to explicitly add an object to leak detector (for tests).
+ * Used internally as well.
+ */
+BELLESIP_EXPORT void belle_sip_object_add_to_leak_detector(belle_sip_object_t *obj);
+
 /*
  * Might be used to explicitly remove an object from leak detector.
  */
@@ -246,7 +253,7 @@ BELLESIP_EXPORT void belle_sip_object_remove_from_leak_detector(belle_sip_object
  **/
 BELLESIP_EXPORT void belle_sip_object_inhibit_leak_detector(int yes);
 
-int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
+BELLESIP_EXPORT int belle_sip_object_is_unowed(const belle_sip_object_t *obj);
 
 /**
  * Increments reference counter, which prevents the object from being destroyed.

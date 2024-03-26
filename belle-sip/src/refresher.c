@@ -490,7 +490,7 @@ int belle_sip_refresher_refresh(belle_sip_refresher_t *refresher, int expires) {
 
 static int unfilled_auth_info(const void *info, const void *userptr) {
 	belle_sip_auth_event_t *auth_info = (belle_sip_auth_event_t *)info;
-	return auth_info->passwd || auth_info->ha1;
+	return auth_info->passwd || auth_info->ha1 || auth_info->bearer_token;
 }
 
 static int belle_sip_refresher_refresh_internal(belle_sip_refresher_t *refresher,

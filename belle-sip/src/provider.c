@@ -32,6 +32,7 @@ struct authorization_context {
 	belle_sip_header_call_id_t *callid;
 	const char *scheme;
 	const char *realm;
+	const char *authz_server;
 	const char *nonce;
 	const char *qop;
 	const char *opaque;
@@ -48,6 +49,7 @@ GET_SET_STRING(authorization_context, scheme)
 GET_SET_STRING(authorization_context, opaque)
 GET_SET_STRING(authorization_context, user_id)
 GET_SET_STRING(authorization_context, algorithm)
+GET_SET_STRING(authorization_context, authz_server)
 GET_SET_INT(authorization_context, nonce_count, int)
 
 static authorization_context_t *belle_sip_authorization_create(belle_sip_header_call_id_t *call_id) {
@@ -66,6 +68,7 @@ void belle_sip_authorization_destroy(authorization_context_t *object) {
 	DESTROY_STRING(object, opaque);
 	DESTROY_STRING(object, user_id);
 	DESTROY_STRING(object, algorithm);
+	DESTROY_STRING(object, authz_server);
 	belle_sip_object_unref(object->callid);
 	belle_sip_free(object);
 }
@@ -1140,6 +1143,8 @@ static void authorization_context_fill_from_auth(authorization_context_t *auth_c
 	authorization_context_set_scheme(auth_context, belle_sip_header_www_authenticate_get_scheme(authenticate));
 	authorization_context_set_opaque(auth_context, belle_sip_header_www_authenticate_get_opaque(authenticate));
 	authorization_context_set_user_id(auth_context, from_uri ? belle_sip_uri_get_user(from_uri) : NULL);
+	authorization_context_set_authz_server(auth_context,
+	                                       belle_sip_header_www_authenticate_get_authz_server(authenticate));
 }
 
 static belle_sip_list_t *belle_sip_provider_get_auth_context_by_realm_or_call_id(belle_sip_provider_t *p,
@@ -1244,11 +1249,12 @@ end:
 /*
  * Insert auth_event into a list of belle_sip_auth_event_t avoiding duplicates and loss of password or ha1.
  */
-static belle_sip_list_t *update_auth_event_list(belle_sip_list_t *auth_event_list, belle_sip_auth_event_t *auth_event) {
+static bool_t update_auth_event_list(belle_sip_list_t **auth_event_list, belle_sip_auth_event_t *auth_event) {
 	belle_sip_list_t *elem;
 	belle_sip_auth_event_t *ev = NULL;
+	bool_t event_consumed = TRUE;
 
-	for (elem = auth_event_list; elem != NULL; elem = elem->next) {
+	for (elem = *auth_event_list; elem != NULL; elem = elem->next) {
 		ev = (belle_sip_auth_event_t *)elem->data;
 		if (STREQUAL(ev->realm, auth_event->realm) && STREQUAL(ev->username, auth_event->username)) {
 			break;
@@ -1257,14 +1263,16 @@ static belle_sip_list_t *update_auth_event_list(belle_sip_list_t *auth_event_lis
 	if (ev) {
 		if ((ev->passwd == NULL && ev->ha1 == NULL) || (auth_event->passwd || auth_event->ha1)) {
 			/* drop the old auth_event if new one has a password/ha1 or if previous one did not have */
-			auth_event_list = belle_sip_list_delete_link(auth_event_list, elem);
+			*auth_event_list = belle_sip_list_delete_link(*auth_event_list, elem);
 			belle_sip_auth_event_destroy(ev);
-			auth_event_list = belle_sip_list_append(auth_event_list, auth_event);
-		} else belle_sip_auth_event_destroy(auth_event);
+			*auth_event_list = belle_sip_list_append(*auth_event_list, auth_event);
+		} else {
+			event_consumed = FALSE;
+		}
 	} else {
-		auth_event_list = belle_sip_list_append(auth_event_list, auth_event);
+		*auth_event_list = belle_sip_list_append(*auth_event_list, auth_event);
 	}
-	return auth_event_list;
+	return event_consumed;
 }
 
 int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
@@ -1286,8 +1294,8 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
 	char computed_ha1[65];
 	int result = 0;
 	const char *request_method;
-	size_t size;
-	const char *algo;
+	size_t size = 0;
+	const char *algo = NULL;
 	/*check params*/
 	if (!p || !request) {
 		belle_sip_error("belle_sip_provider_add_authorization bad parameters");
@@ -1296,26 +1304,26 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
 	request_method = belle_sip_request_get_method(request);
 
 	/*22 Usage of HTTP Authentication
-	    22.1 Framework
-	    While a server can legitimately challenge most SIP requests, there
-	    are two requests defined by this document that require special
-	    handling for authentication: ACK and CANCEL.
-	    Under an authentication scheme that uses responses to carry values
-	    used to compute nonces (such as Digest), some problems come up for
-	    any requests that take no response, including ACK.  For this reason,
-	    any credentials in the INVITE that were accepted by a server MUST be
-	    accepted by that server for the ACK.  UACs creating an ACK message
-	    will duplicate all of the Authorization and Proxy-Authorization
-	    header field values that appeared in the INVITE to which the ACK
-	    corresponds.  Servers MUST NOT attempt to challenge an ACK.
+	 22.1 Framework
+	 While a server can legitimately challenge most SIP requests, there
+	 are two requests defined by this document that require special
+	 handling for authentication: ACK and CANCEL.
+	 Under an authentication scheme that uses responses to carry values
+	 used to compute nonces (such as Digest), some problems come up for
+	 any requests that take no response, including ACK.  For this reason,
+	 any credentials in the INVITE that were accepted by a server MUST be
+	 accepted by that server for the ACK.  UACs creating an ACK message
+	 will duplicate all of the Authorization and Proxy-Authorization
+	 header field values that appeared in the INVITE to which the ACK
+	 corresponds.  Servers MUST NOT attempt to challenge an ACK.
 
-	    Although the CANCEL method does take a response (a 2xx), servers MUST
-	    NOT attempt to challenge CANCEL requests since these requests cannot
-	    be resubmitted.  Generally, a CANCEL request SHOULD be accepted by a
-	    server if it comes from the same hop that sent the request being
-	    canceled (provided that some sort of transport or network layer
-	    security association, as described in Section 26.2.1, is in place).
-	*/
+	 Although the CANCEL method does take a response (a 2xx), servers MUST
+	 NOT attempt to challenge CANCEL requests since these requests cannot
+	 be resubmitted.  Generally, a CANCEL request SHOULD be accepted by a
+	 server if it comes from the same hop that sent the request being
+	 canceled (provided that some sort of transport or network layer
+	 security association, as described in Section 26.2.1, is in place).
+	 */
 
 	if (strcmp("CANCEL", request_method) == 0 || strcmp("ACK", request_method) == 0) {
 		belle_sip_debug("no authorization header needed for method [%s]", request_method);
@@ -1358,80 +1366,110 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
 	/*we assume there no existing auth headers*/
 	for (auth_context_iterator = head; auth_context_iterator != NULL;
 	     auth_context_iterator = auth_context_iterator->next) {
+		bool_t auth_event_disposable = FALSE;
 		/*clear auth info*/
 		auth_context = (authorization_context_t *)auth_context_iterator->data;
 		auth_event = belle_sip_auth_event_create((belle_sip_object_t *)p, auth_context->realm, from_uri);
 		belle_sip_auth_event_set_algorithm(auth_event, auth_context->algorithm);
+		auth_event->mode = belle_sip_auth_event_mode_parse(auth_context->scheme);
+		if (auth_event->mode == BELLE_SIP_AUTH_MODE_HTTP_BEARER) {
+			belle_sip_auth_event_set_authz_server(auth_event, auth_context->authz_server);
+		}
+
 		/*put data*/
 		/*call listener*/
 		BELLE_SIP_PROVIDER_INVOKE_LISTENERS(p->listeners, process_auth_requested, auth_event);
-		if (auth_event->passwd || auth_event->ha1) {
-			if (!auth_event->userid) {
-				/*if no userid, username = userid*/
-
-				belle_sip_auth_event_set_userid(auth_event, auth_event->username);
-			}
-			belle_sip_message("Auth info found for [%s] realm [%s]", auth_event->userid, auth_event->realm);
-
-			algo = auth_context->algorithm;
-			size = belle_sip_auth_define_size(algo);
-			if (!size) {
-				belle_sip_error("Cannot add authorization header for unsupported algo [%s]", algo);
-				continue;
-			}
-
-			if (belle_sip_header_call_id_equals(call_id, auth_context->callid)) {
-				/*Same call id so we can make sure auth_context->is_proxy is accurate*/
-				if (auth_context->is_proxy)
-					authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
-				else authorization = belle_sip_header_authorization_new();
-
-			} else if (realm && strcmp(realm, auth_context->realm) == 0 && from_uri &&
-			           strcmp(auth_event->username, belle_sip_uri_get_user(from_uri)) == 0 &&
-			           strcmp("REGISTER", request_method) == 0) {
-				/*We can only guess, so for REGISTER, it's probably Authorization*/
-				authorization = belle_sip_header_authorization_new();
-			} else {
-				/* for other case, it's probably Proxy-Authorization*/
-				authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
-			}
-
-			belle_sip_header_authorization_set_scheme(authorization, auth_context->scheme);
-			belle_sip_header_authorization_set_realm(authorization, auth_context->realm);
-			belle_sip_header_authorization_set_username(authorization, auth_event->userid);
-			belle_sip_header_authorization_set_nonce(authorization, auth_context->nonce);
-			belle_sip_header_authorization_set_qop(authorization, auth_context->qop);
-			belle_sip_header_authorization_set_opaque(authorization, auth_context->opaque);
-			belle_sip_header_authorization_set_algorithm(authorization, auth_context->algorithm);
-
-			belle_sip_header_authorization_set_uri(authorization,
-			                                       (belle_sip_uri_t *)belle_sip_request_get_uri(request));
-			if (auth_context->qop) {
-				++auth_context->nonce_count;
-				belle_sip_header_authorization_set_nonce_count(authorization, auth_context->nonce_count);
-			}
-
-			if (auth_event->ha1) {
-				ha1 = auth_event->ha1;
-			} else {
-				belle_sip_auth_helper_compute_ha1_for_algorithm(auth_event->userid, auth_context->realm,
-				                                                auth_event->passwd, computed_ha1, size, algo);
-				ha1 = computed_ha1;
-			}
-			if (belle_sip_auth_helper_fill_authorization(authorization, belle_sip_request_get_method(request), ha1)) {
-				belle_sip_object_unref(authorization);
-			} else belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_HEADER(authorization));
-			result = 1;
-		} else {
-			belle_sip_message("No auth info found for call id [%s]", belle_sip_header_call_id_get_call_id(call_id));
+		if (!auth_event->userid) {
+			/*if no userid, username = userid*/
+			belle_sip_auth_event_set_userid(auth_event, auth_event->username);
 		}
 		/*provides auth info in any cases, usefull even if found because auth info can contain wrong password*/
-		if (auth_infos) {
-			/*stored to give user information on realm/username which requires authentications*/
-			*auth_infos = update_auth_event_list(*auth_infos, auth_event);
-		} else {
-			belle_sip_auth_event_destroy(auth_event);
+		if (!auth_infos || !update_auth_event_list(auth_infos, auth_event)) {
+			auth_event_disposable = TRUE;
 		}
+		if (auth_event->mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST) {
+			if (auth_event->passwd || auth_event->ha1) {
+
+				belle_sip_message("Auth info found for [%s] realm [%s]", auth_event->userid, auth_event->realm);
+
+				algo = auth_context->algorithm;
+				size = belle_sip_auth_define_size(algo);
+				if (!size) {
+					belle_sip_error("Cannot add authorization header for unsupported algo [%s]", algo);
+					belle_sip_auth_event_destroy(auth_event);
+					auth_event = NULL;
+					continue;
+				}
+
+			} else {
+				belle_sip_message("No auth info found for call id [%s]", belle_sip_header_call_id_get_call_id(call_id));
+				if (auth_event_disposable) belle_sip_auth_event_destroy(auth_event);
+				continue;
+			}
+		}
+
+		if (belle_sip_header_call_id_equals(call_id, auth_context->callid)) {
+			/*Same call id so we can make sure auth_context->is_proxy is accurate*/
+			if (auth_context->is_proxy)
+				authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
+			else authorization = belle_sip_header_authorization_new();
+
+		} else if (realm && strcmp(realm, auth_context->realm) == 0 && from_uri &&
+		           strcmp(auth_event->username, belle_sip_uri_get_user(from_uri)) == 0 &&
+		           strcmp("REGISTER", request_method) == 0) {
+			/*We can only guess, so for REGISTER, it's probably Authorization*/
+			authorization = belle_sip_header_authorization_new();
+		} else {
+			/* for other case, it's probably Proxy-Authorization*/
+			authorization = BELLE_SIP_HEADER_AUTHORIZATION(belle_sip_header_proxy_authorization_new());
+		}
+
+		belle_sip_header_authorization_set_scheme(authorization, auth_context->scheme);
+		belle_sip_header_authorization_set_realm(authorization, auth_context->realm);
+		switch (auth_event->mode) {
+			case BELLE_SIP_AUTH_MODE_HTTP_BEARER: {
+				if (auth_event->bearer_token && belle_sip_bearer_token_get_token(auth_event->bearer_token)) {
+					belle_sip_message("Auth info found for realm [%s] in mode Bearer", auth_event->realm);
+					belle_sip_parameters_set(BELLE_SIP_PARAMETERS(authorization),
+					                         belle_sip_bearer_token_get_token(auth_event->bearer_token));
+					belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_HEADER(authorization));
+					result = 1;
+				} else {
+					belle_sip_message("No auth info found for realm [%s] in mode Bearer", auth_event->realm);
+				}
+			} break;
+			case BELLE_SIP_AUTH_MODE_HTTP_DIGEST: {
+				belle_sip_header_authorization_set_username(authorization, auth_event->userid);
+				belle_sip_header_authorization_set_nonce(authorization, auth_context->nonce);
+				belle_sip_header_authorization_set_qop(authorization, auth_context->qop);
+				belle_sip_header_authorization_set_opaque(authorization, auth_context->opaque);
+				belle_sip_header_authorization_set_algorithm(authorization, auth_context->algorithm);
+
+				belle_sip_header_authorization_set_uri(authorization,
+				                                       (belle_sip_uri_t *)belle_sip_request_get_uri(request));
+				if (auth_context->qop) {
+					++auth_context->nonce_count;
+					belle_sip_header_authorization_set_nonce_count(authorization, auth_context->nonce_count);
+				}
+
+				if (auth_event->ha1) {
+					ha1 = auth_event->ha1;
+				} else {
+					belle_sip_auth_helper_compute_ha1_for_algorithm(auth_event->userid, auth_context->realm,
+					                                                auth_event->passwd, computed_ha1, size, algo);
+					ha1 = computed_ha1;
+				}
+				if (belle_sip_auth_helper_fill_authorization(authorization, belle_sip_request_get_method(request),
+				                                             ha1)) {
+					belle_sip_object_unref(authorization);
+				} else belle_sip_message_add_header(BELLE_SIP_MESSAGE(request), BELLE_SIP_HEADER(authorization));
+				result = 1;
+
+			} break;
+			default:
+				belle_sip_error("Unsupported auth schema [%s]", auth_context->scheme);
+		}
+		if (auth_event_disposable) belle_sip_auth_event_destroy(auth_event);
 	}
 	belle_sip_list_free(head);
 	return result;

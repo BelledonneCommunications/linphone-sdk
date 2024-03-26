@@ -18,7 +18,7 @@
  */
 
 #include "belle-sip/belle-sip.h"
-#include "belle_sip_tester.h"
+#include <bctoolbox/tester.h>
 
 static void cast_test(void) {
 	belle_sip_stack_t *stack = belle_sip_stack_new(NULL);
@@ -53,7 +53,7 @@ static void cast_test(void) {
 	belle_sip_object_unref(stack);
 }
 
-test_t cast_tests[] = {TEST_NO_TAG("Casting requests and responses", cast_test)};
+static test_t cast_tests[] = {TEST_NO_TAG("Casting requests and responses", cast_test)};
 
 test_suite_t cast_test_suite = {
     "Object inheritance", NULL, NULL, NULL, NULL, sizeof(cast_tests) / sizeof(cast_tests[0]), cast_tests, 0, 0};

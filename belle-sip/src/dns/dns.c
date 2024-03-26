@@ -54,7 +54,7 @@
 #define uint32_t unsigned int
 #else*/
 #include <stdint.h> /* uint32_t */
-//#endif
+// #endif
 #include <stdio.h>  /* FILE fopen(3) fclose(3) getc(3) rewind(3) */
 #include <stdlib.h> /* malloc(3) realloc(3) free(3) rand(3) random(3) arc4random(3) */
 #include <string.h> /* memcpy(3) strlen(3) memmove(3) memchr(3) memcmp(3) strchr(3) strsep(3) strcspn(3) */
@@ -130,11 +130,11 @@
  *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#define DNS_GNUC_2VER(M, m, p) (((M)*10000) + ((m)*100) + (p))
+#define DNS_GNUC_2VER(M, m, p) (((M) * 10000) + ((m) * 100) + (p))
 #define DNS_GNUC_PREREQ(M, m, p)                                                                                       \
 	(__GNUC__ > 0 && DNS_GNUC_2VER(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__) >= DNS_GNUC_2VER((M), (m), (p)))
 
-#define DNS_MSC_2VER(M, m, p) ((((M) + 6) * 10000000) + ((m)*1000000) + (p))
+#define DNS_MSC_2VER(M, m, p) ((((M) + 6) * 10000000) + ((m) * 1000000) + (p))
 #define DNS_MSC_PREREQ(M, m, p) (_MSC_VER_FULL > 0 && _MSC_VER_FULL >= DNS_MSC_2VER((M), (m), (p)))
 
 #define DNS_SUNPRO_PREREQ(M, m, p) (__SUNPRO_C > 0 && __SUNPRO_C >= 0x##M##m##p)
@@ -3791,7 +3791,7 @@ struct dns_hosts {
 		_Bool alias;
 
 		struct dns_hosts_entry *next;
-	} * head, **tail;
+	} *head, **tail;
 
 	dns_atomic_t refcount;
 }; /* struct dns_hosts */
@@ -4039,6 +4039,16 @@ error:
 
 	return error;
 } /* dns_hosts_insert() */
+
+int dns_hosts_insert_v4_entry(struct dns_hosts *hosts, const char *ipv4, const char *hostname) {
+	struct dns_hosts_entry ent;
+	memset(&ent, '\0', sizeof(ent));
+	ent.af = AF_INET;
+	dns_inet_pton(ent.af, ipv4, &ent.addr);
+	dns_d_anchor(ent.host, sizeof(ent.host), hostname, strlen(hostname));
+	dns_hosts_insert(hosts, ent.af, &ent.addr, ent.host, 0);
+	return 0;
+} /*dns_hosts_insert_v4_entry*/
 
 struct dns_packet *dns_hosts_query(struct dns_hosts *hosts, struct dns_packet *Q, int *error_) {
 	struct dns_packet *P = dns_p_new(512);
@@ -8532,23 +8542,23 @@ static int parse_packet(int argc DNS_NOTUSED, char *argv[] DNS_NOTUSED) {
 	for (unsigned i = 0; i < rrcount; i++) {
 		rr = rrset[i];
 #endif
-	if (section != rr.section)
-		fprintf(stdout, "\n;; [%s:%d]\n", dns_strsection(rr.section), dns_p_count(Q, rr.section));
+		if (section != rr.section)
+			fprintf(stdout, "\n;; [%s:%d]\n", dns_strsection(rr.section), dns_p_count(Q, rr.section));
 
-	if ((len = dns_rr_print(pretty, sizeof pretty, &rr, Q, &error))) fprintf(stdout, "%s\n", pretty);
+		if ((len = dns_rr_print(pretty, sizeof pretty, &rr, Q, &error))) fprintf(stdout, "%s\n", pretty);
 
-	section = rr.section;
-}
+		section = rr.section;
+	}
 
-if (MAIN.verbose > 1) {
-	fprintf(stderr, "orig:%" PRIuZ "\n", P->end);
-	hexdump(P->data, P->end, stdout);
+	if (MAIN.verbose > 1) {
+		fprintf(stderr, "orig:%" PRIuZ "\n", P->end);
+		hexdump(P->data, P->end, stdout);
 
-	fprintf(stderr, "copy:%" PRIuZ "\n", Q->end);
-	hexdump(Q->data, Q->end, stdout);
-}
+		fprintf(stderr, "copy:%" PRIuZ "\n", Q->end);
+		hexdump(Q->data, Q->end, stdout);
+	}
 
-return 0;
+	return 0;
 } /* parse_packet() */
 
 static int parse_domain(int argc, char *argv[]) {

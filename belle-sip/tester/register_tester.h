@@ -16,12 +16,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+BELLE_SIP_BEGIN_DECLS
 
+extern const char *belle_sip_tester_client_cert;
+extern const char *belle_sip_tester_client_cert_fingerprint;
+extern const char *belle_sip_tester_private_key;
+extern const char *belle_sip_tester_private_key_passwd;
 extern belle_sip_stack_t *stack;
 extern belle_sip_provider_t *prov;
-extern const char *test_domain;
 extern int register_before_all(void);
 extern int register_after_all(void);
+
 extern belle_sip_request_t *register_user(belle_sip_stack_t *stack,
                                           belle_sip_provider_t *prov,
                                           const char *transport,
@@ -36,4 +41,6 @@ extern belle_sip_client_transaction_t *register_user_with_transaction(belle_sip_
 extern void unregister_user(belle_sip_stack_t *stack,
                             belle_sip_provider_t *prov,
                             belle_sip_request_t *initial_request,
-                            int use_transaction);
+                            int use_transaction,
+                            const char *outbound);
+BELLE_SIP_END_DECLS

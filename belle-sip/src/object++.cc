@@ -20,11 +20,63 @@
 #include "belle-sip/object++.hh"
 #include "belle_sip_internal.h"
 
+#include <mutex>
+#include <unordered_set>
+
 #ifdef __GNUC__
 #include <cxxabi.h>
 #endif
 
 namespace bellesip {
+
+/*
+ * Leak detector structure. The initialization and deinitialisation are not thread-safe.
+ * Test programs must ensure that there is only one thread at first use
+ * and one thread at last use (when calling belle_sip_object_flush_active_objects())
+ */
+class ObjectLeakDetector {
+public:
+	static ObjectLeakDetector &get() {
+		if (!sInstance) sInstance.reset(new ObjectLeakDetector());
+		return *sInstance;
+	}
+	void add(belle_sip_object_t *obj) {
+		std::lock_guard<std::recursive_mutex> lk(mMutex);
+		mObjects.insert(obj);
+	}
+	void remove(belle_sip_object_t *obj) {
+		std::lock_guard<std::recursive_mutex> lk(mMutex);
+		mObjects.erase(obj);
+	}
+	size_t count() {
+		std::lock_guard<std::recursive_mutex> lk(mMutex);
+		return mObjects.size();
+	}
+	void flushActiveObjects() {
+		// do not free objects so that they are still detected as leaked by valgrind and such
+		mMutex.lock();
+		mObjects.clear();
+		mMutex.unlock();
+		sInstance.reset();
+	}
+	void dumpActiveObjects() {
+		std::lock_guard<std::recursive_mutex> lk(mMutex);
+		belle_sip_warning("List of leaked objects:");
+		for (auto &obj : mObjects) {
+			char *content = belle_sip_object_to_string(obj);
+			belle_sip_warning("%s(%p) ref=%i, content [%10s...]", belle_sip_object_vptr_get_type_name(obj), obj,
+			                  obj->ref, content);
+			belle_sip_free(content);
+		}
+	}
+
+private:
+	std::recursive_mutex mMutex;
+	std::unordered_set<belle_sip_object_t *> mObjects;
+	static std::unique_ptr<ObjectLeakDetector> sInstance;
+};
+
+std::unique_ptr<ObjectLeakDetector> ObjectLeakDetector::sInstance;
 
 class ObjectCAccessors {
 public:
@@ -162,6 +214,26 @@ const char *belle_sip_cpp_object_get_type_name(const belle_sip_object_t *obj) {
 
 const void *belle_sip_cpp_object_get_address(const belle_sip_object_t *obj) {
 	return bellesip::ObjectCAccessors::getCppAddress(obj);
+}
+
+void belle_sip_object_add_to_leak_detector(belle_sip_object_t *obj) {
+	bellesip::ObjectLeakDetector::get().add(obj);
+}
+
+void belle_sip_object_remove_from_leak_detector(belle_sip_object_t *obj) {
+	bellesip::ObjectLeakDetector::get().remove(obj);
+}
+
+int belle_sip_object_get_object_count(void) {
+	return (int)bellesip::ObjectLeakDetector::get().count();
+}
+
+void belle_sip_object_flush_active_objects(void) {
+	bellesip::ObjectLeakDetector::get().flushActiveObjects();
+}
+
+void belle_sip_object_dump_active_objects(void) {
+	bellesip::ObjectLeakDetector::get().dumpActiveObjects();
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_cpp_object_t);

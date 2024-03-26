@@ -20,17 +20,190 @@
 #ifndef BELLE_SIP_TESTER_UTILS_H
 #define BELLE_SIP_TESTER_UTILS_H
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
+#define MULTIPART_BOUNDARY "---------------------------14737809831466499882746641449"
 
 #ifdef __cplusplus
-extern "C" {
-#endif
+#include "httplib.h"
+#include <list>
+#include <map>
+#include <set>
+#include <thread>
 
-bool_t belle_sip_is_executable_installed(const char *executable, const char *resource);
-void belle_sip_add_belr_grammar_search_path(const char *path);
+namespace bellesip {
+class BasicSipAgent;
 
-#ifdef __cplusplus
-}
+class BELLESIP_EXPORT Module {
+public:
+	Module(){};
+	virtual ~Module(){};
+	virtual bool onRequest(const belle_sip_request_event_t *event);
+	virtual bool onResponse(const belle_sip_response_event_t *event);
+	virtual BasicSipAgent &getAgent() = 0;
+};
+
+class BELLESIP_EXPORT BasicSipAgent {
+public:
+	BasicSipAgent(std::string domain, std::string transport = "UDP");
+	virtual ~BasicSipAgent();
+	const belle_sip_uri_t *getListeningUri();
+	std::string getListeningUriAsString();
+	belle_sip_stack_t *getStack() {
+		return mStack;
+	};
+	belle_sip_provider_t *getProv() {
+		return mProv;
+	};
+	;
+	std::string &getDomain() {
+		return mDomain;
+	};
+	void addModule(Module *module);
+	const std::list<Module *> &getModules() const {
+		return mModules;
+	}
+
+private:
+	static void process_dialog_terminated(void *user_ctx, const belle_sip_dialog_terminated_event_t *event);
+	static void process_io_error(void *user_ctx, const belle_sip_io_error_event_t *event);
+	static void process_request_event(void *user_ctx, const belle_sip_request_event_t *event);
+	static void process_response_event(void *user_ctx, const belle_sip_response_event_t *event);
+	static void process_timeout(void *user_ctx, const belle_sip_timeout_event_t *event);
+	std::list<Module *> mModules;
+	belle_sip_stack_t *mStack;
+	belle_sip_provider_t *mProv;
+	belle_sip_listener_t *mListener;
+	belle_sip_listening_point_t *mListeningPoint;
+	belle_sip_listener_callbacks_t mListenerCallbacks;
+	std::string mDomain;
+	std::thread mSrvThread;
+};
+
+/**
+ * @brief Basic sip registrar server.
+ *
+ *
+ * sample of use:
+ * 	BasicRegistrar registrar("sipopen.example.org","UDP");
+ *
+ *	belle_sip_request_t *req = req = belle_sip_request_create(belle_sip_uri_parse("sip:anyuser@sipopen.example.org")
+ *															  , "REGISTER"
+ *															  ,	belle_sip_provider_create_call_id(prov)
+ *															  , belle_sip_header_cseq_create(20, "REGISTER"),
+ *															  , belle_sip_header_from_create2(identity,
+ *BELLE_SIP_RANDOM_TAG) ,	belle_sip_header_to_create2(identity, NULL) , belle_sip_header_via_new(), 70);
+ *
+ *	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+ *BELLE_SIP_HEADER(belle_sip_header_route_parse((registrar.getAgent().getListeningUriAsString())));
+ *	belle_sip_provider_send_request(prov, req,);
+ *
+ *
+ *
+ */
+class BELLESIP_EXPORT BasicRegistrar : public Module {
+public:
+	/**
+	 * @brief ctr
+	 * @param domain sip domain for wich registration request are accepted
+	 * @param sip transport registrar is listening to. Possible value are either "udp" or "tcp".
+	 */
+	BasicRegistrar(std::string domain, std::string transport = "UDP");
+	virtual BasicSipAgent &getAgent() override {
+		return mAgent;
+	};
+
+protected:
+	virtual bool onRequest(const belle_sip_request_event_t *event) override;
+
+private:
+	BasicSipAgent mAgent;
+};
+/**
+ * @brief Basic Authenticated sip registrar server.
+ * Derivated from @BasicRegistrar but with autheticated REGISTER.
+ *
+ *
+ * sample of use:
+ * 	AuthenticatedRegistrar registrar({"sip:user@sip.example.org;access_token=ae5fesycneb"}, "sip.example.org","TCP");
+ *	registrar.addAuthMode(BELLE_SIP_AUTH_MODE_HTTP_BEARER);
+
+ *
+ *	belle_sip_request_t *req = req = belle_sip_request_create(belle_sip_uri_parse("sip:user@sip.example.org")
+ *															  , "REGISTER"
+ *															  ,	belle_sip_provider_create_call_id(prov)
+ *															  , belle_sip_header_cseq_create(20, "REGISTER"),
+ *															  , belle_sip_header_from_create2(identity,
+ BELLE_SIP_RANDOM_TAG) *															  ,
+ belle_sip_header_to_create2(identity, NULL) *															  ,
+ belle_sip_header_via_new(), 70);
+ *
+ *	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+ BELLE_SIP_HEADER(belle_sip_header_authorisation_parse("sip:Authorizarion: Bearer ae5fesycneb)));
+ belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+ BELLE_SIP_HEADER(belle_sip_header_route_parse((registrar.getAgent().getListeningUriAsString())));
+ *
+ belle_sip_provider_send_request(prov, req,);
+ *
+ *
+ *
+ */
+
+class BELLESIP_EXPORT AuthenticatedRegistrar : public Module {
+public:
+	class Nonce {
+		std::string value;
+		// unsigned int count = 0;
+	};
+	/**
+	 * @brief ctr
+	 * @param users_uri list of uris representing users. For digest auth, username and password must be filled. For
+	 * Bearer, acces_token parameter shal be provided. ex for Digest: sip:user:secret@sip.example.org ex for Bearer:
+	 * sip:user@sip.example.org;access_token=ae5fesycneb
+	 * @param domain sip domain for wich registration request are accepted
+	 * @param sip transport registrar is listening to. Possible value are either "udp" or "tcp".
+	 */
+	AuthenticatedRegistrar(std::set<std::string> users_uri, std::string domain, std::string transport = "UDP");
+	virtual ~AuthenticatedRegistrar(){};
+	/*
+	 Configure auth mode, currently only Digest and Bearer are implemented
+	 */
+	void addAuthMode(belle_sip_auth_mode_t mode);
+	void setAuthzServer(const std::string &authzServer);
+	virtual BasicSipAgent &getAgent() override {
+		return mRegistrar.getAgent();
+	};
+
+private:
+	virtual bool onRequest(const belle_sip_request_event_t *event) override;
+	std::map<std::string, belle_sip_uri_t *> mAuthorizedUsers;
+	std::set<belle_sip_auth_mode_t> mAuthMode;
+	std::map<std::string, Nonce> mNonces;
+	std::string mAuthzServer;
+	BasicRegistrar mRegistrar;
+};
+
+/*
+ *Not impelmented yet
+ */
+class BELLESIP_EXPORT ProxyRegistrar : BasicRegistrar {
+	ProxyRegistrar(std::string domain, std::string transport = "UDP");
+	virtual ~ProxyRegistrar(){};
+};
+
+// HTTP
+class BELLESIP_EXPORT HttpServer : public httplib::Server {
+public:
+	HttpServer();
+	~HttpServer();
+	std::string mListeningPort;
+	std::string mRootUrl;
+
+private:
+	std::thread mSrvThread;
+};
+
+} // namespace bellesip
 #endif
 
 #endif // BELLE_SIP_TESTER_UTILS_H

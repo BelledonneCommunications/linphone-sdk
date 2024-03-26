@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle_sip_internal.h"
 #include "belle_sip_tester.h"
@@ -1232,7 +1233,7 @@ static void testHop(void) {
 }
 
 /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-test_t message_tests[] = {
+static test_t message_tests[] = {
     TEST_NO_TAG("REGISTER", testRegisterMessage),
     TEST_NO_TAG("INVITE", testInviteMessage),
     TEST_NO_TAG("INVITE with tel uri", testInviteMessageWithTelUri),
@@ -1265,12 +1266,12 @@ test_t message_tests[] = {
     TEST_NO_TAG("Get body size", testGetBody),
     TEST_NO_TAG("Create hop from uri", testHop)};
 
-test_suite_t message_test_suite = {"Message",
-                                   NULL,
-                                   NULL,
-                                   belle_sip_tester_before_each,
-                                   belle_sip_tester_after_each,
-                                   sizeof(message_tests) / sizeof(message_tests[0]),
-                                   message_tests,
-                                   0,
-                                   0};
+test_suite_t belle_sip_message_test_suite = {"Message",
+                                             NULL,
+                                             NULL,
+                                             belle_sip_tester_before_each,
+                                             belle_sip_tester_after_each,
+                                             sizeof(message_tests) / sizeof(message_tests[0]),
+                                             message_tests,
+                                             0,
+                                             0};

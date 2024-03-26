@@ -17,6 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "bctoolbox/tester.h"
 #include "belle-sip/belle-sip.h"
 #include "belle-sip/object.h"
 #include "belle_sip_internal.h"
@@ -285,10 +286,10 @@ static void test_truncated_compressed_body(void) {
 	belle_sip_object_unref(mbh);
 }
 
-test_t core_tests[] = {TEST_NO_TAG("Object Data", test_object_data),
-                       TEST_NO_TAG("Presence marshal", test_presence_marshal),
-                       TEST_NO_TAG("Compressed body", test_compressed_body),
-                       TEST_NO_TAG("Truncated compressed body", test_truncated_compressed_body)};
+static test_t core_tests[] = {TEST_NO_TAG("Object Data", test_object_data),
+                              TEST_NO_TAG("Presence marshal", test_presence_marshal),
+                              TEST_NO_TAG("Compressed body", test_compressed_body),
+                              TEST_NO_TAG("Truncated compressed body", test_truncated_compressed_body)};
 
 test_suite_t core_test_suite = {"Core",
                                 NULL,
