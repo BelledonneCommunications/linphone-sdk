@@ -23,7 +23,6 @@
 set(LIBS )
 
 set(BELR_HEADER_FILES )
-set(BELR_SOURCE_FILES_C )
 set(BELR_SOURCE_FILES_CXX
 	abnf.cpp
 	belr.cpp
@@ -32,14 +31,13 @@ set(BELR_SOURCE_FILES_CXX
 	binarystream.cpp
 )
 
-bc_apply_compile_flags(BELR_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(BELR_SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 
 if(WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	list(APPEND LIBS ws2_32 Iphlpapi)
 endif()
 
-add_library(belr ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_C} ${BELR_SOURCE_FILES_CXX})
+add_library(belr ${BELR_HEADER_FILES} ${BELR_SOURCE_FILES_CXX})
 set_target_properties(belr PROPERTIES VERSION ${BELR_SO_VERSION})
 target_include_directories(belr INTERFACE
 	$<INSTALL_INTERFACE:include>

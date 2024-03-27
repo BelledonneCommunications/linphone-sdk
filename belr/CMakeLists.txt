@@ -52,6 +52,8 @@ endif()
 # find_package should be invoked here to check for libraries - however do NOT
 # call include_directories here (see below)
 find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+#Mandatory to init default compilation flags
+bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 
 set(LINK_FLAGS )
 
@@ -65,38 +67,6 @@ include_directories(
 	src
 	${CMAKE_CURRENT_BINARY_DIR}
 )
-
-set(STRICT_OPTIONS_CPP )
-set(STRICT_OPTIONS_C )
-set(STRICT_OPTIONS_CXX )
-set(STRICT_OPTIONS_OBJC )
-if(MSVC)
-	if(ENABLE_STRICT)
-		list(APPEND STRICT_OPTIONS_CPP "/WX")
-	endif()
-else()
-	list(APPEND STRICT_OPTIONS_CPP "-Wall" "-Wuninitialized" "-Wno-error=deprecated-declarations")
-	list(APPEND STRICT_OPTIONS_C "-Wdeclaration-after-statement" "-Wstrict-prototypes" "-Wno-error=strict-prototypes")
-	if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-		list(APPEND STRICT_OPTIONS_CPP "-Qunused-arguments" "-Wno-array-bounds")
-	endif()
-	if(APPLE)
-		list(APPEND STRICT_OPTIONS_CPP "-Wno-error=unknown-warning-option" "-Qunused-arguments" "-Wno-tautological-compare" "-Wno-unused-function" "-Wno-array-bounds")
-	endif()
-	if(ENABLE_STRICT)
-		list(APPEND STRICT_OPTIONS_CPP "-Werror" "-Wextra" "-Wunused-parameter" "-fno-strict-aliasing")
-		CHECK_CXX_COMPILER_FLAG("-Wsuggest-override" SUGGEST_OVERRIDE)
-		if(SUGGEST_OVERRIDE)
-			list(APPEND STRICT_OPTIONS_CPP "-Wsuggest-override -Werror=suggest-override")
-		endif()
-	endif()
-endif()
-if(STRICT_OPTIONS_CPP)
-	list(REMOVE_DUPLICATES STRICT_OPTIONS_CPP)
-endif()
-if(STRICT_OPTIONS_C)
-	list(REMOVE_DUPLICATES STRICT_OPTIONS_C)
-endif()
 
 set(BELR_CPPFLAGS )
 if(NOT BUILD_SHARED_LIBS)
