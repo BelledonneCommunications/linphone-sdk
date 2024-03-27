@@ -164,6 +164,8 @@ struct _MediaStream {
 	bool_t local_mix_conference; /**< true when this client stream is part of a conference perfoming mix locally -
 	                                conference server uses transfer session to forward the RTP packet not just the
 	                                payload */
+	bool_t transfer_mode; /** When enable and the session is part of a bundle, a new SSRC detected on outgoing packet
+	                                will create a new RTP Session in transfer mode */
 };
 
 MS2_PUBLIC void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStreamSessions *sessions);
@@ -447,6 +449,13 @@ MS2_PUBLIC uint32_t media_stream_get_send_ssrc(const MediaStream *stream);
  */
 MS2_PUBLIC void media_stream_enable_conference_local_mix(MediaStream *stream, bool_t enabled);
 
+/**
+ * When the stream is in transfer mode, new RTP Sessions are generated
+ * when a new SSRC is detected in an outgoing packet
+ * to be done before start
+ */
+MS2_PUBLIC void media_stream_enable_transfer_mode(MediaStream *stream, bool_t enable);
+
 typedef enum EchoLimiterType { ELInactive, ELControlMic, ELControlFull } EchoLimiterType;
 
 typedef enum EqualizerLocation { MSEqualizerHP = 0, MSEqualizerMic } EqualizerLocation;
@@ -594,8 +603,6 @@ struct _AudioStream {
 	uint32_t active_speaker_ssrc;
 	MSAudioRouteChangedCallback audio_route_changed_cb;
 	void *audio_route_changed_cb_user_data;
-	bool_t transfer_mode; /** When enable and the session is part of a bundle, a new SSRC detected on outgoing packet
-	                         will create a new RTP Session in transfer mode */
 	bctbx_list_t *bundled_recv_branches; /**< a list of AudioStreamMixedRecvBranch added upon reception of new stream in
 	                                      a locally mixed audio conference */
 };
@@ -1104,12 +1111,6 @@ MS2_PUBLIC uint32_t audio_stream_get_recv_ssrc(const AudioStream *stream);
  */
 MS2_PUBLIC uint32_t audio_stream_get_send_ssrc(const AudioStream *stream);
 
-/**
- * When the stream is in transfer mode, new RTP Sessions are generated
- * when a new SSRC is detected in an outgoing packet
- * to be done before start
- *  */
-MS2_PUBLIC void audio_stream_enable_transfer_mode(AudioStream *stream, bool_t enable);
 /* Map api to be able to keep participants volumes */
 typedef struct _AudioStreamVolumes AudioStreamVolumes;
 
@@ -1133,6 +1134,51 @@ MS2_PUBLIC void audio_stream_volumes_populate_audio_levels(AudioStreamVolumes *v
 
 MS2_PUBLIC bool_t audio_stream_volumes_is_speaking(AudioStreamVolumes *volumes);
 MS2_PUBLIC uint32_t audio_stream_volumes_get_best(AudioStreamVolumes *volumes);
+
+/**
+ * Asks the audio playback filter to route to the selected device (currently only used for blackberry)
+ * @param[in] stream The AudioStream object
+ * @param[in] route The wanted audio output device (earpiece, speaker)
+ */
+MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route);
+
+/**
+ *  Set a callback to be called when an audio route change is notified (IOS only)
+ * @param[in] stream The AudioStream object
+ * @param[in] callback The function to call when receiving the route change event
+ * @param[in] audio_route_changed_cb_user_data Context for the callback
+ */
+MS2_PUBLIC void audio_stream_set_audio_route_changed_callback(AudioStream *stream,
+                                                              MSAudioRouteChangedCallback callback,
+                                                              void *audio_route_changed_cb_user_data);
+/**
+ * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ * @param[in] sndcard_capture The wanted audio input soundcard
+ * @return '0' if MS_AUDIO_CAPTURE_SET_INTERNAL_ID has been successfully called, '-1' if not
+ */
+MS2_PUBLIC int audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard *sndcard_capture);
+
+/**
+ * Asks the audio playback filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ * @param[in] sndcard_playback The wanted audio output soundcard
+ * @return '0' if MS_AUDIO_PLAYBACK_SET_INTERNAL_ID has been successfully called, '-1' if not
+ */
+MS2_PUBLIC int audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard *sndcard_playback);
+
+/**
+ * Retrieve the current sound card from the audio capture filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ */
+MS2_PUBLIC MSSndCard *audio_stream_get_input_ms_snd_card(AudioStream *stream);
+
+/**
+ * Retrieve the current sound card from the audio playback filter (currently only used for AAudio and OpenSLES)
+ * @param[in] stream The AudioStream object
+ */
+MS2_PUBLIC MSSndCard *audio_stream_get_output_ms_snd_card(AudioStream *stream);
+
 /**
  * @}
  **/
@@ -1247,6 +1293,7 @@ struct _VideoStream {
 	bool_t is_thumbnail; /* if TRUE, the stream is generated from ItcResource and is SizeConverted */
 	FecStream *fec_stream;
 	bool_t local_screen_sharing_enabled;
+	bool_t active_speaker_mode;
 };
 
 typedef struct _VideoStream VideoStream;
@@ -1733,48 +1780,11 @@ MS2_PUBLIC MSWebCamDesc *ms_mire_webcam_desc_get(void);
 MS2_PUBLIC RtpSession *ms_create_duplex_rtp_session(const char *local_ip, int loc_rtp_port, int loc_rtcp_port, int mtu);
 
 /**
- * Asks the audio playback filter to route to the selected device (currently only used for blackberry)
- * @param[in] stream The AudioStream object
- * @param[in] route The wanted audio output device (earpiece, speaker)
+ * Enable/Disable the active speaker mode for the stream.
+ * @param[in] stream The stream.
+ * @param[in] enable TRUE to enable active speaker mode, FALSE otherwise.
  */
-MS2_PUBLIC void audio_stream_set_audio_route(AudioStream *stream, MSAudioRoute route);
-
-/**
- *  Set a callback to be called when an audio route change is notified (IOS only)
- * @param[in] stream The AudioStream object
- * @param[in] callback The function to call when receiving the route change event
- * @param[in] audio_route_changed_cb_user_data Context for the callback
- */
-MS2_PUBLIC void audio_stream_set_audio_route_changed_callback(AudioStream *stream,
-                                                              MSAudioRouteChangedCallback callback,
-                                                              void *audio_route_changed_cb_user_data);
-/**
- * Asks the audio capture filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
- * @param[in] stream The AudioStream object
- * @param[in] sndcard_capture The wanted audio input soundcard
- * @return '0' if MS_AUDIO_CAPTURE_SET_INTERNAL_ID has been successfully called, '-1' if not
- */
-MS2_PUBLIC int audio_stream_set_input_ms_snd_card(AudioStream *stream, MSSndCard *sndcard_capture);
-
-/**
- * Asks the audio playback filter to route to the selected sound card (currently only used for AAudio and OpenSLES)
- * @param[in] stream The AudioStream object
- * @param[in] sndcard_playback The wanted audio output soundcard
- * @return '0' if MS_AUDIO_PLAYBACK_SET_INTERNAL_ID has been successfully called, '-1' if not
- */
-MS2_PUBLIC int audio_stream_set_output_ms_snd_card(AudioStream *stream, MSSndCard *sndcard_playback);
-
-/**
- * Retrieve the current sound card from the audio capture filter (currently only used for AAudio and OpenSLES)
- * @param[in] stream The AudioStream object
- */
-MS2_PUBLIC MSSndCard *audio_stream_get_input_ms_snd_card(AudioStream *stream);
-
-/**
- * Retrieve the current sound card from the audio playback filter (currently only used for AAudio and OpenSLES)
- * @param[in] stream The AudioStream object
- */
-MS2_PUBLIC MSSndCard *audio_stream_get_output_ms_snd_card(AudioStream *stream);
+MS2_PUBLIC void video_stream_enable_active_speaker_mode(VideoStream *stream, bool_t enable);
 
 /**
  * @}

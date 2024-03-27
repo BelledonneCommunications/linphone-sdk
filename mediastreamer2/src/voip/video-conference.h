@@ -60,6 +60,7 @@ public:
 	int mIsRemote = 0;
 	int mLastTmmbrReceived = 0; /*Value in bits/s */
 	int mLinkSource = -1;
+	MSConferenceMode mConferenceMode;
 };
 
 class VideoConferenceAllToAll {
@@ -67,6 +68,8 @@ class VideoConferenceAllToAll {
 public:
 	VideoConferenceAllToAll(MSFactory *f, const MSVideoConferenceParams *params);
 	~VideoConferenceAllToAll();
+
+	const MSVideoConferenceParams &getConferenceParams() const;
 
 	int getSize() const;
 	const bctbx_list_t *getMembers() const;

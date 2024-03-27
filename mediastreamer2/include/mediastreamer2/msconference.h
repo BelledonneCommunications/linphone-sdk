@@ -57,8 +57,8 @@ typedef enum {
  * MSConferenceModeRouterFullPacket: The conference will route the streams without any modification, decoding and
  * re-encoding. This mode will only send the relevant streams.
  *
- * Be careful, the MSConferenceModeRouterPayload is meant to work (for now) for ONLY 2 participants. It can route more
- * but it is not yet implemented client-side.
+ * Be careful, the MSConferenceModeRouterPayload is meant to work (for now) for ONLY 2 participants in audio
+ *conferences. It can route more but it is not yet implemented client-side.
  **/
 typedef enum {
 	MSConferenceModeMixer,
@@ -342,6 +342,7 @@ struct _MSVideoConferenceParams {
 	int min_switch_interval;
 	MSStreamSecurityLevel security_level;
 	const char *codec_mime_type;
+	MSConferenceMode mode;
 };
 
 /**
@@ -472,7 +473,8 @@ MS2_PUBLIC void ms_video_conference_destroy(MSVideoConference *obj);
  * MSVideoEndpoint *local_endpoint=ms_video_endpoint_get_from_stream(st,FALSE);
  * </PRE>
  **/
-MS2_PUBLIC MSVideoEndpoint *ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote);
+MS2_PUBLIC MSVideoEndpoint *
+ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote, MSConferenceMode conf_mode);
 
 /**
  * Associate a user pointer to the endpoint.

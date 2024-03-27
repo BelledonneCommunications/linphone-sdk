@@ -228,6 +228,12 @@ void Av1Encoder::encoderThread() {
 				memcpy(out->b_wptr, pkt->data.frame.buf, pkt->data.frame.sz);
 				out->b_wptr += pkt->data.frame.sz;
 				mblk_set_timestamp_info(out, mblk_get_timestamp_info(data));
+				mblk_set_independent_flag(out, (pkt->data.frame.flags & AOM_FRAME_IS_KEY ||
+				                                        pkt->data.frame.flags & AOM_FRAME_IS_INTRAONLY ||
+				                                        pkt->data.frame.flags & AOM_FRAME_IS_SWITCH
+				                                    ? 0x1
+				                                    : 0x0));
+				mblk_set_discardable_flag(out, (pkt->data.frame.flags & AOM_FRAME_IS_DROPPABLE ? 0x1 : 0x0));
 
 				lock_guard<mutex> guard(mEncodedFramesMutex);
 				ms_queue_put(&mEncodedFrames, out);

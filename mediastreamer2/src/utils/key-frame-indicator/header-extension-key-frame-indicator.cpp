@@ -29,7 +29,7 @@ bool HeaderExtensionKeyFrameIndicator::isKeyFrame(mblk_t *frame) {
 
 	if (!rtp_get_frame_marker(frame, RTP_EXTENSION_FRAME_MARKING, &marker)) return false;
 
-	return marker & RTP_FRAME_MARKER_START;
+	return (marker & RTP_FRAME_MARKER_START) && (marker & RTP_FRAME_MARKER_INDEPENDENT);
 }
 
 } // namespace mediastreamer

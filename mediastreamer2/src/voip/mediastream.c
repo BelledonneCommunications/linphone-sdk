@@ -124,6 +124,7 @@ void media_stream_init(MediaStream *stream, MSFactory *factory, const MSMediaStr
 	}
 	media_stream_add_tmmbr_handler(stream, media_stream_tmmbr_received, stream);
 	stream->stun_allowed = TRUE;
+	stream->transfer_mode = FALSE;
 }
 
 void media_stream_set_log_tag(MediaStream *stream, const char *log_tag) {
@@ -259,8 +260,17 @@ void media_stream_free(MediaStream *stream) {
 		ms_dtls_srtp_set_stream_sessions(stream->sessions.dtls_context, NULL);
 	}
 
+	if (stream->sessions.auxiliary_sessions != NULL) {
+		for (bctbx_list_t *it = stream->sessions.auxiliary_sessions; it != NULL; it = it->next) {
+			RtpSession *aux = (RtpSession *)it->data;
+			if (aux != NULL) {
+				rtp_session_unregister_event_queues(aux);
+			}
+		}
+	}
 	if (stream->sessions.rtp_session != NULL)
 		rtp_session_unregister_event_queue(stream->sessions.rtp_session, stream->evq);
+
 	if (stream->evq != NULL) ortp_ev_queue_destroy(stream->evq);
 	if (stream->evd != NULL) ortp_ev_dispatcher_destroy(stream->evd);
 	if (stream->owns_sessions) ms_media_stream_sessions_uninit(&stream->sessions);
@@ -462,6 +472,29 @@ MediaStreamDir media_stream_get_direction(const MediaStream *stream) {
 	return stream->direction;
 }
 
+static void media_stream_process_event_queue(MediaStream *stream, OrtpEvQueue *q) {
+	OrtpEvent *ev = NULL;
+
+	while ((ev = ortp_ev_queue_get(q)) != NULL) {
+		OrtpEventType evt = ortp_event_get_type(ev);
+		if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
+			mblk_t *m = ortp_event_get_data(ev)->packet;
+			media_stream_process_rtcp(stream, m);
+		} else if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
+			ms_message("%s_stream_iterate[%p], local statistics available:"
+			           "\n\tLocal current jitter buffer size: %5.1fms",
+			           media_stream_type_str(stream), stream,
+			           rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
+		} else if (evt == ORTP_EVENT_STUN_PACKET_RECEIVED && stream->ice_check_list) {
+			ice_handle_stun_packet(stream->ice_check_list, stream->sessions.rtp_session, ortp_event_get_data(ev));
+		} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
+			ms_message("%s_stream_iterate[%p]: is %s ", media_stream_type_str(stream), stream,
+			           media_stream_secured(stream) ? "encrypted" : "not encrypted");
+		}
+		ortp_event_destroy(ev);
+	}
+}
+
 void media_stream_iterate(MediaStream *stream) {
 	time_t curtime = ms_time(NULL);
 
@@ -487,28 +520,11 @@ void media_stream_iterate(MediaStream *stream) {
 	if (stream->evd) {
 		ortp_ev_dispatcher_iterate(stream->evd);
 	}
-	if (stream->evq) {
-		OrtpEvent *ev = NULL;
 
-		while ((ev = ortp_ev_queue_get(stream->evq)) != NULL) {
-			OrtpEventType evt = ortp_event_get_type(ev);
-			if (evt == ORTP_EVENT_RTCP_PACKET_RECEIVED) {
-				mblk_t *m = ortp_event_get_data(ev)->packet;
-				media_stream_process_rtcp(stream, m);
-			} else if (evt == ORTP_EVENT_RTCP_PACKET_EMITTED) {
-				ms_message("%s_stream_iterate[%p], local statistics available:"
-				           "\n\tLocal current jitter buffer size: %5.1fms",
-				           media_stream_type_str(stream), stream,
-				           rtp_session_get_jitter_stats(stream->sessions.rtp_session)->jitter_buffer_size_ms);
-			} else if (evt == ORTP_EVENT_STUN_PACKET_RECEIVED && stream->ice_check_list) {
-				ice_handle_stun_packet(stream->ice_check_list, stream->sessions.rtp_session, ortp_event_get_data(ev));
-			} else if ((evt == ORTP_EVENT_ZRTP_ENCRYPTION_CHANGED) || (evt == ORTP_EVENT_DTLS_ENCRYPTION_CHANGED)) {
-				ms_message("%s_stream_iterate[%p]: is %s ", media_stream_type_str(stream), stream,
-				           media_stream_secured(stream) ? "encrypted" : "not encrypted");
-			}
-			ortp_event_destroy(ev);
-		}
+	if (stream->evq) {
+		media_stream_process_event_queue(stream, stream->evq);
 	}
+
 	if (stream->log_tag) bctbx_pop_log_tag(media_stream_id);
 }
 
@@ -979,6 +995,92 @@ void media_stream_print_summary(MediaStream *ms) {
 	}
 }
 
+/* Create a new RTP session copying the setting of the given one */
+RtpSession *media_stream_rtp_session_new_from_session(RtpSession *session, int mode) {
+	RtpSession *s = rtp_session_new(mode);
+	/* TODO: also copy IP and port? This is used only in bundle so it shall not be needed */
+	/* profile */
+	rtp_session_set_send_profile(s, rtp_session_get_send_profile(session));
+	rtp_session_set_recv_profile(s, rtp_session_get_recv_profile(session));
+
+	/* payload */
+	rtp_session_set_send_payload_type(s, rtp_session_get_send_payload_type(session));
+	rtp_session_set_recv_payload_type(s, rtp_session_get_recv_payload_type(session));
+
+	/* jitter settings */
+	if (rtp_session_jitter_buffer_enabled(session)) {
+		JBParameters jitter_params;
+		rtp_session_enable_jitter_buffer(s, TRUE);
+		rtp_session_get_jitter_buffer_params(session, &jitter_params);
+		rtp_session_set_jitter_buffer_params(s, &jitter_params);
+	} else {
+		rtp_session_enable_jitter_buffer(s, FALSE);
+	}
+	/* RTCP */
+	rtp_session_enable_rtcp(s, rtp_session_rtcp_enabled(session));
+	rtp_session_enable_rtcp_mux(s, rtp_session_rtcp_mux_enabled(session));
+
+	/* We want the auxiliary session to dispatch its events to the same recipients as the main session.
+	 * For that we simply register the main's RtpSession current event queues into the new auxiliary session.
+	 */
+	for (bctbx_list_t *it = session->eventqs; it != NULL; it = it->next) {
+		OrtpEvQueue *q = (OrtpEvQueue *)it->data;
+		if (q != NULL) rtp_session_register_event_queue(s, q);
+	}
+
+	return s;
+}
+
+void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpBundle *bundle = session->bundle;
+	RtpSession **newSession = (RtpSession **)s;
+	MediaStream *ms = (MediaStream *)userData;
+
+	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
+	 * Do not create a new session (-> packet drop) if :
+	 * - no MID in packet
+	 * - current session and packet MID do not match
+	 */
+	int midId = rtp_bundle_get_mid_extension_id(bundle);
+	uint8_t *mid = NULL;
+	char *sMid = NULL;
+	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
+	if (midSize == (size_t)-1) {
+		/* there is no MID in the incoming packet */
+		ms_warning("New outgoing SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
+		return;
+	} else {
+		sMid = bctbx_malloc0(midSize + 1);
+		memcpy(sMid, mid, midSize);
+		/* Check the mid in packet matches the stream's session one */
+		const char *streamMid = rtp_bundle_get_session_mid(session->bundle, ms->sessions.rtp_session);
+		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
+			ms_warning("New outgoing SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			           session, sMid, streamMid);
+			bctbx_free(sMid);
+			return;
+		}
+	}
+
+	if (*newSession != NULL) {
+		ms_error("New outgoing SSRC %u on session %p but the session has already been created", ssrc, session);
+		return;
+	}
+
+	/* create a new session copying param from the main one */
+	*newSession = media_stream_rtp_session_new_from_session(ms->sessions.rtp_session, RTP_SESSION_SENDONLY);
+	ms_message("New outgoing SSRC %u on session %p detected, create a new session %p", ssrc, session, *newSession);
+	rtp_session_enable_transfer_mode(*newSession, TRUE); // relay rtp session is in transfer mode
+	bctbx_free(sMid);
+
+	/* keep track of newly created session */
+	ms->sessions.auxiliary_sessions = bctbx_list_append(ms->sessions.auxiliary_sessions, *newSession);
+
+	/* this new session is associated to the outgoing SSRC */
+}
+
 uint32_t media_stream_get_send_ssrc(const MediaStream *stream) {
 	return rtp_session_get_send_ssrc(stream->sessions.rtp_session);
 }
@@ -1035,6 +1137,10 @@ void media_stream_create_fec_session(MediaStream *ms) {
 
 void media_stream_enable_conference_local_mix(MediaStream *stream, bool_t enabled) {
 	stream->local_mix_conference = enabled;
+}
+
+void media_stream_enable_transfer_mode(MediaStream *stream, bool_t enable) {
+	stream->transfer_mode = enable;
 }
 
 bool_t media_stream_fec_enabled(MediaStream *stream) {

@@ -113,6 +113,9 @@ void media_stream_remove_tmmbr_handler(MediaStream *stream,
 
 void media_stream_print_summary(MediaStream *ms);
 
+RtpSession *media_stream_rtp_session_new_from_session(RtpSession *session, int mode);
+void media_stream_on_outgoing_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData);
+
 MSSrtpCtx *ms_srtp_context_new(void);
 
 void register_video_preset_high_fps(MSVideoPresetsManager *manager);

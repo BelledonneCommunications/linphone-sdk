@@ -20,13 +20,15 @@
 
 #ifdef VIDEO_ENABLED
 #include "mediastreamer2/msconference.h"
+#include "mediastreamer2/msrtp.h"
 #include "video-conference.h"
 
 using namespace ms2;
 
 //------------------------------------------------------------------------------
-MSVideoEndpoint *ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote) {
+MSVideoEndpoint *ms_video_endpoint_get_from_stream(VideoStream *st, bool_t is_remote, MSConferenceMode conf_mode) {
 	VideoEndpoint *ep = new VideoEndpoint();
+	ep->mConferenceMode = conf_mode;
 	ep->cutVideoStreamGraph(is_remote, st);
 	return (MSVideoEndpoint *)ep;
 }
@@ -107,10 +109,12 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	if (mSt->source) ms_ticker_detach(mSt->ms.sessions.ticker, mSt->source);
 	if (mSt->ms.rtprecv && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly)
 		ms_ticker_detach(mSt->ms.sessions.ticker, mSt->ms.rtprecv);
+
 	mIsRemote = isRemote;
+
 	mInCutPointPrev.pin = 0;
 	if (isRemote && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly) {
-		/*we need to cut just after the rtp recveiver*/
+		/*we need to cut just after the rtp receiver*/
 		mInCutPointPrev.filter = mSt->ms.rtprecv;
 	} else if (!isRemote && media_stream_get_direction(&mSt->ms) != MediaStreamRecvOnly) {
 		/*we need to cut just after the encoder*/
@@ -128,6 +132,7 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	} else if (!isRemote && media_stream_get_direction(&mSt->ms) != MediaStreamSendOnly) {
 		mOutCutPoint.filter = mSt->ms.decoder;
 	}
+
 	if (mOutCutPoint.filter) {
 		mOutCutPointPrev = just_before(mOutCutPoint.filter);
 		ms_filter_unlink(mOutCutPointPrev.filter, mOutCutPointPrev.pin, mOutCutPoint.filter, mOutCutPoint.pin);
@@ -139,11 +144,26 @@ void VideoEndpoint::cutVideoStreamGraph(bool isRemote, VideoStream *st) {
 	/* Replaces own's MediaStream tmmbr handler by the video conference implementation.*/
 	media_stream_remove_tmmbr_handler((MediaStream *)mSt, media_stream_tmmbr_received, mSt);
 	media_stream_add_tmmbr_handler((MediaStream *)mSt, ms_video_endpoint_tmmbr_received, this);
+
+	if (mIsRemote && mConferenceMode == MSConferenceModeRouterFullPacket) {
+		bool_t enable = TRUE;
+		ms_filter_call_method(mSt->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
+		ms_filter_call_method(mSt->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
+		rtp_session_enable_transfer_mode(mSt->ms.sessions.rtp_session, TRUE);
+	}
 }
 
 void VideoEndpoint::redoVideoStreamGraph() {
+	if (mIsRemote && mConferenceMode == MSConferenceModeRouterFullPacket) {
+		bool_t enable = FALSE;
+		ms_filter_call_method(mSt->ms.rtpsend, MS_RTP_SEND_ENABLE_RTP_TRANSFER_MODE, &enable);
+		ms_filter_call_method(mSt->ms.rtprecv, MS_RTP_RECV_ENABLE_RTP_TRANSFER_MODE, &enable);
+		rtp_session_enable_transfer_mode(mSt->ms.sessions.rtp_session, FALSE);
+	}
+
 	media_stream_remove_tmmbr_handler((MediaStream *)mSt, ms_video_endpoint_tmmbr_received, this);
 	media_stream_add_tmmbr_handler((MediaStream *)mSt, media_stream_tmmbr_received, mSt);
+
 	if (mInCutPointPrev.filter)
 		ms_filter_link(mInCutPointPrev.filter, mInCutPointPrev.pin, mInCutPoint.filter, mInCutPoint.pin);
 	if (mOutCutPointPrev.filter)

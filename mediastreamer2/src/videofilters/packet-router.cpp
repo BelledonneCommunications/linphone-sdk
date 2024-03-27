@@ -121,8 +121,16 @@ void RouterVideoInput::update() {
 	mKeyFrameStart = nullptr;
 
 	for (mblk_t *m = ms_queue_peek_first(queue); !ms_queue_end(queue, m); m = ms_queue_peek_next(queue, m)) {
-		uint32_t newTimestamp = mblk_get_timestamp_info(m);
-		uint16_t newSeqNumber = mblk_get_cseq(m);
+		uint32_t newTimestamp;
+		uint16_t newSeqNumber;
+
+		if (mRouter->isFullPacketModeEnabled()) {
+			newTimestamp = rtp_get_timestamp(m);
+			newSeqNumber = rtp_get_seqnumber(m);
+		} else {
+			newTimestamp = mblk_get_timestamp_info(m);
+			newSeqNumber = mblk_get_cseq(m);
+		}
 
 		if (!mSeqNumberSet) {
 			mState = State::Stopped;
@@ -404,9 +412,8 @@ void RouterInputVideoSelector::select() {
 			if (videoOutput->mNextSource == -1) {
 				if (electNewSource(videoOutput) != -1) {
 					PackerRouterLogContextualizer prlc(mRouter);
-					ms_message(
-					    "PacketRouter: New source automatically selected for output pin [%d]: next source = [%i]", i,
-					    videoOutput->mNextSource);
+					ms_message("New source automatically selected for output pin [%d]: next source = [%i]", i,
+					           videoOutput->mNextSource);
 				}
 			}
 
@@ -422,7 +429,10 @@ void RouterInputVideoSelector::select() {
 
 						// The input just got a key frame, we can switch !
 						videoOutput->mCurrentSource = videoOutput->mNextSource;
-						mRouter->notifyOutputSwitched(eventData);
+
+						// We only notify if we are not in packet mode, as it is only for adding the csrc of the
+						// nextSource.
+						if (!mRouter->isFullPacketModeEnabled()) mRouter->notifyOutputSwitched(eventData);
 					} else {
 						// Else request a key frame
 						if (!videoInput->mKeyFrameRequested) {

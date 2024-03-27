@@ -606,6 +606,10 @@ static void add_frame_marking_extension(SenderData *d, mblk_t *header, mblk_t *i
 	rtp_add_frame_marker(header, d->frame_marking_extension_id, marker);
 }
 
+static void sender_add_extensions(SenderData *d, mblk_t *header, mblk_t *im) {
+	if (d->frame_marking_extension_id > 0) add_frame_marking_extension(d, header, im);
+}
+
 static void _sender_process(MSFilter *f) {
 	SenderData *d = (SenderData *)f->data;
 	RtpSession *s = d->session;
@@ -651,10 +655,14 @@ static void _sender_process(MSFilter *f) {
 
 			if (d->skip == FALSE && d->mute == FALSE) {
 				header = create_packet_with_volume_data_at_intervals(f);
+
 				rtp_set_markbit(header, mblk_get_marker_info(im));
-				if (d->frame_marking_extension_id > 0) add_frame_marking_extension(d, header, im);
+
+				sender_add_extensions(d, header, im);
+
 				header->b_cont = im;
 				mblk_meta_copy(im, header);
+
 				rtp_session_sendm_with_ts(s, header, timestamp);
 			} else if (d->mute == TRUE && d->skip == FALSE) {
 				process_cn(f, d, timestamp, im);
@@ -673,9 +681,6 @@ static void _sender_process(MSFilter *f) {
 	if (d->last_sent_time == -1) {
 		check_stun_sending(f);
 	}
-
-	/*every second, compute output bandwidth*/
-	if (f->ticker->time % 1000 == 0) rtp_session_compute_send_bandwidth(d->session);
 
 	if (f->ticker->time % 5000 == 0) {
 		print_processing_delay_stats(d);
@@ -994,8 +999,12 @@ static void receiver_check_for_csrc_change(MSFilter *f, mblk_t *m) {
 	ReceiverData *d = (ReceiverData *)f->data;
 	uint32_t csrc = 0;
 
+	// Check first for the csrc
 	if (rtp_get_cc(m) > 0) {
 		csrc = rtp_get_csrc(m, 0);
+	} else {
+		// If there is none then use the ssrc
+		csrc = rtp_get_ssrc(m);
 	}
 
 	if (csrc != d->last_csrc) {

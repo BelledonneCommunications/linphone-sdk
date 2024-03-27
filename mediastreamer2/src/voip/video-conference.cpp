@@ -57,6 +57,10 @@ extern "C" MSVideoConference *ms_video_conference_new(MSFactory *f, const MSVide
 	return (MSVideoConference *)(new VideoConferenceAllToAll(f, params));
 }
 
+extern "C" const MSVideoConferenceParams *ms_video_conference_get_params(MSVideoConference *obj) {
+	return &((VideoConferenceAllToAll *)obj)->getConferenceParams();
+}
+
 namespace ms2 {
 
 //-----------------------------------------------
@@ -222,8 +226,13 @@ VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConf
 
 	MSPacketRouterMode mode = MS_PACKET_ROUTER_MODE_VIDEO;
 	ms_filter_call_method(mMixer, MS_PACKET_ROUTER_SET_ROUTING_MODE, &mode);
+
 	fmt = ms_factory_get_video_format(f, params->codec_mime_type ? params->codec_mime_type : "VP8", vsize, 0, NULL);
 	ms_filter_call_method(mMixer, MS_FILTER_SET_INPUT_FMT, (void *)fmt);
+
+	bool_t full_packet = params->mode == MSConferenceModeRouterFullPacket ? TRUE : FALSE;
+	ms_filter_call_method(mMixer, MS_PACKET_ROUTER_SET_FULL_PACKET_MODE_ENABLED, &full_packet);
+
 	ms_filter_add_notify_callback(mMixer, on_filter_event, this, TRUE);
 	mCfparams = *params;
 
@@ -233,6 +242,10 @@ VideoConferenceAllToAll::VideoConferenceAllToAll(MSFactory *f, const MSVideoConf
 	ms_filter_link(mVoidSource, 0, mMixer, 0);
 	ms_filter_link(mMixer, 0, mVoidOutput, 0);
 	ms_ticker_attach(mTicker, mMixer);
+}
+
+const MSVideoConferenceParams &VideoConferenceAllToAll::getConferenceParams() const {
+	return mCfparams;
 }
 
 int VideoConferenceAllToAll::findFreeOutputPin() {

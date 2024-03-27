@@ -60,8 +60,8 @@ protected:
 	};
 
 	static ParsedObu parseNextObu(uint8_t *buf, size_t size);
-	void sendObus(std::vector<ParsedObu> &obus, MSQueue *output, uint32_t ts);
-	mblk_t *makePacket(uint8_t *buf, size_t size, bool Z, bool Y, bool N, bool M, uint32_t ts);
+	void sendObus(std::vector<ParsedObu> &obus, MSQueue *output, uint32_t ts, mblk_t *source);
+	mblk_t *makePacket(uint8_t *buf, size_t size, bool Z, bool Y, bool N, bool M, uint32_t ts, mblk_t *source);
 
 	size_t mMaxPayloadSize;
 	bool mAggregationEnabled = false;

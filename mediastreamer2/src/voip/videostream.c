@@ -109,6 +109,46 @@ static void video_stream_update_jitter_for_nack(const OrtpEventData *evd, VideoS
 	}
 }
 
+static void on_incoming_ssrc_in_bundle(RtpSession *session, void *mp, void *s, void *userData) {
+	mblk_t *m = (mblk_t *)mp;
+	uint32_t ssrc = rtp_get_ssrc(m);
+	RtpSession **newSession = (RtpSession **)s;
+	VideoStream *stream = (VideoStream *)userData;
+
+	/* fetch the MID from the packet and check it is in sync with the current RtpSession one
+	 * Do not create a new session (-> packet drop) if :
+	 * - no MID in packet
+	 * - current session and packet MID do not match
+	 */
+	int midId = rtp_bundle_get_mid_extension_id(session->bundle);
+	uint8_t *mid = NULL;
+	char *sMid = NULL;
+	size_t midSize = rtp_get_extension_header(m, midId != -1 ? midId : RTP_EXTENSION_MID, &mid);
+	if (midSize == (size_t)-1) {
+		/* there is no MID in the incoming packet */
+		ms_warning("New incoming SSRC %u on session %p but no MID found in the incoming packet", ssrc, session);
+		return;
+	} else {
+		sMid = bctbx_malloc0(midSize + 1);
+		memcpy(sMid, mid, midSize);
+		/* Check the mid in packet matches the stream's session one */
+		const char *streamMid = rtp_bundle_get_session_mid(session->bundle, stream->ms.sessions.rtp_session);
+		if ((strlen(streamMid) != midSize) || (memcmp(mid, streamMid, midSize) != 0)) {
+			ms_warning("New incoming SSRC %u on session %p but packet Mid %s differs from session mid %s", ssrc,
+			           session, sMid, streamMid);
+			bctbx_free(sMid);
+			return;
+		}
+	}
+
+	// Resync the session because we are changing the ssrc
+	rtp_session_resync(stream->ms.sessions.rtp_session);
+	*newSession = stream->ms.sessions.rtp_session;
+	ms_message("New incoming SSRC %u on session [%p] detected, resync the session", ssrc, session);
+
+	bctbx_free(sMid);
+}
+
 void video_stream_free(VideoStream *stream) {
 	bool_t rtp_source = FALSE;
 	bool_t rtp_output = FALSE;
@@ -130,6 +170,24 @@ void video_stream_free(VideoStream *stream) {
 	if (stream->nack_context) video_stream_enable_retransmission_on_nack(stream, FALSE);
 
 	if (stream->ms.video_quality_controller) ms_video_quality_controller_destroy(stream->ms.video_quality_controller);
+
+	if (stream->active_speaker_mode == TRUE) {
+		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
+		if (bundle) {
+			rtp_session_signal_disconnect_by_callback_and_user_data(rtp_bundle_get_primary_session(bundle),
+			                                                        "new_incoming_ssrc_found_in_bundle",
+			                                                        on_incoming_ssrc_in_bundle, stream);
+		}
+	}
+
+	if (stream->ms.transfer_mode == TRUE) {
+		RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
+		if (bundle) {
+			rtp_session_signal_disconnect_by_callback_and_user_data(
+			    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
+			    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms);
+		}
+	}
 
 	media_stream_free(&stream->ms);
 
@@ -244,6 +302,19 @@ static void video_stream_process_encoder_control(VideoStream *stream,
 	ms_filter_call_method(stream->ms.encoder, method_id, arg);
 }
 
+static bool_t video_stream_is_rtcp_ssrc_valid(VideoStream *stream, uint32_t ssrc) {
+	// Check first the send ssrc of the current RtpSession
+	if (ssrc == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) return TRUE;
+
+	// Then check auxiliary RtpSessions
+	for (bctbx_list_t *it = stream->ms.sessions.auxiliary_sessions; it != NULL; it = it->next) {
+		RtpSession *aux = (RtpSession *)it->data;
+		if (aux != NULL && ssrc == rtp_session_get_send_ssrc(aux)) return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m) {
 	VideoStream *stream = (VideoStream *)media_stream;
 	int i;
@@ -256,7 +327,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 			for (i = 0;; i++) {
 				rtcp_fb_fir_fci_t *fci = rtcp_PSFB_fir_get_fci(m, i);
 				if (fci == NULL) break;
-				if (rtcp_fb_fir_fci_get_ssrc(fci) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
+				if (video_stream_is_rtcp_ssrc_valid(stream, rtcp_fb_fir_fci_get_ssrc(fci))) {
 					uint8_t seq_nr = rtcp_fb_fir_fci_get_seq_nr(fci);
 					/* TODO: manage seq_nr and ignore FIR repeats to avoid flooding the encoder */
 					stream->encoder_control_cb(stream, MS_VIDEO_ENCODER_NOTIFY_FIR, &seq_nr,
@@ -275,7 +346,7 @@ static void video_stream_process_rtcp(MediaStream *media_stream, const mblk_t *m
 			return;
 		}
 
-		if (rtcp_PSFB_get_media_source_ssrc(m) == rtp_session_get_send_ssrc(stream->ms.sessions.rtp_session)) {
+		if (video_stream_is_rtcp_ssrc_valid(stream, rtcp_PSFB_get_media_source_ssrc(m))) {
 			switch (rtcp_PSFB_get_type(m)) {
 				case RTCP_PSFB_PLI:
 
@@ -531,6 +602,8 @@ VideoStream *video_stream_new_with_sessions(MSFactory *factory, const MSMediaStr
 	if (!stream->ms.video_quality_controller) {
 		stream->ms.video_quality_controller = ms_video_quality_controller_new(stream);
 	}
+
+	stream->active_speaker_mode = FALSE;
 
 	return stream;
 }
@@ -1378,6 +1451,29 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 				}
 			}
 			configure_video_source(stream, FALSE, TRUE);
+		}
+
+		if (stream->active_speaker_mode == TRUE) {
+			RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
+			if (bundle) {
+				// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
+				// session is removed too early.
+				rtp_session_signal_connect_from_source_session(
+				    rtp_bundle_get_primary_session(bundle), "new_incoming_ssrc_found_in_bundle",
+				    on_incoming_ssrc_in_bundle, stream, stream->ms.sessions.rtp_session);
+			}
+		}
+
+		if (stream->ms.transfer_mode == TRUE) {
+			rtp_session_set_mode(stream->ms.sessions.rtp_session, RTP_SESSION_RECVONLY);
+			RtpBundle *bundle = stream->ms.sessions.rtp_session->bundle;
+			if (bundle) {
+				// Use rtp_session_signal_connect_from_source_session so that the bundle can disconnect it if this
+				// session is removed too early.
+				rtp_session_signal_connect_from_source_session(
+				    rtp_bundle_get_primary_session(bundle), "new_outgoing_ssrc_found_in_bundle",
+				    media_stream_on_outgoing_ssrc_in_bundle, &stream->ms, stream->ms.sessions.rtp_session);
+			}
 		}
 
 		/* and then connect all */
@@ -2623,4 +2719,8 @@ bool_t video_stream_local_screen_sharing_enabled(VideoStream *stream) {
 
 void video_stream_enable_local_screen_sharing(VideoStream *stream, bool_t enable) {
 	stream->local_screen_sharing_enabled = enable;
+}
+
+void video_stream_enable_active_speaker_mode(VideoStream *stream, bool_t enable) {
+	stream->active_speaker_mode = enable;
 }
