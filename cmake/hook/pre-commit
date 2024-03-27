@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This hook verifies that the changes are formatted using clang-format.
 # It has to be installed in:
