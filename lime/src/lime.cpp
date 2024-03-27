@@ -97,13 +97,12 @@ namespace lime {
 		auto SPk = X3DH_generate_SPk(m_Ik, true);
 
 		// Generate (or load if they already are in base when publishing an inactive user) the OPks
-		std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
-		std::vector<uint32_t> OPk_ids{};
-		X3DH_generate_OPks(OPks, OPk_ids, OPkInitialBatchSize, true);
+		std::vector<OneTimePreKey<Curve>> OPks{};
+		X3DH_generate_OPks(OPks, OPkInitialBatchSize, true);
 
 		// Build and post the message to server
 		std::vector<uint8_t> X3DHmessage{};
-		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(), SPk, OPks, OPk_ids);
+		x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(), SPk, OPks);
 		postToX3DHServer(userData, X3DHmessage);
 	}
 
@@ -316,12 +315,12 @@ namespace lime {
 	extern template bool Lime<C255>::activate_user();
 	extern template void Lime<C255>::get_SelfIdentityKey();
 	extern template SignedPreKey<C255> Lime<C255>::X3DH_generate_SPk(const DSApair<C255> &Ik, const bool load);
-	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
+	extern template void Lime<C255>::X3DH_generate_OPks(std::vector<OneTimePreKey<C255>> &OPks, const uint16_t OPk_number, const bool load);
 	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	extern template SignedPreKey<C255> Lime<C255>::X3DH_get_SPk(uint32_t SPk_id);
 	extern template bool Lime<C255>::is_currentSPk_valid(void);
-	extern template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
+	extern template OneTimePreKey<C255> Lime<C255>::X3DH_get_OPk(uint32_t OPk_id);
 	extern template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	extern template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	extern template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
@@ -342,12 +341,12 @@ namespace lime {
 	extern template bool Lime<C448>::activate_user();
 	extern template void Lime<C448>::get_SelfIdentityKey();
 	extern template SignedPreKey<C448> Lime<C448>::X3DH_generate_SPk(const DSApair<C448> &Ik, const bool load);
-	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
+	extern template void Lime<C448>::X3DH_generate_OPks(std::vector<OneTimePreKey<C448>> &OPks, const uint16_t OPk_number, const bool load);
 	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	extern template SignedPreKey<C448> Lime<C448>::X3DH_get_SPk(uint32_t SPk_id);
 	extern template bool Lime<C448>::is_currentSPk_valid(void);
-	extern template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
+	extern template OneTimePreKey<C448> Lime<C448>::X3DH_get_OPk(uint32_t OPk_id);
 	extern template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	extern template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	extern template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);

@@ -911,8 +911,7 @@ SignedPreKey<Curve> Lime<Curve>::X3DH_generate_SPk(const DSApair<Curve> &Ik, con
 	// Generate a new ECDH Key pair
 	auto DH = make_keyExchange<Curve>();
 	DH->createKeyPair(m_RNG);
-	SignedPreKey<Curve> s{};
-	s.publicKey() = DH->get_selfPublic();
+	SignedPreKey<Curve> s(DH->get_selfPublic(), DH->get_secret());
 
 	// Sign the public key with our identity key
 	auto SPkSign = make_Signature<Curve>();
@@ -946,9 +945,8 @@ SignedPreKey<Curve> Lime<Curve>::X3DH_generate_SPk(const DSApair<Curve> &Ik, con
 		m_localStorage->sql<<"UPDATE X3DH_SPK SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1;", use(m_db_Uid);
 
 		blob SPk_blob(m_localStorage->sql);
-		SPk_blob.write(0, (const char *)s.publicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
-		SPk_blob.write(X<Curve, lime::Xtype::publicKey>::ssize(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
-		m_localStorage->sql<<"INSERT INTO X3DH_SPK(SPKid,SPK,Uid) VALUES (:SPKid,:SPK,:Uid) ", use(s.get_Id()), use(SPk_blob), use(m_db_Uid);
+		SPk_blob.write(0, (const char *)s.serialize().data(),  SignedPreKey<Curve>::serializedSize());
+		m_localStorage->sql<<"INSERT INTO X3DH_SPK(SPKid,SPK,Uid) VALUES (:SPKid,:SPK,:Uid) ", use(SPkId), use(SPk_blob), use(m_db_Uid);
 
 		tr.commit();
 	} catch (exception const &e) {
@@ -960,21 +958,18 @@ SignedPreKey<Curve> Lime<Curve>::X3DH_generate_SPk(const DSApair<Curve> &Ik, con
 /**
  * @brief Generate (or load) a batch of OPks, store them in local storage and return their public keys with their ids.
  *
- * @param[out]	publicOPks	A vector of all the generated (or loaded) OPks public keys, length shall be OPk_number unless keys are loaded from storage
- * @param[out]	OPk_ids		A vector of all keys ids, order match the one of the previous vector
+ * @param[out]	OPks		A vector of all the generated (or loaded) OPks
  * @param[in]	OPk_number	How many keys shall we generate. This parameter is ignored if the load flag is set and we find some keys to load
  * @param[in]	load		Flag, if set first try to load keys from storage to return them and if none found just generate the requested amount
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load) {
+void Lime<Curve>::X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load) {
 
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 	// make room for OPk and OPk ids
-	OPk_ids.clear();
-	publicOPks.clear();
-	publicOPks.reserve(OPk_number);
-	OPk_ids.reserve(OPk_number);
+	OPks.clear();
+	OPks.reserve(OPk_number);
 
 	// OPkIds must be random but unique, prepare them before insertion
 	std::set<uint32_t> activeOPkIds{};
@@ -998,55 +993,48 @@ void Lime<Curve>::X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey
 			OPk_id = id; // copy the id into the bind variable
 			st.execute(true);
 			if (m_localStorage->sql.got_data()) {
-				OPk_ids.push_back(OPk_id);
-				X<Curve, lime::Xtype::publicKey> OPk;
-				OPk_blob.read(0, (char *)(OPk.data()), OPk.size()); // Read the public key
-				publicOPks.push_back(OPk);
+				sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
+				OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
+				OPks.push_back(OneTimePreKey<Curve>(serializedOPk, OPk_id));
 			}
 		}
 
-		if (OPk_ids.size()>0) { // We found some OPks, all set then
+		if (OPks.size()>0) { // We found some OPks, all set then
 			return;
 		}
 	}
 
-	// we must create OPk_number new Ids
-	while (OPk_ids.size() < OPk_number){
+	// we must create OPk_number new OPks
+	// Create an key exchange context to create key pairs
+	auto DH = make_keyExchange<Curve>();
+	while (OPks.size() < OPk_number){
 		// Generate a random OPk Id
 		// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
 		uint32_t OPk_id = m_RNG->randomize();
 
-		if (activeOPkIds.insert(OPk_id).second) { // if this one wasn't in the set
-			OPk_ids.push_back(OPk_id);
+		if (activeOPkIds.insert(OPk_id).second) { // if this Id wasn't in the set, use it
+			// Generate a new ECDH Key pair
+			DH->createKeyPair(m_RNG);
+			// set in output vector
+			OPks.emplace_back(DH->get_selfPublic(), DH->get_secret(), OPk_id);
 		}
 	}
 
 	// Prepare DB statement
+	uint32_t OPk_id = 0;
 	transaction tr(m_localStorage->sql);
-	blob OPk(m_localStorage->sql);
-	uint32_t OPk_id;
-	statement st = (m_localStorage->sql.prepare << "INSERT INTO X3DH_OPK(OPKid, OPK,Uid) VALUES(:OPKid,:OPK,:Uid)", use(OPk_id), use(OPk), use(m_db_Uid));
-
-	// Create an key exchange context to create key pairs
-	auto DH = make_keyExchange<Curve>();
+	blob OPk_blob(m_localStorage->sql);
+	statement st = (m_localStorage->sql.prepare << "INSERT INTO X3DH_OPK(OPKid, OPK,Uid) VALUES(:OPKid,:OPK,:Uid)", use(OPk_id), use(OPk_blob), use(m_db_Uid));
 
 	try {
-		for (auto id : OPk_ids) { // loop on all ids
-			// Generate a new ECDH Key pair
-			DH->createKeyPair(m_RNG);
-
+		for (const auto &OPk : OPks) { // loop on all OPk
 			// Insert in DB: store Public Key || Private Key
-			OPk.write(0, (const char *)(DH->get_selfPublic().data()), X<Curve, lime::Xtype::publicKey>::ssize());
-			OPk.write(X<Curve, lime::Xtype::publicKey>::ssize(), (const char *)(DH->get_secret().data()), X<Curve, lime::Xtype::privateKey>::ssize());
-			OPk_id = id; // store also the key id
+			OPk_blob.write(0, (const char *)(OPk.serialize().data()), OneTimePreKey<Curve>::serializedSize());
+			OPk_id = OPk.get_Id(); // store also the key id
 			st.execute(true);
-
-			// set in output vector
-			publicOPks.emplace_back(DH->get_selfPublic());
 		}
 	} catch (exception &e) {
-		OPk_ids.clear();
-		publicOPks.clear();
+		OPks.clear();
 		tr.rollback();
 		throw BCTBX_EXCEPTION << "OPK insertion in DB failed. DB backend says : "<<e.what();
 	}
@@ -1189,16 +1177,17 @@ bool Lime<Curve>::is_currentSPk_valid(void) {
  * 	Note: once fetch, the OPk is deleted from localStorage
  *
  * @param[in]	OPk_id	Id of the OPk we're trying to fetch
- * @param[out]	OPk	The OPk if found
+ * @return The OPk if found
  */
 template <typename Curve>
-void Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk) {
+OneTimePreKey<Curve> Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 	blob OPk_blob(m_localStorage->sql);
 	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
 	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-		OPk_blob.read(0, (char *)(OPk.publicKey().data()), OPk.publicKey().size()); // Read the public key
-		OPk_blob.read(OPk.publicKey().size(), (char *)(OPk.privateKey().data()), OPk.privateKey().size()); // Read the private key
+		sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
+		OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
+		return OneTimePreKey<Curve>(serializedOPk, OPk_id);
 	} else {
 		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for OPk id "<<OPk_id<<" failed";
 	}
@@ -1272,12 +1261,12 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template bool Lime<C255>::activate_user();
 	template void Lime<C255>::get_SelfIdentityKey();
 	template SignedPreKey<C255> Lime<C255>::X3DH_generate_SPk(const DSApair<C255> &Ik, const bool load);
-	template void Lime<C255>::X3DH_generate_OPks(std::vector<X<C255, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
+	template void Lime<C255>::X3DH_generate_OPks(std::vector<OneTimePreKey<C255>> &OPks, const uint16_t OPk_number, const bool load);
 	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	template SignedPreKey<C255> Lime<C255>::X3DH_get_SPk(uint32_t SPk_id);
 	template bool Lime<C255>::is_currentSPk_valid(void);
-	template void Lime<C255>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C255> &SPk);
+	template OneTimePreKey<C255> Lime<C255>::X3DH_get_OPk(uint32_t OPk_id);
 	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
@@ -1288,12 +1277,12 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	template bool Lime<C448>::activate_user();
 	template void Lime<C448>::get_SelfIdentityKey();
 	template SignedPreKey<C448> Lime<C448>::X3DH_generate_SPk(const DSApair<C448> &Ik, const bool load);
-	template void Lime<C448>::X3DH_generate_OPks(std::vector<X<C448, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load);
+	template void Lime<C448>::X3DH_generate_OPks(std::vector<OneTimePreKey<C448>> &OPks, const uint16_t OPk_number, const bool load);
 	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
 	template SignedPreKey<C448> Lime<C448>::X3DH_get_SPk(uint32_t SPk_id);
 	template bool Lime<C448>::is_currentSPk_valid(void);
-	template void Lime<C448>::X3DH_get_OPk(uint32_t OPk_id, Xpair<C448> &SPk);
+	template OneTimePreKey<C448> Lime<C448>::X3DH_get_OPk(uint32_t OPk_id);
 	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
 	template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);

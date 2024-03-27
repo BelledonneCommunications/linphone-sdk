@@ -175,7 +175,7 @@ namespace lime {
 		 * @param[in]		OPk_ids		Ids of the OPk hold by previous vector(in matching indexes)
 		 */
 		template <typename Curve>
-		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const SignedPreKey<Curve> &SPk, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
+		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const SignedPreKey<Curve> &SPk, const std::vector<OneTimePreKey<Curve>> &OPks) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::registerUser, Curve::curveId());
 			// append the Ik
@@ -197,26 +197,17 @@ namespace lime {
 
 			// debug trace
 			ostringstream message_trace;
-			message_trace << hex << setfill('0') << "Outgoing X3DH registerUser message holds:"<<endl<<"    Ik:";
-			std::for_each(Ik.cbegin(), Ik.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
+			message_trace << hex << setfill('0') << "Outgoing X3DH registerUser message holds:"<<endl<<"    Ik: ";
+			hexStr(message_trace, Ik.data(), DSA<Curve, lime::DSAtype::publicKey>::ssize());
 
 			SPk.dump(message_trace, "    ");
 			message_trace << endl << dec << setfill('0') << "    " << static_cast<unsigned int>(OPkCount)<<" OPks."<< hex;
 
-			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
-				message.insert(message.end(), OPks[i].cbegin(), OPks[i].cend());
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>24)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>16)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>8)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i])&0xFF));
-
+			for (const auto &OPk : OPks) {
+				auto serializedOPk = OPk.serializePublic();
+				message.insert(message.end(), serializedOPk.cbegin(), serializedOPk.cend());
 				// debug trace
-				message_trace << endl <<"        OPk id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_ids[i]) <<"        OPk:";
-				std::for_each(OPks[i].cbegin(), OPks[i].cend(), [&message_trace] (unsigned int i) {
-					message_trace << setw(2) << i << ", ";
-				});
+				OPk.dump(message_trace);
 			}
 
 			LIME_LOGI<<message_trace.str();
@@ -256,10 +247,8 @@ namespace lime {
 
 			// debug trace
 			ostringstream message_trace;
-			message_trace << hex << setfill('0') << "Outgoing X3DH postSPk message holds:"<<endl<<"    SPk:";
-			std::for_each(serialSPk.cbegin(), serialSPk.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
+			message_trace << hex << setfill('0') << "Outgoing X3DH postSPk message holds:";
+			SPk.dump(message_trace);
 			LIME_LOGI<<message_trace.str();
 		}
 
@@ -272,10 +261,9 @@ namespace lime {
 		 *
 		 * @param[in,out]	message		an empty buffer to store the message
 		 * @param[in]		OPks		a vector of OPks to be published
-		 * @param[in]		OPk_ids		Id vector matching the order of the OPks vector
 		 */
 		template <typename Curve>
-		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept {
+		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<Curve>> &OPks) noexcept {
 			// create the header
 			message = X3DH_makeHeader(x3dh_message_type::postOPks, Curve::curveId());
 
@@ -295,18 +283,12 @@ namespace lime {
 			ostringstream message_trace;
 			message_trace << dec << setfill('0') << "Outgoing X3DH postOPks message holds "<< static_cast<unsigned int>(OPkCount)<<" OPks."<< hex;
 
-			for (decltype(OPkCount) i=0; i<OPkCount; i++) {
-				message.insert(message.end(), OPks[i].cbegin(), OPks[i].cend());
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>24)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>16)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i]>>8)&0xFF));
-				message.push_back(static_cast<uint8_t>((OPk_ids[i])&0xFF));
+			for (const auto &OPk : OPks) {
+				auto serializedOPk = OPk.serializePublic();
+				message.insert(message.end(), serializedOPk.cbegin(), serializedOPk.cend());
 
 				// debug trace
-				message_trace << endl <<"    OPk id: 0x"<< setw(8) << static_cast<unsigned int>(OPk_ids[i]) <<"    OPk:";
-				std::for_each(OPks[i].cbegin(), OPks[i].cend(), [&message_trace] (unsigned int i) {
-					message_trace << setw(2) << i << ", ";
-				});
+				OPk.dump(message_trace);
 			}
 
 			//debug trace
@@ -685,19 +667,19 @@ namespace lime {
 
 		/* Instanciate templated functions */
 #ifdef EC25519_ENABLED
-		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const SignedPreKey<C255> &SPk, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const SignedPreKey<C255> &SPk, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		template void buildMessage_deleteUser<C255>(std::vector<uint8_t> &message) noexcept;
 		template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const SignedPreKey<C255> &SPk) noexcept;
-		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
-		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C448> &SPk, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C448> &SPk, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		template void buildMessage_deleteUser<C448>(std::vector<uint8_t> &message) noexcept;
 		template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const SignedPreKey<C448> &SPk) noexcept;
-		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
 #endif
@@ -850,12 +832,11 @@ namespace lime {
 					// Check if we shall upload more packets
 					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
 						// generate and publish the OPks
-						std::vector<X<Curve, lime::Xtype::publicKey>> OPks{};
-						std::vector<uint32_t> OPk_ids{};
+						std::vector<OneTimePreKey<Curve>> OPks{};
 						// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
-						X3DH_generate_OPks(OPks, OPk_ids, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
+						X3DH_generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
 						std::vector<uint8_t> X3DHmessage{};
-						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks, OPk_ids);
+						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
 						postToX3DHServer(userData, X3DHmessage);
 					} else { /* nothing to do, just call the callback */
 						if (callback) callback(lime::CallbackReturn::success, "");

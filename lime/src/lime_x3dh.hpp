@@ -28,7 +28,6 @@
 
 namespace lime {
 
-	// Signed PreKey
 	/* The key type for Signed PreKey */
 	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
 	struct SignedPreKey;
@@ -105,5 +104,72 @@ namespace lime {
 				hexStr(os, m_Sig.data(),  DSA<Curve, lime::DSAtype::signature>::ssize());
 			}
 	};
+
+	/* The key type for One time PreKey */
+	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
+	struct OneTimePreKey;
+
+	template <typename Curve>
+	struct OneTimePreKey <Curve, false> {
+		private:
+			Xpair<Curve> m_OPk; /**< The key pair */
+			uint32_t m_Id; /**< The key Id */
+		public:
+			/// Serializing:
+			///  - public is publicKey || Id (4bytes) -> used to publish
+			///  - storage publicKey || privateKey -> used to store in DB, Id is stored separately
+			static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4;};
+			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
+
+			OneTimePreKey(const X<Curve, lime::Xtype::publicKey> &OPkPublic, const X<Curve, lime::Xtype::privateKey> &OPkPrivate, uint32_t Id) : m_OPk(OPkPublic, OPkPrivate), m_Id{Id} {};
+			OneTimePreKey() {};
+			/// Unserializing constructor: from data read in DB
+			OneTimePreKey(const sBuffer<serializedSize()> &OPk, uint32_t Id) {
+				m_OPk.publicKey() = OPk.cbegin();
+				m_OPk.privateKey() = OPk.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
+				m_Id = Id;
+			};
+			/// Unserializing constructor: from data read in received bundle
+			OneTimePreKey(const std::vector<uint8_t>::const_iterator s) {
+				m_OPk.publicKey() =  X<Curve, lime::Xtype::publicKey>(s);
+				size_t index = X<Curve, lime::Xtype::publicKey>::ssize();
+				m_Id = static_cast<uint32_t>(s[index])<<24 |
+					static_cast<uint32_t>(s[index + 1])<<16 |
+					static_cast<uint32_t>(s[index + 2])<<8 |
+					static_cast<uint32_t>(s[index + 3]);
+			};
+
+			/// accessors
+			const X<Curve, lime::Xtype::privateKey> &cprivateKey(void) const {return m_OPk.cprivateKey();};
+			const X<Curve, lime::Xtype::publicKey> &cpublicKey(void) const {return m_OPk.cpublicKey();};
+			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_OPk.privateKey();};
+			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_OPk.publicKey();};
+			uint32_t get_Id(void) const {return m_Id;};
+			void set_Id(uint32_t Id) {m_Id = Id;};
+
+			/// Serialize the key pair (to store in DB): First the public value, then the private one
+			sBuffer<serializedSize()> serialize(void) const {
+				sBuffer<serializedSize()> s{};
+				std::copy_n(m_OPk.cpublicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
+				std::copy_n(m_OPk.cprivateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
+				return s;
+			}
+			/// Serialize the public key and Id to publish on the server
+			std::vector<uint8_t> serializePublic(void) const {
+				std::vector<uint8_t> v(m_OPk.cpublicKey().cbegin(), m_OPk.cpublicKey().cend());
+				v.push_back(static_cast<uint8_t>((m_Id>>24)&0xFF));
+				v.push_back(static_cast<uint8_t>((m_Id>>16)&0xFF));
+				v.push_back(static_cast<uint8_t>((m_Id>>8)&0xFF));
+				v.push_back(static_cast<uint8_t>((m_Id)&0xFF));
+				return v;
+			}
+
+			/// Dump the public key and Id
+			void dump(std::ostringstream &os, std::string indent="        ") const {
+				os<<std::endl<<indent<<"OPK Id: 0x"<<std::hex<<std::setw(8) << std::setfill('0') << m_Id <<indent<<"OPK: ";
+				hexStr(os, m_OPk.cpublicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
+			}
+	};
+
 }
 #endif /* lime_x3dh_hpp */

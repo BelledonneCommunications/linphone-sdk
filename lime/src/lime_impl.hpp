@@ -83,10 +83,10 @@ namespace lime {
 
 			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
 			SignedPreKey<Curve> X3DH_generate_SPk(const DSApair<Curve> &Ik, const bool load=false); // generate a new Signed Pre-Key key pair, store it in DB
-			void X3DH_generate_OPks(std::vector<X<Curve, lime::Xtype::publicKey>> &publicOPks, std::vector<uint32_t> &OPk_ids, const uint16_t OPk_number, const bool load=false); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
+			void X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
 			SignedPreKey<Curve> X3DH_get_SPk(uint32_t SPk_id); // retrieve matching SPk from localStorage, throw an exception if not found
 			bool is_currentSPk_valid(void); // check validity of current SPk
-			void X3DH_get_OPk(uint32_t OPk_id, Xpair<Curve> &OPk); // retrieve matching OPk from localStorage, throw an exception if not found
+			OneTimePreKey<Curve> X3DH_get_OPk(uint32_t OPk_id); // retrieve matching OPk from localStorage, throw an exception if not found
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
 			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session

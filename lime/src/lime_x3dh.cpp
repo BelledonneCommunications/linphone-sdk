@@ -86,7 +86,7 @@ namespace lime {
 
 			// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
 			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
-				DH->set_peerPublic(peerBundle.OPk);
+				DH->set_peerPublic(peerBundle.OPk.cpublicKey());
 				DH->computeSharedSecret();
 				DH_out = DH->get_sharedSecret();
 				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
@@ -101,7 +101,7 @@ namespace lime {
 
 			// Generate X3DH init message: as in X3DH spec section 3.3:
 			std::vector<uint8_t> X3DH_initMessage{};
-			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk.get_Id(), peerBundle.OPk_id, (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
+			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk.get_Id(), peerBundle.OPk.get_Id(), (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
 
 			DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
 
@@ -138,11 +138,6 @@ namespace lime {
 		double_ratchet_protocol::parseMessage_X3DHinit(X3DH_initMessage, peerIk, Ek, SPk_id, OPk_id, OPk_flag);
 
 		auto SPk = X3DH_get_SPk(SPk_id); // this one will throw an exception if the SPk is not found in local storage, let it flow up
-
-		Xpair<Curve> OPk{};
-		if (OPk_flag) { // there is an OPk id
-			X3DH_get_OPk(OPk_id, OPk); // this one will throw an exception if the OPk is not found in local storage, let it flow up
-		}
 
 		// Compute 	DH1 = DH(SPk, peer Ik)
 		// 		DH2 = DH(self Ik, Ek)
@@ -183,9 +178,11 @@ namespace lime {
 		HKDF_input_index += 2*DH_out.size();
 
 		if (OPk_flag) { // there is an OPk id
+			const auto OPk = X3DH_get_OPk(OPk_id); // this one will throw an exception if the OPk is not found in local storage, let it flow up
+
 			// DH4 = DH(OPk, Ek) Ek is already in context
-			DH->set_secret(OPk.privateKey());
-			DH->set_selfPublic(OPk.publicKey());
+			DH->set_secret(OPk.cprivateKey());
+			DH->set_selfPublic(OPk.cpublicKey());
 			DH->computeSharedSecret();
 			DH_out = DH->get_sharedSecret();
 			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 DH4
