@@ -85,7 +85,7 @@ static	void						antlr3TreeNodeStreamFree			(pANTLR3_TREE_NODE_STREAM tns);
 static	void						antlr3CommonTreeNodeStreamFree		(pANTLR3_COMMON_TREE_NODE_STREAM ctns);
 
 ANTLR3_API pANTLR3_TREE_NODE_STREAM
-antlr3TreeNodeStreamNew()
+antlr3TreeNodeStreamNew(void)
 {
     pANTLR3_TREE_NODE_STREAM stream;
 

@@ -60,6 +60,9 @@ static void process_io_error(void *data, const belle_sip_io_error_event_t *event
 }
 
 static void process_auth_requested(void *data, belle_sip_auth_event_t *event) {
+	belle_sip_message("process_auth_requested requested for realm [%s] in mode [%s]",
+	                  belle_sip_auth_event_get_realm(event),
+	                  belle_sip_auth_event_mode_to_string(belle_sip_auth_event_get_mode(event)));
 	if (belle_sip_auth_event_get_mode(event) == BELLE_SIP_AUTH_MODE_TLS) {
 		belle_sip_certificates_chain_t *cert = belle_sip_certificates_chain_parse(
 		    belle_sip_tester_client_cert, strlen(belle_sip_tester_client_cert), BELLE_SIP_CERTIFICATE_RAW_FORMAT_PEM);
@@ -69,6 +72,10 @@ static void process_auth_requested(void *data, belle_sip_auth_event_t *event) {
 		belle_sip_auth_event_set_signing_key(event, key);
 		belle_sip_message("process_auth_requested requested for DN [%s]",
 		                  belle_sip_auth_event_get_distinguished_name(event));
+	} else {
+
+		belle_sip_auth_event_set_username(event, "testuser");
+		belle_sip_auth_event_set_passwd(event, "secret");
 	}
 }
 
@@ -205,14 +212,29 @@ static void https_get_long_body(void) {
 	}
 }
 
-static void https_digest_get(void) {
+static void http_digest_get(void) {
 	http_counters_t counters = {0};
-	if (one_get("https://pauline:pouet@smtp.linphone.org/restricted", &counters, &counters.response_count) == 0) {
+	if (one_get("http://testuser:secret@localhost/digest", &counters, &counters.response_count) == 0) {
 		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
 		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
-		BC_ASSERT_EQUAL(counters.three_hundred, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
 	}
 }
+static void http_basic_auth_get(void) {
+	http_counters_t counters = {0};
+	if (one_get("http://testuser:secret@localhost/basic", &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+	memset(&counters, 0, sizeof(http_counters_t));
+	if (one_get("http://localhost/basic", &counters, &counters.response_count) == 0) {
+		BC_ASSERT_EQUAL(counters.response_count, 1, int, "%d");
+		BC_ASSERT_EQUAL(counters.io_error_count, 0, int, "%d");
+		BC_ASSERT_EQUAL(counters.two_hundred, 1, int, "%d");
+	}
+}
+
 #if 0
 static void https_client_cert_connection(void){
 	belle_tls_verify_policy_t *policy=belle_tls_verify_policy_new();
@@ -475,8 +497,9 @@ test_t http_tests[] = {TEST_NO_TAG("One http GET", one_http_get),
                        TEST_NO_TAG("One https GET with http proxy", one_https_get_with_proxy),
                        TEST_NO_TAG("http request with io error", http_get_io_error),
                        TEST_NO_TAG("https GET with long body", https_get_long_body),
-                       TEST_NO_TAG("https digest GET", https_digest_get), /*, FIXME, need a server for testing
-                        TEST_NO_TAG("https with client certificate", https_client_cert_connection),*/
+                       TEST_NO_TAG("http basic auth GET", http_basic_auth_get),
+                       TEST_NO_TAG("http digest auth GET", http_digest_get), /*, FIXME, need a server for testing
+                       TEST_NO_TAG("https with client certificate", https_client_cert_connection),*/
                        TEST_NO_TAG("https POST with long body", https_post_long_body),
                        TEST_NO_TAG("http GET with long user body", http_get_long_user_body),
                        TEST_NO_TAG("https only", one_https_only_get),

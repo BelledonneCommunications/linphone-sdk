@@ -334,7 +334,7 @@ antlr3SetCTAPI(pANTLR3_COMMON_TREE tree)
 //
 
 ANTLR3_API pANTLR3_COMMON_TREE
-antlr3CommonTreeNew()
+antlr3CommonTreeNew(void)
 {
 	pANTLR3_COMMON_TREE	tree;
 	tree    = ANTLR3_CALLOC(1, sizeof(ANTLR3_COMMON_TREE));

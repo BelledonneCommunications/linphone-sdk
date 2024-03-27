@@ -38,7 +38,7 @@
 static	void	freeStream    (pANTLR3_INT_STREAM stream);
 
 ANTLR3_API pANTLR3_INT_STREAM
-antlr3IntStreamNew()
+antlr3IntStreamNew(void)
 {
 	pANTLR3_INT_STREAM	stream;
 

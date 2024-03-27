@@ -79,6 +79,8 @@ find_package(Threads)
 
 find_package(Belr 5.3.0 REQUIRED)
 find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
+#Mandatory to init default compilation flags
+bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 
 bc_find_package(ZLIB ZLIB::ZLIB zlib)
 if(ZLIB_FOUND)
@@ -140,8 +142,6 @@ if(DNSSD_FOUND)
 endif()
 
 add_definitions("-DHAVE_CONFIG_H")
-set(STRICT_OPTIONS_CPP )
-set(STRICT_OPTIONS_C )
 set(STRICT_OPTIONS_OBJC "-fmodules")
 if(MSVC)
 	list(APPEND STRICT_OPTIONS_CPP "/wd4068") # Disable "unknown pragma" warnings from antlr.

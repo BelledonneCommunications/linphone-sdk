@@ -162,7 +162,7 @@ BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_uri_t);
 BELLE_SIP_INSTANCIATE_VPTR(
     belle_sip_uri_t, belle_sip_parameters_t, belle_sip_uri_destroy, belle_sip_uri_clone, belle_sip_uri_marshal, TRUE);
 
-belle_sip_uri_t *belle_sip_uri_new() {
+belle_sip_uri_t *belle_sip_uri_new(void) {
 	belle_sip_uri_t *l_object = belle_sip_object_new(belle_sip_uri_t);
 	belle_sip_parameters_init((belle_sip_parameters_t *)l_object); /*super*/
 	l_object->header_list = belle_sip_parameters_new();

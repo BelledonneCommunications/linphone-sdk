@@ -1381,7 +1381,9 @@ GET_SET_STRING(belle_sip_header_extension, value);
 	}                                                                                                                  \
 	for (; list != NULL; list = list->next) {                                                                          \
 		belle_sip_param_pair_t *container = list->data;                                                                \
-		error = belle_sip_snprintf(buff, buff_size, offset, "%s%s=%s", border, container->name, container->value);     \
+		error = belle_sip_snprintf(buff, buff_size, offset, "%s%s", border, container->name);                          \
+		if (error != BELLE_SIP_OK) return error;                                                                       \
+		if (container->value) error = belle_sip_snprintf(buff, buff_size, offset, "=%s", container->value);            \
 		if (error != BELLE_SIP_OK) return error;                                                                       \
 		border = ", ";                                                                                                 \
 	}                                                                                                                  \

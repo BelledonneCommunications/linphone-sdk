@@ -80,8 +80,19 @@ belle_sip_auth_mode_t belle_sip_auth_event_get_mode(const belle_sip_auth_event_t
 	return event->mode;
 }
 
+const char *belle_sip_auth_event_mode_to_string(const belle_sip_auth_mode_t mode) {
+	switch (mode) {
+		case BELLE_SIP_AUTH_MODE_HTTP_DIGEST:
+			return "BELLE_SIP_AUTH_MODE_HTTP_DIGEST";
+		case BELLE_SIP_AUTH_MODE_TLS:
+			return "BELLE_SIP_AUTH_MODE_TLS";
+		case BELLE_SIP_AUTH_MODE_HTTP_BASIC:
+			return "BELLE_SIP_AUTH_MODE_HTTP_BASIC";
+	}
+	return "unkown belle-sip auth mode";
+}
 /* deprecated on 2016/02/02 */
-belle_tls_verify_policy_t *belle_tls_verify_policy_new() {
+belle_tls_verify_policy_t *belle_tls_verify_policy_new(void) {
 	return (belle_tls_verify_policy_t *)belle_tls_crypto_config_new();
 }
 
@@ -114,8 +125,12 @@ belle_tls_crypto_config_t *belle_tls_crypto_config_new(void) {
 	belle_tls_crypto_config_set_root_ca(obj, "/system/etc/security/cacerts");
 #elif defined(__linux__)
 	belle_tls_crypto_config_set_root_ca(obj, "/etc/ssl/certs");
-#elif defined(__APPLE__)
+#elif defined(TARGET_OS_MAC)
+#if defined(TARGET_CPU_ARM)
+	belle_tls_crypto_config_set_root_ca(obj, "/opt/homebrew/share/ca-certificates/cacert.pem");
+#else
 	belle_tls_crypto_config_set_root_ca(obj, "/opt/local/share/curl/curl-ca-bundle.crt");
+#endif
 #elif defined(__QNX__)
 	belle_tls_crypto_config_set_root_ca(obj, "/var/certs/web_trusted@personal@certmgr");
 #endif

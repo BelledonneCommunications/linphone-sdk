@@ -87,6 +87,9 @@ static int http_channel_context_handle_redirect(belle_http_channel_context_t *ct
 	belle_http_request_set_uri(req, new_uri);
 	/* reset the original URI, as it is being used for routing*/
 	SET_OBJECT_PROPERTY(req, orig_uri, NULL);
+	/*remove auth headers, they are not valid for new destination*/
+	belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req), BELLE_HTTP_AUTHORIZATION);
+
 	belle_sip_message("belle_http_request_t[%p]: handling HTTP redirection to [%s]", req, location_value);
 	belle_http_provider_send_request(ctx->provider, req, NULL);
 	return 0;
@@ -100,6 +103,7 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	const char *passwd = NULL;
 	const char *ha1 = NULL;
 	const char *algorithm = NULL;
+	belle_sip_auth_mode_t auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
 	char computed_ha1[65];
 	belle_sip_header_www_authenticate_t *authenticate;
 	belle_sip_list_t *authenticate_lst;
@@ -135,25 +139,32 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 	belle_sip_uri_t *from_uri = NULL;
 	belle_sip_header_t *header = belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "From");
 
-	/* loop on all authenticate headers */
+	/* loop on all authenticate headers.  03/24 fixme probably not working for more than one auth header, still to be
+	 * tested*/
 	authenticate_lst =
 	    belle_sip_list_copy(belle_sip_message_get_headers(BELLE_SIP_MESSAGE(resp), BELLE_SIP_WWW_AUTHENTICATE));
 	for (it = authenticate_lst; it != NULL; it = it->next) {
 		authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(it->data);
 		const char *requested_algorithm = belle_sip_header_www_authenticate_get_algorithm(authenticate);
-		if (requested_algorithm == NULL) { // default algorithm is MD5
-			requested_algorithm = "MD5";
-		}
-		if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) != 0) {
+
+		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
+
+		if (strcasecmp("Digest", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+			if (requested_algorithm == NULL) { // default algorithm is MD5
+				requested_algorithm = "MD5";
+			}
+			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_DIGEST;
+			if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
+
+		} else if (strcasecmp("Basic", belle_sip_header_www_authenticate_get_scheme(authenticate)) == 0) {
+			auth_mode = BELLE_SIP_AUTH_MODE_HTTP_BASIC;
+			/* ok, Basic is supported*/
+		} else {
 			belle_sip_error("Unsupported auth scheme [%s] in response  [%p], cannot authenticate",
 			                belle_sip_header_www_authenticate_get_scheme(authenticate), resp);
 			belle_sip_list_free(authenticate_lst);
 			return -1;
 		}
-
-		if (belle_sip_stack_check_digest_compatibility(ctx->provider->stack, authenticate) == -1) continue;
-
-		realm = belle_sip_header_www_authenticate_get_realm(authenticate);
 
 		if (header) {
 			belle_sip_header_address_t *from_address =
@@ -166,14 +177,14 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 		if (!username || !passwd) {
 			ev = belle_sip_auth_event_create((belle_sip_object_t *)ctx->provider, realm, from_uri);
 			belle_sip_auth_event_set_algorithm(ev, requested_algorithm);
+			ev->mode = auth_mode;
 			BELLE_HTTP_REQUEST_INVOKE_LISTENER(req, process_auth_requested, ev);
 			username = ev->userid ? ev->userid : ev->username;
 			passwd = ev->passwd;
 			ha1 = ev->ha1;
 			algorithm = ev->algorithm;
 		}
-
-		if (!ha1) {
+		if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST && !ha1) {
 			if (username && passwd) {
 				belle_sip_auth_helper_compute_ha1_for_algorithm(username, realm, passwd, computed_ha1,
 				                                                belle_sip_auth_define_size(requested_algorithm),
@@ -182,18 +193,16 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 				algorithm = requested_algorithm;
 				break;
 			}
-		} else {
-			break;
 		}
 	}
 	belle_sip_list_free(authenticate_lst);
 
-	if (ha1) {
+	if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_DIGEST && ha1) {
 		belle_http_header_authorization_t *authorization;
 		req->auth_attempt_count++;
 
 		authorization = belle_http_auth_helper_create_authorization(authenticate);
-		/*select first qop mode*/
+		/*select first qop !mode qop = auth not supported yet for http, but lime serveur auth require nc!*/
 		belle_sip_header_authorization_set_qop(BELLE_SIP_HEADER_AUTHORIZATION(authorization),
 		                                       belle_sip_header_www_authenticate_get_qop_first(authenticate));
 		belle_sip_header_authorization_set_nonce_count(BELLE_SIP_HEADER_AUTHORIZATION(authorization),
@@ -212,6 +221,25 @@ static int http_channel_context_handle_authentication(belle_http_channel_context
 			belle_http_provider_send_request(ctx->provider, req, NULL);
 		}
 
+	} else if (auth_mode == BELLE_SIP_AUTH_MODE_HTTP_BASIC && username && passwd) {
+		belle_http_header_authorization_t *authorization;
+		req->auth_attempt_count++;
+
+		authorization = belle_http_auth_helper_create_authorization(authenticate);
+		belle_sip_header_authorization_set_scheme(BELLE_SIP_HEADER_AUTHORIZATION(authorization), "Basic");
+		char *username_passwd = belle_sip_strdup_printf("%s:%s", username, passwd);
+		size_t username_passwd_length = strlen(username_passwd);
+		size_t encoded_username_paswd_length = username_passwd_length * 2;
+		unsigned char *encoded_username_paswd = belle_sip_malloc(2 * username_passwd_length);
+		bctbx_base64_encode(encoded_username_paswd, &encoded_username_paswd_length,
+		                    (const unsigned char *)username_passwd, username_passwd_length);
+		belle_sip_parameters_set(BELLE_SIP_PARAMETERS(authorization), (const char *)encoded_username_paswd);
+		belle_sip_free(username_passwd);
+		belle_sip_free(encoded_username_paswd);
+
+		belle_sip_message_remove_header(BELLE_SIP_MESSAGE(req), BELLE_HTTP_AUTHORIZATION);
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(authorization));
+		belle_http_provider_send_request(ctx->provider, req, NULL);
 	} else {
 		belle_sip_error("No auth info found for request [%p], cannot authenticate", req);
 		ret = -1;

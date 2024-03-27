@@ -23,7 +23,7 @@
 static int belle_sip_well_known_port = 5060;
 static int belle_sip_well_known_port_tls = 5061;
 
-int belle_sip_stack_get_well_known_port() {
+int belle_sip_stack_get_well_known_port(void) {
 	return belle_sip_well_known_port;
 }
 
@@ -32,7 +32,7 @@ void belle_sip_stack_set_well_known_port(int value) {
 	belle_sip_well_known_port = value;
 }
 
-int belle_sip_stack_get_well_known_port_tls() {
+int belle_sip_stack_get_well_known_port_tls(void) {
 	return belle_sip_well_known_port_tls;
 }
 
@@ -374,7 +374,7 @@ void belle_sip_stack_set_dns_servers(belle_sip_stack_t *stack, const belle_sip_l
 	stack->dns_servers = newservers;
 }
 
-const char *belle_sip_version_to_string() {
+const char *belle_sip_version_to_string(void) {
 #ifdef BELLESIP_VERSION
 	return BELLESIP_VERSION;
 #else

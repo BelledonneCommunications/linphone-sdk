@@ -476,7 +476,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(object_type##_t);                                                      \
 	BELLE_SIP_INSTANCIATE_VPTR(object_type##_t, super_type##_t, object_type##_destroy, object_type##_clone,            \
 	                           object_type##_marshal, TRUE);                                                           \
-	object_type##_t *object_type##_new() {                                                                             \
+	object_type##_t *object_type##_new(void) {                                                                             \
 		object_type##_t *l_object = belle_sip_object_new(object_type##_t);                                             \
 		super_type##_init((super_type##_t *)l_object);                                                                 \
 		object_type##_init((object_type##_t *)l_object);                                                               \
@@ -492,7 +492,7 @@ void belle_sip_source_set_notify(belle_sip_source_t *s, belle_sip_source_func_t 
 	BELLE_SIP_INSTANCIATE_VPTR(belle_sip_##object_type##_t, belle_sip_##super_type##_t,                                \
 	                           belle_sip_##object_type##_destroy, belle_sip_##object_type##_clone,                     \
 	                           belle_sip_##object_type##_marshal, TRUE);                                               \
-	belle_sip_##object_type##_t *belle_sip_##object_type##_new() {                                                     \
+	belle_sip_##object_type##_t *belle_sip_##object_type##_new(void) {                                                 \
 		belle_sip_##object_type##_t *l_object = belle_sip_object_new(belle_sip_##object_type##_t);                     \
 		belle_sip_##super_type##_init((belle_sip_##super_type##_t *)l_object);                                         \
 		belle_sip_##init_type##_init((belle_sip_##init_type##_t *)l_object);                                           \

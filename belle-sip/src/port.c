@@ -194,12 +194,12 @@ void belle_sip_sleep(unsigned int ms) {
 
 #include <signal.h>
 
-int belle_sip_init_sockets() {
+int belle_sip_init_sockets(void) {
 	signal(SIGPIPE, SIG_IGN);
 	return 0;
 }
 
-void belle_sip_uninit_sockets() {
+void belle_sip_uninit_sockets(void) {
 }
 
 int belle_sip_socket_set_nonblocking(belle_sip_socket_t sock) {

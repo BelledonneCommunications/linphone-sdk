@@ -2281,7 +2281,7 @@ intTrieFree	(pANTLR3_INT_TRIE trie)
  * /verbatim
  */
 ANTLR3_API pANTLR3_TOPO
-antlr3TopoNew()
+antlr3TopoNew(void)
 {
     pANTLR3_TOPO topo = (pANTLR3_TOPO)ANTLR3_MALLOC(sizeof(ANTLR3_TOPO));
 

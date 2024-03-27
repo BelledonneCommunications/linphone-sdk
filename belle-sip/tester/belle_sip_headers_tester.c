@@ -742,8 +742,7 @@ static void test_www_authenticate_header(void) {
 	belle_sip_free(l_raw_header);
 	l_authenticate = BELLE_SIP_HEADER_WWW_AUTHENTICATE(belle_sip_object_clone(BELLE_SIP_OBJECT(L_tmp)));
 	belle_sip_object_unref(BELLE_SIP_OBJECT(L_tmp));
-	BC_ASSERT_STRING_EQUAL(belle_sip_parameters_get_parameter(BELLE_SIP_PARAMETERS(l_authenticate), "realm"),
-	                       "\"WallyWorld\"");
+	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_realm(l_authenticate), "WallyWorld");
 	BC_ASSERT_STRING_EQUAL(belle_sip_header_www_authenticate_get_scheme(l_authenticate), "Basic");
 	belle_sip_object_unref(BELLE_SIP_OBJECT(l_authenticate));
 

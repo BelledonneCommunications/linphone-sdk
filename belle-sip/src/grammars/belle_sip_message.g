@@ -44,6 +44,7 @@ options {
 
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #ifndef __clang__
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -71,7 +72,7 @@ options {
 
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wunused"
-
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 }
 
 @includes {
@@ -1081,8 +1082,14 @@ challenge [belle_sip_header_www_authenticate_t* www_authenticate]
                        | other_challenge [www_authenticate];
 other_challenge [belle_sip_header_www_authenticate_t* www_authenticate]
   :   auth_scheme {belle_sip_header_www_authenticate_set_scheme(www_authenticate,(char*)$auth_scheme.text->chars);}
-     lws auth_param[(belle_sip_header_authorization_t*)www_authenticate]
-                       (comma auth_param[(belle_sip_header_authorization_t*)www_authenticate])*;
+     lws other_challenge_cln[www_authenticate]
+                       (comma other_challenge_cln[www_authenticate])*;
+other_challenge_cln [belle_sip_header_www_authenticate_t* www_authenticate]
+  :
+   realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,(char*)$realm.ret);
+           belle_sip_free($realm.ret);}
+     | auth_param[(belle_sip_header_authorization_t*)www_authenticate];
+
 digest_cln [belle_sip_header_www_authenticate_t* www_authenticate]
   :
    realm {belle_sip_header_www_authenticate_set_realm(www_authenticate,(char*)$realm.ret);

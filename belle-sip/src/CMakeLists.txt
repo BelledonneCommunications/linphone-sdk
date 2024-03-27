@@ -183,8 +183,8 @@ if(MSVC)
 	set_property(SOURCE grammars/belle_sdpParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
 	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4267") # Disable "possible loss of data" warnings
 else()
-	set_property(SOURCE dns/dns.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-override-init -Wno-implicit-fallthrough -Wno-array-bounds")
-	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare")
+	set_property(SOURCE dns/dns.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-override-init -Wno-implicit-fallthrough -Wno-array-bounds -Wno-incompatible-function-pointer-types -Wno-strict-prototypes")
+	set_property(SOURCE grammars/belle_sip_messageParser.c APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-sign-compare -Wno-strict-prototypes" )
 endif()
 
 set(BELLESIP_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar")
