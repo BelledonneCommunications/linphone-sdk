@@ -1172,7 +1172,6 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 
 	bool front_facing_found = false;
 	bool back_facing_found = false;
-	bool external_found = false;
 
 	const char *camId = nullptr;
 	for (int i = 0; i < cameraIdList->numCameras; i++) {
@@ -1221,23 +1220,25 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			MSWebCam *cam = ms_web_cam_new(&ms_android_camera2_capture_webcam_desc);
 			std::string idstring = std::string(!back_facing ? "Front" : "Back") + std::string("FacingCamera");
 			if (external) {
-				idstring = std::string("ExternalCamera");
+				idstring = std::string("ExternalCamera") + std::string(camId);
 			}
 			cam->id = ms_strdup(idstring.c_str());
 			cam->name = ms_strdup(idstring.c_str());
 			cam->data = device;
 
-			if ((external && !external_found) || (back_facing && !back_facing_found) || (!back_facing && !front_facing_found)) {
+			if (external) {
 				ms_web_cam_manager_prepend_cam(obj, cam);
-				if (external) {
-					external_found = true;
-				} else if (back_facing) {
-					back_facing_found = true;
-				} else {
-					front_facing_found = true;
-				}
 			} else {
-				ms_warning("[Camera2 Capture] A [%s] facing camera has already been added, skipping this one [%s]", facing.c_str(), camId);
+				if ((back_facing && !back_facing_found) || (!back_facing && !front_facing_found)) {
+					ms_web_cam_manager_prepend_cam(obj, cam);
+					if (back_facing) {
+						back_facing_found = true;
+					} else {
+						front_facing_found = true;
+					}
+				} else {
+					ms_warning("[Camera2 Capture] A [%s] facing camera has already been added, skipping this one [%s]", facing.c_str(), camId);
+				}
 			}
 
 			ACameraMetadata_free(cameraMetadata);
