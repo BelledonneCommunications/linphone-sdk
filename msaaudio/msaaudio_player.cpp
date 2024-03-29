@@ -267,9 +267,18 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 		ms_message("[AAudio Player] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
 	}
 
-	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION) {
-		ms_message("[AAudio Player] Asking for volume hack (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)");
-		ms_android_sound_utils_hack_volume(octx->sound_utils);
+	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION || octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE || octx->usage == AAUDIO_USAGE_MEDIA) {
+		std::string streamName = "STREAM_VOICE_CALL";
+		int stream = 0; // https://developer.android.com/reference/android/media/AudioManager#STREAM_VOICE_CALL
+		if (octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE) {
+			streamName = "STREAM_RING";
+			stream = 2; // https://developer.android.com/reference/android/media/AudioManager#STREAM_RING
+		} else if (octx->usage == AAUDIO_USAGE_MEDIA) {
+			streamName = "STREAM_MUSIC";
+			stream = 3; // https://developer.android.com/reference/android/media/AudioManager#STREAM_MUSIC
+		}
+		ms_message("[AAudio Player] Asking for volume hack on stream [%s](%i) (lower & raise volume to workaround no sound on speaker issue, mostly on Samsung devices)", streamName.c_str(), stream);
+		ms_android_sound_utils_hack_volume(octx->sound_utils, stream);
 	}
 }
 
