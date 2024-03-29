@@ -63,7 +63,8 @@ AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *factory) {
 		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "enableEarpiece", "()V");
 		utils->enableSpeaker = env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "enableSpeaker", "()V");
 
-		utils->hackVolume = env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "hackVolume", "()V");
+		utils->hackVolumeOnStream =
+		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "hackVolumeOnStream", "(I)V");
 
 		utils->getAudioDevices = env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "getAudioDevices",
 		                                                "(Ljava/lang/String;)[Landroid/media/AudioDeviceInfo;");
@@ -262,10 +263,10 @@ void ms_android_sound_utils_release_hardware_echo_canceller(BCTBX_UNUSED(const A
 	ms_android_delete_hardware_echo_canceller(env, haec);
 }
 
-void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils) {
+void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils, int stream) {
 	JNIEnv *env = ms_get_jni_env();
 
-	env->CallStaticVoidMethod(utils->mediastreamerAndroidContextClass, utils->hackVolume);
+	env->CallStaticVoidMethod(utils->mediastreamerAndroidContextClass, utils->hackVolumeOnStream, stream);
 }
 
 jobjectArray ms_android_sound_utils_get_devices(const AndroidSoundUtils *utils, const char *dir) {

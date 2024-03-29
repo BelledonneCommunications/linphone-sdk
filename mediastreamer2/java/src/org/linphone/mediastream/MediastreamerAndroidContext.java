@@ -232,7 +232,11 @@ public class MediastreamerAndroidContext {
 	}
 
 	public synchronized static void hackVolume() {
-		Log.i("[Audio Manager] Lower & raise audio volume to workaround no sound issue until volume has changed...");
+		hackVolumeOnStream(AudioManager.STREAM_VOICE_CALL);
+	}
+
+	public synchronized static void hackVolumeOnStream(int stream) {
+		Log.i("[Audio Manager] Lower & raise audio volume on stream [" + stream + "] to workaround no sound issue until volume has changed...");
 		AudioManager audioManager = (AudioManager)getContext().getSystemService(Context.AUDIO_SERVICE);
 
 		boolean isVolumeFixed = audioManager.isVolumeFixed();
@@ -240,32 +244,32 @@ public class MediastreamerAndroidContext {
 			Log.w("[Audio Manager] Device's volume is fixed, workaround will probably fail!");
 		}
 
-		int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
-		int currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL);
-		Log.i("[Audio Manager] Max volume for voice call stream is " + maxVolume + ", current volume is " + currentVolume);
+		int maxVolume = audioManager.getStreamMaxVolume(stream);
+		int currentVolume = audioManager.getStreamVolume(stream);
+		Log.i("[Audio Manager] Max volume for stream is " + maxVolume + ", current volume is " + currentVolume);
 		int timeInMills = 50;
 		if (maxVolume == currentVolume) {
 			try {
-				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, AudioManager.STREAM_VOICE_CALL, 0);
+				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, stream, 0);
 				SystemClock.sleep(timeInMills);
-				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, AudioManager.STREAM_VOICE_CALL, 0);
+				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, stream, 0);
 			} catch (SecurityException se) {
 				Log.e("[Audio Manager] Security exception during adjustSuggestedStreamVolume: ", se);
 			}
-			audioManager.adjustStreamVolume(AudioManager.STREAM_VOICE_CALL, AudioManager.ADJUST_LOWER, 0);
+			audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 			SystemClock.sleep(timeInMills);
-			audioManager.adjustStreamVolume(AudioManager.STREAM_VOICE_CALL, AudioManager.ADJUST_RAISE, 0);
+			audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 		} else {
 			try {
-				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, AudioManager.STREAM_VOICE_CALL, 0);
+				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_RAISE, stream, 0);
 				SystemClock.sleep(timeInMills);
-				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, AudioManager.STREAM_VOICE_CALL, 0);
+				audioManager.adjustSuggestedStreamVolume(AudioManager.ADJUST_LOWER, stream, 0);
 			} catch (SecurityException se) {
 				Log.e("[Audio Manager] Security exception during adjustSuggestedStreamVolume: ", se);
 			}
-			audioManager.adjustStreamVolume(AudioManager.STREAM_VOICE_CALL, AudioManager.ADJUST_RAISE, 0);
+			audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_RAISE, 0);
 			SystemClock.sleep(timeInMills);
-			audioManager.adjustStreamVolume(AudioManager.STREAM_VOICE_CALL, AudioManager.ADJUST_LOWER, 0);
+			audioManager.adjustStreamVolume(stream, AudioManager.ADJUST_LOWER, 0);
 		}
 	}
 

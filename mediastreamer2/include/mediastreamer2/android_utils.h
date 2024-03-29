@@ -39,7 +39,7 @@ struct _AndroidSoundUtils {
 	jmethodID stopBluetooth;
 	jmethodID enableEarpiece;
 	jmethodID enableSpeaker;
-	jmethodID hackVolume;
+	jmethodID hackVolumeOnStream;
 	jmethodID clearCommunicationDevice;
 	jmethodID setCommunicationDevice;
 
@@ -120,7 +120,7 @@ MS2_PUBLIC void ms_android_sound_utils_release_hardware_echo_canceller(const And
 /**
  * Hack required to have volume not set to 0 on some devices
  **/
-MS2_PUBLIC void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils);
+MS2_PUBLIC void ms_android_sound_utils_hack_volume(const AndroidSoundUtils *utils, int stream);
 
 MS2_PUBLIC jobjectArray ms_android_sound_utils_get_devices(const AndroidSoundUtils *utils, const char *dir);
 
