@@ -349,6 +349,7 @@ class bctbx_ECDH : public keyExchange<Curve> {
 }; // class bctbx_ECDH
 
 /* bctbx_KEM specialized constructor */
+#ifdef HAVE_BCTBXPQ
 template <typename Algo>
 std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit(void) {
 	/* if this template is instanciated the static_assert will fail but will give us an error message with faulty Curve type */
@@ -356,13 +357,10 @@ std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit(void) {
 	return nullptr;
 }
 
-#ifdef HAVE_BCTBXPQ
 	/* specialise KEM creation : KYB1 is Kyber512 */
 	template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<KYB1>(void) {
 		return std::make_unique<bctoolbox::KYBER512>();
 	}
-#endif //HAVE_BCTBXPQ
-
 
 /**
  * @brief a wrapper around bctoolbox KEM algorithms, implements the key encapsulation mechanism interface
@@ -402,6 +400,7 @@ class bctbx_KEM : public KEM<Algo> {
 			m_ctx = bctbx_KEMInit<KYB1>();
 		}
 }; // class bctbx_KEM
+#endif //HAVE_BCTBXPQ
 
 /* Factory functions */
 template <typename Curve>
@@ -414,10 +413,12 @@ std::shared_ptr<Signature<Curve>> make_Signature() {
 	return std::make_shared<bctbx_EDDSA<Curve>>();
 }
 
+#ifdef HAVE_BCTBXPQ
 template <typename Algo>
 std::shared_ptr<KEM<Algo>> make_KEM() {
 	return std::make_shared<bctbx_KEM<Algo>>();
 }
+#endif //HAVE_BCTBXPQ
 
 /* HMAC templates */
 /* HMAC must use a specialized template */

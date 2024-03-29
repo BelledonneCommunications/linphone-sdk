@@ -78,6 +78,7 @@ namespace lime {
 	struct genericKEM {
 		static constexpr lime::CurveId curveId() {return lime::CurveId::unset;}; // KEM cannot be used directly in DR or X3DH -> no curveId
 	};
+#ifdef HAVE_BCTBXPQ
 	/**
 	 * @brief Kyber 512 KEM data types size definition
 	 */
@@ -97,7 +98,8 @@ namespace lime {
 				case lime::Ktype::sharedSecret:
 					return 32;
 				break;
-			}	
+			}
+			return 0; // make compiler happy
 		};
 	};
 
@@ -106,6 +108,7 @@ namespace lime {
 		using EC = C255;
 		using KEM = KYB1;
 	};
+#endif // HAVE_BCTBXPQ
 
 	// Hash function defines
 	/**

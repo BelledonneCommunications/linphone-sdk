@@ -227,6 +227,7 @@ void dr_sessionsInit(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::
 	bob = make_DR_for_receiver<Curve>(localStorageBob, SK, AD, bobSPk, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
 
+#ifdef HAVE_BCTBXPQ
 template<>
 void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
@@ -271,6 +272,7 @@ void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob,
 	alice = make_DR_for_sender<LVL1>(localStorageAlice, SK, AD, bobPK, aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
 	bob = make_DR_for_receiver<LVL1>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
+#endif //HAVE_BCTBXPQ
 
 
 /**
@@ -612,6 +614,8 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	template void dr_sessionsInit<C448>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context);
 	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
+#ifdef HAVE_BCTBXPQ
 	template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
+#endif //HAVE_BCTBXPQ
 } // namespace lime_tester
 
