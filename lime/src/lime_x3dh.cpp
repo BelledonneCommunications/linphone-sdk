@@ -146,7 +146,14 @@ namespace lime {
 				return s;
 			}
 
-			void X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
+			/**
+			* @brief Generate (or load) a batch of OPks, store them in local storage and return their public keys with their ids.
+			*
+			* @param[out]	OPks		A vector of all the generated (or loaded) OPks
+			* @param[in]	OPk_number	How many keys shall we generate. This parameter is ignored if the load flag is set and we find some keys to load
+			* @param[in]	load		Flag, if set first try to load keys from storage to return them and if none found just generate the requested amount
+			*/
+			void generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
 
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
@@ -231,7 +238,7 @@ namespace lime {
 			*
 			* @param[in]	OPkIds	List of Ids found on server
 			*/
-			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
+			void updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 				if (OPkIds.size()>0) { /* we have keys on server */
 					// build a comma-separated list of OPk id on server
@@ -421,14 +428,14 @@ namespace lime {
 							}
 
 							// update in LocalStorage the OPk status: tag removed from server and delete old keys
-							X3DH_updateOPkStatus(selfOPkIds);
+							updateOPkStatus(selfOPkIds);
 
 							// Check if we shall upload more packets
 							if (selfOPkIds.size() < userData->OPkServerLowLimit) {
 								// generate and publish the OPks
 								std::vector<OneTimePreKey<Curve>> OPks{};
 								// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
-								X3DH_generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
+								generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
 								std::vector<uint8_t> X3DHmessage{};
 								x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
 								postToX3DHServer(userData, X3DHmessage);
@@ -445,7 +452,7 @@ namespace lime {
 							if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
 								// We must republish the user, something went terribly wrong on server side and we're not there anymore
 								LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
-								X3DH_updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
+								updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
 								// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
 								publish_user(userData, userData->OPkServerLowLimit);
 								cleanUserData(limeObj, userData);
@@ -716,6 +723,32 @@ namespace lime {
 			/********************************************************************************/
 			/*                        X3DH interface implementation                         */
 			/********************************************************************************/
+			std::string get_x3dhServerUrl(void) override {
+				return m_X3DH_Server_URL;
+			}
+
+			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override {
+				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				transaction tr(m_localStorage->sql);
+
+				// update in DB, do not check presence as we're called after a load_user who already ensure that
+				try {
+					m_localStorage->sql<<"UPDATE lime_LocalUsers SET server = :server WHERE UserId = :userId;", use(x3dhServerUrl), use(m_selfDeviceId);
+				} catch (exception const &e) {
+					tr.rollback();
+					throw BCTBX_EXCEPTION << "Cannot set the X3DH server url for user "<<m_selfDeviceId<<". DB backend says: "<<e.what();
+				}
+				// update in the X3DH object
+				m_X3DH_Server_URL = x3dhServerUrl;
+
+				tr.commit();
+			}
+
+			void get_Ik(std::vector<uint8_t> &Ik) override {
+				load_SelfIdentityKey(); // make sure we have the key
+				Ik.assign(m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
+			}
+
 			long int get_dbUid(void) const noexcept override {return m_db_Uid;} // the Uid in database, retrieved at creation/load, used for faster access
 			void publish_user(std::shared_ptr<callbackUserData> userData, uint16_t OPkInitialBatchSize) override{
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
@@ -724,13 +757,20 @@ namespace lime {
 
 				// Generate (or load if they already are in base when publishing an inactive user) the OPks
 				std::vector<OneTimePreKey<Curve>> OPks{};
-				X3DH_generate_OPks(OPks, OPkInitialBatchSize, true);
+				generate_OPks(OPks, OPkInitialBatchSize, true);
 
 				// Build and post the message to server
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(), SPk, OPks);
 				postToX3DHServer(userData, X3DHmessage);
 			}
+
+			void delete_user(std::shared_ptr<callbackUserData> userData) override {
+				std::vector<uint8_t> X3DHmessage{};
+				x3dh_protocol::buildMessage_deleteUser<Curve>(X3DHmessage);
+				postToX3DHServer(userData, X3DHmessage);
+			}
+
 			bool is_currentSPk_valid(void) override{
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 				// Do we have an active SPk for this user which is younger than SPK_lifeTime_days
@@ -742,13 +782,20 @@ namespace lime {
 					return false;
 				}
 			}
-			std::vector<uint8_t> update_SPk(void) override {
+
+			void update_SPk(std::shared_ptr<callbackUserData> userData) override {
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				// generate and publish the SPk
 				auto SPk = X3DH_generate_SPk(m_Ik);
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk);
-				return X3DHmessage;
+				postToX3DHServer(userData, X3DHmessage);
+			}
+
+			void update_OPk(std::shared_ptr<callbackUserData> userData) override {
+				std::vector<uint8_t> X3DHmessage{};
+				x3dh_protocol::buildMessage_getSelfOPks<Curve>(X3DHmessage);
+				postToX3DHServer(userData, X3DHmessage); // in the response from server, if more OPks are needed, it will generate and post them before calling the callback
 			}
 
 			std::vector<uint8_t> get_Ik(void) override {return {};}

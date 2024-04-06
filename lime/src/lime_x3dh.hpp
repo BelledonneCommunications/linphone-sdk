@@ -178,13 +178,18 @@ namespace lime {
 	class X3DH
 	{
 	public:
+		virtual void set_x3dhServerUrl(const std::string &x3dhServerUrl) = 0;
+		virtual std::string get_x3dhServerUrl(void) = 0;
 		virtual std::shared_ptr<DR> init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) = 0;
 		virtual void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) = 0; /**< fetch key bundles from server */
 		virtual void publish_user(std::shared_ptr<callbackUserData> userData, const uint16_t OPkInitialBatchSize) = 0; /**< publish a new user */
+		virtual void delete_user(std::shared_ptr<callbackUserData> userData) = 0; /**< delete current user from server */
 		virtual std::vector<uint8_t> get_Ik(void) = 0; /**< returns our public identity key */
 		virtual long int get_dbUid(void) const noexcept = 0; /**< get the User Id in database */
 		virtual bool is_currentSPk_valid(void) = 0;
-		virtual std::vector<uint8_t> update_SPk(void) = 0;
+		virtual void update_SPk(std::shared_ptr<callbackUserData> userData) = 0;
+		virtual void update_OPk(std::shared_ptr<callbackUserData> userData) = 0;
+		virtual void get_Ik(std::vector<uint8_t> &Ik) = 0;
 		virtual ~X3DH() = default;
 	};
 

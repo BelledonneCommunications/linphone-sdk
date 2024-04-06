@@ -51,18 +51,12 @@ namespace lime {
 			std::string m_selfDeviceId; // self device Id, shall be the GRUU
 			std::mutex m_mutex; // a mutex to lock own thread sensitive ressources (m_DR_sessions_cache, encryption_queue)
 
-			/* X3DH keys */
+			/* X3DH engine */
 			std::shared_ptr<X3DH> m_X3DH; // manage X3DH operations
-			DSApair<Curve> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)
-			bool m_Ik_loaded; // did we load the Ik yet?
 
 			/* local storage related */
 			std::shared_ptr<lime::Db> m_localStorage; // shared pointer would be used/stored in Double Ratchet Sessions
 			long int m_db_Uid; // the Uid in database, retrieved at creation/load, used for faster access
-
-			/* network related */
-			limeX3DHServerPostData m_X3DH_post_data; // externally provided function to communicate with x3dh server
-			std::string m_X3DH_Server_URL; // url of x3dh key server
 
 			/* Double ratchet related */
 			std::unordered_map<std::string, std::shared_ptr<DR>> m_DR_sessions_cache; // store already loaded DR session
@@ -73,30 +67,15 @@ namespace lime {
 
 			/*** Private functions ***/
 			/* database related functions, implementation is in lime_localStorage.cpp */
-			// Once X3DH server confirms user registration, active it locally
-			bool activate_user();
-			// user load from DB is implemented directly as a Db member function, output of it is passed to Lime<> ctor
-			void get_SelfIdentityKey(); // check our Identity key pair is loaded in Lime object, retrieve it from DB if it isn't
 			void cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 
-			/* X3DH related  - part related to exchange with server or localStorage - implemented in lime_x3dh_protocol.cpp or lime_localStorage.cpp */
-			void X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false); // generate a new batch of OPks, store them in base and fill the vector with information to be sent to X3DH server
-			SignedPreKey<Curve> X3DH_get_SPk(uint32_t SPk_id); // retrieve matching SPk from localStorage, throw an exception if not found
-			OneTimePreKey<Curve> X3DH_get_OPk(uint32_t OPk_id); // retrieve matching OPk from localStorage, throw an exception if not found
-			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
-
-			/* network related, implemented in lime_x3dh_protocol.cpp */
-			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
-			void process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody); // callback on server response
-			void cleanUserData(std::shared_ptr<callbackUserData> userData); // clean user data
-
 		public: /* Implement API defined in lime_lime.hpp in LimeGeneric abstract class */
-			Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data);
-			Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid);
+			Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid = 0);
 			~Lime();
 			Lime(Lime<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
 			Lime<Curve> &operator=(Lime<Curve> &a) = delete; // can't copy a session
+
 			void publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) override;
 			void delete_user(const limeCallback &callback) override;
 			void delete_peerDevice(const std::string &peerDeviceId) override;

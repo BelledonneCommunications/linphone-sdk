@@ -749,148 +749,6 @@ void Db::rollback_transaction()
 /*  Lime members functions                                                    */
 /*                                                                            */
 /******************************************************************************/
-/**
- * @brief Create a new local user based on its userId(GRUU) from table lime_LocalUsers
- * The user will be activated only after being published successfully on X3DH server
- *
- * use m_selfDeviceId as input
- * populate m_db_Uid
- *
- * @return true if user was activated successfully.
- *
- * @exception BCTBX_EXCEPTION	thrown if user is not found in base
- */
-template <typename Curve>
-bool Lime<Curve>::activate_user() {
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-	// check if the user is the DB
-	int Uid = 0;
-	int curveId = 0;
-	m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curveId), use(m_selfDeviceId);
-	if (!m_localStorage->sql.got_data()) {
-		throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be activated, it is not present in local storage";
-	}
-
-	transaction tr(m_localStorage->sql);
-
-	// update in DB
-	try {
-		// Don't create stack variable in the method call directly
-		uint8_t curveId = static_cast<int8_t>(Curve::curveId());
-
-		m_localStorage->sql<<"UPDATE lime_LocalUsers SET curveId = :curveId WHERE Uid = :Uid;", use(curveId), use(Uid);
-	} catch (exception const &e) {
-		tr.rollback();
-		throw BCTBX_EXCEPTION << "Lime user activation failed. DB backend says: "<<e.what();
-	}
-	m_db_Uid = Uid;
-
-	tr.commit();
-
-	return true;
-}
-
-template <typename Curve>
-void Lime<Curve>::get_SelfIdentityKey() {
-	if (m_Ik_loaded == false) {
-		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-		blob Ik_blob(m_localStorage->sql);
-		m_localStorage->sql<<"SELECT Ik FROM Lime_LocalUsers WHERE Uid = :UserId LIMIT 1;", into(Ik_blob), use(m_db_Uid);
-		if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-			Ik_blob.read(0, (char *)(m_Ik.publicKey().data()), m_Ik.publicKey().size()); // Read the public key
-			Ik_blob.read(m_Ik.publicKey().size(), (char *)(m_Ik.privateKey().data()), m_Ik.privateKey().size()); // Read the private key
-			m_Ik_loaded = true; // set the flag
-		}
-	}
-}
-
-/**
- * @brief Generate (or load) a batch of OPks, store them in local storage and return their public keys with their ids.
- *
- * @param[out]	OPks		A vector of all the generated (or loaded) OPks
- * @param[in]	OPk_number	How many keys shall we generate. This parameter is ignored if the load flag is set and we find some keys to load
- * @param[in]	load		Flag, if set first try to load keys from storage to return them and if none found just generate the requested amount
- */
-template <typename Curve>
-void Lime<Curve>::X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load) {
-
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-
-	// make room for OPk and OPk ids
-	OPks.clear();
-	OPks.reserve(OPk_number);
-
-	// OPkIds must be random but unique, prepare them before insertion
-	std::set<uint32_t> activeOPkIds{};
-
-	// fetch existing OPk ids from DB (OPKid is unique on all users, so really get them all, do not restrict with m_db_Uid)
-	rowset<row> rs = (m_localStorage->sql.prepare << "SELECT OPKid FROM X3DH_OPK");
-	for (const auto &r : rs) {
-		auto OPk_id = static_cast<uint32_t>(r.get<int>(0));
-		activeOPkIds.insert(OPk_id);
-	}
-
-	// Shall we try to just load OPks before generating them?
-	if (load) {
-		blob OPk_blob(m_localStorage->sql);
-		uint32_t OPk_id;
-		// Prepare DB statement: add a filter on current user Id as we'll target all retrieved OPk_ids (soci doesn't allow rowset and blob usage together)
-		// Get Keys matching the currend user and that are not set as dispatched yet (Status = 1)
-		statement st = (m_localStorage->sql.prepare << "SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND Status = 1 AND OPKid = :OPkId;", into(OPk_blob), use(m_db_Uid), use(OPk_id));
-
-		for (uint32_t id : activeOPkIds) { // We already have all the active OPK ids, loop on them
-			OPk_id = id; // copy the id into the bind variable
-			st.execute(true);
-			if (m_localStorage->sql.got_data()) {
-				sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
-				OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
-				OPks.push_back(OneTimePreKey<Curve>(serializedOPk, OPk_id));
-			}
-		}
-
-		if (OPks.size()>0) { // We found some OPks, all set then
-			return;
-		}
-	}
-
-	// we must create OPk_number new OPks
-	// Create an key exchange context to create key pairs
-	auto DH = make_keyExchange<Curve>();
-	while (OPks.size() < OPk_number){
-		// Generate a random OPk Id
-		// Sqlite doesn't really support unsigned value, the randomize function makes sure that the MSbit is set to 0 to not fall into strange bugs with that
-		uint32_t OPk_id = m_RNG->randomize();
-
-		if (activeOPkIds.insert(OPk_id).second) { // if this Id wasn't in the set, use it
-			// Generate a new ECDH Key pair
-			DH->createKeyPair(m_RNG);
-			// set in output vector
-			OPks.emplace_back(DH->get_selfPublic(), DH->get_secret(), OPk_id);
-		}
-	}
-
-	// Prepare DB statement
-	uint32_t OPk_id = 0;
-	transaction tr(m_localStorage->sql);
-	blob OPk_blob(m_localStorage->sql);
-	statement st = (m_localStorage->sql.prepare << "INSERT INTO X3DH_OPK(OPKid, OPK,Uid) VALUES(:OPKid,:OPK,:Uid)", use(OPk_id), use(OPk_blob), use(m_db_Uid));
-
-	try {
-		for (const auto &OPk : OPks) { // loop on all OPk
-			// Insert in DB: store Public Key || Private Key
-			OPk_blob.write(0, (const char *)(OPk.serialize().data()), OneTimePreKey<Curve>::serializedSize());
-			OPk_id = OPk.get_Id(); // store also the key id
-			st.execute(true);
-		}
-	} catch (exception &e) {
-		OPks.clear();
-		tr.rollback();
-		throw BCTBX_EXCEPTION << "OPK insertion in DB failed. DB backend says : "<<e.what();
-	}
-	// commit changes to DB
-	tr.commit();
-}
-
 template <typename Curve>
 void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
@@ -985,93 +843,6 @@ void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long i
 	}
 };
 
-/**
- * @brief retrieve matching SPk from localStorage, throw an exception if not found
- *
- * @param[in]	SPk_id	Id of the SPk we're trying to fetch
- * @return 	The SPk if found
- */
-template <typename Curve>
-SignedPreKey<Curve> Lime<Curve>::X3DH_get_SPk(uint32_t SPk_id) {
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-	blob SPk_blob(m_localStorage->sql);
-	m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
-	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-		sBuffer<SignedPreKey<Curve>::serializedSize()> serializedSPk{};
-		SPk_blob.read(0, (char *)(serializedSPk.data()), SignedPreKey<Curve>::serializedSize());
-		return SignedPreKey<Curve>(serializedSPk, SPk_id);
-	} else {
-		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for SPk id "<<SPk_id<<" failed";
-	}
-}
-
-/**
- * @brief retrieve matching OPk from localStorage, throw an exception if not found
- * 	Note: once fetch, the OPk is deleted from localStorage
- *
- * @param[in]	OPk_id	Id of the OPk we're trying to fetch
- * @return The OPk if found
- */
-template <typename Curve>
-OneTimePreKey<Curve> Lime<Curve>::X3DH_get_OPk(uint32_t OPk_id) {
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-	blob OPk_blob(m_localStorage->sql);
-	m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
-	if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
-		sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
-		OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
-		return OneTimePreKey<Curve>(serializedOPk, OPk_id);
-	} else {
-		throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for OPk id "<<OPk_id<<" failed";
-	}
-}
-
-/**
- * @brief update OPk Status so we can get an idea of what's on server and what was dispatched but not used yet
- * 	get rid of anyone with status 0 and oldest than OPk_limboTime_days
- *
- * @param[in]	OPkIds	List of Ids found on server
- */
-template <typename Curve>
-void Lime<Curve>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-	if (OPkIds.size()>0) { /* we have keys on server */
-		// build a comma-separated list of OPk id on server
-		std::string sqlString_OPkIds{""};
-		for (const auto &OPkId : OPkIds) {
-			sqlString_OPkIds.append(to_string(OPkId)).append(",");
-		}
-
-		sqlString_OPkIds.pop_back(); // remove the last ','
-
-		// Update Status and timeStamp in DB for keys we own and are not anymore on server
-		m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid AND OPKid NOT IN ("<<sqlString_OPkIds<<");", use(m_db_Uid);
-	} else { /* we have no keys on server */
-		m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid;", use(m_db_Uid);
-	}
-
-	// Delete keys not anymore on server since too long
-	m_localStorage->sql << "DELETE FROM X3DH_OPK WHERE Uid = :Uid AND Status = 0 AND timeStamp < date('now', '-"<<lime::settings::OPk_limboTime_days<<" day');", use(m_db_Uid);
-}
-
-template <typename Curve>
-void Lime<Curve>::set_x3dhServerUrl(const std::string &x3dhServerUrl) {
-	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-	transaction tr(m_localStorage->sql);
-
-	// update in DB, do not check presence as we're called after a load_user who already ensure that
-	try {
-		m_localStorage->sql<<"UPDATE lime_LocalUsers SET server = :server WHERE UserId = :userId;", use(x3dhServerUrl), use(m_selfDeviceId);
-	} catch (exception const &e) {
-		tr.rollback();
-		throw BCTBX_EXCEPTION << "Cannot set the X3DH server url for user "<<m_selfDeviceId<<". DB backend says: "<<e.what();
-	}
-	// update in the Lime object
-	m_X3DH_Server_URL = x3dhServerUrl;
-
-	tr.commit();
-}
-
 template <typename Curve>
 void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 	std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
@@ -1090,28 +861,14 @@ void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
 
 /* template instanciations for Curves 25519 and 448 */
 #ifdef EC25519_ENABLED
-	template bool Lime<C255>::activate_user();
-	template void Lime<C255>::get_SelfIdentityKey();
-	template void Lime<C255>::X3DH_generate_OPks(std::vector<OneTimePreKey<C255>> &OPks, const uint16_t OPk_number, const bool load);
 	template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	template SignedPreKey<C255> Lime<C255>::X3DH_get_SPk(uint32_t SPk_id);
-	template OneTimePreKey<C255> Lime<C255>::X3DH_get_OPk(uint32_t OPk_id);
-	template void Lime<C255>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
-	template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
 #endif
 
 #ifdef EC448_ENABLED
-	template bool Lime<C448>::activate_user();
-	template void Lime<C448>::get_SelfIdentityKey();
-	template void Lime<C448>::X3DH_generate_OPks(std::vector<OneTimePreKey<C448>> &OPks, const uint16_t OPk_number, const bool load);
 	template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
 	template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	template SignedPreKey<C448> Lime<C448>::X3DH_get_SPk(uint32_t SPk_id);
-	template OneTimePreKey<C448> Lime<C448>::X3DH_get_OPk(uint32_t OPk_id);
-	template void Lime<C448>::X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds);
-	template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
 #endif
 
