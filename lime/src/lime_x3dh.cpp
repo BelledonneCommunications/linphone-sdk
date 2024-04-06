@@ -345,140 +345,180 @@ namespace lime {
 						}
 						break;
 
-				case x3dh_protocol::x3dh_message_type::postSPk:
-				case x3dh_protocol::x3dh_message_type::deleteUser:
-				case x3dh_protocol::x3dh_message_type::postOPks:
-					// server response to deleteUser, postSPk or postOPks, nothing to do really
-					// success callback is the common behavior, performed after the switch
-				break;
+						case x3dh_protocol::x3dh_message_type::postSPk:
+						case x3dh_protocol::x3dh_message_type::deleteUser:
+						case x3dh_protocol::x3dh_message_type::postOPks:
+							// server response to deleteUser, postSPk or postOPks, nothing to do really
+							// success callback is the common behavior, performed after the switch
+						break;
 
-				case x3dh_protocol::x3dh_message_type::peerBundle: {
-					// server response to a getPeerBundle packet
-					std::vector<X3DH_peerBundle<Curve>> peersBundle;
-					if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
-						LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
-						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
-						cleanUserData(limeObj, userData);
-						return;
-					}
+						case x3dh_protocol::x3dh_message_type::peerBundle: {
+							// server response to a getPeerBundle packet
+							std::vector<X3DH_peerBundle<Curve>> peersBundle;
+							if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
+								LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
+								if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
+								cleanUserData(limeObj, userData);
+								return;
+							}
 
-					// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
-					try {
-						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
-						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
-						// when message stop crossing themselves on the network
-						X3DH_init_sender_session(limeObj, peersBundle);
-					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
-						cleanUserData(limeObj, userData);
-						return;
-					} catch (exception const &e) {
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
-						cleanUserData(limeObj, userData);
-						return;
-					}
+							// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
+							try {
+								//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
+								// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
+								// when message stop crossing themselves on the network
+								X3DH_init_sender_session(limeObj, peersBundle);
+							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
+								cleanUserData(limeObj, userData);
+								return;
+							} catch (exception const &e) {
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+								cleanUserData(limeObj, userData);
+								return;
+							}
 
-					// tweak the userData->recipients to set to fail those wo didn't get a key bundle
-					for (const auto &peerBundle:peersBundle) {
-						// get all the bundless peer Devices
-						if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
-							for (auto &recipient:*(userData->recipients)) {
-								// and set their recipient status to fail so the encrypt function would ignore them
-								if (recipient.deviceId == peerBundle.deviceId) {
-									recipient.peerStatus = lime::PeerDeviceStatus::fail;
+							// tweak the userData->recipients to set to fail those wo didn't get a key bundle
+							for (const auto &peerBundle:peersBundle) {
+								// get all the bundless peer Devices
+								if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+									for (auto &recipient:*(userData->recipients)) {
+										// and set their recipient status to fail so the encrypt function would ignore them
+										if (recipient.deviceId == peerBundle.deviceId) {
+											recipient.peerStatus = lime::PeerDeviceStatus::fail;
+										}
+									}
 								}
 							}
+
+							// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
+							// We must not generate an exception here, so catch anything raising from encrypt
+							try {
+								limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
+							} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
+								cleanUserData(limeObj, userData);
+								return;
+							} catch (exception const &e) {
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
+								cleanUserData(limeObj, userData);
+								return;
+							}
+
+							// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
+							cleanUserData(limeObj, userData);
 						}
+						return;
+
+						case x3dh_protocol::x3dh_message_type::selfOPks: {
+							// server response to a getSelfOPks
+							std::vector<uint32_t> selfOPkIds{};
+							if (!x3dh_protocol::parseMessage_selfOPks<Curve>(responseBody, selfOPkIds)) { // parsing went wrong
+								LIME_LOGE<<"Got an invalid selfOPKs packet from X3DH server";
+								if (callback) callback(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+								cleanUserData(limeObj, userData);
+								return;
+							}
+
+							// update in LocalStorage the OPk status: tag removed from server and delete old keys
+							X3DH_updateOPkStatus(selfOPkIds);
+
+							// Check if we shall upload more packets
+							if (selfOPkIds.size() < userData->OPkServerLowLimit) {
+								// generate and publish the OPks
+								std::vector<OneTimePreKey<Curve>> OPks{};
+								// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
+								X3DH_generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
+								std::vector<uint8_t> X3DHmessage{};
+								x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
+								postToX3DHServer(userData, X3DHmessage);
+							} else { /* nothing to do, just call the callback */
+								if (callback) callback(lime::CallbackReturn::success, "");
+								cleanUserData(limeObj, userData);
+							}
+						}
+						return;
+
+						case x3dh_protocol::x3dh_message_type::error: {
+							// error messages are logged inside the parseMessage_getType function, just return failure to callback
+							// Check if the error message is a user_not_found and we were trying to get our self OPks(OPkServerLowLimit > 0)
+							if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
+								// We must republish the user, something went terribly wrong on server side and we're not there anymore
+								LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
+								X3DH_updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
+								// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
+								publish_user(userData, userData->OPkServerLowLimit);
+								cleanUserData(limeObj, userData);
+							} else {
+								if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
+								cleanUserData(limeObj, userData);
+							}
+						}
+						return;
+
+						// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
+						// but we cannot get from server getPeerBundle or getSelfOPks message
+						case x3dh_protocol::x3dh_message_type::deprecated_registerUser:
+						case x3dh_protocol::x3dh_message_type::getPeerBundle:
+						case x3dh_protocol::x3dh_message_type::getSelfOPks: {
+							if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
+							cleanUserData(limeObj, userData);
+						}
+						return;
+
 					}
 
-					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
-					// We must not generate an exception here, so catch anything raising from encrypt
-					try {
-						limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
-					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
-						cleanUserData(limeObj, userData);
-						return;
-					} catch (exception const &e) {
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
-						cleanUserData(limeObj, userData);
-						return;
-					}
-
-					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
+					// we get here only if processing is over and response was the expected one
+					if (callback) callback(lime::CallbackReturn::success, "");
 					cleanUserData(limeObj, userData);
-				}
-				return;
+					return;
 
-				case x3dh_protocol::x3dh_message_type::selfOPks: {
-					// server response to a getSelfOPks
-					std::vector<uint32_t> selfOPkIds{};
-					if (!x3dh_protocol::parseMessage_selfOPks<Curve>(responseBody, selfOPkIds)) { // parsing went wrong
-						LIME_LOGE<<"Got an invalid selfOPKs packet from X3DH server";
-						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
-						cleanUserData(limeObj, userData);
-						return;
-					}
-
-					// update in LocalStorage the OPk status: tag removed from server and delete old keys
-					X3DH_updateOPkStatus(selfOPkIds);
-
-					// Check if we shall upload more packets
-					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
-						// generate and publish the OPks
-						std::vector<OneTimePreKey<Curve>> OPks{};
-						// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
-						X3DH_generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
-						std::vector<uint8_t> X3DHmessage{};
-						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
-						postToX3DHServer(userData, X3DHmessage);
-					} else { /* nothing to do, just call the callback */
-						if (callback) callback(lime::CallbackReturn::success, "");
-						cleanUserData(limeObj, userData);
-					}
-				}
-				return;
-
-				case x3dh_protocol::x3dh_message_type::error: {
-					// error messages are logged inside the parseMessage_getType function, just return failure to callback
-					// Check if the error message is a user_not_found and we were trying to get our self OPks(OPkServerLowLimit > 0)
-					if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
-						// We must republish the user, something went terribly wrong on server side and we're not there anymore
-						LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
-						X3DH_updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
-						// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
-						publish_user(userData, userData->OPkServerLowLimit);
-						cleanUserData(limeObj, userData);
-					} else {
-						if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
-						cleanUserData(limeObj, userData);
-					}
-				}
-				return;
-
-				// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
-				// but we cannot get from server getPeerBundle or getSelfOPks message
-				case x3dh_protocol::x3dh_message_type::deprecated_registerUser:
-				case x3dh_protocol::x3dh_message_type::getPeerBundle:
-				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
-					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
+				} else { // response code is not 200Ok
+					if (callback) callback(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
 					cleanUserData(limeObj, userData);
+					return;
 				}
-				return;
-
 			}
 
-			// we get here only if processing is over and response was the expected one
-			if (callback) callback(lime::CallbackReturn::success, "");
-			cleanUserData(limeObj, userData);
-			return;
+			/**
+			* @brief retrieve matching SPk from localStorage, throw an exception if not found
+			*
+			* @param[in]	SPk_id	Id of the SPk we're trying to fetch
+			* @return 	The SPk if found
+			*/
+			SignedPreKey<Curve> get_SPk(uint32_t SPk_id) {
+				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				blob SPk_blob(m_localStorage->sql);
+				m_localStorage->sql<<"SELECT SPk FROM X3DH_SPk WHERE Uid = :Uid AND SPKid = :SPk_id LIMIT 1;", into(SPk_blob), use(m_db_Uid), use(SPk_id);
+				if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
+					sBuffer<SignedPreKey<Curve>::serializedSize()> serializedSPk{};
+					SPk_blob.read(0, (char *)(serializedSPk.data()), SignedPreKey<Curve>::serializedSize());
+					return SignedPreKey<Curve>(serializedSPk, SPk_id);
+				} else {
+					throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for SPk id "<<SPk_id<<" failed";
+				}
+			}
 
-		} else { // response code is not 200Ok
-			if (callback) callback(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
-			cleanUserData(limeObj, userData);
-			return;
-		}
-	}
+			/**
+			* @brief retrieve matching OPk from localStorage, throw an exception if not found
+			* 	Note: once fetch, the OPk is deleted from localStorage
+			*
+			* @param[in]	OPk_id	Id of the OPk we're trying to fetch
+			* @return The OPk if found
+			*/
+			OneTimePreKey<Curve> get_OPk(uint32_t OPk_id) {
+				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				blob OPk_blob(m_localStorage->sql);
+				m_localStorage->sql<<"SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND OPKid = :OPk_id LIMIT 1;", into(OPk_blob), use(m_db_Uid), use(OPk_id);
+				if (m_localStorage->sql.got_data()) { // Found it, it is stored in one buffer Public || Private
+					sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
+					OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
+					return OneTimePreKey<Curve>(serializedOPk, OPk_id);
+				} else {
+					throw BCTBX_EXCEPTION << "X3DH "<<m_selfDeviceId<<"look up for OPk id "<<OPk_id<<" failed";
+				}
+			}
+
 			/**
 			* @brief send a message to X3DH server
 			*
@@ -718,6 +758,89 @@ namespace lime {
 				x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, peerDeviceIds);
 				postToX3DHServer(userData, X3DHmessage);
 			}
+
+			std::shared_ptr<DR> init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) override {
+				DSA<Curve, lime::DSAtype::publicKey> peerIk{};
+				X<Curve, lime::Xtype::publicKey> Ek{};
+				bool OPk_flag = false;
+				uint32_t SPk_id=0, OPk_id=0;
+
+				double_ratchet_protocol::parseMessage_X3DHinit(X3DH_initMessage, peerIk, Ek, SPk_id, OPk_id, OPk_flag);
+
+				auto SPk = get_SPk(SPk_id); // this one will throw an exception if the SPk is not found in local storage, let it flow up
+
+				// Compute 	DH1 = DH(SPk, peer Ik)
+				// 		DH2 = DH(self Ik, Ek)
+				// 		DH3 = DH(SPk, Ek)
+				// 		DH4 = DH(OPk, Ek)  if peer used an OPk
+
+				// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
+				// use sBuffer of size able to hold also DH$ even if we may not use it
+				sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
+				HKDF_input.fill(0xFF); // HKDF_input holds F
+				size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
+
+				auto DH = make_keyExchange<Curve>();
+
+				// DH1 (SPk, peerIk)
+				DH->set_secret(SPk.privateKey());
+				DH->set_selfPublic(SPk.publicKey());
+				DH->set_peerPublic(peerIk); // peer Ik key is converted from Signature to key exchange format
+				DH->computeSharedSecret();
+				auto DH_out = DH->get_sharedSecret();
+				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1
+				HKDF_input_index += DH_out.size();
+
+				// Then DH3 = DH(SPk, Ek) as we already have SPk in the key Exchange context, we will go back for DH2 after this one
+				DH->set_peerPublic(Ek);
+				DH->computeSharedSecret();
+				DH_out = DH->get_sharedSecret();
+				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index + DH_out.size()); // HKDF_input holds F || DH1 || empty slot || DH3
+
+				// DH2 = DH(self Ik, Ek), Ek is already DH context
+				// convert self ED Ik pair into X keys
+				load_SelfIdentityKey(); // make sure self IK is in context
+				DH->set_secret(m_Ik.privateKey()); // self Ik key is converted from Signature to key exchange format
+				DH->set_selfPublic(m_Ik.publicKey());
+				DH->computeSharedSecret();
+				DH_out = DH->get_sharedSecret();
+				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
+				HKDF_input_index += 2*DH_out.size();
+
+				if (OPk_flag) { // there is an OPk id
+					const auto OPk = get_OPk(OPk_id); // this one will throw an exception if the OPk is not found in local storage, let it flow up
+
+					// DH4 = DH(OPk, Ek) Ek is already in context
+					DH->set_secret(OPk.cprivateKey());
+					DH->set_selfPublic(OPk.cpublicKey());
+					DH->computeSharedSecret();
+					DH_out = DH->get_sharedSecret();
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 DH4
+					HKDF_input_index += DH_out.size();
+				}
+
+				DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
+
+				// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4) (DH4 optionnal)
+				DRChainKey SK;
+				/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
+				std::vector<uint8_t> salt(SHA512::ssize(), 0);
+				HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
+
+				// Generate the shared AD used in DR session
+				SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id), we are receiver on this one
+				std::vector<uint8_t> AD_input{peerIk.cbegin(), peerIk.cend()};
+				AD_input.insert(AD_input.end(), m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
+				AD_input.insert(AD_input.end(), senderDeviceId.cbegin(), senderDeviceId.cend());
+				AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
+				HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
+
+				// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
+				auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
+				auto DRSession = make_DR_for_receiver<Curve>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
+
+				return std::static_pointer_cast<DR>(DRSession);
+			}
 	};
 
 	/****************************************************************************/
@@ -734,98 +857,4 @@ namespace lime {
 #ifdef EC448_ENABLED
 	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
-
-	template <typename Curve>
-	std::shared_ptr<DR> Lime<Curve>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) {
-		DSA<Curve, lime::DSAtype::publicKey> peerIk{};
-		X<Curve, lime::Xtype::publicKey> Ek{};
-		bool OPk_flag = false;
-		uint32_t SPk_id=0, OPk_id=0;
-
-		double_ratchet_protocol::parseMessage_X3DHinit(X3DH_initMessage, peerIk, Ek, SPk_id, OPk_id, OPk_flag);
-
-		auto SPk = X3DH_get_SPk(SPk_id); // this one will throw an exception if the SPk is not found in local storage, let it flow up
-
-		// Compute 	DH1 = DH(SPk, peer Ik)
-		// 		DH2 = DH(self Ik, Ek)
-		// 		DH3 = DH(SPk, Ek)
-		// 		DH4 = DH(OPk, Ek)  if peer used an OPk
-
-		// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
-		// use sBuffer of size able to hold also DH$ even if we may not use it
-		sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
-		HKDF_input.fill(0xFF); // HKDF_input holds F
-		size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
-
-		auto DH = make_keyExchange<Curve>();
-
-		// DH1 (SPk, peerIk)
-		DH->set_secret(SPk.privateKey());
-		DH->set_selfPublic(SPk.publicKey());
-		DH->set_peerPublic(peerIk); // peer Ik key is converted from Signature to key exchange format
-		DH->computeSharedSecret();
-		auto DH_out = DH->get_sharedSecret();
-		std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1
-		HKDF_input_index += DH_out.size();
-
-		// Then DH3 = DH(SPk, Ek) as we already have SPk in the key Exchange context, we will go back for DH2 after this one
-		DH->set_peerPublic(Ek);
-		DH->computeSharedSecret();
-		DH_out = DH->get_sharedSecret();
-		std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index + DH_out.size()); // HKDF_input holds F || DH1 || empty slot || DH3
-
-		// DH2 = DH(self Ik, Ek), Ek is already DH context
-		// convert self ED Ik pair into X keys
-		get_SelfIdentityKey(); // make sure self IK is in context
-		DH->set_secret(m_Ik.privateKey()); // self Ik key is converted from Signature to key exchange format
-		DH->set_selfPublic(m_Ik.publicKey());
-		DH->computeSharedSecret();
-		DH_out = DH->get_sharedSecret();
-		std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
-		HKDF_input_index += 2*DH_out.size();
-
-		if (OPk_flag) { // there is an OPk id
-			const auto OPk = X3DH_get_OPk(OPk_id); // this one will throw an exception if the OPk is not found in local storage, let it flow up
-
-			// DH4 = DH(OPk, Ek) Ek is already in context
-			DH->set_secret(OPk.cprivateKey());
-			DH->set_selfPublic(OPk.cpublicKey());
-			DH->computeSharedSecret();
-			DH_out = DH->get_sharedSecret();
-			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 DH4
-			HKDF_input_index += DH_out.size();
-		}
-
-		DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
-
-		// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4) (DH4 optionnal)
-		DRChainKey SK;
-		/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
-		std::vector<uint8_t> salt(SHA512::ssize(), 0);
-		HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
-
-		// Generate the shared AD used in DR session
-		SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id), we are receiver on this one
-		std::vector<uint8_t> AD_input{peerIk.cbegin(), peerIk.cend()};
-		AD_input.insert(AD_input.end(), m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend());
-		AD_input.insert(AD_input.end(), senderDeviceId.cbegin(), senderDeviceId.cend());
-		AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
-		HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
-
-		// check the new peer device Id in Storage, if it is not found, the DR session will add it when it saves itself after successful decryption
-		auto peerDid = m_localStorage->check_peerDevice(senderDeviceId, peerIk);
-		auto DRSession = make_DR_for_receiver<Curve>(m_localStorage, SK, AD, SPk, peerDid, senderDeviceId, OPk_flag?OPk_id:0, peerIk, m_db_Uid, m_RNG);
-
-		return std::static_pointer_cast<DR>(DRSession);
-	}
-
-	/* Instanciate templated member functions */
-#ifdef EC25519_ENABLED
-	template std::shared_ptr<DR> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
-#endif
-
-#ifdef EC448_ENABLED
-	template std::shared_ptr<DR> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
-#endif
-
-}
+} // namespace lime

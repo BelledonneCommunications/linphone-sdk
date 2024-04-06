@@ -170,18 +170,22 @@ namespace lime {
 				hexStr(os, m_OPk.cpublicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
 			}
 	};
+
+	// forward declarations
 	struct callbackUserData;
+	class DR;
 
 	class X3DH
 	{
 	public:
-			virtual void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) = 0; /**< fetch key bundles from server */
-			virtual void publish_user(std::shared_ptr<callbackUserData> userData, const uint16_t OPkInitialBatchSize) = 0; /**< publish a new user */
-			virtual std::vector<uint8_t> get_Ik(void) = 0; /**< returns our public identity key */
-			virtual long int get_dbUid(void) const noexcept = 0; /**< get the User Id in database */
-			virtual bool is_currentSPk_valid(void) = 0;
-			virtual std::vector<uint8_t> update_SPk(void) = 0;
-			virtual ~X3DH() = default;
+		virtual std::shared_ptr<DR> init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) = 0;
+		virtual void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) = 0; /**< fetch key bundles from server */
+		virtual void publish_user(std::shared_ptr<callbackUserData> userData, const uint16_t OPkInitialBatchSize) = 0; /**< publish a new user */
+		virtual std::vector<uint8_t> get_Ik(void) = 0; /**< returns our public identity key */
+		virtual long int get_dbUid(void) const noexcept = 0; /**< get the User Id in database */
+		virtual bool is_currentSPk_valid(void) = 0;
+		virtual std::vector<uint8_t> update_SPk(void) = 0;
+		virtual ~X3DH() = default;
 	};
 
 	/**
@@ -198,7 +202,6 @@ namespace lime {
 	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid = 0);
 
 
-	/* this templates are instanciated once in the lime_x3dh.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
 #ifdef EC25519_ENABLED
 	extern template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif

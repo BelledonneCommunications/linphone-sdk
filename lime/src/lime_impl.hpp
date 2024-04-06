@@ -85,8 +85,6 @@ namespace lime {
 			SignedPreKey<Curve> X3DH_get_SPk(uint32_t SPk_id); // retrieve matching SPk from localStorage, throw an exception if not found
 			OneTimePreKey<Curve> X3DH_get_OPk(uint32_t OPk_id); // retrieve matching OPk from localStorage, throw an exception if not found
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
-			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
-			std::shared_ptr<DR> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session
 
 			/* network related, implemented in lime_x3dh_protocol.cpp */
 			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message); // send a request to X3DH server
