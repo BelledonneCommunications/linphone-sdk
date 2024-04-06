@@ -26,6 +26,9 @@
 #include <mutex>
 
 namespace lime {
+	// forward declarations
+	class DR;
+	class X3DH;
 
 	/** @brief A pure abstract class defining the API to encrypt/decrypt/manage user and its keys
 	 *
@@ -89,7 +92,34 @@ namespace lime {
 		*/
 		virtual lime::PeerDeviceStatus decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 
+		/**
+		 * @brief Check if we have queued encryption to process, if yes, do it
+		 *
+		 */
+		virtual void processEncryptionQueue(void) = 0;
 
+		/**
+		 * @brief delete an entry (if found) from the DR session cache
+		 *
+		 * @param[in]	deviceId	the key in the DR session cache
+		 */
+		virtual void DRcache_delete(const std::string &deviceId) = 0;
+
+		/**
+		 * @brief insert an entry in the DR session cache
+		 * if an entry with the same key already exists, do nothing
+		 *
+		 * @param[in]	deviceId	the key in the DR session cache
+		 * @param[in]	DRsession	the DR session to insert
+		 */
+		virtual	void DRcache_insert(const std::string &deviceId, std::shared_ptr<DR> DRsession) = 0;
+
+		/**
+		 * @brief accessor to the internal X3DH engine
+		 *
+		 * @return the internal X3DH engine
+		 */
+		virtual std::shared_ptr<X3DH> get_X3DH(void) = 0;
 
 		// User management
 		/**

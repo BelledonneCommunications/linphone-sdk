@@ -111,6 +111,10 @@ namespace lime {
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override;
 			std::string get_x3dhServerUrl() override;
 			void stale_sessions(const std::string &peerDeviceId) override;
+			void processEncryptionQueue(void) override;
+			void DRcache_delete(const std::string &deviceId) override;
+			void DRcache_insert(const std::string &deviceId, std::shared_ptr<DR> DRsession) override;
+			std::shared_ptr<X3DH> get_X3DH(void) override {return m_X3DH;}
 	};
 
 	/**

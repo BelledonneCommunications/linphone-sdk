@@ -82,38 +82,7 @@ namespace lime {
 
 		constexpr uint8_t X3DH_protocolVersion = 0x01;
 		constexpr size_t X3DH_headerSize = 3;
-		/**
-		 * @brief the x3dh message type exchanged with the X3DH server
-		 * @note Do not change the mapped values as they must be synced with X3DH server definition
-		 */
-		enum class x3dh_message_type : uint8_t{	deprecated_registerUser=0x01, // The usage of this value is deprecated, but kept in the define so it is not recycled.
-							deleteUser=0x02,
-							postSPk=0x03,
-							postOPks=0x04,
-							getPeerBundle=0x05,
-							peerBundle=0x06,
-							getSelfOPks=0x07,
-							selfOPks=0x08,
-							registerUser=0x09,
-							error=0xff};
 
-		/**
-		 * @brief the error codes included in the x3dh error message received from the X3DH server
-		 * @note Do not change the mapped values as they must be synced with X3DH server definition
-		 */
-		enum class x3dh_error_code : uint8_t{	bad_content_type=0x00,
-							bad_curve=0x01,
-							missing_senderId=0x02,
-							bad_x3dh_protocol_version=0x03,
-							bad_size=0x04,
-							user_already_in=0x05,
-							user_not_found=0x06,
-							db_error=0x07,
-							bad_request=0x08,
-							server_failure=0x09,
-							resource_limit_reached=0x0a,
-							unknown_error_code=0xfe,
-							unset_error_code=0xff};
 		/* X3DH protocol messages builds */
 		/**
 		 * @brief Helper function to get human readable trace of x3dh messages types
@@ -673,6 +642,9 @@ namespace lime {
 		template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
+		template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		template bool parseMessage_getPeerBundles<C255>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255>> &peersBundle) noexcept;
+		template bool parseMessage_selfOPks<C255>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
@@ -682,6 +654,9 @@ namespace lime {
 		template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
+		template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		template bool parseMessage_getPeerBundles<C448>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C448>> &peersBundle) noexcept;
+		template bool parseMessage_selfOPks<C448>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
 	} //namespace x3dh_protocol
 
@@ -706,14 +681,6 @@ namespace lime {
 		}
 	}
 
-	/**
-	 * @brief process response message from X3DH server
-	 *
-	 * @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
-	 * @param[in]		reponseCode	response from X3DH server, communication is done over HTTP(S), so we expect a 200
-	 * 					other code will just lead to cleaning memory
-	 * @param[in]		responseBody	a vector holding the actual response from server to be processed
-	 */
 	template <typename Curve>
 	void Lime<Curve>::process_response(std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
 		auto callback = userData->callback; // get callback

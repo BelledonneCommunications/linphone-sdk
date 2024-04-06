@@ -50,7 +50,7 @@ namespace lime {
 		const lime::X3DHKeyBundleFlag bundleFlag; /**< Flag this bundle as empty and if not if it holds an OPk, possible values */
 
 		/**
-		 * Constructor gets vector<uint8_t> iterators to the bundle begining 
+		 * Constructor gets vector<uint8_t> iterators to the bundle begining
 		 *
 		 * @param[in]	deviceId	peer Device Id providing this key bundle
 		 * @param[in]	bundle		iterator pointing to the begining of the key bundle - Ik begin
@@ -76,6 +76,41 @@ namespace lime {
 	};
 
 	namespace x3dh_protocol {
+		/**
+		 * @brief the x3dh message type exchanged with the X3DH server
+		 * @note Do not change the mapped values as they must be synced with X3DH server definition
+		 */
+		enum class x3dh_message_type : uint8_t{
+			deprecated_registerUser=0x01, // The usage of this value is deprecated, but kept in the define so it is not recycled.
+			deleteUser=0x02,
+			postSPk=0x03,
+			postOPks=0x04,
+			getPeerBundle=0x05,
+			peerBundle=0x06,
+			getSelfOPks=0x07,
+			selfOPks=0x08,
+			registerUser=0x09,
+			error=0xff};
+
+		/**
+		 * @brief the error codes included in the x3dh error message received from the X3DH server
+		 * @note Do not change the mapped values as they must be synced with X3DH server definition
+		 */
+		enum class x3dh_error_code : uint8_t{
+			bad_content_type=0x00,
+			bad_curve=0x01,
+			missing_senderId=0x02,
+			bad_x3dh_protocol_version=0x03,
+			bad_size=0x04,
+			user_already_in=0x05,
+			user_not_found=0x06,
+			db_error=0x07,
+			bad_request=0x08,
+			server_failure=0x09,
+			resource_limit_reached=0x0a,
+			unknown_error_code=0xfe,
+			unset_error_code=0xff};
+
 		template <typename Curve>
 		void buildMessage_registerUser(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const SignedPreKey<Curve> &SPk, const std::vector<OneTimePreKey<Curve>> &OPks) noexcept;
 
@@ -86,7 +121,7 @@ namespace lime {
 		void buildMessage_publishSPk(std::vector<uint8_t> &message, const SignedPreKey<Curve> &SPk) noexcept;
 
 		template <typename Curve>
-		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<X<Curve, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		void buildMessage_publishOPks(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<Curve>> &OPks) noexcept;
 
 		template <typename Curve>
 		void buildMessage_getPeerBundles(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
@@ -94,23 +129,38 @@ namespace lime {
 		template <typename Curve>
 		void buildMessage_getSelfOPks(std::vector<uint8_t> &message) noexcept;
 
+		template <typename Curve>
+		bool parseMessage_getType(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+
+		template <typename Curve>
+		bool parseMessage_getPeerBundles(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<Curve>> &peersBundle) noexcept;
+
+		template <typename Curve>
+		bool parseMessage_selfOPks(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
+
 		/* this templates are intanciated in lime_x3dh_procotocol.cpp, do not re-instanciate it anywhere else */
 #ifdef EC25519_ENABLED
 		extern template void buildMessage_registerUser<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const SignedPreKey<C255> &SPk, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		extern template void buildMessage_deleteUser<C255>(std::vector<uint8_t> &message) noexcept;
 		extern template void buildMessage_publishSPk<C255>(std::vector<uint8_t> &message, const SignedPreKey<C255> &SPk) noexcept;
-		extern template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<X<C255, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		extern template void buildMessage_publishOPks<C255>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C255>> &OPks) noexcept;
 		extern template void buildMessage_getPeerBundles<C255>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		extern template void buildMessage_getSelfOPks<C255>(std::vector<uint8_t> &message) noexcept;
+		extern template bool parseMessage_getType<C255>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		extern template bool parseMessage_getPeerBundles<C255>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C255>> &peersBundle) noexcept;
+		extern template bool parseMessage_selfOPks<C255>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
 
 #ifdef EC448_ENABLED
 		extern template void buildMessage_registerUser<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik,  const SignedPreKey<C448> &SPk, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		extern template void buildMessage_deleteUser<C448>(std::vector<uint8_t> &message) noexcept;
 		extern template void buildMessage_publishSPk<C448>(std::vector<uint8_t> &message, const SignedPreKey<C448> &SPk) noexcept;
-		extern template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<X<C448, lime::Xtype::publicKey>> &OPks, const std::vector<uint32_t> &OPk_ids) noexcept;
+		extern template void buildMessage_publishOPks<C448>(std::vector<uint8_t> &message, const std::vector<OneTimePreKey<C448>> &OPks) noexcept;
 		extern template void buildMessage_getPeerBundles<C448>(std::vector<uint8_t> &message, std::vector<std::string> &peer_device_ids) noexcept;
 		extern template void buildMessage_getSelfOPks<C448>(std::vector<uint8_t> &message) noexcept;
+		extern template bool parseMessage_getType<C448>(const std::vector<uint8_t> &body, x3dh_message_type &message_type, x3dh_error_code &error_code, const limeCallback callback) noexcept;
+		extern template bool parseMessage_getPeerBundles<C448>(const std::vector<uint8_t> &body, std::vector<X3DH_peerBundle<C448>> &peersBundle) noexcept;
+		extern template bool parseMessage_selfOPks<C448>(const std::vector<uint8_t> &body, std::vector<uint32_t> &selfOPkIds) noexcept;
 #endif
 
 	} // namespace x3dh_protocol

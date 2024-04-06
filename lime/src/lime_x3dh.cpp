@@ -24,6 +24,7 @@
 #include "lime/lime.hpp"
 #include "lime_impl.hpp"
 #include "lime_double_ratchet_protocol.hpp"
+#include "lime_x3dh_protocol.hpp"
 #include "bctoolbox/exception.hh"
 #include "lime_crypto_primitives.hpp"
 #include <set>
@@ -43,9 +44,15 @@ namespace lime {
 	private:
 			/* general purpose */
 			std::shared_ptr<RNG> m_RNG; // Random Number Generator context
+			std::string m_selfDeviceId; // self device Id, shall be the GRUU
+
 			/* local storage related */
 			std::shared_ptr<lime::Db> m_localStorage; // shared pointer would be used/stored in Double Ratchet Sessions
 			long int m_db_Uid; // the Uid in database, retrieved at creation/load, used for faster access
+
+			/* network related */
+			std::string m_X3DH_Server_URL; // url of x3dh key server
+			limeX3DHServerPostData m_X3DH_post_data; // externally provided function to communicate with x3dh server
 
 			/* X3DH keys */
 			DSApair<Curve> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)
@@ -139,7 +146,7 @@ namespace lime {
 				return s;
 			}
 
-			void X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load) {
+			void X3DH_generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
 
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
@@ -217,66 +224,443 @@ namespace lime {
 				// commit changes to DB
 				tr.commit();
 			}
-	public:
-			/** Constructors **/
-			/** User already in local storage: just register the Uid and needed info, self Identity key will be loaded only when needed */
-			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const long int UId, std::shared_ptr< lime::RNG > RNG_context) : m_RNG{RNG_context}, m_localStorage{localStorage}, m_db_Uid{UId}, m_Ik_loaded{false}{};
-			/** User must be created in local storage: create the Ik only, the rest of it will be done when publishing it **/
-			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, std::shared_ptr< lime::RNG > RNG_context) : m_RNG{RNG_context}, m_localStorage{localStorage}, m_db_Uid{0}, m_Ik_loaded{false}{
-				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
-				int Uid;
-				int curve;
 
-				// check if the user is not already in the DB
-				m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curve), use(selfDeviceId);
-				if (m_localStorage->sql.got_data()) {
-					if (curve&lime::settings::DBInactiveUserBit) { // user is there but inactive, just return true, the insert_LimeUser will try to publish it again
-						m_db_Uid = Uid;
-						return;
-					} else {
-						throw BCTBX_EXCEPTION << "Lime user "<<selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
+			/**
+			* @brief update OPk Status so we can get an idea of what's on server and what was dispatched but not used yet
+			* 	get rid of anyone with status 0 and oldest than OPk_limboTime_days
+			*
+			* @param[in]	OPkIds	List of Ids found on server
+			*/
+			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds) {
+				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				if (OPkIds.size()>0) { /* we have keys on server */
+					// build a comma-separated list of OPk id on server
+					std::string sqlString_OPkIds{""};
+					for (const auto &OPkId : OPkIds) {
+						sqlString_OPkIds.append(to_string(OPkId)).append(",");
 					}
+
+					sqlString_OPkIds.pop_back(); // remove the last ','
+
+					// Update Status and timeStamp in DB for keys we own and are not anymore on server
+					m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid AND OPKid NOT IN ("<<sqlString_OPkIds<<");", use(m_db_Uid);
+				} else { /* we have no keys on server */
+					m_localStorage->sql << "UPDATE X3DH_OPK SET Status = 0, timeStamp=CURRENT_TIMESTAMP WHERE Status = 1 AND Uid = :Uid;", use(m_db_Uid);
 				}
 
-				// generate an identity Signature key pair
-				auto IkSig = make_Signature<Curve>();
-				IkSig->createKeyPair(m_RNG);
+				// Delete keys not anymore on server since too long
+				m_localStorage->sql << "DELETE FROM X3DH_OPK WHERE Uid = :Uid AND Status = 0 AND timeStamp < date('now', '-"<<lime::settings::OPk_limboTime_days<<" day');", use(m_db_Uid);
+			}
 
-				// store it in a blob : Public||Private
-				blob Ik(m_localStorage->sql);
-				Ik.write(0, (const char *)(IkSig->get_public().data()), DSA<Curve, lime::DSAtype::publicKey>::ssize());
-				Ik.write(DSA<Curve, lime::DSAtype::publicKey>::ssize(), (const char *)(IkSig->get_secret().data()), DSA<Curve, lime::DSAtype::privateKey>::ssize());
-
-				// set the Ik in Lime object?
-				//m_Ik = std::move(KeyPair<ED<Curve>>{EDDSAContext->publicKey, EDDSAContext->secretKey});
+			/**
+			* @brief Create a new local user based on its userId(GRUU) from table lime_LocalUsers
+			* The user will be activated only after being published successfully on X3DH server
+			*
+			* use m_selfDeviceId as input
+			* populate m_db_Uid
+			*
+			* @exception BCTBX_EXCEPTION	thrown if user is not found in base
+			*/
+			void activate_user(void) {
+				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+				// check if the user is the DB
+				int Uid = 0;
+				int curveId = 0;
+				m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(Uid), into(curveId), use(m_selfDeviceId);
+				if (!m_localStorage->sql.got_data()) {
+					throw BCTBX_EXCEPTION << "Lime user "<<m_selfDeviceId<<" cannot be activated, it is not present in local storage";
+				}
 
 				transaction tr(m_localStorage->sql);
 
-				// insert in DB
+				// update in DB
 				try {
 					// Don't create stack variable in the method call directly
-					// set the inactive user bit on, user is not active until X3DH server's confirmation
-					int curveId = lime::settings::DBInactiveUserBit | static_cast<uint16_t>(Curve::curveId());
+					uint8_t curveId = static_cast<int8_t>(Curve::curveId());
 
-					m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId,updateTs) VALUES (:userId,:Ik,:server,:curveId, CURRENT_TIMESTAMP) ", use(selfDeviceId), use(Ik), use(X3DHServerURL), use(curveId);
+					m_localStorage->sql<<"UPDATE lime_LocalUsers SET curveId = :curveId WHERE Uid = :Uid;", use(curveId), use(Uid);
 				} catch (exception const &e) {
 					tr.rollback();
-					throw BCTBX_EXCEPTION << "Lime user insertion failed. DB backend says: "<<e.what();
+					throw BCTBX_EXCEPTION << "Lime user activation failed. DB backend says: "<<e.what();
 				}
-				// get the Id of inserted row
-				m_localStorage->sql<<"select last_insert_rowid()",into(m_db_Uid);
+				m_db_Uid = Uid;
 
 				tr.commit();
-				/* WARNING: previous line break portability of DB backend, specific to sqlite3.
-				Following code shall work but consistently returns false and do not set m_db_Uid...*/
-				/*
-				if (!(m_localStorage->sql.get_last_insert_id("lime_LocalUsers", m_db_Uid)))
-					throw BCTBX_EXCEPTION << "Lime user insertion failed. Couldn't retrieve last insert DB";
+			}
+
+			/**
+			* @brief Clean user data in case of problem or when we're done, it also process the asynchronous encryption queue
+			*
+			* @param[in,out] userData	the structure holding the data structure captured by the process response lambda
+			*/
+			void cleanUserData(std::shared_ptr<Lime<Curve>> limeObj, std::shared_ptr<callbackUserData> userData) {
+				if (userData->plainMessage!=nullptr) { // only encryption request for X3DH bundle would populate the plainMessage field of user data structure
+					limeObj->processEncryptionQueue();
+				} else { // its not an encryption, just set userData to null it shall destroy it
+					userData = nullptr;
 				}
-				*/
-				/* all went fine set the Ik loaded flag */
-				//m_Ik_loaded = true;
-			};
+			}
+
+			/**
+			* @brief process response message from X3DH server
+			*
+			* @param[in]		limeObj		The lime object linked to this reponse, also found in the userData but already checked and casted back to the type we need
+			* @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
+			* @param[in]		reponseCode	response from X3DH server, communication is done over HTTP(S), so we expect a 200
+			* 					other code will just lead to cleaning memory
+			* @param[in]		responseBody	a vector holding the actual response from server to be processed
+			*/
+			void process_response(std::shared_ptr<Lime<Curve>> limeObj, std::shared_ptr<callbackUserData> userData, int responseCode, const std::vector<uint8_t> &responseBody) {
+				auto callback = userData->callback; // get callback
+
+				if (responseCode == 200) { // HTTP server is happy with our packet
+					// check response from X3DH server: header shall be X3DH protocol version || message type || curveId
+					lime::x3dh_protocol::x3dh_message_type message_type{x3dh_protocol::x3dh_message_type::error}; // initialise to error type, shall be overridden by the parseMessage_getType function
+					lime::x3dh_protocol::x3dh_error_code error_code{x3dh_protocol::x3dh_error_code::unset_error_code};
+
+					// check message validity, extract type and error code(if any)
+					LIME_LOGI<<"Parse incoming X3DH message for user "<< this->m_selfDeviceId;
+					if (!x3dh_protocol::parseMessage_getType<Curve>(responseBody, message_type, error_code, callback)) {
+						cleanUserData(limeObj, userData);
+						return;
+					}
+
+					switch (message_type) {
+						case x3dh_protocol::x3dh_message_type::registerUser: {
+							// server response to a registerUser
+							// activate the local user
+							try {
+								activate_user();
+							} catch (BctbxException const &e) {
+								LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.str();
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.str()));
+								cleanUserData(limeObj, userData);
+								return;
+							} catch (exception const &e) { // catch all and let flow it up
+								LIME_LOGE<<"Cannot activate user "<< m_selfDeviceId << ". Backend says: "<< e.what();
+								if (callback) callback(lime::CallbackReturn::fail, std::string{"Cannot activate user : "}.append(e.what()));
+								cleanUserData(limeObj, userData);
+								return;
+							}
+						}
+						break;
+
+				case x3dh_protocol::x3dh_message_type::postSPk:
+				case x3dh_protocol::x3dh_message_type::deleteUser:
+				case x3dh_protocol::x3dh_message_type::postOPks:
+					// server response to deleteUser, postSPk or postOPks, nothing to do really
+					// success callback is the common behavior, performed after the switch
+				break;
+
+				case x3dh_protocol::x3dh_message_type::peerBundle: {
+					// server response to a getPeerBundle packet
+					std::vector<X3DH_peerBundle<Curve>> peersBundle;
+					if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
+						LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
+						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
+						cleanUserData(limeObj, userData);
+						return;
+					}
+
+					// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
+					try {
+						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
+						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
+						// when message stop crossing themselves on the network
+						//JOHAN TODO std::lock_guard<std::mutex> lock(limeObj->m_mutex);
+						X3DH_init_sender_session(limeObj, peersBundle);
+					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
+						cleanUserData(limeObj, userData);
+						return;
+					} catch (exception const &e) {
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
+						cleanUserData(limeObj, userData);
+						return;
+					}
+
+					// tweak the userData->recipients to set to fail those wo didn't get a key bundle
+					for (const auto &peerBundle:peersBundle) {
+						// get all the bundless peer Devices
+						if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+							for (auto &recipient:*(userData->recipients)) {
+								// and set their recipient status to fail so the encrypt function would ignore them
+								if (recipient.deviceId == peerBundle.deviceId) {
+									recipient.peerStatus = lime::PeerDeviceStatus::fail;
+								}
+							}
+						}
+					}
+
+					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
+					// We must not generate an exception here, so catch anything raising from encrypt
+					try {
+						limeObj->encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
+					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
+						cleanUserData(limeObj, userData);
+						return;
+					} catch (exception const &e) {
+						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
+						cleanUserData(limeObj, userData);
+						return;
+					}
+
+					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
+					cleanUserData(limeObj, userData);
+				}
+				return;
+
+				case x3dh_protocol::x3dh_message_type::selfOPks: {
+					// server response to a getSelfOPks
+					std::vector<uint32_t> selfOPkIds{};
+					if (!x3dh_protocol::parseMessage_selfOPks<Curve>(responseBody, selfOPkIds)) { // parsing went wrong
+						LIME_LOGE<<"Got an invalid selfOPKs packet from X3DH server";
+						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid selfOPKs packet from X3DH server");
+						cleanUserData(limeObj, userData);
+						return;
+					}
+
+					// update in LocalStorage the OPk status: tag removed from server and delete old keys
+					X3DH_updateOPkStatus(selfOPkIds);
+
+					// Check if we shall upload more packets
+					if (selfOPkIds.size() < userData->OPkServerLowLimit) {
+						// generate and publish the OPks
+						std::vector<OneTimePreKey<Curve>> OPks{};
+						// Generate OPks OPkBatchSize (or more if we need more to reach ServerLowLimit)
+						X3DH_generate_OPks(OPks, std::max(userData->OPkBatchSize, static_cast<uint16_t>(userData->OPkServerLowLimit - selfOPkIds.size())) );
+						std::vector<uint8_t> X3DHmessage{};
+						x3dh_protocol::buildMessage_publishOPks(X3DHmessage, OPks);
+						postToX3DHServer(userData, X3DHmessage);
+					} else { /* nothing to do, just call the callback */
+						if (callback) callback(lime::CallbackReturn::success, "");
+						cleanUserData(limeObj, userData);
+					}
+				}
+				return;
+
+				case x3dh_protocol::x3dh_message_type::error: {
+					// error messages are logged inside the parseMessage_getType function, just return failure to callback
+					// Check if the error message is a user_not_found and we were trying to get our self OPks(OPkServerLowLimit > 0)
+					if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
+						// We must republish the user, something went terribly wrong on server side and we're not there anymore
+						LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
+						X3DH_updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
+						// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
+						publish_user(userData, userData->OPkServerLowLimit);
+						cleanUserData(limeObj, userData);
+					} else {
+						if (callback) callback(lime::CallbackReturn::fail, "X3DH server error");
+						cleanUserData(limeObj, userData);
+					}
+				}
+				return;
+
+				// for registerUser, deleteUser, postSPk and postOPks, on success, server will respond with an identical header
+				// but we cannot get from server getPeerBundle or getSelfOPks message
+				case x3dh_protocol::x3dh_message_type::deprecated_registerUser:
+				case x3dh_protocol::x3dh_message_type::getPeerBundle:
+				case x3dh_protocol::x3dh_message_type::getSelfOPks: {
+					if (callback) callback(lime::CallbackReturn::fail, "X3DH unexpected message from server");
+					cleanUserData(limeObj, userData);
+				}
+				return;
+
+			}
+
+			// we get here only if processing is over and response was the expected one
+			if (callback) callback(lime::CallbackReturn::success, "");
+			cleanUserData(limeObj, userData);
+			return;
+
+		} else { // response code is not 200Ok
+			if (callback) callback(lime::CallbackReturn::fail, std::string("Got a non Ok response from server : ").append(std::to_string(responseCode)));
+			cleanUserData(limeObj, userData);
+			return;
+		}
+	}
+			/**
+			* @brief send a message to X3DH server
+			*
+			* 	this function also binds the response processing to the process_response function capturing the given userData structure
+			*
+			* @param[in,out]	userData	the structure holding the data structure associated to the current asynchronous operation
+			* @param[in]		message		the message to be sent
+			*/
+			void postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message) {
+				LIME_LOGI<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
+
+				// copy capture the shared_ptr to userData
+				m_X3DH_post_data(m_X3DH_Server_URL, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
+						auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
+						// check it is valid (lock() returns nullptr)
+						if (!thiz) { // our Lime caller object doesn't exists anymore
+							LIME_LOGE<<"Got response from X3DH server but our Lime Object has been destroyed";
+							return; // the captured shared_ptr on userData will be freed when this capture will be destroyed
+						}
+						auto that = std::dynamic_pointer_cast<Lime<Curve>>(thiz);
+						auto X3DHengine = std::dynamic_pointer_cast<X3DHi<Curve>>(that->get_X3DH());
+						X3DHengine->process_response(that, userData, responseCode, responseBody);
+					});
+			}
+
+			void X3DH_init_sender_session(std::shared_ptr<Lime<Curve>> limeObj, const std::vector<X3DH_peerBundle<Curve>> &peersBundle) {
+				for (const auto &peerBundle : peersBundle) {
+					// do we have a key bundle to build this message from ?
+					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
+						continue;
+					}
+					// Verifify SPk_signature, throw an exception if it fails
+					auto SPkVerify = make_Signature<Curve>();
+					SPkVerify->set_public(peerBundle.Ik);
+
+					if (!SPkVerify->verify(peerBundle.SPk.cpublicKey(), peerBundle.SPk.csignature())) {
+						LIME_LOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
+						throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
+					}
+
+					// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
+					// throw an exception in case of failure, just let it flow up
+					auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
+
+					// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
+					// use sBuffer of size able to hold also DH4 even if we may not use it
+					sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
+					HKDF_input.fill(0xFF); // HKDF_input holds F
+					size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
+
+					// Compute DH1 = DH(self Ik, peer SPk) - selfIk context already holds selfIk.
+					load_SelfIdentityKey(); // make sure it is in context
+					auto DH = make_keyExchange<Curve>();
+					DH->set_secret(m_Ik.privateKey()); // Ik Signature key is converted to keyExchange format
+					DH->set_selfPublic(m_Ik.publicKey());
+					DH->set_peerPublic(peerBundle.SPk.cpublicKey());
+					DH->computeSharedSecret();
+					auto DH_out = DH->get_sharedSecret();
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1
+					HKDF_input_index += DH_out.size();
+
+					// Generate Ephemeral key Exchange key pair: Ek, from now DH will hold Ek as private and self public key
+					DH->createKeyPair(m_RNG);
+
+					// Compute DH3 = DH(Ek, peer SPk) - peer SPk was already set as peer Public
+					DH->computeSharedSecret();
+					DH_out = DH->get_sharedSecret();
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index + DH_out.size()); // HKDF_input holds F || DH1 || empty slot || DH3
+
+					// Compute DH2 = DH(Ek, peer Ik)
+					DH->set_peerPublic(peerBundle.Ik); // peer Ik Signature key is converted to keyExchange format
+					DH->computeSharedSecret();
+					DH_out = DH->get_sharedSecret();
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
+					HKDF_input_index += 2*DH_out.size();
+
+					// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
+					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
+						DH->set_peerPublic(peerBundle.OPk.cpublicKey());
+						DH->computeSharedSecret();
+						DH_out = DH->get_sharedSecret();
+						std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
+						HKDF_input_index += DH_out.size();
+					}
+
+					// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4)
+					DRChainKey SK;
+					/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
+					std::vector<uint8_t> salt(SHA512::ssize(), 0);
+					HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
+
+					// Generate X3DH init message: as in X3DH spec section 3.3:
+					std::vector<uint8_t> X3DH_initMessage{};
+					double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk.get_Id(), peerBundle.OPk.get_Id(), (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
+
+					DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
+
+					// Generate the shared AD used in DR session
+					SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
+					std::vector<uint8_t>AD_input{m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend()};
+					AD_input.insert(AD_input.end(), peerBundle.Ik.cbegin(), peerBundle.Ik.cend());
+					AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
+					AD_input.insert(AD_input.end(), peerBundle.deviceId.cbegin(), peerBundle.deviceId.cend());
+					HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
+
+					// Generate DR_Session and put it in cache(but not in localStorage yet, that would be done when first message generation will be complete)
+					// it could happend that we eventually already have a session for this peer device if we received an initial message from it while fetching its key bundle(very unlikely but...)
+					// in that case just keep on building our new session so the peer device knows it must get rid of the OPk, sessions will eventually converge into only one when messages
+					// stop crossing themselves on the network.
+					// If the fetch bundle doesn't hold OPk, just ignore our newly built session, and use existing one
+					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
+						limeObj->DRcache_delete(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
+					}
+
+					limeObj->DRcache_insert(peerBundle.deviceId, std::static_pointer_cast<DR>(make_DR_for_sender<Curve>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG))); // will just do nothing if this peerDeviceId is already in cache
+
+					LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
+				}
+			}
+	public:
+			/** Constructor **/
+			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
+			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
+			m_X3DH_Server_URL{X3DHServerURL}, m_X3DH_post_data{X3DH_post_data},
+			m_Ik_loaded{false} {
+				if (Uid == 0) { // When the given user id is 0: we must create the user
+					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+					int dbUid;
+					int curve;
+
+					// check if the user is not already in the DB
+					m_localStorage->sql<<"SELECT Uid,curveId FROM lime_LocalUsers WHERE UserId = :userId LIMIT 1;", into(dbUid), into(curve), use(selfDeviceId);
+					if (m_localStorage->sql.got_data()) {
+						if (curve&lime::settings::DBInactiveUserBit) { // user is there but inactive, just return true, the insert_LimeUser will try to publish it again
+							m_db_Uid = dbUid;
+							return;
+						} else {
+							throw BCTBX_EXCEPTION << "Lime user "<<selfDeviceId<<" cannot be created: it is already in Database - delete it before if you really want to replace it";
+						}
+					}
+
+					// generate an identity Signature key pair
+					auto IkSig = make_Signature<Curve>();
+					IkSig->createKeyPair(m_RNG);
+
+					// store it in a blob : Public||Private
+					blob Ik(m_localStorage->sql);
+					Ik.write(0, (const char *)(IkSig->get_public().data()), DSA<Curve, lime::DSAtype::publicKey>::ssize());
+					Ik.write(DSA<Curve, lime::DSAtype::publicKey>::ssize(), (const char *)(IkSig->get_secret().data()), DSA<Curve, lime::DSAtype::privateKey>::ssize());
+
+					// set the Ik in Lime object?
+					//m_Ik = std::move(KeyPair<ED<Curve>>{EDDSAContext->publicKey, EDDSAContext->secretKey});
+
+					transaction tr(m_localStorage->sql);
+
+					// insert in DB
+					try {
+						// Don't create stack variable in the method call directly
+						// set the inactive user bit on, user is not active until X3DH server's confirmation
+						int curveId = lime::settings::DBInactiveUserBit | static_cast<uint16_t>(Curve::curveId());
+
+						m_localStorage->sql<<"INSERT INTO lime_LocalUsers(UserId,Ik,server,curveId,updateTs) VALUES (:userId,:Ik,:server,:curveId, CURRENT_TIMESTAMP) ", use(selfDeviceId), use(Ik), use(X3DHServerURL), use(curveId);
+					} catch (exception const &e) {
+						tr.rollback();
+						throw BCTBX_EXCEPTION << "Lime user insertion failed. DB backend says: "<<e.what();
+					}
+					// get the Id of inserted row
+					m_localStorage->sql<<"select last_insert_rowid()",into(m_db_Uid);
+
+					tr.commit();
+					/* WARNING: previous line break portability of DB backend, specific to sqlite3.
+					Following code shall work but consistently returns false and do not set m_db_Uid...*/
+					/*
+					if (!(m_localStorage->sql.get_last_insert_id("lime_LocalUsers", m_db_Uid)))
+						throw BCTBX_EXCEPTION << "Lime user insertion failed. Couldn't retrieve last insert DB";
+					}
+					*/
+					/* all went fine set the Ik loaded flag */
+					//m_Ik_loaded = true;
+				}
+			}
 
 			X3DHi() = delete; // make sure the X3DH is not initialised without parameters
 			X3DHi(X3DHi<Curve> &a) = delete; // can't copy a session, force usage of shared pointers
@@ -285,7 +669,7 @@ namespace lime {
 
 			/** X3DH interface implementation **/
 			long int get_dbUid(void) const noexcept override {return m_db_Uid;} // the Uid in database, retrieved at creation/load, used for faster access
-			std::vector<uint8_t> publish_user(const uint16_t OPkInitialBatchSize) override{
+			void publish_user(std::shared_ptr<callbackUserData> userData, uint16_t OPkInitialBatchSize) override{
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				// Generate (or load if they already are in base when publishing an inactive user) the SPk
 				auto SPk = X3DH_generate_SPk(m_Ik, true);
@@ -297,7 +681,7 @@ namespace lime {
 				// Build and post the message to server
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_registerUser<Curve>(X3DHmessage, m_Ik.publicKey(), SPk, OPks);
-				return X3DHmessage;
+				postToX3DHServer(userData, X3DHmessage);
 			}
 			bool is_currentSPk_valid(void) override{
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
@@ -325,21 +709,16 @@ namespace lime {
 	/****************************************************************************/
 	/* factory functions                                                        */
 	/****************************************************************************/
-	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context) {
-		return std::static_pointer_cast<X3DH>(std::make_shared<X3DHi<Algo>>(localStorage, UId, RNG_context));
-	}
-	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,  const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context) {
-		return std::static_pointer_cast<X3DH>(std::make_shared<X3DHi<Algo>>(localStorage, selfDeviceId, X3DHServerURL, RNG_context));
+	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid) {
+		return std::static_pointer_cast<X3DH>(std::make_shared<X3DHi<Algo>>(localStorage, selfDeviceId, X3DHServerURL, X3DH_post_data, RNG_context, Uid));
 	}
 
 /* template instanciations */
 #ifdef EC25519_ENABLED
-	template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 #ifdef EC448_ENABLED
-	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 
 	/**

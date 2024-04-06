@@ -51,7 +51,7 @@ namespace lime {
 	template <typename Curve>
 	Lime<Curve>::Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data, const long int Uid)
 	: m_RNG{make_RNG()}, m_selfDeviceId{deviceId},
-	m_X3DH{make_X3DH<Curve>(localStorage, Uid, m_RNG)}, m_Ik{}, m_Ik_loaded(false),
+	m_X3DH{make_X3DH<Curve>(localStorage, deviceId, url, X3DH_post_data, m_RNG, Uid)}, m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(localStorage), m_db_Uid{Uid},
 	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
@@ -72,7 +72,7 @@ namespace lime {
 	template <typename Curve>
 	Lime<Curve>::Lime(std::shared_ptr<lime::Db> localStorage, const std::string &deviceId, const std::string &url, const limeX3DHServerPostData &X3DH_post_data)
 	: m_RNG{make_RNG()}, m_selfDeviceId{deviceId},
-	m_X3DH{make_X3DH<Curve>(localStorage, deviceId, url, m_RNG)}, m_Ik{}, m_Ik_loaded(false),
+	m_X3DH{make_X3DH<Curve>(localStorage, deviceId, url, X3DH_post_data, m_RNG)}, m_Ik{}, m_Ik_loaded(false),
 	m_localStorage(localStorage), m_db_Uid{m_X3DH->get_dbUid()},
 	m_X3DH_post_data{X3DH_post_data}, m_X3DH_Server_URL{url},
 	m_DR_sessions_cache{}, m_ongoing_encryption{nullptr}, m_encryption_queue{}
@@ -90,10 +90,8 @@ namespace lime {
 	template <typename Curve>
 	void Lime<Curve>::publish_user(const limeCallback &callback, const uint16_t OPkInitialBatchSize) {
 		auto userData = make_shared<callbackUserData>(std::static_pointer_cast<LimeGeneric>(this->shared_from_this()), callback, OPkInitialBatchSize);
-		// Build X3DH message message
-		std::vector<uint8_t> X3DHmessage{m_X3DH->publish_user(OPkInitialBatchSize)};
-		// Post it
-		postToX3DHServer(userData, X3DHmessage);
+		// Publish the user
+		m_X3DH->publish_user(userData, OPkInitialBatchSize);
 	}
 
 	template <typename Curve>
@@ -294,6 +292,27 @@ namespace lime {
 	template <typename Curve>
 	std::string Lime<Curve>::get_x3dhServerUrl() {
 		return m_X3DH_Server_URL;
+	}
+
+	template <typename Curve>
+	void Lime<Curve>::processEncryptionQueue(void) {
+		m_ongoing_encryption = nullptr; // make sure to free any ongoing encryption
+		// check if others encryptions are in queue and call them if needed
+		if (!m_encryption_queue.empty()) {
+			auto userData = m_encryption_queue.front();
+			m_encryption_queue.pop(); // remove it from queue and do it, as there is no more ongoing it shall be processed even if the queue still holds elements
+			encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, userData->callback);
+		}
+	}
+
+	template <typename Curve>
+	void Lime<Curve>::DRcache_delete(const std::string &deviceId) {
+		m_DR_sessions_cache.erase(deviceId);
+	}
+
+	template <typename Curve>
+	void Lime<Curve>::DRcache_insert(const std::string &deviceId, std::shared_ptr<DR> DRsession) {
+		m_DR_sessions_cache.emplace(deviceId, DRsession);
 	}
 
 	/* instantiate Lime for C255 and C448 */

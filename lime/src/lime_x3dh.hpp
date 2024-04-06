@@ -170,11 +170,12 @@ namespace lime {
 				hexStr(os, m_OPk.cpublicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
 			}
 	};
+	struct callbackUserData;
 
 	class X3DH
 	{
 	public:
-			virtual std::vector<uint8_t> publish_user(const uint16_t OPkInitialBatchSize) = 0; /**< returns an X3DH message to publish user */
+			virtual void publish_user(std::shared_ptr<callbackUserData> userData, const uint16_t OPkInitialBatchSize) = 0; /**< publish a new user */
 			virtual std::vector<uint8_t> get_Ik(void) = 0; /**< returns our public identity key */
 			virtual long int get_dbUid(void) const noexcept = 0; /**< get the User Id in database */
 			virtual bool is_currentSPk_valid(void) = 0;
@@ -185,34 +186,23 @@ namespace lime {
 	/**
 	 * Factory functions : Create an X3DH pointer - instanciate the correct type matching the given template param
 	 *
-	 * User already exists in local storage
-	 * @param[in]	localStorage	DB access
-	 * @param[in]	UId				User Id in the local storage
-	 * @param[in]	RNG_context		shared RNG
+	 * @param[in,out]	localStorage	pointer to DB accessor
+	 * @param[in]		deviceId		device Id(shall be GRUU), stored in the structure
+	 * @param[in]		url				URL of the X3DH key server used to publish our keys(retrieved from DB)
+	 * @param[in]		X3DH_post_data	A function used to communicate with the X3DH server
+	 * @param[in]		Uid				the DB internal Id for this user, speed up DB operations by holding it in object, when 0: create the user
 	 *
 	 * @return	pointer to a generic X3DH object
 	 */
-	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context);
-	/**
-	 * @overload
-	 * User needs to be created in local storage
-	 * @param[in]	localStorage	DB access
-	 * @param[in]	selfDeviceId	Device Identification to be used for this newly created local user
-	 * @param[in]	RNG_context		shared RNG
-	 *
-	 * @return	pointer to a generic X3DH object
-	 */
-	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,  const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context);
+	template <typename Algo> std::shared_ptr<X3DH> make_X3DH(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid = 0);
 
 
 	/* this templates are instanciated once in the lime_x3dh.cpp file, explicitly tell anyone including this header that there is no need to re-instanciate them */
 #ifdef EC25519_ENABLED
-	extern template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context);
-	extern template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,  const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<X3DH> make_X3DH<C255>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 #ifdef EC448_ENABLED
-	extern template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const long UId, std::shared_ptr<RNG> RNG_context);
-	extern template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,  const std::string &X3DHServerURL, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 } //namespace lime
 #endif /* lime_x3dh_hpp */
