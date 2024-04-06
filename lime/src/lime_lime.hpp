@@ -93,6 +93,12 @@ namespace lime {
 		virtual lime::PeerDeviceStatus decrypt(const std::vector<uint8_t> &recipientUserId, const std::string &senderDeviceId, const std::vector<uint8_t> &DRmessage, const std::vector<uint8_t> &cipherMessage, std::vector<uint8_t> &plainMessage) = 0;
 
 		/**
+		 * Get the lock on the Lime object ressources (mostly DR session cache and encryption queue
+		 * This is a unique lock, release it by destroying the object
+		 */
+		virtual std::unique_lock<std::mutex> lock(void) = 0;
+
+		/**
 		 * @brief Check if we have queued encryption to process, if yes, do it
 		 *
 		 */

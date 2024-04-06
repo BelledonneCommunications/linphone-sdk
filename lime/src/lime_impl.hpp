@@ -86,7 +86,6 @@ namespace lime {
 			OneTimePreKey<Curve> X3DH_get_OPk(uint32_t OPk_id); // retrieve matching OPk from localStorage, throw an exception if not found
 			void X3DH_updateOPkStatus(const std::vector<uint32_t> &OPkIds); // update OPks to tag those not anymore on X3DH server but not used and destroyed yet
 			/* X3DH related  - part related to X3DH DR session initiation, implemented in lime_x3dh.cpp */
-			void X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle); // compute a sender X3DH using the data from peer bundle, then create and load the DR_Session
 			std::shared_ptr<DR> X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId); // from received X3DH init packet, try to compute the shared secrets, then create the DR_Session
 
 			/* network related, implemented in lime_x3dh_protocol.cpp */
@@ -115,6 +114,7 @@ namespace lime {
 			void DRcache_delete(const std::string &deviceId) override;
 			void DRcache_insert(const std::string &deviceId, std::shared_ptr<DR> DRsession) override;
 			std::shared_ptr<X3DH> get_X3DH(void) override {return m_X3DH;}
+			std::unique_lock<std::mutex> lock(void) override {return std::unique_lock<std::mutex>(m_mutex);}
 	};
 
 	/**

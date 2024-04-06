@@ -175,6 +175,7 @@ namespace lime {
 	class X3DH
 	{
 	public:
+			virtual void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) = 0; /**< fetch key bundles from server */
 			virtual void publish_user(std::shared_ptr<callbackUserData> userData, const uint16_t OPkInitialBatchSize) = 0; /**< publish a new user */
 			virtual std::vector<uint8_t> get_Ik(void) = 0; /**< returns our public identity key */
 			virtual long int get_dbUid(void) const noexcept = 0; /**< get the User Id in database */

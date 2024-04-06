@@ -289,7 +289,7 @@ namespace lime {
 			}
 
 			/**
-			* @brief Clean user data in case of problem or when we're done, it also process the asynchronous encryption queue
+			* @brief Clean user data in case of problem or when we're done, it also processes the asynchronous encryption queue
 			*
 			* @param[in,out] userData	the structure holding the data structure captured by the process response lambda
 			*/
@@ -367,7 +367,6 @@ namespace lime {
 						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
 						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
 						// when message stop crossing themselves on the network
-						//JOHAN TODO std::lock_guard<std::mutex> lock(limeObj->m_mutex);
 						X3DH_init_sender_session(limeObj, peersBundle);
 					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
 						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
@@ -505,7 +504,12 @@ namespace lime {
 					});
 			}
 
+			/**
+			* @brief Get a vector of peer bundle and initiate a DR Session with it. Created sessions are stored in lime cache and db along the X3DH init packet
+			*  as decribed in X3DH reference section 3.3
+			*/
 			void X3DH_init_sender_session(std::shared_ptr<Lime<Curve>> limeObj, const std::vector<X3DH_peerBundle<Curve>> &peersBundle) {
+				load_SelfIdentityKey(); // make sure Ik is in context
 				for (const auto &peerBundle : peersBundle) {
 					// do we have a key bundle to build this message from ?
 					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
@@ -531,7 +535,6 @@ namespace lime {
 					size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
 
 					// Compute DH1 = DH(self Ik, peer SPk) - selfIk context already holds selfIk.
-					load_SelfIdentityKey(); // make sure it is in context
 					auto DH = make_keyExchange<Curve>();
 					DH->set_secret(m_Ik.privateKey()); // Ik Signature key is converted to keyExchange format
 					DH->set_selfPublic(m_Ik.publicKey());
@@ -590,6 +593,7 @@ namespace lime {
 					// in that case just keep on building our new session so the peer device knows it must get rid of the OPk, sessions will eventually converge into only one when messages
 					// stop crossing themselves on the network.
 					// If the fetch bundle doesn't hold OPk, just ignore our newly built session, and use existing one
+					auto lock = limeObj->lock(); // get lock on the lime Obj before modifying the DR cache
 					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
 						limeObj->DRcache_delete(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
 					}
@@ -600,7 +604,9 @@ namespace lime {
 				}
 			}
 	public:
-			/** Constructor **/
+			/********************************************************************************/
+			/*                               Constructor                                    */
+			/********************************************************************************/
 			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
 			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
 			m_X3DH_Server_URL{X3DHServerURL}, m_X3DH_post_data{X3DH_post_data},
@@ -667,7 +673,9 @@ namespace lime {
 			X3DHi<Curve> &operator=(X3DHi<Curve> &a) = delete; // can't copy a session
 			~X3DHi() {};
 
-			/** X3DH interface implementation **/
+			/********************************************************************************/
+			/*                        X3DH interface implementation                         */
+			/********************************************************************************/
 			long int get_dbUid(void) const noexcept override {return m_db_Uid;} // the Uid in database, retrieved at creation/load, used for faster access
 			void publish_user(std::shared_ptr<callbackUserData> userData, uint16_t OPkInitialBatchSize) override{
 				load_SelfIdentityKey(); // make sure our Ik is loaded in object
@@ -704,6 +712,12 @@ namespace lime {
 			}
 
 			std::vector<uint8_t> get_Ik(void) override {return {};}
+
+			void fetch_peerBundles(std::shared_ptr<callbackUserData> userData, std::vector<std::string> &peerDeviceIds) override {
+				std::vector<uint8_t> X3DHmessage{};
+				x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, peerDeviceIds);
+				postToX3DHServer(userData, X3DHmessage);
+			}
 	};
 
 	/****************************************************************************/
@@ -720,106 +734,6 @@ namespace lime {
 #ifdef EC448_ENABLED
 	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
-
-	/**
-	 * @brief Get a vector of peer bundle and initiate a DR Session with it. Created sessions are stored in lime cache and db along the X3DH init packet
-	 *  as decribed in X3DH reference section 3.3
-	 */
-	template <typename Curve>
-	void Lime<Curve>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<Curve>> &peersBundle) {
-		for (const auto &peerBundle : peersBundle) {
-			// do we have a key bundle to build this message from ?
-			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
-				continue;
-			}
-			// Verifify SPk_signature, throw an exception if it fails
-			auto SPkVerify = make_Signature<Curve>();
-			SPkVerify->set_public(peerBundle.Ik);
-
-			if (!SPkVerify->verify(peerBundle.SPk.cpublicKey(), peerBundle.SPk.csignature())) {
-				LIME_LOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
-				throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
-			}
-
-			// before going on, check if peer informations are ok, if the returned Id is 0, it means this peer was not in storage yet
-			// throw an exception in case of failure, just let it flow up
-			auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
-
-			// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
-			// use sBuffer of size able to hold also DH4 even if we may not use it
-			sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
-			HKDF_input.fill(0xFF); // HKDF_input holds F
-			size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
-
-			// Compute DH1 = DH(self Ik, peer SPk) - selfIk context already holds selfIk.
-			get_SelfIdentityKey(); // make sure it is in context
-			auto DH = make_keyExchange<Curve>();
-			DH->set_secret(m_Ik.privateKey()); // Ik Signature key is converted to keyExchange format
-			DH->set_selfPublic(m_Ik.publicKey());
-			DH->set_peerPublic(peerBundle.SPk.cpublicKey());
-			DH->computeSharedSecret();
-			auto DH_out = DH->get_sharedSecret();
-			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1
-			HKDF_input_index += DH_out.size();
-
-			// Generate Ephemeral key Exchange key pair: Ek, from now DH will hold Ek as private and self public key
-			DH->createKeyPair(m_RNG);
-
-			// Compute DH3 = DH(Ek, peer SPk) - peer SPk was already set as peer Public
-			DH->computeSharedSecret();
-			DH_out = DH->get_sharedSecret();
-			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index + DH_out.size()); // HKDF_input holds F || DH1 || empty slot || DH3
-
-			// Compute DH2 = DH(Ek, peer Ik)
-			DH->set_peerPublic(peerBundle.Ik); // peer Ik Signature key is converted to keyExchange format
-			DH->computeSharedSecret();
-			DH_out = DH->get_sharedSecret();
-			std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
-			HKDF_input_index += 2*DH_out.size();
-
-			// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
-			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
-				DH->set_peerPublic(peerBundle.OPk.cpublicKey());
-				DH->computeSharedSecret();
-				DH_out = DH->get_sharedSecret();
-				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
-				HKDF_input_index += DH_out.size();
-			}
-
-			// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4)
-			DRChainKey SK;
-			/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
-			std::vector<uint8_t> salt(SHA512::ssize(), 0);
-			HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
-
-			// Generate X3DH init message: as in X3DH spec section 3.3:
-			std::vector<uint8_t> X3DH_initMessage{};
-			double_ratchet_protocol::buildMessage_X3DHinit(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), peerBundle.SPk.get_Id(), peerBundle.OPk.get_Id(), (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
-
-			DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
-
-			// Generate the shared AD used in DR session
-			SharedADBuffer AD; // AD is HKDF(session Initiator Ik || session receiver Ik || session Initiator device Id || session receiver device Id)
-			std::vector<uint8_t>AD_input{m_Ik.publicKey().cbegin(), m_Ik.publicKey().cend()};
-			AD_input.insert(AD_input.end(), peerBundle.Ik.cbegin(), peerBundle.Ik.cend());
-			AD_input.insert(AD_input.end(), m_selfDeviceId.cbegin(), m_selfDeviceId.cend());
-			AD_input.insert(AD_input.end(), peerBundle.deviceId.cbegin(), peerBundle.deviceId.cend());
-			HMAC_KDF<SHA512>(salt.data(), salt.size(), AD_input.data(), AD_input.size(), lime::settings::X3DH_AD_info.data(), lime::settings::X3DH_AD_info.size(), AD.data(), AD.size()); // use the same salt as for SK computation but a different info string
-
-			// Generate DR_Session and put it in cache(but not in localStorage yet, that would be done when first message generation will be complete)
-			// it could happend that we eventually already have a session for this peer device if we received an initial message from it while fetching its key bundle(very unlikely but...)
-			// in that case just keep on building our new session so the peer device knows it must get rid of the OPk, sessions will eventually converge into only one when messages
-			// stop crossing themselves on the network.
-			// If the fetch bundle doesn't hold OPk, just ignore our newly built session, and use existing one
-			if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
-				m_DR_sessions_cache.erase(peerBundle.deviceId); // will just do nothing if this peerDeviceId is not in cache
-			}
-
-			m_DR_sessions_cache.emplace(peerBundle.deviceId, std::static_pointer_cast<DR>(make_DR_for_sender<Curve>(m_localStorage, SK, AD, peerBundle.SPk, peerDid, peerBundle.deviceId, peerBundle.Ik, m_db_Uid, X3DH_initMessage, m_RNG))); // will just do nothing if this peerDeviceId is already in cache
-
-			LIME_LOGI<<"X3DH created session with device "<<peerBundle.deviceId;
-		}
-	}
 
 	template <typename Curve>
 	std::shared_ptr<DR> Lime<Curve>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &senderDeviceId) {
@@ -907,12 +821,10 @@ namespace lime {
 
 	/* Instanciate templated member functions */
 #ifdef EC25519_ENABLED
-	template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
 	template std::shared_ptr<DR> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 #endif
 
 #ifdef EC448_ENABLED
-	template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
 	template std::shared_ptr<DR> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 #endif
 

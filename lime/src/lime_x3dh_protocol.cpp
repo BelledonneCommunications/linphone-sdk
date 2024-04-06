@@ -725,61 +725,6 @@ namespace lime {
 				break;
 
 				case x3dh_protocol::x3dh_message_type::peerBundle: {
-					// server response to a getPeerBundle packet
-					std::vector<X3DH_peerBundle<Curve>> peersBundle;
-					if (!x3dh_protocol::parseMessage_getPeerBundles(responseBody, peersBundle)) { // parsing went wrong
-						LIME_LOGE<<"Got an invalid peerBundle packet from X3DH server";
-						if (callback) callback(lime::CallbackReturn::fail, "Got an invalid peerBundle packet from X3DH server");
-						cleanUserData(userData);
-						return;
-					}
-
-					// generate X3DH init packets, create a store DR Sessions(in Lime obj cache, they'll be stored in DB when the first encryption will occurs)
-					try {
-						//Note: if while we were waiting for the peer bundle we did get an init message from him and created a session
-						// just do nothing : create a second session with the peer bundle we retrieved and at some point one session will stale
-						// when message stop crossing themselves on the network
-						std::lock_guard<std::mutex> lock(m_mutex);
-						X3DH_init_sender_session(peersBundle);
-					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.str()));
-						cleanUserData(userData);
-						return;
-					} catch (exception const &e) {
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the peer Bundle processing : "}.append(e.what()));
-						cleanUserData(userData);
-						return;
-					}
-
-					// tweak the userData->recipients to set to fail those wo didn't get a key bundle
-					for (const auto &peerBundle:peersBundle) {
-						// get all the bundless peer Devices
-						if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::noBundle) {
-							for (auto &recipient:*(userData->recipients)) {
-								// and set their recipient status to fail so the encrypt function would ignore them
-								if (recipient.deviceId == peerBundle.deviceId) {
-									recipient.peerStatus = lime::PeerDeviceStatus::fail;
-								}
-							}
-						}
-					}
-
-					// call the encrypt function again, it will call the callback when done, encryption queue won't be processed as still locked by the m_ongoing_encryption member
-					// We must not generate an exception here, so catch anything raising from encrypt
-					try {
-						encrypt(userData->recipientUserId, userData->recipients, userData->plainMessage, userData->encryptionPolicy, userData->cipherMessage, callback);
-					} catch (BctbxException &e) { // something went wrong, go for callback as this function may be called by code not supporting exceptions
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.str()));
-						cleanUserData(userData);
-						return;
-					} catch (exception const &e) {
-						if (callback) callback(lime::CallbackReturn::fail, std::string{"Error during the encryption after the peer Bundle processing : "}.append(e.what()));
-						cleanUserData(userData);
-						return;
-					}
-
-					// now we can safely delete the user data, note that this may trigger an other encryption if there is one in queue
-					cleanUserData(userData);
 				}
 				return;
 

@@ -187,11 +187,9 @@ namespace lime {
 				m_encryption_queue.push(userData);
 				return;
 			}
-			// retrieve bundles from X3DH server, when they arrive, it will run the X3DH initiation and create the DR sessions
-			std::vector<uint8_t> X3DHmessage{};
-			x3dh_protocol::buildMessage_getPeerBundles<Curve>(X3DHmessage, missing_devices);
 			lock.unlock(); // unlock before calling external callbacks
-			postToX3DHServer(userData, X3DHmessage);
+			// retrieve bundles from X3DH server, when they arrive, it will run the X3DH initiation and create the DR sessions
+			m_X3DH->fetch_peerBundles(userData, missing_devices);
 			return;
 		}
 
@@ -329,7 +327,6 @@ namespace lime {
 	extern template void Lime<C255>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	extern template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
-	extern template void Lime<C255>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C255>> &peerBundle);
 	extern template std::shared_ptr<DR> Lime<C255>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
 	extern template void Lime<C255>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
@@ -352,7 +349,6 @@ namespace lime {
 	extern template void Lime<C448>::set_x3dhServerUrl(const std::string &x3dhServerUrl);
 	extern template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh.cpp*/
-	extern template void Lime<C448>::X3DH_init_sender_session(const std::vector<X3DH_peerBundle<C448>> &peerBundle);
 	extern template std::shared_ptr<DR> Lime<C448>::X3DH_init_receiver_session(const std::vector<uint8_t> X3DH_initMessage, const std::string &peerDeviceId);
 	/* These extern templates are defined in lime_x3dh_protocol.cpp*/
 	extern template void Lime<C448>::postToX3DHServer(std::shared_ptr<callbackUserData> userData, const std::vector<uint8_t> &message);
