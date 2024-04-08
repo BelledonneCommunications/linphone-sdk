@@ -182,7 +182,7 @@ void EktServerPlugin::ServerEktManager::sendNotify(const shared_ptr<Event> &ev,
 		shared_ptr<Buffer> cspi = Factory::get()->createBufferFromData(mCSpi.data(), mCSpi.size());
 		ei->setCspi(cspi);
 	}
-	ei->setFrom(from);
+	ei->setFromAddress(from);
 	if (cipher) {
 		ei->addCipher(ev->getRemoteContact()->asStringUriOnly(), cipher);
 	}
@@ -204,7 +204,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
                                                         const shared_ptr<const Content> &content) {
 	if (ev && content) {
 		auto ei = mLocalConf.lock()->getCore()->createEktInfoFromXml(content->getUtf8Text());
-		auto eiFrom = ei->getFrom();
+		auto eiFrom = ei->getFromAddress();
 		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
 			if (participantDevice->getAddress()->equal(eiFrom)) {
 				bctbx_message("ServerEktManager::publishReceived : Event publish EKT [%p] received from [%s]", &ev,
@@ -228,7 +228,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 
 void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> &ev,
                                                         const shared_ptr<const EktInfo> &ei) {
-	if (!ei->getFrom()) {
+	if (!ei->getFromAddress()) {
 		ev->denyPublish(Reason::BadEvent);
 		bctbx_error("ServerEktManager::publishReceived : Missing source address");
 		return;
@@ -256,7 +256,7 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 
 	ev->acceptPublish();
 
-	auto from = ei->getFrom();
+	auto from = ei->getFromAddress();
 	auto ciphers = ei->getCiphers();
 	if (mCSpi.empty()) {
 		mCSpi = cspi;
