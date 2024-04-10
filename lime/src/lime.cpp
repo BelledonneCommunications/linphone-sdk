@@ -24,11 +24,112 @@
 #include "lime_double_ratchet.hpp"
 #include "lime_double_ratchet_protocol.hpp"
 #include "lime_x3dh.hpp"
+#include <soci/soci.h>
 #include <mutex>
 
 using namespace::std;
+using namespace::soci;
 
 namespace lime {
+	/****************************************************************************/
+	/*                                                                          */
+	/* Private methods: DR session cache management                             */
+	/*                                                                          */
+	/****************************************************************************/
+	template <typename Curve>
+	void Lime<Curve>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices) {
+		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		// build a user list of missing ones : produce a list ready to be sent to SQL query: 'user','user','user',... also build a map to store shared_ptr to sessions
+		// build also a list of all peer devices used to fetch from DB their status: unknown, untrusted or trusted
+		std::string sqlString_requestedDevices{""};
+		std::string sqlString_allDevices{""};
+
+		size_t requestedDevicesCount = 0;
+		size_t allDevicesCount = 0;
+		// internal recipients holds all recipients
+		for (const auto &recipient : internal_recipients) {
+			if (recipient.DRSession == nullptr) { // query the local storage for those without DR session associated
+				sqlString_requestedDevices.append("'").append(recipient.deviceId).append("',");
+				requestedDevicesCount++;
+			}
+			sqlString_allDevices.append("'").append(recipient.deviceId).append("',");  // we also build a query for all devices in the list
+			allDevicesCount++;
+		}
+
+		if (allDevicesCount==0) return; // the device list was empty... this is very strange
+
+		sqlString_allDevices.pop_back(); // remove the last ','
+		// Fill the peer device status
+		rowset<row> rs_devices = (m_localStorage->sql.prepare << "SELECT d.DeviceId, d.Status FROM lime_PeerDevices as d WHERE d.DeviceId IN ("<<sqlString_allDevices<<");");
+		std::vector<std::string> knownDevices{}; // vector of known deviceId
+		// loop all the found devices and then find them in the internal_recipient vector by looping it until find, this is not at all efficient but
+		// shall not be a real problem as recipient list won't get massive(and if they do, this part we not be the blocking one)
+		// by default at construction the RecipientInfos object have a peerStatus set to unknown so it will be kept to it for all devices not found in the localStorage
+		for (const auto &r : rs_devices) {
+			auto deviceId = r.get<std::string>(0);
+			auto status = r.get<int>(1);
+			for (auto &recipient : internal_recipients) { //look for it in the list
+				if (recipient.deviceId == deviceId) {
+					switch (status) {
+						case static_cast<uint8_t>(lime::PeerDeviceStatus::trusted) :
+							recipient.peerStatus = lime::PeerDeviceStatus::trusted;
+							break;
+						case static_cast<uint8_t>(lime::PeerDeviceStatus::untrusted) :
+							recipient.peerStatus = lime::PeerDeviceStatus::untrusted;
+							break;
+						case static_cast<uint8_t>(lime::PeerDeviceStatus::unsafe) :
+							recipient.peerStatus = lime::PeerDeviceStatus::unsafe;
+							break;
+						default : // something is wrong with the local storage
+							throw BCTBX_EXCEPTION << "Trying to get the status for peer device "<<deviceId<<" but get an unexpected value "<<status<<" from local storage";
+					}
+				}
+			}
+		}
+
+		// Now do we have sessions to load?
+		if (requestedDevicesCount==0) return; // we already got them all
+
+		sqlString_requestedDevices.pop_back(); // remove the last ','
+
+		// fetch them from DB
+		rowset<row> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId, d.DeviceId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE s.Uid= :Uid AND s.Status=1 AND d.DeviceId IN ("<<sqlString_requestedDevices<<");", use(m_db_Uid));
+
+		std::unordered_map<std::string, std::shared_ptr<DR>> requestedDevices; // found session will be loaded and temp stored in this
+		for (const auto &r : rs) {
+			auto sessionId = r.get<int>(0);
+			auto peerDeviceId = r.get<std::string>(1);
+
+			auto DRsession = make_DR_from_localStorage<Curve>(m_localStorage, sessionId, m_RNG); // load session from local storage
+			requestedDevices[peerDeviceId] = DRsession; // store found session in a our temp container
+			m_DR_sessions_cache[peerDeviceId] = DRsession; // session is also stored in cache
+		}
+
+		// loop on internal recipient and fill it with the found ones, store the missing ones in the missing_devices vector
+		for (auto &recipient : internal_recipients) {
+			if (recipient.DRSession == nullptr) { // they are missing
+				auto retrievedElem = requestedDevices.find(recipient.deviceId);
+				if (retrievedElem == requestedDevices.end()) { // we didn't found this one
+					missing_devices.push_back(recipient.deviceId);
+				} else { // we got this one
+					recipient.DRSession = std::move(retrievedElem->second); // don't need this pointer in tmp comtainer anymore
+				}
+			}
+		}
+	}
+
+	// load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
+	template <typename Curve>
+	void Lime<Curve>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions) {
+		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		rowset<int> rs = (m_localStorage->sql.prepare << "SELECT s.sessionId FROM DR_sessions as s INNER JOIN lime_PeerDevices as d ON s.Did=d.Did WHERE d.DeviceId = :senderDeviceId AND s.Uid = :Uid AND s.sessionId <> :ignoreThisDRSessionId ORDER BY s.Status DESC, timeStamp ASC;", use(senderDeviceId), use (m_db_Uid), use(ignoreThisDRSessionId));
+
+		for (const auto &sessionId : rs) {
+			/* load session in cache DRSessions */
+			DRSessions.push_back(make_DR_from_localStorage<Curve>(m_localStorage, sessionId, m_RNG)); // load session from cache
+		}
+	};
+
 
 	/****************************************************************************/
 	/*                                                                          */
@@ -270,6 +371,21 @@ namespace lime {
 	}
 
 	template <typename Curve>
+	void Lime<Curve>::stale_sessions(const std::string &peerDeviceId) {
+		std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
+		transaction tr(m_localStorage->sql);
+
+		// update in DB, do not check presence as we're called after a load_user who already ensure that
+		try {
+			m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Uid = :Uid AND Status = 1 AND Did = (SELECT Did FROM lime_PeerDevices WHERE DeviceId= :peerDeviceId LIMIT 1)", use(m_db_Uid), use(peerDeviceId);
+		} catch (exception const &e) {
+			tr.rollback();
+			throw BCTBX_EXCEPTION << "Cannot stale sessions between user "<<m_selfDeviceId<<" and user "<<peerDeviceId<<". DB backend says: "<<e.what();
+		}
+		tr.commit();
+	}
+
+	template <typename Curve>
 	void Lime<Curve>::processEncryptionQueue(void) {
 		m_ongoing_encryption = nullptr; // make sure to free any ongoing encryption
 		// check if others encryptions are in queue and call them if needed
@@ -292,26 +408,16 @@ namespace lime {
 
 	/* instantiate Lime for C255 and C448 */
 #ifdef EC25519_ENABLED
-	/* These extern templates are defined in lime_localStorage.cpp */
-	extern template void Lime<C255>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
-	extern template void Lime<C255>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	extern template void Lime<C255>::stale_sessions(const std::string &peerDeviceId);
-
 	template class Lime<C255>;
 #endif
 
 #ifdef EC448_ENABLED
-	/* These extern templates are defined in lime_localStorage.cpp */
-	extern template void Lime<C448>::cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices);
-	extern template void Lime<C448>::get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDBSessionId, std::vector<std::shared_ptr<DR>> &DRSessions);
-	extern template void Lime<C448>::stale_sessions(const std::string &peerDeviceId);
-
 	template class Lime<C448>;
 #endif
 
 	/****************************************************************************/
 	/*                                                                          */
-	/* Factory functions and Delete user                                        */
+	/* Factory functions                                                        */
 	/*                                                                          */
 	/****************************************************************************/
 	/**

@@ -66,7 +66,6 @@ namespace lime {
 			std::queue<std::shared_ptr<callbackUserData>> m_encryption_queue;
 
 			/*** Private functions ***/
-			/* database related functions, implementation is in lime_localStorage.cpp */
 			void cache_DR_sessions(std::vector<RecipientInfos> &internal_recipients, std::vector<std::string> &missing_devices); // loop on internal recipient an try to load in DR session cache the one which have no session attached 
 			void get_DRSessions(const std::string &senderDeviceId, const long int ignoreThisDRSessionId, std::vector<std::shared_ptr<DR>> &DRSessions); // load from local storage in DRSessions all DR session matching the peerDeviceId, ignore the one picked by id in 2nd arg
 
