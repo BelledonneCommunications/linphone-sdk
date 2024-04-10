@@ -32,6 +32,7 @@
 
 #define belle_sip_network_buffer_size 65535
 #define belle_sip_send_network_buffer_size 16384
+#define belle_sip_max_network_data_size_per_iterate 1000000 /* 1Mo */
 
 typedef enum belle_sip_channel_state {
 	BELLE_SIP_CHANNEL_INIT,
@@ -236,6 +237,8 @@ BELLESIP_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *
  * Check if the DNS TTL has expired. If this is the case, set the channel status to RES_IN_PROGRESS.
  */
 void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj);
+
+void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error);
 
 BELLE_SIP_END_DECLS
 

@@ -24,30 +24,39 @@
 #include "belle-sip/belle-sip.h"
 
 static belle_sip_stack_t *stack = NULL;
+static bool_t finished = FALSE;
 
 static void process_response(void *data, const belle_http_response_event_t *event) {
 	belle_http_response_t *resp = event->response;
 	const char *body = belle_sip_message_get_body(BELLE_SIP_MESSAGE(resp));
-	fprintf(stdout, "Got response:\n");
+	fprintf(stdout, "Got body of response:\n");
 
 	if (body) {
 		fprintf(stdout, "%s", body);
 	}
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	finished = TRUE;
+}
+
+static void process_response_headers(void *data, const belle_http_response_event_t *event) {
+	fprintf(stdout, "Got response headers.\n");
 }
 
 static void process_io_error(void *data, const belle_sip_io_error_event_t *event) {
 	fprintf(stderr, "IO error\n");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	finished = TRUE;
 }
 
 static void process_timeout(void *data, const belle_sip_timeout_event_t *event) {
 	fprintf(stderr, "Timeout\n");
 	belle_sip_main_loop_quit(belle_sip_stack_get_main_loop(stack));
+	finished = TRUE;
 }
 
 static void usage(const char *argv0) {
-	fprintf(stderr, "Usage:\n%s <http uri> [--ca-path <path> ] [--debug] [--no-tls-check]\n", argv0);
+	fprintf(stderr, "Usage:\n%s <http uri> [--ca-path <path> ] [--debug] [--no-tls-check] [--emulate-iterate]\n",
+	        argv0);
 	exit(-1);
 }
 
@@ -60,6 +69,7 @@ int main(int argc, char *argv[]) {
 	belle_tls_crypto_config_t *cfg;
 	int i;
 	int check_tls = 1;
+	int emulate_iterate = 0;
 
 	if (argc < 2) {
 		usage(argv[0]);
@@ -74,6 +84,8 @@ int main(int argc, char *argv[]) {
 			bctbx_set_log_level(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG);
 		} else if (strcmp(argv[i], "--no-tls-check") == 0) {
 			check_tls = 0;
+		} else if (strcmp(argv[i], "--emulate-iterate") == 0) {
+			emulate_iterate = 1;
 		} else {
 			usage(argv[0]);
 		}
@@ -93,11 +105,22 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 	cbs.process_response = process_response;
+	cbs.process_response_headers = process_response_headers;
 	cbs.process_io_error = process_io_error;
 	cbs.process_timeout = process_timeout;
 	req = belle_http_request_create("GET", uri, NULL);
 	belle_http_provider_send_request(prov, req, belle_http_request_listener_create_from_callbacks(&cbs, NULL));
-	belle_sip_stack_main(stack);
+
+	if (!emulate_iterate) {
+		belle_sip_stack_main(stack);
+	} else {
+		/* This is to simulate what happens when used through liblinphone (with linphone_core_iterate()).*/
+		while (!finished) {
+			belle_sip_stack_sleep(stack, 0);
+			bctbx_sleep_ms(10);
+		}
+	}
+
 	belle_sip_object_unref(prov);
 	belle_sip_object_unref(stack);
 	return 0;

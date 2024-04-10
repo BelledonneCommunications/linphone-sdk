@@ -665,8 +665,7 @@ static void belle_sip_channel_process_stream(belle_sip_channel_t *obj, int eos) 
 }
 
 static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj) {
-	int num;
-	int ret = BELLE_SIP_CONTINUE;
+	int read_bytes;
 
 	/*prevent system to suspend the process until we have finish reading everything from the socket and notified the
 	 * upper layer*/
@@ -675,22 +674,22 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj) {
 	}
 
 	if (obj->simulated_recv_return > 0) {
-		num = belle_sip_channel_recv(obj, obj->input_stream.write_ptr,
-		                             belle_sip_channel_input_stream_get_buff_length(&obj->input_stream) - 1);
+		read_bytes = belle_sip_channel_recv(obj, obj->input_stream.write_ptr,
+		                                    belle_sip_channel_input_stream_get_buff_length(&obj->input_stream) - 1);
 	} else {
 		belle_sip_message("channel [%p]: simulating recv() returning %i", obj, obj->simulated_recv_return);
-		num = obj->simulated_recv_return;
+		read_bytes = obj->simulated_recv_return;
 	}
-	if (num > 0) {
+	if (read_bytes > 0) {
 		char *begin = obj->input_stream.write_ptr;
-		obj->input_stream.write_ptr += num;
+		obj->input_stream.write_ptr += read_bytes;
 		/*first null terminate the read buff*/
 		*obj->input_stream.write_ptr = '\0';
-		if (num > 20 ||
+		if (read_bytes > 20 ||
 		    obj->input_stream.state != WAITING_MESSAGE_START) /*to avoid tracing server based keep alives*/ {
-			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE, begin, num, BELLE_SIP_DIRECTION_RECV);
+			char *logbuf = make_logbuf(obj, BELLE_SIP_LOG_MESSAGE, begin, read_bytes, BELLE_SIP_DIRECTION_RECV);
 			if (logbuf) {
-				belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s", obj, num,
+				belle_sip_message("channel [%p]: received [%i] new bytes from [%s://%s:%i]:\n%s", obj, read_bytes,
 				                  belle_sip_channel_get_transport_name(obj), obj->peer_name, obj->peer_port, logbuf);
 				belle_sip_free(logbuf);
 			}
@@ -699,30 +698,38 @@ static int belle_sip_channel_process_read_data(belle_sip_channel_t *obj) {
 		if (obj->input_stream.state == WAITING_MESSAGE_START) {
 			channel_end_recv_background_task(obj);
 		} /*if still in message acquisition state, keep the backgroud task*/
-	} else if (num == 0) {
+	} else if (read_bytes == 0) {
 		/*before closing the channel, check if there was a pending message to receive, whose body acquisition is to be
 		 * finished.*/
 		belle_sip_channel_process_stream(obj, TRUE);
 		obj->closed_by_remote = TRUE;
 		channel_set_state(obj, BELLE_SIP_CHANNEL_DISCONNECTED);
-		ret = BELLE_SIP_STOP;
-	} else if (belle_sip_error_code_is_would_block(-num)) {
-		belle_sip_message("channel [%p]: recv() EWOULDBLOCK", obj);
-		ret = BELLE_SIP_CONTINUE;
+
+	} else if (belle_sip_error_code_is_would_block(-read_bytes)) {
+		// belle_sip_message("channel [%p]: recv() EWOULDBLOCK", obj);
 	} else {
 		belle_sip_error("Receive error on channel [%p]", obj);
 		channel_set_state(obj, BELLE_SIP_CHANNEL_ERROR);
-		ret = BELLE_SIP_STOP;
 	}
-	return ret;
+	return read_bytes;
 }
 
 int belle_sip_channel_process_data(belle_sip_channel_t *obj, unsigned int revents) {
 	int ret = BELLE_SIP_CONTINUE;
 	belle_sip_object_ref(obj);
 	if (revents & BELLE_SIP_EVENT_READ) {
-		int rret = belle_sip_channel_process_read_data(obj);
-		if (rret == BELLE_SIP_STOP) ret = BELLE_SIP_STOP;
+		int read_bytes;
+		int total_read_bytes = 0;
+		do {
+			read_bytes = belle_sip_channel_process_read_data(obj);
+			/* While in body acquisition, attempt to read as much bytes as possible, until EWOULDBLOCK happens. */
+			if (read_bytes > 0) total_read_bytes += read_bytes;
+		} while (obj->state == BELLE_SIP_CHANNEL_READY && obj->input_stream.state == BODY_AQUISITION &&
+		         read_bytes > 0 && total_read_bytes < belle_sip_max_network_data_size_per_iterate);
+		if ((read_bytes < 0 && !belle_sip_error_code_is_would_block(-read_bytes)) || read_bytes == 0) {
+			/* these are the error conditions (except EWOULDBLOCK) or normal disconnection. */
+			ret = BELLE_SIP_STOP;
+		}
 	}
 	if (revents & BELLE_SIP_EVENT_WRITE) {
 		/*if we are here, this is because we had an EWOULDBLOCK while sending a message*/
@@ -1724,6 +1731,11 @@ void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj) {
 		obj->dns_ttl_timedout = FALSE;
 		belle_sip_channel_resolve(obj);
 	}
+}
+
+void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error) {
+	obj->simulated_recv_return = recv_error;
+	obj->base.notify_required = (recv_error <= 0);
 }
 
 #ifdef __ANDROID__

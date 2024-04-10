@@ -41,6 +41,7 @@ struct belle_http_provider {
 	belle_sip_list_t *tcp_channels;
 	belle_sip_list_t *tls_channels;
 	belle_tls_crypto_config_t *crypto_config;
+	int simulated_recv_return;
 	uint8_t transports; /**< a mask of enabled transports, availables: BELLE_SIP_HTTP_TRANSPORT_TCP and
 	                       BELLE_SIP_HTTP_TRANSPORT_TLS */
 };
@@ -516,6 +517,7 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 	p->ai_family = strchr(p->bind_ip, ':') ? AF_INET6 : AF_INET;
 	p->crypto_config = belle_tls_crypto_config_new();
 	p->transports = transports;
+	p->simulated_recv_return = 1;
 	return p;
 }
 
@@ -638,6 +640,9 @@ int belle_http_provider_send_request(belle_http_provider_t *obj,
 			belle_sip_object_unref(hop);
 			return -1;
 		}
+		if (obj->simulated_recv_return != 1) {
+			belle_sip_channel_set_simulated_recv_return(chan, obj->simulated_recv_return);
+		}
 		belle_http_channel_context_new(chan, obj);
 		*channels = belle_sip_list_prepend(*channels, chan);
 	}
@@ -696,15 +701,13 @@ int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_
 
 void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error) {
 	belle_sip_list_t *it;
-
+	obj->simulated_recv_return = recv_error;
 	for (it = obj->tcp_channels; it != NULL; it = it->next) {
 		belle_sip_channel_t *chan = (belle_sip_channel_t *)it->data;
-		chan->simulated_recv_return = recv_error;
-		chan->base.notify_required = (recv_error <= 0);
+		belle_sip_channel_set_simulated_recv_return(chan, recv_error);
 	}
 	for (it = obj->tls_channels; it != NULL; it = it->next) {
 		belle_sip_channel_t *chan = (belle_sip_channel_t *)it->data;
-		chan->simulated_recv_return = recv_error;
-		chan->base.notify_required = (recv_error <= 0);
+		belle_sip_channel_set_simulated_recv_return(chan, recv_error);
 	}
 }
