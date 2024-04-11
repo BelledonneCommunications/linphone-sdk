@@ -40,20 +40,42 @@ namespace lime {
 		/**
 		 * @brief return the size of the X3DH init packet included in the double ratchet packet header
 		 *
-		 * X3DH init packet is : OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || SPk Id <4 bytes> || [OPk Id <4 bytes>]
+		 * For EC only version X3DH init packet is :
+		 * OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || SPk Id <4 bytes> || [OPk Id <4 bytes>]
 		 *
 		 * @return	the header size without optionnal X3DH init packet
 		 */
 		template <typename Curve>
-		constexpr size_t X3DHinitSize(bool haveOPk) noexcept {
+		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if<!std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
 			return 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4 // size of X3DH init message without OPk
+				+ (haveOPk?4:0); // if there is an OPk, we must add 4 for the OPk id
+		}
+		/**
+		 * @brief return the size of the X3DH init packet included in the double ratchet packet header
+		 *
+		 * For EC/KEM version X3DH init packet is :
+		 * OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || Ct < KEM cipher text size > || SPk Id <4 bytes> || [OPk Id <4 bytes>]
+		 *
+		 * @return	the header size without optionnal X3DH init packet
+		 */
+		template <typename Algo>
+		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if<std::is_base_of_v<genericKEM, Algo>, Algo>::type* = 0) noexcept {
+			return 1
+			+ DSA<typename Algo::EC, lime::DSAtype::publicKey>::ssize()
+			+ X<typename Algo::EC, lime::Xtype::publicKey>::ssize()
+			+ K<typename Algo::KEM, lime::Ktype::cipherText>::ssize()
+			+ 4 // size of X3DH init message without OPk
 				+ (haveOPk?4:0); // if there is an OPk, we must add 4 for the OPk id
 		}
 
 		template <typename Curve>
 		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		template <typename Algo>
+		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, const X<typename Algo::EC, lime::Xtype::publicKey> &Ek, const K<typename Algo::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template <typename Curve>
 		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<Curve, lime::DSAtype::publicKey> &Ik, X<Curve, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		template <typename Algo>
+		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, X<typename Algo::EC, lime::Xtype::publicKey> &Ek, K<typename Algo::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 
 		template <typename Curve>
 		bool parseMessage_get_X3DHinit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
@@ -112,6 +134,9 @@ namespace lime {
 #endif
 
 #ifdef HAVE_BCTBXPQ
+		extern template void buildMessage_X3DHinit<LVL1>(std::vector<uint8_t> &message, const DSA<LVL1::EC, lime::DSAtype::publicKey> &Ik, const X<LVL1::EC, lime::Xtype::publicKey> &Ek, const K<LVL1::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		extern template void parseMessage_X3DHinit<LVL1>(const std::vector<uint8_t>message, DSA<LVL1::EC, lime::DSAtype::publicKey> &Ik, X<LVL1::EC, lime::Xtype::publicKey> &Ek, K<LVL1::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		extern template bool parseMessage_get_X3DHinit<LVL1>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
 		extern template void buildMessage_header<LVL1>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<LVL1>;
 #endif //HAVE_BCTBXPQ

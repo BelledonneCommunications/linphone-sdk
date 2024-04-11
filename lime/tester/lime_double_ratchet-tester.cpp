@@ -479,6 +479,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	// Copy the DB from resource file as we do not want to modify it
 	char *pattern_filepath = bc_tester_res(bobFilename.c_str());
 	std::filesystem::copy(pattern_filepath, bobFilename);
+	bctbx_free(pattern_filepath);
 
 	// Load the DR session with id 1 from the DB
 	localStorageBob = std::make_shared<lime::Db>(bobFilename, bob_db_mutex);

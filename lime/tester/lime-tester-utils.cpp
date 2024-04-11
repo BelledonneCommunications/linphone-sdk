@@ -46,6 +46,7 @@ std::string test_x3dh_domainB_server_port{"25522"};
 std::string test_x3dh_domainC_server_port{"25523"};
 std::string test_x3dh_c25519_stop_on_request_limit_server_port{"25524"};
 std::string test_x3dh_c448_stop_on_request_limit_server_port{"25525"};
+std::string test_x3dh_lvl1_server_port{"25526"};
 
 // for testing purpose RNG, no need to be a good one
 std::random_device rd;
@@ -362,7 +363,8 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	 * message with payload included
 	 * - header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>,  Payload<variable size>, key auth tag<16 bytes> = <23 + X<Curve>::keyLengh + X3DH init size>
 	 */
-	// X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLenght> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
+	// EC only: X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLength> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
+	// EC/KEM: X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLength> + CT<K<Curve>::ctLength> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
 	switch (message[2]) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
@@ -401,6 +403,25 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 			return true;
 
 		break;
+#ifdef HAVE_BCTBXPQ
+		case static_cast<uint8_t>(lime::CurveId::k512c25519):
+			if (message[3] == 0x00) { // no OPk in the X3DH init message
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				}
+				haveOPk=false;
+			} else { // OPk present in the X3DH init message
+				if (payload_direct_encryption) {
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				} else {
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+				}
+				haveOPk=true;
+			}
+			return true;
+#endif // HAVE_BCTBXPQ
 		default:
 			return false;
 	}

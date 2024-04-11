@@ -84,7 +84,6 @@ namespace lime {
 			const X<Curve, lime::Xtype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
 			Xpair(const X<Curve, lime::Xtype::publicKey> &pub, const X<Curve, lime::Xtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
-			Xpair(const Xpair<Curve> &p) :m_pubKey(p.m_pubKey),m_privKey(p.m_privKey){};
 			Xpair() :m_pubKey{},m_privKey{}{};
 			/// == operator assert that public and private keys are the same
 			bool operator==(Xpair<Curve> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
@@ -130,7 +129,7 @@ namespace lime {
 			K<Algo, lime::Ktype::publicKey> &publicKey(void) {return m_pubKey;};
 			const K<Algo, lime::Ktype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
-			Kpair(K<Algo, lime::Ktype::publicKey> &pub, K<Algo, lime::Ktype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
+			Kpair(const K<Algo, lime::Ktype::publicKey> &pub, const K<Algo, lime::Ktype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			Kpair() :m_pubKey{},m_privKey{}{};
 			/// == operator assert that public and private keys are the same
 			bool operator==(Kpair<Algo> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};
@@ -174,7 +173,7 @@ namespace lime {
 			DSA<Curve, lime::DSAtype::publicKey> &publicKey(void) {return m_pubKey;};
 			const DSA<Curve, lime::DSAtype::publicKey> &cpublicKey(void) const {return m_pubKey;};
 			/// copy construct a key pair from public and private keys (no verification on validity of keys is performed)
-			DSApair(DSA<Curve, lime::DSAtype::publicKey> &pub, DSA<Curve, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
+			DSApair(const DSA<Curve, lime::DSAtype::publicKey> &pub, const DSA<Curve, lime::DSAtype::privateKey> &priv):m_pubKey(pub),m_privKey(priv) {};
 			DSApair() :m_pubKey{},m_privKey{}{};
 			/// == operator assert that public and private keys are the same
 			bool operator==(DSApair<Curve> b) const {return (m_privKey==b.privateKey() && m_pubKey==b.publicKey());};

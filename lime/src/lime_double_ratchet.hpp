@@ -78,6 +78,7 @@ namespace lime {
 			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr, K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTr ) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{kemCTr} {};
 			// At Sender's session creation, we do not have any peer CT
 			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{} {};
+			ARrKey(const SignedPreKey<Algo> &SPk) : m_ec_DHr{SPk.cECpublicKey()}, m_kem_DHr{SPk.cKEMpublicKey()}, m_kem_CTr{} {};
 			// Unserializing constructor
 			ARrKey(const std::array<uint8_t, serializedSize()> &DHr){
 				m_ec_DHr = DHr.cbegin();
@@ -166,15 +167,11 @@ namespace lime {
 			};
 
 			ARsKey(const Xpair<typename Algo::EC> &ecDHs, const Kpair<typename Algo::KEM> &kemDHs, const K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{kemCTs} {};
+			ARsKey(const SignedPreKey<Algo> &SPk) : m_ec_DHs{SPk.cECKeypair()}, m_kem_DHs{SPk.cKEMKeypair()}, m_kem_CTs{} {};
 			ARsKey(const Xpair<typename Algo::EC> &ecDHs, const Kpair<typename Algo::KEM> &kemDHs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{} {};
 			ARsKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublic, const X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivate,
 					const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublic, const K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivate,
-					const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCT) : m_kem_CTs{KEMCT} {
-				m_ec_DHs.publicKey() = ECPublic;
-				m_ec_DHs.privateKey() = ECPrivate;
-				m_kem_DHs.publicKey() = KEMPublic;
-				m_kem_DHs.privateKey() = KEMPrivate;
-			};
+					const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCT) : m_ec_DHs(ECPublic, ECPrivate), m_kem_DHs(KEMPublic, KEMPrivate), m_kem_CTs{KEMCT} {};
 			ARsKey() : m_ec_DHs{}, m_kem_DHs{}, m_kem_CTs{} {};
 			// Unserializing constructor
 			ARsKey(const std::array<uint8_t, serializedSize()> &DHs) {

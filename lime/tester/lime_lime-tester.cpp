@@ -3140,6 +3140,11 @@ static void x3dh_basic(void) {
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), true, true);
 #endif
+#ifdef HAVE_BCTBXPQ
+	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
+	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data(), true, true);
+#endif
 }
 
  /* A simple test with alice having 1 device and bob 2
@@ -3427,6 +3432,10 @@ static void x3dh_user_not_found(void) {
 	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
+#ifdef HAVE_BCTBXPQ
+	x3dh_user_not_found_test(lime::CurveId::k512c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
+	x3dh_user_not_found_test(lime::CurveId::k512c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data(), false);
+#endif
 }
 
 /**
@@ -3583,6 +3592,9 @@ static void user_management(void) {
 #endif
 #ifdef EC448_ENABLED
 	user_management_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+#endif
+#ifdef HAVE_BCTBXPQ
+	user_management_test(lime::CurveId::k512c25519, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
 #endif
 }
 
@@ -3747,6 +3759,9 @@ static void user_registration_failure(void) {
 #endif
 #ifdef EC448_ENABLED
 	user_registration_failure_test(lime::CurveId::c448, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
+#endif
+#ifdef HAVE_BCTBXPQ
+	user_registration_failure_test(lime::CurveId::k512c25519, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
 #endif
 }
 
@@ -4141,6 +4156,9 @@ static void lime_multithread(void) {
 #ifdef EC448_ENABLED
 	lime_multithread_test(lime::CurveId::c448, "lime_multithread", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
+#ifdef HAVE_BCTBXPQ
+	lime_multithread_test(lime::CurveId::k512c25519, "lime_multithread", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
+#endif
 	}
 }
 
@@ -4252,6 +4270,10 @@ static void lime_session_cancel(void) {
 #ifdef EC448_ENABLED
 	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
+#endif
+#ifdef HAVE_BCTBXPQ
+	lime_session_cancel_test(lime::CurveId::k512c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data());
+	lime_session_cancel_test(lime::CurveId::k512c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_lvl1_server_port).data(), false);
 #endif
 }
 

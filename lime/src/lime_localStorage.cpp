@@ -259,6 +259,9 @@ void Db::load_LimeUser(const std::string &deviceId, long int &Uid, lime::CurveId
 			case static_cast<uint8_t>(lime::CurveId::c448):
 				curveId=lime::CurveId::c448;
 				break;
+			case static_cast<uint8_t>(lime::CurveId::k512c25519):
+				curveId=lime::CurveId::k512c25519;
+				break;
 			case static_cast<uint8_t>(lime::CurveId::unset):
 			default: // we got an unknow or unset curve Id, DB is either corrupted or a future version
 				curveId=lime::CurveId::unset;
