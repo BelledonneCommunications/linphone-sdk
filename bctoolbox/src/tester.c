@@ -123,6 +123,11 @@ static int (*logfile_arg_func)(const char *arg) = NULL;
 // Linphone
 static void (*process_events)(void) = NULL;
 
+typedef struct _suite_status {
+	int pid;
+	int finished;
+} suite_status_t;
+
 static int bc_tester_registered_suite_count(void) {
 	return CU_get_registry()->uiNumberOfSuites;
 }
@@ -781,12 +786,12 @@ static int start_sub_process(const char *suite_name) {
 // For parallel tests only - handle anormally exited test suites
 // Remove previously generated XML suite file if exited anormally (could cause unusable final JUnit XML)
 // And mark all tests for the suite as failed
-static int handle_sub_process_error(int pid, int *suitesPids) {
+static int handle_sub_process_error(int pid, suite_status_t *suitesPids) {
 	int failed_tests = 0;
 	int i;
 	int effective_suite_count = bc_tester_registered_suite_count();
 	for (i = 0; i < effective_suite_count; ++i) {
-		if (suitesPids[i] == pid) {
+		if (suitesPids[i].pid == pid) {
 			ssize_t offset;
 			CU_pSuite suite = bc_tester_registered_suite_index(i);
 			char *suite_file_name = get_junit_xml_file_name(suite->pName, "-Results.xml");
@@ -816,12 +821,13 @@ static int handle_sub_process_error(int pid, int *suitesPids) {
 	return failed_tests;
 }
 
-static test_suite_t *lookup_suite_from_pid(int pid, int *suitesPids) {
+static test_suite_t *lookup_suite_from_pid(int pid, suite_status_t *suitesStatus, int *index) {
 	int i;
 	int effective_suite_count = bc_tester_registered_suite_count();
 	for (i = 0; i < effective_suite_count; ++i) {
-		if (suitesPids[i] == pid) {
+		if (suitesStatus[i].pid == pid) {
 			CU_pSuite suite = bc_tester_registered_suite_index(i);
+			if (index) *index = i;
 			if (suite) return (test_suite_t *)suite->pUserData;
 		}
 	}
@@ -932,9 +938,11 @@ int bc_tester_run_parallel(void) {
 
 int bc_tester_run_parallel(void) {
 	int effective_suite_count = bc_tester_registered_suite_count();
-	int suitesPids[effective_suite_count];
+	suite_status_t suitesPids[effective_suite_count];
 	uint64_t time_start = bctbx_get_cur_time_ms(), elapsed = time_start, print_timer = time_start;
 	uint64_t timeout = 0;
+
+	memset(&suitesPids, 0, sizeof(suite_status_t) * effective_suite_count);
 
 	if (globalTimeout <= 0) {
 		globalTimeout = 60 * 60;
@@ -947,8 +955,7 @@ int bc_tester_run_parallel(void) {
 	int testsFinished = 0;
 	int ret = 0; // Global return status;
 	int suitesCpuWeight = 0;
-
-	memset(suitesPids, 0, sizeof(suitesPids));
+	int timeoutElapsed = 0;
 
 	do {
 		if (nextSuite < effective_suite_count) {
@@ -964,7 +971,7 @@ int bc_tester_run_parallel(void) {
 					                 "Error during fork() while starting child process. Aborting.");
 					return -1;
 				} else if (pid > 0) {
-					suitesPids[nextSuite] = pid;
+					suitesPids[nextSuite].pid = pid;
 					runningSuites++;
 					suitesCpuWeight += cpu_weight;
 					nextSuite++;
@@ -986,8 +993,10 @@ int bc_tester_run_parallel(void) {
 			}
 			if (childPid != 0) {
 				if (WIFEXITED(wstatus) || WIFSIGNALED(wstatus)) {
-					test_suite_t *finishedSuite = lookup_suite_from_pid(childPid, suitesPids);
+					int index = 0;
+					test_suite_t *finishedSuite = lookup_suite_from_pid(childPid, suitesPids, &index);
 					suitesCpuWeight -= test_suite_cpu_weight(finishedSuite);
+					suitesPids[index].finished = 1; /* reset when suite is finished */
 					--runningSuites;
 					++testsFinished;
 				}
@@ -1008,12 +1017,25 @@ int bc_tester_run_parallel(void) {
 				ret += childRet;
 			}
 		}
+
 		bctbx_sleep_ms(50);
+
 		if (elapsed - print_timer > 10000) { // print message only every ~10s...
+			if (!timeoutElapsed && (elapsed >= timeout)) {
+				int i;
+				timeoutElapsed = TRUE;
+				for (i = 0; i < effective_suite_count; ++i) {
+					if (suitesPids[i].finished == 0) {
+						CU_pSuite unfinishedSuite = bc_tester_registered_suite_index(i);
+						bc_tester_printf(bc_printf_verbosity_error, "Suite [%s] is still running after timeout.",
+						                 unfinishedSuite->pName);
+					}
+				}
+			}
 			bc_tester_printf(bc_printf_verbosity_error,
 			                 "Waiting for test suites to finish... Total Suites(%d). Suites running(%d), Finished(%d), "
 			                 "Timeout reached(%s)",
-			                 effective_suite_count, runningSuites, testsFinished, (elapsed >= timeout) ? "yes" : "no");
+			                 effective_suite_count, runningSuites, testsFinished, timeoutElapsed ? "yes" : "no");
 			print_timer = bctbx_get_cur_time_ms();
 		}
 		elapsed = bctbx_get_cur_time_ms();
