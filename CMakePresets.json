@@ -320,7 +320,7 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "generator": "Visual Studio 16 2019",
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
         "ENABLE_AV1": "OFF",
@@ -334,7 +334,6 @@
         "ENABLE_TOOLS": "OFF",
         "ENABLE_TUTORIALS": "OFF",
         "ENABLE_UNIT_TESTS": "OFF",
-        "ENABLE_WEBRTC_AECM": "ON",
         "ENABLE_WINDOWS_TOOLS_CHECK": "OFF",
         "LINPHONESDK_PLATFORM": "UWP"
       }
@@ -377,7 +376,7 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       },
-      "generator": "Visual Studio 16 2019",
+      "generator": "Visual Studio 17 2022",
       "cacheVariables": {
         "ENABLE_LDAP": "ON",
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
@@ -392,7 +391,10 @@
       "inherits": "windows-common",
       "displayName": "Config for Windows 32 bits",
       "description": "Build for Windows 32 bits using Visual Studio 2019",
-      "architecture": "Win32"
+      "architecture": "Win32",
+      "cacheVariables": {
+        "LINPHONESDK_WINDOWS_ARCHS": "32bits"
+      }
     },
     {
       "name": "windows-64bits",

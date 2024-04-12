@@ -1,7 +1,6 @@
-.windows-vs2017:
+.windows-vs:
   extends: .job-prepare
   stage: build
-  tags: [ "windows-powershell" ]
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -11,29 +10,16 @@
     CMAKE_PRESET: windows-sdk
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
-    CMAKE_GENERATOR: "Visual Studio 15 2017"
   script:
-    - Set-Variable -Name "PATH_TEMP" -Value ($(Get-ChildItem -Path Env:\PATH).value)
-    - echo $env:Path
-    #Remove MinGW of MSYS from PATH and add MINGW_TYPE for MSYS2
-    # We double the "\" to escape paths as -replace uses regular expressions
-    - $PATH_TEMP = $PATH_TEMP -replace "C:\\MinGW\\bin;" -replace "C:\\Strawberry\\c\\bin;" -replace "C:\\Program Files\\NASM"
-    - echo $PATH_TEMP
-    - $env:Path = ($PATH_TEMP + ";C:\msys64\mingw64\bin;C:\msys64;C:\msys64\usr\bin;C:\msys64\mingw32\bin")
-
-    - If ($MINGW_TYPE -eq "mingw64") {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"} Else {Import-BatchEnvironment "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\Tools\VsDevCmd.bat"}
-
-    - echo $env:Path
-
     - If ( Test-Path -Path "build" ) {Remove-Item -recurse -force -path "build" }
 
     #we launch the msvc-cl wrapper located in python scripts folder
     #this wrapper relays only needed calls to the real compiler
     #cache stats display
-    - C:\PROGRA~1\Python37\Scripts\cl -s
+    #- C:\PROGRA~1\Python37\Scripts\cl -s
     - Write-Output $BUILD_DIR
     - Write-Output $SCHEDULE_CMAKE_OPTIONS
-    - Write-Output $MAKEFILE_JOBS
+    - Write-Output $WINDOWS_PARALLEL_JOBS
     - Write-Output $CMAKE_C_COMPILER
     - Write-Output $CMAKE_CXX_COMPILER
     - Write-Output $CMAKE_RC_COMPILER
@@ -56,13 +42,16 @@
     - Write-Output $SHOW_SEARCH_STATUS_SCRIPT
     - Write-Output $LAUNCH_SEARCH_STATUS_SCRIPT
 
-
-
-
     #We are forced to use Invoke-Expression to explain to powershell that we don't want it to touch to spaces in arguments
     #If we don't use it, '-A Win32' will be interpreted as "-A ' Win32'" thus making the build fail
 
     - echo $LastExitCode
+
+    - sccache --show-stats
+
+    - sccache --zero-stats
+
+    - sccache --show-stats
 
     - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -B $BUILD_DIR -G '$CMAKE_GENERATOR' $CMAKE_BUILD_TYPE $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
 
@@ -76,7 +65,7 @@
     #Store outputs in a file log
 
     #Only in powershell 7 (Gitlab 14+)
-    # - cmake --build . --target sdk --config RelWithDebInfo --parallel $MAKEFILE_JOBS | Select-String -NotMatch -Raw -Pattern "inclusion du fichier"
+    # - cmake --build . --target sdk --config RelWithDebInfo --parallel $WINDOWS_PARALLEL_JOBS | Select-String -NotMatch -Raw -Pattern "inclusion du fichier"
     - Write-Output $PARALLEL_OPTIONS
     - Write-Output $NINJA_OPTIMIZATION
 
@@ -84,7 +73,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "cmake --build $BUILD_DIR --config RelWithDebInfo $PARALLEL_OPTIONS  $NINJA_OPTIMIZATION"
+    - Invoke-Expression "cmake --build $BUILD_DIR --config RelWithDebInfo $PARALLEL_OPTIONS $NINJA_OPTIMIZATION"
 
     - if ($EXITS_ON_ERROR_MSVC) { Invoke-Expression "$EXITS_ON_ERROR_MSVC" } else { Write-Output "EXITS_ON_ERROR_MSVC is null" }
 
@@ -100,7 +89,9 @@
 
     - if ($LAUNCH_SEARCH_STATUS_SCRIPT) { Invoke-Expression "$LAUNCH_SEARCH_STATUS_SCRIPT" -ErrorAction stop } else { Write-Output "LAUNCH_SEARCH_STATUS_SCRIPT is null" }
 
-    - C:\PROGRA~1\Python37\Scripts\cl -s
+    #- C:\PROGRA~1\Python37\Scripts\cl -s
+  after_script:
+    - sccache --show-stats
 
 ################
   artifacts:
@@ -112,8 +103,19 @@
     when: always
     expire_in: 1 week
 
-.windows-vs2017-ninja:
-  extends: .windows-vs2017
+.windows-vs2022:
+  extends: .windows-vs
+  tags: [ "windows-powershell-vs-17-2022" ]
+
+.windows-vs2019:
+  extends: .windows-vs
+  tags: [ "windows-powershell-vs-16-2019" ]
+
+.windows-vs2017:
+  extends: .windows-vs
+  tags: [ "windows-powershell-vs-15-2017" ]
+
+.windows-ninja:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DOCKER_UPDATE == null && $SKIP_WINDOWS == null && $DEPLOY_RUN_WINDOWS == null
@@ -124,8 +126,8 @@
     CMAKE_PRESET: windows-ninja-sdk
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
     CLI_OUTPUT_INFO_NINJA: Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
-    NINJA_BUILD_PARALLEL_LEVEL: -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS
-    PARALLEL_OPTIONS: "--parallel $MAKEFILE_JOBS"
+    NINJA_BUILD_PARALLEL_LEVEL: -DCMAKE_BUILD_PARALLEL_LEVEL=$WINDOWS_PARALLEL_JOBS
+    PARALLEL_OPTIONS: "--parallel $WINDOWS_PARALLEL_JOBS"
     NINJA_OPTIMIZATION: "| find /V \"inclusion du fichier\" > ninja_buildlog.txt; cmd /c \"exit /b 0\""
     NINJA_EXPLICIT_COMPILER_SET: -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" -DCMAKE_RC_COMPILER="$CMAKE_RC_COMPILER"
     DISPLAY_NINJA_LOG: Get-Content ninja_buildlog.txt
@@ -135,20 +137,46 @@
     SHOW_SEARCH_STATUS_SCRIPT: Get-Content invertSearch.ps1
     LAUNCH_SEARCH_STATUS_SCRIPT: .\invertSearch.ps1
 
-.windows-vs2017-msvc:
-  extends: .windows-vs2017
+.windows-vs2022-ninja:
+  extends:
+    - .windows-vs2022
+    - .windows-ninja
+
+.windows-vs2019-ninja:
+  extends:
+    - .windows-vs2019
+    - .windows-ninja
+
+.windows-vs2017-ninja:
+  extends:
+    - .windows-vs2017
+    - .windows-ninja
+
+.windows-msvc:
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON
     CMAKE_PRESET: windows-sdk
     OUTPUT_ZIP_FOLDER: win32
     MINGW_TYPE: mingw32
-    CMAKE_GENERATOR: "Visual Studio 15 2017"
     PARALLEL_OPTIONS: "-- /maxcpucount /nodeReuse:true /p:TrackFileAccess=false"
     EXITS_ON_ERROR_MSVC: 'if (-not ($$LastExitCode -eq 0)) {throw "Error: Build failed"}'
 
-.windows-vs2017-scheduled:
-  extends: .windows-vs2017-msvc
+.windows-vs2022-msvc:
+  extends:
+    - .windows-vs2022
+    - .windows-msvc
 
+.windows-vs2019-msvc:
+  extends:
+    - .windows-vs2019
+    - .windows-msvc
+
+.windows-vs2017-msvc:
+  extends:
+    - .windows-vs2017
+    - .windows-msvc
+
+.windows-vs-scheduled:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -158,32 +186,84 @@
     #cache disabled on scheduled builds since we dot not need the fastest build
     - Set-Variable -Name "CLCACHE_DISABLE" -Value 1
 
+.windows-vs2022-scheduled:
+  extends:
+    - .windows-vs2022-msvc
+    - .windows-vs-scheduled
+
+.windows-vs2019-scheduled:
+  extends:
+    - .windows-vs2019-msvc
+    - .windows-vs-scheduled
+
+.windows-vs2017-scheduled:
+  extends:
+    - .windows-vs2017-msvc
+    - .windows-vs-scheduled
+
 ######################################################
 # JOBS
 ######################################################
 
-vs2017-ninja-win64-windows:
-  extends: .windows-vs2017-ninja
+.vs-ninja-win64-windows:
   variables:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits
+    CMAKE_PRESET: windows-ninja-64bits
     MINGW_TYPE: mingw64
     OUTPUT_ZIP_FOLDER: win64
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-vs2017-ninja-win64-windows-pqc:
-  extends: vs2017-ninja-win64-windows
+.vs-ninja-win64-windows-pqc:
+  extends: .vs-ninja-win64-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=64bits -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON
 
-vs2017-ninja-win32-windows:
-  extends: .windows-vs2017-ninja
+
+vs2022-ninja-win64-windows:
+  extends:
+    - .windows-vs2022-ninja
+    - .vs-ninja-win64-windows
+
+vs2022-ninja-win64-windows-pqc :
+  extends:
+    - .windows-vs2022-ninja
+    - .vs-ninja-win64-windows-pqc
+
+vs2019-ninja-win64-windows:
+  extends:
+    - .windows-vs2019-ninja
+    - .vs-ninja-win64-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2019-ninja-win64-windows-pqc :
+  extends:
+    - .windows-vs2019-ninja
+    - .vs-ninja-win64-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-ninja-win64-windows:
+  extends:
+    - .windows-vs2017-ninja
+    - .vs-ninja-win64-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-ninja-win64-windows-pqc :
+  extends:
+    - .windows-vs2017-ninja
+    - .vs-ninja-win64-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+.vs-ninja-win32-windows:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -192,16 +272,39 @@ vs2017-ninja-win32-windows:
     CMAKE_C_COMPILER : cl.exe
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
-    CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits
+    CMAKE_PRESET: windows-ninja-32bits
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
     CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
+vs2022-ninja-win32-windows:
+  extends:
+    - .windows-vs2022-ninja
+    - .vs-ninja-win32-windows
+  # Disables AV1 because with ninja we have a out of heap space error
+  # C:\PROGRA~1\MICROS~2\2022\COMMUN~1\VC\Tools\MSVC\1440~1.338\bin\Hostx86\x86\cl.exe  /nologo  -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\build\win\external\aom -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\apps -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\common -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\examples -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\stats -IC:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\third_party\libyuv\include /DWIN32 /D_WINDOWS /W3 /MD /O2 /Ob2 /DNDEBUG -D_WIN32_WINNT=0x0601 -D_CRT_SECURE_NO_WARNINGS /W3 /wd4996 /showIncludes /FoCMakeFiles\aom_av1_common_sse2_intrinsics.dir\av1\common\x86\cdef_block_sse2.c.obj /FdCMakeFiles\aom_av1_common_sse2_intrinsics.dir\ /FS -c C:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\av1\common\x86\cdef_block_sse2.c
+  #C:\gitlab-runner\builds\Lbi4MhqJ\0\BC\public\linphone-sdk\external\aom\aom_dsp\simd\v64_intrinsics_c.h(259) : fatal error C1002: compiler is out of heap space in pass 2
+  variables:
+    CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON -DENABLE_AV1=OFF
+
+vs2019-ninja-win32-windows:
+  extends:
+    - .windows-vs2019-ninja
+    - .vs-ninja-win32-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-ninja-win32-windows:
+  extends:
+    - .windows-vs2017-ninja
+    - .vs-ninja-win32-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
 ######################################################
 # NIGHTLY
 ######################################################
 
 ##      ON SCHEDULE     ##
-vs2017-uwp-scheduled-windows:
-  extends: .windows-vs2017-scheduled
+.vs-uwp-scheduled-windows:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -222,18 +325,56 @@ vs2017-uwp-scheduled-windows:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF
     OUTPUT_ZIP_FOLDER: uwp
     MINGW_TYPE: mingw64
-    CMAKE_GENERATOR: "Visual Studio 15 2017"
 
-vs2017-uwp-scheduled-windows-pqc:
-  extends: vs2017-uwp-scheduled-windows
+.vs-uwp-scheduled-windows-pqc:
+  extends: .vs-uwp-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DENABLE_UNIT_TESTS=ON -DENABLE_LDAP=OFF -DENABLE_NON_FREE_FEATURES=ON -DENABLE_PQCRYPTO=ON -DENABLE_EXAMPLE_PLUGIN=ON
 
-vs2017-win32-scheduled-windows:
-  extends: .windows-vs2017-scheduled
+
+vs2022-uwp-scheduled-windows:
+  extends:
+    - .windows-vs2022-scheduled
+    - .vs-uwp-scheduled-windows
+
+vs2022-uwp-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2022-scheduled
+    - .vs-uwp-scheduled-windows-pqc
+
+vs2019-uwp-scheduled-windows:
+  extends:
+    - .windows-vs2019-scheduled
+    - .vs-uwp-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2019-uwp-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2019-scheduled
+    - .vs-uwp-scheduled-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-uwp-scheduled-windows:
+  extends:
+    - .windows-vs2017-scheduled
+    - .vs-uwp-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-uwp-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2017-scheduled
+    - .vs-uwp-scheduled-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+.vs-win32-scheduled-windows:
+  extends: .windows-vs2022-scheduled
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -242,21 +383,59 @@ vs2017-win32-scheduled-windows:
     - *nuget_deploy_rule
     - *nuget_dev_rule
   variables:
+    CMAKE_PRESET: windows-sdk
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON
     OUTPUT_ZIP_FOLDER: win32
     GIT_FETCH_EXTRA_FLAGS: --tags --force --recurse-submodules=yes
     GIT_SUBMODULE_UPDATE_FLAGS: --jobs 8 --force --recursive
 
-vs2017-win32-scheduled-windows-pqc:
-  extends: vs2017-win32-scheduled-windows
+.vs-win32-scheduled-windows-pqc:
+  extends: .vs-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON -DENABLE_LDAP=OFF -DENABLE_DOC=ON -DENABLE_PQCRYPTO=ON -DENABLE_GPL_THIRD_PARTIES=ON
 
-vs2017-win32store-scheduled-windows:
-  extends: .windows-vs2017-scheduled
+vs2022-win32-scheduled-windows:
+  extends:
+    - .windows-vs2022-scheduled
+    - .vs-win32-scheduled-windows
+
+vs2022-win32-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2022-scheduled
+    - .vs-win32-scheduled-windows-pqc
+
+vs2019-win32-scheduled-windows:
+  extends:
+    - .windows-vs2019-scheduled
+    - .vs-win32-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2019-win32-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2019-scheduled
+    - .vs-win32-scheduled-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-win32-scheduled-windows:
+  extends:
+    - .windows-vs2017-scheduled
+    - .vs-win32-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-win32-scheduled-windows-pqc:
+  extends:
+    - .windows-vs2017-scheduled
+    - .vs-win32-scheduled-windows-pqc
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+.vs-win32store-scheduled-windows:
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
@@ -270,12 +449,49 @@ vs2017-win32store-scheduled-windows:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_UNIT_TESTS=ON -DENABLE_OPENH264=ON -DENABLE_NON_FREE_FEATURES=ON
     OUTPUT_ZIP_FOLDER: win32store
 
-win32-vs2017-novideo-windows:
-  extends: vs2017-win32-scheduled-windows
+vs2022-win32store-scheduled-windows:
+  extends:
+    - .windows-vs2022-scheduled
+    - .vs-win32store-scheduled-windows
+
+vs2019-win32store-scheduled-windows:
+  extends:
+    - .windows-vs2019-scheduled
+    - .vs-win32store-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+vs2017-win32store-scheduled-windows:
+  extends:
+    - .windows-vs2017-scheduled
+    - .vs-win32store-scheduled-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+.win32-vs-novideo-windows:
+  extends: .vs-win32-scheduled-windows
   rules:
     - !reference [.rules-merge-request-manual, rules]
     - if: $CI_PIPELINE_SOURCE == "schedule" && $ALL_WINDOWS_BUILDS != null
     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
-
   variables:
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits -DENABLE_VIDEO=OFF
+
+win32-vs2022-novideo-windows:
+  extends:
+    - .windows-vs2022-scheduled
+    - .win32-vs-novideo-windows
+
+win32-vs2019-novideo-windows:
+  extends:
+    - .windows-vs2019-scheduled
+    - .win32-vs-novideo-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]
+
+win32-vs2017-novideo-windows:
+  extends:
+    - .windows-vs2017-scheduled
+    - .win32-vs-novideo-windows
+  rules:
+    - !reference [.rules-merge-request-manual, rules]

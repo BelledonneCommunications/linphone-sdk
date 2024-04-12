@@ -93,13 +93,14 @@ if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 	add_command_from_zip(${LINPHONESDK_WINDOWSSTORE_ZIP_PATH} "windowsstore")
 
 	set(NUSPEC_WINDOWSSTORE "")
+	# <file src=\"LinphoneSDK.Windows.targets\" target=\"build\\netcore\" />
+	# is already included in nuspec.in, so we avoid declaring twice to avoid errors
 	foreach(WINDOWSSTORE_ARCH ${WINDOWSSTORE_ARCHS})
 		get_windowsstore_name("${WINDOWSSTORE_ARCH}" WINDOWSSTORE_NAME)
 		set(NUSPEC_WINDOWSSTORE "${NUSPEC_WINDOWSSTORE}
 			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\bin\\*.winmd\" target=\"lib\\netcore\\\" />
 			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\bin\\**\\*.*\" target=\"lib\\netcore\\${WINDOWSSTORE_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
 			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\lib\\**\\*.*\" target=\"lib\\netcore\\${WINDOWSSTORE_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\netcore\" />
 			")
 		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
 	endforeach()
@@ -109,12 +110,13 @@ if(LINPHONESDK_UWP_ZIP_PATH)
 	add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
 
 	set(NUSPEC_UWP "")
+	# file <file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
+	# is already included in nuspec.in, so we avoid declaring twice to avoid errors
 	foreach(UWP_ARCH ${UWP_ARCHS})
 		set(NUSPEC_UWP "${NUSPEC_UWP}
 			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
 			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\bin\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
 			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\lib\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
-			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
 		")
 		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
 	endforeach()
