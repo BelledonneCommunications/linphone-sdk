@@ -69,10 +69,10 @@ public class CaptureTextureView extends TextureView {
     public void setRotation(int rotation) {
         if (rotation != mRotation) {
             mRotation = rotation;
-            Log.i("[Capture TextureView] Changing preview texture rotation to " + rotation);
+            Log.i("[Capture TextureView] Changing preview texture rotation to [" + rotation + "]°");
             rotateToMatchDisplayOrientation();
         } else {
-            Log.w("[Capture TextureView] Rotation is already the current value, skipping");
+            Log.w("[Capture TextureView] Rotation is already set to [" + mRotation + "]°, skipping");
         }
     }
 
@@ -85,16 +85,19 @@ public class CaptureTextureView extends TextureView {
         RectF textureViewRect = new RectF(0, 0, width, height);
         matrix.mapRect(textureViewRect);
 
-        Log.i("[Capture TextureView] Rotating preview texture by rotation " + rotation);
-        if (rotation % 180 == 90) {
-            float[] src = new float[] { 0.f, 0.f, width, 0.f, 0.f, height, width, height, };
-            float[] dst = new float[] { 0.f, height, 0.f, 0.f, width, height, width, 0.f, };
-            if (rotation == 270) {
-                dst = new float[] { width, 0.f, width, height, 0.f, 0.f, 0.f, height, };
+        if (rotation != -1) {
+            if (rotation % 180 == 90) {
+                Log.i("[Capture TextureView] Rotating preview texture by [" + rotation + "]°");
+                float[] src = new float[] { 0.f, 0.f, width, 0.f, 0.f, height, width, height, };
+                float[] dst = new float[] { 0.f, height, 0.f, 0.f, width, height, width, 0.f, };
+                if (rotation == 270) {
+                    dst = new float[] { width, 0.f, width, height, 0.f, 0.f, 0.f, height, };
+                }
+                matrix.setPolyToPoly(src, 0, dst, 0, 4);
+            } else if (rotation == 180) {
+                Log.i("[Capture TextureView] Rotating preview texture by 180°");
+                matrix.postRotate(180, width / 2, height / 2);
             }
-            matrix.setPolyToPoly(src, 0, dst, 0, 4);
-        } else if (rotation == 180) {
-            matrix.postRotate(180, width / 2, height / 2);
         }
 
         if (mCapturedVideoWidth != 0 && mCapturedVideoHeight != 0) {
