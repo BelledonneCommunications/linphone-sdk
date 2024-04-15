@@ -40,7 +40,7 @@
 #include <mutex>
 
 struct AndroidCamera2Device {
-	AndroidCamera2Device(char *id) : camId(id), orientation(0), back_facing(false) {
+	AndroidCamera2Device(char *id) : camId(id), orientation(0), back_facing(false), external(false) {
 		
 	};
 
@@ -53,6 +53,7 @@ struct AndroidCamera2Device {
 	char *camId;
 	int32_t orientation;
 	bool back_facing;
+	bool external;
 };
 
 struct AndroidCamera2Context {
@@ -248,11 +249,13 @@ static const char* android_camera2_status_to_string(camera_status_t status) {
 
 static int32_t android_camera2_capture_get_orientation(AndroidCamera2Context *d) {
 	int32_t orientation = d->device->orientation;
-	if (d->device->back_facing) {
-		ms_message("[Camera2 Capture] Selected device is back facing");
+	if (d->device->external) {
+		ms_debug("[Camera2 Capture] Selected device is external");
+	} else if (d->device->back_facing) {
+		ms_debug("[Camera2 Capture] Selected device is back facing");
 		orientation -= d->rotation;
 	} else {
-		ms_message("[Camera2 Capture] Selected device is front facing");
+		ms_debug("[Camera2 Capture] Selected device is front facing");
 		orientation += d->rotation;
 	}
 	if (orientation < 0) {
@@ -1216,6 +1219,7 @@ void android_camera2_capture_detect(MSWebCamManager *obj) {
 			std::string facing = std::string(external ? "external" : !back_facing ? "front" : "back");
 			ms_message("[Camera2 Capture] Camera %s is facing [%s] with angle [%d], hardware level is [%s]", camId, facing.c_str(), angle, supportedHardwareLevel.c_str());
 			device->back_facing = back_facing;
+			device->external = external;
 
 			MSWebCam *cam = ms_web_cam_new(&ms_android_camera2_capture_webcam_desc);
 			std::string idstring = std::string(!back_facing ? "Front" : "Back") + std::string("FacingCamera");
