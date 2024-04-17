@@ -44,6 +44,9 @@ set(SOURCE_FILES
 set(LIBS ws2_32 Mmdevapi)
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsPhone")
 	list(APPEND LIBS phoneaudioses)
+elseif( CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND CMAKE_SYSTEM_VERSION STREQUAL "10.0" )# UWP
+else()
+	list(APPEND LIBS Ole32)
 endif()
 
 if(BUILD_SHARED_LIBS)
