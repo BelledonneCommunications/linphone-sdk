@@ -51,8 +51,8 @@ namespace lime {
 			long int m_db_Uid; // the Uid in database, retrieved at creation/load, used for faster access
 
 			/* network related */
-			std::string m_X3DH_Server_URL; // url of x3dh key server
-			limeX3DHServerPostData m_X3DH_post_data; // externally provided function to communicate with x3dh server
+			std::string m_server_url; // url of x3dh key server
+			limeX3DHServerPostData m_post_data; // externally provided function to communicate with x3dh server
 
 			/* X3DH keys */
 			DSApair<typename Curve::EC> m_Ik; // our identity key pair, is loaded from DB only if requested(to sign a SPK or to perform X3DH init)
@@ -80,7 +80,8 @@ namespace lime {
 			* @return	the generated SPk with signature(private key is not set in the structure)
 			*/
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			SignedPreKey<Curve> X3DH_generate_SPk(const DSApair<Curve> &Ik, const bool load=false) {
+			SignedPreKey<Curve> generate_SPk(const bool load=false) {
+				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 				// if the load flag is on, try to load a existing active key instead of generating it
@@ -94,8 +95,8 @@ namespace lime {
 						SignedPreKey<Curve> s(serializedSPk, SPkId);
 						// Sign the public key with our identity key
 						auto SPkSign = make_Signature<Curve>();
-						SPkSign->set_public(Ik.cpublicKey());
-						SPkSign->set_secret(Ik.cprivateKey());
+						SPkSign->set_public(m_Ik.cpublicKey());
+						SPkSign->set_secret(m_Ik.cprivateKey());
 						SPkSign->sign(s.serializePublic(true), s.signature());
 						return s;
 					}
@@ -107,8 +108,8 @@ namespace lime {
 
 				// Sign the public key with our identity key
 				auto SPkSign = make_Signature<Curve>();
-				SPkSign->set_public(Ik.cpublicKey());
-				SPkSign->set_secret(Ik.cprivateKey());
+				SPkSign->set_public(m_Ik.cpublicKey());
+				SPkSign->set_secret(m_Ik.cprivateKey());
 				SPkSign->sign(s.serializePublic(true), s.signature());
 
 				// Generate a random SPk Id
@@ -147,7 +148,8 @@ namespace lime {
 				return s;
 			}
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			SignedPreKey<Curve> X3DH_generate_SPk(const DSApair<typename Curve::EC> &Ik, const bool load=false) {
+			SignedPreKey<Curve> generate_SPk(const bool load=false) {
+				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 				// if the load flag is on, try to load a existing active key instead of generating it
@@ -161,8 +163,8 @@ namespace lime {
 						SignedPreKey<Curve> s(serializedSPk, SPkId);
 						// Sign the public key with our identity key
 						auto SPkSign = make_Signature<typename Curve::EC>();
-						SPkSign->set_public(Ik.cpublicKey());
-						SPkSign->set_secret(Ik.cprivateKey());
+						SPkSign->set_public(m_Ik.cpublicKey());
+						SPkSign->set_secret(m_Ik.cprivateKey());
 						SPkSign->sign(s.serializePublic(true), s.signature());
 						return s;
 					}
@@ -178,8 +180,8 @@ namespace lime {
 
 				// Sign the public key with our identity key
 				auto SPkSign = make_Signature<typename Curve::EC>();
-				SPkSign->set_public(Ik.cpublicKey());
-				SPkSign->set_secret(Ik.cprivateKey());
+				SPkSign->set_public(m_Ik.cpublicKey());
+				SPkSign->set_secret(m_Ik.cprivateKey());
 				SPkSign->sign(s.serializePublic(true), s.signature());
 
 				// Generate a random SPk Id
@@ -304,9 +306,13 @@ namespace lime {
 				// commit changes to DB
 				tr.commit();
 			}
+			/**
+			 * EC/KEM version of OPk generation: we must also sign the OPk
+			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			void generate_OPks(std::vector<OneTimePreKey<Curve>> &OPks, const uint16_t OPk_number, const bool load=false) {
 
+				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
 
 				// make room for OPk and OPk ids
@@ -328,7 +334,7 @@ namespace lime {
 					blob OPk_blob(m_localStorage->sql);
 					uint32_t OPk_id;
 					// Prepare DB statement: add a filter on current user Id as we'll target all retrieved OPk_ids (soci doesn't allow rowset and blob usage together)
-					// Get Keys matching the currend user and that are not set as dispatched yet (Status = 1)
+					// Get Keys matching the current user and that are not set as dispatched yet (Status = 1)
 					statement st = (m_localStorage->sql.prepare << "SELECT OPk FROM X3DH_OPK WHERE Uid = :Uid AND Status = 1 AND OPKid = :OPkId;", into(OPk_blob), use(m_db_Uid), use(OPk_id));
 
 					for (uint32_t id : activeOPkIds) { // We already have all the active OPK ids, loop on them
@@ -337,7 +343,13 @@ namespace lime {
 						if (m_localStorage->sql.got_data()) {
 							sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
 							OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
-							OPks.push_back(OneTimePreKey<Curve>(serializedOPk, OPk_id));
+							OneTimePreKey<Curve> OPk(serializedOPk, OPk_id);
+							// Sign the public key with our identity key
+							auto identitySign = make_Signature<typename Curve::EC>();
+							identitySign->set_public(m_Ik.cpublicKey());
+							identitySign->set_secret(m_Ik.cprivateKey());
+							identitySign->sign(OPk.serializePublic(true), OPk.signature());
+							OPks.push_back(OPk);
 						}
 					}
 
@@ -361,8 +373,13 @@ namespace lime {
 						// Generate a new KEM Key pair
 						Kpair<typename Curve::KEM> kemOPk{};
 						KEMengine->createKeyPair(kemOPk);
-						// set in output vector
-						OPks.emplace_back(DH->get_selfPublic(), DH->get_secret(), kemOPk.cpublicKey(), kemOPk.cprivateKey(), OPk_id);
+						OneTimePreKey<Curve> OPk(DH->get_selfPublic(), DH->get_secret(), kemOPk.cpublicKey(), kemOPk.cprivateKey(), OPk_id);
+						// Sign the public key with our identity key
+						auto identitySign = make_Signature<typename Curve::EC>();
+						identitySign->set_public(m_Ik.cpublicKey());
+						identitySign->set_secret(m_Ik.cprivateKey());
+						identitySign->sign(OPk.serializePublic(true), OPk.signature());
+						OPks.push_back(OPk);
 					}
 				}
 
@@ -607,7 +624,7 @@ namespace lime {
 							// Check if the error message is a user_not_found and we were trying to get our self OPks(OPkServerLowLimit > 0)
 							if (error_code == lime::x3dh_protocol::x3dh_error_code::user_not_found && userData->OPkServerLowLimit > 0) {
 								// We must republish the user, something went terribly wrong on server side and we're not there anymore
-								LIME_LOGW<<"Something went terribly wrong on server "<<m_X3DH_Server_URL<<". Republish user "<<m_selfDeviceId;
+								LIME_LOGW<<"Something went terribly wrong on server "<<m_server_url<<". Republish user "<<m_selfDeviceId;
 								updateOPkStatus(std::vector<uint32_t>{}); // set all OPks to dispatched status as we don't know if some of them where dispatched or not
 								// republish the user, it will keep same Ik and SPk but generate new OPks as we just set all our OPk to dispatched
 								publish_user(userData, userData->OPkServerLowLimit);
@@ -694,7 +711,7 @@ namespace lime {
 				LIME_LOGI<<"Post outgoing X3DH message from user "<<this->m_selfDeviceId;
 
 				// copy capture the shared_ptr to userData
-				m_X3DH_post_data(m_X3DH_Server_URL, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
+				m_post_data(m_server_url, m_selfDeviceId, message, [userData](int responseCode, const std::vector<uint8_t> &responseBody) {
 						auto thiz = userData->limeObj.lock(); // get a shared pointer to Lime Object from the weak pointer stored in userData
 						// check it is valid (lock() returns nullptr)
 						if (!thiz) { // our Lime caller object doesn't exists anymore
@@ -817,10 +834,10 @@ namespace lime {
 						continue;
 					}
 					// Verifify SPk_signature, throw an exception if it fails
-					auto SPkVerify = make_Signature<typename Curve::EC>();
-					SPkVerify->set_public(peerBundle.Ik);
+					auto peerIkVerify = make_Signature<typename Curve::EC>();
+					peerIkVerify->set_public(peerBundle.Ik);
 
-					if (!SPkVerify->verify(peerBundle.SPk.serializePublic(true), peerBundle.SPk.csignature())) {
+					if (!peerIkVerify->verify(peerBundle.SPk.serializePublic(true), peerBundle.SPk.csignature())) {
 						LIME_LOGE<<"X3DH: SPk signature verification failed for device "<<peerBundle.deviceId;
 						throw BCTBX_EXCEPTION << "Verify signature on SPk failed for deviceId "<<peerBundle.deviceId;
 					}
@@ -872,7 +889,11 @@ namespace lime {
 						DH_out = DH->get_sharedSecret();
 						std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
 						HKDF_input_index += DH_out.size();
-						// TODO: here we shall check to OPk signature
+						// check to OPk signature: it is signed with the same key Ik
+						if (!peerIkVerify->verify(peerBundle.OPk.serializePublic(true), peerBundle.OPk.csignature())) {
+							LIME_LOGE<<"X3DH: OPk signature verification failed for device "<<peerBundle.deviceId;
+							throw BCTBX_EXCEPTION << "Verify signature on OPk failed for deviceId "<<peerBundle.deviceId;
+						}
 						KEMengine->encaps(peerBundle.OPk.cKEMpublicKey(), cipherText, sharedSecret);
 					} else { // There is no OPk, encapsulate a secret for the kem SPk
 						KEMengine->encaps(peerBundle.SPk.cKEMpublicKey(), cipherText, sharedSecret);
@@ -1079,7 +1100,7 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
 			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
-			m_X3DH_Server_URL{X3DHServerURL}, m_X3DH_post_data{X3DH_post_data},
+			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
 					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
@@ -1141,7 +1162,7 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
 			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
-			m_X3DH_Server_URL{X3DHServerURL}, m_X3DH_post_data{X3DH_post_data},
+			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {
 				if (Uid == 0) { // When the given user id is 0: we must create the user
 					std::lock_guard<std::recursive_mutex> lock(*(m_localStorage->m_db_mutex));
@@ -1209,7 +1230,7 @@ namespace lime {
 			/*                        X3DH interface implementation                         */
 			/********************************************************************************/
 			std::string get_x3dhServerUrl(void) override {
-				return m_X3DH_Server_URL;
+				return m_server_url;
 			}
 
 			void set_x3dhServerUrl(const std::string &x3dhServerUrl) override {
@@ -1224,7 +1245,7 @@ namespace lime {
 					throw BCTBX_EXCEPTION << "Cannot set the X3DH server url for user "<<m_selfDeviceId<<". DB backend says: "<<e.what();
 				}
 				// update in the X3DH object
-				m_X3DH_Server_URL = x3dhServerUrl;
+				m_server_url = x3dhServerUrl;
 
 				tr.commit();
 			}
@@ -1236,9 +1257,8 @@ namespace lime {
 
 			long int get_dbUid(void) const noexcept override {return m_db_Uid;} // the Uid in database, retrieved at creation/load, used for faster access
 			void publish_user(std::shared_ptr<callbackUserData> userData, uint16_t OPkInitialBatchSize) override{
-				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				// Generate (or load if they already are in base when publishing an inactive user) the SPk
-				auto SPk = X3DH_generate_SPk(m_Ik, true);
+				auto SPk = generate_SPk(true);
 
 				// Generate (or load if they already are in base when publishing an inactive user) the OPks
 				std::vector<OneTimePreKey<Curve>> OPks{};
@@ -1269,9 +1289,8 @@ namespace lime {
 			}
 
 			void update_SPk(std::shared_ptr<callbackUserData> userData) override {
-				load_SelfIdentityKey(); // make sure our Ik is loaded in object
 				// generate and publish the SPk
-				auto SPk = X3DH_generate_SPk(m_Ik);
+				auto SPk = generate_SPk();
 				std::vector<uint8_t> X3DHmessage{};
 				x3dh_protocol::buildMessage_publishSPk(X3DHmessage, SPk);
 				postToX3DHServer(userData, X3DHmessage);

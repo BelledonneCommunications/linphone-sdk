@@ -452,9 +452,9 @@ namespace lime {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
-#ifndef EC448_ENABLED
+#ifndef HAVE_BCTBXPQ
 		if (curve == lime::CurveId::k512c25519) {
-			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
+			throw BCTBX_EXCEPTION << "Lime User creation asking to use Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
 
@@ -532,7 +532,7 @@ namespace lime {
 			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Curve 448 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
-#ifdef HAVE_BCTBXPQ
+#ifndef HAVE_BCTBXPQ
 		if (curve == lime::CurveId::k512c25519) {
 			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}

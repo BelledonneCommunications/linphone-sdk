@@ -46,7 +46,7 @@ std::string test_x3dh_domainB_server_port{"25522"};
 std::string test_x3dh_domainC_server_port{"25523"};
 std::string test_x3dh_c25519_stop_on_request_limit_server_port{"25524"};
 std::string test_x3dh_c448_stop_on_request_limit_server_port{"25525"};
-std::string test_x3dh_lvl1_server_port{"25526"};
+std::string test_x3dh_c25519k512_server_port{"25526"};
 
 // for testing purpose RNG, no need to be a good one
 std::random_device rd;
@@ -433,10 +433,18 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 
 	// compute size
 	size_t X3DH_length = 5;
-	if (message[2] == static_cast<uint8_t>(lime::CurveId::c25519)) { // curve 25519
-		X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
-	} else { // curve 448
-		X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
+	switch (message[2]) {
+		case static_cast<uint8_t>(lime::CurveId::c25519):
+			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
+			break;
+		case static_cast<uint8_t>(lime::CurveId::c448):
+			X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
+			break;
+#ifdef HAVE_BCTBXPQ
+		case static_cast<uint8_t>(lime::CurveId::k512c25519):
+			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize();
+			break;
+#endif
 	}
 
 	if (message[3] == 0x01) { // there is an OPk id
@@ -454,10 +462,18 @@ bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &S
 
 	// compute position of SPkId in message
 	size_t SPkIdPos = 3+1; // DR message header + OPK flag
-	if (message[2] == static_cast<uint8_t>(lime::CurveId::c25519)) { // curve 25519
-		SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
-	} else { // curve 448
-		SPkIdPos += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
+	switch (message[2]) {
+		case static_cast<uint8_t>(lime::CurveId::c25519):
+			SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
+			break;
+		case static_cast<uint8_t>(lime::CurveId::c448):
+			SPkIdPos += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
+			break;
+#ifdef HAVE_BCTBXPQ
+		case static_cast<uint8_t>(lime::CurveId::k512c25519):
+			SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize();
+			break;
+#endif
 	}
 
 	SPkId = message[SPkIdPos]<<24 |
