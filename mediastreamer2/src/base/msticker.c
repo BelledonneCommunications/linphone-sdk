@@ -381,10 +381,10 @@ static int set_high_prio(MSTicker *obj) {
 				    As long as we can't use SCHED_RR or SCHED_FIFO, the only way to increase priority of a calling
 				   thread is to use setpriority().
 				*/
-				if (setpriority(PRIO_PROCESS, 0, -20) == -1) {
+				if (setpriority(PRIO_PROCESS, 0, -19) == -1) {
 					ms_message("%s setpriority() failed: %s, nevermind.", obj->name, strerror(errno));
 				} else {
-					ms_message("%s priority increased to maximum.", obj->name);
+					ms_message("%s priority increased nearly to maximum (-19).", obj->name);
 				}
 			} else ms_warning("%s: Set pthread_setschedparam failed: %s", obj->name, strerror(result));
 		} else {
