@@ -275,12 +275,12 @@ int bzrtp_keyDerivationFunction(const uint8_t *key, const size_t keyLength,
 void bzrtp_base32(uint32_t sas, char *output, int outputSize) {
 	int i, n, shift;
 
-	for (i=0,shift=27; i!=4; ++i,shift-=5) {
+	for (i=0,shift=27; i!=(outputSize-1); ++i,shift-=5) {
 		n = (sas>>shift) & 31;
 		output[i] = "ybndrfg8ejkmcpqxot1uwisza345h769"[n];
 	}
 
-	output[4] = '\0';
+	output[outputSize-1] = '\0';
 }
 
 /* Base256 function. Code from rfc section 5.1.6 */
@@ -288,8 +288,36 @@ void bzrtp_base256(uint32_t sas, char *output, int outputSize) {
 
 	// generate indexes and copy the appropriate words
 	int evenIndex = (sas >> 24) & 0xFF;
-	int oddIndex =  (sas >> 16) & 0xFF;
-	snprintf(output, outputSize, "%s:%s", pgpWordsEven[evenIndex], pgpWordsOdd[oddIndex]);
+	if (outputSize == 32) {
+		int oddIndex =  (sas >> 16) & 0xFF;
+		snprintf(output, outputSize, "%s:%s", pgpWordsEven[evenIndex], pgpWordsOdd[oddIndex]);
+	} else {
+		snprintf(output, outputSize, "%s", pgpWordsEven[evenIndex]);
+	}
+}
+
+void bzrtp_generate_incorrect_sas(uint32_t sas, char **incorrectSas, uint8_t sasAlgo) {
+	int nbUsedBits;
+	if(sasAlgo == ZRTP_SAS_B32) {
+		nbUsedBits = 10;
+	} else {
+		nbUsedBits = 8;
+	}
+	uint32_t sasFirstPart = (sas >> (32 - nbUsedBits)) & 0x3ff;
+	uint32_t sasSecondPart = (sas >> (32 - (nbUsedBits*2))) & 0x3ff;
+	for (int i = 0; i < 3; i++) {
+		uint32_t randInt = 0;
+		do {
+			randInt = bctbx_random();
+		} while ((((randInt>>(32-nbUsedBits))&0x3ff) == sasFirstPart) || (((randInt>>(32-nbUsedBits))&0x3ff) == sasSecondPart));
+		if (sasAlgo == ZRTP_SAS_B32) {
+			incorrectSas[i] = (char *)bctbx_malloc((size_t)3*sizeof(char));
+			bzrtp_base32(randInt, (char*)incorrectSas[i], 3);
+		} else {
+			incorrectSas[i] = (char *)bctbx_malloc((size_t)16*sizeof(char));
+			bzrtp_base256(randInt, (char*)incorrectSas[i], 16);
+		}
+	}
 }
 
 uint32_t CRC32LookupTable[256] = {
@@ -1109,17 +1137,23 @@ void bzrtp_destroyKeyMaterial(bzrtpContext_t *zrtpContext, bzrtpChannelContext_t
 	bzrtp_DestroyKey(zrtpChannelContext->srtpSecrets.peerSrtpSalt, zrtpChannelContext->srtpSecrets.peerSrtpSaltLength, zrtpContext->RNGContext);
 	bzrtp_DestroyKey((uint8_t *)zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->srtpSecrets.sasLength, zrtpContext->RNGContext);
 
+
 	free(zrtpChannelContext->srtpSecrets.selfSrtpKey);
 	free(zrtpChannelContext->srtpSecrets.selfSrtpSalt);
 	free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
 	free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
 	free(zrtpChannelContext->srtpSecrets.sas);
 
+	for (size_t i = 0; i < 3; i++) {
+		bctbx_free(zrtpChannelContext->srtpSecrets.incorrectSas[i]);
+		zrtpChannelContext->srtpSecrets.incorrectSas[i] = NULL;
+	}
+
 	zrtpChannelContext->srtpSecrets.selfSrtpKey=NULL;
 	zrtpChannelContext->srtpSecrets.selfSrtpSalt=NULL;
 	zrtpChannelContext->srtpSecrets.peerSrtpKey=NULL;
 	zrtpChannelContext->srtpSecrets.peerSrtpSalt=NULL;
-	zrtpChannelContext->srtpSecrets.sas=NULL;
+	zrtpChannelContext->srtpSecrets.sas = NULL;
 }
 
 /**

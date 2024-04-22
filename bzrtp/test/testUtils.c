@@ -167,7 +167,7 @@ void packetDump(bzrtpPacket_t *zrtpPacket, uint8_t addRawMessage) {
 					printf("PV length is %d\n", (zrtpPacket->messageLength-84));
 					printHex ("PV", messageData->pv, (zrtpPacket->messageLength-84)); /* length of fixed part of the message is 84, rest is the variable length PV */
 					printHex("MAC", messageData->MAC, 8);
-					
+
 				}
 				break;
 			case MSGTYPE_CONFIRM1:
@@ -219,7 +219,7 @@ void dumpContext(char *title, bzrtpContext_t *zrtpContext) {
 				printf ("    peerH: ");
 				for (j=0; j<4; j++) {
 					printHex("      ", channelContext->peerH[j], 32);
-				}		
+				}
 
 				bzrtp_cryptoAlgoTypeIntToString(channelContext->hashAlgo, buffer);
 				printf("    Selected algos\n     - Hash: %.4s\n", buffer);

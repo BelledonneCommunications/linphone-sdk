@@ -326,8 +326,27 @@ static int addChannel(clientContext_t *clientContext, uint32_t SSRC) {
 
 static int compareSecrets(bzrtpSrtpSecrets_t *a, bzrtpSrtpSecrets_t* b, uint8_t mainChannel) {
 	if (mainChannel==TRUE) {
-		if (strcmp(a->sas,b->sas)!=0) {
+		if (strcmp(a->sas,b->sas) != 0) {
 			return -1;
+		}
+		for (int i = 0; i < 3; i++) {
+			if (a->sasAlgo == ZRTP_SAS_B32) {
+				if (strncmp(a->sas, a->incorrectSas[i], 2) == 0) {
+					return -1;
+				}
+				if (strncmp(a->sas+2, b->incorrectSas[i], 2) == 0) {
+					return -1;
+				}
+			} else {
+				int firstWordSize = strlen(a->sas) - strlen(strchr(a->sas, ':'));
+				int secondWordSize = strlen(strchr(a->sas, ':')) - 1;
+				if (memcmp(a->sas, a->incorrectSas[i], firstWordSize) == 0) {
+					return -1;
+				}
+				if (memcmp(a->sas+(firstWordSize+1), a->incorrectSas[i], secondWordSize) == 0) {
+					return -1;
+				}
+			}
 		}
 	}
 
@@ -850,7 +869,7 @@ static void test_cacheless_exchange(void) {
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_HQC256},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K255_KYB512_HQC128},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
 		{{ZRTP_CIPHER_AES3},1,{ZRTP_HASH_S512},1,{ZRTP_KEYAGREEMENT_K448_KYB1024_HQC256},1,{ZRTP_SAS_B32},1,{ZRTP_AUTHTAG_GCM},1,0},
-		
+
 		{{0},0,{0},0,{0},0,{0},0,{0},0,0}, /* this pattern will end the run because cipher nb is 0 */
 	};
 

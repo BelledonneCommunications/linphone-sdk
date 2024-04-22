@@ -927,6 +927,10 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			free(zrtpChannelContext->srtpSecrets.peerSrtpKey);
 			free(zrtpChannelContext->srtpSecrets.peerSrtpSalt);
 			free(zrtpChannelContext->srtpSecrets.sas);
+			for (i = 0; i < 3; i++) {
+				bctbx_free(zrtpChannelContext->srtpSecrets.incorrectSas[i]);
+				zrtpChannelContext->srtpSecrets.incorrectSas[i] = NULL;
+			}
 
 			/* re-initialise srtpSecrets structure */
 			zrtpChannelContext->srtpSecrets.selfSrtpKey = NULL;
@@ -940,7 +944,6 @@ int bzrtp_setPeerHelloHash(bzrtpContext_t *zrtpContext, uint32_t selfSSRC, uint8
 			zrtpChannelContext->srtpSecrets.cipherAlgo = ZRTP_UNSET_ALGO;
 			zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
 			zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
-			zrtpChannelContext->srtpSecrets.sas = NULL;
 			zrtpChannelContext->srtpSecrets.sasLength = 0;
 			zrtpChannelContext->srtpSecrets.hashAlgo = ZRTP_UNSET_ALGO;
 			zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;
@@ -1221,6 +1224,9 @@ static int bzrtp_initChannelContext(bzrtpContext_t *zrtpContext, bzrtpChannelCon
 	zrtpChannelContext->srtpSecrets.cipherKeyLength = 0;
 	zrtpChannelContext->srtpSecrets.authTagAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.sas = NULL;
+	for (i = 0 ; i < 3 ; i++) {
+		zrtpChannelContext->srtpSecrets.incorrectSas[i] = NULL;
+	}
 	zrtpChannelContext->srtpSecrets.sasLength = 0;
 	zrtpChannelContext->srtpSecrets.hashAlgo = ZRTP_UNSET_ALGO;
 	zrtpChannelContext->srtpSecrets.keyAgreementAlgo = ZRTP_UNSET_ALGO;

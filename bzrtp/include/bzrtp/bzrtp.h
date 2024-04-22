@@ -132,6 +132,7 @@ typedef struct bzrtpSrtpSecrets_struct  {
 	uint8_t cipherKeyLength; /**< The key length in bytes for the cipher block algorithm used by srtp */
 	uint8_t authTagAlgo; /**< srtp authentication tag algorithm agreed on after Hello packet exchange */
 	char *sas; /**< a null terminated char containing the Short Authentication String */
+	char *incorrectSas[3]; /**< 3 half incorrect Short Authentication Strings */
 	uint8_t sasLength; /**< The length of sas, including the termination character */
 	uint8_t hashAlgo; /**< The hash algo selected during ZRTP negotiation */
 	uint8_t keyAgreementAlgo; /**< The key agreement algo selected during ZRTP negotiation */

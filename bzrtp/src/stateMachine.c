@@ -2698,6 +2698,8 @@ static int bzrtp_deriveSrtpKeysFromS0(bzrtpContext_t *zrtpContext, bzrtpChannelC
 
 		zrtpChannelContext->sasFunction(sasValue, zrtpChannelContext->srtpSecrets.sas, zrtpChannelContext->sasLength);
 
+		bzrtp_generate_incorrect_sas(sasValue, zrtpChannelContext->srtpSecrets.incorrectSas, zrtpChannelContext->srtpSecrets.sasAlgo);
+
 		/* set also the cache mismtach flag in srtpSecrets structure, may occurs only on the first channel */
 		if (zrtpContext->cacheMismatchFlag!=0) {
 			zrtpChannelContext->srtpSecrets.cacheMismatch = 1;

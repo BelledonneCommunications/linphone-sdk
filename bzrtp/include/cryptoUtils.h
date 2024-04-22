@@ -98,6 +98,15 @@ void bzrtp_base32(uint32_t sas, char *output, int outputSize);
 void bzrtp_base256(uint32_t sas, char *output, int outputSize);
 
 /**
+ * @brief Generate 3 half bad SAS
+ *
+ * @param[in] 	sas 	The 32 bits SAS
+ * @param[out] 	incorrectSas	The output list
+ * @param[in] 	sasAlgo	The SAS algo
+ */
+void bzrtp_generate_incorrect_sas(uint32_t sas, char **incorrectSas, uint8_t sasAlgo);
+
+/**
  * @brief CRC32 as defined in RFC4960 Appendix B - Polynomial is 0x1EDC6F41
  *
  * CRC is computed in reverse bit mode (least significant bit first within each byte)
