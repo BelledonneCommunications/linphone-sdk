@@ -430,6 +430,10 @@ static int ms_zrtp_startSrtpSession(void *clientData, const bzrtpSrtpSecrets_t *
 		eventData = ortp_event_get_data(ev);
 		// support both b32 and b256 format SAS strings
 		snprintf(eventData->info.zrtp_info.sas, sizeof(eventData->info.zrtp_info.sas), "%s", secrets->sas);
+		for (int i = 0; i < 3; i++) {
+			snprintf(eventData->info.zrtp_info.incorrect_sas[i], sizeof(eventData->info.zrtp_info.incorrect_sas[i]),
+			         "%s", secrets->incorrectSas[i]);
+		}
 		eventData->info.zrtp_info.verified = (verified != 0) ? TRUE : FALSE;
 		eventData->info.zrtp_info.cache_mismatch = (secrets->cacheMismatch != 0) ? TRUE : FALSE;
 		eventData->info.zrtp_info.cipherAlgo = ms_zrtp_getAlgoId(secrets->cipherAlgo);
