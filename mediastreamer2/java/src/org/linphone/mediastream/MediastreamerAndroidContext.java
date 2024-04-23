@@ -281,6 +281,18 @@ public class MediastreamerAndroidContext {
 		boolean granted = mContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
 		if (!granted) {
 			Log.w("[Audio Manager] RECORD_AUDIO permission is not granted!");
+		} else {
+			Log.i("[Audio Manager] RECORD_AUDIO permission is granted");
+		}
+		return granted;
+	}
+
+	public synchronized static boolean isCameraPermissionGranted() {
+		boolean granted = mContext.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+		if (!granted) {
+			Log.w("[Platform Helper] CAMERA permission is not granted!");
+		} else {
+			Log.i("[Platform Helper] CAMERA permission is granted");
 		}
 		return granted;
 	}

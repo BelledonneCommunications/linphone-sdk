@@ -54,6 +54,8 @@ AndroidSoundUtils *ms_android_sound_utils_create(MSFactory *factory) {
 
 		utils->isRecordAudioPermissionGranted =
 		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "isRecordAudioPermissionGranted", "()Z");
+		utils->isCameraPermissionGranted =
+		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "isCameraPermissionGranted", "()Z");
 		utils->isAudioRouteChangesDisabled =
 		    env->GetStaticMethodID(utils->mediastreamerAndroidContextClass, "isAudioRouteChangesDisabled", "()Z");
 		utils->startBluetooth =
@@ -205,6 +207,20 @@ bool ms_android_sound_utils_is_record_audio_permission_granted(const AndroidSoun
 	}
 
 	ms_error("[Android Audio Utils] Failed to retrive RECORD_AUDIO permission state from MediastreamerAndroidContext!");
+	return true;
+}
+
+bool ms_android_sound_utils_is_camera_permission_granted(const AndroidSoundUtils *utils) {
+	JNIEnv *env = ms_get_jni_env();
+
+	if (utils->isCameraPermissionGranted != nullptr) {
+		jboolean ret =
+		    env->CallStaticBooleanMethod(utils->mediastreamerAndroidContextClass, utils->isCameraPermissionGranted);
+		ms_message("[Android Audio Utils] is CAMERA permission granted? %i", ret);
+		return (bool)ret;
+	}
+
+	ms_error("[Android Audio Utils] Failed to retrive CAMERA permission state from MediastreamerAndroidContext!");
 	return true;
 }
 

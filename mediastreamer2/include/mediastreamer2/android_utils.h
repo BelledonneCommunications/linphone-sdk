@@ -34,6 +34,7 @@ struct _AndroidSoundUtils {
 	jclass audioDeviceInfoClass;
 
 	jmethodID isRecordAudioPermissionGranted;
+	jmethodID isCameraPermissionGranted;
 	jmethodID isAudioRouteChangesDisabled;
 	jmethodID startBluetooth;
 	jmethodID stopBluetooth;
@@ -92,6 +93,11 @@ bool_t ms_android_sound_utils_is_audio_route_changes_disabled(const AndroidSound
  * Retrieves whether or not RECORD_AUDIO permission has been granted.
  **/
 MS2_PUBLIC bool ms_android_sound_utils_is_record_audio_permission_granted(const AndroidSoundUtils *utils);
+
+/**
+ * Retrieves whether or not CAMERA permission has been granted.
+ **/
+MS2_PUBLIC bool ms_android_sound_utils_is_camera_permission_granted(const AndroidSoundUtils *utils);
 
 /**
  * Retrieves preferred buffer size from Mediastreamer Android Context.
