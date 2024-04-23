@@ -228,18 +228,20 @@
               $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --parallel-max 32 $RESOURCES_DIR $ADDITIONNAL_OPTIONS --log-file $LOG_PATTERN.txt || EXIT=$?
            else
               EXIT_CRYPTO_BACKEND_TAG=0;
-              $PATH_TO_TESTER/$TESTER_BIN --verbose --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
+              $PATH_TO_TESTER/$TESTER_BIN --verbose --tag "CRYPTO" $RESOURCES_DIR --log-file logLiblinphoneCryptoThIpv6.txt --xml --xml-file BCUnitAutomatedCrypto $ADDITIONNAL_OPTIONS || EXIT_CRYPTO_BACKEND_TAG=$?
            fi
         else
 
-          EXIT_SINGLE_CALL_OVER_TUNNEL_AND_PQ=0;
-          EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ=0;
+          EXIT_CALL_OVER_TUNNEL_AND_PQ=0;
+          EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=0;
           EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=0;
-          EXIT_OVER_TUNNEL_AND_PQ=0;
+          EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" --suite "Local conference tester (End to end encryption)" $RESOURCES_DIR --log-file logLiblinphoneOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomated $ADDITIONNAL_OPTIONS || EXIT_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" --suite "Local conference tester (End to end encryption)" $RESOURCES_DIR --log-file logLiblinphonePQCallsThIpv6.txt --xml --xml-file BCUnitAutomatedPQCalls $ADDITIONNAL_OPTIONS || EXIT_CALL_OVER_TUNNEL_AND_PQ=$?
 
           $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
+
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Secure group chat" --suite "Secure Message" --suite "secure Message2" --suite "Secure group chat (Exhume)" --suite "Secure group chat (lime migration)" $RESOURCES_DIR --log-file logLiblinphonePQMessagesThIpv6.txt --xml --xml-file BCUnitAutomatedPQMessages $ADDITIONNAL_OPTIONS || EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
@@ -263,10 +265,11 @@
              fi;
           fi
         else
-          echo "EXIT_OVER_TUNNEL_AND_PQ=$EXIT_OVER_TUNNEL_AND_PQ";
-          echo "EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$EXIT_SECURE_CALL_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_CALL_OVER_TUNNEL_AND_PQ=$EXIT_CALL_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=$EXIT_MESSAGE_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$EXIT_H264_TAG_OVER_TUNNEL_AND_PQ";
           echo "EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$EXIT_TUNNEL_OVER_TUNNEL_AND_PQ";
-          if [ $EXIT_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_H264_TAG_OVER_TUNNEL_AND_PQ != 0 ] ;
+          if [ $EXIT_CALL_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_H264_TAG_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_MESSAGE_OVER_TUNNEL_AND_PQ != 0 ] ;
           then
             exit 1;
           else
