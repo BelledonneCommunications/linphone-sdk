@@ -463,6 +463,13 @@ static void android_camera2_capture_start(AndroidCamera2Context *d) {
 	ms_message("[Camera2 Capture] Starting capture");
 	camera_status_t camera_status = ACAMERA_OK;
 
+	AndroidSoundUtils *soundUtils = ms_factory_get_android_sound_utils(d->filter->factory);
+	bool permissionGranted = ms_android_sound_utils_is_camera_permission_granted(soundUtils);
+	if (!permissionGranted) {
+		ms_error("[Camera2 Capture] CAMERA permission hasn't been granted!");
+		return;
+	}
+
 	if (d->capturing) {
 		ms_warning("[Camera2 Capture] Capture was already started, ignoring...");
 		return;
