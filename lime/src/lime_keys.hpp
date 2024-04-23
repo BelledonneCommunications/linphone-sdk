@@ -82,7 +82,7 @@ namespace lime {
 	/**
 	 * @brief Kyber 512 KEM data types size definition
 	 */
-	struct KYB1: public genericKEM {
+	struct K512: public genericKEM {
 		 /// kyber512
 		static constexpr size_t Ksize(lime::Ktype dataType) {
 			switch (dataType) {
@@ -103,10 +103,10 @@ namespace lime {
 		};
 	};
 
-	struct LVL1: public C255,KYB1 {
-		static constexpr lime::CurveId curveId() {return lime::CurveId::k512c25519;};
+	struct C255K512: public C255,K512 {
+		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519k512;};
 		using EC = C255;
-		using KEM = KYB1;
+		using KEM = K512;
 	};
 #endif // HAVE_BCTBXPQ
 

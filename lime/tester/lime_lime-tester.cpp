@@ -395,9 +395,9 @@ static void lime_encryptionPolicyError() {
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_encryptionPolicyError_test(lime::CurveId::k512c25519, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c25519k512, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::DRMessage);
-	lime_encryptionPolicyError_test(lime::CurveId::k512c25519, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port),
+	lime_encryptionPolicyError_test(lime::CurveId::c25519k512, "lime_encryptionPolicyError", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port),
 			lime_tester::shortMessage, lime::EncryptionPolicy::cipherMessage);
 #endif
 }
@@ -707,7 +707,7 @@ static void lime_encryptionPolicy() {
 	lime_encryptionPolicy_suite(lime::CurveId::c448, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port));
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_encryptionPolicy_suite(lime::CurveId::k512c25519, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port));
+	lime_encryptionPolicy_suite(lime::CurveId::c25519k512, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port));
 #endif
 }
 
@@ -1013,7 +1013,7 @@ static void lime_identityVerifiedStatus() {
 	lime_identityVerifiedStatus_test(lime::CurveId::c448, "lime_identityVerifiedStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_identityVerifiedStatus_test(lime::CurveId::k512c25519, "lime_identityVerifiedStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_identityVerifiedStatus_test(lime::CurveId::c25519k512, "lime_identityVerifiedStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -1248,7 +1248,7 @@ static void lime_peerDeviceStatus() {
 	lime_peerDeviceStatus_test(lime::CurveId::c448, "lime_peerDeviceStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_peerDeviceStatus_test(lime::CurveId::k512c25519, "lime_peerDeviceStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_peerDeviceStatus_test(lime::CurveId::c25519k512, "lime_peerDeviceStatus", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -1342,7 +1342,7 @@ static void lime_encryptToUnsafe() {
 	lime_encryptToUnsafe_test(lime::CurveId::c448, "lime_encryptToUnsafe", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_encryptToUnsafe_test(lime::CurveId::k512c25519, "lime_encryptToUnsafe", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_encryptToUnsafe_test(lime::CurveId::c25519k512, "lime_encryptToUnsafe", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -1639,7 +1639,7 @@ static void lime_update_OPk() {
 	lime_update_OPk_test(lime::CurveId::c448, "lime_update_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_update_OPk_test(lime::CurveId::k512c25519, "lime_update_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_update_OPk_test(lime::CurveId::c25519k512, "lime_update_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -1810,7 +1810,7 @@ static void lime_update_SPk() {
 	lime_update_SPk_test(lime::CurveId::c448, "lime_update_SPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_update_SPk_test(lime::CurveId::k512c25519, "lime_update_SPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_update_SPk_test(lime::CurveId::c25519k512, "lime_update_SPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -1916,7 +1916,7 @@ static void lime_update_clean_MK() {
 	lime_update_clean_MK_test(lime::CurveId::c448, "lime_update_clean_MK", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_update_clean_MK_test(lime::CurveId::k512c25519, "lime_update_clean_MK", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_update_clean_MK_test(lime::CurveId::c25519k512, "lime_update_clean_MK", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -2018,7 +2018,7 @@ static void lime_update_republish() {
 	lime_update_republish_test(lime::CurveId::c448, "lime_update_republish", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_update_republish_test(lime::CurveId::k512c25519, "lime_update_republish", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_update_republish_test(lime::CurveId::c25519k512, "lime_update_republish", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 /** Scenario
@@ -2118,8 +2118,8 @@ static void x3dh_without_OPk() {
 	x3dh_without_OPk_test(lime::CurveId::c448, "lime_x3dh_without_OPk_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_without_OPk_test(lime::CurveId::k512c25519, "lime_x3dh_without_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_without_OPk_test(lime::CurveId::k512c25519, "lime_x3dh_without_OPk_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_without_OPk_test(lime::CurveId::c25519k512, "lime_x3dh_without_OPk", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_without_OPk_test(lime::CurveId::c25519k512, "lime_x3dh_without_OPk_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 
@@ -2274,8 +2274,8 @@ static void x3dh_sending_chain_limit() {
 	x3dh_sending_chain_limit_test(lime::CurveId::c448, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_sending_chain_limit_test(lime::CurveId::k512c25519, "lime_x3dh_sending_chain_limit", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_sending_chain_limit_test(lime::CurveId::k512c25519, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519k512, "lime_x3dh_sending_chain_limit", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_sending_chain_limit_test(lime::CurveId::c25519k512, "lime_x3dh_sending_chain_limit_clean", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 
@@ -2494,8 +2494,8 @@ static void x3dh_multiple_DRsessions(void) {
 	x3dh_multiple_DRsessions_test(lime::CurveId::c448, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_multiple_DRsessions_test(lime::CurveId::k512c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_multiple_DRsessions_test(lime::CurveId::k512c25519, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519k512, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_multiple_DRsessions_test(lime::CurveId::c25519k512, "lime_x3dh_multiple_DRsessions", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 
@@ -2707,8 +2707,8 @@ static void x3dh_multidev_operation_queue(void) {
 	x3dh_multidev_operation_queue_test(lime::CurveId::c448, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_multidev_operation_queue_test(lime::CurveId::k512c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_multidev_operation_queue_test(lime::CurveId::k512c25519, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_multidev_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_multidev_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 
@@ -2829,8 +2829,8 @@ static void x3dh_operation_queue(void) {
 	x3dh_operation_queue_test(lime::CurveId::c448, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_operation_queue_test(lime::CurveId::k512c25519, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_operation_queue_test(lime::CurveId::k512c25519, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_operation_queue_test(lime::CurveId::c25519k512, "lime_x3dh_operation_queue", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
  /* Test Scenario
@@ -2957,7 +2957,7 @@ static void lime_identity_theft(void) {
 	lime_identity_theft_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_identity_theft_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_identity_theft_test(lime::CurveId::c25519k512, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
  /* A simple test with alice having 1 device and bob 2
@@ -3194,9 +3194,9 @@ static void x3dh_basic(void) {
 	x3dh_basic_test(lime::CurveId::c448, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), true, true);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
-	x3dh_basic_test(lime::CurveId::k512c25519, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), true, true);
+	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_basic_test(lime::CurveId::c25519k512, "lime_x3dh_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), true, true);
 #endif
 }
 
@@ -3486,8 +3486,8 @@ static void x3dh_user_not_found(void) {
 	x3dh_user_not_found_test(lime::CurveId::c448, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	x3dh_user_not_found_test(lime::CurveId::k512c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	x3dh_user_not_found_test(lime::CurveId::k512c25519, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	x3dh_user_not_found_test(lime::CurveId::c25519k512, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	x3dh_user_not_found_test(lime::CurveId::c25519k512, "lime_x3dh_user_not_found", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 
@@ -3647,7 +3647,7 @@ static void user_management(void) {
 	user_management_test(lime::CurveId::c448, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	user_management_test(lime::CurveId::k512c25519, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	user_management_test(lime::CurveId::c25519k512, "lime_user_management", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -3814,7 +3814,7 @@ static void user_registration_failure(void) {
 	user_registration_failure_test(lime::CurveId::c448, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	user_registration_failure_test(lime::CurveId::k512c25519, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	user_registration_failure_test(lime::CurveId::c25519k512, "lime_user_registration_failure", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -4210,7 +4210,7 @@ static void lime_multithread(void) {
 	lime_multithread_test(lime::CurveId::c448, "lime_multithread", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_multithread_test(lime::CurveId::k512c25519, "lime_multithread", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_multithread_test(lime::CurveId::c25519k512, "lime_multithread", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 	}
 }
@@ -4325,8 +4325,8 @@ static void lime_session_cancel(void) {
 	lime_session_cancel_test(lime::CurveId::c448, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), false);
 #endif
 #ifdef HAVE_BCTBXPQ
-	lime_session_cancel_test(lime::CurveId::k512c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
-	lime_session_cancel_test(lime::CurveId::k512c25519, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
+	lime_session_cancel_test(lime::CurveId::c25519k512, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	lime_session_cancel_test(lime::CurveId::c25519k512, "lime_session_cancel", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false);
 #endif
 }
 

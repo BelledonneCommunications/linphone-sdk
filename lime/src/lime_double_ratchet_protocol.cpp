@@ -411,11 +411,11 @@ namespace lime {
 		template class DRHeader<C448>;
 #endif
 #ifdef HAVE_BCTBXPQ
-		template void buildMessage_X3DHinit<LVL1>(std::vector<uint8_t> &message, const DSA<LVL1::EC, lime::DSAtype::publicKey> &Ik, const X<LVL1::EC, lime::Xtype::publicKey> &Ek, const K<LVL1::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
-		template void parseMessage_X3DHinit<LVL1>(const std::vector<uint8_t>message, DSA<LVL1::EC, lime::DSAtype::publicKey> &Ik, X<LVL1::EC, lime::Xtype::publicKey> &Ek, K<LVL1::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
-		template bool parseMessage_get_X3DHinit<LVL1>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		template void buildMessage_header<LVL1>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
-		template class DRHeader<LVL1>;
+		template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		template bool parseMessage_get_X3DHinit<C255K512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
+		template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		template class DRHeader<C255K512>;
 #endif //HAVE_BCTBXPQ
 
 	} // namespace double_ratchet_protocol

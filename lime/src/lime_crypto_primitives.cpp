@@ -51,11 +51,11 @@ namespace lime {
 #endif
 
 #ifdef HAVE_BCTBXPQ
-	template class K<KYB1, lime::Ktype::publicKey>;
-	template class K<KYB1, lime::Ktype::privateKey>;
-	template class K<KYB1, lime::Ktype::cipherText>;
-	template class K<KYB1, lime::Ktype::sharedSecret>;
-	template class Kpair<KYB1>;
+	template class K<K512, lime::Ktype::publicKey>;
+	template class K<K512, lime::Ktype::privateKey>;
+	template class K<K512, lime::Ktype::cipherText>;
+	template class K<K512, lime::Ktype::sharedSecret>;
+	template class Kpair<K512>;
 #endif /* HAVE_BCTBXPQ */
 
 /***** Random Number Generator ********/
@@ -357,8 +357,8 @@ std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit(void) {
 	return nullptr;
 }
 
-	/* specialise KEM creation : KYB1 is Kyber512 */
-	template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<KYB1>(void) {
+	/* specialise KEM creation : K512 is Kyber512 */
+	template <> std::unique_ptr<bctoolbox::KEM> bctbx_KEMInit<K512>(void) {
 		return std::make_unique<bctoolbox::KYBER512>();
 	}
 
@@ -397,7 +397,7 @@ class bctbx_KEM : public KEM<Algo> {
 			cleanBuffer(sk.data(), sk.size());
 		}
 		bctbx_KEM() {
-			m_ctx = bctbx_KEMInit<KYB1>();
+			m_ctx = bctbx_KEMInit<K512>();
 		}
 }; // class bctbx_KEM
 #endif //HAVE_BCTBXPQ
@@ -512,10 +512,10 @@ template <> bool AEAD_decrypt<AES256GCM>(const uint8_t *const key, const size_t 
 #endif //EC448_ENABLED
 
 #ifdef HAVE_BCTBXPQ
-	static_assert(bctoolbox::KYBER512::pkSize == K<KYB1, Ktype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::skSize == K<KYB1, Ktype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::ctSize == K<KYB1, Ktype::cipherText>::ssize(), "bctoolbox and local defines mismatch");
-	static_assert(bctoolbox::KYBER512::ssSize == K<KYB1, Ktype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::pkSize == K<K512, Ktype::publicKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::skSize == K<K512, Ktype::privateKey>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::ctSize == K<K512, Ktype::cipherText>::ssize(), "bctoolbox and local defines mismatch");
+	static_assert(bctoolbox::KYBER512::ssSize == K<K512, Ktype::sharedSecret>::ssize(), "bctoolbox and local defines mismatch");
 #endif //HAVE_BCTBXPQ
 /**
  * @brief force a buffer values to zero in a way that shall prevent the compiler from optimizing it out
@@ -542,7 +542,7 @@ void cleanBuffer(uint8_t *buffer, size_t size) {
 	template std::shared_ptr<Signature<C448>> make_Signature();
 #endif //EC448_ENAB
 #ifdef HAVE_BCTBXPQ
-	template class bctbx_KEM<KYB1>;
-	template std::shared_ptr<KEM<KYB1>> make_KEM();
+	template class bctbx_KEM<K512>;
+	template std::shared_ptr<KEM<K512>> make_KEM();
 #endif //HAVE_BCTBXPQ
 } // namespace lime

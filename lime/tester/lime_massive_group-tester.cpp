@@ -312,7 +312,7 @@ static void group_one_talking() {
 	group_basic_test(lime::CurveId::c448, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), 10, true);
 #endif
 #ifdef HAVE_BCTBXPQ
-	group_basic_test(lime::CurveId::k512c25519, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), 10, true);
+	group_basic_test(lime::CurveId::c25519k512, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), 10, true);
 #endif
 }
 
@@ -351,7 +351,7 @@ static void group_one_talking_bench() {
 	span = 0;
 	while (span < maximumBenchTime) {
 		start = bctbx_get_cur_time_ms();
-		group_basic_test(lime::CurveId::k512c25519, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber, true);
+		group_basic_test(lime::CurveId::c25519k512, "group_one_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber, true);
 		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519/Kyber 512 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
@@ -396,7 +396,7 @@ static void group_one_talking_one_decrypt_bench() {
 	span = 0;
 	while (span < maximumBenchTime) {
 		start = bctbx_get_cur_time_ms();
-		group_basic_test(lime::CurveId::k512c25519, "group_one_talking_one_decrypt", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber, true, true);
+		group_basic_test(lime::CurveId::c25519k512, "group_one_talking_one_decrypt", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber, true, true);
 		// time spent in test is more or less linear to the device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519/Kyber 512 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;
@@ -414,7 +414,7 @@ static void group_all_talking() {
 	group_basic_test(lime::CurveId::c448, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data(), 10);
 #endif
 #ifdef HAVE_BCTBXPQ
-	group_basic_test(lime::CurveId::k512c25519, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), 10);
+	group_basic_test(lime::CurveId::c25519k512, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), 10);
 #endif
 }
 
@@ -453,7 +453,7 @@ static void group_all_talking_bench() {
 	span = 0;
 	while (span < maximumBenchTime) {
 		start = bctbx_get_cur_time_ms();
-		group_basic_test(lime::CurveId::k512c25519, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber);
+		group_basic_test(lime::CurveId::c25519k512, "group_all_talking", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), deviceNumber);
 		// time spent in test is more or less linear to the square of device number, try to reach the one wich lead to a maximunBenchTime execution
 		span = bctbx_get_cur_time_ms() - start;
 		LIME_LOGE<<"Curve 25519/Kyber 512 group chat test with "<<to_string(deviceNumber)<<" devices ran in "<<to_string(span)<<" ms"<<std::endl;

@@ -60,7 +60,7 @@ namespace lime {
 			/// construct from a std::vector<uint8_t>
 			X(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// construct from a std::array<uint8_t>
-			X(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			X(const typename std::array<uint8_t, Curve::Xsize(dataType)>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// default initialise value to 0
 			X() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
@@ -106,7 +106,7 @@ namespace lime {
 			/// construct from a std::vector<uint8_t>
 			K(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// construct from a std::array<uint8_t>
-			K(const typename std::array<uint8_t, ssize()>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			K(const typename std::array<uint8_t, Algo::Ksize(dataType)>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// default initialise value to 0
 			K() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
@@ -529,12 +529,12 @@ std::shared_ptr<KEM<Algo>> make_KEM();
 #endif // EC448_ENABLED
 
 #ifdef HAVE_BCTBXPQ
-	extern template std::shared_ptr<KEM<KYB1>> make_KEM();
-	extern template class K<KYB1, lime::Ktype::publicKey>;
-	extern template class K<KYB1, lime::Ktype::privateKey>;
-	extern template class K<KYB1, lime::Ktype::cipherText>;
-	extern template class K<KYB1, lime::Ktype::sharedSecret>;
-	extern template class Kpair<KYB1>;
+	extern template std::shared_ptr<KEM<K512>> make_KEM();
+	extern template class K<K512, lime::Ktype::publicKey>;
+	extern template class K<K512, lime::Ktype::privateKey>;
+	extern template class K<K512, lime::Ktype::cipherText>;
+	extern template class K<K512, lime::Ktype::sharedSecret>;
+	extern template class Kpair<K512>;
 #endif //HAVE_BCTBXPQ
 } // namespace lime
 

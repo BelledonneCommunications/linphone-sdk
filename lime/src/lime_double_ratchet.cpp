@@ -371,7 +371,7 @@ namespace lime {
 			 * @param[in] headerDH	The peer public key provided in the message header
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			void AsymmetricRatchet(const std::array<uint8_t, ARsKey<Curve>::serializedPublicSize()> &headerDH) {
+			void AsymmetricRatchet(const typename ARsKey<Curve>::serializedPublicBuffer &headerDH) {
 				// reinit counters
 				m_PN=m_Ns;
 				m_Ns=0;
@@ -414,7 +414,7 @@ namespace lime {
 			 * @param[in] headerDH	The peer public keys provided in the message header: DH pk || KEM pk || KEM ct
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			void AsymmetricRatchet(const std::array<uint8_t, ARsKey<Curve>::serializedPublicSize()> &headerDH) {
+			void AsymmetricRatchet(const typename ARsKey<Curve>::serializedPublicBuffer &headerDH) {
 				// reinit counters
 				m_PN=m_Ns;
 				m_Ns=0;
@@ -791,10 +791,10 @@ namespace lime {
 		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHs,RK,CKs,CKr,AD,Status,X3DHInit FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), use(m_dbSessionId);
 
 		if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
-			std::array<uint8_t, ARrKey<Curve>::serializedSize()> serializedDHr{};
+			typename ARrKey<Curve>::serializedBuffer serializedDHr{};
 			DHr.read(0, (char *)(serializedDHr.data()), ARrKey<Curve>::serializedSize());
 			m_ARKeys.setDHr(serializedDHr);
-			sBuffer<ARsKey<Curve>::serializedSize()> serializedDHs{};
+			typename ARsKey<Curve>::serializedBuffer serializedDHs{};
 			DHs.read(0, (char *)(serializedDHs.data()), ARsKey<Curve>::serializedSize());
 			m_ARKeys.setDHs(serializedDHs);
 			RK.read(0, (char *)(m_RK.data()), m_RK.size());
@@ -914,10 +914,10 @@ namespace lime {
 	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C448> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C448::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef HAVE_BCTBXPQ
-	template class DRi<LVL1>;
-	template std::shared_ptr<DR> make_DR_from_localStorage<LVL1>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<LVL1> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
-	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<LVL1> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	template class DRi<C255K512>;
+	template std::shared_ptr<DR> make_DR_from_localStorage<C255K512>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C255K512> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C255K512> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C255K512::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 
 	/**

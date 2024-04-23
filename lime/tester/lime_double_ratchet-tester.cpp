@@ -219,8 +219,8 @@ static void dr_skippedMessages_basic(void) {
 	dr_skippedMessages_basic_test<C448>(5, 5, 1, 10, "dr_skipMessage_2_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_skippedMessages_basic_test<LVL1>(10, 10, 1, 15, "dr_skipMessage_1_LVL1");
-	dr_skippedMessages_basic_test<LVL1>(5, 5, 1, 10, "dr_skipMessage_2_LVL1");
+	dr_skippedMessages_basic_test<C255K512>(10, 10, 1, 15, "dr_skipMessage_1_C255K512");
+	dr_skippedMessages_basic_test<C255K512>(5, 5, 1, 10, "dr_skipMessage_2_C255K512");
 #endif
 }
 
@@ -309,7 +309,7 @@ static void dr_long_exchange1(void) {
 	dr_long_exchange_test<C448>(1, "dr_long_exchange_1_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_long_exchange_test<LVL1>(1, "dr_long_exchange_1_LVL1");
+	dr_long_exchange_test<C255K512>(1, "dr_long_exchange_1_C255K512");
 #endif
 }
 static void dr_long_exchange3(void) {
@@ -320,7 +320,7 @@ static void dr_long_exchange3(void) {
 	dr_long_exchange_test<C448>(3, "dr_long_exchange_3_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_long_exchange_test<LVL1>(3, "dr_long_exchange_3_LVL1");
+	dr_long_exchange_test<C255K512>(3, "dr_long_exchange_3_C255K512");
 #endif
 }
 static void dr_long_exchange10(void) {
@@ -331,7 +331,7 @@ static void dr_long_exchange10(void) {
 	dr_long_exchange_test<C448>(10, "dr_long_exchange_10_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_long_exchange_test<LVL1>(10, "dr_long_exchange_10_LVL1");
+	dr_long_exchange_test<C255K512>(10, "dr_long_exchange_10_C255K512");
 #endif
 }
 
@@ -462,7 +462,7 @@ static void dr_basic(void) {
 	dr_basic_test<C448>("dr_basic_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_basic_test<LVL1>("dr_basic_LVL1");
+	dr_basic_test<C255K512>("dr_basic_C255K512");
 #endif
 }
 /* Bob decrypt patterns: Bob DB holds in DR_session id 1 a session able to decrypt the pattern message giving messages_pattern[5] */
@@ -496,7 +496,7 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	std::string plainMessageBob{plainBuffer.begin(), plainBuffer.end()};
 	BC_ASSERT_TRUE(plainMessageBob==lime_tester::messages_pattern[5]);
 
-	//auto bob2 = std::make_shared<DR<LVL1>>(localStorageBob, 1, RNG_context);
+	//auto bob2 = std::make_shared<DR<C255K512>>(localStorageBob, 1, RNG_context);
 	if (cleanDatabase) {
 		remove(bobFilename.data());
 	}
@@ -610,7 +610,7 @@ static void dr_multidevice_basic(void) {
 	dr_multidevice_basic_test<C448>("dr_multidevice_basic_C448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_multidevice_basic_test<LVL1>("dr_multidevice_basic_LVL1");
+	dr_multidevice_basic_test<C255K512>("dr_multidevice_basic_C255K512");
 #endif
 }
 
@@ -733,7 +733,7 @@ static void dr_skip_too_much(void) {
 	dr_skip_too_much_test<C448>("dr_skip_too_much_C448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_skip_too_much_test<LVL1>("dr_skip_too_much_LVL1");
+	dr_skip_too_much_test<C255K512>("dr_skip_too_much_C255K512");
 #endif
 }
 
@@ -801,7 +801,7 @@ static void dr_encryptionPolicy_basic(void) {
 	dr_encryptionPolicy_basic_test<C448>("dr_encryptionPolicy_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_encryptionPolicy_basic_test<LVL1>("dr_encryptionPolicy_LVL1");
+	dr_encryptionPolicy_basic_test<C255K512>("dr_encryptionPolicy_C255K512");
 #endif
 }
 
@@ -859,7 +859,7 @@ static void dr_encryptionPolicy_multidevice(void) {
 	dr_encryptionPolicy_multidevice_test<C448>("dr_encryptionPolicy_multidevice_C448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_encryptionPolicy_multidevice_test<LVL1>("dr_encryptionPolicy_multidevice_LVL1");
+	dr_encryptionPolicy_multidevice_test<C255K512>("dr_encryptionPolicy_multidevice_C255K512");
 #endif
 }
 /* Alice send a encrypt a message to Bob, with forced encryption policy but the cipher message is deleted
@@ -929,8 +929,8 @@ static void dr_encryptionPolicy_error(void) {
 	dr_encryptionPolicy_error_test<C448>("dr_encryptionPolicy_error_C448", lime::EncryptionPolicy::DRMessage);
 #endif
 #ifdef HAVE_BCTBXPQ
-	dr_encryptionPolicy_error_test<LVL1>("dr_encryptionPolicy_error_LVL1", lime::EncryptionPolicy::cipherMessage);
-	dr_encryptionPolicy_error_test<LVL1>("dr_encryptionPolicy_error_LVL1", lime::EncryptionPolicy::DRMessage);
+	dr_encryptionPolicy_error_test<C255K512>("dr_encryptionPolicy_error_C255K512", lime::EncryptionPolicy::cipherMessage);
+	dr_encryptionPolicy_error_test<C255K512>("dr_encryptionPolicy_error_C255K512", lime::EncryptionPolicy::DRMessage);
 #endif
 }
 

@@ -613,7 +613,7 @@ static void helloworld_basic(void) {
 	helloworld_basic_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	helloworld_basic_test(lime::CurveId::k512c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	helloworld_basic_test(lime::CurveId::c25519k512, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 
@@ -626,7 +626,7 @@ static void helloworld_verifyIdentity(void) {
 	helloworld_verifyIdentity_test(lime::CurveId::c448, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data());
 #endif
 #ifdef HAVE_BCTBXPQ
-	helloworld_verifyIdentity_test(lime::CurveId::k512c25519, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
+	helloworld_verifyIdentity_test(lime::CurveId::c25519k512, "helloworld_basic", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data());
 #endif
 }
 

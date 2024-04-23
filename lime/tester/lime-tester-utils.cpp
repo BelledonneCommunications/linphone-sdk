@@ -47,6 +47,7 @@ std::string test_x3dh_domainC_server_port{"25523"};
 std::string test_x3dh_c25519_stop_on_request_limit_server_port{"25524"};
 std::string test_x3dh_c448_stop_on_request_limit_server_port{"25525"};
 std::string test_x3dh_c25519k512_server_port{"25526"};
+std::string test_x3dh_c25519k512_stop_on_request_limit_server_port{"25527"};
 
 // for testing purpose RNG, no need to be a good one
 std::random_device rd;
@@ -230,7 +231,7 @@ void dr_sessionsInit(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::
 
 #ifdef HAVE_BCTBXPQ
 template<>
-void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
+void dr_sessionsInit<C255K512>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob, std::shared_ptr<lime::Db> &localStorageAlice, std::shared_ptr<lime::Db> &localStorageBob, std::string dbFilenameAlice, std::shared_ptr<std::recursive_mutex> db_mutex_alice, std::string dbFilenameBob, std::shared_ptr<std::recursive_mutex> db_mutex_bob, bool initStorage, std::shared_ptr<RNG> RNG_context) {
 	if (initStorage==true) {
 		// create or load Db
 		localStorageAlice = std::make_shared<lime::Db>(dbFilenameAlice, db_mutex_alice);
@@ -238,16 +239,16 @@ void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob,
 	}
 
 	/* generate EC key pair for bob */
-	auto tempECDH = make_keyExchange<LVL1::EC>();
+	auto tempECDH = make_keyExchange<C255K512::EC>();
 	tempECDH->createKeyPair(RNG_context);
-	Xpair<LVL1::EC> bobECKeyPair{tempECDH->get_selfPublic(), tempECDH->get_secret()};
+	Xpair<C255K512::EC> bobECKeyPair{tempECDH->get_selfPublic(), tempECDH->get_secret()};
 
 	/* generate KEM key pair for bob */
-	Kpair<LVL1::KEM> bobKEMKeyPair;
-	auto tempKEM = make_KEM<LVL1::KEM>();
+	Kpair<C255K512::KEM> bobKEMKeyPair;
+	auto tempKEM = make_KEM<C255K512::KEM>();
 	tempKEM->createKeyPair(bobKEMKeyPair);
-	ARrKey<LVL1> bobPK(bobECKeyPair.publicKey(), bobKEMKeyPair.publicKey());
-	ARsKey<LVL1> bobKeyPair(bobECKeyPair, bobKEMKeyPair);
+	ARrKey<C255K512> bobPK(bobECKeyPair.publicKey(), bobKEMKeyPair.publicKey());
+	ARsKey<C255K512> bobKeyPair(bobECKeyPair, bobKEMKeyPair);
 
 	/* generate a shared secret and AD */
 	lime::DRChainKey SK;
@@ -269,9 +270,9 @@ void dr_sessionsInit<LVL1>(std::shared_ptr<DR> &alice, std::shared_ptr<DR> &bob,
 
 	// create DR sessions
 	std::vector<uint8_t> X3DH_initMessage{};
-	DSA<LVL1::EC, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
-	alice = make_DR_for_sender<LVL1>(localStorageAlice, SK, AD, bobPK, aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
-	bob = make_DR_for_receiver<LVL1>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
+	DSA<C255K512::EC, lime::DSAtype::publicKey> dummyPeerIk{}; // DR session creation gets the peerDeviceId and peerIk but uses it only if peerDid is 0, give dummy, we're focusing on DR here
+	alice = make_DR_for_sender<C255K512>(localStorageAlice, SK, AD, bobPK, aliceDid, "dummyPeerDevice", dummyPeerIk, aliceUid, X3DH_initMessage, RNG_context);
+	bob = make_DR_for_receiver<C255K512>(localStorageBob, SK, AD, bobKeyPair, bobDid, "dummyPeerDevice", 0, dummyPeerIk, bobUid, RNG_context);
 }
 #endif //HAVE_BCTBXPQ
 
@@ -404,19 +405,19 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 
 		break;
 #ifdef HAVE_BCTBXPQ
-		case static_cast<uint8_t>(lime::CurveId::k512c25519):
+		case static_cast<uint8_t>(lime::CurveId::c25519k512):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
 				if (payload_direct_encryption) {
-					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				} else {
-					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 5 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				}
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
 				if (payload_direct_encryption) {
-					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				} else {
-					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				}
 				haveOPk=true;
 			}
@@ -441,8 +442,8 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 			X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
 			break;
 #ifdef HAVE_BCTBXPQ
-		case static_cast<uint8_t>(lime::CurveId::k512c25519):
-			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize();
+		case static_cast<uint8_t>(lime::CurveId::c25519k512):
+			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize();
 			break;
 #endif
 	}
@@ -470,8 +471,8 @@ bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &S
 			SPkIdPos += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
 			break;
 #ifdef HAVE_BCTBXPQ
-		case static_cast<uint8_t>(lime::CurveId::k512c25519):
-			SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<KYB1, lime::Ktype::cipherText>::ssize();
+		case static_cast<uint8_t>(lime::CurveId::c25519k512):
+			SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize();
 			break;
 #endif
 	}
@@ -652,7 +653,7 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef HAVE_BCTBXPQ
-	template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
+	template void dr_devicesInit<C255K512>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255K512>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif //HAVE_BCTBXPQ
 } // namespace lime_tester
 

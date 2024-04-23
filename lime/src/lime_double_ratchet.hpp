@@ -53,15 +53,16 @@ namespace lime {
 
 		public:
 			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
+			using serializedBuffer = std::array<uint8_t, X<Curve, lime::Xtype::publicKey>::ssize()>;
 
 			ARrKey(const SignedPreKey<Curve> &SPk) : m_DHr{SPk.cpublicKey()} {};
 			// Unserializing constructor
-			ARrKey(const std::array<uint8_t, serializedSize()> &DHr) : m_DHr(DHr.cbegin()) {};
+			ARrKey(const serializedBuffer &DHr) : m_DHr(DHr.cbegin()) {};
 			ARrKey() : m_DHr{} {};
 
 			const X<Curve, lime::Xtype::publicKey> &publicKey(void) const { return m_DHr;};
 			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_DHr.cbegin(), m_DHr.cend());} // index is directly the public key itself
-			std::array<uint8_t, serializedSize()> serialize(void) const { return m_DHr;}
+			serializedBuffer serialize(void) const { return m_DHr;}
 	};
 
 
@@ -73,14 +74,22 @@ namespace lime {
 			K<typename Algo::KEM, lime::Ktype::publicKey> m_kem_DHr; /**< Remote public key for KEM */
 			K<typename Algo::KEM, lime::Ktype::cipherText> m_kem_CTr; /**< Remote cipherText for KEM, decapsulate with our local kem private key */
 		public:
-			static constexpr size_t serializedSize(void) {return X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize() +  K<Algo, lime::Ktype::cipherText>::ssize(); };
+			static constexpr size_t serializedSize(void) {return
+				X<Algo, lime::Xtype::publicKey>::ssize()
+				+ K<Algo, lime::Ktype::publicKey>::ssize()
+				+  K<Algo, lime::Ktype::cipherText>::ssize(); };
+
+			using serializedBuffer = std::array<uint8_t,
+				X<Algo, lime::Xtype::publicKey>::ssize()
+				+ K<Algo, lime::Ktype::publicKey>::ssize()
+				+  K<Algo, lime::Ktype::cipherText>::ssize()>;
 
 			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr, K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTr ) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{kemCTr} {};
 			// At Sender's session creation, we do not have any peer CT
 			ARrKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ecDHr, K<typename Algo::KEM, lime::Ktype::publicKey> &kemDHr) : m_ec_DHr{ecDHr}, m_kem_DHr{kemDHr}, m_kem_CTr{} {};
 			ARrKey(const SignedPreKey<Algo> &SPk) : m_ec_DHr{SPk.cECpublicKey()}, m_kem_DHr{SPk.cKEMpublicKey()}, m_kem_CTr{} {};
 			// Unserializing constructor
-			ARrKey(const std::array<uint8_t, serializedSize()> &DHr){
+			ARrKey(const serializedBuffer &DHr){
 				m_ec_DHr = DHr.cbegin();
 				m_kem_DHr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize();
 				m_kem_CTr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize();
@@ -96,8 +105,8 @@ namespace lime {
 				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRrIndexSize);
 				return index;
 			}
-			std::array<uint8_t, serializedSize()> serialize(void) const {
-				std::array<uint8_t, serializedSize()> s;
+			serializedBuffer serialize(void) const {
+				serializedBuffer s{};
 				std::copy_n(m_ec_DHr.cbegin(), m_ec_DHr.size(), s.begin());
 				std::copy_n(m_kem_DHr.cbegin(), m_kem_DHr.size(), s.begin() + m_ec_DHr.size());
 				std::copy_n(m_kem_CTr.cbegin(), m_kem_CTr.size(), s.begin() + m_ec_DHr.size() + m_kem_DHr.size());
@@ -117,6 +126,8 @@ namespace lime {
 		public:
 			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
 			static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize();};
+			using serializedBuffer = sBuffer<X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize()>;
+			using serializedPublicBuffer = std::array<uint8_t, X<Curve, lime::Xtype::publicKey>::ssize()>;
 
 			ARsKey(const SignedPreKey<Curve> &SPk) {
 				m_DHs.publicKey() = SPk.cpublicKey();
@@ -128,7 +139,7 @@ namespace lime {
 			};
 			ARsKey() : m_DHs{} {};
 			// Unserializing constructor
-			ARsKey(const std::array<uint8_t, serializedSize()> &DHs) {
+			ARsKey(const serializedBuffer &DHs) {
 				m_DHs.publicKey() = DHs.cbegin();
 				m_DHs.privateKey() = DHs.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
 			};
@@ -136,8 +147,8 @@ namespace lime {
 			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_DHs.privateKey();};
 			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_DHs.publicKey();};
 			/// Serialize the key pair (to store in DB): First the public value, then the private one
-			sBuffer<serializedSize()> serialize(void) const {
-				sBuffer<serializedSize()> s{};
+			serializedBuffer serialize(void) const {
+				serializedBuffer s{};
 				std::copy_n(m_DHs.cpublicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
 				std::copy_n(m_DHs.cprivateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
 				return s;
@@ -165,6 +176,16 @@ namespace lime {
 					+ K<Algo, lime::Ktype::publicKey>::ssize()
 					+ K<Algo, lime::Ktype::cipherText>::ssize();
 			};
+			using serializedBuffer = sBuffer<
+				X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+				+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize()
+				+ K<Algo, lime::Ktype::cipherText>::ssize()>;
+
+			using serializedPublicBuffer = std::array<uint8_t,
+				X<Algo, lime::Xtype::publicKey>::ssize()
+				+ K<Algo, lime::Ktype::publicKey>::ssize()
+				+ K<Algo, lime::Ktype::cipherText>::ssize()>;
+
 
 			ARsKey(const Xpair<typename Algo::EC> &ecDHs, const Kpair<typename Algo::KEM> &kemDHs, const K<typename Algo::KEM, lime::Ktype::cipherText> &kemCTs) : m_ec_DHs{ecDHs}, m_kem_DHs{kemDHs}, m_kem_CTs{kemCTs} {};
 			ARsKey(const SignedPreKey<Algo> &SPk) : m_ec_DHs{SPk.cECKeypair()}, m_kem_DHs{SPk.cKEMKeypair()}, m_kem_CTs{} {};
@@ -174,7 +195,7 @@ namespace lime {
 					const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCT) : m_ec_DHs(ECPublic, ECPrivate), m_kem_DHs(KEMPublic, KEMPrivate), m_kem_CTs{KEMCT} {};
 			ARsKey() : m_ec_DHs{}, m_kem_DHs{}, m_kem_CTs{} {};
 			// Unserializing constructor
-			ARsKey(const std::array<uint8_t, serializedSize()> &DHs) {
+			ARsKey(const serializedBuffer &DHs) {
 				m_ec_DHs.publicKey() = DHs.cbegin();
 				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
 				m_ec_DHs.privateKey() = DHs.cbegin() + index;
@@ -192,8 +213,8 @@ namespace lime {
 			K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) {return m_kem_DHs.publicKey();};
 			K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) {return m_kem_DHs.cipherText();};
 			/// Serialize the key pair (to store in DB): First the public value, then the private one, then the cipherText
-			sBuffer<serializedSize()> serialize(void) const{
-				sBuffer<serializedSize()> s{};
+			serializedBuffer serialize(void) const{
+				serializedBuffer s{};
 				std::copy_n(m_ec_DHs.cpublicKey().cbegin(), m_ec_DHs.cpublicKey().size(), s.begin());
 				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
 				std::copy_n(m_ec_DHs.cprivateKey().cbegin(), m_ec_DHs.cprivateKey().size(), s.begin()+index);
@@ -237,11 +258,11 @@ namespace lime {
 
 			void setDHr(const ARrKey<Curve> &DHr) {m_DHr = DHr;};
 			const ARrKey<Curve> &getDHr(void) const { return m_DHr;};
-			const std::array<uint8_t, ARrKey<Curve>::serializedSize()> serializeDHr(void) { return m_DHr.serialize();};
+			const typename ARrKey<Curve>::serializedBuffer serializeDHr(void) { return m_DHr.serialize();};
 
 			void setDHs(const ARsKey<Curve> &DHs) { m_DHs = DHs; };
 			ARsKey<Curve> &getDHs(void) { return m_DHs;};
-			const sBuffer<ARsKey<Curve>::serializedSize()> serializeDHs(void) { return m_DHs.serialize();};
+			const typename ARsKey<Curve>::serializedBuffer serializeDHs(void) { return m_DHs.serialize();};
 			const std::vector<uint8_t> serializePublicDHs(void) { return m_DHs.serializePublic();};
 
 	};
@@ -305,9 +326,9 @@ namespace lime {
 
 #endif
 #ifdef HAVE_BCTBXPQ
-	extern template std::shared_ptr<DR> make_DR_from_localStorage<LVL1>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
-	extern template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<LVL1> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
-	extern template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<LVL1> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<LVL1::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR> make_DR_from_localStorage<C255K512>(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR> make_DR_for_sender(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<C255K512> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<C255K512::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context);
+	extern template std::shared_ptr<DR> make_DR_for_receiver(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<C255K512> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<C255K512::EC, lime::DSAtype::publicKey> &peerIk, long int selfDeviceId, std::shared_ptr<RNG> RNG_context);
 #endif
 
 }

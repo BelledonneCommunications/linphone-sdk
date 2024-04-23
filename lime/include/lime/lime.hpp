@@ -36,8 +36,7 @@ namespace lime {
 		unset=0, /**< used as default to detected incorrect behavior */
 		c25519=1, /**< Curve 25519 */
 		c448=2, /**< Curve 448-goldilocks */
-		k512c25519=3, /**< Hybrid KEM kyber512/curve 25519 */
-		k1024c448=4 /**< Hybrid KEM kyber1024/curve 448-goldilocks */
+		c25519k512=3, /**< Hybrid KEM kyber512/curve 25519 */
 	};
 
 	/** Manage the encryption policy : how is the user's plaintext encrypted */

@@ -171,8 +171,8 @@ void KEM_getPatterns(lime::K<Algo, lime::Ktype::privateKey> &sk, lime::K<Algo, l
 }
 
 #ifdef HAVE_BCTBXPQ
-	/* specialise KEM creation : KYB1 is Kyber512 */
-template <> void KEM_getPatterns<KYB1>(lime::K<lime::KYB1, lime::Ktype::privateKey> &sk, lime::K<lime::KYB1, lime::Ktype::publicKey> &pk, lime::K<lime::KYB1, lime::Ktype::cipherText> &ct, lime::K<lime::KYB1, lime::Ktype::sharedSecret> &ss) {
+	/* specialise KEM creation : K512 is Kyber512 */
+template <> void KEM_getPatterns<K512>(lime::K<lime::K512, lime::Ktype::privateKey> &sk, lime::K<lime::K512, lime::Ktype::publicKey> &pk, lime::K<lime::K512, lime::Ktype::cipherText> &ct, lime::K<lime::K512, lime::Ktype::sharedSecret> &ss) {
 	sk.assign(sk_KYBER512.cbegin());
 	pk.assign(pk_KYBER512.cbegin());
 	ct.assign(ct_KYBER512.cbegin());
@@ -283,10 +283,10 @@ void KEM_bench(uint64_t runTime_ms) {
 
 static void keyEncapsulation(void) {
 #ifdef HAVE_BCTBXPQ
-	KEM_test<KYB1>();
+	KEM_test<K512>();
 	if (bench) {
 		LIME_LOGI<<"Bench for Kyber512:";
-		KEM_bench<KYB1>(BENCH_TIMING_MS);
+		KEM_bench<K512>(BENCH_TIMING_MS);
 	}
 #endif
 }

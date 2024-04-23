@@ -43,6 +43,7 @@ extern std::string test_x3dh_domainB_server_port;
 extern std::string test_x3dh_domainC_server_port;
 extern std::string test_x3dh_c25519_stop_on_request_limit_server_port;
 extern std::string test_x3dh_c448_stop_on_request_limit_server_port;
+extern std::string test_x3dh_c25519k512_stop_on_request_limit_server_port;
 
 // messages pattern
 extern std::string shortMessage;
@@ -178,7 +179,7 @@ int wait_for_mutex(belle_sip_stack_t*s1,int* counter,int value,int timeout, std:
 	extern template void dr_devicesInit<C448>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C448>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles,  std::shared_ptr<RNG> RNG_context);
 #endif
 #ifdef HAVE_BCTBXPQ
-	extern template void dr_devicesInit<LVL1>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<LVL1>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
+	extern template void dr_devicesInit<C255K512>(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<C255K512>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 #endif
 } // namespace lime_tester
 

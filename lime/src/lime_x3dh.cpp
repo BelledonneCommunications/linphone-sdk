@@ -1348,6 +1348,6 @@ namespace lime {
 	template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId,const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 #ifdef HAVE_BCTBXPQ
-	template std::shared_ptr<X3DH> make_X3DH<LVL1>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
+	template std::shared_ptr<X3DH> make_X3DH<C255K512>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 } // namespace lime

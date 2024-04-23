@@ -415,7 +415,7 @@ namespace lime {
 	template class Lime<C448>;
 #endif
 #ifdef HAVE_BCTBXPQ
-	template class Lime<LVL1>;
+	template class Lime<C255K512>;
 #endif
 
 	/****************************************************************************/
@@ -453,7 +453,7 @@ namespace lime {
 		}
 #endif
 #ifndef HAVE_BCTBXPQ
-		if (curve == lime::CurveId::k512c25519) {
+		if (curve == lime::CurveId::c25519k512) {
 			throw BCTBX_EXCEPTION << "Lime User creation asking to use Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
@@ -481,10 +481,10 @@ namespace lime {
 #endif
 			break;
 
-			case lime::CurveId::k512c25519 :
+			case lime::CurveId::c25519k512 :
 #ifdef HAVE_BCTBXPQ
 			{
-				auto lime_ptr = std::make_shared<Lime<LVL1>>(localStorage, deviceId, url, X3DH_post_data);
+				auto lime_ptr = std::make_shared<Lime<C255K512>>(localStorage, deviceId, url, X3DH_post_data);
 				lime_ptr->publish_user(callback, OPkInitialBatchSize);
 				return std::static_pointer_cast<LimeGeneric>(lime_ptr);
 			}
@@ -533,7 +533,7 @@ namespace lime {
 		}
 #endif
 #ifndef HAVE_BCTBXPQ
-		if (curve == lime::CurveId::k512c25519) {
+		if (curve == lime::CurveId::c25519k512) {
 			throw BCTBX_EXCEPTION << "Lime load User "<<deviceId<<" requests usage of Kyber512/Curve 25519 but it's not supported - change lib lime compile option to enable it";
 		}
 #endif
@@ -551,9 +551,9 @@ namespace lime {
 				return std::make_shared<Lime<C448>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
-			case lime::CurveId::k512c25519 :
+			case lime::CurveId::c25519k512 :
 #ifdef HAVE_BCTBXPQ
-				return std::make_shared<Lime<LVL1>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
+				return std::make_shared<Lime<C255K512>>(localStorage, deviceId, x3dh_server_url, X3DH_post_data, Uid);
 #endif
 			break;
 

@@ -44,6 +44,7 @@ namespace lime {
 			///  - storage publicKey || privateKey -> used to store in DB, Id is stored separately
 			static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + DSA<Curve, lime::DSAtype::signature>::ssize() + 4;};
 			static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
+			using serializedBuffer = sBuffer<X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize()>;
 
 			SignedPreKey(const X<Curve, lime::Xtype::publicKey> &SPkPublic, const X<Curve, lime::Xtype::privateKey> &SPkPrivate) {
 				m_SPk.publicKey() = SPkPublic;
@@ -51,7 +52,7 @@ namespace lime {
 			};
 			SignedPreKey() {};
 			/// Unserializing constructor: from data read in DB
-			SignedPreKey(const sBuffer<serializedSize()> &SPk, uint32_t Id) {
+			SignedPreKey(const serializedBuffer &SPk, uint32_t Id) {
 				m_SPk.publicKey() = SPk.cbegin();
 				m_SPk.privateKey() = SPk.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
 				m_Id = Id;
@@ -79,8 +80,8 @@ namespace lime {
 			void set_Id(uint32_t Id) {m_Id = Id;};
 
 			/// Serialize the key pair (to store in DB): First the public value, then the private one
-			sBuffer<serializedSize()> serialize(void) const {
-				sBuffer<serializedSize()> s{};
+			serializedBuffer serialize(void) const {
+				serializedBuffer s{};
 				std::copy_n(m_SPk.cpublicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
 				std::copy_n(m_SPk.cprivateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
 				return s;
@@ -130,12 +131,16 @@ namespace lime {
 				X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
 				+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize();};
 
+			using serializedBuffer = sBuffer<
+				X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+				+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize()>;
+
 			SignedPreKey(const X<typename Algo::EC, lime::Xtype::publicKey> &SPk_EC_Public, const X<typename Algo::EC, lime::Xtype::privateKey> &SPk_EC_Private,
 						const K<typename Algo::KEM, lime::Ktype::publicKey> &SPk_KEM_Public, const K<typename Algo::KEM, lime::Ktype::privateKey> &SPk_KEM_Private) :
 						m_EC_SPk(SPk_EC_Public, SPk_EC_Private), m_KEM_SPk(SPk_KEM_Public, SPk_KEM_Private) {};
 			SignedPreKey() {};
 			/// Unserializing constructor: from data read in DB
-			SignedPreKey(const sBuffer<serializedSize()> &SPk, uint32_t Id) {
+			SignedPreKey(const serializedBuffer &SPk, uint32_t Id) {
 				m_EC_SPk.publicKey() = SPk.cbegin();
 				auto index = X<Algo, lime::Xtype::publicKey>::ssize();
 				m_EC_SPk.privateKey() = SPk.cbegin() + index;
@@ -176,8 +181,8 @@ namespace lime {
 			void set_Id(uint32_t Id) {m_Id = Id;};
 
 			/// Serialize the key pair (to store in DB): EC public || EC private || KEM public || KEM private
-			sBuffer<serializedSize()> serialize(void) const {
-				sBuffer<serializedSize()> s{};
+			serializedBuffer serialize(void) const {
+				serializedBuffer s{};
 				std::copy_n(m_EC_SPk.cpublicKey().cbegin(), X<Algo, lime::Xtype::publicKey>::ssize(), s.begin());
 				auto index = X<Algo, lime::Xtype::publicKey>::ssize();
 				std::copy_n(m_EC_SPk.cprivateKey().cbegin(), X<Algo, lime::Xtype::privateKey>::ssize(), s.begin() + index);
@@ -230,11 +235,12 @@ namespace lime {
 		///  - storage publicKey || privateKey -> used to store in DB, Id is stored separately
 		static constexpr size_t serializedPublicSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + 4;};
 		static constexpr size_t serializedSize(void) {return X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize();};
+		using serializedBuffer = sBuffer<X<Curve, lime::Xtype::publicKey>::ssize() + X<Curve, lime::Xtype::privateKey>::ssize()>;
 
 		OneTimePreKey(const X<Curve, lime::Xtype::publicKey> &OPkPublic, const X<Curve, lime::Xtype::privateKey> &OPkPrivate, uint32_t Id) : m_OPk(OPkPublic, OPkPrivate), m_Id{Id} {};
 		OneTimePreKey() {};
 		/// Unserializing constructor: from data read in DB
-		OneTimePreKey(const sBuffer<serializedSize()> &OPk, uint32_t Id) {
+		OneTimePreKey(const serializedBuffer &OPk, uint32_t Id) {
 			m_OPk.publicKey() = OPk.cbegin();
 			m_OPk.privateKey() = OPk.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
 			m_Id = Id;
@@ -258,8 +264,8 @@ namespace lime {
 		void set_Id(uint32_t Id) {m_Id = Id;};
 
 		/// Serialize the key pair (to store in DB): First the public value, then the private one
-		sBuffer<serializedSize()> serialize(void) const {
-			sBuffer<serializedSize()> s{};
+		serializedBuffer serialize(void) const {
+			serializedBuffer s{};
 			std::copy_n(m_OPk.cpublicKey().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), s.begin());
 			std::copy_n(m_OPk.cprivateKey().cbegin(), X<Curve, lime::Xtype::privateKey>::ssize(), s.begin()+X<Curve, lime::Xtype::publicKey>::ssize());
 			return s;
@@ -297,6 +303,9 @@ namespace lime {
 		static constexpr size_t serializedSize(void) {return
 			X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
 			+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize();};
+		using serializedBuffer = sBuffer<
+			X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
+			+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize()>;
 
 		OneTimePreKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublic, const X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivate,
 					  const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublic, const K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivate,
@@ -304,7 +313,7 @@ namespace lime {
 					  m_EC_OPk(ECPublic, ECPrivate), m_KEM_OPk(KEMPublic, KEMPrivate), m_Sig{}, m_Id{Id} {};
 		OneTimePreKey() {};
 		/// Unserializing constructor: from data read in DB
-		OneTimePreKey(const sBuffer<serializedSize()> &OPk, uint32_t Id) {
+		OneTimePreKey(const serializedBuffer &OPk, uint32_t Id) {
 			m_EC_OPk.publicKey() = OPk.cbegin();
 			auto index = X<Algo, lime::Xtype::publicKey>::ssize();
 			m_EC_OPk.privateKey() = OPk.cbegin() + index;
@@ -343,8 +352,8 @@ namespace lime {
 		void set_Id(uint32_t Id) {m_Id = Id;};
 
 		/// Serialize the key pair (to store in DB): EC public || EC private || KEM public || KEM private
-		sBuffer<serializedSize()> serialize(void) const {
-			sBuffer<serializedSize()> s{};
+		serializedBuffer serialize(void) const {
+			serializedBuffer s{};
 			std::copy_n(m_EC_OPk.cpublicKey().cbegin(), X<Algo, lime::Xtype::publicKey>::ssize(), s.begin());
 			auto index = X<Algo, lime::Xtype::publicKey>::ssize();
 			std::copy_n(m_EC_OPk.cprivateKey().cbegin(), X<Algo, lime::Xtype::privateKey>::ssize(), s.begin() + index);
@@ -423,7 +432,7 @@ namespace lime {
 	extern template std::shared_ptr<X3DH> make_X3DH<C448>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 #ifdef HAVE_BCTBXPQ
-	extern template std::shared_ptr<X3DH> make_X3DH<LVL1>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
+	extern template std::shared_ptr<X3DH> make_X3DH<C255K512>(std::shared_ptr<lime::Db> localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL, const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr<RNG> RNG_context, const long Uid);
 #endif
 } //namespace lime
 #endif /* lime_x3dh_hpp */
