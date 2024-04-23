@@ -432,5 +432,10 @@ namespace lime {
 
 			~LimeManager() = default;
 	};
+
+	/**
+	 * @return true when PQ algorithms (c25519/k512 for now) are available
+	 */
+	bool lime_is_PQ_available(void);
 } //namespace lime
 #endif /* lime_hpp */

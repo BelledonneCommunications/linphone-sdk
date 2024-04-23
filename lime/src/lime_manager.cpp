@@ -267,5 +267,12 @@ namespace lime {
 		return user->get_x3dhServerUrl();
 	}
 
+	bool lime_is_PQ_available(void) {
+#ifdef HAVE_BCTBXPQ
+		return true;
+#else
+		return false;
+#endif
+	};
 
 } // namespace lime
