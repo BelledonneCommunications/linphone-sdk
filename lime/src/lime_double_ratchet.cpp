@@ -68,7 +68,7 @@ namespace lime {
 	/****************************************************************************/
 	/* Helpers functions not part of DRi class                                  */
 	/****************************************************************************/
-	/* Key derivation functions : KDF_RK (root key derivation function, for DH ratchet) and KDF_CK(chain key derivation function, for symmetric ratchet) */
+	/* Key derivation functions : KDF_RK (root key derivation function, for Asymmetric ratchet) and KDF_CK(chain key derivation function, for symmetric ratchet) */
 	/**
 	 * @brief Key Derivation Function used in Root key/Diffie-Hellman Ratchet chain.
 	 *
@@ -131,16 +131,32 @@ namespace lime {
 	 *              hkdf_ck_info and hkdf_mk_info being a distincts constants (0x02 and 0x01 as suggested in double ratchet - section 5.2)
 	 *      @endcode
 	 *
+	 *		The EC/KEM version includes a modification from https://eprint.iacr.org/2024/220.pdf section 4.2: use the chain index in the derivation
+	 * 		append the derivation index to hkdf_mk_info and hkdf_ck_info
+	 *
 	 * @param[in,out]	CK	Input/output buffer used as key to compute MK and then next CK
 	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAC_SHA512 keyed with CK
 	 */
-	static void KDF_CK(DRChainKey &CK, DRMKey &MK) noexcept {
+	template <typename Curve>
+	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if<!std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
 		// derive MK and IV from CK and constant
 		HMAC<SHA512>(CK.data(), CK.size(), hkdf_mk_info.data(), hkdf_mk_info.size(), MK.data(), MK.size());
 
 		// use temporary buffer, not likely that output and key could be the same buffer
 		DRChainKey tmp;
 		HMAC<SHA512>(CK.data(), CK.size(), hkdf_ck_info.data(), hkdf_ck_info.size(), tmp.data(), tmp.size());
+		CK = tmp;
+	}
+	template <typename Curve>
+	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if<std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
+		// derive MK and IV from CK and constant
+		std::array<uint8_t,3> label{hkdf_mk_info[0], static_cast<uint8_t>(chainIndex>>8), static_cast<uint8_t>(0xFF&chainIndex)};
+		HMAC<SHA512>(CK.data(), CK.size(), label.data(), label.size(), MK.data(), MK.size());
+
+		// use temporary buffer, not likely that output and key could be the same buffer
+		DRChainKey tmp;
+		label[0]=hkdf_ck_info[0];
+		HMAC<SHA512>(CK.data(), CK.size(), label.data(), label.size(), tmp.data(), tmp.size());
 		CK = tmp;
 	}
 
@@ -474,7 +490,7 @@ namespace lime {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
 		// chain key derivation(also compute message key)
 		DRMKey MK;
-		KDF_CK(m_CKs, MK);
+		KDF_CK<Curve>(m_CKs, MK, m_Ns);
 
 		// build header string in the ciphertext buffer
 		double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption);
@@ -570,7 +586,7 @@ namespace lime {
 		skipMessageKeys(header.Ns(), maxAllowedDerivation);
 
 		// generate key material for decryption(and derive Chain key)
-		KDF_CK(m_CKr, MK);
+		KDF_CK<Curve>(m_CKr, MK, m_Nr);
 
 		m_Nr++;
 
@@ -842,10 +858,9 @@ namespace lime {
 
 		DRMKey MK;
 		while (m_Nr<until) {
-			KDF_CK(m_CKr, MK);
+			KDF_CK<Curve>(m_CKr, MK, m_Nr);
 			// insert the nessage key into the list of skipped ones
 			rChain->messageKeys[m_Nr]=MK;
-
 			m_Nr++;
 		}
 	}
