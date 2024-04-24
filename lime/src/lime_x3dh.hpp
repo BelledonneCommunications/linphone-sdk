@@ -53,8 +53,8 @@ namespace lime {
 			SignedPreKey() {};
 			/// Unserializing constructor: from data read in DB
 			SignedPreKey(const serializedBuffer &SPk, uint32_t Id) {
-				m_SPk.publicKey() = SPk.cbegin();
-				m_SPk.privateKey() = SPk.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
+				m_SPk.publicKey() = X<Curve, lime::Xtype::publicKey>(SPk.data());
+				m_SPk.privateKey() = X<Curve, lime::Xtype::privateKey>(SPk.data() + X<Curve, lime::Xtype::publicKey>::ssize());
 				m_Id = Id;
 			};
 			/// Unserializing constructor: from data read in received bundle
@@ -141,13 +141,13 @@ namespace lime {
 			SignedPreKey() {};
 			/// Unserializing constructor: from data read in DB
 			SignedPreKey(const serializedBuffer &SPk, uint32_t Id) {
-				m_EC_SPk.publicKey() = SPk.cbegin();
+				m_EC_SPk.publicKey() = X<typename Algo::EC, lime::Xtype::publicKey>(SPk.data());
 				auto index = X<Algo, lime::Xtype::publicKey>::ssize();
-				m_EC_SPk.privateKey() = SPk.cbegin() + index;
+				m_EC_SPk.privateKey() = X<typename Algo::EC, lime::Xtype::privateKey>(SPk.data() + index);
 				index += X<Algo, lime::Xtype::privateKey>::ssize();
-				m_KEM_SPk.publicKey() = SPk.cbegin() + index;
+				m_KEM_SPk.publicKey() = K<typename Algo::KEM, lime::Ktype::publicKey>(SPk.data() + index);
 				index += K<Algo, lime::Ktype::publicKey>::ssize();
-				m_KEM_SPk.privateKey() = SPk.cbegin() + index;
+				m_KEM_SPk.privateKey() = K<typename Algo::KEM, lime::Ktype::privateKey>(SPk.data() + index);
 				m_Id = Id;
 			};
 			/// Unserializing constructor: from data read in received bundle: EC public key || KEM public key || Id || signature
@@ -241,8 +241,8 @@ namespace lime {
 		OneTimePreKey() {};
 		/// Unserializing constructor: from data read in DB
 		OneTimePreKey(const serializedBuffer &OPk, uint32_t Id) {
-			m_OPk.publicKey() = OPk.cbegin();
-			m_OPk.privateKey() = OPk.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
+			m_OPk.publicKey() = X<Curve, lime::Xtype::publicKey>(OPk.data());
+			m_OPk.privateKey() = X<Curve, lime::Xtype::privateKey>(OPk.data() + X<Curve, lime::Xtype::publicKey>::ssize());
 			m_Id = Id;
 		};
 		/// Unserializing constructor: from data read in received bundle
@@ -314,13 +314,13 @@ namespace lime {
 		OneTimePreKey() {};
 		/// Unserializing constructor: from data read in DB
 		OneTimePreKey(const serializedBuffer &OPk, uint32_t Id) {
-			m_EC_OPk.publicKey() = OPk.cbegin();
+			m_EC_OPk.publicKey() = X<typename Algo::EC, lime::Xtype::publicKey>(OPk.data());
 			auto index = X<Algo, lime::Xtype::publicKey>::ssize();
-			m_EC_OPk.privateKey() = OPk.cbegin() + index;
+			m_EC_OPk.privateKey() = X<typename Algo::EC, lime::Xtype::privateKey>(OPk.data() + index);
 			index += X<Algo, lime::Xtype::privateKey>::ssize();
-			m_KEM_OPk.publicKey() = OPk.cbegin() + index;
+			m_KEM_OPk.publicKey() = K<typename Algo::KEM, lime::Ktype::publicKey>(OPk.data() + index);
 			index += K<Algo, lime::Ktype::publicKey>::ssize();
-			m_KEM_OPk.privateKey() = OPk.cbegin() + index;
+			m_KEM_OPk.privateKey() = K<typename Algo::KEM, lime::Ktype::privateKey>(OPk.data() + index);
 			m_Id = Id;
 		};
 		/// Unserializing constructor: from data read in received bundle EC public key || KEM public key || Signature || Id

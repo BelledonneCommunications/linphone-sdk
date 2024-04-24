@@ -26,19 +26,19 @@
 using namespace::std;
 
 namespace lime {
-	std::string hexStr(const uint8_t *data, int len) {
+	std::string hexStr(const uint8_t *data, size_t len) {
 		std::stringstream ss;
 		ss << "("<<len<<") "<<std::hex;
-		for( int i(0) ; i < len; ++i )
+		for( size_t i(0) ; i < len; ++i )
 			ss << std::setw(2) << std::setfill('0') << (int)data[i];
 		return ss.str();
 	}
 
-	void hexStr(std::ostringstream &os, const uint8_t *data, int len) {
+	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len) {
 		os <<std::hex;
 		if (len > 0) {;
 			os << std::setw(2) << std::setfill('0') << (int)data[0];
-			for( int i(1) ; i < len; ++i ) {
+			for( size_t i(1) ; i < len; ++i ) {
 				os << ", "<<std::setw(2) << std::setfill('0') << (int)data[i];
 			}
 		}

@@ -59,8 +59,8 @@ namespace lime {
 			constexpr static size_t ssize(void) {return Curve::Xsize(dataType);};
 			/// construct from a std::vector<uint8_t>
 			X(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
-			/// construct from a std::array<uint8_t>
-			X(const typename std::array<uint8_t, Curve::Xsize(dataType)>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			/// construct from a uint8_t *
+			X(const uint8_t * const buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// default initialise value to 0
 			X() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>
@@ -105,8 +105,8 @@ namespace lime {
 			constexpr static size_t ssize(void) {return Algo::Ksize(dataType);};
 			/// construct from a std::vector<uint8_t>
 			K(const std::vector<uint8_t>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
-			/// construct from a std::array<uint8_t>
-			K(const typename std::array<uint8_t, Algo::Ksize(dataType)>::const_iterator buffer) {std::copy_n(buffer, ssize(), this->begin());}
+			/// construct from uint8_t *
+			K(const uint8_t * const buffer) {std::copy_n(buffer, ssize(), this->begin());}
 			/// default initialise value to 0
 			K() {this->fill(0);};
 			/// copy from a std::vector<uint8_t>

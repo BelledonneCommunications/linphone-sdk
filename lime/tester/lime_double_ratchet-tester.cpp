@@ -478,7 +478,14 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	remove(bobFilename.data());
 	// Copy the DB from resource file as we do not want to modify it
 	char *pattern_filepath = bc_tester_res(bobFilename.c_str());
-	std::filesystem::copy(pattern_filepath, bobFilename);
+	{
+		#include <fstream>
+		std::ifstream  src(pattern_filepath, std::ios::binary);
+		std::ofstream  dst(bobFilename,   std::ios::binary);
+		dst << src.rdbuf();
+	}
+	// This should work but for some reason fail to build on Debian10/Clang7
+	//std::filesystem::copy(pattern_filepath, bobFilename);
 	bctbx_free(pattern_filepath);
 
 	// Load the DR session with id 1 from the DB

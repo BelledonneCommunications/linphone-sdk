@@ -57,7 +57,7 @@ namespace lime {
 
 			ARrKey(const SignedPreKey<Curve> &SPk) : m_DHr{SPk.cpublicKey()} {};
 			// Unserializing constructor
-			ARrKey(const serializedBuffer &DHr) : m_DHr(DHr.cbegin()) {};
+			ARrKey(const serializedBuffer &DHr) : m_DHr(DHr.data()) {};
 			ARrKey() : m_DHr{} {};
 
 			const X<Curve, lime::Xtype::publicKey> &publicKey(void) const { return m_DHr;};
@@ -90,9 +90,9 @@ namespace lime {
 			ARrKey(const SignedPreKey<Algo> &SPk) : m_ec_DHr{SPk.cECpublicKey()}, m_kem_DHr{SPk.cKEMpublicKey()}, m_kem_CTr{} {};
 			// Unserializing constructor
 			ARrKey(const serializedBuffer &DHr){
-				m_ec_DHr = DHr.cbegin();
-				m_kem_DHr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize();
-				m_kem_CTr = DHr.cbegin()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize();
+				m_ec_DHr = X<typename Algo::EC, lime::Xtype::publicKey>(DHr.data());
+				m_kem_DHr = K<typename Algo::KEM, lime::Ktype::publicKey>(DHr.data()+X<Algo, lime::Xtype::publicKey>::ssize());
+				m_kem_CTr = K<typename Algo::KEM, lime::Ktype::cipherText>(DHr.data()+X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize());
 			};
 			ARrKey() : m_ec_DHr{}, m_kem_DHr{}, m_kem_CTr{} {};
 
@@ -140,8 +140,8 @@ namespace lime {
 			ARsKey() : m_DHs{} {};
 			// Unserializing constructor
 			ARsKey(const serializedBuffer &DHs) {
-				m_DHs.publicKey() = DHs.cbegin();
-				m_DHs.privateKey() = DHs.cbegin() + X<Curve, lime::Xtype::publicKey>::ssize();
+				m_DHs.publicKey() = X<Curve, lime::Xtype::publicKey>(DHs.data());
+				m_DHs.privateKey() = X<Curve, lime::Xtype::privateKey>(DHs.data() + X<Curve, lime::Xtype::publicKey>::ssize());
 			};
 
 			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_DHs.privateKey();};
@@ -196,15 +196,15 @@ namespace lime {
 			ARsKey() : m_ec_DHs{}, m_kem_DHs{}, m_kem_CTs{} {};
 			// Unserializing constructor
 			ARsKey(const serializedBuffer &DHs) {
-				m_ec_DHs.publicKey() = DHs.cbegin();
+				m_ec_DHs.publicKey() = X<typename Algo::EC, lime::Xtype::publicKey>(DHs.data());
 				size_t index = X<Algo, lime::Xtype::publicKey>::ssize();
-				m_ec_DHs.privateKey() = DHs.cbegin() + index;
+				m_ec_DHs.privateKey() = X<typename Algo::EC, lime::Xtype::privateKey>(DHs.data() + index);
 				index += X<Algo, lime::Xtype::privateKey>::ssize();
-				m_kem_DHs.publicKey() = DHs.cbegin() + index;
+				m_kem_DHs.publicKey() = K<typename Algo::KEM, lime::Ktype::publicKey>(DHs.data() + index);
 				index += K<Algo, lime::Ktype::publicKey>::ssize();
-				m_kem_DHs.privateKey() = DHs.cbegin() + index;
+				m_kem_DHs.privateKey() = K<typename Algo::KEM, lime::Ktype::privateKey>(DHs.data() + index);
 				index += K<Algo, lime::Ktype::privateKey>::ssize();
-				m_kem_CTs = DHs.cbegin() + index;
+				m_kem_CTs =  K<typename Algo::KEM, lime::Ktype::cipherText>(DHs.data() + index);
 			};
 
 			X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivateKey(void) {return m_ec_DHs.privateKey();};

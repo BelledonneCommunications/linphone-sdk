@@ -148,7 +148,7 @@ endif()
 
 if(ENABLE_PQCRYPTO)
 	add_definitions("-DHAVE_BCTBXPQ")
-	message(STATUS "Building with Post Quantum Key Agreements")
+	message(STATUS "Building with Post Quantum Key Encapsulation")
 endif()
 
 add_subdirectory(include)

@@ -30,8 +30,8 @@
 #define LIME_LOGE BCTBX_SLOGE
 
 namespace lime {
-	std::string hexStr(const uint8_t *data, int len);
-	void hexStr(std::ostringstream &os, const uint8_t *data, int len);
+	std::string hexStr(const uint8_t *data, size_t len);
+	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len);
 }
 
 #endif //lime_log_hpp
