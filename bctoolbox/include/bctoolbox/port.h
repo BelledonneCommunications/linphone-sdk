@@ -270,7 +270,9 @@ typedef unsigned int uint32_t;
 typedef int int32_t;
 typedef unsigned char uint8_t;
 typedef __int16 int16_t;
-typedef long ssize_t;
+/*SSIZE_T is defined in Microsoft SDKs/Windows/v7.0A/Include/BaseTsd.h*/
+typedef SSIZE_T ssize_t;
+
 #else
 #include <io.h>
 #include <stdint.h> /*provided by mingw32*/

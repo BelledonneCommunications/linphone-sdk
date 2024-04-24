@@ -61,8 +61,12 @@ BctbxException::BctbxException(const std::string &message) : mSize(0) {
 #endif
 		set_terminate(uncaught_handler); // invoke in case of uncautch exception for this thread
 #endif
-	/* Warn about exception as soon as it is created. Exceptions are not usual events. */
-	BCTBX_SLOGW << "BctbxException occurred: " << mOs.str();
+
+#ifndef HAVE_EXECINFO
+	/* Warn about exception as soon as it is created. Exceptions are not usual events and may be difficult to locate if
+	 * stacktrace is not available. */
+	BCTBX_SLOGW << "BctbxException occurred at : " << mOs.str();
+#endif
 }
 
 BctbxException::BctbxException(const BctbxException &other) : mSize(other.mSize) {
