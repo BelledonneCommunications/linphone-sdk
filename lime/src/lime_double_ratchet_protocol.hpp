@@ -46,7 +46,7 @@ namespace lime {
 		 * @return	the header size without optionnal X3DH init packet
 		 */
 		template <typename Curve>
-		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if<!std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
+		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if_t<!std::is_base_of_v<genericKEM, Curve>, bool> = true) noexcept {
 			return 1 + DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::publicKey>::ssize() + 4 // size of X3DH init message without OPk
 				+ (haveOPk?4:0); // if there is an OPk, we must add 4 for the OPk id
 		}
@@ -59,7 +59,7 @@ namespace lime {
 		 * @return	the header size without optionnal X3DH init packet
 		 */
 		template <typename Algo>
-		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if<std::is_base_of_v<genericKEM, Algo>, Algo>::type* = 0) noexcept {
+		constexpr size_t X3DHinitSize(bool haveOPk, typename std::enable_if_t<std::is_base_of_v<genericKEM, Algo>, bool> = true) noexcept {
 			return 1
 			+ DSA<typename Algo::EC, lime::DSAtype::publicKey>::ssize()
 			+ X<typename Algo::EC, lime::Xtype::publicKey>::ssize()

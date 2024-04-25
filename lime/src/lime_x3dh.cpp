@@ -904,8 +904,11 @@ namespace lime {
 					// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4 || KEM1)
 					DRChainKey SK;
 					/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
+					/* the info label as specified in PQXDH section 2.2 : <Identifier>_<EC algo Id>_<hash algo id>_<kem algo id> */
 					std::vector<uint8_t> salt(SHA512::ssize(), 0);
-					HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
+					std::string HKDF_info(lime::settings::X3DH_SK_info);
+					HKDF_info.append("_").append(Curve::EC::Id()).append("_SHA512_").append(Curve::KEM::Id());
+					HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, HKDF_info.data(), HKDF_info.size(), SK.data(), SK.size());
 
 					// Generate X3DH init message: as in X3DH spec section 3.3:
 					std::vector<uint8_t> X3DH_initMessage{};
@@ -1027,10 +1030,13 @@ namespace lime {
 				// 		DH2 = DH(self Ik, Ek)
 				// 		DH3 = DH(SPk, Ek)
 				// 		DH4 = DH(OPk, Ek)  if peer used an OPk
+				// 		KEM1 = encaps(OPk)  if peer used an OPk or encaps(SPk)
 
-				// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
+				// Initiate HKDF input : We will compute HKDF with a concat of F and all DH/KEM computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
 				// use sBuffer of size able to hold also DH$ even if we may not use it
-				sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4> HKDF_input;
+				sBuffer<DSA<Curve, lime::DSAtype::publicKey>::ssize()
+				+ X<Curve, lime::Xtype::sharedSecret>::ssize()*4
+				+ K<Curve, lime::Ktype::sharedSecret>::ssize()> HKDF_input;
 				HKDF_input.fill(0xFF); // HKDF_input holds F
 				size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
 
@@ -1087,8 +1093,11 @@ namespace lime {
 				// Compute SK = HKDF(F || DH1 || DH2 || DH3 || [DH4] || KEM1
 				DRChainKey SK;
 				/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
+				/* the info label as specified in PQXDH section 2.2 : <Identifier>_<EC algo Id>_<hash algo id>_<kem algo id> */
 				std::vector<uint8_t> salt(SHA512::ssize(), 0);
-				HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, lime::settings::X3DH_SK_info.data(), lime::settings::X3DH_SK_info.size(), SK.data(), SK.size());
+				std::string HKDF_info(lime::settings::X3DH_SK_info);
+				HKDF_info.append("_").append(Curve::EC::Id()).append("_SHA512_").append(Curve::KEM::Id());
+				HMAC_KDF<SHA512>(salt.data(), salt.size(), HKDF_input.data(), HKDF_input_index, HKDF_info.data(), HKDF_info.size(), SK.data(), SK.size());
 
 				return SK;
 			}

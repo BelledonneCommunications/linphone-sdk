@@ -138,7 +138,7 @@ namespace lime {
 	 * @param[out]		MK	Message Key(32 bytes) and IV(16 bytes) computed from HMAC_SHA512 keyed with CK
 	 */
 	template <typename Curve>
-	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if<!std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
+	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if_t<!std::is_base_of_v<genericKEM, Curve>, bool> = true) noexcept {
 		// derive MK and IV from CK and constant
 		HMAC<SHA512>(CK.data(), CK.size(), hkdf_mk_info.data(), hkdf_mk_info.size(), MK.data(), MK.size());
 
@@ -148,7 +148,7 @@ namespace lime {
 		CK = tmp;
 	}
 	template <typename Curve>
-	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if<std::is_base_of_v<genericKEM, Curve>, Curve>::type* = 0) noexcept {
+	static void KDF_CK(DRChainKey &CK, DRMKey &MK, uint16_t chainIndex, typename std::enable_if_t<std::is_base_of_v<genericKEM, Curve>, bool> = true) noexcept {
 		// derive MK and IV from CK and constant
 		std::array<uint8_t,3> label{hkdf_mk_info[0], static_cast<uint8_t>(chainIndex>>8), static_cast<uint8_t>(0xFF&chainIndex)};
 		HMAC<SHA512>(CK.data(), CK.size(), label.data(), label.size(), MK.data(), MK.size());

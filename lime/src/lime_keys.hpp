@@ -54,6 +54,8 @@ namespace lime {
 	 */
 	struct C255 {
 		using EC = C255;
+		/// a string to indentify this curve
+		static const std::string Id() {return std::string("CURVE25519");};
 		/// the C25519 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519;};
 		/// for X25519, public, private and shared secret have the same length: 32 bytes
@@ -67,6 +69,8 @@ namespace lime {
 	 */
 	struct C448 {
 		using EC = C448;
+		/// a string to indentify this curve
+		static const std::string Id() {return std::string("CURVE448");};
 		 ///the C448 curve id using the CurveId enumeration
 		static constexpr lime::CurveId curveId() {return lime::CurveId::c448;};
 		/// for X448, public, private and shared secret have the same length 56 bytes
@@ -83,6 +87,8 @@ namespace lime {
 	 * @brief Kyber 512 KEM data types size definition
 	 */
 	struct K512: public genericKEM {
+		/// a string to indentify this curve
+		static const std::string Id() {return std::string("KYBER512");};
 		 /// kyber512
 		static constexpr size_t Ksize(lime::Ktype dataType) {
 			switch (dataType) {

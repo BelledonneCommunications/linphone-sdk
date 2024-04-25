@@ -46,8 +46,8 @@ namespace lime {
 		const std::string deviceId; /**< peer device Id */
 		const DSA<typename Curve::EC, lime::DSAtype::publicKey> Ik; /**< peer device public identity key */
 		const SignedPreKey<Curve> SPk; /**< peer device current public pre-signed key */
-		const OneTimePreKey<Curve> OPk; /**< peer device One Time preKey */
-		const lime::X3DHKeyBundleFlag bundleFlag; /**< Flag this bundle as empty and if not if it holds an OPk, possible values */
+		OneTimePreKey<Curve> OPk; /**< peer device One Time preKey */
+		const lime::X3DHKeyBundleFlag bundleFlag; /**< Flag this bundle as empty and if not if it holds an OPk, possible values : noOPk, OPk, noBundle */
 
 		/**
 		 * Constructor gets vector<uint8_t> iterators to the bundle begining
@@ -57,13 +57,18 @@ namespace lime {
 		 * @param[in]	haveOPk		true when there is an OPk to parse
 		 * @param[in/out]	message_trace	Debug information to accumulate
 		 */
-		X3DH_peerBundle(std::string &&deviceId, const std::vector<uint8_t>::const_iterator bundle, bool haveOPk, std::ostringstream &message_trace) : deviceId{deviceId}, Ik{bundle}, SPk{bundle + DSA<Curve, lime::DSAtype::publicKey>::ssize()}, OPk{bundle + DSA<Curve, lime::DSAtype::publicKey>::ssize() + SignedPreKey<Curve>::serializedPublicSize()}, bundleFlag(haveOPk?lime::X3DHKeyBundleFlag::OPk : lime::X3DHKeyBundleFlag::noOPk) {
+		X3DH_peerBundle(std::string &&deviceId, const std::vector<uint8_t>::const_iterator bundle, bool haveOPk, std::ostringstream &message_trace) :
+		deviceId{deviceId},
+		Ik{bundle},
+		SPk{bundle + DSA<Curve, lime::DSAtype::publicKey>::ssize()},
+		bundleFlag(haveOPk?lime::X3DHKeyBundleFlag::OPk : lime::X3DHKeyBundleFlag::noOPk) {
 			// add Ik to message trace
 			message_trace << "        Ik: "<<std::hex << std::setfill('0');
 			hexStr(message_trace, Ik.data(), DSA<Curve, lime::DSAtype::publicKey>::ssize());
 			// add SPk Id, SPk and SPk signature to the trace
 			SPk.dump(message_trace);
 			if (haveOPk) {
+				OPk = OneTimePreKey<Curve>(bundle + DSA<Curve, lime::DSAtype::publicKey>::ssize() + SignedPreKey<Curve>::serializedPublicSize());
 				OPk.dump(message_trace); // add OPk Id and OPk to the trace
 			}
 		};
