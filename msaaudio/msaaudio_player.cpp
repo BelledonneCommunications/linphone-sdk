@@ -29,6 +29,58 @@ static const int flowControlThresholdMs = 40;
 
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t error);
 
+static std::string aaudio_content_type_to_string(aaudio_content_type_t contentType) {
+	switch (contentType) {
+		case AAUDIO_CONTENT_TYPE_SPEECH:
+			return "Speech";
+		case AAUDIO_CONTENT_TYPE_MUSIC:
+			return "Music";
+		case AAUDIO_CONTENT_TYPE_MOVIE:
+			return "Movie";
+		case AAUDIO_CONTENT_TYPE_SONIFICATION:
+			return "Sonification";
+		default:
+			return "Unknown (" + std::to_string(contentType) + ")";
+	}
+}
+
+static std::string aaudio_usage_to_string(aaudio_usage_t usage) {
+	switch (usage) {
+		case AAUDIO_USAGE_MEDIA:
+			return "Media";
+		case AAUDIO_USAGE_VOICE_COMMUNICATION:
+			return "Voice Communication";
+		case AAUDIO_USAGE_VOICE_COMMUNICATION_SIGNALLING:
+			return "Voice Communication Signalling";
+		case AAUDIO_USAGE_NOTIFICATION:
+			return "Notification";
+		case AAUDIO_USAGE_NOTIFICATION_RINGTONE:
+			return "Notification (Ringtone)";
+		case AAUDIO_USAGE_NOTIFICATION_EVENT:
+			return "Notification (Event)";
+		case AAUDIO_USAGE_ASSISTANCE_ACCESSIBILITY:
+			return "Assistance (Accessibility)";
+		case AAUDIO_USAGE_ASSISTANCE_NAVIGATION_GUIDANCE:
+			return "Assistance (Navigation Guide)";
+		case AAUDIO_USAGE_ASSISTANCE_SONIFICATION:
+			return "Assistance (Sonification)";
+		case AAUDIO_USAGE_GAME:
+			return "Game";
+		case AAUDIO_USAGE_ASSISTANT:
+			return "Assistant";
+		case AAUDIO_SYSTEM_USAGE_EMERGENCY:
+			return "System (Emergency)";
+		case AAUDIO_SYSTEM_USAGE_SAFETY:
+			return "System (Safety)";
+		case AAUDIO_SYSTEM_USAGE_VEHICLE_STATUS:
+			return "System (Vehicle Status)";
+		case AAUDIO_SYSTEM_USAGE_ANNOUNCEMENT:
+			return "System (Announcement)";
+		default:
+			return "Unknown (" + std::to_string(usage) + ")";
+	}
+}
+
 struct AAudioOutputContext {
 	AAudioOutputContext(MSFilter *f) {
 		sound_utils = ms_factory_get_android_sound_utils(f->factory);
@@ -155,7 +207,7 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	AAudioOutputContext *octx = (AAudioOutputContext*)userData;
 	
 	if (numFrames <= 0) {
-		ms_error("[AAudio Player] aaudio_player_callback has %i frames", numFrames);
+		ms_error("[AAudio Player] aaudio_player_callback has [%i] frames", numFrames);
 	}
 
 	ms_mutex_lock(&octx->mutex);
@@ -174,19 +226,24 @@ static aaudio_data_callback_result_t aaudio_player_callback(AAudioStream *stream
 	return AAUDIO_CALLBACK_RESULT_CONTINUE;	
 }
 
-static void aaudio_player_init(AAudioOutputContext *octx) {
+static void aaudio_player_init(AAudioOutputContext *octx, bool skip_update_stream_type) {
 	AAudioStreamBuilder *builder;
 	aaudio_result_t result = AAudio_createStreamBuilder(&builder);
 	if (result != AAUDIO_OK && !builder) {
-		ms_error("[AAudio Player] Couldn't create stream builder for player: %i / %s", result, AAudio_convertResultToText(result));
+		ms_error("[AAudio Player] Couldn't create stream builder for player: %s (%i)", AAudio_convertResultToText(result), result);
 	}
 
-	octx->updateStreamTypeFromMsSndCard();
+	if (skip_update_stream_type) {
+		ms_warning("[AAudio Player] Device is being changed, do not apply sound card stream type configuration");
+	} else {
+		octx->updateStreamTypeFromMsSndCard();
+	}
+
 	if (ms_android_sound_utils_is_audio_route_changes_disabled(octx->sound_utils)) {
 		ms_warning("[AAudio Player] Not using any device ID because audio route changes are disabled by configuration");
 	} else {
 		AAudioStreamBuilder_setDeviceId(builder, octx->soundCard->internal_id);
-		ms_message("[AAudio Player] Using device ID: %s (%i)", octx->soundCard->id, octx->soundCard->internal_id);
+		ms_message("[AAudio Player] Using device ID: [%s] (%i)", octx->soundCard->id, octx->soundCard->internal_id);
 	}
 
 	AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
@@ -200,11 +257,11 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	AAudioStreamBuilder_setUsage(builder, octx->usage); // Requires NDK build target of 28 instead of 26 !
 	AAudioStreamBuilder_setContentType(builder, octx->content_type); // Requires NDK build target of 28 instead of 26 !
 
-	ms_message("[AAudio Player] Player stream configured with samplerate %i and %i channels", octx->sample_rate, octx->aaudio_context->nchannels);
+	ms_message("[AAudio Player] Player stream configured with samplerate [%i] and [%i] channels", octx->sample_rate, octx->aaudio_context->nchannels);
 	
 	result = AAudioStreamBuilder_openStream(builder, &(octx->stream));
 	if (result != AAUDIO_OK && !octx->stream) {
-		ms_error("[AAudio Player] Open stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
+		ms_error("[AAudio Player] Open stream for player failed: %s (%i)", AAudio_convertResultToText(result), result);
 		AAudioStreamBuilder_delete(builder);
 		octx->stream = nullptr;
 		return;
@@ -213,9 +270,18 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	aaudio_content_type_t contentType = AAudioStream_getContentType(octx->stream);
+	if (octx->content_type != contentType) {
+		ms_warning("[AAudio Player] Expected content type [%s] but got [%s]", aaudio_content_type_to_string(octx->content_type).c_str(), aaudio_content_type_to_string(contentType).c_str());
+	} else {
+		ms_message("[AAudio Player] Content type set to [%s]", aaudio_content_type_to_string(contentType).c_str());
+	}
+
 	aaudio_usage_t usage = AAudioStream_getUsage(octx->stream);
-	ms_message("[AAudio Player] Expected content type %i, got %i", octx->content_type, contentType);
-	ms_message("[AAudio Player] Expected usage %i, got %i", octx->usage, usage);
+	if (octx->usage != usage) {
+		ms_warning("[AAudio Player] Expected usage [%s] but got [%s]", aaudio_usage_to_string(octx->usage).c_str(), aaudio_usage_to_string(usage).c_str());
+	} else {
+		ms_message("[AAudio Player] Usage set to [%s]", aaudio_usage_to_string(usage).c_str());
+	}
 
 	octx->framesPerBurst = AAudioStream_getFramesPerBurst(octx->stream);
 	// Set the buffer size to the burst size - this will give us the minimum possible latency
@@ -229,10 +295,10 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	result = AAudioStream_requestStart(octx->stream);
 
 	if (result != AAUDIO_OK) {
-		ms_error("[AAudio Player] Start stream for player failed: %i / %s", result, AAudio_convertResultToText(result));
+		ms_error("[AAudio Player] Start stream for player failed: %s (%i)", AAudio_convertResultToText(result), result);
 		result = AAudioStream_close(octx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio Player] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+			ms_error("[AAudio Player] Player stream close failed: %s (%i)", AAudio_convertResultToText(result), result);
 		} else {
 			ms_message("[AAudio Player] Player stream closed");
 		}
@@ -247,7 +313,7 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 	}
 
 	aaudio_stream_state_t inputState = AAudioStream_getState(octx->stream);
-	ms_message("[AAudio Player] Current state is %i / %s", inputState, AAudio_convertStreamStateToText(inputState));
+	ms_message("[AAudio Player] Current state is [%s]", AAudio_convertStreamStateToText(inputState));
 
 	if (inputState == AAUDIO_STREAM_STATE_STARTING) {
 		aaudio_stream_state_t nextState = inputState;
@@ -258,13 +324,13 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 			// Waiting more than 0ns can cause a crash
 			aaudio_result_t result = AAudioStream_waitForStateChange(octx->stream, inputState, &nextState, 0);
 			if (result != AAUDIO_OK && result != AAUDIO_ERROR_TIMEOUT) {
-				ms_error("[AAudio Player] Couldn't wait for state change: %i / %s", result, AAudio_convertResultToText(result));
+				ms_error("[AAudio Player] Couldn't wait for state change: %s (%i)", AAudio_convertResultToText(result), result);
 				break;
 			}
 
 			tries += 1;
 		} while (nextState == inputState && tries < 10);
-		ms_message("[AAudio Player] Waited for state change, current state is %i / %s (waited for %i ms)", nextState, AAudio_convertStreamStateToText(nextState), 10*tries);
+		ms_message("[AAudio Player] Waited for state change, current state is [%s] (waited for [%i] ms)", AAudio_convertStreamStateToText(nextState), 10*tries);
 	}
 
 	if (octx->usage == AAUDIO_USAGE_VOICE_COMMUNICATION || octx->usage == AAUDIO_USAGE_NOTIFICATION_RINGTONE || octx->usage == AAUDIO_USAGE_MEDIA) {
@@ -285,12 +351,12 @@ static void aaudio_player_init(AAudioOutputContext *octx) {
 static void aaudio_player_close(AAudioOutputContext *octx) {
 	if (octx->stream) {
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
-		ms_message("[AAudio Player] Closing player stream, current state is %i", streamState);
+		ms_message("[AAudio Player] Closing player stream, current state is [%s]", AAudio_convertStreamStateToText(streamState));
 		// According to https://developer.android.com/ndk/guides/audio/aaudio/aaudio#state-transitions
 		// AAudioStream_close can be called from any state
 		aaudio_result_t result = AAudioStream_close(octx->stream);
 		if (result != AAUDIO_OK) {
-			ms_error("[AAudio Player] Player stream close failed: %i / %s", result, AAudio_convertResultToText(result));
+			ms_error("[AAudio Player] Player stream close failed: %s (%i)", AAudio_convertResultToText(result), result);
 		} else {
 			ms_message("[AAudio Player] Player stream closed");
 		}
@@ -300,7 +366,7 @@ static void aaudio_player_close(AAudioOutputContext *octx) {
 
 static void aaudio_player_callback_error(AAudioStream *stream, void *userData, aaudio_result_t result) {
 	AAudioOutputContext *octx = (AAudioOutputContext *)userData;
-	ms_error("[AAudio Player] aaudio_player_callback_error has result: %i / %s", result, AAudio_convertResultToText(result));
+	ms_error("[AAudio Player] aaudio_player_callback_error has result: %s (%i)", AAudio_convertResultToText(result), result);
 }
 
 static void android_snd_write_preprocess(MSFilter *obj) {
@@ -315,7 +381,7 @@ static void android_snd_write_preprocess(MSFilter *obj) {
 		ms_android_sound_utils_enable_bluetooth(octx->sound_utils, octx->bluetoothScoStarted);
 	}
 
-	aaudio_player_init(octx);
+	aaudio_player_init(octx, false);
 	ms_mutex_unlock(&octx->stream_mutex);
 }
 
@@ -337,7 +403,7 @@ static void android_snd_adjust_buffer_size(AAudioOutputContext *octx) {
 				newBufferSize = 1;
 			}
 
-			ms_message("[AAudio Player] xRunCount %0d - Changing buffer size from %0d to %0d frames (maximum capacity %0d frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
+			ms_message("[AAudio Player] xRunCount [%0d] - Changing buffer size from [%0d] to [%0d] frames (maximum capacity [%0d] frames)", xRunCount, octx->bufferSize, newBufferSize, octx->bufferCapacity);
 			AAudioStream_setBufferSizeInFrames(octx->stream, newBufferSize);
 
 			octx->bufferSize = newBufferSize;
@@ -351,7 +417,7 @@ static void android_snd_write_process(MSFilter *obj) {
 
 	ms_mutex_lock(&octx->stream_mutex);
 	if (!octx->stream) {
-		aaudio_player_init(octx);
+		aaudio_player_init(octx, false);
 	} else {
 		aaudio_stream_state_t streamState = AAudioStream_getState(octx->stream);
 		if (streamState == AAUDIO_STREAM_STATE_DISCONNECTED) {
@@ -391,7 +457,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		return -1;
 	}
 
-	ms_message("[AAudio Player] Requesting to output card. Current %s (device ID %0d) and requested %s (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
+	ms_message("[AAudio Player] Requesting to output card. Current [%s] (device ID %0d) and requested [%s] (device ID %0d)", ms_snd_card_get_string_id(octx->soundCard), octx->soundCard->internal_id, ms_snd_card_get_string_id(card), card->internal_id);
 	// Change device ID only if the new value is different from the previous one
 	if (octx->soundCard->internal_id != card->internal_id) {
 		ms_mutex_lock(&octx->stream_mutex);
@@ -401,7 +467,9 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 		}
 		octx->soundCard = ms_snd_card_ref(card);
 
+		bool streamWasRunning = false;
 		if (octx->stream) {
+			streamWasRunning = true;
 			aaudio_player_close(octx);
 		}
 
@@ -418,7 +486,7 @@ static int android_snd_write_set_device_id(MSFilter *obj, void *data) {
 			octx->bluetoothScoStarted = bluetoothSoundDevice;
 		}
 
-		aaudio_player_init(octx);
+		aaudio_player_init(octx, streamWasRunning);
 		if (octx->stream == nullptr) {
 			ms_mutex_unlock(&octx->stream_mutex);
 			return -1;
