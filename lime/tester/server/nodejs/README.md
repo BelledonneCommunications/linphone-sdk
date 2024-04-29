@@ -47,12 +47,13 @@ Options:
 Script
 ------
 Server is managing one type of keys(Curve 25519 or Curve 448 based).
-To run automated tests if you build liblime with both curves enabled you must
-run two servers, on ports 25519 and 25520.
+To run automated tests if you build liblime with all algorithms enabled you must
+run three servers, on ports 25519, 25520 and 25526
 
 A convenient launching script is provided : localServerStart.sh
 It does:
 - killall nodejs instance running(beware if you use it no shared server)
-- wipe out c25519.sqlite3 and c448.sqlite3
+- wipe out c25519.sqlite3, c448.sqlite3 and c25519k512.sqlite3
 - start server using c22519.sqlite3 db listening on port 25519 using curve25519
-- start server using c22520.sqlite3 db listening on port 25520 using curve448
+- start server using c448.sqlite3 db listening on port 25520 using curve448
+- start server using c25519k512.sqlite3 db listening on port 25526 using curve25519k512

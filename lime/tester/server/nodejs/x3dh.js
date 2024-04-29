@@ -49,9 +49,9 @@ const yargs = require('yargs')
 	})
 	.option('ellipticCurve', {
 		alias : 'e',
-		describe: 'set which Elliptic Curve users of this server must use, option used once at database creation, it is then ignored',
+		describe: 'set which base crypto algorithm users of this server must use, option used once at database creation, it is then ignored',
 		type : 'string',
-		choices : ['c25519', 'c448'],
+		choices : ['c25519', 'c448', 'c25519k512'],
 		default : 'c25519'
 	})
 	.option('resource_dir', {
@@ -83,7 +83,8 @@ const options = {
 // WARNING: value shall be in sync with defines in client code: Curve25519 = 1, Curve448 = 2 */
 const enum_curveId = {
 	CURVE25519 : 1,
-	CURVE448 : 2
+	CURVE448 : 2,
+	CURVE25519K512: 3
 };
 
 // Resource abuse protection
@@ -133,9 +134,10 @@ const enum_keyBundleFlag = {
 	noBundle : 0x02
 };
 
-const keySizes = { // 1 is for enum_curveId.CURVE25519, 2 is for enum_curveId.CURVE448
-	1 : {X_pub : 32, X_priv : 32, ED_pub : 32, ED_priv : 32, Sig : 64},
-	2 : {X_pub : 56, X_priv : 56, ED_pub : 57, ED_priv : 57, Sig : 114}
+const keySizes = { // 1 is for enum_curveId.CURVE25519, 2 is for enum_curveId.CURVE448, 3 is for enum_curveId.CURVE25519K512
+	1 : {X_pub : 32, ED_pub : 32, Sig : 64, OPk : 32, SPk : 96, Ik : 32},
+	2 : {X_pub : 56, ED_pub : 57, Sig : 114, OPk : 56, SPk : 170, Ik : 57},
+	3 : {X_pub : 832, ED_pub : 32, Sig : 64, OPk : 896, SPk : 896, Ik : 32}
 };
 
 // open DataBase
@@ -149,8 +151,18 @@ db.run("PRAGMA synchronous = OFF;"); // WARNING: huge performance boost be DON'T
 // Check the user version, do we need to do something on this DB?
 db.get("PRAGMA user_version;", function(err, row) {
 	if (row.user_version < 1) { // current user version is 1
-		curveId =  (yargs.ellipticCurve=='c25519')?enum_curveId.CURVE25519:enum_curveId.CURVE448;
-		console.log("Create Database "+yargs.database+" using curve "+yargs.ellipticCurve);
+		switch (yargs.ellipticCurve) {
+			case 'c25519':
+				curveId=enum_curveId.CURVE25519;
+				break;
+			case 'c25519k512':
+				curveId=enum_curveId.CURVE25519K512;
+				break;
+			case 'c448':
+				curveId=enum_curveId.CURVE448;
+				break;
+		}
+		console.log("Create Database "+yargs.database+" using curve "+yargs.ellipticCurve+" (id "+curveId+")");
 		db.run(
 		/* Users table:
 		 *  - id as primary key (internal use)
@@ -184,6 +196,10 @@ db.get("PRAGMA user_version;", function(err, row) {
 				case enum_curveId.CURVE448:
 					console.log("Open DB "+yargs.database+" using curve c448");
 					curveId = enum_curveId.CURVE448;
+					break;
+				case enum_curveId.CURVE25519K512:
+					console.log("Open DB "+yargs.database+" using algo c25519k512");
+					curveId = enum_curveId.CURVE25519K512;
 					break;
 				default:
 					console.log("Open DB "+yargs.database+" but unable to pick or unknow curve in config table"+row.CurveId);
@@ -265,7 +281,7 @@ https.createServer(options, (req, res) => {
 		}
 
 		if (message_curveId != curveId) {
-			returnError(enum_errorCodes.bad_curve, "Server running X3DH procotol using curve "+((curveId==enum_curveId.CURVE25519)?"25519":"448")+"(id "+curveId+"). Can't process serve client using curveId "+message_curveId);
+			returnError(enum_errorCodes.bad_curve, "Server running X3DH procotol using curve (id "+curveId+"). Can't serve client using curveId "+message_curveId);
 			return;
 		}
 
@@ -316,8 +332,8 @@ https.createServer(options, (req, res) => {
 			case enum_messageTypes.registerUser:
 				console.log("Got a registerUser Message from "+userId);
 				// check we have at least Ik, SPk, SPk_sig, SPk_Id and OPk_count
-				var x3dh_expectedSize = keySizes[curveId]['ED_pub']  // Ik
-					+ keySizes[curveId]['X_pub'] + keySizes[curveId]['Sig'] + 4 //SPk, SPk_Sig, SPk_id
+				var x3dh_expectedSize = keySizes[curveId]['Ik']  // Ik
+					+ keySizes[curveId]['SPk'] + 4 //SPk, SPk_Sig, SPk_id
 					+2; // OPk count
 
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
@@ -332,15 +348,15 @@ https.createServer(options, (req, res) => {
 					return;
 				}
 				// And check again the size with OPks
-				x3dh_expectedSize += OPk_number*(keySizes[curveId]['X_pub'] + 4);
+				x3dh_expectedSize += OPk_number*(keySizes[curveId]['OPk'] + 4);
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
 					returnError(enum_errorCodes.bad_size, "Register User packet is expected to be (with "+OPk_number+" OPks) "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
 					return;
 				}
 
 				// Read Ik
-				var Ik = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['ED_pub']);
-				bufferIndex += keySizes[curveId]['ED_pub'];
+				var Ik = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['Ik']);
+				bufferIndex += keySizes[curveId]['Ik'];
 				// SPk
 				var SPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
 				bufferIndex += keySizes[curveId]['X_pub'];
@@ -353,8 +369,8 @@ https.createServer(options, (req, res) => {
 				// all OPks
 				var OPks_param = [];
 				for (let i = 0; i < OPk_number; i++) {
-					var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
-					bufferIndex += keySizes[curveId]['X_pub'];
+					var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['OPk']);
+					bufferIndex += keySizes[curveId]['OPk'];
 					var OPk_id = body.readUInt32BE(bufferIndex); // SPk id is a 32 bits unsigned integer in Big endian
 					bufferIndex += 4;
 					OPks_param.push([OPk, OPk_id]);
@@ -442,7 +458,7 @@ https.createServer(options, (req, res) => {
 
 			/* Post Signed Pre Key: Signed Pre Key <ECDH public key size> | SPk Signature <Signature length> | SPk id <uint32_t big endian: 4 bytes> */
 			case enum_messageTypes.postSPk:
-				var x3dh_expectedSize = keySizes[curveId]['X_pub'] + keySizes[curveId]['Sig'] + 4;
+				var x3dh_expectedSize = keySizes[curveId]['SPk'] + 4;
 				console.log("Got a postSPk Message from "+userId);
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
 					returnError(enum_errorCodes.bad_size, "post SPK packet is expexted to be "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
@@ -487,7 +503,7 @@ https.createServer(options, (req, res) => {
 				// get the OPks number in the first message bytes(unsigned int 16 in big endian)
 				var bufferIndex = X3DH_headerSize;
 				var OPk_number = body.readUInt16BE(bufferIndex);
-				var x3dh_expectedSize = 2 + OPk_number*(keySizes[curveId]['X_pub'] + 4); // read the public key
+				var x3dh_expectedSize = 2 + OPk_number*(keySizes[curveId]['OPk'] + 4); // read the public key
 				if (body.length<X3DH_headerSize + x3dh_expectedSize) {
 					returnError(enum_errorCodes.bad_size, "post OPK packet is expexted to be "+(X3DH_headerSize+x3dh_expectedSize)+" bytes, but we got "+body.length+" bytes");
 					return;
@@ -533,8 +549,8 @@ https.createServer(options, (req, res) => {
 										// parse all OPks to be inserted
 										var OPks_param = [];
 										for (let i = 0; i < OPk_number; i++) {
-											var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
-											bufferIndex += keySizes[curveId]['X_pub'];
+											var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['OPk']);
+											bufferIndex += keySizes[curveId]['OPk'];
 											var OPk_id = body.readUInt32BE(bufferIndex); // OPk id is a 32 bits unsigned integer in Big endian
 											bufferIndex += 4;
 											OPks_param.push([Uid, OPk, OPk_id]);
@@ -575,8 +591,8 @@ https.createServer(options, (req, res) => {
 									// parse all OPks to be inserted
 									var OPks_param = [];
 									for (let i = 0; i < OPk_number; i++) {
-										var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['X_pub']);
-										bufferIndex += keySizes[curveId]['X_pub'];
+										var OPk = body.slice(bufferIndex, bufferIndex + keySizes[curveId]['OPk']);
+										bufferIndex += keySizes[curveId]['OPk'];
 										var OPk_id = body.readUInt32BE(bufferIndex); // OPk id is a 32 bits unsigned integer in Big endian
 										bufferIndex += 4;
 										OPks_param.push([Uid, OPk, OPk_id]);
