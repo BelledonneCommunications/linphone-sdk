@@ -367,6 +367,10 @@ public:
 	friend pumpstream &operator<<(pumpstream &__os, _Tp &&__x);
 	template <typename _Tp>
 	friend pumpstream &operator<<(pumpstream &&__os, _Tp &&__x);
+	template <typename T>
+	friend pumpstream &operator<<(pumpstream &&pumpStream, const T &x);
+	template <typename T>
+	friend pumpstream &operator<<(pumpstream &pumpStream, const T &x);
 	friend pumpstream &operator<<(pumpstream &__os, std::ostream &(*pf)(std::ostream &));
 
 private:
@@ -392,6 +396,14 @@ inline pumpstream &operator<<(pumpstream &pumpStream, T &&x) {
 }
 
 template <typename T>
+inline pumpstream &operator<<(pumpstream &pumpStream, const T &x) {
+	if (pumpStream.mIslogLevelEnabled) {
+		pumpStream.mOstringstream << x;
+	}
+	return pumpStream;
+}
+
+template <typename T>
 inline pumpstream &operator<<(pumpstream &&pumpStream, T &&x) {
 	if (pumpStream.mIslogLevelEnabled) {
 		pumpStream.mOstringstream << std::forward<T>(x);
@@ -399,12 +411,24 @@ inline pumpstream &operator<<(pumpstream &&pumpStream, T &&x) {
 	return pumpStream;
 }
 
+template <typename T>
+inline pumpstream &operator<<(pumpstream &&pumpStream, const T &x) {
+	if (pumpStream.mIslogLevelEnabled) {
+		pumpStream.mOstringstream << x;
+	}
+	return pumpStream;
+}
+
 #define BCTBX_SLOG(domain, thelevel) pumpstream(domain, thelevel)
 
 #define BCTBX_SLOGD BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_DEBUG)
+// deprecated: prefer BCTBX_SLOGM for consistency.
 #define BCTBX_SLOGI BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
+
+#define BCTBX_SLOGM BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_MESSAGE)
 #define BCTBX_SLOGW BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_WARNING)
 #define BCTBX_SLOGE BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_ERROR)
+#define BCTBX_SLOGF BCTBX_SLOG(BCTBX_LOG_DOMAIN, BCTBX_LOG_FATAL)
 
 #endif
 #endif
