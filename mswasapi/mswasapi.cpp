@@ -169,7 +169,7 @@ float MSWasapi::getVolumeLevel() {
 	HRESULT result;
 	float volume;
 
-	if (!mIsActivated) {
+	if (!mIsActivated || mVolumeController == nullptr) {
 		ms_error("mswasapi: The %s instance is not started to get volume", mMediaDirectionStr.c_str());
 		goto error;
 	}
@@ -184,7 +184,7 @@ error:
 void MSWasapi::setVolumeLevel(float volume) {
 	HRESULT result;
 
-	if (!mIsActivated) {
+	if (!mIsActivated || mVolumeController == nullptr) {
 		ms_error("mswasapi: The %s instance is not started to set volume", mMediaDirectionStr.c_str());
 		goto error;
 	}

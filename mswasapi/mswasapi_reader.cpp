@@ -108,12 +108,14 @@ int MSWASAPIReader::activate() {
 	result = mAudioClient->GetService(IID_IAudioCaptureClient, (void **)&mAudioCaptureClient);
 	REPORT_ERROR("mswasapi: Could not get render service from the MSWASAPI audio input interface [%x]", result);
 	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeController);
-	REPORT_ERROR("mswasapi: Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
+	REPORT_ERROR_NOGOTO("mswasapi: Could not get volume control service from the MSWASAPI audio input interface [%x]", result);
 	result = mAudioClient->GetService(__uuidof(IAudioSessionControl), (void **)&mAudioSessionControl);
-	REPORT_ERROR("mswasapi: Could not get audio session control service from the MSWASAPI audio input interface [%x]",
+	REPORT_ERROR_NOGOTO("mswasapi: Could not get audio session control service from the MSWASAPI audio input interface [%x]",
 	             result);
-	result = mAudioSessionControl->RegisterAudioSessionNotification(this);
-	REPORT_ERROR("mswasapi: Could not register to Audio Session from the MSWASAPI audio input interface [%x]", result);
+	if (mAudioSessionControl != nullptr){
+		result = mAudioSessionControl->RegisterAudioSessionNotification(this);
+		REPORT_ERROR_NOGOTO("mswasapi: Could not register to Audio Session from the MSWASAPI audio input interface [%x]", result);
+	}
 	mIsActivated = true;
 	ms_message("mswasapi: capture initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), %i-bit "
 	           "frames are on %i bits",
@@ -123,6 +125,7 @@ int MSWASAPIReader::activate() {
 	return 0;
 
 error:
+	ms_error("mswasapi: failed to initialize capture.");
 	FREE_PTR(pSupportedWfx);
 	if (mAudioClient) mAudioClient->Reset();
 	return -1;
@@ -141,7 +144,7 @@ int MSWASAPIReader::deactivate() {
 
 void MSWASAPIReader::start() {
 	MSWasapi::start();
-	ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
+	if (mIsStarted) ms_ticker_set_synchronizer(mFilter->ticker, mTickerSynchronizer);
 }
 
 void MSWASAPIReader::stop() {

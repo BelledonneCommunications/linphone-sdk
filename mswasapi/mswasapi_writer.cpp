@@ -117,13 +117,15 @@ int MSWASAPIWriter::activate() {
 	result = mAudioClient->GetService(IID_IAudioRenderClient, (void **)&mAudioRenderClient);
 	REPORT_ERROR("mswasapi: Could not get render service from the MSWASAPI audio output interface [%x]", result);
 	result = mAudioClient->GetService(IID_ISimpleAudioVolume, (void **)&mVolumeController);
-	REPORT_ERROR("mswasapi: Could not get volume control service from the MSWASAPI audio output interface [%x]",
+	REPORT_ERROR_NOGOTO("mswasapi: Could not get volume control service from the MSWASAPI audio output interface [%x]",
 	             result);
 	result = mAudioClient->GetService(__uuidof(IAudioSessionControl), (void **)&mAudioSessionControl);
-	REPORT_ERROR("mswasapi: Could not get audio session control service from the MSWASAPI audio output interface [%x]",
+	REPORT_ERROR_NOGOTO("mswasapi: Could not get audio session control service from the MSWASAPI audio output interface [%x]",
 	             result);
-	result = mAudioSessionControl->RegisterAudioSessionNotification(this);
-	REPORT_ERROR("mswasapi: Could not register to Audio Session from the MSWASAPI audio output interface [%x]", result);
+	if (mAudioSessionControl != nullptr){
+		result = mAudioSessionControl->RegisterAudioSessionNotification(this);
+		REPORT_ERROR_NOGOTO("mswasapi: Could not register to Audio Session from the MSWASAPI audio output interface [%x]", result);
+	}
 	mIsActivated = true;
 	ms_message("mswasapi: playback output initialized for [%s] at %i Hz, %i channels, with buffer size %i (%i ms), "
 	           "device period is %i, %i-bit frames are on %i bits",
@@ -134,6 +136,7 @@ int MSWASAPIWriter::activate() {
 	return 0;
 
 error:
+	ms_error("mswasapi: failed to initialize playback side.");
 	FREE_PTR(pSupportedWfx);
 	if (mAudioClient) mAudioClient->Reset();
 	return -1;
