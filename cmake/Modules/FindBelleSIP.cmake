@@ -44,7 +44,7 @@ set(_BelleSIP_CACHE_VARS ${_BelleSIP_REQUIRED_VARS})
 
 if(TARGET belle-sip)
 	set(BelleSIP_TARGET belle-sip)
-	set(BelleSIP_tester_TARGET belle-sip-tester-runtime)
+	set(BelleSIP_tester_TARGET libbelle-sip-tester)
 endif()
 
 include(FindPackageHandleStandardArgs)

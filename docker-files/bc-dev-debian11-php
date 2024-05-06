@@ -1,8 +1,8 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-php:20230706_add_deps_for_av1
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-php:20240506_add_jsoncpp_for_oauth2
 ###############################################################################
 
-FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20230706_add_deps_for_av1
+FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:20240506_add_jsoncpp_for_oauth2
 
 MAINTAINER Peio Rigaux <peio.rigaux@belledonne-communications.com>
 

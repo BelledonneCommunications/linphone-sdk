@@ -1,8 +1,8 @@
 ###############################################################################
-# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20230706_add_deps_for_av1
+# Dockerfile used to make gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11-test-liblinphone:20240506_add_jsoncpp_for_oauth2
 ###############################################################################
 
-ARG FROM_IMAGE_TAG=20230706_add_deps_for_av1
+ARG FROM_IMAGE_TAG=20240506_add_jsoncpp_for_oauth2
 
 FROM gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-debian11:$FROM_IMAGE_TAG
 
