@@ -27,7 +27,7 @@
 #
 # The following targets are defined:
 #  belle-sip - The belle-sip library target
-#  belle-sip-tester-runtime - The belle-sip-tester library target (defined if the tester is asked for)
+#  libbelle-sip-tester - The belle-sip-tester library target (defined if the tester is asked for)
 #
 #
 # Result variables
@@ -38,7 +38,7 @@
 #  BelleSIP_FOUND - The belle-sip library has been found
 #  BelleSIP_TARGET - The name of the CMake target for the belle-sip library
 #  BelleSIP_tester_FOUND - The belle-sip-tester library has been found
-#  BelleSIP_tester_TARGET - The name of the CMake target for the belle-sip-tester-runtime library
+#  BelleSIP_tester_TARGET - The name of the CMake target for the libbelle-sip-tester library
 
 
 @PACKAGE_INIT@
@@ -49,7 +49,7 @@ set(BelleSIP_TARGET belle-sip)
 
 if(@ENABLE_UNIT_TESTS@)
         set(BelleSIP_tester_FOUND TRUE)
-        set(BelleSIP_tester_TARGET belle-sip-tester-runtime)
+        set(BelleSIP_tester_TARGET libbelle-sip-tester)
 message (WARNING "BelleSIP_tester_TARGET: ", ${BelleSIP_tester_TARGET})
 endif()
 

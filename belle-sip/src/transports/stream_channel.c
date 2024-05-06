@@ -40,7 +40,7 @@ static void stream_channel_uninit(belle_sip_stream_channel_t *obj) {
 
 int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t buflen) {
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
-	int err = bctbx_send(sock, buf, buflen, 0);
+	int err = (int)bctbx_send(sock, buf, buflen, 0);
 	if (err == (belle_sip_socket_t)-1) {
 		int errnum = get_socket_error();
 		if (!belle_sip_error_code_is_would_block(errnum)) {
@@ -54,7 +54,7 @@ int stream_channel_send(belle_sip_stream_channel_t *obj, const void *buf, size_t
 
 int stream_channel_recv(belle_sip_stream_channel_t *obj, void *buf, size_t buflen) {
 	belle_sip_socket_t sock = belle_sip_source_get_socket((belle_sip_source_t *)obj);
-	int err = bctbx_recv(sock, buf, buflen, 0);
+	int err = (int)bctbx_recv(sock, buf, buflen, 0);
 
 	if (err == (belle_sip_socket_t)-1) {
 		int errnum = get_socket_error();

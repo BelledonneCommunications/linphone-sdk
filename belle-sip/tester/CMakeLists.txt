@@ -72,9 +72,33 @@ bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
 
+
+set(USE_BUNDLE )
+if (IOS)
+	set(USE_BUNDLE MACOSX_BUNDLE)
+endif()
+add_library(libbelle-sip-tester ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
+target_link_libraries(libbelle-sip-tester PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
+target_link_libraries(libbelle-sip-tester PUBLIC httplib)
+target_include_directories(libbelle-sip-tester INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+$<INSTALL_INTERFACE:include>)
+
+if(NOT IOS)
+	install(TARGETS libbelle-sip-tester EXPORT ${PROJECT_NAME}Targets
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	)
+	install(FILES belle_sip_tester_utils.h
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/belle-sip
+		PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+	)
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	add_library(belle-sip-tester-static STATIC ${SOURCE_FILES_C} ${SOURCE_FILES_CXX})
-	target_link_libraries(belle-sip-tester-static PUBLIC ${BCToolbox_tester_TARGET} belle-sip)
+	target_link_libraries(belle-sip-tester-static PUBLIC ${BCToolbox_tester_TARGET} belle-sip httplib)
 
 	set(RUNTIME_COMPONENT_SOURCES
 		belle_sip_tester_windows.cpp
@@ -104,18 +128,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		)
 	endif()
 else()
-	set(USE_BUNDLE )
-	if (IOS)
-		set(USE_BUNDLE MACOSX_BUNDLE)
-	endif()
-	add_library(belle-sip-tester-runtime ${USE_BUNDLE} ${SOURCE_FILES_C} ${SOURCE_FILES_CXX} ${SOURCE_FILES_OBJC})
-	target_link_libraries(belle-sip-tester-runtime PRIVATE ${BCToolbox_tester_TARGET} belle-sip)
-	target_link_libraries(belle-sip-tester-runtime PUBLIC httplib)
-	target_include_directories(belle-sip-tester-runtime INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-	$<INSTALL_INTERFACE:include>)
 
-	add_executable(belle-sip-tester belle_sip_tester.c belle_sip_tester.h)
-	target_link_libraries(belle-sip-tester PRIVATE belle-sip-tester-runtime belle-sip ${BCToolbox_tester_TARGET})
+
+	# foo.cpp is an empty file here just to request cmake to use the C++ compiler to link the executable
+	# since it depends on libraries written in C++.
+	add_executable(belle-sip-tester belle_sip_tester.c belle_sip_tester.h foo.cpp)
+	target_link_libraries(belle-sip-tester PRIVATE libbelle-sip-tester belle-sip ${BCToolbox_tester_TARGET})
 
 	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
 		set_target_properties(belle-sip-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
@@ -125,16 +143,6 @@ else()
 	endif()
 	add_test(NAME belle-sip-tester COMMAND belle-sip-tester --verbose)
 	if(NOT IOS)
-		install(TARGETS belle-sip-tester-runtime EXPORT ${PROJECT_NAME}Targets
-			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-		install(FILES belle_sip_tester_utils.h
-			DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/bctoolbox
-			PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
-		)
 		install(TARGETS belle-sip-tester
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

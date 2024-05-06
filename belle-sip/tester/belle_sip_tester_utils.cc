@@ -147,6 +147,7 @@ bool BasicRegistrar::onRequest(const belle_sip_request_event_t *event) {
 			response_code = 200;
 		}
 	} catch (BctbxException &e) {
+		(void)e;
 		response_code = 400;
 	}
 	response_msg = belle_sip_response_create_from_request(req, response_code);

@@ -31,6 +31,11 @@
 #include <set>
 #include <thread>
 
+#ifdef _WIN32
+// Disable C4251 triggered by need to export all stl template classes
+#pragma warning(disable : 4251)
+#endif // ifdef _WIN32
+
 namespace bellesip {
 class BasicSipAgent;
 

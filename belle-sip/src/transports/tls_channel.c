@@ -585,7 +585,7 @@ static int tls_process_http_connect(belle_sip_tls_channel_t *obj) {
 	}
 
 	request = belle_sip_strcat_printf(request, "\r\n");
-	err = bctbx_send(belle_sip_source_get_socket((belle_sip_source_t *)obj), request, strlen(request), 0);
+	err = (int)bctbx_send(belle_sip_source_get_socket((belle_sip_source_t *)obj), request, strlen(request), 0);
 	belle_sip_free(request);
 	if (err <= 0) {
 		belle_sip_error("tls_process_http_connect: fail to send connect request to http proxy [%s:%i] status [%s]",

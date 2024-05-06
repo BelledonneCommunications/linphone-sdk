@@ -387,13 +387,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 					schedule_timer_at(refresher, retry_after_time * 1000, RETRY);
 					return; /*do not notify this kind of error*/
 				}
-			}
-				BCTBX_NO_BREAK; /*intentionally no break*/
-			case 505:
-			case 501:
-				/*irrecoverable errors, probably no need to retry later*/
-				will_retry = FALSE;
-				break;
+			} break;
 			case 481:
 			case 503:
 				if (refresher->target_expires > 0) {

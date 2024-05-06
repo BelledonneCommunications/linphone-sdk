@@ -45,6 +45,11 @@ BELLESIP_EXPORT time_t belle_sip_bearer_token_get_expiration_time(const belle_si
 
 #ifdef __cplusplus
 
+#ifdef _WIN32
+// Disable C4251 triggered by need to export all stl template classes
+#pragma warning(disable : 4251)
+#endif // ifdef _WIN32
+
 #include "belle-sip/object++.hh"
 
 namespace bellesip {
