@@ -322,7 +322,7 @@ EktServerPlugin::ServerEktManager::ParticipantDeviceContext::ParticipantDeviceCo
 }
 
 void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onSubscribeStateChanged(
-    const shared_ptr<const Event> &event, SubscriptionState state) {
+    const shared_ptr<Event> &event, SubscriptionState state) {
 	if (!mEventSubscribe) {
 		bctbx_error("Event subscribe EKT NULL");
 		return;
@@ -360,7 +360,7 @@ void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishRecei
 }
 
 void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishStateChanged(
-    const shared_ptr<const Event> &event, PublishState state) {
+    const shared_ptr<Event> &event, PublishState state) {
 	if (state == PublishState::Cleared) {
 		bctbx_message("ParticipantDeviceContext::onPublishStateChanged : Cleared");
 		mEventPublish->removeListener(this->shared_from_this());

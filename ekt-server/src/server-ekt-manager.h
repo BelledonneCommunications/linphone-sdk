@@ -66,11 +66,11 @@ private:
 	public:
 		explicit ParticipantDeviceContext(const std::shared_ptr<ServerEktManager> &serverEktManager);
 
-		void onSubscribeStateChanged(const std::shared_ptr<const linphone::Event> &event,
+		void onSubscribeStateChanged(const std::shared_ptr<linphone::Event> &event,
 		                             linphone::SubscriptionState state) override;
 		void onPublishReceived(const std::shared_ptr<linphone::Event> &event,
 		                       const std::shared_ptr<linphone::Content> &content) override;
-		void onPublishStateChanged(const std::shared_ptr<const linphone::Event> &event,
+		void onPublishStateChanged(const std::shared_ptr<linphone::Event> &event,
 		                           linphone::PublishState state) override;
 
 		const std::shared_ptr<linphone::Event> &getEventSubscribe() const;
