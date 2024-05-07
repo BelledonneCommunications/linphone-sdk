@@ -95,9 +95,9 @@ Be careful to not change the path orelse the runtime framework won't find it. --
 		<Pack>true</Pack>
 		<PackagePath>$(ContentTargetFolders)\any\any\share\images\</PackagePath>
 	</None>
-	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\Linphone\rootca.pem">
+	<None Condition="Exists('@LINPHONESDK_SHARE_PATH@')" Include="@LINPHONESDK_SHARE_PATH@\linphone\rootca.pem">
 		<Pack>true</Pack>
-		<PackagePath>$(ContentTargetFolders)\any\any\share\Linphone\</PackagePath>
+		<PackagePath>$(ContentTargetFolders)\any\any\share\linphone\</PackagePath>
 	</None>
 </ItemGroup>
 <!-- add the plugins and lib needed by windows projects -->

@@ -61,7 +61,7 @@ endif()
 set_property(CACHE LINPHONESDK_PLATFORM PROPERTY STRINGS "Android" "Desktop" "IOS" "Macos" "UWP" "Yocto")
 
 set(LINPHONESDK_BUILD_TYPE "Default" CACHE STRING "Type of build")
-set_property(CACHE LINPHONESDK_BUILD_TYPE PROPERTY STRINGS "Default" "Android" "Flexisip" "IOS" "Macos" "UWP" "Windows")
+set_property(CACHE LINPHONESDK_BUILD_TYPE PROPERTY STRINGS "Default" "Android" "Flexisip" "IOS" "Macos" "Packager" "UWP" "Windows")
 
 set(LINPHONESDK_PACKAGER "" CACHE STRING "Packager name")
 set_property(CACHE LINPHONESDK_PACKAGER PROPERTY STRINGS "Nuget" "")
@@ -104,6 +104,10 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default" OR LINPHONESDK_BUILD_TYPE STREQUAL 
 	include("cmake/ExternalDependencies.cmake")
 	include("cmake/BCProjects.cmake")
 
+elseif(LINPHONESDK_BUILD_TYPE STREQUAL "Packager")
+
+	include("cmake/LinphoneSdkPackager.cmake")
+
 else()
 
 	include("cmake/Tasks${LINPHONESDK_BUILD_TYPE}.cmake")
@@ -139,8 +143,4 @@ else()
   ***************************************************************************
   ***************************************************************************
   ")
-endif()
-
-if(LINPHONESDK_PACKAGER STREQUAL "Nuget")
-	include(LinphoneSdkPackager)
 endif()

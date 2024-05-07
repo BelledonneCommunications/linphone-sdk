@@ -71,15 +71,12 @@ cs-doc-windows-upload:
     # We are forced to use brakets, otherwize powershell will resolve ':' as part of a drive letter
     - scp -pr build/win/linphone-sdk/win32/share/doc/liblinphone-$LINPHONE_VERSION/cs/* ${DEPLOY_SERVER}:${UPLOAD_ROOT_DIRECTORY}/docs/liblinphone/${STRIPPED_LINPHONE_VERSION}/cs
 
-# nuget-upload-windows:
-#   extends: nuget-upload-xamarin
-
-#   rules:
-#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
-#     - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
-
-#   needs:
-#     - job: vs2017-nuget-windows-package
-
-#   script:
-#     - nuget push "build-desktop/linphone-sdk/packages/*.nupkg" -Source gitlab
+nuget-upload-windows:
+  extends: nuget-upload-xamarin
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_NUGET != null
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_RUN_WINDOWS != null
+  needs:
+    - job: vs2017-nuget-windows-package
+  script:
+    - nuget push "build/linphone-sdk/packages/*.nupkg" -Source gitlab

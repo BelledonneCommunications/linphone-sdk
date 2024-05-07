@@ -61,6 +61,19 @@ function(linphone_sdk_get_enable_cmake_args OUTPUT_VAR)
 	set("${OUTPUT_VAR}" ${_ENABLE_CMAKE_ARGS} PARENT_SCOPE)
 endfunction()
 
+function(linphone_sdk_get_sdk_cmake_args OUTPUT_VAR)
+	set(_SDK_CMAKE_ARGS)
+	get_cmake_property(_VARIABLE_NAMES VARIABLES)
+
+	foreach(_VARIABLE_NAME ${_VARIABLE_NAMES})
+		if ((_VARIABLE_NAME MATCHES "^LINPHONESDK_.*$"))
+			list(APPEND _SDK_CMAKE_ARGS "-D${_VARIABLE_NAME}=${${_VARIABLE_NAME}}")
+		endif()
+	endforeach()
+
+	set("${OUTPUT_VAR}" ${_SDK_CMAKE_ARGS} PARENT_SCOPE)
+endfunction()
+
 macro(linphone_sdk_convert_comma_separated_list_to_cmake_list INPUT OUTPUT)
 	string(REPLACE " " "" ${OUTPUT} "${INPUT}")
 	string(REPLACE "," ";" ${OUTPUT} "${${OUTPUT}}")

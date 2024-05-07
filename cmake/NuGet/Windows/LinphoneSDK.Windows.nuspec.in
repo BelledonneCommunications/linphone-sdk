@@ -22,7 +22,7 @@ This package provides the UWP, WinRT, and WindowsStore libraries for Windows dev
 	<files>
 		<file src="@NUGET_ICON_PATH@" target="icon.png"/>
 
-		@NUSPEC_WIN32@
+		@NUSPEC_WINDOWS@
 		@NUSPEC_WINDOWSSTORE@
 		@NUSPEC_UWP@
 		@NUSPEC_GENERIC@

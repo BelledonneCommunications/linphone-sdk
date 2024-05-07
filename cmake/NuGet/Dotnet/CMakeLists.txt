@@ -100,23 +100,16 @@ configure_file(
 # Call pack, need at least the csharp Wrapper. Empty variables PATH will be ignored.
 add_custom_command(
 	COMMENT "Packaging NuGet"
-	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.${NUPKG_VERSION}.nupkg"
+	OUTPUT "${CMAKE_BINARY_DIR}/packages/LinphoneSDK.${NUPKG_VERSION}.nupkg"
 	DEPENDS
 		"${LINPHONESDK_CSHARP_WRAPPER_PATH}/LinphoneWrapper.cs"
-	COMMAND ${DOTNET} "pack" "LinphoneSDK.csproj" "--output" "${CMAKE_CURRENT_BINARY_DIR}/packages"
+	COMMAND ${DOTNET} "pack" "LinphoneSDK.csproj" "--output" "${CMAKE_BINARY_DIR}/packages"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_custom_target(${PROJECT_NAME}
 	ALL
 	DEPENDS
-		"${CMAKE_CURRENT_BINARY_DIR}/packages/LinphoneSDK.${NUPKG_VERSION}.nupkg"
+		"${CMAKE_BINARY_DIR}/packages/LinphoneSDK.${NUPKG_VERSION}.nupkg"
 		"${LINPHONESDK_CSHARP_WRAPPER_PATH}/LinphoneWrapper.cs"
-)
-
-####################### Deploy ##############
-
-add_custom_command(TARGET ${PROJECT_NAME}
-	COMMAND ${CMAKE_COMMAND} "-E" "copy_directory"  "${CMAKE_CURRENT_BINARY_DIR}/packages" "${CMAKE_INSTALL_PREFIX}/packages"
-	WORKING_DIRECTORY ${LINPHONESDK_OUTPUT_DIR}
 )
