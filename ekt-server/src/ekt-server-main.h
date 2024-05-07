@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <map>
+#include <unordered_map>
 
 #include "linphone++/conference.hh"
 #include "linphone++/core_listener.hh"
@@ -26,14 +26,6 @@
 #include "server-ekt-manager.h"
 
 namespace EktServerPlugin {
-
-class AddressCompare {
-public:
-	bool operator()(const std::shared_ptr<const linphone::Address> &address,
-	                const std::shared_ptr<const linphone::Address> &other) const {
-		return address->lesser(other);
-	}
-};
 
 class EktServerMain : public std::enable_shared_from_this<EktServerMain>, public linphone::CoreListener {
 public:
@@ -54,12 +46,30 @@ public:
 	                          const std::string &message) override;
 	void onNetworkReachable(const std::shared_ptr<linphone::Core> &core, bool reachable);
 	void clear(const std::shared_ptr<linphone::Core> &core);
-
 private:
 	std::shared_ptr<ServerEktManager>
 	findServerEktManager(const std::shared_ptr<const linphone::Address> &localConferenceAddress);
 
-	std::map<const std::shared_ptr<const linphone::Address>, std::shared_ptr<linphone::Conference>, AddressCompare>
+
+	struct ConferenceAddressHash {
+		size_t operator()(const std::shared_ptr<const linphone::Address> &address) const {
+			auto tmp = address->clone();
+			tmp->removeUriParam("gr");
+			return std::hash<std::string>()(tmp->asStringUriOnlyOrdered());
+		}
+	};
+
+	struct ConferenceAddressEqual {
+		size_t operator()(const std::shared_ptr<const linphone::Address> &address1, const std::shared_ptr<const linphone::Address> &address2) const {
+			auto tmp1 = address1->clone();
+			tmp1->removeUriParam("gr");
+			auto tmp2 = address2->clone();
+			tmp2->removeUriParam("gr");
+			return tmp1->equal(tmp2);
+		}
+	};
+
+	std::unordered_map<const std::shared_ptr<const linphone::Address>, std::shared_ptr<linphone::Conference>, ConferenceAddressHash, ConferenceAddressEqual>
 	    mConferenceByAddress;
 
 	const char *kDataKey = "ServerEktManager";
