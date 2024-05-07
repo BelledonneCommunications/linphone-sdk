@@ -19,14 +19,30 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 ############################################################################
-include(LinphoneSdkUtils)
 
-set(LINPHONESDK_UWP_ARCHS "x86, x64" CACHE STRING "UWP architectures to build for: comma-separated list of values in [x86, x64]")
-
+include("${LINPHONESDK_DIR}/cmake/LinphoneSdkUtils.cmake")
 
 linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_UWP_ARCHS}" UWP_ARCHS)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_WINDOWS_ARCHS}" WINDOWS_ARCHS)
+linphone_sdk_convert_comma_separated_list_to_cmake_list("${LINPHONESDK_WINDOWSSTORE_ARCHS}" WINDOWSSTORE_ARCHS)
 
-#Configuration
+function(get_windows_name ARCH OUTPUT_VAR)
+	if(ARCH STREQUAL "x86")
+		set(${OUTPUT_VAR} "win32" PARENT_SCOPE)
+	else()
+		set(${OUTPUT_VAR} "win64" PARENT_SCOPE)
+	endif()
+endfunction()
+
+function(get_windowsstore_name ARCH OUTPUT_VAR)
+	if(ARCH STREQUAL "x86")
+		set(${OUTPUT_VAR} "win32store" PARENT_SCOPE)
+	else()
+		set(${OUTPUT_VAR} "win64store" PARENT_SCOPE)
+	endif()
+endfunction()
+
+# Configuration
 
 if(NOT LINPHONESDK_DESKTOP_ZIP_PATH AND NOT LINPHONESDK_UWP_ZIP_PATH AND NOT LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 	message(FATAL_ERROR "You need to specify at least one of LINPHONESDK_DESKTOP_ZIP_PATH, LINPHONESDK_UWP_ZIP_PATH, or LINPHONESDK_WINDOWSSTORE_ZIP_PATH")
@@ -34,73 +50,78 @@ endif()
 
 function(add_command_from_zip zip_path nuget_folder)
 	FILE(GLOB ZIP_FILES ${zip_path}/*.zip)
-	set(FILE_ITEM "")
-	foreach(item ${ZIP_FILES})
-		if("${FILE_ITEM}" STREQUAL "")
-			set(FILE_ITEM ${item})
-		elseif(${item} IS_NEWER_THAN ${FILE_ITEM})
-			set(FILE_ITEM ${item})
-		endif()
-	endforeach(item)
-	if(NOT ${FILE_ITEM} STREQUAL "")
-		message(STATUS "-  ${FILE_ITEM}")
-		set(out_dir "${CMAKE_BINARY_DIR}/WORK/packages/nuget/${nuget_folder}")
-		add_custom_command(TARGET unzip PRE_BUILD
-			COMMAND ${CMAKE_COMMAND} -E tar xzf ${FILE_ITEM}
-			WORKING_DIRECTORY "${out_dir}"
-			COMMENT "Unzipping files : ${FILE_ITEM} into ${out_dir}\n"
-			VERBATIM)
-		
-	else()
+	if("${ZIP_FILES}" STREQUAL "")
 		message(FATAL_ERROR ".zip files not found in folder : ${zip_path}.")
+	else()
+		foreach(item ${ZIP_FILES})
+			message(STATUS "-  ${item}")
+			set(out_dir "${CMAKE_BINARY_DIR}/packages/nuget/${nuget_folder}")
+			add_custom_command(TARGET unzip PRE_BUILD
+				COMMAND ${CMAKE_COMMAND} -E tar xzf ${item}
+				WORKING_DIRECTORY "${out_dir}"
+				COMMENT "Unzipping files : ${item} into ${out_dir}\n"
+				VERBATIM)
+		endforeach()
 	endif()
 endfunction()
 
-set(LINPHONESDK_OUTPUT_DIR ${CMAKE_BINARY_DIR}/WORK/packages/nuget)
-add_custom_target( unzip ALL)
+set(LINPHONESDK_OUTPUT_DIR ${CMAKE_BINARY_DIR}/packages/nuget)
+add_custom_target(unzip ALL)
 add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E remove_directory ${LINPHONESDK_OUTPUT_DIR})
-add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/desktop)
 add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/uwp)
+add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/windows)
 add_custom_command(TARGET unzip PRE_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory ${LINPHONESDK_OUTPUT_DIR}/windowsstore)
 
 if(LINPHONESDK_DESKTOP_ZIP_PATH)
-	message(STATUS "Retrieve Desktop build")
-	add_command_from_zip(${LINPHONESDK_DESKTOP_ZIP_PATH} "desktop")
+	message(STATUS "Retrieve Windows build")
+	add_command_from_zip(${LINPHONESDK_DESKTOP_ZIP_PATH} "windows")
 
-	set(NUSPEC_WIN32 "<file src=\"$OutputSdkDir$\\desktop\\desktop\\bin\\*.winmd\" target=\"lib\\win\\\" />
-			<file src=\"$OutputSdkDir$\\desktop\\desktop\\bin\\**\\*.*\" target=\"lib\\win\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-			<file src=\"$OutputSdkDir$\\desktop\\desktop\\lib\\**\\*.*\" target=\"lib\\win\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\win\" />
-			")
-	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\desktop\\desktop\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	set(NUSPEC_WINDOWS "")
+	foreach(WINDOWS_ARCH ${WINDOWS_ARCHS})
+		get_windows_name("${WINDOWS_ARCH}" WINDOWS_NAME)
+		set(NUSPEC_WINDOWS "${NUSPEC_WINDOWS}
+				<file src=\"$OutputSdkDir$\\windows\\linphone-sdk\\${WINDOWS_NAME}\\bin\\*.winmd\" target=\"lib\\win\\\" />
+				<file src=\"$OutputSdkDir$\\windows\\linphone-sdk\\${WINDOWS_NAME}\\bin\\**\\*.*\" target=\"lib\\win\\${WINDOWS_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+				<file src=\"$OutputSdkDir$\\windows\\linphone-sdk\\${WINDOWS_NAME}\\lib\\**\\*.*\" target=\"lib\\win\\${WINDOWS_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+				<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\win\" />
+				")
+		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windows\\linphone-sdk\\${WINDOWS_NAME}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	endforeach()
 endif()
 if(LINPHONESDK_WINDOWSSTORE_ZIP_PATH)
 	message(STATUS "Retrieve Windows Store build")
 	add_command_from_zip(${LINPHONESDK_WINDOWSSTORE_ZIP_PATH} "windowsstore")
 
-	set(NUSPEC_WINDOWSSTORE "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\*.winmd\" target=\"lib\\netcore\\\" />
-		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\bin\\**\\*.*\" target=\"lib\\netcore\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-		<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\lib\\**\\*.*\" target=\"lib\\netcore\\x86\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
-		<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\netcore\" />
-		")
-	set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windowsstore\\desktop\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	set(NUSPEC_WINDOWSSTORE "")
+	foreach(WINDOWSSTORE_ARCH ${WINDOWSSTORE_ARCHS})
+		get_windowsstore_name("${WINDOWSSTORE_ARCH}" WINDOWSSTORE_NAME)
+		set(NUSPEC_WINDOWSSTORE "${NUSPEC_WINDOWSSTORE}
+			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\bin\\*.winmd\" target=\"lib\\netcore\\\" />
+			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\bin\\**\\*.*\" target=\"lib\\netcore\\${WINDOWSSTORE_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\lib\\**\\*.*\" target=\"lib\\netcore\\${WINDOWSSTORE_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\"/>
+			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\netcore\" />
+			")
+		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\windowsstore\\linphone-sdk\\${WINDOWSSTORE_NAME}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+	endforeach()
 endif()
 if(LINPHONESDK_UWP_ZIP_PATH)
 	message(STATUS "Retrieve UWP build from [${LINPHONESDK_UWP_ARCHS}] archs.")
 	add_command_from_zip(${LINPHONESDK_UWP_ZIP_PATH} "uwp")
+
 	set(NUSPEC_UWP "")
 	foreach(UWP_ARCH ${UWP_ARCHS})
-		set(NUSPEC_UWP "${NUSPEC_UWP} <file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
-								<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\bin\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
-								<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\lib\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
-								<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
+		set(NUSPEC_UWP "${NUSPEC_UWP}
+			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\bin\\*.winmd\" target=\"lib\\uap10.0\\\" />
+			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\bin\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
+			<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\lib\\**\\*.*\" target=\"lib\\uap10.0\\${UWP_ARCH}\" exclude=\"**\\*.pc;**\\cmake\\**\" />
+			<file src=\"LinphoneSDK.Windows.targets\" target=\"build\\UAP10.0\" />
 		")
-		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\uwp-${UWP_ARCH}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
+		set(NUSPEC_GENERIC "<file src=\"$OutputSdkDir$\\uwp\\linphone-sdk\\uwp-${UWP_ARCH}\\share\\**\\*\" exclude=\"**\\cmake\\**\" target=\"content\\\" />")
 	endforeach()
 endif()
 
 
-#Configuration files
+# Configuration files
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.Windows.nuspec.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Windows.nuspec @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/_._ ${CMAKE_CURRENT_BINARY_DIR}/_._)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/LinphoneSDK.Windows.targets.in ${CMAKE_CURRENT_BINARY_DIR}/LinphoneSDK.Windows.targets @ONLY)
@@ -110,7 +131,7 @@ else()
 	file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}" WINDOWS_INSTALL_PATH)
 endif()
 
-#Nuget binary
+# Nuget binary
 find_program(NUGET_PROGRAM nuget.exe)
 if(NOT NUGET_PROGRAM)
 	file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/nuget.exe DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

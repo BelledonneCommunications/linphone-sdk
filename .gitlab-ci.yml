@@ -79,11 +79,11 @@ include:
 
   - '.gitlab-ci-files/windows/builds.yml'
   - '.gitlab-ci-files/windows/tests.yml'
-  # - '.gitlab-ci-files/windows/packages.yml'
+  - '.gitlab-ci-files/windows/packages.yml'
   - '.gitlab-ci-files/windows/uploads.yml'
 
-  # - '.gitlab-ci-files/xamarin/packages.yml'
-  # - '.gitlab-ci-files/xamarin/uploads.yml'
+  - '.gitlab-ci-files/xamarin/packages.yml'
+  - '.gitlab-ci-files/xamarin/uploads.yml'
 
   - '.gitlab-ci-files/test-report-uploads.yml'
 
