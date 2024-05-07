@@ -689,7 +689,7 @@ static void ms_dshow_detect(MSWebCamManager *obj) {
 		cam->name = ms_strdup(szName);
 		cam->data = ms_malloc(sizeof(int));
 		*(int *)cam->data = i;
-		ms_web_cam_manager_prepend_cam(obj, cam);
+		ms_web_cam_manager_add_cam(obj, cam);
 		VariantClear(&var);
 	}
 }
