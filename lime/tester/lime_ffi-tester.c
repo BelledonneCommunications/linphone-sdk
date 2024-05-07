@@ -212,7 +212,7 @@ static void X3DHServerPost(void *userData, lime_ffi_data_t limeData, const char 
 			uri,
 			belle_http_header_create("User-Agent", "lime"),
 			belle_http_header_create("Content-type", "x3dh/octet-stream"),
-			belle_http_header_create("From", from),
+			belle_http_header_create("X-Lime-user-identity", from),
 			NULL);
 
 	belle_sip_message_set_body_handler(BELLE_SIP_MESSAGE(req),BELLE_SIP_BODY_HANDLER(bh));

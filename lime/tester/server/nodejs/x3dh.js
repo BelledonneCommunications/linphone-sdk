@@ -256,11 +256,15 @@ https.createServer(options, (req, res) => {
 			returnError(enum_errorCodes.bad_content_type, "Accept x3dh/octet-stream content type only, not "+req.headers['content-type']);
 			return;
 		}
-		if (!"from" in req.headers) { // from is not a direct property of headers but is inherited, hasOwnProperty would return false
-			returnError(enum_errorCodes.missing_senderId, "From field must be present in http packet header");
-			return;
+		if (!("x-lime-user-identity" in req.headers)) { // user id (GRUU) in HTTP custom header
+			if (!("from" in req.headers)) { // legacy : user id in HTTP from
+				returnError(enum_errorCodes.missing_senderId, "X-Lime-user-identity or From field must be present in http packet header");
+				return;
+			} else {
+				var userId = req.headers['from'];
+			}
 		} else {
-			var userId = req.headers['from'];
+			var userId = req.headers['x-lime-user-identity'];
 		}
 
 		// do we have at least a header to parse?
