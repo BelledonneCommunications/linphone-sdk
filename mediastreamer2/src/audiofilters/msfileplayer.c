@@ -136,9 +136,9 @@ int ms_read_wav_header_from_fp(wave_header_t *header, bctbx_vfs_file_t *fp) {
 			ms_warning("skipping chunk=%4.4s len=%i", data_chunk->data, data_chunk->len);
 			bctbx_file_seek(fp, le_uint32(data_chunk->len), SEEK_CUR);
 			count++;
-			hsize += len + le_uint32(data_chunk->len);
+			hsize += (int)len + le_uint32(data_chunk->len);
 		} else {
-			hsize += len;
+			hsize += (int)len;
 			break;
 		}
 	} while (count < 30);

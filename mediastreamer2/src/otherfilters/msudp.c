@@ -57,10 +57,10 @@ static void sender_process(MSFilter *f) {
 	ms_filter_lock(f);
 
 	while ((im = ms_queue_get(f->inputs[0])) != NULL) {
-		int error;
+		ssize_t error;
 		msgpullup(im, -1);
 
-		error = bctbx_sendto(d->sockfd, im->b_rptr, (int)(im->b_wptr - im->b_rptr), 0, d->dst_info->ai_addr,
+		error = bctbx_sendto(d->sockfd, im->b_rptr, (size_t)(im->b_wptr - im->b_rptr), 0, d->dst_info->ai_addr,
 		                     (socklen_t)d->dst_info->ai_addrlen);
 
 		if (error == -1) {

@@ -822,12 +822,17 @@ int obp_parse_tile_group(uint8_t *buf,
 	_obp_br_byte_alignment(br);
 	size_t endBitPos = _obp_br_get_pos(br);
 	size_t headerBytes = (endBitPos - startBitPos) / 8;
-	size_t sz = buf_size - headerBytes;
+	ssize_t sz = buf_size - headerBytes;
 	size_t pos = headerBytes;
 
 	for (uint16_t TileNum = tile_group->tg_start; TileNum <= tile_group->tg_end; TileNum++) {
 		/* tileRow = TileNum / TileCols */
 		/* tileCol = TileNum % TileCols */
+		if (sz < 0) {
+			snprintf(err->error, err->size, "Not enough bytes left to read tiles");
+			return -1;
+		}
+
 		int lastTile = (TileNum == tile_group->tg_end);
 		if (lastTile) {
 			tile_group->TileSize[TileNum] = sz;
@@ -841,7 +846,7 @@ int obp_parse_tile_group(uint8_t *buf,
 			}
 			tile_size_minus_1 = _obp_le(buf + pos, TileSizeBytes);
 			tile_group->TileSize[TileNum] = tile_size_minus_1 + 1;
-			if (sz < tile_group->TileSize[TileNum]) {
+			if (sz < (ssize_t)tile_group->TileSize[TileNum]) {
 				snprintf(err->error, err->size, "Not enough bytes to contain TileSize for tile %" PRIu16 ".", TileNum);
 				return -1;
 			}
@@ -1021,6 +1026,9 @@ int obp_parse_frame(uint8_t *buf,
 	}
 	endBitPos = state->frame_header_end_pos;
 	headerBytes = (endBitPos - startBitPos) / 8;
+	if (buf_size <= headerBytes) {
+		return -1;
+	}
 	return obp_parse_tile_group(buf + headerBytes, buf_size - headerBytes, fh, tile_group, SeenFrameHeader, err);
 }
 

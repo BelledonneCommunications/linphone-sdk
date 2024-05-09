@@ -21,7 +21,7 @@
 #ifndef msudp_hh
 #define msudp_hh
 
-#include <mediastreamer2/msfilter.h>
+#include "mediastreamer2/msfilter.h"
 
 typedef struct _MSIPPort {
 	char *ip;

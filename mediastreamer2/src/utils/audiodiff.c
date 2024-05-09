@@ -84,7 +84,7 @@ static int file_info_read(FileInfo *fi, int zero_pad_samples, int zero_pad_end_s
 	int size = fi->nsamples * fi->nchannels * 2;
 	fi->buffer = ms_new0(int16_t, (fi->nsamples + 2 * zero_pad_samples + 2 * zero_pad_end_samples) * fi->nchannels);
 
-	err = bctbx_file_read2(fi->fp, fi->buffer + (zero_pad_samples * fi->nchannels), size);
+	err = (int)bctbx_file_read2(fi->fp, fi->buffer + (zero_pad_samples * fi->nchannels), size);
 	if (err == BCTBX_VFS_ERROR) {
 		ms_error("Could not read file: %s", strerror(errno));
 	} else {
