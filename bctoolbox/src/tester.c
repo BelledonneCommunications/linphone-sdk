@@ -594,11 +594,11 @@ static void merge_junit_xml_files(const char *dst_file_name) {
 		offset = bctbx_file_fprintf(bctbx_file, 0, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites>\n");
 		for (i = 0; i < effective_suite_count; i++) {
 			if (suite_junit_xml_results[i] != NULL) {
-				offset += bctbx_file_fprintf(bctbx_file, offset, "%s", suite_junit_xml_results[i]);
+				offset += bctbx_file_fprintf(bctbx_file, (off_t)offset, "%s", suite_junit_xml_results[i]);
 				bctbx_free(suite_junit_xml_results[i]);
 			}
 		}
-		bctbx_file_fprintf(bctbx_file, offset, "</testsuites>\n");
+		bctbx_file_fprintf(bctbx_file, (off_t)offset, "</testsuites>\n");
 		bctbx_file_close(bctbx_file);
 	}
 	bctbx_free(suite_junit_xml_results);
@@ -632,7 +632,7 @@ static void merge_log_files(const char *base_logfile_name) {
 		buf = malloc(file_size);
 		read_bytes = bctbx_file_read(bctbx_file, buf, file_size, 0);
 		if (read_bytes == file_size) {
-			ssize_t written = bctbx_file_write(dst_file, buf, file_size, offset);
+			ssize_t written = bctbx_file_write(dst_file, buf, (size_t)file_size, (off_t)offset);
 			if (written == (ssize_t)BCTBX_VFS_ERROR) {
 				bc_tester_printf(bc_printf_verbosity_error, "Could not write logs of suite %s into log file '%s'",
 				                 suite_logfile_name, base_logfile_name);
@@ -804,13 +804,13 @@ static int handle_sub_process_error(int pid, suite_status_t *suitesPids) {
 			    suite->pName, suite->uiNumberOfTests, suite->uiNumberOfTests);
 			failed_tests = suite->uiNumberOfTests;
 			for (unsigned int j = 0; j < suite->uiNumberOfTests; ++j) {
-				offset += bctbx_file_fprintf(bctbx_file, offset, "\t<testcase classname=\"%s\" name=\"%s\">\n",
+				offset += bctbx_file_fprintf(bctbx_file, (off_t)offset, "\t<testcase classname=\"%s\" name=\"%s\">\n",
 				                             suite->pName, CU_get_test_at_pos(suite, j + 1)->pName);
-				offset += bctbx_file_fprintf(bctbx_file, offset,
+				offset += bctbx_file_fprintf(bctbx_file, (off_t)offset,
 				                             "\t\t<failure message=\"\" type=\"Failure\">\n\t\tGlobal suite failure\n");
-				offset += bctbx_file_fprintf(bctbx_file, offset, "\t\t</failure>\n\t</testcase>\n");
+				offset += bctbx_file_fprintf(bctbx_file, (off_t)offset, "\t\t</failure>\n\t</testcase>\n");
 			}
-			bctbx_file_fprintf(bctbx_file, offset, "\n</testsuite>\n");
+			bctbx_file_fprintf(bctbx_file, (off_t)offset, "\n</testsuite>\n");
 			bc_tester_printf(bc_printf_verbosity_info, "Suite '%s' ended in error. Marking all tests as failed",
 			                 suite->pName);
 			bctbx_file_close(bctbx_file);

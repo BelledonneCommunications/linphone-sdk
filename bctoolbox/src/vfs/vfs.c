@@ -86,7 +86,7 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count,
 			bctbx_error("bctbx_file_write file error");
 			return BCTBX_VFS_ERROR;
 		} else if (ret < 0) {
-			bctbx_error("bctbx_file_write error %s", strerror(-(ret)));
+			bctbx_error("bctbx_file_write error %s", strerror((int)-ret));
 			return BCTBX_VFS_ERROR;
 		}
 		pFile->gSize = 0; // cancel get cache, as it might be dirty now
@@ -98,7 +98,7 @@ ssize_t bctbx_file_write(bctbx_vfs_file_t *pFile, const void *buf, size_t count,
 ssize_t bctbx_file_write2(bctbx_vfs_file_t *pFile, const void *buf, size_t count) {
 	ssize_t ret = bctbx_file_write(pFile, buf, count, pFile->offset);
 	if (ret != BCTBX_VFS_ERROR) {
-		bctbx_file_seek(pFile, ret, SEEK_CUR);
+		bctbx_file_seek(pFile, (off_t)ret, SEEK_CUR);
 	}
 	return ret;
 }
@@ -110,7 +110,7 @@ static int file_open(bctbx_vfs_t *pVfs, bctbx_vfs_file_t *pFile, const char *fNa
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_open: Error file handle");
 		} else if (ret < 0) {
-			bctbx_error("bctbx_file_open: Error opening '%s': %s", fName, strerror(-(ret)));
+			bctbx_error("bctbx_file_open: Error opening '%s': %s", fName, strerror((int)-ret));
 			ret = BCTBX_VFS_ERROR;
 		}
 	}
@@ -160,7 +160,7 @@ static ssize_t bctbx_file_flush(bctbx_vfs_file_t *pFile) {
 }
 
 ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t offset) {
-	int ret = BCTBX_VFS_ERROR;
+	ssize_t ret = BCTBX_VFS_ERROR;
 	if (pFile) {
 		if (bctbx_file_flush(pFile) < 0) {
 			return BCTBX_VFS_ERROR;
@@ -171,7 +171,7 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 		if (ret == BCTBX_VFS_ERROR) {
 			bctbx_error("bctbx_file_read: error bctbx_vfs_file_t");
 		} else if (ret < 0) {
-			bctbx_error("bctbx_file_read: Error read %s", strerror(-(ret)));
+			bctbx_error("bctbx_file_read: Error read %s", strerror((int)-ret));
 			ret = BCTBX_VFS_ERROR;
 		}
 	}
@@ -181,7 +181,7 @@ ssize_t bctbx_file_read(bctbx_vfs_file_t *pFile, void *buf, size_t count, off_t 
 ssize_t bctbx_file_read2(bctbx_vfs_file_t *pFile, void *buf, size_t count) {
 	ssize_t ret = bctbx_file_read(pFile, buf, count, pFile->offset);
 	if (ret != BCTBX_VFS_ERROR) {
-		bctbx_file_seek(pFile, ret, SEEK_CUR);
+		bctbx_file_seek(pFile, (off_t)ret, SEEK_CUR);
 	}
 	return ret;
 }
@@ -304,7 +304,7 @@ ssize_t bctbx_file_fprintf(bctbx_vfs_file_t *pFile, off_t offset, const char *fm
 		// no cache and more than one page to write, just write it
 		r = bctbx_file_write(pFile, ret, count, pFile->offset);
 		bctbx_free(ret);
-		if (r > 0) pFile->offset += r;
+		if (r > 0) pFile->offset += (off_t)r;
 	}
 	return r;
 }
