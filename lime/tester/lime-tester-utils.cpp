@@ -178,6 +178,23 @@ std::vector<std::string> messages_pattern = {
 };
 
 /**
+ * @return a string describing the given curve
+ */
+const std::string curveId(lime::CurveId curve) {
+	switch (curve) {
+		case lime::CurveId::c25519 :
+			return "C255519";
+		case lime::CurveId::c448 :
+			return "C448";
+		case lime::CurveId::c25519k512 :
+			return "C25519K512";
+		default:
+			return "UNSET";
+	}
+	return "UNSET";
+}
+
+/**
  * @brief Simple RNG function, used to generate random values for testing purpose, they do not need to be real random
  * so use directly std::random_device
  */
@@ -336,11 +353,16 @@ void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vec
 bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message) {
 	// checks on length to at least perform more checks
 	if (message.size()<4) return false;
-	//
 	// check protocol version
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
-
 	return !!(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag));
+}
+bool DR_message_holdsAsymmetricKeys(std::vector<uint8_t> &message) {
+	// checks on length to at least perform more checks
+	if (message.size()<4) return false;
+	// check protocol version
+	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
+	return !(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::skip_asymmetric_ratchet_flag));
 }
 
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {
@@ -428,29 +450,27 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	}
 }
 
+namespace {
+size_t DR_Message_X3DHInitSize(uint8_t curveId, bool OPkFlag) {
+	switch (curveId) {
+		case static_cast<uint8_t>(lime::CurveId::c25519):
+			return lime::double_ratchet_protocol::X3DHinitSize<C255>(OPkFlag);
+		case static_cast<uint8_t>(lime::CurveId::c448):
+			return lime::double_ratchet_protocol::X3DHinitSize<C448>(OPkFlag);
+#ifdef HAVE_BCTBXPQ
+		case static_cast<uint8_t>(lime::CurveId::c25519k512):
+			return lime::double_ratchet_protocol::X3DHinitSize<C255K512>(OPkFlag);
+#endif
+	}
+	return 0;
+}
+}
 
 bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) {
 	if (DR_message_holdsX3DHInit(message) == false) return false;
 
 	// compute size
-	size_t X3DH_length = 5;
-	switch (message[2]) {
-		case static_cast<uint8_t>(lime::CurveId::c25519):
-			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize();
-			break;
-		case static_cast<uint8_t>(lime::CurveId::c448):
-			X3DH_length += DSA<C448, lime::DSAtype::publicKey>::ssize() + X<C448, lime::Xtype::publicKey>::ssize();
-			break;
-#ifdef HAVE_BCTBXPQ
-		case static_cast<uint8_t>(lime::CurveId::c25519k512):
-			X3DH_length += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize();
-			break;
-#endif
-	}
-
-	if (message[3] == 0x01) { // there is an OPk id
-		X3DH_length += 4;
-	}
+	size_t X3DH_length = DR_Message_X3DHInitSize(message[2], message[3]==0x01);
 
 	// copy it in buffer
 	X3DH_initMessage.assign(message.begin()+3, message.begin()+3+X3DH_length);
@@ -484,6 +504,15 @@ bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &S
 	return true;
 }
 
+/* return the Ns header field */
+uint16_t DR_message_get_Ns(std::vector<uint8_t> &message) {
+	if (message.size()<4) return 0;
+	size_t X3DHInitSize = 0;
+	if ((message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag))) {
+		X3DHInitSize = DR_Message_X3DHInitSize(message[2], message[3]==0x01);
+	}
+	return static_cast<uint16_t>(message[3+X3DHInitSize])<<8 | static_cast<uint16_t>(message[4+X3DHInitSize]);
+}
 
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found

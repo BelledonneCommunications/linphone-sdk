@@ -134,7 +134,7 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 static void lime_server_resource_limit_reached_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 
@@ -235,8 +235,8 @@ static void lime_server_bundle_request_limit_reached_test(const lime::CurveId cu
 	// create DB
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
-	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -255,8 +255,8 @@ static void lime_server_bundle_request_limit_reached_test(const lime::CurveId cu
 				});
 	try {
 		// create Manager and device for alice and bob
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.");
 		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, 10, callback);
@@ -377,9 +377,9 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 	std::string dbFilenameAlice{dbBaseFilename};
 	std::string dbFilenameBob{dbBaseFilename};
 	std::string dbFilenameClaire{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
-	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
-	dbFilenameClaire.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+	dbFilenameClaire.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -398,9 +398,9 @@ static void lime_server_bundle_request_limit_reached_multiple_users_test(const l
 				});
 	try {
 		// create Manager and devices for alice, bob and claire
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
-		auto claireManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameClaire, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
+		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("alice.1.");
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("bob.1.");
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("claire.1.");

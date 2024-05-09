@@ -175,9 +175,9 @@ static limeX3DHServerPostData X3DHServerPost([](const std::string &url, const st
 static void helloworld_basic_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -207,10 +207,10 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 
 		// create Managers : they will open/create the database given in first parameter, and use the function given in second one to communicate with server.
 		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 		// Here we have simulate two distinct devices so we have two managers
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 
 		LIME_LOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous (as the user is also created on X3DH server)
@@ -384,9 +384,9 @@ static void helloworld_basic_test(const lime::CurveId curve, const std::string &
 static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url) {
 	// users databases names: baseFilename.<alice/bob>.<curve id>.sqlite3
 	std::string dbFilenameAlice{dbBaseFilename};
-	dbFilenameAlice.append(".alice.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
 	std::string dbFilenameBob{dbBaseFilename};
-	dbFilenameBob.append(".bob.").append((curve==CurveId::c25519)?"C25519":"C448").append(".sqlite3");
+	dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
 
 	remove(dbFilenameAlice.data()); // delete the database file if already exists
 	remove(dbFilenameBob.data()); // delete the database file if already exists
@@ -416,10 +416,10 @@ static void helloworld_verifyIdentity_test(const lime::CurveId curve, const std:
 
 		// create Managers : they will open/create the database given in first parameter, and use the function given in second one to communicate with server.
 		// Any application using Lime shall instantiate one LimeManager only, even in case of multiple users managed by the application.
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 
 		// Here we have simulate two distinct devices so we have two managers
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 
 		LIME_LOGI<<"Create "<<*aliceDeviceId<<" and "<<*bobDeviceId<<" users"<<endl;
 		// create users, this operation is asynchronous(as the user is also created on X3DH server)

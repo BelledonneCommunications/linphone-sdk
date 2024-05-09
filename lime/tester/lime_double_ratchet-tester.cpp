@@ -86,7 +86,6 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	messageSender.resize(lime_tester::messages_pattern.size(), 0);
 
 	bool aliceSender=true;
-	bctbx_debug("Start skip test\n\n");
 	for (size_t i=0; i<lime_tester::messages_pattern.size(); i++) {
 		/* sending */
 		if (aliceSender) {
@@ -95,7 +94,6 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients[i], plaintext, bobUserId, "alice", cipher[i], lime::EncryptionPolicy::optimizeUploadSize, aliceLocalStorage);
-			bctbx_debug("alice encrypt %d", int(i));
 
 			messageSender[i] = 1;
 			if (i%period == 0) {
@@ -107,7 +105,6 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 			std::vector<uint8_t> plaintext{lime_tester::messages_pattern[i].begin(), lime_tester::messages_pattern[i].end()};
 			std::vector<uint8_t> cipherMessage{};
 			encryptMessage(recipients[i], plaintext, aliceUserId, "bob", cipher[i], lime::EncryptionPolicy::optimizeUploadSize, bobLocalStorage);
-			bctbx_debug("bob encrypt %d", int(i));
 
 			messageSender[i] = 2;
 			if (i%period == 0) {
@@ -118,23 +115,24 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 		/* receiving (or later): immediate reception is skipped for skip_length messages eack skip_period messages */
 		if ((i==0) || !(i%skip_period<skip_length)) { // do not skip the first message otherwise bob wont be able to write to alice
 			if (messageSender[i]==2) {
-				bctbx_debug("alice decrypt %d", int(i));
 				// alice decrypt it
 				std::vector<shared_ptr<DR>> recipientDRSessions{};
 				recipientDRSessions.push_back(alice);
 				std::vector<uint8_t> plainBuffer{};
 				decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[i][0].DRmessage, cipher[i], plainBuffer);
 				plainMessage[i] = std::string{plainBuffer.begin(), plainBuffer.end()};
+				BC_ASSERT_TRUE(plainMessage[i] == lime_tester::messages_pattern[i]);
+
 
 				messageSender[i]=3;
 			} else if (messageSender[i]==1) {
-				bctbx_debug("bob decrypt %d", int(i));
 				// bob decrypt it
 				std::vector<shared_ptr<DR>> recipientDRSessions{};
 				recipientDRSessions.push_back(bob);
 				std::vector<uint8_t> plainBuffer{};
 				decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[i][0].DRmessage, cipher[i], plainBuffer);
 				plainMessage[i] = std::string{plainBuffer.begin(), plainBuffer.end()};
+				BC_ASSERT_TRUE(plainMessage[i] == lime_tester::messages_pattern[i]);
 
 				messageSender[i]=3;
 			} else {
@@ -146,23 +144,23 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 		if (i>=skip_delay) {
 			for (size_t j=0; j<i-skip_delay; j++) {
 				if (messageSender[j]==2) {
-					bctbx_debug("alice decrypt %d", int(j));
 					// alice decrypt it
 					std::vector<shared_ptr<DR>> recipientDRSessions{};
 					recipientDRSessions.push_back(alice);
 					std::vector<uint8_t> plainBuffer{};
 					decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
 					plainMessage[j] = std::string{plainBuffer.begin(), plainBuffer.end()};
+					BC_ASSERT_TRUE(plainMessage[j] == lime_tester::messages_pattern[j]);
 
 					messageSender[j]=3;
 				} else if (messageSender[j]==1) {
-					bctbx_debug("bob decrypt %d", int(j));
 					// bob decrypt it
 					std::vector<shared_ptr<DR>> recipientDRSessions{};
 					recipientDRSessions.push_back(bob);
 					std::vector<uint8_t> plainBuffer{};
 					decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
 					plainMessage[j] = std::string{plainBuffer.begin(), plainBuffer.end()};
+					BC_ASSERT_TRUE(plainMessage[j] == lime_tester::messages_pattern[j]);
 
 					messageSender[j]=3;
 				}
@@ -174,23 +172,23 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 	/* Do we have some old message to decrypt(ignore delay we're at the end of test */
 	for (size_t j=0; j<lime_tester::messages_pattern.size(); j++) {
 		if (messageSender[j]==2) {
-			bctbx_debug("alice decrypt %d", int(j));
 			// alice decrypt it
 			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(alice);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
 			plainMessage[j] = std::string{plainBuffer.begin(), plainBuffer.end()};
+			BC_ASSERT_TRUE(plainMessage[j] == lime_tester::messages_pattern[j]);
 
 			messageSender[j]=3;
 		} else if (messageSender[j]==1) {
-			bctbx_debug("bob decrypt %d", int(j));
 			// bob decrypt it
 			std::vector<shared_ptr<DR>> recipientDRSessions{};
 			recipientDRSessions.push_back(bob);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[j][0].DRmessage, cipher[j], plainBuffer);
 			plainMessage[j] = std::string{plainBuffer.begin(), plainBuffer.end()};
+			BC_ASSERT_TRUE(plainMessage[j] == lime_tester::messages_pattern[j]);
 
 			messageSender[j]=3;
 		}
@@ -211,7 +209,7 @@ static void dr_skippedMessages_basic(void) {
 #ifdef EC25519_ENABLED
 	/* send batch of 10 messages, delay by 15 one message each time we reach the end of the batch*/
 	dr_skippedMessages_basic_test<C255>(10, 10, 1, 15, "dr_skipMessage_1_X25519");
-	/* delayed messages covering more than a bath */
+	/* delayed messages covering more than a batch */
 	dr_skippedMessages_basic_test<C255>(3, 7, 4, 17, "dr_skipMessage_2_X25519");
 #endif
 #ifdef EC448_ENABLED

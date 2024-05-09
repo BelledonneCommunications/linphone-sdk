@@ -183,7 +183,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			remove(dbFilename.back().data()); // delete the database file if already exists
 
 			// create manager
-			manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename.back(), X3DHServerPost));
+			manager = make_unique<LimeManager>(dbFilename.back(), X3DHServerPost);
 
 			// create device Id : base_deviceId<index>
 			auto deviceId = base_deviceId;
@@ -225,7 +225,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			}
 
 			// get a manager for this device
-			manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename[senderIndex], X3DHServerPost));
+			manager = make_unique<LimeManager>(dbFilename[senderIndex], X3DHServerPost);
 			//encrypt
 			auto cipherMessage = make_shared<std::vector<uint8_t>>();
 			manager->encrypt(*(devicesId[senderIndex]), groupName, recipients, message, cipherMessage, callback);
@@ -254,7 +254,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 					continue;
 				}
 				// get a manager for this device
-				manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename[j], X3DHServerPost));
+				manager = make_unique<LimeManager>(dbFilename[j], X3DHServerPost);
 				std::vector<uint8_t> receivedMessage{};
 				BC_ASSERT_TRUE(manager->decrypt(*(devicesId[j]), *groupName, *(devicesId[senderIndex]), (*recipients)[recipientDecryptIndex].DRmessage, *cipherMessage, receivedMessage) != lime::PeerDeviceStatus::fail);
 				auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
@@ -285,7 +285,7 @@ static void group_basic_test(const lime::CurveId curve, const std::string &dbBas
 			// loop on all devices and create basics
 			for (auto i=0; i<deviceNumber; i++) {
 				// get a manager for this device
-				manager = std::unique_ptr<LimeManager>(new LimeManager(dbFilename[i], X3DHServerPost));
+				manager = make_unique<LimeManager>(dbFilename[i], X3DHServerPost);
 				manager->delete_user(*(devicesId[i]), callback);
 				expected_success++;
 				BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success,expected_success,lime_tester::wait_for_timeout));

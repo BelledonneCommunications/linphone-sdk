@@ -73,6 +73,11 @@ extern uint16_t OPkInitialBatchSize;
 void randomize(uint8_t *buffer, const size_t size);
 
 /**
+ * @return a string describing the given curve
+ */
+const std::string curveId(lime::CurveId curve);
+
+/**
  * @brief Create and initialise the two sessions given in parameter. Alice as sender session and Bob as receiver one
  *	Alice must then send the first message, once bob got it, sessions are fully initialised
  *	if fileName doesn't exists as a DB, it will be created, caller shall then delete it if needed
@@ -108,8 +113,10 @@ struct sessionDetails {
 template <typename Curve>
 void dr_devicesInit(std::string dbBaseFilename, std::vector<std::vector<std::vector<std::vector<sessionDetails<Curve>>>>> &users, std::vector<std::string> &usernames, std::vector<std::string> &createdDBfiles, std::shared_ptr<RNG> RNG_context);
 
-/* return true if the message buffer is a DR message wiht the paylod direct encryption flag set */
+/* return true if the message buffer is a DR message with the paylod direct encryption flag set */
 bool DR_message_payloadDirectEncrypt(std::vector<uint8_t> &message);
+/* return true if the message buffer is a DR message with public keys to perform an asymmetric ratchet */
+bool DR_message_holdsAsymmetricKeys(std::vector<uint8_t> &message);
 /* return true if the message buffer is a valid DR message holding a X3DH init one in its header */
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message);
 /* this version will set the OPk status in the given bool if a packet is found */
@@ -120,6 +127,8 @@ bool DR_message_extractX3DHInit(std::vector<uint8_t> &message, std::vector<uint8
 
 /* return true if the message buffer is a valid DR message holding an X3DH init message, copy its SPk id in the given parameter */
 bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &SPkId);
+/* return the Ns header field */
+uint16_t DR_message_get_Ns(std::vector<uint8_t> &message);
 
 /* Open provided DB and look for DRSessions established between selfDevice and peerDevice
  * Populate the sessionsId vector with the Ids of sessions found

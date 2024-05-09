@@ -169,13 +169,13 @@ static void lime_multidomains_simple() {
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
 		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
 		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -247,25 +247,25 @@ static void lime_multidomains_several_foreign() {
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
 		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
 		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for claire
-		auto claireManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameClaire, X3DHServerPost));
+		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("sip:claire@domainC;gr=");
 		claireManager->create_user(*claireDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for dave
-		auto daveManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameDave, X3DHServerPost));
+		auto daveManager = make_unique<LimeManager>(dbFilenameDave, X3DHServerPost);
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("sip:dave@domainA;gr=");
 		daveManager->create_user(*daveDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -350,7 +350,7 @@ static void lime_multidomains_several_users_foreign() {
 				});
 	try {
 		// create Manager and device for alice
-		auto aliceManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameAlice, X3DHServerPost));
+		auto aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
 		auto aliceDeviceId = lime_tester::makeRandomDeviceName("sip:alice@domainA;gr=");
 		aliceManager->create_user(*aliceDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -360,7 +360,7 @@ static void lime_multidomains_several_users_foreign() {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for bob
-		auto bobManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameBob, X3DHServerPost));
+		auto bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 		auto bobDeviceId = lime_tester::makeRandomDeviceName("sip:bob@domainB;gr=");
 		bobManager->create_user(*bobDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainB_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -369,7 +369,7 @@ static void lime_multidomains_several_users_foreign() {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for claire
-		auto claireManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameClaire, X3DHServerPost));
+		auto claireManager = make_unique<LimeManager>(dbFilenameClaire, X3DHServerPost);
 		auto claireDeviceId = lime_tester::makeRandomDeviceName("sip:claire@domainC;gr=");
 		claireManager->create_user(*claireDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainC_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
@@ -378,7 +378,7 @@ static void lime_multidomains_several_users_foreign() {
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		// Create manager and device for dave
-		auto daveManager = std::unique_ptr<LimeManager>(new LimeManager(dbFilenameDave, X3DHServerPost));
+		auto daveManager = make_unique<LimeManager>(dbFilenameDave, X3DHServerPost);
 		auto daveDeviceId = lime_tester::makeRandomDeviceName("sip:dave@domainA;gr=");
 		daveManager->create_user(*daveDeviceId, std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_domainA_server_port).data(), curve, lime_tester::OPkInitialBatchSize, callback);
 		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
