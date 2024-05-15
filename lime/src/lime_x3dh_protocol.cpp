@@ -338,10 +338,7 @@ namespace lime {
 			// Trace incoming message parsing their content to display human readable trace
 			ostringstream message_trace;
 			message_trace << hex << setfill('0') << "Incoming X3DH message: "<<endl;
-			// first display the whole message in hexa
-			std::for_each(body.cbegin(), body.cend(), [&message_trace] (unsigned int i) {
-				message_trace << setw(2) << i << ", ";
-			});
+			hexStr(message_trace, body.data(), body.size(), 7);
 
 			// check message holds at leat a header before trying to read it
 			if (body.size()<X3DH_headerSize) {

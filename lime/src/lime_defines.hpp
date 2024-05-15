@@ -63,8 +63,8 @@ namespace settings {
 	 */
 	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
 
-	/// DR DHr chain index size is 32 bytes long (used to identify a DR reception chain for KEM based DR)
-	constexpr size_t DRrIndexSize=32;
+	/// DR Public key index size is 16 bytes long (used to identify a DR reception chain for KEM based DR)
+	constexpr size_t DRPkIndexSize=16;
 
 	/// AEAD generates tag 16 bytes long
 	constexpr size_t DRMessageAuthTagSize=16;
@@ -76,9 +76,9 @@ namespace settings {
 /******************************************************************************/
 	/** define a version number for the DB schema as an integer 0xMMmmpp
 	 *
-	 * current version is 0.1.0
+	 * current version is 0.2.0
 	 */
-	constexpr int DBuserVersion=0x000100;
+	constexpr int DBuserVersion=0x000200;
 	constexpr uint16_t DBInactiveUserBit = 0x0100;
 	constexpr uint16_t DBCurveIdByte = 0x00FF;
 	constexpr uint8_t DBInvalidIk = 0x00;

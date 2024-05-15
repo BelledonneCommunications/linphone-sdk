@@ -1107,7 +1107,7 @@ namespace lime {
 			/*                               Constructor                                    */
 			/********************************************************************************/
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
+			X3DHi(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
 			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
 			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {
@@ -1169,7 +1169,7 @@ namespace lime {
 			}
 
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			X3DHi<Curve>(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
+			X3DHi(std::shared_ptr< lime::Db > localStorage, const std::string &selfDeviceId, const std::string &X3DHServerURL,  const limeX3DHServerPostData &X3DH_post_data, std::shared_ptr< lime::RNG > RNG_context, const long int Uid) :
 			m_RNG{RNG_context}, m_selfDeviceId{selfDeviceId}, m_localStorage{localStorage}, m_db_Uid{Uid},
 			m_server_url{X3DHServerURL}, m_post_data{X3DH_post_data},
 			m_Ik_loaded{false} {

@@ -474,8 +474,10 @@ static void dr_pattern_test(std::string db_filename, std::vector<uint8_t> &DRmes
 	std::vector<uint8_t> bobUserId{'b','o','b'};
 
 	remove(bobFilename.data());
+	std::string resourceFilename("data/");
+	resourceFilename.append(bobFilename);
 	// Copy the DB from resource file as we do not want to modify it
-	char *pattern_filepath = bc_tester_res(bobFilename.c_str());
+	char *pattern_filepath = bc_tester_res(resourceFilename.c_str());
 	{
 		#include <fstream>
 		std::ifstream  src(pattern_filepath, std::ios::binary);

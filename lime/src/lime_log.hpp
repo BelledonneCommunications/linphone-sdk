@@ -30,8 +30,11 @@
 #define LIME_LOGE BCTBX_SLOGE
 
 namespace lime {
-	std::string hexStr(const uint8_t *data, size_t len);
-	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len);
+	/**
+	 * convert a byte buffer into hexadecimal string
+	 * if digest is true, only print the first and last two bytes
+	 */
+	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len, size_t digest=0);
 }
 
 #endif //lime_log_hpp

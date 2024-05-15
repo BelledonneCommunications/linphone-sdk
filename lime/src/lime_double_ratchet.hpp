@@ -61,7 +61,10 @@ namespace lime {
 			ARrKey() : m_DHr{} {};
 
 			const X<Curve, lime::Xtype::publicKey> &publicKey(void) const { return m_DHr;};
-			std::vector<uint8_t> getIndex(void) const { return std::vector<uint8_t>(m_DHr.cbegin(), m_DHr.cend());} // index is directly the public key itself
+			std::vector<uint8_t> getIndex(void) const {
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+				HMAC<SHA512>(nullptr, 0, m_DHr.data(), m_DHr.size(), index.data(), lime::settings::DRPkIndexSize);
+				return index;} // index is directly the public key itself
 			serializedBuffer serialize(void) const { return m_DHr;}
 	};
 
@@ -100,9 +103,9 @@ namespace lime {
 			const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) const { return m_kem_DHr;};
 			const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) const { return m_kem_CTr;};
 			std::vector<uint8_t> getIndex(void) const {
-				std::vector<uint8_t>index(lime::settings::DRrIndexSize);
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
 				auto serialized = serialize();
-				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRrIndexSize);
+				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRPkIndexSize);
 				return index;
 			}
 			serializedBuffer serialize(void) const {

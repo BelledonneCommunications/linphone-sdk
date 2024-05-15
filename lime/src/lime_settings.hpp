@@ -47,12 +47,12 @@ namespace settings {
 	static_assert(DRSessionSharedADSize<64, "Shared AD is generated through HKDF-Sha512 with only one round implemented so its size can't be more than Sha512 max output size");
 
 	/** Maximum number of Message we can skip(and store their keys) at reception of one message */
-	constexpr uint16_t maxMessageSkip=1024;
+	constexpr uint16_t maxMessageSkip=512;
 
 	/** after a message key is stored, count how many messages we can receive from peer before deleting the key at next update
 	 * @note: implemented by receiving key chain, so any new skipped message in a chain will reset the counter to 0
 	 */
-	constexpr uint16_t maxMessagesReceivedAfterSkip = 128;
+	constexpr uint16_t maxMessagesReceivedAfterSkip = 64;
 
 	/** @brief Maximum length of Sending chain
 	 *
@@ -60,7 +60,16 @@ namespace settings {
 	 * the DR session is set to stale and we must create another one to send messages
 	 * Can't be more than 2^16 as message number is send on 2 bytes
 	 */
-	constexpr uint16_t maxSendingChain=1000;
+	constexpr uint16_t maxSendingChain=500;
+
+	/** @brief Minimum chain settings :
+	 *
+	 * - before minSymmetricChainSize is reached(on a cummulative sending and receiving chain)
+	 * the sender in position to perform an asymmetric ratchet will skip doing it
+	 * - previous setting is overriden if the last asymmetric ratchet is older than maxSymmetricChainPeriod (in seconds)
+	 */
+	constexpr uint16_t minSymmetricChainSize=42;
+	constexpr unsigned int maxSymmetricChainPeriod=86400; // 1 day
 
 	/** Lifetime of a session once not active anymore, unit is day */
 	constexpr unsigned int DRSession_limboTime_days=30;

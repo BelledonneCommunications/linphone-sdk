@@ -107,7 +107,7 @@ namespace lime {
 				os<<std::endl<<indent<<"SPK Id: 0x"<<std::hex<<std::setw(8) << std::setfill('0') << m_Id <<std::endl<<indent<<indent<<"SPK: ";
 				hexStr(os, m_SPk.cpublicKey().data(),  X<Curve, lime::Xtype::publicKey>::ssize());
 				os<<std::endl<<indent<<indent<<"SPK Sig: ";
-				hexStr(os, m_Sig.data(),  DSA<Curve, lime::DSAtype::signature>::ssize());
+				hexStr(os, m_Sig.data(),  DSA<Curve, lime::DSAtype::signature>::ssize(), 2);
 			}
 		};
 
@@ -214,9 +214,9 @@ namespace lime {
 				os<<std::endl<<indent<<"SPK Id: 0x"<<std::hex<<std::setw(8) << std::setfill('0') << m_Id <<std::endl<<indent<<indent<<"SPK(EC): ";
 				hexStr(os, m_EC_SPk.cpublicKey().data(),  X<Algo, lime::Xtype::publicKey>::ssize());
 				os<<std::endl<<indent<<indent<<"SPK(KEM): ";
-				hexStr(os, m_KEM_SPk.cpublicKey().data(),  K<Algo, lime::Ktype::publicKey>::ssize());
+				hexStr(os, m_KEM_SPk.cpublicKey().data(),  K<Algo, lime::Ktype::publicKey>::ssize(), 2);
 				os<<std::endl<<indent<<indent<<"SPK Sig: ";
-				hexStr(os, m_Sig.data(),  DSA<Algo, lime::DSAtype::signature>::ssize());
+				hexStr(os, m_Sig.data(),  DSA<Algo, lime::DSAtype::signature>::ssize(), 2);
 			}
 	};
 
@@ -384,9 +384,9 @@ namespace lime {
 			os<<std::endl<<indent<<"OPK Id: 0x"<<std::hex<<std::setw(8) << std::setfill('0') << m_Id <<std::endl<<indent<<indent<<"OPK(EC): ";
 			hexStr(os, m_EC_OPk.cpublicKey().data(),  X<Algo, lime::Xtype::publicKey>::ssize());
 			os<<std::endl<<indent<<indent<<"OPK(KEM): ";
-			hexStr(os, m_KEM_OPk.cpublicKey().data(),  K<Algo, lime::Ktype::publicKey>::ssize());
+			hexStr(os, m_KEM_OPk.cpublicKey().data(),  K<Algo, lime::Ktype::publicKey>::ssize(), 2);
 			os<<std::endl<<indent<<indent<<"OPK signature: ";
-			hexStr(os, m_Sig.data(),  DSA<Algo, lime::DSAtype::signature>::ssize());
+			hexStr(os, m_Sig.data(),  DSA<Algo, lime::DSAtype::signature>::ssize(), 2);
 		}
 	};
 

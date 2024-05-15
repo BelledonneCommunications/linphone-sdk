@@ -74,14 +74,20 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 		// update the schema version in DB
 		if (userVersion == db_module_table_not_holding_lime_row) { // but not any lime row in it
 			sql<<"INSERT INTO db_module_version(name,version) VALUES('lime',:DbVersion)", use(lime::settings::DBuserVersion);
-		} else { // and we had an older version
-			/* Do the update here */
-			sql<<"ALTER TABLE lime_LocalUsers ADD COLUMN updateTs DATETIME";
-			sql<<"UPDATE lime_LocalUsers SET updateTs = CURRENT_TIMESTAMP";
+		} else { // and we have an older version
+			if (userVersion <= 0x000001) { // From 00.00.01 to 00.01.00:
+					// Add a time stamp in local user to manage the SPk/OPk update on server at lime level (2023/04/05)
+					sql<<"ALTER TABLE lime_LocalUsers ADD COLUMN updateTs DATETIME";
+					sql<<"UPDATE lime_LocalUsers SET updateTs = CURRENT_TIMESTAMP";
+			}
+			if (userVersion <= 0x000100) { // From 00.01.00 to 00.02.00
+					// Add a status on peer's double ratchet asymmetric public key to be able to delay the asymmetric ratchet (2024/05/21)
+					sql<<"ALTER TABLE DR_sessions ADD COLUMN DHrStatus INTEGER NOT NULL DEFAULT 0";
+			}
 			// update version number
 			sql<<"UPDATE db_module_version SET version = :DbVersion WHERE name='lime'", use(lime::settings::DBuserVersion);
 			tr.commit(); // commit all the previous queries
-			LIME_LOGI<<"Perform lime database migration from version "<<userVersion<<" to version "<<lime::settings::DBuserVersion;
+			LIME_LOGI<<"Perform lime database migration from version 0x"<<std::hex<<std::setw(6) << std::setfill('0') <<userVersion<<" to version 0x"<<std::setw(6)<< std::setfill('0')<<lime::settings::DBuserVersion;
 			return;
 		}
 
@@ -98,6 +104,7 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 		*  - RK, CKs, CKr : Root key, sender and receiver chain keys
 		*  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
 		*  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
+		*  - DHrStatus : 0 this peer DHr was not yet used to update the sending chain, 1 this peer DHr was already used to update the sending chain
 		*  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
 		*  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
 		*/
@@ -109,6 +116,7 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 					Nr UNSIGNED INTEGER NOT NULL, \
 					PN UNSIGNED INTEGER NOT NULL, \
 					DHr BLOB NOT NULL, \
+					DHrStatus INTEGER NOT NULL DEFAULT 0, \
 					DHs BLOB NOT NULL, \
 					RK BLOB NOT NULL, \
 					CKs BLOB NOT NULL, \
