@@ -119,6 +119,7 @@ struct belle_sip_channel {
 	belle_sip_list_t *incoming_messages;
 	belle_sip_source_t *inactivity_timer;
 	belle_sip_source_t *dns_ttl_timer;
+	belle_sip_source_t *expect_pong_timer;
 	uint64_t last_recv_time;
 	int simulated_recv_return; /* used to simulate network error. 0= no data (disconnected) >0= do nothing -1= network
 	                              error, 1500 special number to silently discard incoming buffer*/
@@ -139,6 +140,8 @@ struct belle_sip_channel {
 	unsigned char closed_by_remote;              /*If the channel has been remotely closed*/
 	unsigned char dns_ttl_timedout;
 	unsigned char no_srv; /* Set to 1 if SRV must be skipped */
+	unsigned char ping_pong_enabled;
+	unsigned char pong_support_confirmed;
 };
 
 #define BELLE_SIP_CHANNEL(obj) BELLE_SIP_CAST(obj, belle_sip_channel_t)
@@ -239,6 +242,12 @@ BELLESIP_EXPORT void belle_sip_channel_notify_server_error(belle_sip_channel_t *
 void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj);
 
 void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error);
+
+int belle_sip_channel_send_keep_alive(belle_sip_channel_t *obj, int doubled);
+
+void belle_sip_channel_enable_ping_pong(belle_sip_channel_t *obj, int enabled);
+
+int belle_sip_channel_ping_pong_enabled(const belle_sip_channel_t *obj);
 
 BELLE_SIP_END_DECLS
 

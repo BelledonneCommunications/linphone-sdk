@@ -2200,6 +2200,14 @@ int belle_sip_header_supported_contains_tag(const belle_sip_header_supported_t *
  ******************************/
 PRIVACY_LIKE_HEADER(require, BELLE_SIP_REQUIRE, ",")
 
+int belle_sip_header_require_contains_tag(const belle_sip_header_require_t *require, const char *tag) {
+	const bctbx_list_t *elem;
+	for (elem = require->require; elem != NULL; elem = elem->next) {
+		if (strcmp((const char *)elem->data, tag) == 0) return TRUE;
+	}
+	return FALSE;
+}
+
 /******************************
  * Content-Disposition header inherits from header
  ******************************/

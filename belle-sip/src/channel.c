@@ -40,6 +40,15 @@
 	BELLE_SIP_INVOKE_LISTENERS_REVERSE_ARG1_ARG2(channel->state_listeners, belle_sip_channel_listener_t,               \
 	                                             on_state_changed, channel, state)
 
+#define BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, timer)                                                                      \
+	do {                                                                                                               \
+		if (obj->timer) {                                                                                              \
+			belle_sip_main_loop_remove_source(obj->stack->ml, obj->timer);                                             \
+			belle_sip_object_unref(obj->timer);                                                                        \
+			obj->timer = NULL;                                                                                         \
+		}                                                                                                              \
+	} while (0)
+
 static void channel_prepare_continue(belle_sip_channel_t *obj);
 static void channel_process_queue(belle_sip_channel_t *obj);
 static void channel_begin_send_background_task(belle_sip_channel_t *obj);
@@ -132,14 +141,9 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj) {
 	}
 	SET_OBJECT_PROPERTY(obj, resolver_results, NULL);
 	if (obj->static_peer_list) bctbx_freeaddrinfo(obj->static_peer_list);
-	if (obj->inactivity_timer) {
-		belle_sip_main_loop_remove_source(obj->stack->ml, obj->inactivity_timer);
-		belle_sip_object_unref(obj->inactivity_timer);
-	}
-	if (obj->dns_ttl_timer) {
-		belle_sip_main_loop_remove_source(obj->stack->ml, obj->dns_ttl_timer);
-		belle_sip_object_unref(obj->dns_ttl_timer);
-	}
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, inactivity_timer);
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, dns_ttl_timer);
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, expect_pong_timer);
 	if (obj->public_ip) belle_sip_free(obj->public_ip);
 	if (obj->outgoing_messages) belle_sip_list_free_with_data(obj->outgoing_messages, belle_sip_object_unref);
 	if (obj->incoming_messages) belle_sip_list_free_with_data(obj->incoming_messages, belle_sip_object_unref);
@@ -232,6 +236,7 @@ static int is_token(const char *buff, size_t bufflen) {
 	}
 	return 1;
 }
+
 static int get_message_start_pos(char *buff, size_t bufflen) {
 	/*FIXME still to optimize and better test, specially REQUEST PATH and error path*/
 	int i;
@@ -316,6 +321,51 @@ static void belle_sip_channel_learn_public_ip_port(belle_sip_channel_t *obj, bel
 	belle_sip_channel_set_public_ip_port(obj, received, rport);
 
 	obj->learnt_ip_port = TRUE;
+}
+
+static int pong_timeout(void *data, unsigned events) {
+	belle_sip_channel_t *obj = (belle_sip_channel_t *)data;
+	if (obj->state == BELLE_SIP_CHANNEL_READY && obj->pong_support_confirmed) {
+		belle_sip_warning("channel[%p]: no pong received since ping, channel is going to be closed.", obj);
+		channel_set_state(obj, BELLE_SIP_CHANNEL_ERROR);
+		belle_sip_channel_close(obj);
+	}
+	return BELLE_SIP_STOP;
+}
+
+static void expect_pong(belle_sip_channel_t *obj) {
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, expect_pong_timer);
+	obj->expect_pong_timer = belle_sip_main_loop_create_timeout(
+	    obj->stack->ml, pong_timeout, obj, belle_sip_stack_get_pong_timeout(obj->stack) * 1000, "pong timeout");
+}
+
+int belle_sip_channel_send_keep_alive(belle_sip_channel_t *obj, int doubled) {
+	/*keep alive*/
+	const char *crlfcrlf = "\r\n\r\n";
+	size_t size = strlen(crlfcrlf);
+	if (!doubled) size /= 2;
+	int err = belle_sip_channel_send(obj, crlfcrlf, size);
+
+	if (err <= 0 && !belle_sip_error_code_is_would_block(-err) && err != -EINTR) {
+		belle_sip_error("channel [%p]: could not send [%u] bytes of keep alive from [%s://%s:%i]  to [%s:%i]", obj,
+		                (unsigned int)size, belle_sip_channel_get_transport_name(obj), obj->local_ip, obj->local_port,
+		                obj->peer_name, obj->peer_port);
+
+		return -1;
+	} else {
+		belle_sip_message("channel [%p]: keep alive sent to [%s://%s:%i]", obj,
+		                  belle_sip_channel_get_transport_name(obj), obj->peer_name, obj->peer_port);
+		if (doubled && obj->ping_pong_enabled) expect_pong(obj);
+		return 0;
+	}
+}
+
+void belle_sip_channel_enable_ping_pong(belle_sip_channel_t *obj, int enabled) {
+	obj->ping_pong_enabled = (unsigned char)enabled;
+}
+
+int belle_sip_channel_ping_pong_enabled(const belle_sip_channel_t *obj) {
+	return obj->ping_pong_enabled;
 }
 
 static void uncompress_body_if_required(belle_sip_message_t *msg) {
@@ -951,9 +1001,23 @@ int belle_sip_channel_send(belle_sip_channel_t *obj, const void *buf, size_t buf
 	return BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->channel_send(obj, buf, buflen);
 }
 
+static bool_t is_pong(const char *buf, size_t buflen) {
+	return buflen == 2 && strncmp(buf, "\r\n", 2) == 0;
+}
+
 int belle_sip_channel_recv(belle_sip_channel_t *obj, void *buf, size_t buflen) {
+	int ret;
+
+	ret = BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->channel_recv(obj, buf, buflen);
 	update_inactivity_timer(obj, TRUE);
-	return BELLE_SIP_OBJECT_VPTR(obj, belle_sip_channel_t)->channel_recv(obj, buf, buflen);
+	if (obj->expect_pong_timer && !obj->pong_support_confirmed && !obj->expect_pong_timer->expired &&
+	    is_pong((const char *)buf, ret)) {
+		belle_sip_message("channel[%p]: RFC5626 pong support is confirmed.", obj);
+		obj->pong_support_confirmed = TRUE;
+	}
+	/* in any case since we received something, clear the expect_pong_timer */
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, expect_pong_timer);
+	return ret;
 }
 
 void belle_sip_channel_close(belle_sip_channel_t *obj) {
@@ -1631,6 +1695,7 @@ void belle_sip_channel_connect(belle_sip_channel_t *obj) {
 	char ip[64];
 	int port = obj->peer_port;
 
+	BELLE_SIP_CHANNEL_CLEAR_TIMER(obj, expect_pong_timer);
 	channel_set_state(obj, BELLE_SIP_CHANNEL_CONNECTING);
 	bctbx_addrinfo_to_ip_address(obj->current_peer, ip, sizeof(ip), &port);
 	/* update peer_port as it may have been overriden by SRV resolution*/

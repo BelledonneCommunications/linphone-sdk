@@ -177,26 +177,7 @@ belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_p
 	return belle_sip_channel_find_from_list(lp->channels, lp->ai_family, hop);
 }
 
-static int send_keep_alive(belle_sip_channel_t *obj) {
-	/*keep alive*/
-	const char *crlfcrlf = "\r\n\r\n";
-	size_t size = strlen(crlfcrlf);
-	int err = belle_sip_channel_send(obj, crlfcrlf, size);
-
-	if (err <= 0 && !belle_sip_error_code_is_would_block(-err) && err != -EINTR) {
-		belle_sip_error("channel [%p]: could not send [%u] bytes of keep alive from [%s://%s:%i]  to [%s:%i]", obj,
-		                (unsigned int)size, belle_sip_channel_get_transport_name(obj), obj->local_ip, obj->local_port,
-		                obj->peer_name, obj->peer_port);
-
-		return -1;
-	} else {
-		belle_sip_message("channel [%p]: keep alive sent to [%s://%s:%i]", obj,
-		                  belle_sip_channel_get_transport_name(obj), obj->peer_name, obj->peer_port);
-		return 0;
-	}
-}
-
-void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp) {
+static void _belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp, int doubled) {
 	belle_sip_list_t *iterator;
 	belle_sip_channel_t *channel;
 	belle_sip_list_t *to_be_closed = NULL;
@@ -204,7 +185,7 @@ void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp) 
 	for (iterator = lp->channels; iterator != NULL; iterator = iterator->next) {
 		channel = (belle_sip_channel_t *)iterator->data;
 		if (channel->state == BELLE_SIP_CHANNEL_READY && channel->out_state == OUTPUT_STREAM_IDLE &&
-		    send_keep_alive(channel) == -1) { /*only send keep alive if ready*/
+		    belle_sip_channel_send_keep_alive(channel, doubled) == -1) { /*only send keep alive if ready*/
 			to_be_closed = belle_sip_list_append(to_be_closed, channel);
 		}
 	}
@@ -216,6 +197,14 @@ void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp) 
 	}
 
 	belle_sip_list_free(to_be_closed);
+}
+
+void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp) {
+	_belle_sip_listening_point_send_keep_alive(lp, TRUE);
+}
+
+void belle_sip_listening_point_send_pong(belle_sip_listening_point_t *lp) {
+	_belle_sip_listening_point_send_keep_alive(lp, FALSE);
 }
 
 static int keep_alive_timer_func(void *user_data, unsigned int events) {

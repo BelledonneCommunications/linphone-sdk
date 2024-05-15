@@ -570,6 +570,7 @@ struct belle_sip_stack {
 	int unreliable_transport_timeout;
 	int inactive_transport_timeout;
 	int inactive_http_transport_timeout;
+	int pong_timeout;
 	int dns_timeout;
 	int tx_delay;            /*used to simulate network transmission delay, for tests*/
 	int send_error;          /* used to simulate network error. if <0, channel_send will return this value*/

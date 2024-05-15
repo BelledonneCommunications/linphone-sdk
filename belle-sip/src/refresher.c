@@ -223,6 +223,31 @@ static int is_contact_address_acurate(const belle_sip_refresher_t *refresher, be
 	}
 }
 
+static void enable_ping_pong_crlf(belle_sip_refresher_t *refresher,
+                                  belle_sip_request_t *request,
+                                  belle_sip_response_t *response,
+                                  belle_sip_channel_t *channel) {
+	belle_sip_header_supported_t *req_supported =
+	    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request), belle_sip_header_supported_t);
+	belle_sip_header_require_t *req_require =
+	    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(request), belle_sip_header_require_t);
+
+	if ((req_supported && belle_sip_header_supported_contains_tag(req_supported, "outbound")) ||
+	    (req_require && belle_sip_header_require_contains_tag(req_require, "outbound"))) {
+		belle_sip_header_supported_t *resp_supported =
+		    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(response), belle_sip_header_supported_t);
+		belle_sip_header_require_t *resp_require =
+		    belle_sip_message_get_header_by_type(BELLE_SIP_MESSAGE(response), belle_sip_header_require_t);
+		if ((resp_supported && belle_sip_header_supported_contains_tag(resp_supported, "outbound")) ||
+		    (resp_require && belle_sip_header_require_contains_tag(resp_require, "outbound"))) {
+			if (channel && belle_sip_channel_is_reliable(channel) && !belle_sip_channel_ping_pong_enabled(channel)) {
+				belle_sip_message("Refresher[%p]: enabling RFC5626 PING/PONG procedure", refresher);
+				belle_sip_channel_enable_ping_pong(channel, TRUE);
+			}
+		}
+	}
+}
+
 static void process_response_event(belle_sip_listener_t *user_ctx, const belle_sip_response_event_t *event) {
 	belle_sip_client_transaction_t *client_transaction = belle_sip_response_event_get_client_transaction(event);
 	belle_sip_response_t *response = belle_sip_response_event_get_response(event);
@@ -260,6 +285,7 @@ static void process_response_event(belle_sip_listener_t *user_ctx, const belle_s
 		}
 		/*update expire if needed*/
 		set_expires_from_trans(refresher);
+		enable_ping_pong_crlf(refresher, request, response, client_transaction->base.channel);
 
 		if (refresher->target_expires <= 0) {
 			belle_sip_refresher_stop(refresher); /*doesn't not make sense to refresh if expire =0;*/

@@ -188,6 +188,7 @@ belle_sip_stack_t *belle_sip_stack_new(const char *properties) {
 	stack->dns_srv_enabled = TRUE;
 	stack->dns_search_enabled = TRUE;
 	stack->inactive_transport_timeout = 3600;    /*one hour*/
+	stack->pong_timeout = 10;                    /* 10 seconds*/
 	stack->inactive_http_transport_timeout = 50; /* 50 seconds*/
 	stack->unreliable_transport_timeout = 120;
 #ifdef HAVE_DNS_SERVICE
@@ -220,6 +221,14 @@ void belle_sip_stack_set_transport_timeout(belle_sip_stack_t *stack, int timeout
 
 int belle_sip_stack_get_transport_timeout(const belle_sip_stack_t *stack) {
 	return stack->transport_timeout;
+}
+
+void belle_sip_stack_set_pong_timeout(belle_sip_stack_t *stack, int timeout_sec) {
+	stack->pong_timeout = timeout_sec;
+}
+
+int belle_sip_stack_get_pong_timeout(const belle_sip_stack_t *stack) {
+	return stack->pong_timeout;
 }
 
 int belle_sip_stack_get_dns_timeout(const belle_sip_stack_t *stack) {

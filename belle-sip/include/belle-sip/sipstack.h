@@ -188,6 +188,16 @@ BELLESIP_EXPORT void belle_sip_stack_set_unreliable_connection_timeout(belle_sip
 BELLESIP_EXPORT int belle_sip_stack_get_unreliable_connection_timeout(const belle_sip_stack_t *stack);
 
 /**
+ * Set the RFC5626 PONG timeout, in seconds.
+ */
+BELLESIP_EXPORT void belle_sip_stack_set_pong_timeout(belle_sip_stack_t *stack, int timeout_sec);
+
+/*
+ * Returns PONG timeout in seconds.
+ */
+BELLESIP_EXPORT int belle_sip_stack_get_pong_timeout(const belle_sip_stack_t *stack);
+
+/**
  * Set the default dscp value to be used for all SIP sockets created and used in the stack.
  **/
 BELLESIP_EXPORT void belle_sip_stack_set_default_dscp(belle_sip_stack_t *stack, int dscp);

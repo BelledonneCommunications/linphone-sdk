@@ -874,7 +874,7 @@ BELLESIP_EXPORT void belle_sip_header_require_add_require(belle_sip_header_requi
 BELLESIP_EXPORT void belle_sip_header_require_set_require(belle_sip_header_require_t *require,
                                                           belle_sip_list_t *require_values);
 BELLESIP_EXPORT belle_sip_list_t *belle_sip_header_require_get_require(const belle_sip_header_require_t *require);
-
+BELLESIP_EXPORT int belle_sip_header_require_contains_tag(const belle_sip_header_require_t *require, const char *tag);
 #define BELLE_SIP_HEADER_REQUIRE(t) BELLE_SIP_CAST(t, belle_sip_header_require_t)
 #define BELLE_SIP_REQUIRE "Require"
 

@@ -43,6 +43,12 @@ BELLESIP_EXPORT void belle_sip_listening_point_set_keep_alive(belle_sip_listenin
  * */
 BELLESIP_EXPORT void belle_sip_listening_point_send_keep_alive(belle_sip_listening_point_t *lp);
 
+/**
+ * Send a PONG (single CRLF). This function is meant for tests.
+ * Do not use in a real server application.
+ */
+BELLESIP_EXPORT void belle_sip_listening_point_send_pong(belle_sip_listening_point_t *lp);
+
 /*
  * get keep alive frequency in ms
  * @param lp object

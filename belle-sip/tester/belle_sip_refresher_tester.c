@@ -68,9 +68,11 @@ typedef struct endpoint {
 	auth_mode_t auth;
 	status_t stat;
 	unsigned char expire_in_contact;
+	unsigned char enable_rfc5626;
 	char nonce[32];
 	unsigned int nonce_count;
 	const char *received;
+	int expires_value;
 	int rport;
 	int connection_family;
 	int register_count;
@@ -91,11 +93,11 @@ typedef struct endpoint {
 static unsigned int wait_for(belle_sip_stack_t *s1, belle_sip_stack_t *s2, int *counter, int value, int timeout) {
 	int retry = 0;
 #define ITER 20
-	while (*counter < value && retry++ < (timeout / ITER)) {
+	while (((counter == NULL) || *counter < value) && retry++ < (timeout / ITER)) {
 		if (s1) belle_sip_stack_sleep(s1, ITER / 2);
 		if (s2) belle_sip_stack_sleep(s2, ITER / 2);
 	}
-	if (*counter < value) return FALSE;
+	if (counter && *counter < value) return FALSE;
 	else return TRUE;
 }
 
@@ -293,6 +295,9 @@ static void server_process_request_event(void *obj, const belle_sip_request_even
 			} else {
 				contact = belle_sip_header_contact_new();
 			}
+			if (endpoint->enable_rfc5626)
+				belle_sip_message_add_header(BELLE_SIP_MESSAGE(resp),
+				                             BELLE_SIP_HEADER(belle_sip_header_supported_create("outbound")));
 			if (endpoint->unreconizable_contact) {
 				/*put an unexpected address*/
 				belle_sip_uri_set_host(belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(contact)),
@@ -469,6 +474,7 @@ create_endpoint(const char *ip, int port, const char *transport, belle_sip_liste
 	endpoint->lp = belle_sip_stack_create_listening_point(endpoint->stack, ip, port, transport);
 	endpoint->connection_family = AF_INET;
 	endpoint->max_nc_count = MAX_NC_COUNT;
+	endpoint->expires_value = 1;
 
 	if (endpoint->lp) belle_sip_object_ref(endpoint->lp);
 
@@ -498,6 +504,12 @@ static endpoint_t *create_udp_endpoint(int port, belle_sip_listener_callbacks_t 
 	return endpoint;
 }
 
+static endpoint_t *create_tcp_endpoint(int port, belle_sip_listener_callbacks_t *listener_callbacks) {
+	endpoint_t *endpoint = create_endpoint("0.0.0.0", port, "tcp", listener_callbacks);
+	BC_ASSERT_PTR_NOT_NULL(endpoint->lp);
+	return endpoint;
+}
+
 static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
                                                         endpoint_t *server,
                                                         const char *method,
@@ -514,7 +526,7 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 	belle_sip_uri_t *dest_uri;
 	uint64_t begin;
 	uint64_t end;
-	if (client->expire_in_contact) belle_sip_header_contact_set_expires(contact, 1);
+	if (client->expire_in_contact) belle_sip_header_contact_set_expires(contact, client->expires_value);
 
 	dest_uri =
 	    (belle_sip_uri_t *)belle_sip_object_clone((belle_sip_object_t *)belle_sip_listening_point_get_uri(server->lp));
@@ -527,8 +539,12 @@ static belle_sip_refresher_t *refresher_base_with_body2(endpoint_t *client,
 	    belle_sip_header_cseq_create(20, method), belle_sip_header_from_create2(identity, BELLE_SIP_RANDOM_TAG),
 	    belle_sip_header_to_create2(identity, NULL), belle_sip_header_via_new(), 70);
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(contact));
+	if (client->enable_rfc5626)
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+		                             BELLE_SIP_HEADER(belle_sip_header_supported_create("outbound")));
 	if (!client->expire_in_contact)
-		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(belle_sip_header_expires_create(1)));
+		belle_sip_message_add_header(BELLE_SIP_MESSAGE(req),
+		                             BELLE_SIP_HEADER(belle_sip_header_expires_create(client->expires_value)));
 
 	belle_sip_message_add_header(BELLE_SIP_MESSAGE(req), BELLE_SIP_HEADER(destination_route));
 	if (content_type && body) {
@@ -902,6 +918,171 @@ static void register_with_failure(void) {
 	client->transiant_network_failure = 1;
 	register_base(client, server);
 	BC_ASSERT_EQUAL(client->stat.refreshKo, 1, int, "%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+static void register_with_pingpong_pong_ok(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_refresher_t *refresher;
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_auth_requested = client_process_auth_requested;
+	server_callbacks.process_request_event = server_process_request_event;
+	client = create_tcp_endpoint(3452, &client_callbacks);
+	client->enable_rfc5626 = 1;
+	client->early_refresher = 1;
+	client->register_count = 0;
+	client->expires_value = 60;
+	server = create_tcp_endpoint(6788, &server_callbacks);
+	server->expire_in_contact = 1;
+	server->auth = digest;
+	server->enable_rfc5626 = 1;
+
+	belle_sip_stack_set_pong_timeout(client->stack, 4);
+
+	refresher = refresher_base_with_body2(client, server, "REGISTER", NULL, NULL, 1);
+
+	/* send a client keepalive (PING)*/
+	belle_sip_listening_point_send_keep_alive(client->lp);
+	wait_for(server->stack, client->stack, NULL, 0, 1000);
+	/* server sends a keepalive (PONG)*/
+	belle_sip_listening_point_send_pong(server->lp);
+	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
+
+	belle_sip_refresher_stop(refresher);
+	belle_sip_object_unref(refresher);
+
+	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+static void register_with_pingpong_pong_nok(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_refresher_t *refresher;
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_auth_requested = client_process_auth_requested;
+	server_callbacks.process_request_event = server_process_request_event;
+	client = create_tcp_endpoint(3452, &client_callbacks);
+	client->early_refresher = 1;
+	client->register_count = 0;
+	client->expires_value = 60;
+	client->enable_rfc5626 = 1;
+	server = create_tcp_endpoint(6788, &server_callbacks);
+	server->expire_in_contact = 1;
+	server->auth = digest;
+	server->enable_rfc5626 = 1;
+
+	belle_sip_stack_set_pong_timeout(client->stack, 4);
+
+	refresher = refresher_base_with_body2(client, server, "REGISTER", NULL, NULL, 1);
+
+	/* send a client keepalive (PING)*/
+	belle_sip_listening_point_send_keep_alive(client->lp);
+	wait_for(server->stack, client->stack, NULL, 0, 1000);
+	/* the server replies with PONG.*/
+	belle_sip_listening_point_send_pong(server->lp);
+	wait_for(server->stack, client->stack, NULL, 0, 1000);
+
+	/* send another client keepalive (PING)*/
+	belle_sip_listening_point_send_keep_alive(client->lp);
+	/* we simulate a broken connection, no PONG is sent by server*/
+	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	/* as a result the channel should have been closed and a new REGISTER sent */
+	BC_ASSERT_EQUAL(client->stat.refreshOk, 2, int, "%d");
+
+	belle_sip_refresher_stop(refresher);
+	belle_sip_object_unref(refresher);
+
+	BC_ASSERT_EQUAL(client->stat.refreshKo, 1, int, "%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+static void register_with_pingpong_not_supported(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_refresher_t *refresher;
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_auth_requested = client_process_auth_requested;
+	server_callbacks.process_request_event = server_process_request_event;
+	client = create_tcp_endpoint(3452, &client_callbacks);
+	client->enable_rfc5626 = 1;
+	client->early_refresher = 1;
+	client->register_count = 0;
+	client->expires_value = 60;
+	server = create_tcp_endpoint(6788, &server_callbacks);
+	server->expire_in_contact = 1;
+	server->auth = digest;
+	server->enable_rfc5626 = 0;
+
+	belle_sip_stack_set_pong_timeout(client->stack, 4);
+
+	refresher = refresher_base_with_body2(client, server, "REGISTER", NULL, NULL, 1);
+
+	/* send a client keepalive (PING)*/
+	belle_sip_listening_point_send_keep_alive(client->lp);
+	/* server does not send a PONG, but nothing should happen at client side.*/
+	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
+
+	belle_sip_refresher_stop(refresher);
+	belle_sip_object_unref(refresher);
+
+	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
+	destroy_endpoint(client);
+	destroy_endpoint(server);
+}
+
+/* Case of a server that claims Supported: outbound, but does not send any pong.
+ * In this case the client does not break the connection since no pong was ever received.
+ */
+static void register_with_pingpong_not_supported_2(void) {
+	belle_sip_listener_callbacks_t client_callbacks;
+	belle_sip_listener_callbacks_t server_callbacks;
+	endpoint_t *client, *server;
+	belle_sip_refresher_t *refresher;
+	memset(&client_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	memset(&server_callbacks, 0, sizeof(belle_sip_listener_callbacks_t));
+	client_callbacks.process_response_event = client_process_response_event;
+	client_callbacks.process_auth_requested = client_process_auth_requested;
+	server_callbacks.process_request_event = server_process_request_event;
+	client = create_tcp_endpoint(3452, &client_callbacks);
+	client->enable_rfc5626 = 1;
+	client->early_refresher = 1;
+	client->register_count = 0;
+	client->expires_value = 60;
+	server = create_tcp_endpoint(6788, &server_callbacks);
+	server->expire_in_contact = 1;
+	server->auth = digest;
+	server->enable_rfc5626 = 0;
+
+	belle_sip_stack_set_pong_timeout(client->stack, 4);
+
+	refresher = refresher_base_with_body2(client, server, "REGISTER", NULL, NULL, 1);
+
+	/* send a client keepalive (PING)*/
+	belle_sip_listening_point_send_keep_alive(client->lp);
+	/* server does not send a PONG, and nothing should happen at client side.*/
+	wait_for(server->stack, client->stack, NULL, 0, 6000);
+	BC_ASSERT_EQUAL(client->stat.refreshOk, 1, int, "%d");
+
+	belle_sip_refresher_stop(refresher);
+	belle_sip_object_unref(refresher);
+
+	BC_ASSERT_EQUAL(client->stat.refreshKo, 0, int, "%d");
 	destroy_endpoint(client);
 	destroy_endpoint(server);
 }
@@ -1314,9 +1495,12 @@ static test_t refresher_tests[] = {
     TEST_NO_TAG("REGISTER AND PUBLISH", register_and_publish),
     TEST_NO_TAG("REGISTER, digest with next nonce", register_digest_with_next_nonce),
     TEST_NO_TAG("REGISTER, digest auth with next nonce", register_digest_auth_with_next_nonce),
-    TEST_NO_TAG("REGISTER, digest auth with bad next nonce", register_digest_auth_with_bad_next_nonce)
-
-};
+    TEST_NO_TAG("REGISTER, digest auth with bad next nonce", register_digest_auth_with_bad_next_nonce),
+    TEST_NO_TAG("REGISTER with RFC5626 ping pong ok", register_with_pingpong_pong_ok),
+    TEST_NO_TAG("REGISTER with RFC5626 ping pong nok", register_with_pingpong_pong_nok),
+    TEST_NO_TAG("REGISTER with RFC5626 ping pong not supported server-side", register_with_pingpong_not_supported),
+    TEST_NO_TAG("REGISTER with RFC5626 ping pong erroneously supported server-side",
+                register_with_pingpong_not_supported_2)};
 
 test_suite_t refresher_test_suite = {"Refresher",
                                      NULL,
