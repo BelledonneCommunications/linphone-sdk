@@ -35,7 +35,7 @@ MediaCodecDecoder::MediaCodecDecoder(const std::string &mime) : H26xDecoder(mime
 			msg << "could not create MediaCodec for '" << mime << "'";
 			throw runtime_error(msg.str());
 		}
-		_format = createFormat(mime);
+		_format = createFormat(true);
 		_bufAllocator = ms_yuv_buf_allocator_new();
 		ms_yuv_buf_allocator_set_max_frames(_bufAllocator, 15); /* we need to accomodate decoding with 'B-frames' */
 		_naluHeader.reset(H26xToolFactory::get(mime).createNaluHeader());
@@ -211,14 +211,14 @@ end:
 	return status;
 }
 
-AMediaFormat *MediaCodecDecoder::createFormat(const std::string &mime) const {
+AMediaFormat *MediaCodecDecoder::createFormat(bool withLowLatency) const {
 	AMediaFormat *format = AMediaFormat_new();
-	AMediaFormat_setString(format, "mime", mime.c_str());
+	AMediaFormat_setString(format, "mime", getMime().c_str());
 	AMediaFormat_setInt32(format, "color-format", 0x7f420888);
 	AMediaFormat_setInt32(format, "max-width", 1920);
 	AMediaFormat_setInt32(format, "max-height", 1920);
 	AMediaFormat_setInt32(format, "priority", 0);
-	AMediaFormat_setInt32(format, "low-latency", 1); // MediaFormat.KEY_LOW_LATENCY
+	if (withLowLatency) AMediaFormat_setInt32(format, "low-latency", 1); // MediaFormat.KEY_LOW_LATENCY
 	return format;
 }
 
@@ -227,8 +227,13 @@ void MediaCodecDecoder::startImpl() {
 	ostringstream errMsg;
 	ms_message("MediaCodecDecoder: starting decoder with following parameters:\n%s", AMediaFormat_toString(_format));
 	if ((status = AMediaCodec_configure(_impl, _format, nullptr, nullptr, 0)) != AMEDIA_OK) {
-		errMsg << "configuration failure: " << int(status);
-		throw runtime_error(errMsg.str());
+		ms_warning("MediaCodecDecoder: configure failed, retrying without low-latency parameter.");
+		AMediaFormat_delete(_format);
+		_format = createFormat(false);
+		if ((status = AMediaCodec_configure(_impl, _format, nullptr, nullptr, 0)) != AMEDIA_OK) {
+			errMsg << "configuration failure: " << int(status);
+			throw runtime_error(errMsg.str());
+		}
 	}
 
 	if ((status = AMediaCodec_start(_impl)) != AMEDIA_OK) {

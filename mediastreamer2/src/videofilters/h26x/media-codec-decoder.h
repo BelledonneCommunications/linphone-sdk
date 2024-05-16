@@ -53,7 +53,7 @@ protected:
 
 	MediaCodecDecoder(const std::string &mime);
 	virtual bool setParameterSets(MSQueue *parameterSet, uint64_t timestamp);
-	AMediaFormat *createFormat(const std::string &mime) const;
+	AMediaFormat *createFormat(bool withLowLatency) const;
 	void startImpl();
 	void stopImpl() noexcept;
 	void resetImpl() noexcept;
