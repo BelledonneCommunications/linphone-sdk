@@ -90,7 +90,7 @@ else()
 	endif()
 
 	if(ENABLE_PROFILING)
-		set_target_properties(lime-tester PROPERTIES LINK_FLAGS "-pg")
+		target_link_options(lime-tester PRIVATE "-pg")
 	endif()
 	install(TARGETS lime-tester
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
