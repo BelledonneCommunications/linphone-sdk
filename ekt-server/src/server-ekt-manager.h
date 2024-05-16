@@ -43,7 +43,8 @@ public:
 	                                     const std::shared_ptr<const linphone::ParticipantDevice> &device,
 	                                     linphone::ParticipantDevice::State state) override;
 
-	int subscribeReceived(const std::shared_ptr<linphone::Event> &ev);
+	int subscribeReceived(const std::shared_ptr<linphone::Event> &ev,
+	                      const std::shared_ptr<linphone::ParticipantDevice> device);
 	void sendNotifyAcceptedEkt(const std::shared_ptr<linphone::Event> &ev);
 	void sendNotify(const std::shared_ptr<linphone::Event> &ev,
 	                const std::shared_ptr<const linphone::Address> &from,

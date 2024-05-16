@@ -46,7 +46,23 @@ void EktServerPlugin::EktServerMain::onSubscribeReceived(const shared_ptr<Core> 
 	if (linphoneEvent->getName() == "ekt") {
 		auto confAddress = linphoneEvent->getToAddress();
 		auto ektManager = findServerEktManager(confAddress);
-		if (ektManager) ektManager->subscribeReceived(linphoneEvent);
+		auto conference = core->searchConference(confAddress);
+		shared_ptr<ParticipantDevice> participantDevice = nullptr;
+		if (conference) {
+			auto deviceList = conference->getParticipantDeviceList();
+			for (auto device : deviceList) {
+				if (device->getAddress()->equal(linphoneEvent->getRemoteContact())) {
+					participantDevice = device;
+				}
+			}
+			if (!ektManager) {
+				mConferenceByAddress.insert(make_pair(conference->getConferenceAddress(), conference));
+				ektManager = make_shared<ServerEktManager>(conference);
+				conference->setData(kDataKey, *ektManager.get());
+				conference->addListener(ektManager);
+			}
+		}
+		if (ektManager) ektManager->subscribeReceived(linphoneEvent, participantDevice);
 	}
 }
 
@@ -64,20 +80,19 @@ void EktServerPlugin::EktServerMain::onPublishReceived(const shared_ptr<Core> &c
 void EktServerPlugin::EktServerMain::onConferenceStateChanged(const shared_ptr<Core> &core,
                                                               const shared_ptr<Conference> &conference,
                                                               Conference::State state) {
-	shared_ptr<ServerEktManager> serverEktManager = nullptr;
-	switch (state) {
-		case Conference::State::CreationPending:
-			mConferenceByAddress.insert(make_pair(conference->getConferenceAddress(), conference));
-			serverEktManager = make_shared<ServerEktManager>(conference);
-			conference->setData(kDataKey, *serverEktManager.get());
-			conference->addListener(serverEktManager);
-			break;
-		case Conference::State::TerminationPending:
-			conference->removeListener(conference->getData<shared_ptr<ServerEktManager>>(kDataKey));
-			mConferenceByAddress.erase(conference->getConferenceAddress());
-			break;
-		default:
-			break;
+	try {
+		shared_ptr<ServerEktManager> sem = conference->getData<shared_ptr<ServerEktManager>>(kDataKey);
+		switch (state) {
+			case Conference::State::TerminationPending:
+				if (sem) {
+					conference->removeListener(sem);
+					mConferenceByAddress.erase(conference->getConferenceAddress());
+				}
+				break;
+			default:
+				break;
+		}
+	} catch (std::out_of_range) {
 	}
 }
 

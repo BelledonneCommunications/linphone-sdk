@@ -43,21 +43,7 @@ void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
     const shared_ptr<Conference> &conference,
     const shared_ptr<const ParticipantDevice> &device,
     ParticipantDevice::State state) {
-	bool present = false;
 	switch (state) {
-		case ParticipantDevice::State::Present:
-			for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
-				if (participantDevice->getAddress()->equal(device->getAddress())) {
-					present = true;
-				}
-			}
-			if (!present) {
-				bctbx_message("ServerEktManager::onParticipantDeviceStateChanged : [%s] added to the EKT Manager",
-				              device->getAddress()->asStringUriOnly().c_str());
-				mParticipantDevices.insert(
-				    make_pair(device, make_shared<ParticipantDeviceContext>(shared_from_this())));
-			}
-			break;
 		case ParticipantDevice::State::ScheduledForLeaving:
 			bctbx_message("ServerEktManager::onParticipantDeviceStateChanged : [%s] is leaving",
 			              device->getAddress()->asStringUriOnly().c_str());
@@ -80,7 +66,8 @@ void EktServerPlugin::ServerEktManager::onParticipantDeviceStateChanged(
 	}
 }
 
-int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event> &ev) {
+int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event> &ev,
+                                                         const shared_ptr<ParticipantDevice> device) {
 	bool deviceFound = false;
 
 	if (ev->getName() != "ekt") {
@@ -91,8 +78,21 @@ int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event>
 
 	ev->acceptSubscription();
 
-	bctbx_message("ServerEktManager::subscribeReceived : Event subscribe EKT [%p] received from [%s]", &ev,
+	bctbx_message("ServerEktManager::subscribeReceived : Event subscribe EKT [%p] received from [%s]", ev.get(),
 	              ev->getRemoteContact()->asStringUriOnly().c_str());
+
+	if (device) {
+		for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
+			if (participantDevice->getAddress()->equal(device->getAddress())) {
+				deviceFound = true;
+			}
+		}
+		if (!deviceFound) {
+			mParticipantDevices.insert(make_pair(device, make_shared<ParticipantDeviceContext>(shared_from_this())));
+			bctbx_message("ServerEktManager::subscribeReceived : [%s] added to the EKT Manager",
+			              device->getAddress()->asStringUriOnly().c_str());
+		}
+	}
 
 	if (ev->getSubscriptionState() == linphone::SubscriptionState::Active) {
 		for (auto &[participantDevice, participantDeviceCtx] : mParticipantDevices) {
@@ -113,7 +113,12 @@ int EktServerPlugin::ServerEktManager::subscribeReceived(const shared_ptr<Event>
 		generateSSpi();
 	}
 
-	if (mParticipantDevices.empty()) return 0;
+	if (mParticipantDevices.empty()) {
+		bctbx_error("ServerEktManager::subscribeReceived : The participant device list of ServerEktManager [%p] "
+		            "(conference address [%s]) is empty.",
+		            this, ev->getToAddress()->asStringUriOnly().c_str());
+		return 0;
+	}
 
 	if (deviceFound) {       // We found the device
 		if (mCSpi.empty()) { // The participant device must generate the EKT
@@ -258,44 +263,72 @@ void EktServerPlugin::ServerEktManager::publishReceived(const shared_ptr<Event> 
 
 	auto from = ei->getFromAddress();
 	auto ciphers = ei->getCiphers();
+	list<shared_ptr<const Address>> participantDeviceAddressList = {};
+	shared_ptr<ParticipantDeviceContext> senderCtx = nullptr;
+	// TODO: Refactor the code when adding the EKT regeneration feature
 	if (mCSpi.empty()) {
 		mCSpi = cspi;
 		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
 			auto participantDeviceAddress = participantDevice->getAddress();
-			if (participantDeviceAddress->equal(from)) {
+			if (participantDeviceAddress->equal(from)) { // PUBLISH sender
+				senderCtx = participantDeviceCtx;
 				sendNotifyAcceptedEkt(
 				    participantDeviceCtx
 				        ->getEventSubscribe()); // Inform the ParticipantDevice that their EKT has been selected
 				participantDeviceCtx->setKnowsEkt(true);
 				bctbx_message("ServerEktManager::publishReceived : [%s] EKT selected",
 				              participantDeviceAddress->asStringUriOnly().c_str());
-			} else if (ciphers && !participantDeviceCtx->knowsEkt()) {
-				if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
-					auto evSub = participantDeviceCtx->getEventSubscribe();
-					if (evSub) {
-						sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
-						participantDeviceCtx->setKnowsEkt(true);
-						bctbx_message("ServerEktManager::publishReceived : EKT sent to [%s]",
-						              participantDeviceAddress->asStringUriOnly().c_str());
+			} else { // Other participants
+				bool ektFound = true;
+				if (ciphers) {
+					if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
+						auto evSub = participantDeviceCtx->getEventSubscribe();
+						if (evSub) {
+							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
+							participantDeviceCtx->setKnowsEkt(true);
+							bctbx_message("ServerEktManager::publishReceived : EKT (just selected) sent to [%s]",
+							              participantDeviceAddress->asStringUriOnly().c_str());
+						}
+					} else {
+						ektFound = false;
 					}
+				} else {
+					ektFound = false;
+				}
+				if (!ektFound) {
+					bctbx_message("ServerEktManager::publishReceived : EKT (just selected) not received for [%s]",
+					              participantDeviceAddress->asStringUriOnly().c_str());
+					participantDeviceAddressList.push_back(participantDevice->getAddress());
 				}
 			}
 		}
 	} else if (mCSpi == cspi) {
 		for (auto [participantDevice, participantDeviceCtx] : mParticipantDevices) {
-			if (!participantDeviceCtx->knowsEkt()) {
-				auto participantDeviceAddress = participantDevice->getAddress();
-				if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
-					auto evSub = participantDeviceCtx->getEventSubscribe();
-					if (evSub) {
-						sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
-						participantDeviceCtx->setKnowsEkt(true);
-						bctbx_message("ServerEktManager::publishReceived : EKT sent to [%s]",
+			auto participantDeviceAddress = participantDevice->getAddress();
+			if (participantDeviceAddress->equal(from)) {
+				senderCtx = participantDeviceCtx;
+			} else {
+				if (!participantDeviceCtx->knowsEkt()) {
+					if (auto cipher = ciphers->getLinphoneBuffer(participantDeviceAddress->asStringUriOnly())) {
+						auto evSub = participantDeviceCtx->getEventSubscribe();
+						if (evSub) {
+							sendNotify(evSub, from, cipher, {}); // Distribute the EKT to ParticipantDevices
+							participantDeviceCtx->setKnowsEkt(true);
+							bctbx_message(
+							    "ServerEktManager::publishReceived : EKT sent to the new participant device [%s]",
+							    participantDeviceAddress->asStringUriOnly().c_str());
+						}
+					} else {
+						bctbx_message("ServerEktManager::publishReceived : EKT not received for [%s]",
 						              participantDeviceAddress->asStringUriOnly().c_str());
+						participantDeviceAddressList.push_back(participantDevice->getAddress());
 					}
 				}
 			}
 		}
+	}
+	if (!participantDeviceAddressList.empty()) {
+		sendNotifyWithParticipantDeviceList(senderCtx->getEventSubscribe(), participantDeviceAddressList);
 	}
 	return;
 }
@@ -359,8 +392,8 @@ void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishRecei
 	}
 }
 
-void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishStateChanged(
-    const shared_ptr<Event> &event, PublishState state) {
+void EktServerPlugin::ServerEktManager::ParticipantDeviceContext::onPublishStateChanged(const shared_ptr<Event> &event,
+                                                                                        PublishState state) {
 	if (state == PublishState::Cleared) {
 		bctbx_message("ParticipantDeviceContext::onPublishStateChanged : Cleared");
 		mEventPublish->removeListener(this->shared_from_this());
