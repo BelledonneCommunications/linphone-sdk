@@ -148,30 +148,22 @@ if(WIN32)
 	endif()
 	target_compile_definitions(bctoolbox PRIVATE "BCTBX_EXPORTS")
 	if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore") # Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
-		get_target_property(BC_LINK_FLAGS bctoolbox LINK_FLAGS)
-		if(NOT BC_LINK_FLAGS)
-			set(BC_LINK_FLAGS "")
-		endif()
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-			list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlibd /nodefaultlib:msvcrtd vccorlibd.lib msvcrtd.lib")
-		else()
-			list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlib /nodefaultlib:msvcrt vccorlib.lib msvcrt.lib")
-		endif()
+		list(APPEND BC_LINK_OPTIONS_DEBUG "/nodefaultlib:vccorlibd" "/nodefaultlib:msvcrtd" "vccorlibd.lib" "msvcrtd.lib")
+		list(APPEND BC_LINK_OPTIONS_RELEASE "/nodefaultlib:vccorlib" "/nodefaultlib:msvcrt" "vccorlib.lib" "msvcrt.lib")
+		target_link_options(bctoolbox PUBLIC "$<IF:$<CONFIG:Debug>,${BC_LINK_OPTIONS_DEBUG},${BC_LINK_OPTIONS_RELEASE}>")
 		if(MSVC)
 			set_target_properties(bctoolbox PROPERTIES VS_WINRT_COMPONENT TRUE)
 		else()
 			target_compile_options(bctoolbox PRIVATE -ZW -EHsc)
 		endif()
-		set_target_properties(bctoolbox PROPERTIES LINK_FLAGS "${BC_LINK_FLAGS}")
 	endif()
 endif()
 if(MSVC AND BUILD_SHARED_LIBS)
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-		install(FILES $<TARGET_PDB_FILE:bctoolbox>
-			DESTINATION ${CMAKE_INSTALL_BINDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
+	install(FILES $<TARGET_PDB_FILE:bctoolbox>
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		CONFIGURATIONS Debug RelWithDebInfo
+	)
 endif()
 
 if(HAVE_LIBRT)
@@ -214,23 +206,22 @@ if(ENABLE_TESTS_COMPONENT)
 		set_target_properties(bctoolbox-tester PROPERTIES SOVERSION ${BCTOOLBOXTESTER_SO_VERSION})
 	endif()
 	if(MSVC AND BUILD_SHARED_LIBS)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:bctoolbox-tester>
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
+		install(FILES $<TARGET_PDB_FILE:bctoolbox-tester>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			CONFIGURATIONS Debug RelWithDebInfo
+		)
 	endif()
 endif()
 
 if(APPLE AND IOS)
 	add_library(bctoolbox-ios SHARED ${BCTOOLBOX_IOS_SOURCE_FILES})
 	target_link_libraries(bctoolbox-ios PRIVATE bctoolbox)
+	target_link_libraries(bctoolbox-ios PRIVATE "-framework UIKit" "-framework Foundation" "-framework CoreFoundation")
 	set_target_properties(bctoolbox-ios PROPERTIES
 		FRAMEWORK TRUE
 		MACOSX_FRAMEWORK_IDENTIFIER org.linphone.bctoolbox-ios
 		MACOSX_FRAMEWORK_INFO_PLIST "${PROJECT_SOURCE_DIR}/build/osx/Info.plist.in"
-		LINK_FLAGS "-framework UIKit -framework Foundation -framework CoreFoundation"
 	)
 endif()
 

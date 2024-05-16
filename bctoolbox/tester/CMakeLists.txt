@@ -40,12 +40,8 @@ if(ENABLE_UNIT_TESTS AND NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore" AND NOT A
 		list(APPEND TESTER_SOURCES ios_utils.cc)
 	endif()
 
-	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
     bc_apply_compile_flags(TESTER_SOURCE STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(bctoolbox-tester-exe ${TESTER_SOURCES})
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(bctoolbox-tester-exe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 	set_target_properties(bctoolbox-tester-exe PROPERTIES OUTPUT_NAME bctoolbox-tester)
 	target_link_libraries(bctoolbox-tester-exe PRIVATE bctoolbox bctoolbox-tester)
 	if(MbedTLS_FOUND)
