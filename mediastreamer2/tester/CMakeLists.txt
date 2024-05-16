@@ -175,9 +175,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	)
 	add_library(mediastreamer2-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
 	target_link_libraries(mediastreamer2-tester-runtime mediastreamer2-tester-static)
+	target_link_options(mediastreamer2-tester-runtime PRIVATE "/WINMDFILE:BelledonneCommunications.Mediastreamer2.Tester.winmd")
 	set_target_properties(mediastreamer2-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(mediastreamer2-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.Mediastreamer2.Tester")
-	set_target_properties(mediastreamer2-tester-runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.Mediastreamer2.Tester.winmd")
 
 	install(TARGETS mediastreamer2-tester-runtime
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -186,12 +186,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/BelledonneCommunications.Mediastreamer2.Tester.winmd" DESTINATION lib)
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/BelledonneCommunications.Mediastreamer2.Tester.pdb
-			DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
+	install(FILES $<TARGET_PDB_FILE:mediastreamer2-tester-runtime>
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		CONFIGURATIONS Debug RelWithDebInfo
+	)
 
 elseif(NOT ANDROID)
 	if(IOS)
@@ -208,10 +207,6 @@ elseif(NOT ANDROID)
 	endif()
 	set_target_properties(mediastreamer2-tester PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(mediastreamer2-tester ${MS2_LIBS_FOR_TESTER} ${BCToolbox_tester_TARGET} ${Ortp_TARGET})
-	string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer2-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 	if(NOT IOS)
 		install(TARGETS mediastreamer2-tester
 			RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

@@ -572,13 +572,14 @@ if(APPLE OR ANDROID OR OPENGL_FOUND OR OpenGL_GLX_FOUND OR QtAngle_FOUND OR WIN3
 endif()
 
 
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-
 add_library(mediastreamer2 ${MEDIASTREAMER2_HEADER_FILES} ${SOURCE_FILES_ALL})
 set_target_properties(mediastreamer2 PROPERTIES MS2_PLUGINS_DIR "${MS2_PLUGINS_DIR}")
 set_target_properties(mediastreamer2 PROPERTIES LINKER_LANGUAGE CXX)
-if(LINK_FLAGS_STR)
-	set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+if(APPLE_FRAMEWORKS)
+	target_link_libraries(mediastreamer2 PUBLIC ${APPLE_FRAMEWORKS})
+endif()
+if(WIN32 AND CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
+	target_link_options(mediastreamer2 PUBLIC "$<IF:$<CONFIG:Debug>,${LINK_OPTIONS_DEBUG},${LINK_OPTIONS_RELEASE}>")
 endif()
 add_dependencies(mediastreamer2 ${MS2_DEPENDENCIES})
 target_include_directories(mediastreamer2 INTERFACE
@@ -629,7 +630,7 @@ if(BUILD_SHARED_LIBS)
 	endif()
 	if(ANDROID)
 		if(VPX_FOUND)
-			set_target_properties(mediastreamer2 PROPERTIES LINK_FLAGS "-Wl,--exclude-libs,libvpx.a")
+			target_link_options(mediastreamer2 PRIVATE "-Wl,--exclude-libs,libvpx.a")
 		endif()
 		# Do not version shared library on Android
 		set_target_properties(mediastreamer2 PROPERTIES SOVERSION ${MEDIASTREAMER_SO_VERSION})
@@ -680,12 +681,11 @@ if(BUILD_SHARED_LIBS)
 		target_link_libraries(mediastreamer2 PRIVATE "-framework ScreenCaptureKit")
 	endif()
 	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:mediastreamer2>
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
+		install(FILES $<TARGET_PDB_FILE:mediastreamer2>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			CONFIGURATIONS Debug RelWithDebInfo
+		)
 	endif()
 	if(ENABLE_LIBYUV)
 		if( CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 5.3)
@@ -741,15 +741,12 @@ if(ENABLE_QT_GL)
 			endforeach()
 		endif()
 		if(MSVC)
-			if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-				install(FILES $<TARGET_PDB_FILE:msqogl>
-					DESTINATION ${CMAKE_INSTALL_BINDIR}
-					PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-				)
-			endif()
-			if(NOT IOS)
-				set_target_properties(msqogl PROPERTIES PREFIX "lib")
-			endif()
+			install(FILES $<TARGET_PDB_FILE:msqogl>
+				DESTINATION ${CMAKE_INSTALL_BINDIR}
+				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+				CONFIGURATIONS Debug RelWithDebInfo
+			)
+			set_target_properties(msqogl PROPERTIES PREFIX "lib")
 		endif()
 	endif()
 

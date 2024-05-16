@@ -20,8 +20,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 ############################################################################
 
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
-
 set(USE_BUNDLE )
 if (IOS)
 	set(USE_BUNDLE MACOSX_BUNDLE)
@@ -55,9 +53,6 @@ foreach(simple_executable ${simple_executables})
 	add_executable(mediastreamer2-${simple_executable} ${USE_BUNDLE} ${simple_executable}.c)
 	target_link_libraries(mediastreamer2-${simple_executable} ${MS2_LIBS_FOR_TOOLS} ${LINK_LIBS})
 	set_target_properties(mediastreamer2-${simple_executable} PROPERTIES LINKER_LANGUAGE CXX)
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer2-${simple_executable} PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 endforeach()
 
 set(ECHO_SOURCE_FILES echo.c)
@@ -65,9 +60,6 @@ bc_apply_compile_flags(ECHO_SOURCE_FILES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 add_executable(mediastreamer2-echo ${USE_BUNDLE} ${ECHO_SOURCE_FILES}) # Do not name the target "echo" to avoid conflict with the shell echo command
 set_target_properties(mediastreamer2-echo PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(mediastreamer2-echo ${MS2_LIBS_FOR_TOOLS} ${LINK_LIBS})
-if(LINK_FLAGS_STR)
-	set_target_properties(mediastreamer2-echo PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-endif()
 
 if(PCAP_FOUND)
 	if(APPLE AND NOT IOS)
@@ -80,9 +72,6 @@ if(PCAP_FOUND)
 	add_executable(mediastreamer2-pcap-playback ${USE_BUNDLE} ${PCAP_PLAYBACK_SOURCE_FILES} ${SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer2-pcap-playback PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(mediastreamer2-pcap-playback ${MS2_LIBS_FOR_TOOLS} ${LINK_LIBS})
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer2-pcap-playback PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 endif()
 
 if (NOT IOS)
@@ -96,9 +85,6 @@ if (NOT IOS)
 	add_executable(mediastreamer2-mediastream ${USE_BUNDLE} ${MEDIASTREAM_SOURCE_FILES_C} ${MEDIASTREAM_SOURCE_FILES_OBJC})
 	set_target_properties(mediastreamer2-mediastream PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(mediastreamer2-mediastream ${MS2_LIBS_FOR_TOOLS} ${LINK_LIBS})
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer2-mediastream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 	install(TARGETS mediastreamer2-mediastream
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 	)
@@ -110,9 +96,6 @@ if(ENABLE_VIDEO)
 	add_executable(mediastreamer2-mkvstream ${USE_BUNDLE} ${MKVSTREAM_SOURCE_FILES})
 	set_target_properties(mediastreamer2-mkvstream PROPERTIES LINKER_LANGUAGE CXX)
 	target_link_libraries(mediastreamer2-mkvstream ${MS2_LIBS_FOR_TOOLS} ${LINK_LIBS})
-	if(LINK_FLAGS_STR)
-		set_target_properties(mediastreamer2-mkvstream PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
-	endif()
 
 	if (NOT IOS)
 		install(TARGETS mediastreamer2-mkvstream
