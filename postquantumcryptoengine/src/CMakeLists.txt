@@ -65,21 +65,14 @@ if(BUILD_SHARED_LIBS)
 		set_target_properties(postquantumcryptoengine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 		target_compile_definitions(postquantumcryptoengine PRIVATE "-DPQCE_EXPORTS")
 		if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")#Fix error on 'vccorlib_lib_should_be_specified_before_msvcrt_lib_to_linker''
-			get_target_property(BC_LINK_FLAGS postquantumcryptoengine LINK_FLAGS)
-			if(NOT BC_LINK_FLAGS)
-				set(BC_LINK_FLAGS "")
-			endif()
-			if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-				list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlibd /nodefaultlib:msvcrtd vccorlibd.lib msvcrtd.lib")
-			else()
-				list(APPEND BC_LINK_FLAGS "/nodefaultlib:vccorlib /nodefaultlib:msvcrt vccorlib.lib msvcrt.lib")
-			endif()
+			list(APPEND BC_LINK_OPTIONS_DEBUG "/nodefaultlib:vccorlibd" "/nodefaultlib:msvcrtd" "vccorlibd.lib" "msvcrtd.lib")
+			list(APPEND BC_LINK_OPTIONS_RELEASE "/nodefaultlib:vccorlib" "/nodefaultlib:msvcrt" "vccorlib.lib" "msvcrt.lib")
+			target_link_options(postquantumcryptoengine PRIVATE "$<IF:$<CONFIG:Debug>,${BC_LINK_OPTIONS_DEBUG},${BC_LINK_OPTIONS_RELEASE}>")
 			if(MSVC)
 				set_target_properties(postquantumcryptoengine PROPERTIES VS_WINRT_COMPONENT TRUE)
 			else()
 				target_compile_options(postquantumcryptoengine PRIVATE -ZW -EHsc)
 			endif()
-			set_target_properties(postquantumcryptoengine PROPERTIES LINK_FLAGS "${BC_LINK_FLAGS}")
 		endif()
 	endif()
 	set_target_properties(postquantumcryptoengine PROPERTIES LINKER_LANGUAGE "CXX")
@@ -88,12 +81,11 @@ if(BUILD_SHARED_LIBS)
 		set_target_properties(postquantumcryptoengine PROPERTIES SOVERSION ${POSTQUANTUMCRYPTOENGINE_SO_VERSION})
 	endif()
 	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:postquantumcryptoengine>
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
+		install(FILES $<TARGET_PDB_FILE:postquantumcryptoengine>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			CONFIGURATIONS Debug RelWithDebInfo
+		)
 	endif()
 else()
 	set_target_properties(postquantumcryptoengine PROPERTIES POSITION_INDEPENDENT_CODE ON)
