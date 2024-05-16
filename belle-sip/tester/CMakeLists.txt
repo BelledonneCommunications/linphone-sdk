@@ -67,7 +67,6 @@ if (IOS)
 	list(APPEND SOURCE_FILES_OBJC belle_sip_tester_ios.m)
 endif()
 
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 bc_apply_compile_flags(SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 bc_apply_compile_flags(SOURCE_FILES_CXX STRICT_OPTIONS_CPP STRICT_OPTIONS_CXX)
 bc_apply_compile_flags(SOURCE_FILES_OBJC STRICT_OPTIONS_CPP STRICT_OPTIONS_OBJC)
@@ -106,10 +105,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 	)
 	add_library(belle-sip-tester-runtime MODULE ${RUNTIME_COMPONENT_SOURCES})
 	target_link_libraries(belle-sip-tester-runtime belle-sip-tester-static)
+	target_link_options(belle-sip-tester-runtime PRIVATE "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LINKER_LANGUAGE CXX)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES VS_WINRT_COMPONENT TRUE)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES LIBRARY_OUTPUT_NAME "BelledonneCommunications.BelleSip.Tester")
-	set_target_properties(belle-sip-tester-runtime PROPERTIES LINK_FLAGS "/WINMDFILE:BelledonneCommunications.BelleSip.Tester.winmd")
 	set_target_properties(belle-sip-tester-runtime PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 	set_target_properties(belle-sip-tester-runtime PROPERTIES C_STANDARD 99)
 
@@ -121,22 +120,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 	)
 	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/BelledonneCommunications.BelleSip.Tester.winmd" DESTINATION ${CMAKE_INSTALL_LIBDIR})
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Debug/BelledonneCommunications.BelleSip.Tester.pdb
-			DESTINATION ${CMAKE_INSTALL_LIBDIR}
-			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-		)
-	endif()
-else()
+	install(FILES $<TARGET_PDB_FILE:belle-sip-tester-runtime>
+		DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		CONFIGURATIONS Debug RelWithDebInfo
+	)
 
+else()
 
 	# foo.cpp is an empty file here just to request cmake to use the C++ compiler to link the executable
 	# since it depends on libraries written in C++.
 	add_executable(belle-sip-tester belle_sip_tester.c belle_sip_tester.h foo.cpp)
 	target_link_libraries(belle-sip-tester PRIVATE libbelle-sip-tester belle-sip ${BCToolbox_tester_TARGET})
-
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle-sip-tester PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	if(APPLE_FRAMEWORKS)
+		target_link_libraries(belle-sip-tester PRIVATE ${APPLE_FRAMEWORKS})
 	endif()
 	if(WIN32)
 		target_link_libraries(belle-sip-tester PRIVATE "Ws2_32")
@@ -156,8 +153,8 @@ else()
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle-sip-object-describe ${USE_BUNDLE} ${OBJECT_DESCRIBE_SOURCES})
 	set_target_properties(belle-sip-object-describe PROPERTIES LINKER_LANGUAGE CXX)
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle-sip-object-describe PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	if(APPLE_FRAMEWORKS)
+		target_link_libraries(belle-sip-object-describe PRIVATE ${APPLE_FRAMEWORKS})
 	endif()
 	target_link_libraries(belle-sip-object-describe PRIVATE ${BCToolbox_TARGET} belle-sip)
 
@@ -165,8 +162,8 @@ else()
 	bc_apply_compile_flags(OBJECT_DESCRIBE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle-sip-resolve ${USE_BUNDLE} ${OBJECT_RESOLVE_SOURCES})
 	set_target_properties(belle-sip-resolve PROPERTIES LINKER_LANGUAGE CXX)
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle-sip-resolve PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	if(APPLE_FRAMEWORKS)
+		target_link_libraries(belle-sip-resolve PRIVATE ${APPLE_FRAMEWORKS})
 	endif()
 	target_link_libraries(belle-sip-resolve PRIVATE ${BCToolbox_TARGET} belle-sip)
 
@@ -175,8 +172,8 @@ else()
 	bc_apply_compile_flags(PARSE_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle-sip-parse ${USE_BUNDLE} ${PARSE_SOURCES})
 	set_target_properties(belle-sip-parse PROPERTIES LINKER_LANGUAGE CXX)
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle-sip-parse PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	if(APPLE_FRAMEWORKS)
+		target_link_libraries(belle-sip-parse PRIVATE ${APPLE_FRAMEWORKS})
 	endif()
 	target_link_libraries(belle-sip-parse PRIVATE ${BCToolbox_TARGET} belle-sip)
 
@@ -185,8 +182,8 @@ else()
 	bc_apply_compile_flags(GET_SOURCES STRICT_OPTIONS_CPP STRICT_OPTIONS_C)
 	add_executable(belle-sip-http-get ${USE_BUNDLE} ${GET_SOURCES})
 	set_target_properties(belle-sip-http-get PROPERTIES LINKER_LANGUAGE CXX)
-	if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-		set_target_properties(belle-sip-http-get PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+	if(APPLE_FRAMEWORKS)
+		target_link_libraries(belle-sip-http-get PRIVATE ${APPLE_FRAMEWORKS})
 	endif()
 	target_link_libraries(belle-sip-http-get PRIVATE ${BCToolbox_TARGET} belle-sip)
 

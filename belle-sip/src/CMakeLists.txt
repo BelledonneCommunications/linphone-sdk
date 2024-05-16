@@ -190,7 +190,6 @@ endif()
 
 set(BELLESIP_RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/../src/sdp/sdp_grammar")
 
-string(REPLACE ";" " " LINK_FLAGS_STR "${LINK_FLAGS}")
 add_library(belle-sip ${BELLE_SIP_HEADER_FILES} ${BELLE_SIP_SOURCE_FILES_C} ${BELLE_SIP_SOURCE_FILES_CXX} ${BELLE_SIP_SOURCE_FILES_OBJC} ${ANTLR3C_SOURCE_FILES} ${GRAMMAR_FILES})
 require_c99(belle-sip)
 set_target_properties(belle-sip PROPERTIES OUTPUT_NAME belle-sip)
@@ -202,8 +201,8 @@ target_link_libraries(belle-sip PUBLIC ${BCToolbox_TARGET} ${Belr_TARGET} PRIVAT
 if(Tunnel_FOUND)
 	target_link_libraries(belle-sip PRIVATE ${Tunnel_TARGET})
 endif()
-if(NOT "${LINK_FLAGS_STR}" STREQUAL "")
-	set_target_properties(belle-sip PROPERTIES LINK_FLAGS "${LINK_FLAGS_STR}")
+if(APPLE_FRAMEWORKS)
+	target_link_libraries(belle-sip PRIVATE ${APPLE_FRAMEWORKS})
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -217,12 +216,11 @@ if(BUILD_SHARED_LIBS)
 		)
 	endif()
 	if(MSVC)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-			install(FILES $<TARGET_PDB_FILE:belle-sip>
-				DESTINATION ${CMAKE_INSTALL_BINDIR}
-				PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-			)
-		endif()
+		install(FILES $<TARGET_PDB_FILE:belle-sip>
+			DESTINATION ${CMAKE_INSTALL_BINDIR}
+			PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+			CONFIGURATIONS Debug RelWithDebInfo
+		)
 	endif()
 endif()
 
