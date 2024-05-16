@@ -55,8 +55,6 @@ find_package(BCToolbox 5.3.0 REQUIRED OPTIONAL_COMPONENTS tester)
 #Mandatory to init default compilation flags
 bc_init_compilation_flags(STRICT_OPTIONS_CPP STRICT_OPTIONS_C STRICT_OPTIONS_CXX ENABLE_STRICT)
 
-set(LINK_FLAGS )
-
 if(UNIX AND NOT APPLE)
 	include(CheckIncludeFiles)
 	check_include_files(libudev.h HAVE_LIBUDEV_H)
