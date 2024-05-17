@@ -145,7 +145,7 @@ void MSOpenH264Decoder::feed() {
         ms_queue_put(mFilter->outputs[0], dupmsg(mYUVMsg));
 
         // Update average FPS
-        if (ms_average_fps_update(&mFPS, mFilter->ticker->time)) {
+        if (ms_average_fps_activity(&mFPS, mFilter->ticker->time, TRUE)) {
           ms_message("OpenH264 decoder: Frame size: %dx%d", mWidth, mHeight);
         }
 
