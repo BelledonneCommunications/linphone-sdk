@@ -50,14 +50,13 @@ set(BelleSIP_TARGET belle-sip)
 if(@ENABLE_UNIT_TESTS@)
         set(BelleSIP_tester_FOUND TRUE)
         set(BelleSIP_tester_TARGET libbelle-sip-tester)
-message (WARNING "BelleSIP_tester_TARGET: ", ${BelleSIP_tester_TARGET})
 endif()
 
-message (WARNING "BelleSIP_TARGET: ", ${BelleSIP_TARGET})
 # We must propagate the public dependencies and the private dependencies for static build
 include(CMakeFindDependencyMacro)
 find_dependency(Belr)
 find_dependency(BCToolbox)
+find_dependency(Threads) # For httplib
 if(@BUILD_SHARED_LIBS@)
 else()
 	if(@ZLIB_FOUND@)
