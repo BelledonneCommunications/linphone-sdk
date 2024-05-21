@@ -21,6 +21,8 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
+#include <set>
 #include <vector>
 
 #include "filter-interface/filter-base.h"
@@ -70,8 +72,16 @@ public:
 
 protected:
 	uint32_t mSsrc = 0;
-	int mVolume = MS_VOLUME_DB_LOWEST;
+	int mVolume = -1;
 	bool mIsSpeaking = false;
+
+	// We keep track of when an input that needs to be sent
+	// Muting, unmuting requires that packets are sent to the clients so they can be notified
+	bool mNeedsToBeSent = false;
+
+	// If we are muted we don't resend the mute packet every time
+	static constexpr uint64_t sMutedSentInterval = 2000;
+	uint64_t mLastMutedSentTime = 0;
 };
 
 #ifdef VIDEO_ENABLED
@@ -134,9 +144,6 @@ public:
 
 	void configure(const MSPacketRouterPinData *pinData) override;
 	void transfer() override;
-
-protected:
-	void sendData(MSQueue *outputQueue, RouterAudioInput *input, const std::vector<rtp_audio_level_t> &volumes);
 };
 
 #ifdef VIDEO_ENABLED
@@ -181,11 +188,16 @@ public:
 
 	void select() override;
 
-	const std::vector<RouterAudioInput *> &getSelectedInputs() const;
+	const std::set<RouterAudioInput *> &getSelectedInputs() const;
 	void clearSelectedInputs();
 
+	int getActiveSpeakerPin() const;
+
 protected:
-	std::vector<RouterAudioInput *> mSelected{};
+	// We use a set to ease selection and avoid sending duplicates
+	std::set<RouterAudioInput *> mSelected{};
+
+	int mActiveSpeakerPin = -1;
 };
 
 #ifdef VIDEO_ENABLED
@@ -210,7 +222,7 @@ public:
 		Video,
 	};
 
-	static const int MAX_SPEAKER_AT_ONCE = 3;
+	static constexpr int MAX_SPEAKER_AT_ONCE = 3;
 
 	explicit PacketRouter(MSFilter *f);
 	~PacketRouter() = default;
@@ -246,8 +258,6 @@ public:
 	void setAsLocalMember(const MSPacketRouterPinControl *pinControl);
 
 	// Audio mode only
-	const std::vector<rtp_audio_level_t> &getVolumesToSend() const;
-
 	int getActiveSpeakerPin() const;
 
 	// Video mode only
@@ -266,7 +276,6 @@ public:
 protected:
 	void createInputIfNotExists(int index);
 	void removeUnusedInput(int index);
-	void updateVolumesToSend();
 
 	RoutingMode mRoutingMode = RoutingMode::Unknown;
 	bool mFullPacketMode = false;
@@ -275,16 +284,6 @@ protected:
 
 	std::vector<std::unique_ptr<RouterInput>> mInputs{};
 	std::vector<std::unique_ptr<RouterOutput>> mOutputs{};
-
-	// Volumes are kept globally in case of conferences with lots of participants
-	// since we can only send 15 volumes at a time (limited by the number of csrc).
-	std::vector<rtp_audio_level_t> mVolumes{};
-	uint64_t mVolumesSentInterval = 250;
-	uint64_t mLastVolumesSentTime = 0;
-
-	// Cache of the data accessed by the outputs to send the volumes.
-	std::vector<rtp_audio_level_t> mVolumesToSend{};
-	int mVolumesSentIndex = 0;
 
 #ifdef VIDEO_ENABLED
 	std::string mEncoding;
