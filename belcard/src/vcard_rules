@@ -4,6 +4,7 @@ vcard = "BEGIN:VCARD" [CR] LF
 		"VERSION:4.0" [CR] LF
 		1*property
 		"END:VCARD" *([CR] LF)
+
 property = (SOURCE / KIND / XML
 			/ FN / N / NICKNAME / PHOTO / BDAY / ANNIVERSARY / GENDER
 			/ ADR

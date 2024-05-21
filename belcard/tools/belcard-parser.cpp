@@ -31,15 +31,21 @@ using namespace ::belcard;
 
 int main(int argc, char *argv[]) {
 	const char *file = NULL;
+	bool useV3 = false;
 
 	if (argc < 2) {
-		cerr << argv[0] << " <file to parse> - parse the content of a file" << endl;
+		cerr << argv[0] << " [-v3] <file to parse> - parse the content of a file" << endl;
 		return -1;
 	}
-	file = argv[1];
+	if (argc < 3) {
+		file = argv[1];
+	} else {
+		useV3 = true;
+		file = argv[2];
+	}
 
 	auto t_start = std::chrono::high_resolution_clock::now();
-	BelCardParser *parser = new BelCardParser();
+	BelCardParser *parser = new BelCardParser(useV3);
 	auto t_end = std::chrono::high_resolution_clock::now();
 
 	auto t_start_2 = std::chrono::high_resolution_clock::now();

@@ -29,6 +29,12 @@ set(VCARD_FILES
 	vcards/vcards.vcf
 )
 
+set(VCARD_3_FILES
+	vcards3/franck.vcard
+	vcards3/list.vcard
+	vcards3/tim.vcard
+)
+
 set(HEADER_FILES_CXX belcard-tester.hpp)
 set(SOURCE_FILES_CXX
 	belcard-addressing-tester.cpp
@@ -61,3 +67,4 @@ if(NOT IOS)
 	)
 endif()
 install(FILES ${VCARD_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belcard-tester/vcards")
+install(FILES ${VCARD_3_FILES} DESTINATION "${CMAKE_INSTALL_DATADIR}/belcard-tester/vcards3")

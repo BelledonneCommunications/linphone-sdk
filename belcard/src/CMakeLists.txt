@@ -43,6 +43,7 @@ set(BELCARD_SOURCE_FILES_CXX
 
 set(VCARD_GRAMMAR_FILES
 	vcard_grammar
+	vcard3_grammar
 )
 
 bc_apply_compile_flags(BELCARD_SOURCE_FILES_C STRICT_OPTIONS_CPP STRICT_OPTIONS_C)

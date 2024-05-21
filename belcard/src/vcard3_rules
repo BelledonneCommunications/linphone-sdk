@@ -1,0 +1,404 @@
+vcard-list = vcard *vcard
+
+vcard = "BEGIN" ":" "VCARD" [CR] LF
+		"VERSION:3.0" [CR] LF
+		1*property
+		"END" ":" "VCARD" [CR] LF
+
+property = (NAME / PROFILE / SOURCE / FN / N / NICKNAME / PHOTO / IMPP /
+			BDAY / ADR / LABEL / TEL / EMAIL / MAILER / TZ / GEO / TITLE /
+			ROLE / LOGO / AGENT / ORG / CATEGORIES / NOTE / PRODID / REV / 
+			SORT-STRING / SOUND / UID / URL / CLASS / KEY) [CR] LF
+
+NAME = [group "."] "NAME" *(";") ":" NAME-VALUE
+NAME-VALUE = text-value
+
+PROFILE = [group "."] "PROFILE" *(";") ":" PROFILE-VALUE
+PROFILE-VALUE= "vcard"
+
+SOURCE = [group "."] "SOURCE" *(";" SOURCE-PARAM) ":" SOURCE-VALUE
+SOURCE-PARAM = VALUE-param / any-param
+SOURCE-VALUE = URI
+
+FN = [group "."] "FN" *(";" FN-PARAM) ":" FN-VALUE
+FN-PARAM = any-param
+FN-VALUE = text-value
+
+N = [group "."] "N" *(";" N-PARAM) ":" N-VALUE
+N-PARAM = any-param
+N-VALUE = N-FN ";" N-GN ";" N-AN ";" N-prefixes ";" N-suffixes
+N-FN = text-value
+N-GN = text-value
+N-AN = text-value
+N-prefixes = text-value
+N-suffixes = text-value
+
+NICKNAME = [group "."] "NICKNAME" *(";" NICKNAME-PARAM) ":" NICKNAME-VALUE
+NICKNAME-PARAM = any-param
+NICKNAME-VALUE = text-list
+
+PHOTO = [group "."] "PHOTO" *(";" PHOTO-PARAM) ":" PHOTO-VALUE
+PHOTO-PARAM = VALUE-param / "ENCODING=b" / TYPE-param
+PHOTO-VALUE = URI
+
+IMPP = [group "."] "IMPP" *(";" IMPP-PARAM) ":" IMPP-VALUE
+IMPP-PARAM = TYPE-param
+IMPP-VALUE = URI
+
+BDAY = [group "."] "BDAY" *(";" BDAY-PARAM) ":" BDAY-VALUE
+BDAY-PARAM = VALUE-param
+BDAY-VALUE = date / date-time
+
+ADR = [group "."] "ADR" *(";" ADR-PROP-PARAM) ":" ADR-VALUE
+ADR-PROP-PARAM = TYPE-param / any-param
+ADR-value = ADR-pobox  ";" ADR-ext      ";"
+			ADR-street ";" ADR-locality ";"
+			ADR-region ";" ADR-code     ";"
+			ADR-country
+ADR-pobox    = text-value
+ADR-ext      = text-VALUE
+ADR-street   = text-value
+ADR-locality = text-value
+ADR-region   = text-VALUE
+ADR-code     = text-value
+ADR-country  = text-value
+
+LABEL = [group "."] "LABEL" *(";" LABEL-PARAM) ":" LABEL-VALUE
+LABEL-PARAM = TYPE-param / any-param
+LABEL-VALUE = text-value
+
+TEL = [group "."] "TEL" *(";" TEL-PARAM) ":" TEL-VALUE
+TEL-PARAM = TYPE-param
+TEL-VALUE = text-value
+
+EMAIL = [group "."] "EMAIL" *(";" EMAIL-PARAM) ":" EMAIL-VALUE
+EMAIL-PARAM = TYPE-param
+EMAIL-VALUE = text-value
+
+MAILER = [group "."] "MAILER" *(";" MAILER-PARAM) ":" MAILER-VALUE
+MAILER-PARAM = any-param
+MAILER-VALUE = text-value
+
+TZ = [group "."] "TZ" *(";") ":" TZ-VALUE
+TZ-VALUE = utc-offset-value
+
+GEO = [group "."] "GEO" *(";") ":" GEO-VALUE
+GEO-VALUE = float ";" float
+
+TITLE = [group "."] "TITLE" *(";" TITLE-PARAM) ":" TITLE-VALUE
+TITLE-PARAM = any-param
+TITLE-VALUE = text-value
+
+ROLE = [group "."] "ROLE" *(";" ROLE-PARAM) ":" ROLE-VALUE
+ROLE-PARAM = any-param
+ROLE-VALUE = text-value
+
+LOGO = [group "."] "LOGO" *(";" LOGO-PARAM) ":" LOGO-VALUE
+LOGO-PARAM = VALUE-param / "ENCODING=b" / TYPE-param
+LOGO-VALUE = URI
+
+AGENT = [group "."] "AGENT" *(";" AGENT-PARAM) ":" AGENT-VALUE
+AGENT-PARAM = VALUE-param
+AGENT-VALUE = text-value / URI
+
+ORG = [group "."] "ORG" *(";" ORG-PARAM) ":" ORG-VALUE
+ORG-PARAM = any-param
+ORG-VALUE = *(text-value ";") text-value
+
+CATEGORIES = [group "."] "CATEGORIES" *(";" CATEGORIES-PARAM) ":" CATEGORIES-VALUE
+CATEGORIES-PARAM = any-param
+CATEGORIES-VALUE = text-list
+
+NOTE = [group "."] "NOTE" *(";" NOTE-PARAM) ":" NOTE-VALUE
+NOTE-PARAM = any-param
+NOTE-VALUE = text-value
+
+PRODID = [group "."] "PRODID" *(";") ":" PRODID-VALUE
+PRODID-VALUE = text-value
+
+REV = [group "."] "REV" *(";" REV-PARAM) ":" REV-VALUE
+REV-PARAM = VALUE-param
+REV-VALUE = date-time / date
+
+SORT-STRING = [group "."] "SORT-STRING" *(";" SORT-STRING-PARAM) ":" SORT-STRING-VALUE
+SORT-STRING-PARAM = any-param
+SORT-STRING-VALUE = text-value
+
+SOUND = [group "."] "SOUND" *(";" SOUND-PARAM) ":" SOUND-VALUE
+SOUND-PARAM = VALUE-param / TYPE-param
+SOUND-VALUE = snd-inline-value / URI
+
+UID = [group "."] "UID" *(";" UID-PARAM) ":" UID-VALUE
+UID-PARAM = TYPE-param
+UID-VALUE = text-value
+
+URL = [group "."] "URL" *(";") ":" URL-VALUE
+URL-VALUE = URI
+
+CLASS = [group "."] "CLASS" *(";") ":" CLASS-VALUE
+CLASS-VALUE = "PUBLIC" / "PRIVATE" / "CONFIDENTIAL" / iana-token / x-name
+
+KEY = [group "."] "KEY" *(";" KEY-PARAM) ":" KEY-VALUE
+KEY-PARAM = TYPE-param / "ENCODING=b" / VALUE-param
+KEY-VALUE = text-value / binary-value
+
+group = 1*(ALPHA / DIGIT / "-")
+
+VALUE-param = "VALUE=" VALUE-param-value
+VALUE-param-value = "uri"
+					/ "date"
+					/ "date-time"
+
+TYPE-param = "TYPE=" TYPE-param-value
+TYPE-param-value = TYPE-param-value-item *("," TYPE-param-value-item)
+TYPE-param-value-item = impp-type / tel-type / email-type / adr-type / key-type
+
+impp-type = "PERSONAL" / "BUSINESS" / "HOME" / "WORK" / "MOBILE" / "PREF" / iana-token / x-name
+
+tel-type = "HOME" / "WORK" / "PREF" / "VOICE" / "FAX" / "MSG"
+			/ "CELL" / "PAGER" / "BBS" / "MODEM" / "CAR" / "ISDN"
+			/ "VIDEO" / "PCS" / iana-token / x-name
+
+email-type = "INTERNET" / "X400" / "PREF" / iana-token / x-name
+
+adr-type = "dom" / "intl" / "postal" / "parcel" / "home" / "work" / "pref" / x-name
+
+key-type = "X509" / "PGP" / iana-token / x-name
+
+snd-inline-value = binary-value [CR] LF
+
+any-param  = param-name "=" param-value
+param-name = (iana-token / x-name)
+param-value = param-value-component *("," param-value-component)
+param-value-component = *SAFE-CHAR /  (DQUOTE *QSAFE-CHAR DQUOTE)
+
+text-value = *(SAFE-CHAR / ":" / DQUOTE / ESCAPED-CHAR)
+quoted-string = DQUOTE QSAFE-CHAR DQUOTE
+
+iana-token = 1*(ALPHA / DIGIT / "-")
+x-name = "X-" 1*(ALPHA / DIGIT / "-")
+
+ESCAPED-CHAR = "\\" / "\;" / "\," / "\n" / "\N"
+COMPONENT-CHAR = "\\" / "\," / "\;" / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-3A / %x3C-5B / %x5D-7E
+component = *COMPONENT-CHAR
+list-component = component *("," component)
+
+binary-value = text ;TODO FIXME
+
+ptext = *SAFE-CHAR
+text-list = text *("," text)
+text = *TEXT-CHAR
+TEXT-CHAR = "\\" / "\," / "\n" / WSP / NON-ASCII / %x21-2B / %x2D-5B / %x5D-7E
+NON-ASCII = UTF8-2 / UTF8-3 / UTF8-4
+QSAFE-CHAR = WSP / "!" / %x23-7E / NON-ASCII
+SAFE-CHAR = WSP / "!" / %x23-2B / %x2D-39 / %x3C-7E / NON-ASCII
+VALUE-CHAR = WSP / VCHAR / NON-ASCII
+UTF8-1      = %x00-7F
+UTF8-2      = %xC2-DF UTF8-tail
+UTF8-3      = %xE0 %xA0-BF UTF8-tail / %xE1-EC 2( UTF8-tail ) / %xED %x80-9F UTF8-tail / %xEE-EF 2( UTF8-tail )
+UTF8-4      = %xF0 %x90-BF 2( UTF8-tail ) / %xF1-F3 3( UTF8-tail ) / %xF4 %x80-8F 2( UTF8-tail )
+UTF8-tail   = %x80-BF
+
+date-list             = date             *("," date)
+time-list             = time             *("," time)
+date-time-list        = date-time        *("," date-time)
+date-and-or-time-list = date-and-or-time *("," date-and-or-time)
+timestamp-list        = timestamp        *("," timestamp)
+integer-list          = integer          *("," integer)
+float-list            = float            *("," float)
+
+boolean = "TRUE" / "FALSE"
+integer = [sign] 1*DIGIT
+float   = [sign] 1*DIGIT ["." 1*DIGIT]
+
+sign = "+" / "-"
+
+year   = 4DIGIT  ; 0000-9999
+month  = 2DIGIT  ; 01-12
+day    = 2DIGIT  ; 01-28/29/30/31 depending on month and leap year
+hour   = 2DIGIT  ; 00-23
+minute = 2DIGIT  ; 00-59
+second = 2DIGIT  ; 00-58/59/60 depending on leap second
+zone   = utc-designator / utc-offset
+utc-designator = %x5A  ; uppercase "Z"
+
+date          = year    [month  day]
+			  / year "-" month
+			  / "--"     month [day]
+			  / "--"      "-"   day
+date-noreduc  = year     month  day
+			  / "--"     month  day
+			  / "--"      "-"   day
+date-complete = year     month  day
+
+utc-offset-value = ("+" / "-") hour ":" minute
+time          = hour [minute [second]] [zone]
+			  /  "-"  minute [second]
+			  /  "-"   "-"    second
+time-notrunc  = hour [minute [second]] [zone]
+time-complete = hour  minute  second   [zone]
+time-designator = %x54  ; uppercase "T"
+date-time = date-noreduc  time-designator time-notrunc
+timestamp = date-complete time-designator time-complete
+
+date-and-or-time = date-time / date / time-designator time
+
+utc-offset = sign hour [minute]
+
+type-param-tel = "text" / "voice" / "fax" / "cell" / "video"
+				/ "pager" / "textphone" / iana-token / x-name
+
+type-name = reg-name
+subtype-name = reg-name
+
+URI           = scheme ":" hier-part [ "?" query ] [ "#" fragment ]
+
+hier-part     = "//" authority path-abempty
+				/ path-absolute
+				/ path-rootless
+				/ path-empty
+
+URI-reference = URI / relative-ref
+
+absolute-URI  = scheme ":" hier-part [ "?" query ]
+
+relative-ref  = relative-part [ "?" query ] [ "#" fragment ]
+
+relative-part = "//" authority path-abempty
+				/ path-absolute
+				/ path-noscheme
+				/ path-empty
+
+scheme        = ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+
+authority     = [ userinfo "@" ] host [ ":" port ]
+userinfo      = *( unreserved / pct-encoded / sub-delims / ":" )
+host          = IP-literal / IPv4address / reg-name
+port          = *DIGIT
+
+IP-literal    = "[" ( IPv6address / IPvFuture  ) "]"
+
+IPvFuture     = "v" 1*HEXDIG "." 1*( unreserved / sub-delims / ":" )
+
+IPv6address   =                            6( h16 ":" ) ls32
+				/                       "::" 5( h16 ":" ) ls32
+				/ [               h16 ] "::" 4( h16 ":" ) ls32
+				/ [ *1( h16 ":" ) h16 ] "::" 3( h16 ":" ) ls32
+				/ [ *2( h16 ":" ) h16 ] "::" 2( h16 ":" ) ls32
+				/ [ *3( h16 ":" ) h16 ] "::"    h16 ":"   ls32
+				/ [ *4( h16 ":" ) h16 ] "::"              ls32
+				/ [ *5( h16 ":" ) h16 ] "::"              h16
+				/ [ *6( h16 ":" ) h16 ] "::"
+
+h16           = 1*4HEXDIG
+ls32          = ( h16 ":" h16 ) / IPv4address
+IPv4address   = dec-octet "." dec-octet "." dec-octet "." dec-octet
+dec-octet     = DIGIT                 ; 0-9
+				/ %x31-39 DIGIT         ; 10-99
+				/ "1" 2DIGIT            ; 100-199
+				/ "2" %x30-34 DIGIT     ; 200-249
+				/ "25" %x30-35          ; 250-255
+
+reg-name      = *( unreserved / pct-encoded / sub-delims )
+
+path          = path-abempty    ; begins with "/" or is empty
+				/ path-absolute   ; begins with "/" but not "//"
+				/ path-noscheme   ; begins with a non-colon segment
+				/ path-rootless   ; begins with a segment
+				/ path-empty      ; zero characters
+
+path-abempty  = *( "/" segment )
+path-absolute = "/" [ segment-nz *( "/" segment ) ]
+path-noscheme = segment-nz-nc *( "/" segment )
+path-rootless = segment-nz *( "/" segment )
+path-empty    = [pchar]
+
+segment       = *pchar
+segment-nz    = 1*( pchar / "[" / "]" )
+				; to be compatible with IPv6 SIP URIs
+segment-nz-nc = 1*( unreserved / pct-encoded / sub-delims / "@" )
+				; non-zero-length segment without any colon ":"
+
+pchar         = unreserved / pct-encoded / sub-delims / ":" / "@" / "\,"
+
+query         = *( pchar / "/" / "?" )
+
+fragment      = *( pchar / "/" / "?" )
+
+pct-encoded   = "%" HEXDIG HEXDIG
+
+unreserved    = ALPHA / DIGIT / "-" / "." / "_" / "~"
+reserved      = gen-delims / sub-delims
+gen-delims    = ":" / "/" / "?" / "#" / "[" / "]" / "@"
+sub-delims    = "!" / "$" / "&" / "'" / "(" / ")"
+				/ "*" / "+" / "," / ";" / "="
+
+Language-Tag  = langtag             ; normal language tags
+			 / privateuse            ; private use tag
+			 / grandfathered         ; grandfathered tags
+
+langtag       = language
+				["-" script]
+				["-" region]
+				*("-" variant)
+				*("-" extension)
+				["-" privateuse]
+
+language      = 2*3ALPHA              ; shortest ISO 639 code
+				["-" extlang]         ; sometimes followed by extended language subtags
+				/ 4ALPHA              ; or reserved for future use
+				/ 5*8ALPHA            ; or registered language subtag
+
+extlang       = 3ALPHA                ; selected ISO 639 codes
+				*2("-" 3ALPHA)        ; permanently reserved
+
+script        = 4ALPHA                ; ISO 15924 code
+
+region        = 2ALPHA                ; ISO 3166-1 code
+				/ 3DIGIT              ; UN M.49 code
+
+variant       = 5*8alphanum         ; registered variants
+				/ (DIGIT 3alphanum)
+
+extension     = singleton 1*("-" (2*8alphanum))
+
+singleton     = DIGIT                 ; 0 - 9
+				/ %x41-57             ; A - W
+				/ %x59-5A             ; Y - Z
+				/ %x61-77             ; a - w
+				/ %x79-7A             ; y - z
+
+privateuse    = "x" 1*("-" (1*8alphanum))
+
+grandfathered = irregular             ; non-redundant tags registered
+				/ regular             ; during the RFC 3066 era
+
+irregular     = "en-GB-oed"           ; irregular tags do not match
+				/ "i-ami"             ; the 'langtag' production and
+				/ "i-bnn"             ; would not otherwise be
+				/ "i-default"         ; considered 'well-formed'
+				/ "i-enochian"        ; These tags are all valid,
+				/ "i-hak"             ; but most are deprecated
+				/ "i-klingon"         ; in favor of more modern
+				/ "i-lux"             ; subtags or subtag
+				/ "i-mingo"           ; combination
+				/ "i-navajo"
+				/ "i-pwn"
+				/ "i-tao"
+				/ "i-tay"
+				/ "i-tsu"
+				/ "sgn-BE-FR"
+				/ "sgn-BE-NL"
+				/ "sgn-CH-DE"
+
+regular       = "art-lojban"          ; these tags match the 'langtag'
+				/ "cel-gaulish"       ; production, but their subtags
+				/ "no-bok"            ; are not extended language
+				/ "no-nyn"            ; or variant subtags: their meaning
+				/ "zh-guoyu"          ; is defined by their registration
+				/ "zh-hakka"          ; and all of these are deprecated
+				/ "zh-min"            ; in favor of a more modern
+				/ "zh-min-nan"        ; subtag or sequence of subtags
+				/ "zh-xiang"
+
+alphanum      = (ALPHA / DIGIT)       ; letters and numbers

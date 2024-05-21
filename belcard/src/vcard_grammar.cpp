@@ -24,3 +24,9 @@ std::shared_ptr<belr::Grammar> loadVcardGrammar() {
 	if (!grammar) bctbx_fatal("Unable to load VCARD grammar.");
 	return grammar;
 }
+
+std::shared_ptr<belr::Grammar> loadVcard3Grammar() {
+	std::shared_ptr<belr::Grammar> grammar = belr::GrammarLoader::get().load(VCARD3_GRAMMAR);
+	if (!grammar) bctbx_fatal("Unable to load VCARD 3.0 grammar.");
+	return grammar;
+}

@@ -22,44 +22,56 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardTimezone>("TZ", input);
+shared_ptr<BelCardTimezone> BelCardTimezone::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardTimezone>("TZ", input, v3);
 }
 
-void BelCardTimezone::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("TZ", make_fn(BelCardGeneric::create<BelCardTimezone>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
-	    ->setCollector("TZ-value", make_sfn(&BelCardProperty::setValue));
+void BelCardTimezone::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("TZ", make_fn(BelCardGeneric::createV3<BelCardTimezone>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("TZ-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("TZ", make_fn(BelCardGeneric::create<BelCardTimezone>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+		    ->setCollector("TZ-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardTimezone::BelCardTimezone() : BelCardProperty() {
+BelCardTimezone::BelCardTimezone(bool v3) : BelCardProperty(v3) {
 	setName("TZ");
 }
 
-shared_ptr<BelCardGeo> BelCardGeo::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardGeo>("GEO", input);
+shared_ptr<BelCardGeo> BelCardGeo::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardGeo>("GEO", input, v3);
 }
 
-void BelCardGeo::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("GEO", make_fn(BelCardGeneric::create<BelCardGeo>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
-	    ->setCollector("GEO-value", make_sfn(&BelCardProperty::setValue));
+void BelCardGeo::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("GEO", make_fn(BelCardGeneric::createV3<BelCardGeo>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("GEO-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("GEO", make_fn(BelCardGeneric::create<BelCardGeo>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+		    ->setCollector("GEO-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardGeo::BelCardGeo() : BelCardProperty() {
+BelCardGeo::BelCardGeo(bool v3) : BelCardProperty(v3) {
 	setName("GEO");
 }

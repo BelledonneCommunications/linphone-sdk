@@ -37,7 +37,7 @@ static string openFile(const char *name) {
 
 	ifstream istr(res, std::ios::binary);
 	if (!istr.is_open()) {
-		BC_FAIL(name);
+		BC_FAIL("File couldn't be opened!");
 	}
 
 	bctbx_free(res);
@@ -66,8 +66,12 @@ static void vcard_parsing(void) {
 	string vcard = openFile("vcards/vcard.vcf");
 
 	BelCardParser *parser = new BelCardParser();
+	BC_ASSERT_FALSE(parser->isUsingV3Grammar());
 	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
-	if (!BC_ASSERT_TRUE(belCard != NULL)) return;
+	if (!BC_ASSERT_TRUE(belCard != NULL)) {
+		delete (parser);
+		return;
+	}
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
 
 	string vcard2 = belCard->toFoldedString();
@@ -79,8 +83,12 @@ static void vcards_parsing(void) {
 	string vcards = openFile("vcards/vcards.vcf");
 
 	BelCardParser *parser = new BelCardParser();
+	BC_ASSERT_FALSE(parser->isUsingV3Grammar());
 	shared_ptr<BelCardList> belCards = parser->parse(vcards);
-	if (!BC_ASSERT_TRUE(belCards != NULL)) return;
+	if (!BC_ASSERT_TRUE(belCards != NULL)) {
+		delete (parser);
+		return;
+	}
 	BC_ASSERT_EQUAL((unsigned int)belCards->getCards().size(), 2, unsigned int, "%u");
 
 	string vcards2 = belCards->toString();
@@ -106,11 +114,15 @@ static void create_vcard_from_api(void) {
 
 	string vcard = belCard->toString();
 	BelCardParser *parser = new BelCardParser();
+	BC_ASSERT_FALSE(parser->isUsingV3Grammar());
 	shared_ptr<BelCard> belCard2 = parser->parseOne(vcard);
-	if (!BC_ASSERT_TRUE(belCard2 != NULL)) return;
+	if (!BC_ASSERT_TRUE(belCard2 != NULL)) {
+		delete (parser);
+		return;
+	}
 	BC_ASSERT_TRUE(belCard2->assertRFCCompliance());
 	string vcard2 = belCard2->toString();
-	BC_ASSERT_EQUAL(vcard.compare(vcard2), 0, unsigned, "%u");
+	BC_ASSERT_EQUAL(vcard.compare(vcard2), 0, unsigned, "%d");
 	delete (parser);
 }
 
@@ -118,10 +130,10 @@ static void property_sort_using_pref_param(void) {
 	shared_ptr<BelCard> belCard = BelCard::create<BelCard>();
 	BC_ASSERT_TRUE(belCard != NULL);
 
-	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n");
+	shared_ptr<BelCardImpp> impp1 = BelCardImpp::parse("IMPP;TYPE=home;PREF=2:sip:viish@sip.linphone.org\r\n", true);
 	BC_ASSERT_TRUE(impp1 != NULL);
 
-	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n");
+	shared_ptr<BelCardImpp> impp2 = BelCardImpp::parse("IMPP;PREF=1;TYPE=work:sip:sylvain@sip.linphone.org\r\n", true);
 	BC_ASSERT_TRUE(impp2 != NULL);
 
 	belCard->addImpp(impp1);
@@ -140,6 +152,98 @@ static void property_sort_using_pref_param(void) {
 	BC_ASSERT_EQUAL((unsigned int)belCard->getProperties().size(), 1, unsigned int, "%u");
 }
 
+static void vcard3_parsing(void) {
+	string vcard = openFile("vcards3/franck.vcard");
+
+	BelCardParser *parser = new BelCardParser(true);
+	BC_ASSERT_TRUE(parser->isUsingV3Grammar());
+	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
+	if (!BC_ASSERT_TRUE(belCard != NULL)) {
+		delete (parser);
+		return;
+	}
+	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
+
+	string vcard2 = belCard->toFoldedString();
+	bctbx_error("%s", vcard.c_str());
+	bctbx_error("%s", vcard2.c_str());
+	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
+	delete (parser);
+}
+
+static void vcards3_parsing(void) {
+	string vcards = openFile("vcards3/list.vcard");
+
+	BelCardParser *parser = new BelCardParser(true);
+	BC_ASSERT_TRUE(parser->isUsingV3Grammar());
+	shared_ptr<BelCardList> belCards = parser->parse(vcards);
+	if (!BC_ASSERT_TRUE(belCards != NULL)) {
+		delete (parser);
+		return;
+	}
+	BC_ASSERT_EQUAL((unsigned int)belCards->getCards().size(), 2, unsigned int, "%u");
+
+	string vcards2 = belCards->toString();
+	BC_ASSERT_EQUAL(vcards2.compare(vcards), 0, int, "%d");
+	delete (parser);
+}
+
+static void create_vcard3_from_api(void) {
+	shared_ptr<BelCard> belCard = BelCard::createV3<BelCard>();
+	if (!BC_ASSERT_TRUE(belCard != NULL)) return;
+	BC_ASSERT_FALSE(belCard->assertRFCCompliance());
+
+	shared_ptr<BelCardFullName> fn = BelCard::createV3<BelCardFullName>();
+	fn->setValue("Sylvain Berfini");
+	belCard->setFullName(fn);
+	BC_ASSERT_FALSE(belCard->assertRFCCompliance()); // For vCard 3 N property is also mandatory according to RFC 2426
+
+	shared_ptr<BelCardName> n = BelCard::createV3<BelCardName>();
+	n->setValue("Sylvain Berfini");
+	belCard->setName(n);
+	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
+	BC_ASSERT(belCard->getFullName()->toString() == fn->toString());
+
+	fn = BelCard::createV3<BelCardFullName>();
+	fn->setValue("Belcard Tester");
+	belCard->setFullName(fn);
+	BC_ASSERT(belCard->getFullName()->toString() == fn->toString());
+	string vcard = belCard->toString();
+
+	BelCardParser *parser = new BelCardParser(true);
+	BC_ASSERT_TRUE(parser->isUsingV3Grammar());
+	shared_ptr<BelCard> belCard2 = parser->parseOne(vcard);
+	if (!BC_ASSERT_TRUE(belCard2 != NULL)) {
+		delete (parser);
+		return;
+	}
+
+	BC_ASSERT_TRUE(belCard2->assertRFCCompliance());
+	string vcard2 = belCard2->toString();
+	BC_ASSERT_EQUAL(vcard.compare(vcard2), 0, unsigned, "%d");
+	delete (parser);
+}
+
+static void vcard3_parsing_of_vcard4_file(void) {
+	string vcard = openFile("vcards/vcard.vcf");
+
+	BelCardParser *parser = new BelCardParser(true);
+	BC_ASSERT_TRUE(parser->isUsingV3Grammar());
+	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
+	BC_ASSERT_PTR_NULL(belCard);
+	delete (parser);
+}
+
+static void vcard4_parsing_of_vcard3_file(void) {
+	string vcard = openFile("vcards3/franck.vcard");
+
+	BelCardParser *parser = new BelCardParser();
+	BC_ASSERT_FALSE(parser->isUsingV3Grammar());
+	shared_ptr<BelCard> belCard = parser->parseOne(vcard);
+	BC_ASSERT_PTR_NULL(belCard);
+	delete (parser);
+}
+
 static test_t tests[] = {
     TEST_NO_TAG("Folding", folding),
     TEST_NO_TAG("Unfolding", unfolding),
@@ -147,6 +251,11 @@ static test_t tests[] = {
     TEST_NO_TAG("VCards parsing", vcards_parsing),
     TEST_NO_TAG("VCard created from scratch", create_vcard_from_api),
     TEST_NO_TAG("Property sort using pref param", property_sort_using_pref_param),
+    TEST_NO_TAG("VCard 3.0 parsing", vcard3_parsing),
+    TEST_NO_TAG("VCards 3.0 parsing", vcards3_parsing),
+    TEST_NO_TAG("VCard 3.0 created from scratch", create_vcard3_from_api),
+    TEST_NO_TAG("Parse vCard 4.0 file with 3.0 grammar", vcard3_parsing_of_vcard4_file),
+    TEST_NO_TAG("Parse vCard 3.0 file with 4.0 grammar", vcard4_parsing_of_vcard3_file),
 };
 
 test_suite_t vcard_test_suite = {"VCard", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0, 0};

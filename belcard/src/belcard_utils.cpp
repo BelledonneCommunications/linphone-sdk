@@ -40,7 +40,7 @@ string belcard_read_file(const string &filename) {
 	ifstream istr(fName, ifstream::in | ifstream::binary);
 
 	if (!istr || !istr.is_open() || istr.fail()) {
-		bctbx_error("[belcard] Couldn't open file %s", fName);
+		bctbx_error("[BelCard] Couldn't open file %s", fName);
 		return string();
 	}
 

@@ -22,19 +22,21 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-shared_ptr<BelCardProperty> BelCardProperty::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardProperty>("X-PROPERTY", input);
+shared_ptr<BelCardProperty> BelCardProperty::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardProperty>("X-PROPERTY", input, v3);
 }
 
-void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
-	    ->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
+void BelCardProperty::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (!v3) {
+		parser->setHandler("X-PROPERTY", make_fn(BelCardGeneric::create<BelCardProperty>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("X-PROPERTY-name", make_sfn(&BelCardProperty::setName))
+		    ->setCollector("X-PROPERTY-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardProperty::BelCardProperty() : BelCardGeneric() {
+BelCardProperty::BelCardProperty(bool v3) : BelCardGeneric(v3) {
 }
 
 void BelCardProperty::setGroup(const string &group) {

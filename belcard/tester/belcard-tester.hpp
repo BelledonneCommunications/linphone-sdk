@@ -50,8 +50,8 @@ void belcard_tester_uninit(void);
 #endif
 
 template<typename T>
-void test_property(const std::string& input) {
-	std::shared_ptr<T> ptr = T::parse(input);
+void test_property(const std::string& input, bool v3 = false) {
+	std::shared_ptr<T> ptr = T::parse(input, v3);
 	BC_ASSERT_TRUE(ptr!=NULL);
 	if (ptr == NULL) {
 		std::cout << "Couldn't parse " << input << std::endl;

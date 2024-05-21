@@ -22,149 +22,200 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-shared_ptr<BelCardCategories> BelCardCategories::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardCategories>("CATEGORIES", input);
+shared_ptr<BelCardCategories> BelCardCategories::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardCategories>("CATEGORIES", input, v3);
 }
 
-void BelCardCategories::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("CATEGORIES", make_fn(BelCardGeneric::create<BelCardCategories>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("CATEGORIES-value", make_sfn(&BelCardProperty::setValue));
+void BelCardCategories::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("CATEGORIES", make_fn(BelCardGeneric::createV3<BelCardCategories>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("CATEGORIES-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("CATEGORIES", make_fn(BelCardGeneric::create<BelCardCategories>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("CATEGORIES-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardCategories::BelCardCategories() : BelCardProperty() {
+BelCardCategories::BelCardCategories(bool v3) : BelCardProperty(v3) {
 	setName("CATEGORIES");
 }
 
-shared_ptr<BelCardNote> BelCardNote::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardNote>("NOTE", input);
+shared_ptr<BelCardNote> BelCardNote::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardNote>("NOTE", input, v3);
 }
 
-void BelCardNote::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("NOTE", make_fn(BelCardGeneric::create<BelCardNote>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("NOTE-value", make_sfn(&BelCardProperty::setValue));
+void BelCardNote::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("NOTE", make_fn(BelCardGeneric::createV3<BelCardNote>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("NOTE-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("NOTE", make_fn(BelCardGeneric::create<BelCardNote>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("NOTE-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardNote::BelCardNote() : BelCardProperty() {
+BelCardNote::BelCardNote(bool v3) : BelCardProperty(v3) {
 	setName("NOTE");
 }
 
-shared_ptr<BelCardProductId> BelCardProductId::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardProductId>("PRODID", input);
+shared_ptr<BelCardProductId> BelCardProductId::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardProductId>("PRODID", input, v3);
 }
 
-void BelCardProductId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("PRODID", make_fn(BelCardGeneric::create<BelCardProductId>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("PRODID-value", make_sfn(&BelCardProperty::setValue));
+void BelCardProductId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("PRODID", make_fn(BelCardGeneric::createV3<BelCardProductId>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("PRODID-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("PRODID", make_fn(BelCardGeneric::create<BelCardProductId>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("PRODID-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardProductId::BelCardProductId() : BelCardProperty() {
+BelCardProductId::BelCardProductId(bool v3) : BelCardProperty(v3) {
 	setName("PRODID");
 }
 
-shared_ptr<BelCardRevision> BelCardRevision::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardRevision>("REV", input);
+shared_ptr<BelCardRevision> BelCardRevision::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardRevision>("REV", input, v3);
 }
 
-void BelCardRevision::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("REV", make_fn(BelCardGeneric::create<BelCardRevision>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("REV-value", make_sfn(&BelCardProperty::setValue));
+void BelCardRevision::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("REV", make_fn(BelCardGeneric::createV3<BelCardRevision>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("REV-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("REV", make_fn(BelCardGeneric::create<BelCardRevision>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("REV-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardRevision::BelCardRevision() : BelCardProperty() {
+BelCardRevision::BelCardRevision(bool v3) : BelCardProperty(v3) {
 	setName("REV");
 }
 
-shared_ptr<BelCardSound> BelCardSound::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardSound>("SOUND", input);
+shared_ptr<BelCardSound> BelCardSound::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardSound>("SOUND", input, v3);
 }
 
-void BelCardSound::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("SOUND", make_fn(BelCardGeneric::create<BelCardSound>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("SOUND-value", make_sfn(&BelCardProperty::setValue));
+void BelCardSound::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("SOUND", make_fn(BelCardGeneric::createV3<BelCardSound>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("SOUND-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("SOUND", make_fn(BelCardGeneric::create<BelCardSound>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("SOUND-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardSound::BelCardSound() : BelCardProperty() {
+BelCardSound::BelCardSound(bool v3) : BelCardProperty(v3) {
 	setName("SOUND");
 }
 
-shared_ptr<BelCardUniqueId> BelCardUniqueId::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardUniqueId>("UID", input);
+shared_ptr<BelCardUniqueId> BelCardUniqueId::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardUniqueId>("UID", input, v3);
 }
 
-void BelCardUniqueId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("UID", make_fn(BelCardGeneric::create<BelCardUniqueId>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("UID-value", make_sfn(&BelCardProperty::setValue));
+void BelCardUniqueId::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("UID", make_fn(BelCardGeneric::createV3<BelCardUniqueId>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("UID-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("UID", make_fn(BelCardGeneric::create<BelCardUniqueId>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("UID-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardUniqueId::BelCardUniqueId() : BelCardProperty() {
+BelCardUniqueId::BelCardUniqueId(bool v3) : BelCardProperty(v3) {
 	setName("UID");
 }
 
-shared_ptr<BelCardClientProductIdMap> BelCardClientProductIdMap::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardClientProductIdMap>("CLIENTPIDMAP", input);
+shared_ptr<BelCardClientProductIdMap> BelCardClientProductIdMap::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardClientProductIdMap>("CLIENTPIDMAP", input, v3);
 }
 
-void BelCardClientProductIdMap::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("CLIENTPIDMAP", make_fn(BelCardGeneric::create<BelCardClientProductIdMap>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("CLIENTPIDMAP-value", make_sfn(&BelCardProperty::setValue));
+void BelCardClientProductIdMap::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (!v3) {
+		parser->setHandler("CLIENTPIDMAP", make_fn(BelCardGeneric::create<BelCardClientProductIdMap>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("CLIENTPIDMAP-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardClientProductIdMap::BelCardClientProductIdMap() : BelCardProperty() {
+BelCardClientProductIdMap::BelCardClientProductIdMap(bool v3) : BelCardProperty(v3) {
 	setName("CLIENTPIDMAP");
 }
 
-shared_ptr<BelCardURL> BelCardURL::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardURL>("URL", input);
+shared_ptr<BelCardURL> BelCardURL::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardURL>("URL", input, v3);
 }
 
-void BelCardURL::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("URL", make_fn(BelCardGeneric::create<BelCardURL>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
-	    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
-	    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-	    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("URL-value", make_sfn(&BelCardProperty::setValue));
+void BelCardURL::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("URL", make_fn(BelCardGeneric::createV3<BelCardURL>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("URL-value", make_sfn(&BelCardProperty::setValue));
+	} else {
+		parser->setHandler("URL", make_fn(BelCardGeneric::create<BelCardURL>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("PID-param", make_sfn(&BelCardProperty::setParamIdParam))
+		    ->setCollector("PREF-param", make_sfn(&BelCardProperty::setPrefParam))
+		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
+		    ->setCollector("MEDIATYPE-param", make_sfn(&BelCardProperty::setMediaTypeParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("URL-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardURL::BelCardURL() : BelCardProperty() {
+BelCardURL::BelCardURL(bool v3) : BelCardProperty(v3) {
 	setName("URL");
 }

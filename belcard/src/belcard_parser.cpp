@@ -29,97 +29,131 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-shared_ptr<BelCardParser> BelCardParser::getInstance() {
-	static shared_ptr<BelCardParser> parser(new BelCardParser);
+shared_ptr<BelCardParser> BelCardParser::getInstance(bool useVCard3Grammar) {
+	static shared_ptr<BelCardParser> parser(new BelCardParser(useVCard3Grammar));
 	return parser;
 }
 
-BelCardParser::BelCardParser() {
-	shared_ptr<Grammar> grammar = loadVcardGrammar();
-	_parser = new Parser<shared_ptr<BelCardGeneric>>(grammar);
+BelCardParser::BelCardParser(bool useVCard3Grammar) {
+	_v3 = useVCard3Grammar;
+
+	if (_v3) {
+		bctbx_warning("[BelCard] Loading vCard 3.0 grammar");
+		shared_ptr<Grammar> grammar = loadVcard3Grammar();
+		_parser = new Parser<shared_ptr<BelCardGeneric>>(grammar);
+	} else {
+		bctbx_message("[BelCard] Loading vCard 4.0 grammar");
+		shared_ptr<Grammar> grammar = loadVcardGrammar();
+		_parser = new Parser<shared_ptr<BelCardGeneric>>(grammar);
+	}
 
 	BelCardList::setHandlerAndCollectors(_parser);
-	BelCard::setHandlerAndCollectors(_parser);
-	BelCardParam::setAllParamsHandlersAndCollectors(_parser);
-	BelCardProperty::setHandlerAndCollectors(_parser);
 
-	BelCardSource::setHandlerAndCollectors(_parser);
-	BelCardKind::setHandlerAndCollectors(_parser);
-	BelCardXML::setHandlerAndCollectors(_parser);
+	BelCard::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardFullName::setHandlerAndCollectors(_parser);
-	BelCardName::setHandlerAndCollectors(_parser);
-	BelCardNickname::setHandlerAndCollectors(_parser);
-	BelCardPhoto::setHandlerAndCollectors(_parser);
-	BelCardBirthday::setHandlerAndCollectors(_parser);
-	BelCardAnniversary::setHandlerAndCollectors(_parser);
-	BelCardGender::setHandlerAndCollectors(_parser);
+	BelCardParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardLabelParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardValueParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardPrefParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardAlternativeIdParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardParamIdParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardTypeParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardMediaTypeParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardCALSCALEParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardSortAsParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardGeoParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardTimezoneParam::setHandlerAndCollectors(_parser, _v3);
+	BelCardLabelParam::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardAddress::setHandlerAndCollectors(_parser);
+	BelCardProperty::setHandlerAndCollectors(_parser, _v3);
+	BelCardSource::setHandlerAndCollectors(_parser, _v3);
+	BelCardKind::setHandlerAndCollectors(_parser, _v3);
+	BelCardXML::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardPhoneNumber::setHandlerAndCollectors(_parser);
-	BelCardEmail::setHandlerAndCollectors(_parser);
-	BelCardImpp::setHandlerAndCollectors(_parser);
-	BelCardLang::setHandlerAndCollectors(_parser);
+	BelCardFullName::setHandlerAndCollectors(_parser, _v3);
+	BelCardName::setHandlerAndCollectors(_parser, _v3);
+	BelCardNickname::setHandlerAndCollectors(_parser, _v3);
+	BelCardPhoto::setHandlerAndCollectors(_parser, _v3);
+	BelCardDisplayName::setHandlerAndCollectors(_parser, _v3);
+	BelCardSortString::setHandlerAndCollectors(_parser, _v3);
+	BelCardBirthday::setHandlerAndCollectors(_parser, _v3);
+	BelCardAnniversary::setHandlerAndCollectors(_parser, _v3);
+	BelCardGender::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardTimezone::setHandlerAndCollectors(_parser);
-	BelCardGeo::setHandlerAndCollectors(_parser);
+	BelCardAddress::setHandlerAndCollectors(_parser, _v3);
+	BelCardAddressLabel::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardTitle::setHandlerAndCollectors(_parser);
-	BelCardRole::setHandlerAndCollectors(_parser);
-	BelCardLogo::setHandlerAndCollectors(_parser);
-	BelCardOrganization::setHandlerAndCollectors(_parser);
-	BelCardMember::setHandlerAndCollectors(_parser);
-	BelCardRelated::setHandlerAndCollectors(_parser);
+	BelCardPhoneNumber::setHandlerAndCollectors(_parser, _v3);
+	BelCardEmail::setHandlerAndCollectors(_parser, _v3);
+	BelCardImpp::setHandlerAndCollectors(_parser, _v3);
+	BelCardLang::setHandlerAndCollectors(_parser, _v3);
+	BelCardMailer::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardCategories::setHandlerAndCollectors(_parser);
-	BelCardNote::setHandlerAndCollectors(_parser);
-	BelCardProductId::setHandlerAndCollectors(_parser);
-	BelCardRevision::setHandlerAndCollectors(_parser);
-	BelCardSound::setHandlerAndCollectors(_parser);
-	BelCardUniqueId::setHandlerAndCollectors(_parser);
-	BelCardClientProductIdMap::setHandlerAndCollectors(_parser);
-	BelCardURL::setHandlerAndCollectors(_parser);
+	BelCardTimezone::setHandlerAndCollectors(_parser, _v3);
+	BelCardGeo::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardKey::setHandlerAndCollectors(_parser);
+	BelCardTitle::setHandlerAndCollectors(_parser, _v3);
+	BelCardRole::setHandlerAndCollectors(_parser, _v3);
+	BelCardLogo::setHandlerAndCollectors(_parser, _v3);
+	BelCardOrganization::setHandlerAndCollectors(_parser, _v3);
+	BelCardMember::setHandlerAndCollectors(_parser, _v3);
+	BelCardRelated::setHandlerAndCollectors(_parser, _v3);
+	BelCardAgent::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardFBURL::setHandlerAndCollectors(_parser);
-	BelCardCALADRURI::setHandlerAndCollectors(_parser);
-	BelCardCALURI::setHandlerAndCollectors(_parser);
+	BelCardCategories::setHandlerAndCollectors(_parser, _v3);
+	BelCardNote::setHandlerAndCollectors(_parser, _v3);
+	BelCardProductId::setHandlerAndCollectors(_parser, _v3);
+	BelCardRevision::setHandlerAndCollectors(_parser, _v3);
+	BelCardSound::setHandlerAndCollectors(_parser, _v3);
+	BelCardUniqueId::setHandlerAndCollectors(_parser, _v3);
+	BelCardClientProductIdMap::setHandlerAndCollectors(_parser, _v3);
+	BelCardURL::setHandlerAndCollectors(_parser, _v3);
 
-	BelCardBirthPlace::setHandlerAndCollectors(_parser);
-	BelCardDeathPlace::setHandlerAndCollectors(_parser);
-	BelCardDeathDate::setHandlerAndCollectors(_parser);
+	BelCardKey::setHandlerAndCollectors(_parser, _v3);
+	BelCardClass::setHandlerAndCollectors(_parser, _v3);
+
+	BelCardFBURL::setHandlerAndCollectors(_parser, _v3);
+	BelCardCALADRURI::setHandlerAndCollectors(_parser, _v3);
+	BelCardCALURI::setHandlerAndCollectors(_parser, _v3);
+
+	BelCardBirthPlace::setHandlerAndCollectors(_parser, _v3);
+	BelCardDeathPlace::setHandlerAndCollectors(_parser, _v3);
+	BelCardDeathDate::setHandlerAndCollectors(_parser, _v3);
 }
 
 BelCardParser::~BelCardParser() {
 	delete _parser;
 }
 
+bool BelCardParser::isUsingV3Grammar() const {
+	return _v3;
+}
+
 shared_ptr<BelCardGeneric> BelCardParser::_parse(const string &input, const string &rule) {
 	size_t parsedSize = 0;
 	shared_ptr<BelCardGeneric> ret = _parser->parseInput(rule, input, &parsedSize);
 	if (parsedSize < input.size()) {
-		bctbx_error("[belcard] Parsing ended prematuraly at pos %llu", (unsigned long long)parsedSize);
+		bctbx_error("[BelCard] Parsing ended prematuraly at pos %llu", (unsigned long long)parsedSize);
 	}
 	return ret;
 }
 
 shared_ptr<BelCard> BelCardParser::parseOne(const string &input) {
-	string vcard = belcard_unfold(input);
-	shared_ptr<BelCardGeneric> ret = _parse(vcard, "vcard");
+	string vCard = belcard_unfold(input);
+	shared_ptr<BelCardGeneric> ret = _parse(vCard, "vcard");
 	shared_ptr<BelCard> belCard = dynamic_pointer_cast<BelCard>(ret);
 	return belCard;
 }
 
 shared_ptr<BelCardList> BelCardParser::parse(const string &input) {
-	string vcards = belcard_unfold(input);
-	shared_ptr<BelCardGeneric> ret = _parse(vcards, "vcard-list");
+	string vCards = belcard_unfold(input);
+	shared_ptr<BelCardGeneric> ret = _parse(vCards, "vcard-list");
 	shared_ptr<BelCardList> belCards = dynamic_pointer_cast<BelCardList>(ret);
 	return belCards;
 }
 
 shared_ptr<BelCardList> BelCardParser::parseFile(const string &filename) {
-	string vcard = belcard_read_file(filename);
-	return parse(vcard);
+	string file = belcard_read_file(filename);
+	shared_ptr<BelCardList> belCards = parse(file);
+	return belCards;
 }

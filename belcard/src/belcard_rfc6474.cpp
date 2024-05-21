@@ -22,57 +22,63 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-shared_ptr<BelCardBirthPlace> BelCardBirthPlace::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardBirthPlace>("BIRTHPLACE", input);
+shared_ptr<BelCardBirthPlace> BelCardBirthPlace::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardBirthPlace>("BIRTHPLACE", input, v3);
 }
 
-void BelCardBirthPlace::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("BIRTHPLACE", make_fn(BelCardGeneric::create<BelCardBirthPlace>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
-	    ->setCollector("BIRTHPLACE-value", make_sfn(&BelCardProperty::setValue));
+void BelCardBirthPlace::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (!v3) {
+		parser->setHandler("BIRTHPLACE", make_fn(BelCardGeneric::create<BelCardBirthPlace>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+		    ->setCollector("BIRTHPLACE-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardBirthPlace::BelCardBirthPlace() : BelCardProperty() {
+BelCardBirthPlace::BelCardBirthPlace(bool v3) : BelCardProperty(v3) {
 	setName("BIRTHPLACE");
 }
 
-shared_ptr<BelCardDeathPlace> BelCardDeathPlace::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardDeathPlace>("DEATHPLACE", input);
+shared_ptr<BelCardDeathPlace> BelCardDeathPlace::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardDeathPlace>("DEATHPLACE", input, v3);
 }
 
-void BelCardDeathPlace::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("DEATHPLACE", make_fn(BelCardGeneric::create<BelCardDeathPlace>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
-	    ->setCollector("DEATHPLACE-value", make_sfn(&BelCardProperty::setValue));
+void BelCardDeathPlace::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (!v3) {
+		parser->setHandler("DEATHPLACE", make_fn(BelCardGeneric::create<BelCardDeathPlace>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+		    ->setCollector("DEATHPLACE-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardDeathPlace::BelCardDeathPlace() : BelCardProperty() {
+BelCardDeathPlace::BelCardDeathPlace(bool v3) : BelCardProperty(v3) {
 	setName("DEATHPLACE");
 }
 
-shared_ptr<BelCardDeathDate> BelCardDeathDate::parse(const string &input) {
-	return BelCardProperty::parseProperty<BelCardDeathDate>("DEATHDATE", input);
+shared_ptr<BelCardDeathDate> BelCardDeathDate::parse(const string &input, bool v3) {
+	return BelCardProperty::parseProperty<BelCardDeathDate>("DEATHDATE", input, v3);
 }
 
-void BelCardDeathDate::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("DEATHDATE", make_fn(BelCardGeneric::create<BelCardDeathDate>))
-	    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
-	    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
-	    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
-	    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
-	    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
-	    ->setCollector("CALSCALE-param", make_sfn(&BelCardProperty::setCALSCALEParam))
-	    ->setCollector("DEATHDATE-value", make_sfn(&BelCardProperty::setValue));
+void BelCardDeathDate::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (!v3) {
+		parser->setHandler("DEATHDATE", make_fn(BelCardGeneric::create<BelCardDeathDate>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("ALTID-param", make_sfn(&BelCardProperty::setAlternativeIdParam))
+		    ->setCollector("LANGUAGE-param", make_sfn(&BelCardProperty::setLanguageParam))
+		    ->setCollector("CALSCALE-param", make_sfn(&BelCardProperty::setCALSCALEParam))
+		    ->setCollector("DEATHDATE-value", make_sfn(&BelCardProperty::setValue));
+	}
 }
 
-BelCardDeathDate::BelCardDeathDate() : BelCardProperty() {
+BelCardDeathDate::BelCardDeathDate(bool v3) : BelCardProperty(v3) {
 	setName("DEATHDATE");
 }

@@ -23,50 +23,84 @@ using namespace ::std;
 using namespace ::belr;
 using namespace ::belcard;
 
-void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("vcard", make_fn(BelCardGeneric::create<BelCard>))
-	    ->setCollector("X-PROPERTY", make_sfn(&BelCard::_addExtendedProperty))
-	    ->setCollector("SOURCE", make_sfn(&BelCard::_addSource))
-	    ->setCollector("KIND", make_sfn(&BelCard::_setKind))
-	    ->setCollector("XML", make_sfn(&BelCard::_addXML))
-	    ->setCollector("FN", make_sfn(&BelCard::_setFullName))
-	    ->setCollector("N", make_sfn(&BelCard::_setName))
-	    ->setCollector("BDAY", make_sfn(&BelCard::_setBirthday))
-	    ->setCollector("ANNIVERSARY", make_sfn(&BelCard::_setAnniversary))
-	    ->setCollector("GENDER", make_sfn(&BelCard::_setGender))
-	    ->setCollector("NICKNAME", make_sfn(&BelCard::_addNickname))
-	    ->setCollector("PHOTO", make_sfn(&BelCard::_addPhoto))
-	    ->setCollector("ADR", make_sfn(&BelCard::_addAddress))
-	    ->setCollector("TEL", make_sfn(&BelCard::_addPhoneNumber))
-	    ->setCollector("EMAIL", make_sfn(&BelCard::_addEmail))
-	    ->setCollector("IMPP", make_sfn(&BelCard::_addImpp))
-	    ->setCollector("LANG", make_sfn(&BelCard::_addLang))
-	    ->setCollector("TZ", make_sfn(&BelCard::_addTimezone))
-	    ->setCollector("GEO", make_sfn(&BelCard::_addGeo))
-	    ->setCollector("TITLE", make_sfn(&BelCard::_addTitle))
-	    ->setCollector("ROLE", make_sfn(&BelCard::_addRole))
-	    ->setCollector("LOGO", make_sfn(&BelCard::_addLogo))
-	    ->setCollector("ORG", make_sfn(&BelCard::_addOrganization))
-	    ->setCollector("MEMBER", make_sfn(&BelCard::_addMember))
-	    ->setCollector("RELATED", make_sfn(&BelCard::_addRelated))
-	    ->setCollector("CATEGORIES", make_sfn(&BelCard::_addCategories))
-	    ->setCollector("NOTE", make_sfn(&BelCard::_addNote))
-	    ->setCollector("PRODID", make_sfn(&BelCard::_setProductId))
-	    ->setCollector("REV", make_sfn(&BelCard::_setRevision))
-	    ->setCollector("SOUND", make_sfn(&BelCard::_addSound))
-	    ->setCollector("UID", make_sfn(&BelCard::_setUniqueId))
-	    ->setCollector("CLIENTPIDMAP", make_sfn(&BelCard::_addClientProductIdMap))
-	    ->setCollector("URL", make_sfn(&BelCard::_addURL))
-	    ->setCollector("KEY", make_sfn(&BelCard::_addKey))
-	    ->setCollector("FBURL", make_sfn(&BelCard::_addFBURL))
-	    ->setCollector("CALADRURI", make_sfn(&BelCard::_addCALADRURI))
-	    ->setCollector("CALURI", make_sfn(&BelCard::_addCALURI))
-	    ->setCollector("BIRTHPLACE", make_sfn(&BelCard::_setBirthPlace))
-	    ->setCollector("DEATHDATE", make_sfn(&BelCard::_setDeathDate))
-	    ->setCollector("DEATHPLACE", make_sfn(&BelCard::_setDeathPlace));
+void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("vcard", make_fn(BelCardGeneric::createV3<BelCard>))
+		    ->setCollector("SOURCE", make_sfn(&BelCard::_addSource))
+		    ->setCollector("FN", make_sfn(&BelCard::_setFullName))
+		    ->setCollector("N", make_sfn(&BelCard::_setName))
+		    ->setCollector("BDAY", make_sfn(&BelCard::_setBirthday))
+		    ->setCollector("NICKNAME", make_sfn(&BelCard::_addNickname))
+		    ->setCollector("PHOTO", make_sfn(&BelCard::_addPhoto))
+		    ->setCollector("NAME", make_sfn(&BelCard::_setDisplayName))
+		    ->setCollector("SORT-STRING", make_sfn(&BelCard::_setSortString))
+		    ->setCollector("ADR", make_sfn(&BelCard::_addAddress))
+		    ->setCollector("LABEL", make_sfn(&BelCard::_addAddressLabel))
+		    ->setCollector("TEL", make_sfn(&BelCard::_addPhoneNumber))
+		    ->setCollector("EMAIL", make_sfn(&BelCard::_addEmail))
+		    ->setCollector("MAILER", make_sfn(&BelCard::_setMailer))
+		    ->setCollector("IMPP", make_sfn(&BelCard::_addImpp))
+		    ->setCollector("TZ", make_sfn(&BelCard::_addTimezone))
+		    ->setCollector("GEO", make_sfn(&BelCard::_addGeo))
+		    ->setCollector("TITLE", make_sfn(&BelCard::_addTitle))
+		    ->setCollector("ROLE", make_sfn(&BelCard::_addRole))
+		    ->setCollector("LOGO", make_sfn(&BelCard::_addLogo))
+		    ->setCollector("ORG", make_sfn(&BelCard::_addOrganization))
+		    ->setCollector("AGENT", make_sfn(&BelCard::_setAgent))
+		    ->setCollector("CATEGORIES", make_sfn(&BelCard::_addCategories))
+		    ->setCollector("NOTE", make_sfn(&BelCard::_addNote))
+		    ->setCollector("PRODID", make_sfn(&BelCard::_setProductId))
+		    ->setCollector("REV", make_sfn(&BelCard::_setRevision))
+		    ->setCollector("SOUND", make_sfn(&BelCard::_addSound))
+		    ->setCollector("UID", make_sfn(&BelCard::_setUniqueId))
+		    ->setCollector("URL", make_sfn(&BelCard::_addURL))
+		    ->setCollector("KEY", make_sfn(&BelCard::_addKey))
+		    ->setCollector("CLASS", make_sfn(&BelCard::_setClass));
+	} else {
+		parser->setHandler("vcard", make_fn(BelCardGeneric::create<BelCard>))
+		    ->setCollector("X-PROPERTY", make_sfn(&BelCard::_addExtendedProperty))
+		    ->setCollector("SOURCE", make_sfn(&BelCard::_addSource))
+		    ->setCollector("KIND", make_sfn(&BelCard::_setKind))
+		    ->setCollector("XML", make_sfn(&BelCard::_addXML))
+		    ->setCollector("FN", make_sfn(&BelCard::_setFullName))
+		    ->setCollector("N", make_sfn(&BelCard::_setName))
+		    ->setCollector("BDAY", make_sfn(&BelCard::_setBirthday))
+		    ->setCollector("ANNIVERSARY", make_sfn(&BelCard::_setAnniversary))
+		    ->setCollector("GENDER", make_sfn(&BelCard::_setGender))
+		    ->setCollector("NICKNAME", make_sfn(&BelCard::_addNickname))
+		    ->setCollector("PHOTO", make_sfn(&BelCard::_addPhoto))
+		    ->setCollector("ADR", make_sfn(&BelCard::_addAddress))
+		    ->setCollector("TEL", make_sfn(&BelCard::_addPhoneNumber))
+		    ->setCollector("EMAIL", make_sfn(&BelCard::_addEmail))
+		    ->setCollector("IMPP", make_sfn(&BelCard::_addImpp))
+		    ->setCollector("LANG", make_sfn(&BelCard::_addLang))
+		    ->setCollector("TZ", make_sfn(&BelCard::_addTimezone))
+		    ->setCollector("GEO", make_sfn(&BelCard::_addGeo))
+		    ->setCollector("TITLE", make_sfn(&BelCard::_addTitle))
+		    ->setCollector("ROLE", make_sfn(&BelCard::_addRole))
+		    ->setCollector("LOGO", make_sfn(&BelCard::_addLogo))
+		    ->setCollector("ORG", make_sfn(&BelCard::_addOrganization))
+		    ->setCollector("MEMBER", make_sfn(&BelCard::_addMember))
+		    ->setCollector("RELATED", make_sfn(&BelCard::_addRelated))
+		    ->setCollector("CATEGORIES", make_sfn(&BelCard::_addCategories))
+		    ->setCollector("NOTE", make_sfn(&BelCard::_addNote))
+		    ->setCollector("PRODID", make_sfn(&BelCard::_setProductId))
+		    ->setCollector("REV", make_sfn(&BelCard::_setRevision))
+		    ->setCollector("SOUND", make_sfn(&BelCard::_addSound))
+		    ->setCollector("UID", make_sfn(&BelCard::_setUniqueId))
+		    ->setCollector("CLIENTPIDMAP", make_sfn(&BelCard::_addClientProductIdMap))
+		    ->setCollector("URL", make_sfn(&BelCard::_addURL))
+		    ->setCollector("KEY", make_sfn(&BelCard::_addKey))
+		    ->setCollector("FBURL", make_sfn(&BelCard::_addFBURL))
+		    ->setCollector("CALADRURI", make_sfn(&BelCard::_addCALADRURI))
+		    ->setCollector("CALURI", make_sfn(&BelCard::_addCALURI))
+		    ->setCollector("BIRTHPLACE", make_sfn(&BelCard::_setBirthPlace))
+		    ->setCollector("DEATHDATE", make_sfn(&BelCard::_setDeathDate))
+		    ->setCollector("DEATHPLACE", make_sfn(&BelCard::_setDeathPlace));
+	}
 }
 
-BelCard::BelCard() : BelCardGeneric() {
+BelCard::BelCard(bool v3) : BelCardGeneric(v3) {
 }
 
 void BelCard::setSkipFieldValidation(bool skip) {
@@ -750,8 +784,99 @@ const list<shared_ptr<BelCardProperty>> &BelCard::getProperties() const {
 	return _properties;
 }
 
+void BelCard::_setDisplayName(const shared_ptr<BelCardDisplayName> &displayName) {
+	set(_displayName, displayName);
+}
+bool BelCard::setDisplayName(const shared_ptr<BelCardDisplayName> &displayName) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(displayName)) {
+		_setDisplayName(displayName);
+		return true;
+	}
+	return false;
+}
+const shared_ptr<BelCardDisplayName> &BelCard::getDisplayName() const {
+	return _displayName;
+}
+
+void BelCard::_setSortString(const shared_ptr<BelCardSortString> &sortString) {
+	set(_sortString, sortString);
+}
+bool BelCard::setSortString(const shared_ptr<BelCardSortString> &sortString) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(sortString)) {
+		_setSortString(sortString);
+		return true;
+	}
+	return false;
+}
+const shared_ptr<BelCardSortString> &BelCard::getSortString() const {
+	return _sortString;
+}
+
+void BelCard::_setMailer(const shared_ptr<BelCardMailer> &mailer) {
+	set(_mailer, mailer);
+}
+bool BelCard::setMailer(const shared_ptr<BelCardMailer> &mailer) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(mailer)) {
+		_setMailer(mailer);
+		return true;
+	}
+	return false;
+}
+const shared_ptr<BelCardMailer> &BelCard::getMailer() const {
+	return _mailer;
+}
+
+void BelCard::_setAgent(const shared_ptr<BelCardAgent> &agent) {
+	set(_agent, agent);
+}
+bool BelCard::setAgent(const shared_ptr<BelCardAgent> &agent) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(agent)) {
+		_setAgent(agent);
+		return true;
+	}
+	return false;
+}
+const shared_ptr<BelCardAgent> &BelCard::getAgent() const {
+	return _agent;
+}
+
+void BelCard::_setClass(const shared_ptr<BelCardClass> &_class) {
+	set(__class, _class);
+}
+bool BelCard::setClass(const shared_ptr<BelCardClass> &_class) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(_class)) {
+		_setClass(_class);
+		return true;
+	}
+	return false;
+}
+const shared_ptr<BelCardClass> &BelCard::getClass() const {
+	return __class;
+}
+
+void BelCard::_addAddressLabel(const shared_ptr<BelCardAddressLabel> &label) {
+	add(_labels, label);
+}
+bool BelCard::addAddressLabel(const shared_ptr<BelCardAddressLabel> &label) {
+	if (_skipFieldValidation || BelCardGeneric::isValid(label)) {
+		_addAddressLabel(label);
+		return true;
+	}
+	return false;
+}
+void BelCard::removeAddressLabel(const shared_ptr<BelCardAddressLabel> &label) {
+	remove(_labels, label);
+}
+const list<shared_ptr<BelCardAddressLabel>> &BelCard::getAddressLabels() const {
+	return _labels;
+}
+
 void BelCard::serialize(ostream &output) const {
-	output << "BEGIN:VCARD\r\nVERSION:4.0\r\n";
+	if (_v3) {
+		output << "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+	} else {
+		output << "BEGIN:VCARD\r\nVERSION:4.0\r\n";
+	}
 	for (auto it = getProperties().begin(); it != getProperties().end(); ++it) {
 		output << (**it);
 	}
@@ -768,16 +893,24 @@ bool BelCard::assertRFCCompliance() const {
 	if (!_fn) {
 		return false;
 	}
+	if (_v3 && !_n) {
+		return false;
+	}
 
 	return true;
 }
 
-void BelCardList::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser) {
-	parser->setHandler("vcard-list", make_fn(BelCardGeneric::create<BelCardList>))
-	    ->setCollector("vcard", make_sfn(&BelCardList::addCard));
+void BelCardList::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
+	if (v3) {
+		parser->setHandler("vcard-list", make_fn(BelCardGeneric::createV3<BelCardList>))
+		    ->setCollector("vcard", make_sfn(&BelCardList::addCard));
+	} else {
+		parser->setHandler("vcard-list", make_fn(BelCardGeneric::create<BelCardList>))
+		    ->setCollector("vcard", make_sfn(&BelCardList::addCard));
+	}
 }
 
-BelCardList::BelCardList() : BelCardGeneric() {
+BelCardList::BelCardList(bool v3) : BelCardGeneric(v3) {
 }
 
 void BelCardList::addCard(const shared_ptr<BelCard> &vcard) {
