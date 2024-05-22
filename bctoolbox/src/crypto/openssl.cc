@@ -309,7 +309,7 @@ std::string encodeBase64(const std::vector<uint8_t> &input) {
 	std::string output{};
 	int ret = bctbx_base64_encode(nullptr, &outputLength, input.data(), input.size());
 	if (ret == 0 && outputLength > 0) {
-		output = std::string(outputLength - 1, '\0');
+		output = std::string(outputLength, '\0');
 		ret = bctbx_base64_encode((unsigned char *)output.data(), &outputLength, input.data(), input.size());
 	}
 	if (ret != 0) {

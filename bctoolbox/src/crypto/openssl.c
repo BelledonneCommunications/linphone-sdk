@@ -69,13 +69,13 @@ bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned
 	int byte_written = 0;
 
 	if (output == NULL) {
-		*output_length = calculated_output_length + calculated_output_padding + 1;
+		*output_length = calculated_output_length + calculated_output_padding;
 	} else {
-		if (*output_length < (calculated_output_length + calculated_output_padding + 1)) {
+		if (*output_length < (calculated_output_length + calculated_output_padding)) {
 			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 		}
 		byte_written = EVP_EncodeBlock(output, input, input_length);
-		*output_length = byte_written > 0 ? byte_written + 1 : 0;
+		*output_length = byte_written > 0 ? byte_written : 0;
 	}
 	if (byte_written == -1) {
 		return BCTBX_ERROR_INVALID_BASE64_INPUT;
@@ -86,29 +86,57 @@ bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned
 
 int32_t
 bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
-	size_t calculated_output_length = 3 * (input_length / 4);
+	// Add padding if needed
+	size_t missingPaddingSize = 0;
+	unsigned char *paddedInput = NULL;
+	if ((input_length % 4) != 0) {
+		missingPaddingSize = 4 - (input_length % 4);
+		if (output != NULL) {
+			paddedInput = bctbx_malloc(input_length + 2);
+			memcpy(paddedInput, input, input_length);
+
+			if (missingPaddingSize > 0) {
+				paddedInput[input_length] = '=';
+			}
+			if (missingPaddingSize > 1) {
+				paddedInput[input_length + 1] = '=';
+			}
+		}
+	}
+
+	size_t calculated_output_length = 3 * ((input_length + missingPaddingSize) / 4);
 	int byte_written = 0;
 
 	if (output == NULL) {
 		*output_length = calculated_output_length;
-	} else {
-		if (*output_length < calculated_output_length) {
-			return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
+		return 0;
+	}
+	if (*output_length < calculated_output_length) {
+		if (paddedInput != NULL) {
+			bctbx_free(paddedInput);
 		}
-
-		byte_written = EVP_DecodeBlock(output, input, input_length);
-		if (*(input + input_length - 1) == '=') {
-			byte_written--;
-			if (*(input + input_length - 2) == '=') {
-				byte_written--;
-			}
-		}
-		*output_length = byte_written > 0 ? byte_written : 0;
+		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
 
+	byte_written =
+	    EVP_DecodeBlock(output, paddedInput == NULL ? input : paddedInput, input_length + missingPaddingSize);
+	if (paddedInput != NULL) {
+		bctbx_free(paddedInput);
+	}
 	if (byte_written == -1) {
 		return BCTBX_ERROR_INVALID_BASE64_INPUT;
 	}
+
+	if (missingPaddingSize) {
+		byte_written -= missingPaddingSize;
+	}
+	if (*(input + input_length - 1) == '=') {
+		byte_written--;
+		if (*(input + input_length - 2) == '=') {
+			byte_written--;
+		}
+	}
+	*output_length = byte_written > 0 ? byte_written : 0;
 
 	return 0;
 }

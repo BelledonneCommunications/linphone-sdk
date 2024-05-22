@@ -88,8 +88,26 @@ bctbx_base64_encode(unsigned char *output, size_t *output_length, const unsigned
 int32_t
 bctbx_base64_decode(unsigned char *output, size_t *output_length, const unsigned char *input, size_t input_length) {
 	size_t byte_written = 0;
-	int ret = mbedtls_base64_decode(output, *output_length, &byte_written, input, input_length);
+	size_t missingPaddingSize = 0;
+	unsigned char *paddedInput = NULL;
+	/* mbedtls function does not work well if the padding is omitted, restore it if needed */
+	if ((input_length % 4) != 0) {
+		missingPaddingSize = 4 - (input_length % 4);
+		paddedInput = bctbx_malloc(input_length + 2);
+		memcpy(paddedInput, input, input_length);
+		if (missingPaddingSize > 0) {
+			paddedInput[input_length] = '=';
+		}
+		if (missingPaddingSize > 1) {
+			paddedInput[input_length + 1] = '=';
+		}
+	}
+	int ret = mbedtls_base64_decode(output, *output_length, &byte_written,
+	                                missingPaddingSize == 0 ? input : paddedInput, input_length + missingPaddingSize);
 	*output_length = byte_written;
+	if (paddedInput != NULL) {
+		bctbx_free(paddedInput);
+	}
 	if (ret == MBEDTLS_ERR_BASE64_BUFFER_TOO_SMALL) {
 		return BCTBX_ERROR_OUTPUT_BUFFER_TOO_SMALL;
 	}
