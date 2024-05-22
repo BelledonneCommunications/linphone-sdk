@@ -323,6 +323,7 @@ MS2_PUBLIC void ms_yuv_buf_copy_with_pix_strides(uint8_t *src_planes[],
 MS2_PUBLIC void ms_yuv_buf_mirror(YuvBuf *buf);
 MS2_PUBLIC void ms_yuv_buf_mirrors(YuvBuf *buf, const MSMirrorType type);
 MS2_PUBLIC void rgb24_mirror(uint8_t *buf, int w, int h, int linesize);
+MS2_PUBLIC void rgb24_vertical_mirror(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_revert(uint8_t *buf, int w, int h, int linesize);
 MS2_PUBLIC void rgb24_copy_revert(uint8_t *dstbuf, int dstlsz, const uint8_t *srcbuf, int srclsz, MSVideoSize roi);
 

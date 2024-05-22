@@ -32,14 +32,19 @@
 
 #include "msscreensharing_win.h"
 
+#include <Windows.h>
 #include <algorithm>
 #include <dwmapi.h>
 #include <list>
 #include <map>
 #include <mutex>
 
+#ifndef PW_RENDERFULLCONTENT
+#define PW_RENDERFULLCONTENT 0x00000002
+#endif
+
 MsScreenSharing_win::MsScreenSharing_win() : MsScreenSharing() {
-	mLastFormat.mPixelFormat = MS_RGBA32_REV;
+	mLastFormat.mPixelFormat = MS_RGB24;
 }
 
 MsScreenSharing_win::~MsScreenSharing_win() {
@@ -47,22 +52,44 @@ MsScreenSharing_win::~MsScreenSharing_win() {
 	MsScreenSharing_win::uninit();
 }
 
-void MsScreenSharing_win::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData){
+MsScreenSharing_win::ScreenProcessor::~ScreenProcessor() {
+	clean();
+}
+
+MsScreenSharing_win::WindowProcessor::~WindowProcessor() {
+	clean();
+}
+
+void MsScreenSharing_win::setSource(MSScreenSharingDesc sourceDesc, FormatData formatData) {
 	MsScreenSharing::setSource(sourceDesc, formatData);
-	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) mLastFormat.mPixelFormat = MS_RGBA32_REV;
+	if (mLastFormat.mPixelFormat == MS_PIX_FMT_UNKNOWN) {
+		mLastFormat.mPixelFormat = MS_RGB24;
+	}
 }
 
 void MsScreenSharing_win::init() {
 	ms_debug("[MsScreenSharing_win] Init");
 	if (mSourceDesc.type != MS_SCREEN_SHARING_EMPTY) {
-		mRunnable = initDisplay();
+		mRunnable = true;
 		switch (mSourceDesc.type) {
 			case MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY:
+				if (mLastFormat.mPixelFormat != MS_RGBA32_REV) {
+					mLastFormat.mSizeChanged = true;
+					mLastFormat.mPixelFormat = MS_RGBA32_REV;
+				}
 				mLastFormat.mScreenIndex = *(uintptr_t *)(&mSourceDesc.native_data);
 				mWindowId = nullptr;
+				if (mProcess) delete mProcess;
+				mProcess = new ScreenProcessor(this);
 				break;
 			case MSScreenSharingType::MS_SCREEN_SHARING_WINDOW:
+				if (mLastFormat.mPixelFormat != MS_RGB24) {
+					mLastFormat.mSizeChanged = true;
+					mLastFormat.mPixelFormat = MS_RGB24;
+				}
 				mWindowId = (HWND)mSourceDesc.native_data;
+				if (mProcess) delete mProcess;
+				mProcess = new WindowProcessor(this);
 				break;
 			case MSScreenSharingType::MS_SCREEN_SHARING_AREA:
 				ms_error("[MSScreenSharing] Sharing an area is not supported.");
@@ -70,6 +97,7 @@ void MsScreenSharing_win::init() {
 			default:
 				mRunnable = false;
 		}
+		if (mRunnable) mRunnable = initDisplay();
 	} else mRunnable = false;
 	MsScreenSharing::init();
 }
@@ -96,6 +124,10 @@ void toRelease(Ts &&...inputs) {
 }
 
 bool MsScreenSharing_win::initDisplay() {
+	return mProcess ? mProcess->initDisplay() : false;
+}
+
+bool MsScreenSharing_win::ScreenProcessor::initDisplay() {
 	// Create device
 	D3D_FEATURE_LEVEL lFeatureLevel;
 	HRESULT hr;
@@ -218,13 +250,17 @@ bool MsScreenSharing_win::initDisplay() {
 	toRelease(dxgiAdapter);
 	if (FAILED(hr)) return false;
 	if (mScreenDuplications.size() == 0) return false;
-	mScreenRects.clear();
+	mParent->mScreenRects.clear();
 	for (size_t i = 0; i < mScreenDuplications.size(); ++i)
-		mScreenRects.push_back(Rect(mScreenDuplications[i].mDescription.DesktopCoordinates.left,
-		                            mScreenDuplications[i].mDescription.DesktopCoordinates.top,
-		                            mScreenDuplications[i].mDescription.DesktopCoordinates.right,
-		                            mScreenDuplications[i].mDescription.DesktopCoordinates.bottom));
-	MsScreenSharing::updateScreenConfiguration(mScreenRects);
+		mParent->mScreenRects.push_back(Rect(mScreenDuplications[i].mDescription.DesktopCoordinates.left,
+		                                     mScreenDuplications[i].mDescription.DesktopCoordinates.top,
+		                                     mScreenDuplications[i].mDescription.DesktopCoordinates.right,
+		                                     mScreenDuplications[i].mDescription.DesktopCoordinates.bottom));
+	mParent->updateScreenConfiguration(mParent->mScreenRects);
+	return true;
+}
+
+bool MsScreenSharing_win::WindowProcessor::initDisplay() {
 	return true;
 }
 
@@ -239,10 +275,14 @@ void MsScreenSharing_win::getWindowSize(int *windowX, int *windowY, int *windowW
 	} else {
 		// Issue of GetWindowRect : it return shadow area. Use DwmGetWindowAttribute to get exactly the window size.
 		RECT rect;
-		if (S_OK != DwmGetWindowAttribute(mWindowId, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(RECT))) { // Win32
-			ms_warning("[MsScreenSharing_win] Cannot get window size from %x. Set default to 400x400", mWindowId);
-			rect.top = rect.left = 0;
-			rect.bottom = rect.right = 400;
+		HRESULT result = DwmGetWindowAttribute(mWindowId, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(RECT));
+		if (S_OK != result) {                       // Win32
+			if (!GetWindowRect(mWindowId, &rect)) { // Fallback
+				ms_warning("[MsScreenSharing_win] Cannot get window size from %x. Set default to 400x400 [%x]",
+				           mWindowId, result);
+				rect.top = rect.left = 0;
+				rect.bottom = rect.right = 400;
+			}
 		}
 		*windowX = rect.left + 1; // border?
 		*windowY = rect.top;
@@ -250,16 +290,20 @@ void MsScreenSharing_win::getWindowSize(int *windowX, int *windowY, int *windowW
 		*windowHeight = rect.bottom - rect.top;
 	}
 }
-
 bool MsScreenSharing_win::prepareImage() {
+	return mProcess ? mProcess->prepareImage() : false;
+}
+
+bool MsScreenSharing_win::ScreenProcessor::prepareImage() {
 	D3D11_TEXTURE2D_DESC desc = {};
 	HRESULT hr;
 	IDXGIResource *desktopResource;
 	ID3D11Texture2D *acquiredDesktopImage; // last Frame
 	DXGI_OUTDUPL_FRAME_INFO frameInfo;
 
-	mScreenDuplications[mLastFormat.mScreenIndex].mDuplication->ReleaseFrame();
-	hr = mScreenDuplications[mLastFormat.mScreenIndex].mDuplication->AcquireNextFrame(0, &frameInfo, &desktopResource);
+	mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDuplication->ReleaseFrame();
+	hr = mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDuplication->AcquireNextFrame(0, &frameInfo,
+	                                                                                           &desktopResource);
 	if (FAILED(hr)) {
 		// ms_warning("[MsScreenSharing_win] Cannot acquire frame [%x]", hr);
 		return false;
@@ -271,13 +315,15 @@ bool MsScreenSharing_win::prepareImage() {
 	if (FAILED(hr)) return false;
 	if (acquiredDesktopImage == nullptr) return false;
 	// Copy image into GDI drawing texture
-	mImmediateContext->CopyResource(mScreenDuplications[mLastFormat.mScreenIndex].mDrawingImage, acquiredDesktopImage);
+	mImmediateContext->CopyResource(mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDrawingImage,
+	                                acquiredDesktopImage);
 	toRelease(acquiredDesktopImage);
 	// Draw cursor image into GDI drawing texture
 	IDXGISurface1 *idxgiSurface1;
-	hr = mScreenDuplications[mLastFormat.mScreenIndex].mDrawingImage->QueryInterface(IID_PPV_ARGS(&idxgiSurface1));
+	hr = mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDrawingImage->QueryInterface(
+	    IID_PPV_ARGS(&idxgiSurface1));
 	if (FAILED(hr)) return false;
-	if (mLastFormat.mRecordCursor) {
+	if (mParent->mLastFormat.mRecordCursor) {
 		CURSORINFO lCursorInfo = {0};
 		lCursorInfo.cbSize = sizeof(lCursorInfo);
 		auto lBoolres = GetCursorInfo(&lCursorInfo);
@@ -287,35 +333,102 @@ bool MsScreenSharing_win::prepareImage() {
 				auto lCursorSize = lCursorInfo.cbSize;
 				HDC lHDC;
 				idxgiSurface1->GetDC(FALSE, &lHDC);
-				DrawIconEx(lHDC,
-				           lCursorPosition.x -
-				               mScreenDuplications[mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.left,
-				           lCursorPosition.y -
-				               mScreenDuplications[mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.top,
-				           lCursorInfo.hCursor, 0, 0, 0, 0, DI_NORMAL | DI_DEFAULTSIZE);
+				DrawIconEx(
+				    lHDC,
+				    lCursorPosition.x -
+				        mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.left,
+				    lCursorPosition.y -
+				        mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.top,
+				    lCursorInfo.hCursor, 0, 0, 0, 0, DI_NORMAL | DI_DEFAULTSIZE);
 				idxgiSurface1->ReleaseDC(nullptr);
 			}
 		}
 	}
 	// Copy from CPU access texture to bitmap buffer
-	mImmediateContext->CopyResource(mScreenDuplications[mLastFormat.mScreenIndex].mDestImage,
-	                                mScreenDuplications[mLastFormat.mScreenIndex].mDrawingImage);
+	mImmediateContext->CopyResource(mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDestImage,
+	                                mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDrawingImage);
 	toRelease(idxgiSurface1);
 	return true;
 }
 
+bool MsScreenSharing_win::WindowProcessor::prepareImage() {
+	RECT rect = {0};
+
+	if (!GetWindowRect(mParent->mWindowId, &rect)) {
+		ms_error("[MsScreenSharing_win] Cannot get window size");
+		return false;
+	}
+	HDC hDC = GetDC(mParent->mWindowId);
+	if (hDC == NULL) {
+		ms_error("[MsScreenSharing_win] GetDC failed.");
+		return false;
+	}
+	HDC hTargetDC = CreateCompatibleDC(hDC);
+	if (hTargetDC == NULL) {
+		ReleaseDC(mParent->mWindowId, hDC);
+		ms_error("[MsScreenSharing_win] CreateCompatibleDC failed.");
+		return false;
+	}
+	if (mHBitmap) DeleteObject(mHBitmap);
+	mHBitmap = CreateCompatibleBitmap(hDC, rect.right - rect.left, rect.bottom - rect.top);
+	if (mHBitmap == NULL) {
+		ReleaseDC(mParent->mWindowId, hDC);
+		ReleaseDC(mParent->mWindowId, hTargetDC);
+		ms_error("[MsScreenSharing_win] CreateCompatibleBitmap failed.");
+		return false;
+	}
+	if (!SelectObject(hTargetDC, mHBitmap)) {
+		DeleteObject(mHBitmap);
+		mHBitmap = NULL;
+		ReleaseDC(mParent->mWindowId, hDC);
+		ReleaseDC(mParent->mWindowId, hTargetDC);
+		ms_error("[MsScreenSharing_win] SelectObject failed.");
+		return false;
+	}
+
+	if (!PrintWindow(mParent->mWindowId, hTargetDC, PW_RENDERFULLCONTENT)) {
+		DeleteObject(mHBitmap);
+		mHBitmap = NULL;
+		ReleaseDC(mParent->mWindowId, hDC);
+		ReleaseDC(mParent->mWindowId, hTargetDC);
+		ms_error("[MsScreenSharing_win] PrintWindow failed.");
+		return false;
+	}
+
+	if (mParent->mLastFormat.mRecordCursor) {
+		CURSORINFO lCursorInfo = {0};
+		lCursorInfo.cbSize = sizeof(lCursorInfo);
+		auto lBoolres = GetCursorInfo(&lCursorInfo);
+		if (lBoolres == TRUE) {
+			if (lCursorInfo.flags == CURSOR_SHOWING) {
+				auto lCursorPosition = lCursorInfo.ptScreenPos;
+				DrawIconEx(hTargetDC, lCursorPosition.x - rect.left, lCursorPosition.y - rect.top, lCursorInfo.hCursor,
+				           0, 0, 0, 0, DI_NORMAL | DI_DEFAULTSIZE);
+			}
+		}
+	}
+
+	ReleaseDC(mParent->mWindowId, hDC);
+	ReleaseDC(mParent->mWindowId, hTargetDC);
+	return true;
+}
+
 void MsScreenSharing_win::finalizeImage() {
+	if (mProcess) mProcess->finalizeImage();
+}
+
+void MsScreenSharing_win::ScreenProcessor::finalizeImage() {
 	// Copy image into CPU access texture
 	D3D11_MAPPED_SUBRESOURCE resource;
 	UINT subresource = D3D11CalcSubresource(0, 0, 0);
-	mImmediateContext->Map(mScreenDuplications[mLastFormat.mScreenIndex].mDestImage, subresource, D3D11_MAP_READ_WRITE,
-	                       0, &resource);
+	mImmediateContext->Map(mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDestImage, subresource,
+	                       D3D11_MAP_READ_WRITE, 0, &resource);
 	static UINT rowPitch = 0;
 	if (rowPitch != resource.RowPitch) {
 		rowPitch = resource.RowPitch;
 	}
 	const UINT imageSize =
-	    resource.RowPitch * mScreenDuplications[mLastFormat.mScreenIndex].mImageDescription.ModeDesc.Height;
+	    resource.RowPitch * mScreenDuplications[mParent->mLastFormat.mScreenIndex].mImageDescription.ModeDesc.Height;
 	bool haveData = false;
 	for (unsigned int i = 0; !haveData && i < imageSize; ++i)
 		if (((uint8_t *)resource.pData)[i] != '\0') {
@@ -323,38 +436,74 @@ void MsScreenSharing_win::finalizeImage() {
 		}
 	static int count = -1;
 	if (!haveData) {
-		mImmediateContext->Unmap(mScreenDuplications[mLastFormat.mScreenIndex].mDestImage, subresource);
+		mImmediateContext->Unmap(mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDestImage, subresource);
 		return;
 	}
-	mFrameLock.lock();
-	if (!mLastFormat.mSizeChanged) {
-		if (mFrameData) freemsg(mFrameData);
-		mFrameData = nullptr;
-		int width = mLastFormat.mPosition.getWidth();
-		int height = mLastFormat.mPosition.getHeight();
+	mParent->mFrameLock.lock();
+	if (!mParent->mLastFormat.mSizeChanged) {
+		if (mParent->mFrameData) freemsg(mParent->mFrameData);
+		mParent->mFrameData = nullptr;
+		int width = mParent->mLastFormat.mPosition.getWidth();
+		int height = mParent->mLastFormat.mPosition.getHeight();
 		const unsigned int targetImageSize = width * height * 4;
 		const unsigned int targetRowPitch = 4 * width;
 		const unsigned int screenTargetX =
-		    (mLastFormat.mPosition.mX1 -
-		     mScreenDuplications[mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.left);
+		    (mParent->mLastFormat.mPosition.mX1 -
+		     mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.left);
 		const unsigned int screenTargetY =
-		    mLastFormat.mPosition.mY1 -
-		    mScreenDuplications[mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.top;
-		mFrameData = ms_yuv_allocator_get(mAllocator, targetImageSize, width, height);
-		if (mFrameData) {
+		    mParent->mLastFormat.mPosition.mY1 -
+		    mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDescription.DesktopCoordinates.top;
+		mParent->mFrameData = ms_yuv_allocator_get(mParent->mAllocator, targetImageSize, width, height);
+		if (mParent->mFrameData) {
 			for (int h = 0; h < height; ++h) {
 				int y = screenTargetY + h;
-				memcpy(mFrameData->b_rptr + h * targetRowPitch,
+				memcpy(mParent->mFrameData->b_rptr + h * targetRowPitch,
 				       (char *)resource.pData + (screenTargetX * 4) + (y * resource.RowPitch), targetRowPitch);
 			}
 		}
 	}
-	mFrameLock.unlock();
+	mParent->mFrameLock.unlock();
 
-	mImmediateContext->Unmap(mScreenDuplications[mLastFormat.mScreenIndex].mDestImage, subresource);
+	mImmediateContext->Unmap(mScreenDuplications[mParent->mLastFormat.mScreenIndex].mDestImage, subresource);
+}
+
+void MsScreenSharing_win::WindowProcessor::finalizeImage() {
+	if (!mHBitmap) return;
+
+	mParent->mFrameLock.lock();
+	if (!mParent->mLastFormat.mSizeChanged) {
+		if (mParent->mFrameData) freemsg(mParent->mFrameData);
+		mParent->mFrameData = nullptr;
+		int width = mParent->mLastFormat.mPosition.getWidth();
+		int height = mParent->mLastFormat.mPosition.getHeight();
+		const unsigned int targetImageSize = width * height * 3;
+		mParent->mFrameData = ms_yuv_allocator_get(mParent->mAllocator, targetImageSize, width, height);
+		if (mParent->mFrameData) {
+			BITMAPINFOHEADER bmpInfoHeader;
+			memset(&bmpInfoHeader, 0, sizeof(bmpInfoHeader));
+			bmpInfoHeader.biSize = sizeof(bmpInfoHeader);
+			bmpInfoHeader.biWidth = width;
+			bmpInfoHeader.biHeight = height;
+			bmpInfoHeader.biPlanes = 1;
+			bmpInfoHeader.biBitCount = 24;
+			bmpInfoHeader.biCompression = BI_RGB;
+			bmpInfoHeader.biSizeImage = (DWORD)targetImageSize;
+			HDC hdc = GetDC(mParent->mWindowId);
+			if (GetDIBits(hdc, mHBitmap, 0, height, mParent->mFrameData->b_rptr, (BITMAPINFO *)&bmpInfoHeader,
+			              DIB_RGB_COLORS)) {
+				// We must do mirroring because of GetDIBits
+				rgb24_vertical_mirror(mParent->mFrameData->b_rptr, width, height, width * 3);
+			}
+		}
+	}
+	mParent->mFrameLock.unlock();
 }
 
 void MsScreenSharing_win::clean() {
+	if (mProcess) mProcess->clean();
+}
+
+void MsScreenSharing_win::ScreenProcessor::clean() {
 	for (size_t i = 0; i < mScreenDuplications.size(); ++i) {
 		mScreenDuplications[i].mDestImage->Release();
 		mScreenDuplications[i].mDrawingImage->Release();
@@ -366,4 +515,9 @@ void MsScreenSharing_win::clean() {
 	if (mDevice) mDevice->Release();
 	mImmediateContext = nullptr;
 	mDevice = nullptr;
+}
+
+void MsScreenSharing_win::WindowProcessor::clean() {
+	if (mHBitmap) DeleteObject(mHBitmap);
+	mHBitmap = NULL;
 }

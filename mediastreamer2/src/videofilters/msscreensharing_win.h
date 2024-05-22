@@ -44,27 +44,69 @@ public:
 	virtual bool prepareImage() override;
 	virtual void finalizeImage() override;
 
-	ID3D11Device *mDevice = nullptr;
-	ID3D11DeviceContext *mImmediateContext = nullptr; // Associate to device
-
-	class ScreenDuplication {
+	class Processing {
 	public:
-		ScreenDuplication(IDXGIOutputDuplication *duplication,
-		                  ID3D11Texture2D *drawingImage,
-		                  ID3D11Texture2D *destImage,
-		                  DXGI_OUTPUT_DESC description,
-		                  DXGI_OUTDUPL_DESC imageDescription)
-		    : mDuplication(duplication), mDrawingImage(drawingImage), mDestImage(destImage), mDescription(description),
-		      mImageDescription(imageDescription) {
+		Processing(MsScreenSharing_win *parent) : mParent(parent) {
 		}
+		virtual ~Processing() {
+		}
+		virtual bool initDisplay() = 0;
+		virtual bool prepareImage() = 0;
+		virtual void finalizeImage() = 0;
+		virtual void clean() = 0;
 
-		IDXGIOutputDuplication *mDuplication;
-		ID3D11Texture2D *mDrawingImage;
-		ID3D11Texture2D *mDestImage;
-		DXGI_OUTPUT_DESC mDescription;
-		DXGI_OUTDUPL_DESC mImageDescription;
+		MsScreenSharing_win *mParent;
 	};
-	std::vector<ScreenDuplication> mScreenDuplications;
+	// API : Screen Duplication
+	class ScreenProcessor : public Processing {
+	public:
+		ScreenProcessor(MsScreenSharing_win *parent) : Processing(parent) {
+		}
+		virtual ~ScreenProcessor();
+		virtual bool initDisplay() override;
+		virtual bool prepareImage() override;
+		virtual void finalizeImage() override;
+		virtual void clean() override;
+
+		ID3D11Device *mDevice = nullptr;
+		ID3D11DeviceContext *mImmediateContext = nullptr; // Associate to device
+
+		class ScreenDuplication {
+		public:
+			ScreenDuplication(IDXGIOutputDuplication *duplication,
+			                  ID3D11Texture2D *drawingImage,
+			                  ID3D11Texture2D *destImage,
+			                  DXGI_OUTPUT_DESC description,
+			                  DXGI_OUTDUPL_DESC imageDescription)
+			    : mDuplication(duplication), mDrawingImage(drawingImage), mDestImage(destImage),
+			      mDescription(description), mImageDescription(imageDescription) {
+			}
+
+			IDXGIOutputDuplication *mDuplication;
+			ID3D11Texture2D *mDrawingImage;
+			ID3D11Texture2D *mDestImage;
+			DXGI_OUTPUT_DESC mDescription;
+			DXGI_OUTDUPL_DESC mImageDescription;
+		};
+		std::vector<ScreenDuplication> mScreenDuplications;
+	};
+
+	// API: PrintWindow
+	class WindowProcessor : public Processing {
+	public:
+		WindowProcessor(MsScreenSharing_win *parent) : Processing(parent) {
+		}
+		virtual ~WindowProcessor();
+		virtual bool initDisplay() override;
+		virtual bool prepareImage() override;
+		virtual void finalizeImage() override;
+		virtual void clean() override;
+
+		HBITMAP mHBitmap = NULL;
+	};
+
+	Processing *mProcess = nullptr;
+
 	HWND mWindowId;
 
 	unsigned int frame_count;
