@@ -104,7 +104,9 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 		*  - RK, CKs, CKr : Root key, sender and receiver chain keys
 		*  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
 		*  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
-		*  - DHrStatus : 0 this peer DHr was not yet used to update the sending chain, 1 this peer DHr was already used to update the sending chain
+		*  - DHrStatus :
+		*      -- bit 0: 0 this peer DHr was not yet used to update the sending chain, 1 this peer DHr was already used to update the sending chain
+		*      -- bit 1: 0 we cannot assume that peer's already received our current DH publicKey. 1 peer had our DH public key - no need to keep sending it'
 		*  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
 		*  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
 		*/

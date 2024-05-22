@@ -295,6 +295,7 @@ namespace lime {
 		 * @param[in]	DHs				Current DH public key
 		 * @param[in]	X3DH_initMessage		A buffer holding an X3DH init message to be inserted in header. If empty message type X3DH init flag is not set
 		 * @param[in]	payloadDirectEncryption		Set the Payload Direct Encryption flag in header
+		 * @param[in]	skipAsymmetricRatchet	When this flag is on, do no insert the whole public key in the header but only its digest
 		 */
 		template <typename Curve>
 		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept {

@@ -217,7 +217,8 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_lastRatchetEpoch(0),m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
+			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_lastRatchetEpoch(0),
+			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 			{
@@ -260,7 +261,8 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_lastRatchetEpoch(0),m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
+			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_lastRatchetEpoch(0),
+			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
 			{
@@ -307,7 +309,8 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{selfKeyPair},m_peerPKavailable{true},m_lastRatchetEpoch(0),m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
+			:m_ARKeys{selfKeyPair},m_peerPKavailable{true},m_peerHasSelfPK{true},m_lastRatchetEpoch(0),
+			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{}
 			{
@@ -329,7 +332,7 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{},m_peerPKavailable{false},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
+			:m_ARKeys{},m_peerPKavailable{false},m_peerHasSelfPK{false},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{0},	m_active_status{false}, m_X3DH_initMessage{}
 			{
@@ -353,6 +356,7 @@ namespace lime {
 			/* State variables for Double Ratchet, see Double Ratchet spec section 3.2 for details */
 			ARKeys<Curve> m_ARKeys; // Asymmetric Ratchet keys
 			bool m_peerPKavailable; // true : the peer Public key was not yet consumed to update sending chain
+			bool m_peerHasSelfPK; // true: our correspondant have our current public key
 			int64_t m_lastRatchetEpoch; // timestamp storing the last asymmetric receiving ratchet execution (as unixepoch)
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
@@ -380,6 +384,7 @@ namespace lime {
 			/*helpers functions */
 			void skipMessageKeys(const uint16_t until, const int limit); /* check if we skipped some messages in current receiving chain, generate and store in session intermediate message keys */
 			/* local storage related */
+			int DHrStatusIntFlags(void); /* compute the Integer Flag stored in DB aggregating information about Peer's and Self public key status */
 			bool session_save(bool commit=true); /* save/update session in database : updated component depends m_dirty value, when commit is true, commit transaction in DB */
 			bool session_load(); /* load session from database */
 			bool trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
@@ -398,6 +403,7 @@ namespace lime {
 				// this is our new DHr
 				m_ARKeys.setDHr(headerDH);
 				m_peerPKavailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
+				m_peerHasSelfPK = true; // peer also have our current public key - as it was used to perform an asymmetric ratchet
 
 				// compute shared secret with new peer public and current self secret
 				auto DH = make_keyExchange<typename Curve::EC>();
@@ -433,6 +439,7 @@ namespace lime {
 
 				// set self key pair in context
 				m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret()));
+				m_peerHasSelfPK = false;
 
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
@@ -456,6 +463,7 @@ namespace lime {
 				// this is our new DHr
 				m_ARKeys.setDHr(headerDH);
 				m_peerPKavailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
+				m_peerHasSelfPK = true; // peer also have our current public key - as it was used to perform an asymmetric ratchet
 
 				// compute shared secret with new peer public and current self secret
 				auto DH = make_keyExchange<typename Curve::EC>();
@@ -498,6 +506,7 @@ namespace lime {
 				KEMengine->createKeyPair(ARsKEMpair);
 				// save self new key pairs in context
 				m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret(), ARsKEMpair.cpublicKey(), ARsKEMpair.cprivateKey(), KEMct));
+				m_peerHasSelfPK = false;
 
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
@@ -540,7 +549,7 @@ namespace lime {
 
 		// build header string in the ciphertext buffer
 		// if we still have peer public key available, it means we decided to skip an asymmetric ratchet and that peer already have our current Pk (otherwise no new one would be available)
-		double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption, m_peerPKavailable);
+		double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption, m_peerHasSelfPK);
 		auto headerSize = ciphertext.size(); // cipher text holds only the DR header for now
 
 		// increment current sending chain message index
@@ -615,6 +624,12 @@ namespace lime {
 				// Then the message key can be computed and is not on storage -> do not search for it
 					lookForStoredMessageKeys = false;
 				}
+				// peer's skipped the asymmetric ratchet and we are on the current reception chain:
+				// it means peer's has our current public key
+				if (header.skippedAsymmetricRatchet()) {
+					m_peerHasSelfPK = true;
+
+				}
 			}
 
 			if (lookForStoredMessageKeys) {
@@ -684,6 +699,16 @@ namespace lime {
 	/****************************************************************************/
 	/* DRi private member functions                                             */
 	/****************************************************************************/
+	template <typename Curve>
+	int DRi<Curve>::DHrStatusIntFlags(void) {
+		// bit mapping:
+		// -- 0  peer pk available locally
+		// -- 1  self pk known by peer
+		int flag = 0;
+		if (m_peerPKavailable) flag=1;
+		if (m_peerHasSelfPK) flag |= 2;
+		return flag;
+	}
 
 	/**
 	 * @brief Save a session to the local storage
@@ -704,8 +729,7 @@ namespace lime {
 			// shall we try to insert or update?
 			bool MSk_DHr_Clean = false; // flag use to signal the need for late cleaning in DR_MSk_DHr table
 			if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
-				int DHrStatusInt = 0;
-				if (m_peerPKavailable) DHrStatusInt=1;
+				int DHrStatusInt = DHrStatusIntFlags();
 
 				// Build blobs from DR session
 				blob DHr(m_localStorage->sql);
@@ -769,8 +793,7 @@ namespace lime {
 							m_active_status = true;
 						}
 
-						int DHrStatusInt = 0;
-						if (m_peerPKavailable) DHrStatusInt=1;
+						int DHrStatusInt = DHrStatusIntFlags();
 
 						// Build blobs from DR session
 						blob DHr(m_localStorage->sql);
@@ -791,8 +814,7 @@ namespace lime {
 						break;
 					case DRSessionDbStatus::dirty_ratchet_sending: // ratchet&encrypt
 					{
-						int DHrStatusInt = 0;
-						if (m_peerPKavailable) DHrStatusInt=1;
+						int DHrStatusInt = DHrStatusIntFlags();
 
 						// Build blobs from DR session
 						blob DHs(m_localStorage->sql);
@@ -806,17 +828,18 @@ namespace lime {
 						m_localStorage->sql<<"UPDATE DR_sessions SET Ns= :Ns, PN= :PN, DHrStatus= :DHrStatus, DHs= :DHs, RK= :RK, CKs= :CKs, Status = 1 WHERE sessionId = :sessionId;", use(m_Ns), use(m_PN), use(DHrStatusInt), use(DHs), use(RK), use(CKs), use(m_dbSessionId);
 					}
 						break;
-					case DRSessionDbStatus::dirty_decrypt: // decrypt modifies: CKr and Nr. Also set Status to active and clear X3DH init message if there is one(it is actually useless as our first reply from peer shall trigger a ratchet&decrypt)
+					case DRSessionDbStatus::dirty_decrypt: // decrypt modifies: CKr, Nr and DHrStatus. Also set Status to active and clear X3DH init message if there is one(it is actually useless as our first reply from peer shall trigger a ratchet&decrypt)
 					{
 						// make sure we have no other session active with this pair local,peer DiD
 						if (m_active_status == false) {
 							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 							m_active_status = true;
 						}
+						int DHrStatusInt = DHrStatusIntFlags();
 
 						blob CKr(m_localStorage->sql);
 						CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
-						m_localStorage->sql<<"UPDATE DR_sessions SET Nr= :Nr, CKr= :CKr, Status = 1, X3DHInit = NULL WHERE sessionId = :sessionId;", use(m_Nr), use(CKr), use(m_dbSessionId);
+						m_localStorage->sql<<"UPDATE DR_sessions SET Nr= :Nr, CKr= :CKr, DHrStatus= :DHrStatus, Status = 1, X3DHInit = NULL WHERE sessionId = :sessionId;", use(m_Nr), use(CKr), use(DHrStatusInt), use(m_dbSessionId);
 					}
 						break;
 					case DRSessionDbStatus::dirty_encrypt: // encrypt modifies: CKs and Ns
@@ -910,7 +933,7 @@ namespace lime {
 		// create an empty DR session
 		indicator ind;
 		int status; // retrieve an int from DB, turn it into a bool to store in object
-		int DHrStatus; // retrieve an int from DB, turn it into a bool to store in object
+		int DHrStatus; // retrieve an int from DB, turn it into  bools to store in object
 		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,unixepoch(timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastRatchetEpoch), use(m_dbSessionId);
 
 		if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
@@ -933,10 +956,18 @@ namespace lime {
 			} else {
 				m_active_status = false;
 			}
-			if (DHrStatus==1) {
+			// DHrStatus int flags bit map:
+			// -- 0 : we have locally peer's pk
+			// -- 1 : peer's has our pk
+			if (DHrStatus&0x01) {
 				m_peerPKavailable = true;
 			} else {
 				m_peerPKavailable = false;
+			}
+			if (DHrStatus&0x02) {
+				m_peerHasSelfPK = true;
+			} else {
+				m_peerHasSelfPK = false;
 			}
 			return true;
 		} else { // something went wrong with the DB, we cannot retrieve the session
