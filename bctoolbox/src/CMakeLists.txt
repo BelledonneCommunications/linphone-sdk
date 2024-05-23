@@ -109,7 +109,7 @@ bc_apply_compile_flags(BCTOOLBOX_IOS_OBJC_SOURCE_FILES STRICT_OPTIONS_CPP STRICT
 # Fix for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105562 and https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105616
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
 		AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12
-		AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+		AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15)
 	set_source_files_properties(utils/regex.cc PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
 endif()
 
