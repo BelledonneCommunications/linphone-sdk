@@ -34,10 +34,13 @@
 
 #include <Windows.h>
 #include <algorithm>
+#include <condition_variable>
 #include <dwmapi.h>
+#include <future>
 #include <list>
 #include <map>
 #include <mutex>
+#include <thread>
 
 #ifndef PW_RENDERFULLCONTENT
 #define PW_RENDERFULLCONTENT 0x00000002
@@ -373,7 +376,7 @@ bool MsScreenSharing_win::WindowProcessor::prepareImage() {
 	mHBitmap = CreateCompatibleBitmap(hDC, rect.right - rect.left, rect.bottom - rect.top);
 	if (mHBitmap == NULL) {
 		ReleaseDC(mParent->mWindowId, hDC);
-		ReleaseDC(mParent->mWindowId, hTargetDC);
+		DeleteDC(hTargetDC);
 		ms_error("[MsScreenSharing_win] CreateCompatibleBitmap failed.");
 		return false;
 	}
@@ -381,20 +384,47 @@ bool MsScreenSharing_win::WindowProcessor::prepareImage() {
 		DeleteObject(mHBitmap);
 		mHBitmap = NULL;
 		ReleaseDC(mParent->mWindowId, hDC);
-		ReleaseDC(mParent->mWindowId, hTargetDC);
+		DeleteDC(hTargetDC);
 		ms_error("[MsScreenSharing_win] SelectObject failed.");
 		return false;
 	}
 
-	if (!PrintWindow(mParent->mWindowId, hTargetDC, PW_RENDERFULLCONTENT)) {
+	// PrintWindow HACK to prevent deadlocking with main thread.
+	// It blocks the current thread (sync function) and wait for PW_PAINT messages. The application need to watch its
+	// events loop while calling PrintWindow. If the SDK iterate() is call from the main thread then it lead to be
+	// deadlocked when capture the current application.
+	static int sCurrentCount =
+	    0; // Id count for processing thread to know if the current print is associated to the right thread
+	static std::mutex sCurrentCountLock; // Protect the count access to avoid concurrency issue while writing results.
+	bool endOfPrintWindow = false;       // To know when results are available for conditionals.
+	bool result = false;                 // The status result of PrintWindow
+	std::thread asyncPrintWindow(
+	    [&, id = mParent->mWindowId, hTargetDC = hTargetDC,
+	     currentCount = sCurrentCount]() { // Id, hdc and currentCount are done on value to keep them in local stack.
+		    bool localResult = PrintWindow(id, hTargetDC, PW_RENDERFULLCONTENT);
+		    sCurrentCountLock.lock();            // Check if it is safe to use the current stack
+		    if (sCurrentCount == currentCount) { // Stack still exists
+			    result = localResult;
+			    endOfPrintWindow = true;
+			    MsScreenSharing::mThreadIterator.notify_all(); // Wake-up caller
+		    }
+		    sCurrentCountLock.unlock();
+	    });
+	asyncPrintWindow
+	    .detach(); // make independant the thread to allow PrintWindow to run even when asyncPrintWindow is no more.
+	std::unique_lock<std::mutex> lock(mParent->mThreadLock);
+	MsScreenSharing::mThreadIterator.wait(lock, [&] { return mParent->mToStop || endOfPrintWindow; });
+	if (mParent->mToStop || !result) {
 		DeleteObject(mHBitmap);
 		mHBitmap = NULL;
 		ReleaseDC(mParent->mWindowId, hDC);
-		ReleaseDC(mParent->mWindowId, hTargetDC);
+		DeleteDC(hTargetDC);
 		ms_error("[MsScreenSharing_win] PrintWindow failed.");
+		sCurrentCountLock.lock(); // We don't need the result anymore
+		++sCurrentCount;
+		sCurrentCountLock.unlock();
 		return false;
 	}
-
 	if (mParent->mLastFormat.mRecordCursor) {
 		CURSORINFO lCursorInfo = {0};
 		lCursorInfo.cbSize = sizeof(lCursorInfo);
@@ -407,9 +437,8 @@ bool MsScreenSharing_win::WindowProcessor::prepareImage() {
 			}
 		}
 	}
-
 	ReleaseDC(mParent->mWindowId, hDC);
-	ReleaseDC(mParent->mWindowId, hTargetDC);
+	DeleteDC(hTargetDC);
 	return true;
 }
 
@@ -494,6 +523,7 @@ void MsScreenSharing_win::WindowProcessor::finalizeImage() {
 				// We must do mirroring because of GetDIBits
 				rgb24_vertical_mirror(mParent->mFrameData->b_rptr, width, height, width * 3);
 			}
+			ReleaseDC(mParent->mWindowId, hdc);
 		}
 	}
 	mParent->mFrameLock.unlock();

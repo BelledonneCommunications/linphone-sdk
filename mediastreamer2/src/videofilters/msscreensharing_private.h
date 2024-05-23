@@ -60,7 +60,7 @@ public:
 	std::vector<Rect> mScreenDeadSpace;
 
 	std::thread mThread;
-	std::condition_variable mThreadIterator;
+	static std::condition_variable mThreadIterator;
 	std::mutex mThreadLock;
 	FormatData mLastFormat;
 	bool mToStop = false;
@@ -76,7 +76,6 @@ public:
 	virtual void uninit();
 	void start();
 	void stop();
-
 	// screenRects: Global coordinates
 	void updateScreenConfiguration(const std::vector<Rect> &screenRects);
 

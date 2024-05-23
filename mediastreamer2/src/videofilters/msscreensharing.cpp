@@ -73,6 +73,8 @@ public:
 #endif
 };
 
+std::condition_variable MsScreenSharing::mThreadIterator;
+
 MsScreenSharing::MsScreenSharing() {
 	mSourceDesc.type = MS_SCREEN_SHARING_EMPTY;
 	mSourceDesc.native_data = NULL;
