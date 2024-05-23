@@ -55,7 +55,13 @@ shared_ptr<BelCardKind> BelCardKind::parse(const string &input, bool v3) {
 }
 
 void BelCardKind::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser, bool v3) {
-	if (!v3) {
+	if (v3) {
+		parser->setHandler("KIND", make_fn(BelCardGeneric::create<BelCardKind>))
+		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
+		    ->setCollector("VALUE-param", make_sfn(&BelCardProperty::setValueParam))
+		    ->setCollector("KIND-value", make_sfn(&BelCardProperty::setValue));
+	} else {
 		parser->setHandler("KIND", make_fn(BelCardGeneric::create<BelCardKind>))
 		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))

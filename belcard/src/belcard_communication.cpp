@@ -85,6 +85,7 @@ void BelCardImpp::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *pa
 	if (v3) {
 		parser->setHandler("IMPP", make_fn(BelCardGeneric::createV3<BelCardImpp>))
 		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
+		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
 		    ->setCollector("IMPP-value", make_sfn(&BelCardProperty::setValue));
 	} else {

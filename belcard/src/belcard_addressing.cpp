@@ -32,13 +32,7 @@ void BelCardAddress::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> 
 		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
 		    ->setCollector("any-param", make_sfn(&BelCardProperty::addParam))
 		    ->setCollector("TYPE-param", make_sfn(&BelCardProperty::setTypeParam))
-		    ->setCollector("ADR-pobox", make_sfn(&BelCardAddress::setPostOfficeBox))
-		    ->setCollector("ADR-ext", make_sfn(&BelCardAddress::setExtendedAddress))
-		    ->setCollector("ADR-street", make_sfn(&BelCardAddress::setStreet))
-		    ->setCollector("ADR-locality", make_sfn(&BelCardAddress::setLocality))
-		    ->setCollector("ADR-region", make_sfn(&BelCardAddress::setRegion))
-		    ->setCollector("ADR-code", make_sfn(&BelCardAddress::setPostalCode))
-		    ->setCollector("ADR-country", make_sfn(&BelCardAddress::setCountry));
+		    ->setCollector("ADR-VALUE", make_sfn(&BelCardAddress::setValue));
 	} else {
 		parser->setHandler("ADR", make_fn(BelCardGeneric::create<BelCardAddress>))
 		    ->setCollector("group", make_sfn(&BelCardProperty::setGroup))
@@ -129,11 +123,15 @@ void BelCardAddress::serialize(ostream &output) const {
 	}
 
 	output << getName();
-	for (auto it = getParams().begin(); it != getParams().end(); ++it) {
-		output << ";" << (**it);
+	if (_v3) {
+		output << ":" << getValue() << "\r\n";
+	} else {
+		for (auto it = getParams().begin(); it != getParams().end(); ++it) {
+			output << ";" << (**it);
+		}
+		output << ":" << getPostOfficeBox() << ";" << getExtendedAddress() << ";" << getStreet() << ";" << getLocality()
+		       << ";" << getRegion() << ";" << getPostalCode() << ";" << getCountry() << "\r\n";
 	}
-	output << ":" << getPostOfficeBox() << ";" << getExtendedAddress() << ";" << getStreet() << ";" << getLocality()
-	       << ";" << getRegion() << ";" << getPostalCode() << ";" << getCountry() << "\r\n";
 }
 
 shared_ptr<BelCardAddressLabel> BelCardAddressLabel::parse(const string &input, bool v3) {

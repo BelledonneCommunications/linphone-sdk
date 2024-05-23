@@ -165,8 +165,6 @@ static void vcard3_parsing(void) {
 	BC_ASSERT_TRUE(belCard->assertRFCCompliance());
 
 	string vcard2 = belCard->toFoldedString();
-	bctbx_error("%s", vcard.c_str());
-	bctbx_error("%s", vcard2.c_str());
 	BC_ASSERT_EQUAL(vcard2.compare(vcard), 0, int, "%d");
 	delete (parser);
 }

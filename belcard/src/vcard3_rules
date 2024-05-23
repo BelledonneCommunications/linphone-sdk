@@ -8,7 +8,7 @@ vcard = "BEGIN" ":" "VCARD" [CR] LF
 property = (NAME / PROFILE / SOURCE / FN / N / NICKNAME / PHOTO / IMPP /
 			BDAY / ADR / LABEL / TEL / EMAIL / MAILER / TZ / GEO / TITLE /
 			ROLE / LOGO / AGENT / ORG / CATEGORIES / NOTE / PRODID / REV / 
-			SORT-STRING / SOUND / UID / URL / CLASS / KEY) [CR] LF
+			SORT-STRING / SOUND / UID / URL / CLASS / KEY / KIND) [CR] LF
 
 NAME = [group "."] "NAME" *(";") ":" NAME-VALUE
 NAME-VALUE = text-value
@@ -42,7 +42,7 @@ PHOTO-PARAM = VALUE-param / "ENCODING=b" / TYPE-param
 PHOTO-VALUE = URI
 
 IMPP = [group "."] "IMPP" *(";" IMPP-PARAM) ":" IMPP-VALUE
-IMPP-PARAM = TYPE-param
+IMPP-PARAM = TYPE-param / any-param
 IMPP-VALUE = URI
 
 BDAY = [group "."] "BDAY" *(";" BDAY-PARAM) ":" BDAY-VALUE
@@ -51,17 +51,7 @@ BDAY-VALUE = date / date-time
 
 ADR = [group "."] "ADR" *(";" ADR-PROP-PARAM) ":" ADR-VALUE
 ADR-PROP-PARAM = TYPE-param / any-param
-ADR-value = ADR-pobox  ";" ADR-ext      ";"
-			ADR-street ";" ADR-locality ";"
-			ADR-region ";" ADR-code     ";"
-			ADR-country
-ADR-pobox    = text-value
-ADR-ext      = text-VALUE
-ADR-street   = text-value
-ADR-locality = text-value
-ADR-region   = text-VALUE
-ADR-code     = text-value
-ADR-country  = text-value
+ADR-value = 6*(text-value ";") text-value
 
 LABEL = [group "."] "LABEL" *(";" LABEL-PARAM) ":" LABEL-VALUE
 LABEL-PARAM = TYPE-param / any-param
@@ -130,9 +120,10 @@ SOUND-VALUE = snd-inline-value / URI
 
 UID = [group "."] "UID" *(";" UID-PARAM) ":" UID-VALUE
 UID-PARAM = TYPE-param
-UID-VALUE = text-value
+UID-VALUE = URI / text-value
 
-URL = [group "."] "URL" *(";") ":" URL-VALUE
+URL = [group "."] "URL" *(";" URL-PARAM) ":" URL-VALUE
+URL-PARAM = TYPE-param
 URL-VALUE = URI
 
 CLASS = [group "."] "CLASS" *(";") ":" CLASS-VALUE
@@ -141,6 +132,11 @@ CLASS-VALUE = "PUBLIC" / "PRIVATE" / "CONFIDENTIAL" / iana-token / x-name
 KEY = [group "."] "KEY" *(";" KEY-PARAM) ":" KEY-VALUE
 KEY-PARAM = TYPE-param / "ENCODING=b" / VALUE-param
 KEY-VALUE = text-value / binary-value
+
+; Kind isn't part of vCard 3.0 RFC...
+KIND = [group "."] "KIND" *(";" KIND-param) ":" KIND-value
+KIND-param = VALUE-param / any-param
+KIND-value = "individual" / "group" / "org" / "location" / iana-token / x-name
 
 group = 1*(ALPHA / DIGIT / "-")
 

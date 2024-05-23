@@ -27,6 +27,8 @@ void BelCard::setHandlerAndCollectors(Parser<shared_ptr<BelCardGeneric>> *parser
 	if (v3) {
 		parser->setHandler("vcard", make_fn(BelCardGeneric::createV3<BelCard>))
 		    ->setCollector("SOURCE", make_sfn(&BelCard::_addSource))
+		    // ->setCollector("KIND", make_sfn(&BelCard::_setKind)) // We allowed KIND field to be parsed as a
+		    // workaround, but do not collect it so serialized BelCard doesn't have it
 		    ->setCollector("FN", make_sfn(&BelCard::_setFullName))
 		    ->setCollector("N", make_sfn(&BelCard::_setName))
 		    ->setCollector("BDAY", make_sfn(&BelCard::_setBirthday))

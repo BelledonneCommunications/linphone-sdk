@@ -123,7 +123,14 @@ const shared_ptr<BelCardParamIdParam> &BelCardProperty::getParamIdParam() const 
 
 void BelCardProperty::setTypeParam(const shared_ptr<BelCardTypeParam> &param) {
 	if (_type_param) {
-		removeParam(_type_param);
+		if (_v3) {
+			// This is another workaround to allow multiple types from bad clients
+			_type_param->setValue(_type_param->getValue() + "," + param->getValue());
+			return;
+		} else {
+			// Only one TYPE param per property allowed
+			removeParam(_type_param);
+		}
 	}
 	_type_param = param;
 	_params.push_back(_type_param);
