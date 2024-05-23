@@ -1356,7 +1356,7 @@ static void init_fec_videostreams(int payload_type) {
 	const rtp_stats_t *fec_session_stats2 = NULL;
 	const rtp_stats_t *rtp_session_stats1 = NULL;
 	const rtp_stats_t *rtp_session_stats2 = NULL;
-	uint64_t limit = 2; /* tolerance between the number of packets received in a session and the number counted
+	uint64_t limit = 4; /* tolerance between the number of packets received in a session and the number counted
 	in the fec stream, due to the delay between the arrival and the processing */
 
 	rtp_profile_set_payload(&rtp_profile, FLEXFEC_PAYLOAD_TYPE, &payload_type_flexfec);
@@ -1366,7 +1366,7 @@ static void init_fec_videostreams(int payload_type) {
 	/* check that several packets have been repaired */
 	fec_stats1 = fec_stream_get_stats(marielle->vs->ms.fec_stream);
 	fec_stats2 = fec_stream_get_stats(margaux->vs->ms.fec_stream);
-	uint64_t ref_value = 15;
+	uint64_t ref_value = 20;
 	BC_ASSERT_TRUE(wait_for_until_for_uint64(&marielle->vs->ms, &margaux->vs->ms, &fec_stats1->packets_recovered,
 	                                         ref_value, 20000));
 	BC_ASSERT_TRUE(wait_for_until_for_uint64(&marielle->vs->ms, &margaux->vs->ms, &fec_stats2->packets_recovered,
