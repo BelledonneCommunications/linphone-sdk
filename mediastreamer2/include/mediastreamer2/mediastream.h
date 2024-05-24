@@ -420,7 +420,14 @@ MS2_PUBLIC FecParams *media_stream_extract_fec_params(const PayloadType *fec_pay
  *
  * @param stream the media stream
  */
-MS2_PUBLIC void media_stream_create_fec_session(MediaStream *ms);
+MS2_PUBLIC void media_stream_create_or_update_fec_session(MediaStream *ms);
+
+/**
+ * Destroy the FEC stream of the RTP session of the media stream. The FEC session remains.
+ *
+ * @param stream the media stream
+ */
+MS2_PUBLIC void media_stream_destroy_fec_stream(MediaStream *ms);
 
 /**
  * Ask the media stream if it has a flexible FEC stream. Note: the FEC stream can exist and be inactive if the

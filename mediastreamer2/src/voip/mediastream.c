@@ -231,6 +231,10 @@ void ms_media_stream_sessions_uninit(MSMediaStreamSessions *sessions) {
 		rtp_session_destroy(sessions->rtp_session);
 		sessions->rtp_session = NULL;
 	}
+	if (sessions->fec_session) {
+		rtp_session_destroy(sessions->fec_session);
+		sessions->fec_session = NULL;
+	}
 	if (sessions->zrtp_context != NULL) {
 		ms_zrtp_context_destroy(sessions->zrtp_context);
 		sessions->zrtp_context = NULL;
@@ -1106,12 +1110,18 @@ FecParams *media_stream_extract_fec_params(const PayloadType *fec_payload_type) 
 	return params;
 }
 
-void media_stream_create_fec_session(MediaStream *ms) {
+void media_stream_create_or_update_fec_session(MediaStream *ms) {
 
 	RtpProfile *profile = rtp_session_get_send_profile(ms->sessions.rtp_session);
 	PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
-	if (!fec_payload_type) return;
-	if (!ms->sessions.rtp_session->bundle) return;
+	if (!fec_payload_type) {
+		ms_error("Unable to create FEC session: no payload type for FEC");
+		return;
+	}
+	if (!ms->sessions.rtp_session->bundle) {
+		ms_error("Unable to create FEC session: no bundle in RTP session [%p]", ms->sessions.rtp_session);
+		return;
+	}
 
 	if (!ms->sessions.fec_session) {
 		int payload_type_number = 0;
@@ -1125,14 +1135,24 @@ void media_stream_create_fec_session(MediaStream *ms) {
 		payload_type_number = rtp_profile_get_payload_number_from_mime(profile, "flexfec");
 		rtp_session_set_payload_type(fec_session, payload_type_number);
 		fec_session->fec_stream = NULL;
-		rtp_bundle_add_fec_session(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session, fec_session);
 		ms->sessions.fec_session = fec_session;
+	} else {
+		rtp_session_reset_stats(ms->sessions.fec_session);
 	}
 
-	rtp_session_set_jitter_compensation(ms->sessions.rtp_session, 200);
+	rtp_bundle_add_fec_session(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session, ms->sessions.fec_session);
 	ms->fec_parameters = media_stream_extract_fec_params(fec_payload_type);
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
 	fec_stream_init(ms->fec_stream);
+	ms_message("create or update FEC session [%p] with new FEC stream [%p], related to rtp_session [%p] in bundle [%p]",
+	           ms->sessions.fec_session, ms->fec_stream, ms->sessions.rtp_session, ms->sessions.rtp_session->bundle);
+}
+
+void media_stream_destroy_fec_stream(MediaStream *ms) {
+	fec_stream_unsubscribe(ms->fec_stream, ms->fec_parameters);
+	fec_stream_destroy(ms->fec_stream);
+	ms->fec_stream = NULL;
+	ms->sessions.rtp_session->fec_stream = NULL;
 }
 
 void media_stream_enable_conference_local_mix(MediaStream *stream, bool_t enabled) {

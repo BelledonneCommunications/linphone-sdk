@@ -1379,7 +1379,7 @@ static int video_stream_start_with_source_and_output(VideoStream *stream,
 	jbp.max_packets = 1000; // needed for high resolution video
 	rtp_session_set_jitter_buffer_params(stream->ms.sessions.rtp_session, &jbp);
 
-	media_stream_create_fec_session(&stream->ms);
+	media_stream_create_or_update_fec_session(&stream->ms);
 
 	/* Plumb the outgoing stream */
 	if (rem_rtp_port > 0)
@@ -2107,6 +2107,10 @@ static MSFilter *_video_stream_stop(VideoStream *stream, bool_t keep_source) {
 	 * When the filter are destroyed, all their pending events in the event queue will be cancelled*/
 	evq = ms_factory_get_event_queue(stream->ms.factory);
 	if (evq) ms_event_queue_pump(evq);
+
+	if (stream->ms.sessions.rtp_session->fec_stream) {
+		media_stream_destroy_fec_stream(&stream->ms);
+	}
 
 	video_stream_free(stream);
 
