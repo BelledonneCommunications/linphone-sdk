@@ -235,13 +235,16 @@
           EXIT_CALL_OVER_TUNNEL_AND_PQ=0;
           EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=0;
           EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=0;
+          EXIT_END2ENDCONF_TAG_OVER_TUNNEL_AND_PQ=0;
           EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=0;
 
-          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" --suite "Local conference tester (End to end encryption)" $RESOURCES_DIR --log-file logLiblinphonePQCallsThIpv6.txt --xml --xml-file BCUnitAutomatedPQCalls $ADDITIONNAL_OPTIONS || EXIT_CALL_OVER_TUNNEL_AND_PQ=$?
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Single Call" --suite "Secure Call" $RESOURCES_DIR --log-file logLiblinphonePQCallsThIpv6.txt --xml --xml-file BCUnitAutomatedPQCalls $ADDITIONNAL_OPTIONS || EXIT_CALL_OVER_TUNNEL_AND_PQ=$?
 
           $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "H264" $RESOURCES_DIR --log-file logLiblinphoneH264OverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedH264Tag $ADDITIONNAL_OPTIONS || EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$?
 
           $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --suite "Secure group chat" --suite "Secure Message" --suite "secure Message2" --suite "Secure group chat (Exhume)" --suite "Secure group chat (lime migration)" $RESOURCES_DIR --log-file logLiblinphonePQMessagesThIpv6.txt --xml --xml-file BCUnitAutomatedPQMessages $ADDITIONNAL_OPTIONS || EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=$?
+
+          $PATH_TO_TESTER/$TESTER_BIN --verbose --parallel --tag "End2EndConf" $RESOURCES_DIR --log-file logLiblinphoneEnd2EndConfOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedEnd2EndConfTag $ADDITIONNAL_OPTIONS || EXIT_END2ENDCONF_TAG_OVER_TUNNEL_AND_PQ=$?
 
          # $PATH_TO_TESTER/$TESTER_BIN --verbose --suite "Tunnel" $RESOURCES_DIR --log-file logLiblinphoneTunnelOverTunnelAndPQThIpv6.txt --xml --xml-file BCUnitAutomatedTunnel $ADDITIONNAL_OPTIONS || EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$?
 
@@ -268,8 +271,9 @@
           echo "EXIT_CALL_OVER_TUNNEL_AND_PQ=$EXIT_CALL_OVER_TUNNEL_AND_PQ";
           echo "EXIT_MESSAGE_OVER_TUNNEL_AND_PQ=$EXIT_MESSAGE_OVER_TUNNEL_AND_PQ";
           echo "EXIT_H264_TAG_OVER_TUNNEL_AND_PQ=$EXIT_H264_TAG_OVER_TUNNEL_AND_PQ";
+          echo "EXIT_END2ENDCONF_TAG_OVER_TUNNEL_AND_PQ=$EXIT_END2ENDCONF_TAG_OVER_TUNNEL_AND_PQ";
           echo "EXIT_TUNNEL_OVER_TUNNEL_AND_PQ=$EXIT_TUNNEL_OVER_TUNNEL_AND_PQ";
-          if [ $EXIT_CALL_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_H264_TAG_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_MESSAGE_OVER_TUNNEL_AND_PQ != 0 ] ;
+          if [ $EXIT_CALL_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_H264_TAG_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_MESSAGE_OVER_TUNNEL_AND_PQ != 0 ] || [ $EXIT_END2ENDCONF_TAG_OVER_TUNNEL_AND_PQ != 0 ];
           then
             exit 1;
           else
