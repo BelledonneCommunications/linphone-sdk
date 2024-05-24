@@ -178,24 +178,12 @@ public:
 	// Convenience method for easy std::list<shared_ptr<CppType>> -> bctbx_list(CType) conversion
 	// The takeRef bool indicates whether a reference to the objects must be taken.
 	static bctbx_list_t *getCListFromCppList(const std::list<std::shared_ptr<_CppType>> &cppList, bool takeRef = true) {
-		bctbx_list_t *result = nullptr;
-		for (auto it = cppList.begin(); it != cppList.end(); it++) {
-			std::shared_ptr<_CppType> cppPtr = static_cast<std::shared_ptr<_CppType>>(*it);
-			if (takeRef) cppPtr->ref();
-			result = bctbx_list_append(result, cppPtr->toC());
-		}
-		return result;
+		return buildCList(cppList, takeRef);
 	}
 	// Convenience method for easy std::list<CppType*> -> bctbx_list(CType) conversion
 	// The takeRef bool indicates whether a reference to the objects must be taken.
 	static bctbx_list_t *getCListFromCppList(const std::list<_CppType *> &cppList, bool takeRef = true) {
-		bctbx_list_t *result = nullptr;
-		for (auto it = cppList.begin(); it != cppList.end(); it++) {
-			_CppType *cppPtr = static_cast<_CppType *>(*it);
-			if (takeRef) cppPtr->ref();
-			result = bctbx_list_append(result, cppPtr->toC());
-		}
-		return result;
+		return buildCList(cppList, takeRef);
 	}
 
 	static const char *nullifyEmptyString(const std::string &cppString) {
@@ -215,6 +203,25 @@ protected:
 	}
 
 private:
+	template <typename _ListType>
+	static bctbx_list_t *buildCList(const _ListType &cppList, bool takeRef) {
+		bctbx_list_t *begin = nullptr, *current = nullptr;
+		for (auto cppPtr : cppList) {
+			// Intentionnaly do not use bctbx_list_append() to construct the C list, because of its o(N) complexity,
+			// as it is always returning the head of list.
+			// Instead, remember the last added element for a constant time complexity.
+			bctbx_list_t *newNode = bctbx_list_new(cppPtr->toC());
+			if (takeRef) cppPtr->ref();
+			if (!begin) {
+				begin = newNode;
+			} else {
+				current->next = newNode;
+				newNode->prev = current;
+			}
+			current = newNode;
+		}
+		return begin;
+	}
 	std::shared_ptr<_CppType> sharedFromThis(bool withTransfer) const {
 		std::shared_ptr<_CppType> sp;
 		if ((sp = mSelf.lock()) == nullptr) {
