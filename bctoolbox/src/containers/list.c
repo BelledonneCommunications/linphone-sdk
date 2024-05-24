@@ -206,7 +206,9 @@ bctbx_list_t *bctbx_list_pop_front(bctbx_list_t *list, void **front_data) {
 
 bctbx_list_t *bctbx_list_unlink(bctbx_list_t *list, bctbx_list_t *elem) {
 	bctbx_list_t *ret;
-	if (elem == list) {
+	if (!elem) {
+		return list;
+	} else if (elem == list) {
 		ret = elem->next;
 		elem->prev = NULL;
 		elem->next = NULL;
@@ -221,8 +223,13 @@ bctbx_list_t *bctbx_list_unlink(bctbx_list_t *list, bctbx_list_t *elem) {
 }
 
 bctbx_list_t *bctbx_list_erase_link(bctbx_list_t *list, bctbx_list_t *elem) {
-	bctbx_list_t *ret = bctbx_list_unlink(list, elem);
-	bctbx_free(elem);
+	bctbx_list_t *ret = NULL;
+	if (elem) {
+		ret = bctbx_list_unlink(list, elem);
+		bctbx_free(elem);
+	} else {
+		ret = list;
+	}
 	return ret;
 }
 
