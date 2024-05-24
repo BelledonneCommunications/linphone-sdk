@@ -1,5 +1,6 @@
 # These are known leaks.
 leak:libstdc++.so
+leak:__sanitizer::Symbolizer::Demangle
 leak:pa_xmalloc
 leak:convert_hostent_to_gaih_addrtuple
 leak:d_growable_string_callback_adapter
