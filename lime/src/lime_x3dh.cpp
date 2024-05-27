@@ -344,11 +344,6 @@ namespace lime {
 							sBuffer<OneTimePreKey<Curve>::serializedSize()> serializedOPk{};
 							OPk_blob.read(0, (char *)(serializedOPk.data()), OneTimePreKey<Curve>::serializedSize());
 							OneTimePreKey<Curve> OPk(serializedOPk, OPk_id);
-							// Sign the public key with our identity key
-							auto identitySign = make_Signature<typename Curve::EC>();
-							identitySign->set_public(m_Ik.cpublicKey());
-							identitySign->set_secret(m_Ik.cprivateKey());
-							identitySign->sign(OPk.serializePublic(true), OPk.signature());
 							OPks.push_back(OPk);
 						}
 					}
@@ -374,11 +369,6 @@ namespace lime {
 						Kpair<typename Curve::KEM> kemOPk{};
 						KEMengine->createKeyPair(kemOPk);
 						OneTimePreKey<Curve> OPk(DH->get_selfPublic(), DH->get_secret(), kemOPk.cpublicKey(), kemOPk.cprivateKey(), OPk_id);
-						// Sign the public key with our identity key
-						auto identitySign = make_Signature<typename Curve::EC>();
-						identitySign->set_public(m_Ik.cpublicKey());
-						identitySign->set_secret(m_Ik.cprivateKey());
-						identitySign->sign(OPk.serializePublic(true), OPk.signature());
 						OPks.push_back(OPk);
 					}
 				}
@@ -895,11 +885,6 @@ namespace lime {
 						DH_out = DH->get_sharedSecret();
 						std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
 						HKDF_input_index += DH_out.size();
-						// check to OPk signature: it is signed with the same key Ik
-						if (!peerIkVerify->verify(peerBundle.OPk.serializePublic(true), peerBundle.OPk.csignature())) {
-							LIME_LOGE<<"X3DH: OPk signature verification failed for device "<<peerBundle.deviceId;
-							throw BCTBX_EXCEPTION << "Verify signature on OPk failed for deviceId "<<peerBundle.deviceId;
-						}
 						KEMengine->encaps(peerBundle.OPk.cKEMpublicKey(), cipherText, sharedSecret);
 					} else { // There is no OPk, encapsulate a secret for the kem SPk
 						KEMengine->encaps(peerBundle.SPk.cKEMpublicKey(), cipherText, sharedSecret);

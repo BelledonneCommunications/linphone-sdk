@@ -292,14 +292,13 @@ namespace lime {
 	private:
 		Xpair<typename Algo::EC> m_EC_OPk; /**< The key pair */
 		Kpair<typename Algo::KEM> m_KEM_OPk; /**< The kem key pair */
-		DSA<typename Algo::EC, lime::DSAtype::signature> m_Sig; /**< Public keys signature: Sign EC public || KEM public */
 		uint32_t m_Id; /**< The key Id */
 	public:
 		/// Serializing:
-		///  - public is EC public Key || KEM public key || Signature || Id (4bytes) -> used to publish
+		///  - public is EC public Key || KEM public key || Id (4bytes) -> used to publish
 		///  - storage EC public Key || EC private Key || KEM public key || KEM private key -> used to store in DB, Id is stored separately
 		static constexpr size_t serializedPublicSize(void) {return
-			X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize() + DSA<Algo, lime::DSAtype::signature>::ssize() + 4;};
+			X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize() + 4;};
 		static constexpr size_t serializedSize(void) {return
 			X<Algo, lime::Xtype::publicKey>::ssize() + X<Algo, lime::Xtype::privateKey>::ssize()
 			+ K<Algo, lime::Ktype::publicKey>::ssize() + K<Algo, lime::Ktype::privateKey>::ssize();};
@@ -310,7 +309,7 @@ namespace lime {
 		OneTimePreKey(const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublic, const X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivate,
 					  const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublic, const K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivate,
 					  uint32_t Id) :
-					  m_EC_OPk(ECPublic, ECPrivate), m_KEM_OPk(KEMPublic, KEMPrivate), m_Sig{}, m_Id{Id} {};
+					  m_EC_OPk(ECPublic, ECPrivate), m_KEM_OPk(KEMPublic, KEMPrivate), m_Id{Id} {};
 		OneTimePreKey() {};
 		/// Unserializing constructor: from data read in DB
 		OneTimePreKey(const serializedBuffer &OPk, uint32_t Id) {
@@ -323,14 +322,12 @@ namespace lime {
 			m_KEM_OPk.privateKey() = K<typename Algo::KEM, lime::Ktype::privateKey>(OPk.data() + index);
 			m_Id = Id;
 		};
-		/// Unserializing constructor: from data read in received bundle EC public key || KEM public key || Signature || Id
+		/// Unserializing constructor: from data read in received bundle EC public key || KEM public key || Id
 		OneTimePreKey(const std::vector<uint8_t>::const_iterator s) {
 			m_EC_OPk.publicKey() =  X<typename Algo::EC, lime::Xtype::publicKey>(s);
 			auto index = X<Algo, lime::Xtype::publicKey>::ssize();
 			m_KEM_OPk.publicKey() =  K<typename Algo::KEM, lime::Ktype::publicKey>(s + index);
 			index += K<Algo, lime::Ktype::publicKey>::ssize();
-			m_Sig =  DSA<typename Algo::EC, lime::DSAtype::signature>(s + index);
-			index += DSA<Algo, lime::DSAtype::signature>::ssize();
 			m_Id = static_cast<uint32_t>(s[index])<<24 |
 				static_cast<uint32_t>(s[index + 1])<<16 |
 				static_cast<uint32_t>(s[index + 2])<<8 |
@@ -342,12 +339,10 @@ namespace lime {
 		const X<typename Algo::EC, lime::Xtype::publicKey> &cECpublicKey(void) const {return m_EC_OPk.cpublicKey();};
 		const K<typename Algo::KEM, lime::Ktype::privateKey> &cKEMprivateKey(void) const {return m_KEM_OPk.cprivateKey();};
 		const K<typename Algo::KEM, lime::Ktype::publicKey> &cKEMpublicKey(void) const {return m_KEM_OPk.cpublicKey();};
-		const DSA<typename Algo::EC, lime::DSAtype::signature> &csignature(void) const {return m_Sig;};
 		X<typename Algo::EC, lime::Xtype::privateKey> &ECprivateKey(void) {return m_EC_OPk.privateKey();};
 		X<typename Algo::EC, lime::Xtype::publicKey> &ECpublicKey(void) {return m_EC_OPk.publicKey();};
 		K<typename Algo::KEM, lime::Ktype::privateKey> &KEMprivateKey(void) {return m_KEM_OPk.privateKey();};
 		K<typename Algo::KEM, lime::Ktype::publicKey> &KEMpublicKey(void) {return m_KEM_OPk.publicKey();};
-		DSA<typename Algo::EC, lime::DSAtype::signature> &signature(void) {return m_Sig;};
 		uint32_t get_Id(void) const {return m_Id;};
 		void set_Id(uint32_t Id) {m_Id = Id;};
 
@@ -364,14 +359,12 @@ namespace lime {
 			return s;
 		}
 		/**
-		 * Serialize the public key and Id to publish on the server : EC public key || KEM public key || Signature || Id
+		 * Serialize the public key and Id to publish on the server : EC public key || KEM public key || Id
 		 * @param[in] signedMessage when true return the only the OPk part to be signed
 		*/
-		std::vector<uint8_t> serializePublic(bool signedMessage = false) const {
+		std::vector<uint8_t> serializePublic(void) const {
 			std::vector<uint8_t> v(m_EC_OPk.cpublicKey().cbegin(), m_EC_OPk.cpublicKey().cend());
 			v.insert(v.end(), m_KEM_OPk.cpublicKey().cbegin(), m_KEM_OPk.cpublicKey().cend());
-			if (signedMessage) return v;
-			v.insert(v.end(), m_Sig.cbegin(), m_Sig.cend());
 			v.push_back(static_cast<uint8_t>((m_Id>>24)&0xFF));
 			v.push_back(static_cast<uint8_t>((m_Id>>16)&0xFF));
 			v.push_back(static_cast<uint8_t>((m_Id>>8)&0xFF));
@@ -385,8 +378,6 @@ namespace lime {
 			hexStr(os, m_EC_OPk.cpublicKey().data(),  X<Algo, lime::Xtype::publicKey>::ssize());
 			os<<std::endl<<indent<<indent<<"OPK(KEM): ";
 			hexStr(os, m_KEM_OPk.cpublicKey().data(),  K<Algo, lime::Ktype::publicKey>::ssize(), 2);
-			os<<std::endl<<indent<<indent<<"OPK signature: ";
-			hexStr(os, m_Sig.data(),  DSA<Algo, lime::DSAtype::signature>::ssize(), 2);
 		}
 	};
 
