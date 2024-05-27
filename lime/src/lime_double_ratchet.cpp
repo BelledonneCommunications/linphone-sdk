@@ -95,18 +95,39 @@ namespace lime {
 	 * @brief Key Derivation Function used in Root key/Diffie-Hellman/KEM Ratchet chain.
 	 *
 	 *      Use HKDF (see RFC5869) to derive CK and RK in one derivation
+	 *  The key derivation uses as input material the DH and KEM shared secrets but also a transcript of all public material used to compute them
 	 *
 	 * @param[in,out]	RK	Input buffer used as salt also to store the 32 first byte of output key material
 	 * @param[out]		CK	Output buffer, last 32 bytes of output key material
 	 * @param[in]		dhOut	Buffer used as input key material
 	 * @param[in]		kemOut	Buffer used as input key material
+	 * @param[in]		ECPkSender 		EC Public Key Sender
+	 * @param[in]		ECPkReceiver	EC Public Key Receiver
+	 * @param[in]		KEMPk 			KEM public key
+	 * @param[in] 		KEMCt  			KEM cipher text
 	 */
 	template <typename Curve>
-	static void KEM_KDF_RK(DRChainKey &RK, DRChainKey &CK, const X<typename Curve::EC, lime::Xtype::sharedSecret> &dhOut, const K<typename Curve::KEM, lime::Ktype::sharedSecret> &kemOut) noexcept {
-		// concatenate dhOut and kemOut
-		sBuffer<X<typename Curve::EC, lime::Xtype::sharedSecret>::ssize() + K<typename Curve::KEM, lime::Ktype::sharedSecret>::ssize()> ikm{};
-		std::copy_n(dhOut.cbegin(), X<typename Curve::EC, lime::Xtype::sharedSecret>::ssize(), ikm.begin());
-		std::copy_n(kemOut.cbegin(), K<typename Curve::KEM, lime::Ktype::sharedSecret>::ssize(), ikm.begin() + X<typename Curve::EC, lime::Xtype::sharedSecret>::ssize());
+	static void KEM_KDF_RK(DRChainKey &RK, DRChainKey &CK,
+						const X<typename Curve::EC, lime::Xtype::sharedSecret> &dhOut, const K<typename Curve::KEM, lime::Ktype::sharedSecret> &kemOut,
+						const X<typename Curve::EC, lime::Xtype::publicKey> &ECPkSender, const X<typename Curve::EC, lime::Xtype::publicKey> &ECPkReceiver,
+						const K<typename Curve::KEM, lime::Ktype::publicKey> &KEMPk, const K<typename Curve::KEM, lime::Ktype::cipherText> &KEMCt) noexcept {
+		// concatenate dhOut, kemOut and the transcript
+		sBuffer<
+		X<Curve, lime::Xtype::sharedSecret>::ssize() + K<Curve, lime::Ktype::sharedSecret>::ssize()
+		+ X<Curve, lime::Xtype::publicKey>::ssize()*2
+		+ K<Curve, lime::Ktype::publicKey>::ssize() + K<Curve, lime::Ktype::cipherText>::ssize()
+		>ikm{};
+		std::copy_n(dhOut.cbegin(), X<Curve, lime::Xtype::sharedSecret>::ssize(), ikm.begin());
+		auto inputIndex = X<Curve, lime::Xtype::sharedSecret>::ssize();
+		std::copy_n(kemOut.cbegin(), K<Curve, lime::Ktype::sharedSecret>::ssize(), ikm.begin() + inputIndex);
+		inputIndex += K<Curve, lime::Ktype::sharedSecret>::ssize();
+		std::copy_n(ECPkSender.cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), ikm.begin() + inputIndex);
+		inputIndex += X<Curve, lime::Xtype::publicKey>::ssize();
+		std::copy_n(ECPkReceiver.cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), ikm.begin() + inputIndex);
+		inputIndex += X<Curve, lime::Xtype::publicKey>::ssize();
+		std::copy_n(KEMPk.cbegin(), K<Curve, lime::Ktype::publicKey>::ssize(), ikm.begin() + inputIndex);
+		inputIndex += K<Curve, lime::Ktype::publicKey>::ssize();
+		std::copy_n(KEMCt.cbegin(), K<Curve, lime::Ktype::cipherText>::ssize(), ikm.begin() + inputIndex);
 		// Ask for twice the size of a DRChainKey for HKDF output
 		lime::sBuffer<2*lime::settings::DRChainKeySize> HKDFoutput{};
 		HMAC_KDF<SHA512>(RK.data(), RK.size(), ikm.data(), ikm.size(), lime::settings::hkdf_DRChainKey_info.data(), lime::settings::hkdf_DRChainKey_info.size(), HKDFoutput.data(), HKDFoutput.size());
@@ -280,7 +301,9 @@ namespace lime {
 				KEMengine->encaps(peerPublicKey.KEMPublicKey(), KEMct, KEMss);
 
 				//  Derive the new sending chain key
-				KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss);
+				KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss,
+								  DH->get_selfPublic(), peerPublicKey.ECPublicKey(),
+								  peerPublicKey.KEMPublicKey(), KEMct);
 
 				// save self key pair into context
 				Kpair<typename Curve::KEM> ARsKEMpair{};
@@ -476,7 +499,9 @@ namespace lime {
 
 				//  Derive the new receiving chain key
 				DH->computeSharedSecret();
-				KEM_KDF_RK<Curve>(m_RK, m_CKr, DH->get_sharedSecret(), KEMss);
+				KEM_KDF_RK<Curve>(m_RK, m_CKr, DH->get_sharedSecret(), KEMss,
+								  m_ARKeys.getDHr().ECPublicKey(), m_ARKeys.getDHs().ECPublicKey(),
+								  m_ARKeys.getDHs().KEMPublicKey(), m_ARKeys.getDHr().KEMCipherText());
 
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_receiving;
@@ -499,7 +524,9 @@ namespace lime {
 				KEMengine->encaps(m_ARKeys.getDHr().KEMPublicKey(), KEMct, KEMss);
 
 				//  Derive the new sending chain key
-				KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss);
+				KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss,
+								  DH->get_selfPublic(), m_ARKeys.getDHr().ECPublicKey(),
+								  m_ARKeys.getDHr().KEMPublicKey(), KEMct);
 
 				// Generate a new key pair for KEM
 				Kpair<typename Curve::KEM> ARsKEMpair{};
