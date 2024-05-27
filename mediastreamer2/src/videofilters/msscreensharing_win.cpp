@@ -24,6 +24,7 @@
 #include "mediastreamer-config.h"
 #endif
 
+#include "mediastreamer2/msasync.h"
 #include "mediastreamer2/mscommon.h"
 #include "mediastreamer2/msfilter.h"
 #include "mediastreamer2/msticker.h"
@@ -354,6 +355,52 @@ bool MsScreenSharing_win::ScreenProcessor::prepareImage() {
 	return true;
 }
 
+struct PrintWindowData {
+	HWND windowId;
+	HDC hDC;
+};
+
+static bool_t runPrintWindow(void *input) {
+	auto data = (PrintWindowData *)(input);
+	bool_t localResult = PrintWindow(data->windowId, data->hDC, PW_RENDERFULLCONTENT);
+	ms_free(data);
+	return localResult;
+}
+
+void MsScreenSharing_win::WindowProcessor::PrintWindowAsync::destroyWorkerThread() {
+	ms_worker_thread_destroy(gWorkerThread, FALSE);
+}
+
+// The working thread
+MSWorkerThread *MsScreenSharing_win::WindowProcessor::PrintWindowAsync::gWorkerThread = nullptr;
+MsScreenSharing_win::WindowProcessor::PrintWindowAsync::PrintWindowAsync() {
+	if (!gWorkerThread) {
+		gWorkerThread = ms_worker_thread_new("PrintWindowAsync");
+		atexit(MsScreenSharing_win::WindowProcessor::PrintWindowAsync::destroyWorkerThread);
+	}
+}
+
+bool MsScreenSharing_win::WindowProcessor::PrintWindowAsync::start(HWND windowId, HDC hDC) {
+	bool result = false;
+	PrintWindowData *data = (PrintWindowData *)ms_malloc(sizeof(PrintWindowData));
+	data->windowId = windowId;
+	data->hDC = hDC;
+	mTask = ms_worker_thread_add_waitable_task(gWorkerThread, runPrintWindow, data);
+	// Use state result to know if it was cancelled without using MSTask.
+	ms_task_wait_completion(mTask);
+	result = mTask->result; // = not cancelled and we get a screenshot.
+	ms_task_destroy(mTask);
+	mTask = nullptr; // Avoid multiple call from stopProcess()
+	return result;
+}
+
+void MsScreenSharing_win::stopProcess() {
+	if (mProcess) mProcess->stopProcess();
+}
+void MsScreenSharing_win::WindowProcessor::stopProcess() {
+	if (mPrintWindowAsync.mTask) ms_task_cancel(mPrintWindowAsync.mTask);
+}
+
 bool MsScreenSharing_win::WindowProcessor::prepareImage() {
 	RECT rect = {0};
 
@@ -393,36 +440,14 @@ bool MsScreenSharing_win::WindowProcessor::prepareImage() {
 	// It blocks the current thread (sync function) and wait for PW_PAINT messages. The application need to watch its
 	// events loop while calling PrintWindow. If the SDK iterate() is call from the main thread then it lead to be
 	// deadlocked when capture the current application.
-	static int sCurrentCount =
-	    0; // Id count for processing thread to know if the current print is associated to the right thread
-	static std::mutex sCurrentCountLock; // Protect the count access to avoid concurrency issue while writing results.
-	bool endOfPrintWindow = false;       // To know when results are available for conditionals.
-	bool result = false;                 // The status result of PrintWindow
-	std::thread asyncPrintWindow(
-	    [&, id = mParent->mWindowId, hTargetDC = hTargetDC,
-	     currentCount = sCurrentCount]() { // Id, hdc and currentCount are done on value to keep them in local stack.
-		    bool localResult = PrintWindow(id, hTargetDC, PW_RENDERFULLCONTENT);
-		    sCurrentCountLock.lock();            // Check if it is safe to use the current stack
-		    if (sCurrentCount == currentCount) { // Stack still exists
-			    result = localResult;
-			    endOfPrintWindow = true;
-			    MsScreenSharing::mThreadIterator.notify_all(); // Wake-up caller
-		    }
-		    sCurrentCountLock.unlock();
-	    });
-	asyncPrintWindow
-	    .detach(); // make independant the thread to allow PrintWindow to run even when asyncPrintWindow is no more.
-	std::unique_lock<std::mutex> lock(mParent->mThreadLock);
-	MsScreenSharing::mThreadIterator.wait(lock, [&] { return mParent->mToStop || endOfPrintWindow; });
-	if (mParent->mToStop || !result) {
+
+	auto printed = mPrintWindowAsync.start(mParent->mWindowId, hTargetDC);
+	if (mParent->mToStop || !printed) {
 		DeleteObject(mHBitmap);
 		mHBitmap = NULL;
 		ReleaseDC(mParent->mWindowId, hDC);
 		DeleteDC(hTargetDC);
 		ms_error("[MsScreenSharing_win] PrintWindow failed.");
-		sCurrentCountLock.lock(); // We don't need the result anymore
-		++sCurrentCount;
-		sCurrentCountLock.unlock();
 		return false;
 	}
 	if (mParent->mLastFormat.mRecordCursor) {

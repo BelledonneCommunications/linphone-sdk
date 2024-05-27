@@ -131,7 +131,7 @@ static void cleanup(JpegWriter *s, AVCodecContext *avctx, bool_t success) {
 	}
 }
 
-static void jpg_process_frame_task(void *obj) {
+static bool_t jpg_process_frame_task(void *obj) {
 	MSFilter *f = (MSFilter *)obj;
 	JpegWriter *s = (JpegWriter *)f->data;
 	MSPicture yuvbuf, yuvjpeg;
@@ -212,6 +212,7 @@ static void jpg_process_frame_task(void *obj) {
 	}
 
 	freemsg(m);
+	return TRUE;
 }
 
 static void jpg_process(MSFilter *f) {

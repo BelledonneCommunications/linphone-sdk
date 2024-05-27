@@ -69,13 +69,15 @@ public:
 	MsScreenSharing();
 	virtual ~MsScreenSharing();
 	MsScreenSharing(const MsScreenSharing &) = delete;
-	
+
 	virtual void setSource(MSScreenSharingDesc sourceDesc, FormatData formatData);
 
 	virtual void init();
 	virtual void uninit();
 	void start();
 	void stop();
+	virtual void stopProcess() {
+	}
 	// screenRects: Global coordinates
 	void updateScreenConfiguration(const std::vector<Rect> &screenRects);
 

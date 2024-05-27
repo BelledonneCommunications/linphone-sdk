@@ -454,7 +454,7 @@ static bool_t is_frame_independent(unsigned int flags) {
 	return FALSE;
 }
 
-static void enc_process_frame_task(void *obj) {
+static bool_t enc_process_frame_task(void *obj) {
 	mblk_t *im, *prev_im = NULL;
 	MSFilter *f = (MSFilter *)obj;
 	EncState *s = (EncState *)f->data;
@@ -486,7 +486,7 @@ static void enc_process_frame_task(void *obj) {
 	}
 	if (!im) {
 		ms_message("VP8 async encoding process: no frame to encode, probably skipped by previous task");
-		return;
+		return FALSE;
 	}
 
 	flags = 0;
@@ -624,6 +624,7 @@ static void enc_process_frame_task(void *obj) {
 	}
 
 	freemsg(im);
+	return TRUE;
 }
 
 static void enc_process(MSFilter *f) {

@@ -78,7 +78,7 @@ static void android_texture_display_release_worker(MSWorkerThread *worker) {
 	}
 }
 
-static void android_texture_display_destroy_opengl(MSFilter *f) {
+static bool_t android_texture_display_destroy_opengl(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	ms_filter_lock(f);
 	ms_message("[TextureView Display][Filter=%p] Destroying context for windowId %p", f, ad->nativeWindowId);
@@ -148,9 +148,10 @@ static void android_texture_display_destroy_opengl(MSFilter *f) {
 
 	ms_message("[TextureView Display][Filter=%p] Context destroyed for windowId %p", f, ad->nativeWindowId);
 	ms_filter_unlock(f);
+	return TRUE;
 }
 
-static void android_texture_display_release_windowId(MSFilter *f) {
+static bool_t android_texture_display_release_windowId(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	ms_filter_lock(f);
 	JNIEnv *env = ms_get_jni_env();
@@ -160,6 +161,7 @@ static void android_texture_display_release_windowId(MSFilter *f) {
 
 	ms_free(ad);
 	ms_filter_unlock(f);
+	return TRUE;
 }
 
 static void android_texture_display_create_surface_from_surface_texture(AndroidTextureDisplay *d) {
@@ -220,7 +222,7 @@ static void android_texture_display_create_surface_from_surface_texture(AndroidT
 	ms_message("[TextureView Display] Surface created %p for SurfaceTexture %p", d->surface, windowId);
 }
 
-static void android_texture_display_init_opengl(MSFilter *f) {
+static bool_t android_texture_display_init_opengl(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	ms_filter_lock(f);
 	JNIEnv *jenv = ms_get_jni_env();
@@ -235,13 +237,13 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 			(*jenv)->DeleteGlobalRef(jenv, ad->nativeWindowId);
 			ad->nativeWindowId = NULL;
 			ms_filter_unlock(f);
-			return;
+			return FALSE;
 		}
 	} else {
 		ms_error("[TextureView Display][Filter=%p] Can't init display for windowId %p, no surface texture set", f,
 		         ad->nativeWindowId);
 		ms_filter_unlock(f);
-		return;
+		return FALSE;
 	}
 
 	EGLint attribs[] = {EGL_RED_SIZE,       5,       EGL_GREEN_SIZE, 6, EGL_BLUE_SIZE, 5, EGL_RENDERABLE_TYPE,
@@ -278,7 +280,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 		ad->gl_surface = surface;
 		ms_filter_unlock(f);
 		android_texture_display_destroy_opengl(f);
-		return;
+		return FALSE;
 	}
 
 	EGLint contextAttrs[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
@@ -287,7 +289,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
 		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
 		ms_filter_unlock(f);
-		return;
+		return FALSE;
 	}
 
 	ad->gl_display = display;
@@ -304,6 +306,7 @@ static void android_texture_display_init_opengl(MSFilter *f) {
 
 	ms_message("[TextureView Display][Filter=%p] Context initialized for windowId %p", f, ad->nativeWindowId);
 	ms_filter_unlock(f);
+	return TRUE;
 }
 
 static void report_abusive_time(uint64_t orig, const char *cause) {
@@ -314,14 +317,14 @@ static void report_abusive_time(uint64_t orig, const char *cause) {
 	}
 }
 
-static void android_texture_display_swap_buffers(MSFilter *f) {
+static bool_t android_texture_display_swap_buffers(MSFilter *f) {
 	AndroidTextureDisplay *ad = (AndroidTextureDisplay *)f->data;
 	mblk_t *yuv_to_restore = NULL;
 	uint64_t start_time;
 
 	if (!ad->ogl || !ad->gl_display || !ad->gl_surface || !ad->gl_context || !ad->nativeWindowId) {
 		// ms_message("android_texture_display_swap_buffers(): nothing to do.");
-		return;
+		return FALSE;
 	}
 
 	EGLint w, h;
@@ -342,7 +345,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 
 	if (eglMakeCurrent(ad->gl_display, ad->gl_surface, ad->gl_surface, ad->gl_context) == EGL_FALSE) {
 		ms_error("[TextureView Display][Filter=%p] Unable to eglMakeCurrent for windowId %p", f, ad->nativeWindowId);
-		return;
+		return FALSE;
 	}
 	if (yuv_to_restore) {
 		ogl_display_set_yuv_to_display(ad->ogl, yuv_to_restore);
@@ -357,6 +360,7 @@ static void android_texture_display_swap_buffers(MSFilter *f) {
 	}
 	ogl_display_notify_errors(ad->ogl, f);
 	report_abusive_time(start_time, "android_texture_display_swap_buffers");
+	return TRUE;
 }
 
 static void android_texture_display_init(MSFilter *f) {
@@ -368,10 +372,11 @@ static void android_texture_display_init(MSFilter *f) {
 	f->data = ad;
 }
 
-static void android_texture_display_set_priority(BCTBX_UNUSED(MSFilter *f)) {
+static bool_t android_texture_display_set_priority(BCTBX_UNUSED(MSFilter *f)) {
 	if (setpriority(PRIO_PROCESS, 0, -20) == -1) {
 		ms_message("android_texture_display_set_priority(): setpriority() failed: %s, nevermind.", strerror(errno));
 	}
+	return TRUE;
 }
 
 static void android_texture_display_preprocess(MSFilter *f) {

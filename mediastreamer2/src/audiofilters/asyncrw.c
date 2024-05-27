@@ -34,7 +34,7 @@ struct _MSAsyncReader {
 	bool_t eof;
 };
 
-static void async_reader_fill(void *data);
+static bool_t async_reader_fill(void *data);
 
 MSAsyncReader *ms_async_reader_new(bctbx_vfs_file_t *fp) {
 	MSAsyncReader *obj = ms_new0(MSAsyncReader, 1);
@@ -60,7 +60,7 @@ void ms_async_reader_destroy(MSAsyncReader *obj) {
 	ms_free(obj);
 }
 
-static void async_reader_fill(void *data) {
+static bool_t async_reader_fill(void *data) {
 	MSAsyncReader *obj = (MSAsyncReader *)data;
 	mblk_t *m = allocb(obj->blocksize, 0);
 
@@ -80,6 +80,7 @@ static void async_reader_fill(void *data) {
 	}
 	obj->ntasks_pending--;
 	ms_mutex_unlock(&obj->mutex);
+	return TRUE;
 }
 
 int ms_async_reader_read(MSAsyncReader *obj, uint8_t *buf, size_t size) {
@@ -110,7 +111,7 @@ end:
 	return err;
 }
 
-static void async_reader_seek(void *data) {
+static bool_t async_reader_seek(void *data) {
 	MSAsyncReader *obj = (MSAsyncReader *)data;
 	ms_mutex_lock(&obj->mutex);
 	if (bctbx_file_seek(obj->fp, obj->seekoff, SEEK_SET) == BCTBX_VFS_ERROR) {
@@ -120,6 +121,7 @@ static void async_reader_seek(void *data) {
 	ms_bufferizer_flush(&obj->buf);
 	ms_mutex_unlock(&obj->mutex);
 	async_reader_fill(data);
+	return TRUE;
 }
 
 void ms_async_reader_seek(MSAsyncReader *obj, off_t offset) {
@@ -155,7 +157,7 @@ MSAsyncWriter *ms_async_writer_new(bctbx_vfs_file_t *fp) {
 	return obj;
 }
 
-static void async_writer_write(void *data) {
+static bool_t async_writer_write(void *data) {
 	MSAsyncWriter *obj = (MSAsyncWriter *)data;
 	size_t size;
 	bool_t ok = FALSE;
@@ -173,6 +175,7 @@ static void async_writer_write(void *data) {
 			ms_error("async_writer_write(): %s", strerror(errno));
 		}
 	}
+	return ok;
 }
 
 void ms_async_writer_destroy(MSAsyncWriter *obj) {

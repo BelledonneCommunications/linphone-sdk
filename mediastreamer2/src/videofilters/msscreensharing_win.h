@@ -21,6 +21,7 @@
 #ifndef MS_SHARED_SCREEN_WIN_H_
 #define MS_SHARED_SCREEN_WIN_H_
 
+#include "mediastreamer2/msasync.h"
 #include "msscreensharing_private.h"
 
 #include <d3d11.h>
@@ -39,6 +40,7 @@ public:
 	virtual void uninit() override;
 	bool initDisplay();
 	void clean();
+	virtual void stopProcess() override;
 
 	virtual void getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const override;
 	virtual bool prepareImage() override;
@@ -54,6 +56,8 @@ public:
 		virtual bool prepareImage() = 0;
 		virtual void finalizeImage() = 0;
 		virtual void clean() = 0;
+		virtual void stopProcess() {
+		}
 
 		MsScreenSharing_win *mParent;
 	};
@@ -101,8 +105,20 @@ public:
 		virtual bool prepareImage() override;
 		virtual void finalizeImage() override;
 		virtual void clean() override;
+		virtual void stopProcess() override;
 
 		HBITMAP mHBitmap = NULL;
+
+		class PrintWindowAsync {
+		public:
+			PrintWindowAsync();
+			bool start(HWND windowId, HDC hDC);
+
+			MSTask *mTask = nullptr;
+			static MSWorkerThread *gWorkerThread;
+			static void destroyWorkerThread();
+		};
+		PrintWindowAsync mPrintWindowAsync;
 	};
 
 	Processing *mProcess = nullptr;

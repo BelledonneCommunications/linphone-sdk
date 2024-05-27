@@ -27,6 +27,9 @@ static void _ms_task_cancel(MSTask *task, bool_t with_destroy) {
 	if (task->state != MSTaskDone) { /* task may be queued or running */
 		ms_debug("msasync.c: cancelling task %p", task);
 		task->state = MSTaskCancelled;
+		task->result = FALSE;
+		ms_debug("msasync.c: signaling waiting threads for cancellation.");
+		ms_cond_broadcast(&task->worker->cond);
 	} else {
 		/* The task was already processed by the worker, we can safely destroy it if required.*/
 		if (with_destroy) ms_task_destroy(task);
@@ -45,7 +48,7 @@ void ms_task_cancel(MSTask *task) {
 void ms_task_wait_completion(MSTask *task) {
 	if (!task->worker) return;
 	ms_mutex_lock(&task->worker->mutex);
-	while (task->state != MSTaskDone) {
+	while (task->state != MSTaskDone && task->state != MSTaskCancelled) {
 		task->worker->task_wait_count++;
 		ms_debug("msasync.c: waiting for task %p", task);
 		ms_cond_wait(&task->worker->cond, &task->worker->mutex);
@@ -55,12 +58,19 @@ void ms_task_wait_completion(MSTask *task) {
 }
 
 void ms_task_destroy(MSTask *obj) {
-	if (!obj->auto_release) {
-		/* Make sure it is cancelled */
-		ms_task_cancel(obj);
-		ms_task_wait_completion(obj);
+	ms_mutex_lock(&obj->worker->mutex);
+	bool_t delayDestruction = (obj->state == MSTaskCancelled);
+	ms_mutex_unlock(&obj->worker->mutex);
+
+	if (delayDestruction) ms_task_cancel_and_destroy(obj);
+	else {
+		if (!obj->auto_release) {
+			/* Make sure it is cancelled */
+			ms_task_cancel(obj);
+			ms_task_wait_completion(obj);
+		}
+		ms_free(obj);
 	}
-	ms_free(obj);
 }
 
 MSTask *ms_task_new(MSWorkerThread *worker, MSTaskFunc func, void *data, int repeat_interval, bool_t auto_release) {
@@ -79,8 +89,9 @@ static bool_t ms_worker_thread_run_task(MSWorkerThread *obj, MSTask *task, int d
 	task->state = MSTaskRunning;
 	if (do_it) {
 		ms_mutex_unlock(&obj->mutex);
-		task->func(task->data);
+		bool_t result = task->func(task->data);
 		ms_mutex_lock(&obj->mutex);
+		if (task->state != MSTaskCancelled) task->result = result;
 	}
 	if (obj->running && task->state == MSTaskRunning && task->repeat_interval != 0) {
 		/* This tasks needs to be repeated */
@@ -115,7 +126,11 @@ static bool_t ms_worker_thread_process_task(MSWorkerThread *obj, MSTask *task, u
 		task->state = MSTaskDone;
 		drop = TRUE;
 	}
-	if (task->auto_release) ms_task_destroy(task);
+	if (task->auto_release) {
+		ms_mutex_unlock(&obj->mutex);
+		ms_task_destroy(task);
+		ms_mutex_lock(&obj->mutex);
+	}
 	return drop;
 }
 

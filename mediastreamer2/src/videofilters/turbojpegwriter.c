@@ -125,7 +125,7 @@ static void cleanup(JpegWriter *s, bool_t success) {
 	ms_filter_unlock(s->f);
 }
 
-static void jpg_process_frame_task(void *obj) {
+static bool_t jpg_process_frame_task(void *obj) {
 	MSFilter *f = (MSFilter *)obj;
 	JpegWriter *s = (JpegWriter *)f->data;
 	int error;
@@ -167,6 +167,7 @@ static void jpg_process_frame_task(void *obj) {
 end:
 	freemsg(m);
 	cleanup(s, success);
+	return success;
 }
 
 static void jpg_process(MSFilter *f) {

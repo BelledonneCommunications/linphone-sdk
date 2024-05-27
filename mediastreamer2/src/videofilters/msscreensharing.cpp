@@ -156,6 +156,7 @@ void MsScreenSharing::stop() {
 		ms_message("[MsScreenSharing] Stopping input thread ...");
 		mThreadLock.lock();
 		mToStop = true;
+		stopProcess();
 		mThreadLock.unlock();
 		mThreadIterator.notify_all();
 		ms_message("[MsScreenSharing] Waiting for input thread ...");

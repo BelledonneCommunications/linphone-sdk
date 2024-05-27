@@ -47,7 +47,7 @@ struct _MSWorkerThread {
 
 typedef struct _MSWorkerThread MSWorkerThread;
 
-typedef void (*MSTaskFunc)(void *);
+typedef bool_t (*MSTaskFunc)(void *);
 
 typedef enum _MSTaskState {
 	MSTaskInit,
@@ -65,6 +65,7 @@ struct _MSTask {
 	uint64_t repeat_at;
 	int repeat_interval; /* in milliseconds*/
 	bool_t auto_release;
+	bool_t result;
 };
 
 typedef struct _MSTask MSTask;
@@ -78,10 +79,11 @@ MS2_PUBLIC void ms_task_cancel(MSTask *task);
 /*
  * Cancel a task and schedule it for destruction.
  * If the task is already completed, it is destroyed synchronously.
- * Unlike ms_task_destroy(), ms_task_cancel_and_destroy() does not wait
- * the task to be processed by the worker thread, but returns immediately.
+ * ms_task_cancel_and_destroy() does not wait the task to be processed by the worker thread and returns immediately.
+ * It should be never call if a thread is waiting on ms_task_wait_completion().
  */
 MS2_PUBLIC void ms_task_cancel_and_destroy(MSTask *task);
+
 /*
  * Wait for the task to reach the MSTaskDone state.
  */
@@ -89,6 +91,7 @@ MS2_PUBLIC void ms_task_wait_completion(MSTask *task);
 
 /*
  * Automatically cancels if necessary, and waits for completion before destroying the task.
+ * For cancelled task, it returns immediately and schedule a destruction.
  */
 MS2_PUBLIC void ms_task_destroy(MSTask *task);
 
