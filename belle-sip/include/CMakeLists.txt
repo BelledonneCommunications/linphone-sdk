@@ -24,6 +24,7 @@ set(HEADER_FILES
 	auth-helper.h
 	belle-sdp.h
 	belle-sip.h
+	bearer-token.h
 	bodyhandler.h
 	defs.h
 	dialog.h
