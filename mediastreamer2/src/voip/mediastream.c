@@ -1143,7 +1143,6 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 	rtp_bundle_add_fec_session(ms->sessions.rtp_session->bundle, ms->sessions.rtp_session, ms->sessions.fec_session);
 	ms->fec_parameters = media_stream_extract_fec_params(fec_payload_type);
 	ms->fec_stream = fec_stream_new(ms->sessions.rtp_session, ms->sessions.fec_session, ms->fec_parameters);
-	fec_stream_init(ms->fec_stream);
 	ms_message("create or update FEC session [%p] with new FEC stream [%p], related to rtp_session [%p] in bundle [%p]",
 	           ms->sessions.fec_session, ms->fec_stream, ms->sessions.rtp_session, ms->sessions.rtp_session->bundle);
 }

@@ -762,7 +762,6 @@ void mediastream_fec_enable_bundle(MediastreamDatas *args, BCTBX_UNUSED(MSFactor
 		rtp_bundle_add_fec_session(args->fec_bundle, args->session, args->fec_session);
 		rtp_bundle_set_primary_session(args->fec_bundle, "video_fec");
 		args->fec_stream = fec_stream_new(args->session, args->fec_session, fec_params);
-		fec_stream_init(args->fec_stream);
 		fec_params_update(fec_params, args->fec_level);
 		if (fec_stream_enabled(args->fec_stream)) {
 			ms_message("[flexfec] enabled");

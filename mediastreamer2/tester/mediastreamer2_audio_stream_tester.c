@@ -1437,6 +1437,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	rtp_session_enable_rtcp(rtpSession_legA, FALSE);
 	MSMediaStreamSessions sessions_legA;
 	sessions_legA.rtp_session = rtpSession_legA;
+	sessions_legA.fec_session = NULL;
 	sessions_legA.srtp_context = NULL;
 	sessions_legA.zrtp_context = NULL;
 	sessions_legA.dtls_context = NULL;
@@ -1470,6 +1471,7 @@ static void double_encrypted_rtp_relay_audio_stream_base(bool_t encryption_manda
 	rtp_session_enable_rtcp(rtpSession_legB, FALSE);
 	MSMediaStreamSessions sessions_legB;
 	sessions_legB.rtp_session = rtpSession_legB;
+	sessions_legB.fec_session = NULL;
 	sessions_legB.srtp_context = NULL;
 	sessions_legB.zrtp_context = NULL;
 	sessions_legB.dtls_context = NULL;
