@@ -238,7 +238,7 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_lastRatchetEpoch(0),
+			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false}, m_lastRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
@@ -282,7 +282,7 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_lastRatchetEpoch(0),
+			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false},m_lastRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
@@ -332,7 +332,7 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{selfKeyPair},m_peerPKavailable{true},m_peerHasSelfPK{true},m_lastRatchetEpoch(0),
+			:m_ARKeys{selfKeyPair},m_peerPKavailable{true},m_peerHasSelfPK{true},m_forceAsymmetricRatchet{true},m_lastRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{}
@@ -355,7 +355,7 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{},m_peerPKavailable{false},m_peerHasSelfPK{false},m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
+			:m_ARKeys{},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false}, m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{0},	m_active_status{false}, m_X3DH_initMessage{}
 			{
@@ -380,6 +380,7 @@ namespace lime {
 			ARKeys<Curve> m_ARKeys; // Asymmetric Ratchet keys
 			bool m_peerPKavailable; // true : the peer Public key was not yet consumed to update sending chain
 			bool m_peerHasSelfPK; // true: our correspondant have our current public key
+			bool m_forceAsymmetricRatchet; // flag set to true at session creation on reception to force an asymmetric ratchet on the first response
 			int64_t m_lastRatchetEpoch; // timestamp storing the last asymmetric receiving ratchet execution (as unixepoch)
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
@@ -467,6 +468,7 @@ namespace lime {
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
 				m_peerPKavailable = false; // make sure we will not make another ratchet with this key
+				m_forceAsymmetricRatchet = false; // we are making a ratchet so make sure to clear the force ratchet flag used only to force it once after session creation on receiver side
 			}
 			/**
 			 * @brief perform an Asymmetric Ratchet with KEM on reception of peer's new public key
@@ -538,6 +540,7 @@ namespace lime {
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
 				m_peerPKavailable = false; // make sure we will not make another ratchet with this key
+				m_forceAsymmetricRatchet = false; // we are making a ratchet so make sure to clear the force ratchet flag used only to force it once after session creation on receiver side
 			}
 	};
 
@@ -563,8 +566,9 @@ namespace lime {
 			} else {
 				bctoolboxTimeSpec currentUTCtime;
 				bctbx_get_utc_cur_time(&currentUTCtime);
-				if ( ((m_Ns + m_Nr)>=lime::settings::minSymmetricChainSize) // if the chain is long enough (cummulative on sent and receive)
-					|| ((currentUTCtime.tv_sec - m_lastRatchetEpoch)>lime::settings::maxSymmetricChainPeriod) ) { // or last ratchet is old enough
+				if ( ((m_Ns + m_Nr)>lime::settings::minSymmetricChainSize) // if the chain is long enough (cummulative on sent and receive)
+					|| ((currentUTCtime.tv_sec - m_lastRatchetEpoch)>lime::settings::maxSymmetricChainPeriod)  // or last ratchet is old enough
+				    || m_forceAsymmetricRatchet) { // or we force the asymmetric ratchet (first encryption after a session init on receiver side)
 					AsymmetricRatchetSending();
 				}
 			}
@@ -731,9 +735,11 @@ namespace lime {
 		// bit mapping:
 		// -- 0  peer pk available locally
 		// -- 1  self pk known by peer
+		// -- 2  we want to perform an asymmetric ratchet as soon as possible (set at DR session creation on sending, we want to perform an asymmetric ratchet in our first response)
 		int flag = 0;
 		if (m_peerPKavailable) flag=1;
 		if (m_peerHasSelfPK) flag |= 2;
+		if (m_forceAsymmetricRatchet) flag |= 4;
 		return flag;
 	}
 
@@ -986,6 +992,7 @@ namespace lime {
 			// DHrStatus int flags bit map:
 			// -- 0 : we have locally peer's pk
 			// -- 1 : peer's has our pk
+			// -- 2 : we must perform an asymmetric ratchet as soon as possible
 			if (DHrStatus&0x01) {
 				m_peerPKavailable = true;
 			} else {
@@ -995,6 +1002,11 @@ namespace lime {
 				m_peerHasSelfPK = true;
 			} else {
 				m_peerHasSelfPK = false;
+			}
+			if (DHrStatus&0x04) {
+				m_forceAsymmetricRatchet = true;
+			} else {
+				m_forceAsymmetricRatchet = false;
 			}
 			return true;
 		} else { // something went wrong with the DB, we cannot retrieve the session

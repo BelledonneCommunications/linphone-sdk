@@ -4528,33 +4528,66 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 				});
 
 	try {
-		// in session establishment, Bob send a message to Alice and she replies
-		lime_session_establishment(curve, dbBaseFilename, x3dh_server_url,
-					dbFilenameAlice, aliceDeviceId, aliceManager,
-					dbFilenameBob, bobDeviceId, bobManager);
+		// create DB
+		dbFilenameAlice = dbBaseFilename;
+		dbFilenameAlice.append(".alice.").append(lime_tester::curveId(curve)).append(".sqlite3");
+		dbFilenameBob = dbBaseFilename;
+		dbFilenameBob.append(".bob.").append(lime_tester::curveId(curve)).append(".sqlite3");
+
+		remove(dbFilenameAlice.data()); // delete the database file if already exists
+		remove(dbFilenameBob.data()); // delete the database file if already exists
+
+		// create Manager and device for alice
+		aliceManager = make_unique<LimeManager>(dbFilenameAlice, X3DHServerPost);
+		aliceDeviceId = lime_tester::makeRandomDeviceName("alice.d.");
+		aliceManager->create_user(*aliceDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
+
+		// Create manager and device for bob
+		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
+		bobDeviceId = lime_tester::makeRandomDeviceName("bob.d");
+		bobManager->create_user(*bobDeviceId, x3dh_server_url, curve, lime_tester::OPkInitialBatchSize, callback);
+		BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, ++expected_success,lime_tester::wait_for_timeout));
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
-		// Bob replies again, his message should not hold any public key
+
+		// Alice sends a message to Bob, she establish a new session, so her message holds a public key (and a X3DH init)
+		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
+		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
+		aliceRecipients->emplace_back(*bobDeviceId);
+		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
+		expected_success++;
+		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
+		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*aliceRecipients)[0].DRmessage))) return false;
+		/* Bob decrypts */
+		std::vector<uint8_t> receivedMessage{};
+		if (!BC_ASSERT_TRUE(bobManager->decrypt(*bobDeviceId, "bob", *aliceDeviceId, (*aliceRecipients)[0].DRmessage, *aliceCipherMessage, receivedMessage) == lime::PeerDeviceStatus::unknown)) return false;
+		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[0])) return false;
+
+		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+		// Bob replies, this is the first response so his message should hold a public key
 		auto bobRecipients = make_shared<std::vector<RecipientData>>();
 		auto bobCipherMessage = make_shared<std::vector<uint8_t>>();
 		bobRecipients->emplace_back(*aliceDeviceId);
-		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[2].begin(), lime_tester::messages_pattern[2].end());
+		auto bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[1].begin(), lime_tester::messages_pattern[1].end());
 		bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
 		expected_success++;
 		if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
-		if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
-		/* decrypt */
-		std::vector<uint8_t> receivedMessage{};
+		if (!BC_ASSERT_TRUE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
+		/* alice decrypts */
+		receivedMessage.clear();
 		if (!BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted)) return false;
-		auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
-		if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[2])) return false;
+		receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+		if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[1])) return false;
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
 		// Alice encrypts more messages to Bob: we shall skip the asymmetric ratchet until the limit is reached
-		// The limit includes the messages sent by Bob, so we already had 3 messages
-		auto aliceRecipients = make_shared<std::vector<RecipientData>>();
-		auto aliceCipherMessage = make_shared<std::vector<uint8_t>>();
-		for (auto i=3; i<lime::settings::minSymmetricChainSize; i++) {
+		// The limit includes the message sent by Bob, so we already had 1 messages
+		for (auto i=1; i<lime::settings::minSymmetricChainSize; i++) {
 			aliceRecipients->clear();
 			aliceRecipients->emplace_back(*bobDeviceId);
 			auto patternIndex = i % lime_tester::messages_pattern.size();
@@ -4574,10 +4607,10 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 		}
 
-		// Alice encrypts one more: she shall make an asymmetric ratchet
+		// Alice encrypts one more: she shall make an asymmetric ratchet and we have a public key in the DR header
 		aliceRecipients->clear();
 		aliceRecipients->emplace_back(*bobDeviceId);
-		auto aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
+		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
 		aliceCipherMessage->clear();
 		aliceManager->encrypt(*aliceDeviceId, make_shared<const std::string>("bob"), aliceRecipients, aliceMessage, aliceCipherMessage, callback);
 		expected_success++;
@@ -4642,7 +4675,7 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 	}
 	return true;
 }
-#endif
+#endif //HAVE_BCTBXPQ
 static void lime_skip_asymmetric_ratchet(void) {
 // For now skip asymmetric ratchet is supported only with curve25519k512
 // enable it with c25519 and c448 when version 5.3 phases out
@@ -4655,7 +4688,7 @@ static void lime_skip_asymmetric_ratchet(void) {
 #endif
 #endif
 #ifdef HAVE_BCTBXPQ
-	//BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data()));
+	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data()));
 	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false));
 #endif
 }
