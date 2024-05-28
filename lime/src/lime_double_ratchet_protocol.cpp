@@ -109,28 +109,37 @@ namespace lime {
 		 *	haveOPk <flag 1 byte> ||\n
 		 *	self Ik < DSA<Curve, lime::DSAtype::publicKey>::ssize() bytes > ||\n
 		 *	Ek < X<Curve, lime::Xtype::publicKey>::keyLenght() bytes> ||\n
-		 *	Ct < K<Curve, lime::Ktype::cipherText>::keyLenght() bytes> ||\n
+		 *	Ct1 < K<Curve, lime::Ktype::cipherText>::keyLenght() bytes> ||\n
+		 *	[Ct2 < K<Curve, lime::Ktype::cipherText>::keyLenght() bytes> (if flag is set) ||\n
 		 *	peer SPk id < 4 bytes > ||\n
 		 *	[peer OPk id(if flag is set)<4bytes>]
 		 *
 		 * @param[out]	message		the X3DH init message
 		 * @param[in]	Ik		self public identity key
 		 * @param[in]	Ek		self public ephemeral key
-		 * @param[in]	Ct		ciphertext encaspsulated to OPk if any or SPk otherwise
+		 * @param[in]	Ct1		ciphertext encaspsulated SPk
+		 * @param[in]	Ct2		ciphertext encaspsulated to OPk (if any)
 		 * @param[in]	SPk_id		id of peer signed prekey used
 		 * @param[in]	OPk_id		id of peer OneTime prekey used(if any)
 		 * @param[in]	OPk_flag	do we used an OPk?
 		 *
 		 */
+
 		template <typename Curve>
-		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &Ik, const X<typename Curve::EC, lime::Xtype::publicKey> &Ek, const K<typename Curve::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept {
+		void buildMessage_X3DHinit(std::vector<uint8_t> &message,
+		const DSA<typename Curve::EC, lime::DSAtype::publicKey> &Ik, const X<typename Curve::EC, lime::Xtype::publicKey> &Ek,
+		const K<typename Curve::KEM, lime::Ktype::cipherText> &Ct1, const K<typename Curve::KEM, lime::Ktype::cipherText> &Ct2,
+		const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept {
 			// make sure message is cleared and set its first byte to OPk flag
 			message.assign(1, static_cast<uint8_t>(OPk_flag?DR_X3DH_OPk_flag::withOPk:DR_X3DH_OPk_flag::withoutOPk));
-			message.reserve(1 + Ik.size() + Ek.size() + Ct.size() + 4 +(OPk_flag?4:0));
+			message.reserve(1 + Ik.size() + Ek.size() + Ct1.size() + 4 +(OPk_flag?(4+Ct2.size()):0));
 
 			message.insert(message.end(), Ik.cbegin(), Ik.cend());
 			message.insert(message.end(), Ek.cbegin(), Ek.cend());
-			message.insert(message.end(), Ct.cbegin(), Ct.cend());
+			message.insert(message.end(), Ct1.cbegin(), Ct1.cend());
+			if (OPk_flag) {
+				message.insert(message.end(), Ct2.cbegin(), Ct2.cend());
+			}
 			message.push_back((SPk_id>>24)&0xFF);
 			message.push_back((SPk_id>>16)&0xFF);
 			message.push_back((SPk_id>>8)&0xFF);
@@ -142,6 +151,7 @@ namespace lime {
 				message.push_back((OPk_id)&0xFF);
 			}
 		}
+
 		/**
 		 * @brief Parse the X3DH init message and extract peer Ik, peer Ek, self SPk id and seld OPk id if present
 		 * This is for EC only version
@@ -193,7 +203,8 @@ namespace lime {
 		 * 	usedOPk < flag on one byte > ||\n
 		 * 	peer Ik ||\n
 		 * 	peer Ek ||\n
-		 * 	peer Ct ||\n Cipher text encapsulated with OPk if present, SPk otherwise
+		 * 	peer Ct1 || Cipher text encapsulated to SPk\n
+		 *	peer Ct2 (if flag is set)|| Cipher text encapsulated to OPk if present\n
 		 * 	self SPk id ||\n
 		 * 	self OPk id(if flag is set)
 		 *
@@ -203,13 +214,17 @@ namespace lime {
 		 * @param[in]	message		the message to parse
 		 * @param[out]	Ik		peer public Identity key
 		 * @param[out]	Ek		peer public Ephemeral key
-		 * @param[out]	Ct		peer Cipher text - encaspsulated either to OPk if any or SPk if not
+		 * @param[out]	Ct1		peer Cipher text encaspsulated to SPk
+		 * @param[out]	Ct2		peer Cipher text encaspsulated to OPk if any
 		 * @param[out]	SPk_id		self Signed prekey id
 		 * @param[out]	OPk_id		self One Time prekey id(if used, 0 otherwise)
 		 * @param[out]	OPk_flag	true if an OPk flag was present in the message
 		 */
 		template <typename Curve>
-		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<typename Curve::EC, lime::DSAtype::publicKey> &Ik, X<typename Curve::EC, lime::Xtype::publicKey> &Ek, K<typename Curve::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept {
+		void parseMessage_X3DHinit(const std::vector<uint8_t>message,
+			DSA<typename Curve::EC, lime::DSAtype::publicKey> &Ik, X<typename Curve::EC, lime::Xtype::publicKey> &Ek,
+			K<typename Curve::KEM, lime::Ktype::cipherText> &Ct1, K<typename Curve::KEM, lime::Ktype::cipherText> &Ct2,
+			uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept {
 			OPk_flag = (message[0] == static_cast<uint8_t>(DR_X3DH_OPk_flag::withOPk))?true:false;
 			size_t index = 1;
 
@@ -219,8 +234,12 @@ namespace lime {
 			Ek.assign(message.cbegin()+index);
 			index += X<Curve, lime::Xtype::publicKey>::ssize();
 
-			Ct.assign(message.cbegin()+index);
+			Ct1.assign(message.cbegin()+index);
 			index += K<Curve, lime::Ktype::cipherText>::ssize();
+			if (OPk_flag) { // there is a Ct2
+				Ct2.assign(message.cbegin()+index);
+				index += K<Curve, lime::Ktype::cipherText>::ssize();
+			}
 
 			SPk_id = static_cast<uint32_t>(message[index])<<24 |
 				static_cast<uint32_t>(message[index+1])<<16 |
@@ -416,8 +435,8 @@ namespace lime {
 		template class DRHeader<C448>;
 #endif
 #ifdef HAVE_BCTBXPQ
-		template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
-		template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template bool parseMessage_get_X3DHinit<C255K512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
 		template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept;
 		template class DRHeader<C255K512>;

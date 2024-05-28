@@ -837,14 +837,14 @@ namespace lime {
 					auto peerDid = m_localStorage->check_peerDevice(peerBundle.deviceId, peerBundle.Ik);
 
 					// Initiate HKDF input : We will compute HKDF with a concat of F and all DH computed, see X3DH spec section 2.2 for what is F
-					// The KEM augmented version will also encapsulate a secret for the given KEM PK in OPk - or SPk when no OPk is given
-					// The derivation also include a transcript of all public key used: IkA || EkA || IkB || SPkB || OPkB(if present) || KEM-Key (OPk or SPk if PQ-OPk is not present) || KEM Cipher text
+					// The KEM augmented version will also encapsulate a secret for the given SPk and OPk if any
+					// The derivation also include a transcript of all public key used: IkA || EkA || IkB || SPkB || OPkB(if present) || KEM SPkB || KEM Cipher text 1 || KEM OPkB  || KEM Cipher text 2
 					// use sBuffer of size able to hold the data when OPk is present even if we may not use it
 					sBuffer<
-					DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4 + K<Curve, lime::Ktype::sharedSecret>::ssize() // secrets
+					DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4 + 2*K<Curve, lime::Ktype::sharedSecret>::ssize() // secrets
 					+ DSA<Curve, lime::DSAtype::publicKey>::ssize() +  X<Curve, lime::Xtype::sharedSecret>::ssize() // IkA || EkA
 					+ DSA<Curve, lime::DSAtype::publicKey>::ssize() +  X<Curve, lime::Xtype::sharedSecret>::ssize()*2 // IkB || SPkB || OPkB
-					+ K<Curve, lime::Ktype::publicKey>::ssize() + K<Curve, lime::Ktype::cipherText>::ssize() // KEM-OPk or KEM-SPk || Kem cipher text
+					+ (K<Curve, lime::Ktype::publicKey>::ssize() + K<Curve, lime::Ktype::cipherText>::ssize())*2 // KEM-SPk  || Kem ct 1 || KEM-OPk  || Kem ct 2
 					> HKDF_input;
 					HKDF_input.fill(0xFF); // HKDF_input holds F
 					size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
@@ -874,25 +874,29 @@ namespace lime {
 					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
 					HKDF_input_index += 2*DH_out.size();
 
-					// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
-					// Compute KEM1 = encaps(peer OPk) KEM1 = encaps(peer SPk) when no OPk is present
+					// Compute KEM1 = encaps(peer SPk)
 					auto KEMengine = make_KEM<typename Curve::KEM>();
-					K<typename Curve::KEM, lime::Ktype::cipherText> cipherText{};
-					K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret{};
+					K<typename Curve::KEM, lime::Ktype::cipherText> cipherText1{};
+					K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret1{};
+						K<typename Curve::KEM, lime::Ktype::cipherText> cipherText2{};
+						K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret2{};
+					KEMengine->encaps(peerBundle.SPk.cKEMpublicKey(), cipherText1, sharedSecret1);
+					std::copy_n(sharedSecret1.cbegin(), sharedSecret1.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || KEM1
+					HKDF_input_index += sharedSecret1.size();
 					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
+						// Compute DH4 = DH(Ek, peer OPk) (if any OPk in bundle)
 						DH->set_peerPublic(peerBundle.OPk.cECpublicKey());
 						DH->computeSharedSecret();
 						DH_out = DH->get_sharedSecret();
-						std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
+						std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || KEM1 || DH4
 						HKDF_input_index += DH_out.size();
-						KEMengine->encaps(peerBundle.OPk.cKEMpublicKey(), cipherText, sharedSecret);
-					} else { // There is no OPk, encapsulate a secret for the kem SPk
-						KEMengine->encaps(peerBundle.SPk.cKEMpublicKey(), cipherText, sharedSecret);
+						// Compute KEM1 = encaps(peer OPk)
+						KEMengine->encaps(peerBundle.OPk.cKEMpublicKey(), cipherText2, sharedSecret2);
+						std::copy_n(sharedSecret2.cbegin(), sharedSecret2.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || KEM1 || DH4 || KEM2
+						HKDF_input_index += sharedSecret2.size();
 					}
-					std::copy_n(sharedSecret.cbegin(), sharedSecret.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4 || KEM1
-					HKDF_input_index += sharedSecret.size();
 
-					// Append the transcript to the HKDF input: IkA || EkA || IkB || EC-SPkB || [EC-OPkB || KEM-OPkB] OR [KEM-SPkB] || KEM cipherText
+					// Append the transcript to the HKDF input: IkA || EkA || IkB || EC-SPkB || KEM-SPkB || KEM ct1 || [EC-OPkB || KEM-OPkB || KEM ct2]
 					std::copy_n(m_Ik.publicKey().cbegin(), m_Ik.publicKey().size(), HKDF_input.begin()+HKDF_input_index); // IkA
 					HKDF_input_index += m_Ik.publicKey().size();
 					std::copy_n(DH->get_selfPublic().cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), HKDF_input.begin()+HKDF_input_index); // EkA
@@ -901,20 +905,21 @@ namespace lime {
 					HKDF_input_index += peerBundle.Ik.size();
 					std::copy_n(peerBundle.SPk.cECpublicKey().cbegin(), peerBundle.SPk.cECpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // EC-SPkB
 					HKDF_input_index += peerBundle.SPk.cECpublicKey().size();
+					std::copy_n(peerBundle.SPk.cKEMpublicKey().cbegin(), peerBundle.SPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-SPkB
+					HKDF_input_index += peerBundle.SPk.cKEMpublicKey().size();
+					std::copy_n(cipherText1.cbegin(), cipherText1.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText 1
+					HKDF_input_index += cipherText1.size();
 					if (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk) {
 						std::copy_n(peerBundle.OPk.cECpublicKey().cbegin(), peerBundle.OPk.cECpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // EC-OPkB
 						HKDF_input_index += peerBundle.OPk.cECpublicKey().size();
 						std::copy_n(peerBundle.OPk.cKEMpublicKey().cbegin(), peerBundle.OPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-OPkB
 						HKDF_input_index += peerBundle.OPk.cKEMpublicKey().size();
-					} else {
-						std::copy_n(peerBundle.SPk.cKEMpublicKey().cbegin(), peerBundle.SPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-SPkB
-						HKDF_input_index += peerBundle.SPk.cKEMpublicKey().size();
+						std::copy_n(cipherText2.cbegin(), cipherText2.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText 2
+						HKDF_input_index += cipherText2.size();
 					}
-					std::copy_n(cipherText.cbegin(), cipherText.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText
-					HKDF_input_index += cipherText.size();
 
 
-					// Compute SK = HKDF(F || DH1 || DH2 || DH3 || DH4 || KEM1 || transcript)
+					// Compute SK = HKDF(F || DH1 || DH2 || DH3 || KEM1 || DH4 || KEM2 || transcript)
 					DRChainKey SK;
 					/* as specified in X3DH spec section 2.2, use a as salt a 0 filled buffer long as the hash function output */
 					/* the info label as specified in PQXDH section 2.2 : <Identifier>_<EC algo Id>_<hash algo id>_<kem algo id> */
@@ -925,7 +930,7 @@ namespace lime {
 
 					// Generate X3DH init message: as in X3DH spec section 3.3:
 					std::vector<uint8_t> X3DH_initMessage{};
-					double_ratchet_protocol::buildMessage_X3DHinit<Curve>(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), cipherText, peerBundle.SPk.get_Id(), peerBundle.OPk.get_Id(), (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
+					double_ratchet_protocol::buildMessage_X3DHinit<Curve>(X3DH_initMessage, m_Ik.publicKey(), DH->get_selfPublic(), cipherText1, cipherText2, peerBundle.SPk.get_Id(), peerBundle.OPk.get_Id(), (peerBundle.bundleFlag == lime::X3DHKeyBundleFlag::OPk));
 
 					DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
 
@@ -1034,10 +1039,11 @@ namespace lime {
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRChainKey X3DH_receiver(const std::vector<uint8_t> X3DH_initMessage, DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, SignedPreKey<Curve> &SPk, uint32_t &OPk_id) {
 				X<typename Curve::EC, lime::Xtype::publicKey> Ek{};
-				K<typename Curve::KEM, lime::Ktype::cipherText> Ct{};
+				K<typename Curve::KEM, lime::Ktype::cipherText> Ct1{};
+				K<typename Curve::KEM, lime::Ktype::cipherText> Ct2{};
 				uint32_t SPk_id=0;
 				bool OPk_flag=false;
-				double_ratchet_protocol::parseMessage_X3DHinit<Curve>(X3DH_initMessage, peerIk, Ek, Ct, SPk_id, OPk_id, OPk_flag);
+				double_ratchet_protocol::parseMessage_X3DHinit<Curve>(X3DH_initMessage, peerIk, Ek, Ct1, Ct2, SPk_id, OPk_id, OPk_flag);
 				SPk = get_SPk(SPk_id); // this one will throw an exception if the SPk is not found in local storage, let it flow up
 				// Compute 	DH1 = DH(SPk, peer Ik)
 				// 		DH2 = DH(self Ik, Ek)
@@ -1046,13 +1052,13 @@ namespace lime {
 				// 		KEM1 = encaps(OPk)  if peer used an OPk or encaps(SPk)
 
 				// Initiate HKDF input : We will compute HKDF with a concat of F and all DH/KEM computed, see X3DH spec section 2.2 for what is F: keyLength bytes set to 0xFF
-				// The derivation also include a transcript of all public key used: IkA || EkA || IkB || SPkB || OPkB(if present) || KEM-Key (OPk or SPk if PQ-OPk is not present) || KEM Cipher text
+				// The derivation also include a transcript of all public key used: IkA || EkA || IkB || SPkB || KEM-SPkB || KEM Cipher text 1 || OPkB(if present) || KEM-OPk (if present) || KEM Cipher text 2(if present)
 				// use sBuffer of size able to hold also DH$ even if we may not use it
 				sBuffer<
-					DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4 + K<Curve, lime::Ktype::sharedSecret>::ssize() // secrets
+					DSA<Curve, lime::DSAtype::publicKey>::ssize() + X<Curve, lime::Xtype::sharedSecret>::ssize()*4 + 2*K<Curve, lime::Ktype::sharedSecret>::ssize() // secrets
 					+ DSA<Curve, lime::DSAtype::publicKey>::ssize() +  X<Curve, lime::Xtype::sharedSecret>::ssize() // IkA || EkA
 					+ DSA<Curve, lime::DSAtype::publicKey>::ssize() +  X<Curve, lime::Xtype::sharedSecret>::ssize()*2 // IkB || SPkB || OPkB
-					+ K<Curve, lime::Ktype::publicKey>::ssize() + K<Curve, lime::Ktype::cipherText>::ssize() // KEM-OPk or KEM-SPk || Kem cipher text
+					+ 2*(K<Curve, lime::Ktype::publicKey>::ssize() + K<Curve, lime::Ktype::cipherText>::ssize()) // KEM-SPk || Kem cipher text || KEM-OPk || KEM Cipher text
 				> HKDF_input;
 				HKDF_input.fill(0xFF); // HKDF_input holds F
 				size_t HKDF_input_index = DSA<Curve, lime::DSAtype::publicKey>::ssize(); // F is of DSA public key size
@@ -1084,9 +1090,13 @@ namespace lime {
 				std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3
 				HKDF_input_index += 2*DH_out.size();
 
-				// If an OPk is provided, it means sender encapsulated a secret to this key
+				// decapsulate the ct1 -> using SPk
 				auto KEMengine = make_KEM<typename Curve::KEM>();
-				K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret{};
+				K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret1{};
+				KEMengine->decaps(SPk.cKEMprivateKey(), Ct1, sharedSecret1);
+				std::copy_n(sharedSecret1.cbegin(), sharedSecret1.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || KEM1
+				HKDF_input_index += sharedSecret1.size();
+
 				lime::OneTimePreKey<Curve> OPk{};
 				if (OPk_flag) { // there is an OPk id
 					OPk = get_OPk(OPk_id); // this one will throw an exception if the OPk is not found in local storage, let it flow up
@@ -1096,16 +1106,15 @@ namespace lime {
 					DH->set_selfPublic(OPk.cECpublicKey());
 					DH->computeSharedSecret();
 					DH_out = DH->get_sharedSecret();
-					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || KEM1 || DH4
 					HKDF_input_index += DH_out.size();
-					KEMengine->decaps(OPk.cKEMprivateKey(), Ct, sharedSecret);
-				} else { // No OPk provided, sender encapsulated a secret to the SPk
-					KEMengine->decaps(SPk.cKEMprivateKey(), Ct, sharedSecret);
+					K<typename Curve::KEM, lime::Ktype::sharedSecret> sharedSecret2{};
+					KEMengine->decaps(OPk.cKEMprivateKey(), Ct2, sharedSecret2);
+					std::copy_n(sharedSecret2.cbegin(), sharedSecret2.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || [DH4] || KEM1
+					HKDF_input_index += sharedSecret2.size();
 				}
-				std::copy_n(sharedSecret.cbegin(), sharedSecret.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || [DH4] || KEM1
-				HKDF_input_index += sharedSecret.size();
 
-				// Append the transcript to the HKDF input: IkA || EkA || IkB || EC-SPkB || [EC-OPkB || KEM-OPkB] OR [KEM-SPkB] || KEM cipherText
+				// Append the transcript to the HKDF input: IkA || EkA || IkB || EC-SPkB || KEM-SPkB || KEM cipher text 1 || [EC-OPkB || KEM-OPkB || KEM cipherText]
 				std::copy_n(peerIk.cbegin(), peerIk.size(), HKDF_input.begin()+HKDF_input_index); // IkA
 				HKDF_input_index += peerIk.size();
 				std::copy_n(Ek.cbegin(), X<Curve, lime::Xtype::publicKey>::ssize(), HKDF_input.begin()+HKDF_input_index); // EkA
@@ -1114,17 +1123,18 @@ namespace lime {
 				HKDF_input_index += m_Ik.publicKey().size();
 				std::copy_n(SPk.cECpublicKey().cbegin(), SPk.cECpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // EC-SPkB
 				HKDF_input_index += SPk.cECpublicKey().size();
+				std::copy_n(SPk.cKEMpublicKey().cbegin(), SPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-SPkB
+				HKDF_input_index += SPk.cKEMpublicKey().size();
+				std::copy_n(Ct1.cbegin(), Ct1.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText 1
+				HKDF_input_index += Ct1.size();
 				if (OPk_flag) {
 					std::copy_n(OPk.cECpublicKey().cbegin(), OPk.cECpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // EC-OPkB
 					HKDF_input_index += OPk.cECpublicKey().size();
 					std::copy_n(OPk.cKEMpublicKey().cbegin(), OPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-OPkB
 					HKDF_input_index += OPk.cKEMpublicKey().size();
-				} else {
-					std::copy_n(SPk.cKEMpublicKey().cbegin(), SPk.cKEMpublicKey().size(), HKDF_input.begin()+HKDF_input_index); // KEM-SPkB
-					HKDF_input_index += SPk.cKEMpublicKey().size();
+					std::copy_n(Ct2.cbegin(), Ct2.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText 2
+					HKDF_input_index += Ct2.size();
 				}
-				std::copy_n(Ct.cbegin(), Ct.size(), HKDF_input.begin()+HKDF_input_index); // KEM-cipherText
-				HKDF_input_index += Ct.size();
 
 				DH = nullptr; // be sure to destroy and clean the keyExchange object as soon as we do not need it anymore
 				KEMengine = nullptr;
