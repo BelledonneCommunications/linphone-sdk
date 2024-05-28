@@ -46,7 +46,7 @@
 #include <mutex>
 #include <sys/shm.h>
 
-MsScreenSharing_x11::MsScreenSharing_x11() : MsScreenSharing(){
+MsScreenSharing_x11::MsScreenSharing_x11() : MsScreenSharing() {
 }
 
 MsScreenSharing_x11::~MsScreenSharing_x11() {
@@ -84,6 +84,7 @@ void MsScreenSharing_x11::setSource(MSScreenSharingDesc sourceDesc, FormatData f
 	init();
 }
 
+// It must return global coordinate and not window relative.
 void MsScreenSharing_x11::getWindowSize(int *windowX, int *windowY, int *windowWidth, int *windowHeight) const {
 	XWindowAttributes windowAttributes;
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY &&
@@ -93,12 +94,18 @@ void MsScreenSharing_x11::getWindowSize(int *windowX, int *windowY, int *windowW
 		*windowY = rect.mY1;
 		*windowWidth = rect.getWidth();
 		*windowHeight = rect.getHeight();
-	} else if(mDisplay){
-		XGetWindowAttributes(mDisplay, mRootWindow, &windowAttributes);
-		*windowX = windowAttributes.x;
-		*windowY = windowAttributes.y;
+	} else if (mDisplay) {
+		XGetWindowAttributes(mDisplay, mRootWindow,
+							 &windowAttributes); // Coordinates are not global but relative to the root window.
 		*windowWidth = windowAttributes.width;
 		*windowHeight = windowAttributes.height;
+		int x, y;
+		Window w;
+		XTranslateCoordinates(mDisplay, mRootWindow, windowAttributes.root, 0, 0, &x, &y,
+							  &w); // Convert origin coordinates to coordinate in root which should be the screen.
+
+		*windowX = x;
+		*windowY = y;
 	}
 }
 
@@ -234,9 +241,9 @@ bool MsScreenSharing_x11::prepareImage() {
 	if (mSourceDesc.type == MSScreenSharingType::MS_SCREEN_SHARING_DISPLAY) {
 		x = mLastFormat.mPosition.mX1;
 		y = mLastFormat.mPosition.mY1;
-	} else {
-		x = mLastFormat.mPosition.mX1;
-		y = mLastFormat.mPosition.mY1;
+	} else { // X,Y in XShmGetImage are relative to the window. We want all.
+		x = 0;
+		y = 0;
 	}
 	if (mUseShm) {
 		allocateImage(width, height);
@@ -246,16 +253,17 @@ bool MsScreenSharing_x11::prepareImage() {
 			x = windowAttributes.width - mLastFormat.mPosition.getWidth();
 			y = windowAttributes.height - mLastFormat.mPosition.getHeight();
 			if (!XShmGetImage(mDisplay, mRootWindow, mImage, x, y, AllPlanes)) {
-				ms_error("[MsScreenSharing_x11] Can't get image (using shared memory)! "
-			         "Grabber : "
-			         "(x,y,width,height) = (%i,%i,%i,%i).Window = (%i,%i,%i,%i)\nUsually this means the recording area "
-			         "is not "
-			         "completely "
-			         "inside the screen. Or did you change the screen resolution?",
-			         x, y, width, height, windowAttributes.x, windowAttributes.y, windowAttributes.width,
-			         windowAttributes.height);
+				ms_error(
+					"[MsScreenSharing_x11] Can't get image (using shared memory)! "
+					"Grabber : "
+					"(x,y,width,height) = (%i,%i,%i,%i).Window = (%i,%i,%i,%i)\nUsually this means the recording area "
+					"is not "
+					"completely "
+					"inside the screen. Or did you change the screen resolution?",
+					x, y, width, height, windowAttributes.x, windowAttributes.y, windowAttributes.width,
+					windowAttributes.height);
 				return false;
-			}else{
+			} else {
 				mLastFormat.mPosition.mX1 = x;
 				mLastFormat.mPosition.mX2 = x + width;
 				mLastFormat.mPosition.mY1 = y;
@@ -283,21 +291,24 @@ bool MsScreenSharing_x11::prepareImage() {
 		mLastFormat.mLastTimeSizeChanged = std::chrono::system_clock::now();
 		return false;
 	}
-	// clear the dead space
-	for (size_t i = 0; i < mScreenDeadSpace.size(); ++i) {
-		Rect rect = mScreenDeadSpace[i];
-		if (rect.mX1 < x) rect.mX1 = x;
-		if (rect.mY1 < y) rect.mY1 = y;
-		if (rect.mX2 > x + width) rect.mX2 = x + width;
-		if (rect.mY2 > y + height) rect.mY2 = y + height;
-		if (rect.mX2 > rect.mX1 && rect.mY2 > rect.mY1)
-			ms_x11_image_clear_rectangle(mImage, rect.mX1 - x, rect.mY1 - y, rect.mX2 - rect.mX1, rect.mY2 - rect.mY1);
-	}
-
 	// draw the cursor.
 	if (mLastFormat.mRecordCursor) {
 		ms_x11_image_draw_cursor(mDisplay, mImage, mLastFormat.mPosition.mX1, mLastFormat.mPosition.mY1);
 	}
+	// clear the dead space. A crop was already. Algo is kept for further use, in case we want to erase some area.
+	// applied.
+	// x = mLastFormat.mPosition.mX1;
+	// y = mLastFormat.mPosition.mY1;
+	// for (size_t i = 0; i < mScreenDeadSpace.size(); ++i) {
+	//	Rect rect = mScreenDeadSpace[i];
+	//	if (rect.mX1 < x) rect.mX1 = x;
+	//	if (rect.mY1 < y) rect.mY1 = y;
+	//	if (rect.mX2 > x + width) rect.mX2 = x + width;
+	//	if (rect.mY2 > y + height) rect.mY2 = y + height;
+	//	if (rect.mX2 > rect.mX1 && rect.mY2 > rect.mY1)
+	//		ms_x11_image_clear_rectangle(mImage, rect.mX1 - x, rect.mY1 - y, rect.mX2 - rect.mX1,
+	//									 rect.mY2 - rect.mY1);
+	//}
 	return true;
 }
 

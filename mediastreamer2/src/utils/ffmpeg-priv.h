@@ -23,7 +23,7 @@
 
 #ifdef __cplusplus
 /*see http://linux.die.net/man/3/uint64_c */
-//#define __STDC_CONSTANT_MACROS 1
+// #define __STDC_CONSTANT_MACROS 1
 #endif
 
 #ifdef HAVE_CONFIG_H
@@ -85,6 +85,7 @@ avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture, int *got_picture_
 #define AVPixelFormat PixelFormat
 #define AV_PIX_FMT_YUVJ420P PIX_FMT_YUVJ420P
 #define AV_PIX_FMT_RGBA PIX_FMT_RGBA
+#define AV_PIX_FMT_BGRA PIX_FMT_BGRA
 #define AV_PIX_FMT_RGB24 PIX_FMT_RGB24
 #define AV_PIX_FMT_BGR24 PIX_FMT_BGR24
 #define AV_PIX_FMT_YUV420P PIX_FMT_YUV420P
