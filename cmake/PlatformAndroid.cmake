@@ -27,6 +27,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/PlatformCommon.cmake")
 set(ENABLE_FFMPEG OFF CACHE BOOL "Build mediastreamer2 with ffmpeg video support." FORCE)
 if(CMAKE_ANDROID_NDK_VERSION VERSION_LESS_EQUAL 16)
 	set(ENABLE_AAUDIO OFF CACHE BOOL "AAudio Android sound card for Android 8+." FORCE)
+	set(ENABLE_OPENSLES ON CACHE BOOL "OpenSLES Android sound card (deprecated)." FORCE)
 	set(ENABLE_OBOE OFF CACHE BOOL "Oboe Android sound card for Android 8+." FORCE)
 endif()
 

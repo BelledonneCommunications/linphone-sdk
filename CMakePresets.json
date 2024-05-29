@@ -47,6 +47,7 @@
         "ENABLE_LDAP": "ON",
         "ENABLE_AAUDIO": "ON",
         "ENABLE_OBOE": "OFF",
+        "ENABLE_OPENSLES": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
         "ENABLE_SCREENSHARING": "OFF",
         "ENABLE_STRICT": "OFF",
