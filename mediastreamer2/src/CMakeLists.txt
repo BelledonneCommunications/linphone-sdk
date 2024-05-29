@@ -154,18 +154,23 @@ if(ENABLE_ANDROIDSND)
 	list(APPEND VOIP_SOURCE_FILES_CXX
 		android/androidsound_utils.cpp
 		android/androidsound_utils_depr.cpp
-		android/androidsound.cpp
-		android/androidsound_depr.cpp
-		android/androidsound_opensles.cpp
-		android/AudioRecord.cpp
-		android/AudioSystem.cpp
-		android/AudioTrack.cpp
+		#android/androidsound.cpp
+		#android/androidsound_depr.cpp
+		#android/androidsound_opensles.cpp
+		#android/AudioRecord.cpp
+		#android/AudioSystem.cpp
+		#android/AudioTrack.cpp
 		android/hardware_echo_canceller.cpp
-		android/loader.cpp
-		android/String8.cpp
+		#android/loader.cpp
+		#android/String8.cpp
 		#audiofilters/aac-eld-android.cpp
 		#Not working on Android, to be fix
 	)
+	if(ENABLE_OPENSLES)
+		list(APPEND VOIP_SOURCE_FILES_CXX
+			android/androidsound_opensles.cpp
+		)
+	endif()
 endif()
 if(ENABLE_ARTSC)
 	list(APPEND VOIP_SOURCE_FILES_C audiofilters/arts.c)

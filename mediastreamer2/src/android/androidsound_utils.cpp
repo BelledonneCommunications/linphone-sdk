@@ -20,6 +20,39 @@
 
 #include <mediastreamer2/android_utils.h>
 
+#include "mediastreamer2/zrtp.h"
+#include <cpu-features.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasNeon(BCTBX_UNUSED(JNIEnv *env),
+                                                                               BCTBX_UNUSED(jclass c)) {
+	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM &&
+	    (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
+		return 1;
+	}
+	return 0;
+}
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasZrtp(BCTBX_UNUSED(JNIEnv *env),
+                                                                               BCTBX_UNUSED(jclass c)) {
+	return ms_zrtp_available();
+}
+
+JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasVideo(BCTBX_UNUSED(JNIEnv *env),
+                                                                                BCTBX_UNUSED(jclass c)) {
+#ifdef VIDEO_ENABLED
+	return JNI_TRUE;
+#else
+	return JNI_FALSE;
+#endif
+}
+
+#ifdef __cplusplus
+}
+#endif
+
 static const char *GetStringUTFChars(JNIEnv *env, jstring string) {
 	const char *cstring = string ? env->GetStringUTFChars(string, nullptr) : nullptr;
 	return cstring;

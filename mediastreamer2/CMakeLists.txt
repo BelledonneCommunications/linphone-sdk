@@ -87,6 +87,7 @@ cmake_dependent_option(ENABLE_GOCLEAR "Build with ZRTP GoClear message support (
 option(ENABLE_SOUND "Can be used to turn off all possible sound backends." YES)
 cmake_dependent_option(ENABLE_ALSA "Enable ALSA support." YES "ENABLE_SOUND;LINUX_OR_BSD" NO)
 cmake_dependent_option(ENABLE_ANDROIDSND "Enable Android sound support." NO "ENABLE_SOUND;ANDROID" NO)
+cmake_dependent_option(ENABLE_OPENSLES "Enable Android OpenSLES sound card support." YES "ENABLE_ANDROIDSND" NO)
 cmake_dependent_option(ENABLE_ARTSC "Enable artsc (KDE<4) sound input/output." NO "ENABLE_SOUND;LINUX_OR_BSD" NO)
 cmake_dependent_option(ENABLE_MACSND "Enable MAC OS X Audio Units sound support." ${ENABLE_MACSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)
 cmake_dependent_option(ENABLE_MACAQSND "Enable native MAC OS X Audio Queue sound support." ${ENABLE_MACAQSND_DEFAULT_VALUE} "ENABLE_SOUND;APPLE" NO)

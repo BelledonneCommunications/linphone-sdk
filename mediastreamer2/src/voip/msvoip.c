@@ -110,9 +110,11 @@ extern MSSndCardDesc au_card_desc;
 #endif
 
 #ifdef __ANDROID__
-extern MSSndCardDesc msandroid_sound_card_desc;
-extern MSSndCardDesc android_native_snd_card_desc;
+// extern MSSndCardDesc msandroid_sound_card_desc;
+// extern MSSndCardDesc android_native_snd_card_desc;
+#ifdef ENABLE_OPENSLES
 extern MSSndCardDesc android_native_snd_opensles_card_desc;
+#endif
 #endif
 
 #endif /* MS2_FILTERS */
@@ -161,12 +163,14 @@ static MSSndCardDesc *ms_snd_card_descs[] = {
 #endif
 
 #ifdef __ANDROID__
-    &android_native_snd_card_desc,
-    &android_native_snd_opensles_card_desc,
-    &msandroid_sound_card_desc,
+//&android_native_snd_card_desc,
+//&msandroid_sound_card_desc,
+#ifdef ENABLE_OPENSLES
+    &android_native_snd_opensles_card_desc
+#endif
 #endif
 #endif /* MS2_FILTERS */
-    NULL};
+        NULL};
 
 #ifdef VIDEO_ENABLED
 

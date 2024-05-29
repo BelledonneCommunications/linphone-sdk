@@ -31,44 +31,11 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#include "mediastreamer2/zrtp.h"
-#include <cpu-features.h>
-
 #define USE_HARDWARE_RATE 1
 
 static const float sndwrite_flush_threshold = 0.020; // ms
 static const float sndread_flush_threshold = 0.020;  // ms
 static void sound_read_setup(MSFilter *f);
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasNeon(BCTBX_UNUSED(JNIEnv *env),
-                                                                               BCTBX_UNUSED(jclass c)) {
-	if (android_getCpuFamily() == ANDROID_CPU_FAMILY_ARM &&
-	    (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON) != 0) {
-		return 1;
-	}
-	return 0;
-}
-
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasZrtp(BCTBX_UNUSED(JNIEnv *env),
-                                                                               BCTBX_UNUSED(jclass c)) {
-	return ms_zrtp_available();
-}
-
-JNIEXPORT jboolean JNICALL Java_org_linphone_mediastream_Version_nativeHasVideo(BCTBX_UNUSED(JNIEnv *env),
-                                                                                BCTBX_UNUSED(jclass c)) {
-#ifdef VIDEO_ENABLED
-	return JNI_TRUE;
-#else
-	return JNI_FALSE;
-#endif
-}
-
-#ifdef __cplusplus
-}
-#endif
 
 static void set_high_prio(void) {
 	/*
@@ -345,7 +312,7 @@ static void *msandroid_read_cb(msandroid_sound_read_data *d) {
 	};
 
 	goto end;
-end : {
+end: {
 	ms_thread_exit(NULL);
 	return 0;
 }
@@ -507,7 +474,7 @@ static void sound_read_postprocess(MSFilter *f) {
 		d->aec = NULL;
 	}
 	goto end;
-end : {
+end: {
 	if (d->ticker_synchronizer) {
 		ms_ticker_synchronizer_destroy(d->ticker_synchronizer);
 		d->ticker_synchronizer = NULL;
@@ -744,7 +711,7 @@ static void *msandroid_write_cb(msandroid_sound_write_data *d) {
 	}
 
 	goto end;
-end : {
+end: {
 	ms_thread_exit(NULL);
 	return NULL;
 }
@@ -854,7 +821,7 @@ void msandroid_sound_write_postprocess(MSFilter *f) {
 	}
 
 	goto end;
-end : {
+end: {
 	if (d->audio_track) jni_env->DeleteGlobalRef(d->audio_track);
 	// d->jvm->DetachCurrentThread();
 	return;
