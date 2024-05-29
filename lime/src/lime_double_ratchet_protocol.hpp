@@ -92,7 +92,7 @@ namespace lime {
 		 * @brief return the size of the X3DH init packet included in the double ratchet packet header
 		 *
 		 * For EC/KEM version X3DH init packet is :
-		 * OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || Ct1 < KEM cipher text size > || [Ct2 <KEM cipher text size>] || SPk Id <4 bytes> || [OPk Id <4 bytes>]
+		 * OPk flag<1 byte> || Ik < DSA public key size > || Ek < DH public key size > || Ct < KEM cipher text size > || SPk Id <4 bytes> || [OPk Id <4 bytes>]
 		 *
 		 * @return	the header size without optionnal X3DH init packet
 		 */
@@ -103,17 +103,17 @@ namespace lime {
 			+ X<typename Algo::EC, lime::Xtype::publicKey>::ssize()
 			+ K<typename Algo::KEM, lime::Ktype::cipherText>::ssize()
 			+ 4 // size of X3DH init message without OPk
-				+ (haveOPk?(4+ K<typename Algo::KEM, lime::Ktype::cipherText>::ssize()):0); // if there is an OPk, we must add 4 for the OPk id
+				+ (haveOPk?4:0); // if there is an OPk, we must add 4 for the OPk id
 		}
 
 		template <typename Curve>
 		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<Curve, lime::DSAtype::publicKey> &Ik, const X<Curve, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template <typename Algo>
-		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, const X<typename Algo::EC, lime::Xtype::publicKey> &Ek, const K<typename Algo::KEM, lime::Ktype::cipherText> &Ct1, const K<typename Algo::KEM, lime::Ktype::cipherText> &Ct2, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		void buildMessage_X3DHinit(std::vector<uint8_t> &message, const DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, const X<typename Algo::EC, lime::Xtype::publicKey> &Ek, const K<typename Algo::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		template <typename Curve>
 		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<Curve, lime::DSAtype::publicKey> &Ik, X<Curve, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		template <typename Algo>
-		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, X<typename Algo::EC, lime::Xtype::publicKey> &Ek, K<typename Algo::KEM, lime::Ktype::cipherText> &Ct1, K<typename Algo::KEM, lime::Ktype::cipherText> &Ct2, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		void parseMessage_X3DHinit(const std::vector<uint8_t>message, DSA<typename Algo::EC, lime::DSAtype::publicKey> &Ik, X<typename Algo::EC, lime::Xtype::publicKey> &Ek, K<typename Algo::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 
 		template <typename Curve>
 		bool parseMessage_get_X3DHinit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
@@ -201,8 +201,8 @@ namespace lime {
 #endif
 
 #ifdef HAVE_BCTBXPQ
-		extern template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
-		extern template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
+		extern template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
+		extern template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255K512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
 		extern template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHsIndex, const std::vector<uint8_t> &DHrIndex, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;

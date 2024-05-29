@@ -387,7 +387,7 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 	 * - header<3 bytes>, X3DH init packet, Ns+PN<4 bytes>, DHs<X<Curve>::keyLength>,  Payload<variable size>, key auth tag<16 bytes> = <23 + X<Curve>::keyLengh + X3DH init size>
 	 */
 	// EC only: X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLength> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
-	// EC/KEM: X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLength> + CT1<K<Curve>::ctLength> + CT2<K<Curve>::ctLength> (if flag is 1)>+ SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
+	// EC/KEM: X3DH init size = OPk_flag<1 byte> + selfIK<DSA<Curve>::keyLength> + EK<X<Curve>::keyLength> + CT<K<Curve>::ctLength> + SPk id<4 bytes> + OPk id (if flag is 1)<4 bytes>
 	switch (message[2]) {
 		case static_cast<uint8_t>(lime::CurveId::c25519):
 			if (message[3] == 0x00) { // no OPk in the X3DH init message
@@ -437,9 +437,9 @@ bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message, bool &haveOPk) {
 				haveOPk=false;
 			} else { // OPk present in the X3DH init message
 				if (payload_direct_encryption) {
-					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + 2*K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() <= (23 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				} else {
-					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + 2*K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
+					if (message.size() != (55 + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + 9 + DSA<C255, lime::DSAtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize() + X<C255, lime::Xtype::publicKey>::ssize())) return false;
 				}
 				haveOPk=true;
 			}
@@ -493,9 +493,6 @@ bool DR_message_extractX3DHInit_SPkId(std::vector<uint8_t> &message, uint32_t &S
 #ifdef HAVE_BCTBXPQ
 		case static_cast<uint8_t>(lime::CurveId::c25519k512):
 			SPkIdPos += DSA<C255, lime::DSAtype::publicKey>::ssize() + X<C255, lime::Xtype::publicKey>::ssize() + K<K512, lime::Ktype::cipherText>::ssize();
-			if (message[3]==0x01) { // there is an OPk -> 2 cipher text in the X3DHinit message
-				SPkIdPos += K<K512, lime::Ktype::cipherText>::ssize();
-			}
 			break;
 #endif
 	}
