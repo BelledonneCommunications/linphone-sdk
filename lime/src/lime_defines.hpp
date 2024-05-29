@@ -63,8 +63,9 @@ namespace settings {
 	 */
 	const std::string hkdf_randomSeed_info{"DR Message Key Derivation"};
 
-	/// DR Public key index size is 16 bytes long (used to identify a DR reception chain for KEM based DR)
-	constexpr size_t DRPkIndexSize=16;
+	/// DR Public key index size is 12 bytes long (used to identify a DR reception chain for KEM based DR)
+	/// it is a hash of the key, on 96 bits, collision chances are negligible
+	constexpr size_t DRPkIndexSize=12;
 
 	/// AEAD generates tag 16 bytes long
 	constexpr size_t DRMessageAuthTagSize=16;

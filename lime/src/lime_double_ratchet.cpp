@@ -579,8 +579,14 @@ namespace lime {
 		KDF_CK<Curve>(m_CKs, MK, m_Ns);
 
 		// build header string in the ciphertext buffer
-		// if we still have peer public key available, it means we decided to skip an asymmetric ratchet and that peer already have our current Pk (otherwise no new one would be available)
-		double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption, m_peerHasSelfPK);
+		if (m_peerHasSelfPK) { // if we know peer already has our public key
+			// do not send it again and just send
+			// - an index of our public key (so peer can retrieve skipped message key if it arrives late)
+			// - an index of the public key we have for the peer, so he may know he can stop sending its current key
+			double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.getDHs().getIndex(), m_ARKeys.getDHr().getIndex(), m_X3DH_initMessage, payloadDirectEncryption);
+		} else {
+			double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption);
+		}
 		auto headerSize = ciphertext.size(); // cipher text holds only the DR header for now
 
 		// increment current sending chain message index
@@ -642,44 +648,44 @@ namespace lime {
 		int maxAllowedDerivation = lime::settings::maxMessageSkip;
 		m_dirty = DRSessionDbStatus::dirty_decrypt; // we're about to modify the DR session, it will not be in sync anymore with local storage
 		if (!m_ARKeys.getValid()) { // it's the first message arriving after the initialisation of the chain in receiver mode, we have no existing history in this chain
-			AsymmetricRatchetReceiving(header.DHs()); // just perform the DH ratchet step
+			AsymmetricRatchetReceiving(header.DHr()); // just perform the DH ratchet step
 			m_ARKeys.setValid(true);
 		} else {
 			// Should we look for skipped keys:
 			bool lookForStoredMessageKeys = true;
 			// - if the incoming message is on the current receiving chain
-			if ( (header.skippedAsymmetricRatchet() && m_ARKeys.getDHr().getIndex() == header.DHIndex())
-				|| (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()==header.DHs())) {
+			if ( (header.skippedAsymmetricRatchet() && m_ARKeys.getDHr().getIndex() == header.DHrIndex())
+				|| (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()==header.DHr())) {
 				// - and the Ns is greater or equal to the current Nr
 				if (header.Ns()>=m_Nr) {
-				// Then the message key can be computed and is not on storage -> do not search for it
+					// Then the message key can be computed and is not on storage -> do not search for it
 					lookForStoredMessageKeys = false;
 				}
-				// peer's skipped the asymmetric ratchet and we are on the current reception chain:
-				// it means peer's has our current public key
-				if (header.skippedAsymmetricRatchet()) {
+			}
+			// Can we confirm that peer got our current public key already (so we may stop sending it)
+			if (header.skippedAsymmetricRatchet()) {
+				if (header.DHsIndex() == m_ARKeys.getDHs().getIndex()) {
 					m_peerHasSelfPK = true;
-
 				}
 			}
 
 			if (lookForStoredMessageKeys) {
 				std::vector<uint8_t> PkIndex{};
-				std::shared_ptr<lime::ARrKey<Curve>> DHs = nullptr;
+				std::shared_ptr<lime::ARrKey<Curve>> DHr = nullptr;
 				if (header.skippedAsymmetricRatchet()) {
-					PkIndex = header.DHIndex();
+					PkIndex = header.DHrIndex();
 				} else {
-					DHs = std::make_shared<lime::ARrKey<Curve>>(header.DHs());
-					PkIndex = DHs->getIndex();
+					DHr = std::make_shared<lime::ARrKey<Curve>>(header.DHr());
+					PkIndex = DHr->getIndex();
 				}
-				// Remove this check on version 5.5.
 				// check stored message keys(lime_tester::curveId(curve))
 				auto foundSkippedKey = trySkippedMessageKeys(header.Ns(), PkIndex, MK);
 
+				// Remove this check on version 5.5.
 				// for retrocompatibility whith old deployments with curve C25519 or C448, we must also check for skipped message keys indexed directly by the key itself
 				if (!foundSkippedKey && !header.skippedAsymmetricRatchet() && (Curve::curveId() == lime::CurveId::c25519 || Curve::curveId() == lime::CurveId::c448)) {
-					std::vector<uint8_t> vDHs{header.DHs().cbegin(), header.DHs().cend()};
-					foundSkippedKey = trySkippedMessageKeys(header.Ns(), vDHs, MK);
+					std::vector<uint8_t> vDHr{header.DHr().cbegin(), header.DHr().cend()};
+					foundSkippedKey = trySkippedMessageKeys(header.Ns(), vDHr, MK);
 				}
 
 				if (foundSkippedKey) {
@@ -699,10 +705,10 @@ namespace lime {
 				}
 			}
 			// if header DH public key != current stored peer public DH key: we must perform a DH ratchet
-			if (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()!=header.DHs()) {
+			if (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()!=header.DHr()) {
 				maxAllowedDerivation -= header.PN()-m_Nr; /* we must derive headerPN-Nr keys, remove this from the count of our allowedDerivation number */
 				skipMessageKeys(header.PN(), lime::settings::maxMessageSkip-header.Ns()); // we must keep header.Ns derivations available for the next chain
-				AsymmetricRatchetReceiving(header.DHs());
+				AsymmetricRatchetReceiving(header.DHr());
 			}
 		}
 

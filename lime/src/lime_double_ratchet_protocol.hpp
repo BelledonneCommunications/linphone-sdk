@@ -69,7 +69,7 @@ namespace lime {
 		template <typename Curve>
 		constexpr size_t headerSize(uint8_t messageType) noexcept {
 			if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::skip_asymmetric_ratchet_flag)) {
-				return 7 + lime::settings::DRPkIndexSize;
+				return 7 + 2*lime::settings::DRPkIndexSize;
 			} else {
 				return 7 + lime::ARrKey<Curve>::serializedSize();
 			}
@@ -119,7 +119,9 @@ namespace lime {
 		bool parseMessage_get_X3DHinit(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
 
 		template <typename Curve>
-		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept;
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		template <typename Curve>
+		void buildMessage_header(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHsIndex, const std::vector<uint8_t> &DHrIndex, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 
 		/**
 		 * @brief helper class and functions to parse Double Ratchet message header and access its components
@@ -129,8 +131,9 @@ namespace lime {
 		 class DRHeader {
 			private:
 				uint16_t m_Ns,m_PN; /**<  Sender chain and Previous Sender chain indexes. */
-				typename lime::ARsKey<Curve>::serializedPublicBuffer m_DHs; /**< Public key */
-				std::vector<uint8_t> m_DHsIndex; /**< Public key index - as stored in DB */
+				typename lime::ARsKey<Curve>::serializedPublicBuffer m_DHr; /**< Remote - from the receiver point of view - public key */
+				std::vector<uint8_t> m_DHrIndex; /**< Public key index of remote key - as stored in DB to index skipped message chain */
+				std::vector<uint8_t> m_DHsIndex; /**< Public key index of self key - as seen by peer: allow to confirm peer got our current key */
 				bool m_valid; /**< is this header valid? */
 				size_t m_size; /**< store the size of parsed header */
 				bool m_payload_direct_encryption; /**< flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet */
@@ -142,8 +145,9 @@ namespace lime {
 				/// read-only accessor to Previous Sender Chain index (PN)
 				uint16_t PN(void) const {return m_PN;}
 				/// read-only accessor to peer Double Ratchet public key
-				const typename ARsKey<Curve>::serializedPublicBuffer &DHs(void) const {return m_DHs;}
-				const std::vector<uint8_t> &DHIndex(void) const {return m_DHsIndex;}
+				const typename ARsKey<Curve>::serializedPublicBuffer &DHr(void) const {return m_DHr;}
+				const std::vector<uint8_t> &DHrIndex(void) const {return m_DHrIndex;}
+				const std::vector<uint8_t> &DHsIndex(void) const {return m_DHsIndex;}
 				/// is this header valid? (property is set by constructor/parser)
 				bool valid(void) const {return m_valid;}
 				/// what encryption mode is advertised in this header
@@ -165,11 +169,13 @@ namespace lime {
 						os<<std::endl<<indent<<"payload direct encryption: "<<m_payload_direct_encryption;
 						os<<std::endl<<indent<<"skipped asymmetric ratchet: "<<m_skipped_asymmetric_ratchet;
 						if (m_skipped_asymmetric_ratchet) {
-							os<<std::endl<<indent<<"PKindex: ";
+							os<<std::endl<<indent<<"PKindex DHr: ";
+							hexStr(os, m_DHrIndex.data(),  lime::settings::DRPkIndexSize);
+							os<<std::endl<<indent<<"PKindex DHs: ";
 							hexStr(os, m_DHsIndex.data(),  lime::settings::DRPkIndexSize);
 						} else {
 							os<<std::endl<<indent<<"PK: ";
-							hexStr(os, m_DHs.data(),  m_DHs.size(),2);
+							hexStr(os, m_DHr.data(),  m_DHr.size(),2);
 						}
 				}
 		 };
@@ -179,7 +185,8 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C255>(std::vector<uint8_t> &message, const DSA<C255, lime::DSAtype::publicKey> &Ik, const X<C255, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C255>(const std::vector<uint8_t>message, DSA<C255, lime::DSAtype::publicKey> &Ik, X<C255, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept;
+		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template void buildMessage_header<C255>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHsIndex, const std::vector<uint8_t> &DHrIndex, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<C255>;
 #endif
 
@@ -187,7 +194,9 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C448>(std::vector<uint8_t> &message, const DSA<C448, lime::DSAtype::publicKey> &Ik, const X<C448, lime::Xtype::publicKey> &Ek, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C448>(const std::vector<uint8_t>message, DSA<C448, lime::DSAtype::publicKey> &Ik, X<C448, lime::Xtype::publicKey> &Ek, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C448>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept;
+		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template void buildMessage_header<C448>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHsIndex, const std::vector<uint8_t> &DHrIndex, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+
 		extern template class DRHeader<C448>;
 #endif
 
@@ -195,7 +204,8 @@ namespace lime {
 		extern template void buildMessage_X3DHinit<C255K512>(std::vector<uint8_t> &message, const DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, const X<C255K512::EC, lime::Xtype::publicKey> &Ek, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, const K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, const uint32_t SPk_id, const uint32_t OPk_id, const bool OPk_flag) noexcept;
 		extern template void parseMessage_X3DHinit<C255K512>(const std::vector<uint8_t>message, DSA<C255K512::EC, lime::DSAtype::publicKey> &Ik, X<C255K512::EC, lime::Xtype::publicKey> &Ek, K<C255K512::KEM, lime::Ktype::cipherText> &Ct1, K<C255K512::KEM, lime::Ktype::cipherText> &Ct2, uint32_t &SPk_id, uint32_t &OPk_id, bool &OPk_flag) noexcept;
 		extern template bool parseMessage_get_X3DHinit<C255K512>(const std::vector<uint8_t> &message, std::vector<uint8_t> &X3DH_initMessage) noexcept;
-		extern template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption, const bool skipAsymmetricRatchet) noexcept;
+		extern template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHs, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
+		extern template void buildMessage_header<C255K512>(std::vector<uint8_t> &header, const uint16_t Ns, const uint16_t PN, const std::vector<uint8_t> &DHsIndex, const std::vector<uint8_t> &DHrIndex, const std::vector<uint8_t> X3DH_initMessage, const bool payloadDirectEncryption) noexcept;
 		extern template class DRHeader<C255K512>;
 #endif //HAVE_BCTBXPQ
 

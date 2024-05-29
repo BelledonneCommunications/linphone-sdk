@@ -61,10 +61,12 @@ namespace lime {
 			ARrKey() : m_DHr{} {};
 
 			const X<Curve, lime::Xtype::publicKey> &publicKey(void) const { return m_DHr;};
+			/// Index is a hash of public key to identify it without sending/storing it all
 			std::vector<uint8_t> getIndex(void) const {
 				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
 				HMAC<SHA512>(nullptr, 0, m_DHr.data(), m_DHr.size(), index.data(), lime::settings::DRPkIndexSize);
-				return index;} // index is directly the public key itself
+				return index;
+			}
 			serializedBuffer serialize(void) const { return m_DHr;}
 	};
 
@@ -102,6 +104,7 @@ namespace lime {
 			const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) const { return m_ec_DHr;};
 			const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) const { return m_kem_DHr;};
 			const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) const { return m_kem_CTr;};
+			/// Index is a hash of public key to identify it without sending/storing it all
 			std::vector<uint8_t> getIndex(void) const {
 				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
 				auto serialized = serialize();
@@ -158,6 +161,12 @@ namespace lime {
 			}
 			/// Serialize the public part only to insert in the DR message header
 			std::vector<uint8_t> serializePublic(void) const { return std::vector<uint8_t>(m_DHs.cpublicKey().cbegin(), m_DHs.cpublicKey().cend());}
+			/// Index is a hash of public key to identify it without sending it all
+			std::vector<uint8_t> getIndex(void) const {
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+				HMAC<SHA512>(nullptr, 0, m_DHs.cpublicKey().data(), m_DHs.cpublicKey().size(), index.data(), lime::settings::DRPkIndexSize);
+				return index;
+			}
 	};
 
 	// Self AR keys for EC/KEM based algo
@@ -235,6 +244,13 @@ namespace lime {
 			       v.insert(v.end(), m_kem_DHs.cpublicKey().cbegin(), m_kem_DHs.cpublicKey().cend());
 			       v.insert(v.end(), m_kem_CTs.cbegin(), m_kem_CTs.cend());
 			       return v;
+			}
+			/// Index is a hash of public key to identify it without sending/storing it all
+			std::vector<uint8_t> getIndex(void) const {
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+				auto serialized = serializePublic();
+				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRPkIndexSize);
+				return index;
 			}
 	};
 
