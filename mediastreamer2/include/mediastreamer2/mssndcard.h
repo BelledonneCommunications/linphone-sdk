@@ -153,7 +153,7 @@ enum _MSSndCardDeviceType {
 	MS_SND_CARD_DEVICE_TYPE_BLUETOOTH,
 	MS_SND_CARD_DEVICE_TYPE_BLUETOOTH_A2DP,
 	MS_SND_CARD_DEVICE_TYPE_UNKNOWN,
-	MS_SND_CARD_DEVICE_TYPE_HEARING_AID
+	MS_SND_CARD_DEVICE_TYPE_HEARING_AID,
 };
 
 /**
@@ -167,6 +167,9 @@ typedef enum _MSSndCardDeviceType MSSndCardDeviceType;
 #define MS_SND_CARD_CAP_PLAYBACK (1 << 1)               /**<This sound card can playback sound */
 #define MS_SND_CARD_CAP_BUILTIN_ECHO_CANCELLER (1 << 2) /**<This sound card has built-in echo cancellation*/
 #define MS_SND_CARD_CAP_IS_SLOW (1 << 3)                /**<This sound card is very slow to start*/
+#define MS_SND_CARD_CAP_FOLLOWS_SYSTEM_POLICY                                                                          \
+	(1 << 4) /**<This sound card follows system's policy regarding audio routes                                        \
+	         Its actual device_type may change according to system's audio route change.*/
 
 struct _MSSndCard {
 	MSSndCardDesc *desc;
@@ -174,6 +177,7 @@ struct _MSSndCard {
 	char *name;
 	char *id;
 	int internal_id;
+	int alternative_id; // used by msaaudio plugin.
 	unsigned int capabilities;
 	MSSndCardDeviceType device_type;
 	void *data;
@@ -182,7 +186,6 @@ struct _MSSndCard {
 	MSSndCardStreamType streamType;
 	int ref_count;
 	const SoundDeviceDescription *device_description;
-	int alternative_id;
 };
 
 #ifdef __cplusplus
