@@ -208,16 +208,16 @@ static void dr_skippedMessages_basic_test(const uint8_t period=1, const uint8_t 
 static void dr_skippedMessages_basic(void) {
 #ifdef EC25519_ENABLED
 	/* send batch of 10 messages, delay by 15 one message each time we reach the end of the batch*/
-	//dr_skippedMessages_basic_test<C255>(10, 10, 1, 15, "dr_skipMessage_1_X25519");
+	dr_skippedMessages_basic_test<C255>(10, 10, 1, 15, "dr_skipMessage_1_X25519");
 	/* delayed messages covering more than a batch */
-	//dr_skippedMessages_basic_test<C255>(3, 7, 4, 17, "dr_skipMessage_2_X25519");
+	dr_skippedMessages_basic_test<C255>(3, 7, 4, 17, "dr_skipMessage_2_X25519");
 #endif
 #ifdef EC448_ENABLED
-	//dr_skippedMessages_basic_test<C448>(10, 10, 1, 15, "dr_skipMessage_1_X448");
-	//dr_skippedMessages_basic_test<C448>(5, 5, 1, 10, "dr_skipMessage_2_X448");
+	dr_skippedMessages_basic_test<C448>(10, 10, 1, 15, "dr_skipMessage_1_X448");
+	dr_skippedMessages_basic_test<C448>(5, 5, 1, 10, "dr_skipMessage_2_X448");
 #endif
 #ifdef HAVE_BCTBXPQ
-	//dr_skippedMessages_basic_test<C255K512>(10, 10, 1, 15, "dr_skipMessage_1_C255K512");
+	dr_skippedMessages_basic_test<C255K512>(10, 10, 1, 15, "dr_skipMessage_1_C255K512");
 	dr_skippedMessages_basic_test<C255K512>(5, 5, 1, 10, "dr_skipMessage_2_C255K512");
 #endif
 }
@@ -255,7 +255,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			recipientDRSessions.push_back(bob);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("alice", "bob", bobUserId, recipientDRSessions, recipients[0].DRmessage, cipherMessage, plainBuffer);
-			std::string plainMessage{plainBuffer.begin(), plainBuffer.end()};
+			std::string plainMessage{plainBuffer.cbegin(), plainBuffer.cend()};
 
 			// same same?
 			BC_ASSERT_TRUE(plainMessage==lime_tester::messages_pattern[i]);
@@ -279,7 +279,7 @@ static void dr_long_exchange_test(uint8_t period=1, std::string db_filename="dr_
 			recipientDRSessions.push_back(alice);
 			std::vector<uint8_t> plainBuffer{};
 			decryptMessage("bob", "alice", aliceUserId, recipientDRSessions, recipients[0].DRmessage, cipherMessage, plainBuffer);
-			std::string plainMessage{plainBuffer.begin(), plainBuffer.end()};
+			std::string plainMessage{plainBuffer.cbegin(), plainBuffer.cend()};
 
 			// same same?
 			BC_ASSERT_TRUE(plainMessage==lime_tester::messages_pattern[i]);

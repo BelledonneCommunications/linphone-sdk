@@ -32,7 +32,7 @@
 namespace lime {
 	/**
 	 * convert a byte buffer into hexadecimal string
-	 * if digest is true, only print the first and last two bytes
+	 * if digest is > 0, only print the first and last digest bytes
 	 */
 	void hexStr(std::ostringstream &os, const uint8_t *data, size_t len, size_t digest=0);
 }

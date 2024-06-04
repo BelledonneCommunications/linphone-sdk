@@ -62,14 +62,13 @@ namespace settings {
 	 */
 	constexpr uint16_t maxSendingChain=500;
 
-	/** @brief Minimum chain settings :
+	/** @brief KEM ratchet chain settings :
 	 *
-	 * - before minSymmetricChainSize is reached(on a cummulative sending and receiving chain)
-	 * the sender in position to perform an asymmetric ratchet will skip doing it
-	 * - previous setting is overriden if the last asymmetric ratchet is older than maxSymmetricChainPeriod (in seconds)
+	 * - before KEMRatchetChainSize is reached (cummulative on sent and received messages), do not perform a KEM ratchet
+	 * - previous setting is overriden if the last KEM  ratchet is older than maxKEMRatchetChainPeriod (in seconds)
 	 */
-	constexpr uint16_t minSymmetricChainSize=42;
-	constexpr unsigned int maxSymmetricChainPeriod=86400; // 1 day
+	constexpr uint16_t KEMRatchetChainSize=42;
+	constexpr unsigned int maxKEMRatchetChainPeriod=86400; // 1 day
 
 	/** Lifetime of a session once not active anymore, unit is day */
 	constexpr unsigned int DRSession_limboTime_days=30;

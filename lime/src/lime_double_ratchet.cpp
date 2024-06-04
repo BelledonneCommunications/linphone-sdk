@@ -33,6 +33,7 @@ using namespace::soci;
 using namespace::lime;
 
 namespace lime {
+	namespace {// anonymous namespace for local functions/classes
 	/**
 	 * @brief the possible status of session regarding the Local Storage
 	 *
@@ -42,7 +43,8 @@ namespace lime {
 		clean, /**< session in cache match the one in local storage */
 		dirty_encrypt, /**< an encrypt was performed modifying part of the cached session */
 		dirty_decrypt, /**< a dencrypt was performed modifying part of the cached session */
-		dirty_ratchet_receiving, /**< a ratchet step was performed modifying part of cached session, using a new peer pk */
+		dirty_ratchet_receiving, /**< a EC onlyratchet step was performed modifying part of cached session, using a new peer pk */
+		dirty_kem_ratchet_receiving, /**< a KEM/EC ratchet step was performed modifying part of cached session, using a new peer pk */
 		dirty_ratchet_sending, /**< a ratchet step was performed modifying part of cached session, using a new self pk */
 		dirty /**< the whole session data must be saved to local storage */
 	};
@@ -204,6 +206,269 @@ namespace lime {
 					plaintext.data());
 	}
 	/**
+	 * @brief helper class and functions to parse Double Ratchet message header and access its components
+	 *
+	 */
+	template <typename Curve, bool = std::is_base_of_v<genericKEM, Curve>>
+	class DRHeader;
+
+	// EC only version
+	template <typename Curve>
+	class DRHeader<Curve, false> {
+		private:
+			uint16_t m_Ns,m_PN; /**<  Sender chain and Previous Sender chain indexes. */
+			lime::X<Curve, lime::Xtype::publicKey> m_DHr; /**< Remote - from the receiver point of view - public key */
+			bool m_valid; /**< is this header valid? */
+			size_t m_size; /**< store the size of parsed header */
+			bool m_payload_direct_encryption; /**< flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet */
+
+		public:
+			/// read-only accessor to Sender Chain index (Ns)
+			uint16_t Ns(void) const {return m_Ns;}
+			/// read-only accessor to Previous Sender Chain index (PN)
+			uint16_t PN(void) const {return m_PN;}
+			/// read-only accessor to peer Double Ratchet public key
+			const lime::X<Curve, lime::Xtype::publicKey> &DHr(void) const {return m_DHr;}
+			/// is this header valid? (property is set by constructor/parser)
+			bool valid(void) const {return m_valid;}
+			/// what encryption mode is advertised in this header
+			bool payloadDirectEncryption(void) const {return m_payload_direct_encryption;}
+			/// is there a KEM public key in this header? Never for EC only.
+			bool havePKIndex(void) const {return false;}
+			/// read-only accessor to the size of parsed header
+			size_t size(void) {return m_size;}
+			/// compare the DHr in the header to the one given in parameter. Return true if they match
+			bool isDHr(const ARrKey<Curve> &DHr) {
+				return (DHr.publicKey() == m_DHr);
+			}
+			/// compare the given DHs with the KEM DHsIndex present in header
+			bool isDHsIndex(const ARsKey<Curve> &DHs) {
+				return false; // EC only version never have any KEM DHs Index in header
+			}
+			std::vector<uint8_t> getDHrIndex(void) {
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+				HMAC<SHA512>(nullptr, 0, m_DHr.data(), m_DHr.size(), index.data(), lime::settings::DRPkIndexSize);
+				return index;
+			}
+			// mostly to make compiler happy as we have no KEM ratchet when using EC only base
+			std::vector<uint8_t> getDHsIndex(void) {
+				return std::vector<uint8_t>{};
+			}
+			/* ctor/dtor */
+			DRHeader() = delete;
+			DRHeader(const std::vector<uint8_t> header) : m_Ns{0}, m_PN{0}, m_DHr{}, m_valid{false}, m_size{0}{ // init valid to false and check during parsing if all is ok
+				// make sure we have at least enough data to parse version<1 byte> || message type<1 byte> || curve Id<1 byte> || [x3dh init] || OPk flag without any ulterior checks on size
+				if (header.size()<3 || header.size()<lime::double_ratchet_protocol::headerSize<Curve>(header[1])) {
+					return; // the valid_flag is false
+				}
+
+				switch (header[0]) { // header[0] contains DR protocol version
+					case lime::double_ratchet_protocol::DR_v01: { // version 0x01 of protocol, see in lime_utils for details
+						if (header[2] != static_cast<uint8_t>(Curve::curveId())) return; // wrong curve in use, return with valid flag false
+						uint8_t messageType = header[1];
+						// Parse the message type byte(see .hpp for mapping):
+						if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag)) {
+							m_payload_direct_encryption = true;
+						} else {
+							m_payload_direct_encryption = false;
+						}
+						m_size = lime::double_ratchet_protocol::headerSize<Curve>(header[1]); // headerSize is the size when no X3DH init is present
+						size_t index = 3;
+						if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag)) {
+
+							size_t x3dh_initMessageSize = lime::double_ratchet_protocol::X3DHinitSize<Curve>(header[3] == 1);
+							m_size += x3dh_initMessageSize;
+							index += x3dh_initMessageSize;
+						}
+						if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
+							m_Ns = header[index]<<8|header[index+1];
+							index += 2;
+							m_PN = header[index]<<8|header[index+1];
+							index += 2;
+							m_DHr.assign(header.cbegin()+index);
+							m_valid = true;
+						}
+					}
+					break;
+
+					default: // just do nothing, we do not know this version of header, don't parse anything and leave its valid flag to false
+					break;
+				}
+			 }
+
+			~DRHeader() {};
+
+			void dump(std::ostringstream &os, std::string indent="        ") const {
+				if (m_valid) {}
+					os<<std::endl<<indent<<"Ns: 0x"<<std::dec<<std::setw(4) << std::setfill('0') << m_Ns;
+					os<<std::endl<<indent<<"PN: 0x"<<std::dec<<std::setw(4) << std::setfill('0') << m_PN;
+					os<<std::endl<<indent<<"payload direct encryption: "<<m_payload_direct_encryption;
+					os<<std::endl<<indent<<"Pk: ";
+					hexStr(os, m_DHr.data(),  m_DHr.size());
+			}
+	};
+
+	// EC+KEM version
+	template <typename Algo>
+	class DRHeader<Algo, true> {
+		private:
+			uint16_t m_Ns,m_PN; /**<  Sender chain and Previous Sender chain indexes. */
+			// TODO: union
+			lime::X<typename Algo::EC, lime::Xtype::publicKey> m_EC_DHr; /**< Remote - from the receiver point of view - public key */
+			std::vector<uint8_t> m_KEMDHrIndex; /**< KEM Public key index of remote key - as stored in DB to index skipped message chain */
+			std::vector<uint8_t> m_KEMDHsIndex; /**< KEM Public key index of self key - as seen by peer: allow to confirm peer got our current key */
+			// TODO OR
+			typename lime::ARrKey<Algo>::serializedBuffer m_DHr; /**< Remote - from the receiver point of view - public key */
+
+			bool m_valid; /**< is this header valid? */
+			size_t m_size; /**< store the size of parsed header */
+			bool m_payload_direct_encryption; /**< flag to store the message encryption mode: in the double ratchet packet or using a random key to encrypt it separately and encrypt the key in the DR packet */
+			bool m_havePkIndex; /**< The header holds KEM Pk indexes and not the actual PK/CT*/
+
+		public:
+			/// read-only accessor to Sender Chain index (Ns)
+			uint16_t Ns(void) const {return m_Ns;}
+			/// read-only accessor to Previous Sender Chain index (PN)
+			uint16_t PN(void) const {return m_PN;}
+			/// read-only accessor to peer EC Double Ratchet public key
+			const lime::X<typename Algo::EC, lime::Xtype::publicKey> &ECDHr(void) const {return m_EC_DHr;}
+			/// read-only accessor to peer whole set of keys/ct :EC pk, KEM pk, KEM ct
+			const typename lime::ARsKey<Algo>::serializedPublicBuffer &DHr(void) const {return m_DHr;}
+			/// is this header valid? (property is set by constructor/parser)
+			bool valid(void) const {return m_valid;}
+			/// what encryption mode is advertised in this header
+			bool payloadDirectEncryption(void) const {return m_payload_direct_encryption;}
+			/// is there a KEM public key in this header or just an index?
+			bool havePKIndex(void) const {return m_havePkIndex;}
+			/// read-only accessor to the size of parsed header
+			size_t size(void) {return m_size;}
+			/// compare the DHr in the header to the one given in parameter. Return true if they match
+			bool isDHr(const ARrKey<Algo> &DHr) {
+				if (m_havePkIndex) {
+					return ((DHr.ECPublicKey() == m_EC_DHr)
+						&& (DHr.getKEMIndex() == m_KEMDHrIndex));
+				} else { // we have a whole DHr
+					return (DHr.serialize() == m_DHr);
+				}
+
+			}
+			/// compare the given DHs with the KEM DHsIndex present in header
+			bool isDHsIndex(const ARsKey<Algo> &DHs) {
+				return (m_havePkIndex && (DHs.getKEMIndex() == m_KEMDHsIndex));
+				return false; // EC only version never have any KEM DHs Index in header
+			}
+			/// Return the index used in Db:
+			/// - first part is the ECDH index
+			/// - second part is KEM index
+			std::vector<uint8_t> getDHrIndex(void) {
+				if (m_havePkIndex) { // we have directly the KEM index in header
+					std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+					HMAC<SHA512>(nullptr, 0, m_EC_DHr.data(), m_EC_DHr.size(), index.data(), lime::settings::DRPkIndexSize);
+					index.insert(index.end(), m_KEMDHrIndex.cbegin(), m_KEMDHrIndex.cend());
+					return index;
+				} else {// compute the two parts from the DHr buffer holding: EC pk || KEM pk || KEM ct
+					std::vector<uint8_t>index(2*lime::settings::DRPkIndexSize);
+					HMAC<SHA512>(nullptr, 0, m_DHr.data(), lime::X<Algo, lime::Xtype::publicKey>::ssize(), index.data(), lime::settings::DRPkIndexSize);
+					HMAC<SHA512>(nullptr, 0,
+								 m_DHr.data() + lime::X<Algo, lime::Xtype::publicKey>::ssize(), K<Algo, lime::Ktype::publicKey>::ssize()+K<Algo, lime::Ktype::cipherText>::ssize(),
+								 index.data() + lime::settings::DRPkIndexSize, lime::settings::DRPkIndexSize);
+					return index;
+				}
+			}
+			// return DHs index if any, empty vector otherwise
+			std::vector<uint8_t> getDHsIndex(void) {
+				if (m_havePkIndex) {
+					return m_KEMDHsIndex;
+				} else {
+					return std::vector<uint8_t>{};
+				}
+			}
+			/* ctor/dtor */
+			DRHeader() = delete;
+			DRHeader(const std::vector<uint8_t> header) : m_Ns{0}, m_PN{0}, m_EC_DHr{}, m_valid{false}, m_size{0}{ // init valid to false and check during parsing if all is ok
+				// make sure we have at least enough data to parse version<1 byte> || message type<1 byte> || curve Id<1 byte> || [x3dh init] || OPk flag without any ulterior checks on size
+				if (header.size()<3 || header.size()<lime::double_ratchet_protocol::headerSize<Algo>(header[1])) {
+					return; // the valid_flag is false
+				}
+
+				switch (header[0]) { // header[0] contains DR protocol version
+					case lime::double_ratchet_protocol::DR_v01: { // version 0x01 of protocol, see in lime_utils for details
+						if (header[2] != static_cast<uint8_t>(Algo::curveId())) return; // wrong curve in use, return with valid flag false
+						uint8_t messageType = header[1];
+						// Parse the message type byte
+						if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag)) {
+							m_payload_direct_encryption = true;
+						} else {
+							m_payload_direct_encryption = false;
+						}
+						if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::KEM_pk_index)) {
+							m_havePkIndex = true;
+						} else {
+							m_havePkIndex = false;
+						}
+
+						m_size = lime::double_ratchet_protocol::headerSize<Algo>(header[1]); // headerSize is the size when no X3DH init is present
+						size_t index = 3;
+						if (messageType & static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag)) {
+
+							size_t x3dh_initMessageSize = lime::double_ratchet_protocol::X3DHinitSize<Algo>(header[3] == 1);
+							m_size += x3dh_initMessageSize;
+							index += x3dh_initMessageSize;
+						}
+						if (header.size() >=  m_size) { //header shall be actually longer because buffer pass is the whole message
+							m_Ns = header[index]<<8|header[index+1];
+							index += 2;
+							m_PN = header[index]<<8|header[index+1];
+							index += 2;
+
+							if (m_havePkIndex) { // We have a EC key and KEM indexes
+								m_EC_DHr.assign(header.cbegin()+index);
+								index += m_EC_DHr.size();
+								m_KEMDHrIndex.assign(header.cbegin()+index, header.cbegin()+index + lime::settings::DRPkIndexSize);
+								index += lime::settings::DRPkIndexSize;
+								m_KEMDHsIndex.assign(header.cbegin()+index, header.cbegin()+index + lime::settings::DRPkIndexSize);
+							} else { // We have a whole DHs in this message, copy it
+								std::copy_n(header.cbegin()+index, m_DHr.size(), m_DHr.begin());
+							}
+							m_valid = true;
+						}
+					}
+					break;
+
+					default: // just do nothing, we do not know this version of header, don't parse anything and leave its valid flag to false
+					break;
+				}
+			 }
+
+			~DRHeader() {};
+
+			void dump(std::ostringstream &os, std::string indent="        ") const {
+				if (m_valid) {}
+					os<<std::endl<<indent<<"Ns: 0x"<<std::dec<<std::setw(4) << std::setfill('0') << m_Ns;
+					os<<std::endl<<indent<<"PN: 0x"<<std::dec<<std::setw(4) << std::setfill('0') << m_PN;
+					os<<std::endl<<indent<<"payload direct encryption: "<<m_payload_direct_encryption;
+					os<<std::endl<<indent<<"PK KEM Index: "<<m_havePkIndex;
+					if (m_havePkIndex) {
+						os<<std::endl<<indent<<"EC Pk: ";
+						hexStr(os, m_EC_DHr.data(),  m_EC_DHr.size());
+						os<<std::endl<<indent<<"KEM Index DHr: ";
+						hexStr(os, m_KEMDHrIndex.data(),  m_KEMDHrIndex.size());
+						os<<std::endl<<indent<<"KEM Index DHs: ";
+						hexStr(os, m_KEMDHsIndex.data(),  m_KEMDHsIndex.size());
+					} else {
+						os<<std::endl<<indent<<"EC Pk: ";
+						hexStr(os, m_DHr.data(),  lime::X<Algo, lime::Xtype::publicKey>::ssize());
+						os<<std::endl<<indent<<"KEM Pk: ";
+						hexStr(os, m_DHr.data() + lime::X<Algo, lime::Xtype::publicKey>::ssize(),  K<Algo, lime::Ktype::publicKey>::ssize());
+						os<<std::endl<<indent<<"KEM Ct: ";
+						hexStr(os, m_DHr.data() + lime::X<Algo, lime::Xtype::publicKey>::ssize() + K<Algo, lime::Ktype::publicKey>::ssize(), K<Algo, lime::Ktype::cipherText>::ssize());
+					}
+			}
+	 };
+}// anonymous namespace for local functions/classes
+
+
+	/**
 	 * @brief a Double Rachet session, implements the DR interface.
 	 *
 	 * A session is associated to a local user and a peer device.
@@ -238,7 +503,9 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<Curve, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false}, m_lastRatchetEpoch(0),
+			:m_ARKeys{peerPublicKey},
+			m_forceKEMRatchet{false}, m_peerKEMPkAvailable{false},  m_peerHasSelfKEMPk{false},
+			m_peerECPkAvailable{false}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
@@ -282,7 +549,9 @@ namespace lime {
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARrKey<Curve> &peerPublicKey, long int peerDid, const std::string &peerDeviceId, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, const std::vector<uint8_t> &X3DH_initMessage, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{peerPublicKey},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false},m_lastRatchetEpoch(0),
+			:m_ARKeys{peerPublicKey},
+			m_forceKEMRatchet{false}, m_peerKEMPkAvailable{false},  m_peerHasSelfKEMPk{false},
+			m_peerECPkAvailable{false}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{X3DH_initMessage}
@@ -332,7 +601,9 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, const DRChainKey &SK, const SharedADBuffer &AD, const ARsKey<Curve> &selfKeyPair, long int peerDid, const std::string &peerDeviceId, const uint32_t OPk_id, const DSA<typename Curve::EC, lime::DSAtype::publicKey> &peerIk, long int selfDid, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{selfKeyPair},m_peerPKavailable{true},m_peerHasSelfPK{true},m_forceAsymmetricRatchet{true},m_lastRatchetEpoch(0),
+			:m_ARKeys{selfKeyPair},
+			m_forceKEMRatchet{true}, m_peerKEMPkAvailable{true},  m_peerHasSelfKEMPk{false},
+			m_peerECPkAvailable{true}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
 			m_RK(SK),m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD(AD),m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{0},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{OPk_id}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::dirty},m_peerDid{peerDid},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{selfDid}, m_active_status{true}, m_X3DH_initMessage{}
@@ -355,7 +626,10 @@ namespace lime {
 			 * @param[in]	RNG_context	A Random Number Generator context used for any rndom generation needed by this session
 			 */
 			DRi(std::shared_ptr<lime::Db> localStorage, long sessionId, std::shared_ptr<RNG> RNG_context)
-			:m_ARKeys{},m_peerPKavailable{false},m_peerHasSelfPK{false},m_forceAsymmetricRatchet{false}, m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
+			:m_ARKeys{},
+			m_forceKEMRatchet{false}, m_peerKEMPkAvailable{false},  m_peerHasSelfKEMPk{false},
+			m_peerECPkAvailable{false}, m_KEMRatchetChainSize{0}, m_lastKEMRatchetEpoch(0),
+			m_RK{},m_CKs{},m_CKr{},m_Ns(0),m_Nr(0),m_PN(0),m_sharedAD{},m_mkskipped{},
 			m_RNG{RNG_context},m_dbSessionId{sessionId},m_usedNr{0},m_usedDHid{0}, m_usedOPkId{0}, m_localStorage{localStorage},m_dirty{DRSessionDbStatus::clean},m_peerDid{0},m_peerDeviceId{},
 			m_peerIk{},m_db_Uid{0},	m_active_status{false}, m_X3DH_initMessage{}
 			{
@@ -378,10 +652,12 @@ namespace lime {
 		private:
 			/* State variables for Double Ratchet, see Double Ratchet spec section 3.2 for details */
 			ARKeys<Curve> m_ARKeys; // Asymmetric Ratchet keys
-			bool m_peerPKavailable; // true : the peer Public key was not yet consumed to update sending chain
-			bool m_peerHasSelfPK; // true: our correspondant have our current public key
-			bool m_forceAsymmetricRatchet; // flag set to true at session creation on reception to force an asymmetric ratchet on the first response
-			int64_t m_lastRatchetEpoch; // timestamp storing the last asymmetric receiving ratchet execution (as unixepoch)
+			bool m_forceKEMRatchet; // flag set to true at session creation on reception to force a KEM ratchet on the first response
+			bool m_peerKEMPkAvailable; // true : the KEM peer Public key was not yet consumed to update sending chain
+			bool m_peerHasSelfKEMPk; // true: our correspondant have our current public key
+			bool m_peerECPkAvailable; // true : the EC peer Public key was not yet consumed to update sending chain
+			uint32_t m_KEMRatchetChainSize; // How many messages were exchanged since the last KEM Ratchet
+			int64_t m_lastKEMRatchetEpoch; // timestamp storing the last asymmetric receiving ratchet execution (as unixepoch)
 			DRChainKey m_RK; // 32 bytes root key
 			DRChainKey m_CKs; // 32 bytes key chain for sending
 			DRChainKey m_CKr; // 32 bytes key chain for receiving
@@ -408,7 +684,8 @@ namespace lime {
 			/*helpers functions */
 			void skipMessageKeys(const uint16_t until, const int limit); /* check if we skipped some messages in current receiving chain, generate and store in session intermediate message keys */
 			/* local storage related */
-			int DHrStatusIntFlags(void); /* compute the Integer Flag stored in DB aggregating information about Peer's and Self public key status */
+			int DHrStatusToInt(void); /* compute the DHr status Integer stored in DB aggregating information about Peer's and Self public key status */
+			void IntToDHrStatus(int DHrStatus); /* set information related to Peer's and Self pk into the session from the int stored in DB */
 			bool session_save(bool commit=true); /* save/update session in database : updated component depends m_dirty value, when commit is true, commit transaction in DB */
 			bool session_load(); /* load session from database */
 			bool trySkippedMessageKeys(const uint16_t Nr, const std::vector<uint8_t> &DHrIndex, DRMKey &MK); /* check in DB if we have a message key matching public DH and Ns */
@@ -420,18 +697,18 @@ namespace lime {
 			 * @param[in] headerDH	The peer public key provided in the message header
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			void AsymmetricRatchetReceiving(const typename ARsKey<Curve>::serializedPublicBuffer &headerDH) {
+			void AsymmetricRatchetReceiving(const DRHeader<Curve> &header) {
 				// reinit counters
 				m_Nr=0;
+				m_KEMRatchetChainSize = 0; // This one is not used by non KEM ratchet but always defined in DRi object so reset it to avoid overflow
 
 				// this is our new DHr
-				m_ARKeys.setDHr(headerDH);
-				m_peerPKavailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
-				m_peerHasSelfPK = true; // peer also have our current public key - as it was used to perform an asymmetric ratchet
+				m_ARKeys.setDHr(header.DHr());
+				m_peerECPkAvailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
 
 				// compute shared secret with new peer public and current self secret
 				auto DH = make_keyExchange<typename Curve::EC>();
-				DH->set_peerPublic(m_ARKeys.getDHr().publicKey());
+				DH->set_peerPublic(m_ARKeys.cgetDHr().publicKey());
 				DH->set_selfPublic(m_ARKeys.getDHs().publicKey()); // TODO: Do we need to copy self public key in context ?
 				DH->set_secret(m_ARKeys.getDHs().privateKey());
 
@@ -451,96 +728,235 @@ namespace lime {
 				// reinit counters
 				m_PN=m_Ns;
 				m_Ns=0;
+				m_KEMRatchetChainSize = 0; // This one is not used by non KEM ratchet but always defined in DRi object so reset it to avoid overflow
 
 				auto DH = make_keyExchange<typename Curve::EC>();
 				// generate a new self key pair
 				DH->createKeyPair(m_RNG);
 
 				// compute shared secret with new self and current peer public
-				DH->set_peerPublic(m_ARKeys.getDHr().publicKey());
+				DH->set_peerPublic(m_ARKeys.cgetDHr().publicKey());
 				DH->computeSharedSecret();
 				KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret());
 
 				// set self key pair in context
 				m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret()));
-				m_peerHasSelfPK = false;
 
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
-				m_peerPKavailable = false; // make sure we will not make another ratchet with this key
-				m_forceAsymmetricRatchet = false; // we are making a ratchet so make sure to clear the force ratchet flag used only to force it once after session creation on receiver side
+				m_peerECPkAvailable = false; // make sure we will not make another ratchet with this key
 			}
 			/**
 			 * @brief perform an Asymmetric Ratchet with KEM on reception of peer's new public key
 			 *
 			 * - for the DH part: exact same principle as decribed in DR spec section 3.5
-			 * - KEM part, peer's header holds:
+			 * - KEM part: depends on header, if there is a KEM public key/cipher text that we do not know, do it
 			 *   * a cipher text encapsulating a secret we can decapsulate using our self KEM private key -> needed to update the receiving key chain
 			 *   * peer's header holds a public key we use to encapsulate a fresh secret -> store it and use it when we update the sending key chain
 			 *
 			 * @param[in] headerDH	The peer public keys provided in the message header: DH pk || KEM pk || KEM ct
 			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
-			void AsymmetricRatchetReceiving(const typename ARsKey<Curve>::serializedPublicBuffer &headerDH) {
+			void AsymmetricRatchetReceiving(const DRHeader<Curve> &header) {
 				// reinit counters
 				m_Nr=0;
 
-				// this is our new DHr
-				m_ARKeys.setDHr(headerDH);
-				m_peerPKavailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
-				m_peerHasSelfPK = true; // peer also have our current public key - as it was used to perform an asymmetric ratchet
+				if (header.havePKIndex()) { // if this header holds only an EC Pk and KEM keys indexes
+					// set only a new EC DHr
+					m_ARKeys.getDHr().setECPk(header.ECDHr());
+				} else {
+					// set the whole DHr
+					m_ARKeys.setDHr(header.DHr());
+					m_peerKEMPkAvailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
+					m_peerHasSelfKEMPk = true; // peer also have our current public key - as it was used to perform an encapsulation
+					m_KEMRatchetChainSize = 0;
+				}
+				m_peerECPkAvailable = true; // this is a fresh peer key, no sending ratchet performed with it yet
 
-				// compute shared secret with new peer public and current self secret
+				// compute shared secret with new peer EC public and current self secret
 				auto DH = make_keyExchange<typename Curve::EC>();
-				DH->set_peerPublic(m_ARKeys.getDHr().ECPublicKey());
-				DH->set_selfPublic(m_ARKeys.getDHs().ECPublicKey());
+				DH->set_peerPublic(m_ARKeys.cgetDHr().ECPublicKey());
+				DH->set_selfPublic(m_ARKeys.cgetDHs().ECPublicKey());
 				DH->set_secret(m_ARKeys.getDHs().ECPrivateKey());
-				auto KEMengine = make_KEM<typename Curve::KEM>();
-				K<typename Curve::KEM, lime::Ktype::sharedSecret> KEMss{};
-				KEMengine->decaps(m_ARKeys.getDHs().KEMPrivateKey(), m_ARKeys.getDHr().KEMCipherText(), KEMss);
-
-				//  Derive the new receiving chain key
 				DH->computeSharedSecret();
-				KEM_KDF_RK<Curve>(m_RK, m_CKr, DH->get_sharedSecret(), KEMss,
-								  m_ARKeys.getDHr().ECPublicKey(), m_ARKeys.getDHs().ECPublicKey(),
-								  m_ARKeys.getDHs().KEMPublicKey(), m_ARKeys.getDHr().KEMCipherText());
 
-				// modified the DR session, not in sync anymore with local storage
-				m_dirty = DRSessionDbStatus::dirty_ratchet_receiving;
+				// EC ratchet only
+				if (header.havePKIndex()) {
+					KDF_RK<typename Curve::EC>(m_RK, m_CKr, DH->get_sharedSecret());
+					// modified the DR session, not in sync anymore with local storage
+					m_dirty = DRSessionDbStatus::dirty_ratchet_receiving;
+				}else  { // We must also perform a KEM ratchet
+					auto KEMengine = make_KEM<typename Curve::KEM>();
+					K<typename Curve::KEM, lime::Ktype::sharedSecret> KEMss{};
+					KEMengine->decaps(m_ARKeys.getDHs().KEMPrivateKey(), m_ARKeys.getDHr().KEMCipherText(), KEMss);
+					//  Derive the new receiving chain key
+					KEM_KDF_RK<Curve>(m_RK, m_CKr, DH->get_sharedSecret(), KEMss,
+								  m_ARKeys.cgetDHr().ECPublicKey(), m_ARKeys.cgetDHs().ECPublicKey(),
+								  m_ARKeys.cgetDHs().KEMPublicKey(), m_ARKeys.cgetDHr().KEMCipherText());
+					// modified the DR session, not in sync anymore with local storage
+					m_dirty = DRSessionDbStatus::dirty_kem_ratchet_receiving;
+				}
 			}
+
+			/** EC/KEM based asymmetric ratchet sending
+			 * We may perform a simple EC ratchet or an EC+KEM ratchet
+			 * Simple EC ratchet is the default (as its cost - in terms of header overhead) is cheap
+			 * EC/KEM overhead is more of a burden so use it less often
+			 */
 			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
 			void AsymmetricRatchetSending() {
+				// Shall we perform a KEM ratchet
+				bool KEMRatchet = false;
+				if (m_peerKEMPkAvailable) { // Can we do that?
+					bctoolboxTimeSpec currentUTCtime;
+					bctbx_get_utc_cur_time(&currentUTCtime);
+					if ( (m_KEMRatchetChainSize > lime::settings::KEMRatchetChainSize) // if the chain is long enough
+						|| ((currentUTCtime.tv_sec - m_lastKEMRatchetEpoch)>lime::settings::maxKEMRatchetChainPeriod)  // or the last KEM ratchet is old enough
+						|| m_forceKEMRatchet) { // or we force the asymmetric ratchet (first encryption after a session init on receiver side)
+							KEMRatchet = true;
+					}
+				}
+
 				// reinit counters
 				m_PN=m_Ns;
 				m_Ns=0;
 
-				// generate a new shared secrets: new key pair for EC, encapsulate for KEM
+				// generate a new shared secrets: new key pair for EC
 				auto DH = make_keyExchange<typename Curve::EC>();
-				DH->set_peerPublic(m_ARKeys.getDHr().ECPublicKey());
+				DH->set_peerPublic(m_ARKeys.cgetDHr().ECPublicKey());
 				DH->createKeyPair(m_RNG);
 				DH->computeSharedSecret();
-				auto KEMengine = make_KEM<typename Curve::KEM>();
-				// encapsulate a new shared secret using peer's public key
-				K<typename Curve::KEM, lime::Ktype::sharedSecret> KEMss{};
-				K<typename Curve::KEM, lime::Ktype::cipherText> KEMct{};
-				KEMengine->encaps(m_ARKeys.getDHr().KEMPublicKey(), KEMct, KEMss);
+				if (KEMRatchet) {
+					auto KEMengine = make_KEM<typename Curve::KEM>();
+					// encapsulate a new shared secret using peer's public key
+					K<typename Curve::KEM, lime::Ktype::sharedSecret> KEMss{};
+					K<typename Curve::KEM, lime::Ktype::cipherText> KEMct{};
+					KEMengine->encaps(m_ARKeys.cgetDHr().KEMPublicKey(), KEMct, KEMss);
 
-				//  Derive the new sending chain key
-				KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss,
-								  DH->get_selfPublic(), m_ARKeys.getDHr().ECPublicKey(),
+					//  Derive the new sending chain key
+					KEM_KDF_RK<Curve>(m_RK, m_CKs, DH->get_sharedSecret(), KEMss,
+								  DH->get_selfPublic(), m_ARKeys.cgetDHr().ECPublicKey(),
 								  m_ARKeys.getDHr().KEMPublicKey(), KEMct);
-
-				// Generate a new key pair for KEM
-				Kpair<typename Curve::KEM> ARsKEMpair{};
-				KEMengine->createKeyPair(ARsKEMpair);
-				// save self new key pairs in context
-				m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret(), ARsKEMpair.cpublicKey(), ARsKEMpair.cprivateKey(), KEMct));
-				m_peerHasSelfPK = false;
+					// Generate a new key pair for KEM
+					Kpair<typename Curve::KEM> ARsKEMpair{};
+					KEMengine->createKeyPair(ARsKEMpair);
+					// save self new key pairs in context
+					m_ARKeys.setDHs(ARsKey<Curve>(DH->get_selfPublic(), DH->get_secret(), ARsKEMpair.cpublicKey(), ARsKEMpair.cprivateKey(), KEMct));
+					m_peerHasSelfKEMPk = false;
+					m_peerKEMPkAvailable = false; // make sure we will not make another ratchet with this key
+					m_forceKEMRatchet = false; // we are making a ratchet so make sure to clear the force ratchet flag used only to force it once after session creation on receiver side
+				} else {
+					KDF_RK<typename Curve::EC>(m_RK, m_CKs, DH->get_sharedSecret());
+					// save self new key pairs in context
+					m_ARKeys.getDHs().setEC(DH->get_selfPublic(), DH->get_secret());
+				}
 
 				// modified the DR session, not in sync anymore with local storage
 				m_dirty = DRSessionDbStatus::dirty_ratchet_sending;
-				m_peerPKavailable = false; // make sure we will not make another ratchet with this key
-				m_forceAsymmetricRatchet = false; // we are making a ratchet so make sure to clear the force ratchet flag used only to force it once after session creation on receiver side
+				m_peerECPkAvailable = false; // make sure we will not make another ratchet with this key
+			}
+
+			/**
+			* @brief Build a header string from needed info
+			* version for EC key only: asymmetric ratchet public keys is always present
+			*
+			*	header is:
+			*
+			*	Protocol Version Number<1 byte> ||\n
+			*	Message Type <1 byte> ||\n
+			*	curveId <1 byte> ||\n
+			*	[X3DH Init message < variable >] ||\n
+			*	Ns<2 bytes> ||\n
+			*	PN<2 bytes> ||\n
+			*	DHs<...>
+			*
+			* @param[in]	payloadDirectEncryption		Set the Payload Direct Encryption flag in header
+			*/
+			template<typename Curve_ = Curve, std::enable_if_t<!std::is_base_of_v<genericKEM, Curve_>, bool> = true>
+			void writeDRheader(std::vector<uint8_t> &header, const bool payloadDirectEncryption) const noexcept {
+				header.assign(1, static_cast<uint8_t>(double_ratchet_protocol::DR_v01));
+				uint8_t messageType = 0;
+				if (payloadDirectEncryption) { // if requested, turn the payload direct encryption flag on
+					messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag); // turn on the flag
+				}
+
+				if (m_X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
+					messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // turn on the flag
+					header.push_back(messageType);
+					header.push_back(static_cast<uint8_t>(Curve::curveId()));
+					header.insert(header.end(), m_X3DH_initMessage.cbegin(), m_X3DH_initMessage.cend());
+				} else {
+					messageType &= ~static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // be sure to have this flag turned off
+					header.push_back(messageType);
+					header.push_back(static_cast<uint8_t>(Curve::curveId()));
+				}
+				header.push_back((uint8_t)((m_Ns>>8)&0xFF));
+				header.push_back((uint8_t)(m_Ns&0xFF));
+				header.push_back((uint8_t)((m_PN>>8)&0xFF));
+				header.push_back((uint8_t)(m_PN&0xFF));
+				const auto DHs = m_ARKeys.serializePublicDHs();
+				header.insert(header.end(), DHs.cbegin(), DHs.cend());
+			}
+
+			/**
+			* @brief Build a header string from needed info
+			* version for EC/KEM key only, we can have
+			* - asymmetric ratchet public keys (both EC and KEM)
+			* - EC public key and Self KEM index + Peer KEM index
+			*
+			*	header is:
+			*
+			*	Protocol Version Number<1 byte> ||\n
+			*	Message Type <1 byte> ||\n
+			*	curveId <1 byte> ||\n
+			*	[X3DH Init message < variable >] ||\n
+			*	Ns<2 bytes> ||\n
+			*	PN<2 bytes> ||\n
+			*	ECDHs<...>
+			*   Self KEM index <12 bytes> || Peer KEM index <12 bytes>
+			*
+			* @param[in]	payloadDirectEncryption		Set the Payload Direct Encryption flag in header
+			*/
+			template<typename Curve_ = Curve, std::enable_if_t<std::is_base_of_v<genericKEM, Curve_>, bool> = true>
+			void writeDRheader(std::vector<uint8_t> &header, const bool payloadDirectEncryption) const noexcept {
+				header.assign(1, static_cast<uint8_t>(double_ratchet_protocol::DR_v01));
+				uint8_t messageType = 0;
+				if (payloadDirectEncryption) { // if requested, turn the payload direct encryption flag on
+					messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::payload_direct_encryption_flag); // turn on the flag
+				}
+				if (m_peerHasSelfKEMPk) { // peer already get our KEM Pk
+					// No KEM asymmetric ratchet public key but index only
+					messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::KEM_pk_index); // turn on the flag
+				}
+
+				if (m_X3DH_initMessage.size()>0) { // we do have an X3DH init message to insert in the header
+					messageType |= static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // turn on the flag
+					header.push_back(messageType);
+					header.push_back(static_cast<uint8_t>(Curve::curveId()));
+					header.insert(header.end(), m_X3DH_initMessage.cbegin(), m_X3DH_initMessage.cend());
+				} else {
+					messageType &= ~static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::X3DH_init_flag); // be sure to have this flag turned off
+					header.push_back(messageType);
+					header.push_back(static_cast<uint8_t>(Curve::curveId()));
+				}
+				header.push_back((uint8_t)((m_Ns>>8)&0xFF));
+				header.push_back((uint8_t)(m_Ns&0xFF));
+				header.push_back((uint8_t)((m_PN>>8)&0xFF));
+				header.push_back((uint8_t)(m_PN&0xFF));
+				if (m_peerHasSelfKEMPk) { // peer already get our KEM Pk
+					// insert EC public part
+					const auto ECDHs = m_ARKeys.cgetDHs().serializeECPublic();
+					header.insert(header.end(), ECDHs.cbegin(), ECDHs.cend());
+					// insert self KEM key index
+					const auto KEMDHsIndex = m_ARKeys.cgetDHs().getKEMIndex();
+					header.insert(header.end(), KEMDHsIndex.cbegin(), KEMDHsIndex.cend());
+					// insert peer KEM key index
+					const auto KEMDHrIndex = m_ARKeys.cgetDHr().getKEMIndex();
+					header.insert(header.end(), KEMDHrIndex.cbegin(), KEMDHrIndex.cend());
+				} else { // insert the whole DHs (including KEM part)
+					const auto DHs = m_ARKeys.serializePublicDHs();
+					header.insert(header.end(), DHs.cbegin(), DHs.cend());
+				}
 			}
 	};
 
@@ -558,39 +974,22 @@ namespace lime {
 	template <typename Curve>
 	void DRi<Curve>::ratchetEncrypt(const std::vector<uint8_t> &plaintext, std::vector<uint8_t> &&AD, std::vector<uint8_t> &ciphertext, const bool payloadDirectEncryption) {
 		m_dirty = DRSessionDbStatus::dirty_encrypt; // we're about to modify this session, it won't be in sync anymore with local storage
-		// Shall we perform an asymmetric ratchet step?
-		if (m_peerPKavailable) {
-			// transition: do not skip asymmetric ratchet for c25519 or c448 for now to keep retrocompatibility. Enable it in the future when version 5.3 phases out
-			if (Curve::curveId() == lime::CurveId::c25519 || Curve::curveId() == lime::CurveId::c448) {
-				AsymmetricRatchetSending();
-			} else {
-				bctoolboxTimeSpec currentUTCtime;
-				bctbx_get_utc_cur_time(&currentUTCtime);
-				if ( ((m_Ns + m_Nr)>lime::settings::minSymmetricChainSize) // if the chain is long enough (cummulative on sent and receive)
-					|| ((currentUTCtime.tv_sec - m_lastRatchetEpoch)>lime::settings::maxSymmetricChainPeriod)  // or last ratchet is old enough
-				    || m_forceAsymmetricRatchet) { // or we force the asymmetric ratchet (first encryption after a session init on receiver side)
-					AsymmetricRatchetSending();
-				}
-			}
+		// Shall we perform an asymmetric ratchet step? If there is at least an EC public key available, yes
+		if (m_peerECPkAvailable) {
+			AsymmetricRatchetSending();
 		}
 
 		// chain key derivation(also compute message key)
 		DRMKey MK;
 		KDF_CK<Curve>(m_CKs, MK, m_Ns);
 
-		// build header string in the ciphertext buffer
-		if (m_peerHasSelfPK) { // if we know peer already has our public key
-			// do not send it again and just send
-			// - an index of our public key (so peer can retrieve skipped message key if it arrives late)
-			// - an index of the public key we have for the peer, so he may know he can stop sending its current key
-			double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.getDHs().getIndex(), m_ARKeys.getDHr().getIndex(), m_X3DH_initMessage, payloadDirectEncryption);
-		} else {
-			double_ratchet_protocol::buildMessage_header<Curve>(ciphertext, m_Ns, m_PN, m_ARKeys.serializePublicDHs(), m_X3DH_initMessage, payloadDirectEncryption);
-		}
+		ciphertext.clear();
+		writeDRheader(ciphertext, payloadDirectEncryption);
 		auto headerSize = ciphertext.size(); // cipher text holds only the DR header for now
 
 		// increment current sending chain message index
 		m_Ns++;
+		m_KEMRatchetChainSize++;
 
 		// build AD: given AD || sharedAD stored in session || header (see DR spec section 3.4)
 		AD.insert(AD.end(), m_sharedAD.cbegin(), m_sharedAD.cend());
@@ -629,7 +1028,7 @@ namespace lime {
 	template <typename Curve>
 	bool DRi<Curve>::ratchetDecrypt(const std::vector<uint8_t> &ciphertext,const std::vector<uint8_t> &AD, std::vector<uint8_t> &plaintext, const bool payloadDirectEncryption) {
 		// parse header
-		double_ratchet_protocol::DRHeader<Curve> header{ciphertext};
+		DRHeader<Curve> header{ciphertext};
 		if (!header.valid()) { // check it is valid otherwise just stop
 			throw BCTBX_EXCEPTION << "DR Session got an invalid message header";
 		}
@@ -648,42 +1047,36 @@ namespace lime {
 		int maxAllowedDerivation = lime::settings::maxMessageSkip;
 		m_dirty = DRSessionDbStatus::dirty_decrypt; // we're about to modify the DR session, it will not be in sync anymore with local storage
 		if (!m_ARKeys.getValid()) { // it's the first message arriving after the initialisation of the chain in receiver mode, we have no existing history in this chain
-			AsymmetricRatchetReceiving(header.DHr()); // just perform the DH ratchet step
+			AsymmetricRatchetReceiving(header); // just perform the DH ratchet step
 			m_ARKeys.setValid(true);
 		} else {
 			// Should we look for skipped keys:
 			bool lookForStoredMessageKeys = true;
+			bool asymmetricRatchet = false;
 			// - if the incoming message is on the current receiving chain
-			if ( (header.skippedAsymmetricRatchet() && m_ARKeys.getDHr().getIndex() == header.DHrIndex())
-				|| (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()==header.DHr())) {
+			if ( header.isDHr(m_ARKeys.cgetDHr())) {
 				// - and the Ns is greater or equal to the current Nr
 				if (header.Ns()>=m_Nr) {
 					// Then the message key can be computed and is not on storage -> do not search for it
 					lookForStoredMessageKeys = false;
 				}
+			} else { // The header receiving chain is not the one we're onto. So if we do not find skipped key, we must perform an asymmetric ratchet
+				asymmetricRatchet = true;
 			}
 			// Can we confirm that peer got our current public key already (so we may stop sending it)
-			if (header.skippedAsymmetricRatchet()) {
-				if (header.DHsIndex() == m_ARKeys.getDHs().getIndex()) {
-					m_peerHasSelfPK = true;
-				}
+			if (header.isDHsIndex(m_ARKeys.cgetDHs())) {
+				m_peerHasSelfKEMPk = true;
 			}
 
 			if (lookForStoredMessageKeys) {
-				std::vector<uint8_t> PkIndex{};
-				std::shared_ptr<lime::ARrKey<Curve>> DHr = nullptr;
-				if (header.skippedAsymmetricRatchet()) {
-					PkIndex = header.DHrIndex();
-				} else {
-					DHr = std::make_shared<lime::ARrKey<Curve>>(header.DHr());
-					PkIndex = DHr->getIndex();
-				}
 				// check stored message keys(lime_tester::curveId(curve))
-				auto foundSkippedKey = trySkippedMessageKeys(header.Ns(), PkIndex, MK);
+				auto foundSkippedKey = trySkippedMessageKeys(header.Ns(), header.getDHrIndex(), MK);
 
 				// Remove this check on version 5.5.
 				// for retrocompatibility whith old deployments with curve C25519 or C448, we must also check for skipped message keys indexed directly by the key itself
-				if (!foundSkippedKey && !header.skippedAsymmetricRatchet() && (Curve::curveId() == lime::CurveId::c25519 || Curve::curveId() == lime::CurveId::c448)) {
+				// Worst case we may loose skipped message keys
+				if (!foundSkippedKey && !header.havePKIndex() && (Curve::curveId() == lime::CurveId::c25519 || Curve::curveId() == lime::CurveId::c448)) {
+					auto DHr = std::make_shared<lime::ARrKey<Curve>>(header.DHr());
 					std::vector<uint8_t> vDHr{header.DHr().cbegin(), header.DHr().cend()};
 					foundSkippedKey = trySkippedMessageKeys(header.Ns(), vDHr, MK);
 				}
@@ -705,10 +1098,10 @@ namespace lime {
 				}
 			}
 			// if header DH public key != current stored peer public DH key: we must perform a DH ratchet
-			if (!header.skippedAsymmetricRatchet() && m_ARKeys.serializeDHr()!=header.DHr()) {
+			if (asymmetricRatchet) {
 				maxAllowedDerivation -= header.PN()-m_Nr; /* we must derive headerPN-Nr keys, remove this from the count of our allowedDerivation number */
 				skipMessageKeys(header.PN(), lime::settings::maxMessageSkip-header.Ns()); // we must keep header.Ns derivations available for the next chain
-				AsymmetricRatchetReceiving(header.DHr());
+				AsymmetricRatchetReceiving(header);
 			}
 		}
 
@@ -719,6 +1112,7 @@ namespace lime {
 		KDF_CK<Curve>(m_CKr, MK, m_Nr);
 
 		m_Nr++;
+		m_KEMRatchetChainSize++;
 
 		//decrypt and save on succes
 		if (decrypt(MK, ciphertext, header.size(), DRAD, plaintext) == true ) {
@@ -736,17 +1130,46 @@ namespace lime {
 	/****************************************************************************/
 	/* DRi private member functions                                             */
 	/****************************************************************************/
+	/**
+	 * Status on peer's public key in the DR session, as stored in DB in a 4 bytes integer
+	 * mapping:
+	 *                       byte 3 | byte 2 | byte 1                                           | byte 0
+	 *   <Total number of message sent/received - or skipped -since last KEM ratchet>             Flags as detailed below
+	 * The total number of message should never increase more than maxKEMRatchetChainSize the peer in position of performing a KEM ratchet
+	 * is encrypting message or maxSendingChain if he is not.
+
+	 * Flags bitmap :
+	 * -- 0  force KEM ratchet ASAP (set when a session is create on receiver side to force KEM ratchet at first response)
+	 * -- 1  KEM peer pk available locally
+	 * -- 2  KEM self pk known by peer
+	 * -- 3  EC peer pk available locally
+	 */
+	namespace{
+		enum class DHrStatusBitMap : uint32_t {
+			forceKEMRatchet = 0x00000001,
+			peerKEMPkAvailable = 0x00000002,
+			peerHasSelfKEMPk = 0x00000004,
+			peerECPkAvailable = 0x00000008,
+			KEMRatchetChainSize = 0x7FFFFF00
+		};
+	}
 	template <typename Curve>
-	int DRi<Curve>::DHrStatusIntFlags(void) {
-		// bit mapping:
-		// -- 0  peer pk available locally
-		// -- 1  self pk known by peer
-		// -- 2  we want to perform an asymmetric ratchet as soon as possible (set at DR session creation on sending, we want to perform an asymmetric ratchet in our first response)
-		int flag = 0;
-		if (m_peerPKavailable) flag=1;
-		if (m_peerHasSelfPK) flag |= 2;
-		if (m_forceAsymmetricRatchet) flag |= 4;
-		return flag;
+	int DRi<Curve>::DHrStatusToInt(void) {
+		int ret = 0;
+		if (m_forceKEMRatchet) ret |= static_cast<uint32_t>(DHrStatusBitMap::forceKEMRatchet);
+		if (m_peerKEMPkAvailable) ret |= static_cast<uint32_t>(DHrStatusBitMap::peerKEMPkAvailable);
+		if (m_peerHasSelfKEMPk) ret |= static_cast<uint32_t>(DHrStatusBitMap::peerHasSelfKEMPk);
+		if (m_peerECPkAvailable) ret |= static_cast<uint32_t>(DHrStatusBitMap::peerECPkAvailable);
+		ret |= (m_KEMRatchetChainSize<<8)&static_cast<uint32_t>(DHrStatusBitMap::KEMRatchetChainSize);
+		return ret;
+	}
+	template <typename Curve>
+	void DRi<Curve>::IntToDHrStatus(int DHrStatus) {
+		m_forceKEMRatchet = (DHrStatus & static_cast<uint32_t>(DHrStatusBitMap::forceKEMRatchet)) != 0;
+		m_peerKEMPkAvailable = (DHrStatus & static_cast<uint32_t>(DHrStatusBitMap::peerKEMPkAvailable)) != 0;
+		m_peerHasSelfKEMPk = (DHrStatus & static_cast<uint32_t>(DHrStatusBitMap::peerHasSelfKEMPk)) != 0;
+		m_peerECPkAvailable = (DHrStatus & static_cast<uint32_t>(DHrStatusBitMap::peerECPkAvailable)) != 0;
+		m_KEMRatchetChainSize = (DHrStatus & static_cast<uint32_t>(DHrStatusBitMap::KEMRatchetChainSize))>>8;
 	}
 
 	/**
@@ -768,7 +1191,7 @@ namespace lime {
 			// shall we try to insert or update?
 			bool MSk_DHr_Clean = false; // flag use to signal the need for late cleaning in DR_MSk_DHr table
 			if (m_dbSessionId==0) { // We have no id for this session row, we shall insert a new one
-				int DHrStatusInt = DHrStatusIntFlags();
+				int DHrStatusInt = DHrStatusToInt();
 
 				// Build blobs from DR session
 				blob DHr(m_localStorage->sql);
@@ -805,7 +1228,7 @@ namespace lime {
 				// update session content with current timeStamp to reflect modifications in DB
 				bctoolboxTimeSpec currentUTCtime;
 				bctbx_get_utc_cur_time(&currentUTCtime);
-				m_lastRatchetEpoch = currentUTCtime.tv_sec;
+				m_lastKEMRatchetEpoch = currentUTCtime.tv_sec;
 
 				// if insert went well we shall be able to retrieve the last insert id to save it in the Session object
 				/*** WARNING: unportable section of code, works only with sqlite3 backend ***/
@@ -832,7 +1255,29 @@ namespace lime {
 							m_active_status = true;
 						}
 
-						int DHrStatusInt = DHrStatusIntFlags();
+						int DHrStatusInt = DHrStatusToInt();
+
+						// Build blobs from DR session
+						blob DHr(m_localStorage->sql);
+						auto mDHr = m_ARKeys.serializeDHr();
+						DHr.write(0, (char *)(mDHr.data()), mDHr.size());
+						blob RK(m_localStorage->sql);
+						RK.write(0, (char *)(m_RK.data()), m_RK.size());
+						blob CKr(m_localStorage->sql);
+						CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
+
+						m_localStorage->sql<<"UPDATE DR_sessions SET Nr= :Nr, DHr= :DHr, DHrStatus= :DHrStatus, RK= :RK, CKr= :CKr, Status = 1,  X3DHInit = NULL WHERE sessionId = :sessionId;", use(m_Nr), use(DHr), use(DHrStatusInt), use(RK), use(CKr), use(m_dbSessionId);
+					}
+						break;
+					case DRSessionDbStatus::dirty_kem_ratchet_receiving: // kem ratchet&decrypt
+					{   // Same as EC only ratchet, but we also update the last Kem ratchet time in DB
+						// make sure we have no other session active with this pair local,peer DiD
+						if (m_active_status == false) {
+							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
+							m_active_status = true;
+						}
+
+						int DHrStatusInt = DHrStatusToInt();
 
 						// Build blobs from DR session
 						blob DHr(m_localStorage->sql);
@@ -848,12 +1293,12 @@ namespace lime {
 						// update session content with current timeStamp to reflect modifications in DB
 						bctoolboxTimeSpec currentUTCtime;
 						bctbx_get_utc_cur_time(&currentUTCtime);
-						m_lastRatchetEpoch = currentUTCtime.tv_sec;
+						m_lastKEMRatchetEpoch = currentUTCtime.tv_sec;
 					}
 						break;
 					case DRSessionDbStatus::dirty_ratchet_sending: // ratchet&encrypt
 					{
-						int DHrStatusInt = DHrStatusIntFlags();
+						int DHrStatusInt = DHrStatusToInt();
 
 						// Build blobs from DR session
 						blob DHs(m_localStorage->sql);
@@ -874,7 +1319,7 @@ namespace lime {
 							m_localStorage->sql<<"UPDATE DR_sessions SET Status = 0, timeStamp = CURRENT_TIMESTAMP WHERE Did = :Did AND Uid = :Uid", use(m_peerDid), use(m_db_Uid);
 							m_active_status = true;
 						}
-						int DHrStatusInt = DHrStatusIntFlags();
+						int DHrStatusInt = DHrStatusToInt();
 
 						blob CKr(m_localStorage->sql);
 						CKr.write(0, (char *)(m_CKr.data()), m_CKr.size());
@@ -973,7 +1418,7 @@ namespace lime {
 		indicator ind;
 		int status; // retrieve an int from DB, turn it into a bool to store in object
 		int DHrStatus; // retrieve an int from DB, turn it into  bools to store in object
-		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,unixepoch(timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastRatchetEpoch), use(m_dbSessionId);
+		m_localStorage->sql<<"SELECT Did,Uid,Ns,Nr,PN,DHr,DHrStatus,DHs,RK,CKs,CKr,AD,Status,X3DHInit,unixepoch(timeStamp) FROM DR_sessions WHERE sessionId = :sessionId LIMIT 1", into(m_peerDid), into(m_db_Uid), into(m_Ns), into(m_Nr), into(m_PN), into(DHr), into(DHrStatus), into(DHs), into(RK), into(CKs), into(CKr), into(AD), into(status), into(X3DH_initMessage,ind), into(m_lastKEMRatchetEpoch), use(m_dbSessionId);
 
 		if (m_localStorage->sql.got_data()) { // TODO : some more specific checks on length of retrieved data?
 			typename ARrKey<Curve>::serializedBuffer serializedDHr{};
@@ -995,25 +1440,8 @@ namespace lime {
 			} else {
 				m_active_status = false;
 			}
-			// DHrStatus int flags bit map:
-			// -- 0 : we have locally peer's pk
-			// -- 1 : peer's has our pk
-			// -- 2 : we must perform an asymmetric ratchet as soon as possible
-			if (DHrStatus&0x01) {
-				m_peerPKavailable = true;
-			} else {
-				m_peerPKavailable = false;
-			}
-			if (DHrStatus&0x02) {
-				m_peerHasSelfPK = true;
-			} else {
-				m_peerHasSelfPK = false;
-			}
-			if (DHrStatus&0x04) {
-				m_forceAsymmetricRatchet = true;
-			} else {
-				m_forceAsymmetricRatchet = false;
-			}
+			// set session information from the stored DHrStatus
+			IntToDHrStatus(DHrStatus);
 			return true;
 		} else { // something went wrong with the DB, we cannot retrieve the session
 			return false;
@@ -1050,6 +1478,7 @@ namespace lime {
 			// insert the nessage key into the list of skipped ones
 			rChain->messageKeys[m_Nr]=MK;
 			m_Nr++;
+			m_KEMRatchetChainSize++;
 		}
 	}
 

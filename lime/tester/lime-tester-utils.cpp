@@ -362,7 +362,7 @@ bool DR_message_holdsAsymmetricKeys(std::vector<uint8_t> &message) {
 	if (message.size()<4) return false;
 	// check protocol version
 	if (message[0] != static_cast<uint8_t>(lime::double_ratchet_protocol::DR_v01)) return false;
-	return !(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::skip_asymmetric_ratchet_flag));
+	return !(message[1]&static_cast<uint8_t>(lime::double_ratchet_protocol::DR_message_type::KEM_pk_index));
 }
 
 bool DR_message_holdsX3DHInit(std::vector<uint8_t> &message) {

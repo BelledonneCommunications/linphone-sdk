@@ -101,14 +101,28 @@ namespace lime {
 			};
 			ARrKey() : m_ec_DHr{}, m_kem_DHr{}, m_kem_CTr{} {};
 
+			// const accessors
 			const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) const { return m_ec_DHr;};
 			const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) const { return m_kem_DHr;};
 			const K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) const { return m_kem_CTr;};
-			/// Index is a hash of public key to identify it without sending/storing it all
+			// Set EC pk only (we may update the EC key only when performing a DH ratchet)
+			void setECPk(const X<typename Algo::EC, lime::Xtype::publicKey> ec_Pk) {m_ec_DHr = ec_Pk;};
+			// KEM index is used to identify peer's KEM PK without sending it all.'
+			std::vector<uint8_t> getKEMIndex(void) const {
+				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
+				std::vector<uint8_t> serializedKEM(m_kem_DHr.cbegin(), m_kem_DHr.cend());
+				serializedKEM.insert(serializedKEM.end(), m_kem_CTr.cbegin(), m_kem_CTr.cend());
+				HMAC<SHA512>(nullptr, 0, serializedKEM.data(), serializedKEM.size(), index.data(), lime::settings::DRPkIndexSize);
+				return index;
+			}
+			/// Index is a hash of public key to identify it without storing it all - used to index skipped message key chain
+			/// Index is composed of EC index and KEM index
 			std::vector<uint8_t> getIndex(void) const {
 				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
-				auto serialized = serialize();
-				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRPkIndexSize);
+				// EC index
+				HMAC<SHA512>(nullptr, 0, m_ec_DHr.data(), m_ec_DHr.size(), index.data(), lime::settings::DRPkIndexSize);
+				const auto KEMIndex = getKEMIndex();
+				index.insert(index.end(), KEMIndex.cbegin(), KEMIndex.cend());
 				return index;
 			}
 			serializedBuffer serialize(void) const {
@@ -161,12 +175,6 @@ namespace lime {
 			}
 			/// Serialize the public part only to insert in the DR message header
 			std::vector<uint8_t> serializePublic(void) const { return std::vector<uint8_t>(m_DHs.cpublicKey().cbegin(), m_DHs.cpublicKey().cend());}
-			/// Index is a hash of public key to identify it without sending it all
-			std::vector<uint8_t> getIndex(void) const {
-				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
-				HMAC<SHA512>(nullptr, 0, m_DHs.cpublicKey().data(), m_DHs.cpublicKey().size(), index.data(), lime::settings::DRPkIndexSize);
-				return index;
-			}
 	};
 
 	// Self AR keys for EC/KEM based algo
@@ -219,10 +227,15 @@ namespace lime {
 				m_kem_CTs =  K<typename Algo::KEM, lime::Ktype::cipherText>(DHs.data() + index);
 			};
 
+			/// Set Ec key pair only: used to update this part without touching the KEM one
+			void setEC(const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublic, const X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivate) {
+				m_ec_DHs = Xpair<typename Algo::EC>(ECPublic, ECPrivate);
+			}
+
 			X<typename Algo::EC, lime::Xtype::privateKey> &ECPrivateKey(void) {return m_ec_DHs.privateKey();};
-			X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) {return m_ec_DHs.publicKey();};
+			const X<typename Algo::EC, lime::Xtype::publicKey> &ECPublicKey(void) const {return m_ec_DHs.cpublicKey();};
 			K<typename Algo::KEM, lime::Ktype::privateKey> &KEMPrivateKey(void) {return m_kem_DHs.privateKey();};
-			K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) {return m_kem_DHs.publicKey();};
+			const K<typename Algo::KEM, lime::Ktype::publicKey> &KEMPublicKey(void) const {return m_kem_DHs.cpublicKey();};
 			K<typename Algo::KEM, lime::Ktype::cipherText> &KEMCipherText(void) {return m_kem_DHs.cipherText();};
 			/// Serialize the key pair (to store in DB): First the public value, then the private one, then the cipherText
 			serializedBuffer serialize(void) const{
@@ -245,11 +258,16 @@ namespace lime {
 			       v.insert(v.end(), m_kem_CTs.cbegin(), m_kem_CTs.cend());
 			       return v;
 			}
-			/// Index is a hash of public key to identify it without sending/storing it all
-			std::vector<uint8_t> getIndex(void) const {
+			/// Serialize the EC public part only to insert in the DR message header when we avoid sending the KEM part
+			std::vector<uint8_t> serializeECPublic(void) const {
+			       return std::vector<uint8_t>(m_ec_DHs.cpublicKey().cbegin(), m_ec_DHs.cpublicKey().cend());
+			}
+			/// Index is a hash of KEM public key/Cipher Text to identify it without sending/storing it all
+			std::vector<uint8_t> getKEMIndex(void) const {
 				std::vector<uint8_t>index(lime::settings::DRPkIndexSize);
-				auto serialized = serializePublic();
-				HMAC<SHA512>(nullptr, 0, serialized.data(), serialized.size(), index.data(), lime::settings::DRPkIndexSize);
+				std::vector serializedKEM (m_kem_DHs.cpublicKey().cbegin(), m_kem_DHs.cpublicKey().cend());
+				serializedKEM.insert(serializedKEM.end(), m_kem_CTs.cbegin(), m_kem_CTs.cend());
+				HMAC<SHA512>(nullptr, 0, serializedKEM.data(), serializedKEM.size(), index.data(), lime::settings::DRPkIndexSize);
 				return index;
 			}
 	};
@@ -276,14 +294,15 @@ namespace lime {
 			bool getValid(void) const { return m_DHr_valid;};
 
 			void setDHr(const ARrKey<Curve> &DHr) {m_DHr = DHr;};
-			const ARrKey<Curve> &getDHr(void) const { return m_DHr;};
+			ARrKey<Curve> &getDHr(void) { return m_DHr;};
+			const ARrKey<Curve> &cgetDHr(void) const { return m_DHr;};
 			const typename ARrKey<Curve>::serializedBuffer serializeDHr(void) { return m_DHr.serialize();};
 
 			void setDHs(const ARsKey<Curve> &DHs) { m_DHs = DHs; };
 			ARsKey<Curve> &getDHs(void) { return m_DHs;};
+			const ARsKey<Curve> &cgetDHs(void) const{ return m_DHs;};
 			const typename ARsKey<Curve>::serializedBuffer serializeDHs(void) { return m_DHs.serialize();};
-			const std::vector<uint8_t> serializePublicDHs(void) { return m_DHs.serializePublic();};
-
+			const std::vector<uint8_t> serializePublicDHs(void) const { return m_DHs.serializePublic();};
 	};
 
 	/**

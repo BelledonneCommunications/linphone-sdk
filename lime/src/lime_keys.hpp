@@ -88,7 +88,7 @@ namespace lime {
 	 */
 	struct K512: public genericKEM {
 		/// a string to indentify this curve
-		static const std::string Id() {return std::string("KYBER512");};
+		static const std::string Id(void) {return std::string("KYBER512");};
 		 /// kyber512
 		static constexpr size_t Ksize(lime::Ktype dataType) {
 			switch (dataType) {
@@ -110,7 +110,7 @@ namespace lime {
 	};
 
 	struct C255K512: public C255,K512 {
-		static constexpr lime::CurveId curveId() {return lime::CurveId::c25519k512;};
+		static constexpr lime::CurveId curveId(void) {return lime::CurveId::c25519k512;};
 		using EC = C255;
 		using KEM = K512;
 	};

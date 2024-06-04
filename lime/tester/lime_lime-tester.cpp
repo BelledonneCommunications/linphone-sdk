@@ -4515,7 +4515,7 @@ static void lime_session_cancel(void) {
  * - Bob encrypt again: he performs an asymmetric ratchet so his messages should not hold a Pk
  */
 #ifdef HAVE_BCTBXPQ
-static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
+static bool lime_kem_asymmetric_ratchet_test(const lime::CurveId curve, const std::string &dbBaseFilename, const std::string &x3dh_server_url, bool continuousSession=true) {
 	std::string dbFilenameAlice;
 	std::shared_ptr<std::string> aliceDeviceId;
 	std::unique_ptr<LimeManager> aliceManager;
@@ -4594,8 +4594,9 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 
 		// Alice encrypts more messages to Bob: we shall skip the asymmetric ratchet until the limit is reached
+		// Bob also encrypts message to Alice
 		// The limit includes the message sent by Bob, so we already had 1 messages
-		for (auto i=1; i<lime::settings::minSymmetricChainSize; i++) {
+		for (auto i=1; i<lime::settings::KEMRatchetChainSize; i+=2) {
 			aliceRecipients->clear();
 			aliceRecipients->emplace_back(*bobDeviceId);
 			auto patternIndex = i % lime_tester::messages_pattern.size();
@@ -4613,9 +4614,26 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 			auto receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
 			if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[patternIndex])) return false;
 			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
+
+			// Bob encrypts to alice, his message should not hold any public key
+			bobRecipients->clear();
+			bobCipherMessage->clear();
+			bobRecipients->emplace_back(*aliceDeviceId);
+			bobMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[i+1].begin(), lime_tester::messages_pattern[i+1].end());
+			bobManager->encrypt(*bobDeviceId, make_shared<const std::string>("alice"), bobRecipients, bobMessage, bobCipherMessage, callback);
+			expected_success++;
+			if (!BC_ASSERT_TRUE(lime_tester::wait_for(bc_stack,&counters.operation_success, expected_success, lime_tester::wait_for_timeout))) return false;
+			if (!BC_ASSERT_FALSE(lime_tester::DR_message_holdsAsymmetricKeys((*bobRecipients)[0].DRmessage))) return false;
+			/* alice decrypts so now she nows Bob has her current key */
+			receivedMessage.clear();
+			if (!BC_ASSERT_TRUE(aliceManager->decrypt(*aliceDeviceId, "alice", *bobDeviceId, (*bobRecipients)[0].DRmessage, *bobCipherMessage, receivedMessage) == lime::PeerDeviceStatus::untrusted)) return false;
+			receivedMessageString = std::string{receivedMessage.begin(), receivedMessage.end()};
+			if (!BC_ASSERT_TRUE(receivedMessageString == lime_tester::messages_pattern[i+1])) return false;
+			if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
 		}
 
 		// Alice encrypts one more: she shall make an asymmetric ratchet and we have a public key in the DR header
+		// This works because in his last message Bob sent a ECDH to alice so she can perform a EC ratchet (no KEM only ratchet is possible)
 		aliceRecipients->clear();
 		aliceRecipients->emplace_back(*bobDeviceId);
 		aliceMessage = make_shared<const std::vector<uint8_t>>(lime_tester::messages_pattern[0].begin(), lime_tester::messages_pattern[0].end());
@@ -4683,7 +4701,7 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 
 		// Fast forward time by one day on Bob side
 		bobManager=nullptr; // destroy manager before modifying DB or the DR session keeps the old information cached
-		lime_tester::forwardTime(dbFilenameBob, lime::settings::maxSymmetricChainPeriod/3600/24 + 1);
+		lime_tester::forwardTime(dbFilenameBob, lime::settings::maxKEMRatchetChainPeriod/3600/24 + 1);
 		bobManager = make_unique<LimeManager>(dbFilenameBob, X3DHServerPost);
 
 		if (!continuousSession) { managersClean (aliceManager, bobManager, dbFilenameAlice, dbFilenameBob);}
@@ -4755,20 +4773,10 @@ static bool lime_skip_asymmetric_ratchet_test(const lime::CurveId curve, const s
 	return true;
 }
 #endif //HAVE_BCTBXPQ
-static void lime_skip_asymmetric_ratchet(void) {
-// For now skip asymmetric ratchet is supported only with curve25519k512
-// enable it with c25519 and c448 when version 5.3 phases out
-#if 0
-#ifdef EC25519_ENABLED
-	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519_server_port).data()));
-#endif
-#ifdef EC448_ENABLED
-	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c448, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c448_server_port).data()));
-#endif
-#endif
+static void lime_kem_asymmetric_ratchet(void) {
 #ifdef HAVE_BCTBXPQ
-	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data()));
-	BC_ASSERT_TRUE(lime_skip_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_skip_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false));
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_kem_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data()));
+	BC_ASSERT_TRUE(lime_kem_asymmetric_ratchet_test(lime::CurveId::c25519k512, "lime_kem_asymmetric_ratchet", std::string("https://").append(lime_tester::test_x3dh_server_url).append(":").append(lime_tester::test_x3dh_c25519k512_server_port).data(), false));
 #endif
 }
 
@@ -4796,7 +4804,7 @@ static test_t tests[] = {
 	TEST_NO_TAG("Multithread", lime_multithread),
 	TEST_NO_TAG("Session cancel", lime_session_cancel),
 	TEST_NO_TAG("DB Migration", lime_db_migration),
-	TEST_NO_TAG("Skip asymmetric ratchet", lime_skip_asymmetric_ratchet)
+	TEST_NO_TAG("KEM asymmetric ratchet", lime_kem_asymmetric_ratchet)
 };
 
 test_suite_t lime_lime_test_suite = {
