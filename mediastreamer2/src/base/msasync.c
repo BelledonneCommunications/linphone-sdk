@@ -30,11 +30,14 @@ static void _ms_task_cancel(MSTask *task, bool_t with_destroy) {
 		task->result = FALSE;
 		ms_debug("msasync.c: signaling waiting threads for cancellation.");
 		ms_cond_broadcast(&task->worker->cond);
+		ms_mutex_unlock(&task->worker->mutex);
 	} else {
 		/* The task was already processed by the worker, we can safely destroy it if required.*/
-		if (with_destroy) ms_task_destroy(task);
+		if (with_destroy) {
+			ms_mutex_unlock(&task->worker->mutex);
+			ms_task_destroy(task);
+		} else ms_mutex_unlock(&task->worker->mutex);
 	}
-	ms_mutex_unlock(&task->worker->mutex);
 }
 
 void ms_task_cancel_and_destroy(MSTask *task) {
