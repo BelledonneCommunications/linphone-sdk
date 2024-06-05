@@ -73,8 +73,6 @@ namespace lime {
 			const X<Curve, lime::Xtype::privateKey> &cprivateKey(void) const {return m_SPk.cprivateKey();};
 			const X<Curve, lime::Xtype::publicKey> &cpublicKey(void) const {return m_SPk.cpublicKey();};
 			const DSA<Curve, lime::DSAtype::signature> &csignature(void) const {return m_Sig;};
-			X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_SPk.privateKey();};
-			X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_SPk.publicKey();};
 			DSA<Curve, lime::DSAtype::signature> &signature(void) {return m_Sig;};
 			uint32_t get_Id(void) const {return m_Id;};
 			void set_Id(uint32_t Id) {m_Id = Id;};
@@ -170,10 +168,6 @@ namespace lime {
 			const K<typename Algo::KEM, lime::Ktype::privateKey> &cKEMprivateKey(void) const {return m_KEM_SPk.cprivateKey();};
 			const K<typename Algo::KEM, lime::Ktype::publicKey> &cKEMpublicKey(void) const {return m_KEM_SPk.cpublicKey();};
 			const DSA<typename Algo::EC, lime::DSAtype::signature> &csignature(void) const {return m_Sig;};
-			X<typename Algo::EC, lime::Xtype::privateKey> &ECprivateKey(void) {return m_EC_SPk.cprivateKey();};
-			X<typename Algo::EC, lime::Xtype::publicKey> &ECpublicKey(void) {return m_EC_SPk.cpublicKey();};
-			K<typename Algo::KEM, lime::Ktype::privateKey> &KEMprivateKey(void) {return m_KEM_SPk.cprivateKey();};
-			K<typename Algo::KEM, lime::Ktype::publicKey> &KEMpublicKey(void) {return m_KEM_SPk.cpublicKey();};
 			DSA<typename Algo::EC, lime::DSAtype::signature> &signature(void) {return m_Sig;};
 			const Xpair<typename Algo::EC> &cECKeypair(void) const {return m_EC_SPk;};
 			const Kpair<typename Algo::KEM> &cKEMKeypair(void) const {return m_KEM_SPk;};
@@ -258,8 +252,6 @@ namespace lime {
 		/// accessors
 		const X<Curve, lime::Xtype::privateKey> &cprivateKey(void) const {return m_OPk.cprivateKey();};
 		const X<Curve, lime::Xtype::publicKey> &cpublicKey(void) const {return m_OPk.cpublicKey();};
-		X<Curve, lime::Xtype::privateKey> &privateKey(void) {return m_OPk.privateKey();};
-		X<Curve, lime::Xtype::publicKey> &publicKey(void) {return m_OPk.publicKey();};
 		uint32_t get_Id(void) const {return m_Id;};
 		void set_Id(uint32_t Id) {m_Id = Id;};
 
@@ -339,10 +331,6 @@ namespace lime {
 		const X<typename Algo::EC, lime::Xtype::publicKey> &cECpublicKey(void) const {return m_EC_OPk.cpublicKey();};
 		const K<typename Algo::KEM, lime::Ktype::privateKey> &cKEMprivateKey(void) const {return m_KEM_OPk.cprivateKey();};
 		const K<typename Algo::KEM, lime::Ktype::publicKey> &cKEMpublicKey(void) const {return m_KEM_OPk.cpublicKey();};
-		X<typename Algo::EC, lime::Xtype::privateKey> &ECprivateKey(void) {return m_EC_OPk.privateKey();};
-		X<typename Algo::EC, lime::Xtype::publicKey> &ECpublicKey(void) {return m_EC_OPk.publicKey();};
-		K<typename Algo::KEM, lime::Ktype::privateKey> &KEMprivateKey(void) {return m_KEM_OPk.privateKey();};
-		K<typename Algo::KEM, lime::Ktype::publicKey> &KEMpublicKey(void) {return m_KEM_OPk.publicKey();};
 		uint32_t get_Id(void) const {return m_Id;};
 		void set_Id(uint32_t Id) {m_Id = Id;};
 

@@ -985,8 +985,8 @@ namespace lime {
 				auto DH = make_keyExchange<Curve>();
 
 				// DH1 (SPk, peerIk)
-				DH->set_secret(SPk.privateKey());
-				DH->set_selfPublic(SPk.publicKey());
+				DH->set_secret(SPk.cprivateKey());
+				DH->set_selfPublic(SPk.cpublicKey());
 				DH->set_peerPublic(peerIk); // peer Ik key is converted from Signature to key exchange format
 				DH->computeSharedSecret();
 				auto DH_out = DH->get_sharedSecret();
@@ -1017,7 +1017,7 @@ namespace lime {
 					DH->set_selfPublic(OPk.cpublicKey());
 					DH->computeSharedSecret();
 					DH_out = DH->get_sharedSecret();
-					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 DH4
+					std::copy_n(DH_out.cbegin(), DH_out.size(), HKDF_input.begin()+HKDF_input_index); // HKDF_input holds F || DH1 || DH2 || DH3 || DH4
 					HKDF_input_index += DH_out.size();
 				}
 

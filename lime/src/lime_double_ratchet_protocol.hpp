@@ -41,7 +41,6 @@ namespace lime {
 		 * Payload_Direct_Encryptiun Flag (bit 1):
 		 *      - set  : the Double Ratchet packet encrypts the user plaintext
 		 *      - unset: the Double Ratchet packet encrypts a random seed used to encrypt the user plaintext
-		 *
 		 * X3DH_Init_Flag (bit 0):
 		 *      - set  : the Double Ratchet Packet header contains a X3DH Init message
 		 *      - unset: the Double Ratcher Packet header does not contain a X3DH Init message
