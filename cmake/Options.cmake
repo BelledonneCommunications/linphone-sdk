@@ -97,6 +97,7 @@ linphonesdk_option("Assets" "Enable packaging of assets (ringtones) when buildin
 linphonesdk_option("Doc" "Enable documentation generation with Doxygen." ON)
 linphonesdk_option("Tools" "Enable tools binary compilation." ON)
 linphonesdk_option("Tests component" "Enable compilation of tests helper library." ON)
+linphonesdk_option("Deprecated tests" "Enable execution of deprecated tests" OFF)
 linphonesdk_strict_dependent_option("Unit tests" "Enable unit tests support with BCUnit library (needs ENABLE_TESTS_COMPONENT=ON)." ON ON OFF "ENABLE_TESTS_COMPONENT" "Compilation of tests helper library not enabled (ENABLE_TESTS_COMPONENT)")
 linphonesdk_dependent_option("Windows Tools Check" "Enable windows tools check." ON "WIN32" OFF)
 

@@ -99,7 +99,7 @@ cmake_dependent_option(BUILD_SQLITE3_SHARED_LIBS "Choose to build shared or stat
 cmake_dependent_option(BUILD_VO_AMRWBENC "Build vo-amrwbenc library source code from submodule instead of searching it in system libraries." ON "ENABLE_AMRWB" OFF)
 cmake_dependent_option(BUILD_VO_AMRWBENC_SHARED_LIBS "Choose to build shared or static vo-amrwbenc library." ${BUILD_SHARED_LIBS} "BUILD_VO_AMRWBENC" OFF)
 
-cmake_dependent_option(BUILD_XERCESC "Build xercesc library source code from submodule instead of searching it in system libraries." ON "ENABLE_ADVANCED_IM" OFF)
+option(BUILD_XERCESC "Build xercesc library source code from submodule instead of searching it in system libraries." ON)
 cmake_dependent_option(BUILD_XERCESC_SHARED_LIBS "Choose to build shared or static xercesc library." ${BUILD_SHARED_LIBS} "BUILD_XERCESC" OFF)
 
 option(BUILD_ZLIB "Build zlib library source code from submodule instead of searching it in system libraries." ON)
