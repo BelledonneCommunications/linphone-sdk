@@ -812,7 +812,7 @@ ms_mutex_t mutex;
 		strncpy(ev.new_input, AUCard::portToName(currentInputPort.c_str()).c_str(), sizeof(ev.new_input)-1);
 	}
 
-	std::string newOutput = currentOutputPort;
+	std::string newOutput = AUCard::portToName(currentOutputPort.c_str());
 	if (previousOutputPort != currentOutputPort) {
 		if (currentOutputIsSpeaker) {
 			newOutput = AUCard::portToName(MS_SND_CARD_SPEAKER_PORT_NAME);
