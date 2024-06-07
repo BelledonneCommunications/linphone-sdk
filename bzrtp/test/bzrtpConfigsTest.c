@@ -331,11 +331,16 @@ static int compareSecrets(bzrtpSrtpSecrets_t *a, bzrtpSrtpSecrets_t* b, uint8_t 
 		}
 		for (int i = 0; i < 3; i++) {
 			if (a->sasAlgo == ZRTP_SAS_B32) {
-				if (strncmp(a->sas, a->incorrectSas[i], 2) == 0) {
+				if ((strncmp(a->sas, a->incorrectSas[i], 2) == 0) || (strncmp(a->sas, b->incorrectSas[i], 2) == 0)) {
 					return -1;
 				}
-				if (strncmp(a->sas+2, b->incorrectSas[i], 2) == 0) {
+				if ((strncmp(a->sas+2, a->incorrectSas[i], 2) == 0) || (strncmp(a->sas+2, b->incorrectSas[i], 2) == 0)) {
 					return -1;
+				}
+				for (int j = 0; j < 3; j++) {
+					if ((i != j) && ((strncmp(a->incorrectSas[j], a->incorrectSas[i], 2) == 0) || (strncmp(b->incorrectSas[j], b->incorrectSas[i], 2) == 0))) {
+						return -1;
+					}
 				}
 			} else {
 				int firstWordSize = strlen(a->sas) - strlen(strchr(a->sas, ':'));

@@ -305,11 +305,20 @@ void bzrtp_generate_incorrect_sas(uint32_t sas, char **incorrectSas, uint8_t sas
 	}
 	uint32_t sasFirstPart = (sas >> (32 - nbUsedBits)) & 0x3ff;
 	uint32_t sasSecondPart = (sas >> (32 - (nbUsedBits*2))) & 0x3ff;
+	uint32_t randIntTab[3];
 	for (int i = 0; i < 3; i++) {
-		uint32_t randInt = 0;
+		uint32_t randInt;
+		bool_t sameAsOtherIncorrectSas;
 		do {
+			sameAsOtherIncorrectSas = FALSE;
 			randInt = bctbx_random();
-		} while ((((randInt>>(32-nbUsedBits))&0x3ff) == sasFirstPart) || (((randInt>>(32-nbUsedBits))&0x3ff) == sasSecondPart));
+			for (int j = 0; j < i; j++) {
+				if(((randIntTab[j]>>(32-nbUsedBits))&0x3ff) == ((randInt>>(32-nbUsedBits))&0x3ff)){
+					sameAsOtherIncorrectSas = TRUE;
+				}
+			}
+		} while ((((randInt>>(32-nbUsedBits))&0x3ff) == sasFirstPart) || (((randInt>>(32-nbUsedBits))&0x3ff) == sasSecondPart) || sameAsOtherIncorrectSas);
+		randIntTab[i] = randInt;
 		if (sasAlgo == ZRTP_SAS_B32) {
 			incorrectSas[i] = (char *)bctbx_malloc((size_t)3*sizeof(char));
 			bzrtp_base32(randInt, (char*)incorrectSas[i], 3);
