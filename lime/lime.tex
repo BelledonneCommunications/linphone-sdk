@@ -11,6 +11,7 @@
 \usepackage{msc}
 \usepackage{textcomp}
 \usepackage[nottoc,numbib]{tocbibind}
+\usepackage{vhistory}
 
 % New definitions Switch/case
 \algnewcommand\algorithmicswitch{\textbf{switch}}
@@ -23,7 +24,7 @@
 \algtext*{EndSwitch}%
 \algtext*{EndCase}%
 
-\let\oldtabular\tabular 
+\let\oldtabular\tabular
 \renewcommand{\tabular}{\footnotesize\oldtabular}
 
 \makeatletter
@@ -35,20 +36,29 @@
 
 \hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=olive}
 
+\def\currentVersion{1.1}
+
 \title{Linphone Instant Message Encryption v2.0 (Lime v2.0)}
-\date{\today\\Version 1.0}
+\date{\today\\Version \currentVersion}
 \author{Johan Pascal}
 
 \begin{document}
 
 \maketitle
 \tableofcontents
-\newpage
 
+\newpage
+\section{Changelog}
+\begin{versionhistory}
+  \vhEntry{\currentVersion}{June 15, 2024}{JP}{Add support to Post-Quantum Cryptography}
+  \vhEntry{1.0}{March 6, 2019}{JP}{Initial version}
+\end{versionhistory}
+
+\newpage
 \section{Introduction}
 \paragraph{}Linphone Instant Message Encryption (Lime) v2.0 implements the Signal protocol allowing users to privately and asynchronously exchange messages. Detailed specification of the Signal protocol can be found on the \href{https://signal.org/docs/}{Signal website}. Lime supports multiple devices per user and multiple users per device.
 \paragraph{}Lime is designed to be used with \href{https://linphone.org}{Linphone}, an open source SIP phone. Lime establishes encrypted sessions and encrypts messages but relies on Linphone to acquire the unique identification string of peer devices and route the messages to their recipients. The use of Lime with other message delivery software is possible but is out of the scope of this document.
-\paragraph*{}Lime is written in C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\tiny\bf +}\nolinebreak\hspace{-.10em}\raisebox{.4ex}{\tiny\bf +}11 and the library uses templates to provide support for Curve25519- and Curve448-based cryptographic algorithms. The library supports one or both curves according to build settings.\\*A users network (all clients and keys server) must commit to using either Curve25519 or Curve448, but a device may host several users communicating on separate users' networks; using different curves.
+\paragraph*{}Lime is written in C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\tiny\bf +}\nolinebreak\hspace{-.10em}\raisebox{.4ex}{\tiny\bf +}17 and the library uses templates to provide support for Curve25519, Curve448 and hybrid Curve25519/Kyber512 based cryptographic algorithms. The library supports one or several cryptographics bases according to build settings.\\*A users network (all clients and keys server) must commit to using a single cryptographic base (Curve25519, Curve448 or Curve25519/Kyber512), but a device may host several users communicating on separate users' networks; using different basse.
 \paragraph{Note:} Lime v1.0 was based on \href{https://en.wikipedia.org/wiki/Silent_Circle_Instant_Messaging_Protocol}{SCIMP}. This document presents Lime v2.0, which is neither related to nor compatible with Lime v1.0. In this document the use of the term Lime refers to Lime v2.0.
 
 \newpage
@@ -71,24 +81,26 @@ cannot be calculated from later ones. The parties also send Diffie-Hellman publi
 values attached to their messages. The results of Diffie-Hellman calculations
 are mixed into the derived keys so that later keys cannot be calculated from
 earlier ones. These properties give some protection to earlier or later encrypted
-messages in case of a compromise of a party’s keys.}\textquotedblright 
-  
+messages in case of a compromise of a party’s keys.}\textquotedblright
+
   \subsection{The X3DH Key Agreement Protocol}
     \paragraph{}\textquotedblleft \textit{\textquotesingle X3DH\textquotesingle   (or  \textquotesingle Extended Triple Diffie-Hellman\textquotesingle  )\cite{x3dh} key
-agreement protocol establishes a shared secret key between two parties
-who mutually authenticate each other based on public keys. X3DH provides
-forward secrecy and cryptographic deniability.
+agreement protocol establishes a shared secret key between two parties who mutually authenticate each other based on public keys. X3DH provides forward secrecy and cryptographic deniability.
     \paragraph{}X3DH is designed for asynchronous settings where one user (\textquotesingle Bob\textquotesingle ) is offline
 but has published some information to a server. Another user (\textquotesingle Alice\textquotesingle ) wants to
 use that information to send encrypted data to Bob and also to establish a shared
-secret key for future communication.}\textquotedblright 
+secret key for future communication.}\textquotedblright
+
+  \subsection{The PQXDH Key Agreement Protocol}
+    \paragraph{}\textquotedblleft \textit{\textquotesingle PQXDH\textquotesingle   (or  \textquotesingle Post-Quantum Extended Diffie-Hellman\textquotesingle  )\cite{pqxdh} key
+agreement protocol establishes a shared secret key between two parties who mutually authenticate each other based on public keys. PQXDH provides post-quantum forward secrecy and a form of cryptographic deniability but still relies on the hardness of the discrete log problem for mutual authentication.}\textquotedblright
 
   \subsection{The Sesame Algorithm}
     \paragraph{}\textquotedblleft \textit{The Sesame algorithm\cite{sesame} manages message encryption
 sessions in an asynchronous and multi-device setting.
 Sesame was designed to manage Double Ratchet sessions\cite{doubleRatchet} created with a X3DH
 key agreement\cite{x3dh}. However, Sesame is a generic algorithm that works with
-any session-based message encryption algorithm that meets certain conditions.}\textquotedblright 
+any session-based message encryption algorithm that meets certain conditions.}\textquotedblright
 
 \newpage
 \section{Major discrepancies between Lime v2.0 and Signal protocol}
@@ -103,7 +115,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item Members use their sender key to encrypt messages to the group, deriving it by using a simple symmetric ratcheting.
     \end{enumerate}
     This mechanism allows an efficient server-side fan-out but loses the break-in recovery property provided by the Double Ratchet mechanism.
-    
+
     \paragraph*{}Operating in a multi device environment, Lime provides the following mechanism to save bandwith when sending message to multiple devices:
     \begin{enumerate}
       \item Generate a random key and use it to encrypt the message.
@@ -118,7 +130,10 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \paragraph{}The bandwidth and computational power consumption is greater than the Whisper System implementation but all the exchanges are protected by an actual Double Ratchet; maintaining the break-in recovery property.
     \paragraph{}Silent members/devices (lost devices and users quitting the network are good candidates) may result in weakness in the break-in recovery as no Diffie-Hellman ratchet step is ever performed. This is mitigated by setting a limit to the sending chain length. The sending device would create a new Double Ratchet session fetching keys from X3DH key server if the limit is reached.
     \paragraph{Note}: The actual implementation generates a 32 bytes random seed derived through HKDF\cite{rfc5869} into a 32 bytes key and a 16 bytes nonce. The DR session encrypts the 32 bytes random seed using AES256-GCM (with 16 bytes authentication tag); producing a 48 bytes output to transmit the key.
-  
+    \subsubsection{Post Quantum cryptography}
+    \paragraph*{}When PQX3DH is used, the Double Ratchet asymmetric ratchet also uses Post quantum cryptography to ensure break-in recovery. In that case the double ratchet symmetric key also differs from the original specification by including the index in the key derivation function label as recommended in \cite[section 4.2]{secsymmratchet}.
+    \paragraph*{}PQXDH thus also provides DR with a KEM public key, so DR initialisation can encapsulate a secret to it. It is the SPk. This implementation then always uses a KEM public key in the SPk unlike PQXDH using it only when the OPk is missing.
+
   \subsubsection{AEAD encryption scheme: AES256-GCM}
   \paragraph{}The Double Ratchet specification \cite[section 5.2]{doubleRatchet} recommends the use of a SIV based AEAD encryption scheme.
   \paragraph{}The Lime implementation of the Double Ratchet Chain Key derivation is described in \ref{subsubsec:kdfck} of this document. The message key$\langle 32 bytes\rangle$ and initialisation vector $\langle 16 bytes\rangle $ are generated, used and destroyed during the encryption process. The direct use of an AES256-GCM as the AEAD encryption scheme is assumed to be secure as the key and IV are not reused.
@@ -131,6 +146,12 @@ any session-based message encryption algorithm that meets certain conditions.}\t
 
   \subsection{Authentication}
   \paragraph*{}X3DH specification mentions \cite[section 4.1]{x3dh} the necessity of an identity authentication mechanism and libsignal\cite{libsignal} implements a key fingerprints comparison to provide it. Lime makes use of a ZRTP\cite{zrtp} call with an oral SAS verification to provide mutual identity authentication. See implementation details in section \ref{subsec:mutualauthentication}
+
+  \subsection{PQXDH}
+  \paragraph*{}In Lime, the key server will allways provide a SPk KEM public key to be able to pass it to the double ratchet init and an OPk KEM key if available.
+  \paragraph*{}KEM OPk keys are not signed to improve the deniability property, see \cite{PQXDHdeniabilty}
+  \paragraph*{}In order not to rely on KEM properties (which are provided by Kyber), the key derivation functions generating the PQXDH output includes a transcript of all public material (public keys and cipher text) used in the generation of the shared secrets.
+
   \subsection{Optional features not implemented}
     \begin{itemize}
       \item Double ratchet with header encryption as in \cite[section 4]{doubleRatchet}
@@ -158,9 +179,9 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \EndFunction
       \end{algorithmic}
   \subsection{Double Ratchet}
-    \subsubsection{Diffie-Hellman}
+    \subsubsection{ECDH only Asymmetric Ratchet}
       \paragraph{}The ECDH function can be either X448 or X25519 as described in \cite{rfc7748}.
-    \subsubsection{KDF\_RK}
+      \paragraph*{Root Key Derivation function}
       \paragraph{}As recommended in \cite[section 5.2]{doubleRatchet}, this function uses HKDF\cite{rfc5869} based on SHA512. The $salt$ is RK and $ikm$ is the output of ECDH(\textit{DH\_out}). The info string is "\textit{DR Root Chain Key Derivation}". \textit{DH\_out} size depends on ECDH function used, X25519 produces a 32 bytes output, X448 a 56 bytes output.
 
       \begin{algorithmic}
@@ -170,9 +191,108 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State \Return $RK\langle 32bytes\rangle , CK\langle 32bytes\rangle$
         \EndFunction
       \end{algorithmic}
-    \subsubsection{KDF\_CK}
+
+      \paragraph*{Sender Asymmetric Ratchet}
+      \paragraph*{}This function is executed during a message encryption, only when an ECDH peer public key is available(and was never used before)
+      \begin{algorithmic}
+        \Function{asymmetricRatchetSender}{$peerPublicKey\langle 32,56bytes\rangle$}
+          \State $selfPublicKey, selfPrivateKey \gets \Call{generateDHKeyPair}{}$
+          \Statex
+          \Comment{tag peerPublicKey as used to avoid triggering another DH with it}
+          \State $DH\_out \gets DH(selfPrivateKey, peerPublicKey)$
+          \State $RK, CKs \gets \Call{KDF\_RK}{RK, DH\_out}$
+        \EndFunction
+      \end{algorithmic}
+
+      \paragraph*{Receiver Asymmetric Ratchet}
+      \paragraph*{}This function is executed during a message decryption upon reception of a new ECDH peer public key
+      \begin{algorithmic}
+        \Function{asymmetricRatchetReceiver}{$peerPublicKey\langle 32,56bytes\rangle$}
+          \Statex
+          \Comment{tag peerPublicKey as new so we will use it at next message encryption}
+          \State $DH\_out \gets DH(selfPrivateKey, peerPublicKey)$
+          \State $RK, CKr \gets \Call{KDF\_RK}{RK, DH\_out}$
+        \EndFunction
+      \end{algorithmic}
+
+    \subsubsection{ECDH and KEM Asymmetric Ratchet}
+      \paragraph{}The mixed KEM and ECDH asymmetric ratchet uses X25519 and Kyber512 algorithm
+      \paragraph*{Root key derivation function}
+      \paragraph{}As recommended in \cite[section 5.2]{doubleRatchet}, this function uses HKDF\cite{rfc5869} based on SHA512. The $salt$ is RK and $ikm$ is the output of ECDH(\textit{DH\_out}), the KEM shared secret(\textit{KEM\_out}) and a transcript of the key exchanges: public keys and cipher text. The info string is "\textit{DR Root Chain Key Derivation}".
+
+      \begin{algorithmic}
+        \State $transcript \gets ECDH Sender Pk || ECDH Receiver Pk || KEM Pk || KEM Ct$
+        \Function{KDF\_KEM\_RK}{RK$\langle 32bytes\rangle, DH\_out\langle 32bytes\rangle,\newline
+          \hspace*{13em} KEM\_out\langle 32bytes\rangle, transcript\langle 1632bytes\rangle$}
+          \State $info \gets \textit{"DR Root Chain Key Derivation"}$
+          \State $RK\langle 32bytes\rangle\Arrowvert CK\langle 32bytes\rangle \gets \Call{HKDFSha512}{RK, DH\_out || KEM\_out || transcript, info}$
+          \State \Return $RK\langle 32bytes\rangle , CK\langle 32bytes\rangle$
+        \EndFunction
+      \end{algorithmic}
+
+      \paragraph*{Sender Asymmetric Ratchet}
+      \paragraph*{}This function is executed during a message encryption, only when an ECDH peer public key is available(and was never used before)
+      \begin{algorithmic}
+        \Function{asymmetricRatchetSender}{$peerDHPublicKey\langle 32,56bytes\rangle$}
+          \Statex
+          \Comment{Perform a DH ratchet}
+          \State $selfDHPublicKey, selfDHPrivateKey \gets \Call{generateDHKeyPair}{}$
+          \Statex
+          \Comment{tag peerPublicKey as used to avoid triggering another DH with it}
+          \State $DH\_out \gets DH(selfDHPrivateKey, peerDHPublicKey)$
+          \Statex
+          \Statex
+          \Comment{Check if we should also perform a KEM ratchet}
+          \If{$peerKEMPublicKey$ available \textbf { and } \newline
+          \hspace*{1em} ( $lastReceiverKemRatchet$ > 1 day \newline
+          \hspace*{1em} \textbf{or} $ratchetChainSize$ > 42 ) }
+            \Statex
+            \Comment{Encapsulate a secret to current peer's public key}
+            \State $KEM\_CipherText, KEM\_out \gets \Call{encapsulate}{peerKEMPublicKey}$
+            \State $RK, CKs \gets \Call{KDF\_KEM\_RK}{RK, DH\_out, KEM\_out,\newline
+            \hspace*{5em}selfDHPublicKey || peerDHPublicKey || peerKEMPublicKey || KEM\_CipherText}$
+            \Statex
+            \Statex
+            \Comment{Generate a new KEM key pair so peer may encapsulate a secret to us}
+            \Statex
+            \Comment{The public key is sent along the previously created ciphertext}
+            \State $selfKEMPublicKey, selfKEMPrivateKey \gets \Call{generateKEMKeyPair}{}$
+          \Else
+            \Statex
+            \Comment{No KEM ratchet, just perform a DH one}
+            \State $RK, CKs \gets \Call{KDF\_RK}{RK, DH\_out}$
+          \EndIf
+
+
+        \EndFunction
+      \end{algorithmic}
+
+      \paragraph*{Receiver Asymmetric Ratchet}
+      \paragraph*{}This function is executed during a message decryption upon reception of a new ECDH peer public key
+      \begin{algorithmic}
+        \Function{asymmetricRatchetReceiver}{$peerDHPublicKey\langle 32bytes\rangle, KEMCipherText\langle 768bytes\rangle$}
+          \Statex
+          \Comment{tag peerDHPublicKey as new so we will use it at next message encryption}
+          \State $DH\_out \gets DH(selfDHPrivateKey, peerDHPublicKey)$
+          \Statex
+          \Comment{When a new KEM Public key arrives, perform a KEM ratchet}
+          \If {$KEMCipherText$ is new}
+             \State $KEM\_out \gets \Call{decapsulate}{selfKEMPublicKey, KEM\_CipherText}$
+             \State $RK, CKs \gets \Call{KDF\_KEM\_RK}{RK, DH\_out, KEM\_out,\newline
+            \hspace*{5em}peerDHPublicKey || selfDHPublicKey || selfKEMPublicKey || KEM\_CipherText}$
+          \Else
+             \Comment{No KEM ratchet, just perform a DH one}
+             \State $RK, CKr \gets \Call{KDF\_RK}{RK, DH\_out}$
+          \EndIf
+
+
+        \EndFunction
+      \end{algorithmic}
+
+    \subsubsection{Symmetric Ratchet}
+      \paragraph{KDF\_CK}
       \label{subsubsec:kdfck}
-      Implemented as described in \cite[section 5.2]{doubleRatchet}. Message key derivation outputs 48 bytes as it generates the message key ($MK\langle 32bytes\rangle$) and the AEAD nonce ($IV\langle 16 bytes\rangle$) as suggested in \cite[section 3.1 - ENCRYPT]{doubleRatchet}.
+      \paragraph*{}Implemented as described in \cite[section 5.2]{doubleRatchet}. Message key derivation outputs 48 bytes as it generates the message key ($MK\langle 32bytes\rangle$) and the AEAD nonce ($IV\langle 16 bytes\rangle$) as suggested in \cite[section 3.1 - ENCRYPT]{doubleRatchet}.
       \begin{algorithmic}
         \Function{KDF\_CK}{CK$\langle 32bytes\rangle $}
           \State $MK\Arrowvert IV \gets \Call{HmacSha512}{ChainKey, 0x01}$
@@ -180,8 +300,17 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State \Return $CK\langle 32bytes\rangle ,MK\langle 32bytes\rangle ,IV\langle 16 bytes\rangle $
         \EndFunction
       \end{algorithmic}
+      \paragraph*{}When KEM is also used, this function includes the chain key derivation index as suggested in \cite{secsymmratchet}
+      \begin{algorithmic}
+        \Function{KDF\_CK}{CK$\langle 32bytes\rangle$, index$\langle 2bytes\rangle$}
+          \State $MK\Arrowvert IV \gets \Call{HmacSha512}{ChainKey, 0x01, || index}$
+          \State $CK \gets \Call{HmacSha512}{ChainKey, 0x02 || index}$
+          \State \Return $CK\langle 32bytes\rangle ,MK\langle 32bytes\rangle ,IV\langle 16 bytes\rangle $
+        \EndFunction
+      \end{algorithmic}
 
     \subsubsection{RatchetEncrypt}
+      \paragraph{}The ratchet encrypt function performs an asymmetric ratchet when possible: if a peer ECDH public key is available. If the base algorithm includes a KEM, the asymmetric ratchet involves a KEM encapsulation: if a peer KEM public key is available and if more than \textit{maxKEMRatchetChainPeriod} seconds have passed or more than \textit{KEMRatchetChainSize} messages have been exchanged since the last KEM ratchet.
       \paragraph{}The RatchetEncrypt function described in \cite[section 3.4]{doubleRatchet} is not directly used to encrypt the message. Instead, to provide the group chat (see section \ref{subsubsec:groupchat}) capabilities, an encryption request must include a list of recipient devices (can contain one or more elements).\\*
       Each recipient in the list is composed of:
         \begin{algorithmic}
@@ -198,8 +327,8 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \item If $Alice.1$ sends a message to $Bob$, the inputs for the RatchetEncrypt function must include $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$ as list of recipient devices.
         \item If $Alice.1$ sends a message to $Group$, the inputs for the RatchetEncrypt function must include $Group$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$, .., $Claire.nC$ as list of recipient devices.
         \item The Lime library does not perform any check on the link between user Id and device Id and will not generate any error if the RatchetEncrypt arguments are $Bob$ as recipient user and $Bob.1$, .., $Bob.nB$, $Alice.2$, .., $Alice.nA$, $Claire.1$ as list of recipient devices. The error would instead be detected by $Claire.1$ during decryption. See \ref{subsubsec:associatedData} for details on the use of Associated Data to detect mismatching association of user Id and device Id.
-        
       \end{itemize}
+
       \paragraph*{Encryption policy}: As stated in section \ref{subsubsec:groupchat}, the plain message can be:
       \label{encryptionPolicyMSC}
       \begin{itemize}
@@ -208,7 +337,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{itemize}
       The two policies are represented on the following diagrams. It is assumed that the server will dispatch only the requested parts to recipients and not the whole upload. Double Ratchet sessions establishment are not shown on the diagram but are assumed to be already completed between all participants. All participants have one device only.\\\newline
       \begin{msc}{Double Ratchet Message encryption policy}
-        \setlength{\instdist}{3.8cm}
+        \setlength{\instdist}{2.2cm}
         \setlength{\instwidth}{1.9cm}
         \setlength{\actionwidth}{1.7cm}
         \setlength{\envinstdist}{1.7cm}
@@ -219,14 +348,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \action{encrypt}{alice}
         \nextlevel[3]
         \mess{Bob DR msg$\Arrowvert $Claire DR msg}{alice}{SIP}
-        \nextlevel[2]
+        \nextlevel[1]
         \mess{Bob DR msg}{SIP}{bob}
-        \nextlevel
+        \nextlevel[2]
         \mess{Claire DR msg}{SIP}{claire}
       \end{msc}
       \\\newline
       \begin{msc}{Cipher Message encryption policy}
-        \setlength{\instdist}{3.8cm}
+        \setlength{\instdist}{2.2cm}
         \setlength{\instwidth}{1.9cm}
         \setlength{\actionwidth}{1.7cm}
         \setlength{\envinstdist}{1.9cm}
@@ -239,10 +368,10 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \mess{Bob DR msg$\Arrowvert $Claire DR msg$\Arrowvert $cipher Message}{alice}{SIP}
         \nextlevel[2]
         \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
-        \nextlevel
+        \nextlevel[2]
         \mess{Claire DR msg$\Arrowvert $cipher Message}{SIP}{claire}
       \end{msc}
-      
+
       \paragraph*{}Selection of the encryption policy according to policy parameter, recipientLists and plain text characteristics. The policy parameter is given at runtime by caller and default to $optimize\ Upload\ Size$ if omitted. Possible values of this parameter are:
         \begin{itemize}
           \item $Double\ Ratchet\ Message$: the plain text is encrypted and embeded in the Double Ratchet message.
@@ -252,7 +381,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \end{itemize}
         \paragraph*{Note}: the optimize modes do not take in consideration the multipart boundary added by the presence of an extra part holding the cipher Message.
         \label{messageEncrypt}
-        
+
         \begin{algorithmic}
           \Statex
           \Function{MessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId, policy$}
@@ -289,7 +418,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \EndFunction
         \end{algorithmic}
         \paragraph*{}with following functions definitions:
-        
+
         \begin{algorithmic}
           \Statex
           \Function{DRMessageEncrypt}{$recipientList, plain, sourceDeviceId, recipientUserId$}
@@ -301,7 +430,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State\Return $recipientList$
           \EndFunction
         \end{algorithmic}
-        
+
 
         \begin{algorithmic}
           \Statex
@@ -321,12 +450,15 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State\Return $recipientList,cipherMessage$
           \EndFunction
         \end{algorithmic}
-        
+
         \begin{algorithmic}
           \Statex
           \Function{RatchetEncrypt}{$DRsession, plaintext, AD$}
+            \If{$peerEC public key available$}
+              \State $\Call{asymmetricRatchetSender}{}$
+            \EndIf
             \State \textit{\ as described in \cite[section 3.4]{doubleRatchet}:}
-            \State $CKs,mK,IV \gets \Call{KDF\_CK}{CKs}$
+            \State $CKs,mK,IV \gets \Call{KDF\_CK}{CKs, Ns}$
             \State $header \gets \Call{header}{DHs, PN, Ns}$
             \State $Ns += 1$
             \State\Call{UpdateDRsessionInLocalStorage}{DRsession}
@@ -334,16 +466,16 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \EndFunction
           \Statex
         \end{algorithmic}
-        
+
         \begin{algorithmic}
           \Statex
           \Function{Encrypt}{$key\langle 32 bytes\rangle , IV\langle 16 bytes\rangle , plain, associatedData$}
             \State\Return AES256-GCM output$\Arrowvert$Auth tag (on plain and associatedData)$\langle 16 bytes\rangle $
           \EndFunction
         \end{algorithmic}
-        
+
       \paragraph{}Header function is specified in section \ref{subsubsec:protocol_doubleratchet_header}
-        
+
     \subsubsection{RatchetDecrypt}
       \paragraph{}The decryption function described in \cite[section 3.5]{doubleRatchet} is not directly used to decrypt the message. Lime first assess the presence of a cipher message and depending on it use directly the Double Ratchet or perform the two steps of encryption: first decrypt the Double Ratchet message to retrieve the random Key and IV, then decrypt the message itself.
       \paragraph{}The receiving process described in Sesame specifications \cite[section 3.4]{sesame} is partly implemented in the Double Ratchet decryption process: the message decrypt function accepts a list of Double Ratchet sessions and tries them all until one decrypts correctly the message (or all fail).
@@ -353,7 +485,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \Function{MessageDecrypt}{$sourceDeviceId,$
             \StatexIndent[9] $recipientDeviceId, recipientUserId,$
             \StatexIndent[9] $DRsessionList, DRmessage, cipherMessage$}
-          
+
             \If{$cipherMessage\exists$}
               \State \Return \Call{cipherMessageDecrypt}{$sourceDeviceId,recipientDeviceId,$
                 \StatexIndent[9] $recipientDeviceId, recipientUserId$
@@ -365,7 +497,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \EndIf
           \EndFunction
         \end{algorithmic}
-          
+
         \begin{algorithmic}
           \Statex
           \Function{DRMessageDecrypt}{$sourceDeviceId,$
@@ -379,7 +511,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \EndIf
           \EndFor
           \State \Return \textbf{fail}
-          \EndFunction      
+          \EndFunction
       \end{algorithmic}
 
       \begin{algorithmic}
@@ -399,12 +531,23 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \State \Return \textbf{fail}
           \EndFunction
       \end{algorithmic}
-      
-      \begin{algorithmic}      
+
+      \begin{algorithmic}
           \Function{RatchetDecrypt}{$DRsession, header\Arrowvert payload\Arrowvert tag, AD$}
             \State\textit{As described in \cite[section 3.5]{doubleRatchet}}
-            \State\textit{Associated Data given to AEAD is $AD\Arrowvert X3DH provided AD\Arrowvert header$}
+            \State Try to decrypt the incoming message with stored skipped message keys
             \If{Success}
+              \State\Call{UpdateDRsessionInLocalStorage}{DRsession}
+              \State \Return
+            \EndIf
+            \If{header does not match current peers Public Key}
+              \State \Call{asymmetricRatchetReceiver}{header public material}
+            \EndIf
+            \State \textit{\ as described in \cite[section 3.4]{doubleRatchet}:}
+            \State $CKr,mK,IV \gets \Call{KDF\_CK}{CKr, Nr}$
+            \Statex
+            \State\textit{Associated Data given to AEAD is $AD\Arrowvert X3DH provided AD\Arrowvert header$}
+            \If{\Call{AES256-GCMDecrypt}{$message \Arrowvert Auth Tag$, $IV$, $MK$} successful}
               \State\Call{UpdateDRsessionInLocalStorage}{DRsession}
             \EndIf
           \EndFunction
@@ -443,18 +586,36 @@ any session-based message encryption algorithm that meets certain conditions.}\t
             \State $ZeroBuffer\langle SHA512 output size(64bytes)\rangle \gets 0$
             \State $SK\langle 32bytes\rangle  \gets \Call{HKDFSha512}{ZeroBuffer, F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH3\Arrowvert DH4, $\textit{"Lime"}}
           \end{algorithmic}
-        F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.
+        \paragraph*{}F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer.
 
       \label{subsubsec:X3DHAD}
       \paragraph{Associated Data} is computed from identity keys and devices Id as specified in \cite[section 3.3]{x3dh}. For implementation convenience, the actual AD used by the Double Ratchet session is derived from these inputs by the HKDF function producing a fixed size buffer as following:
           \begin{algorithmic}
-            \State $ZeroBuffer\langle SHA512 output size(64bytes)\rangle \gets 0$
+            \State $Salt\langle SHA512 output size(64bytes)\rangle \gets 0$
             \State $ADinput \gets initiatorIk\Arrowvert receiverIk\Arrowvert initiatorDeviceId\Arrowvert receiverDeviceId$
-            \State $AD\langle 32bytes\rangle  \gets \Call{HKDFSha512}{ZeroBuffer, ADinput, $\textit{"X3DH Associated Data"}}
+            \State $AD\langle 32bytes\rangle  \gets \Call{HKDFSha512}{Salt, ADinput, $\textit{"X3DH Associated Data"}}
           \end{algorithmic}
           \textit{initiator} being the device who initiates the session (Alice in the X3DH spec) by fetching a keys bundle on the X3DH server and \textit{receiver} being the recipient device of the first message (Bob in the X3DH spec).
-    \subsubsection{X3DH test server}
-      \paragraph*{Nodejs}: An X3DH test server running on nodejs is provided with the Lime library source code. This server is not meant to be used in production and its purpose is for testing only. This server lacks user authentication layer, which in real use case is provided by the linphone ecosystem.
+
+  \subsection{PQXDH}
+    \paragraph*{}All operations performed in X3DH are also performed by PQXDH, as specified in \cite{pqxdh}.
+    \subsubsection{KEM}
+    \paragraph*{}In addition, PQXDH performs a key encapsulation. The algorithm available is Kyber512.
+    \subsubsection{Shared Secrets generation}
+      \paragraph{SK}is computed as specified in \cite{pqxdh}. The salt used for the HKDF function is a zero filled buffer the size of the hash function used, the \textit{info} parameter is "\textit{Lime}". In addition, a transcript of all public material is used in the Shared secret derivation
+          \begin{algorithmic}
+            \State $Salt\langle SHA512 output size(64bytes)\rangle \gets 0$
+            \State $Info \gets "Lime\_\langle CurveId\rangle \_SHA512\_\langle KEMId\rangle$
+            \State $SK\langle 32bytes\rangle  \gets \Call{HKDFSha512}{Salt,$
+            \StatexIndent[5]$F\langle 32,57bytes\rangle \Arrowvert DH1\Arrowvert DH2\Arrowvert DH3\Arrowvert DH4\Arrowvert KEM1$
+            \StatexIndent[5]$|| Alice\ Ik || Alice\ Ek || Bob\ DH\ SPk || [Bob\ DH\ OPk] || Bob\ KEM\ Pk || KEM\ CT,$
+            \StatexIndent[5]$Info$}
+          \end{algorithmic}
+        \paragraph*{}F is a 32 (when using curve25519) or 57 (when using curve448) bytes 0xFF filled buffer. \textit{CurveId} and \textit{KEMId} are strings identifying the algorithm: CURVE25519, CURVE448, KYBER512. $BOB\ KEM\ Pk$ is the KEM public key used to perform the encapsulation: the OPk if present or the SPk otherwise.
+
+  \subsection{Lime key test server}
+    \paragraph*{Nodejs}: An X3DH test server running on nodejs is provided with the Lime library source code. This server is not meant to be used in production and its purpose is for testing only. This server lacks user authentication layer, which in real use case is provided by the linphone ecosystem.
+
   \subsection{Sesame}
     \paragraph{}The Sesame requirements are fulfilled as follow:
     \begin{itemize}
@@ -465,12 +626,12 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item User and device identifications are provided by the linphone ecosystem: a user Id is its sip:uri, also used to identify groups. A device Id is its GRUU\cite{rfc5627}. The connection to the X3DH server is performed over HTTPS and uses the user authentication associated to the SIP user account.
       \item Mailboxes and message routing are provided by the linphone ecosystem
     \end{itemize}
-   
+
     \newpage
     \subsubsection{Scenario 1: first encryption, multiple devices}
     \paragraph{}Alice1 encrypts a message to Bob for the first time. Alice1 must establish Double Ratchet sessions and, for that, requests key bundles. It is assumed that Alice2 is known to Alice1; so there is no request for an Alice2 key bundle. The cipher message encryption policy is used.\\\newline
     \begin{msc}{Alice1 encrypts to Bob for the first time}
-    \setlength{\instdist}{2.9cm}
+    \setlength{\instdist}{1.2cm}
     \setlength{\envinstdist}{0.95cm}
     \declinst{aliced1}{}{Alice1}
     \declinst{aliced2}{}{Alice2}
@@ -479,90 +640,91 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \declinst{bobd1}{}{Bob1}
     \declinst{bobd2}{}{Bob2}
     \mess{get Bob device's GRUU}{aliced1}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice2, Bob1, Bob2}{SIP}{aliced1}
     \nextlevel[2]
     \mess{get Bob1, Bob2 keys bundles}{aliced1}{X3DH}
-    \nextlevel
+    \nextlevel[2]
     \mess{get Alice user credentials}{X3DH}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{auth challenge}{X3DH}{aliced1}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice user credentials}{SIP}{X3DH}
-    \nextlevel
+    \nextlevel[2]
     \mess{auth challenge response}{aliced1}{X3DH}
-    \nextlevel
+    \nextlevel[2]
     \action*{Check credentials}{X3DH}
     \nextlevel[2]
     \mess{Bob1, Bob2 keys bundles}{X3DH}{aliced1}
-    \nextlevel
+    \nextlevel[2]
     \action{encrypt}{aliced1}
     \nextlevel[3]
     \mess{Alice2, Bob1, Bob2 DR msg$\Arrowvert $cipher Message}{aliced1}{SIP}
     \nextlevel[2]
     \mess{Alice2 DR msg$\Arrowvert $cipher Message}{SIP}{aliced2}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob1 DR msg$\Arrowvert $cipher Message}{SIP}{bobd1}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob2 DR msg$\Arrowvert $cipher Message}{SIP}{bobd2}
     \end{msc}
-    
+
     \newpage
     \subsubsection{Scenario 2: group chat}
     \paragraph*{}Alice sends a first message to a group called Friends composed of Alice, Bob and Carol. Alice's message is dispatched and then Carol posts a message to the group. Carol's message is dispatched and finally Bob sends a message to the group. It is assumed that users did not exchanged any message prior and that they have one device each. User authentication messages to and from X3DH server are not shown for better readability but the users authentication by X3DH server and X3DH server authentication by users must take place. The cipher message encryption policy is used.\\\newline
     \begin{msc}{Group chat establishment, $Friends$ is composed of Alice, Bob and Carol}
-    \setlength{\instdist}{2.9cm}
+    \setlength{\instdist}{1.45cm}
     \setlength{\envinstdist}{1cm}
+    \setlength{\levelheight}{0.35cm}
     \declinst{alice}{}{Alice}
     \declinst{bob}{}{Bob}
     \declinst{carol}{}{Carol}
     \declinst{SIP}{}{SIP s.}
     \declinst{X3DH}{}{X3DH s.}
     \mess{get \textit{Friends} device's GRUU}{alice}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob, Carol}{SIP}{alice}
     \nextlevel[2]
     \mess{get Bob, Carol keys bundles}{alice}{X3DH}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob, Carol keys bundles}{X3DH}{alice}
     \nextlevel
     \action{encrypt}{alice}
     \nextlevel[2]
     \mess{Bob, Carol DR msg$\Arrowvert $cipher Message}{alice}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
-    \nextlevel
+    \nextlevel[2]
     \mess{Carol DR msg$\Arrowvert $cipher Message}{SIP}{carol}
     \nextlevel[2]
     \mess{get \textit{Friends} device's GRUU}{carol}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice, Bob}{SIP}{carol}
     \nextlevel[2]
     \mess{get Bob keys bundles}{carol}{X3DH}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob keys bundles}{X3DH}{carol}
     \nextlevel
     \action{encrypt}{carol}
-    \nextlevel[3]
+    \nextlevel[4]
     \mess{Alice, Bob DR msg$\Arrowvert $cipher Message}{carol}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice DR msg$\Arrowvert $cipher Message}{SIP}{alice}
-    \nextlevel
+    \nextlevel[2]
     \mess{Bob DR msg$\Arrowvert $cipher Message}{SIP}{bob}
     \nextlevel[2]
     \mess{get \textit{Friends} device's GRUU}{bob}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice, Carol}{SIP}{bob}
     \nextlevel
     \action{encrypt}{bob}
-    \nextlevel[3]
+    \nextlevel[4]
     \mess{Alice, Carol DR msg$\Arrowvert $cipher Message}{bob}{SIP}
-    \nextlevel
+    \nextlevel[2]
     \mess{Alice DR msg$\Arrowvert $cipher Message}{SIP}{alice}
-    \nextlevel
+    \nextlevel[2]
     \mess{Carol DR msg$\Arrowvert $cipher Message}{SIP}{carol}
     \end{msc}
-    
+
   \subsection{Mutual authentication and peer device status}
     \label{subsec:mutualauthentication}
     \paragraph{}As stated in \cite[section 4.1]{x3dh}, the parties shall compare their identity public keys otherwise they receive no cryptographic guarantee as to whom they are communicating with. Each peer device has a status available after any encryption or decryption operation which can be:
@@ -579,7 +741,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item when ZRTP key exchange is complete, parties check that the auxiliary secret is matching and perform a vocal SAS comparison (if not performed before); and
       \item if the verification succeeds, each party sets the peer Ik status as $trusted$ in the Lime local storage. If the peer key is already present in the Lime local storage, Lime verifies that it matches the one obtained through the ZRTP channel.
     \end{itemize}
-    
+
     \paragraph{}In the following diagram $alice\ Ik$ and $bob\ Ik$ refer to the identity public key associated to the particular devices used by Alice and Bob to perform the ZRTP audio call.\\\newline
     \begin{msc}{Mutual Authentication}
     \setlength{\instdist}{9cm}
@@ -625,14 +787,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
 
   \subsection{Keys and sessions management}
     \paragraph{}Key lifetime management is the responsibility of the client device; the X3DH server is not involved in their management. On a regular schedule (once a day is recommended), the device must run the $update$ function to check keys validity, renew and delete outdated ones. Several settings are involved in the $update$ operation and are all defined in \textit{lime\_settings.hpp}.
-    
+
     \subsubsection{Identity Key}
       \paragraph{}Is valid for the lifetime of a device.
-    
+
     \subsubsection{Signed Pre-key}
       \paragraph*{SPK\_lifeTime\_days}is a constant (7 days default) defining the key validity period. Once a key is outdated, a new one is generated, signed and uploaded on the X3DH server. Old keys are kept in storage with an $invalid$ status so valid but delayed X3DH initiation messages using this signed pre-key can still be processed.
       \paragraph*{SPK\_limboTime\_days}is a constant (30 days default) defining the period invalid keys are kept by the device.
-       
+
     \subsubsection{One-time Pre-key}
       \paragraph{}These can be used only once, so any use implies immediate deletion:
       \begin{itemize}
@@ -652,12 +814,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \paragraph{}More than one double ratchet session may exist between two devices but only one shall be active. The encryption is always performed by the active session and, on reception, the session successfully decrypting the message becomes the active session. Stalled sessions are kept for a pre-determined period of time to allow decrypting of delayed or unordered messages:
       \paragraph{DRSession\_limboTime\_days}is a constant (30 days default) defining the period stalled sessions are kept by the device.
       \paragraph{}In case a peer device is silent, the double ratchet session will never perform a Diffie-Hellman ratchet but only symmetric ratchet steps. To mitigate this problem, a pre-defined limit on the number of messages encrypted without performing Diffie-Hellman is set (effectively being a limit on the length of the sending chain, each Diffie-Hellman ratchet reset the sending chain counter):
-      \paragraph{maxSendingChain}is a constant (1000 default) defining the maximum length of a sending chain. When reached, the Double Ratchet session status is stalled, forcing the sender device to create a new session; fetching a new key bundle from the X3DH server in order to keep on sending messages.
-    
+      \paragraph{maxSendingChain}is a constant (500 default) defining the maximum length of a sending chain. When reached, the Double Ratchet session status is stalled, forcing the sender device to create a new session; fetching a new key bundle from the X3DH server in order to keep on sending messages.
+      \paragraph{KEMRatchetChainSize} is a constant (42 default) defining the minimum size of the cummulated sending and receiving chain before a new KEM ratchet can be initiated by a message encryption.
+      \paragraph{maxKEMRatchetChainPeriod} is a constant (86400 seconds/1day default) defining the amount of time elapsed since the last KEM ratchet that will trigger a new KEM ratchet step regardless to the size of the KEM ratchet chain.
+
     \subsubsection{Skipped message keys}
       \paragraph{}As messages may be out of order on reception, Double Ratchet specifies how skipped intermediate messages keys, generated to decrypt a received message, shall be stored to allow the decryption of out-of-order messages. After a pre-determined number of messages successfully decrypted by a double ratchet session, skipped messages are considered lost and their stored message keys are deleted from local storage:
       \paragraph{maxMessagesReceivedAfterSkip} is a constant (128 default) linked to a double ratchet receiving chain (a new chain is started within the session each time a Diffie-Hellman ratchet is performed). Each time a skipped message key is stored in this chain, the counter is reset. Each time a message is decrypted by the session, all skipped message key chain counters are increase by one. When the counter reaches $maxMessagesReceivedAfterSkip$, the skipped message key chain is deleted.
-    
+
 
   \subsection{Local Storage}
     The local storage is provided by an sqlite3 database accessed using the \href{https://github.com/SOCI/soci}{SOCI library} \cite{libsoci}.
@@ -674,7 +838,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \item bit 8 is the active flag : 0 for active user, 1 for inactive user
         \end{itemize}
     \end{itemize}
-    
+
     \paragraph*{lime\_PeerDevices}
     \textit{Note:} Records in this table are not linked to a local user but shared among local users in order to avoid storing multiple records containing the same information.
     \begin{itemize}
@@ -689,7 +853,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \end{itemize}
         see this document section \ref{subsec:mutualauthentication} for usage.
     \end{itemize}
-    
+
     \subsubsection{X3DH tables}
     The X3DH dedicated tables store local users' Signed Pre-keys and One-time Pre-keys, records are linked to a local user through a foreign key: $Uid$.
     \paragraph*{X3DH\_SPK}
@@ -701,7 +865,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $Status$: set to valid (1) at creation and then to invalid (0) when a new key is generated.
       \item $Uid$: link to $lime\_LocalUsers$: identifies which local user owns this record.
     \end{itemize}
-  
+
   \paragraph*{X3DH\_OPK}
     \begin{itemize}
       \item $OPKid$: a random Id (unsigned integer on 31 bits) to identify the key. This value being public, it is not a sequence but a random number.
@@ -710,7 +874,10 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $Status$: set to online (1) at key generation and then to dispatched (0) when the key is not found anymore on the X3DH server by the $update$ request.
       \item $Uid$: link to $lime\_LocalUsers$: identify which local user owns this record.
     \end{itemize}
-              
+
+  \paragraph*{KEM version}
+  \paragraph*{}When the base algorithm includes a KEM (curve25519/kyber512), SPks and OPks also holds a KEM key pair. They are stored in the tables along the EC ones as EC public key$\Arrowvert $EC private key$\Arrowvert $KEM public key$\Arrowvert $ KEM private key
+
     \subsubsection{Double ratchet tables}
     The Double Ratchet tables store all material needed for the Double Ratchet session, including dedicated tables for skipped keys. Records are linked to local and peer devices through foreign keys: Uid and Did.
     \paragraph*{DR\_sessions}
@@ -721,23 +888,35 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $Ns$: index of current sending chain.
       \item $Nr$: index of current receiving chain.
       \item $PN$: index of previous sending chain.
-      \item $DHr$: peer's ECDH public key.
-      \item $DHs$: self ECDH key (public$\Arrowvert $private).
+      \item $DHr$: peer's ECDH public key or (EC public$\Arrowvert $KEM public)
+      \item $DHs$: self ECDH key (public$\Arrowvert $private) or  (EC public$\Arrowvert $EC private$\Arrowvert $KEM public$\Arrowvert $KEM private))
       \item $RK$: Diffie-Hellman Ratchet Root key.
       \item $CKr$: Symmetric Ratchet receiver chain key.
       \item $CKs$: Symmetric Ratchet sender chain key.
       \item $AD$: session Associated Data (provided at session creation by X3DH).
       \item $Status$: active (1) or stale (0), only one session can be active between two devices.
-      \item $timeStamp$: is set to current time when the status is set switched from active to stale.
+      \item $DHrStatus$: a 4 bytes integer mapped as follow
+        \begin{itemize}
+          \item $KEMChainSize$(23 bits): cumulative number of sent and received (or skipped) messages since the last KEM receiver ratchet
+          \item $KEMforce\ flag$: force a KEM ratchet as soon as possible: is set when creating a session in receiver mode to force the KEM ratchet at first reply
+          \item $KEM peer Pk\ flag$: is set when a peer KEM public key is available for encapsulation (only one encapsulation is performed to a peer's Pk)
+          \item $KEM self Pk\ flag$: is set when from some replies we deduce that peer's know our current KEM public key so we do not need to send it anymore in the header
+          \item $DH peer Pk\ flag$: is set when a peer DH public key is available to perform a DH ratchet step with a fresh generated DH key pair 
+        \end{itemize}
+      \item $timeStamp$: Two purposes:
+        \begin{itemize}
+          \item while the session is active: is updated at each KEM receiving ratchet to be able to trigger a new KEM ratchet step when the last one is old enough
+          \item is updated to current time when the status is switched from active to stale, so we know when we should delete a stale session from DB
+        \end{itemize}
       \item $X3DHInit$: holds the X3DH init message while it is requested to insert it in message header.
     \end{itemize}
-    
+
     \paragraph*{}The two following tables store the skipped message keys, indexed by peer's ECDH public key and receiving chain index:
     \paragraph*{DR\_MSk\_DHr} stores key chain information: peer's ECDH public keys.
     \begin{itemize}
       \item $DHid$: integer primary key
       \item $sessionId$: link to $DR\_sessions$: identifies to which session this chain of skipped message keys belongs.
-      \item $DHr$: peer's ECDH public key associated to this message key chain.
+      \item $DHr$: peer's ECDH public key associated to this message key chain or SHA512(EC public$\Arrowvert $KEM public)
       \item $received$: counts the messages successfully decrypted after the last insertion of a skipped message key in this chain. Is used to delete old message keys.
     \end{itemize}
 
@@ -747,33 +926,36 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item $Nr$: index of the skipped message in the receiving chain.
       \item $MK$: the message key$\langle 32bytes\rangle  \Arrowvert $initial vector$\langle 16bytes\rangle $.
     \end{itemize}
-  
 
-    
+
+
   \subsection{Summary of cryptographic algorithms used}
     \subsubsection{Double Ratchet}
       \begin{itemize}
         \item Diffie-Hellman using either X25519 or X448
+        \item KEM: Kyber512 (always used with X25519)
         \item KDF are HKDF\cite{rfc5869} based on Sha512
         \item ENCRYPT is AES256-GCM with a 128bits authentication tag
       \end{itemize}
     \subsubsection{X3DH}
       \begin{itemize}
         \item Diffie-Hellman using either X25519 or X448
+        \item KEM: Kyber512 (always used with X25519)
         \item HKDF uses Sha512
         \item Signature uses EdDSA25519 or EdDSA448
         \item EdDSA keys are converted to ECDH keys to perform classic ECDH
       \end{itemize}
-  
+
   \subsubsection{Cryptographic libraries}
     \paragraph{}Elliptic curves operations are provided by decaf library\cite{libdecaf}, version 0.9.4 or above: X25519, X448, EdDSA25519, EdDSA448 and conversion function from EdDSA key to ECDH key format.
-    \paragraph{}Hash (HmacSha512) and encryption (AES256-GCM) are provided by mbedtls library\cite{libmbedtls}. Version 2.1 or above.
-    \paragraph{Note}: These libraries are not accessed directly but through the bctoolbox abstraction library.
+    \paragraph{}Hash (HmacSha512), HKDF-Sha512 and encryption (AES256-GCM) are provided by mbedtls library\cite{libmbedtls}. Version 3.4 or above.
+    \paragraph{}Kyber512 is provided by liboqs library\cite{liboqs}, version 0.9.1 or above. The Kyber512 version provided is the one from NIST round3
+    \paragraph{Note}: These libraries are not accessed directly but through the bctoolbox abstraction library or the postquantumcryptoengine library.
 
 \newpage
 \section{Protocol specification}
   This section describes the details of messages structures.
-  \paragraph*{Notes}: Keys are intended as public keys and their size depends on the selected curve indicated in the messages header. The following sizes apply:
+  \paragraph*{Notes}: Keys are intended as public keys and their size depends on the selected base algorithm indicated in the messages header. The following sizes apply:
   \begin{itemize}
     \item Curve 25519 ECDH: 32 bytes
     \item Curve 25519 EdDSA: 32 bytes
@@ -781,10 +963,12 @@ any session-based message encryption algorithm that meets certain conditions.}\t
     \item Curve 448 ECDH: 56 bytes
     \item Curve 448 EdDSA: 57 bytes
     \item Curve 448 Signature: 114 bytes
+    \item Kyber 512 Public Key: 800 bytes
+    \item Kyber 512 Cipher Text: 768 bytes
   \end{itemize}
   Keys are stored and distributed in the formats described in \cite{rfc7748} and \cite{rfc8032}.\\*
   Others numeric values (counts, Ids, counters) are unsigned integers in big endian.
-  
+
   \subsection{Double Ratchet message}
     \paragraph*{}These messages are exchanged among devices. The system runs in asynchronous mode, and messages are sent to and stored by a server and are fetched by final recipients when online. The server in charge of storing/routing the messages shall fan-out to the respective recipients not all the incoming message but only the part addressed to them.
 
@@ -794,7 +978,12 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \item Protocol Version: 0x01.
       \item Message Type is a byte with following bit mapping:
         \begin{itemize}
-          \item bit 7 to 2: not used.
+          \item bit 7 to 3: not used.
+          \item bit 2: KEM public key index flag: (used only when the base algorithm includes a KEM)
+            \begin{itemize}
+              \item 1: Peer and Self KEM public indexes only are present in this message
+              \item 0: A KEM public key and Cipher Text are present in this message
+            \end{itemize}
           \item bit 1: Payload encryption flag:
             \begin{itemize}
               \item 1: payload in the DR message
@@ -806,26 +995,80 @@ any session-based message encryption algorithm that meets certain conditions.}\t
               \item 0: (no X3DH init in the header)
             \end{itemize}
         \end{itemize}
-      \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448)]
+      \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448), 0x02 (curve25519/kyber512)]
       \end{itemize}
 
       \subsubsection{Header}
       \label{subsubsec:protocol_doubleratchet_header}
+      \paragraph*{}For DH only
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type & Curve Id & \\
         \cline{1-3}
         \multicolumn{4}{|c|}{X3DH Init $\langle $variable size$\rangle $\{0,1\}}\\
         \multicolumn{4}{|c|}{This part is present only if Message type X3DH init flag is set}\\
         \hline
         \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
         \hline
-        \multicolumn{4}{|c|}{DHs$\langle 32,56 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{DHs$\langle 32,56,1600 bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
+      \end{tabular}
+      \end{center}
+      
+      \paragraph*{}KEM based, when a KEM ratchet took place
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
+        \hline
+        Protocol Version [0x01] & Message type & Curve Id & \\
+        \cline{1-3}
+        \multicolumn{4}{|c|}{X3DH Init $\langle $variable size$\rangle $\{0,1\}}\\
+        \multicolumn{4}{|c|}{This part is present only if Message type X3DH init flag is set}\\
+        \hline
+        \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
+        \hline
+        \multicolumn{4}{|c|}{DHs$\langle 32 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{KEM self public key$\langle 800 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{KEM cipherText(encapsulation to peer's KEM pk)$\langle 768 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+
+
+      \end{tabular}
+      \end{center}
+
+      \paragraph*{}KEM based, when the KEM ratchet is skipped (signaled in Message Type bit 3)
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
+        \hline
+        Protocol Version [0x01] & Message type & Curve Id & \\
+        \cline{1-3}
+        \multicolumn{4}{|c|}{X3DH Init $\langle $variable size$\rangle $\{0,1\}}\\
+        \multicolumn{4}{|c|}{This part is present only if Message type X3DH init flag is set}\\
+        \hline
+        \multicolumn{2}{|c}{Ns}&\multicolumn{2}{|c|}{PN}\\
+        \hline
+        \multicolumn{4}{|c|}{DHs$\langle 32 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{Self KEM Pk index$\langle 12 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{Peer KEM Pk index$\langle 12 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+
       \end{tabular}
       \end{center}
 
@@ -843,7 +1086,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
-      
+
       \subsubsection{Payload in Double Ratchet message encryption policy}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
@@ -860,6 +1103,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{center}
 
       \subsubsection{X3DH init}
+      \paragraph*{}DH only
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
@@ -880,6 +1124,30 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{tabular}
       \end{center}
       
+      \paragraph*{}KEM based
+      \begin{center}
+      \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
+        \hline
+        \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
+        \hline
+        OPk flag [0x00,0x01]&\multicolumn{3}{|c|}{}\\
+        \cline{1-1}
+        \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{ ECDH Ephemeral Key$\langle 32,56bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{ KEM cipherText(encapsulation to OPk - or SPk$\langle 768 bytes\rangle $}\\
+        \multicolumn{4}{|c|}{...}\\
+        \hline
+        \multicolumn{4}{|c|}{Signed Pre-key Id}\\
+        \hline
+        \multicolumn{4}{|c|}{One Time Pre-key Id\{0,1\} only if OPk flag = 0x01}\\
+        \hline
+      \end{tabular}
+      \end{center}
+
   \subsection{Cipher Message}. The cipher message is produced only when selecting the cipher message encryption policy. The sender produces one cipher message common to all recipients. When present, the cipher message is dispatched along the Double Ratchet messages.(see \ref{encryptionPolicyMSC} for details)
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
@@ -896,7 +1164,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{center}
   \subsection{X3DH message}
     \paragraph{}Theses messages are exchanged between devices and the X3DH key server.
-    \paragraph*{}The messages are sent to the server using the HTTPS protocol. Clients identify themselves to the server by setting their device Id (GRUU) in the HTTPS packet \textit{From} field. Server challenges the client with a nonce and expects a digest of the password of their user account on the SIP server. X3DH server must have access to the SIP register server database to be able to authenticate clients. Communications between clients and X3DH server are assumed to be secure and the details of this assumption are out of the scope of this document.
+    \paragraph*{}The messages are sent to the server using the HTTPS protocol. Clients identify themselves to the server by setting their device Id (GRUU) in the HTTPS packet custom header \textit{X-Lime-user-identity} field. Server challenges the client with a nonce and expects a digest of the password of their user account on the SIP server. X3DH server must have access to the SIP register server database to be able to authenticate clients. Communications between clients and X3DH server are assumed to be secure and the details of this assumption are out of the scope of this document.
     \paragraph*{}X3DH messages are composed of a header and the content:\\*
     Protocol Version$\langle 1byte\rangle \Arrowvert $ Message Type $\langle 1byte\rangle \Arrowvert $ Curve Id $\langle 1byte\rangle \Arrowvert $ Message content.
     Definitions:
@@ -911,35 +1179,36 @@ any session-based message encryption algorithm that meets certain conditions.}\t
           \item \textit{0x05: get peers key bundles}: a device requests key bundles for a list of peer devices.
           \item \textit{0x06: peers key bundles}: X3DH server responds to device with the list of requested key bundles.
           \item \textit{0x07: get self One-time Pre-keys}: ask server for self One-time Pre-keys Ids available.
-          \item \textit{0x08: self One-time Pre-keys}: server response with a count and list of all One-time Pre-keys Ids available.          
+          \item \textit{0x08: self One-time Pre-keys}: server response with a count and list of all One-time Pre-keys Ids available.
           \item \textit{0x09: register User}: a device registers its Id and Identity key, Signed Pre-key and a batch of One-time Pre-keys on X3DH server.
           \item \textit{0xFF: error}: something went wrong on server side during processing of client message, server respond with details on failure.
         \end{itemize}
-      \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448)]
+      \item Curve Id: [0x01 (curve 25519), 0x02 (curve 448), 0x03 (curve25519/kyber512)]
       \end{itemize}
-    
+
     To device generated messages \textit{(deprecated) register User, delete User, post Signed Pre-key} and \textit{post One-time Pre-key}, on success, the X3DH server responds with the original message header:\\*
     Protocol Version $\Arrowvert $ Message type $\Arrowvert $ Curve Id
+    \paragraph{}OPk and SPk keys, when based on curve25519/kyber512, are a concatenation of the Curve25519 ECDH public key with the Kyber512 KEM public key.
     \subsubsection{Register User Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x09] & Curve Id [0x01,0x02] &\\
+        Protocol Version [0x01] & Message type [0x09] & Curve Id &\\
         \cline{1-3}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56bytes,832\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Id}\\
         \hline
-        \multicolumn{2}{|c}{keys Count} & \multicolumn{2}{|c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
+        \multicolumn{2}{|c}{keys Count} & \multicolumn{2}{|c|}{One-time Pre-key bundle$\langle 36,60,836bytes\rangle $\{keys Count\}}\\
         \cline{1-2}
         \multicolumn{4}{|c|}{...}\\
         \hline
@@ -948,21 +1217,21 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle$}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56bytes,832\rangle$}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id}\\
         \hline
       \end{tabular}
       \end{center}
-    
+
     \subsubsection{Delete User Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x02] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x02] & Curve Id & \\
         \hline
       \end{tabular}
       \end{center}
@@ -973,9 +1242,9 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x03] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x03] & Curve Id & \\
         \cline{1-3}
-        \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
@@ -985,14 +1254,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
-    
+
     \subsubsection{post One-time Pre-key Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x04] & Curve Id [0x01,0x02] & keys Count MSB\\
+        Protocol Version [0x01] & Message type [0x04] & Curve Id & keys Count MSB\\
         \hline
         keys Count LSB & \multicolumn{3}{c|}{One-time Pre-key bundle$\langle 36,60bytes\rangle $\{keys Count\}}\\
         \cline{1-1}
@@ -1003,21 +1272,21 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.95} byte 0 & \cellcolor[gray]{0.95} byte 1 & \cellcolor[gray]{0.95} byte 2 & \cellcolor[gray]{0.95}byte 3\\
         \hline
-        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle$}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832bytes\rangle$}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id}\\
         \hline
       \end{tabular}
       \end{center}
-     
+
     \subsubsection{get peers key bundles Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x05] & Curve Id [0x01,0x02] & request Count MSB\\
+        Protocol Version [0x01] & Message type [0x05] & Curve Id & request Count MSB\\
         \hline
         request Count LSB & \multicolumn{3}{c|}{request\{request Count\}}\\
         \cline{1-1}
@@ -1034,14 +1303,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
       \end{tabular}
       \end{center}
-    
+
     \subsubsection{peers key bundles Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x06] & Curve Id [0x01,0x02] & bundles Count MSB\\
+        Protocol Version [0x01] & Message type [0x06] & Curve Id & bundles Count MSB\\
         \hline
         bundles Count LSB & \multicolumn{3}{c|}{key Bundle\{bundles Count\}}\\
         \cline{1-1}
@@ -1061,15 +1330,15 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH Signed Pre-key$\langle 32,56bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key$\langle 32,56,832bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{Signed Pre-key Id}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
+        \multicolumn{4}{|c|}{Signed Pre-key Signature$\langle 64,114bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
-        \multicolumn{4}{|c|}{ECDH One-Time Pre-key$\langle 32,56bytes\rangle $\{0,1\} only if bundle flag = 0x01}\\
+        \multicolumn{4}{|c|}{One-Time Pre-key$\langle 32,56,832bytes\rangle $\{0,1\} only if bundle flag = 0x01}\\
         \multicolumn{4}{|c|}{...}\\
         \hline
         \multicolumn{4}{|c|}{One-Time Pre-key Id\{0,1\} only if bundle flag = 0x01}\\
@@ -1087,14 +1356,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \cline{1-1}
       \end{tabular}
       \end{center}
-      
+
     \subsubsection{get Self OPks Message}
       \begin{center}
       \begin{tabular}{ | p{1.4in} | p{1.4in} | p{1.4in} | p{1.4in} |}
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x07] & Curve Id [0x01,0x02] & \\
+        Protocol Version [0x01] & Message type [0x07] & Curve Id & \\
         \hline
       \end{tabular}
       \end{center}
@@ -1105,7 +1374,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x08] & Curve Id [0x01,0x02] & OPk Count MSB\\
+        Protocol Version [0x01] & Message type [0x08] & Curve Id & OPk Count MSB\\
         \hline
         OPk Count LSB & \multicolumn{3}{c|}{OPk Id$\langle 4bytes\rangle $\{OPk Count\}}\\
         \cline{1-1}
@@ -1120,12 +1389,12 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0xFF] & Curve Id [0x01,0x02] & Error Code[0x00-0x08]\\
+        Protocol Version [0x01] & Message type [0xFF] & Curve Id & Error Code[0x00-0x08]\\
         \hline
         \multicolumn{4}{|c|}{Optional error message of variable size}\\
         \multicolumn{4}{|c|}{Null terminated ASCII string}\\
         \multicolumn{4}{|c|}{...}\\
-        \hline        
+        \hline
       \end{tabular}
       \end{center}
 
@@ -1148,7 +1417,7 @@ any session-based message encryption algorithm that meets certain conditions.}\t
         \hline
         \cellcolor[gray]{0.85} byte 0 & \cellcolor[gray]{0.85} byte 1 & \cellcolor[gray]{0.85} byte 2 & \cellcolor[gray]{0.85}byte 3\\
         \hline
-        Protocol Version [0x01] & Message type [0x01] & Curve Id [0x01,0x02] &\\
+        Protocol Version [0x01] & Message type [0x01] & Curve Id &\\
         \cline{1-3}
         \multicolumn{4}{|c|}{EdDSA Identity Key$\langle 32,57bytes\rangle $}\\
         \multicolumn{4}{|c|}{...}\\
@@ -1157,8 +1426,11 @@ any session-based message encryption algorithm that meets certain conditions.}\t
       \end{center}
 
 \newpage
+\section{Acknowledgements}
+  \paragraph*{}Many thanks to Rune Fiedler for his precious help to introduce Post Quantum cryptography in the protocol
+\newpage
 \section{IPR}
-  \paragraph*{}Copyright\textcopyright 2018 Belledonne Communications.  All rights reserved.
+  \paragraph*{}Copyright\textcopyright 2024 Belledonne Communications.  All rights reserved.
 
 \newpage
 \begin{thebibliography}{99}
@@ -1175,7 +1447,14 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   \textit{\: "The X3DH Key Agreement Protocol"},
   Revision 1,
   2016-11-04.
-  \href{https://signal.org/docs/specifications/x3dh/}{https://signal.org/docs/specifications/x3dh/} 
+  \href{https://signal.org/docs/specifications/x3dh/}{https://signal.org/docs/specifications/x3dh/}
+
+\bibitem{pqxdh}
+  Ehren Kret, Rolfe Schmidt
+  \textit{\: "The PQXDH Key Agreement Protocol"},
+  Revision 3,
+  2024-01-23.
+  \href{https://signal.org/docs/specifications/pqxdh/}{https://signal.org/docs/specifications/pqxdh/}
 
 \bibitem{sesame}
   Moxie Marlinspike, Trevor Perrin (editor)
@@ -1196,7 +1475,19 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   \textit{\: "Elliptic Curves for Security."},
   Internet Engineering Task Force; RFC 7748 (Informational); IETF, Jan-2016.
   \href{http://www.ietf.org/rfc/rfc7748.txt}{http://www.ietf.org/rfc/rfc7748.txt}
-  
+
+\bibitem{PQXDHdeniabilty}
+  Rune Fiedler and Christian Janson
+  \textit{\: "A Deniability Analysis of Signal's Initial Handshake PQXDH"},
+  Cryptology ePrint Archive, Paper 2024/741
+  \href{https://eprint.iacr.org/2024/741}{https://eprint.iacr.org/2024/741}
+
+\bibitem{secsymmratchet}
+  John Preuß Mattsson
+  \textit{\: "Security of Symmetric Ratchets and Key Chains"}
+  Cryptology ePrint Archive, Paper 2024/220
+  \href{https://eprint.iacr.org/2024/220}{https://eprint.iacr.org/2024/220}
+
 \bibitem{rfc8032}
   S. Josefsson and I. Liusvaara
   \textit{\: "Edwards-Curve Digital Signature Algorithm (EdDSA)"},
@@ -1208,13 +1499,13 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   \textit{\:"Obtaining and Using Globally Routable User Agent URIs (GRUUs) in the Session Initiation Protocol (SIP)"},
   Internet Engineering Task Force; RFC 5627 (Standards Track); IETF, Oct-2009.
   \href{https://tools.ietf.org/html/rfc5627}{https://tools.ietf.org/html/rfc5627}
-  
+
 \bibitem{rfc5869}
   H. Krawczyk and P. Eronen
   \textit{\:"HMAC-based Extract-and-Expand Key Derivation Function (HKDF)"},
   Internet Engineering Task Force; RFC 5869 (Informational); IETF, May-2010.
   \href{https://tools.ietf.org/html/rfc5869}{https://tools.ietf.org/html/rfc5869}
-  
+
 \bibitem{zrtp}
   P. Zimmermann, A. Johnston and J. Callas
   \textit{\:"ZRTP: Media Path Key Agreement for Unicast Secure RTP"},
@@ -1230,12 +1521,17 @@ any session-based message encryption algorithm that meets certain conditions.}\t
   Mike Hamburg
   \textit{\:"Ed448-Goldilocks"},
   \href{https://sourceforge.net/projects/ed448goldilocks/}{https://sourceforge.net/projects/ed448goldilocks/}
-  
+
 \bibitem{libmbedtls}
   ARM mbed
   \textit{\:"mbed TLS"},
   \href{https://tls.mbed.org/}{https://tls.mbed.org/}
-  
+
+\bibitem{liboqs}
+  Douglas Stebila and Michele Mosca
+  \textit{\:"Open Quantum Safe library"},
+  \href{https://github.com/open-quantum-safe/liboqs}{https://github.com/open-quantum-safe/liboqs}
+
 \bibitem{libsoci}
   SOCI
   \textit{\:"SOCI - The C++ Database Access Library."},

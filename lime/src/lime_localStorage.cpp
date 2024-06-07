@@ -104,10 +104,16 @@ Db::Db(const std::string &filename, std::shared_ptr<std::recursive_mutex> db_mut
 		*  - RK, CKs, CKr : Root key, sender and receiver chain keys
 		*  - AD : Associated data : provided once at session creation by X3DH, is derived from initiator public Ik and id, receiver public Ik and id
 		*  - Status : 0 is for stale and 1 is for active, only one session shall be active for a peer device, by default created as active
-		*  - DHrStatus :
-		*      -- bit 0: 0 this peer DHr was not yet used to update the sending chain, 1 this peer DHr was already used to update the sending chain
-		*      -- bit 1: 0 we cannot assume that peer's already received our current DH publicKey. 1 peer had our DH public key - no need to keep sending it'
-		*  - timeStamp : is updated when session change status and is used to remove stale session after determined time in cleaning operation
+		*  - DHrStatus : a 4 bytes integer with
+		*      -- byte 3 2 1 : 23 bits size of the current KEM chain : cumulative number of sent and received (or skipped) messages since the last KEM receiver ratchet
+		*      -- byte 0:
+		*         -- bit 0: KEM force flag: force a KEM ratchet as soon as possible: is set when creating a session in receiver mode to force the KEM ratchet at first reply
+		*         -- bit 1: KEM peer Pk flag: is set when a peer KEM public key is available for encapsulation (only one encapsulation is performed to a peer's Pk)
+		*         -- bit 2: KEM self Pk flag: is set when from some replies we deduce that peer's know our current KEM public key so we do not need to send it anymore in the header
+		*         -- bit 3: DH peer Pk flag: is set when a peer DH public key is available to perform a DH ratchet step with a fresh generated DH key pair 
+		*  - timeStamp :
+		*         -- on active session: store the epoch of the last receiver KEM ratchet so we can force a sending KEM ratchet when the KEM chain is old enough
+		*         -- is also updated when session change status to stale and is used to remove stale session after determined time in cleaning operation
 		*  - X3DHInit : when we are initiator, store the generated X3DH init message and keep sending it until we've got at least a reply from peer
 		*/
 		sql<<"CREATE TABLE DR_sessions( \
