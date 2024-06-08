@@ -64,7 +64,7 @@
 
     - echo $LastExitCode
 
-    - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -B $BUILD_DIR -G '$CMAKE_GENERATOR' $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
+    - Invoke-Expression "& cmake --preset=$CMAKE_PRESET -B $BUILD_DIR -G '$CMAKE_GENERATOR' $CMAKE_BUILD_TYPE $NINJA_BUILD_PARALLEL_LEVEL $NINJA_EXPLICIT_COMPILER_SET $DEFAULT_CMAKE_OPTIONS $CMAKE_OPTIONS $SCHEDULE_CMAKE_OPTIONS"
 
     - echo $LastExitCode
 
@@ -122,6 +122,7 @@
     MINGW_TYPE: mingw32
     CMAKE_GENERATOR: Ninja
     CMAKE_PRESET: windows-ninja-sdk
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
     CLI_OUTPUT_INFO_NINJA: Write-Output -NoEnumerate "Building with Ninja. See ninja_buildlog.txt to get details before completing the build."
     NINJA_BUILD_PARALLEL_LEVEL: -DCMAKE_BUILD_PARALLEL_LEVEL=$MAKEFILE_JOBS
     PARALLEL_OPTIONS: "--parallel $MAKEFILE_JOBS"
@@ -171,6 +172,7 @@ vs2017-ninja-win64-windows:
     MINGW_TYPE: mingw64
     OUTPUT_ZIP_FOLDER: win64
     CMAKE_OPTIONS: -DENABLE_EXAMPLE_PLUGIN=ON -DENABLE_CXX_WRAPPER=ON
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 vs2017-ninja-win64-windows-pqc:
   extends: vs2017-ninja-win64-windows
@@ -191,6 +193,7 @@ vs2017-ninja-win32-windows:
     CMAKE_CXX_COMPILER : cl.exe
     CMAKE_RC_COMPILER : rc.exe
     CMAKE_OPTIONS: -DLINPHONESDK_WINDOWS_ARCHS=32bits
+    CMAKE_BUILD_TYPE: -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
 ######################################################
 # NIGHTLY

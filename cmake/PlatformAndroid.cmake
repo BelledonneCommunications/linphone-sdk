@@ -1,6 +1,6 @@
 ############################################################################
 # PlatformAndroid.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -85,15 +85,13 @@ if(LINPHONESDK_BUILD_TYPE STREQUAL "Default")
 		endif()
 	endif()
 
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		# GDB server setup
-		add_subdirectory("cmake/Android/gdbserver")
+	# GDB server setup
+	add_subdirectory("cmake/Android/gdbserver")
 
-		# Dummy script to not strip compiled libs from the general Makefile
-		file(WRITE "${PROJECT_BINARY_DIR}/strip.sh" "")
-	else()
-		# Script to be able to strip compiled libs from the general Makefile
-		configure_file("${CMAKE_CURRENT_LIST_DIR}/Android/strip.sh.cmake" "strip.sh" @ONLY)
-	endif()
+	# Dummy script to not strip compiled libs from the general Makefile when building with the Debug config
+	file(WRITE "${PROJECT_BINARY_DIR}/strip-debug.sh" "")
+
+	# Script to be able to strip compiled libs from the general Makefile when building with a config other than Debug
+	configure_file("${CMAKE_CURRENT_LIST_DIR}/Android/strip.sh.cmake" "strip.sh" @ONLY)
 
 endif()

@@ -1,6 +1,6 @@
 ############################################################################
 # GenerateSDK.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -20,47 +20,30 @@
 #
 ############################################################################
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleRelease"
-		RESULT_VARIABLE _gradle_assemble_result
-	)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
-		RESULT_VARIABLE _gradle_assemble_result
-	)
-elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assembleDebug"
-		RESULT_VARIABLE _gradle_assemble_result
-	)
-else()
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "assemble"
-		RESULT_VARIABLE _gradle_assemble_result
-	)
+set(_ASSEMBLE_TARGET "assemble")
+set(_PUBLISH_TARGET "publish")
+if(IS_RELEASE)
+	set(_ASSEMBLE_TARGET "assembleRelease")
+	set(_PUBLISH_TARGET "publishReleasePublicationToMavenRepository")
+elseif(IS_DEBUG)
+	set(_ASSEMBLE_TARGET "assembleDebug")
+	set(_PUBLISH_TARGET "publishDebugPublicationToMavenRepository")
 endif()
+
+execute_process(
+	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "${_ASSEMBLE_TARGET}"
+	RESULT_VARIABLE _gradle_assemble_result
+)
 if(_gradle_assemble_result)
 	message(FATAL_ERROR "Gradle assemble failed")
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishReleasePublicationToMavenRepository"
-	)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishDebugPublicationToMavenRepository"
-	)
-elseif(CMAKE_BUILD_TYPE STREQUAL "ASAN")
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publishDebugPublicationToMavenRepository"
-	)
-else()
-	execute_process(
-		COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "publish"
-	)
+execute_process(
+	COMMAND "${LINPHONESDK_DIR}/cmake/Android/gradlew" "--stacktrace" "-b" "upload.gradle" "${_PUBLISH_TARGET}"
+	RESULT_VARIABLE _gradle_publish_result
+)
+if(_gradle_publish_result)
+	message(FATAL_ERROR "Gradle publish failed")
 endif()
 
 execute_process(

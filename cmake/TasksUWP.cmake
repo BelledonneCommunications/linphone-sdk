@@ -1,6 +1,6 @@
 ############################################################################
 # TasksUWP.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -60,8 +60,7 @@ foreach(_UWP_ARCH IN LISTS _UWP_ARCHS)
   ExternalProject_add(uwp-wrapper-${_UWP_ARCH}
 		SOURCE_DIR "${PROJECT_SOURCE_DIR}/cmake/Windows/wrapper"
 		BINARY_DIR "${PROJECT_BINARY_DIR}/uwp-${_UWP_ARCH}/CsWrapper"
-		CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-		CMAKE_ARGS "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}" "-DLINPHONESDK_INSTALL_DIR=${PROJECT_BINARY_DIR}/linphone-sdk/uwp-${_UWP_ARCH}" "-DLINPHONE_PLATFORM=${_UWP_ARCH}" ${_UWP_CMAKE_ARGS}
+		CMAKE_ARGS "-DLINPHONESDK_DIR=${PROJECT_SOURCE_DIR}" "-DLINPHONESDK_INSTALL_DIR=${PROJECT_BINARY_DIR}/linphone-sdk/uwp-${_UWP_ARCH}" "-DLINPHONE_PLATFORM=${_UWP_ARCH}" "-DBUILD_TYPE=$<IF:$<CONFIG:Debug>,Debug,Release>" ${_UWP_CMAKE_ARGS}
     DEPENDS uwp-${_UWP_ARCH}
 		BUILD_COMMAND ${CMAKE_COMMAND} -E echo ""
 		INSTALL_COMMAND ${CMAKE_COMMAND} -E echo ""
