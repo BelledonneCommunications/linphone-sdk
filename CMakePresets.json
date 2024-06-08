@@ -34,7 +34,6 @@
         "BUILD_SQLITE3_SHARED_LIBS": "OFF",
         "BUILD_XERCESC_SHARED_LIBS": "OFF",
         "BUILD_ZLIB": "OFF",
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "ENABLE_ANDROIDSND": "ON",
         "ENABLE_CXX_WRAPPER": "OFF",
         "ENABLE_DAEMON": "OFF",
@@ -139,11 +138,10 @@
         "BUILD_SOCI_SHARED_LIBS": "OFF",
         "BUILD_SPEEX_SHARED_LIBS": "OFF",
         "BUILD_SQLITE3": "OFF",
+        "BUILD_TUNNEL_SHARED_LIBS": "OFF",
         "BUILD_XERCESC_SHARED_LIBS": "OFF",
         "BUILD_ZLIB": "OFF",
         "BUILD_ZXINGCPP_SHARED_LIBS": "OFF",
-        "BUILD_TUNNEL_SHARED_LIBS": "OFF",
-        "CMAKE_CONFIGURATION_TYPES": "Release",
         "ENABLE_DAEMON": "OFF",
         "ENABLE_FLEXIAPI": "ON",
         "ENABLE_FLOAT_API": "OFF",
@@ -209,7 +207,6 @@
       },
       "generator": "Xcode",
       "cacheVariables": {
-        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_SWIFT_WRAPPER": "ON",
         "ENABLE_SWIFT_WRAPPER_COMPILATION": "OFF"
       }
@@ -270,7 +267,6 @@
         "BUILD_SQLITE3_SHARED_LIBS": "OFF",
         "BUILD_XERCESC_SHARED_LIBS": "OFF",
         "BUILD_ZXINGCPP_SHARED_LIBS": "OFF",
-        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_AV1": "OFF",
         "ENABLE_FLOAT_API": "OFF",
         "ENABLE_FIXED_POINT": "ON",
@@ -319,7 +315,6 @@
       "generator": "Visual Studio 16 2019",
       "cacheVariables": {
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
-        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_AV1": "OFF",
         "ENABLE_CSHARP_WRAPPER": "ON",
         "ENABLE_DAEMON": "OFF",
@@ -377,7 +372,6 @@
       "cacheVariables": {
         "ENABLE_LDAP": "ON",
         "BUILD_MBEDTLS_WITH_FATAL_WARNINGS": "OFF",
-        "CMAKE_CONFIGURATION_TYPES": "RelWithDebInfo",
         "ENABLE_CSHARP_WRAPPER": "ON",
         "ENABLE_RELATIVE_PREFIX": "ON",
         "ENABLE_WINDOWS_TOOLS_CHECK": "OFF"

@@ -1,6 +1,6 @@
 ############################################################################
 # CMakeLists.txt
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -34,12 +34,7 @@ file(COPY ${LINPHONESDK_DIR}/cmake/Windows/wrapper/Properties DESTINATION ${CMAK
 message("INSTALLATION: ${LINPHONESDK_INSTALL_DIR}")
 message("LINPHONESDK_DIR: ${LINPHONESDK_DIR}")
 message("LINPHONE_PLATFORM: ${LINPHONE_PLATFORM}")
-
-if(NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-	set(BUILD_TYPE "Release")
-else()
-	set(BUILD_TYPE ${CMAKE_BUILD_TYPE})
-endif()
+message("BUILD_TYPE: ${BUILD_TYPE}")
 
 message("Command : msbuild CsUwpWrapper.csproj /p:BaseOutputPath=${LINPHONESDK_INSTALL_DIR} /p:MDILCompile=true /t:build /p:Configuration=${BUILD_TYPE} /p:Platform=${LINPHONE_PLATFORM}")
 execute_process(COMMAND "msbuild" "CsUwpWrapper.csproj" "-t:restore")

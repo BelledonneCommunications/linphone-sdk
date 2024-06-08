@@ -76,31 +76,51 @@ For Visual Studio 2017 :
 
 ## Build
 
-A build with the Ninja generator (`-G "Ninja"` ) is preferred for speed-up build times.
+A build with the Ninja generator (`-G "Ninja"`) or the Ninja Multi-Config generator (`-G "Ninja Multi-Config"`) is preferred for speed-up build times.
 
-The generic steps to build the SDK are:
+There are two slightly different ways to build, depending on whether you use a multi-config CMake generator (`Xcode`, `Ninja Multi-Config`, Visual Studio) or not (`Unix Makefiles`, `Ninja`). In both cases, the steps are:
+ 1. Configure the project
+ 2. Build the project
 
- 1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command), the build directory where you want the build to take place, and eventually some additional options:
- `cmake --preset=<PRESET> -B <BUILD DIRECTORY> <SOME OPTIONS>`
- 3. Build the SDK:
- `cmake --build <BUILD DIRECTORY>`
+The steps described here are the base for building, but a few specifics behaviors for each platform are good to know and are described in the next subsections.
+
+#### Multi-Config generator
+
+In the case of a multi-config generator, you will:
+ 1. Execute CMake to configure the project by giving the preset you want to build (you can get the list of presets available with the `cmake --list-presets` command), the build directory where you want the build to take place, the generator you want to use and eventually some additional options:
+ `cmake --preset=<PRESET> -B <BUILD DIRECTORY> -G <MULTI-CONFIG GENERATOR> <SOME OPTIONS>`
+ 2. Build the SDK:
+ `cmake --build <BUILD DIRECTORY> --config <CONFIG>`
  or
- `cmake --build <BUILD DIRECTORY> --parallel <number of jobs>` (which is faster).
+ `cmake --build <BUILD DIRECTORY> --config <CONFIG> --parallel <number of jobs>` (which is faster).
 
-The options below define the target of the compilation, and hence are required most of the time:
-- `CMAKE_BUILD_TYPE`: By default it is set to `RelWithDebInfo` to build in release mode keeping the debug information. You might want to set it to `Debug` to ease the debugging. On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
+The `<CONFIG>` is one of these:
+ - `RelWithDebInfo` to build in release mode keeping the debug information (this is the recommended configuration to use).
+ - `Release` to build in release mode without the debug information.
+ - `Debug` to ease the debugging.
+ - On Android, use `ASAN` to make a build linking with the Android Adress Sanitizer (https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroid).
 
-These generic steps work are the base for building, but a few specifics behaviors are good to know and are described in the next subsections.
+### Unique config generator
+
+In this case, you will need to choose the build configuration in the first step, the configuration one. For that, you need to use the `CMAKE_BUILD_TYPE=<CONFIG>` option, and then you do not need to pass the `--config <CONFIG>` option in the build step. This will give:
+ 1. Configure the project:
+ `cmake --preset=<PRESET> -B <BUILD DIRECTORY> -G <GENERATOR> -DCMAKE_BUILD_TYPE=<CONFIG> <SOME OPTIONS>`
+ 2. Build the SDK:
+ `cmake --build <BUILD DIRECTORY>`
+
 
 ### iOS
 
 Requirement:
  - Xcode >= 15
 
-Please note that the multi-architectures (arm64, x86_64) 'ios-sdk' preset fails with the default 'Xcode' cmake generator, due to internal changes made to Xcode 15.
-It is then recommanded to use 'Ninja' or 'Unix makefiles' generators:
+`cmake --preset=ios-sdk -G Xcode -B build-ios -DLINPHONESDK_IOS_PLATFORM=Iphone -DLINPHONESDK_IOS_ARCHS="arm64"`
+`cmake --build build-ios --config Debug`
 
-`cmake --preset=ios-sdk -G Ninja -B build-ios`
+You can also build using the 'Ninja' or 'Unix makefiles' generators:
+
+`cmake --preset=ios-sdk -G Ninja -B build-ios -DCMAKE_BUILD_TYPE=Debug`
+`cmake --build build-ios`
 
 The generation of the Swift documentation (docc) requires the Xcode generator, and hence won't be generated with the above command.
 In order to generate the swift documentation, a new separate build needs to be done using the ios-arm64-simulator preset:
@@ -157,7 +177,7 @@ Next command lines must be typed in the docker shell:
 
 ```bash
 # Configure the build
-cmake --preset=android-sdk -B build-android -DLINPHONESDK_ANDROID_ARCHS=arm64 <extra-variable-definitions>
+cmake --preset=android-sdk -B build-android -DLINPHONESDK_ANDROID_ARCHS=arm64 -DCMAKE_BUILD_TYPE=RelWithDebInfo <extra-variable-definitions>
 
 # Build
 cmake --build build-android --parallel <number of jobs>
@@ -175,15 +195,16 @@ Requirement:
 
 Configure the project with:
 
-`cmake --preset=mac-sdk -B build-mac`
+`cmake --preset=mac-sdk -B build-mac -G Xcode`
 
 And build it with:
 
-`cmake --build build-mac`
+`cmake --build build-mac --config RelWithDebInfo`
 
 As for the iOS build, you can alternatively build with Ninja instead of Xcode by specifying it during the configuration step:
 
-`cmake --preset=mac-sdk -B build-mac -G Ninja`
+`cmake --preset=mac-sdk -B build-mac -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo`
+`cmake --build build-mac`
 
 ### Windows
 
@@ -193,11 +214,11 @@ Configure the project with:
 
 As for all other platforms, you can then build with:
 
-`cmake --build build-windows`
+`cmake --build build-windows --config RelWithDebInfo`
 
 However it may be convenient to build from Visual Studio, which you can do:
  - open `linphone-sdk.sln` with Visual Studio
- - make sure that RelWithDebInfo mode is selected unless you specified -DCMAKE_BUILD_TYPE=Debug to Cmake (see customization options below).
+ - select the configuration you want to build
  - use `Build solution` to build.
 
 ### Windows UWP and Stores

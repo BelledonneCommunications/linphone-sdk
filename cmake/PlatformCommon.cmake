@@ -1,6 +1,6 @@
 ############################################################################
 # PlatformCommon.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -42,13 +42,6 @@ else()
 endif()
 
 if(LINPHONESDK_BUILD_TYPE STREQUAL "Default")
-	if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-		message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified")
-		set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
-		# Set the available build type values for cmake-gui
-		set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "RelWithDebInfo")
-	endif()
-
 	if(NOT DEFINED CMAKE_INSTALL_MESSAGE)
 		set(CMAKE_INSTALL_MESSAGE LAZY CACHE STRING "Specify verbosity of installation script code" FORCE)
 		set_property(CACHE CMAKE_INSTALL_MESSAGE PROPERTY STRINGS "ALWAYS" "LAZY" "NEVER")

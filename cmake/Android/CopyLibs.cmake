@@ -1,6 +1,6 @@
 ############################################################################
 # CopyLibs.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -70,12 +70,12 @@ foreach(_arch ${_ANDROID_ARCHS})
 		)
 	endforeach()
 
-	if(CMAKE_BUILD_TYPE STREQUAL "ASAN")
+	if(IS_ASAN)
 		configure_file("${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in" "libs/${_libarch}/wrap.sh")
 		configure_file("${LINPHONESDK_DIR}/cmake/Android/wrap.sh.in" "libs-debug/${_libarch}/wrap.sh")
 	endif()
 
 	execute_process(
-		COMMAND "sh" "./android-${_arch}/strip.sh" "libs/${_libarch}/*.so"
+		COMMAND "sh" "./android-${_arch}/${STRIP_COMMAND}" "libs/${_libarch}/*.so"
 	)
 endforeach()

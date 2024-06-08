@@ -1,6 +1,6 @@
 ############################################################################
 # LinphoneSdkUtils.cmake
-# Copyright (C) 2010-2023 Belledonne Communications, Grenoble France
+# Copyright (C) 2010-2024 Belledonne Communications, Grenoble France
 #
 ############################################################################
 #
@@ -27,21 +27,19 @@ function(linphone_sdk_get_inherited_cmake_args OUTPUT_CONFIGURE_ARGS_VAR OUTPUT_
 	if(NOT "${CMAKE_GENERATOR}" STREQUAL "")
 	  list(APPEND _CMAKE_CONFIGURE_ARGS "-G ${CMAKE_GENERATOR}")
 	endif()
-	if(NOT "${CMAKE_CONFIGURATION_TYPES}" STREQUAL "")
-	  list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_CONFIGURATION_TYPES=${CMAKE_CONFIGURATION_TYPES}")
-	  list(APPEND _CMAKE_BUILD_ARGS "--config ${CMAKE_CONFIGURATION_TYPES}")
-	elseif(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "")
-	  list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
-	  list(APPEND _CMAKE_BUILD_ARGS "--config ${CMAKE_BUILD_TYPE}")
-	endif()
 	if(NOT "${CMAKE_BUILD_PARALLEL_LEVEL}" STREQUAL "")
 	  list(APPEND _CMAKE_BUILD_ARGS "--parallel ${CMAKE_BUILD_PARALLEL_LEVEL}")
 	endif()
 	if(CMAKE_VERBOSE_MAKEFILE)
-	  list(APPEND _CMAKE_BUILD_ARGS "--parallel ${CMAKE_BUILD_PARALLEL_LEVEL}")
+	  list(APPEND _CMAKE_BUILD_ARGS "--verbose")
 	endif()
 	if(APPLE AND NOT "${CMAKE_OSX_DEPLOYMENT_TARGET}" STREQUAL "")
 	  list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+	endif()
+	if(CMAKE_GENERATOR STREQUAL "Ninja Multi-Config" OR CMAKE_GENERATOR STREQUAL "Xcode" OR CMAKE_GENERATOR MATCHES "^Visual Studio")
+		list(APPEND _CMAKE_BUILD_ARGS "--config $<CONFIG>")
+	elseif(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "")
+		list(APPEND _CMAKE_CONFIGURE_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 	endif()
 
 	set("${OUTPUT_CONFIGURE_ARGS_VAR}" ${_CMAKE_CONFIGURE_ARGS} PARENT_SCOPE)
