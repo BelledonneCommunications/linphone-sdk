@@ -78,6 +78,10 @@ static void itc_assign(MSFilter *f, SharedState *s, bool_t is_source) {
 static void itc_connect(MSFilter *sink, MSFilter *source) {
 	SharedState *s;
 
+	// Sink cannot be NULL
+	if (!sink || (sink->desc->id != MS_ITC_SINK_ID)) ms_fatal("itc_connect(): bad sink filter");
+	if (source && (source->desc->id != MS_ITC_SOURCE_ID)) ms_fatal("itc_connect(): bad source filter");
+
 	s = (SharedState *)sink->data;
 	if (!s) {
 		itc_assign(sink, s = shared_state_new(), FALSE);
