@@ -245,6 +245,7 @@ See the [`cmake/NuGet`](cmake/NuGet/README.md) folder for build instructions.
 
 To build the python wrapper, you first need to install `cython` tool using pip. If you want to build the documentation, also install `pdoc` tool. 
 Finally install `wheel` tool to be able to build a .whl package.
+Minimal python version to build wrapper is `3.10`
 
 Then build the SDK with `-DENABLE_PYTHON_WRAPPER=ON` and optionally `-DENABLE_DOC=ON`.
 To generate the wheel package, use `wheel` target after `install` target (required for RPATH to be properly set for shared libs inside the wheel).

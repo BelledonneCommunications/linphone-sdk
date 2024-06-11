@@ -45,6 +45,9 @@
 .rocky8_test_libl_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky8-test-liblinphone:20240705_audio_group_entrypoint
 
+.rocky9_image_version:
+  image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-rocky9:20241014_flexisip_ccmp_python_package
+
 .ubuntu2004_image_version:
   image: gitlab.linphone.org:4567/bc/public/linphone-sdk/bc-dev-ubuntu-20-04-lts:20231025_remove_modules_install_from_arg
 

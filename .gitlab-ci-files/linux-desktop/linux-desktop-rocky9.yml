@@ -1,0 +1,13 @@
+#################################################
+# Ninja
+#################################################
+
+rocky9-python-wheel:
+  tags: [ "docker" ]
+  image: !reference [.rocky9_image_version, image]
+  variables:
+    CMAKE_GENERATOR: Ninja
+    CC: clang
+    CXX: clang++
+    ADDITIONAL_CMAKE_OPTIONS: -DWITH_SQLITE3=ON -DBUILD_SOCI_BACKENDS="mysql;sqlite3" -DPYTHON_EXECUTABLE:FILEPATH=/bin/python3.11 # Default python is 3.9, minimal version to compile wrapper is 3.10
+  extends: .linux-desktop-python

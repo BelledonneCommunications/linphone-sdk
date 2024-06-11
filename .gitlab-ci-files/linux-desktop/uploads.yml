@@ -1,3 +1,7 @@
+#################################################
+# --- DOC UPLOAD
+#################################################
+
 debian-doc-upload:
   stage: deploy
   tags: [ "deploy" ]
@@ -149,3 +153,25 @@ lime-doc-upload:
     - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
     # Using rsync with following options (verbose, keeping symbolic links, and copy recursively)
     - rsync -rlv build/default/linphone-sdk/desktop/share/doc/lime-$LIME_VERSION*/* $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/docs/lime/$LIME_VERSION
+
+#################################################
+# --- WHEEL UPLOAD
+#################################################
+
+rocky9-python-wheel-upload:
+  stage: deploy
+  tags: [ "deploy" ]
+
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $DEPLOY_PYTHON != null && $SKIP_DEPLOY == null
+    - !reference [.rules-merge-request-manual, rules]
+  
+  needs:
+    - rocky9-python-wheel
+
+  script:
+    - !reference [.choose_upload_dir, script]
+
+    # Create the directories if they do not exist
+    - ssh $DEPLOY_SERVER mkdir -p $UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64
+    - scp build/default/linphone-sdk/linphone*.whl $DEPLOY_SERVER:$UPLOAD_ROOT_DIRECTORY/linphone-python/linux-x86_64/
