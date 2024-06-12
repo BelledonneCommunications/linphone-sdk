@@ -557,6 +557,7 @@ struct belle_sip_hop {
 	char *transport;
 	int port;
 	int port_is_explicit;
+	char *channel_bank_identifier;
 };
 
 /*
@@ -605,6 +606,8 @@ BELLESIP_EXPORT belle_sip_hop_t *
 belle_sip_hop_new(const char *transport, const char *cname, const char *host, int port);
 BELLESIP_EXPORT belle_sip_hop_t *belle_sip_hop_new_from_uri(const belle_sip_uri_t *uri);
 BELLESIP_EXPORT belle_sip_hop_t *belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *uri);
+void belle_sip_hop_set_channel_bank_identifier(belle_sip_hop_t *hop, const char *channel_bank_identifier);
+const char *belle_sip_hop_get_channel_bank_identifier(const belle_sip_hop_t *hop);
 
 BELLESIP_EXPORT belle_sip_hop_t *belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_sip_request_t *req);
 /* Return -1 if requested authentication is not compatible with local digest authentication security policy, 0 if
@@ -689,8 +692,8 @@ struct _belle_sip_message {
 	belle_sip_object_t base;
 	belle_sip_list_t *header_list;
 	belle_sip_body_handler_t *body_handler;
-
 	char *multipart_body_cache;
+	char *channel_bank_identifier;
 };
 
 struct _belle_sip_request {

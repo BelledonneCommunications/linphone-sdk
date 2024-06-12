@@ -96,6 +96,7 @@ static void belle_sip_message_destroy(belle_sip_message_t *msg) {
 	belle_sip_list_free_with_data(msg->header_list, (void (*)(void *))belle_sip_headers_container_delete);
 	if (msg->body_handler) belle_sip_object_unref(msg->body_handler);
 	if (msg->multipart_body_cache) bctbx_free(msg->multipart_body_cache);
+	if (msg->channel_bank_identifier) bctbx_free(msg->channel_bank_identifier);
 }
 
 /*very sub-optimal clone method */
@@ -111,6 +112,7 @@ static void belle_sip_message_clone(belle_sip_message_t *obj, const belle_sip_me
 			belle_sip_list_free(ll);
 		}
 	}
+	belle_sip_message_set_channel_bank_identifier(obj, orig->channel_bank_identifier);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_message_t);
@@ -895,12 +897,16 @@ void belle_sip_response_fill_for_dialog(belle_sip_response_t *obj, belle_sip_req
 belle_sip_hop_t *belle_sip_response_get_return_hop(belle_sip_response_t *msg) {
 	belle_sip_header_via_t *via = BELLE_SIP_HEADER_VIA(belle_sip_message_get_header(BELLE_SIP_MESSAGE(msg), "via"));
 	if (via) {
+		belle_sip_hop_t *hop;
 		const char *host = belle_sip_header_via_get_received(via) ? belle_sip_header_via_get_received(via)
 		                                                          : belle_sip_header_via_get_host(via);
 		int port = belle_sip_header_via_get_rport(via) > 0 ? belle_sip_header_via_get_rport(via)
 		                                                   : belle_sip_header_via_get_listening_port(via);
-		return belle_sip_hop_new(belle_sip_header_via_get_transport_lowercase(via), belle_sip_header_via_get_host(via),
-		                         host, port);
+		hop = belle_sip_hop_new(belle_sip_header_via_get_transport_lowercase(via), belle_sip_header_via_get_host(via),
+		                        host, port);
+		belle_sip_hop_set_channel_bank_identifier(
+		    hop, belle_sip_message_get_channel_bank_identifier((belle_sip_message_t *)msg));
+		return hop;
 	}
 	return NULL;
 }
@@ -1120,3 +1126,5 @@ int belle_sip_request_check_uris_components(const belle_sip_request_t *request) 
 	return belle_sip_uri_check_components_from_request_uri(
 	    belle_sip_request_get_uri((const belle_sip_request_t *)request));
 }
+
+GET_SET_STRING(belle_sip_message, channel_bank_identifier)

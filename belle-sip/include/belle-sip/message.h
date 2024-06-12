@@ -168,6 +168,14 @@ BELLESIP_EXPORT int belle_sip_message_check_headers(const belle_sip_message_t *m
  * */
 BELLESIP_EXPORT int belle_sip_request_check_uris_components(const belle_sip_request_t *request);
 
+/**
+ * Assign a channel bank identifier to this message, so that when going through the transport layer it
+ * chooses a connection within the channel bank (connection pool) referred by the identifier.
+ */
+BELLESIP_EXPORT void belle_sip_message_set_channel_bank_identifier(belle_sip_message_t *msg, const char *identifier);
+
+BELLESIP_EXPORT const char *belle_sip_message_get_channel_bank_identifier(const belle_sip_message_t *msg);
+
 BELLE_SIP_END_DECLS
 
 #endif

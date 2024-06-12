@@ -154,6 +154,7 @@ static void belle_sip_channel_destroy(belle_sip_channel_t *obj) {
 	}
 	channel_end_send_background_task(obj);
 	channel_end_recv_background_task(obj);
+	if (obj->bank_identifier) bctbx_free(obj->bank_identifier);
 	/*normally this should do nothing because it sould have been terminated already,
 	    however leaving a background task open is so dangerous that we have to be paranoid*/
 	belle_sip_message("Channel [%p] destroyed", obj);
@@ -414,6 +415,7 @@ static void belle_sip_channel_message_ready(belle_sip_channel_t *obj) {
 	if (bh) belle_sip_body_handler_end_transfer(bh);
 	if (belle_sip_message_is_response(msg)) belle_sip_channel_learn_public_ip_port(obj, BELLE_SIP_RESPONSE(msg));
 	uncompress_body_if_required(msg);
+	belle_sip_message_set_channel_bank_identifier(msg, obj->bank_identifier);
 	obj->incoming_messages = belle_sip_list_append(obj->incoming_messages, belle_sip_object_ref(msg));
 	belle_sip_channel_input_stream_reset(&obj->input_stream);
 	obj->inhibit_input_logging_buffer = 0;
@@ -1764,33 +1766,6 @@ void belle_sip_channel_force_close(belle_sip_channel_t *obj) {
 	channel_set_state(obj, BELLE_SIP_CHANNEL_DISCONNECTED);
 }
 
-belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_list_t *l,
-                                                                    const belle_sip_hop_t *hop,
-                                                                    const struct addrinfo *addr) {
-	belle_sip_list_t *elem;
-	belle_sip_channel_t *chan;
-
-	for (elem = l; elem != NULL; elem = elem->next) {
-		chan = (belle_sip_channel_t *)elem->data;
-		if (chan->state == BELLE_SIP_CHANNEL_DISCONNECTED || chan->state == BELLE_SIP_CHANNEL_ERROR) continue;
-		if (!chan->about_to_be_closed && belle_sip_channel_matches(chan, hop, addr)) {
-			return chan;
-		}
-	}
-	return NULL;
-}
-
-/* search a matching channel from a list according to supplied hop. The ai_family tells which address family is
- * supported by the list of channels*/
-belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop) {
-	belle_sip_channel_t *chan = NULL;
-	struct addrinfo *res = bctbx_ip_address_to_addrinfo(
-	    ai_family, SOCK_STREAM /*needed on some platforms that return an error otherwise (QNX)*/, hop->host, hop->port);
-	chan = belle_sip_channel_find_from_list_with_addrinfo(l, hop, res);
-	if (res) bctbx_freeaddrinfo(res);
-	return chan;
-}
-
 void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj) {
 	if (obj->dns_ttl_timedout) {
 		obj->dns_ttl_timedout = FALSE;
@@ -1801,6 +1776,18 @@ void belle_sip_channel_check_dns_reusability(belle_sip_channel_t *obj) {
 void belle_sip_channel_set_simulated_recv_return(belle_sip_channel_t *obj, int recv_error) {
 	obj->simulated_recv_return = recv_error;
 	obj->base.notify_required = (recv_error <= 0);
+}
+
+const char *belle_sip_channel_get_bank_identifier(const belle_sip_channel_t *obj) {
+	return obj->bank_identifier;
+}
+
+void belle_sip_channel_set_bank_identifier(belle_sip_channel_t *obj, const char *identifier) {
+	if (obj->bank_identifier) {
+		belle_sip_error("A channel cannot have its bank identifier changed.");
+		return;
+	}
+	obj->bank_identifier = bctbx_strdup(identifier);
 }
 
 #ifdef __ANDROID__

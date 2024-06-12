@@ -684,10 +684,10 @@ static void test_channel_moving_to_error_and_cleaned(void) {
 		                               belle_sip_header_to_create2(identity, NULL), belle_sip_header_via_new(), 70);
 		tr = belle_sip_provider_create_client_transaction(prov, req);
 		belle_sip_client_transaction_send_request(tr);
-		belle_sip_object_ref(tr);
 		BC_ASSERT_EQUAL(belle_sip_listening_point_get_channel_count(lp), 1, int, "%d");
 		/*calling notify_server_error() will make the channel enter the error state, which is what we want to test*/
-		belle_sip_channel_notify_server_error((belle_sip_channel_t *)lp->channels->data);
+		belle_sip_channel_notify_server_error(tr->base.channel);
+		belle_sip_object_ref(tr);
 		/*immediately after, we clean the channel from the listening point*/
 		belle_sip_listening_point_clean_channels(lp);
 		/*we just want to verify that it doesn't crash*/

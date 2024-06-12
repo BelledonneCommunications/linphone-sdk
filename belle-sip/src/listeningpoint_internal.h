@@ -34,7 +34,7 @@ BELLE_SIP_DECLARE_CUSTOM_VPTR_END
 struct belle_sip_listening_point {
 	belle_sip_object_t base;
 	belle_sip_stack_t *stack;
-	belle_sip_list_t *channels;
+	belle_sip_channel_bank_t *channels;
 	belle_sip_uri_t *listening_uri;
 	belle_sip_source_t *keep_alive_timer;
 	belle_sip_channel_listener_t
@@ -47,17 +47,19 @@ void belle_sip_listening_point_init(belle_sip_listening_point_t *lp,
                                     belle_sip_stack_t *s,
                                     const char *address,
                                     int port);
-belle_sip_channel_t *_belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp,
-                                                            const belle_sip_hop_t *hop,
-                                                            const struct addrinfo *addr);
+belle_sip_channel_t *_belle_sip_listening_point_get_channel_by_addrinfo(belle_sip_listening_point_t *lp,
+                                                                        const struct addrinfo *addr);
 belle_sip_channel_t *belle_sip_listening_point_create_channel(belle_sip_listening_point_t *ip,
                                                               const belle_sip_hop_t *hop);
 void belle_sip_listening_point_remove_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 int belle_sip_listening_point_get_well_known_port(const char *transport);
 belle_sip_channel_t *belle_sip_listening_point_get_channel(belle_sip_listening_point_t *lp, const belle_sip_hop_t *hop);
+belle_sip_channel_t *belle_sip_listening_point_find_channel_by_local_uri(belle_sip_listening_point_t *lp,
+                                                                         const belle_sip_uri_t *uri);
 void belle_sip_listening_point_add_channel(belle_sip_listening_point_t *lp, belle_sip_channel_t *chan);
 void belle_sip_listening_point_set_channel_listener(belle_sip_listening_point_t *lp,
                                                     belle_sip_channel_listener_t *channel_listener);
+void belle_sip_listening_point_set_simulated_recv_return(belle_sip_listening_point_t *lp, int recv_error);
 BELLE_SIP_END_DECLS
 
 /**udp*/

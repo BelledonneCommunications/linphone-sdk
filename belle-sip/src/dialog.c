@@ -982,6 +982,9 @@ static belle_sip_request_t *create_request(belle_sip_dialog_t *obj, const char *
 		belle_sip_message_add_header((belle_sip_message_t *)req, BELLE_SIP_HEADER(obj->privacy));
 	}
 	belle_sip_request_set_dialog(req, obj);
+	belle_sip_message_t *last_request = (belle_sip_message_t *)belle_sip_transaction_get_request(obj->last_transaction);
+	belle_sip_message_set_channel_bank_identifier((belle_sip_message_t *)req,
+	                                              belle_sip_message_get_channel_bank_identifier(last_request));
 	return req;
 }
 

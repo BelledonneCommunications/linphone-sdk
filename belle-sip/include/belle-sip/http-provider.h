@@ -51,9 +51,6 @@ BELLESIP_EXPORT int belle_http_provider_send_request(belle_http_provider_t *obj,
 
 BELLESIP_EXPORT void belle_http_provider_cancel_request(belle_http_provider_t *obj, belle_http_request_t *req);
 
-BELLESIP_EXPORT belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj,
-                                                                    const char *transport_name);
-
 BELLE_SIP_END_DECLS
 
 #endif

@@ -91,6 +91,7 @@ struct belle_sip_channel {
 	belle_sip_source_t base;
 	belle_sip_stack_t *stack;
 	belle_sip_listening_point_t *lp; /*the listening point that owns this channel*/
+	char *bank_identifier;
 	belle_sip_channel_state_t state;
 	belle_sip_list_t *state_listeners;
 	belle_sip_list_t *full_listeners;
@@ -249,6 +250,10 @@ void belle_sip_channel_enable_ping_pong(belle_sip_channel_t *obj, int enabled);
 
 int belle_sip_channel_ping_pong_enabled(const belle_sip_channel_t *obj);
 
+const char *belle_sip_channel_get_bank_identifier(const belle_sip_channel_t *obj);
+
+void belle_sip_channel_set_bank_identifier(belle_sip_channel_t *obj, const char *identifier);
+
 BELLE_SIP_END_DECLS
 
 BELLE_SIP_DECLARE_CUSTOM_VPTR_BEGIN(belle_sip_channel_t, belle_sip_source_t)
@@ -268,11 +273,6 @@ void belle_sip_tls_channel_set_client_certificates_chain(belle_sip_tls_channel_t
                                                          belle_sip_certificates_chain_t *cert_chain);
 void belle_sip_tls_channel_set_client_certificate_key(belle_sip_tls_channel_t *obj, belle_sip_signing_key_t *key);
 
-belle_sip_channel_t *belle_sip_channel_find_from_list_with_addrinfo(belle_sip_list_t *l,
-                                                                    const belle_sip_hop_t *hop,
-                                                                    const struct addrinfo *addr);
-belle_sip_channel_t *belle_sip_channel_find_from_list(belle_sip_list_t *l, int ai_family, const belle_sip_hop_t *hop);
-
 #define BELLE_SIP_TLS_CHANNEL(obj) BELLE_SIP_CAST(obj, belle_sip_tls_channel_t)
 
 struct belle_tls_crypto_config {
@@ -290,5 +290,7 @@ struct belle_tls_crypto_config {
 	belle_tls_crypto_config_postcheck_callback_t postcheck_cb;
 	void *postcheck_cb_data;
 };
+
+typedef struct _belle_sip_channel_bank belle_sip_channel_bank_t;
 
 #endif

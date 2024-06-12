@@ -368,7 +368,11 @@ void belle_sip_server_transaction_send_response(belle_sip_server_transaction_t *
 
 	belle_sip_object_ref(resp);
 	if (!base->last_response || !base->channel) {
-		belle_sip_hop_t *hop = belle_sip_response_get_return_hop(resp);
+		belle_sip_hop_t *hop;
+		belle_sip_message_set_channel_bank_identifier(
+		    (belle_sip_message_t *)resp,
+		    belle_sip_message_get_channel_bank_identifier((belle_sip_message_t *)base->request));
+		hop = belle_sip_response_get_return_hop(resp);
 		base->channel = belle_sip_provider_get_channel(base->provider, hop);
 		belle_sip_object_unref(hop);
 		if (!base->channel) {
@@ -539,6 +543,8 @@ int belle_sip_client_transaction_send_request_to(belle_sip_client_transaction_t 
 	if (!t->next_hop) {
 		if (t->preset_route) {
 			t->next_hop = belle_sip_hop_new_from_uri(t->preset_route);
+			belle_sip_hop_set_channel_bank_identifier(
+			    t->next_hop, belle_sip_message_get_channel_bank_identifier(BELLE_SIP_MESSAGE(req)));
 		} else {
 			t->next_hop = belle_sip_stack_get_next_hop(prov->stack, t->base.request);
 		}

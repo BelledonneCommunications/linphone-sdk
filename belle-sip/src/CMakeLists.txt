@@ -154,6 +154,8 @@ set(BELLE_SIP_SOURCE_FILES_CXX
 	belle_sdp_impl.cc
 	sdp/parser.cc
 	bearer_token.cc
+	channel_bank.cc
+	channel_bank.hh
 )
 set(GRAMMAR_FILES
 	sdp/sdp_grammar

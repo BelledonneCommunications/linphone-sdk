@@ -98,6 +98,8 @@ belle_sip_hop_t *belle_sip_hop_new_from_generic_uri(const belle_generic_uri_t *u
 	return belle_sip_hop_new(transport, cname, host, port > 0 ? port : well_known_port);
 }
 
+GET_SET_STRING(belle_sip_hop, channel_bank_identifier)
+
 static void belle_sip_hop_destroy(belle_sip_hop_t *hop) {
 	if (hop->host) {
 		belle_sip_free(hop->host);
@@ -111,12 +113,17 @@ static void belle_sip_hop_destroy(belle_sip_hop_t *hop) {
 		belle_sip_free(hop->transport);
 		hop->transport = NULL;
 	}
+	if (hop->channel_bank_identifier) {
+		bctbx_free(hop->channel_bank_identifier);
+		hop->channel_bank_identifier = NULL;
+	}
 }
 
 static void belle_sip_hop_clone(belle_sip_hop_t *hop, const belle_sip_hop_t *orig) {
 	if (orig->host) hop->host = belle_sip_strdup(orig->host);
 	if (orig->cname) hop->cname = belle_sip_strdup(orig->cname);
 	if (orig->transport) hop->transport = belle_sip_strdup(orig->transport);
+	if (orig->channel_bank_identifier) hop->channel_bank_identifier = bctbx_strdup(orig->channel_bank_identifier);
 }
 
 BELLE_SIP_DECLARE_NO_IMPLEMENTED_INTERFACES(belle_sip_hop_t);
@@ -334,13 +341,17 @@ belle_sip_hop_t *belle_sip_stack_get_next_hop(belle_sip_stack_t *stack, belle_si
 	belle_sip_header_route_t *route =
 	    BELLE_SIP_HEADER_ROUTE(belle_sip_message_get_header(BELLE_SIP_MESSAGE(req), "route"));
 	belle_sip_uri_t *uri;
+	belle_sip_hop_t *hop;
 
 	if (route != NULL) {
 		uri = belle_sip_header_address_get_uri(BELLE_SIP_HEADER_ADDRESS(route));
 	} else {
 		uri = belle_sip_request_get_uri(req);
 	}
-	return belle_sip_hop_new_from_uri(uri);
+	hop = belle_sip_hop_new_from_uri(uri);
+	belle_sip_hop_set_channel_bank_identifier(hop,
+	                                          belle_sip_message_get_channel_bank_identifier(BELLE_SIP_MESSAGE(req)));
+	return hop;
 }
 
 void belle_sip_stack_set_tx_delay(belle_sip_stack_t *stack, int delay_ms) {

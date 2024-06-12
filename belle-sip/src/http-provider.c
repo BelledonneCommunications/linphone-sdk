@@ -17,9 +17,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <bctoolbox/defs.h>
+#include "bctoolbox/defs.h"
 
 #include "belle_sip_internal.h"
+#include "channel_bank.hh"
 
 typedef struct belle_http_channel_context belle_http_channel_context_t;
 
@@ -38,8 +39,8 @@ struct belle_http_provider {
 	belle_sip_stack_t *stack;
 	char *bind_ip;
 	int ai_family;
-	belle_sip_list_t *tcp_channels;
-	belle_sip_list_t *tls_channels;
+	belle_sip_channel_bank_t *tcp_channels;
+	belle_sip_channel_bank_t *tls_channels;
 	belle_tls_crypto_config_t *crypto_config;
 	int simulated_recv_return;
 	uint8_t transports; /**< a mask of enabled transports, availables: BELLE_SIP_HTTP_TRANSPORT_TCP and
@@ -521,10 +522,8 @@ BELLE_SIP_INSTANCIATE_VPTR(
 static void http_provider_uninit(belle_http_provider_t *obj) {
 	belle_sip_message("http provider destroyed.");
 	belle_sip_free(obj->bind_ip);
-	belle_sip_list_for_each(obj->tcp_channels, (void (*)(void *))belle_sip_channel_force_close);
-	belle_sip_list_free_with_data(obj->tcp_channels, belle_sip_object_unref);
-	belle_sip_list_for_each(obj->tls_channels, (void (*)(void *))belle_sip_channel_force_close);
-	belle_sip_list_free_with_data(obj->tls_channels, belle_sip_object_unref);
+	belle_sip_object_unref(obj->tcp_channels);
+	belle_sip_object_unref(obj->tls_channels);
 	belle_sip_object_unref(obj->crypto_config);
 }
 
@@ -539,6 +538,8 @@ belle_http_provider_t *belle_http_provider_new(belle_sip_stack_t *s, const char 
 	p->crypto_config = belle_tls_crypto_config_new();
 	p->transports = transports;
 	p->simulated_recv_return = 1;
+	p->tcp_channels = belle_sip_channel_bank_new();
+	p->tls_channels = belle_sip_channel_bank_new();
 	return p;
 }
 
@@ -575,9 +576,10 @@ static void fix_request(belle_http_request_t *req) {
 	}
 }
 
-belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj, const char *transport_name) {
-	if (strcasecmp(transport_name, "tcp") == 0) return &obj->tcp_channels;
-	else if (strcasecmp(transport_name, "tls") == 0) return &obj->tls_channels;
+static belle_sip_channel_bank_t *belle_http_provider_get_channels(belle_http_provider_t *obj,
+                                                                  const char *transport_name) {
+	if (strcasecmp(transport_name, "tcp") == 0) return obj->tcp_channels;
+	else if (strcasecmp(transport_name, "tls") == 0) return obj->tls_channels;
 	else {
 		belle_sip_error("belle_http_provider_send_request(): unsupported transport %s", transport_name);
 		return NULL;
@@ -585,10 +587,10 @@ belle_sip_list_t **belle_http_provider_get_channels(belle_http_provider_t *obj, 
 }
 
 static void provider_remove_channel(belle_http_provider_t *obj, belle_sip_channel_t *chan) {
-	belle_sip_list_t **channels = belle_http_provider_get_channels(obj, belle_sip_channel_get_transport_name(chan));
-	*channels = belle_sip_list_remove(*channels, chan);
+	belle_sip_channel_bank_t *channels =
+	    belle_http_provider_get_channels(obj, belle_sip_channel_get_transport_name(chan));
+	belle_sip_channel_bank_remove_channel(channels, chan);
 	belle_sip_message("channel [%p] removed from http provider.", chan);
-	belle_sip_object_unref(chan);
 }
 
 static void belle_http_end_background_task(void *data) {
@@ -604,7 +606,7 @@ int belle_http_provider_send_request(belle_http_provider_t *obj,
                                      belle_http_request_t *req,
                                      belle_http_request_listener_t *listener) {
 	belle_sip_channel_t *chan;
-	belle_sip_list_t **channels;
+	belle_sip_channel_bank_t *channels;
 	belle_sip_hop_t *hop = belle_sip_hop_new_from_generic_uri(req->orig_uri ? req->orig_uri : req->req_uri);
 
 	if (hop->host == NULL) {
@@ -614,10 +616,14 @@ int belle_http_provider_send_request(belle_http_provider_t *obj,
 	}
 
 	channels = belle_http_provider_get_channels(obj, hop->transport);
+	if (!channels) {
+		belle_sip_object_unref(hop);
+		return -1;
+	}
 
 	if (listener) belle_http_request_set_listener(req, listener);
 
-	chan = belle_sip_channel_find_from_list(*channels, obj->ai_family, hop);
+	chan = belle_sip_channel_bank_find(channels, obj->ai_family, hop);
 
 	if (chan) {
 		// we cannot use the same channel for multiple requests yet since only the first
@@ -665,7 +671,8 @@ int belle_http_provider_send_request(belle_http_provider_t *obj,
 			belle_sip_channel_set_simulated_recv_return(chan, obj->simulated_recv_return);
 		}
 		belle_http_channel_context_new(chan, obj);
-		*channels = belle_sip_list_prepend(*channels, chan);
+		belle_sip_channel_bank_add_channel(channels, chan);
+		belle_sip_object_unref(chan);
 	}
 	belle_sip_object_unref(hop);
 	split_request_url(req);
@@ -720,15 +727,13 @@ int belle_http_provider_set_tls_crypto_config(belle_http_provider_t *obj, belle_
 	return 0;
 }
 
+static void apply_simulated_return(belle_sip_channel_t *chan, void *userdata) {
+	belle_http_provider_t *obj = (belle_http_provider_t *)userdata;
+	belle_sip_channel_set_simulated_recv_return(chan, obj->simulated_recv_return);
+}
+
 void belle_http_provider_set_recv_error(belle_http_provider_t *obj, int recv_error) {
-	belle_sip_list_t *it;
 	obj->simulated_recv_return = recv_error;
-	for (it = obj->tcp_channels; it != NULL; it = it->next) {
-		belle_sip_channel_t *chan = (belle_sip_channel_t *)it->data;
-		belle_sip_channel_set_simulated_recv_return(chan, recv_error);
-	}
-	for (it = obj->tls_channels; it != NULL; it = it->next) {
-		belle_sip_channel_t *chan = (belle_sip_channel_t *)it->data;
-		belle_sip_channel_set_simulated_recv_return(chan, recv_error);
-	}
+	belle_sip_channel_bank_for_each(obj->tcp_channels, apply_simulated_return, obj);
+	belle_sip_channel_bank_for_each(obj->tls_channels, apply_simulated_return, obj);
 }

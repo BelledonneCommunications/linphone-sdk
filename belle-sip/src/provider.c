@@ -627,9 +627,6 @@ static belle_sip_channel_t *_belle_sip_provider_find_channel_using_routable(bell
                                                                             const belle_sip_uri_t *routable_uri) {
 	const char *transport;
 	belle_sip_listening_point_t *lp;
-	belle_sip_list_t *elem;
-	belle_sip_channel_t *chan;
-	belle_sip_uri_t *chan_uri;
 
 	if (!routable_uri) return NULL;
 
@@ -637,15 +634,7 @@ static belle_sip_channel_t *_belle_sip_provider_find_channel_using_routable(bell
 	lp = belle_sip_provider_get_listening_point(p, transport);
 	if (!lp) return NULL;
 
-	for (elem = lp->channels; elem; elem = elem->next) {
-		chan = (belle_sip_channel_t *)elem->data;
-		chan_uri = belle_sip_channel_create_routable_uri(chan);
-		if (belle_sip_uri_get_port(routable_uri) == belle_sip_uri_get_port(chan_uri) &&
-		    0 == strcmp(belle_sip_uri_get_host(routable_uri), belle_sip_uri_get_host(chan_uri))) {
-			return chan;
-		}
-	}
-	return NULL;
+	return belle_sip_listening_point_find_channel_by_local_uri(lp, routable_uri);
 }
 
 /*
@@ -1477,12 +1466,9 @@ int belle_sip_provider_add_authorization(belle_sip_provider_t *p,
 
 void belle_sip_provider_set_recv_error(belle_sip_provider_t *prov, int recv_error) {
 	belle_sip_list_t *lps;
-	belle_sip_list_t *channels;
 	for (lps = prov->lps; lps != NULL; lps = lps->next) {
-		for (channels = ((belle_sip_listening_point_t *)lps->data)->channels; channels != NULL;
-		     channels = channels->next) {
-			belle_sip_channel_set_simulated_recv_return((belle_sip_channel_t *)channels->data, recv_error);
-		}
+		belle_sip_listening_point_t *lp = (belle_sip_listening_point_t *)lps->data;
+		belle_sip_listening_point_set_simulated_recv_return(lp, recv_error);
 	}
 }
 void belle_sip_provider_enable_rport(belle_sip_provider_t *prov, int enable) {
