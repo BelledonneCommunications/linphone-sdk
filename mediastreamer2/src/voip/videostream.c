@@ -2401,6 +2401,8 @@ void video_preview_start(VideoPreview *stream, MSWebCam *device) {
 
 void video_preview_enable_qrcode(VideoPreview *stream, bool_t enable) {
 	stream->enable_qrcode_decoder = enable;
+	if (enable) ms_filter_call_method_noarg(stream->qrcode, MS_QRCODE_READER_RESET_SEARCH);
+	else ms_filter_call_method_noarg(stream->qrcode, MS_QRCODE_READER_STOP_SEARCH);
 }
 
 void video_preview_set_decode_rect(VideoPreview *stream, MSRect rect) {

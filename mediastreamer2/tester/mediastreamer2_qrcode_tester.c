@@ -55,7 +55,7 @@ static void qrcode_found_cb(void *data, BCTBX_UNUSED(MSFilter *f), unsigned int 
 }
 
 static void _decode_qr_code(
-    const char *_image_path, bool_t want_decode, MSRect *capture_rect, bool_t with_reset, unsigned int number_of_run) {
+    const char *_image_path, bool_t want_decode, MSRect *capture_rect, unsigned int number_of_run, bool_t short_delay) {
 	MSConnectionHelper h;
 	MSWebCam *camera;
 	char *image_path, *image_res_path;
@@ -64,6 +64,9 @@ static void _decode_qr_code(
 	MSFilter *void_sink = NULL;
 	qrcode_callback_data qrcode_cb_data;
 	MSFactory *_factory = NULL;
+
+	int decode_timeout_ms = 2500; // longer than the timer
+	bool_t stop_and_reset = FALSE;
 
 	qrcode_cb_data.qrcode_found = FALSE;
 	qrcode_cb_data.text = NULL;
@@ -98,11 +101,14 @@ static void _decode_qr_code(
 	ms_connection_helper_link(&h, void_sink, 0, -1);
 	ms_ticker_attach(ms_tester_ticker, nowebcam_qrcode);
 
+	if (number_of_run == 1) decode_timeout_ms = 1000; // check that the timer do not run for the first qrcode search
+	if (number_of_run >= 3) stop_and_reset = TRUE;    // check that the search can be stopped and reset
+
 	while (number_of_run-- > 0) {
 		if (want_decode) {
-			BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &qrcode_cb_data.qrcode_found, TRUE, 2000));
+			BC_ASSERT_TRUE(wait_for_until(NULL, NULL, &qrcode_cb_data.qrcode_found, TRUE, decode_timeout_ms));
 		} else {
-			BC_ASSERT_FALSE(wait_for_until(NULL, NULL, &qrcode_cb_data.qrcode_found, TRUE, 2000));
+			BC_ASSERT_FALSE(wait_for_until(NULL, NULL, &qrcode_cb_data.qrcode_found, TRUE, decode_timeout_ms));
 		}
 
 		if (qrcode_cb_data.qrcode_found) {
@@ -114,10 +120,20 @@ static void _decode_qr_code(
 			}
 		}
 
-		if (with_reset) {
-			ms_filter_call_method_noarg(zxing_qrcode, MS_QRCODE_READER_RESET_SEARCH);
-		} else {
+		if (short_delay) {
+			// check that the QRCode cannot be found with a short delay after the previous detection
+			decode_timeout_ms = 1000;
 			want_decode = FALSE;
+		}
+
+		if (stop_and_reset) {
+			if (want_decode) {
+				want_decode = FALSE;
+				ms_filter_call_method_noarg(zxing_qrcode, MS_QRCODE_READER_STOP_SEARCH);
+			} else {
+				want_decode = TRUE;
+				ms_filter_call_method_noarg(zxing_qrcode, MS_QRCODE_READER_RESET_SEARCH);
+			}
 		}
 	}
 
@@ -138,15 +154,15 @@ static void _decode_qr_code(
 }
 
 static void decode_qr_code(void) {
-	_decode_qr_code(QRCODELINPHONE_JPG, TRUE, NULL, FALSE, 1);
+	_decode_qr_code(QRCODELINPHONE_JPG, TRUE, NULL, 1, FALSE);
 }
 
 static void decode_qr_code_screen(void) {
-	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, FALSE, 1);
+	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, 1, FALSE);
 }
 
 static void decode_qr_code_inclined(void) {
-	_decode_qr_code(QRCODELINPHONE_INCLINED_JPG, TRUE, NULL, FALSE, 1);
+	_decode_qr_code(QRCODELINPHONE_INCLINED_JPG, TRUE, NULL, 1, FALSE);
 }
 
 static void decode_qr_code_rect(void) {
@@ -155,19 +171,23 @@ static void decode_qr_code_rect(void) {
 	rect.y = 470;
 	rect.w = 268;
 	rect.h = 262;
-	_decode_qr_code(QRCODELINPHONE_CAPTURED_JPG, TRUE, &rect, FALSE, 1);
+	_decode_qr_code(QRCODELINPHONE_CAPTURED_JPG, TRUE, &rect, 1, FALSE);
 }
 
 static void cannot_decode(void) {
-	_decode_qr_code(QRCODELINPHONE_CAPTURED_JPG, FALSE, NULL, FALSE, 1);
+	_decode_qr_code(QRCODELINPHONE_CAPTURED_JPG, FALSE, NULL, 1, FALSE);
 }
 
 static void decode_qr_code_twice(void) {
-	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, TRUE, 2);
+	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, 2, FALSE);
 }
 
-static void decode_qr_code_once(void) {
-	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, FALSE, 2);
+static void cannot_decode_second_qr_code_too_soon(void) {
+	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, 2, TRUE);
+}
+
+static void enable_disable_qr_code_search(void) {
+	_decode_qr_code(QRCODELINPHONE_SCREEN_JPG, TRUE, NULL, 3, FALSE);
 }
 
 static test_t tests[] = {TEST_NO_TAG("Decode qr code", decode_qr_code),
@@ -176,7 +196,7 @@ static test_t tests[] = {TEST_NO_TAG("Decode qr code", decode_qr_code),
                          TEST_NO_TAG("Decode qr code with rect", decode_qr_code_rect),
                          TEST_NO_TAG("Cannot decode qr code", cannot_decode),
                          TEST_NO_TAG("Decode qr code twice", decode_qr_code_twice),
-                         TEST_NO_TAG("Decode qr code once", decode_qr_code_once)};
-
+                         TEST_NO_TAG("Cannot decode second qr code too soon", cannot_decode_second_qr_code_too_soon),
+                         TEST_NO_TAG("Enable and disable qr code search", enable_disable_qr_code_search)};
 
 test_suite_t qrcode_test_suite = {"QRCode", NULL, NULL, NULL, NULL, sizeof(tests) / sizeof(tests[0]), tests, 0};

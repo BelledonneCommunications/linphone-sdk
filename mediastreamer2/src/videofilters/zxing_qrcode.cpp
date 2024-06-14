@@ -29,6 +29,8 @@
 
 #include <vector>
 
+#define TIMER_DELAY_S 2.0f
+
 #if defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
@@ -54,11 +56,17 @@ using namespace std;
 using namespace ZXing;
 
 typedef struct {
+	time_t last_qrcode_found_time_s;
+	bool_t enable_timer;
+} QRCodeStatus;
+
+typedef struct {
 	ImageView image;
 	char *resultText;
 	bool_t searchQRCode;
 	MSRect decoderRect;
 	MSFilter *f;
+	QRCodeStatus search_status;
 } QRCodeReaderStruct;
 
 static void qrcode_init(MSFilter *f) {
@@ -67,6 +75,8 @@ static void qrcode_init(MSFilter *f) {
 	qrc->decoderRect.h = 0;
 	qrc->decoderRect.w = 0;
 	qrc->image = ImageView(NULL, 0, 0, ImageFormat::None);
+	qrc->search_status.last_qrcode_found_time_s = ms_time(NULL) - (time_t)TIMER_DELAY_S;
+	qrc->search_status.enable_timer = TRUE;
 	f->data = qrc;
 }
 
@@ -80,6 +90,27 @@ static void qrcode_uninit(MSFilter *f) {
 static int reset_search(MSFilter *f, BCTBX_UNUSED(void *arg)) {
 	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
 	qrc->searchQRCode = TRUE;
+	qrc->search_status.enable_timer = TRUE;
+	return 0;
+}
+
+static int qrcode_update_status(MSFilter *f) {
+	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
+	if (qrc->search_status.enable_timer) {
+		time_t current_delay = ms_time(NULL) - qrc->search_status.last_qrcode_found_time_s;
+		if (current_delay < TIMER_DELAY_S) {
+			qrc->searchQRCode = FALSE;
+		} else {
+			qrc->searchQRCode = TRUE;
+		}
+	}
+	return 0;
+}
+
+static int stop_search(MSFilter *f, BCTBX_UNUSED(void *arg)) {
+	QRCodeReaderStruct *qrc = (QRCodeReaderStruct *)f->data;
+	qrc->searchQRCode = FALSE;
+	qrc->search_status.enable_timer = FALSE;
 	return 0;
 }
 
@@ -107,6 +138,7 @@ static void read_qrcode(MSFilter *f) {
 				MSQrCodeReaderEventData data = {{0}};
 				snprintf(data.data, sizeof(data.data), "%s", results[i].text().c_str());
 				qrc->searchQRCode = FALSE;
+				qrc->search_status.last_qrcode_found_time_s = ms_time(NULL);
 				ms_filter_notify(f, MS_QRCODE_READER_QRCODE_FOUND, &data);
 			}
 		}
@@ -120,6 +152,7 @@ void qrcode_process(MSFilter *f) {
 
 	ms_filter_lock(f);
 	while ((m = ms_queue_get(f->inputs[0])) != NULL) {
+		qrcode_update_status(f);
 		if (qrc->searchQRCode) {
 			ms_yuv_buf_init_from_mblk(&yuvBuf,
 			                          m); // images comes from pixconv/turbojpeg where the output is a YUV format.
@@ -138,7 +171,11 @@ void qrcode_process(MSFilter *f) {
 extern "C" {
 
 static MSFilterMethod qrcode_methods[] = {
-    {MS_QRCODE_READER_RESET_SEARCH, reset_search}, {MS_QRCODE_READET_SET_DECODER_RECT, set_decoder_rect}, {0, NULL}};
+    {MS_QRCODE_READER_RESET_SEARCH, reset_search},
+    {MS_QRCODE_READER_STOP_SEARCH, stop_search},
+    {MS_QRCODE_READET_SET_DECODER_RECT, set_decoder_rect},
+    {0, NULL},
+};
 
 MSFilterDesc ms_qrcode_reader_desc = {MS_QRCODE_READER_ID,
                                       "MSQRCodeReader",
