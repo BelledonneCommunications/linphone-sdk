@@ -1114,14 +1114,8 @@ void media_stream_create_or_update_fec_session(MediaStream *ms) {
 
 	RtpProfile *profile = rtp_session_get_send_profile(ms->sessions.rtp_session);
 	PayloadType *fec_payload_type = rtp_profile_get_payload_from_mime(profile, "flexfec");
-	if (!fec_payload_type) {
-		ms_error("Unable to create FEC session: no payload type for FEC");
-		return;
-	}
-	if (!ms->sessions.rtp_session->bundle) {
-		ms_error("Unable to create FEC session: no bundle in RTP session [%p]", ms->sessions.rtp_session);
-		return;
-	}
+	if (!fec_payload_type) return;
+	if (!ms->sessions.rtp_session->bundle) return;
 
 	if (!ms->sessions.fec_session) {
 		int payload_type_number = 0;
