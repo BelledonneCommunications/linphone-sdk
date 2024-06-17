@@ -160,8 +160,8 @@ struct test_params {
 	test_params()
 	    : outerSuite{MS_AES_128_SHA1_80}, useInnerEncryption{true}, innerSuite{MS_AEAD_AES_256_GCM},
 	      useParticipantVolume{false}, useLongBundleId{false}, useBundledSource{false}, useEkt{false},
-	      skipPaulineBegin{false}, discardPaulinePackets{false}, useSharedMid{false}, autodiscoverBundleSessions{
-	                                                                                      false} {
+	      skipPaulineBegin{false}, discardPaulinePackets{false}, useSharedMid{false},
+	      autodiscoverBundleSessions{false} {
 	}
 };
 } // namespace
@@ -392,6 +392,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_bundle_set_mid_extension_id(rtpBundle_margaux, RTP_EXTENSION_MID);
 	MSMediaStreamSessions margaux;
 	margaux.rtp_session = rtpSession_margaux_marielle;
+	margaux.fec_session = NULL;
 	margaux.srtp_context = NULL;
 	margaux.zrtp_context = NULL;
 	margaux.dtls_context = NULL;
@@ -470,6 +471,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_bundle_set_mid_extension_id(rtpBundle_relay, RTP_EXTENSION_MID);
 	MSMediaStreamSessions relay_margaux;
 	relay_margaux.rtp_session = rtpSession_relay_margaux_marielle;
+	relay_margaux.fec_session = NULL;
 	relay_margaux.srtp_context = NULL;
 	relay_margaux.zrtp_context = NULL;
 	relay_margaux.dtls_context = NULL;
@@ -490,6 +492,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_payload_type(rtpSession_relay_marielle, MARIELLE_PAYLOAD_TYPE);
 	MSMediaStreamSessions relay_marielle;
 	relay_marielle.rtp_session = rtpSession_relay_marielle;
+	relay_marielle.fec_session = NULL;
 	relay_marielle.srtp_context = NULL;
 	relay_marielle.zrtp_context = NULL;
 	relay_marielle.dtls_context = NULL;
@@ -532,6 +535,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_payload_type(rtpSession_relay_pauline, PAULINE_PAYLOAD_TYPE);
 	MSMediaStreamSessions relay_pauline;
 	relay_pauline.rtp_session = rtpSession_relay_pauline;
+	relay_pauline.fec_session = NULL;
 	relay_pauline.srtp_context = NULL;
 	relay_pauline.zrtp_context = NULL;
 	relay_pauline.dtls_context = NULL;
@@ -553,6 +557,7 @@ static bool_t double_encrypted_rtp_relay_data_base(test_params &p) {
 	rtp_session_set_payload_type(rtpSession_marielle, MARIELLE_PAYLOAD_TYPE);
 	MSMediaStreamSessions marielle;
 	marielle.rtp_session = rtpSession_marielle;
+	marielle.fec_session = NULL;
 	marielle.srtp_context = NULL;
 	marielle.zrtp_context = NULL;
 	marielle.dtls_context = NULL;

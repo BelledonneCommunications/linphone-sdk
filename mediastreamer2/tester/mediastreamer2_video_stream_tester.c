@@ -446,7 +446,7 @@ static void video_stream_tester_bundle_fec(video_stream_tester_t *vst) {
 	MediaStream *ms = &vst->vs->ms;
 	vst->bundle = rtp_bundle_new();
 	rtp_bundle_add_session(vst->bundle, "video_fec", ms->sessions.rtp_session);
-	rtp_bundle_set_primary_session(vst->bundle, "video_fec");
+	rtp_bundle_set_primary_session(vst->bundle, ms->sessions.rtp_session);
 }
 static void
 init_video_streams(video_stream_tester_t *vst1, video_stream_tester_t *vst2, video_stream_tester_params_t params) {
