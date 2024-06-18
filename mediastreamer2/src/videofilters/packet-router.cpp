@@ -300,7 +300,7 @@ void RouterVideoOutput::transfer() {
 			mblk_t *start = input->mKeyFrameStart ? input->mKeyFrameStart : ms_queue_peek_first(inputQueue);
 
 			for (mblk_t *m = start; !ms_queue_end(inputQueue, m); m = ms_queue_peek_next(inputQueue, m)) {
-				mblk_t *o = dupmsg(m);
+				mblk_t *o = copymsg(m);
 
 				// Only re-write packet information if full packet mode is disabled
 				if (!mRouter->isFullPacketModeEnabled()) {
