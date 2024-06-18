@@ -343,8 +343,8 @@ static int compareSecrets(bzrtpSrtpSecrets_t *a, bzrtpSrtpSecrets_t* b, uint8_t 
 					}
 				}
 			} else {
-				int firstWordSize = strlen(a->sas) - strlen(strchr(a->sas, ':'));
-				int secondWordSize = strlen(strchr(a->sas, ':')) - 1;
+				size_t firstWordSize = strlen(a->sas) - strlen(strchr(a->sas, ':'));
+				size_t secondWordSize = strlen(strchr(a->sas, ':')) - 1;
 				if (memcmp(a->sas, a->incorrectSas[i], firstWordSize) == 0) {
 					return -1;
 				}
