@@ -107,7 +107,10 @@
       "name": "default",
       "displayName": "Default Config",
       "description": "Default build using Unix Makefiles generator",
-      "generator": "Unix Makefiles"
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
     },
     {
       "name": "ios-common",
