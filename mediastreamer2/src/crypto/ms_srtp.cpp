@@ -386,12 +386,12 @@ static bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *sl
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((ssrc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((ssrc)&0xFF));
+			plainText.push_back(static_cast<uint8_t>((ssrc) & 0xFF));
 
 			plainText.push_back(static_cast<uint8_t>((roc >> 24) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 16) & 0xFF));
 			plainText.push_back(static_cast<uint8_t>((roc >> 8) & 0xFF));
-			plainText.push_back(static_cast<uint8_t>((roc)&0xFF));
+			plainText.push_back(static_cast<uint8_t>((roc) & 0xFF));
 
 			// encrypt it
 			std::vector<uint8_t> cipherText{};
@@ -409,7 +409,7 @@ static bool ms_srtp_set_ekt_tag(MSSrtpSendStreamContext *ctx, mblk_t *m, int *sl
 
 			// append Length: in bytes, including length and message type byte
 			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size >> 8) & 0xFF));
-			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size)&0xFF));
+			cipherText.push_back(static_cast<uint8_t>((ekt_tag_size) & 0xFF));
 
 			// Full EKT tag message type : 0x02
 			cipherText.push_back(0x02);
@@ -458,8 +458,14 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 		}
 
 		// EKT preparation (possible tag append at the end of encryption processing)
-		if (ctx->mEktMode == MS_EKT_ENABLED && ctx->ektSender != nullptr) {
-			ekt_tag_size = ms_srtp_ekt_get_tag_size(ctx->ektSender);
+		if (ctx->mEktMode == MS_EKT_ENABLED) {
+			if (ctx->ektSender != nullptr) {
+				ekt_tag_size = ms_srtp_ekt_get_tag_size(ctx->ektSender);
+			} else {
+				// we are in EKT mode but we do not have any EKT yet -> drop the packet
+				ms_message("SRTP strem [%p] : EKT enabled by no key provided yet, drop the packet", ctx);
+				return 0;
+			}
 		} else if (ctx->mEktMode == MS_EKT_TRANSFER) {
 			// We are in transfer mode: the EktTag shall already be at the end of the packet
 			// copy it in a buffer to be able to append it again after the srtp_protect call
@@ -471,12 +477,18 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 				slen--;
 			} else if (m->b_rptr[slen - 1] == 0x02) { // Full EKT tag
 				ekt_tag_size = ((uint16_t)(m->b_rptr[slen - 3])) << 8 | (uint16_t)(m->b_rptr[slen - 2]);
-				ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
-				slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+				if ((int)ekt_tag_size < slen - RTP_FIXED_HEADER_SIZE) {
+					ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
+					slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+				} else {
+					ms_error("SRTP stream [%p] send in transfer mode, incoherent EKT tag found drop the packet", ctx);
+					return 0;
+				}
 			} else {
-				ms_error("SRTP stream [%p] sending packet in transfer mode expecting EKT tag but none were found, type "
-				         "is %x",
-				         ctx, m->b_rptr[slen - 1]);
+				ms_message("SRTP stream [%p] send packet in transfer mode expecting EKT tag but none were found, drop "
+				           "the packet",
+				           ctx);
+				return 0;
 			}
 		}
 
@@ -576,7 +588,7 @@ static int ms_srtp_process_on_send(RtpTransportModifier *t, mblk_t *m) {
 						}
 						if (add_seq_num) {
 							m->b_rptr[slen++] = (original_seq_number >> 8) & 0xFF;
-							m->b_rptr[slen++] = (original_seq_number)&0xFF;
+							m->b_rptr[slen++] = (original_seq_number) & 0xFF;
 							config_byte |= OHB_SEQNUM_BIT;
 						}
 						m->b_rptr[slen++] = config_byte;
@@ -665,8 +677,8 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 	if (slen < RTP_FIXED_HEADER_SIZE || rtp->version != 2) {
 		return slen;
 	}
-
 	MSSrtpRecvStreamContext *ctx = (MSSrtpRecvStreamContext *)t->data;
+
 	/* Shall we check the EKT ? */
 	std::vector<uint8_t> ekt_tag{};
 	std::lock_guard<std::recursive_mutex> lock(ctx->mMutex);
@@ -681,12 +693,17 @@ static int ms_srtp_process_on_receive(RtpTransportModifier *t, mblk_t *m) {
 			slen--;
 		} else if (m->b_rptr[slen - 1] == 0x02) { // Full EKT tag
 			size_t ekt_tag_size = ((uint16_t)(m->b_rptr[slen - 3])) << 8 | (uint16_t)(m->b_rptr[slen - 2]);
-			ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
-			slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+			if ((int)ekt_tag_size < slen - RTP_FIXED_HEADER_SIZE) {
+				ekt_tag.assign(m->b_rptr + slen - ekt_tag_size, m->b_rptr + slen);
+				slen -= (int)(ekt_tag_size); // Hide the trailing ekt tag from the SRTP engine
+			} else {
+				ms_message(
+				    "SRTP stream[%p] in transfer mode, recv packet with incoherent EKT tag size, drop the packet", ctx);
+				return 0;
+			}
 		} else {
-			ms_error("SRTP stream [%p] receiving packet in transfer mode expecting EKT tag but none were found, "
-			         "type is %x",
-			         ctx, m->b_rptr[slen - 1]);
+			ms_message("SRTP stream [%p] in transfer mode, recv packet without EKT tag, drop the packet", ctx);
+			return 0;
 		}
 	}
 
@@ -1520,6 +1537,8 @@ extern "C" int ms_media_stream_sessions_set_ekt_mode(MSMediaStreamSessions *sess
 	check_and_create_srtp_context(sessions);
 	std::lock_guard<std::recursive_mutex> lockS(sessions->srtp_context->mSend.mMutex);
 	std::lock_guard<std::recursive_mutex> lockR(sessions->srtp_context->mRecv.mMutex);
+
+	ms_message("set EKT %d on session [%p] SRTP Context [%p]", mode, sessions, sessions->srtp_context);
 
 	switch (mode) {
 		case MS_EKT_DISABLED:
